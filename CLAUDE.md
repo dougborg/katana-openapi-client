@@ -88,6 +88,38 @@ Common mistakes to avoid:
   fields, use `to_unset(value)` from `katana_public_api_client.domain.converters`
   instead of `value if value is not None else UNSET`.
 
+## Using the LSP tool
+
+Both Python (pyright) and TypeScript (typescript-language-server) LSPs are configured
+and active. **Prefer LSP operations over `Read` + `Grep` for type and call-graph
+questions** — they are faster, more accurate, and cross-reference the real type system
+(including third-party libraries in `.venv`).
+
+| When you need to…                                             | Use                  |
+| ------------------------------------------------------------- | -------------------- |
+| Understand a symbol's type/signature/docstring                | `LSP hover`          |
+| Jump to where a function/class is defined (project code)      | `LSP goToDefinition` |
+| Find every caller of a function before changing its signature | `LSP findReferences` |
+| List all symbols in a file (skim without reading all of it)   | `LSP documentSymbol` |
+| Trace callers of a function (who calls X?)                    | `LSP incomingCalls`  |
+| Trace callees of a function (what does X call?)               | `LSP outgoingCalls`  |
+
+**Project root must match workspace root**. The pyright config lives at
+`pyrightconfig.json` (relative `venvPath: "."`). CLI pyright uses it automatically
+(`npx pyright` or `uv run pyright`); the langserver reads it on startup.
+
+### LSP known limitations
+
+- `workspaceSymbol` returns nothing in this tooling — pyright only indexes *open* files,
+  and the LSP tool doesn't expose the query parameter. Use `Grep` for project-wide
+  symbol search instead (e.g., `Grep "def format_md_table"`).
+- `goToImplementation` is not implemented by pyright — use `goToDefinition` instead.
+- `goToDefinition` on external-library imports returns "no definition found" — use
+  `hover` instead, which gives you the class signature + docstring.
+- If `hover` returns `Unknown` for a *project-external* import (e.g., pydantic,
+  fastmcp), the langserver is stale — flag to the user that Claude Code needs a restart
+  to re-read `pyrightconfig.json`. All project-internal imports should always resolve.
+
 ## Architecture Overview
 
 **Monorepo with 3 packages:**

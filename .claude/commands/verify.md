@@ -43,6 +43,11 @@ This step catches "compiles but doesn't work" failures that test suites sometime
 - [ ] If new functions were added, they are called from the right places
 - [ ] If tests were added, they test the actual implementation (not mocks of it)
 
+**Use `LSP findReferences`** on each new public function/class to prove it is actually
+wired up — not just imported and sitting there. Zero references to a new symbol means
+something is unfinished. Grep can miss dynamic dispatch that the LSP catches via the
+real type graph.
+
 ### 5. Generated Files Intact
 
 - [ ] Generated files not manually edited (see CLAUDE.md "File Rules")

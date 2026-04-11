@@ -69,7 +69,14 @@ if is_success(response): ...
 ## Process
 
 1. Scan editable files for each detection rule category
-1. For each finding, report the file, line, current pattern, and fix
+1. Before rewriting a suspected anti-pattern, verify with the LSP:
+   - `hasattr` flag: run `LSP hover` on the attribute. If the type points into an
+     attrs-generated model (fields carry `Unset | T`), the rewrite to `unwrap_unset` is
+     safe. If hover shows a plain Python class, it may be a real `hasattr` check — leave
+     it alone.
+   - Dead-code flag: run `LSP findReferences` on the symbol definition. Zero references
+     means safe to delete; any reference means it's still wired up.
+1. For each confirmed finding, report the file, line, current pattern, and fix
 1. Apply fixes incrementally (one category at a time)
 1. After each batch of changes, run `uv run poe agent-check` to verify
 1. Summarize all changes made

@@ -19,6 +19,12 @@ Only scan **editable** files. NEVER flag or modify generated files:
 - Unreachable code paths
 - Commented-out code blocks
 
+For candidate unused functions/classes, use `LSP findReferences` on the symbol
+definition to confirm zero usages before flagging. Pyright walks the real import graph
+(including `from module import *` and aliased re-exports) that a plain `Grep` can miss,
+so LSP is the authoritative check. If there are no references outside the definition
+itself, the symbol is dead and safe to remove.
+
 ### 2. Outdated Patterns (Project-Specific)
 
 Flag anti-patterns from CLAUDE.md's "Known Pitfalls" and "Anti-Patterns to Avoid"
