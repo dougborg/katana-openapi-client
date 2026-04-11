@@ -21,7 +21,11 @@ from pydantic import BaseModel, Field
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
-from katana_mcp.tools.tool_result_utils import make_tool_result
+from katana_mcp.tools.tool_result_utils import (
+    enum_to_str,
+    iso_or_none,
+    make_tool_result,
+)
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
@@ -841,8 +845,8 @@ def _po_row_info(row: Any) -> PurchaseOrderRowInfo:
         variant_id=unwrap_unset(row.variant_id, None),
         quantity=unwrap_unset(row.quantity, None),
         price_per_unit=unwrap_unset(row.price_per_unit, None),
-        arrival_date=arrival.isoformat() if arrival else None,
-        received_date=received.isoformat() if received else None,
+        arrival_date=iso_or_none(arrival),
+        received_date=iso_or_none(received),
         total=unwrap_unset(row.total, None),
     )
 
@@ -883,13 +887,11 @@ async def _get_purchase_order_impl(
     rows = [_po_row_info(r) for r in raw_rows] if raw_rows else []
 
     expected_arrival = unwrap_unset(po.expected_arrival_date, None)
-    status = unwrap_unset(po.status, None)
-    status_str = status.value if hasattr(status, "value") else status
 
     return GetPurchaseOrderResponse(
         id=po.id,
         order_no=unwrap_unset(po.order_no, None),
-        status=status_str,
+        status=enum_to_str(unwrap_unset(po.status, None)),
         supplier_id=unwrap_unset(po.supplier_id, None),
         location_id=unwrap_unset(po.location_id, None),
         currency=unwrap_unset(po.currency, None),

@@ -8,6 +8,7 @@ These tools provide:
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any
@@ -16,6 +17,7 @@ from fastmcp import Context, FastMCP
 from fastmcp.tools.tool import ToolResult
 from pydantic import BaseModel, Field
 
+from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
@@ -30,6 +32,12 @@ from katana_public_api_client.models import (
 from katana_public_api_client.utils import unwrap_as
 
 logger = get_logger(__name__)
+
+
+async def _none_coro() -> None:
+    """Helper coroutine returning None for asyncio.gather placeholder slots."""
+    return None
+
 
 # ============================================================================
 # Tool 1: create_manufacturing_order
@@ -546,15 +554,21 @@ async def _get_manufacturing_order_recipe_impl(
     )
     raw_rows = unwrap_data(response, default=[])
 
-    # Enrich each row with the variant SKU from the cache
+    # Parallelize variant lookups across all rows (N+1 fix)
+    variant_ids_raw = [unwrap_unset(row.variant_id, None) for row in raw_rows]
+    variants = await asyncio.gather(
+        *(
+            services.cache.get_by_id(EntityType.VARIANT, v_id)
+            if v_id is not None
+            else _none_coro()
+            for v_id in variant_ids_raw
+        )
+    )
+
     rows: list[RecipeRowInfo] = []
-    for row in raw_rows:
+    for row, variant in zip(raw_rows, variants, strict=True):
         variant_id = unwrap_unset(row.variant_id, None)
-        sku: str | None = None
-        if variant_id is not None:
-            variant = await services.cache.get_by_id("variant", variant_id)
-            if variant:
-                sku = variant.get("sku")
+        sku = variant.get("sku") if variant else None
 
         rows.append(
             RecipeRowInfo(

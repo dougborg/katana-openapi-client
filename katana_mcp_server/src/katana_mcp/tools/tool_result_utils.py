@@ -12,6 +12,7 @@ renders the Prefab UI; other clients fall back to markdown content.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from fastmcp.tools.tool import ToolResult
@@ -21,6 +22,26 @@ from katana_mcp.templates import format_template
 
 if TYPE_CHECKING:
     from prefab_ui.app import PrefabApp
+
+
+def enum_to_str(value: Any) -> str | None:
+    """Extract the string value from an enum, or return as-is.
+
+    Handles the common case where an attrs model field may be a StrEnum,
+    a plain string, or None. Pattern: `enum_to_str(status)` instead of
+    `status.value if hasattr(status, "value") else status`.
+    """
+    if value is None:
+        return None
+    return value.value if hasattr(value, "value") else str(value)
+
+
+def iso_or_none(dt: datetime | None) -> str | None:
+    """Format a datetime as ISO 8601, or return None.
+
+    Shorthand for `dt.isoformat() if dt else None`.
+    """
+    return dt.isoformat() if dt else None
 
 
 def make_tool_result(

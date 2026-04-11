@@ -1,0 +1,17 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonVersion": "3.14",
+  "exclude": [
+    ".venv",
+    ".claude/worktrees",
+    "**/__pycache__",
+    "**/node_modules",
+    "katana_public_api_client/api",
+    "katana_public_api_client/models",
+    "katana_public_api_client/client.py",
+    "katana_public_api_client/models_pydantic/_generated"
+  ],
+  "reportMissingImports": "error",
+  "reportMissingTypeStubs": "none"
+}
