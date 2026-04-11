@@ -512,6 +512,37 @@ Create a sales order.
 
 ---
 
+### list_sales_orders
+List sales orders with filters.
+
+**Parameters:**
+- `order_no` (optional): Exact order number
+- `customer_id` (optional): Filter to a customer
+- `location_id` (optional): Filter to a location
+- `status` (optional): Order status (e.g., "PENDING", "DELIVERED")
+- `production_status` (optional): Production status
+- `needs_work_orders` (optional): Shortcut for `production_status="NONE"` —
+  finds sales orders that haven't had manufacturing orders created yet
+- `limit` (optional, default 50): Max rows to return
+
+**Returns:** Summary rows with order_no, status, production_status, row_count,
+total, currency, created_at, delivery_date.
+
+---
+
+### get_sales_order
+Look up a single sales order by order number or ID with full line items.
+
+**Parameters:**
+- `order_no` (optional): SO number (e.g., "#WEB20394")
+- `order_id` (optional): SO ID
+
+**Returns:** Order header (status, customer, location, total, delivery_date)
+plus `rows` with variant_id, SKU, quantity, price_per_unit, and any linked
+manufacturing_order_id. SKU is enriched via the variant cache.
+
+---
+
 ### create_product / create_material
 Dedicated catalog tools for creating products or materials with a single variant.
 

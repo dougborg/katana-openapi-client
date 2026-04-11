@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
@@ -25,6 +25,7 @@ from katana_mcp.tools.tool_result_utils import (
     format_md_table,
     iso_or_none,
     make_tool_result,
+    none_coro,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET, Unset
@@ -42,11 +43,6 @@ from katana_public_api_client.utils import unwrap_as
 logger = get_logger(__name__)
 
 
-async def _none_coro() -> None:
-    """Helper coroutine returning None for asyncio.gather placeholder slots."""
-    return None
-
-
 # ============================================================================
 # Tool 1: create_sales_order
 # ============================================================================
@@ -58,14 +54,15 @@ class SalesOrderItem(BaseModel):
     variant_id: int = Field(..., description="Variant ID to sell")
     quantity: float = Field(..., description="Quantity to sell", gt=0)
     price_per_unit: float | None = Field(
-        None, description="Override price per unit (uses default if not specified)"
+        default=None,
+        description="Override price per unit (uses default if not specified)",
     )
-    tax_rate_id: int | None = Field(None, description="Tax rate ID (optional)")
+    tax_rate_id: int | None = Field(default=None, description="Tax rate ID (optional)")
     location_id: int | None = Field(
-        None, description="Location to pick from (optional)"
+        default=None, description="Location to pick from (optional)"
     )
     total_discount: float | None = Field(
-        None, description="Discount for this line item (optional)"
+        default=None, description="Discount for this line item (optional)"
     )
 
 
@@ -75,16 +72,18 @@ class SalesOrderAddress(BaseModel):
     entity_type: Literal["billing", "shipping"] = Field(
         ..., description="Type of address - billing or shipping"
     )
-    first_name: str | None = Field(None, description="First name of contact")
-    last_name: str | None = Field(None, description="Last name of contact")
-    company: str | None = Field(None, description="Company name")
-    phone: str | None = Field(None, description="Phone number")
-    line_1: str | None = Field(None, description="Primary address line")
-    line_2: str | None = Field(None, description="Secondary address line")
-    city: str | None = Field(None, description="City")
-    state: str | None = Field(None, description="State or province")
-    zip_code: str | None = Field(None, description="Postal/ZIP code")
-    country: str | None = Field(None, description="Country code (e.g., US, CA, GB)")
+    first_name: str | None = Field(default=None, description="First name of contact")
+    last_name: str | None = Field(default=None, description="Last name of contact")
+    company: str | None = Field(default=None, description="Company name")
+    phone: str | None = Field(default=None, description="Phone number")
+    line_1: str | None = Field(default=None, description="Primary address line")
+    line_2: str | None = Field(default=None, description="Secondary address line")
+    city: str | None = Field(default=None, description="City")
+    state: str | None = Field(default=None, description="State or province")
+    zip_code: str | None = Field(default=None, description="Postal/ZIP code")
+    country: str | None = Field(
+        default=None, description="Country code (e.g., US, CA, GB)"
+    )
 
 
 class CreateSalesOrderRequest(BaseModel):
@@ -94,23 +93,25 @@ class CreateSalesOrderRequest(BaseModel):
     order_number: str = Field(..., description="Unique sales order number")
     items: list[SalesOrderItem] = Field(..., description="Line items", min_length=1)
     location_id: int | None = Field(
-        None, description="Primary fulfillment location ID (optional)"
+        default=None, description="Primary fulfillment location ID (optional)"
     )
     delivery_date: datetime | None = Field(
-        None, description="Requested delivery date (optional)"
+        default=None, description="Requested delivery date (optional)"
     )
     currency: str | None = Field(
-        None, description="Currency code (defaults to company base currency)"
+        default=None,
+        description="Currency code (defaults to company base currency)",
     )
     addresses: list[SalesOrderAddress] | None = Field(
-        None, description="Billing and/or shipping addresses (optional)"
+        default=None, description="Billing and/or shipping addresses (optional)"
     )
-    notes: str | None = Field(None, description="Additional notes (optional)")
+    notes: str | None = Field(default=None, description="Additional notes (optional)")
     customer_ref: str | None = Field(
-        None, description="Customer's reference number (optional)"
+        default=None, description="Customer's reference number (optional)"
     )
     confirm: bool = Field(
-        False, description="If false, returns preview. If true, creates order."
+        default=False,
+        description="If false, returns preview. If true, creates order.",
     )
 
 
@@ -421,29 +422,30 @@ async def _list_sales_orders_impl(
 
     services = get_services(context)
 
-    kwargs: dict = {
+    # Pass through only the filters the caller actually set. `is not None`
+    # (not truthy) so 0-valued customer_id/location_id still filter.
+    production_status = request.production_status
+    if production_status is None and request.needs_work_orders:
+        production_status = "NONE"
+    filters = {
+        "order_no": request.order_no,
+        "customer_id": request.customer_id,
+        "location_id": request.location_id,
+        "status": request.status,
+        "production_status": production_status,
+    }
+    kwargs: dict[str, Any] = {
         "client": services.client,
         "limit": request.limit,
+        **{k: v for k, v in filters.items() if v is not None},
     }
-    if request.order_no:
-        kwargs["order_no"] = request.order_no
-    if request.customer_id:
-        kwargs["customer_id"] = request.customer_id
-    if request.location_id:
-        kwargs["location_id"] = request.location_id
-    if request.status:
-        kwargs["status"] = request.status
-    if request.production_status:
-        kwargs["production_status"] = request.production_status
-    elif request.needs_work_orders:
-        kwargs["production_status"] = "NONE"
 
     response = await get_all_sales_orders.asyncio_detailed(**kwargs)
     attrs_list = unwrap_data(response, default=[])
 
     orders: list[SalesOrderSummary] = []
     for so in attrs_list:
-        rows = unwrap_unset(so.sales_order_rows, []) or []
+        rows = unwrap_unset(so.sales_order_rows, [])
         orders.append(
             SalesOrderSummary(
                 id=so.id,
@@ -569,7 +571,7 @@ async def _get_sales_order_impl(
             raise ValueError(f"Sales order '{request.order_no}' not found")
         so = orders[0]
 
-    raw_rows = unwrap_unset(so.sales_order_rows, []) or []
+    raw_rows = unwrap_unset(so.sales_order_rows, [])
 
     # Parallelize variant lookups across all rows (N+1 fix)
     variant_ids = [unwrap_unset(r.variant_id, None) for r in raw_rows]
@@ -577,7 +579,7 @@ async def _get_sales_order_impl(
         *(
             services.cache.get_by_id(EntityType.VARIANT, v_id)
             if v_id is not None
-            else _none_coro()
+            else none_coro()
             for v_id in variant_ids
         )
     )
