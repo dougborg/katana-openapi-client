@@ -14,7 +14,6 @@ from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
 from pydantic import BaseModel, Field
 
-from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.tool_result_utils import make_tool_result
@@ -120,14 +119,15 @@ async def _check_inventory_impl(
     try:
         services = get_services(context)
 
-        # Phase 1: resolve all SKUs and variant_ids to variant dicts in parallel
+        # Phase 1: resolve all SKUs and variant_ids to variant dicts in parallel.
+        # For variant_ids, _fetch_variant_by_id falls back to the API on cache miss
+        # so a cold cache doesn't silently return empty stock.
+        from katana_mcp.tools.foundation.items import _fetch_variant_by_id
+
         sku_variants, id_variants = await asyncio.gather(
             asyncio.gather(*(services.cache.get_by_sku(sku=s) for s in skus)),
             asyncio.gather(
-                *(
-                    services.cache.get_by_id(EntityType.VARIANT, v_id)
-                    for v_id in variant_ids
-                )
+                *(_fetch_variant_by_id(services, v_id) for v_id in variant_ids)
             ),
         )
 
@@ -153,12 +153,18 @@ async def _check_inventory_impl(
         async def _fetch_for_variant_id(
             variant_id: int, variant: dict | None
         ) -> StockInfo:
-            sku = variant.get("sku", "") if variant else ""
-            product_name = (
-                variant.get("display_name") or variant.get("sku") or ""
-                if variant
-                else ""
-            )
+            if not variant:
+                logger.warning("inventory_check_not_found", variant_id=variant_id)
+                return StockInfo(
+                    sku="",
+                    product_name="",
+                    available_stock=0,
+                    committed=0,
+                    expected=0,
+                    in_stock=0,
+                )
+            sku = variant.get("sku", "")
+            product_name = variant.get("display_name") or sku or ""
             return await _fetch_stock_for_variant(
                 services, variant_id, sku, product_name
             )
