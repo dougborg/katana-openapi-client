@@ -213,6 +213,44 @@ jobs:
         with:
           attestations: true
 
+  sync-lockfile:
+    name: Sync uv.lock after releases
+    needs: [release-client, release-mcp]
+    if: |
+      always() &&
+      (needs.release-client.outputs.released == 'true' ||
+       needs.release-mcp.outputs.released == 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.14"
+
+      - name: Sync lockfile
+        run: uv sync --all-extras
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet uv.lock; then
+            echo "uv.lock is up to date"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add uv.lock
+            git commit -m "chore: sync uv.lock after release"
+            git push origin main
+          fi
+
   publish-mcp-docker:
     name: Publish MCP Docker Image
     needs: [publish-client-pypi, publish-mcp-pypi, release-client, release-mcp]
