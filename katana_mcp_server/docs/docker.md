@@ -60,18 +60,27 @@ docker run -p 8765:8765 -e KATANA_API_KEY=your-key katana-mcp-server:latest \
 
 ## Running Locally
 
-### Using Docker Compose
+### Using Docker Compose (recommended)
 
 ```bash
-# Set your API key
-export KATANA_API_KEY="your-api-key-here"
+cd katana_mcp_server
 
-# Start with HTTP transport (default)
-docker-compose up katana-mcp
+# Configure your API key
+cp .env.example .env
+# Edit .env and set KATANA_API_KEY
 
-# Or start with stdio transport
-docker-compose up katana-mcp-stdio
+# Start the server (HTTP on port 8765)
+docker compose up
 ```
+
+Or from the repo root, pointing at the compose file:
+
+```bash
+docker compose -f katana_mcp_server/docker-compose.yml up
+```
+
+The server starts on `http://localhost:8765/mcp` with a health check and automatic
+restart.
 
 ### Using Docker Run
 
@@ -79,21 +88,21 @@ docker-compose up katana-mcp-stdio
 # HTTP transport (for Claude.ai co-work / remote access)
 docker run -p 8765:8765 \
   -e KATANA_API_KEY="your-api-key-here" \
-  katana-mcp-server:latest
+  ghcr.io/dougborg/katana-mcp-server:latest
 
 # stdio transport (for Claude Desktop)
 docker run -it \
   -e KATANA_API_KEY="your-api-key-here" \
-  katana-mcp-server:latest --transport stdio
+  ghcr.io/dougborg/katana-mcp-server:latest --transport stdio
 ```
 
 ## Testing the Container
 
 ```bash
-# Test HTTP transport
+# Start the server
 docker run -p 8765:8765 \
-  -e KATANA_API_KEY="test-key" \
-  katana-mcp-server:latest
+  -e KATANA_API_KEY="your-api-key-here" \
+  ghcr.io/dougborg/katana-mcp-server:latest
 
 # Should show:
 # - Server initialization logs
