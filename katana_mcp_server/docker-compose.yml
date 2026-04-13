@@ -21,6 +21,11 @@ services:
     environment:
       - KATANA_API_KEY=${KATANA_API_KEY:?Set KATANA_API_KEY in .env or environment}
       - KATANA_BASE_URL=${KATANA_BASE_URL:-https://api.katanamrp.com/v1}
+      # Auth (optional — set at least MCP_AUTH_TOKEN for security)
+      - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN:-}
+      - MCP_GITHUB_CLIENT_ID=${MCP_GITHUB_CLIENT_ID:-}
+      - MCP_GITHUB_CLIENT_SECRET=${MCP_GITHUB_CLIENT_SECRET:-}
+      - MCP_BASE_URL=${MCP_BASE_URL:-}
     user: "1000:1000"
     security_opt:
       - no-new-privileges:true

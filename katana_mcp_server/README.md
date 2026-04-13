@@ -258,6 +258,33 @@ implementation.
   INFO)
 - `KATANA_MCP_LOG_FORMAT` (optional): Log format - json, text (default: json)
 
+### Endpoint Authentication (HTTP transport)
+
+When using HTTP transport, the MCP endpoint is **unauthenticated by default**. Set one
+of the following to secure it:
+
+**Bearer token** (simple, for dev/personal use):
+
+```bash
+export MCP_AUTH_TOKEN=your-secret-token
+```
+
+Clients must send `Authorization: Bearer your-secret-token` with each request. In
+Claude.ai, enter the token in the connector's Advanced Settings.
+
+**GitHub OAuth** (production):
+
+```bash
+export MCP_GITHUB_CLIENT_ID=your-github-client-id
+export MCP_GITHUB_CLIENT_SECRET=your-github-client-secret
+export MCP_BASE_URL=https://your-public-url.ngrok-free.app
+```
+
+Create a GitHub OAuth App at https://github.com/settings/developers with the callback
+URL set to `<MCP_BASE_URL>/auth/callback`.
+
+Auth is **not required** for stdio transport (local only).
+
 ### Logging Configuration
 
 The server uses structured logging with configurable output format and verbosity:

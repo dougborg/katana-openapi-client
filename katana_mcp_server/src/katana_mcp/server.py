@@ -19,6 +19,7 @@ from typing import Literal
 
 from dotenv import load_dotenv
 from fastmcp import FastMCP
+from fastmcp.server.auth import AuthProvider
 from fastmcp.server.middleware.caching import (
     CallToolSettings,
     ReadResourceSettings,
@@ -134,11 +135,46 @@ async def lifespan(server: FastMCP) -> AsyncIterator[Services]:
         logger.info("server_shutting_down")
 
 
+def _build_auth() -> AuthProvider | None:
+    """Build auth provider from environment configuration.
+
+    Supports two modes, selected by environment variables:
+    - MCP_AUTH_TOKEN: Simple bearer token auth (dev/personal use)
+    - MCP_GITHUB_CLIENT_ID + MCP_GITHUB_CLIENT_SECRET + MCP_BASE_URL: GitHub OAuth
+
+    Returns None when no auth env vars are set (unauthenticated).
+    """
+    github_id = os.getenv("MCP_GITHUB_CLIENT_ID")
+    github_secret = os.getenv("MCP_GITHUB_CLIENT_SECRET")
+    base_url = os.getenv("MCP_BASE_URL")
+    if github_id and github_secret and base_url:
+        from fastmcp.server.auth.providers.github import GitHubProvider
+
+        logger.info("auth_configured", provider="github", base_url=base_url)
+        return GitHubProvider(
+            client_id=github_id,
+            client_secret=github_secret,
+            base_url=base_url,
+        )
+
+    token = os.getenv("MCP_AUTH_TOKEN")
+    if token:
+        from fastmcp.server.auth import StaticTokenVerifier
+
+        logger.info("auth_configured", provider="bearer_token")
+        return StaticTokenVerifier(
+            tokens={token: {"client_id": "katana-mcp", "scopes": ["all"]}},
+        )
+
+    return None
+
+
 # Initialize FastMCP server with lifespan management
 mcp = FastMCP(
     name="katana-erp",
     version=__version__,
     lifespan=lifespan,
+    auth=_build_auth(),
     instructions="""\
 Katana MCP Server — Manufacturing ERP tools for inventory, orders, and production.
 
@@ -257,6 +293,13 @@ def main(
         host=host,
         port=port,
     )
+    if transport != "stdio" and mcp.auth is None:
+        logger.warning(
+            "no_auth_configured",
+            transport=transport,
+            msg="MCP endpoint is unauthenticated — set MCP_AUTH_TOKEN or "
+            "MCP_GITHUB_CLIENT_ID + MCP_GITHUB_CLIENT_SECRET",
+        )
     if transport == "stdio":
         mcp.run(transport="stdio")
     else:
