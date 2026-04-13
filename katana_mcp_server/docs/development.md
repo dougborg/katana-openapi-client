@@ -20,50 +20,73 @@ MCP Server using hot-reload capabilities.
 
 ## Quick Start
 
-### Development Mode (Hot Reload)
+### HTTP Development Mode (recommended)
 
-The **fastest way** to develop MCP tools with instant feedback:
+Hot-reload with HTTP transport — ideal for testing with Claude.ai co-work or any HTTP
+MCP client:
+
+```bash
+# From the repo root
+uv run poe dev
+```
+
+The server starts on `http://0.0.0.0:8765/mcp` with automatic reload on file changes.
+
+**For Claude.ai co-work**, you also need an HTTPS tunnel (Claude.ai requires HTTPS +
+public URL):
+
+```bash
+# Terminal 1: MCP server with hot-reload
+uv run poe dev
+
+# Terminal 2: HTTPS tunnel
+ngrok http 8765
+# → Paste the https:// URL into Claude.ai > Customize > Connectors
+```
+
+### stdio Development Mode
+
+Hot-reload with stdio transport — for Claude Desktop:
+
+```bash
+uv run poe dev-stdio
+```
+
+Or with `mcp-hmr` for fine-grained module reloading (preserves connection state):
 
 ```bash
 cd katana_mcp_server
-
-# 1. Install dependencies
-uv sync
-
-# 2. Install mcp-hmr (requires Python 3.12+)
 uv pip install mcp-hmr
-
-# 3. Run server with hot reload
 uv run mcp-hmr katana_mcp.server:mcp
 ```
 
-**Result**: Edit code → Save → See changes instantly in Claude Desktop. No rebuild, no
-reinstall, no restart needed!
+### MCP Inspector (visual debugging)
 
-**Note**: `mcp-hmr` requires Python >=3.12. If you're on Python 3.11, use production
-mode for testing or upgrade to Python 3.12+.
+Launches a web UI for testing tools interactively:
+
+```bash
+uv run poe dev-inspect
+```
 
 ### Production Mode (Standard Install)
 
 For release testing and production use:
 
 ```bash
-# Build and install via pipx
 cd katana_mcp_server
 uv build
 pipx install --force dist/katana_mcp_server-*.whl
 ```
 
-## Development vs Production Modes
+## Development Modes
 
-| Feature            | Development Mode           | Production Mode             |
-| ------------------ | -------------------------- | --------------------------- |
-| **Command**        | `uv run mcp-hmr ...`       | `katana-mcp-server`         |
-| **Hot Reload**     | ✅ Yes - instant changes   | ❌ No - requires rebuild    |
-| **Setup Time**     | ~5 seconds                 | ~5-10 minutes               |
-| **Use Case**       | Rapid iteration, debugging | Release testing, deployment |
-| **Python Version** | Requires >=3.12            | Supports >=3.11             |
-| **Installation**   | Run from source            | Installed via pipx/pip      |
+| Command             | Transport       | Hot Reload | Use Case                    |
+| ------------------- | --------------- | ---------- | --------------------------- |
+| `poe dev`           | streamable-http | Yes        | Claude.ai co-work, HTTP     |
+| `poe dev-stdio`     | stdio           | Yes        | Claude Desktop, Claude Code |
+| `poe dev-inspect`   | Inspector UI    | Yes        | Visual tool debugging       |
+| `mcp-hmr`           | stdio           | Yes (fast) | Fine-grained module reload  |
+| `katana-mcp-server` | stdio (default) | No         | Production                  |
 
 ## Claude Desktop Configuration
 

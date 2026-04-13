@@ -77,21 +77,25 @@ Restart Claude Desktop, and you'll see Katana inventory tools available!
 
 ### 5. Use with Claude.ai Co-work (streamable-http)
 
-Start the server with HTTP transport:
+Claude.ai requires **HTTPS** and a **publicly reachable URL**. For local development,
+use a tunnel like [ngrok](https://ngrok.com):
 
 ```bash
-export KATANA_API_KEY=your-api-key-here
-katana-mcp-server --transport streamable-http --host 0.0.0.0 --port 8765
+# Terminal 1: Start the MCP server with hot-reload
+uv run poe dev
+
+# Terminal 2: Create an HTTPS tunnel
+ngrok http 8765
+# → Gives you https://abc123.ngrok-free.app
 ```
 
-The server will be available at `http://localhost:8765/mcp`. To connect from Claude.ai:
+Then in Claude.ai:
 
-1. Go to **Customize > Connectors** in your Claude.ai project
+1. Go to **Customize > Connectors**
 1. Select **"Add custom connector"**
-1. Enter your server URL (use a tunnel like `ngrok http 8765` for local development, or
-   deploy to a cloud host for persistent access)
+1. Paste your ngrok HTTPS URL (e.g., `https://abc123.ngrok-free.app`)
 
-Or run via Docker:
+For production, deploy the Docker image behind a reverse proxy with TLS:
 
 ```bash
 docker run -p 8765:8765 -e KATANA_API_KEY=your-key ghcr.io/dougborg/katana-mcp-server:latest

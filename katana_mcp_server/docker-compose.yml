@@ -37,7 +37,7 @@ services:
           cpus: '0.25'
           memory: 256M
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8765/mcp')"]
+      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('localhost', 8765), 2); s.close()"]
       interval: 30s
       timeout: 5s
       retries: 3

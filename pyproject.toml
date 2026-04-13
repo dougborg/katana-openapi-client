@@ -541,6 +541,24 @@ validate-all = ["validate-openapi", "validate-openapi-redocly"]
 version-check = "semantic-release version --dry-run"
 release-dry = "semantic-release publish --dry-run"
 
+# -----------------------------------------------------------------------------
+# MCP Development Tasks
+# -----------------------------------------------------------------------------
+[tool.poe.tasks.dev]
+help = "Start MCP server with hot-reload (HTTP on port 8765)"
+cmd = "fastmcp run src/katana_mcp/server.py:mcp --reload --reload-dir src -t streamable-http --host 0.0.0.0 -p 8765"
+cwd = "katana_mcp_server"
+
+[tool.poe.tasks.dev-stdio]
+help = "Start MCP server with hot-reload (stdio for Claude Desktop)"
+cmd = "fastmcp run src/katana_mcp/server.py:mcp --reload --reload-dir src"
+cwd = "katana_mcp_server"
+
+[tool.poe.tasks.dev-inspect]
+help = "Start MCP server with Inspector UI for debugging"
+cmd = "fastmcp dev inspector src/katana_mcp/server.py:mcp --reload --reload-dir src"
+cwd = "katana_mcp_server"
+
 # Coverage analysis
 [tool.poe.tasks.analyze-coverage]
 help = "Analyze test coverage by file type (generated vs core logic)"
