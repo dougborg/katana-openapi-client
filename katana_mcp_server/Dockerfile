@@ -24,7 +24,7 @@ COPY src/ /app/src/
 COPY README.md /app/
 
 # Install package
-RUN uv pip install --system --no-cache .
+RUN uv pip install --system --no-cache --no-sources .
 
 # Create non-root user for security
 RUN useradd -m -u 1000 mcp && \
