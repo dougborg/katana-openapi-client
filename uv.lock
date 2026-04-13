@@ -1230,7 +1230,7 @@ wheels = [
 
 [[package]]
 name = "katana-mcp-server"
-version = "0.34.0"
+version = "0.35.0"
 source = { editable = "katana_mcp_server" }
 dependencies = [
     { name = "aiosqlite" },
@@ -1257,7 +1257,7 @@ requires-dist = [
 
 [[package]]
 name = "katana-openapi-client"
-version = "0.50.0"
+version = "0.51.0"
 source = { editable = "." }
 dependencies = [
     { name = "attrs" },
