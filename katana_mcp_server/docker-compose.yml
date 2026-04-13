@@ -1,20 +1,19 @@
 services:
+  # HTTP transport (default) — for Claude.ai co-work, remote clients, and web UIs
   katana-mcp:
-    # Use pre-built image from GHCR, or build locally if not available
     image: ghcr.io/dougborg/katana-mcp-server:latest
     pull_policy: missing
     build:
       context: .
       dockerfile: Dockerfile
     container_name: katana-mcp-server
+    ports:
+      - "${MCP_PORT:-8765}:8765"
     environment:
       # Required: Set your Katana API key
       - KATANA_API_KEY=${KATANA_API_KEY}
       # Optional: Override base URL
       - KATANA_BASE_URL=${KATANA_BASE_URL:-https://api.katanamrp.com/v1}
-    # MCP uses stdio, so we need to run interactively
-    stdin_open: true
-    tty: true
     # Security: Run as non-root user
     user: "1000:1000"
     # Security: Prevent privilege escalation
@@ -23,6 +22,35 @@ services:
     # Security: Read-only filesystem
     read_only: true
     # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # stdio transport — for Claude Desktop and Docker MCP Catalog
+  katana-mcp-stdio:
+    image: ghcr.io/dougborg/katana-mcp-server:latest
+    pull_policy: missing
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: katana-mcp-server-stdio
+    # Override default HTTP transport with stdio
+    command: []
+    environment:
+      - KATANA_API_KEY=${KATANA_API_KEY}
+      - KATANA_BASE_URL=${KATANA_BASE_URL:-https://api.katanamrp.com/v1}
+    # MCP stdio requires interactive mode
+    stdin_open: true
+    tty: true
+    user: "1000:1000"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
     deploy:
       resources:
         limits:

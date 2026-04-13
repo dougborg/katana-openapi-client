@@ -43,7 +43,18 @@ KATANA_API_KEY=your-api-key-here
 KATANA_BASE_URL=https://api.katanamrp.com/v1  # Optional, uses default if not set
 ```
 
-### 3. Use with Claude Desktop
+### 3. Choose Your Transport
+
+The MCP server supports multiple transport protocols for different environments:
+
+| Transport         | Use Case                          | Command                                         |
+| ----------------- | --------------------------------- | ----------------------------------------------- |
+| `stdio` (default) | Claude Desktop, Claude Code       | `katana-mcp-server`                             |
+| `streamable-http` | Claude.ai co-work, remote clients | `katana-mcp-server --transport streamable-http` |
+| `sse`             | Cursor IDE                        | `katana-mcp-server --transport sse`             |
+| `http`            | Generic HTTP clients              | `katana-mcp-server --transport http`            |
+
+### 4. Use with Claude Desktop (stdio)
 
 Add to your Claude Desktop configuration
 (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
@@ -64,7 +75,29 @@ Add to your Claude Desktop configuration
 
 Restart Claude Desktop, and you'll see Katana inventory tools available!
 
-### 4. Run Standalone (Optional)
+### 5. Use with Claude.ai Co-work (streamable-http)
+
+Start the server with HTTP transport:
+
+```bash
+export KATANA_API_KEY=your-api-key-here
+katana-mcp-server --transport streamable-http --host 0.0.0.0 --port 8765
+```
+
+The server will be available at `http://localhost:8765/mcp`. To connect from Claude.ai:
+
+1. Go to **Customize > Connectors** in your Claude.ai project
+1. Select **"Add custom connector"**
+1. Enter your server URL (use a tunnel like `ngrok http 8765` for local development, or
+   deploy to a cloud host for persistent access)
+
+Or run via Docker:
+
+```bash
+docker run -p 8765:8765 -e KATANA_API_KEY=your-key ghcr.io/dougborg/katana-mcp-server:latest
+```
+
+### 6. Run Standalone (Optional)
 
 For testing or development:
 

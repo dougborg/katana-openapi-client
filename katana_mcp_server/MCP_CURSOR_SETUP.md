@@ -1,7 +1,8 @@
 # Katana MCP Server - Cursor IDE Setup
 
 This guide explains how to run the Katana MCP server independently and connect Cursor
-IDE to it via SSE transport.
+IDE to it via SSE transport. For Claude.ai co-work or other HTTP clients, see the
+[Docker guide](docs/docker.md) or the [README](README.md).
 
 ## Quick Start
 
@@ -89,6 +90,16 @@ Then update `.mcp.json`:
   "url": "http://127.0.0.1:8765"
 }
 ```
+
+### Streamable HTTP Transport
+
+For Claude.ai co-work or other MCP clients that support streamable-http:
+
+```bash
+./scripts/start_mcp_server.sh --transport streamable-http
+```
+
+The server will be available at `http://127.0.0.1:8765/mcp`.
 
 ## Environment Variables
 
