@@ -96,11 +96,12 @@ async def _check_inventory_impl(
     variant_ids: list[int] = []
 
     if request.sku is not None:
-        if not request.sku.strip():
+        normalized = request.sku.strip()
+        if not normalized:
             raise ValueError("SKU cannot be empty")
-        skus.append(request.sku)
+        skus.append(normalized)
     if request.skus:
-        skus.extend(request.skus)
+        skus.extend(s.strip() for s in request.skus if s.strip())
     if request.variant_id is not None:
         variant_ids.append(request.variant_id)
     if request.variant_ids:

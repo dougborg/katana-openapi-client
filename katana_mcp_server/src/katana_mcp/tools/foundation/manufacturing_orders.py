@@ -1258,9 +1258,10 @@ async def _batch_update_impl(
         raise ValueError("Must provide at least one replacement or change")
 
     # 0. Upfront estimate — reject oversized batches BEFORE planning fetches
-    # recipes for every MO. Each replacement touches its mo_id list once per
-    # new component plus one delete; each change contributes explicit row counts.
-    # The 2x multiplier is a generous headroom for the delete+add pairing.
+    # recipes for every MO. Each replacement generates (num_components + 1)
+    # ops per MO, doubled for delete+add pairing. The threshold is 4x
+    # MAX_BATCH_OPS because this estimate deliberately over-counts (the real
+    # plan may be smaller once duplicate rows are merged).
     estimate = sum(
         len(rep.manufacturing_order_ids) * (len(rep.new_components) + 1) * 2
         for rep in request.replacements
