@@ -15,7 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -40,11 +39,9 @@ jobs:
           echo "client_version=$CLIENT_VERSION" >> $GITHUB_OUTPUT
 
           # Check if this tag was created in the last workflow run
-          # Get the timestamp of the tag
           TAG_DATE=$(git log -1 --format=%ct "$LATEST_CLIENT_TAG")
           WORKFLOW_DATE=$(date -d "${{ github.event.workflow_run.created_at }}" +%s)
 
-          # If tag is newer than workflow start (created during the workflow)
           if [ "$TAG_DATE" -ge "$WORKFLOW_DATE" ]; then
             echo "New client release detected: $CLIENT_VERSION"
             echo "has_release=true" >> $GITHUB_OUTPUT
@@ -95,42 +92,13 @@ jobs:
       - name: Update lockfile
         if: steps.check-current.outputs.needs_update == 'true'
         run: |
-          # Sync to update lockfile with new dependency
           uv sync --all-extras
 
-      - name: Create Pull Request
+      - name: Commit and push
         if: steps.check-current.outputs.needs_update == 'true'
-        uses: peter-evans/create-pull-request@v8
-        with:
-          token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
-          commit-message: "feat(mcp): update client dependency to v${{ steps.check-release.outputs.client_version }}"
-          title: "feat(mcp): update client dependency to v${{ steps.check-release.outputs.client_version }}"
-          body: |
-            ## Automated Dependency Update
-
-            This PR updates the MCP server's client dependency to match the latest client release.
-
-            **Changes:**
-            - Update `katana-openapi-client` dependency from
-              `>=${{ steps.check-current.outputs.current_version }}` to
-              `>=${{ steps.check-release.outputs.client_version }}`
-            - Update `uv.lock` to reflect the new dependency
-
-            **Release Information:**
-            - Client version: v${{ steps.check-release.outputs.client_version }}
-            - Tag: client-v${{ steps.check-release.outputs.client_version }}
-
-            **Next Steps:**
-            When this PR is merged, it will trigger a new MCP server release with the
-            conventional commit message `feat(mcp):`, which will bump the MCP server's
-            MINOR version.
-
-            ---
-            *This PR was automatically created by the
-            [Update MCP Client Dependency workflow](.github/workflows/update-mcp-dependency.yml).*
-          branch: auto/update-mcp-dependency-v${{ steps.check-release.outputs.client_version }}
-          delete-branch: true
-          labels: |
-            dependencies
-            mcp
-            automated
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add katana_mcp_server/pyproject.toml uv.lock
+          git commit -m "chore(mcp): update client dependency to v${{ steps.check-release.outputs.client_version }}"
+          git push origin main
