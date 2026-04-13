@@ -325,7 +325,7 @@ Create a stock adjustment to correct inventory levels.
 - `location_id` (required): Location ID for the adjustment
 - `rows` (required): List of `{sku, quantity, cost_per_unit?}` — positive to add, negative to remove
 - `reason` (optional): Reason for adjustment
-- `confirm` (required): Set false to preview, true to create
+- `confirm` (optional, default false): Set false to preview, true to create
 
 **Returns:** Adjustment ID and summary of changes.
 
@@ -369,7 +369,7 @@ Create a purchase order with preview/confirm pattern.
 - `location_id` (required): Warehouse location for receipt
 - `order_number` (required): PO number (e.g., "PO-2025-001")
 - `items` (required): Array of line items with variant_id, quantity, price_per_unit
-- `confirm` (required): false=preview, true=create
+- `confirm` (optional, default false): false=preview, true=create
 
 **Safety:** When confirm=true, prompts user for confirmation before creating.
 
@@ -381,7 +381,7 @@ Receive items from a purchase order.
 **Parameters:**
 - `order_id` (required): Purchase order ID
 - `items` (required): Array of items with purchase_order_row_id and quantity
-- `confirm` (required): false=preview, true=receive
+- `confirm` (optional, default false): false=preview, true=receive
 
 **Safety:** When confirm=true, prompts user for confirmation.
 
@@ -420,7 +420,7 @@ Create a manufacturing work order.
 - `location_id` (required): Production location ID
 - `production_deadline_date` (optional): Production deadline
 - `additional_info` (optional): Notes
-- `confirm` (required): false=preview, true=create
+- `confirm` (optional, default false): false=preview, true=create
 
 ---
 
@@ -464,7 +464,7 @@ Add a new ingredient to a manufacturing order's recipe.
 - `variant_id` (optional): Variant ID directly (use when SKU isn't in cache)
 - `planned_quantity_per_unit` (required): Qty needed per manufactured unit
 - `notes` (optional): Notes
-- `confirm` (required): false=preview, true=add
+- `confirm` (optional, default false): false=preview, true=add
 
 Provide either `sku` or `variant_id`.
 
@@ -475,7 +475,7 @@ Remove an ingredient from a manufacturing order's recipe.
 
 **Parameters:**
 - `recipe_row_id` (required): Recipe row ID (from get_manufacturing_order_recipe)
-- `confirm` (required): false=preview, true=delete
+- `confirm` (optional, default false): false=preview, true=delete
 
 ---
 
@@ -493,7 +493,7 @@ Batch-update recipe rows across one or more MOs with ONE confirmation.
 - `changes` (optional): list of `{manufacturing_order_id, remove_row_ids,
   add_variants}`
 - `continue_on_error` (optional, default true): run all ops even if some fail
-- `confirm` (required): false=preview, true=execute (single batch confirmation)
+- `confirm` (optional, default false): false=preview, true=execute (single batch confirmation)
 
 **Returns:** All sub-operations with individual status (success/failed/skipped),
 grouped by replacement. Old rows are deleted first, then new rows added in
@@ -508,7 +508,7 @@ Create a sales order.
 - `customer_id` (required): Customer ID (use `search_customers` to find)
 - `order_number` (required): Unique sales order number
 - `items` (required): Array of items with variant_id, quantity, and optional price_per_unit
-- `confirm` (required): false=preview, true=create
+- `confirm` (optional, default false): false=preview, true=create
 
 ---
 
@@ -554,7 +554,7 @@ Complete a manufacturing or sales order.
 **Parameters:**
 - `order_id` (required): Order ID to fulfill
 - `order_type` (required): "manufacturing" or "sales"
-- `confirm` (required): false=preview, true=fulfill
+- `confirm` (optional, default false): false=preview, true=fulfill
 """
 
 HELP_RESOURCES = """
