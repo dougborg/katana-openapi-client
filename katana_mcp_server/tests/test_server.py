@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastmcp import FastMCP
 from fastmcp.server.middleware.caching import ResponseCachingMiddleware
-from katana_mcp.server import lifespan, main, mcp
+from katana_mcp.server import _build_auth, lifespan, main, mcp
 from katana_mcp.services import Services
 
 from katana_public_api_client import KatanaClient
@@ -262,6 +262,72 @@ class TestMainEntryPoint:
             mock_run.assert_called_once_with(
                 transport="sse", host="localhost", port=8000
             )
+
+
+class TestBuildAuth:
+    """Tests for _build_auth() auth provider configuration."""
+
+    def test_no_env_vars_returns_none(self):
+        """No auth env vars → returns None."""
+        with patch.dict(os.environ, {}, clear=True):
+            assert _build_auth() is None
+
+    def test_bearer_token_returns_static_verifier(self):
+        """MCP_AUTH_TOKEN set → returns StaticTokenVerifier."""
+        from fastmcp.server.auth import StaticTokenVerifier
+
+        with patch.dict(os.environ, {"MCP_AUTH_TOKEN": "test-secret"}, clear=True):
+            result = _build_auth()
+            assert isinstance(result, StaticTokenVerifier)
+
+    def test_github_oauth_returns_github_provider(self):
+        """All three GitHub vars set → returns GitHubProvider."""
+        from fastmcp.server.auth.providers.github import GitHubProvider
+
+        env = {
+            "MCP_GITHUB_CLIENT_ID": "test-id",
+            "MCP_GITHUB_CLIENT_SECRET": "test-secret",
+            "MCP_BASE_URL": "https://example.com",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            result = _build_auth()
+            assert isinstance(result, GitHubProvider)
+
+    def test_github_takes_precedence_over_bearer_token(self):
+        """GitHub OAuth vars take precedence when both are set."""
+        from fastmcp.server.auth.providers.github import GitHubProvider
+
+        env = {
+            "MCP_GITHUB_CLIENT_ID": "test-id",
+            "MCP_GITHUB_CLIENT_SECRET": "test-secret",
+            "MCP_BASE_URL": "https://example.com",
+            "MCP_AUTH_TOKEN": "also-set",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            result = _build_auth()
+            assert isinstance(result, GitHubProvider)
+
+    def test_partial_github_config_falls_through(self):
+        """Partial GitHub vars (missing MCP_BASE_URL) → falls through to None."""
+        env = {
+            "MCP_GITHUB_CLIENT_ID": "test-id",
+            "MCP_GITHUB_CLIENT_SECRET": "test-secret",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            result = _build_auth()
+            assert result is None
+
+    def test_partial_github_config_with_token_uses_token(self):
+        """Partial GitHub vars + MCP_AUTH_TOKEN → uses bearer token."""
+        from fastmcp.server.auth import StaticTokenVerifier
+
+        env = {
+            "MCP_GITHUB_CLIENT_ID": "test-id",
+            "MCP_AUTH_TOKEN": "my-token",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            result = _build_auth()
+            assert isinstance(result, StaticTokenVerifier)
 
 
 class TestEnvironmentConfiguration:
