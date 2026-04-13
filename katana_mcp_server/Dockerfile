@@ -1,6 +1,11 @@
 # Katana MCP Server Docker Image
 # Provides an isolated, secure environment for running the Katana Manufacturing ERP MCP server
 # Compatible with Docker MCP Catalog and Toolkit
+#
+# Supports multiple transport modes via MCP_TRANSPORT env var:
+#   - streamable-http (default): HTTP transport for Claude.ai co-work and remote clients
+#   - stdio: Standard I/O for Claude Desktop and Claude Code
+#   - sse: Server-Sent Events for Cursor IDE
 
 FROM python:3.14-slim
 
@@ -23,7 +28,7 @@ COPY pyproject.toml /app/
 COPY src/ /app/src/
 COPY README.md /app/
 
-# Install package
+# Install package (--no-sources skips workspace reference, resolves from PyPI)
 RUN uv pip install --system --no-cache --no-sources .
 
 # Create non-root user for security
@@ -33,9 +38,9 @@ USER mcp
 
 # Environment variables (can be overridden at runtime)
 ENV KATANA_BASE_URL="https://api.katanamrp.com/v1"
+# Expose HTTP port (used by streamable-http, http, and sse transports)
+EXPOSE 8765
 
-# Expose MCP server (stdio-based, no network port needed)
-# The server uses stdio for communication with Claude Desktop
-
-# Run the MCP server
+# Run the MCP server with configurable transport
 ENTRYPOINT ["python", "-m", "katana_mcp"]
+CMD ["--transport", "streamable-http", "--host", "0.0.0.0", "--port", "8765"]

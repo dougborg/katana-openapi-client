@@ -1,28 +1,31 @@
+# Katana MCP Server — Docker Compose
+#
+# Quick start:
+#   cp .env.example .env          # add your KATANA_API_KEY
+#   docker compose up             # starts HTTP server on port 8765
+#
+# The .env file is loaded automatically from the project root.
+# Run from the repo root: docker compose -f katana_mcp_server/docker-compose.yml up
+# Or from this directory:  docker compose --env-file ../.env up
+
 services:
   katana-mcp:
-    # Use pre-built image from GHCR, or build locally if not available
     image: ghcr.io/dougborg/katana-mcp-server:latest
     pull_policy: missing
     build:
       context: .
       dockerfile: Dockerfile
     container_name: katana-mcp-server
+    restart: unless-stopped
+    ports:
+      - "${MCP_PORT:-8765}:8765"
     environment:
-      # Required: Set your Katana API key
-      - KATANA_API_KEY=${KATANA_API_KEY}
-      # Optional: Override base URL
+      - KATANA_API_KEY=${KATANA_API_KEY:?Set KATANA_API_KEY in .env or environment}
       - KATANA_BASE_URL=${KATANA_BASE_URL:-https://api.katanamrp.com/v1}
-    # MCP uses stdio, so we need to run interactively
-    stdin_open: true
-    tty: true
-    # Security: Run as non-root user
     user: "1000:1000"
-    # Security: Prevent privilege escalation
     security_opt:
       - no-new-privileges:true
-    # Security: Read-only filesystem
     read_only: true
-    # Resource limits
     deploy:
       resources:
         limits:
@@ -31,3 +34,9 @@ services:
         reservations:
           cpus: '0.25'
           memory: 256M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8765/mcp')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

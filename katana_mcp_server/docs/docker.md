@@ -33,38 +33,84 @@ docker buildx build --platform linux/amd64,linux/arm64 \
   --push .
 ```
 
-## Running Locally
+## Transport Modes
 
-### Using Docker Compose
+The Docker image supports multiple transport modes. The default is `streamable-http`,
+which serves HTTP on port 8765.
+
+| Transport         | Default      | Use Case                           |
+| ----------------- | ------------ | ---------------------------------- |
+| `streamable-http` | Yes (Docker) | Claude.ai co-work, remote clients  |
+| `stdio`           | No           | Claude Desktop, Docker MCP Catalog |
+| `sse`             | No           | Cursor IDE                         |
+
+Override the transport by replacing the `CMD` arguments:
 
 ```bash
-# Set your API key
-export KATANA_API_KEY="your-api-key-here"
+# HTTP (default) — no override needed
+docker run -p 8765:8765 -e KATANA_API_KEY=your-key katana-mcp-server:latest
 
-# Start the server
-docker-compose up
+# stdio — for Claude Desktop
+docker run -it -e KATANA_API_KEY=your-key katana-mcp-server:latest --transport stdio
+
+# SSE — for Cursor IDE
+docker run -p 8765:8765 -e KATANA_API_KEY=your-key katana-mcp-server:latest \
+  --transport sse --host 0.0.0.0 --port 8765
 ```
+
+## Running Locally
+
+### Using Docker Compose (recommended)
+
+```bash
+cd katana_mcp_server
+
+# Configure your API key
+cp .env.example .env
+# Edit .env and set KATANA_API_KEY
+
+# Start the server (HTTP on port 8765)
+docker compose up
+```
+
+Or from the repo root, pointing at the compose file:
+
+```bash
+docker compose -f katana_mcp_server/docker-compose.yml up
+```
+
+The server starts on `http://localhost:8765/mcp` with a health check and automatic
+restart.
 
 ### Using Docker Run
 
 ```bash
+# HTTP transport (for Claude.ai co-work / remote access)
+docker run -p 8765:8765 \
+  -e KATANA_API_KEY="your-api-key-here" \
+  ghcr.io/dougborg/katana-mcp-server:latest
+
+# stdio transport (for Claude Desktop)
 docker run -it \
   -e KATANA_API_KEY="your-api-key-here" \
-  katana-mcp-server:latest
+  ghcr.io/dougborg/katana-mcp-server:latest --transport stdio
 ```
 
 ## Testing the Container
 
 ```bash
-# Run with test API key
-docker run -it \
-  -e KATANA_API_KEY="test-key" \
-  katana-mcp-server:latest
+# Start the server
+docker run -p 8765:8765 \
+  -e KATANA_API_KEY="your-api-key-here" \
+  ghcr.io/dougborg/katana-mcp-server:latest
 
 # Should show:
 # - Server initialization logs
 # - Ready message
-# - Listening for MCP requests on stdio
+# - Listening on http://0.0.0.0:8765/mcp
+
+# Verify the endpoint is reachable
+curl http://localhost:8765/mcp
 ```
 
 ## Docker MCP Catalog Submission
@@ -169,9 +215,9 @@ categories:
 build_type: docker-built  # Docker will build and maintain
 ```
 
-## Configuration in Claude Desktop
+## Configuration Examples
 
-Once published to the Docker MCP Catalog, users can configure it in Claude Desktop:
+### Claude Desktop (stdio via Docker)
 
 ```json
 {
@@ -180,16 +226,35 @@ Once published to the Docker MCP Catalog, users can configure it in Claude Deskt
       "command": "docker",
       "args": ["run", "-i", "--rm",
                "-e", "KATANA_API_KEY=your-key-here",
-               "mcp/katana-mcp-server:latest"]
+               "mcp/katana-mcp-server:latest",
+               "--transport", "stdio"]
     }
   }
 }
 ```
 
+### Claude.ai Co-work (streamable-http via Docker)
+
+```bash
+# Start the server
+docker run -p 8765:8765 -e KATANA_API_KEY=your-key-here \
+  ghcr.io/dougborg/katana-mcp-server:latest
+
+# Then in Claude.ai: Customize > Connectors > Add custom connector
+# Enter: http://your-host:8765/mcp
+```
+
+For local development, use a tunnel to expose the server:
+
+```bash
+ngrok http 8765
+# Use the ngrok URL as your connector URL in Claude.ai
+```
+
 ## Security Considerations
 
 - ✅ Non-root user (UID 1000)
-- ✅ Minimal base image (python:3.13-slim)
+- ✅ Minimal base image (python:3.14-slim)
 - ✅ No unnecessary packages
 - ✅ API key passed via environment variable (never hardcoded)
 - ✅ Resource limits in docker-compose
