@@ -10,8 +10,7 @@
 
 services:
   katana-mcp:
-    image: ghcr.io/dougborg/katana-mcp-server:latest
-    pull_policy: missing
+    image: katana-mcp-server
     build:
       context: .
       dockerfile: Dockerfile
@@ -26,6 +25,9 @@ services:
     security_opt:
       - no-new-privileges:true
     read_only: true
+    tmpfs:
+      - /home/mcp/.cache:uid=1000,gid=1000
+      - /tmp
     deploy:
       resources:
         limits:
