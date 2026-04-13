@@ -2,6 +2,118 @@
 
 <!-- version list -->
 
+## v0.51.0 (2026-04-13)
+
+### Bug Fixes
+
+- Sweep remaining semgrep findings across the repo
+  ([`e6c7ec3`](https://github.com/dougborg/katana-openapi-client/commit/e6c7ec39bcb9cdc1e95c2f126ca2dd48716d3996))
+
+- **mcp**: Address Copilot review feedback — remove unused imports and fix version
+  ([`a803b3d`](https://github.com/dougborg/katana-openapi-client/commit/a803b3d0b1eb723520c6f402f5ebdf5ba3204189))
+
+- **mcp**: Address second-round review feedback
+  ([`349941a`](https://github.com/dougborg/katana-openapi-client/commit/349941a272f62065d7d858aa8f13c00671faa405))
+
+- **mcp**: Address third-round review comments
+  ([`5d0ee53`](https://github.com/dougborg/katana-openapi-client/commit/5d0ee532378ba9e519c17bf16fd5d29cf7f310f3))
+
+- **mcp**: Default_factory retry + variant_id on StockInfo
+  ([`10d329f`](https://github.com/dougborg/katana-openapi-client/commit/10d329f404e5b26e413936928496ae01275841d4))
+
+- **mcp**: Dodge semgrep Django-SQL false positives
+  ([`d6f3b4a`](https://github.com/dougborg/katana-openapi-client/commit/d6f3b4aa116825cb7239cb7308a260368caf5dde))
+
+- **mcp**: Guard variant=None and add API fallback in batch check_inventory
+  ([`ff83752`](https://github.com/dougborg/katana-openapi-client/commit/ff83752f5524c6042528575c629b691301582cba))
+
+- **mcp**: Handle 404 cleanly in PO/variant lookups
+  ([`7706141`](https://github.com/dougborg/katana-openapi-client/commit/770614157d54e612953ecbc15837f1517134fa21))
+
+- **mcp**: Handle None correctly in inventory_items is\_\* flag coercion
+  ([`582fba0`](https://github.com/dougborg/katana-openapi-client/commit/582fba0d3de9ca0463f5f4e6140e516dffdf5afb))
+
+- **mcp**: Import ToolResult from fastmcp.tools package directly
+  ([`b82d598`](https://github.com/dougborg/katana-openapi-client/commit/b82d598aa59851495b5373dda58f2ec1d064903d))
+
+- **mcp**: Resolve pyright type errors across server and tools
+  ([`aea6889`](https://github.com/dougborg/katana-openapi-client/commit/aea68896b2ba324073b690b559aa6bcadfa39bd9))
+
+- **mcp**: Tighten batch recipe ops, MTO response, and docs
+  ([`e175d0b`](https://github.com/dougborg/katana-openapi-client/commit/e175d0bde677db0293a218d99462dc9caefae684))
+
+- **mcp**: Use 'is not None' check when rendering sales order totals
+  ([`192c555`](https://github.com/dougborg/katana-openapi-client/commit/192c555f124b87ddab901cc76438e00d3d499d67))
+
+- **scripts**: Update test_mcp_resources to use Services container and handle JSON
+  results
+  ([`111287b`](https://github.com/dougborg/katana-openapi-client/commit/111287bb9204426109e97b2f228d86aa326c8429))
+
+### Chores
+
+- Add include paths to pyrightconfig
+  ([`de6777f`](https://github.com/dougborg/katana-openapi-client/commit/de6777f5f1f417f9a065910282e584c696ebf9d0))
+
+- Exclude .claude/worktrees from yamllint
+  ([`27df541`](https://github.com/dougborg/katana-openapi-client/commit/27df5410d241dcc532d89fafe73ccea49d4eecb2))
+
+- **deps**: Bump all dependencies (April 2026)
+  ([`45a2e4a`](https://github.com/dougborg/katana-openapi-client/commit/45a2e4a9c88fb72cc72921d5a4236d59924cfb77))
+
+- **release**: Mcp v0.34.0
+  ([`31bbdb1`](https://github.com/dougborg/katana-openapi-client/commit/31bbdb1564f80feac2e259334e92269ddb06a6b7))
+
+- **release**: Mcp v0.35.0
+  ([`4a0e0c5`](https://github.com/dougborg/katana-openapi-client/commit/4a0e0c544429dbb4807a75373e19255cbf5be459))
+
+### Documentation
+
+- Document LSP usage in CLAUDE.md and relevant commands
+  ([`a5a0a75`](https://github.com/dougborg/katana-openapi-client/commit/a5a0a7586e7ba01bfd5a344a5f1af0abbd4a458d))
+
+- **mcp**: Update resource documentation for new structure
+  ([`dd2edd4`](https://github.com/dougborg/katana-openapi-client/commit/dd2edd49673ea32c9c955ef1fa5f7b5fcd49479c))
+
+### Features
+
+- **client**: Narrow unwrap_unset return type when default is non-None
+  ([`505ca1d`](https://github.com/dougborg/katana-openapi-client/commit/505ca1df8988bbb23bdd4482e6df5d227a215786))
+
+- **mcp**: Accept batch SKUs/variant_ids in check_inventory
+  ([`a3c0cac`](https://github.com/dougborg/katana-openapi-client/commit/a3c0cac0d6d7c92d4334aba180b6eb44ab2a3e86))
+
+- **mcp**: Accept variant_id in lookup tools, add batch variant lookup
+  ([`9cdbd6f`](https://github.com/dougborg/katana-openapi-client/commit/9cdbd6fe00c943a7930950cbd2b9fbd61bf928a7))
+
+- **mcp**: Add batch_update_manufacturing_order_recipes with Prefab UI
+  ([`cfcb800`](https://github.com/dougborg/katana-openapi-client/commit/cfcb8006815a10ed012952fb92e9ee247b9b2009))
+
+- **mcp**: Add list_sales_orders and get_sales_order tools
+  ([`abc9ffe`](https://github.com/dougborg/katana-openapi-client/commit/abc9ffe55cb182752fb536f1fd2dd8e86f604310))
+
+- **mcp**: Add PO lookup and manufacturing order recipe editing tools
+  ([`b36993f`](https://github.com/dougborg/katana-openapi-client/commit/b36993f84e83d861abcf093e87fa11af7b23d39a))
+
+- **mcp**: Add search_customers and get_customer tools
+  ([`f2ebfc6`](https://github.com/dougborg/katana-openapi-client/commit/f2ebfc686ffa4c7a84aeafb968674033a37492f5))
+
+- **mcp**: Restructure resources — reference data only, remove transactional
+  ([`0df24d7`](https://github.com/dougborg/katana-openapi-client/commit/0df24d7354be9cd4d8ee7231db420c149ee492aa))
+
+- **mcp**: Support make-to-order MO creation linked to sales order rows
+  ([`836a6f4`](https://github.com/dougborg/katana-openapi-client/commit/836a6f4158fb66efb3e13faee27c4ade8d242d8b))
+
+### Refactoring
+
+- **mcp**: Extract shared helpers, use EntityType, parallelize lookups
+  ([`3247352`](https://github.com/dougborg/katana-openapi-client/commit/3247352f229d745babd49bf77388d9321d371576))
+
+- **mcp**: Typed OpType enum and memoized recipe fetches in batch planner
+  ([`f70dba7`](https://github.com/dougborg/katana-openapi-client/commit/f70dba7e5d6a3f7e5a4087972aca45baf41b817c))
+
+- **mcp**: Use format_md_table helper for all markdown tables
+  ([`6c6fff6`](https://github.com/dougborg/katana-openapi-client/commit/6c6fff6f709e21c8c0c9d589c12f39d1e01b3f44))
+
 ## v0.50.0 (2026-04-09)
 
 ### Bug Fixes
