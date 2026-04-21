@@ -1,18 +1,25 @@
 """Tests for inventory and item MCP tools."""
 
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from katana_mcp.tools.foundation.inventory import (
     CheckInventoryRequest,
     CreateStockAdjustmentRequest,
+    DeleteStockAdjustmentRequest,
     GetInventoryMovementsRequest,
+    ListStockAdjustmentsRequest,
     LowStockRequest,
     StockAdjustmentRow,
+    UpdateStockAdjustmentParams,
     _check_inventory_impl,
     _create_stock_adjustment_impl,
+    _delete_stock_adjustment_impl,
     _get_inventory_movements_impl,
     _list_low_stock_items_impl,
+    _list_stock_adjustments_impl,
+    _update_stock_adjustment_impl,
 )
 from katana_mcp.tools.foundation.items import (
     GetVariantDetailsRequest,
@@ -21,6 +28,7 @@ from katana_mcp.tools.foundation.items import (
     _search_items_impl,
 )
 
+from katana_public_api_client.client_types import UNSET
 from tests.conftest import create_mock_context
 
 # ============================================================================
@@ -695,6 +703,530 @@ async def test_get_variant_details_with_timestamps():
 
     assert result.created_at == "2024-01-01T12:00:00+00:00"
     assert result.updated_at == "2024-06-01T14:30:00+00:00"
+
+
+# ============================================================================
+# list_stock_adjustments Tests
+# ============================================================================
+
+_SA_GET_ALL = "katana_public_api_client.api.stock_adjustment.get_all_stock_adjustments"
+_SA_UNWRAP_DATA = "katana_public_api_client.utils.unwrap_data"
+_SA_UPDATE = "katana_public_api_client.api.stock_adjustment.update_stock_adjustment"
+_SA_DELETE = "katana_public_api_client.api.stock_adjustment.delete_stock_adjustment"
+_SA_UNWRAP_AS = "katana_public_api_client.utils.unwrap_as"
+_SA_UNWRAP = "katana_public_api_client.utils.unwrap"
+
+
+def _make_mock_adjustment(
+    *,
+    id: int = 500,
+    stock_adjustment_number: str = "SA-TEST-001",
+    location_id: int = 1,
+    reason: str | None = "Cycle count",
+    additional_info: str | None = None,
+    rows: list | None = None,
+    created_at: datetime | None = None,
+) -> MagicMock:
+    """Build a mock StockAdjustment attrs object for testing."""
+    adj = MagicMock()
+    adj.id = id
+    adj.stock_adjustment_number = stock_adjustment_number
+    adj.location_id = location_id
+    adj.reason = reason if reason is not None else UNSET
+    adj.additional_info = additional_info if additional_info is not None else UNSET
+    adj.stock_adjustment_date = datetime(2026, 4, 1, 9, 0, tzinfo=UTC)
+    adj.created_at = (
+        created_at if created_at is not None else datetime(2026, 4, 1, 9, 0, tzinfo=UTC)
+    )
+    adj.updated_at = datetime(2026, 4, 1, 9, 0, tzinfo=UTC)
+    adj.stock_adjustment_rows = rows if rows is not None else []
+    return adj
+
+
+def _make_mock_adjustment_row(
+    *,
+    id: int = 1,
+    variant_id: int = 100,
+    quantity: float = 5.0,
+    cost_per_unit: float | None = None,
+) -> MagicMock:
+    """Build a mock StockAdjustmentRow for testing."""
+    row = MagicMock()
+    row.id = id
+    row.variant_id = variant_id
+    row.quantity = quantity
+    row.cost_per_unit = cost_per_unit if cost_per_unit is not None else UNSET
+    return row
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_short_circuits_page_for_small_limit():
+    """Small `limit` (<=250) with no explicit `page` injects page=1 to short-circuit."""
+    context, _ = create_mock_context()
+    captured: dict = {}
+
+    async def fake(**kwargs):
+        captured.update(kwargs)
+        return MagicMock()
+
+    with (
+        patch(f"{_SA_GET_ALL}.asyncio_detailed", side_effect=fake),
+        patch(_SA_UNWRAP_DATA, return_value=[]),
+    ):
+        await _list_stock_adjustments_impl(
+            ListStockAdjustmentsRequest(limit=25), context
+        )
+
+    assert captured["page"] == 1
+    assert captured["limit"] == 25
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_forwards_explicit_page():
+    """Explicit `page=N` is forwarded (overrides the short-circuit)."""
+    context, _ = create_mock_context()
+    captured: dict = {}
+
+    async def fake(**kwargs):
+        captured.update(kwargs)
+        return MagicMock()
+
+    with (
+        patch(f"{_SA_GET_ALL}.asyncio_detailed", side_effect=fake),
+        patch(_SA_UNWRAP_DATA, return_value=[]),
+    ):
+        await _list_stock_adjustments_impl(
+            ListStockAdjustmentsRequest(limit=50, page=3), context
+        )
+
+    assert captured["page"] == 3
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_does_not_short_circuit_large_limit():
+    """`limit` above 250 skips the auto-page short-circuit."""
+    context, _ = create_mock_context()
+    captured: dict = {}
+
+    async def fake(**kwargs):
+        captured.update(kwargs)
+        return MagicMock()
+
+    with (
+        patch(f"{_SA_GET_ALL}.asyncio_detailed", side_effect=fake),
+        patch(_SA_UNWRAP_DATA, return_value=[]),
+    ):
+        await _list_stock_adjustments_impl(
+            ListStockAdjustmentsRequest(limit=500), context
+        )
+
+    assert "page" not in captured
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_pagination_meta_populated_on_explicit_page():
+    """An explicit `page` populates `pagination` from the x-pagination header."""
+    context, _ = create_mock_context()
+
+    mock_response = MagicMock()
+    mock_response.headers = {
+        "x-pagination": (
+            '{"total_records":"231","total_pages":"5","page":"2",'
+            '"first_page":"false","last_page":"false"}'
+        )
+    }
+
+    with (
+        patch(
+            f"{_SA_GET_ALL}.asyncio_detailed",
+            new=AsyncMock(return_value=mock_response),
+        ),
+        patch(_SA_UNWRAP_DATA, return_value=[]),
+    ):
+        result = await _list_stock_adjustments_impl(
+            ListStockAdjustmentsRequest(limit=50, page=2), context
+        )
+
+    assert result.pagination is not None
+    assert result.pagination.total_records == 231
+    assert result.pagination.total_pages == 5
+    assert result.pagination.page == 2
+    assert result.pagination.first_page is False
+    assert result.pagination.last_page is False
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_pagination_meta_none_on_auto_pagination():
+    """Without an explicit `page`, `pagination` is `None` (auto-pagination)."""
+    context, _ = create_mock_context()
+
+    mock_response = MagicMock()
+    mock_response.headers = {
+        "x-pagination": '{"total_records":"10","total_pages":"1","page":"1"}'
+    }
+
+    with (
+        patch(
+            f"{_SA_GET_ALL}.asyncio_detailed",
+            new=AsyncMock(return_value=mock_response),
+        ),
+        patch(_SA_UNWRAP_DATA, return_value=[]),
+    ):
+        result = await _list_stock_adjustments_impl(
+            ListStockAdjustmentsRequest(limit=50), context
+        )
+
+    assert result.pagination is None
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_date_filters_forwarded():
+    """`created_after` and `created_before` map to `created_at_min`/`_max`."""
+    context, _ = create_mock_context()
+    captured: dict = {}
+
+    async def fake(**kwargs):
+        captured.update(kwargs)
+        return MagicMock()
+
+    with (
+        patch(f"{_SA_GET_ALL}.asyncio_detailed", side_effect=fake),
+        patch(_SA_UNWRAP_DATA, return_value=[]),
+    ):
+        await _list_stock_adjustments_impl(
+            ListStockAdjustmentsRequest(
+                created_after="2026-01-01T00:00:00Z",
+                created_before="2026-04-01T00:00:00Z",
+            ),
+            context,
+        )
+
+    assert isinstance(captured["created_at_min"], datetime)
+    assert isinstance(captured["created_at_max"], datetime)
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_location_filter_forwarded():
+    """`location_id` is forwarded as-is to the API."""
+    context, _ = create_mock_context()
+    captured: dict = {}
+
+    async def fake(**kwargs):
+        captured.update(kwargs)
+        return MagicMock()
+
+    with (
+        patch(f"{_SA_GET_ALL}.asyncio_detailed", side_effect=fake),
+        patch(_SA_UNWRAP_DATA, return_value=[]),
+    ):
+        await _list_stock_adjustments_impl(
+            ListStockAdjustmentsRequest(location_id=7), context
+        )
+
+    assert captured["location_id"] == 7
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_variant_id_filter_clientside():
+    """`variant_id` is applied client-side against returned rows."""
+    context, _ = create_mock_context()
+
+    adj_match = _make_mock_adjustment(
+        id=1, rows=[_make_mock_adjustment_row(variant_id=777)]
+    )
+    adj_skip = _make_mock_adjustment(
+        id=2, rows=[_make_mock_adjustment_row(variant_id=888)]
+    )
+
+    with (
+        patch(f"{_SA_GET_ALL}.asyncio_detailed", new=AsyncMock()),
+        patch(_SA_UNWRAP_DATA, return_value=[adj_match, adj_skip]),
+    ):
+        result = await _list_stock_adjustments_impl(
+            ListStockAdjustmentsRequest(variant_id=777), context
+        )
+
+    assert result.total_count == 1
+    assert result.adjustments[0].id == 1
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_reason_filter_clientside():
+    """`reason` applies a case-insensitive substring match client-side."""
+    context, _ = create_mock_context()
+
+    adj_match = _make_mock_adjustment(id=1, reason="Cycle count correction")
+    adj_skip = _make_mock_adjustment(id=2, reason="Sample received")
+
+    with (
+        patch(f"{_SA_GET_ALL}.asyncio_detailed", new=AsyncMock()),
+        patch(_SA_UNWRAP_DATA, return_value=[adj_match, adj_skip]),
+    ):
+        result = await _list_stock_adjustments_impl(
+            ListStockAdjustmentsRequest(reason="cycle"), context
+        )
+
+    assert result.total_count == 1
+    assert result.adjustments[0].id == 1
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_include_rows_false_omits_rows():
+    """With `include_rows=False`, summary rows is None."""
+    context, _ = create_mock_context()
+
+    adj = _make_mock_adjustment(
+        id=10,
+        rows=[
+            _make_mock_adjustment_row(id=1, variant_id=100, quantity=5.0),
+            _make_mock_adjustment_row(id=2, variant_id=101, quantity=-2.0),
+        ],
+    )
+
+    with (
+        patch(f"{_SA_GET_ALL}.asyncio_detailed", new=AsyncMock()),
+        patch(_SA_UNWRAP_DATA, return_value=[adj]),
+    ):
+        result = await _list_stock_adjustments_impl(
+            ListStockAdjustmentsRequest(include_rows=False), context
+        )
+
+    assert result.adjustments[0].row_count == 2
+    assert result.adjustments[0].rows is None
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_include_rows_true_populates_rows():
+    """With `include_rows=True`, summary rows contains row details."""
+    context, _ = create_mock_context()
+
+    adj = _make_mock_adjustment(
+        id=11,
+        rows=[
+            _make_mock_adjustment_row(
+                id=1, variant_id=100, quantity=5.0, cost_per_unit=1.23
+            ),
+            _make_mock_adjustment_row(id=2, variant_id=101, quantity=-2.0),
+        ],
+    )
+
+    with (
+        patch(f"{_SA_GET_ALL}.asyncio_detailed", new=AsyncMock()),
+        patch(_SA_UNWRAP_DATA, return_value=[adj]),
+    ):
+        result = await _list_stock_adjustments_impl(
+            ListStockAdjustmentsRequest(include_rows=True), context
+        )
+
+    rows = result.adjustments[0].rows
+    assert rows is not None
+    assert len(rows) == 2
+    assert rows[0].variant_id == 100
+    assert rows[0].quantity == 5.0
+    assert rows[0].cost_per_unit == 1.23
+    assert rows[1].variant_id == 101
+    assert rows[1].cost_per_unit is None
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_limit_caps_result_size():
+    """Result list is capped at `request.limit` even when API returns more."""
+    context, _ = create_mock_context()
+
+    many = [_make_mock_adjustment(id=i) for i in range(20)]
+
+    with (
+        patch(f"{_SA_GET_ALL}.asyncio_detailed", new=AsyncMock()),
+        patch(_SA_UNWRAP_DATA, return_value=many),
+    ):
+        result = await _list_stock_adjustments_impl(
+            ListStockAdjustmentsRequest(limit=5), context
+        )
+
+    assert len(result.adjustments) == 5
+    assert result.total_count == 5
+
+
+# ============================================================================
+# update_stock_adjustment Tests
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_update_stock_adjustment_preview_returns_is_preview_true():
+    """confirm=False returns preview without calling the API."""
+    context, _ = create_mock_context()
+
+    request = UpdateStockAdjustmentParams(id=42, reason="Updated reason", confirm=False)
+
+    with patch(f"{_SA_UPDATE}.asyncio_detailed", new=AsyncMock()) as mock_api:
+        result = await _update_stock_adjustment_impl(request, context)
+
+    assert result.is_preview is True
+    assert result.id == 42
+    assert "Updated reason" in result.changes_summary
+    mock_api.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_update_stock_adjustment_confirm_calls_api():
+    """confirm=True elicits confirmation and calls the PATCH endpoint."""
+    context, _ = create_mock_context(elicit_confirm=True)
+
+    # The API returns an updated StockAdjustment. `_update_stock_adjustment_impl`
+    # imports `unwrap_as` from katana_public_api_client.utils inside the
+    # function, so patching the source module intercepts the lookup.
+    updated = _make_mock_adjustment(
+        id=42, stock_adjustment_number="SA-UPDATED", reason="Updated reason"
+    )
+
+    request = UpdateStockAdjustmentParams(
+        id=42,
+        reason="Updated reason",
+        stock_adjustment_number="SA-UPDATED",
+        confirm=True,
+    )
+
+    with (
+        patch(
+            f"{_SA_UPDATE}.asyncio_detailed",
+            new=AsyncMock(return_value=MagicMock()),
+        ) as mock_api,
+        patch(_SA_UNWRAP_AS, return_value=updated),
+    ):
+        result = await _update_stock_adjustment_impl(request, context)
+
+    assert result.is_preview is False
+    assert result.id == 42
+    assert result.stock_adjustment_number == "SA-UPDATED"
+    mock_api.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_update_stock_adjustment_decline_short_circuits():
+    """When the user declines the elicitation, API is not called."""
+    context, _ = create_mock_context(elicit_confirm=False)
+
+    request = UpdateStockAdjustmentParams(id=42, reason="Updated reason", confirm=True)
+
+    with patch(f"{_SA_UPDATE}.asyncio_detailed", new=AsyncMock()) as mock_api:
+        result = await _update_stock_adjustment_impl(request, context)
+
+    assert result.is_preview is True
+    mock_api.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_update_stock_adjustment_rejects_empty_change_set():
+    """Missing all updatable fields raises ValueError."""
+    context, _ = create_mock_context()
+
+    request = UpdateStockAdjustmentParams(id=42, confirm=False)
+
+    with pytest.raises(ValueError, match="At least one updatable field"):
+        await _update_stock_adjustment_impl(request, context)
+
+
+# ============================================================================
+# delete_stock_adjustment Tests
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_delete_stock_adjustment_preview_returns_what_would_be_deleted():
+    """confirm=False fetches the adjustment and returns it in preview."""
+    context, _ = create_mock_context()
+
+    adj = _make_mock_adjustment(
+        id=99,
+        stock_adjustment_number="SA-DELETE",
+        location_id=3,
+        rows=[_make_mock_adjustment_row(id=1, variant_id=100, quantity=5.0)],
+    )
+
+    with (
+        patch(f"{_SA_GET_ALL}.asyncio_detailed", new=AsyncMock()),
+        patch(_SA_UNWRAP_DATA, return_value=[adj]),
+        patch(f"{_SA_DELETE}.asyncio_detailed", new=AsyncMock()) as mock_delete,
+    ):
+        result = await _delete_stock_adjustment_impl(
+            DeleteStockAdjustmentRequest(id=99, confirm=False), context
+        )
+
+    assert result.is_preview is True
+    assert result.id == 99
+    assert result.stock_adjustment_number == "SA-DELETE"
+    assert result.location_id == 3
+    assert result.row_count == 1
+    mock_delete.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_delete_stock_adjustment_confirm_calls_api():
+    """confirm=True elicits confirmation then calls DELETE."""
+    context, _ = create_mock_context(elicit_confirm=True)
+
+    adj = _make_mock_adjustment(
+        id=99,
+        stock_adjustment_number="SA-DELETE",
+        rows=[_make_mock_adjustment_row(id=1, variant_id=100, quantity=5.0)],
+    )
+
+    # DELETE returns 204 No Content
+    mock_delete_response = MagicMock()
+    mock_delete_response.status_code = 204
+
+    with (
+        patch(f"{_SA_GET_ALL}.asyncio_detailed", new=AsyncMock()),
+        patch(_SA_UNWRAP_DATA, return_value=[adj]),
+        patch(
+            f"{_SA_DELETE}.asyncio_detailed",
+            new=AsyncMock(return_value=mock_delete_response),
+        ) as mock_delete,
+    ):
+        result = await _delete_stock_adjustment_impl(
+            DeleteStockAdjustmentRequest(id=99, confirm=True), context
+        )
+
+    assert result.is_preview is False
+    assert result.id == 99
+    assert result.stock_adjustment_number == "SA-DELETE"
+    mock_delete.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_delete_stock_adjustment_decline_short_circuits():
+    """When the user declines the elicitation, DELETE is not called."""
+    context, _ = create_mock_context(elicit_confirm=False)
+
+    adj = _make_mock_adjustment(id=99, stock_adjustment_number="SA-DELETE")
+
+    with (
+        patch(f"{_SA_GET_ALL}.asyncio_detailed", new=AsyncMock()),
+        patch(_SA_UNWRAP_DATA, return_value=[adj]),
+        patch(f"{_SA_DELETE}.asyncio_detailed", new=AsyncMock()) as mock_delete,
+    ):
+        result = await _delete_stock_adjustment_impl(
+            DeleteStockAdjustmentRequest(id=99, confirm=True), context
+        )
+
+    assert result.is_preview is True
+    mock_delete.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_delete_stock_adjustment_not_found_raises():
+    """A non-existent adjustment id raises ValueError."""
+    context, _ = create_mock_context()
+
+    with (
+        patch(f"{_SA_GET_ALL}.asyncio_detailed", new=AsyncMock()),
+        patch(_SA_UNWRAP_DATA, return_value=[]),
+        pytest.raises(ValueError, match="not found"),
+    ):
+        await _delete_stock_adjustment_impl(
+            DeleteStockAdjustmentRequest(id=12345, confirm=False), context
+        )
 
 
 # ============================================================================
