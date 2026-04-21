@@ -53,6 +53,13 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **fulfill_order** - Complete manufacturing or sales orders
 - **create_sales_order** - Create sales orders with preview/confirm
 
+### Stock Transfers
+- **create_stock_transfer** - Move inventory between locations (preview/confirm)
+- **list_stock_transfers** - List transfers with status / location / date filters
+- **update_stock_transfer** - Update transfer body fields
+- **update_stock_transfer_status** - Transition status (PENDING → IN_TRANSIT → COMPLETED)
+- **delete_stock_transfer** - Delete a transfer
+
 ## Safety Pattern
 
 All create/modify operations use a **two-step confirmation**:
@@ -560,6 +567,84 @@ Complete a manufacturing or sales order.
 - `order_id` (required): Order ID to fulfill
 - `order_type` (required): "manufacturing" or "sales"
 - `confirm` (optional, default false): false=preview, true=fulfill
+
+---
+
+## Stock Transfer Tools
+
+### create_stock_transfer
+Create a stock transfer moving inventory between two locations.
+
+**Parameters:**
+- `source_location_id` (required): Source location ID
+- `destination_location_id` (required): Destination location ID (target_location_id)
+- `expected_arrival_date` (required): Expected arrival datetime (ISO-8601)
+- `rows` (required): Line items `[{variant_id, quantity, batch_transactions?}]` —
+  `batch_transactions` is `[{batch_id, quantity}]` for batch-tracked variants
+- `order_no` (optional): Stock transfer number (auto-assigned when omitted)
+- `additional_info` (optional): Notes
+- `confirm` (optional, default false): false=preview, true=create
+
+**Safety:** When confirm=true, prompts user for confirmation before creating.
+
+---
+
+### list_stock_transfers
+List stock transfers with filters (list-tool pattern v2).
+
+**Parameters:**
+- `limit` (optional, default 50, min 1): Max rows to return
+- `page` (optional): Page number (1-based) — disables auto-pagination
+- `status` (optional): "PENDING", "IN_TRANSIT", "COMPLETED", or "CANCELLED"
+- `source_location_id` (optional): Filter by source location ID
+- `destination_location_id` (optional): Filter by destination (target) location ID
+- `stock_transfer_number` (optional): Exact match on the transfer number
+- `created_after` / `created_before` (optional): ISO-8601 datetime bounds on created_at
+- `include_rows` (optional, default false): Populate per-transfer row details
+
+**Returns:** Summary rows (id, number, status, source/destination, row_count,
+expected_arrival). `pagination` metadata is populated when `page` is set.
+
+---
+
+### update_stock_transfer
+Update body fields on an existing stock transfer.
+
+**Parameters:**
+- `id` (required): Stock transfer ID
+- `stock_transfer_number` (optional): New transfer number
+- `transfer_date` (optional): New transfer datetime (ISO-8601)
+- `expected_arrival_date` (optional): New expected arrival datetime (ISO-8601)
+- `additional_info` (optional): Updated notes
+- `confirm` (optional, default false): false=preview, true=apply
+
+At least one updatable field must be provided. Use `update_stock_transfer_status`
+to change the transfer's status — it's a separate endpoint.
+
+---
+
+### update_stock_transfer_status
+Transition a stock transfer through the 4-state machine.
+
+**Parameters:**
+- `id` (required): Stock transfer ID
+- `new_status` (required): "PENDING", "IN_TRANSIT", "COMPLETED", or "CANCELLED"
+- `confirm` (optional, default false): false=preview, true=apply
+
+**Typical flow:** PENDING → IN_TRANSIT → COMPLETED. Katana rejects invalid
+transitions (e.g. COMPLETED → IN_TRANSIT); the tool surfaces the API error
+message as a ValueError.
+
+---
+
+### delete_stock_transfer
+Delete a stock transfer.
+
+**Parameters:**
+- `id` (required): Stock transfer ID
+- `confirm` (optional, default false): false=preview, true=delete
+
+Destructive — removes the transfer record.
 """
 
 HELP_RESOURCES = """
