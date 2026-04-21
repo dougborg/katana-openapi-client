@@ -24,6 +24,7 @@ from .manufacturing_orders import register_tools as register_manufacturing_order
 from .orders import register_tools as register_order_tools
 from .purchase_orders import register_tools as register_purchase_order_tools
 from .sales_orders import register_tools as register_sales_order_tools
+from .stock_transfers import register_tools as register_stock_transfer_tools
 
 
 def register_all_foundation_tools(mcp: FastMCP) -> None:
@@ -40,6 +41,7 @@ def register_all_foundation_tools(mcp: FastMCP) -> None:
     register_catalog_tools(mcp)
     register_manufacturing_order_tools(mcp)
     register_order_tools(mcp)
+    register_stock_transfer_tools(mcp)
 
 
 __all__ = [
