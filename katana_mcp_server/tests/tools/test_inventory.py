@@ -27,6 +27,7 @@ from katana_mcp.tools.foundation.items import (
     _get_variant_details_impl,
     _search_items_impl,
 )
+from pydantic import ValidationError
 
 from katana_public_api_client.client_types import UNSET
 from tests.conftest import create_mock_context
@@ -802,25 +803,10 @@ async def test_list_stock_adjustments_forwards_explicit_page():
     assert captured["page"] == 3
 
 
-@pytest.mark.asyncio
-async def test_list_stock_adjustments_does_not_short_circuit_large_limit():
-    """`limit` above 250 skips the auto-page short-circuit."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    with (
-        patch(f"{_SA_GET_ALL}.asyncio_detailed", side_effect=fake),
-        patch(_SA_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_stock_adjustments_impl(
-            ListStockAdjustmentsRequest(limit=500), context
-        )
-
-    assert "page" not in captured
+def test_list_stock_adjustments_rejects_limit_above_page_cap():
+    """`limit > 250` is rejected at the schema boundary (Katana's API page-size cap)."""
+    with pytest.raises(ValidationError):
+        ListStockAdjustmentsRequest(limit=500)
 
 
 @pytest.mark.asyncio

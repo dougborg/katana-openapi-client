@@ -830,17 +830,20 @@ class ListStockAdjustmentsRequest(BaseModel):
     limit: int = Field(
         default=50,
         ge=1,
+        le=250,
         description=(
-            "Max adjustments to return (default 50, min 1). When `page` is set, "
-            "acts as the page size for that request."
+            "Max adjustments to return (default 50, min 1, max 250 — Katana's "
+            "API page-size cap). When `page` is set, acts as the page size for "
+            "that request."
         ),
     )
     page: int | None = Field(
         default=None,
+        ge=1,
         description=(
             "Page number (1-based). When set, returns a single page and "
-            "disables auto-pagination; `limit` becomes the page size for "
-            "that request."
+            "disables auto-pagination; `limit` becomes the page size. Invalid "
+            "pages (0, negative) are rejected at the schema boundary."
         ),
     )
     location_id: int | None = Field(default=None, description="Filter by location ID")
@@ -911,15 +914,25 @@ class ListStockAdjustmentsResponse(BaseModel):
     )
 
 
-def _parse_iso_datetime(value: str | None) -> datetime | None:
-    """Parse an ISO-8601 string into a datetime, or return None on failure."""
+def _parse_iso_datetime(value: str | None, field_name: str) -> datetime | None:
+    """Parse an ISO-8601 string into a datetime.
+
+    Returns ``None`` when ``value`` is ``None``/empty. Raises ``ValueError``
+    with ``field_name`` context when ``value`` is a non-empty string that can't
+    be parsed — silently dropping filters would hide caller mistakes.
+
+    Normalizes trailing ``Z`` / ``z`` (UTC) to ``+00:00`` before parsing since
+    ``fromisoformat`` is strict about uppercase ``Z`` on older Python releases.
+    """
     if not value:
         return None
+    normalized = value[:-1] + "+00:00" if value.endswith(("Z", "z")) else value
     try:
-        # datetime.fromisoformat supports "Z" suffix from Python 3.11+
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except (ValueError, TypeError):
-        return None
+        return datetime.fromisoformat(normalized)
+    except ValueError as e:
+        raise ValueError(
+            f"Invalid ISO-8601 datetime for {field_name!r}: {value!r}"
+        ) from e
 
 
 async def _list_stock_adjustments_impl(
@@ -942,10 +955,10 @@ async def _list_stock_adjustments_impl(
     if request.location_id is not None:
         kwargs["location_id"] = request.location_id
 
-    created_at_min = _parse_iso_datetime(request.created_after)
+    created_at_min = _parse_iso_datetime(request.created_after, "created_after")
     if created_at_min is not None:
         kwargs["created_at_min"] = created_at_min
-    created_at_max = _parse_iso_datetime(request.created_before)
+    created_at_max = _parse_iso_datetime(request.created_before, "created_before")
     if created_at_max is not None:
         kwargs["created_at_max"] = created_at_max
 
