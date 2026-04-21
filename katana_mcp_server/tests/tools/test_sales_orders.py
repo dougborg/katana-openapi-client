@@ -694,6 +694,72 @@ async def test_list_sales_orders_explicit_production_status_wins_over_shortcut()
 
 
 @pytest.mark.asyncio
+async def test_list_sales_orders_caps_results_to_request_limit():
+    """Regression for #329: even if transport returns more rows than asked,
+    the response is sliced to request.limit."""
+    context, _ = create_mock_context()
+
+    # Simulate transport returning way more rows than requested (this is the
+    # #329 symptom: auto-pagination flooded the response).
+    over_fetched = [_make_mock_so(id=i, order_no=f"SO-{i}") for i in range(200)]
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_DATA, return_value=over_fetched),
+    ):
+        request = ListSalesOrdersRequest(limit=50)
+        result = await _list_sales_orders_impl(request, context)
+
+    assert len(result.orders) == 50
+    assert result.total_count == 50
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_passes_page_1_when_limit_fits_single_page():
+    """Regression for #329: when limit <= 250 (Katana page max), pass page=1
+    so PaginationTransport skips auto-pagination."""
+    context, _ = create_mock_context()
+    captured: dict = {}
+
+    async def fake(**kwargs):
+        captured.update(kwargs)
+        return MagicMock()
+
+    request = ListSalesOrdersRequest(limit=10)
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", side_effect=fake),
+        patch(_SO_UNWRAP_DATA, return_value=[]),
+    ):
+        await _list_sales_orders_impl(request, context)
+
+    assert captured["page"] == 1
+    assert captured["limit"] == 10
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_omits_page_when_limit_exceeds_single_page():
+    """For limit > 250, let auto-pagination do its thing (no explicit page)."""
+    context, _ = create_mock_context()
+    captured: dict = {}
+
+    async def fake(**kwargs):
+        captured.update(kwargs)
+        return MagicMock()
+
+    request = ListSalesOrdersRequest(limit=500)
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", side_effect=fake),
+        patch(_SO_UNWRAP_DATA, return_value=[]),
+    ):
+        await _list_sales_orders_impl(request, context)
+
+    assert "page" not in captured
+    assert captured["limit"] == 500
+
+
+@pytest.mark.asyncio
 async def test_list_sales_orders_returns_summary_rows():
     """Response rows carry order_no, totals, and row_count."""
     context, _ = create_mock_context()

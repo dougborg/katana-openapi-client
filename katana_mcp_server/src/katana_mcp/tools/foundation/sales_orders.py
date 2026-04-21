@@ -361,7 +361,9 @@ async def create_sales_order(
 class ListSalesOrdersRequest(BaseModel):
     """Request to list/filter sales orders."""
 
-    limit: int = Field(default=50, description="Max orders to return (default 50)")
+    limit: int = Field(
+        default=50, ge=1, description="Max orders to return (default 50, min 1)"
+    )
     order_no: str | None = Field(default=None, description="Filter by exact order_no")
     customer_id: int | None = Field(default=None, description="Filter by customer ID")
     location_id: int | None = Field(default=None, description="Filter by location ID")
@@ -439,9 +441,21 @@ async def _list_sales_orders_impl(
         "limit": request.limit,
         **{k: v for k, v in filters.items() if v is not None},
     }
+    # Efficiency: when the caller's limit fits in a single Katana page (<=250,
+    # the API's max page size), pass page=1 to disable PaginationTransport's
+    # auto-pagination. Without this, `limit` is treated as a per-page size and
+    # the transport fetches up to max_pages pages, returning thousands of rows
+    # when the caller asked for a small cap (see #329). Lower bound keeps us
+    # from bypassing the transport's invalid-limit normalization (ge=1 on the
+    # Field makes this defence-in-depth, but the explicit bound documents intent).
+    if 1 <= request.limit <= 250:
+        kwargs["page"] = 1
 
     response = await get_all_sales_orders.asyncio_detailed(**kwargs)
     attrs_list = unwrap_data(response, default=[])
+    # Safety net: cap to request.limit post-pagination so we never return more
+    # than the caller asked for, regardless of how the transport behaved.
+    attrs_list = attrs_list[: request.limit]
 
     orders: list[SalesOrderSummary] = []
     for so in attrs_list:
