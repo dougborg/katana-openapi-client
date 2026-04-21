@@ -9,6 +9,7 @@ These tools provide:
 from __future__ import annotations
 
 import asyncio
+import json
 from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 
@@ -362,7 +363,20 @@ class ListSalesOrdersRequest(BaseModel):
     """Request to list/filter sales orders."""
 
     limit: int = Field(
-        default=50, ge=1, description="Max orders to return (default 50, min 1)"
+        default=50,
+        ge=1,
+        description=(
+            "Max orders to return (default 50, min 1). When `page` is set, "
+            "acts as the page size for that request."
+        ),
+    )
+    page: int | None = Field(
+        default=None,
+        description=(
+            "Page number (1-based). When set, returns a single page and "
+            "disables auto-pagination; `limit` becomes the page size for "
+            "that request."
+        ),
     )
     order_no: str | None = Field(default=None, description="Filter by exact order_no")
     customer_id: int | None = Field(default=None, description="Filter by customer ID")
@@ -377,6 +391,27 @@ class ListSalesOrdersRequest(BaseModel):
     needs_work_orders: bool = Field(
         default=False,
         description="Convenience: filter to orders with production_status=NONE (no MOs created yet)",
+    )
+
+
+class PaginationMeta(BaseModel):
+    """Pagination metadata extracted from Katana's `x-pagination` response header.
+
+    Populated on `ListSalesOrdersResponse.pagination` only when the caller requested
+    a specific page (i.e. passed `page=N`). When auto-pagination is used, this field
+    is `None` because there is no single page to describe.
+    """
+
+    total_records: int | None = Field(
+        default=None, description="Total records across all pages"
+    )
+    total_pages: int | None = Field(default=None, description="Total number of pages")
+    page: int | None = Field(default=None, description="Current page number (1-based)")
+    first_page: bool | None = Field(
+        default=None, description="True if this is the first page"
+    )
+    last_page: bool | None = Field(
+        default=None, description="True if this is the last page"
     )
 
 
@@ -413,6 +448,63 @@ class ListSalesOrdersResponse(BaseModel):
 
     orders: list[SalesOrderSummary]
     total_count: int
+    pagination: PaginationMeta | None = Field(
+        default=None,
+        description=(
+            "Pagination cursor populated from the API's `x-pagination` header when "
+            "the caller requested a specific page. `None` when auto-paginating."
+        ),
+    )
+
+
+def _parse_pagination_header(raw: str | None) -> PaginationMeta | None:
+    """Parse Katana's `x-pagination` response header into a PaginationMeta.
+
+    Katana returns this as a JSON string with all fields as strings, e.g.:
+    `{"total_records":"2319","total_pages":"2319","offset":"0","page":"1",
+      "first_page":"true","last_page":"false"}`.
+
+    Returns `None` when the header is absent or the top-level JSON is invalid
+    (non-JSON or not a JSON object). When the header is valid JSON but
+    individual fields are missing or malformed, returns a `PaginationMeta`
+    with those specific fields set to `None` rather than discarding the
+    whole header.
+    """
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(data, dict):
+        return None
+
+    def _as_int(val: Any) -> int | None:
+        if val is None:
+            return None
+        try:
+            return int(val)
+        except (ValueError, TypeError):
+            return None
+
+    def _as_bool(val: Any) -> bool | None:
+        if isinstance(val, bool):
+            return val
+        if isinstance(val, str):
+            lowered = val.strip().lower()
+            if lowered == "true":
+                return True
+            if lowered == "false":
+                return False
+        return None
+
+    return PaginationMeta(
+        total_records=_as_int(data.get("total_records")),
+        total_pages=_as_int(data.get("total_pages")),
+        page=_as_int(data.get("page")),
+        first_page=_as_bool(data.get("first_page")),
+        last_page=_as_bool(data.get("last_page")),
+    )
 
 
 async def _list_sales_orders_impl(
@@ -441,14 +533,18 @@ async def _list_sales_orders_impl(
         "limit": request.limit,
         **{k: v for k, v in filters.items() if v is not None},
     }
-    # Efficiency: when the caller's limit fits in a single Katana page (<=250,
-    # the API's max page size), pass page=1 to disable PaginationTransport's
-    # auto-pagination. Without this, `limit` is treated as a per-page size and
-    # the transport fetches up to max_pages pages, returning thousands of rows
-    # when the caller asked for a small cap (see #329). Lower bound keeps us
-    # from bypassing the transport's invalid-limit normalization (ge=1 on the
-    # Field makes this defence-in-depth, but the explicit bound documents intent).
-    if 1 <= request.limit <= 250:
+    # Pagination strategy:
+    # - If `page` is set, the caller is driving pagination manually; forward
+    #   it so PaginationTransport disables auto-pagination (see: "ANY explicit
+    #   `page` parameter in URL disables auto-pagination") and lets callers
+    #   walk beyond the transport's max_pages ceiling.
+    # - Otherwise, when `limit` fits in a single Katana page (<=250, the API's
+    #   max page size), pass page=1 to short-circuit auto-pagination and
+    #   avoid fetching thousands of rows when the caller asked for a small
+    #   cap (see #329). Lower bound is defence-in-depth with `ge=1` on Field.
+    if request.page is not None:
+        kwargs["page"] = request.page
+    elif 1 <= request.limit <= 250:
         kwargs["page"] = 1
 
     response = await get_all_sales_orders.asyncio_detailed(**kwargs)
@@ -456,6 +552,15 @@ async def _list_sales_orders_impl(
     # Safety net: cap to request.limit post-pagination so we never return more
     # than the caller asked for, regardless of how the transport behaved.
     attrs_list = attrs_list[: request.limit]
+
+    # Surface pagination metadata from the `x-pagination` response header only
+    # when the caller is driving paging manually. During auto-pagination the
+    # header describes just the final fetched page, which would be misleading.
+    pagination: PaginationMeta | None = None
+    if request.page is not None:
+        headers = getattr(response, "headers", None)
+        if headers is not None:
+            pagination = _parse_pagination_header(headers.get("x-pagination"))
 
     orders: list[SalesOrderSummary] = []
     for so in attrs_list:
@@ -477,7 +582,9 @@ async def _list_sales_orders_impl(
             )
         )
 
-    return ListSalesOrdersResponse(orders=orders, total_count=len(orders))
+    return ListSalesOrdersResponse(
+        orders=orders, total_count=len(orders), pagination=pagination
+    )
 
 
 @observe_tool
@@ -520,6 +627,14 @@ async def list_sales_orders(
             ],
         )
         md = f"## Sales Orders ({response.total_count})\n\n{table}"
+
+    if response.pagination is not None:
+        p = response.pagination
+        if p.page is not None and p.total_pages is not None:
+            summary = f"\n\nPage {p.page} of {p.total_pages}"
+            if p.total_records is not None:
+                summary += f" (total: {p.total_records} records)"
+            md += summary
 
     return make_simple_result(md, structured_data=response.model_dump())
 

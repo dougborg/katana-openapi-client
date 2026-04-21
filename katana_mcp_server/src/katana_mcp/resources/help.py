@@ -524,9 +524,14 @@ List sales orders with filters.
 - `needs_work_orders` (optional): Shortcut for `production_status="NONE"` —
   finds sales orders that haven't had manufacturing orders created yet
 - `limit` (optional, default 50): Max rows to return
+- `page` (optional): Page number (1-based). When set, returns a single page
+  and disables auto-pagination; use with `limit` as page size to walk the
+  full result set without hitting the transport's auto-pag ceiling.
 
 **Returns:** Summary rows with order_no, status, production_status, row_count,
-total, currency, created_at, delivery_date.
+total, currency, created_at, delivery_date. When `page` is set, the response
+also includes `pagination` with `total_records`, `total_pages`, current
+`page`, `first_page`, and `last_page`.
 
 ---
 
