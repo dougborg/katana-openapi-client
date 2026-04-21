@@ -186,9 +186,15 @@ def _build_summary(transfer: Any, *, include_rows: bool) -> StockTransferSummary
 
 
 def _parse_iso_datetime(value: str, field_name: str) -> datetime:
-    """Parse an ISO-8601 datetime string, raising ValueError with a clear message."""
+    """Parse an ISO-8601 datetime string, raising ValueError with a clear message.
+
+    Normalizes trailing ``Z`` (UTC) to ``+00:00`` before parsing — ``datetime.
+    fromisoformat`` only accepts the offset form in Python < 3.11 and still is
+    strict about ``Z`` in older APIs/clients.
+    """
+    normalized = value[:-1] + "+00:00" if value.endswith("Z") else value
     try:
-        return datetime.fromisoformat(value)
+        return datetime.fromisoformat(normalized)
     except ValueError as e:
         raise ValueError(
             f"Invalid ISO-8601 datetime for {field_name!r}: {value!r}"
@@ -452,6 +458,7 @@ class ListStockTransfersRequest(BaseModel):
     )
     page: int | None = Field(
         default=None,
+        ge=1,
         description="Page number (1-based). When set, disables auto-pagination; use with `limit` as page size.",
     )
 
