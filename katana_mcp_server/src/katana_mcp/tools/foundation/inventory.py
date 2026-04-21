@@ -1201,10 +1201,10 @@ async def _update_stock_adjustment_impl(
         )
 
     # Confirm mode — elicit user confirmation before hitting the API.
-    confirmation = await require_confirmation(
-        context,
-        f"Update stock adjustment {request.id} with the supplied field changes?",
+    confirm_prompt = (
+        f"Apply the supplied field changes to stock adjustment {request.id}?"
     )
+    confirmation = await require_confirmation(context, confirm_prompt)
     if confirmation != ConfirmationResult.CONFIRMED:
         logger.info(
             "stock_adjustment_update_declined",
@@ -1378,14 +1378,12 @@ async def _delete_stock_adjustment_impl(
             ),
         )
 
-    confirmation = await require_confirmation(
-        context,
-        (
-            f"Delete stock adjustment {stock_adjustment_number} "
-            f"(id={request.id}, {row_count} rows)? "
-            "This reverses the associated inventory movements."
-        ),
+    confirm_prompt = (
+        f"Remove stock adjustment {stock_adjustment_number} "
+        f"(id={request.id}, {row_count} rows)? "
+        "This reverses the associated inventory movements."
     )
+    confirmation = await require_confirmation(context, confirm_prompt)
     if confirmation != ConfirmationResult.CONFIRMED:
         logger.info(
             "stock_adjustment_delete_declined",
