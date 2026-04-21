@@ -74,6 +74,18 @@ All create/modify operations use a **two-step confirmation**:
 4. **Create production**: search_items → create_manufacturing_order
 
 Use `katana://help/workflows` for detailed step-by-step guides.
+
+## Reporting & Analytics
+
+Aggregation tools compute rollups in one MCP call instead of paginating
+through hundreds of sales orders client-side. All read-only, no `confirm`.
+
+- **top_selling_variants** — top-N variants by units or revenue over a
+  date window. Filters: category, location.
+- **sales_summary** — group sales by day/week/month, variant, customer,
+  or category over a window.
+- **inventory_velocity** — units sold, avg-daily, stock-on-hand, and
+  days-of-cover for a single SKU or variant.
 """
 
 HELP_WORKFLOWS = """
@@ -245,6 +257,51 @@ Detailed step-by-step guides for common manufacturing ERP workflows.
    Request: {"sku": "WIDGET-001"}
    ```
    Returns current stock levels and availability.
+
+---
+
+## Workflow 6: Sales Analytics & Velocity
+
+**Goal:** Answer analytical questions ("top sellers", "sales by month", "how
+fast is this SKU moving?") in a single tool call instead of paginating
+through hundreds of orders.
+
+### Steps
+
+1. **Find top sellers for a category and period**
+   ```json
+   Tool: top_selling_variants
+   Request: {
+     "start_date": "2026-01-22",
+     "end_date": "2026-04-22",
+     "limit": 20,
+     "category": "bikes",
+     "order_by": "units"
+   }
+   ```
+   Returns the top 20 SKUs in the `bikes` category by units sold over the
+   last 90 days. Substitute `order_by="revenue"` to sort by dollar volume.
+
+2. **Group sales by time or dimension**
+   ```json
+   Tool: sales_summary
+   Request: {
+     "start_date": "2026-01-01",
+     "end_date": "2026-03-31",
+     "group_by": "month"
+   }
+   ```
+   Supports `group_by` of `day`, `week` (ISO weeks), `month`, `variant`,
+   `customer`, or `category`.
+
+3. **Check velocity and days-of-cover for a SKU**
+   ```json
+   Tool: inventory_velocity
+   Request: {"sku_or_variant_id": "BIKE-MTB-01", "period_days": 90}
+   ```
+   Returns `units_sold`, `avg_daily`, `stock_on_hand`, and `days_of_cover`.
+   Use to decide when to reorder. `days_of_cover` is `null` when there
+   have been no sales in the window (can't project).
 """
 
 HELP_TOOLS = """
@@ -645,6 +702,53 @@ Delete a stock transfer.
 - `confirm` (optional, default false): false=preview, true=delete
 
 Destructive — removes the transfer record.
+
+---
+
+## Reporting & Analytics Tools
+
+### top_selling_variants
+Top-selling variants over a date window (single call; auto-paginates and
+aggregates DELIVERED sales orders in memory).
+
+**Parameters:**
+- `start_date` (required): ISO-8601 date — window start (inclusive)
+- `end_date` (required): ISO-8601 date — window end (inclusive)
+- `limit` (optional, default 20, min 1): Max rows to return
+- `category` (optional): Item category name to filter by (e.g. "bikes")
+- `order_by` (optional, default "units"): "units" or "revenue"
+- `location_id` (optional): Filter to a single location
+
+**Returns:** List of `{sku, variant_id, name, units, revenue, order_count}`
+sorted by the `order_by` key descending.
+
+---
+
+### sales_summary
+Grouped sales totals for DELIVERED orders in a window.
+
+**Parameters:**
+- `start_date` (required): ISO-8601 date — window start (inclusive)
+- `end_date` (required): ISO-8601 date — window end (inclusive)
+- `group_by` (required): one of `day`, `week`, `month`, `variant`,
+  `customer`, `category`
+
+**Returns:** List of `{group, units, revenue, order_count}`. Time groups
+(`day`/`week`/`month`) sort ascending; dimension groups sort by revenue
+descending.
+
+---
+
+### inventory_velocity
+Velocity stats and days-of-cover for a single SKU or variant.
+
+**Parameters:**
+- `sku_or_variant_id` (required): SKU (string) or variant_id (int)
+- `period_days` (optional, default 90, max 365): Rolling window size
+
+**Returns:** `{sku, variant_id, units_sold, avg_daily, stock_on_hand,
+days_of_cover, period_days, window_start, window_end}`. `days_of_cover`
+is `null` when `avg_daily` is 0 (no sales in window).
 """
 
 HELP_RESOURCES = """
