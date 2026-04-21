@@ -44,19 +44,26 @@ def _mock_row(
     return r
 
 
+_UNSET_CREATED_AT = object()
+
+
 def _mock_so(
     *,
     id: int,
     customer_id: int = 1,
-    created_at: datetime | None = None,
+    created_at: datetime | None | object = _UNSET_CREATED_AT,
     rows: list | None = None,
 ) -> MagicMock:
     so = MagicMock()
     so.id = id
     so.customer_id = customer_id
-    so.created_at = (
-        created_at if created_at is not None else datetime(2026, 3, 1, 9, 0, tzinfo=UTC)
-    )
+    # `created_at` can be explicitly None (safety-filter will skip date check)
+    # or a datetime (will be filtered against the window). Default is an
+    # arbitrary in-March date used by the stable non-velocity tests.
+    if created_at is _UNSET_CREATED_AT:
+        so.created_at = datetime(2026, 3, 1, 9, 0, tzinfo=UTC)
+    else:
+        so.created_at = created_at
     so.sales_order_rows = rows or []
     return so
 
@@ -372,18 +379,24 @@ async def test_inventory_velocity_computes_avg_daily_and_days_of_cover():
         return_value={"id": 500, "sku": "BIKE-MTB-01", "display_name": "Mountain Bike"}
     )
 
+    # created_at=None means the safety-filter in
+    # _fetch_delivered_sales_orders_in_window skips the date check, so these
+    # fixtures are stable regardless of what "now" is at test time.
     orders = [
         _mock_so(
             id=1,
+            created_at=None,
             rows=[_mock_row(id=1, variant_id=500, quantity=100, price_per_unit=0)],
         ),
         _mock_so(
             id=2,
+            created_at=None,
             rows=[_mock_row(id=2, variant_id=500, quantity=80, price_per_unit=0)],
         ),
         # Other-variant row is ignored
         _mock_so(
             id=3,
+            created_at=None,
             rows=[_mock_row(id=3, variant_id=999, quantity=50, price_per_unit=0)],
         ),
     ]

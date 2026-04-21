@@ -179,7 +179,6 @@ async def _fetch_category_for_product(services: Any, product_id: int) -> str | N
     from katana_public_api_client.api.material import get_material
     from katana_public_api_client.api.product import get_product
     from katana_public_api_client.api.services import get_service
-    from katana_public_api_client.models import ErrorResponse
     from katana_public_api_client.utils import unwrap
 
     for fetcher in (
@@ -191,8 +190,10 @@ async def _fetch_category_for_product(services: Any, product_id: int) -> str | N
             response = await fetcher(id=product_id, client=services.client)
         except Exception:
             continue
+        # unwrap(..., raise_on_error=False) returns None for ErrorResponse,
+        # so a None here covers both "not this type" and "error payload".
         obj = unwrap(response, raise_on_error=False)
-        if obj is None or isinstance(obj, ErrorResponse):
+        if obj is None:
             continue
         cat = unwrap_unset(getattr(obj, "category_name", None), None)
         if cat is not None:
@@ -678,10 +679,12 @@ async def _inventory_velocity_impl(
         services, request.sku_or_variant_id
     )
 
-    end_dt = datetime.now(tz=UTC)
-    start_dt = end_dt - timedelta(days=request.period_days)
-    window_start = start_dt.date()
-    window_end = end_dt.date()
+    # Calendar-day semantics: the inclusive window [window_start, window_end]
+    # covers exactly ``period_days`` days. Using date() on both ends of a
+    # naive timedelta subtraction would silently stretch the window by one
+    # day (because the inclusive bound adds a day at the end). See #331.
+    window_end = datetime.now(tz=UTC).date()
+    window_start = window_end - timedelta(days=request.period_days - 1)
 
     logger.info(
         "inventory_velocity_started",
@@ -748,7 +751,7 @@ async def inventory_velocity(
     cover = (
         f"{response.days_of_cover:.1f} days"
         if response.days_of_cover is not None
-        else "∞ (no sales history)"
+        else "N/A (no sales history in window)"
     )
     lines = [
         f"## Inventory Velocity: {response.sku or response.variant_id}",
