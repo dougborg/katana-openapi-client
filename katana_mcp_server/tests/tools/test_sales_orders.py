@@ -786,6 +786,83 @@ async def test_list_sales_orders_returns_summary_rows():
     assert result.orders[0].row_count == 2
 
 
+@pytest.mark.asyncio
+async def test_list_sales_orders_page_forwards_and_parses_header():
+    """Explicit page forwards to API and x-pagination header populates PaginationMeta."""
+    context, _ = create_mock_context()
+    captured: dict = {}
+
+    # Build a response that carries the Katana `x-pagination` header format.
+    mock_response = MagicMock()
+    mock_response.headers = {
+        "x-pagination": (
+            '{"total_records":"100","total_pages":"2","offset":"0","page":"1",'
+            '"first_page":"true","last_page":"false"}'
+        )
+    }
+
+    async def fake_asyncio_detailed(**kwargs):
+        captured.update(kwargs)
+        return mock_response
+
+    request = ListSalesOrdersRequest(page=1, limit=50)
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", side_effect=fake_asyncio_detailed),
+        patch(_SO_UNWRAP_DATA, return_value=[]),
+    ):
+        result = await _list_sales_orders_impl(request, context)
+
+    # Explicit page was forwarded to the API (which disables auto-pagination).
+    assert captured["page"] == 1
+    assert captured["limit"] == 50
+
+    assert result.pagination is not None
+    assert result.pagination.total_records == 100
+    assert result.pagination.total_pages == 2
+    assert result.pagination.page == 1
+    assert result.pagination.first_page is True
+    assert result.pagination.last_page is False
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_no_page_leaves_pagination_none():
+    """When caller did not pass `page`, response.pagination stays None even
+    if the underlying request short-circuited with page=1 and the transport
+    passed through an `x-pagination` header — that header describes a single
+    internal page and would be misleading to surface to the caller."""
+    context, _ = create_mock_context()
+    captured: dict = {}
+
+    mock_response = MagicMock()
+    mock_response.headers = {
+        "x-pagination": (
+            '{"total_records":"100","total_pages":"2","offset":"0","page":"1",'
+            '"first_page":"true","last_page":"false"}'
+        )
+    }
+
+    async def fake_asyncio_detailed(**kwargs):
+        captured.update(kwargs)
+        return mock_response
+
+    # limit=50 <= 250 triggers the short-circuit that forwards page=1
+    # internally (see #329). We still must not surface pagination metadata
+    # because the *caller* did not request a specific page.
+    request = ListSalesOrdersRequest(limit=50)
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", side_effect=fake_asyncio_detailed),
+        patch(_SO_UNWRAP_DATA, return_value=[]),
+    ):
+        result = await _list_sales_orders_impl(request, context)
+
+    # Short-circuit forwards page=1 internally, but pagination metadata is
+    # gated on the *request's* page field, not what we sent to the API.
+    assert captured["page"] == 1
+    assert result.pagination is None
+
+
 # ============================================================================
 # get_sales_order tests
 # ============================================================================
