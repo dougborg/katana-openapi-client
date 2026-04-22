@@ -1,5 +1,6 @@
 """Tests for sales order MCP tools."""
 
+import json
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -13,6 +14,8 @@ from katana_mcp.tools.foundation.sales_orders import (
     _create_sales_order_impl,
     _get_sales_order_impl,
     _list_sales_orders_impl,
+    get_sales_order,
+    list_sales_orders,
 )
 
 from katana_public_api_client.client_types import UNSET
@@ -1196,3 +1199,65 @@ async def test_get_sales_order_enriches_row_sku_from_cache():
 
     assert result.rows[0].sku == "BIKE-A"  # cache hit
     assert result.rows[1].sku is None  # cache miss
+
+
+# ============================================================================
+# format=json / format=markdown
+# ============================================================================
+
+
+def _content_text(result) -> str:
+    """Extract the text of a ToolResult's first content block."""
+    return result.content[0].text
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_format_json_returns_json():
+    """format='json' returns JSON-parseable content."""
+    context, _ = create_mock_context()
+    mock_so = _make_mock_so(id=1, order_no="SO-1")
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_DATA, return_value=[mock_so]),
+    ):
+        result = await list_sales_orders(format="json", context=context)
+
+    data = json.loads(_content_text(result))
+    assert data["total_count"] == 1
+    assert data["orders"][0]["order_no"] == "SO-1"
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_format_markdown_default():
+    """Default markdown format produces a table."""
+    context, _ = create_mock_context()
+    mock_so = _make_mock_so(id=1, order_no="SO-1")
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_DATA, return_value=[mock_so]),
+    ):
+        result = await list_sales_orders(context=context)
+
+    text = _content_text(result)
+    assert "|" in text  # markdown table
+    assert "SO-1" in text
+
+
+@pytest.mark.asyncio
+async def test_get_sales_order_format_json_returns_json():
+    """format='json' returns JSON-parseable content."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_id = AsyncMock(return_value=None)
+    mock_so = _make_mock_so(id=9, order_no="SO-9")
+
+    with (
+        patch(f"{_SO_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_AS, return_value=mock_so),
+    ):
+        result = await get_sales_order(order_id=9, format="json", context=context)
+
+    data = json.loads(_content_text(result))
+    assert data["id"] == 9
+    assert data["order_no"] == "SO-9"

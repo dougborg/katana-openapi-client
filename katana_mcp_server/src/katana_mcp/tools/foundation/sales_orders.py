@@ -459,6 +459,15 @@ class ListSalesOrdersRequest(BaseModel):
         ),
     )
 
+    # Output formatting
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data consumable by downstream tools/aggregations."
+        ),
+    )
+
 
 class PaginationMeta(BaseModel):
     """Pagination metadata extracted from Katana's `x-pagination` response header.
@@ -789,6 +798,12 @@ async def list_sales_orders(
 
     response = await _list_sales_orders_impl(request, context)
 
+    if request.format == "json":
+        return ToolResult(
+            content=response.model_dump_json(indent=2),
+            structured_content=response.model_dump(),
+        )
+
     if not response.orders:
         md = "No sales orders match the given filters."
     else:
@@ -829,6 +844,13 @@ class GetSalesOrderRequest(BaseModel):
 
     order_no: str | None = Field(default=None, description="Sales order number")
     order_id: int | None = Field(default=None, description="Sales order ID")
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data consumable by downstream tools/aggregations."
+        ),
+    )
 
 
 class GetSalesOrderResponse(BaseModel):
@@ -938,6 +960,12 @@ async def get_sales_order(
     from katana_mcp.tools.tool_result_utils import make_simple_result
 
     response = await _get_sales_order_impl(request, context)
+
+    if request.format == "json":
+        return ToolResult(
+            content=response.model_dump_json(indent=2),
+            structured_content=response.model_dump(),
+        )
 
     lines = [
         f"## Sales Order {response.order_no or response.id}",
