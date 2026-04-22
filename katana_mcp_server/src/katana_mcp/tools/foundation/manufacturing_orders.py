@@ -13,7 +13,7 @@ import datetime as _datetime
 import json
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
@@ -376,6 +376,13 @@ class GetManufacturingOrderRequest(BaseModel):
         default=None, description="Order number to look up (e.g., '#WEB20082 / 1')"
     )
     order_id: int | None = Field(default=None, description="Manufacturing order ID")
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data consumable by downstream tools/aggregations."
+        ),
+    )
 
 
 class ManufacturingOrderInfo(BaseModel):
@@ -480,6 +487,12 @@ async def get_manufacturing_order(
 
     response = await _get_manufacturing_order_impl(request, context)
 
+    if request.format == "json":
+        return ToolResult(
+            content=response.model_dump_json(indent=2),
+            structured_content=response.model_dump(),
+        )
+
     if not response.orders:
         return make_simple_result(
             f"No manufacturing orders found for "
@@ -523,6 +536,13 @@ class GetManufacturingOrderRecipeRequest(BaseModel):
     """Request to list ingredient rows for a manufacturing order."""
 
     manufacturing_order_id: int = Field(..., description="Manufacturing order ID")
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data consumable by downstream tools/aggregations."
+        ),
+    )
 
 
 class RecipeRowInfo(BaseModel):
@@ -616,6 +636,12 @@ async def get_manufacturing_order_recipe(
     from katana_mcp.tools.tool_result_utils import make_simple_result
 
     response = await _get_manufacturing_order_recipe_impl(request, context)
+
+    if request.format == "json":
+        return ToolResult(
+            content=response.model_dump_json(indent=2),
+            structured_content=response.model_dump(),
+        )
 
     if not response.rows:
         md = f"No recipe rows found for MO ID {response.manufacturing_order_id}."
@@ -1618,6 +1644,15 @@ class ListManufacturingOrdersRequest(BaseModel):
         ),
     )
 
+    # Output formatting
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data consumable by downstream tools/aggregations."
+        ),
+    )
+
 
 class ManufacturingOrderSummary(BaseModel):
     """Summary row for a manufacturing order in a list."""
@@ -1804,6 +1839,12 @@ async def list_manufacturing_orders(
     For its recipe rows, use `get_manufacturing_order_recipe`.
     """
     response = await _list_manufacturing_orders_impl(request, context)
+
+    if request.format == "json":
+        return ToolResult(
+            content=response.model_dump_json(indent=2),
+            structured_content=response.model_dump(),
+        )
 
     if not response.orders:
         md = "No manufacturing orders match the given filters."
