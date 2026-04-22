@@ -10,7 +10,7 @@ import asyncio
 import json
 import time
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
@@ -50,6 +50,13 @@ class CheckInventoryRequest(BaseModel):
     )
     variant_ids: list[int] | None = Field(
         default=None, description="Batch: list of variant IDs to check"
+    )
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data consumable by downstream tools/aggregations."
+        ),
     )
 
 
@@ -234,6 +241,13 @@ async def check_inventory(
 
     results = await _check_inventory_impl(request, context)
 
+    if request.format == "json":
+        payload = {"items": [r.model_dump() for r in results]}
+        return ToolResult(
+            content=json.dumps(payload, indent=2, default=str),
+            structured_content=payload,
+        )
+
     # Single-variant request: preserve the rich Prefab card output
     is_single = len(results) == 1 and not request.skus and not request.variant_ids
     if is_single:
@@ -285,6 +299,13 @@ class LowStockRequest(BaseModel):
 
     threshold: int = Field(default=10, description="Stock threshold level")
     limit: int = Field(default=50, description="Maximum items to return")
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data consumable by downstream tools/aggregations."
+        ),
+    )
 
 
 class LowStockItem(BaseModel):
@@ -402,6 +423,12 @@ async def list_low_stock_items(
 
     response = await _list_low_stock_items_impl(request, context)
 
+    if request.format == "json":
+        return ToolResult(
+            content=response.model_dump_json(indent=2),
+            structured_content=response.model_dump(),
+        )
+
     if response.items:
         items_table = "\n".join(
             f"- **{item.sku}**: {item.product_name} — {item.current_stock} units"
@@ -433,6 +460,13 @@ class GetInventoryMovementsRequest(BaseModel):
 
     sku: str = Field(..., description="SKU to get movements for")
     limit: int = Field(default=50, description="Maximum movements to return")
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data consumable by downstream tools/aggregations."
+        ),
+    )
 
 
 class MovementInfo(BaseModel):
@@ -560,6 +594,12 @@ async def get_inventory_movements(
     from katana_mcp.tools.tool_result_utils import format_md_table
 
     response = await _get_inventory_movements_impl(request, context)
+
+    if request.format == "json":
+        return ToolResult(
+            content=response.model_dump_json(indent=2),
+            structured_content=response.model_dump(),
+        )
 
     if response.movements:
         movements_md = format_md_table(
@@ -893,6 +933,14 @@ class ListStockAdjustmentsRequest(BaseModel):
         description="When true, populate row-level detail on each summary",
     )
 
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data consumable by downstream tools/aggregations."
+        ),
+    )
+
 
 class StockAdjustmentRowInfo(BaseModel):
     """Summary of a stock adjustment line item."""
@@ -1108,6 +1156,12 @@ async def list_stock_adjustments(
       to narrow the result set before the client-side pass.
     """
     response = await _list_stock_adjustments_impl(request, context)
+
+    if request.format == "json":
+        return ToolResult(
+            content=response.model_dump_json(indent=2),
+            structured_content=response.model_dump(),
+        )
 
     if not response.adjustments:
         md = "No stock adjustments match the given filters."

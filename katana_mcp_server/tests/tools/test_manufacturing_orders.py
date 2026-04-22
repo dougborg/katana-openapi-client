@@ -1,5 +1,6 @@
 """Tests for manufacturing order MCP tools."""
 
+import json
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -20,6 +21,9 @@ from katana_mcp.tools.foundation.manufacturing_orders import (
     _delete_recipe_row_impl,
     _get_manufacturing_order_recipe_impl,
     _plan_batch_update,
+    get_manufacturing_order,
+    get_manufacturing_order_recipe,
+    list_manufacturing_orders,
 )
 
 from katana_public_api_client.client_types import UNSET
@@ -1229,3 +1233,78 @@ async def test_list_manufacturing_orders_production_deadline_client_side_filter(
 
     assert result.total_count == 1
     assert result.orders[0].id == 1
+
+
+# ============================================================================
+# format=json (manufacturing_orders tools)
+# ============================================================================
+
+
+def _content_text(result) -> str:
+    return result.content[0].text
+
+
+@pytest.mark.asyncio
+async def test_list_manufacturing_orders_format_json_returns_json():
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        ListManufacturingOrdersResponse,
+    )
+
+    context, _ = create_mock_context()
+
+    with patch(
+        "katana_mcp.tools.foundation.manufacturing_orders._list_manufacturing_orders_impl",
+        new_callable=AsyncMock,
+    ) as mock_impl:
+        mock_impl.return_value = ListManufacturingOrdersResponse(
+            orders=[], total_count=0, pagination=None
+        )
+        result = await list_manufacturing_orders(format="json", context=context)
+
+    data = json.loads(_content_text(result))
+    assert data["total_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_get_manufacturing_order_format_json_returns_json():
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        GetManufacturingOrderResponse,
+    )
+
+    context, _ = create_mock_context()
+
+    with patch(
+        "katana_mcp.tools.foundation.manufacturing_orders._get_manufacturing_order_impl",
+        new_callable=AsyncMock,
+    ) as mock_impl:
+        mock_impl.return_value = GetManufacturingOrderResponse(orders=[], total_count=0)
+        result = await get_manufacturing_order(
+            order_id=1, format="json", context=context
+        )
+
+    data = json.loads(_content_text(result))
+    assert data["total_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_get_manufacturing_order_recipe_format_json_returns_json():
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        GetManufacturingOrderRecipeResponse,
+    )
+
+    context, _ = create_mock_context()
+
+    with patch(
+        "katana_mcp.tools.foundation.manufacturing_orders._get_manufacturing_order_recipe_impl",
+        new_callable=AsyncMock,
+    ) as mock_impl:
+        mock_impl.return_value = GetManufacturingOrderRecipeResponse(
+            manufacturing_order_id=7, rows=[], total_count=0
+        )
+        result = await get_manufacturing_order_recipe(
+            manufacturing_order_id=7, format="json", context=context
+        )
+
+    data = json.loads(_content_text(result))
+    assert data["manufacturing_order_id"] == 7
+    assert data["total_count"] == 0

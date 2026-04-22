@@ -1,5 +1,6 @@
 """Tests for customer search and lookup tools."""
 
+import json
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -8,6 +9,8 @@ from katana_mcp.tools.foundation.customers import (
     SearchCustomersRequest,
     _get_customer_impl,
     _search_customers_impl,
+    get_customer,
+    search_customers,
 )
 
 from tests.conftest import create_mock_context
@@ -150,3 +153,61 @@ async def test_get_customer_not_found():
     request = GetCustomerRequest(customer_id=9999)
     with pytest.raises(ValueError, match="Customer with ID 9999 not found"):
         await _get_customer_impl(request, context)
+
+
+# ============================================================================
+# format=json / format=markdown
+# ============================================================================
+
+
+def _content_text(result) -> str:
+    """Extract the text of a ToolResult's first content block."""
+    return result.content[0].text
+
+
+@pytest.mark.asyncio
+async def test_search_customers_format_json_returns_json():
+    """format='json' returns JSON-parseable content."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.smart_search = AsyncMock(
+        return_value=[{"id": 1, "name": "Acme Corp", "email": "a@b.c"}]
+    )
+
+    result = await search_customers(
+        query="acme", limit=20, format="json", context=context
+    )
+
+    data = json.loads(_content_text(result))
+    assert data["total_count"] == 1
+    assert data["customers"][0]["name"] == "Acme Corp"
+
+
+@pytest.mark.asyncio
+async def test_search_customers_format_markdown_default():
+    """Default markdown format produces markdown-ish content (not JSON)."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.smart_search = AsyncMock(
+        return_value=[{"id": 1, "name": "Acme Corp", "email": "a@b.c"}]
+    )
+
+    result = await search_customers(query="acme", limit=20, context=context)
+
+    text = _content_text(result)
+    assert "Acme Corp" in text
+    # Not JSON — should have markdown characters
+    assert "##" in text or "**" in text
+
+
+@pytest.mark.asyncio
+async def test_get_customer_format_json_returns_json():
+    """format='json' returns JSON-parseable content."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_id = AsyncMock(
+        return_value={"id": 42, "name": "Widgets Inc", "email": "hi@widgets.io"}
+    )
+
+    result = await get_customer(customer_id=42, format="json", context=context)
+
+    data = json.loads(_content_text(result))
+    assert data["id"] == 42
+    assert data["name"] == "Widgets Inc"

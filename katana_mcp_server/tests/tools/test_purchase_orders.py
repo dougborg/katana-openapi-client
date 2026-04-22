@@ -1,5 +1,6 @@
 """Tests for purchase order MCP tools."""
 
+import json
 import os
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -16,6 +17,9 @@ from katana_mcp.tools.foundation.purchase_orders import (
     _get_purchase_order_impl,
     _receive_purchase_order_impl,
     _verify_order_document_impl,
+    get_purchase_order,
+    list_purchase_orders,
+    verify_order_document,
 )
 
 from katana_public_api_client.api.purchase_order import (
@@ -1825,3 +1829,94 @@ async def test_list_purchase_orders_include_rows_populates_details():
     assert result_without.orders[0].rows is None
     # row_count should still reflect the true count regardless of include_rows
     assert result_without.orders[0].row_count == 2
+
+
+# ============================================================================
+# format=json (purchase_orders tools)
+# ============================================================================
+
+
+def _content_text(result) -> str:
+    return result.content[0].text
+
+
+@pytest.mark.asyncio
+async def test_list_purchase_orders_format_json_returns_json():
+    from katana_mcp.tools.foundation.purchase_orders import (
+        ListPurchaseOrdersResponse,
+    )
+
+    context, _ = create_mock_context()
+
+    with patch(
+        "katana_mcp.tools.foundation.purchase_orders._list_purchase_orders_impl",
+        new_callable=AsyncMock,
+    ) as mock_impl:
+        mock_impl.return_value = ListPurchaseOrdersResponse(
+            orders=[], total_count=0, pagination=None
+        )
+        result = await list_purchase_orders(format="json", context=context)
+
+    data = json.loads(_content_text(result))
+    assert data["total_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_get_purchase_order_format_json_returns_json():
+    from katana_mcp.tools.foundation.purchase_orders import GetPurchaseOrderResponse
+
+    context, _ = create_mock_context()
+
+    with patch(
+        "katana_mcp.tools.foundation.purchase_orders._get_purchase_order_impl",
+        new_callable=AsyncMock,
+    ) as mock_impl:
+        mock_impl.return_value = GetPurchaseOrderResponse(
+            id=5,
+            order_no="PO-5",
+            supplier_id=1,
+            location_id=1,
+            currency="USD",
+            status="NOT_RECEIVED",
+            entity_type="regular",
+            expected_arrival_date=None,
+            total=100.0,
+            rows=[],
+        )
+        result = await get_purchase_order(order_id=5, format="json", context=context)
+
+    data = json.loads(_content_text(result))
+    assert data["id"] == 5
+    assert data["order_no"] == "PO-5"
+
+
+@pytest.mark.asyncio
+async def test_verify_order_document_format_json_returns_json():
+    from katana_mcp.tools.foundation.purchase_orders import (
+        VerifyOrderDocumentResponse,
+    )
+
+    context, _ = create_mock_context()
+
+    with patch(
+        "katana_mcp.tools.foundation.purchase_orders._verify_order_document_impl",
+        new_callable=AsyncMock,
+    ) as mock_impl:
+        mock_impl.return_value = VerifyOrderDocumentResponse(
+            order_id=5,
+            matches=[],
+            discrepancies=[],
+            suggested_actions=[],
+            overall_status="match",
+            message="All items match",
+        )
+        result = await verify_order_document(
+            order_id=5,
+            document_items=[DocumentItem(sku="A", quantity=1, unit_price=1.0)],
+            format="json",
+            context=context,
+        )
+
+    data = json.loads(_content_text(result))
+    assert data["order_id"] == 5
+    assert data["overall_status"] == "match"

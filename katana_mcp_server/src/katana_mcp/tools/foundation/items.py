@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from enum import StrEnum
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
@@ -72,6 +72,13 @@ class SearchItemsRequest(BaseModel):
 
     query: str = Field(..., description="Search query (name, SKU, etc.)")
     limit: int = Field(default=20, description="Maximum results to return")
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data consumable by downstream tools/aggregations."
+        ),
+    )
 
 
 class ItemInfo(BaseModel):
@@ -172,6 +179,11 @@ async def search_items(
     Query must not be empty. Default limit is 20 results.
     """
     response = await _search_items_impl(request, context)
+    if request.format == "json":
+        return ToolResult(
+            content=response.model_dump_json(indent=2),
+            structured_content=response.model_dump(),
+        )
     return _search_response_to_tool_result(response, request.query)
 
 
@@ -333,6 +345,13 @@ class GetItemRequest(BaseModel):
 
     id: int = Field(..., description="Item ID")
     type: ItemType = Field(..., description="Type of item (product, material, service)")
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data consumable by downstream tools/aggregations."
+        ),
+    )
 
 
 class ItemDetailsResponse(BaseModel):
@@ -385,6 +404,13 @@ async def get_item(
     from katana_mcp.tools.prefab_ui import build_item_detail_ui
 
     response = await _get_item_impl(request, context)
+
+    if request.format == "json":
+        return ToolResult(
+            content=response.model_dump_json(indent=2),
+            structured_content=response.model_dump(),
+        )
+
     ui = build_item_detail_ui(response.model_dump())
 
     return make_tool_result(
@@ -738,6 +764,13 @@ class GetVariantDetailsRequest(BaseModel):
     variant_ids: list[int] | None = Field(
         default=None, description="Batch: list of variant IDs to look up"
     )
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data consumable by downstream tools/aggregations."
+        ),
+    )
 
 
 class VariantDetailsResponse(BaseModel):
@@ -940,6 +973,15 @@ async def get_variant_details(
     Raises ValueError if any requested variant is not found.
     """
     responses = await _get_variant_details_impl(request, context)
+
+    if request.format == "json":
+        payload = {"variants": [r.model_dump() for r in responses]}
+        import json as _json
+
+        return ToolResult(
+            content=_json.dumps(payload, indent=2, default=str),
+            structured_content=payload,
+        )
 
     # If a single-variant request, return the single-variant markdown + UI
     is_single = len(responses) == 1 and not request.skus and not request.variant_ids

@@ -1,5 +1,6 @@
 """Tests for inventory and item MCP tools."""
 
+import json
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -20,17 +21,29 @@ from katana_mcp.tools.foundation.inventory import (
     _list_low_stock_items_impl,
     _list_stock_adjustments_impl,
     _update_stock_adjustment_impl,
+    check_inventory,
+    get_inventory_movements,
+    list_low_stock_items,
+    list_stock_adjustments,
 )
 from katana_mcp.tools.foundation.items import (
     GetVariantDetailsRequest,
     SearchItemsRequest,
     _get_variant_details_impl,
     _search_items_impl,
+    get_variant_details,
+    search_items,
 )
 from pydantic import ValidationError
 
 from katana_public_api_client.client_types import UNSET
 from tests.conftest import create_mock_context
+
+
+def _content_text(result) -> str:
+    """Extract the text of a ToolResult's first content block."""
+    return result.content[0].text
+
 
 # ============================================================================
 # Unit Tests (with mocks)
@@ -1556,3 +1569,201 @@ async def test_check_inventory_batch_skus():
     assert results[1].sku == "WIDGET-B"
     assert results[0].in_stock == 10.0
     assert results[0].available_stock == 7.0
+
+
+# ============================================================================
+# format=json / format=markdown (items tools)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_search_items_format_json_returns_json():
+    """format='json' returns JSON-parseable content."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.smart_search = AsyncMock(
+        return_value=[{"id": 1, "sku": "WIDGET-1", "display_name": "Widget"}]
+    )
+
+    result = await search_items(
+        query="widget", limit=10, format="json", context=context
+    )
+
+    data = json.loads(_content_text(result))
+    assert data["total_count"] == 1
+    assert data["items"][0]["sku"] == "WIDGET-1"
+
+
+@pytest.mark.asyncio
+async def test_search_items_format_markdown_default():
+    """Default markdown format is not JSON."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.smart_search = AsyncMock(
+        return_value=[{"id": 1, "sku": "WIDGET-1", "display_name": "Widget"}]
+    )
+
+    result = await search_items(query="widget", limit=10, context=context)
+
+    text = _content_text(result)
+    assert "WIDGET-1" in text
+    # Markdown, not JSON
+    assert not text.lstrip().startswith("{")
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_format_json_returns_json():
+    """format='json' returns JSON-parseable content."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_id = AsyncMock(
+        return_value={
+            "id": 42,
+            "sku": "VAR-42",
+            "product_id": 100,
+            "type": "product",
+        }
+    )
+    # Mock _get_variant_details_impl via patching the cache lookup chain
+    # is complex; patch the impl directly.
+    with patch(
+        "katana_mcp.tools.foundation.items._get_variant_details_impl",
+        new_callable=AsyncMock,
+    ) as mock_impl:
+        from katana_mcp.tools.foundation.items import VariantDetailsResponse
+
+        mock_impl.return_value = [
+            VariantDetailsResponse(
+                id=42,
+                sku="VAR-42",
+                name="Test Variant",
+                item_id=100,
+                item_type="product",
+                sales_price=10.0,
+                purchase_price=5.0,
+            )
+        ]
+
+        result = await get_variant_details(
+            variant_id=42, format="json", context=context
+        )
+
+    data = json.loads(_content_text(result))
+    assert data["variants"][0]["id"] == 42
+    assert data["variants"][0]["sku"] == "VAR-42"
+
+
+# ============================================================================
+# format=json (inventory tools)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_format_json_returns_json():
+    """format='json' returns JSON-parseable content for batch check."""
+    from katana_mcp.tools.foundation.inventory import StockInfo
+
+    with patch(
+        "katana_mcp.tools.foundation.inventory._check_inventory_impl",
+        new_callable=AsyncMock,
+    ) as mock_impl:
+        mock_impl.return_value = [
+            StockInfo(
+                variant_id=1,
+                sku="A",
+                product_name="A",
+                available_stock=1,
+                committed=0,
+                expected=0,
+                in_stock=1,
+            ),
+            StockInfo(
+                variant_id=2,
+                sku="B",
+                product_name="B",
+                available_stock=2,
+                committed=0,
+                expected=0,
+                in_stock=2,
+            ),
+        ]
+        context, _ = create_mock_context()
+        result = await check_inventory(skus=["A", "B"], format="json", context=context)
+
+    data = json.loads(_content_text(result))
+    assert len(data["items"]) == 2
+    assert data["items"][0]["sku"] == "A"
+
+
+@pytest.mark.asyncio
+async def test_list_low_stock_items_format_json_returns_json():
+    """format='json' returns JSON-parseable content."""
+    from katana_mcp.tools.foundation.inventory import (
+        LowStockItem,
+        LowStockResponse,
+    )
+
+    with patch(
+        "katana_mcp.tools.foundation.inventory._list_low_stock_items_impl",
+        new_callable=AsyncMock,
+    ) as mock_impl:
+        mock_impl.return_value = LowStockResponse(
+            items=[
+                LowStockItem(
+                    sku="LOW-1",
+                    product_name="Low Item",
+                    current_stock=2,
+                    threshold=10,
+                )
+            ],
+            total_count=1,
+        )
+        context, _ = create_mock_context()
+        result = await list_low_stock_items(format="json", context=context)
+
+    data = json.loads(_content_text(result))
+    assert data["total_count"] == 1
+    assert data["items"][0]["sku"] == "LOW-1"
+
+
+@pytest.mark.asyncio
+async def test_get_inventory_movements_format_json_returns_json():
+    """format='json' returns JSON-parseable content."""
+    from katana_mcp.tools.foundation.inventory import InventoryMovementsResponse
+
+    with patch(
+        "katana_mcp.tools.foundation.inventory._get_inventory_movements_impl",
+        new_callable=AsyncMock,
+    ) as mock_impl:
+        mock_impl.return_value = InventoryMovementsResponse(
+            sku="MOVE-1",
+            product_name="Move",
+            movements=[],
+            total_count=0,
+        )
+        context, _ = create_mock_context()
+        result = await get_inventory_movements(
+            sku="MOVE-1", format="json", context=context
+        )
+
+    data = json.loads(_content_text(result))
+    assert data["sku"] == "MOVE-1"
+    assert data["total_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_format_json_returns_json():
+    """format='json' returns JSON-parseable content."""
+    from katana_mcp.tools.foundation.inventory import ListStockAdjustmentsResponse
+
+    with patch(
+        "katana_mcp.tools.foundation.inventory._list_stock_adjustments_impl",
+        new_callable=AsyncMock,
+    ) as mock_impl:
+        mock_impl.return_value = ListStockAdjustmentsResponse(
+            adjustments=[],
+            total_count=0,
+            pagination=None,
+        )
+        context, _ = create_mock_context()
+        result = await list_stock_adjustments(format="json", context=context)
+
+    data = json.loads(_content_text(result))
+    assert data["total_count"] == 0

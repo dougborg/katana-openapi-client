@@ -7,7 +7,7 @@ rather than exposed as a resource.
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools.tool import ToolResult
@@ -30,6 +30,13 @@ class SearchCustomersRequest(BaseModel):
 
     query: str = Field(..., description="Search query (name or email)")
     limit: int = Field(default=20, description="Maximum results to return")
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data consumable by downstream tools/aggregations."
+        ),
+    )
 
 
 class CustomerInfo(BaseModel):
@@ -94,6 +101,12 @@ async def search_customers(
     """
     response = await _search_customers_impl(request, context)
 
+    if request.format == "json":
+        return ToolResult(
+            content=response.model_dump_json(indent=2),
+            structured_content=response.model_dump(),
+        )
+
     if response.customers:
         lines = [
             f"- **{c.name}** (ID: {c.id})"
@@ -121,6 +134,13 @@ class GetCustomerRequest(BaseModel):
     """Request model for fetching a customer by ID."""
 
     customer_id: int = Field(..., description="Customer ID to look up")
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data consumable by downstream tools/aggregations."
+        ),
+    )
 
 
 class GetCustomerResponse(BaseModel):
@@ -169,6 +189,12 @@ async def get_customer(
     search_customers first to find the customer_id.
     """
     response = await _get_customer_impl(request, context)
+
+    if request.format == "json":
+        return ToolResult(
+            content=response.model_dump_json(indent=2),
+            structured_content=response.model_dump(),
+        )
 
     md_lines = [f"## {response.name}", f"**ID**: {response.id}"]
     if response.email:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, date, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -13,6 +14,9 @@ from katana_mcp.tools.foundation.reporting import (
     _inventory_velocity_impl,
     _sales_summary_impl,
     _top_selling_variants_impl,
+    inventory_velocity,
+    sales_summary,
+    top_selling_variants,
 )
 
 from katana_public_api_client.client_types import UNSET
@@ -484,3 +488,100 @@ def test_inventory_velocity_rejects_out_of_bounds_period():
         InventoryVelocityRequest(sku_or_variant_id="X", period_days=0)
     with pytest.raises(ValidationError):
         InventoryVelocityRequest(sku_or_variant_id="X", period_days=400)
+
+
+# ============================================================================
+# format=json (reporting tools)
+# ============================================================================
+
+
+def _content_text(result) -> str:
+    return result.content[0].text
+
+
+@pytest.mark.asyncio
+async def test_top_selling_variants_format_json_returns_json():
+    from katana_mcp.tools.foundation.reporting import TopSellingVariantsResponse
+
+    context, _ = create_mock_context()
+
+    with patch(
+        "katana_mcp.tools.foundation.reporting._top_selling_variants_impl",
+        new_callable=AsyncMock,
+    ) as mock_impl:
+        mock_impl.return_value = TopSellingVariantsResponse(
+            rows=[],
+            total_variants=0,
+            window_start="2026-01-01",
+            window_end="2026-01-31",
+        )
+        result = await top_selling_variants(
+            start_date=date(2026, 1, 1),
+            end_date=date(2026, 1, 31),
+            format="json",
+            context=context,
+        )
+
+    data = json.loads(_content_text(result))
+    assert data["total_variants"] == 0
+
+
+@pytest.mark.asyncio
+async def test_sales_summary_format_json_returns_json():
+    from katana_mcp.tools.foundation.reporting import SalesSummaryResponse
+
+    context, _ = create_mock_context()
+
+    with patch(
+        "katana_mcp.tools.foundation.reporting._sales_summary_impl",
+        new_callable=AsyncMock,
+    ) as mock_impl:
+        mock_impl.return_value = SalesSummaryResponse(
+            rows=[],
+            group_by="day",
+            window_start="2026-01-01",
+            window_end="2026-01-31",
+        )
+        result = await sales_summary(
+            start_date=date(2026, 1, 1),
+            end_date=date(2026, 1, 31),
+            group_by="day",
+            format="json",
+            context=context,
+        )
+
+    data = json.loads(_content_text(result))
+    assert data["group_by"] == "day"
+
+
+@pytest.mark.asyncio
+async def test_inventory_velocity_format_json_returns_json():
+    from katana_mcp.tools.foundation.reporting import VelocityStats
+
+    context, _ = create_mock_context()
+
+    with patch(
+        "katana_mcp.tools.foundation.reporting._inventory_velocity_impl",
+        new_callable=AsyncMock,
+    ) as mock_impl:
+        mock_impl.return_value = VelocityStats(
+            sku="V-1",
+            variant_id=1,
+            units_sold=5.0,
+            avg_daily=0.5,
+            stock_on_hand=10,
+            days_of_cover=20.0,
+            period_days=10,
+            window_start="2026-01-01",
+            window_end="2026-01-10",
+        )
+        result = await inventory_velocity(
+            sku_or_variant_id="V-1",
+            period_days=10,
+            format="json",
+            context=context,
+        )
+
+    data = json.loads(_content_text(result))
+    assert data["variant_id"] == 1
+    assert data["units_sold"] == 5.0
