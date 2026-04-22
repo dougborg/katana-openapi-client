@@ -348,35 +348,47 @@ Find products, materials, and services by name or SKU.
 ---
 
 ### get_variant_details
-Get complete details for a specific item variant.
+Get complete details for one or more item variants.
 
-**Parameters:**
-- `sku` (required): The SKU of the item to look up
+**Parameters (at least one of the first four is required):**
+- `sku` (optional): Single SKU to look up (exact case-insensitive match)
+- `variant_id` (optional): Single variant ID to look up directly
+- `skus` (optional): Batch — list of SKUs to look up
+- `variant_ids` (optional): Batch — list of variant IDs to look up
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
-**Example:**
+**Examples:**
 ```json
 {"sku": "BOLT-M8"}
+{"variant_id": 12345}
+{"skus": ["BOLT-M8", "NUT-M8"]}
+{"variant_ids": [12345, 12346]}
 ```
 
 **Returns:** Full variant details including pricing, barcodes, supplier codes,
-configuration attributes, custom fields, and more.
+configuration attributes, custom fields, and more. List form returned when a
+batch is requested.
 
 ---
 
 ### check_inventory
-Check current stock levels for an item.
+Check current stock levels for one or more items.
 
-**Parameters:**
-- `sku` (required): The SKU to check
+**Parameters (at least one of the first four is required):**
+- `sku` (optional): Single SKU to check
+- `variant_id` (optional): Single variant ID to check
+- `skus` (optional): Batch — list of SKUs to check
+- `variant_ids` (optional): Batch — list of variant IDs to check
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
-**Example:**
+**Examples:**
 ```json
 {"sku": "WIDGET-001"}
+{"variant_id": 12345}
+{"skus": ["WIDGET-001", "WIDGET-002"]}
 ```
 
-**Returns:** Stock levels (in_stock, available_stock, committed, expected).
+**Returns:** Stock levels (in_stock, available_stock, committed, expected) per variant.
 
 ---
 
