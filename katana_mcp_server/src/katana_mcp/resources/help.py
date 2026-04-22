@@ -72,6 +72,17 @@ All create/modify operations use a **two-step confirmation**:
 1. Call with `confirm=false` to preview (no changes made)
 2. Call with `confirm=true` to execute (prompts for confirmation)
 
+## Output Format
+
+Every list/get/search and reporting tool accepts a shared `format` parameter:
+
+- `format="markdown"` (default) — human-readable markdown tables / sections.
+- `format="json"` — structured JSON matching the tool's Pydantic response,
+  for programmatic consumers that would otherwise have to re-parse markdown.
+
+Default behavior is unchanged. Pass `format="json"` when chaining tool calls
+or feeding output into downstream aggregation / filtering.
+
 ## Common Workflows
 
 1. **Reorder low stock**: check_inventory → create_purchase_order
@@ -325,6 +336,7 @@ Find products, materials, and services by name or SKU.
 **Parameters:**
 - `query` (required): Search term to match against name or SKU
 - `limit` (optional): Maximum results (default: 20)
+- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Example:**
 ```json
@@ -340,6 +352,7 @@ Get complete details for a specific item variant.
 
 **Parameters:**
 - `sku` (required): The SKU of the item to look up
+- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Example:**
 ```json
@@ -356,6 +369,7 @@ Check current stock levels for an item.
 
 **Parameters:**
 - `sku` (required): The SKU to check
+- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Example:**
 ```json
@@ -372,6 +386,7 @@ Find items that are below their reorder threshold.
 **Parameters:**
 - `threshold` (optional): Stock threshold level (default: 10)
 - `limit` (optional): Maximum items to return (default: 50)
+- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** List of items needing reorder with current stock vs threshold.
 
@@ -383,6 +398,7 @@ Get inventory movement history for a SKU — every stock change with dates and c
 **Parameters:**
 - `sku` (required): SKU to get movements for
 - `limit` (optional): Maximum movements to return (default: 50)
+- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Movement history with dates, quantity changes, balances, resource types, and order numbers.
 
@@ -420,6 +436,7 @@ List existing stock adjustments with filters, paging, and optional row detail.
 
 **Other:**
 - `include_rows` (optional, default false): When true, populate row-level details on each summary
+- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 When a client-side filter is active, the tool skips the single-page short-circuit so auto-pagination can scan enough rows to find matches that may live on later pages.
 
@@ -489,6 +506,7 @@ List manufacturing orders with filters (list-tool pattern v2).
 - `include_rows` (optional, default false): Reserved for future row-detail
   support. The list endpoint does not return recipe rows inline; use
   `get_manufacturing_order_recipe` for a specific MO to inspect ingredients.
+- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Summary rows with id, order_no, status, variant_id, planned/
 actual qty, location_id, order_created_date, production_deadline_date,
@@ -503,6 +521,7 @@ Look up manufacturing orders by order number or ID.
 **Parameters:**
 - `order_no` (optional): Order number (e.g., '#WEB20082 / 1')
 - `order_id` (optional): Manufacturing order ID
+- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Order details including status, quantities, costs, linked sales order, and timeline.
 
@@ -559,6 +578,7 @@ Verify a supplier document (invoice, packing slip) against a PO.
 **Parameters:**
 - `order_id` (required): Purchase order ID to verify against
 - `document_items` (required): Array of items from document with sku, quantity, unit_price
+- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Match status, discrepancies, and suggested actions.
 
@@ -596,6 +616,7 @@ List purchase orders with filters (list-tool pattern v2).
 - `include_rows` (optional, default false): Populate per-PO line item detail
   (variant_id, quantity, price, arrival). The list endpoint bundles rows
   inline, so this is free compared to `list_sales_orders`.
+- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Summary rows with id, order_no, status, billing_status,
 entity_type, supplier_id, location_id, currency, created_date,
@@ -610,6 +631,7 @@ Look up a purchase order by order number or ID with all line items.
 **Parameters:**
 - `order_no` (optional): PO number (e.g., "PO-1022")
 - `order_id` (optional): PO ID
+- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Order details (status, supplier, total) plus rows with variant_id, quantity, price, arrival/received dates.
 
@@ -636,6 +658,7 @@ Search customers by name or email.
 **Parameters:**
 - `query` (required): Search term
 - `limit` (optional): Maximum results (default: 20)
+- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** List of customers with id, name, email, phone, currency.
 
@@ -646,6 +669,7 @@ Get full details for a customer by ID.
 
 **Parameters:**
 - `customer_id` (required): Customer ID
+- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Full customer details (name, email, phone, currency, category, comment).
 
@@ -656,6 +680,7 @@ List the ingredient rows for a manufacturing order.
 
 **Parameters:**
 - `manufacturing_order_id` (required): MO ID
+- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** List of recipe rows with row ID, variant ID, SKU, planned qty/unit, availability.
 
@@ -756,6 +781,9 @@ List sales orders with filters (list-tool pattern v2).
   linked_manufacturing_order_id) on each summary. `sku` is left None in list
   context — use `get_sales_order` for SKU-enriched rows on a specific order.
 
+**Other:**
+- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
+
 **Returns:** Summary rows with order_no, status, production_status, row_count,
 total, currency, created_at, delivery_date. When `page` is set, the response
 also includes `pagination` with `total_records`, `total_pages`, current
@@ -770,6 +798,7 @@ Look up a single sales order by order number or ID with full line items.
 **Parameters:**
 - `order_no` (optional): SO number (e.g., "#WEB20394")
 - `order_id` (optional): SO ID
+- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Order header (status, customer, location, total, delivery_date)
 plus `rows` with variant_id, SKU, quantity, price_per_unit, and any linked
@@ -823,6 +852,7 @@ List stock transfers with filters (list-tool pattern v2).
 - `stock_transfer_number` (optional): Exact match on the transfer number
 - `created_after` / `created_before` (optional): ISO-8601 datetime bounds on created_at
 - `include_rows` (optional, default false): Populate per-transfer row details
+- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Summary rows (id, number, status, source/destination, row_count,
 expected_arrival). `pagination` metadata is populated when `page` is set.
@@ -883,6 +913,7 @@ aggregates DELIVERED sales orders in memory).
 - `category` (optional): Item category name to filter by (e.g. "bikes")
 - `order_by` (optional, default "units"): "units" or "revenue"
 - `location_id` (optional): Filter to a single location
+- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** List of `{sku, variant_id, name, units, revenue, order_count}`
 sorted by the `order_by` key descending.
@@ -897,6 +928,7 @@ Grouped sales totals for DELIVERED orders in a window.
 - `end_date` (required): ISO-8601 date — window end (inclusive)
 - `group_by` (required): one of `day`, `week`, `month`, `variant`,
   `customer`, `category`
+- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** List of `{group, units, revenue, order_count}`. Time groups
 (`day`/`week`/`month`) sort ascending; dimension groups sort by revenue
@@ -910,6 +942,7 @@ Velocity stats and days-of-cover for a single SKU or variant.
 **Parameters:**
 - `sku_or_variant_id` (required): SKU (string) or variant_id (int)
 - `period_days` (optional, default 90, max 365): Rolling window size
+- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** `{sku, variant_id, units_sold, avg_daily, stock_on_hand,
 days_of_cover, period_days, window_start, window_end}`. `days_of_cover`
