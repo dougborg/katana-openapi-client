@@ -10,6 +10,8 @@ These tools provide:
 
 from __future__ import annotations
 
+import datetime as _datetime
+import json
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal
@@ -25,6 +27,7 @@ from katana_mcp.tools.tool_result_utils import (
     enum_to_str,
     format_md_table,
     iso_or_none,
+    make_simple_result,
     make_tool_result,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
@@ -33,6 +36,8 @@ from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
     CreatePurchaseOrderInitialStatus,
     CreatePurchaseOrderRequest as APICreatePurchaseOrderRequest,
+    FindPurchaseOrdersBillingStatus,
+    FindPurchaseOrdersStatus,
     PurchaseOrderEntityType,
     PurchaseOrderRowRequest,
     RegularPurchaseOrder,
@@ -973,6 +978,432 @@ async def get_purchase_order(
     )
 
 
+# ============================================================================
+# Tool: list_purchase_orders (list-tool pattern v2)
+# ============================================================================
+
+
+def _parse_iso_datetime(value: str, field_name: str) -> datetime:
+    """Parse an ISO-8601 datetime string, raising ValueError on bad input.
+
+    Normalizes trailing ``Z`` / ``z`` (UTC shorthand) to ``+00:00`` before
+    parsing. Raises ``ValueError`` with the field name on unparseable input.
+    """
+    normalized = value
+    if normalized.endswith(("Z", "z")):
+        normalized = normalized[:-1] + "+00:00"
+    try:
+        return datetime.fromisoformat(normalized)
+    except ValueError as e:
+        raise ValueError(
+            f"Invalid ISO-8601 datetime for {field_name!r}: {value!r}"
+        ) from e
+
+
+class POPaginationMeta(BaseModel):
+    """Pagination metadata parsed from Katana's ``x-pagination`` header."""
+
+    total_records: int | None = None
+    total_pages: int | None = None
+    page: int | None = None
+    first_page: bool | None = None
+    last_page: bool | None = None
+
+
+def _parse_po_pagination_header(raw: str | None) -> POPaginationMeta | None:
+    """Parse Katana's ``x-pagination`` response header into POPaginationMeta."""
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(data, dict):
+        return None
+
+    def _as_int(val: Any) -> int | None:
+        if val is None:
+            return None
+        try:
+            return int(val)
+        except (ValueError, TypeError):
+            return None
+
+    def _as_bool(val: Any) -> bool | None:
+        if isinstance(val, bool):
+            return val
+        if isinstance(val, str):
+            lowered = val.strip().lower()
+            if lowered == "true":
+                return True
+            if lowered == "false":
+                return False
+        return None
+
+    return POPaginationMeta(
+        total_records=_as_int(data.get("total_records")),
+        total_pages=_as_int(data.get("total_pages")),
+        page=_as_int(data.get("page")),
+        first_page=_as_bool(data.get("first_page")),
+        last_page=_as_bool(data.get("last_page")),
+    )
+
+
+class ListPurchaseOrdersRequest(BaseModel):
+    """Request to list/filter purchase orders (list-tool pattern v2)."""
+
+    # Paging
+    limit: int = Field(
+        default=50,
+        ge=1,
+        le=250,
+        description=(
+            "Max rows to return (default 50, min 1, max 250 — Katana's "
+            "per-page ceiling). When `page` is set, acts as the page size."
+        ),
+    )
+    page: int | None = Field(
+        default=None,
+        ge=1,
+        description=(
+            "Page number (1-based). When set, disables auto-pagination; "
+            "use with `limit` as page size."
+        ),
+    )
+
+    # Domain filters (server-side on Katana)
+    ids: list[int] | None = Field(
+        default=None, description="Filter by explicit list of purchase order IDs"
+    )
+    order_no: str | None = Field(default=None, description="Filter by exact order_no")
+    entity_type: PurchaseOrderEntityType | None = Field(
+        default=None,
+        description=(
+            "Filter by entity_type: 'regular' (materials) or 'outsourced' "
+            "(subcontracted)."
+        ),
+    )
+    status: FindPurchaseOrdersStatus | None = Field(
+        default=None,
+        description=(
+            "Filter by PO status: DRAFT, NOT_RECEIVED, PARTIALLY_RECEIVED, RECEIVED."
+        ),
+    )
+    billing_status: FindPurchaseOrdersBillingStatus | None = Field(
+        default=None,
+        description="Filter by billing status: BILLED, NOT_BILLED, PARTIALLY_BILLED.",
+    )
+    currency: str | None = Field(
+        default=None, description="Filter by currency code (e.g. 'USD')"
+    )
+    location_id: int | None = Field(
+        default=None, description="Filter by receiving location ID"
+    )
+    tracking_location_id: float | None = Field(
+        default=None, description="Filter by tracking location ID (outsourced POs)"
+    )
+    supplier_id: float | None = Field(default=None, description="Filter by supplier ID")
+    include_deleted: bool | None = Field(
+        default=None, description="When true, include soft-deleted purchase orders."
+    )
+
+    # Time-window filters (server-side)
+    created_after: str | None = Field(
+        default=None, description="ISO-8601 datetime lower bound on created_at."
+    )
+    created_before: str | None = Field(
+        default=None, description="ISO-8601 datetime upper bound on created_at."
+    )
+    updated_after: str | None = Field(
+        default=None, description="ISO-8601 datetime lower bound on updated_at."
+    )
+    updated_before: str | None = Field(
+        default=None, description="ISO-8601 datetime upper bound on updated_at."
+    )
+
+    # Time-window filters (client-side — Katana does not expose server-side
+    # filters for expected_arrival_date).
+    expected_arrival_after: str | None = Field(
+        default=None,
+        description=(
+            "ISO-8601 datetime lower bound on expected_arrival_date. "
+            "Applied client-side — Katana has no server-side filter. Pair "
+            "with a created_at window to keep fetched rows bounded."
+        ),
+    )
+    expected_arrival_before: str | None = Field(
+        default=None,
+        description=(
+            "ISO-8601 datetime upper bound on expected_arrival_date. "
+            "Applied client-side — see `expected_arrival_after`."
+        ),
+    )
+
+    # Row inclusion
+    include_rows: bool = Field(
+        default=False,
+        description=(
+            "When true, populate row-level detail (variant_id, quantity, "
+            "price, arrival date) on each summary. Katana bundles "
+            "purchase_order_rows inline on the list endpoint, so this is "
+            "free compared to `list_sales_orders`."
+        ),
+    )
+
+
+class PurchaseOrderRowSummary(BaseModel):
+    """Summary of a purchase order line item (used when include_rows=True)."""
+
+    id: int | None = None
+    variant_id: int | None = None
+    quantity: float | None = None
+    price_per_unit: float | None = None
+    arrival_date: str | None = None
+    received_date: str | None = None
+    total: float | None = None
+
+
+class PurchaseOrderSummary(BaseModel):
+    """Summary row for a purchase order in a list."""
+
+    id: int
+    order_no: str | None
+    status: str | None
+    billing_status: str | None
+    entity_type: str | None
+    supplier_id: int | None
+    location_id: int | None
+    currency: str | None
+    created_date: str | None
+    expected_arrival_date: str | None
+    total: float | None
+    row_count: int
+    rows: list[PurchaseOrderRowSummary] | None = None
+
+
+class ListPurchaseOrdersResponse(BaseModel):
+    """Response containing a list of purchase orders."""
+
+    orders: list[PurchaseOrderSummary]
+    total_count: int
+    pagination: POPaginationMeta | None = None
+
+
+def _po_row_summary(row: Any) -> PurchaseOrderRowSummary:
+    arrival = unwrap_unset(row.arrival_date, None)
+    received = unwrap_unset(row.received_date, None)
+    return PurchaseOrderRowSummary(
+        id=unwrap_unset(row.id, None),
+        variant_id=unwrap_unset(row.variant_id, None),
+        quantity=unwrap_unset(row.quantity, None),
+        price_per_unit=unwrap_unset(row.price_per_unit, None),
+        arrival_date=iso_or_none(arrival)
+        if isinstance(arrival, _datetime.datetime)
+        else None,
+        received_date=iso_or_none(received)
+        if isinstance(received, _datetime.datetime)
+        else None,
+        total=unwrap_unset(row.total, None),
+    )
+
+
+async def _list_purchase_orders_impl(
+    request: ListPurchaseOrdersRequest, context: Context
+) -> ListPurchaseOrdersResponse:
+    """List purchase orders with filters — follows list-tool pattern v2."""
+    from katana_public_api_client.api.purchase_order import find_purchase_orders
+    from katana_public_api_client.utils import unwrap_data
+
+    services = get_services(context)
+
+    kwargs: dict[str, Any] = {
+        "client": services.client,
+        "limit": request.limit,
+    }
+    if request.ids is not None:
+        kwargs["ids"] = request.ids
+    if request.order_no is not None:
+        kwargs["order_no"] = request.order_no
+    if request.entity_type is not None:
+        kwargs["entity_type"] = request.entity_type
+    if request.status is not None:
+        kwargs["status"] = request.status
+    if request.billing_status is not None:
+        kwargs["billing_status"] = request.billing_status
+    if request.currency is not None:
+        kwargs["currency"] = request.currency
+    if request.location_id is not None:
+        kwargs["location_id"] = request.location_id
+    if request.tracking_location_id is not None:
+        kwargs["tracking_location_id"] = request.tracking_location_id
+    if request.supplier_id is not None:
+        kwargs["supplier_id"] = request.supplier_id
+    if request.include_deleted is not None:
+        kwargs["include_deleted"] = request.include_deleted
+
+    # Server-side date filters
+    if request.created_after is not None:
+        kwargs["created_at_min"] = _parse_iso_datetime(
+            request.created_after, "created_after"
+        )
+    if request.created_before is not None:
+        kwargs["created_at_max"] = _parse_iso_datetime(
+            request.created_before, "created_before"
+        )
+    if request.updated_after is not None:
+        kwargs["updated_at_min"] = _parse_iso_datetime(
+            request.updated_after, "updated_after"
+        )
+    if request.updated_before is not None:
+        kwargs["updated_at_max"] = _parse_iso_datetime(
+            request.updated_before, "updated_before"
+        )
+
+    # Client-side filter parsing (eager — bad input fails loudly)
+    arrival_after_dt: datetime | None = None
+    arrival_before_dt: datetime | None = None
+    if request.expected_arrival_after is not None:
+        arrival_after_dt = _parse_iso_datetime(
+            request.expected_arrival_after, "expected_arrival_after"
+        )
+    if request.expected_arrival_before is not None:
+        arrival_before_dt = _parse_iso_datetime(
+            request.expected_arrival_before, "expected_arrival_before"
+        )
+    has_client_filter = arrival_after_dt is not None or arrival_before_dt is not None
+
+    # Pagination — skip short-circuit when client-side filter active.
+    if request.page is not None:
+        kwargs["page"] = request.page
+    elif 1 <= request.limit <= 250 and not has_client_filter:
+        kwargs["page"] = 1
+
+    response = await find_purchase_orders.asyncio_detailed(**kwargs)
+    attrs_list = unwrap_data(response, default=[])
+
+    if has_client_filter:
+
+        def _in_arrival_window(po: Any) -> bool:
+            arrival = unwrap_unset(po.expected_arrival_date, None)
+            if not isinstance(arrival, _datetime.datetime):
+                return False
+            if arrival_after_dt is not None and arrival < arrival_after_dt:
+                return False
+            return not (arrival_before_dt is not None and arrival > arrival_before_dt)
+
+        attrs_list = [po for po in attrs_list if _in_arrival_window(po)]
+
+    # Safety net: cap to request.limit post-pagination.
+    attrs_list = attrs_list[: request.limit]
+
+    # Pagination meta — only when caller set `page` explicitly.
+    pagination: POPaginationMeta | None = None
+    if request.page is not None:
+        headers = getattr(response, "headers", None)
+        if headers is not None:
+            pagination = _parse_po_pagination_header(headers.get("x-pagination"))
+
+    summaries: list[PurchaseOrderSummary] = []
+    for po in attrs_list:
+        raw_rows = unwrap_unset(po.purchase_order_rows, None) or []
+        rows = [_po_row_summary(r) for r in raw_rows] if request.include_rows else None
+        created_date = unwrap_unset(po.order_created_date, None)
+        expected = unwrap_unset(po.expected_arrival_date, None)
+        summaries.append(
+            PurchaseOrderSummary(
+                id=po.id,
+                order_no=unwrap_unset(po.order_no, None),
+                status=enum_to_str(unwrap_unset(po.status, None)),
+                billing_status=enum_to_str(unwrap_unset(po.billing_status, None)),
+                entity_type=enum_to_str(unwrap_unset(po.entity_type, None)),
+                supplier_id=unwrap_unset(po.supplier_id, None),
+                location_id=unwrap_unset(po.location_id, None),
+                currency=unwrap_unset(po.currency, None),
+                created_date=iso_or_none(created_date)
+                if isinstance(created_date, _datetime.datetime)
+                else None,
+                expected_arrival_date=iso_or_none(expected)
+                if isinstance(expected, _datetime.datetime)
+                else None,
+                total=unwrap_unset(po.total, None),
+                row_count=len(raw_rows),
+                rows=rows,
+            )
+        )
+
+    return ListPurchaseOrdersResponse(
+        orders=summaries, total_count=len(summaries), pagination=pagination
+    )
+
+
+@observe_tool
+@unpack_pydantic_params
+async def list_purchase_orders(
+    request: Annotated[ListPurchaseOrdersRequest, Unpack()], context: Context
+) -> ToolResult:
+    """List purchase orders with filters (list-tool pattern v2).
+
+    Use this for discovery workflows — find POs by supplier, status, location,
+    or within a date window. Returns summary info (order_no, status, supplier,
+    total, expected arrival, row_count).
+
+    **Common filters:**
+    - `status="NOT_RECEIVED"` — open POs awaiting delivery
+    - `supplier_id=N` — POs for a specific supplier
+    - `billing_status="NOT_BILLED"` — unbilled POs
+
+    **Time windows:**
+    - `created_after` / `created_before` — server-side bounds on `created_at`
+    - `updated_after` / `updated_before` — server-side bounds on `updated_at`
+    - `expected_arrival_after` / `expected_arrival_before` — client-side
+      bounds on `expected_arrival_date` (Katana has no server-side filter).
+      When set, the tool skips the page=1 short-circuit so auto-pagination
+      can scan enough rows to find `limit` matches post-filter.
+
+    Pass `include_rows=True` to populate per-PO line item details.
+    For full details on a specific PO, use `get_purchase_order`.
+    """
+    response = await _list_purchase_orders_impl(request, context)
+
+    if not response.orders:
+        md = "No purchase orders match the given filters."
+    else:
+        table = format_md_table(
+            headers=[
+                "Order #",
+                "Status",
+                "Supplier",
+                "Location",
+                "Rows",
+                "Total",
+                "Expected Arrival",
+            ],
+            rows=[
+                [
+                    o.order_no or o.id,
+                    o.status or "—",
+                    o.supplier_id if o.supplier_id is not None else "—",
+                    o.location_id if o.location_id is not None else "—",
+                    o.row_count,
+                    f"{o.total:.2f} {o.currency or ''}" if o.total is not None else "—",
+                    o.expected_arrival_date or "—",
+                ]
+                for o in response.orders
+            ],
+        )
+        md = f"## Purchase Orders ({response.total_count})\n\n{table}"
+
+    if response.pagination is not None:
+        p = response.pagination
+        if p.page is not None and p.total_pages is not None:
+            summary = f"\n\nPage {p.page} of {p.total_pages}"
+            if p.total_records is not None:
+                summary += f" (total: {p.total_records} records)"
+            md += summary
+
+    return make_simple_result(md, structured_data=response.model_dump())
+
+
 def register_tools(mcp: FastMCP) -> None:
     """Register all purchase order tools with the FastMCP instance.
 
@@ -999,6 +1430,9 @@ def register_tools(mcp: FastMCP) -> None:
     )
     mcp.tool(tags={"orders", "purchasing", "read"}, annotations=_read)(
         verify_order_document
+    )
+    mcp.tool(tags={"orders", "purchasing", "read"}, annotations=_read)(
+        list_purchase_orders
     )
     mcp.tool(tags={"orders", "purchasing", "read"}, annotations=_read)(
         get_purchase_order

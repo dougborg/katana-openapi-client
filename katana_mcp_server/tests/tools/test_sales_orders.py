@@ -738,28 +738,6 @@ async def test_list_sales_orders_passes_page_1_when_limit_fits_single_page():
 
 
 @pytest.mark.asyncio
-async def test_list_sales_orders_omits_page_when_limit_exceeds_single_page():
-    """For limit > 250, let auto-pagination do its thing (no explicit page)."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    request = ListSalesOrdersRequest(limit=500)
-
-    with (
-        patch(f"{_SO_GET_ALL}.asyncio_detailed", side_effect=fake),
-        patch(_SO_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_sales_orders_impl(request, context)
-
-    assert "page" not in captured
-    assert captured["limit"] == 500
-
-
-@pytest.mark.asyncio
 async def test_list_sales_orders_returns_summary_rows():
     """Response rows carry order_no, totals, and row_count."""
     context, _ = create_mock_context()
@@ -861,6 +839,152 @@ async def test_list_sales_orders_no_page_leaves_pagination_none():
     # gated on the *request's* page field, not what we sent to the API.
     assert captured["page"] == 1
     assert result.pagination is None
+
+
+# ============================================================================
+# list_sales_orders — date filters + pattern v2 refinements
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_server_side_date_filters_passed_through():
+    """created_after/before + updated_after/before forward as datetime kwargs."""
+    context, _ = create_mock_context()
+    captured: dict = {}
+
+    async def fake(**kwargs):
+        captured.update(kwargs)
+        return MagicMock()
+
+    request = ListSalesOrdersRequest(
+        created_after="2026-01-01T00:00:00+00:00",
+        created_before="2026-04-01T00:00:00Z",
+        updated_after="2026-02-01T00:00:00z",
+        updated_before="2026-03-31T23:59:59+00:00",
+    )
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", side_effect=fake),
+        patch(_SO_UNWRAP_DATA, return_value=[]),
+    ):
+        await _list_sales_orders_impl(request, context)
+
+    assert isinstance(captured["created_at_min"], datetime)
+    assert isinstance(captured["created_at_max"], datetime)
+    assert isinstance(captured["updated_at_min"], datetime)
+    assert isinstance(captured["updated_at_max"], datetime)
+    # Z / z normalized to +00:00
+    assert captured["created_at_max"].tzinfo is not None
+    assert captured["updated_at_min"].tzinfo is not None
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_invalid_server_date_raises():
+    """Malformed ISO-8601 for a server-side date surfaces as ValueError."""
+    context, _ = create_mock_context()
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_DATA, return_value=[]),
+        pytest.raises(ValueError, match=r"Invalid ISO-8601.*created_after"),
+    ):
+        await _list_sales_orders_impl(
+            ListSalesOrdersRequest(created_after="not-a-date"), context
+        )
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_delivered_filter_applied_client_side():
+    """delivered_after/before filter post-fetch (Katana has no server param)."""
+    context, _ = create_mock_context()
+
+    sos = [
+        _make_mock_so(id=1, order_no="SO-1"),
+        _make_mock_so(id=2, order_no="SO-2"),
+    ]
+    # SO-1 has delivery_date=2026-04-20 (from _make_mock_so default).
+    # Push SO-2 to 2027-01-01 — outside the filter window.
+    sos[1].delivery_date = datetime(2027, 1, 1, tzinfo=UTC)
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_DATA, return_value=sos),
+    ):
+        result = await _list_sales_orders_impl(
+            ListSalesOrdersRequest(
+                delivered_after="2026-04-01T00:00:00Z",
+                delivered_before="2026-04-30T00:00:00Z",
+            ),
+            context,
+        )
+
+    assert result.total_count == 1
+    assert result.orders[0].id == 1
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_skips_page1_short_circuit_when_delivered_filter_set():
+    """When a client-side delivered filter is active, don't short-circuit page=1
+    so auto-pagination can scan enough rows post-filter."""
+    context, _ = create_mock_context()
+    captured: dict = {}
+
+    async def fake(**kwargs):
+        captured.update(kwargs)
+        return MagicMock()
+
+    request = ListSalesOrdersRequest(limit=10, delivered_after="2026-04-01T00:00:00Z")
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", side_effect=fake),
+        patch(_SO_UNWRAP_DATA, return_value=[]),
+    ):
+        await _list_sales_orders_impl(request, context)
+
+    # page must NOT be set because we need auto-pagination to scan enough
+    # rows to post-filter down to `limit`.
+    assert "page" not in captured
+    assert captured["limit"] == 10
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_limit_le_250_validation():
+    """Request with limit > 250 is rejected at the schema boundary."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        ListSalesOrdersRequest(limit=500)
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_page_ge_1_validation():
+    """page=0 is rejected at the schema boundary."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        ListSalesOrdersRequest(page=0)
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_ids_include_deleted_pass_through():
+    """ids and include_deleted forward to API kwargs when set."""
+    context, _ = create_mock_context()
+    captured: dict = {}
+
+    async def fake(**kwargs):
+        captured.update(kwargs)
+        return MagicMock()
+
+    request = ListSalesOrdersRequest(ids=[1, 2, 3], include_deleted=True)
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", side_effect=fake),
+        patch(_SO_UNWRAP_DATA, return_value=[]),
+    ):
+        await _list_sales_orders_impl(request, context)
+
+    assert captured["ids"] == [1, 2, 3]
+    assert captured["include_deleted"] is True
 
 
 # ============================================================================

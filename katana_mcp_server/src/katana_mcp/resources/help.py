@@ -46,13 +46,18 @@ Manufacturing ERP tools for inventory, orders, and production management.
 
 ### Purchase Orders
 - **create_purchase_order** - Create PO with preview/confirm pattern
+- **list_purchase_orders** - List POs with supplier/status/date filters
 - **receive_purchase_order** - Receive items and update inventory
 - **verify_order_document** - Verify supplier documents against POs
+- **get_purchase_order** - Look up a PO by number or ID with line items
 
 ### Manufacturing & Sales
 - **create_manufacturing_order** - Create production work orders
+- **list_manufacturing_orders** - List MOs with status/location/date filters
+- **get_manufacturing_order** - Look up an MO with full details
 - **fulfill_order** - Complete manufacturing or sales orders
 - **create_sales_order** - Create sales orders with preview/confirm
+- **list_sales_orders** - List SOs with customer/status/date filters
 
 ### Stock Transfers
 - **create_stock_transfer** - Move inventory between locations (preview/confirm)
@@ -456,6 +461,42 @@ confirming.
 
 ---
 
+### list_manufacturing_orders
+List manufacturing orders with filters (list-tool pattern v2).
+
+**Paging:**
+- `limit` (optional, default 50, min 1, max 250): Max rows to return
+- `page` (optional, min 1): Page number (1-based), disables auto-pagination
+
+**Domain filters:**
+- `ids` (optional): Explicit list of MO IDs
+- `order_no` (optional): Exact order_no
+- `status` (optional): NOT_STARTED, IN_PROGRESS, BLOCKED, PAUSED, COMPLETED
+- `location_id` (optional): Production location ID
+- `is_linked_to_sales_order` (optional): True/False filter on SO linkage
+- `include_deleted` (optional): Include soft-deleted MOs
+
+**Time windows (server-side):**
+- `created_after` / `created_before`: ISO-8601 bounds on `created_at`
+- `updated_after` / `updated_before`: ISO-8601 bounds on `updated_at`
+
+**Time windows (client-side — Katana has no server filter):**
+- `production_deadline_after` / `production_deadline_before`: bounds on
+  `production_deadline_date`. When set, the tool skips the page=1
+  short-circuit so auto-pagination can scan enough rows to find `limit`
+  matches post-filter.
+
+- `include_rows` (optional, default false): Reserved for future row-detail
+  support. The list endpoint does not return recipe rows inline; use
+  `get_manufacturing_order_recipe` for a specific MO to inspect ingredients.
+
+**Returns:** Summary rows with id, order_no, status, variant_id, planned/
+actual qty, location_id, order_created_date, production_deadline_date,
+done_date, is_linked_to_sales_order, sales_order_id, total_cost. When `page`
+is set, also returns `pagination` with total_records/total_pages/etc.
+
+---
+
 ### get_manufacturing_order
 Look up manufacturing orders by order number or ID.
 
@@ -520,6 +561,46 @@ Verify a supplier document (invoice, packing slip) against a PO.
 - `document_items` (required): Array of items from document with sku, quantity, unit_price
 
 **Returns:** Match status, discrepancies, and suggested actions.
+
+---
+
+### list_purchase_orders
+List purchase orders with filters (list-tool pattern v2).
+
+**Paging:**
+- `limit` (optional, default 50, min 1, max 250): Max rows to return
+- `page` (optional, min 1): Page number (1-based), disables auto-pagination
+
+**Domain filters:**
+- `ids` (optional): Explicit list of PO IDs
+- `order_no` (optional): Exact order_no
+- `entity_type` (optional): "regular" or "outsourced"
+- `status` (optional): DRAFT, NOT_RECEIVED, PARTIALLY_RECEIVED, RECEIVED
+- `billing_status` (optional): BILLED, NOT_BILLED, PARTIALLY_BILLED
+- `currency` (optional): Currency code (e.g. "USD")
+- `location_id` (optional): Receiving location ID
+- `tracking_location_id` (optional): Tracking location ID (outsourced)
+- `supplier_id` (optional): Supplier ID
+- `include_deleted` (optional): Include soft-deleted POs
+
+**Time windows (server-side):**
+- `created_after` / `created_before`: ISO-8601 bounds on `created_at`
+- `updated_after` / `updated_before`: ISO-8601 bounds on `updated_at`
+
+**Time windows (client-side — Katana has no server filter):**
+- `expected_arrival_after` / `expected_arrival_before`: bounds on
+  `expected_arrival_date`. When set, the tool skips the page=1
+  short-circuit so auto-pagination can scan enough rows to find `limit`
+  matches post-filter.
+
+- `include_rows` (optional, default false): Populate per-PO line item detail
+  (variant_id, quantity, price, arrival). The list endpoint bundles rows
+  inline, so this is free compared to `list_sales_orders`.
+
+**Returns:** Summary rows with id, order_no, status, billing_status,
+entity_type, supplier_id, location_id, currency, created_date,
+expected_arrival_date, total, row_count. When `page` is set, also returns
+`pagination` with total_records/total_pages/etc.
 
 ---
 
@@ -638,20 +719,36 @@ Create a sales order.
 ---
 
 ### list_sales_orders
-List sales orders with filters.
+List sales orders with filters (list-tool pattern v2).
 
-**Parameters:**
+**Paging:**
+- `limit` (optional, default 50, min 1, max 250): Max rows to return. When
+  `page` is set, acts as the page size.
+- `page` (optional, min 1): Page number (1-based). When set, disables
+  auto-pagination; use with `limit` as page size.
+
+**Domain filters:**
 - `order_no` (optional): Exact order number
+- `ids` (optional): Explicit list of sales order IDs
 - `customer_id` (optional): Filter to a customer
 - `location_id` (optional): Filter to a location
-- `status` (optional): Order status (e.g., "PENDING", "DELIVERED")
+- `status` (optional): Order status (e.g., "NOT_SHIPPED", "DELIVERED")
 - `production_status` (optional): Production status
+- `invoicing_status` (optional): e.g. "NOT_INVOICED", "INVOICED"
+- `currency` (optional): Currency code (e.g. "USD")
+- `include_deleted` (optional): When true, include soft-deleted SOs
 - `needs_work_orders` (optional): Shortcut for `production_status="NONE"` —
   finds sales orders that haven't had manufacturing orders created yet
-- `limit` (optional, default 50): Max rows to return
-- `page` (optional): Page number (1-based). When set, returns a single page
-  and disables auto-pagination; use with `limit` as page size to walk the
-  full result set without hitting the transport's auto-pag ceiling.
+
+**Time windows (server-side):**
+- `created_after` / `created_before`: ISO-8601 bounds on `created_at`
+- `updated_after` / `updated_before`: ISO-8601 bounds on `updated_at`
+
+**Time windows (client-side — Katana has no server filter):**
+- `delivered_after` / `delivered_before`: ISO-8601 bounds on `delivery_date`.
+  When set, the tool skips the page=1 short-circuit so auto-pagination can
+  scan enough rows to find `limit` matching results post-filter. Pair with a
+  `created_at` window to keep fetched rows bounded.
 
 **Returns:** Summary rows with order_no, status, production_status, row_count,
 total, currency, created_at, delivery_date. When `page` is set, the response
