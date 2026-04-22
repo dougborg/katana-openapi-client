@@ -399,15 +399,24 @@ Create a stock adjustment to correct inventory levels.
 ### list_stock_adjustments
 List existing stock adjustments with filters, paging, and optional row detail.
 
-**Parameters:**
-- `limit` (optional, default 50, min 1): Max adjustments to return — also acts as page size when `page` is set
-- `page` (optional): Page number (1-based); when set, disables auto-pagination and the response includes `pagination` metadata
+**Parameters (server-side filters):**
+- `limit` (optional, default 50, min 1, max 250): Max adjustments to return — also the page size when `page` is set
+- `page` (optional, min 1): Page number (1-based); when set, disables auto-pagination and the response includes `pagination` metadata
 - `location_id` (optional): Filter by location
-- `variant_id` (optional): Client-side filter — only adjustments whose rows touch this variant
-- `reason` (optional): Client-side case-insensitive substring match on the `reason` field
-- `created_after` (optional): ISO-8601 datetime lower bound on `created_at`
-- `created_before` (optional): ISO-8601 datetime upper bound on `created_at`
+- `ids` (optional): Restrict to a specific set of adjustment IDs
+- `stock_adjustment_number` (optional): Exact match on the adjustment number
+- `created_after` / `created_before` (optional): ISO-8601 datetime bounds on `created_at`
+- `updated_after` / `updated_before` (optional): ISO-8601 datetime bounds on `updated_at` (useful for incremental sync)
+- `include_deleted` (optional, default false): Include soft-deleted adjustments
+
+**Parameters (client-side filters — scan the fetched page set):**
+- `variant_id` (optional): Only adjustments whose rows touch this variant
+- `reason` (optional): Case-insensitive substring match on the `reason` field
+
+**Other:**
 - `include_rows` (optional, default false): When true, populate row-level details on each summary
+
+When a client-side filter is active, the tool skips the single-page short-circuit so auto-pagination can scan enough rows to find matches that may live on later pages.
 
 **Returns:** Summary rows with `id`, `stock_adjustment_number`, `location_id`, dates,
 `reason`, and row count (plus per-row detail when `include_rows=true`), plus optional

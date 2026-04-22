@@ -846,20 +846,14 @@ class ListStockAdjustmentsRequest(BaseModel):
             "pages (0, negative) are rejected at the schema boundary."
         ),
     )
+    # Server-side filters (forwarded to Katana's GET /stock_adjustments)
     location_id: int | None = Field(default=None, description="Filter by location ID")
-    variant_id: int | None = Field(
+    ids: list[int] | None = Field(
         default=None,
-        description=(
-            "Filter to adjustments that touch this variant ID (applied "
-            "client-side since Katana's list endpoint does not expose it)"
-        ),
+        description="Restrict to a specific set of stock adjustment IDs",
     )
-    reason: str | None = Field(
-        default=None,
-        description=(
-            "Case-insensitive substring match on the `reason` field (applied "
-            "client-side since Katana's list endpoint does not expose it)"
-        ),
+    stock_adjustment_number: str | None = Field(
+        default=None, description="Exact match on the stock adjustment number"
     )
     created_after: str | None = Field(
         default=None,
@@ -869,6 +863,31 @@ class ListStockAdjustmentsRequest(BaseModel):
         default=None,
         description="ISO-8601 datetime upper bound on created_at",
     )
+    updated_after: str | None = Field(
+        default=None,
+        description="ISO-8601 datetime lower bound on updated_at (useful for sync)",
+    )
+    updated_before: str | None = Field(
+        default=None,
+        description="ISO-8601 datetime upper bound on updated_at",
+    )
+    include_deleted: bool = Field(
+        default=False,
+        description="Include soft-deleted adjustments in the result",
+    )
+
+    # Client-side filters (applied post-fetch; Katana's list endpoint does not
+    # expose these server-side). When either is set the `page=1` short-circuit
+    # is skipped so auto-pagination can scan enough rows to find matches.
+    variant_id: int | None = Field(
+        default=None,
+        description="Filter to adjustments that touch this variant ID (client-side)",
+    )
+    reason: str | None = Field(
+        default=None,
+        description="Case-insensitive substring match on the `reason` field (client-side)",
+    )
+
     include_rows: bool = Field(
         default=False,
         description="When true, populate row-level detail on each summary",
@@ -954,6 +973,12 @@ async def _list_stock_adjustments_impl(
     }
     if request.location_id is not None:
         kwargs["location_id"] = request.location_id
+    if request.ids is not None:
+        kwargs["ids"] = request.ids
+    if request.stock_adjustment_number is not None:
+        kwargs["stock_adjustment_number"] = request.stock_adjustment_number
+    if request.include_deleted:
+        kwargs["include_deleted"] = True
 
     created_at_min = _parse_iso_datetime(request.created_after, "created_after")
     if created_at_min is not None:
@@ -961,16 +986,26 @@ async def _list_stock_adjustments_impl(
     created_at_max = _parse_iso_datetime(request.created_before, "created_before")
     if created_at_max is not None:
         kwargs["created_at_max"] = created_at_max
+    updated_at_min = _parse_iso_datetime(request.updated_after, "updated_after")
+    if updated_at_min is not None:
+        kwargs["updated_at_min"] = updated_at_min
+    updated_at_max = _parse_iso_datetime(request.updated_before, "updated_before")
+    if updated_at_max is not None:
+        kwargs["updated_at_max"] = updated_at_max
 
     # Pagination strategy:
     # - If `page` is set, forward it so PaginationTransport disables
     #   auto-pagination and lets callers walk beyond max_pages.
+    # - Else if any client-side-only filter (variant_id, reason) is active,
+    #   skip the short-circuit so auto-pagination scans enough rows to find
+    #   matches; a single page would miss records on later pages.
     # - Otherwise, when `limit` fits in a single Katana page (<=250), pass
     #   page=1 to short-circuit auto-pagination and avoid fetching thousands
     #   of rows. Lower bound is defence-in-depth with `ge=1` on Field.
+    has_client_filter = request.variant_id is not None or request.reason is not None
     if request.page is not None:
         kwargs["page"] = request.page
-    elif 1 <= request.limit <= 250:
+    elif not has_client_filter and 1 <= request.limit <= 250:
         kwargs["page"] = 1
 
     response = await get_all_stock_adjustments.asyncio_detailed(**kwargs)
@@ -1360,6 +1395,7 @@ async def _delete_stock_adjustment_impl(
         client=services.client,
         ids=[request.id],
         limit=1,
+        page=1,  # Explicit page disables auto-pagination — one HTTP call suffices.
     )
     matches = unwrap_data(list_response, default=[])
     existing = next((adj for adj in matches if adj.id == request.id), None)

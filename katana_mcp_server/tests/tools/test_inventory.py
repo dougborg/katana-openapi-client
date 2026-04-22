@@ -810,6 +810,83 @@ def test_list_stock_adjustments_rejects_limit_above_page_cap():
 
 
 @pytest.mark.asyncio
+async def test_list_stock_adjustments_forwards_new_server_side_filters():
+    """ids, stock_adjustment_number, updated_after/before, include_deleted forward to the API."""
+    context, _ = create_mock_context()
+    captured: dict = {}
+
+    async def fake(**kwargs):
+        captured.update(kwargs)
+        return MagicMock()
+
+    with (
+        patch(f"{_SA_GET_ALL}.asyncio_detailed", side_effect=fake),
+        patch(_SA_UNWRAP_DATA, return_value=[]),
+    ):
+        await _list_stock_adjustments_impl(
+            ListStockAdjustmentsRequest(
+                limit=10,
+                ids=[101, 102],
+                stock_adjustment_number="SA-00042",
+                updated_after="2026-01-01T00:00:00+00:00",
+                updated_before="2026-04-01T00:00:00+00:00",
+                include_deleted=True,
+            ),
+            context,
+        )
+
+    assert captured["ids"] == [101, 102]
+    assert captured["stock_adjustment_number"] == "SA-00042"
+    assert captured["updated_at_min"] == datetime(2026, 1, 1, tzinfo=UTC)
+    assert captured["updated_at_max"] == datetime(2026, 4, 1, tzinfo=UTC)
+    assert captured["include_deleted"] is True
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_skips_short_circuit_when_variant_id_filter_set():
+    """Client-side filters need to scan more than one page; short-circuit must be skipped."""
+    context, _ = create_mock_context()
+    captured: dict = {}
+
+    async def fake(**kwargs):
+        captured.update(kwargs)
+        return MagicMock()
+
+    with (
+        patch(f"{_SA_GET_ALL}.asyncio_detailed", side_effect=fake),
+        patch(_SA_UNWRAP_DATA, return_value=[]),
+    ):
+        await _list_stock_adjustments_impl(
+            ListStockAdjustmentsRequest(limit=10, variant_id=42), context
+        )
+
+    # No `page` forwarded → auto-pagination runs → can find variant_id matches
+    # on later pages. Without this, a single page would be the whole haystack.
+    assert "page" not in captured
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_skips_short_circuit_when_reason_filter_set():
+    """Same as above but for the `reason` client-side filter."""
+    context, _ = create_mock_context()
+    captured: dict = {}
+
+    async def fake(**kwargs):
+        captured.update(kwargs)
+        return MagicMock()
+
+    with (
+        patch(f"{_SA_GET_ALL}.asyncio_detailed", side_effect=fake),
+        patch(_SA_UNWRAP_DATA, return_value=[]),
+    ):
+        await _list_stock_adjustments_impl(
+            ListStockAdjustmentsRequest(limit=10, reason="recount"), context
+        )
+
+    assert "page" not in captured
+
+
+@pytest.mark.asyncio
 async def test_list_stock_adjustments_pagination_meta_populated_on_explicit_page():
     """An explicit `page` populates `pagination` from the x-pagination header."""
     context, _ = create_mock_context()
@@ -1120,7 +1197,11 @@ async def test_update_stock_adjustment_rejects_empty_change_set():
 
 @pytest.mark.asyncio
 async def test_delete_stock_adjustment_preview_returns_what_would_be_deleted():
-    """confirm=False fetches the adjustment and returns it in preview."""
+    """confirm=False fetches the adjustment and returns it in preview.
+
+    Also asserts the lookup passes page=1 so auto-pagination doesn't chase
+    extra pages for a single-record fetch.
+    """
     context, _ = create_mock_context()
 
     adj = _make_mock_adjustment(
@@ -1131,7 +1212,10 @@ async def test_delete_stock_adjustment_preview_returns_what_would_be_deleted():
     )
 
     with (
-        patch(f"{_SA_GET_ALL}.asyncio_detailed", new=AsyncMock()),
+        patch(
+            f"{_SA_GET_ALL}.asyncio_detailed",
+            new_callable=AsyncMock,
+        ) as mock_get_all,
         patch(_SA_UNWRAP_DATA, return_value=[adj]),
         patch(f"{_SA_DELETE}.asyncio_detailed", new=AsyncMock()) as mock_delete,
     ):
@@ -1145,6 +1229,8 @@ async def test_delete_stock_adjustment_preview_returns_what_would_be_deleted():
     assert result.location_id == 3
     assert result.row_count == 1
     mock_delete.assert_not_called()
+    # The delete-preview lookup should short-circuit auto-pagination.
+    assert mock_get_all.call_args.kwargs["page"] == 1
 
 
 @pytest.mark.asyncio
