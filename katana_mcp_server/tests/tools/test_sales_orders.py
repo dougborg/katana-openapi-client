@@ -988,6 +988,115 @@ async def test_list_sales_orders_ids_include_deleted_pass_through():
 
 
 # ============================================================================
+# list_sales_orders — include_rows (#332)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_include_rows_default_false_leaves_rows_none():
+    """By default summaries carry rows=None (only row_count is populated)."""
+    context, _ = create_mock_context()
+    mock_so = _make_mock_so(
+        id=1,
+        order_no="SO-1",
+        rows=[
+            _make_mock_row(id=10, variant_id=100, quantity=2, price_per_unit=50.0),
+            _make_mock_row(id=11, variant_id=101, quantity=1, price_per_unit=75.0),
+        ],
+    )
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_DATA, return_value=[mock_so]),
+    ):
+        result = await _list_sales_orders_impl(ListSalesOrdersRequest(), context)
+
+    assert result.total_count == 1
+    assert result.orders[0].row_count == 2
+    assert result.orders[0].rows is None
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_include_rows_true_populates_rows():
+    """include_rows=True surfaces per-row detail from sales_order_rows."""
+    context, _ = create_mock_context()
+    mock_so = _make_mock_so(
+        id=42,
+        order_no="SO-42",
+        rows=[
+            _make_mock_row(
+                id=10,
+                variant_id=100,
+                quantity=2,
+                price_per_unit=50.0,
+                linked_mo_id=555,
+            ),
+            _make_mock_row(id=11, variant_id=101, quantity=1, price_per_unit=75.0),
+        ],
+    )
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_DATA, return_value=[mock_so]),
+    ):
+        result = await _list_sales_orders_impl(
+            ListSalesOrdersRequest(include_rows=True), context
+        )
+
+    assert result.total_count == 1
+    summary = result.orders[0]
+    assert summary.row_count == 2
+    assert summary.rows is not None
+    assert len(summary.rows) == 2
+
+    first, second = summary.rows
+    assert first.id == 10
+    assert first.variant_id == 100
+    assert first.quantity == 2
+    assert first.price_per_unit == 50.0
+    assert first.linked_manufacturing_order_id == 555
+    # sku is intentionally None in list context (get_sales_order enriches).
+    assert first.sku is None
+
+    assert second.id == 11
+    assert second.variant_id == 101
+    assert second.linked_manufacturing_order_id is None
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_include_rows_handles_unset_fields():
+    """A row with UNSET optional fields surfaces as None instead of raising."""
+    context, _ = create_mock_context()
+
+    # Row with UNSET price_per_unit and UNSET quantity — should map to None.
+    sparse_row = MagicMock()
+    sparse_row.id = 99
+    sparse_row.variant_id = UNSET
+    sparse_row.quantity = UNSET
+    sparse_row.price_per_unit = UNSET
+    sparse_row.linked_manufacturing_order_id = UNSET
+
+    mock_so = _make_mock_so(id=1, order_no="SO-1", rows=[sparse_row])
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_DATA, return_value=[mock_so]),
+    ):
+        result = await _list_sales_orders_impl(
+            ListSalesOrdersRequest(include_rows=True), context
+        )
+
+    assert result.orders[0].rows is not None
+    row = result.orders[0].rows[0]
+    assert row.id == 99
+    assert row.variant_id is None
+    assert row.quantity is None
+    assert row.price_per_unit is None
+    assert row.linked_manufacturing_order_id is None
+    assert row.sku is None
+
+
+# ============================================================================
 # get_sales_order tests
 # ============================================================================
 

@@ -750,10 +750,17 @@ List sales orders with filters (list-tool pattern v2).
   scan enough rows to find `limit` matching results post-filter. Pair with a
   `created_at` window to keep fetched rows bounded.
 
+**Row detail:**
+- `include_rows` (optional, default false): When true, populate per-order row
+  details (id, variant_id, quantity, price_per_unit,
+  linked_manufacturing_order_id) on each summary. `sku` is left None in list
+  context — use `get_sales_order` for SKU-enriched rows on a specific order.
+
 **Returns:** Summary rows with order_no, status, production_status, row_count,
 total, currency, created_at, delivery_date. When `page` is set, the response
 also includes `pagination` with `total_records`, `total_pages`, current
-`page`, `first_page`, and `last_page`.
+`page`, `first_page`, and `last_page`. When `include_rows=true`, each summary
+also carries a `rows` list.
 
 ---
 
