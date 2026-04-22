@@ -1541,7 +1541,10 @@ async def test_list_purchase_orders_server_side_filters_pass_through():
     assert captured["billing_status"] == FindPurchaseOrdersBillingStatus.NOT_BILLED
     assert captured["currency"] == "USD"
     assert captured["location_id"] == 5
-    assert captured["supplier_id"] == 99
+    # supplier_id cast to float at the API boundary (generated-client signature
+    # uses `float` historically); the tool-facing field is `int`.
+    assert captured["supplier_id"] == 99.0
+    assert isinstance(captured["supplier_id"], float)
     assert captured["include_deleted"] is False
     assert captured["limit"] == 25
 

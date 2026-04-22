@@ -1099,10 +1099,10 @@ class ListPurchaseOrdersRequest(BaseModel):
     location_id: int | None = Field(
         default=None, description="Filter by receiving location ID"
     )
-    tracking_location_id: float | None = Field(
+    tracking_location_id: int | None = Field(
         default=None, description="Filter by tracking location ID (outsourced POs)"
     )
-    supplier_id: float | None = Field(default=None, description="Filter by supplier ID")
+    supplier_id: int | None = Field(default=None, description="Filter by supplier ID")
     include_deleted: bool | None = Field(
         default=None, description="When true, include soft-deleted purchase orders."
     )
@@ -1234,10 +1234,12 @@ async def _list_purchase_orders_impl(
         kwargs["currency"] = request.currency
     if request.location_id is not None:
         kwargs["location_id"] = request.location_id
+    # Generated client types these as float for historical spec reasons;
+    # cast ints we accept at the tool boundary to keep the schema consistent.
     if request.tracking_location_id is not None:
-        kwargs["tracking_location_id"] = request.tracking_location_id
+        kwargs["tracking_location_id"] = float(request.tracking_location_id)
     if request.supplier_id is not None:
-        kwargs["supplier_id"] = request.supplier_id
+        kwargs["supplier_id"] = float(request.supplier_id)
     if request.include_deleted is not None:
         kwargs["include_deleted"] = request.include_deleted
 
