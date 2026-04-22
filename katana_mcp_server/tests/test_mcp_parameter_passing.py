@@ -86,23 +86,32 @@ class TestMCPParameterPassing:
         sig = inspect.signature(list_low_stock_items)
         params = list(sig.parameters.keys())
 
-        assert params == ["threshold", "limit", "context"], (
-            "list_low_stock_items has flattened params: threshold, limit, context"
+        assert params == ["threshold", "limit", "format", "context"], (
+            "list_low_stock_items has flattened params: threshold, limit, format, context"
         )
         assert sig.parameters["threshold"].annotation is int
         assert sig.parameters["limit"].annotation is int
         assert sig.parameters["threshold"].default == 10
         assert sig.parameters["limit"].default == 50
+        assert sig.parameters["format"].default == "markdown"
 
         # Check check_inventory signature
         sig2 = inspect.signature(check_inventory)
         params2 = list(sig2.parameters.keys())
 
-        assert params2 == ["sku", "variant_id", "skus", "variant_ids", "context"], (
-            "check_inventory has flattened params: sku, variant_id, skus, variant_ids, context"
+        assert params2 == [
+            "sku",
+            "variant_id",
+            "skus",
+            "variant_ids",
+            "format",
+            "context",
+        ], (
+            "check_inventory has flattened params: sku, variant_id, skus, variant_ids, format, context"
         )
         # sku is optional now (can be None)
         assert sig2.parameters["sku"].default is None
+        assert sig2.parameters["format"].default == "markdown"
 
 
 class TestMCPProtocolSimulation:
