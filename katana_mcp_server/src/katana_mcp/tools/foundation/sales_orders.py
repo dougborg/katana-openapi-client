@@ -780,7 +780,7 @@ async def list_sales_orders(
       to find `limit` matching results post-filter.
 
     **Row detail:**
-    - `include_rows=true` — populate per-order row details (variant_id,
+    - `include_rows=true` — populate per-order row details (id, variant_id,
       quantity, price_per_unit, linked_manufacturing_order_id). `sku` is left
       None in list context; use `get_sales_order` for SKU-enriched rows on a
       specific order.
