@@ -9,6 +9,7 @@ These tools provide:
 from __future__ import annotations
 
 import asyncio
+import datetime as _datetime
 import json
 from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
@@ -360,25 +361,34 @@ async def create_sales_order(
 
 
 class ListSalesOrdersRequest(BaseModel):
-    """Request to list/filter sales orders."""
+    """Request to list/filter sales orders (list-tool pattern v2)."""
 
+    # Paging
     limit: int = Field(
         default=50,
         ge=1,
+        le=250,
         description=(
-            "Max orders to return (default 50, min 1). When `page` is set, "
-            "acts as the page size for that request."
+            "Max orders to return (default 50, min 1, max 250 — Katana's "
+            "per-page ceiling). When `page` is set, acts as the page size "
+            "for that request."
         ),
     )
     page: int | None = Field(
         default=None,
+        ge=1,
         description=(
             "Page number (1-based). When set, returns a single page and "
             "disables auto-pagination; `limit` becomes the page size for "
             "that request."
         ),
     )
+
+    # Domain filters
     order_no: str | None = Field(default=None, description="Filter by exact order_no")
+    ids: list[int] | None = Field(
+        default=None, description="Filter by explicit list of sales order IDs"
+    )
     customer_id: int | None = Field(default=None, description="Filter by customer ID")
     location_id: int | None = Field(default=None, description="Filter by location ID")
     status: str | None = Field(
@@ -388,9 +398,54 @@ class ListSalesOrdersRequest(BaseModel):
         default=None,
         description="Filter by production status (NONE, NOT_STARTED, IN_PROGRESS, BLOCKED, DONE, NOT_APPLICABLE)",
     )
+    invoicing_status: str | None = Field(
+        default=None,
+        description="Filter by invoicing status (e.g. NOT_INVOICED, INVOICED)",
+    )
+    currency: str | None = Field(
+        default=None, description="Filter by currency code (e.g. 'USD')"
+    )
+    include_deleted: bool | None = Field(
+        default=None,
+        description="When true, include soft-deleted sales orders in the results.",
+    )
     needs_work_orders: bool = Field(
         default=False,
         description="Convenience: filter to orders with production_status=NONE (no MOs created yet)",
+    )
+
+    # Time-window filters (server-side on Katana)
+    created_after: str | None = Field(
+        default=None, description="ISO-8601 datetime lower bound on created_at."
+    )
+    created_before: str | None = Field(
+        default=None, description="ISO-8601 datetime upper bound on created_at."
+    )
+    updated_after: str | None = Field(
+        default=None, description="ISO-8601 datetime lower bound on updated_at."
+    )
+    updated_before: str | None = Field(
+        default=None, description="ISO-8601 datetime upper bound on updated_at."
+    )
+
+    # Time-window filters (client-side — Katana does not expose
+    # delivery_date_min/max as server-side filters, so the tool applies them
+    # after fetch).
+    delivered_after: str | None = Field(
+        default=None,
+        description=(
+            "ISO-8601 datetime lower bound on delivery_date. Applied "
+            "client-side — Katana does not expose a server-side filter "
+            "for delivery_date, so this filters post-fetch. Combine with a "
+            "created_at window to keep fetched rows bounded."
+        ),
+    )
+    delivered_before: str | None = Field(
+        default=None,
+        description=(
+            "ISO-8601 datetime upper bound on delivery_date. Applied "
+            "client-side — see `delivered_after`."
+        ),
     )
 
 
@@ -457,6 +512,25 @@ class ListSalesOrdersResponse(BaseModel):
     )
 
 
+def _parse_iso_datetime(value: str, field_name: str) -> datetime:
+    """Parse an ISO-8601 datetime string, raising ValueError on malformed input.
+
+    Normalizes trailing ``Z`` / ``z`` (UTC shorthand) to ``+00:00`` before
+    parsing — ``datetime.fromisoformat`` didn't accept ``Z`` before Python
+    3.11. Raises ``ValueError`` with the field name on unparseable input so
+    caller mistakes surface loudly instead of being silently dropped.
+    """
+    normalized = value
+    if normalized.endswith(("Z", "z")):
+        normalized = normalized[:-1] + "+00:00"
+    try:
+        return datetime.fromisoformat(normalized)
+    except ValueError as e:
+        raise ValueError(
+            f"Invalid ISO-8601 datetime for {field_name!r}: {value!r}"
+        ) from e
+
+
 def _parse_pagination_header(raw: str | None) -> PaginationMeta | None:
     """Parse Katana's `x-pagination` response header into a PaginationMeta.
 
@@ -510,7 +584,7 @@ def _parse_pagination_header(raw: str | None) -> PaginationMeta | None:
 async def _list_sales_orders_impl(
     request: ListSalesOrdersRequest, context: Context
 ) -> ListSalesOrdersResponse:
-    """List sales orders with filters."""
+    """List sales orders with filters (list-tool pattern v2)."""
     from katana_public_api_client.api.sales_order import get_all_sales_orders
     from katana_public_api_client.utils import unwrap_data
 
@@ -521,34 +595,95 @@ async def _list_sales_orders_impl(
     production_status = request.production_status
     if production_status is None and request.needs_work_orders:
         production_status = "NONE"
-    filters = {
-        "order_no": request.order_no,
-        "customer_id": request.customer_id,
-        "location_id": request.location_id,
-        "status": request.status,
-        "production_status": production_status,
-    }
     kwargs: dict[str, Any] = {
         "client": services.client,
         "limit": request.limit,
-        **{k: v for k, v in filters.items() if v is not None},
     }
+    if request.order_no is not None:
+        kwargs["order_no"] = request.order_no
+    if request.ids is not None:
+        kwargs["ids"] = request.ids
+    if request.customer_id is not None:
+        kwargs["customer_id"] = request.customer_id
+    if request.location_id is not None:
+        kwargs["location_id"] = request.location_id
+    if request.status is not None:
+        kwargs["status"] = request.status
+    if production_status is not None:
+        kwargs["production_status"] = production_status
+    if request.invoicing_status is not None:
+        kwargs["invoicing_status"] = request.invoicing_status
+    if request.currency is not None:
+        kwargs["currency"] = request.currency
+    if request.include_deleted is not None:
+        kwargs["include_deleted"] = request.include_deleted
+
+    # Server-side date filters
+    if request.created_after is not None:
+        kwargs["created_at_min"] = _parse_iso_datetime(
+            request.created_after, "created_after"
+        )
+    if request.created_before is not None:
+        kwargs["created_at_max"] = _parse_iso_datetime(
+            request.created_before, "created_before"
+        )
+    if request.updated_after is not None:
+        kwargs["updated_at_min"] = _parse_iso_datetime(
+            request.updated_after, "updated_after"
+        )
+    if request.updated_before is not None:
+        kwargs["updated_at_max"] = _parse_iso_datetime(
+            request.updated_before, "updated_before"
+        )
+
+    # Client-side date filters — parsed eagerly so bad input fails loudly
+    # before we spend an API call.
+    delivered_after_dt: datetime | None = None
+    delivered_before_dt: datetime | None = None
+    if request.delivered_after is not None:
+        delivered_after_dt = _parse_iso_datetime(
+            request.delivered_after, "delivered_after"
+        )
+    if request.delivered_before is not None:
+        delivered_before_dt = _parse_iso_datetime(
+            request.delivered_before, "delivered_before"
+        )
+    has_client_filter = (
+        delivered_after_dt is not None or delivered_before_dt is not None
+    )
+
     # Pagination strategy:
     # - If `page` is set, the caller is driving pagination manually; forward
-    #   it so PaginationTransport disables auto-pagination (see: "ANY explicit
-    #   `page` parameter in URL disables auto-pagination") and lets callers
+    #   it so PaginationTransport disables auto-pagination and lets callers
     #   walk beyond the transport's max_pages ceiling.
     # - Otherwise, when `limit` fits in a single Katana page (<=250, the API's
-    #   max page size), pass page=1 to short-circuit auto-pagination and
-    #   avoid fetching thousands of rows when the caller asked for a small
-    #   cap (see #329). Lower bound is defence-in-depth with `ge=1` on Field.
+    #   max page size) AND no client-side-only filter is active, pass page=1
+    #   to short-circuit auto-pagination. When a client-side filter IS active,
+    #   skip the short-circuit so the transport's auto-pagination can scan
+    #   enough rows to find `limit` matching ones post-filter (#341 pattern).
     if request.page is not None:
         kwargs["page"] = request.page
-    elif 1 <= request.limit <= 250:
+    elif 1 <= request.limit <= 250 and not has_client_filter:
         kwargs["page"] = 1
 
     response = await get_all_sales_orders.asyncio_detailed(**kwargs)
     attrs_list = unwrap_data(response, default=[])
+
+    # Client-side delivery_date filter (Katana has no server-side param).
+    if has_client_filter:
+
+        def _in_delivery_window(so: Any) -> bool:
+            delivery = unwrap_unset(so.delivery_date, None)
+            if not isinstance(delivery, _datetime.datetime):
+                return False
+            if delivered_after_dt is not None and delivery < delivered_after_dt:
+                return False
+            return not (
+                delivered_before_dt is not None and delivery > delivered_before_dt
+            )
+
+        attrs_list = [so for so in attrs_list if _in_delivery_window(so)]
+
     # Safety net: cap to request.limit post-pagination so we never return more
     # than the caller asked for, regardless of how the transport behaved.
     attrs_list = attrs_list[: request.limit]
@@ -592,7 +727,7 @@ async def _list_sales_orders_impl(
 async def list_sales_orders(
     request: Annotated[ListSalesOrdersRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """List sales orders with filters.
+    """List sales orders with filters (list-tool pattern v2).
 
     Use this for discovery workflows — find recent orders, orders needing work
     orders, orders for a specific customer, etc. Returns summary info (order_no,
@@ -602,6 +737,14 @@ async def list_sales_orders(
     - `needs_work_orders=true` — orders with no MOs yet (production_status=NONE)
     - `status="NOT_SHIPPED"` — unshipped orders
     - `customer_id=N` — orders for a specific customer
+
+    **Time windows:**
+    - `created_after` / `created_before` — server-side bounds on `created_at`
+    - `updated_after` / `updated_before` — server-side bounds on `updated_at`
+    - `delivered_after` / `delivered_before` — client-side bounds on
+      `delivery_date` (Katana has no server-side filter). When set, the tool
+      skips the page=1 short-circuit so auto-pagination can scan enough rows
+      to find `limit` matching results post-filter.
 
     For full line-item details on a specific order, use `get_sales_order` next.
     """

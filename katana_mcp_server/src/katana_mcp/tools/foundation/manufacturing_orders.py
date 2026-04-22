@@ -9,6 +9,8 @@ These tools provide:
 from __future__ import annotations
 
 import asyncio
+import datetime as _datetime
+import json
 from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any
@@ -22,7 +24,10 @@ from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
+    enum_to_str,
     format_md_table,
+    iso_or_none,
+    make_simple_result,
     make_tool_result,
     none_coro,
 )
@@ -31,6 +36,7 @@ from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
     CreateManufacturingOrderRequest as APICreateManufacturingOrderRequest,
+    GetAllManufacturingOrdersStatus,
     ManufacturingOrder,
 )
 from katana_public_api_client.utils import unwrap_as
@@ -1447,6 +1453,397 @@ async def batch_update_manufacturing_order_recipes(
     return ToolResult(content=markdown, structured_content=prefab_json)
 
 
+# ============================================================================
+# Tool: list_manufacturing_orders (list-tool pattern v2)
+# ============================================================================
+
+
+def _parse_iso_datetime(value: str, field_name: str) -> datetime:
+    """Parse an ISO-8601 datetime string, raising ValueError on bad input.
+
+    Normalizes trailing ``Z`` / ``z`` (UTC shorthand) to ``+00:00`` before
+    parsing. Raises ``ValueError`` with the field name on unparseable input
+    so caller mistakes surface loudly instead of being silently dropped.
+    """
+    normalized = value
+    if normalized.endswith(("Z", "z")):
+        normalized = normalized[:-1] + "+00:00"
+    try:
+        return datetime.fromisoformat(normalized)
+    except ValueError as e:
+        raise ValueError(
+            f"Invalid ISO-8601 datetime for {field_name!r}: {value!r}"
+        ) from e
+
+
+class MOPaginationMeta(BaseModel):
+    """Pagination metadata parsed from Katana's ``x-pagination`` header."""
+
+    total_records: int | None = None
+    total_pages: int | None = None
+    page: int | None = None
+    first_page: bool | None = None
+    last_page: bool | None = None
+
+
+def _parse_mo_pagination_header(raw: str | None) -> MOPaginationMeta | None:
+    """Parse the ``x-pagination`` response header (JSON with stringy values).
+
+    Returns ``None`` for absent or non-JSON-object headers; partial/malformed
+    fields become ``None`` on the returned meta rather than discarding the
+    whole object.
+    """
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(data, dict):
+        return None
+
+    def _as_int(val: Any) -> int | None:
+        if val is None:
+            return None
+        try:
+            return int(val)
+        except (ValueError, TypeError):
+            return None
+
+    def _as_bool(val: Any) -> bool | None:
+        if isinstance(val, bool):
+            return val
+        if isinstance(val, str):
+            lowered = val.strip().lower()
+            if lowered == "true":
+                return True
+            if lowered == "false":
+                return False
+        return None
+
+    return MOPaginationMeta(
+        total_records=_as_int(data.get("total_records")),
+        total_pages=_as_int(data.get("total_pages")),
+        page=_as_int(data.get("page")),
+        first_page=_as_bool(data.get("first_page")),
+        last_page=_as_bool(data.get("last_page")),
+    )
+
+
+class ListManufacturingOrdersRequest(BaseModel):
+    """Request to list/filter manufacturing orders (list-tool pattern v2)."""
+
+    # Paging
+    limit: int = Field(
+        default=50,
+        ge=1,
+        le=250,
+        description=(
+            "Max rows to return (default 50, min 1, max 250 — Katana's "
+            "per-page ceiling). When `page` is set, acts as the page size."
+        ),
+    )
+    page: int | None = Field(
+        default=None,
+        ge=1,
+        description=(
+            "Page number (1-based). When set, disables auto-pagination; "
+            "use with `limit` as page size."
+        ),
+    )
+
+    # Domain filters (server-side on Katana)
+    ids: list[int] | None = Field(
+        default=None, description="Filter by explicit list of manufacturing order IDs"
+    )
+    order_no: str | None = Field(default=None, description="Filter by exact order_no")
+    status: GetAllManufacturingOrdersStatus | None = Field(
+        default=None,
+        description=(
+            "Filter by MO status: NOT_STARTED, IN_PROGRESS, BLOCKED, PAUSED, COMPLETED."
+        ),
+    )
+    location_id: int | None = Field(
+        default=None, description="Filter by production location ID"
+    )
+    is_linked_to_sales_order: bool | None = Field(
+        default=None,
+        description="When set, filters to MOs linked (True) / not linked (False) to a SO.",
+    )
+    include_deleted: bool | None = Field(
+        default=None,
+        description="When true, include soft-deleted manufacturing orders.",
+    )
+
+    # Time-window filters (server-side)
+    created_after: str | None = Field(
+        default=None, description="ISO-8601 datetime lower bound on created_at."
+    )
+    created_before: str | None = Field(
+        default=None, description="ISO-8601 datetime upper bound on created_at."
+    )
+    updated_after: str | None = Field(
+        default=None, description="ISO-8601 datetime lower bound on updated_at."
+    )
+    updated_before: str | None = Field(
+        default=None, description="ISO-8601 datetime upper bound on updated_at."
+    )
+
+    # Time-window filters (client-side — Katana does not expose server-side
+    # filters for production_deadline).
+    production_deadline_after: str | None = Field(
+        default=None,
+        description=(
+            "ISO-8601 datetime lower bound on production_deadline_date. "
+            "Applied client-side — Katana has no server-side filter. Pair "
+            "with a created_at window to keep fetched rows bounded."
+        ),
+    )
+    production_deadline_before: str | None = Field(
+        default=None,
+        description=(
+            "ISO-8601 datetime upper bound on production_deadline_date. "
+            "Applied client-side — see `production_deadline_after`."
+        ),
+    )
+
+    # Row inclusion
+    include_rows: bool = Field(
+        default=False,
+        description=(
+            "Reserved for future row-detail support. Katana's "
+            "/manufacturing_orders list endpoint does not return recipe "
+            "rows inline; to inspect ingredients use "
+            "`get_manufacturing_order_recipe` for a specific MO."
+        ),
+    )
+
+
+class ManufacturingOrderSummary(BaseModel):
+    """Summary row for a manufacturing order in a list."""
+
+    id: int
+    order_no: str | None
+    status: str | None
+    variant_id: int | None
+    planned_quantity: float | None
+    actual_quantity: float | None
+    location_id: int | None
+    order_created_date: str | None
+    production_deadline_date: str | None
+    done_date: str | None
+    is_linked_to_sales_order: bool | None
+    sales_order_id: int | None
+    total_cost: float | None
+    row_count: int
+
+
+class ListManufacturingOrdersResponse(BaseModel):
+    """Response containing a list of manufacturing orders."""
+
+    orders: list[ManufacturingOrderSummary]
+    total_count: int
+    pagination: MOPaginationMeta | None = None
+
+
+async def _list_manufacturing_orders_impl(
+    request: ListManufacturingOrdersRequest, context: Context
+) -> ListManufacturingOrdersResponse:
+    """List manufacturing orders with filters — follows list-tool pattern v2."""
+    from katana_public_api_client.api.manufacturing_order import (
+        get_all_manufacturing_orders,
+    )
+    from katana_public_api_client.utils import unwrap_data
+
+    services = get_services(context)
+
+    kwargs: dict[str, Any] = {
+        "client": services.client,
+        "limit": request.limit,
+    }
+    if request.ids is not None:
+        kwargs["ids"] = request.ids
+    if request.order_no is not None:
+        kwargs["order_no"] = request.order_no
+    if request.status is not None:
+        kwargs["status"] = request.status
+    if request.location_id is not None:
+        kwargs["location_id"] = request.location_id
+    if request.is_linked_to_sales_order is not None:
+        kwargs["is_linked_to_sales_order"] = request.is_linked_to_sales_order
+    if request.include_deleted is not None:
+        kwargs["include_deleted"] = request.include_deleted
+
+    # Server-side date filters
+    if request.created_after is not None:
+        kwargs["created_at_min"] = _parse_iso_datetime(
+            request.created_after, "created_after"
+        )
+    if request.created_before is not None:
+        kwargs["created_at_max"] = _parse_iso_datetime(
+            request.created_before, "created_before"
+        )
+    if request.updated_after is not None:
+        kwargs["updated_at_min"] = _parse_iso_datetime(
+            request.updated_after, "updated_after"
+        )
+    if request.updated_before is not None:
+        kwargs["updated_at_max"] = _parse_iso_datetime(
+            request.updated_before, "updated_before"
+        )
+
+    # Client-side filter parsing (eager — bad input fails loudly)
+    deadline_after_dt: datetime | None = None
+    deadline_before_dt: datetime | None = None
+    if request.production_deadline_after is not None:
+        deadline_after_dt = _parse_iso_datetime(
+            request.production_deadline_after, "production_deadline_after"
+        )
+    if request.production_deadline_before is not None:
+        deadline_before_dt = _parse_iso_datetime(
+            request.production_deadline_before, "production_deadline_before"
+        )
+    has_client_filter = deadline_after_dt is not None or deadline_before_dt is not None
+
+    # Pagination strategy — short-circuit only when no client-side filter is
+    # active, otherwise auto-pag needs to scan enough rows to satisfy `limit`
+    # after post-filter.
+    if request.page is not None:
+        kwargs["page"] = request.page
+    elif 1 <= request.limit <= 250 and not has_client_filter:
+        kwargs["page"] = 1
+
+    response = await get_all_manufacturing_orders.asyncio_detailed(**kwargs)
+    attrs_list = unwrap_data(response, default=[])
+
+    if has_client_filter:
+
+        def _in_deadline_window(mo: Any) -> bool:
+            deadline = unwrap_unset(mo.production_deadline_date, None)
+            if not isinstance(deadline, _datetime.datetime):
+                return False
+            if deadline_after_dt is not None and deadline < deadline_after_dt:
+                return False
+            return not (
+                deadline_before_dt is not None and deadline > deadline_before_dt
+            )
+
+        attrs_list = [mo for mo in attrs_list if _in_deadline_window(mo)]
+
+    # Safety net: cap to request.limit post-pagination.
+    attrs_list = attrs_list[: request.limit]
+
+    # Pagination meta — only when caller set `page` explicitly.
+    pagination: MOPaginationMeta | None = None
+    if request.page is not None:
+        headers = getattr(response, "headers", None)
+        if headers is not None:
+            pagination = _parse_mo_pagination_header(headers.get("x-pagination"))
+
+    summaries: list[ManufacturingOrderSummary] = []
+    for mo in attrs_list:
+        summaries.append(
+            ManufacturingOrderSummary(
+                id=mo.id,
+                order_no=unwrap_unset(mo.order_no, None),
+                status=enum_to_str(unwrap_unset(mo.status, None)),
+                variant_id=unwrap_unset(mo.variant_id, None),
+                planned_quantity=unwrap_unset(mo.planned_quantity, None),
+                actual_quantity=unwrap_unset(mo.actual_quantity, None),
+                location_id=unwrap_unset(mo.location_id, None),
+                order_created_date=iso_or_none(
+                    unwrap_unset(mo.order_created_date, None)
+                ),
+                production_deadline_date=iso_or_none(
+                    unwrap_unset(mo.production_deadline_date, None)
+                ),
+                done_date=iso_or_none(unwrap_unset(mo.done_date, None)),
+                is_linked_to_sales_order=unwrap_unset(
+                    mo.is_linked_to_sales_order, None
+                ),
+                sales_order_id=unwrap_unset(mo.sales_order_id, None),
+                total_cost=unwrap_unset(mo.total_cost, None),
+                # Row count on the list endpoint: Katana doesn't bundle recipe
+                # rows in this response, so `include_rows` is reserved for
+                # future work. Report 0 rather than lying about the count.
+                row_count=0,
+            )
+        )
+
+    return ListManufacturingOrdersResponse(
+        orders=summaries, total_count=len(summaries), pagination=pagination
+    )
+
+
+@observe_tool
+@unpack_pydantic_params
+async def list_manufacturing_orders(
+    request: Annotated[ListManufacturingOrdersRequest, Unpack()], context: Context
+) -> ToolResult:
+    """List manufacturing orders with filters (list-tool pattern v2).
+
+    Use this for discovery workflows — find MOs by status, location, linkage
+    to a sales order, or within a date window. Returns summary info (order_no,
+    status, variant, qty, costs, deadlines).
+
+    **Common filters:**
+    - `status="IN_PROGRESS"` — MOs currently being produced
+    - `is_linked_to_sales_order=true` — MOs tied to a customer order
+    - `location_id=N` — MOs at a specific production location
+
+    **Time windows:**
+    - `created_after` / `created_before` — server-side bounds on `created_at`
+    - `updated_after` / `updated_before` — server-side bounds on `updated_at`
+    - `production_deadline_after` / `production_deadline_before` —
+      client-side bounds on `production_deadline_date` (Katana has no
+      server-side filter). When set, the tool skips the page=1 short-circuit
+      so auto-pagination can scan enough rows to find `limit` matches
+      post-filter.
+
+    For full details on a specific MO, use `get_manufacturing_order`.
+    For its recipe rows, use `get_manufacturing_order_recipe`.
+    """
+    response = await _list_manufacturing_orders_impl(request, context)
+
+    if not response.orders:
+        md = "No manufacturing orders match the given filters."
+    else:
+        table = format_md_table(
+            headers=[
+                "Order #",
+                "Status",
+                "Variant",
+                "Planned",
+                "Actual",
+                "Deadline",
+                "Total Cost",
+            ],
+            rows=[
+                [
+                    o.order_no or o.id,
+                    o.status or "—",
+                    o.variant_id if o.variant_id is not None else "—",
+                    o.planned_quantity if o.planned_quantity is not None else "—",
+                    o.actual_quantity if o.actual_quantity is not None else "—",
+                    o.production_deadline_date or "—",
+                    f"{o.total_cost:.2f}" if o.total_cost is not None else "—",
+                ]
+                for o in response.orders
+            ],
+        )
+        md = f"## Manufacturing Orders ({response.total_count})\n\n{table}"
+
+    if response.pagination is not None:
+        p = response.pagination
+        if p.page is not None and p.total_pages is not None:
+            summary = f"\n\nPage {p.page} of {p.total_pages}"
+            if p.total_records is not None:
+                summary += f" (total: {p.total_records} records)"
+            md += summary
+
+    return make_simple_result(md, structured_data=response.model_dump())
+
+
 def register_tools(mcp: FastMCP) -> None:
     """Register all manufacturing order tools with the FastMCP instance.
 
@@ -1472,6 +1869,10 @@ def register_tools(mcp: FastMCP) -> None:
         tags={"orders", "manufacturing", "write"},
         annotations=_write,
     )(create_manufacturing_order)
+    mcp.tool(
+        tags={"orders", "manufacturing", "read"},
+        annotations=_read,
+    )(list_manufacturing_orders)
     mcp.tool(
         tags={"orders", "manufacturing", "read"},
         annotations=_read,
