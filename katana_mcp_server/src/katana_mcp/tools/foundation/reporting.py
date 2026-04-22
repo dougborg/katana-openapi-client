@@ -134,62 +134,57 @@ async def _fetch_delivered_sales_orders_in_window(
     return filtered
 
 
+# Map the variant's normalized "type" string (set by cache_sync._variant_to_cache_dict
+# from VariantType) to the (cache entity type, FK field name on the variant dict).
+# Services appear to share the product_id FK namespace in Katana's schema.
+_PARENT_BY_VARIANT_TYPE: dict[str, tuple[EntityType, str]] = {
+    "product": (EntityType.PRODUCT, "product_id"),
+    "material": (EntityType.MATERIAL, "material_id"),
+    "service": (EntityType.SERVICE, "product_id"),
+}
+
+
 async def _resolve_variant_info(
     services: Any,
     variant_id: int,
     variant_cache: dict[int, dict[str, Any]],
-    category_cache: dict[int, str | None],
+    category_cache: dict[tuple[EntityType, int], str | None],
 ) -> tuple[dict[str, Any] | None, str | None]:
-    """Resolve variant dict and its item-category, caching both.
+    """Resolve variant dict and its item-category from the local cache.
 
     Returns ``(variant_dict, category_name)``. Both may be None if lookups
     miss (cache-only path; we do not fall back to API to keep aggregation
     calls bounded — unknown variants are still counted in aggregates, just
     without SKU/name/category enrichment).
+
+    The variant's ``type`` field tells us which of product/material/service
+    owns the parent, so we do one targeted cache lookup instead of probing
+    all three tables.
     """
     variant = variant_cache.get(variant_id)
     if variant is None:
-        from katana_mcp.cache import EntityType
-
         variant = await services.cache.get_by_id(EntityType.VARIANT, variant_id)
         variant_cache[variant_id] = variant or {}
 
     if not variant:
         return None, None
 
-    product_id = variant.get("product_id")
-    if product_id is None:
+    mapping = _PARENT_BY_VARIANT_TYPE.get(variant.get("type") or "")
+    if mapping is None:
+        return variant, None
+    parent_entity_type, fk_field = mapping
+    parent_id = variant.get(fk_field)
+    if parent_id is None:
         return variant, None
 
-    category = category_cache.get(product_id)
-    if category is not None or product_id in category_cache:
-        return variant, category
+    cache_key = (parent_entity_type, parent_id)
+    if cache_key in category_cache:
+        return variant, category_cache[cache_key]
 
-    # Try product → then material → then service for category_name. The
-    # variant dict alone doesn't tell us which one, so we try in order and
-    # stop at the first hit.
-    category = await _fetch_category_for_product(services, product_id)
-    category_cache[product_id] = category
-    return variant, category
-
-
-async def _fetch_category_for_product(services: Any, product_id: int) -> str | None:
-    """Look up the category_name for a given product/material/service ID.
-
-    Reads from the local SQLite cache — tool impls that call this should be
-    decorated with ``@cache_read(PRODUCT, MATERIAL, SERVICE)`` so the relevant
-    tables are synced on entry. The cached entity dict carries ``category_name``
-    directly; no live API call is required.
-    """
-    from katana_mcp.cache import EntityType
-
-    for et in (EntityType.PRODUCT, EntityType.MATERIAL, EntityType.SERVICE):
-        entity = await services.cache.get_by_id(et, product_id)
-        if entity is None:
-            continue
-        cat = entity.get("category_name")
-        return cat if cat else None
-    return None
+    parent = await services.cache.get_by_id(parent_entity_type, parent_id)
+    category = parent.get("category_name") if parent else None
+    category_cache[cache_key] = category or None
+    return variant, category or None
 
 
 def _iter_rows(so: Any) -> Iterable[Any]:
@@ -295,7 +290,7 @@ async def _top_selling_variants_impl(
         lambda: {"units": 0.0, "revenue": 0.0, "order_ids": set()}
     )
     variant_cache: dict[int, dict[str, Any]] = {}
-    category_cache: dict[int, str | None] = {}
+    category_cache: dict[tuple[EntityType, int], str | None] = {}
 
     for so in orders:
         so_id = so.id
@@ -485,7 +480,7 @@ async def _sales_summary_impl(
         lambda: {"units": 0.0, "revenue": 0.0, "order_ids": set()}
     )
     variant_cache: dict[int, dict[str, Any]] = {}
-    category_cache: dict[int, str | None] = {}
+    category_cache: dict[tuple[EntityType, int], str | None] = {}
 
     for so in orders:
         so_id = so.id
