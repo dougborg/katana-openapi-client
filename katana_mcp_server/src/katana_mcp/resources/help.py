@@ -515,15 +515,14 @@ List manufacturing orders with filters (list-tool pattern v2).
   short-circuit so auto-pagination can scan enough rows to find `limit`
   matches post-filter.
 
-- `include_rows` (optional, default false): Reserved for future row-detail
-  support. The list endpoint does not return recipe rows inline; use
-  `get_manufacturing_order_recipe` for a specific MO to inspect ingredients.
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Summary rows with id, order_no, status, variant_id, planned/
 actual qty, location_id, order_created_date, production_deadline_date,
 done_date, is_linked_to_sales_order, sales_order_id, total_cost. When `page`
-is set, also returns `pagination` with total_records/total_pages/etc.
+is set, also returns `pagination` with total_records/total_pages/etc. To
+inspect recipe ingredients, call `get_manufacturing_order_recipe` for a
+specific MO — the list endpoint doesn't bundle them.
 
 ---
 

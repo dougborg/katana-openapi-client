@@ -427,13 +427,19 @@ async def test_list_stock_transfers_include_rows_populates_details():
 
 @pytest.mark.asyncio
 async def test_list_stock_transfers_pagination_meta_when_page_set():
-    """When page is set, parse X-Pagination into PaginationMeta on response."""
+    """When page is set, parse x-pagination into PaginationMeta on response."""
     context, _ = create_mock_context()
 
     mock_response = MagicMock()
     mock_response.headers = {
-        "X-Pagination": json.dumps(
-            {"page": 2, "total_pages": 5, "total_items": 120, "per_page": 50}
+        "x-pagination": json.dumps(
+            {
+                "page": 2,
+                "total_pages": 5,
+                "total_records": 120,
+                "first_page": False,
+                "last_page": False,
+            }
         )
     }
 
@@ -451,8 +457,9 @@ async def test_list_stock_transfers_pagination_meta_when_page_set():
     assert result.pagination is not None
     assert result.pagination.page == 2
     assert result.pagination.total_pages == 5
-    assert result.pagination.total_items == 120
-    assert result.pagination.per_page == 50
+    assert result.pagination.total_records == 120
+    assert result.pagination.first_page is False
+    assert result.pagination.last_page is False
 
 
 @pytest.mark.asyncio
@@ -461,7 +468,7 @@ async def test_list_stock_transfers_no_pagination_when_page_not_set():
     context, _ = create_mock_context()
 
     mock_response = MagicMock()
-    mock_response.headers = {"X-Pagination": json.dumps({"page": 1, "total_pages": 1})}
+    mock_response.headers = {"x-pagination": json.dumps({"page": 1, "total_pages": 1})}
 
     async def fake(**kwargs):
         return mock_response

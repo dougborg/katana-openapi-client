@@ -25,6 +25,7 @@ Tools:
 
 from __future__ import annotations
 
+import asyncio
 from collections import defaultdict
 from collections.abc import Iterable
 from datetime import UTC, date, datetime, timedelta
@@ -181,6 +182,9 @@ async def _fetch_category_for_product(services: Any, product_id: int) -> str | N
     from katana_public_api_client.api.services import get_service
     from katana_public_api_client.utils import unwrap
 
+    # Enrichment is best-effort: the aggregation caller works fine with a
+    # missing category, so swallow any failure (404s, rate limits, mocked
+    # transports in tests) and try the next fetcher.
     for fetcher in (
         get_product.asyncio_detailed,
         get_material.asyncio_detailed,
@@ -190,15 +194,12 @@ async def _fetch_category_for_product(services: Any, product_id: int) -> str | N
             response = await fetcher(id=product_id, client=services.client)
         except Exception:
             continue
-        # unwrap(..., raise_on_error=False) returns None for ErrorResponse,
-        # so a None here covers both "not this type" and "error payload".
         obj = unwrap(response, raise_on_error=False)
         if obj is None:
             continue
         cat = unwrap_unset(getattr(obj, "category_name", None), None)
         if cat is not None:
             return cat
-        # Found a matching record but no category — stop here.
         return None
     return None
 
@@ -712,10 +713,9 @@ async def _inventory_velocity_impl(
         services, request.sku_or_variant_id
     )
 
-    # Calendar-day semantics: the inclusive window [window_start, window_end]
-    # covers exactly ``period_days`` days. Using date() on both ends of a
-    # naive timedelta subtraction would silently stretch the window by one
-    # day (because the inclusive bound adds a day at the end). See #331.
+    # Inclusive window [window_start, window_end] covers exactly period_days
+    # calendar days. Subtract period_days - 1 so a 7-day window ending today
+    # starts 6 days ago, not 7.
     window_end = datetime.now(tz=UTC).date()
     window_start = window_end - timedelta(days=request.period_days - 1)
 
@@ -726,8 +726,11 @@ async def _inventory_velocity_impl(
         period_days=request.period_days,
     )
 
-    orders = await _fetch_delivered_sales_orders_in_window(
-        services, window_start, window_end
+    # Orders fetch and current-stock fetch are independent — run them in
+    # parallel so velocity isn't paying two serial round-trips per call.
+    orders, stock_on_hand = await asyncio.gather(
+        _fetch_delivered_sales_orders_in_window(services, window_start, window_end),
+        _fetch_stock_on_hand(services, variant_id),
     )
 
     units_sold = 0.0
@@ -735,8 +738,6 @@ async def _inventory_velocity_impl(
         for row in _iter_rows(so):
             if unwrap_unset(row.variant_id, None) == variant_id:
                 units_sold += float(unwrap_unset(row.quantity, 0) or 0)
-
-    stock_on_hand = await _fetch_stock_on_hand(services, variant_id)
 
     avg_daily = units_sold / request.period_days if request.period_days > 0 else 0.0
     days_of_cover: float | None

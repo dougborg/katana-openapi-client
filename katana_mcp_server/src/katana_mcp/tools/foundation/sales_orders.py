@@ -682,7 +682,7 @@ async def _list_sales_orders_impl(
     #   max page size) AND no client-side-only filter is active, pass page=1
     #   to short-circuit auto-pagination. When a client-side filter IS active,
     #   skip the short-circuit so the transport's auto-pagination can scan
-    #   enough rows to find `limit` matching ones post-filter (#341 pattern).
+    #   enough rows to find `limit` matching ones post-filter.
     if request.page is not None:
         kwargs["page"] = request.page
     elif 1 <= request.limit <= 250 and not has_client_filter:

@@ -1629,17 +1629,6 @@ class ListManufacturingOrdersRequest(BaseModel):
         ),
     )
 
-    # Row inclusion
-    include_rows: bool = Field(
-        default=False,
-        description=(
-            "Reserved for future row-detail support. Katana's "
-            "/manufacturing_orders list endpoint does not return recipe "
-            "rows inline; to inspect ingredients use "
-            "`get_manufacturing_order_recipe` for a specific MO."
-        ),
-    )
-
     # Output formatting
     format: Literal["markdown", "json"] = Field(
         default="markdown",
@@ -1666,7 +1655,6 @@ class ManufacturingOrderSummary(BaseModel):
     is_linked_to_sales_order: bool | None
     sales_order_id: int | None
     total_cost: float | None
-    row_count: int
 
 
 class ListManufacturingOrdersResponse(BaseModel):
@@ -1794,10 +1782,6 @@ async def _list_manufacturing_orders_impl(
                 ),
                 sales_order_id=unwrap_unset(mo.sales_order_id, None),
                 total_cost=unwrap_unset(mo.total_cost, None),
-                # Row count on the list endpoint: Katana doesn't bundle recipe
-                # rows in this response, so `include_rows` is reserved for
-                # future work. Report 0 rather than lying about the count.
-                row_count=0,
             )
         )
 
