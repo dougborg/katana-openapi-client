@@ -246,6 +246,13 @@ class TopSellingVariantsRequest(BaseModel):
     location_id: int | None = Field(
         default=None, description="Optional location ID to filter by"
     )
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data consumable by downstream tools/aggregations."
+        ),
+    )
 
 
 class VariantSalesRow(BaseModel):
@@ -370,6 +377,12 @@ async def top_selling_variants(
     """
     response = await _top_selling_variants_impl(request, context)
 
+    if request.format == "json":
+        return ToolResult(
+            content=response.model_dump_json(indent=2),
+            structured_content=response.model_dump(),
+        )
+
     if not response.rows:
         md = (
             f"No DELIVERED sales in window "
@@ -417,6 +430,13 @@ class SalesSummaryRequest(BaseModel):
     group_by: SalesGroupBy = Field(
         ...,
         description="Grouping key: day, week, month, variant, customer, or category",
+    )
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data consumable by downstream tools/aggregations."
+        ),
     )
 
 
@@ -569,6 +589,12 @@ async def sales_summary(
     """
     response = await _sales_summary_impl(request, context)
 
+    if request.format == "json":
+        return ToolResult(
+            content=response.model_dump_json(indent=2),
+            structured_content=response.model_dump(),
+        )
+
     if not response.rows:
         md = (
             f"No DELIVERED sales in window "
@@ -611,6 +637,13 @@ class InventoryVelocityRequest(BaseModel):
         ge=1,
         le=365,
         description="Rolling-window size in days (default 90, max 365)",
+    )
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data consumable by downstream tools/aggregations."
+        ),
     )
 
 
@@ -747,6 +780,12 @@ async def inventory_velocity(
     (no sales history, can't project).
     """
     response = await _inventory_velocity_impl(request, context)
+
+    if request.format == "json":
+        return ToolResult(
+            content=response.model_dump_json(indent=2),
+            structured_content=response.model_dump(),
+        )
 
     cover = (
         f"{response.days_of_cover:.1f} days"
