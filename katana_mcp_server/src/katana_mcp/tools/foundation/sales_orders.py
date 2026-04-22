@@ -448,6 +448,17 @@ class ListSalesOrdersRequest(BaseModel):
         ),
     )
 
+    # Row inclusion
+    include_rows: bool = Field(
+        default=False,
+        description=(
+            "When true, populate row-level detail (id, variant_id, quantity, "
+            "price_per_unit, linked_manufacturing_order_id) on each summary "
+            "via the `rows` field. `sku` is not resolved in list context — "
+            "use `get_sales_order` for SKU-enriched rows on a single order."
+        ),
+    )
+
 
 class PaginationMeta(BaseModel):
     """Pagination metadata extracted from Katana's `x-pagination` response header.
@@ -496,6 +507,7 @@ class SalesOrderSummary(BaseModel):
     total: float | None
     currency: str | None
     row_count: int
+    rows: list[SalesOrderRowInfo] | None = None
 
 
 class ListSalesOrdersResponse(BaseModel):
@@ -700,6 +712,26 @@ async def _list_sales_orders_impl(
     orders: list[SalesOrderSummary] = []
     for so in attrs_list:
         rows = unwrap_unset(so.sales_order_rows, [])
+        # When include_rows is set, expose row-level detail on each summary.
+        # `sku` is left None in list context — resolving it would require a
+        # variant cache lookup per row (up to 250 rows * N variants), which
+        # defeats the "one call for 50 orders" goal. Callers that need SKUs
+        # should use `get_sales_order` on a specific order.
+        row_infos: list[SalesOrderRowInfo] | None = None
+        if request.include_rows:
+            row_infos = [
+                SalesOrderRowInfo(
+                    id=r.id,
+                    variant_id=unwrap_unset(r.variant_id, None),
+                    sku=None,
+                    quantity=unwrap_unset(r.quantity, None),
+                    price_per_unit=unwrap_unset(r.price_per_unit, None),
+                    linked_manufacturing_order_id=unwrap_unset(
+                        r.linked_manufacturing_order_id, None
+                    ),
+                )
+                for r in rows
+            ]
         orders.append(
             SalesOrderSummary(
                 id=so.id,
@@ -714,6 +746,7 @@ async def _list_sales_orders_impl(
                 total=unwrap_unset(so.total, None),
                 currency=unwrap_unset(so.currency, None),
                 row_count=len(rows),
+                rows=row_infos,
             )
         )
 
@@ -746,7 +779,11 @@ async def list_sales_orders(
       skips the page=1 short-circuit so auto-pagination can scan enough rows
       to find `limit` matching results post-filter.
 
-    For full line-item details on a specific order, use `get_sales_order` next.
+    **Row detail:**
+    - `include_rows=true` — populate per-order row details (variant_id,
+      quantity, price_per_unit, linked_manufacturing_order_id). `sku` is left
+      None in list context; use `get_sales_order` for SKU-enriched rows on a
+      specific order.
     """
     from katana_mcp.tools.tool_result_utils import make_simple_result
 
