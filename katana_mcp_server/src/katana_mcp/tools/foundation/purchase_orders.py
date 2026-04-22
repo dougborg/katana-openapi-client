@@ -535,6 +535,13 @@ class VerifyOrderDocumentRequest(BaseModel):
     document_items: list[DocumentItem] = Field(
         ..., description="Items from the document to verify", min_length=1
     )
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data consumable by downstream tools/aggregations."
+        ),
+    )
 
 
 class VerifyOrderDocumentResponse(BaseModel):
@@ -799,6 +806,11 @@ async def verify_order_document(
     to validate a delivery. No changes are made to orders or inventory.
     """
     response = await _verify_order_document_impl(request, context)
+    if request.format == "json":
+        return ToolResult(
+            content=response.model_dump_json(indent=2),
+            structured_content=response.model_dump(),
+        )
     return _verify_response_to_tool_result(response)
 
 
@@ -814,6 +826,13 @@ class GetPurchaseOrderRequest(BaseModel):
         default=None, description="Purchase order number (e.g., 'PO-1022')"
     )
     order_id: int | None = Field(default=None, description="Purchase order ID")
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data consumable by downstream tools/aggregations."
+        ),
+    )
 
 
 class PurchaseOrderRowInfo(BaseModel):
@@ -931,6 +950,12 @@ async def get_purchase_order(
     from katana_mcp.tools.tool_result_utils import make_simple_result
 
     response = await _get_purchase_order_impl(request, context)
+
+    if request.format == "json":
+        return ToolResult(
+            content=response.model_dump_json(indent=2),
+            structured_content=response.model_dump(),
+        )
 
     lines = [
         f"## PO {response.order_no or response.id}",
@@ -1150,6 +1175,15 @@ class ListPurchaseOrdersRequest(BaseModel):
         ),
     )
 
+    # Output formatting
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data consumable by downstream tools/aggregations."
+        ),
+    )
+
 
 class PurchaseOrderRowSummary(BaseModel):
     """Summary of a purchase order line item (used when include_rows=True)."""
@@ -1366,6 +1400,12 @@ async def list_purchase_orders(
     For full details on a specific PO, use `get_purchase_order`.
     """
     response = await _list_purchase_orders_impl(request, context)
+
+    if request.format == "json":
+        return ToolResult(
+            content=response.model_dump_json(indent=2),
+            structured_content=response.model_dump(),
+        )
 
     if not response.orders:
         md = "No purchase orders match the given filters."
