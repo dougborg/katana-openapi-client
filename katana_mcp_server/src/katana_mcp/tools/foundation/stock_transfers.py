@@ -492,6 +492,15 @@ class ListStockTransfersRequest(BaseModel):
         description="When true, populate row-level detail on each summary.",
     )
 
+    # Output formatting
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data consumable by downstream tools/aggregations."
+        ),
+    )
+
 
 class ListStockTransfersResponse(BaseModel):
     """Response containing a list of stock transfers."""
@@ -583,6 +592,12 @@ async def list_stock_transfers(
     to populate per-transfer line items.
     """
     response = await _list_stock_transfers_impl(request, context)
+
+    if request.format == "json":
+        return ToolResult(
+            content=response.model_dump_json(indent=2),
+            structured_content=response.model_dump(),
+        )
 
     if not response.transfers:
         md = "No stock transfers match the given filters."

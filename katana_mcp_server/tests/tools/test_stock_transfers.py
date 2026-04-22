@@ -28,6 +28,7 @@ from katana_mcp.tools.foundation.stock_transfers import (
     _list_stock_transfers_impl,
     _update_stock_transfer_impl,
     _update_stock_transfer_status_impl,
+    list_stock_transfers,
 )
 
 from katana_public_api_client.client_types import UNSET
@@ -672,3 +673,33 @@ async def test_delete_stock_transfer_user_declines():
     assert result.is_preview is True
     assert "cancelled" in result.message.lower()
     mock_api.assert_not_awaited()
+
+
+# ============================================================================
+# format=json (stock_transfers read tool)
+# ============================================================================
+
+
+def _content_text(result) -> str:
+    return result.content[0].text
+
+
+@pytest.mark.asyncio
+async def test_list_stock_transfers_format_json_returns_json():
+    from katana_mcp.tools.foundation.stock_transfers import (
+        ListStockTransfersResponse,
+    )
+
+    context, _ = create_mock_context()
+
+    with patch(
+        "katana_mcp.tools.foundation.stock_transfers._list_stock_transfers_impl",
+        new_callable=AsyncMock,
+    ) as mock_impl:
+        mock_impl.return_value = ListStockTransfersResponse(
+            transfers=[], total_count=0, pagination=None
+        )
+        result = await list_stock_transfers(format="json", context=context)
+
+    data = json.loads(_content_text(result))
+    assert data["total_count"] == 0
