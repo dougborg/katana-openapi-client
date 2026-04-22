@@ -42,6 +42,7 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **get_variant_details** - Get full details for a specific item
 - **check_inventory** - Check stock levels for a SKU
 - **list_low_stock_items** - Find items needing reorder
+- **create_stock_adjustment / list_stock_adjustments / update_stock_adjustment / delete_stock_adjustment** - Full CRUD for manual inventory adjustments
 
 ### Purchase Orders
 - **create_purchase_order** - Create PO with preview/confirm pattern
@@ -392,6 +393,66 @@ Create a stock adjustment to correct inventory levels.
 - `confirm` (optional, default false): Set false to preview, true to create
 
 **Returns:** Adjustment ID and summary of changes.
+
+---
+
+### list_stock_adjustments
+List existing stock adjustments with filters, paging, and optional row detail.
+
+**Parameters (server-side filters):**
+- `limit` (optional, default 50, min 1, max 250): Max adjustments to return — also the page size when `page` is set
+- `page` (optional, min 1): Page number (1-based); when set, disables auto-pagination and the response includes `pagination` metadata
+- `location_id` (optional): Filter by location
+- `ids` (optional): Restrict to a specific set of adjustment IDs
+- `stock_adjustment_number` (optional): Exact match on the adjustment number
+- `created_after` / `created_before` (optional): ISO-8601 datetime bounds on `created_at`
+- `updated_after` / `updated_before` (optional): ISO-8601 datetime bounds on `updated_at` (useful for incremental sync)
+- `include_deleted` (optional, default false): Include soft-deleted adjustments
+
+**Parameters (client-side filters — scan the fetched page set):**
+- `variant_id` (optional): Only adjustments whose rows touch this variant
+- `reason` (optional): Case-insensitive substring match on the `reason` field
+
+**Other:**
+- `include_rows` (optional, default false): When true, populate row-level details on each summary
+
+When a client-side filter is active, the tool skips the single-page short-circuit so auto-pagination can scan enough rows to find matches that may live on later pages.
+
+**Returns:** Summary rows with `id`, `stock_adjustment_number`, `location_id`, dates,
+`reason`, and row count (plus per-row detail when `include_rows=true`), plus optional
+`pagination` metadata when `page` is set.
+
+---
+
+### update_stock_adjustment
+Update header fields on an existing stock adjustment.
+
+**Parameters:**
+- `id` (required): Stock adjustment ID to update
+- `stock_adjustment_number` (optional): New number
+- `stock_adjustment_date` (optional): New adjustment date (ISO-8601)
+- `location_id` (optional): New location
+- `reason` (optional): New reason
+- `additional_info` (optional): New additional_info
+- `confirm` (optional, default false): false = preview, true = apply (prompts)
+
+**Safety:** At least one updatable field is required. Row-level edits are not supported
+via this tool — create a new adjustment for that.
+
+**Returns:** Updated adjustment summary plus a summary of the field changes applied.
+
+---
+
+### delete_stock_adjustment
+Delete an existing stock adjustment by ID.
+
+**Parameters:**
+- `id` (required): Stock adjustment ID
+- `confirm` (optional, default false): false = preview, true = delete (prompts)
+
+**Safety:** Deletion reverses the associated inventory movements; the preview returns
+the adjustment number, location, and row count so the change is inspectable before
+confirming.
 
 ---
 

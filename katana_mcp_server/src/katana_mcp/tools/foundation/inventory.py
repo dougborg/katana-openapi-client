@@ -7,7 +7,9 @@ and managing inventory operations.
 from __future__ import annotations
 
 import asyncio
+import json
 import time
+from datetime import datetime
 from typing import Annotated, Any
 
 from fastmcp import Context, FastMCP
@@ -16,8 +18,15 @@ from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
-from katana_mcp.tools.tool_result_utils import make_tool_result
+from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
+from katana_mcp.tools.tool_result_utils import (
+    format_md_table,
+    iso_or_none,
+    make_simple_result,
+    make_tool_result,
+)
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
+from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 
 logger = get_logger(__name__)
 
@@ -739,6 +748,760 @@ async def create_stock_adjustment(
     )
 
 
+# ============================================================================
+# Tool 5: list_stock_adjustments
+# ============================================================================
+
+
+class PaginationMeta(BaseModel):
+    """Pagination metadata extracted from Katana's `x-pagination` response header.
+
+    Populated on list responses only when the caller requested a specific page
+    (i.e. passed `page=N`). When auto-pagination is used, this field is `None`
+    because there is no single page to describe.
+    """
+
+    total_records: int | None = Field(
+        default=None, description="Total records across all pages"
+    )
+    total_pages: int | None = Field(default=None, description="Total number of pages")
+    page: int | None = Field(default=None, description="Current page number (1-based)")
+    first_page: bool | None = Field(
+        default=None, description="True if this is the first page"
+    )
+    last_page: bool | None = Field(
+        default=None, description="True if this is the last page"
+    )
+
+
+def _parse_pagination_header(raw: str | None) -> PaginationMeta | None:
+    """Parse Katana's `x-pagination` response header into a PaginationMeta.
+
+    Katana returns this as a JSON string with all fields as strings, e.g.:
+    `{"total_records":"2319","total_pages":"2319","offset":"0","page":"1",
+      "first_page":"true","last_page":"false"}`.
+
+    Returns `None` when the header is absent or the top-level JSON is invalid
+    (non-JSON or not a JSON object). When the header is valid JSON but
+    individual fields are missing or malformed, returns a `PaginationMeta`
+    with those specific fields set to `None` rather than discarding the
+    whole header.
+    """
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(data, dict):
+        return None
+
+    def _as_int(val: Any) -> int | None:
+        if val is None:
+            return None
+        try:
+            return int(val)
+        except (ValueError, TypeError):
+            return None
+
+    def _as_bool(val: Any) -> bool | None:
+        if isinstance(val, bool):
+            return val
+        if isinstance(val, str):
+            lowered = val.strip().lower()
+            if lowered == "true":
+                return True
+            if lowered == "false":
+                return False
+        return None
+
+    return PaginationMeta(
+        total_records=_as_int(data.get("total_records")),
+        total_pages=_as_int(data.get("total_pages")),
+        page=_as_int(data.get("page")),
+        first_page=_as_bool(data.get("first_page")),
+        last_page=_as_bool(data.get("last_page")),
+    )
+
+
+class ListStockAdjustmentsRequest(BaseModel):
+    """Request to list/filter stock adjustments."""
+
+    limit: int = Field(
+        default=50,
+        ge=1,
+        le=250,
+        description=(
+            "Max adjustments to return (default 50, min 1, max 250 — Katana's "
+            "API page-size cap). When `page` is set, acts as the page size for "
+            "that request."
+        ),
+    )
+    page: int | None = Field(
+        default=None,
+        ge=1,
+        description=(
+            "Page number (1-based). When set, returns a single page and "
+            "disables auto-pagination; `limit` becomes the page size. Invalid "
+            "pages (0, negative) are rejected at the schema boundary."
+        ),
+    )
+    # Server-side filters (forwarded to Katana's GET /stock_adjustments)
+    location_id: int | None = Field(default=None, description="Filter by location ID")
+    ids: list[int] | None = Field(
+        default=None,
+        description="Restrict to a specific set of stock adjustment IDs",
+    )
+    stock_adjustment_number: str | None = Field(
+        default=None, description="Exact match on the stock adjustment number"
+    )
+    created_after: str | None = Field(
+        default=None,
+        description="ISO-8601 datetime lower bound on created_at",
+    )
+    created_before: str | None = Field(
+        default=None,
+        description="ISO-8601 datetime upper bound on created_at",
+    )
+    updated_after: str | None = Field(
+        default=None,
+        description="ISO-8601 datetime lower bound on updated_at (useful for sync)",
+    )
+    updated_before: str | None = Field(
+        default=None,
+        description="ISO-8601 datetime upper bound on updated_at",
+    )
+    include_deleted: bool = Field(
+        default=False,
+        description="Include soft-deleted adjustments in the result",
+    )
+
+    # Client-side filters (applied post-fetch; Katana's list endpoint does not
+    # expose these server-side). When either is set the `page=1` short-circuit
+    # is skipped so auto-pagination can scan enough rows to find matches.
+    variant_id: int | None = Field(
+        default=None,
+        description="Filter to adjustments that touch this variant ID (client-side)",
+    )
+    reason: str | None = Field(
+        default=None,
+        description="Case-insensitive substring match on the `reason` field (client-side)",
+    )
+
+    include_rows: bool = Field(
+        default=False,
+        description="When true, populate row-level detail on each summary",
+    )
+
+
+class StockAdjustmentRowInfo(BaseModel):
+    """Summary of a stock adjustment line item."""
+
+    id: int | None
+    variant_id: int
+    quantity: float
+    cost_per_unit: float | None
+
+
+class StockAdjustmentSummary(BaseModel):
+    """Summary row for a stock adjustment in a list."""
+
+    id: int
+    stock_adjustment_number: str
+    location_id: int
+    stock_adjustment_date: str | None
+    created_at: str | None
+    updated_at: str | None
+    reason: str | None
+    additional_info: str | None
+    row_count: int
+    rows: list[StockAdjustmentRowInfo] | None = None
+
+
+class ListStockAdjustmentsResponse(BaseModel):
+    """Response containing a list of stock adjustments."""
+
+    adjustments: list[StockAdjustmentSummary]
+    total_count: int
+    pagination: PaginationMeta | None = Field(
+        default=None,
+        description=(
+            "Pagination cursor populated from the API's `x-pagination` header "
+            "when the caller requested a specific page. `None` when "
+            "auto-paginating."
+        ),
+    )
+
+
+def _parse_iso_datetime(value: str | None, field_name: str) -> datetime | None:
+    """Parse an ISO-8601 string into a datetime.
+
+    Returns ``None`` when ``value`` is ``None``/empty. Raises ``ValueError``
+    with ``field_name`` context when ``value`` is a non-empty string that can't
+    be parsed — silently dropping filters would hide caller mistakes.
+
+    Normalizes trailing ``Z`` / ``z`` (UTC) to ``+00:00`` before parsing since
+    ``fromisoformat`` is strict about uppercase ``Z`` on older Python releases.
+    """
+    if not value:
+        return None
+    normalized = value[:-1] + "+00:00" if value.endswith(("Z", "z")) else value
+    try:
+        return datetime.fromisoformat(normalized)
+    except ValueError as e:
+        raise ValueError(
+            f"Invalid ISO-8601 datetime for {field_name!r}: {value!r}"
+        ) from e
+
+
+async def _list_stock_adjustments_impl(
+    request: ListStockAdjustmentsRequest, context: Context
+) -> ListStockAdjustmentsResponse:
+    """List stock adjustments with filters."""
+    from katana_public_api_client.api.stock_adjustment import (
+        get_all_stock_adjustments,
+    )
+    from katana_public_api_client.utils import unwrap_data
+
+    services = get_services(context)
+
+    # Pass through server-side filters Katana supports; variant_id and reason
+    # are applied client-side below.
+    kwargs: dict[str, Any] = {
+        "client": services.client,
+        "limit": request.limit,
+    }
+    if request.location_id is not None:
+        kwargs["location_id"] = request.location_id
+    if request.ids is not None:
+        kwargs["ids"] = request.ids
+    if request.stock_adjustment_number is not None:
+        kwargs["stock_adjustment_number"] = request.stock_adjustment_number
+    if request.include_deleted:
+        kwargs["include_deleted"] = True
+
+    created_at_min = _parse_iso_datetime(request.created_after, "created_after")
+    if created_at_min is not None:
+        kwargs["created_at_min"] = created_at_min
+    created_at_max = _parse_iso_datetime(request.created_before, "created_before")
+    if created_at_max is not None:
+        kwargs["created_at_max"] = created_at_max
+    updated_at_min = _parse_iso_datetime(request.updated_after, "updated_after")
+    if updated_at_min is not None:
+        kwargs["updated_at_min"] = updated_at_min
+    updated_at_max = _parse_iso_datetime(request.updated_before, "updated_before")
+    if updated_at_max is not None:
+        kwargs["updated_at_max"] = updated_at_max
+
+    # Pagination strategy:
+    # - If `page` is set, forward it so PaginationTransport disables
+    #   auto-pagination and lets callers walk beyond max_pages.
+    # - Else if any client-side-only filter (variant_id, reason) is active,
+    #   skip the short-circuit so auto-pagination scans enough rows to find
+    #   matches; a single page would miss records on later pages.
+    # - Otherwise, when `limit` fits in a single Katana page (<=250), pass
+    #   page=1 to short-circuit auto-pagination and avoid fetching thousands
+    #   of rows. Lower bound is defence-in-depth with `ge=1` on Field.
+    has_client_filter = request.variant_id is not None or request.reason is not None
+    if request.page is not None:
+        kwargs["page"] = request.page
+    elif not has_client_filter and 1 <= request.limit <= 250:
+        kwargs["page"] = 1
+
+    response = await get_all_stock_adjustments.asyncio_detailed(**kwargs)
+    attrs_list = unwrap_data(response, default=[])
+
+    # Apply client-side filters that Katana's list endpoint doesn't accept.
+    if request.variant_id is not None:
+        target_variant = request.variant_id
+
+        def _matches_variant(adj: Any) -> bool:
+            rows = unwrap_unset(adj.stock_adjustment_rows, [])
+            return any(row.variant_id == target_variant for row in rows)
+
+        attrs_list = [adj for adj in attrs_list if _matches_variant(adj)]
+
+    if request.reason is not None:
+        reason_needle = request.reason.strip().lower()
+        if reason_needle:
+
+            def _matches_reason(adj: Any) -> bool:
+                reason_val = unwrap_unset(adj.reason, None)
+                return bool(reason_val and reason_needle in str(reason_val).lower())
+
+            attrs_list = [adj for adj in attrs_list if _matches_reason(adj)]
+
+    # Safety net: cap to request.limit post-pagination/filter so we never
+    # return more than the caller asked for.
+    attrs_list = attrs_list[: request.limit]
+
+    # Surface pagination metadata from the `x-pagination` header only when
+    # the caller is driving paging manually. During auto-pagination the header
+    # describes just the final fetched page, which would be misleading.
+    pagination: PaginationMeta | None = None
+    if request.page is not None:
+        headers = getattr(response, "headers", None)
+        if headers is not None:
+            pagination = _parse_pagination_header(headers.get("x-pagination"))
+
+    adjustments: list[StockAdjustmentSummary] = []
+    for adj in attrs_list:
+        rows = unwrap_unset(adj.stock_adjustment_rows, [])
+        row_infos: list[StockAdjustmentRowInfo] | None = None
+        if request.include_rows:
+            row_infos = [
+                StockAdjustmentRowInfo(
+                    id=unwrap_unset(row.id, None),
+                    variant_id=row.variant_id,
+                    quantity=row.quantity,
+                    cost_per_unit=unwrap_unset(row.cost_per_unit, None),
+                )
+                for row in rows
+            ]
+        adjustments.append(
+            StockAdjustmentSummary(
+                id=adj.id,
+                stock_adjustment_number=adj.stock_adjustment_number,
+                location_id=adj.location_id,
+                stock_adjustment_date=iso_or_none(
+                    unwrap_unset(adj.stock_adjustment_date, None)
+                ),
+                created_at=iso_or_none(unwrap_unset(adj.created_at, None)),
+                updated_at=iso_or_none(unwrap_unset(adj.updated_at, None)),
+                reason=unwrap_unset(adj.reason, None),
+                additional_info=unwrap_unset(adj.additional_info, None),
+                row_count=len(rows),
+                rows=row_infos,
+            )
+        )
+
+    return ListStockAdjustmentsResponse(
+        adjustments=adjustments,
+        total_count=len(adjustments),
+        pagination=pagination,
+    )
+
+
+@observe_tool
+@unpack_pydantic_params
+async def list_stock_adjustments(
+    request: Annotated[ListStockAdjustmentsRequest, Unpack()], context: Context
+) -> ToolResult:
+    """List stock adjustments with filters.
+
+    Use for discovery — find recent adjustments at a location, adjustments
+    touching a specific variant, or adjustments matching a reason substring.
+    Returns summary rows (number, location, dates, reason, row count). Set
+    `include_rows=true` to also populate per-row details (variant_id, quantity,
+    cost_per_unit).
+
+    **Paging**
+    - `limit` caps the number of rows returned (default 50, min 1).
+    - Set `page=N` for manual paging; the response includes `pagination`
+      metadata parsed from Katana's `x-pagination` header.
+    - Otherwise auto-pagination kicks in automatically (bounded by
+      `KatanaClient.max_pages`).
+
+    **Filters**
+    - `location_id`, `created_after`, `created_before` — server-side.
+    - `variant_id`, `reason` — applied client-side; combine with other filters
+      to narrow the result set before the client-side pass.
+    """
+    response = await _list_stock_adjustments_impl(request, context)
+
+    if not response.adjustments:
+        md = "No stock adjustments match the given filters."
+    else:
+        table = format_md_table(
+            headers=["ID", "Number", "Location", "Date", "Rows", "Reason"],
+            rows=[
+                [
+                    adj.id,
+                    adj.stock_adjustment_number,
+                    adj.location_id,
+                    adj.stock_adjustment_date or "—",
+                    adj.row_count,
+                    (adj.reason or "—")[:40],
+                ]
+                for adj in response.adjustments
+            ],
+        )
+        md = f"## Stock Adjustments ({response.total_count})\n\n{table}"
+
+    return make_simple_result(md, structured_data=response.model_dump())
+
+
+# ============================================================================
+# Tool 6: update_stock_adjustment
+# ============================================================================
+
+
+class UpdateStockAdjustmentParams(BaseModel):
+    """Request to update an existing stock adjustment."""
+
+    id: int = Field(..., description="Stock adjustment ID to update")
+    stock_adjustment_number: str | None = Field(
+        default=None, description="New adjustment number (optional)"
+    )
+    stock_adjustment_date: datetime | None = Field(
+        default=None, description="New adjustment date (ISO-8601, optional)"
+    )
+    location_id: int | None = Field(
+        default=None, description="New location ID (optional)"
+    )
+    reason: str | None = Field(default=None, description="New reason (optional)")
+    additional_info: str | None = Field(
+        default=None, description="New additional_info (optional)"
+    )
+    confirm: bool = Field(
+        default=False,
+        description="If false, returns a preview. If true, applies the update.",
+    )
+
+
+class UpdateStockAdjustmentResponse(BaseModel):
+    """Response from updating a stock adjustment."""
+
+    id: int
+    is_preview: bool
+    stock_adjustment_number: str | None = None
+    location_id: int | None = None
+    stock_adjustment_date: str | None = None
+    reason: str | None = None
+    additional_info: str | None = None
+    changes_summary: str
+    message: str
+
+
+def _format_changes_summary(request: UpdateStockAdjustmentParams) -> str:
+    """Build a human-readable summary of the fields the update will change."""
+    changes: list[str] = []
+    if request.stock_adjustment_number is not None:
+        changes.append(f"- stock_adjustment_number → {request.stock_adjustment_number}")
+    if request.stock_adjustment_date is not None:
+        changes.append(
+            f"- stock_adjustment_date → {request.stock_adjustment_date.isoformat()}"
+        )
+    if request.location_id is not None:
+        changes.append(f"- location_id → {request.location_id}")
+    if request.reason is not None:
+        changes.append(f"- reason → {request.reason}")
+    if request.additional_info is not None:
+        changes.append(f"- additional_info → {request.additional_info}")
+    if not changes:
+        return "No field changes supplied."
+    return "\n".join(changes)
+
+
+async def _update_stock_adjustment_impl(
+    request: UpdateStockAdjustmentParams, context: Context
+) -> UpdateStockAdjustmentResponse:
+    """Update a stock adjustment with preview/confirm safety pattern."""
+    from katana_public_api_client.api.stock_adjustment import (
+        update_stock_adjustment as api_update_stock_adjustment,
+    )
+    from katana_public_api_client.models import (
+        UpdateStockAdjustmentRequest as APIUpdateStockAdjustmentRequest,
+    )
+    from katana_public_api_client.utils import unwrap_as
+
+    changes_summary = _format_changes_summary(request)
+
+    # Fail fast if caller didn't supply any updatable field.
+    has_changes = any(
+        v is not None
+        for v in (
+            request.stock_adjustment_number,
+            request.stock_adjustment_date,
+            request.location_id,
+            request.reason,
+            request.additional_info,
+        )
+    )
+    if not has_changes:
+        raise ValueError(
+            "At least one updatable field must be provided "
+            "(stock_adjustment_number, stock_adjustment_date, location_id, "
+            "reason, additional_info)"
+        )
+
+    # Preview mode — no API call.
+    if not request.confirm:
+        logger.info(
+            "stock_adjustment_update_preview",
+            id=request.id,
+        )
+        return UpdateStockAdjustmentResponse(
+            id=request.id,
+            is_preview=True,
+            stock_adjustment_number=request.stock_adjustment_number,
+            location_id=request.location_id,
+            stock_adjustment_date=request.stock_adjustment_date.isoformat()
+            if request.stock_adjustment_date
+            else None,
+            reason=request.reason,
+            additional_info=request.additional_info,
+            changes_summary=changes_summary,
+            message=(
+                f"Preview — call again with confirm=true to update stock "
+                f"adjustment {request.id}"
+            ),
+        )
+
+    # Confirm mode — elicit user confirmation before hitting the API.
+    confirm_prompt = (
+        f"Apply the supplied field changes to stock adjustment {request.id}?"
+    )
+    confirmation = await require_confirmation(context, confirm_prompt)
+    if confirmation != ConfirmationResult.CONFIRMED:
+        logger.info(
+            "stock_adjustment_update_declined",
+            id=request.id,
+            result=str(confirmation),
+        )
+        return UpdateStockAdjustmentResponse(
+            id=request.id,
+            is_preview=True,
+            stock_adjustment_number=request.stock_adjustment_number,
+            location_id=request.location_id,
+            stock_adjustment_date=request.stock_adjustment_date.isoformat()
+            if request.stock_adjustment_date
+            else None,
+            reason=request.reason,
+            additional_info=request.additional_info,
+            changes_summary=changes_summary,
+            message=(
+                f"Stock adjustment update {confirmation} by user — "
+                "call again with confirm=true to retry"
+            ),
+        )
+
+    services = get_services(context)
+    api_request = APIUpdateStockAdjustmentRequest(
+        stock_adjustment_number=to_unset(request.stock_adjustment_number),
+        stock_adjustment_date=to_unset(request.stock_adjustment_date),
+        location_id=to_unset(request.location_id),
+        reason=to_unset(request.reason),
+        additional_info=to_unset(request.additional_info),
+    )
+
+    response = await api_update_stock_adjustment.asyncio_detailed(
+        id=request.id, client=services.client, body=api_request
+    )
+
+    from katana_public_api_client.models import StockAdjustment
+
+    try:
+        updated = unwrap_as(response, StockAdjustment)
+    except Exception as e:
+        logger.error(
+            "stock_adjustment_update_failed",
+            id=request.id,
+            error=str(e),
+            error_type=type(e).__name__,
+        )
+        raise
+
+    logger.info(
+        "stock_adjustment_updated",
+        id=updated.id,
+    )
+
+    return UpdateStockAdjustmentResponse(
+        id=updated.id,
+        is_preview=False,
+        stock_adjustment_number=updated.stock_adjustment_number,
+        location_id=updated.location_id,
+        stock_adjustment_date=iso_or_none(
+            unwrap_unset(updated.stock_adjustment_date, None)
+        ),
+        reason=unwrap_unset(updated.reason, None),
+        additional_info=unwrap_unset(updated.additional_info, None),
+        changes_summary=changes_summary,
+        message=f"Stock adjustment {updated.id} updated successfully",
+    )
+
+
+@observe_tool
+@unpack_pydantic_params
+async def update_stock_adjustment(
+    request: Annotated[UpdateStockAdjustmentParams, Unpack()], context: Context
+) -> ToolResult:
+    """Update an existing stock adjustment's header fields.
+
+    Two-step flow: `confirm=false` returns a preview of the changes, `confirm=true`
+    prompts the user for confirmation and applies the update via PATCH. At least
+    one updatable field must be supplied (stock_adjustment_number,
+    stock_adjustment_date, location_id, reason, additional_info). Row-level
+    changes are not supported — create a new adjustment for that.
+    """
+    response = await _update_stock_adjustment_impl(request, context)
+    status = "PREVIEW" if response.is_preview else "UPDATED"
+    md = (
+        f"## Stock Adjustment {response.id} ({status})\n\n"
+        f"{response.message}\n\n"
+        f"### Changes\n{response.changes_summary}\n"
+    )
+    return make_simple_result(md, structured_data=response.model_dump())
+
+
+# ============================================================================
+# Tool 7: delete_stock_adjustment
+# ============================================================================
+
+
+class DeleteStockAdjustmentRequest(BaseModel):
+    """Request to delete an existing stock adjustment."""
+
+    id: int = Field(..., description="Stock adjustment ID to delete")
+    confirm: bool = Field(
+        default=False,
+        description="If false, returns a preview. If true, deletes the adjustment.",
+    )
+
+
+class DeleteStockAdjustmentResponse(BaseModel):
+    """Response from deleting a stock adjustment."""
+
+    id: int
+    is_preview: bool
+    stock_adjustment_number: str | None
+    location_id: int | None
+    row_count: int
+    message: str
+
+
+async def _delete_stock_adjustment_impl(
+    request: DeleteStockAdjustmentRequest, context: Context
+) -> DeleteStockAdjustmentResponse:
+    """Delete a stock adjustment with preview/confirm safety pattern.
+
+    Preview mode fetches the adjustment (via the list endpoint filter) so the
+    caller can see what will be removed before confirming. Confirm mode calls
+    the API's DELETE endpoint, which reverses the associated inventory changes.
+    """
+    from katana_public_api_client.api.stock_adjustment import (
+        delete_stock_adjustment as api_delete_stock_adjustment,
+        get_all_stock_adjustments,
+    )
+    from katana_public_api_client.utils import is_success, unwrap, unwrap_data
+
+    services = get_services(context)
+
+    # Look up what we're about to delete so preview + final response include
+    # enough detail for the user to sanity-check the action. Katana does not
+    # expose GET /stock_adjustments/{id}, so we filter the list endpoint by id.
+    list_response = await get_all_stock_adjustments.asyncio_detailed(
+        client=services.client,
+        ids=[request.id],
+        limit=1,
+        page=1,  # Explicit page disables auto-pagination — one HTTP call suffices.
+    )
+    matches = unwrap_data(list_response, default=[])
+    existing = next((adj for adj in matches if adj.id == request.id), None)
+
+    if existing is None:
+        raise ValueError(f"Stock adjustment {request.id} not found")
+
+    rows = unwrap_unset(existing.stock_adjustment_rows, [])
+    row_count = len(rows)
+    stock_adjustment_number = existing.stock_adjustment_number
+    location_id = existing.location_id
+
+    if not request.confirm:
+        logger.info(
+            "stock_adjustment_delete_preview",
+            id=request.id,
+            row_count=row_count,
+        )
+        return DeleteStockAdjustmentResponse(
+            id=request.id,
+            is_preview=True,
+            stock_adjustment_number=stock_adjustment_number,
+            location_id=location_id,
+            row_count=row_count,
+            message=(
+                f"Preview — call again with confirm=true to delete stock "
+                f"adjustment {stock_adjustment_number} "
+                f"({row_count} row{'s' if row_count != 1 else ''})"
+            ),
+        )
+
+    confirm_prompt = (
+        f"Remove stock adjustment {stock_adjustment_number} "
+        f"(id={request.id}, {row_count} rows)? "
+        "This reverses the associated inventory movements."
+    )
+    confirmation = await require_confirmation(context, confirm_prompt)
+    if confirmation != ConfirmationResult.CONFIRMED:
+        logger.info(
+            "stock_adjustment_delete_declined",
+            id=request.id,
+            result=str(confirmation),
+        )
+        return DeleteStockAdjustmentResponse(
+            id=request.id,
+            is_preview=True,
+            stock_adjustment_number=stock_adjustment_number,
+            location_id=location_id,
+            row_count=row_count,
+            message=(
+                f"Stock adjustment delete {confirmation} by user — "
+                "call again with confirm=true to retry"
+            ),
+        )
+
+    response = await api_delete_stock_adjustment.asyncio_detailed(
+        id=request.id, client=services.client
+    )
+
+    if not is_success(response):
+        # unwrap raises a typed APIError/ValidationError/etc with a clean message.
+        unwrap(response)
+
+    logger.info(
+        "stock_adjustment_deleted",
+        id=request.id,
+        stock_adjustment_number=stock_adjustment_number,
+    )
+
+    return DeleteStockAdjustmentResponse(
+        id=request.id,
+        is_preview=False,
+        stock_adjustment_number=stock_adjustment_number,
+        location_id=location_id,
+        row_count=row_count,
+        message=(
+            f"Stock adjustment {stock_adjustment_number} (id={request.id}) "
+            "deleted; associated inventory movements reversed"
+        ),
+    )
+
+
+@observe_tool
+@unpack_pydantic_params
+async def delete_stock_adjustment(
+    request: Annotated[DeleteStockAdjustmentRequest, Unpack()], context: Context
+) -> ToolResult:
+    """Delete a stock adjustment by ID.
+
+    Two-step flow: `confirm=false` returns a preview (including the adjustment
+    number, location, and row count that would be affected); `confirm=true`
+    prompts the user for confirmation, then calls DELETE. Deleting a stock
+    adjustment reverses the associated inventory movements.
+    """
+    response = await _delete_stock_adjustment_impl(request, context)
+    status = "PREVIEW" if response.is_preview else "DELETED"
+    md = (
+        f"## Stock Adjustment {response.id} ({status})\n\n"
+        f"{response.message}\n\n"
+        f"- **Number**: {response.stock_adjustment_number or '—'}\n"
+        f"- **Location**: {response.location_id or '—'}\n"
+        f"- **Rows**: {response.row_count}\n"
+    )
+    return make_simple_result(md, structured_data=response.model_dump())
+
+
 def register_tools(mcp: FastMCP) -> None:
     """Register all inventory tools with the FastMCP instance.
 
@@ -760,7 +1523,18 @@ def register_tools(mcp: FastMCP) -> None:
         openWorldHint=True,
     )
 
+    _destructive_write = ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=True,
+        openWorldHint=True,
+    )
+
     mcp.tool(tags={"inventory", "read"}, annotations=_read)(check_inventory)
     mcp.tool(tags={"inventory", "read"}, annotations=_read)(list_low_stock_items)
     mcp.tool(tags={"inventory", "read"}, annotations=_read)(get_inventory_movements)
+    mcp.tool(tags={"inventory", "read"}, annotations=_read)(list_stock_adjustments)
     mcp.tool(tags={"inventory", "write"}, annotations=_write)(create_stock_adjustment)
+    mcp.tool(tags={"inventory", "write"}, annotations=_write)(update_stock_adjustment)
+    mcp.tool(tags={"inventory", "write"}, annotations=_destructive_write)(
+        delete_stock_adjustment
+    )
