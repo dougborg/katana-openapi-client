@@ -24,6 +24,7 @@ from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
+    UI_META,
     enum_to_str,
     format_md_table,
     iso_or_none,
@@ -1909,6 +1910,7 @@ def register_tools(mcp: FastMCP) -> None:
     mcp.tool(
         tags={"orders", "manufacturing", "write"},
         annotations=_write,
+        meta=UI_META,
     )(create_manufacturing_order)
     mcp.tool(
         tags={"orders", "manufacturing", "read"},

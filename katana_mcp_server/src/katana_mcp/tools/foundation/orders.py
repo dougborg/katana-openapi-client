@@ -18,7 +18,7 @@ from pydantic import BaseModel, Field
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
-from katana_mcp.tools.tool_result_utils import make_tool_result
+from katana_mcp.tools.tool_result_utils import UI_META, make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.domain.converters import unwrap_unset
 from katana_public_api_client.models import (
@@ -370,4 +370,5 @@ def register_tools(mcp: FastMCP) -> None:
         annotations=ToolAnnotations(
             readOnlyHint=False, destructiveHint=True, openWorldHint=True
         ),
+        meta=UI_META,
     )(fulfill_order)

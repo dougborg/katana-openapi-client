@@ -24,6 +24,17 @@ if TYPE_CHECKING:
     from prefab_ui.app import PrefabApp
 
 
+UI_META: dict[str, Any] = {"ui": True}
+"""Tool registration ``meta`` that opts a tool into Prefab UI rendering.
+
+Pass as ``mcp.tool(..., meta=UI_META)`` for every tool that returns a
+``ToolResult`` whose ``structured_content`` may be a ``PrefabApp``. FastMCP's
+``_maybe_apply_prefab_ui`` auto-registers the ``ui://prefab/renderer.html``
+resource and expands this flag into the full AppConfig metadata that
+MCP-Apps-capable clients (Claude Desktop) need to render the UI.
+"""
+
+
 def enum_to_str(value: Any) -> str | None:
     """Extract the string value from an enum, or return as-is.
 
@@ -84,45 +95,37 @@ def make_tool_result(
     ui: PrefabApp | None = None,
     **template_vars: Any,
 ) -> ToolResult:
-    """Create a ToolResult with markdown, structured content, and optional Prefab UI.
+    """Create a ToolResult with markdown content and optional Prefab UI.
 
-    The structured_content is either:
-    - A PrefabApp JSON envelope (if ``ui`` is provided) — rendered by Claude Desktop
-    - The Pydantic model dict (fallback for programmatic access)
+    When ``ui`` is provided, the PrefabApp is passed through ``structured_content``
+    as-is — FastMCP's ``ToolResult.__init__`` detects it and converts to the wire
+    envelope via ``_prefab_to_json``. Combined with ``meta={"ui": True}`` on the
+    tool registration, this causes MCP-Apps-capable clients (Claude Desktop) to
+    render the Prefab UI. Non-Prefab clients still see the markdown fallback.
 
-    Markdown content from templates is always included for non-Prefab clients.
+    Without ``ui``, ``structured_content`` is the Pydantic response dict so
+    programmatic callers can consume fields directly.
 
     Args:
         response: Pydantic model response from the tool
         template_name: Name of the markdown template (without .md extension)
-        ui: Optional PrefabApp to use as structured_content for Prefab-capable hosts
+        ui: Optional PrefabApp for MCP-Apps rendering
         **template_vars: Variables for template rendering
 
     Returns:
-        ToolResult with markdown content and structured_content (Prefab or dict)
+        ToolResult with markdown content and structured_content
     """
-    # Render markdown from template using provided vars
     try:
         markdown = format_template(template_name, **template_vars)
     except (FileNotFoundError, KeyError) as e:
-        # Fallback to structured data as markdown if template fails
         markdown = (
             f"# Response\n\n```json\n{response.model_dump_json(indent=2)}\n```\n\n"
             f"Template error: {e}"
         )
 
-    # When Prefab UI is provided, include both the UI envelope and the response
-    # data so programmatic MCP clients can still access structured fields
-    if ui is not None:
-        prefab_json = ui.to_json()
-        prefab_json["data"] = response.model_dump()
-        structured_data = prefab_json
-    else:
-        structured_data = response.model_dump()
-
     return ToolResult(
         content=markdown,
-        structured_content=structured_data,
+        structured_content=ui if ui is not None else response.model_dump(),
     )
 
 

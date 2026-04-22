@@ -20,6 +20,7 @@ from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
+    UI_META,
     format_md_table,
     iso_or_none,
     make_simple_result,
@@ -1583,8 +1584,12 @@ def register_tools(mcp: FastMCP) -> None:
         openWorldHint=True,
     )
 
-    mcp.tool(tags={"inventory", "read"}, annotations=_read)(check_inventory)
-    mcp.tool(tags={"inventory", "read"}, annotations=_read)(list_low_stock_items)
+    mcp.tool(tags={"inventory", "read"}, annotations=_read, meta=UI_META)(
+        check_inventory
+    )
+    mcp.tool(tags={"inventory", "read"}, annotations=_read, meta=UI_META)(
+        list_low_stock_items
+    )
     mcp.tool(tags={"inventory", "read"}, annotations=_read)(get_inventory_movements)
     mcp.tool(tags={"inventory", "read"}, annotations=_read)(list_stock_adjustments)
     mcp.tool(tags={"inventory", "write"}, annotations=_write)(create_stock_adjustment)

@@ -19,6 +19,7 @@ from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.decorators import cache_read
 from katana_mcp.tools.tool_result_utils import (
+    UI_META,
     format_md_table,
     make_simple_result,
     make_tool_result,
@@ -1040,11 +1041,15 @@ def register_tools(mcp: FastMCP) -> None:
         openWorldHint=True,
     )
 
-    mcp.tool(tags={"catalog", "read"}, annotations=_read)(search_items)
-    mcp.tool(tags={"catalog", "write"}, annotations=_write)(create_item)
-    mcp.tool(tags={"catalog", "read"}, annotations=_read)(get_item)
-    mcp.tool(tags={"catalog", "write"}, annotations=_update)(update_item)
-    mcp.tool(tags={"catalog", "write", "destructive"}, annotations=_destructive)(
-        delete_item
+    mcp.tool(tags={"catalog", "read"}, annotations=_read, meta=UI_META)(search_items)
+    mcp.tool(tags={"catalog", "write"}, annotations=_write, meta=UI_META)(create_item)
+    mcp.tool(tags={"catalog", "read"}, annotations=_read, meta=UI_META)(get_item)
+    mcp.tool(tags={"catalog", "write"}, annotations=_update, meta=UI_META)(update_item)
+    mcp.tool(
+        tags={"catalog", "write", "destructive"},
+        annotations=_destructive,
+        meta=UI_META,
+    )(delete_item)
+    mcp.tool(tags={"catalog", "read"}, annotations=_read, meta=UI_META)(
+        get_variant_details
     )
-    mcp.tool(tags={"catalog", "read"}, annotations=_read)(get_variant_details)
