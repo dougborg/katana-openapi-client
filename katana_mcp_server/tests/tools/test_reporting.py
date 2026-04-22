@@ -31,6 +31,23 @@ _INV_GET_ALL = "katana_public_api_client.api.inventory.get_all_inventory_point"
 _REPORTING_UNWRAP_DATA = "katana_mcp.tools.foundation.reporting.unwrap_data"
 
 
+@pytest.fixture(autouse=True)
+def _patch_cache_sync():
+    """Neutralize @cache_read so aggregation tests don't drive real sync helpers.
+
+    Reporting tools are decorated with @cache_read(VARIANT, PRODUCT, MATERIAL,
+    SERVICE). The decorator caches a dict of sync fns the first time it runs,
+    so patching by source module is order-dependent. Patching the dict
+    accessor to return {} neutralizes the decorator uniformly regardless of
+    test ordering.
+    """
+    with patch(
+        "katana_mcp.tools.decorators._get_sync_fns",
+        return_value={},
+    ):
+        yield
+
+
 def _mock_row(
     *,
     id: int,

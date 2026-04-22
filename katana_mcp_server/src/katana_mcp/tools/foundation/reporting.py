@@ -35,8 +35,10 @@ from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
 from pydantic import BaseModel, Field
 
+from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.tools.decorators import cache_read
 from katana_mcp.tools.tool_result_utils import (
     format_md_table,
     make_simple_result,
@@ -174,33 +176,19 @@ async def _resolve_variant_info(
 async def _fetch_category_for_product(services: Any, product_id: int) -> str | None:
     """Look up the category_name for a given product/material/service ID.
 
-    Tries product first, then material, then service. Returns None if none
-    match or category is unset.
+    Reads from the local SQLite cache — tool impls that call this should be
+    decorated with ``@cache_read(PRODUCT, MATERIAL, SERVICE)`` so the relevant
+    tables are synced on entry. The cached entity dict carries ``category_name``
+    directly; no live API call is required.
     """
-    from katana_public_api_client.api.material import get_material
-    from katana_public_api_client.api.product import get_product
-    from katana_public_api_client.api.services import get_service
-    from katana_public_api_client.utils import unwrap
+    from katana_mcp.cache import EntityType
 
-    # Enrichment is best-effort: the aggregation caller works fine with a
-    # missing category, so swallow any failure (404s, rate limits, mocked
-    # transports in tests) and try the next fetcher.
-    for fetcher in (
-        get_product.asyncio_detailed,
-        get_material.asyncio_detailed,
-        get_service.asyncio_detailed,
-    ):
-        try:
-            response = await fetcher(id=product_id, client=services.client)
-        except Exception:
+    for et in (EntityType.PRODUCT, EntityType.MATERIAL, EntityType.SERVICE):
+        entity = await services.cache.get_by_id(et, product_id)
+        if entity is None:
             continue
-        obj = unwrap(response, raise_on_error=False)
-        if obj is None:
-            continue
-        cat = unwrap_unset(getattr(obj, "category_name", None), None)
-        if cat is not None:
-            return cat
-        return None
+        cat = entity.get("category_name")
+        return cat if cat else None
     return None
 
 
@@ -276,6 +264,9 @@ class TopSellingVariantsResponse(BaseModel):
     window_end: str
 
 
+@cache_read(
+    EntityType.VARIANT, EntityType.PRODUCT, EntityType.MATERIAL, EntityType.SERVICE
+)
 async def _top_selling_variants_impl(
     request: TopSellingVariantsRequest, context: Context
 ) -> TopSellingVariantsResponse:
@@ -470,6 +461,9 @@ def _group_key_time(so_created: datetime, group_by: SalesGroupBy) -> str:
     return f"{so_created.year:04d}-{so_created.month:02d}"
 
 
+@cache_read(
+    EntityType.VARIANT, EntityType.PRODUCT, EntityType.MATERIAL, EntityType.SERVICE
+)
 async def _sales_summary_impl(
     request: SalesSummaryRequest, context: Context
 ) -> SalesSummaryResponse:
