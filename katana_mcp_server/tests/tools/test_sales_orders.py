@@ -558,7 +558,13 @@ def _make_mock_so(
     currency: str = "USD",
     rows: list | None = None,
 ) -> MagicMock:
-    """Build a mock SalesOrder attrs object for testing."""
+    """Build a mock SalesOrder attrs object for testing.
+
+    Every SalesOrder attrs field is stubbed (mostly to UNSET) so
+    ``unwrap_unset`` calls in the production impl don't leak raw MagicMock
+    instances through Pydantic validation. Tests that need a populated
+    field can assign it explicitly after the call.
+    """
     so = MagicMock()
     so.id = id
     so.order_no = order_no
@@ -567,11 +573,33 @@ def _make_mock_so(
     so.status = status
     so.production_status = production_status
     so.invoicing_status = UNSET
+    so.source = UNSET
+    so.order_created_date = UNSET
     so.created_at = datetime(2026, 4, 10, 9, 0, tzinfo=UTC)
+    so.updated_at = UNSET
+    so.deleted_at = UNSET
     so.delivery_date = datetime(2026, 4, 20, 12, 0, tzinfo=UTC)
+    so.picked_date = UNSET
+    so.conversion_rate = UNSET
+    so.conversion_date = UNSET
     so.total = total
+    so.total_in_base_currency = UNSET
     so.currency = currency
     so.additional_info = UNSET
+    so.customer_ref = UNSET
+    so.product_availability = UNSET
+    so.product_expected_date = UNSET
+    so.ingredient_availability = UNSET
+    so.ingredient_expected_date = UNSET
+    so.tracking_number = UNSET
+    so.tracking_number_url = UNSET
+    so.billing_address_id = UNSET
+    so.shipping_address_id = UNSET
+    so.linked_manufacturing_order_id = UNSET
+    so.shipping_fee = UNSET
+    so.ecommerce_order_type = UNSET
+    so.ecommerce_store_name = UNSET
+    so.ecommerce_order_id = UNSET
     so.sales_order_rows = rows if rows is not None else []
     return so
 
@@ -584,7 +612,12 @@ def _make_mock_row(
     price_per_unit: float,
     linked_mo_id: int | None = None,
 ) -> MagicMock:
-    """Build a mock sales order row."""
+    """Build a mock sales order row.
+
+    Stubs every SalesOrderRow attrs field (mostly to UNSET) so the new
+    exhaustive ``SalesOrderRowDetail`` mapping in ``_get_sales_order_impl``
+    doesn't leak MagicMock instances through Pydantic validation.
+    """
     r = MagicMock()
     r.id = id
     r.variant_id = variant_id
@@ -593,6 +626,23 @@ def _make_mock_row(
     r.linked_manufacturing_order_id = (
         linked_mo_id if linked_mo_id is not None else UNSET
     )
+    r.sales_order_id = UNSET
+    r.tax_rate_id = UNSET
+    r.tax_rate = UNSET
+    r.location_id = UNSET
+    r.product_availability = UNSET
+    r.product_expected_date = UNSET
+    r.price_per_unit_in_base_currency = UNSET
+    r.total = UNSET
+    r.total_in_base_currency = UNSET
+    r.total_discount = UNSET
+    r.cogs_value = UNSET
+    r.conversion_rate = UNSET
+    r.conversion_date = UNSET
+    r.serial_numbers = UNSET
+    r.created_at = UNSET
+    r.updated_at = UNSET
+    r.deleted_at = UNSET
     return r
 
 
@@ -1104,6 +1154,15 @@ async def test_list_sales_orders_include_rows_handles_unset_fields():
 # ============================================================================
 
 
+# Path of the internal helper that fetches /sales_order_addresses. Patched
+# in tests so `_get_sales_order_impl` doesn't make a real HTTP call — SOs
+# aren't cached today (per #342), so addresses are fetch-on-demand alongside
+# the SO lookup.
+_FETCH_ADDR_PATH = (
+    "katana_mcp.tools.foundation.sales_orders._fetch_sales_order_addresses"
+)
+
+
 @pytest.mark.asyncio
 async def test_get_sales_order_requires_identifier():
     """Must provide order_no or order_id."""
@@ -1127,6 +1186,7 @@ async def test_get_sales_order_by_id():
     with (
         patch(f"{_SO_GET}.asyncio_detailed", new_callable=AsyncMock),
         patch(_SO_UNWRAP_AS, return_value=mock_so),
+        patch(_FETCH_ADDR_PATH, AsyncMock(return_value=[])),
     ):
         request = GetSalesOrderRequest(order_id=777)
         result = await _get_sales_order_impl(request, context)
@@ -1148,6 +1208,7 @@ async def test_get_sales_order_by_number():
     with (
         patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
         patch(_SO_UNWRAP_DATA, return_value=[mock_so]),
+        patch(_FETCH_ADDR_PATH, AsyncMock(return_value=[])),
     ):
         request = GetSalesOrderRequest(order_no="#WEB20394")
         result = await _get_sales_order_impl(request, context)
@@ -1172,7 +1233,7 @@ async def test_get_sales_order_not_found_by_number_raises():
 
 @pytest.mark.asyncio
 async def test_get_sales_order_enriches_row_sku_from_cache():
-    """Row-level variant cache hits populate SalesOrderRowInfo.sku."""
+    """Row-level variant cache hits populate SalesOrderRowDetail.sku."""
     context, lifespan_ctx = create_mock_context()
 
     # Cache returns a variant dict for variant_id 500
@@ -1194,11 +1255,288 @@ async def test_get_sales_order_enriches_row_sku_from_cache():
     with (
         patch(f"{_SO_GET}.asyncio_detailed", new_callable=AsyncMock),
         patch(_SO_UNWRAP_AS, return_value=mock_so),
+        patch(_FETCH_ADDR_PATH, AsyncMock(return_value=[])),
     ):
         result = await _get_sales_order_impl(GetSalesOrderRequest(order_id=9), context)
 
     assert result.rows[0].sku == "BIKE-A"  # cache hit
     assert result.rows[1].sku is None  # cache miss
+
+
+# ============================================================================
+# get_sales_order — exhaustive field coverage (#346)
+# ============================================================================
+
+
+def _make_mock_so_all_fields(*, so_id: int = 2001) -> MagicMock:
+    """Build a mock SalesOrder attrs object with *every* field populated.
+
+    Used by the full-coverage test so we can assert every previously-dropped
+    field now surfaces on the response. Uses real enums where the attrs
+    model stores an enum so `enum_to_str()` behaves like production.
+    """
+    from katana_public_api_client.models.ingredient_availability import (
+        IngredientAvailability,
+    )
+    from katana_public_api_client.models.product_availability import (
+        ProductAvailability,
+    )
+    from katana_public_api_client.models.sales_order_production_status import (
+        SalesOrderProductionStatus,
+    )
+
+    so = MagicMock()
+    so.id = so_id
+    so.order_no = "SO-2024-001"
+    so.customer_id = 1501
+    so.location_id = 1
+    so.status = SalesOrderStatus.NOT_SHIPPED
+    so.source = "Shopify"
+    so.order_created_date = datetime(2024, 1, 15, 10, 0, tzinfo=UTC)
+    so.production_status = SalesOrderProductionStatus.IN_PROGRESS
+    so.invoicing_status = "NOT_INVOICED"
+    so.product_availability = ProductAvailability.IN_STOCK
+    so.product_expected_date = datetime(2024, 1, 20, 0, 0, tzinfo=UTC)
+    so.ingredient_availability = IngredientAvailability.IN_STOCK
+    so.ingredient_expected_date = datetime(2024, 1, 18, 0, 0, tzinfo=UTC)
+    so.delivery_date = datetime(2024, 1, 22, 14, 0, tzinfo=UTC)
+    so.picked_date = datetime(2024, 1, 21, 9, 0, tzinfo=UTC)
+    so.currency = "USD"
+    so.total = 1250.0
+    so.total_in_base_currency = 1250.0
+    so.conversion_rate = 1.0
+    so.conversion_date = datetime(2024, 1, 15, 10, 0, tzinfo=UTC)
+    so.additional_info = "Customer requested expedited delivery"
+    so.customer_ref = "CUST-REF-2024-001"
+    so.tracking_number = "UPS1234567890"
+    so.tracking_number_url = "https://www.ups.com/track?track=UPS1234567890"
+    so.billing_address_id = 1201
+    so.shipping_address_id = 1202
+    so.linked_manufacturing_order_id = 7777
+    so.ecommerce_order_type = "standard"
+    so.ecommerce_store_name = "Kitchen Pro Store"
+    so.ecommerce_order_id = "SHOP-5678-2024"
+    so.created_at = datetime(2024, 1, 15, 10, 0, tzinfo=UTC)
+    so.updated_at = datetime(2024, 1, 20, 16, 30, tzinfo=UTC)
+    so.deleted_at = None
+
+    # Nested shipping_fee with populated fields
+    fee = MagicMock()
+    fee.id = 2801
+    fee.sales_order_id = so_id
+    fee.amount = "25.99"
+    fee.tax_rate_id = 301
+    fee.description = "UPS Ground Shipping"
+    so.shipping_fee = fee
+
+    # One fully populated row so every SalesOrderRowDetail field has a value
+    row = MagicMock()
+    row.id = 2501
+    row.variant_id = 2101
+    row.quantity = 2.0
+    row.sales_order_id = so_id
+    row.tax_rate_id = 301
+    row.tax_rate = 10.0
+    row.location_id = 1
+    row.product_availability = ProductAvailability.IN_STOCK
+    row.product_expected_date = datetime(2024, 1, 20, 0, 0, tzinfo=UTC)
+    row.price_per_unit = 599.99
+    row.price_per_unit_in_base_currency = 599.99
+    row.total = 1199.98
+    row.total_in_base_currency = 1199.98
+    row.total_discount = "0.00"
+    row.cogs_value = 400.0
+    row.linked_manufacturing_order_id = 7777
+    row.conversion_rate = 1.0
+    row.conversion_date = datetime(2024, 1, 15, 10, 0, tzinfo=UTC)
+    row.serial_numbers = [10001, 10002]
+    row.created_at = datetime(2024, 1, 15, 10, 0, tzinfo=UTC)
+    row.updated_at = datetime(2024, 1, 15, 10, 0, tzinfo=UTC)
+    row.deleted_at = None
+    so.sales_order_rows = [row]
+
+    return so
+
+
+@pytest.mark.asyncio
+async def test_get_sales_order_surfaces_every_sales_order_field():
+    """get_sales_order exposes every field Katana puts on SalesOrder + rows.
+
+    The pre-#346 response dropped ~20 SO-level fields (source, invoicing_status,
+    product/ingredient availability, picked_date, total_in_base_currency,
+    tracking, billing/shipping address IDs, ecommerce metadata, timestamps, etc.)
+    and dropped most SalesOrderRow fields. This test pins the exhaustive
+    coverage so a future refactor can't silently drop them again.
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_id = AsyncMock(return_value=None)
+    mock_so = _make_mock_so_all_fields(so_id=2001)
+
+    with (
+        patch(f"{_SO_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_AS, return_value=mock_so),
+        patch(_FETCH_ADDR_PATH, AsyncMock(return_value=[])),
+    ):
+        result = await _get_sales_order_impl(
+            GetSalesOrderRequest(order_id=2001), context
+        )
+
+    # Previously-dropped SO-level scalars:
+    assert result.source == "Shopify"
+    assert result.order_created_date == "2024-01-15T10:00:00+00:00"
+    assert result.invoicing_status == "NOT_INVOICED"
+    assert result.product_availability == "IN_STOCK"
+    assert result.product_expected_date == "2024-01-20T00:00:00+00:00"
+    assert result.ingredient_availability == "IN_STOCK"
+    assert result.ingredient_expected_date == "2024-01-18T00:00:00+00:00"
+    assert result.picked_date == "2024-01-21T09:00:00+00:00"
+    assert result.total_in_base_currency == 1250.0
+    assert result.conversion_rate == 1.0
+    assert result.conversion_date == "2024-01-15T10:00:00+00:00"
+    assert result.customer_ref == "CUST-REF-2024-001"
+    assert result.tracking_number == "UPS1234567890"
+    assert result.tracking_number_url == "https://www.ups.com/track?track=UPS1234567890"
+    assert result.billing_address_id == 1201
+    assert result.shipping_address_id == 1202
+    assert result.linked_manufacturing_order_id == 7777
+    assert result.ecommerce_order_type == "standard"
+    assert result.ecommerce_store_name == "Kitchen Pro Store"
+    assert result.ecommerce_order_id == "SHOP-5678-2024"
+    assert result.created_at == "2024-01-15T10:00:00+00:00"
+    assert result.updated_at == "2024-01-20T16:30:00+00:00"
+    assert result.deleted_at is None
+
+    # Nested shipping_fee surfaces with every field:
+    assert result.shipping_fee is not None
+    assert result.shipping_fee.id == 2801
+    assert result.shipping_fee.amount == "25.99"
+    assert result.shipping_fee.tax_rate_id == 301
+    assert result.shipping_fee.description == "UPS Ground Shipping"
+
+    # Per-row exhaustive detail — fields the pre-#346 SalesOrderRowInfo dropped:
+    assert len(result.rows) == 1
+    row = result.rows[0]
+    assert row.id == 2501
+    assert row.variant_id == 2101
+    assert row.quantity == 2.0
+    assert row.sales_order_id == 2001
+    assert row.tax_rate_id == 301
+    assert row.tax_rate == 10.0
+    assert row.location_id == 1
+    assert row.product_availability == "IN_STOCK"
+    assert row.product_expected_date == "2024-01-20T00:00:00+00:00"
+    assert row.price_per_unit == 599.99
+    assert row.price_per_unit_in_base_currency == 599.99
+    assert row.total == 1199.98
+    assert row.total_in_base_currency == 1199.98
+    assert row.total_discount == "0.00"
+    assert row.cogs_value == 400.0
+    assert row.linked_manufacturing_order_id == 7777
+    assert row.conversion_rate == 1.0
+    assert row.conversion_date == "2024-01-15T10:00:00+00:00"
+    assert row.serial_numbers == [10001, 10002]
+    assert row.created_at == "2024-01-15T10:00:00+00:00"
+    assert row.updated_at == "2024-01-15T10:00:00+00:00"
+    assert row.deleted_at is None
+
+
+@pytest.mark.asyncio
+async def test_get_sales_order_fetches_and_surfaces_addresses():
+    """Addresses come from /sales_order_addresses, not the SO response.
+
+    SOs aren't cached today (#342), so the tool fetches addresses on demand
+    alongside the SO lookup. Patches the internal helper to assert the
+    fetched results flow through to `response.addresses`.
+    """
+    from katana_mcp.tools.foundation.sales_orders import SalesOrderAddressInfo
+
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_id = AsyncMock(return_value=None)
+    mock_so = _make_mock_so(id=2001, order_no="SO-2001")
+
+    billing = SalesOrderAddressInfo(
+        id=1201,
+        sales_order_id=2001,
+        entity_type="billing",
+        first_name="Sarah",
+        last_name="Johnson",
+        company="Johnson's Restaurant",
+        line_1="123 Main Street",
+        city="Portland",
+        state="OR",
+        zip="97201",
+        country="US",
+    )
+    shipping = SalesOrderAddressInfo(
+        id=1202,
+        sales_order_id=2001,
+        entity_type="shipping",
+        first_name="Sarah",
+        last_name="Johnson",
+        line_1="456 Oak Ave",
+        city="Seattle",
+        state="WA",
+        zip="98101",
+        country="US",
+    )
+
+    with (
+        patch(f"{_SO_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_AS, return_value=mock_so),
+        patch(_FETCH_ADDR_PATH, AsyncMock(return_value=[billing, shipping])),
+    ):
+        result = await _get_sales_order_impl(
+            GetSalesOrderRequest(order_id=2001), context
+        )
+
+    assert len(result.addresses) == 2
+    assert result.addresses[0].id == 1201
+    assert result.addresses[0].entity_type == "billing"
+    assert result.addresses[0].line_1 == "123 Main Street"
+    # wire field name `zip` (not the attrs `zip_` workaround):
+    assert result.addresses[0].zip == "97201"
+    assert result.addresses[1].entity_type == "shipping"
+    assert result.addresses[1].city == "Seattle"
+
+
+@pytest.mark.asyncio
+async def test_get_sales_order_markdown_uses_canonical_field_names():
+    """Markdown labels use Pydantic field names (not prettified headers)
+    so LLM consumers can't misread a section label as a different field.
+
+    Pins the #346 canonical-name convention: scalar lines render as
+    ``**field_name**: value``, empty lists render as ``**field_name**: []``,
+    and non-empty lists render as ``**field_name** (N):`` with indented
+    per-item blocks.
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_id = AsyncMock(return_value=None)
+    mock_so = _make_mock_so(
+        id=2001,
+        order_no="SO-2001",
+        rows=[_make_mock_row(id=10, variant_id=500, quantity=1, price_per_unit=99.0)],
+    )
+    # Stamp distinctive values on fields whose labels we want to pin:
+    mock_so.customer_ref = "CUST-REF-001"
+    mock_so.tracking_number = "UPS1234567890"
+
+    with (
+        patch(f"{_SO_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_AS, return_value=mock_so),
+        patch(_FETCH_ADDR_PATH, AsyncMock(return_value=[])),
+    ):
+        result = await get_sales_order(order_id=2001, context=context)
+
+    text = result.content[0].text
+    # Canonical-name scalar labels (not "Delivery", not "Tracking", etc.):
+    assert "**delivery_date**:" in text
+    assert "**customer_ref**: CUST-REF-001" in text
+    assert "**tracking_number**: UPS1234567890" in text
+    # Empty collections render with explicit [] so readers can't mistake
+    # the heading for a section:
+    assert "**addresses**: []" in text
+    # Non-empty rows render with a count header:
+    assert "**rows** (1):" in text
 
 
 # ============================================================================
@@ -1255,6 +1593,7 @@ async def test_get_sales_order_format_json_returns_json():
     with (
         patch(f"{_SO_GET}.asyncio_detailed", new_callable=AsyncMock),
         patch(_SO_UNWRAP_AS, return_value=mock_so),
+        patch(_FETCH_ADDR_PATH, AsyncMock(return_value=[])),
     ):
         result = await get_sales_order(order_id=9, format="json", context=context)
 

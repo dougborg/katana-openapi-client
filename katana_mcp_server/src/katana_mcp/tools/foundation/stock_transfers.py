@@ -65,23 +65,26 @@ def _status_literal_to_enum(status: StatusLiteral) -> StockTransferStatus:
 
 
 class PaginationMeta(BaseModel):
-    """Pagination metadata parsed from X-Pagination header."""
+    """Pagination metadata parsed from Katana's x-pagination header."""
 
     page: int | None = None
     total_pages: int | None = None
-    total_items: int | None = None
-    per_page: int | None = None
+    total_records: int | None = None
+    first_page: bool | None = None
+    last_page: bool | None = None
 
 
 def _parse_pagination_header(headers: Any) -> PaginationMeta | None:
-    """Parse Katana's X-Pagination header into a PaginationMeta instance.
+    """Parse Katana's x-pagination header into a PaginationMeta instance.
 
-    Returns None if the header is absent, empty, or malformed. Numeric values
-    may arrive as strings; we coerce to int where possible and skip bad values.
+    Returns None if the header is absent, empty, or malformed. Numeric and
+    boolean values arrive as strings; coerce where possible.
     """
     if not headers:
         return None
-    raw = headers.get("X-Pagination") if hasattr(headers, "get") else None
+    raw = None
+    if hasattr(headers, "get"):
+        raw = headers.get("x-pagination") or headers.get("X-Pagination")
     if not raw:
         return None
     try:
@@ -99,17 +102,33 @@ def _parse_pagination_header(headers: Any) -> PaginationMeta | None:
         except (TypeError, ValueError):
             return None
 
+    def _as_bool(value: Any) -> bool | None:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            lowered = value.strip().lower()
+            if lowered == "true":
+                return True
+            if lowered == "false":
+                return False
+        return None
+
     meta = PaginationMeta(
         page=_as_int(parsed.get("page")),
         total_pages=_as_int(parsed.get("total_pages")),
-        total_items=_as_int(parsed.get("total_items")),
-        per_page=_as_int(parsed.get("per_page")),
+        total_records=_as_int(parsed.get("total_records")),
+        first_page=_as_bool(parsed.get("first_page")),
+        last_page=_as_bool(parsed.get("last_page")),
     )
-    if (
-        meta.page is None
-        and meta.total_pages is None
-        and meta.total_items is None
-        and meta.per_page is None
+    if all(
+        v is None
+        for v in (
+            meta.page,
+            meta.total_pages,
+            meta.total_records,
+            meta.first_page,
+            meta.last_page,
+        )
     ):
         return None
     return meta
@@ -192,7 +211,7 @@ def _parse_iso_datetime(value: str, field_name: str) -> datetime:
     fromisoformat`` only accepts the offset form in Python < 3.11 and still is
     strict about ``Z`` in older APIs/clients.
     """
-    normalized = value[:-1] + "+00:00" if value.endswith("Z") else value
+    normalized = value[:-1] + "+00:00" if value.endswith(("Z", "z")) else value
     try:
         return datetime.fromisoformat(normalized)
     except ValueError as e:
@@ -524,11 +543,13 @@ async def _list_stock_transfers_impl(
         "limit": request.limit,
     }
 
-    # Short-circuit auto-pagination when limit fits in a single Katana page
-    # (<=250) unless the caller explicitly set `page`.
+    # `status` is applied client-side (Katana's list endpoint doesn't expose
+    # it) so we need auto-pagination to run if it's set; otherwise a small
+    # limit could return silently under-truncated results.
+    has_client_filter = request.status is not None
     if request.page is not None:
         kwargs["page"] = request.page
-    elif 1 <= request.limit <= 250:
+    elif not has_client_filter and 1 <= request.limit <= 250:
         kwargs["page"] = 1
 
     if request.source_location_id is not None:
@@ -550,14 +571,12 @@ async def _list_stock_transfers_impl(
     attrs_list = unwrap_data(response, default=[])
 
     # Status is not exposed as a server-side filter on this endpoint, so we
-    # apply it client-side when specified.
+    # apply it client-side when specified. Katana returns lowercase enum
+    # values; the Literal type is uppercase, so fold to lowercase for compare.
     if request.status is not None:
-        api_status = request.status.lower()
+        target = request.status.lower()
         attrs_list = [
-            t
-            for t in attrs_list
-            if enum_to_str(unwrap_unset(t.status, None)) == api_status
-            or enum_to_str(unwrap_unset(t.status, None)) == request.status
+            t for t in attrs_list if enum_to_str(unwrap_unset(t.status, None)) == target
         ]
 
     # Safety net: cap to request.limit post-pagination.
