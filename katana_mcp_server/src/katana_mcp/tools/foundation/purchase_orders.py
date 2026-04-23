@@ -24,6 +24,7 @@ from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
+    UI_META,
     enum_to_str,
     format_md_table,
     iso_or_none,
@@ -1464,15 +1465,21 @@ def register_tools(mcp: FastMCP) -> None:
         openWorldHint=True,
     )
 
-    mcp.tool(tags={"orders", "purchasing", "write"}, annotations=_write)(
-        create_purchase_order
-    )
-    mcp.tool(tags={"orders", "purchasing", "write"}, annotations=_write)(
-        receive_purchase_order
-    )
-    mcp.tool(tags={"orders", "purchasing", "read"}, annotations=_read)(
-        verify_order_document
-    )
+    mcp.tool(
+        tags={"orders", "purchasing", "write"},
+        annotations=_write,
+        meta=UI_META,
+    )(create_purchase_order)
+    mcp.tool(
+        tags={"orders", "purchasing", "write"},
+        annotations=_write,
+        meta=UI_META,
+    )(receive_purchase_order)
+    mcp.tool(
+        tags={"orders", "purchasing", "read"},
+        annotations=_read,
+        meta=UI_META,
+    )(verify_order_document)
     mcp.tool(tags={"orders", "purchasing", "read"}, annotations=_read)(
         list_purchase_orders
     )

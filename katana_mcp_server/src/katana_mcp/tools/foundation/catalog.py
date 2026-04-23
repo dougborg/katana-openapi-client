@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
-from katana_mcp.tools.tool_result_utils import make_tool_result
+from katana_mcp.tools.tool_result_utils import UI_META, make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.domain.converters import to_unset
 from katana_public_api_client.models import (
@@ -315,5 +315,9 @@ def register_tools(mcp: FastMCP) -> None:
         readOnlyHint=False, destructiveHint=False, openWorldHint=True
     )
 
-    mcp.tool(tags={"catalog", "write"}, annotations=_write)(create_product)
-    mcp.tool(tags={"catalog", "write"}, annotations=_write)(create_material)
+    mcp.tool(tags={"catalog", "write"}, annotations=_write, meta=UI_META)(
+        create_product
+    )
+    mcp.tool(tags={"catalog", "write"}, annotations=_write, meta=UI_META)(
+        create_material
+    )
