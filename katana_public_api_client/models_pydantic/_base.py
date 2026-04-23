@@ -43,9 +43,7 @@ class KatanaPydanticBase(SQLModel):
     Extends ``SQLModel`` (not plain ``pydantic.BaseModel``) so that subclasses
     can opt into SQLAlchemy table semantics via ``table=True`` without forking
     the generated model hierarchy. ``SQLModel`` is itself a pydantic
-    ``BaseModel`` subclass, so existing consumers that validate, serialize,
-    or round-trip these models continue to work unchanged. See #342 for the
-    cache-backed-list-tools work that motivated the unification.
+    ``BaseModel`` subclass, so existing consumers continue working unchanged.
 
     This base class provides:
     - Immutable (frozen) models for data integrity
