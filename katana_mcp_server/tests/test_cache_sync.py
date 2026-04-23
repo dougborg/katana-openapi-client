@@ -87,6 +87,30 @@ class TestVariantToCacheDict:
         result = _variant_to_cache_dict(attrs_obj)
         assert result["display_name"] == "SKU-003"
 
+    def test_supplier_item_codes_preserved_verbatim(self):
+        """supplier_item_codes flow through cache-sync unchanged.
+
+        Per user clarification in #346: entries that look like "the SKU
+        duplicated" are frequently meaningful — the house SKU sometimes IS
+        the QBP SKU for retail pass-throughs (e.g. a Schwalbe tire stocked
+        with ``sku="SW7083"`` and ``supplier_item_codes=["SW7083",
+        "10654627"]`` means "we buy it from QBP under SW7083 and also under
+        MPN 10654627"). Stripping would silently delete real supplier data.
+        The rendering-ambiguity fix (canonical label + explicit brackets)
+        is sufficient on its own to resolve the original misread.
+        """
+        attrs_obj = MagicMock()
+        attrs_obj.to_dict.return_value = {
+            "id": 42,
+            "sku": "SW7083",
+            "supplier_item_codes": ["SW7083", "10654627"],
+            "product_or_material": None,
+            "config_attributes": [],
+        }
+        result = _variant_to_cache_dict(attrs_obj)
+        # Both entries are preserved — the list is faithful to the catalog.
+        assert result["supplier_item_codes"] == ["SW7083", "10654627"]
+
 
 # ============================================================================
 # _ensure_synced — incremental sync path

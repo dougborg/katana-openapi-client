@@ -348,7 +348,10 @@ Find products, materials, and services by name or SKU.
 ---
 
 ### get_variant_details
-Get complete details for one or more item variants.
+Get exhaustive details for one or more item variants. Every field Katana
+exposes on the Variant record is surfaced — no follow-up lookups needed
+for pricing, barcodes, supplier codes, config attributes, custom fields,
+or timestamps (including `deleted_at`).
 
 **Parameters (at least one of the first four is required):**
 - `sku` (optional): Single SKU to look up (exact case-insensitive match)
@@ -365,9 +368,14 @@ Get complete details for one or more item variants.
 {"variant_ids": [12345, 12346]}
 ```
 
-**Returns:** Full variant details including pricing, barcodes, supplier codes,
-configuration attributes, custom fields, and more. List form returned when a
-batch is requested.
+**Returns:** Full variant details including pricing, barcodes, supplier codes
+(ingest-normalized so the variant's own SKU is stripped from
+`supplier_item_codes` — per #346 follow-on), configuration attributes, custom
+fields, and lifecycle timestamps. Markdown labels use the canonical Pydantic
+field names (e.g. `**supplier_item_codes**: [10654627]`) with list-shaped
+fields rendered in explicit bracket syntax so LLM consumers can't misread a
+value as a differently-labeled field. List form returned when a batch is
+requested.
 
 ---
 
@@ -553,6 +561,15 @@ Create a new item (product, material, or service).
 
 ### get_item / update_item / delete_item
 CRUD operations for items by ID and type.
+
+**get_item** is exhaustive — it surfaces every field Katana exposes on the
+polymorphic Product / Material / Service record, plus nested `variants`
+(summary), `configs`, and `supplier`. Type-specific fields
+(`is_producible` on products, etc.) stay `null` for the other types.
+Parameters: `id` (required), `type` (required — "product" | "material" |
+"service"), `format` (optional, "markdown" | "json"). For per-variant
+detail (barcodes, supplier codes, custom fields), follow up with
+`get_variant_details`.
 
 ---
 

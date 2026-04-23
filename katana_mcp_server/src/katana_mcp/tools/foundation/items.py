@@ -355,39 +355,348 @@ class GetItemRequest(BaseModel):
     )
 
 
-class ItemDetailsResponse(BaseModel):
-    """Detailed item information."""
+class ItemSupplierInfo(BaseModel):
+    """Supplier record embedded on a product or material."""
 
+    id: int
+    name: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    currency: str | None = None
+    comment: str | None = None
+    default_address_id: int | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+class ItemConfigInfo(BaseModel):
+    """Configuration attribute definition (e.g. Size / Color)."""
+
+    id: int
+    name: str
+    values: list[str] = Field(default_factory=list)
+    product_id: int | None = None
+    material_id: int | None = None
+
+
+class ItemVariantSummary(BaseModel):
+    """Brief variant summary embedded in the product/material/service detail."""
+
+    id: int
+    sku: str
+    sales_price: float | None = None
+    purchase_price: float | None = None
+    type: str | None = None
+
+
+class ItemDetailsResponse(BaseModel):
+    """Full item details. Exhaustive — every field Katana exposes on
+    ``Product`` / ``Material`` / ``Service`` is surfaced per-type (the API is
+    polymorphic, so not every field applies to every type; product-only and
+    service-only fields stay ``None`` for the other types).
+
+    Nested ``variants``, ``configs``, and ``supplier`` are surfaced in summary
+    form so a single call can answer most catalog questions without
+    drill-downs. For full per-variant detail (barcodes, supplier codes,
+    custom fields), follow up with ``get_variant_details``.
+    """
+
+    # Core — present on all three types
     id: int
     name: str
     type: ItemType
     uom: str | None = None
     category_name: str | None = None
     is_sellable: bool | None = None
-    is_producible: bool | None = None  # Products only
-    is_purchasable: bool | None = None  # Products/Materials
-    default_supplier_id: int | None = None
     additional_info: str | None = None
+    custom_field_collection_id: int | None = None
+
+    # Timestamps — present on all three
+    created_at: str | None = None
+    updated_at: str | None = None
+    archived_at: str | None = None
+    deleted_at: str | None = None
+
+    # Product / Material only
+    default_supplier_id: int | None = None
+    batch_tracked: bool | None = None
+    purchase_uom: str | None = None
+    purchase_uom_conversion_rate: float | None = None
+    serial_tracked: bool | None = None
+    operations_in_sequence: bool | None = None
+
+    # Product only
+    is_producible: bool | None = None
+    is_purchasable: bool | None = None
+    is_auto_assembly: bool | None = None
+    lead_time: int | None = None
+    minimum_order_quantity: float | None = None
+
+    # Nested collections (Product/Material carry configs + supplier;
+    # all three carry variants)
+    variants: list[ItemVariantSummary] = Field(default_factory=list)
+    configs: list[ItemConfigInfo] = Field(default_factory=list)
+    supplier: ItemSupplierInfo | None = None
+
+
+def _supplier_to_info(raw: Any) -> ItemSupplierInfo | None:
+    """Convert an attrs Supplier (or dict) to ItemSupplierInfo."""
+    if raw is None:
+        return None
+    d = raw.to_dict() if hasattr(raw, "to_dict") else raw
+    if not isinstance(d, dict) or "id" not in d:
+        return None
+    return ItemSupplierInfo(
+        id=d["id"],
+        name=d.get("name"),
+        email=d.get("email"),
+        phone=d.get("phone"),
+        currency=d.get("currency"),
+        comment=d.get("comment"),
+        default_address_id=d.get("default_address_id"),
+        created_at=_iso_or_none(d.get("created_at")),
+        updated_at=_iso_or_none(d.get("updated_at")),
+    )
+
+
+def _config_to_info(raw: Any) -> ItemConfigInfo | None:
+    """Convert an attrs ItemConfig (or dict) to ItemConfigInfo."""
+    d = raw.to_dict() if hasattr(raw, "to_dict") else raw
+    if not isinstance(d, dict) or "id" not in d:
+        return None
+    return ItemConfigInfo(
+        id=d["id"],
+        name=d.get("name") or "",
+        values=list(d.get("values") or []),
+        product_id=d.get("product_id"),
+        material_id=d.get("material_id"),
+    )
+
+
+def _variant_to_summary(raw: Any) -> ItemVariantSummary | None:
+    """Convert a nested Variant/ServiceVariant attrs (or dict) to summary."""
+    d = raw.to_dict() if hasattr(raw, "to_dict") else raw
+    if not isinstance(d, dict) or "id" not in d or "sku" not in d:
+        return None
+    return ItemVariantSummary(
+        id=d["id"],
+        sku=d["sku"],
+        sales_price=d.get("sales_price"),
+        # ServiceVariant uses default_cost; Variant uses purchase_price.
+        purchase_price=d.get("purchase_price") or d.get("default_cost"),
+        type=d.get("type") or d.get("type_"),
+    )
+
+
+def _item_attrs_to_dict(item: Any) -> dict[str, Any]:
+    """Call ``to_dict()`` on a Product/Material/Service attrs model.
+
+    Wraps the call so callers can rely on a plain-dict view across all three
+    types without branching on instance type.
+    """
+    if hasattr(item, "to_dict"):
+        return item.to_dict()
+    return dict(item) if isinstance(item, dict) else {}
+
+
+async def _fetch_item_attrs(services: Any, item_id: int, item_type: ItemType) -> Any:
+    """Fetch a Product/Material/Service attrs model with supplier extension.
+
+    Uses the raw API directly so every field on the generated model is
+    surfaced. The domain helpers (``client.products.get``, etc.) return
+    ``KatanaProduct`` / ``KatanaMaterial`` — curated Pydantic models that
+    drop nested ``variants``, ``configs``, ``supplier``. For the exhaustive
+    detail tool we need the full attrs shape.
+    """
+    from katana_public_api_client.api.material import get_material
+    from katana_public_api_client.api.product import get_product
+    from katana_public_api_client.api.services import get_service
+    from katana_public_api_client.models.get_material_extend_item import (
+        GetMaterialExtendItem,
+    )
+    from katana_public_api_client.models.get_product_extend_item import (
+        GetProductExtendItem,
+    )
+    from katana_public_api_client.utils import unwrap
+
+    if item_type == ItemType.PRODUCT:
+        response = await get_product.asyncio_detailed(
+            client=services.client,
+            id=item_id,
+            extend=[GetProductExtendItem.SUPPLIER],
+        )
+    elif item_type == ItemType.MATERIAL:
+        response = await get_material.asyncio_detailed(
+            client=services.client,
+            id=item_id,
+            extend=[GetMaterialExtendItem.SUPPLIER],
+        )
+    else:
+        response = await get_service.asyncio_detailed(
+            client=services.client, id=item_id
+        )
+    return unwrap(response)
 
 
 async def _get_item_impl(
     request: GetItemRequest, context: Context
 ) -> ItemDetailsResponse:
-    """Get item details by ID and type."""
+    """Get exhaustive item details by ID and type."""
     services = get_services(context)
-    helper = _get_type_helper(services.client, request.type)
-    item = await helper.get(request.id)
+    item = await _fetch_item_attrs(services, request.id, request.type)
+    d = _item_attrs_to_dict(item)
+
+    variants = [
+        v for v in (_variant_to_summary(raw) for raw in d.get("variants") or []) if v
+    ]
+    configs = [c for c in (_config_to_info(raw) for raw in d.get("configs") or []) if c]
+    supplier = _supplier_to_info(d.get("supplier"))
 
     return ItemDetailsResponse(
-        id=item.id,
-        name=item.name or "",
+        id=d.get("id", request.id),
+        name=d.get("name") or "",
         type=request.type,
-        uom=item.uom,
-        category_name=item.category_name,
-        is_sellable=item.is_sellable,
-        is_producible=getattr(item, "is_producible", None),
-        is_purchasable=getattr(item, "is_purchasable", None),
-        additional_info=getattr(item, "additional_info", None),
+        uom=d.get("uom"),
+        category_name=d.get("category_name"),
+        is_sellable=d.get("is_sellable"),
+        additional_info=d.get("additional_info"),
+        custom_field_collection_id=d.get("custom_field_collection_id"),
+        created_at=_iso_or_none(d.get("created_at")),
+        updated_at=_iso_or_none(d.get("updated_at")),
+        archived_at=_iso_or_none(d.get("archived_at")),
+        deleted_at=_iso_or_none(d.get("deleted_at")),
+        # Product / Material only (remain None on Service)
+        default_supplier_id=d.get("default_supplier_id"),
+        batch_tracked=d.get("batch_tracked"),
+        purchase_uom=d.get("purchase_uom"),
+        purchase_uom_conversion_rate=d.get("purchase_uom_conversion_rate"),
+        serial_tracked=d.get("serial_tracked"),
+        operations_in_sequence=d.get("operations_in_sequence"),
+        # Product only
+        is_producible=d.get("is_producible"),
+        is_purchasable=d.get("is_purchasable"),
+        is_auto_assembly=d.get("is_auto_assembly"),
+        lead_time=d.get("lead_time"),
+        minimum_order_quantity=d.get("minimum_order_quantity"),
+        # Nested collections
+        variants=variants,
+        configs=configs,
+        supplier=supplier,
+    )
+
+
+def _render_variant_summary_md(v: ItemVariantSummary) -> str:
+    """Render a variant summary as a compact multi-line block.
+
+    Uses canonical field names so an LLM consuming the markdown can't mistake
+    a rendered value for a differently-labeled field (#346 follow-on).
+    """
+    lines = [f"  - **id**: {v.id}", f"    **sku**: {v.sku}"]
+    for fname in ("type", "sales_price", "purchase_price"):
+        val = getattr(v, fname)
+        if val is not None and val != "":
+            lines.append(f"    **{fname}**: {val}")
+    return "\n".join(lines)
+
+
+def _render_config_md(c: ItemConfigInfo) -> str:
+    """Render an ItemConfig as a compact multi-line block."""
+    values = ", ".join(c.values) if c.values else ""
+    lines = [f"  - **id**: {c.id}", f"    **name**: {c.name}"]
+    if values:
+        lines.append(f"    **values**: [{values}]")
+    return "\n".join(lines)
+
+
+def _render_supplier_md(s: ItemSupplierInfo) -> str:
+    """Render an ItemSupplierInfo as a compact multi-line block."""
+    lines = [f"  - **id**: {s.id}"]
+    for fname in (
+        "name",
+        "email",
+        "phone",
+        "currency",
+        "comment",
+        "default_address_id",
+    ):
+        val = getattr(s, fname)
+        if val is not None and val != "":
+            lines.append(f"    **{fname}**: {val}")
+    return "\n".join(lines)
+
+
+def _item_details_to_tool_result(response: ItemDetailsResponse) -> ToolResult:
+    """Convert ItemDetailsResponse to ToolResult with canonical-name markdown.
+
+    Labels use the canonical Pydantic field names. Fields that don't apply
+    to the item's type (e.g. ``is_producible`` on a Service) are skipped
+    when ``None`` so the markdown stays compact. The Prefab UI is passed
+    through unchanged.
+    """
+    from katana_mcp.tools.prefab_ui import build_item_detail_ui
+
+    name_line = (
+        f"## {response.name}" if response.name else f"## {response.type} {response.id}"
+    )
+    md_lines = [name_line]
+
+    scalar_fields = (
+        "id",
+        "type",
+        "uom",
+        "category_name",
+        "is_sellable",
+        "is_producible",
+        "is_purchasable",
+        "is_auto_assembly",
+        "batch_tracked",
+        "serial_tracked",
+        "operations_in_sequence",
+        "default_supplier_id",
+        "purchase_uom",
+        "purchase_uom_conversion_rate",
+        "lead_time",
+        "minimum_order_quantity",
+        "additional_info",
+        "custom_field_collection_id",
+        "created_at",
+        "updated_at",
+        "archived_at",
+        "deleted_at",
+    )
+    for fname in scalar_fields:
+        val = getattr(response, fname)
+        if val is None or val == "":
+            continue
+        md_lines.append(f"**{fname}**: {val}")
+
+    # Nested collections — always render with explicit list shape so the
+    # caller can see the field even when empty. (#346 follow-on.)
+    if response.variants:
+        md_lines.append(f"**variants** ({len(response.variants)}):")
+        for v in response.variants:
+            md_lines.append(_render_variant_summary_md(v))
+    else:
+        md_lines.append("**variants**: []")
+
+    if response.configs:
+        md_lines.append(f"**configs** ({len(response.configs)}):")
+        for c in response.configs:
+            md_lines.append(_render_config_md(c))
+    else:
+        md_lines.append("**configs**: []")
+
+    if response.supplier is not None:
+        md_lines.append("**supplier**:")
+        md_lines.append(_render_supplier_md(response.supplier))
+    else:
+        md_lines.append("**supplier**: None")
+
+    ui = build_item_detail_ui(response.model_dump())
+
+    return ToolResult(
+        content="\n".join(md_lines),
+        structured_content=ui,
     )
 
 
@@ -396,14 +705,17 @@ async def _get_item_impl(
 async def get_item(
     request: Annotated[GetItemRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """Get item details by ID and type (product, material, or service).
+    """Get exhaustive item details by ID and type (product, material, or service).
 
-    Use when you already have an item ID and type from search_items or another tool.
-    Returns item properties like name, UOM, category, and flags (sellable, producible).
-    For variant-level details (pricing, barcodes, supplier codes), use get_variant_details instead.
+    Returns every field Katana exposes on the item record, plus nested
+    ``variants`` (summary), ``configs``, and ``supplier``. The API is
+    polymorphic: Product / Material / Service each have their own field
+    set, and type-specific fields (``is_producible`` on products, etc.)
+    stay ``None`` for the other types.
+
+    Use after search_items. For variant-level detail (barcodes, supplier
+    codes, custom fields), follow up with ``get_variant_details``.
     """
-    from katana_mcp.tools.prefab_ui import build_item_detail_ui
-
     response = await _get_item_impl(request, context)
 
     if request.format == "json":
@@ -412,29 +724,7 @@ async def get_item(
             structured_content=response.model_dump(),
         )
 
-    ui = build_item_detail_ui(response.model_dump())
-
-    return make_tool_result(
-        response,
-        "item_details",
-        ui=ui,
-        sku="N/A",
-        name=response.name,
-        item_type=response.type,
-        id=response.id,
-        description=response.additional_info or "No description",
-        uom=response.uom or "N/A",
-        is_sellable="Yes" if response.is_sellable else "No",
-        is_producible="Yes" if response.is_producible else "N/A",
-        is_purchasable="Yes" if response.is_purchasable else "N/A",
-        sales_price="N/A",
-        cost="N/A",
-        in_stock="N/A",
-        available="N/A",
-        allocated="N/A",
-        on_order="N/A",
-        supplier_info="Use get_variant_details for supplier info",
-    )
+    return _item_details_to_tool_result(response)
 
 
 # ============================================================================
@@ -775,7 +1065,10 @@ class GetVariantDetailsRequest(BaseModel):
 
 
 class VariantDetailsResponse(BaseModel):
-    """Detailed variant information including all properties."""
+    """Full variant details. Exhaustive — every field Katana exposes on the
+    ``Variant`` attrs model is surfaced, including nested configuration
+    attributes and custom fields, so callers don't need follow-up lookups.
+    """
 
     # Core fields
     id: int
@@ -808,57 +1101,112 @@ class VariantDetailsResponse(BaseModel):
     # Metadata
     created_at: str | None = None
     updated_at: str | None = None
+    deleted_at: str | None = None
+
+
+def _render_list_field_md(field_name: str, items: list[Any]) -> list[str]:
+    """Render a list-shaped field with canonical label and explicit list syntax.
+
+    Empty lists render as ``**field_name**: []`` so an LLM consumer can't
+    mistake a section header for a value (#346 follow-on — supplier_item_codes
+    misread as a supplier ID). Non-empty scalar lists render as
+    ``**field_name**: [a, b, c]`` to keep the list shape visible.
+    """
+    if not items:
+        return [f"**{field_name}**: []"]
+    # Scalars (strings, numbers) render inline with bracket syntax.
+    if all(isinstance(it, str | int | float) for it in items):
+        rendered = ", ".join(str(it) for it in items)
+        return [f"**{field_name}**: [{rendered}]"]
+    # Dict-shaped lists (config_attributes, custom_fields) render as a
+    # labeled block with per-item bullets.
+    lines = [f"**{field_name}** ({len(items)}):"]
+    for item in items:
+        if isinstance(item, dict):
+            pairs = ", ".join(
+                f"{k}={v}" for k, v in item.items() if v not in (None, "")
+            )
+            lines.append(f"  - {pairs}" if pairs else "  - (empty)")
+        else:
+            lines.append(f"  - {item}")
+    return lines
 
 
 def _variant_details_to_tool_result(response: VariantDetailsResponse) -> ToolResult:
-    """Convert VariantDetailsResponse to ToolResult with markdown + Prefab UI."""
+    """Convert VariantDetailsResponse to ToolResult with canonical-name markdown.
+
+    Markdown labels use the Pydantic field names (``**supplier_item_codes**:
+    [10654627]`` rather than a ``Supplier Info`` header with bare bullets)
+    so LLM consumers can't confuse the section label with the field name.
+    Motivation: #346 follow-on — the previous ``Supplier Info`` heading
+    caused an LLM to misread a supplier_item_code as a supplier ID.
+
+    The Prefab UI (for MCP-Apps clients) is passed through unchanged;
+    scope boundary from #346 keeps Prefab builders untouched.
+    """
     from katana_mcp.tools.prefab_ui import build_variant_details_ui
 
-    # Build supplier info text
-    if response.supplier_item_codes:
-        supplier_info = "\n".join(f"- {code}" for code in response.supplier_item_codes)
-    else:
-        supplier_info = "No supplier codes registered"
+    name_line = f"## {response.name}" if response.name else f"## variant {response.id}"
+    md_lines = [name_line]
 
-    # Handle None values for template - format as currency string or N/A
-    sales_price = (
-        f"${response.sales_price:,.2f}" if response.sales_price is not None else "N/A"
+    # Scalar fields render as ``**canonical_name**: value`` — skip None/empty
+    # so the markdown stays compact but every populated field surfaces.
+    scalar_fields = (
+        "id",
+        "sku",
+        "type",
+        "product_id",
+        "material_id",
+        "product_or_material_name",
+        "sales_price",
+        "purchase_price",
+        "internal_barcode",
+        "registered_barcode",
+        "lead_time",
+        "minimum_order_quantity",
+        "created_at",
+        "updated_at",
+        "deleted_at",
     )
-    cost = (
-        f"${response.purchase_price:,.2f}"
-        if response.purchase_price is not None
-        else "N/A"
+    for fname in scalar_fields:
+        val = getattr(response, fname)
+        if val is None or val == "":
+            continue
+        md_lines.append(f"**{fname}**: {val}")
+
+    # List-shaped fields always render — empty prints as ``[]`` so the field
+    # is visible in its true shape.
+    md_lines.extend(
+        _render_list_field_md("supplier_item_codes", response.supplier_item_codes)
     )
-    item_type = response.type or "unknown"
-    description = response.product_or_material_name or "No description"
+    md_lines.extend(
+        _render_list_field_md("config_attributes", response.config_attributes)
+    )
+    md_lines.extend(_render_list_field_md("custom_fields", response.custom_fields))
 
     ui = build_variant_details_ui(response.model_dump())
 
-    return make_tool_result(
-        response,
-        "item_details",
-        ui=ui,
-        sku=response.sku,
-        name=response.name,
-        item_type=item_type,
-        id=response.id,
-        description=description,
-        uom="N/A",  # Not available in variant response
-        is_sellable="Yes" if item_type == "product" else "No",
-        is_producible="N/A",  # Not available in variant response
-        is_purchasable="N/A",  # Not available in variant response
-        sales_price=sales_price,
-        cost=cost,
-        in_stock="N/A",  # Not available in variant response
-        available="N/A",
-        allocated="N/A",
-        on_order="N/A",
-        supplier_info=supplier_info,
+    return ToolResult(
+        content="\n".join(md_lines),
+        structured_content=ui,
     )
 
 
+def _iso_or_none(value: Any) -> str | None:
+    """Return an ISO-8601 string for a datetime-or-str value, else None."""
+    if value is None:
+        return None
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    return str(value)
+
+
 def _dict_to_variant_details(v: dict[str, Any]) -> VariantDetailsResponse:
-    """Build a VariantDetailsResponse from a cache/API variant dict."""
+    """Build a VariantDetailsResponse from a cache/API variant dict.
+
+    Surfaces every field the generated ``Variant`` attrs model exposes, so
+    callers get the full shape in a single call.
+    """
     return VariantDetailsResponse(
         id=v["id"],
         sku=v.get("sku") or "",
@@ -876,8 +1224,9 @@ def _dict_to_variant_details(v: dict[str, Any]) -> VariantDetailsResponse:
         minimum_order_quantity=v.get("minimum_order_quantity"),
         config_attributes=v.get("config_attributes") or [],
         custom_fields=v.get("custom_fields") or [],
-        created_at=v.get("created_at"),
-        updated_at=v.get("updated_at"),
+        created_at=_iso_or_none(v.get("created_at")),
+        updated_at=_iso_or_none(v.get("updated_at")),
+        deleted_at=_iso_or_none(v.get("deleted_at")),
     )
 
 
