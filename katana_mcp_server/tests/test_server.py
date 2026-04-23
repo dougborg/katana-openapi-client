@@ -16,19 +16,26 @@ class TestServices:
     """Tests for Services class."""
 
     def test_services_initialization(self):
-        """Test Services initializes with KatanaClient and CatalogCache."""
+        """Test Services initializes with KatanaClient, CatalogCache, typed cache."""
         mock_client = MagicMock(spec=KatanaClient)
         mock_cache = MagicMock()
-        context = Services(client=mock_client, cache=mock_cache)
+        mock_typed_cache = MagicMock()
+        context = Services(
+            client=mock_client, cache=mock_cache, typed_cache=mock_typed_cache
+        )
 
         assert context.client is mock_client
         assert context.cache is mock_cache
+        assert context.typed_cache is mock_typed_cache
 
     def test_services_stores_client(self):
         """Test Services correctly stores and retrieves client."""
         mock_client = MagicMock(spec=KatanaClient)
         mock_cache = MagicMock()
-        context = Services(client=mock_client, cache=mock_cache)
+        mock_typed_cache = MagicMock()
+        context = Services(
+            client=mock_client, cache=mock_cache, typed_cache=mock_typed_cache
+        )
 
         assert context.client is mock_client
         assert context.cache is mock_cache

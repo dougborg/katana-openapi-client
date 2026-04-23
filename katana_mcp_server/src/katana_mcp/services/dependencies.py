@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from fastmcp import Context
 
 from katana_mcp.cache import CatalogCache
+from katana_mcp.typed_cache import TypedCacheEngine
 from katana_public_api_client import KatanaClient
 
 
@@ -22,11 +23,16 @@ class Services:
 
     Attributes:
         client: The KatanaClient instance for API operations
-        cache: Persistent SQLite catalog cache with FTS5 search
+        cache: Persistent SQLite catalog cache with FTS5 search (legacy,
+            holds reference entity types; retires per-entity during #342).
+        typed_cache: SQLModel-backed cache for transactional list tools
+            (sales orders first; see #342). Coexists with ``cache`` until
+            the reference-entity migration epic completes.
     """
 
     client: KatanaClient
     cache: CatalogCache
+    typed_cache: TypedCacheEngine
 
 
 def get_services(context: Context) -> Services:
