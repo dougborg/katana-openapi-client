@@ -2,6 +2,267 @@
 
 <!-- version list -->
 
+## v0.52.0 (2026-04-23)
+
+### Bug Fixes
+
+- **ci**: Isolate parallel agent worktrees from pre-commit hooks
+  ([#359](https://github.com/dougborg/katana-openapi-client/pull/359),
+  [`0953a9b`](https://github.com/dougborg/katana-openapi-client/commit/0953a9baa5875063b7389dc7c22daacb9e21bfdc))
+
+- **ci**: Sync uv.lock after semantic-release version bumps
+  ([`911f334`](https://github.com/dougborg/katana-openapi-client/commit/911f33443bbe39b2a2e7b7d876538c841fc0146a))
+
+- **mcp**: Add --no-sources to Docker build for PyPI resolution
+  ([`0607437`](https://github.com/dougborg/katana-openapi-client/commit/0607437051199ff0ee8e66c350615ed277ea656b))
+
+- **mcp**: Add tmpfs for cache in read-only Docker container
+  ([`b4e6d83`](https://github.com/dougborg/katana-openapi-client/commit/b4e6d839382bc686bd8489562f3f12448e85f8f5))
+
+- **mcp**: Address copilot feedback on get_purchase_order
+  ([#357](https://github.com/dougborg/katana-openapi-client/pull/357),
+  [`19a3795`](https://github.com/dougborg/katana-openapi-client/commit/19a379594b4b7fddf45be70ec146b2c7533df31b))
+
+- **mcp**: Address Copilot review on reporting tools
+  ([#340](https://github.com/dougborg/katana-openapi-client/pull/340),
+  [`da22279`](https://github.com/dougborg/katana-openapi-client/commit/da22279e179db6e6640c459d0f5562b993037d6e))
+
+- **mcp**: Address simplify review findings for auth
+  ([`fa570e6`](https://github.com/dougborg/katana-openapi-client/commit/fa570e6e06df2957456c54198be529cdbcff75b1))
+
+- **mcp**: Avoid SQL-keyword f-strings in elicitation prompts
+  ([#341](https://github.com/dougborg/katana-openapi-client/pull/341),
+  [`014942f`](https://github.com/dougborg/katana-openapi-client/commit/014942ff657eb860203342ae538e772ba83c821d))
+
+- **mcp**: Chain Docker build after both packages publish
+  ([`aa5657c`](https://github.com/dougborg/katana-openapi-client/commit/aa5657c9715714396a23da48238446b3eaf90692))
+
+- **mcp**: Expose pagination cursor on list_sales_orders
+  ([#336](https://github.com/dougborg/katana-openapi-client/pull/336),
+  [`5900ee6`](https://github.com/dougborg/katana-openapi-client/commit/5900ee6d7d0835605394737e892a00b521ccff42))
+
+- **mcp**: Guard page=1 short-circuit against non-positive limit
+  ([#335](https://github.com/dougborg/katana-openapi-client/pull/335),
+  [`21c323a`](https://github.com/dougborg/katana-openapi-client/commit/21c323a080ff49749208d17f347435a01b90a635))
+
+- **mcp**: Prefab UI was built but never rendered in Claude Desktop
+  ([#351](https://github.com/dougborg/katana-openapi-client/pull/351),
+  [`5b373fc`](https://github.com/dougborg/katana-openapi-client/commit/5b373fca09ef02270259440838bb36eda8e546c8))
+
+- **mcp**: Respect limit param in list_sales_orders
+  ([#335](https://github.com/dougborg/katana-openapi-client/pull/335),
+  [`21c323a`](https://github.com/dougborg/katana-openapi-client/commit/21c323a080ff49749208d17f347435a01b90a635))
+
+- **mcp**: Surface missed server-side filters on list_stock_adjustments
+  ([#341](https://github.com/dougborg/katana-openapi-client/pull/341),
+  [`014942f`](https://github.com/dougborg/katana-openapi-client/commit/014942ff657eb860203342ae538e772ba83c821d))
+
+- **mcp**: Three follow-ups from /review-pr pass on #356
+  ([#360](https://github.com/dougborg/katana-openapi-client/pull/360),
+  [`3b4e1ef`](https://github.com/dougborg/katana-openapi-client/commit/3b4e1ef58fc44caed4a61ab5bd3987cdc6fba711))
+
+- **mcp**: Tighten list_stock_adjustments after Copilot review
+  ([#341](https://github.com/dougborg/katana-openapi-client/pull/341),
+  [`014942f`](https://github.com/dougborg/katana-openapi-client/commit/014942ff657eb860203342ae538e772ba83c821d))
+
+- **mcp**: Tighten stock_transfers after Copilot review
+  ([#339](https://github.com/dougborg/katana-openapi-client/pull/339),
+  [`c3295a9`](https://github.com/dougborg/katana-openapi-client/commit/c3295a95926b722dfdde4f627385e91971bd91c3))
+
+- **mcp**: Use int for tracking_location_id/supplier_id in list_purchase_orders
+  ([#343](https://github.com/dougborg/katana-openapi-client/pull/343),
+  [`42cafe2`](https://github.com/dougborg/katana-openapi-client/commit/42cafe20cfeca8bb2b549a6aec238b9a3a7d52da))
+
+### Chores
+
+- Sync uv.lock with mcp v0.39.0
+  ([`84941d9`](https://github.com/dougborg/katana-openapi-client/commit/84941d96ead13655d75d86696d1093425cc0c636))
+
+- **actions)(deps**: Bump actions/upload-pages-artifact
+  ([#327](https://github.com/dougborg/katana-openapi-client/pull/327),
+  [`82a6258`](https://github.com/dougborg/katana-openapi-client/commit/82a62588e49df5060dceb7ed896860e2e8e68b5f))
+
+- **deps)(deps**: Bump the python-minor-patch group with 6 updates
+  ([#328](https://github.com/dougborg/katana-openapi-client/pull/328),
+  [`abf3c8d`](https://github.com/dougborg/katana-openapi-client/commit/abf3c8d02d58b0823bb9ccb8187a11499df24a58))
+
+- **mcp**: Post-wave cleanup — correctness drift in list tools
+  ([#348](https://github.com/dougborg/katana-openapi-client/pull/348),
+  [`2d1fb86`](https://github.com/dougborg/katana-openapi-client/commit/2d1fb863b0cde6eec5b4cde5067f729b99c877d7))
+
+- **mcp**: Post-wave cleanup — fix correctness drift in list tools
+  ([#348](https://github.com/dougborg/katana-openapi-client/pull/348),
+  [`2d1fb86`](https://github.com/dougborg/katana-openapi-client/commit/2d1fb863b0cde6eec5b4cde5067f729b99c877d7))
+
+- **mcp**: Simplify follow-ups to Prefab UI delivery fix
+  ([#351](https://github.com/dougborg/katana-openapi-client/pull/351),
+  [`5b373fc`](https://github.com/dougborg/katana-openapi-client/commit/5b373fca09ef02270259440838bb36eda8e546c8))
+
+- **release**: Mcp v0.36.0
+  ([`8152185`](https://github.com/dougborg/katana-openapi-client/commit/8152185367b0be6ac2594c3ea49e6dd6621bf663))
+
+- **release**: Mcp v0.37.0
+  ([`fe65eca`](https://github.com/dougborg/katana-openapi-client/commit/fe65eca8169ba585baf3949e07b6aa70a7f2e729))
+
+- **release**: Mcp v0.37.1
+  ([`6652f0a`](https://github.com/dougborg/katana-openapi-client/commit/6652f0a056b62f338ccdc9b2b2fbec9c1b1122f9))
+
+- **release**: Mcp v0.38.0
+  ([`49b712e`](https://github.com/dougborg/katana-openapi-client/commit/49b712efdd29f93efa7f97b1df4c40af776d7dfc))
+
+- **release**: Mcp v0.39.0
+  ([`60a2ada`](https://github.com/dougborg/katana-openapi-client/commit/60a2ada75bcb0f2de10159783e9b2b82e50beda7))
+
+- **release**: Mcp v0.39.1
+  ([`2af011c`](https://github.com/dougborg/katana-openapi-client/commit/2af011cba74b75b022053543f743b73e620beb92))
+
+- **release**: Mcp v0.40.0
+  ([`d41522e`](https://github.com/dougborg/katana-openapi-client/commit/d41522e9aabde2144de12db0cc11a178e83975f8))
+
+### Documentation
+
+- **mcp**: Document format parameter in help resource
+  ([#345](https://github.com/dougborg/katana-openapi-client/pull/345),
+  [`a789450`](https://github.com/dougborg/katana-openapi-client/commit/a7894503de09abb4766fa59c9812a3d612a4f23b))
+
+- **mcp**: Fix help text for get_variant_details and check_inventory
+  ([#345](https://github.com/dougborg/katana-openapi-client/pull/345),
+  [`a789450`](https://github.com/dougborg/katana-openapi-client/commit/a7894503de09abb4766fa59c9812a3d612a4f23b))
+
+- **mcp**: Include `id` in list_sales_orders include_rows field list
+  ([#344](https://github.com/dougborg/katana-openapi-client/pull/344),
+  [`80c5107`](https://github.com/dougborg/katana-openapi-client/commit/80c51071923dc6c7ee912bfeb6e6ded2273497a3))
+
+### Features
+
+- **client**: Base generated pydantic models on SQLModel (#342 foundation)
+  ([#361](https://github.com/dougborg/katana-openapi-client/pull/361),
+  [`50c951c`](https://github.com/dougborg/katana-openapi-client/commit/50c951cea8a95458a98848a0b070a2ca3c93de14))
+
+- **mcp**: Add aggregation/reporting tools
+  ([#340](https://github.com/dougborg/katana-openapi-client/pull/340),
+  [`da22279`](https://github.com/dougborg/katana-openapi-client/commit/da22279e179db6e6640c459d0f5562b993037d6e))
+
+- **mcp**: Add endpoint authentication for HTTP transport
+  ([`405d5c6`](https://github.com/dougborg/katana-openapi-client/commit/405d5c6fe01058b4093ceec693d7d0957d699ad1))
+
+- **mcp**: Add format=json | markdown to list/get tools
+  ([#345](https://github.com/dougborg/katana-openapi-client/pull/345),
+  [`a789450`](https://github.com/dougborg/katana-openapi-client/commit/a7894503de09abb4766fa59c9812a3d612a4f23b))
+
+- **mcp**: Add format=json|markdown to customers tools
+  ([#345](https://github.com/dougborg/katana-openapi-client/pull/345),
+  [`a789450`](https://github.com/dougborg/katana-openapi-client/commit/a7894503de09abb4766fa59c9812a3d612a4f23b))
+
+- **mcp**: Add format=json|markdown to items + inventory tools
+  ([#345](https://github.com/dougborg/katana-openapi-client/pull/345),
+  [`a789450`](https://github.com/dougborg/katana-openapi-client/commit/a7894503de09abb4766fa59c9812a3d612a4f23b))
+
+- **mcp**: Add format=json|markdown to manufacturing_orders tools
+  ([#345](https://github.com/dougborg/katana-openapi-client/pull/345),
+  [`a789450`](https://github.com/dougborg/katana-openapi-client/commit/a7894503de09abb4766fa59c9812a3d612a4f23b))
+
+- **mcp**: Add format=json|markdown to purchase_orders tools
+  ([#345](https://github.com/dougborg/katana-openapi-client/pull/345),
+  [`a789450`](https://github.com/dougborg/katana-openapi-client/commit/a7894503de09abb4766fa59c9812a3d612a4f23b))
+
+- **mcp**: Add format=json|markdown to reporting tools
+  ([#345](https://github.com/dougborg/katana-openapi-client/pull/345),
+  [`a789450`](https://github.com/dougborg/katana-openapi-client/commit/a7894503de09abb4766fa59c9812a3d612a4f23b))
+
+- **mcp**: Add format=json|markdown to sales_orders tools
+  ([#345](https://github.com/dougborg/katana-openapi-client/pull/345),
+  [`a789450`](https://github.com/dougborg/katana-openapi-client/commit/a7894503de09abb4766fa59c9812a3d612a4f23b))
+
+- **mcp**: Add format=json|markdown to stock_transfers read tool
+  ([#345](https://github.com/dougborg/katana-openapi-client/pull/345),
+  [`a789450`](https://github.com/dougborg/katana-openapi-client/commit/a7894503de09abb4766fa59c9812a3d612a4f23b))
+
+- **mcp**: Add hot-reload dev tasks and fix Docker health check
+  ([`5a996ea`](https://github.com/dougborg/katana-openapi-client/commit/5a996ea0536f4546ff2bc76011867ef6c690800a))
+
+- **mcp**: Add include_rows to list_sales_orders
+  ([#344](https://github.com/dougborg/katana-openapi-client/pull/344),
+  [`80c5107`](https://github.com/dougborg/katana-openapi-client/commit/80c51071923dc6c7ee912bfeb6e6ded2273497a3))
+
+- **mcp**: Add include_rows to list_sales_orders (#332)
+  ([#344](https://github.com/dougborg/katana-openapi-client/pull/344),
+  [`80c5107`](https://github.com/dougborg/katana-openapi-client/commit/80c51071923dc6c7ee912bfeb6e6ded2273497a3))
+
+- **mcp**: Add stock-transfer tools
+  ([#339](https://github.com/dougborg/katana-openapi-client/pull/339),
+  [`c3295a9`](https://github.com/dougborg/katana-openapi-client/commit/c3295a95926b722dfdde4f627385e91971bd91c3))
+
+- **mcp**: Add stock-transfer tools (#338)
+  ([#339](https://github.com/dougborg/katana-openapi-client/pull/339),
+  [`c3295a9`](https://github.com/dougborg/katana-openapi-client/commit/c3295a95926b722dfdde4f627385e91971bd91c3))
+
+- **mcp**: Complete stock-adjustment CRUD
+  ([#341](https://github.com/dougborg/katana-openapi-client/pull/341),
+  [`014942f`](https://github.com/dougborg/katana-openapi-client/commit/014942ff657eb860203342ae538e772ba83c821d))
+
+- **mcp**: Date-range filters + list_manufacturing_orders + list_purchase_orders
+  ([#343](https://github.com/dougborg/katana-openapi-client/pull/343),
+  [`42cafe2`](https://github.com/dougborg/katana-openapi-client/commit/42cafe20cfeca8bb2b549a6aec238b9a3a7d52da))
+
+- **mcp**: Date-range filters on list_sales_orders; add list_manufacturing_orders +
+  list_purchase_orders
+  ([#343](https://github.com/dougborg/katana-openapi-client/pull/343),
+  [`42cafe2`](https://github.com/dougborg/katana-openapi-client/commit/42cafe20cfeca8bb2b549a6aec238b9a3a7d52da))
+
+- **mcp**: Exhaustive get_customer + canonical-name markdown labels (#346)
+  ([#352](https://github.com/dougborg/katana-openapi-client/pull/352),
+  [`508ec16`](https://github.com/dougborg/katana-openapi-client/commit/508ec16884aea80982d3a287fea48d41b71ed276))
+
+- **mcp**: Exhaustive get_inventory_movements + canonical-name labels (#346)
+  ([#353](https://github.com/dougborg/katana-openapi-client/pull/353),
+  [`1e7a711`](https://github.com/dougborg/katana-openapi-client/commit/1e7a71152d90419bd92742fc5d251928ab163df3))
+
+- **mcp**: Exhaustive get_manufacturing_order + recipe + canonical-name labels (#346)
+  ([#355](https://github.com/dougborg/katana-openapi-client/pull/355),
+  [`7a86aa9`](https://github.com/dougborg/katana-openapi-client/commit/7a86aa915ff54a69c8e491aaf1ca4acea8a417e7))
+
+- **mcp**: Exhaustive get_purchase_order + canonical-name labels
+  ([#357](https://github.com/dougborg/katana-openapi-client/pull/357),
+  [`19a3795`](https://github.com/dougborg/katana-openapi-client/commit/19a379594b4b7fddf45be70ec146b2c7533df31b))
+
+- **mcp**: Exhaustive get_purchase_order + canonical-name labels (#346)
+  ([#357](https://github.com/dougborg/katana-openapi-client/pull/357),
+  [`19a3795`](https://github.com/dougborg/katana-openapi-client/commit/19a379594b4b7fddf45be70ec146b2c7533df31b))
+
+- **mcp**: Exhaustive get_sales_order + canonical-name markdown labels (#346)
+  ([#354](https://github.com/dougborg/katana-openapi-client/pull/354),
+  [`03c7967`](https://github.com/dougborg/katana-openapi-client/commit/03c796733e6a5b3181ee29c8ffeb5f1d114d0751))
+
+- **mcp**: Exhaustive get_variant_details + get_item (#346)
+  ([#356](https://github.com/dougborg/katana-openapi-client/pull/356),
+  [`af394ac`](https://github.com/dougborg/katana-openapi-client/commit/af394ac8291e0e11e0288ac94d95d685ab6dda80))
+
+- **mcp**: HTTP transport support for Docker and Claude.ai co-work
+  ([#326](https://github.com/dougborg/katana-openapi-client/pull/326),
+  [`39e7c4e`](https://github.com/dougborg/katana-openapi-client/commit/39e7c4e47c67772b10edb60c6d9ea8128444fa7a))
+
+- **mcp**: Improve docker compose with health check and .env.example
+  ([#326](https://github.com/dougborg/katana-openapi-client/pull/326),
+  [`39e7c4e`](https://github.com/dougborg/katana-openapi-client/commit/39e7c4e47c67772b10edb60c6d9ea8128444fa7a))
+
+- **mcp**: Support HTTP transport in Docker and add co-work docs
+  ([#326](https://github.com/dougborg/katana-openapi-client/pull/326),
+  [`39e7c4e`](https://github.com/dougborg/katana-openapi-client/commit/39e7c4e47c67772b10edb60c6d9ea8128444fa7a))
+
+- **mcp**: Update client dependency to v0.51.0
+  ([`2d433c3`](https://github.com/dougborg/katana-openapi-client/commit/2d433c3bf86ce8725edbcdbf1d6105daf7bb70f6))
+
+### Performance Improvements
+
+- **mcp**: Read category_name from cache instead of live API
+  ([#348](https://github.com/dougborg/katana-openapi-client/pull/348),
+  [`2d1fb86`](https://github.com/dougborg/katana-openapi-client/commit/2d1fb863b0cde6eec5b4cde5067f729b99c877d7))
+
+- **mcp**: Route category lookup via variant.type — no more probing
+  ([#348](https://github.com/dougborg/katana-openapi-client/pull/348),
+  [`2d1fb86`](https://github.com/dougborg/katana-openapi-client/commit/2d1fb863b0cde6eec5b4cde5067f729b99c877d7))
+
 ## v0.51.0 (2026-04-13)
 
 ### Bug Fixes
