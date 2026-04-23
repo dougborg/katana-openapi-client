@@ -2,6 +2,23 @@
 
 <!-- version list -->
 
+## v0.53.0 (2026-04-23)
+
+### Chores
+
+- **client**: Simplify PR #361 docstrings
+  ([#362](https://github.com/dougborg/katana-openapi-client/pull/362),
+  [`478ac01`](https://github.com/dougborg/katana-openapi-client/commit/478ac01b8098961e4c0d361a4baf768eb45cdf9b))
+
+- **mcp**: Update client dependency to v0.52.0
+  ([`db197b6`](https://github.com/dougborg/katana-openapi-client/commit/db197b621296b9486baa9db240e465bad8beb9ed))
+
+### Features
+
+- **client**: Generator emits SQLModel tables for cache-target entities (#342)
+  ([#363](https://github.com/dougborg/katana-openapi-client/pull/363),
+  [`2eb65c9`](https://github.com/dougborg/katana-openapi-client/commit/2eb65c9c8025d84a68a99df06c90bc0e91ba14cb))
+
 ## v0.52.0 (2026-04-23)
 
 ### Bug Fixes
