@@ -43,6 +43,10 @@ dependencies = [
     "structlog>=25.5.0",
     "aiosqlite>=0.20.0",
     "platformdirs>=4.0.0",
+    # SQLAlchemy's async engine requires greenlet to bridge sync→async
+    # context for the DB driver. Declared explicitly for the #342 typed
+    # cache; without it, async session operations raise at runtime.
+    "greenlet>=3.0.0",
 ]
 
 # Note: Development dependencies like mcp-hmr require Python >=3.12

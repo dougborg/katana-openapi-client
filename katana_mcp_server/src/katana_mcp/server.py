@@ -100,20 +100,35 @@ async def lifespan(server: FastMCP) -> AsyncIterator[Services]:
                 max_pages=100,
             )
 
-            # Initialize persistent catalog cache
+            # Initialize persistent catalog cache (legacy, 10 reference
+            # entity types) and the SQLModel-backed typed cache (#342,
+            # transactional types — sales_orders first). They coexist
+            # until the reference-entity migration epic lands. The
+            # nested try/finally guarantees each already-opened cache
+            # closes even if a later open() raises — without it, a
+            # TypedCacheEngine.open() failure would leak the legacy
+            # cache's SQLite handle.
             from katana_mcp.cache import CatalogCache
+            from katana_mcp.typed_cache import TypedCacheEngine
 
             cache = CatalogCache()
             await cache.open()
             logger.info("cache_initialized", db_path=str(cache.db_path))
-
             try:
-                # Create context with client and cache for tools to access
-                context = Services(client=client, cache=cache)  # type: ignore[arg-type]
-
-                # Yield context to server - tools can access via lifespan dependency
-                logger.info("server_ready", version=__version__)
-                yield context
+                typed_cache = TypedCacheEngine()
+                await typed_cache.open()
+                logger.info("typed_cache_initialized", db_path=str(typed_cache.db_path))
+                try:
+                    context = Services(
+                        client=client,  # type: ignore[arg-type]
+                        cache=cache,
+                        typed_cache=typed_cache,
+                    )
+                    logger.info("server_ready", version=__version__)
+                    yield context
+                finally:
+                    await typed_cache.close()
+                    logger.info("typed_cache_closed")
             finally:
                 await cache.close()
                 logger.info("cache_closed")
