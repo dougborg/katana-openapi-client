@@ -368,13 +368,15 @@ or timestamps (including `deleted_at`).
 {"variant_ids": [12345, 12346]}
 ```
 
-**Returns:** Full variant details including pricing, barcodes, supplier codes
-(ingest-normalized so the variant's own SKU is stripped from
-`supplier_item_codes` — per #346 follow-on), configuration attributes, custom
-fields, and lifecycle timestamps. Markdown labels use the canonical Pydantic
-field names (e.g. `**supplier_item_codes**: [10654627]`) with list-shaped
-fields rendered in explicit bracket syntax so LLM consumers can't misread a
-value as a differently-labeled field. List form returned when a batch is
+**Returns:** Full variant details including pricing, barcodes,
+`supplier_item_codes` (passed through verbatim from the catalog — entries
+that match the variant's own SKU are meaningful and retained, because the
+house SKU is often the QBP/vendor SKU for retail pass-throughs),
+configuration attributes, custom fields, and lifecycle timestamps. Markdown
+labels use the canonical Pydantic field names (e.g.
+`**supplier_item_codes**: [SW7083, 10654627]`) with list-shaped fields
+rendered in explicit bracket syntax so LLM consumers can't misread a value
+as a differently-labeled field. List form returned when a batch is
 requested.
 
 ---
