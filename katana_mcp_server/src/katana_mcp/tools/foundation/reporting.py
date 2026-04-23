@@ -25,6 +25,7 @@ Tools:
 
 from __future__ import annotations
 
+import asyncio
 from collections import defaultdict
 from collections.abc import Iterable
 from datetime import UTC, date, datetime, timedelta
@@ -34,8 +35,10 @@ from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
 from pydantic import BaseModel, Field
 
+from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.tools.decorators import cache_read
 from katana_mcp.tools.tool_result_utils import (
     format_md_table,
     make_simple_result,
@@ -131,76 +134,57 @@ async def _fetch_delivered_sales_orders_in_window(
     return filtered
 
 
+# Map the variant's normalized "type" string (set by cache_sync._variant_to_cache_dict
+# from VariantType) to the (cache entity type, FK field name on the variant dict).
+# Services appear to share the product_id FK namespace in Katana's schema.
+_PARENT_BY_VARIANT_TYPE: dict[str, tuple[EntityType, str]] = {
+    "product": (EntityType.PRODUCT, "product_id"),
+    "material": (EntityType.MATERIAL, "material_id"),
+    "service": (EntityType.SERVICE, "product_id"),
+}
+
+
 async def _resolve_variant_info(
     services: Any,
     variant_id: int,
     variant_cache: dict[int, dict[str, Any]],
-    category_cache: dict[int, str | None],
+    category_cache: dict[tuple[EntityType, int], str | None],
 ) -> tuple[dict[str, Any] | None, str | None]:
-    """Resolve variant dict and its item-category, caching both.
+    """Resolve variant dict and its item-category from the local cache.
 
     Returns ``(variant_dict, category_name)``. Both may be None if lookups
     miss (cache-only path; we do not fall back to API to keep aggregation
     calls bounded — unknown variants are still counted in aggregates, just
     without SKU/name/category enrichment).
+
+    The variant's ``type`` field tells us which of product/material/service
+    owns the parent, so we do one targeted cache lookup instead of probing
+    all three tables.
     """
     variant = variant_cache.get(variant_id)
     if variant is None:
-        from katana_mcp.cache import EntityType
-
         variant = await services.cache.get_by_id(EntityType.VARIANT, variant_id)
         variant_cache[variant_id] = variant or {}
 
     if not variant:
         return None, None
 
-    product_id = variant.get("product_id")
-    if product_id is None:
+    mapping = _PARENT_BY_VARIANT_TYPE.get(variant.get("type") or "")
+    if mapping is None:
+        return variant, None
+    parent_entity_type, fk_field = mapping
+    parent_id = variant.get(fk_field)
+    if parent_id is None:
         return variant, None
 
-    category = category_cache.get(product_id)
-    if category is not None or product_id in category_cache:
-        return variant, category
+    cache_key = (parent_entity_type, parent_id)
+    if cache_key in category_cache:
+        return variant, category_cache[cache_key]
 
-    # Try product → then material → then service for category_name. The
-    # variant dict alone doesn't tell us which one, so we try in order and
-    # stop at the first hit.
-    category = await _fetch_category_for_product(services, product_id)
-    category_cache[product_id] = category
-    return variant, category
-
-
-async def _fetch_category_for_product(services: Any, product_id: int) -> str | None:
-    """Look up the category_name for a given product/material/service ID.
-
-    Tries product first, then material, then service. Returns None if none
-    match or category is unset.
-    """
-    from katana_public_api_client.api.material import get_material
-    from katana_public_api_client.api.product import get_product
-    from katana_public_api_client.api.services import get_service
-    from katana_public_api_client.utils import unwrap
-
-    for fetcher in (
-        get_product.asyncio_detailed,
-        get_material.asyncio_detailed,
-        get_service.asyncio_detailed,
-    ):
-        try:
-            response = await fetcher(id=product_id, client=services.client)
-        except Exception:
-            continue
-        # unwrap(..., raise_on_error=False) returns None for ErrorResponse,
-        # so a None here covers both "not this type" and "error payload".
-        obj = unwrap(response, raise_on_error=False)
-        if obj is None:
-            continue
-        cat = unwrap_unset(getattr(obj, "category_name", None), None)
-        if cat is not None:
-            return cat
-        # Found a matching record but no category — stop here.
-        return None
-    return None
+    parent = await services.cache.get_by_id(parent_entity_type, parent_id)
+    category = parent.get("category_name") if parent else None
+    category_cache[cache_key] = category or None
+    return variant, category or None
 
 
 def _iter_rows(so: Any) -> Iterable[Any]:
@@ -275,6 +259,9 @@ class TopSellingVariantsResponse(BaseModel):
     window_end: str
 
 
+@cache_read(
+    EntityType.VARIANT, EntityType.PRODUCT, EntityType.MATERIAL, EntityType.SERVICE
+)
 async def _top_selling_variants_impl(
     request: TopSellingVariantsRequest, context: Context
 ) -> TopSellingVariantsResponse:
@@ -303,7 +290,7 @@ async def _top_selling_variants_impl(
         lambda: {"units": 0.0, "revenue": 0.0, "order_ids": set()}
     )
     variant_cache: dict[int, dict[str, Any]] = {}
-    category_cache: dict[int, str | None] = {}
+    category_cache: dict[tuple[EntityType, int], str | None] = {}
 
     for so in orders:
         so_id = so.id
@@ -469,6 +456,9 @@ def _group_key_time(so_created: datetime, group_by: SalesGroupBy) -> str:
     return f"{so_created.year:04d}-{so_created.month:02d}"
 
 
+@cache_read(
+    EntityType.VARIANT, EntityType.PRODUCT, EntityType.MATERIAL, EntityType.SERVICE
+)
 async def _sales_summary_impl(
     request: SalesSummaryRequest, context: Context
 ) -> SalesSummaryResponse:
@@ -490,7 +480,7 @@ async def _sales_summary_impl(
         lambda: {"units": 0.0, "revenue": 0.0, "order_ids": set()}
     )
     variant_cache: dict[int, dict[str, Any]] = {}
-    category_cache: dict[int, str | None] = {}
+    category_cache: dict[tuple[EntityType, int], str | None] = {}
 
     for so in orders:
         so_id = so.id
@@ -712,10 +702,9 @@ async def _inventory_velocity_impl(
         services, request.sku_or_variant_id
     )
 
-    # Calendar-day semantics: the inclusive window [window_start, window_end]
-    # covers exactly ``period_days`` days. Using date() on both ends of a
-    # naive timedelta subtraction would silently stretch the window by one
-    # day (because the inclusive bound adds a day at the end). See #331.
+    # Inclusive window [window_start, window_end] covers exactly period_days
+    # calendar days. Subtract period_days - 1 so a 7-day window ending today
+    # starts 6 days ago, not 7.
     window_end = datetime.now(tz=UTC).date()
     window_start = window_end - timedelta(days=request.period_days - 1)
 
@@ -726,8 +715,11 @@ async def _inventory_velocity_impl(
         period_days=request.period_days,
     )
 
-    orders = await _fetch_delivered_sales_orders_in_window(
-        services, window_start, window_end
+    # Orders fetch and current-stock fetch are independent — run them in
+    # parallel so velocity isn't paying two serial round-trips per call.
+    orders, stock_on_hand = await asyncio.gather(
+        _fetch_delivered_sales_orders_in_window(services, window_start, window_end),
+        _fetch_stock_on_hand(services, variant_id),
     )
 
     units_sold = 0.0
@@ -735,8 +727,6 @@ async def _inventory_velocity_impl(
         for row in _iter_rows(so):
             if unwrap_unset(row.variant_id, None) == variant_id:
                 units_sold += float(unwrap_unset(row.quantity, 0) or 0)
-
-    stock_on_hand = await _fetch_stock_on_hand(services, variant_id)
 
     avg_daily = units_sold / request.period_days if request.period_days > 0 else 0.0
     days_of_cover: float | None

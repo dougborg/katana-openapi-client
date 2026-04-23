@@ -31,6 +31,23 @@ _INV_GET_ALL = "katana_public_api_client.api.inventory.get_all_inventory_point"
 _REPORTING_UNWRAP_DATA = "katana_mcp.tools.foundation.reporting.unwrap_data"
 
 
+@pytest.fixture(autouse=True)
+def _patch_cache_sync():
+    """Neutralize @cache_read so aggregation tests don't drive real sync helpers.
+
+    Reporting tools are decorated with @cache_read(VARIANT, PRODUCT, MATERIAL,
+    SERVICE). The decorator caches a dict of sync fns the first time it runs,
+    so patching by source module is order-dependent. Patching the dict
+    accessor to return {} neutralizes the decorator uniformly regardless of
+    test ordering.
+    """
+    with patch(
+        "katana_mcp.tools.decorators._get_sync_fns",
+        return_value={},
+    ):
+        yield
+
+
 def _mock_row(
     *,
     id: int,
@@ -223,27 +240,37 @@ async def test_top_selling_variants_category_filter():
     """category filter drops variants whose item category doesn't match."""
     context, lifespan_ctx = create_mock_context()
 
-    async def fake_get_by_id(entity_type, variant_id):
-        return {
-            100: {
-                "id": 100,
-                "sku": "BIKE-A",
-                "display_name": "Bike A",
-                "product_id": 10,
-            },
-            300: {
-                "id": 300,
-                "sku": "HELMET-X",
-                "display_name": "Helmet X",
-                "product_id": 30,
-            },
-        }.get(variant_id)
+    from katana_mcp.cache import EntityType
+
+    variant_rows = {
+        100: {
+            "id": 100,
+            "sku": "BIKE-A",
+            "display_name": "Bike A",
+            "type": "product",
+            "product_id": 10,
+        },
+        300: {
+            "id": 300,
+            "sku": "HELMET-X",
+            "display_name": "Helmet X",
+            "type": "product",
+            "product_id": 30,
+        },
+    }
+    product_rows = {
+        10: {"id": 10, "name": "Bike A", "category_name": "bikes"},
+        30: {"id": 30, "name": "Helmet X", "category_name": "accessories"},
+    }
+
+    async def fake_get_by_id(entity_type, entity_id):
+        if entity_type == EntityType.VARIANT:
+            return variant_rows.get(entity_id)
+        if entity_type == EntityType.PRODUCT:
+            return product_rows.get(entity_id)
+        return None
 
     lifespan_ctx.cache.get_by_id = AsyncMock(side_effect=fake_get_by_id)
-
-    # Mock the category fetcher: product_id 10 -> "bikes", product_id 30 -> "accessories"
-    async def fake_fetch_category(services, product_id):
-        return {10: "bikes", 30: "accessories"}.get(product_id)
 
     orders = [
         _mock_so(
@@ -264,10 +291,6 @@ async def test_top_selling_variants_category_filter():
     with (
         patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
         patch(_REPORTING_UNWRAP_DATA, return_value=orders),
-        patch(
-            "katana_mcp.tools.foundation.reporting._fetch_category_for_product",
-            side_effect=fake_fetch_category,
-        ),
     ):
         result = await _top_selling_variants_impl(request, context)
 

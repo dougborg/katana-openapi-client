@@ -471,14 +471,35 @@ class GetInventoryMovementsRequest(BaseModel):
 
 
 class MovementInfo(BaseModel):
-    """A single inventory movement record."""
+    """A single inventory movement record.
 
+    Exhaustive — every field Katana's ``InventoryMovement`` attrs model exposes
+    is surfaced here (identity, location, resource pointers, valuation fields,
+    timestamps, and rank) so callers don't need a follow-up lookup for standard
+    fields. Field names match the canonical Pydantic/Katana names verbatim so
+    LLM consumers can't confuse a rendered column header with a different
+    field.
+    """
+
+    id: int
+    variant_id: int
+    location_id: int
+    resource_type: str
+    resource_id: int | None = None
+    caused_by_order_no: str | None = None
+    caused_by_resource_id: int | None = None
     movement_date: str
     quantity_change: float
     balance_after: float
-    resource_type: str
-    caused_by_order_no: str | None
     value_per_unit: float
+    value_in_stock_after: float
+    average_cost_after: float
+    rank: int | None = None
+    # created_at / updated_at are required on the generated InventoryMovement
+    # attrs model. Typing them optional would mask real API/unwrap issues and
+    # weaken the "exhaustive" contract we're pinning.
+    created_at: str
+    updated_at: str
 
 
 class InventoryMovementsResponse(BaseModel):
@@ -538,18 +559,34 @@ async def _get_inventory_movements_impl(
         )
         attrs_list = unwrap_data(response)
 
+        def _iso(val: Any) -> str:
+            return val.isoformat() if hasattr(val, "isoformat") else str(val)
+
+        def _iso_opt(val: Any) -> str | None:
+            if val is None:
+                return None
+            return val.isoformat() if hasattr(val, "isoformat") else str(val)
+
         movements = [
             MovementInfo(
-                movement_date=m.movement_date.isoformat()
-                if hasattr(m.movement_date, "isoformat")
-                else str(m.movement_date),
-                quantity_change=m.quantity_change,
-                balance_after=m.balance_after,
+                id=m.id,
+                variant_id=m.variant_id,
+                location_id=m.location_id,
                 resource_type=m.resource_type.value
                 if hasattr(m.resource_type, "value")
                 else str(m.resource_type),
+                resource_id=unwrap_unset(m.resource_id, None),
                 caused_by_order_no=unwrap_unset(m.caused_by_order_no, None),
+                caused_by_resource_id=unwrap_unset(m.caused_by_resource_id, None),
+                movement_date=_iso(m.movement_date),
+                quantity_change=m.quantity_change,
+                balance_after=m.balance_after,
                 value_per_unit=m.value_per_unit,
+                value_in_stock_after=m.value_in_stock_after,
+                average_cost_after=m.average_cost_after,
+                rank=unwrap_unset(m.rank, None),
+                created_at=_iso(m.created_at),
+                updated_at=_iso(m.updated_at),
             )
             for m in attrs_list
         ]
@@ -586,14 +623,16 @@ async def _get_inventory_movements_impl(
 async def get_inventory_movements(
     request: Annotated[GetInventoryMovementsRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """Get inventory movement history for a SKU — shows every stock change with dates,
-    quantities, and what caused each movement (sales, purchases, manufacturing, adjustments).
+    """Get inventory movement history for a SKU — every stock change with dates,
+    quantities, valuation (value_per_unit, value_in_stock_after, average_cost_after),
+    and what caused each movement (sales, purchases, manufacturing, adjustments).
 
-    Use to investigate stock discrepancies or trace how inventory levels changed over time.
-    Default limit is 50 movements, ordered most recent first.
+    Exhaustive — every field Katana exposes on ``InventoryMovement`` is surfaced
+    (identity, variant/location pointers, resource pointers, valuation fields,
+    timestamps, rank) so callers don't need follow-up lookups for standard
+    fields. Use to investigate stock discrepancies or trace how inventory levels
+    changed over time. Default limit is 50 movements, ordered most recent first.
     """
-    from katana_mcp.tools.tool_result_utils import format_md_table
-
     response = await _get_inventory_movements_impl(request, context)
 
     if request.format == "json":
@@ -602,16 +641,48 @@ async def get_inventory_movements(
             structured_content=response.model_dump(),
         )
 
+    # Column headers use the canonical Pydantic field names so LLM consumers
+    # can't confuse a rendered header with a different field (see #346 follow-on).
     if response.movements:
         movements_md = format_md_table(
-            headers=["Date", "Change", "Balance", "Type", "Order"],
+            headers=[
+                "id",
+                "movement_date",
+                "variant_id",
+                "location_id",
+                "resource_type",
+                "resource_id",
+                "caused_by_order_no",
+                "caused_by_resource_id",
+                "quantity_change",
+                "balance_after",
+                "value_per_unit",
+                "value_in_stock_after",
+                "average_cost_after",
+                "rank",
+                "created_at",
+                "updated_at",
+            ],
             rows=[
                 [
+                    m.id,
                     m.movement_date,
-                    f"{m.quantity_change:+.1f}",
-                    f"{m.balance_after:.1f}",
+                    m.variant_id,
+                    m.location_id,
                     m.resource_type,
-                    m.caused_by_order_no or "N/A",
+                    m.resource_id if m.resource_id is not None else "—",
+                    m.caused_by_order_no or "—",
+                    m.caused_by_resource_id
+                    if m.caused_by_resource_id is not None
+                    else "—",
+                    f"{m.quantity_change:+.4f}",
+                    f"{m.balance_after:.4f}",
+                    f"{m.value_per_unit:.4f}",
+                    f"{m.value_in_stock_after:.4f}",
+                    f"{m.average_cost_after:.4f}",
+                    m.rank if m.rank is not None else "—",
+                    m.created_at or "—",
+                    m.updated_at or "—",
                 ]
                 for m in response.movements
             ],
@@ -619,14 +690,14 @@ async def get_inventory_movements(
     else:
         movements_md = "No movements found."
 
-    return make_tool_result(
-        response,
-        "inventory_movements",
-        sku=response.sku,
-        product_name=response.product_name,
-        total_count=response.total_count,
-        movements_table=movements_md,
+    md = (
+        f"## Inventory Movements\n\n"
+        f"**sku**: {response.sku}\n"
+        f"**product_name**: {response.product_name}\n"
+        f"**total_count**: {response.total_count}\n\n"
+        f"{movements_md}"
     )
+    return make_simple_result(md, structured_data=response.model_dump())
 
 
 # ============================================================================

@@ -33,7 +33,6 @@ from katana_mcp.tools.tool_result_utils import (
     none_coro,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
-from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
     CreateManufacturingOrderRequest as APICreateManufacturingOrderRequest,
@@ -371,7 +370,7 @@ async def create_manufacturing_order(
 
 
 class GetManufacturingOrderRequest(BaseModel):
-    """Request to look up manufacturing orders."""
+    """Request to look up a manufacturing order."""
 
     order_no: str | None = Field(
         default=None, description="Order number to look up (e.g., '#WEB20082 / 1')"
@@ -386,90 +385,760 @@ class GetManufacturingOrderRequest(BaseModel):
     )
 
 
-class ManufacturingOrderInfo(BaseModel):
-    """Manufacturing order details."""
+class BatchTransactionInfo(BaseModel):
+    """One entry in ``ManufacturingOrder.batch_transactions``.
+
+    Mirrors the generated ``BatchTransaction`` attrs model.
+    """
+
+    batch_id: int | None = None
+    quantity: float | None = None
+
+
+class SerialNumberInfo(BaseModel):
+    """One entry in ``serial_numbers`` lists on MO and production records.
+
+    Mirrors the generated ``SerialNumber`` attrs model.
+    """
+
+    id: int | None = None
+    transaction_id: str | None = None
+    serial_number: str | None = None
+    resource_type: str | None = None
+    resource_id: int | None = None
+    transaction_date: str | None = None
+    quantity_change: int | None = None
+
+
+class AssignedOperatorInfo(BaseModel):
+    """One entry in an operation row's ``assigned_operators`` /
+    ``completed_by_operators`` list. Mirrors the generated ``AssignedOperator``.
+    """
+
+    operator_id: int
+    name: str
+    deleted_at: str | None = None
+
+
+class RecipeRowBatchTransactionInfo(BaseModel):
+    """One entry in a recipe row's ``batch_transactions`` list. Mirrors
+    the generated ``ManufacturingOrderRecipeRowBatchTransactionsItem``.
+    """
+
+    batch_id: int | None = None
+    quantity: float | None = None
+
+
+class RecipeRowInfo(BaseModel):
+    """Full manufacturing-order recipe row. Exhaustive — every field on
+    ``ManufacturingOrderRecipeRow`` is surfaced, plus the resolved SKU
+    for display convenience.
+    """
 
     id: int
-    order_no: str | None
-    status: str | None
-    variant_id: int | None
-    planned_quantity: float | None
-    actual_quantity: float | None
-    location_id: int | None
-    order_created_date: str | None
-    production_deadline_date: str | None
-    done_date: str | None
-    is_linked_to_sales_order: bool | None
-    sales_order_id: int | None
-    ingredient_availability: str | None
-    total_cost: float | None
-    material_cost: float | None
-    operations_cost: float | None
-    additional_info: str | None
+    manufacturing_order_id: int | None = None
+    variant_id: int | None = None
+    sku: str | None = None
+    notes: str | None = None
+    planned_quantity_per_unit: float | None = None
+    total_actual_quantity: float | None = None
+    total_consumed_quantity: float | None = None
+    total_remaining_quantity: float | None = None
+    ingredient_availability: str | None = None
+    ingredient_expected_date: str | None = None
+    batch_transactions: list[RecipeRowBatchTransactionInfo] = Field(
+        default_factory=list
+    )
+    cost: float | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+    deleted_at: str | None = None
+
+
+class OperationRowInfo(BaseModel):
+    """Full manufacturing-order operation row. Exhaustive — every field on
+    ``ManufacturingOrderOperationRow`` is surfaced.
+    """
+
+    id: int
+    manufacturing_order_id: int | None = None
+    status: str | None = None
+    type_: str | None = Field(default=None, alias="type_")
+    rank: float | None = None
+    operation_id: int | None = None
+    operation_name: str | None = None
+    resource_id: int | None = None
+    resource_name: str | None = None
+    assigned_operators: list[AssignedOperatorInfo] = Field(default_factory=list)
+    completed_by_operators: list[AssignedOperatorInfo] = Field(default_factory=list)
+    active_operator_id: float | None = None
+    planned_time_per_unit: float | None = None
+    planned_time_parameter: float | None = None
+    total_actual_time: float | None = None
+    total_consumed_time: float | None = None
+    total_remaining_time: float | None = None
+    planned_cost_per_unit: float | None = None
+    total_actual_cost: float | None = None
+    cost_per_hour: float | None = None
+    cost_parameter: float | None = None
+    group_boundary: float | None = None
+    is_status_actionable: bool | None = None
+    completed_at: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+    deleted_at: str | None = None
+
+
+class ProductionIngredientInfo(BaseModel):
+    """One entry in a production's ``ingredients`` list. Mirrors the
+    generated ``ManufacturingOrderProductionIngredient``.
+    """
+
+    id: int
+    manufacturing_order_id: int | None = None
+    manufacturing_order_recipe_row_id: int | None = None
+    production_id: int | None = None
+    location_id: int | None = None
+    variant_id: int | None = None
+    quantity: float | None = None
+    production_date: str | None = None
+    cost: float | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+    deleted_at: str | None = None
+
+
+class ProductionOperationInfo(BaseModel):
+    """One entry in a production's ``operations`` list. Mirrors the
+    generated ``ManufacturingOrderOperationProduction``.
+    """
+
+    id: int
+    manufacturing_order_id: int | None = None
+    manufacturing_order_operation_id: int | None = None
+    production_id: int | None = None
+    location_id: int | None = None
+    time: float | None = None
+    production_date: str | None = None
+    cost: float | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+    deleted_at: str | None = None
+
+
+class ProductionInfo(BaseModel):
+    """Full manufacturing-order production record. Exhaustive — every field
+    on ``ManufacturingOrderProduction`` is surfaced.
+    """
+
+    id: int
+    manufacturing_order_id: int | None = None
+    factory_id: int | None = None
+    quantity: float | None = None
+    production_date: str | None = None
+    ingredients: list[ProductionIngredientInfo] = Field(default_factory=list)
+    operations: list[ProductionOperationInfo] = Field(default_factory=list)
+    serial_numbers: list[SerialNumberInfo] = Field(default_factory=list)
+    created_at: str | None = None
+    updated_at: str | None = None
+    deleted_at: str | None = None
 
 
 class GetManufacturingOrderResponse(BaseModel):
-    """Response containing manufacturing orders."""
+    """Full manufacturing order details. Exhaustive — every field Katana
+    exposes on ``ManufacturingOrder`` is surfaced (including nested recipe
+    rows, operation rows, and production records) so callers don't need
+    follow-up lookups for standard fields.
+    """
 
-    orders: list[ManufacturingOrderInfo]
-    total_count: int
+    id: int
+    order_no: str | None = None
+    status: str | None = None
+    variant_id: int | None = None
+    planned_quantity: float | None = None
+    actual_quantity: float | None = None
+    completed_quantity: float | None = None
+    remaining_quantity: float | None = None
+    includes_partial_completions: bool | None = None
+    location_id: int | None = None
+    order_created_date: str | None = None
+    production_deadline_date: str | None = None
+    done_date: str | None = None
+    additional_info: str | None = None
+    is_linked_to_sales_order: bool | None = None
+    ingredient_availability: str | None = None
+    total_cost: float | None = None
+    total_actual_time: float | None = None
+    total_planned_time: float | None = None
+    sales_order_id: int | None = None
+    sales_order_row_id: int | None = None
+    sales_order_delivery_deadline: str | None = None
+    material_cost: float | None = None
+    subassemblies_cost: float | None = None
+    operations_cost: float | None = None
+    batch_transactions: list[BatchTransactionInfo] = Field(default_factory=list)
+    serial_numbers: list[SerialNumberInfo] = Field(default_factory=list)
+    created_at: str | None = None
+    updated_at: str | None = None
+    deleted_at: str | None = None
+    recipe_rows: list[RecipeRowInfo] = Field(default_factory=list)
+    operation_rows: list[OperationRowInfo] = Field(default_factory=list)
+    productions: list[ProductionInfo] = Field(default_factory=list)
+
+
+def _recipe_row_info_from_attrs(row: Any, sku: str | None) -> RecipeRowInfo:
+    """Build RecipeRowInfo from a ManufacturingOrderRecipeRow attrs model."""
+    raw_batch = unwrap_unset(row.batch_transactions, []) or []
+    batch_infos = [
+        RecipeRowBatchTransactionInfo(
+            batch_id=unwrap_unset(bt.batch_id, None),
+            quantity=unwrap_unset(bt.quantity, None),
+        )
+        for bt in raw_batch
+    ]
+    return RecipeRowInfo(
+        id=row.id,
+        manufacturing_order_id=unwrap_unset(row.manufacturing_order_id, None),
+        variant_id=unwrap_unset(row.variant_id, None),
+        sku=sku,
+        notes=unwrap_unset(row.notes, None),
+        planned_quantity_per_unit=unwrap_unset(row.planned_quantity_per_unit, None),
+        total_actual_quantity=unwrap_unset(row.total_actual_quantity, None),
+        total_consumed_quantity=unwrap_unset(row.total_consumed_quantity, None),
+        total_remaining_quantity=unwrap_unset(row.total_remaining_quantity, None),
+        ingredient_availability=unwrap_unset(row.ingredient_availability, None),
+        ingredient_expected_date=iso_or_none(
+            unwrap_unset(row.ingredient_expected_date, None)
+        ),
+        batch_transactions=batch_infos,
+        cost=unwrap_unset(row.cost, None),
+        created_at=iso_or_none(unwrap_unset(row.created_at, None)),
+        updated_at=iso_or_none(unwrap_unset(row.updated_at, None)),
+        deleted_at=iso_or_none(unwrap_unset(row.deleted_at, None)),
+    )
+
+
+def _operation_row_info_from_attrs(row: Any) -> OperationRowInfo:
+    """Build OperationRowInfo from a ManufacturingOrderOperationRow attrs model."""
+    assigned = [
+        AssignedOperatorInfo(
+            operator_id=op.operator_id,
+            name=op.name,
+            deleted_at=iso_or_none(unwrap_unset(op.deleted_at, None)),
+        )
+        for op in (unwrap_unset(row.assigned_operators, []) or [])
+    ]
+    completed = [
+        AssignedOperatorInfo(
+            operator_id=op.operator_id,
+            name=op.name,
+            deleted_at=iso_or_none(unwrap_unset(op.deleted_at, None)),
+        )
+        for op in (unwrap_unset(row.completed_by_operators, []) or [])
+    ]
+    return OperationRowInfo(
+        id=row.id,
+        manufacturing_order_id=unwrap_unset(row.manufacturing_order_id, None),
+        status=enum_to_str(unwrap_unset(row.status, None)),
+        type_=unwrap_unset(row.type_, None),
+        rank=unwrap_unset(row.rank, None),
+        operation_id=unwrap_unset(row.operation_id, None),
+        operation_name=unwrap_unset(row.operation_name, None),
+        resource_id=unwrap_unset(row.resource_id, None),
+        resource_name=unwrap_unset(row.resource_name, None),
+        assigned_operators=assigned,
+        completed_by_operators=completed,
+        active_operator_id=unwrap_unset(row.active_operator_id, None),
+        planned_time_per_unit=unwrap_unset(row.planned_time_per_unit, None),
+        planned_time_parameter=unwrap_unset(row.planned_time_parameter, None),
+        total_actual_time=unwrap_unset(row.total_actual_time, None),
+        total_consumed_time=unwrap_unset(row.total_consumed_time, None),
+        total_remaining_time=unwrap_unset(row.total_remaining_time, None),
+        planned_cost_per_unit=unwrap_unset(row.planned_cost_per_unit, None),
+        total_actual_cost=unwrap_unset(row.total_actual_cost, None),
+        cost_per_hour=unwrap_unset(row.cost_per_hour, None),
+        cost_parameter=unwrap_unset(row.cost_parameter, None),
+        group_boundary=unwrap_unset(row.group_boundary, None),
+        is_status_actionable=unwrap_unset(row.is_status_actionable, None),
+        completed_at=iso_or_none(unwrap_unset(row.completed_at, None)),
+        created_at=iso_or_none(unwrap_unset(row.created_at, None)),
+        updated_at=iso_or_none(unwrap_unset(row.updated_at, None)),
+        deleted_at=iso_or_none(unwrap_unset(row.deleted_at, None)),
+    )
+
+
+def _production_info_from_attrs(prod: Any) -> ProductionInfo:
+    """Build ProductionInfo from a ManufacturingOrderProduction attrs model."""
+    ingredients = [
+        ProductionIngredientInfo(
+            id=ing.id,
+            manufacturing_order_id=unwrap_unset(ing.manufacturing_order_id, None),
+            manufacturing_order_recipe_row_id=unwrap_unset(
+                ing.manufacturing_order_recipe_row_id, None
+            ),
+            production_id=unwrap_unset(ing.production_id, None),
+            location_id=unwrap_unset(ing.location_id, None),
+            variant_id=unwrap_unset(ing.variant_id, None),
+            quantity=unwrap_unset(ing.quantity, None),
+            production_date=iso_or_none(unwrap_unset(ing.production_date, None)),
+            cost=unwrap_unset(ing.cost, None),
+            created_at=iso_or_none(unwrap_unset(ing.created_at, None)),
+            updated_at=iso_or_none(unwrap_unset(ing.updated_at, None)),
+            deleted_at=iso_or_none(unwrap_unset(ing.deleted_at, None)),
+        )
+        for ing in (unwrap_unset(prod.ingredients, []) or [])
+    ]
+    operations = [
+        ProductionOperationInfo(
+            id=op.id,
+            manufacturing_order_id=unwrap_unset(op.manufacturing_order_id, None),
+            manufacturing_order_operation_id=unwrap_unset(
+                op.manufacturing_order_operation_id, None
+            ),
+            production_id=unwrap_unset(op.production_id, None),
+            location_id=unwrap_unset(op.location_id, None),
+            time=unwrap_unset(op.time, None),
+            production_date=iso_or_none(unwrap_unset(op.production_date, None)),
+            cost=unwrap_unset(op.cost, None),
+            created_at=iso_or_none(unwrap_unset(op.created_at, None)),
+            updated_at=iso_or_none(unwrap_unset(op.updated_at, None)),
+            deleted_at=iso_or_none(unwrap_unset(op.deleted_at, None)),
+        )
+        for op in (unwrap_unset(prod.operations, []) or [])
+    ]
+    serial_numbers = [
+        _serial_number_info_from_attrs(sn)
+        for sn in (unwrap_unset(prod.serial_numbers, []) or [])
+    ]
+    return ProductionInfo(
+        id=prod.id,
+        manufacturing_order_id=unwrap_unset(prod.manufacturing_order_id, None),
+        factory_id=unwrap_unset(prod.factory_id, None),
+        quantity=unwrap_unset(prod.quantity, None),
+        production_date=iso_or_none(unwrap_unset(prod.production_date, None)),
+        ingredients=ingredients,
+        operations=operations,
+        serial_numbers=serial_numbers,
+        created_at=iso_or_none(unwrap_unset(prod.created_at, None)),
+        updated_at=iso_or_none(unwrap_unset(prod.updated_at, None)),
+        deleted_at=iso_or_none(unwrap_unset(prod.deleted_at, None)),
+    )
+
+
+def _serial_number_info_from_attrs(sn: Any) -> SerialNumberInfo:
+    """Build SerialNumberInfo from a SerialNumber attrs model."""
+    return SerialNumberInfo(
+        id=unwrap_unset(sn.id, None),
+        transaction_id=unwrap_unset(sn.transaction_id, None),
+        serial_number=unwrap_unset(sn.serial_number, None),
+        resource_type=enum_to_str(unwrap_unset(sn.resource_type, None)),
+        resource_id=unwrap_unset(sn.resource_id, None),
+        transaction_date=iso_or_none(unwrap_unset(sn.transaction_date, None)),
+        quantity_change=unwrap_unset(sn.quantity_change, None),
+    )
+
+
+async def _fetch_mo_recipe_rows(
+    services: Any, manufacturing_order_id: int
+) -> list[RecipeRowInfo]:
+    """Fetch every recipe row for the MO and enrich with cached SKU."""
+    from katana_public_api_client.api.manufacturing_order_recipe import (
+        get_all_manufacturing_order_recipe_rows,
+    )
+    from katana_public_api_client.utils import unwrap_data
+
+    response = await get_all_manufacturing_order_recipe_rows.asyncio_detailed(
+        client=services.client,
+        manufacturing_order_id=manufacturing_order_id,
+        limit=250,
+    )
+    raw_rows = unwrap_data(response, default=[])
+
+    variant_ids = [unwrap_unset(row.variant_id, None) for row in raw_rows]
+    variants = await asyncio.gather(
+        *(
+            services.cache.get_by_id(EntityType.VARIANT, v_id)
+            if v_id is not None
+            else none_coro()
+            for v_id in variant_ids
+        )
+    )
+    return [
+        _recipe_row_info_from_attrs(row, variant.get("sku") if variant else None)
+        for row, variant in zip(raw_rows, variants, strict=True)
+    ]
+
+
+async def _fetch_mo_operation_rows(
+    services: Any, manufacturing_order_id: int
+) -> list[OperationRowInfo]:
+    """Fetch every operation row for the MO."""
+    from katana_public_api_client.api.manufacturing_order_operation import (
+        get_all_manufacturing_order_operation_rows,
+    )
+    from katana_public_api_client.utils import unwrap_data
+
+    response = await get_all_manufacturing_order_operation_rows.asyncio_detailed(
+        client=services.client,
+        manufacturing_order_id=manufacturing_order_id,
+        limit=250,
+    )
+    raw_rows = unwrap_data(response, default=[])
+    return [_operation_row_info_from_attrs(row) for row in raw_rows]
+
+
+async def _fetch_mo_productions(
+    services: Any, manufacturing_order_id: int
+) -> list[ProductionInfo]:
+    """Fetch every production record for the MO."""
+    from katana_public_api_client.api.manufacturing_order import (
+        get_all_manufacturing_order_productions,
+    )
+    from katana_public_api_client.utils import unwrap_data
+
+    response = await get_all_manufacturing_order_productions.asyncio_detailed(
+        client=services.client,
+        manufacturing_order_ids=[manufacturing_order_id],
+        limit=250,
+    )
+    raw = unwrap_data(response, default=[])
+    return [_production_info_from_attrs(p) for p in raw]
+
+
+def _build_mo_response(
+    mo: ManufacturingOrder,
+    recipe_rows: list[RecipeRowInfo],
+    operation_rows: list[OperationRowInfo],
+    productions: list[ProductionInfo],
+) -> GetManufacturingOrderResponse:
+    """Flatten a ManufacturingOrder attrs model + related resource lists
+    into GetManufacturingOrderResponse, surfacing every attrs field.
+    """
+    batch_transactions = [
+        BatchTransactionInfo(
+            batch_id=bt.batch_id,
+            quantity=bt.quantity,
+        )
+        for bt in (unwrap_unset(mo.batch_transactions, []) or [])
+    ]
+    serial_numbers = [
+        _serial_number_info_from_attrs(sn)
+        for sn in (unwrap_unset(mo.serial_numbers, []) or [])
+    ]
+    return GetManufacturingOrderResponse(
+        id=mo.id,
+        order_no=unwrap_unset(mo.order_no, None),
+        status=enum_to_str(unwrap_unset(mo.status, None)),
+        variant_id=unwrap_unset(mo.variant_id, None),
+        planned_quantity=unwrap_unset(mo.planned_quantity, None),
+        actual_quantity=unwrap_unset(mo.actual_quantity, None),
+        completed_quantity=unwrap_unset(mo.completed_quantity, None),
+        remaining_quantity=unwrap_unset(mo.remaining_quantity, None),
+        includes_partial_completions=unwrap_unset(
+            mo.includes_partial_completions, None
+        ),
+        location_id=unwrap_unset(mo.location_id, None),
+        order_created_date=iso_or_none(unwrap_unset(mo.order_created_date, None)),
+        production_deadline_date=iso_or_none(
+            unwrap_unset(mo.production_deadline_date, None)
+        ),
+        done_date=iso_or_none(unwrap_unset(mo.done_date, None)),
+        additional_info=unwrap_unset(mo.additional_info, None),
+        is_linked_to_sales_order=unwrap_unset(mo.is_linked_to_sales_order, None),
+        ingredient_availability=enum_to_str(
+            unwrap_unset(mo.ingredient_availability, None)
+        ),
+        total_cost=unwrap_unset(mo.total_cost, None),
+        total_actual_time=unwrap_unset(mo.total_actual_time, None),
+        total_planned_time=unwrap_unset(mo.total_planned_time, None),
+        sales_order_id=unwrap_unset(mo.sales_order_id, None),
+        sales_order_row_id=unwrap_unset(mo.sales_order_row_id, None),
+        sales_order_delivery_deadline=iso_or_none(
+            unwrap_unset(mo.sales_order_delivery_deadline, None)
+        ),
+        material_cost=unwrap_unset(mo.material_cost, None),
+        subassemblies_cost=unwrap_unset(mo.subassemblies_cost, None),
+        operations_cost=unwrap_unset(mo.operations_cost, None),
+        batch_transactions=batch_transactions,
+        serial_numbers=serial_numbers,
+        created_at=iso_or_none(unwrap_unset(mo.created_at, None)),
+        updated_at=iso_or_none(unwrap_unset(mo.updated_at, None)),
+        deleted_at=iso_or_none(unwrap_unset(mo.deleted_at, None)),
+        recipe_rows=recipe_rows,
+        operation_rows=operation_rows,
+        productions=productions,
+    )
 
 
 async def _get_manufacturing_order_impl(
     request: GetManufacturingOrderRequest, context: Context
 ) -> GetManufacturingOrderResponse:
-    """Look up manufacturing orders by order number or ID."""
+    """Look up a manufacturing order by order number or ID with exhaustive detail.
+
+    Fetches the MO record plus its recipe rows, operation rows, and production
+    records — each via its own API call (cache-first migration tracked in #342).
+    """
     from katana_public_api_client.api.manufacturing_order import (
         get_all_manufacturing_orders,
+        get_manufacturing_order as api_get_manufacturing_order,
     )
-    from katana_public_api_client.utils import unwrap_data
+    from katana_public_api_client.utils import unwrap_as, unwrap_data
 
     if not request.order_no and not request.order_id:
         raise ValueError("Either order_no or order_id must be provided")
 
     services = get_services(context)
 
-    kwargs: dict = {"client": services.client, "limit": 50}
     if request.order_id:
-        kwargs["ids"] = [request.order_id]
-    if request.order_no:
-        kwargs["order_no"] = request.order_no
-
-    response = await get_all_manufacturing_orders.asyncio_detailed(**kwargs)
-    attrs_list = unwrap_data(response)
-
-    orders = [
-        ManufacturingOrderInfo(
-            id=mo.id,
-            order_no=unwrap_unset(mo.order_no, None),
-            status=unwrap_unset(mo.status, None),
-            variant_id=unwrap_unset(mo.variant_id, None),
-            planned_quantity=unwrap_unset(mo.planned_quantity, None),
-            actual_quantity=unwrap_unset(mo.actual_quantity, None),
-            location_id=unwrap_unset(mo.location_id, None),
-            order_created_date=mo.order_created_date.isoformat()
-            if not isinstance(mo.order_created_date, type(UNSET))
-            and mo.order_created_date
-            else None,
-            production_deadline_date=mo.production_deadline_date.isoformat()
-            if not isinstance(mo.production_deadline_date, type(UNSET))
-            and mo.production_deadline_date
-            else None,
-            done_date=mo.done_date.isoformat()
-            if not isinstance(mo.done_date, type(UNSET)) and mo.done_date
-            else None,
-            is_linked_to_sales_order=unwrap_unset(mo.is_linked_to_sales_order, None),
-            sales_order_id=unwrap_unset(mo.sales_order_id, None),
-            ingredient_availability=unwrap_unset(mo.ingredient_availability, None),
-            total_cost=unwrap_unset(mo.total_cost, None),
-            material_cost=unwrap_unset(mo.material_cost, None),
-            operations_cost=unwrap_unset(mo.operations_cost, None),
-            additional_info=unwrap_unset(mo.additional_info, None),
+        response = await api_get_manufacturing_order.asyncio_detailed(
+            id=request.order_id, client=services.client
         )
-        for mo in attrs_list
-    ]
+        mo = unwrap_as(response, ManufacturingOrder)
+    else:
+        assert request.order_no is not None  # narrow for type-checker
+        list_response = await get_all_manufacturing_orders.asyncio_detailed(
+            client=services.client, order_no=request.order_no, limit=1
+        )
+        orders = unwrap_data(list_response, default=[])
+        if not orders:
+            raise ValueError(f"Manufacturing order '{request.order_no}' not found")
+        mo = orders[0]
 
-    return GetManufacturingOrderResponse(orders=orders, total_count=len(orders))
+    # Related resources — fetched in parallel. Each is a separate HTTP call
+    # today; the cache epic (#342) will move these to cache-first.
+    recipe_rows, operation_rows, productions = await asyncio.gather(
+        _fetch_mo_recipe_rows(services, mo.id),
+        _fetch_mo_operation_rows(services, mo.id),
+        _fetch_mo_productions(services, mo.id),
+    )
+
+    return _build_mo_response(mo, recipe_rows, operation_rows, productions)
+
+
+def _render_mo_scalar_lines(response: GetManufacturingOrderResponse) -> list[str]:
+    """Render every scalar MO field as ``**field_name**: value`` lines.
+
+    Uses canonical Pydantic field names so LLM consumers can't confuse a
+    prettified label with a different field name (see #346 follow-on).
+    """
+    scalar_fields = (
+        "id",
+        "order_no",
+        "status",
+        "variant_id",
+        "planned_quantity",
+        "actual_quantity",
+        "completed_quantity",
+        "remaining_quantity",
+        "includes_partial_completions",
+        "location_id",
+        "order_created_date",
+        "production_deadline_date",
+        "done_date",
+        "additional_info",
+        "is_linked_to_sales_order",
+        "ingredient_availability",
+        "total_cost",
+        "total_actual_time",
+        "total_planned_time",
+        "sales_order_id",
+        "sales_order_row_id",
+        "sales_order_delivery_deadline",
+        "material_cost",
+        "subassemblies_cost",
+        "operations_cost",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+    )
+    lines: list[str] = []
+    for fname in scalar_fields:
+        val = getattr(response, fname)
+        if val is None or val == "":
+            continue
+        lines.append(f"**{fname}**: {val}")
+    return lines
+
+
+def _render_list_field(label: str, items: list[Any], renderer: Any) -> list[str]:
+    """Render a list-shaped response field with canonical-name syntax.
+
+    Empty → ``**label**: []`` so presence-vs-absence is unambiguous.
+    Populated → ``**label** (N):`` followed by indented per-item blocks.
+    """
+    if not items:
+        return [f"**{label}**: []"]
+    lines = ["", f"**{label}** ({len(items)}):"]
+    for item in items:
+        lines.append(renderer(item))
+    return lines
+
+
+def _render_recipe_row_md(row: RecipeRowInfo) -> str:
+    """Render a single recipe row as a compact multi-line block."""
+    lines = [f"  - **id**: {row.id}"]
+    scalar_fields = (
+        "manufacturing_order_id",
+        "variant_id",
+        "sku",
+        "notes",
+        "planned_quantity_per_unit",
+        "total_actual_quantity",
+        "total_consumed_quantity",
+        "total_remaining_quantity",
+        "ingredient_availability",
+        "ingredient_expected_date",
+        "cost",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+    )
+    for fname in scalar_fields:
+        val = getattr(row, fname)
+        if val is None or val == "":
+            continue
+        lines.append(f"    **{fname}**: {val}")
+    if row.batch_transactions:
+        lines.append(f"    **batch_transactions** ({len(row.batch_transactions)}):")
+        for bt in row.batch_transactions:
+            lines.append(f"      - batch_id={bt.batch_id}, quantity={bt.quantity}")
+    else:
+        lines.append("    **batch_transactions**: []")
+    return "\n".join(lines)
+
+
+def _render_operation_row_md(row: OperationRowInfo) -> str:
+    """Render a single operation row as a compact multi-line block."""
+    lines = [f"  - **id**: {row.id}"]
+    scalar_fields = (
+        "manufacturing_order_id",
+        "status",
+        "type_",
+        "rank",
+        "operation_id",
+        "operation_name",
+        "resource_id",
+        "resource_name",
+        "active_operator_id",
+        "planned_time_per_unit",
+        "planned_time_parameter",
+        "total_actual_time",
+        "total_consumed_time",
+        "total_remaining_time",
+        "planned_cost_per_unit",
+        "total_actual_cost",
+        "cost_per_hour",
+        "cost_parameter",
+        "group_boundary",
+        "is_status_actionable",
+        "completed_at",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+    )
+    for fname in scalar_fields:
+        val = getattr(row, fname)
+        if val is None or val == "":
+            continue
+        lines.append(f"    **{fname}**: {val}")
+    for list_name in ("assigned_operators", "completed_by_operators"):
+        items = getattr(row, list_name)
+        if not items:
+            lines.append(f"    **{list_name}**: []")
+            continue
+        lines.append(f"    **{list_name}** ({len(items)}):")
+        for op in items:
+            lines.append(f"      - operator_id={op.operator_id}, name={op.name}")
+    return "\n".join(lines)
+
+
+def _render_production_md(prod: ProductionInfo) -> str:
+    """Render a single production record as a compact multi-line block."""
+    lines = [f"  - **id**: {prod.id}"]
+    scalar_fields = (
+        "manufacturing_order_id",
+        "factory_id",
+        "quantity",
+        "production_date",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+    )
+    for fname in scalar_fields:
+        val = getattr(prod, fname)
+        if val is None or val == "":
+            continue
+        lines.append(f"    **{fname}**: {val}")
+    lines.append(
+        f"    **ingredients** ({len(prod.ingredients)}):"
+        if prod.ingredients
+        else "    **ingredients**: []"
+    )
+    for ing in prod.ingredients:
+        lines.append(
+            f"      - id={ing.id}, variant_id={ing.variant_id}, "
+            f"quantity={ing.quantity}, cost={ing.cost}"
+        )
+    lines.append(
+        f"    **operations** ({len(prod.operations)}):"
+        if prod.operations
+        else "    **operations**: []"
+    )
+    for op in prod.operations:
+        lines.append(
+            f"      - id={op.id}, operation_id={op.manufacturing_order_operation_id}, "
+            f"time={op.time}, cost={op.cost}"
+        )
+    lines.append(
+        f"    **serial_numbers** ({len(prod.serial_numbers)}):"
+        if prod.serial_numbers
+        else "    **serial_numbers**: []"
+    )
+    for sn in prod.serial_numbers:
+        lines.append(f"      - serial_number={sn.serial_number}")
+    return "\n".join(lines)
+
+
+def _render_mo_list_fields_md(
+    response: GetManufacturingOrderResponse,
+) -> list[str]:
+    """Render every list-shaped field with canonical names + explicit list syntax.
+
+    Empty lists render as ``**field**: []`` (motivation: #346 follow-on —
+    no bare section headers that could be misread as scalar values).
+    """
+    lines: list[str] = []
+    # MO-level batch_transactions
+    if response.batch_transactions:
+        lines.append("")
+        lines.append(f"**batch_transactions** ({len(response.batch_transactions)}):")
+        for bt in response.batch_transactions:
+            lines.append(f"  - batch_id={bt.batch_id}, quantity={bt.quantity}")
+    else:
+        lines.append("**batch_transactions**: []")
+    # MO-level serial_numbers
+    if response.serial_numbers:
+        lines.append("")
+        lines.append(f"**serial_numbers** ({len(response.serial_numbers)}):")
+        for sn in response.serial_numbers:
+            lines.append(
+                f"  - id={sn.id}, serial_number={sn.serial_number}, "
+                f"transaction_date={sn.transaction_date}"
+            )
+    else:
+        lines.append("**serial_numbers**: []")
+    lines.extend(
+        _render_list_field("recipe_rows", response.recipe_rows, _render_recipe_row_md)
+    )
+    lines.extend(
+        _render_list_field(
+            "operation_rows", response.operation_rows, _render_operation_row_md
+        )
+    )
+    lines.extend(
+        _render_list_field("productions", response.productions, _render_production_md)
+    )
+    return lines
 
 
 @observe_tool
@@ -477,15 +1146,16 @@ async def _get_manufacturing_order_impl(
 async def get_manufacturing_order(
     request: Annotated[GetManufacturingOrderRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """Look up manufacturing orders by order number or ID.
+    """Look up a manufacturing order by number or ID with exhaustive detail.
 
-    Returns order details including status, quantities, costs, linked sales order,
-    and production timeline. Use to investigate production issues or track order progress.
+    Returns every field Katana exposes on the manufacturing order (status,
+    quantities, costs, timings, timestamps, linked sales order, batch and
+    serial transactions) plus the full recipe rows, operation rows, and
+    production records. Use with ``list_manufacturing_orders`` for discovery
+    workflows; this tool is the single-call path to the rest.
 
     Provide either order_no (e.g., '#WEB20082 / 1') or order_id.
     """
-    from katana_mcp.tools.tool_result_utils import make_simple_result
-
     response = await _get_manufacturing_order_impl(request, context)
 
     if request.format == "json":
@@ -494,36 +1164,16 @@ async def get_manufacturing_order(
             structured_content=response.model_dump(),
         )
 
-    if not response.orders:
-        return make_simple_result(
-            f"No manufacturing orders found for "
-            f"{'order_no=' + request.order_no if request.order_no else 'order_id=' + str(request.order_id)}",
-            structured_data=response.model_dump(),
-        )
+    # Labels use the canonical Pydantic field names so LLM consumers can't
+    # confuse a section header with the field name (see #346 follow-on).
+    md_lines = [f"## MO {response.order_no or response.id}"]
+    md_lines.extend(_render_mo_scalar_lines(response))
+    md_lines.extend(_render_mo_list_fields_md(response))
 
-    # Build markdown summary
-    lines = []
-    for o in response.orders:
-        lines.append(f"## MO {o.order_no or o.id}")
-        lines.append(f"- **Status**: {o.status}")
-        lines.append(f"- **Variant ID**: {o.variant_id}")
-        lines.append(
-            f"- **Quantity**: {o.actual_quantity or 0} / {o.planned_quantity} planned"
-        )
-        if o.is_linked_to_sales_order:
-            lines.append(f"- **Sales Order ID**: {o.sales_order_id}")
-        if o.total_cost is not None:
-            lines.append(f"- **Total Cost**: ${o.total_cost:,.2f}")
-        if o.production_deadline_date:
-            lines.append(f"- **Deadline**: {o.production_deadline_date}")
-        if o.done_date:
-            lines.append(f"- **Completed**: {o.done_date}")
-        if o.additional_info:
-            lines.append(f"- **Notes**: {o.additional_info}")
-        lines.append("")
+    from katana_mcp.tools.tool_result_utils import make_simple_result
 
     return make_simple_result(
-        "\n".join(lines),
+        "\n".join(md_lines),
         structured_data=response.model_dump(),
     )
 
@@ -546,21 +1196,11 @@ class GetManufacturingOrderRecipeRequest(BaseModel):
     )
 
 
-class RecipeRowInfo(BaseModel):
-    """Summary of a manufacturing order recipe row (ingredient)."""
-
-    id: int
-    variant_id: int | None
-    sku: str | None
-    planned_quantity_per_unit: float | None
-    total_actual_quantity: float | None
-    ingredient_availability: str | None
-    notes: str | None
-    cost: float | None
-
-
 class GetManufacturingOrderRecipeResponse(BaseModel):
-    """Response containing recipe rows for an MO."""
+    """Response containing recipe rows for an MO. Each row is exhaustive —
+    every field on the generated ``ManufacturingOrderRecipeRow`` attrs model
+    is surfaced (see ``RecipeRowInfo``).
+    """
 
     manufacturing_order_id: int
     rows: list[RecipeRowInfo]
@@ -570,51 +1210,9 @@ class GetManufacturingOrderRecipeResponse(BaseModel):
 async def _get_manufacturing_order_recipe_impl(
     request: GetManufacturingOrderRecipeRequest, context: Context
 ) -> GetManufacturingOrderRecipeResponse:
-    """Read the ingredient rows for a manufacturing order."""
-    from katana_public_api_client.api.manufacturing_order_recipe import (
-        get_all_manufacturing_order_recipe_rows,
-    )
-    from katana_public_api_client.utils import unwrap_data
-
+    """Read the ingredient rows for a manufacturing order (exhaustive)."""
     services = get_services(context)
-
-    response = await get_all_manufacturing_order_recipe_rows.asyncio_detailed(
-        client=services.client,
-        manufacturing_order_id=request.manufacturing_order_id,
-    )
-    raw_rows = unwrap_data(response, default=[])
-
-    # Parallelize variant lookups across all rows (N+1 fix)
-    variant_ids_raw = [unwrap_unset(row.variant_id, None) for row in raw_rows]
-    variants = await asyncio.gather(
-        *(
-            services.cache.get_by_id(EntityType.VARIANT, v_id)
-            if v_id is not None
-            else none_coro()
-            for v_id in variant_ids_raw
-        )
-    )
-
-    rows: list[RecipeRowInfo] = []
-    for row, variant in zip(raw_rows, variants, strict=True):
-        variant_id = unwrap_unset(row.variant_id, None)
-        sku = variant.get("sku") if variant else None
-
-        rows.append(
-            RecipeRowInfo(
-                id=row.id,
-                variant_id=variant_id,
-                sku=sku,
-                planned_quantity_per_unit=unwrap_unset(
-                    row.planned_quantity_per_unit, None
-                ),
-                total_actual_quantity=unwrap_unset(row.total_actual_quantity, None),
-                ingredient_availability=unwrap_unset(row.ingredient_availability, None),
-                notes=unwrap_unset(row.notes, None),
-                cost=unwrap_unset(row.cost, None),
-            )
-        )
-
+    rows = await _fetch_mo_recipe_rows(services, request.manufacturing_order_id)
     return GetManufacturingOrderRecipeResponse(
         manufacturing_order_id=request.manufacturing_order_id,
         rows=rows,
@@ -630,9 +1228,11 @@ async def get_manufacturing_order_recipe(
 ) -> ToolResult:
     """List the ingredient (recipe) rows for a manufacturing order.
 
-    Returns each row with its ID, variant ID, SKU, planned quantity per unit,
-    ingredient availability, and cost. Use this before adding or deleting
-    recipe rows so you can identify the rows to modify.
+    Returns every field Katana exposes on each ``ManufacturingOrderRecipeRow``
+    (notes, planned/actual/consumed/remaining quantities, ingredient
+    availability + expected date, batch transactions, cost, timestamps) plus
+    the resolved SKU. Use this before adding or deleting recipe rows so you
+    can identify the rows to modify.
     """
     from katana_mcp.tools.tool_result_utils import make_simple_result
 
@@ -644,26 +1244,18 @@ async def get_manufacturing_order_recipe(
             structured_content=response.model_dump(),
         )
 
+    # Labels use the canonical Pydantic field names so LLM consumers can't
+    # confuse a section header with the field name (see #346 follow-on).
     if not response.rows:
-        md = f"No recipe rows found for MO ID {response.manufacturing_order_id}."
+        md = f"## Recipe for MO {response.manufacturing_order_id}\n**rows**: []"
     else:
-        table = format_md_table(
-            headers=["Row ID", "Variant ID", "SKU", "Qty/Unit", "Availability"],
-            rows=[
-                [
-                    r.id,
-                    r.variant_id,
-                    r.sku or "N/A",
-                    r.planned_quantity_per_unit,
-                    r.ingredient_availability or "N/A",
-                ]
-                for r in response.rows
-            ],
-        )
-        md = (
-            f"## Recipe for MO {response.manufacturing_order_id}\n"
-            f"{response.total_count} ingredient rows\n\n{table}"
-        )
+        md_lines = [
+            f"## Recipe for MO {response.manufacturing_order_id}",
+            f"**rows** ({response.total_count}):",
+        ]
+        for row in response.rows:
+            md_lines.append(_render_recipe_row_md(row))
+        md = "\n".join(md_lines)
 
     return make_simple_result(md, structured_data=response.model_dump())
 
@@ -1629,17 +2221,6 @@ class ListManufacturingOrdersRequest(BaseModel):
         ),
     )
 
-    # Row inclusion
-    include_rows: bool = Field(
-        default=False,
-        description=(
-            "Reserved for future row-detail support. Katana's "
-            "/manufacturing_orders list endpoint does not return recipe "
-            "rows inline; to inspect ingredients use "
-            "`get_manufacturing_order_recipe` for a specific MO."
-        ),
-    )
-
     # Output formatting
     format: Literal["markdown", "json"] = Field(
         default="markdown",
@@ -1666,7 +2247,6 @@ class ManufacturingOrderSummary(BaseModel):
     is_linked_to_sales_order: bool | None
     sales_order_id: int | None
     total_cost: float | None
-    row_count: int
 
 
 class ListManufacturingOrdersResponse(BaseModel):
@@ -1794,10 +2374,6 @@ async def _list_manufacturing_orders_impl(
                 ),
                 sales_order_id=unwrap_unset(mo.sales_order_id, None),
                 total_cost=unwrap_unset(mo.total_cost, None),
-                # Row count on the list endpoint: Katana doesn't bundle recipe
-                # rows in this response, so `include_rows` is reserved for
-                # future work. Report 0 rather than lying about the count.
-                row_count=0,
             )
         )
 

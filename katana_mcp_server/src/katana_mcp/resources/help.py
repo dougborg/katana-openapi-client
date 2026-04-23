@@ -413,14 +413,21 @@ Find items that are below their reorder threshold.
 ---
 
 ### get_inventory_movements
-Get inventory movement history for a SKU — every stock change with dates and causes.
+Get inventory movement history for a SKU — every stock change with dates, causes,
+and valuation. Exhaustive: every field on Katana's `InventoryMovement` is surfaced
+(identity, variant/location pointers, resource pointers, valuation fields,
+timestamps, and rank) so no follow-up lookups are needed for standard fields.
 
 **Parameters:**
 - `sku` (required): SKU to get movements for
 - `limit` (optional): Maximum movements to return (default: 50)
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
-**Returns:** Movement history with dates, quantity changes, balances, resource types, and order numbers.
+**Returns:** Movement history with `id`, `variant_id`, `location_id`, `resource_type`,
+`resource_id`, `caused_by_order_no`, `caused_by_resource_id`, `movement_date`,
+`quantity_change`, `balance_after`, `value_per_unit`, `value_in_stock_after`,
+`average_cost_after`, `rank`, `created_at`, `updated_at`. Markdown render uses
+canonical Pydantic field names as column headers.
 
 ---
 
@@ -523,27 +530,31 @@ List manufacturing orders with filters (list-tool pattern v2).
   short-circuit so auto-pagination can scan enough rows to find `limit`
   matches post-filter.
 
-- `include_rows` (optional, default false): Reserved for future row-detail
-  support. The list endpoint does not return recipe rows inline; use
-  `get_manufacturing_order_recipe` for a specific MO to inspect ingredients.
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Summary rows with id, order_no, status, variant_id, planned/
 actual qty, location_id, order_created_date, production_deadline_date,
 done_date, is_linked_to_sales_order, sales_order_id, total_cost. When `page`
-is set, also returns `pagination` with total_records/total_pages/etc.
+is set, also returns `pagination` with total_records/total_pages/etc. To
+inspect recipe ingredients, call `get_manufacturing_order_recipe` for a
+specific MO — the list endpoint doesn't bundle them.
 
 ---
 
 ### get_manufacturing_order
-Look up manufacturing orders by order number or ID.
+Look up a manufacturing order by order number or ID with exhaustive detail.
 
 **Parameters:**
 - `order_no` (optional): Order number (e.g., '#WEB20082 / 1')
 - `order_id` (optional): Manufacturing order ID
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
-**Returns:** Order details including status, quantities, costs, linked sales order, and timeline.
+**Returns:** Single-object response with every field Katana exposes on the MO
+(status, quantities, costs, timings, timestamps, linked sales order fields,
+batch and serial transactions) plus the full `recipe_rows`, `operation_rows`,
+and `productions` lists fetched from their respective endpoints. Markdown
+labels use canonical Pydantic field names (e.g. `**production_deadline_date**:`)
+so downstream consumers can't confuse section headers with field names.
 
 ---
 
@@ -705,13 +716,16 @@ Get full details for a customer by ID.
 ---
 
 ### get_manufacturing_order_recipe
-List the ingredient rows for a manufacturing order.
+List the ingredient (recipe) rows for a manufacturing order with exhaustive detail.
 
 **Parameters:**
 - `manufacturing_order_id` (required): MO ID
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
-**Returns:** List of recipe rows with row ID, variant ID, SKU, planned qty/unit, availability.
+**Returns:** Every field Katana exposes on each `ManufacturingOrderRecipeRow`
+(notes, planned/actual/consumed/remaining quantities, ingredient availability
+and expected date, batch transactions, cost, timestamps) plus the resolved
+SKU. Markdown labels use canonical Pydantic field names.
 
 ---
 
@@ -822,16 +836,27 @@ also carries a `rows` list.
 ---
 
 ### get_sales_order
-Look up a single sales order by order number or ID with full line items.
+Look up a single sales order by order number or ID with exhaustive detail.
 
 **Parameters:**
 - `order_no` (optional): SO number (e.g., "#WEB20394")
 - `order_id` (optional): SO ID
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
-**Returns:** Order header (status, customer, location, total, delivery_date)
-plus `rows` with variant_id, SKU, quantity, price_per_unit, and any linked
-manufacturing_order_id. SKU is enriched via the variant cache.
+**Returns:** Every field Katana exposes on the sales order record —
+identifiers (id, order_no, customer_id, location_id, source), status flags
+(status, production_status, invoicing_status, product_availability,
+ingredient_availability), dates (order_created_date, delivery_date,
+picked_date, product_expected_date, ingredient_expected_date), money (total,
+total_in_base_currency, currency, conversion_rate, conversion_date), notes
+(additional_info, customer_ref), tracking (tracking_number,
+tracking_number_url), address pointers (billing_address_id,
+shipping_address_id) plus the full resolved `addresses` list fetched from
+/sales_order_addresses, `shipping_fee` block, `linked_manufacturing_order_id`,
+ecommerce metadata (ecommerce_order_type/store_name/order_id), timestamps
+(created_at, updated_at, deleted_at), and per-line `rows` with every
+`SalesOrderRow` field (variant_id, SKU via variant cache, quantity, pricing,
+discounts, tax, cogs, linked MO, batch/serial tracking, timestamps).
 
 ---
 

@@ -478,23 +478,30 @@ async def test_get_manufacturing_order_recipe():
         ]
     )
 
-    mock_row1 = MagicMock()
-    mock_row1.id = 5001
-    mock_row1.variant_id = 101
-    mock_row1.planned_quantity_per_unit = 1.0
-    mock_row1.total_actual_quantity = 0.0
-    mock_row1.ingredient_availability = "IN_STOCK"
-    mock_row1.notes = None
-    mock_row1.cost = 250.0
+    def _mk_row(row_id: int, variant_id: int, qpu: float, cost: float) -> MagicMock:
+        # _recipe_row_info_from_attrs now reads every ManufacturingOrderRecipeRow
+        # field — explicitly set the ones it touches to UNSET or safe values so
+        # MagicMock's auto-attributes don't leak into Pydantic validation.
+        m = MagicMock()
+        m.id = row_id
+        m.variant_id = variant_id
+        m.planned_quantity_per_unit = qpu
+        m.total_actual_quantity = 0.0
+        m.ingredient_availability = "IN_STOCK"
+        m.notes = None
+        m.cost = cost
+        m.manufacturing_order_id = UNSET
+        m.total_consumed_quantity = UNSET
+        m.total_remaining_quantity = UNSET
+        m.ingredient_expected_date = UNSET
+        m.batch_transactions = UNSET
+        m.created_at = UNSET
+        m.updated_at = UNSET
+        m.deleted_at = UNSET
+        return m
 
-    mock_row2 = MagicMock()
-    mock_row2.id = 5002
-    mock_row2.variant_id = 102
-    mock_row2.planned_quantity_per_unit = 4.0
-    mock_row2.total_actual_quantity = 0.0
-    mock_row2.ingredient_availability = "IN_STOCK"
-    mock_row2.notes = None
-    mock_row2.cost = 2.0
+    mock_row1 = _mk_row(5001, 101, 1.0, 250.0)
+    mock_row2 = _mk_row(5002, 102, 4.0, 2.0)
 
     with (
         patch(
@@ -1277,13 +1284,23 @@ async def test_get_manufacturing_order_format_json_returns_json():
         "katana_mcp.tools.foundation.manufacturing_orders._get_manufacturing_order_impl",
         new_callable=AsyncMock,
     ) as mock_impl:
-        mock_impl.return_value = GetManufacturingOrderResponse(orders=[], total_count=0)
+        mock_impl.return_value = GetManufacturingOrderResponse(
+            id=3001,
+            order_no="MO-2024-001",
+            status="IN_PROGRESS",
+        )
         result = await get_manufacturing_order(
             order_id=1, format="json", context=context
         )
 
     data = json.loads(_content_text(result))
-    assert data["total_count"] == 0
+    assert data["id"] == 3001
+    assert data["order_no"] == "MO-2024-001"
+    assert data["status"] == "IN_PROGRESS"
+    # Exhaustive response always has list-shaped fields present (may be empty)
+    assert data["recipe_rows"] == []
+    assert data["operation_rows"] == []
+    assert data["productions"] == []
 
 
 @pytest.mark.asyncio
@@ -1308,3 +1325,325 @@ async def test_get_manufacturing_order_recipe_format_json_returns_json():
     data = json.loads(_content_text(result))
     assert data["manufacturing_order_id"] == 7
     assert data["total_count"] == 0
+
+
+# ============================================================================
+# Exhaustive get_manufacturing_order (#346)
+# ============================================================================
+
+_FETCH_RECIPE = "katana_mcp.tools.foundation.manufacturing_orders._fetch_mo_recipe_rows"
+_FETCH_OPS = "katana_mcp.tools.foundation.manufacturing_orders._fetch_mo_operation_rows"
+_FETCH_PRODS = "katana_mcp.tools.foundation.manufacturing_orders._fetch_mo_productions"
+_MO_API = "katana_public_api_client.api.manufacturing_order"
+
+
+def _full_mo_attrs():
+    """Build a ManufacturingOrder attrs model with every field populated.
+
+    Used by the exhaustive-coverage tests to prove ``GetManufacturingOrderResponse``
+    surfaces every field on the generated attrs model.
+    """
+    from katana_public_api_client.models import (
+        ManufacturingOrder,
+        ManufacturingOrderStatus,
+    )
+    from katana_public_api_client.models.ingredient_availability import (
+        IngredientAvailability,
+    )
+
+    return ManufacturingOrder(
+        id=3001,
+        created_at=datetime(2024, 1, 15, 8, 0, 0, tzinfo=UTC),
+        updated_at=datetime(2024, 1, 20, 14, 30, 0, tzinfo=UTC),
+        deleted_at=None,
+        status=ManufacturingOrderStatus.IN_PROGRESS,
+        order_no="MO-2024-001",
+        variant_id=2101,
+        planned_quantity=50.0,
+        actual_quantity=35.0,
+        completed_quantity=30.0,
+        remaining_quantity=20.0,
+        includes_partial_completions=True,
+        batch_transactions=[],
+        location_id=1,
+        order_created_date=datetime(2024, 1, 15, 8, 0, 0, tzinfo=UTC),
+        production_deadline_date=datetime(2024, 1, 25, 17, 0, 0, tzinfo=UTC),
+        done_date=None,
+        additional_info="Priority order",
+        is_linked_to_sales_order=True,
+        ingredient_availability=IngredientAvailability.IN_STOCK,
+        total_cost=12500.0,
+        total_actual_time=140.5,
+        total_planned_time=200.0,
+        sales_order_id=2001,
+        sales_order_row_id=2501,
+        sales_order_delivery_deadline=datetime(2024, 1, 30, 12, 0, 0, tzinfo=UTC),
+        material_cost=8750.0,
+        subassemblies_cost=2250.0,
+        operations_cost=1500.0,
+        serial_numbers=[],
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_manufacturing_order_full_field_coverage():
+    """Every attrs-model field on ManufacturingOrder must flow to the response.
+
+    Pins the #346 exhaustive-coverage contract: previous versions of
+    GetManufacturingOrderResponse dropped 13 fields (created_at, updated_at,
+    deleted_at, completed_quantity, remaining_quantity, includes_partial_completions,
+    batch_transactions, total_actual_time, total_planned_time, sales_order_row_id,
+    sales_order_delivery_deadline, subassemblies_cost, serial_numbers). All must
+    round-trip through _build_mo_response.
+    """
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        GetManufacturingOrderRequest,
+        _get_manufacturing_order_impl,
+    )
+
+    context, _ = create_mock_context()
+    mo = _full_mo_attrs()
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = mo
+
+    with (
+        patch(
+            f"{_MO_API}.get_manufacturing_order.asyncio_detailed",
+            new_callable=AsyncMock,
+            return_value=mock_response,
+        ),
+        patch(_FETCH_RECIPE, new_callable=AsyncMock, return_value=[]),
+        patch(_FETCH_OPS, new_callable=AsyncMock, return_value=[]),
+        patch(_FETCH_PRODS, new_callable=AsyncMock, return_value=[]),
+    ):
+        request = GetManufacturingOrderRequest(order_id=3001)
+        result = await _get_manufacturing_order_impl(request, context)
+
+    # Every scalar field on ManufacturingOrder must reach the response:
+    assert result.id == 3001
+    assert result.order_no == "MO-2024-001"
+    assert result.status == "IN_PROGRESS"
+    assert result.variant_id == 2101
+    assert result.planned_quantity == 50.0
+    assert result.actual_quantity == 35.0
+    # Previously-dropped fields:
+    assert result.completed_quantity == 30.0
+    assert result.remaining_quantity == 20.0
+    assert result.includes_partial_completions is True
+    assert result.total_actual_time == 140.5
+    assert result.total_planned_time == 200.0
+    assert result.sales_order_row_id == 2501
+    assert result.sales_order_delivery_deadline == "2024-01-30T12:00:00+00:00"
+    assert result.subassemblies_cost == 2250.0
+    assert result.created_at == "2024-01-15T08:00:00+00:00"
+    assert result.updated_at == "2024-01-20T14:30:00+00:00"
+    assert result.deleted_at is None
+    assert result.batch_transactions == []
+    assert result.serial_numbers == []
+    # Fields that were already there stay correct:
+    assert result.location_id == 1
+    assert result.additional_info == "Priority order"
+    assert result.ingredient_availability == "IN_STOCK"
+    assert result.total_cost == 12500.0
+    assert result.material_cost == 8750.0
+    assert result.operations_cost == 1500.0
+    assert result.sales_order_id == 2001
+    assert result.is_linked_to_sales_order is True
+
+
+@pytest.mark.asyncio
+async def test_get_manufacturing_order_fetches_related_resources():
+    """Recipe rows, operation rows, and productions come from their own endpoints.
+
+    Patches the three _fetch_mo_* helpers to assert that:
+      (a) each is invoked exactly once with the MO id, and
+      (b) their results flow through to the response's list-shaped fields.
+    """
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        GetManufacturingOrderRequest,
+        OperationRowInfo,
+        ProductionInfo,
+        RecipeRowInfo,
+        _get_manufacturing_order_impl,
+    )
+
+    context, _ = create_mock_context()
+    mo = _full_mo_attrs()
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = mo
+
+    recipe_row = RecipeRowInfo(
+        id=4001,
+        manufacturing_order_id=3001,
+        variant_id=3201,
+        sku="STEEL-304",
+        planned_quantity_per_unit=2.5,
+        total_actual_quantity=125.0,
+        ingredient_availability="IN_STOCK",
+        notes="Use only grade 304 material",
+        cost=437.5,
+    )
+    operation_row = OperationRowInfo(
+        id=3801,
+        manufacturing_order_id=3001,
+        status="IN_PROGRESS",
+        operation_name="Cut Steel Sheets",
+        planned_time_per_unit=15.0,
+        total_actual_time=12.5,
+    )
+    production = ProductionInfo(
+        id=3501,
+        manufacturing_order_id=3001,
+        quantity=25.0,
+        production_date="2024-01-20T14:30:00+00:00",
+    )
+
+    with (
+        patch(
+            f"{_MO_API}.get_manufacturing_order.asyncio_detailed",
+            new_callable=AsyncMock,
+            return_value=mock_response,
+        ),
+        patch(
+            _FETCH_RECIPE, new_callable=AsyncMock, return_value=[recipe_row]
+        ) as mock_fetch_recipe,
+        patch(
+            _FETCH_OPS, new_callable=AsyncMock, return_value=[operation_row]
+        ) as mock_fetch_ops,
+        patch(
+            _FETCH_PRODS, new_callable=AsyncMock, return_value=[production]
+        ) as mock_fetch_prods,
+    ):
+        request = GetManufacturingOrderRequest(order_id=3001)
+        result = await _get_manufacturing_order_impl(request, context)
+
+    # Each helper called exactly once with the MO id:
+    mock_fetch_recipe.assert_awaited_once()
+    assert mock_fetch_recipe.await_args.args[1] == 3001
+    mock_fetch_ops.assert_awaited_once()
+    assert mock_fetch_ops.await_args.args[1] == 3001
+    mock_fetch_prods.assert_awaited_once()
+    assert mock_fetch_prods.await_args.args[1] == 3001
+
+    # Results flow through to the response:
+    assert len(result.recipe_rows) == 1
+    assert result.recipe_rows[0].id == 4001
+    assert result.recipe_rows[0].sku == "STEEL-304"
+    assert len(result.operation_rows) == 1
+    assert result.operation_rows[0].operation_name == "Cut Steel Sheets"
+    assert len(result.productions) == 1
+    assert result.productions[0].quantity == 25.0
+
+
+@pytest.mark.asyncio
+async def test_get_manufacturing_order_markdown_uses_canonical_field_names():
+    """Markdown labels use Pydantic field names (not prettified headers) so
+    LLM consumers can't misread a section label as a different field
+    (motivation: #346 follow-on, supplier_item_codes misread)."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        GetManufacturingOrderResponse,
+    )
+
+    context, _ = create_mock_context()
+
+    with patch(
+        "katana_mcp.tools.foundation.manufacturing_orders._get_manufacturing_order_impl",
+        new_callable=AsyncMock,
+    ) as mock_impl:
+        mock_impl.return_value = GetManufacturingOrderResponse(
+            id=3001,
+            order_no="MO-2024-001",
+            status="IN_PROGRESS",
+            variant_id=2101,
+            planned_quantity=50.0,
+            production_deadline_date="2024-01-25T17:00:00+00:00",
+            total_cost=12500.0,
+            subassemblies_cost=2250.0,
+            sales_order_row_id=2501,
+        )
+        result = await get_manufacturing_order(order_id=3001, context=context)
+
+    text = result.content[0].text
+    # Canonical scalar labels — the prettified versions the old impl used
+    # (e.g. "**Deadline**:", "**Total Cost**:") are gone. These pin the
+    # new convention:
+    assert "**production_deadline_date**: 2024-01-25T17:00:00+00:00" in text
+    assert "**total_cost**: 12500.0" in text
+    assert "**subassemblies_cost**: 2250.0" in text
+    assert "**sales_order_row_id**: 2501" in text
+    # Empty list fields render with explicit [] syntax, not bare headers
+    # that a reader might mistake for a section:
+    assert "**recipe_rows**: []" in text
+    assert "**operation_rows**: []" in text
+    assert "**productions**: []" in text
+    assert "**batch_transactions**: []" in text
+    assert "**serial_numbers**: []" in text
+
+
+@pytest.mark.asyncio
+async def test_get_manufacturing_order_recipe_full_field_coverage():
+    """RecipeRowInfo must surface every field on ManufacturingOrderRecipeRow.
+
+    The pre-#346 RecipeRowInfo dropped 8 fields (created_at, updated_at,
+    deleted_at, manufacturing_order_id, ingredient_expected_date,
+    batch_transactions, total_consumed_quantity, total_remaining_quantity).
+    """
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        _recipe_row_info_from_attrs,
+    )
+
+    from katana_public_api_client.models.manufacturing_order_recipe_row import (
+        ManufacturingOrderRecipeRow,
+    )
+    from katana_public_api_client.models.manufacturing_order_recipe_row_batch_transactions_item import (
+        ManufacturingOrderRecipeRowBatchTransactionsItem,
+    )
+
+    attrs_row = ManufacturingOrderRecipeRow(
+        id=4001,
+        created_at=datetime(2024, 1, 15, 8, 0, 0, tzinfo=UTC),
+        updated_at=datetime(2024, 1, 20, 14, 30, 0, tzinfo=UTC),
+        deleted_at=None,
+        manufacturing_order_id=3001,
+        variant_id=3201,
+        notes="Use only grade 304 material",
+        planned_quantity_per_unit=2.5,
+        total_actual_quantity=125.0,
+        ingredient_availability="IN_STOCK",
+        ingredient_expected_date=datetime(2024, 1, 18, 0, 0, 0, tzinfo=UTC),
+        batch_transactions=[
+            ManufacturingOrderRecipeRowBatchTransactionsItem(
+                batch_id=1201, quantity=125.0
+            )
+        ],
+        cost=437.5,
+        total_consumed_quantity=100.0,
+        total_remaining_quantity=25.0,
+    )
+
+    info = _recipe_row_info_from_attrs(attrs_row, sku="STEEL-304")
+
+    # Previously-dropped fields:
+    assert info.manufacturing_order_id == 3001
+    assert info.total_consumed_quantity == 100.0
+    assert info.total_remaining_quantity == 25.0
+    assert info.ingredient_expected_date == "2024-01-18T00:00:00+00:00"
+    assert info.created_at == "2024-01-15T08:00:00+00:00"
+    assert info.updated_at == "2024-01-20T14:30:00+00:00"
+    assert info.deleted_at is None
+    assert len(info.batch_transactions) == 1
+    assert info.batch_transactions[0].batch_id == 1201
+    assert info.batch_transactions[0].quantity == 125.0
+    # Fields that were already there stay correct:
+    assert info.id == 4001
+    assert info.variant_id == 3201
+    assert info.sku == "STEEL-304"
+    assert info.notes == "Use only grade 304 material"
+    assert info.planned_quantity_per_unit == 2.5
+    assert info.total_actual_quantity == 125.0
+    assert info.ingredient_availability == "IN_STOCK"
+    assert info.cost == 437.5
