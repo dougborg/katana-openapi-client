@@ -156,43 +156,43 @@ class TestModelConfiguration:
             assert issubclass(cls, SQLModel), f"{cls.__name__} is not a SQLModel"
 
     def test_cache_tables_are_sqlmodel_tables(self) -> None:
-        """Cache-target classes must have ``__table__`` with a snake_case name.
+        """Cache-target classes register tables with snake_case names and `id` PKs.
 
         Sanity-check the #342 generator pipeline: ``SalesOrder`` and
         ``SalesOrderRow`` opt into SQLModel table mode via ``table=True``.
-        Without the generator transforms, these would be plain pydantic
-        classes and ``__table__`` wouldn't exist.
+        Verified via ``SQLModel.metadata.tables`` (the typed public view of
+        the same table objects the classes' ``__table__`` attributes point
+        at) — importing the module triggers table registration; a
+        ``KeyError`` on lookup would mean a cache-target class silently
+        failed to register.
         """
+        import importlib
+
         from sqlmodel import SQLModel
 
-        from katana_public_api_client.models_pydantic._generated import (
-            SalesOrder,
-            SalesOrderRow,
+        # importlib triggers module load (registering the tables with
+        # SQLModel.metadata) without a named binding the linter will flag
+        # as unused.
+        importlib.import_module(
+            "katana_public_api_client.models_pydantic._generated.sales_orders"
         )
 
-        # ``__table__`` is synthesized by SQLModel's metaclass and invisible
-        # to the static type checker. Reach it via ``SQLModel.metadata`` —
-        # same underlying object, with a fully-typed public accessor.
         so_table = SQLModel.metadata.tables["sales_order"]
         sor_table = SQLModel.metadata.tables["sales_order_row"]
         assert so_table.name == "sales_order"
         assert sor_table.name == "sales_order_row"
         assert [c.name for c in so_table.primary_key.columns] == ["id"]
         assert [c.name for c in sor_table.primary_key.columns] == ["id"]
-        # The class-level __table__ must be the same SQLAlchemy table object
-        # — guards against SQLModel's table registration ever skipping a
-        # cache-target class.
-        assert SalesOrder is not None and SalesOrderRow is not None
 
     def test_cache_table_foreign_keys(self) -> None:
         """SalesOrderRow must declare a FK back to sales_order.id."""
+        import importlib
+
         from sqlmodel import SQLModel
 
-        # Import forces table registration; reference keeps the import
-        # meaningful to ruff/F401.
-        from katana_public_api_client.models_pydantic._generated import SalesOrderRow
-
-        assert SalesOrderRow is not None
+        importlib.import_module(
+            "katana_public_api_client.models_pydantic._generated.sales_orders"
+        )
         table = SQLModel.metadata.tables["sales_order_row"]
         fks = {fk.target_fullname for fk in table.foreign_keys}
         assert "sales_order.id" in fks
