@@ -91,6 +91,13 @@ logs/
 *~
 .claude/settings.local.json
 
+# Claude Code agent worktrees. Each subdir is a parallel git worktree created
+# by an Agent tool isolation=worktree invocation. They live under the main
+# repo only for locality; they're independent branches and must not leak into
+# git adds or tool scans run from the main checkout.
+.claude/worktrees/
+.claude/scheduled_tasks.lock
+
 # macOS
 .DS_Store
 .AppleDouble
