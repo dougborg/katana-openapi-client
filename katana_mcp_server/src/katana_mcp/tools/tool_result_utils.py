@@ -24,15 +24,11 @@ if TYPE_CHECKING:
     from prefab_ui.app import PrefabApp
 
 
+# Opt-in marker for Prefab UI rendering. Pass as ``meta=UI_META`` in
+# ``mcp.tool(...)`` for every tool that returns a ``PrefabApp`` via
+# ``make_tool_result``. Any tool missing this marker will ship markdown only —
+# the UI will be built but silently discarded by the client.
 UI_META: dict[str, Any] = {"ui": True}
-"""Tool registration ``meta`` that opts a tool into Prefab UI rendering.
-
-Pass as ``mcp.tool(..., meta=UI_META)`` for every tool that returns a
-``ToolResult`` whose ``structured_content`` may be a ``PrefabApp``. FastMCP's
-``_maybe_apply_prefab_ui`` auto-registers the ``ui://prefab/renderer.html``
-resource and expands this flag into the full AppConfig metadata that
-MCP-Apps-capable clients (Claude Desktop) need to render the UI.
-"""
 
 
 def enum_to_str(value: Any) -> str | None:
@@ -105,6 +101,14 @@ def make_tool_result(
 
     Without ``ui``, ``structured_content`` is the Pydantic response dict so
     programmatic callers can consume fields directly.
+
+    **Contract for programmatic callers:** when ``ui`` is present, ``structured_content``
+    is the Prefab wire envelope — it does **not** include the raw response dict
+    under a stable key. The previous implementation spliced the Pydantic dump into
+    ``structured_content["data"]``; that is gone. Callers who need the response as
+    JSON should request it explicitly via the tool's ``format="json"`` parameter
+    (introduced in #334), which returns a pure Pydantic JSON dump with no UI
+    envelope — the right channel for programmatic access regardless of UI state.
 
     Args:
         response: Pydantic model response from the tool

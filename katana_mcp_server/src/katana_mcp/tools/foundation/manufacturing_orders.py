@@ -1472,12 +1472,7 @@ async def batch_update_manufacturing_order_recipes(
     markdown = _render_batch_markdown(response)
     ui = build_batch_recipe_update_ui(response.model_dump())
 
-    # Attach the response data alongside the Prefab UI envelope so programmatic
-    # clients can access structured fields.
-    prefab_json = ui.to_json()
-    prefab_json["data"] = response.model_dump()
-
-    return ToolResult(content=markdown, structured_content=prefab_json)
+    return ToolResult(content=markdown, structured_content=ui)
 
 
 # ============================================================================
@@ -1935,4 +1930,5 @@ def register_tools(mcp: FastMCP) -> None:
     mcp.tool(
         tags={"orders", "manufacturing", "write", "batch"},
         annotations=_destructive_write,
+        meta=UI_META,
     )(batch_update_manufacturing_order_recipes)
