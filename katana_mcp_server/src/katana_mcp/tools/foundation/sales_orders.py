@@ -854,27 +854,219 @@ class GetSalesOrderRequest(BaseModel):
     )
 
 
-class GetSalesOrderResponse(BaseModel):
-    """Full sales order details."""
+class SalesOrderRowDetail(BaseModel):
+    """Full sales order row — every field on ``SalesOrderRow`` surfaced.
+
+    Used inside ``GetSalesOrderResponse.rows`` where we want the exhaustive
+    row-level detail. ``SalesOrderRowInfo`` (used by list_sales_orders) stays
+    summary-shaped so the list tool remains compact.
+    """
 
     id: int
-    order_no: str | None
-    customer_id: int | None
-    location_id: int | None
-    status: str | None
-    production_status: str | None
-    created_at: str | None
-    delivery_date: str | None
-    total: float | None
-    currency: str | None
-    additional_info: str | None
-    rows: list[SalesOrderRowInfo]
+    variant_id: int | None = None
+    sku: str | None = None
+    quantity: float | None = None
+    sales_order_id: int | None = None
+    tax_rate_id: int | None = None
+    tax_rate: float | None = None
+    location_id: int | None = None
+    product_availability: str | None = None
+    product_expected_date: str | None = None
+    price_per_unit: float | None = None
+    price_per_unit_in_base_currency: float | None = None
+    total: float | None = None
+    total_in_base_currency: float | None = None
+    total_discount: str | None = None
+    cogs_value: float | None = None
+    linked_manufacturing_order_id: int | None = None
+    conversion_rate: float | None = None
+    conversion_date: str | None = None
+    serial_numbers: list[int] = Field(default_factory=list)
+    created_at: str | None = None
+    updated_at: str | None = None
+    deleted_at: str | None = None
+
+
+class SalesOrderAddressInfo(BaseModel):
+    """Full sales order address — one entry in ``GetSalesOrderResponse.addresses``.
+
+    Mirrors every field on the ``SalesOrderAddress`` attrs model. The attrs
+    field ``zip_`` is a Python keyword workaround; the wire format (and this
+    Pydantic field) is ``zip``.
+    """
+
+    id: int
+    sales_order_id: int | None = None
+    entity_type: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    company: str | None = None
+    phone: str | None = None
+    line_1: str | None = None
+    line_2: str | None = None
+    city: str | None = None
+    state: str | None = None
+    zip: str | None = None
+    country: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+    deleted_at: str | None = None
+
+
+class SalesOrderShippingFeeInfo(BaseModel):
+    """Shipping fee block — mirrors the ``SalesOrderShippingFee`` attrs model."""
+
+    id: int
+    sales_order_id: int | None = None
+    amount: str | None = None
+    tax_rate_id: int | None = None
+    description: str | None = None
+
+
+class GetSalesOrderResponse(BaseModel):
+    """Full sales order details. Exhaustive — every field Katana exposes on
+    ``SalesOrder`` is surfaced (including nested rows, addresses, and
+    shipping fee) so callers don't need follow-up lookups for standard fields.
+    """
+
+    # Identifiers / header
+    id: int
+    order_no: str | None = None
+    customer_id: int | None = None
+    location_id: int | None = None
+    source: str | None = None
+    order_created_date: str | None = None
+
+    # Status / workflow
+    status: str | None = None
+    production_status: str | None = None
+    invoicing_status: str | None = None
+    product_availability: str | None = None
+    product_expected_date: str | None = None
+    ingredient_availability: str | None = None
+    ingredient_expected_date: str | None = None
+
+    # Dates
+    delivery_date: str | None = None
+    picked_date: str | None = None
+
+    # Money
+    currency: str | None = None
+    total: float | None = None
+    total_in_base_currency: float | None = None
+    conversion_rate: float | None = None
+    conversion_date: str | None = None
+
+    # Notes / reference
+    additional_info: str | None = None
+    customer_ref: str | None = None
+
+    # Tracking
+    tracking_number: str | None = None
+    tracking_number_url: str | None = None
+
+    # Addresses — both the ID pointers on the SO and the full resolved list
+    billing_address_id: int | None = None
+    shipping_address_id: int | None = None
+    addresses: list[SalesOrderAddressInfo] = Field(default_factory=list)
+
+    # Linked resources
+    linked_manufacturing_order_id: int | None = None
+    shipping_fee: SalesOrderShippingFeeInfo | None = None
+
+    # Ecommerce metadata
+    ecommerce_order_type: str | None = None
+    ecommerce_store_name: str | None = None
+    ecommerce_order_id: str | None = None
+
+    # Timestamps
+    created_at: str | None = None
+    updated_at: str | None = None
+    deleted_at: str | None = None
+
+    # Line items — exhaustive per-row detail
+    rows: list[SalesOrderRowDetail] = Field(default_factory=list)
+
+
+def _shipping_fee_from_attrs(fee: Any) -> SalesOrderShippingFeeInfo | None:
+    """Build a SalesOrderShippingFeeInfo from a populated attrs fee or None.
+
+    Callers must pre-unwrap the attrs field (via ``unwrap_unset(obj.shipping_fee,
+    None)``) so this helper only receives ``None`` or a populated object —
+    passing the raw UNSET sentinel would AttributeError on ``.id``.
+    """
+    if fee is None:
+        return None
+    return SalesOrderShippingFeeInfo(
+        id=fee.id,
+        sales_order_id=fee.sales_order_id,
+        amount=unwrap_unset(fee.amount, None),
+        tax_rate_id=unwrap_unset(fee.tax_rate_id, None),
+        description=unwrap_unset(fee.description, None),
+    )
+
+
+async def _fetch_sales_order_addresses(
+    services: Any, sales_order_id: int
+) -> list[SalesOrderAddressInfo]:
+    """Fetch all addresses for a sales order via /sales_order_addresses.
+
+    SOs aren't cached today (per #342 they're transactional), so this is a
+    fetch-on-demand call alongside the SO lookup. Returns the full list of
+    addresses linked to ``sales_order_id``.
+    """
+    from katana_public_api_client.api.sales_order_address import (
+        get_all_sales_order_addresses,
+    )
+    from katana_public_api_client.utils import unwrap_data
+
+    response = await get_all_sales_order_addresses.asyncio_detailed(
+        client=services.client,
+        sales_order_ids=[sales_order_id],
+        limit=250,
+    )
+    rows = unwrap_data(response, default=[])
+    result: list[SalesOrderAddressInfo] = []
+    for row in rows:
+        row_dict = row.to_dict() if hasattr(row, "to_dict") else row
+        # The attrs model uses ``zip_`` as a Python keyword workaround; the
+        # API wire format is ``zip``. ``to_dict()`` emits the wire name.
+        result.append(
+            SalesOrderAddressInfo(
+                id=row_dict.get("id", 0),
+                sales_order_id=row_dict.get("sales_order_id"),
+                entity_type=row_dict.get("entity_type"),
+                first_name=row_dict.get("first_name"),
+                last_name=row_dict.get("last_name"),
+                company=row_dict.get("company"),
+                phone=row_dict.get("phone"),
+                line_1=row_dict.get("line_1"),
+                line_2=row_dict.get("line_2"),
+                city=row_dict.get("city"),
+                state=row_dict.get("state"),
+                zip=row_dict.get("zip"),
+                country=row_dict.get("country"),
+                # to_dict() has already serialized these to ISO strings;
+                # iso_or_none expects datetime and would AttributeError.
+                created_at=row_dict.get("created_at"),
+                updated_at=row_dict.get("updated_at"),
+                deleted_at=row_dict.get("deleted_at"),
+            )
+        )
+    return result
 
 
 async def _get_sales_order_impl(
     request: GetSalesOrderRequest, context: Context
 ) -> GetSalesOrderResponse:
-    """Look up a single sales order by order_no or order_id with line items."""
+    """Look up a single sales order by order_no or order_id with line items.
+
+    Exhaustive response — every field Katana exposes on ``SalesOrder`` (plus
+    nested rows, addresses, and shipping fee) is surfaced so callers don't
+    need follow-up lookups for standard fields. SO is not cached today (#342
+    covers the cache migration), so this keeps the same SO lookup path the
+    prior impl used and adds a fetch-on-demand for addresses.
+    """
     from katana_public_api_client.api.sales_order import (
         get_all_sales_orders,
         get_sales_order as api_get_sales_order,
@@ -905,29 +1097,56 @@ async def _get_sales_order_impl(
 
     raw_rows = unwrap_unset(so.sales_order_rows, [])
 
-    # Parallelize variant lookups across all rows (N+1 fix)
+    # Parallelize variant lookups across all rows (N+1 fix) AND the address
+    # fetch — both depend only on the SO we just loaded.
     variant_ids = [unwrap_unset(r.variant_id, None) for r in raw_rows]
-    variants = await asyncio.gather(
-        *(
-            services.cache.get_by_id(EntityType.VARIANT, v_id)
-            if v_id is not None
-            else none_coro()
-            for v_id in variant_ids
-        )
+    variants, addresses = await asyncio.gather(
+        asyncio.gather(
+            *(
+                services.cache.get_by_id(EntityType.VARIANT, v_id)
+                if v_id is not None
+                else none_coro()
+                for v_id in variant_ids
+            )
+        ),
+        _fetch_sales_order_addresses(services, so.id),
     )
 
-    row_infos: list[SalesOrderRowInfo] = []
+    row_details: list[SalesOrderRowDetail] = []
     for r, variant in zip(raw_rows, variants, strict=True):
-        row_infos.append(
-            SalesOrderRowInfo(
+        row_details.append(
+            SalesOrderRowDetail(
                 id=r.id,
                 variant_id=unwrap_unset(r.variant_id, None),
                 sku=variant.get("sku") if variant else None,
                 quantity=unwrap_unset(r.quantity, None),
+                sales_order_id=unwrap_unset(r.sales_order_id, None),
+                tax_rate_id=unwrap_unset(r.tax_rate_id, None),
+                tax_rate=unwrap_unset(r.tax_rate, None),
+                location_id=unwrap_unset(r.location_id, None),
+                product_availability=enum_to_str(
+                    unwrap_unset(r.product_availability, None)
+                ),
+                product_expected_date=iso_or_none(
+                    unwrap_unset(r.product_expected_date, None)
+                ),
                 price_per_unit=unwrap_unset(r.price_per_unit, None),
+                price_per_unit_in_base_currency=unwrap_unset(
+                    r.price_per_unit_in_base_currency, None
+                ),
+                total=unwrap_unset(r.total, None),
+                total_in_base_currency=unwrap_unset(r.total_in_base_currency, None),
+                total_discount=unwrap_unset(r.total_discount, None),
+                cogs_value=unwrap_unset(r.cogs_value, None),
                 linked_manufacturing_order_id=unwrap_unset(
                     r.linked_manufacturing_order_id, None
                 ),
+                conversion_rate=unwrap_unset(r.conversion_rate, None),
+                conversion_date=iso_or_none(unwrap_unset(r.conversion_date, None)),
+                serial_numbers=unwrap_unset(r.serial_numbers, []),
+                created_at=iso_or_none(unwrap_unset(r.created_at, None)),
+                updated_at=iso_or_none(unwrap_unset(r.updated_at, None)),
+                deleted_at=iso_or_none(unwrap_unset(r.deleted_at, None)),
             )
         )
 
@@ -936,15 +1155,155 @@ async def _get_sales_order_impl(
         order_no=unwrap_unset(so.order_no, None),
         customer_id=unwrap_unset(so.customer_id, None),
         location_id=unwrap_unset(so.location_id, None),
+        source=unwrap_unset(so.source, None),
+        order_created_date=iso_or_none(unwrap_unset(so.order_created_date, None)),
         status=enum_to_str(unwrap_unset(so.status, None)),
         production_status=enum_to_str(unwrap_unset(so.production_status, None)),
-        created_at=iso_or_none(unwrap_unset(so.created_at, None)),
+        invoicing_status=unwrap_unset(so.invoicing_status, None),
+        product_availability=enum_to_str(unwrap_unset(so.product_availability, None)),
+        product_expected_date=iso_or_none(unwrap_unset(so.product_expected_date, None)),
+        ingredient_availability=enum_to_str(
+            unwrap_unset(so.ingredient_availability, None)
+        ),
+        ingredient_expected_date=iso_or_none(
+            unwrap_unset(so.ingredient_expected_date, None)
+        ),
         delivery_date=iso_or_none(unwrap_unset(so.delivery_date, None)),
-        total=unwrap_unset(so.total, None),
+        picked_date=iso_or_none(unwrap_unset(so.picked_date, None)),
         currency=unwrap_unset(so.currency, None),
+        total=unwrap_unset(so.total, None),
+        total_in_base_currency=unwrap_unset(so.total_in_base_currency, None),
+        conversion_rate=unwrap_unset(so.conversion_rate, None),
+        conversion_date=iso_or_none(unwrap_unset(so.conversion_date, None)),
         additional_info=unwrap_unset(so.additional_info, None),
-        rows=row_infos,
+        customer_ref=unwrap_unset(so.customer_ref, None),
+        tracking_number=unwrap_unset(so.tracking_number, None),
+        tracking_number_url=unwrap_unset(so.tracking_number_url, None),
+        billing_address_id=unwrap_unset(so.billing_address_id, None),
+        shipping_address_id=unwrap_unset(so.shipping_address_id, None),
+        addresses=addresses,
+        linked_manufacturing_order_id=unwrap_unset(
+            so.linked_manufacturing_order_id, None
+        ),
+        shipping_fee=_shipping_fee_from_attrs(unwrap_unset(so.shipping_fee, None)),
+        ecommerce_order_type=unwrap_unset(so.ecommerce_order_type, None),
+        ecommerce_store_name=unwrap_unset(so.ecommerce_store_name, None),
+        ecommerce_order_id=unwrap_unset(so.ecommerce_order_id, None),
+        created_at=iso_or_none(unwrap_unset(so.created_at, None)),
+        updated_at=iso_or_none(unwrap_unset(so.updated_at, None)),
+        deleted_at=iso_or_none(unwrap_unset(so.deleted_at, None)),
+        rows=row_details,
     )
+
+
+# Scalar fields rendered in order at the top of the markdown response.
+# Labels use canonical Pydantic names so LLM consumers can't confuse a
+# rendered section header with the field name (see #346 follow-on).
+_GET_SO_SCALAR_FIELDS: tuple[str, ...] = (
+    "id",
+    "order_no",
+    "customer_id",
+    "location_id",
+    "source",
+    "status",
+    "production_status",
+    "invoicing_status",
+    "product_availability",
+    "product_expected_date",
+    "ingredient_availability",
+    "ingredient_expected_date",
+    "order_created_date",
+    "delivery_date",
+    "picked_date",
+    "currency",
+    "total",
+    "total_in_base_currency",
+    "conversion_rate",
+    "conversion_date",
+    "customer_ref",
+    "additional_info",
+    "tracking_number",
+    "tracking_number_url",
+    "billing_address_id",
+    "shipping_address_id",
+    "linked_manufacturing_order_id",
+    "ecommerce_order_type",
+    "ecommerce_store_name",
+    "ecommerce_order_id",
+    "created_at",
+    "updated_at",
+    "deleted_at",
+)
+
+# Per-address fields rendered (in order) under an ``addresses`` block.
+_ADDRESS_FIELDS: tuple[str, ...] = (
+    "sales_order_id",
+    "entity_type",
+    "first_name",
+    "last_name",
+    "company",
+    "phone",
+    "line_1",
+    "line_2",
+    "city",
+    "state",
+    "zip",
+    "country",
+    "created_at",
+    "updated_at",
+    "deleted_at",
+)
+
+# Per-row fields rendered under a ``rows`` block. ``id`` + ``variant_id`` /
+# ``sku`` are emitted first as the row header; the rest are indented beneath.
+_ROW_HEADER_FIELDS: tuple[str, ...] = ("variant_id", "sku")
+_ROW_BODY_FIELDS: tuple[str, ...] = (
+    "sales_order_id",
+    "quantity",
+    "price_per_unit",
+    "price_per_unit_in_base_currency",
+    "total",
+    "total_in_base_currency",
+    "total_discount",
+    "tax_rate_id",
+    "tax_rate",
+    "location_id",
+    "product_availability",
+    "product_expected_date",
+    "cogs_value",
+    "linked_manufacturing_order_id",
+    "conversion_rate",
+    "conversion_date",
+    "serial_numbers",
+    "created_at",
+    "updated_at",
+    "deleted_at",
+)
+
+
+def _render_address_md(addr: SalesOrderAddressInfo) -> str:
+    """Render one address as an indented multi-line block with canonical labels."""
+    lines = [f"  - **id**: {addr.id}"]
+    for fname in _ADDRESS_FIELDS:
+        val = getattr(addr, fname)
+        if val is None or val == "":
+            continue
+        lines.append(f"    **{fname}**: {val}")
+    return "\n".join(lines)
+
+
+def _render_row_md(row: SalesOrderRowDetail) -> str:
+    """Render one sales order row as an indented multi-line block with canonical labels."""
+    lines = [f"  - **id**: {row.id}"]
+    for fname in _ROW_HEADER_FIELDS + _ROW_BODY_FIELDS:
+        val = getattr(row, fname)
+        # Empty serial_numbers list is noise — skip it. Non-empty lists render
+        # with explicit [...] syntax so an LLM reading the output can tell
+        # the field is a list.
+        if val is None or val == "" or (isinstance(val, list) and not val):
+            continue
+        lines.append(f"    **{fname}**: {val}")
+    return "\n".join(lines)
 
 
 @observe_tool
@@ -954,9 +1313,13 @@ async def get_sales_order(
 ) -> ToolResult:
     """Look up a sales order by number or ID with all line items.
 
-    Returns order details (status, production_status, customer, delivery date)
-    plus rows with variant_id, SKU, quantity, price, and per-row production
-    status. Use with `list_sales_orders` for discovery workflows.
+    Returns every field Katana exposes on the sales order record — identity,
+    status/workflow flags, dates, totals, tracking, ecommerce metadata,
+    timestamps — plus the full list of associated billing/shipping addresses
+    (fetched on-demand via /sales_order_addresses, since SOs aren't cached)
+    and exhaustive per-row detail (variant, SKU via variant cache, pricing,
+    linked manufacturing order, batch tracking, serial numbers). Use with
+    `list_sales_orders` for discovery; this is the single-call path to the rest.
     """
     from katana_mcp.tools.tool_result_utils import make_simple_result
 
@@ -968,43 +1331,49 @@ async def get_sales_order(
             structured_content=response.model_dump(),
         )
 
-    lines = [
-        f"## Sales Order {response.order_no or response.id}",
-        f"- **Status**: {response.status}",
-        f"- **Production**: {response.production_status}",
-    ]
-    if response.customer_id is not None:
-        lines.append(f"- **Customer ID**: {response.customer_id}")
-    if response.location_id is not None:
-        lines.append(f"- **Location ID**: {response.location_id}")
-    if response.total is not None:
-        lines.append(f"- **Total**: {response.total} {response.currency or ''}")
-    if response.delivery_date:
-        lines.append(f"- **Delivery**: {response.delivery_date}")
-    if response.additional_info:
-        lines.append(f"- **Notes**: {response.additional_info}")
+    # Labels use canonical Pydantic field names so LLM consumers can't
+    # confuse a section header with the field name (see #346 follow-on).
+    header = f"## Sales Order {response.order_no or response.id}"
+    md_lines: list[str] = [header]
+    for fname in _GET_SO_SCALAR_FIELDS:
+        val = getattr(response, fname)
+        if val is None or val == "":
+            continue
+        md_lines.append(f"**{fname}**: {val}")
 
+    # shipping_fee is a nested object — render its canonical fields inline.
+    if response.shipping_fee is not None:
+        md_lines.append("")
+        md_lines.append("**shipping_fee**:")
+        fee = response.shipping_fee
+        md_lines.append(f"  **id**: {fee.id}")
+        for fname in ("sales_order_id", "amount", "tax_rate_id", "description"):
+            fval = getattr(fee, fname)
+            if fval is None or fval == "":
+                continue
+            md_lines.append(f"  **{fname}**: {fval}")
+
+    # Addresses — explicit [] when empty, count + per-address blocks when populated.
+    md_lines.append("")
+    if response.addresses:
+        md_lines.append(f"**addresses** ({len(response.addresses)}):")
+        for addr in response.addresses:
+            md_lines.append(_render_address_md(addr))
+    else:
+        md_lines.append("**addresses**: []")
+
+    # Rows — same shape as addresses (explicit [] / count + per-row blocks).
+    md_lines.append("")
     if response.rows:
-        lines.append("")
-        lines.append("### Line Items")
-        lines.append(
-            format_md_table(
-                headers=["Row ID", "SKU", "Variant", "Qty", "Price", "Linked MO"],
-                rows=[
-                    [
-                        r.id,
-                        r.sku or "—",
-                        r.variant_id or "—",
-                        r.quantity,
-                        r.price_per_unit or "—",
-                        r.linked_manufacturing_order_id or "—",
-                    ]
-                    for r in response.rows
-                ],
-            )
-        )
+        md_lines.append(f"**rows** ({len(response.rows)}):")
+        for row in response.rows:
+            md_lines.append(_render_row_md(row))
+    else:
+        md_lines.append("**rows**: []")
 
-    return make_simple_result("\n".join(lines), structured_data=response.model_dump())
+    return make_simple_result(
+        "\n".join(md_lines), structured_data=response.model_dump()
+    )
 
 
 def register_tools(mcp: FastMCP) -> None:

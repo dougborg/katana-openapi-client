@@ -811,16 +811,27 @@ also carries a `rows` list.
 ---
 
 ### get_sales_order
-Look up a single sales order by order number or ID with full line items.
+Look up a single sales order by order number or ID with exhaustive detail.
 
 **Parameters:**
 - `order_no` (optional): SO number (e.g., "#WEB20394")
 - `order_id` (optional): SO ID
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
-**Returns:** Order header (status, customer, location, total, delivery_date)
-plus `rows` with variant_id, SKU, quantity, price_per_unit, and any linked
-manufacturing_order_id. SKU is enriched via the variant cache.
+**Returns:** Every field Katana exposes on the sales order record —
+identifiers (id, order_no, customer_id, location_id, source), status flags
+(status, production_status, invoicing_status, product_availability,
+ingredient_availability), dates (order_created_date, delivery_date,
+picked_date, product_expected_date, ingredient_expected_date), money (total,
+total_in_base_currency, currency, conversion_rate, conversion_date), notes
+(additional_info, customer_ref), tracking (tracking_number,
+tracking_number_url), address pointers (billing_address_id,
+shipping_address_id) plus the full resolved `addresses` list fetched from
+/sales_order_addresses, `shipping_fee` block, `linked_manufacturing_order_id`,
+ecommerce metadata (ecommerce_order_type/store_name/order_id), timestamps
+(created_at, updated_at, deleted_at), and per-line `rows` with every
+`SalesOrderRow` field (variant_id, SKU via variant cache, quantity, pricing,
+discounts, tax, cogs, linked MO, batch/serial tracking, timestamps).
 
 ---
 
