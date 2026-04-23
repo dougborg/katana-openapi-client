@@ -534,14 +534,19 @@ specific MO — the list endpoint doesn't bundle them.
 ---
 
 ### get_manufacturing_order
-Look up manufacturing orders by order number or ID.
+Look up a manufacturing order by order number or ID with exhaustive detail.
 
 **Parameters:**
 - `order_no` (optional): Order number (e.g., '#WEB20082 / 1')
 - `order_id` (optional): Manufacturing order ID
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
-**Returns:** Order details including status, quantities, costs, linked sales order, and timeline.
+**Returns:** Single-object response with every field Katana exposes on the MO
+(status, quantities, costs, timings, timestamps, linked sales order fields,
+batch and serial transactions) plus the full `recipe_rows`, `operation_rows`,
+and `productions` lists fetched from their respective endpoints. Markdown
+labels use canonical Pydantic field names (e.g. `**production_deadline_date**:`)
+so downstream consumers can't confuse section headers with field names.
 
 ---
 
@@ -694,13 +699,16 @@ Get full details for a customer by ID.
 ---
 
 ### get_manufacturing_order_recipe
-List the ingredient rows for a manufacturing order.
+List the ingredient (recipe) rows for a manufacturing order with exhaustive detail.
 
 **Parameters:**
 - `manufacturing_order_id` (required): MO ID
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
-**Returns:** List of recipe rows with row ID, variant ID, SKU, planned qty/unit, availability.
+**Returns:** Every field Katana exposes on each `ManufacturingOrderRecipeRow`
+(notes, planned/actual/consumed/remaining quantities, ingredient availability
+and expected date, batch transactions, cost, timestamps) plus the resolved
+SKU. Markdown labels use canonical Pydantic field names.
 
 ---
 
