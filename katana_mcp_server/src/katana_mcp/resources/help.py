@@ -405,14 +405,21 @@ Find items that are below their reorder threshold.
 ---
 
 ### get_inventory_movements
-Get inventory movement history for a SKU — every stock change with dates and causes.
+Get inventory movement history for a SKU — every stock change with dates, causes,
+and valuation. Exhaustive: every field on Katana's `InventoryMovement` is surfaced
+(identity, variant/location pointers, resource pointers, valuation fields,
+timestamps, and rank) so no follow-up lookups are needed for standard fields.
 
 **Parameters:**
 - `sku` (required): SKU to get movements for
 - `limit` (optional): Maximum movements to return (default: 50)
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
-**Returns:** Movement history with dates, quantity changes, balances, resource types, and order numbers.
+**Returns:** Movement history with `id`, `variant_id`, `location_id`, `resource_type`,
+`resource_id`, `caused_by_order_no`, `caused_by_resource_id`, `movement_date`,
+`quantity_change`, `balance_after`, `value_per_unit`, `value_in_stock_after`,
+`average_cost_after`, `rank`, `created_at`, `updated_at`. Markdown render uses
+canonical Pydantic field names as column headers.
 
 ---
 

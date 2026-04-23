@@ -349,12 +349,22 @@ async def test_get_inventory_movements():
     )
 
     mock_movement = MagicMock()
+    mock_movement.id = 9001
+    mock_movement.variant_id = 3001
+    mock_movement.location_id = 1
     mock_movement.movement_date.isoformat.return_value = "2026-04-01T12:00:00+00:00"
     mock_movement.quantity_change = -5.0
     mock_movement.balance_after = 10.0
     mock_movement.resource_type.value = "ProductionIngredient"
+    mock_movement.resource_id = 5001
     mock_movement.caused_by_order_no = "MO-123"
+    mock_movement.caused_by_resource_id = 5001
     mock_movement.value_per_unit = 25.50
+    mock_movement.value_in_stock_after = 255.0
+    mock_movement.average_cost_after = 25.50
+    mock_movement.rank = 1
+    mock_movement.created_at = UNSET
+    mock_movement.updated_at = UNSET
 
     with (
         patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock),
@@ -381,6 +391,154 @@ async def test_get_inventory_movements_not_found():
     assert result.sku == "NOT-FOUND"
     assert result.total_count == 0
     assert result.movements == []
+
+
+@pytest.mark.asyncio
+async def test_get_inventory_movements_full_field_coverage():
+    """Every InventoryMovement attrs field flows through to MovementInfo.
+
+    Pins the exhaustive-surface contract: any future InventoryMovement field
+    addition MUST either land on MovementInfo or explicitly update this test.
+    Covers the previously-dropped fields: id, variant_id, location_id,
+    resource_id, caused_by_resource_id, value_in_stock_after, average_cost_after,
+    rank, created_at, updated_at.
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
+    )
+
+    mock_movement = MagicMock()
+    mock_movement.id = 12345
+    mock_movement.variant_id = 3001
+    mock_movement.location_id = 1
+    mock_movement.movement_date.isoformat.return_value = "2026-04-15T10:30:00+00:00"
+    mock_movement.quantity_change = 100.0
+    mock_movement.balance_after = 500.0
+    mock_movement.resource_type.value = "PurchaseOrderRow"
+    mock_movement.resource_id = 5001
+    mock_movement.caused_by_order_no = "PO-2024-001"
+    mock_movement.caused_by_resource_id = 5002
+    mock_movement.value_per_unit = 25.5
+    mock_movement.value_in_stock_after = 12750.0
+    mock_movement.average_cost_after = 25.5
+    mock_movement.rank = 1
+
+    created_at = datetime(2026, 4, 15, 10, 30, 0, tzinfo=UTC)
+    updated_at = datetime(2026, 4, 15, 10, 31, 0, tzinfo=UTC)
+    mock_movement.created_at = created_at
+    mock_movement.updated_at = updated_at
+
+    with (
+        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[mock_movement]),
+    ):
+        request = GetInventoryMovementsRequest(sku="WIDGET-001")
+        result = await _get_inventory_movements_impl(request, context)
+
+    assert result.total_count == 1
+    m = result.movements[0]
+    # Every field from InventoryMovement attrs model must flow through.
+    assert m.id == 12345
+    assert m.variant_id == 3001
+    assert m.location_id == 1
+    assert m.resource_type == "PurchaseOrderRow"
+    assert m.resource_id == 5001
+    assert m.caused_by_order_no == "PO-2024-001"
+    assert m.caused_by_resource_id == 5002
+    assert m.movement_date == "2026-04-15T10:30:00+00:00"
+    assert m.quantity_change == 100.0
+    assert m.balance_after == 500.0
+    assert m.value_per_unit == 25.5
+    assert m.value_in_stock_after == 12750.0
+    assert m.average_cost_after == 25.5
+    assert m.rank == 1
+    assert m.created_at == created_at.isoformat()
+    assert m.updated_at == updated_at.isoformat()
+
+
+@pytest.mark.asyncio
+async def test_get_inventory_movements_markdown_uses_canonical_names():
+    """Markdown render uses canonical Pydantic field names as column headers.
+
+    Pins the #346 follow-on convention so a future refactor can't silently
+    swap back to friendly-name labels like ``Date`` or ``Change``.
+    """
+    from katana_mcp.tools.foundation.inventory import (
+        InventoryMovementsResponse,
+        MovementInfo,
+    )
+
+    movements = [
+        MovementInfo(
+            id=9001,
+            variant_id=3001,
+            location_id=1,
+            resource_type="PurchaseOrderRow",
+            resource_id=5001,
+            caused_by_order_no="PO-2024-001",
+            caused_by_resource_id=5002,
+            movement_date="2026-04-15T10:30:00+00:00",
+            quantity_change=100.0,
+            balance_after=500.0,
+            value_per_unit=25.5,
+            value_in_stock_after=12750.0,
+            average_cost_after=25.5,
+            rank=1,
+            created_at="2026-04-15T10:30:00+00:00",
+            updated_at="2026-04-15T10:31:00+00:00",
+        )
+    ]
+    with patch(
+        "katana_mcp.tools.foundation.inventory._get_inventory_movements_impl",
+        new_callable=AsyncMock,
+    ) as mock_impl:
+        mock_impl.return_value = InventoryMovementsResponse(
+            sku="WIDGET-001",
+            product_name="Test Widget",
+            movements=movements,
+            total_count=1,
+        )
+        context, _ = create_mock_context()
+        result = await get_inventory_movements(sku="WIDGET-001", context=context)
+
+    md = _content_text(result)
+    # Parse the header row directly and assert the exact column names.
+    # Substring checks like `"id" in md` are too weak: they pass even if the
+    # `id` column is missing, because `variant_id` / `resource_id` also contain
+    # "id". Pinning on the exact column sequence catches silent reorderings
+    # and drops.
+    header_line = next(line for line in md.splitlines() if line.startswith("| id |"))
+    columns = [c.strip() for c in header_line.split("|")[1:-1]]
+    assert columns == [
+        "id",
+        "movement_date",
+        "variant_id",
+        "location_id",
+        "resource_type",
+        "resource_id",
+        "caused_by_order_no",
+        "caused_by_resource_id",
+        "quantity_change",
+        "balance_after",
+        "value_per_unit",
+        "value_in_stock_after",
+        "average_cost_after",
+        "rank",
+        "created_at",
+        "updated_at",
+    ]
+    # And the header labels too
+    assert "**sku**: WIDGET-001" in md
+    assert "**product_name**: Test Widget" in md
+    assert "**total_count**: 1" in md
+    # Should NOT contain the old friendly labels
+    assert "| Date |" not in md
+    assert "| Change |" not in md
+    assert "| Balance |" not in md
+    assert "| Type |" not in md
+    assert "| Order |" not in md
 
 
 # ============================================================================
