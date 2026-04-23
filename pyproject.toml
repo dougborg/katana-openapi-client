@@ -51,6 +51,10 @@ dependencies = [
   "email-validator>=2.2.0",  # Required for Pydantic EmailStr fields
   "typing-extensions>=4.13.0",
   "httpx-retries>=0.4.5",
+  # SQLModel unifies pydantic validation with SQLAlchemy ORM — used as the
+  # base class for all generated domain models so a single class can serve as
+  # both API response shape and cache table definition (see #342).
+  "sqlmodel>=0.0.22",
 ]
 
 [project.urls]

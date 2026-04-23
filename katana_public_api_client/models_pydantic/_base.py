@@ -12,7 +12,8 @@ import enum
 from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any, ClassVar, TypeVar, cast, get_args, get_origin
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
+from sqlmodel import SQLModel
 
 if TYPE_CHECKING:
     pass
@@ -36,8 +37,15 @@ def _get_unset() -> Any:
     return UNSET
 
 
-class KatanaPydanticBase(BaseModel):
+class KatanaPydanticBase(SQLModel):
     """Base class for all generated Pydantic models.
+
+    Extends ``SQLModel`` (not plain ``pydantic.BaseModel``) so that subclasses
+    can opt into SQLAlchemy table semantics via ``table=True`` without forking
+    the generated model hierarchy. ``SQLModel`` is itself a pydantic
+    ``BaseModel`` subclass, so existing consumers that validate, serialize,
+    or round-trip these models continue to work unchanged. See #342 for the
+    cache-backed-list-tools work that motivated the unification.
 
     This base class provides:
     - Immutable (frozen) models for data integrity
