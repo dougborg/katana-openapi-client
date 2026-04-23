@@ -17,17 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-# Static imports for table registration. These modules' import side
-# effects register the `table=True` SQLModel classes with
-# ``SQLModel.metadata`` so ``create_all`` can emit their DDL. Covers
-# both the hand-written bookkeeping table (SyncState) and the
-# generator-emitted per-entity tables. Expand as more transactional
-# types come online.
-#
-# Static rather than dynamic `importlib.import_module` on purpose —
-# Semgrep flags the dynamic form (non-literal-import) and the static
-# form is equivalent at our hardcoded whitelist of modules. The
-# ``assert`` keeps the imports from being lint-stripped as unused.
+# Side-effect imports: register table=True SQLModel classes with
+# ``SQLModel.metadata`` so ``create_all`` emits their DDL. Add new
+# entity modules here as they come online.
 from katana_mcp.typed_cache import sync_state as _sync_state_mod
 from katana_public_api_client.models_pydantic._generated import (
     sales_orders as _sales_orders_mod,
