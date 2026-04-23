@@ -135,22 +135,15 @@ class TestModelConfiguration:
         assert KatanaPydanticBase.model_config.get("validate_assignment") is True
 
     def test_base_extends_sqlmodel(self) -> None:
-        """KatanaPydanticBase must extend SQLModel so subclasses can opt into
-        SQLAlchemy table mode via ``table=True`` without forking the generator
-        output (see #342). SQLModel itself is a pydantic BaseModel, so existing
-        consumers are unaffected — this canary catches accidental reverts to
-        plain ``pydantic.BaseModel``."""
-        from pydantic import BaseModel
+        """Canary: KatanaPydanticBase must stay rooted in SQLModel (#342)."""
         from sqlmodel import SQLModel
 
         from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 
         assert issubclass(KatanaPydanticBase, SQLModel)
-        assert issubclass(KatanaPydanticBase, BaseModel)
 
     def test_generated_classes_extend_sqlmodel(self) -> None:
-        """Every generated entity should inherit the SQLModel-ness through
-        KatanaPydanticBase. Sampled across a few representative domains."""
+        """Generated entities inherit SQLModel-ness via KatanaPydanticBase."""
         from sqlmodel import SQLModel
 
         from katana_public_api_client.models_pydantic._generated import (
