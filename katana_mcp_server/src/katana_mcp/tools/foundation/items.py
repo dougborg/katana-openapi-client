@@ -483,7 +483,13 @@ def _variant_to_summary(raw: Any) -> ItemVariantSummary | None:
         sku=d["sku"],
         sales_price=d.get("sales_price"),
         # ServiceVariant uses default_cost; Variant uses purchase_price.
-        purchase_price=d.get("purchase_price") or d.get("default_cost"),
+        # Explicit None-check — `or` would shadow a legitimate 0.0 price
+        # (free samples, gift items) with default_cost.
+        purchase_price=(
+            d["purchase_price"]
+            if d.get("purchase_price") is not None
+            else d.get("default_cost")
+        ),
         type=d.get("type") or d.get("type_"),
     )
 
@@ -602,10 +608,16 @@ def _render_variant_summary_md(v: ItemVariantSummary) -> str:
 def _render_config_md(c: ItemConfigInfo) -> str:
     """Render an ItemConfig as a compact multi-line block."""
     values = ", ".join(c.values) if c.values else ""
-    lines = [f"  - **id**: {c.id}", f"    **name**: {c.name}"]
-    if values:
-        lines.append(f"    **values**: [{values}]")
-    return "\n".join(lines)
+    # Always emit `values` with explicit brackets; empty list renders as `[]`
+    # rather than being omitted, so an LLM consumer can't confuse "absent"
+    # with "empty" (#346 follow-on convention).
+    return "\n".join(
+        [
+            f"  - **id**: {c.id}",
+            f"    **name**: {c.name}",
+            f"    **values**: [{values}]",
+        ]
+    )
 
 
 def _render_supplier_md(s: ItemSupplierInfo) -> str:

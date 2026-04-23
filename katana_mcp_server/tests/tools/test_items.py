@@ -160,10 +160,12 @@ async def test_get_variant_details_renders_supplier_item_codes_as_explicit_list(
     """One-element supplier_item_codes renders in bracket syntax (not as a
     bare bullet that an LLM could read as a scalar supplier ID).
 
-    This pins the exact shape called out in #346 follow-on: a catalog entry
-    carrying only the true supplier part number (10654627 — SW7083's own
-    SKU having been stripped by the cache_sync normalizer) should render
-    as ``**supplier_item_codes**: [10654627]``.
+    This pins the exact shape called out in #346 follow-on: a single-entry
+    list renders as ``**supplier_item_codes**: [10654627]``. The catalog may
+    store multiple codes (including the house SKU for retail pass-throughs
+    where it equals the vendor SKU); cache_sync passes the list through
+    verbatim — no mutation, no stripping — and the renderer shows every
+    entry in explicit bracket syntax.
     """
     context, lifespan_ctx = create_mock_context()
     lifespan_ctx.cache.get_by_sku = AsyncMock(
@@ -559,3 +561,60 @@ async def test_get_item_format_json_round_trips_nested():
     assert data["variants"][0]["sku"] == "KNF-PRO-8PC-STL"
     assert data["configs"][0]["name"] == "Piece Count"
     assert data["supplier"]["email"] == "sales@acme.example"
+
+
+# ============================================================================
+# Post-review regression tests (/review-pr on #356)
+# ============================================================================
+
+
+def test_variant_to_summary_preserves_zero_purchase_price():
+    """Regression: `or` treats 0.0 as falsy and used to shadow a legitimate
+    zero-price variant with `default_cost`. Explicit None-check must keep
+    the real 0.0 rather than falling through."""
+    from katana_mcp.tools.foundation.items import _variant_to_summary
+
+    summary = _variant_to_summary(
+        {
+            "id": 501,
+            "sku": "FREE-SAMPLE",
+            "sales_price": 0.0,
+            "purchase_price": 0.0,
+            "default_cost": 99.99,
+            "type": "product",
+        }
+    )
+
+    assert summary is not None
+    assert summary.purchase_price == 0.0  # Real zero, not default_cost shadow
+
+
+def test_variant_to_summary_falls_back_to_default_cost_when_purchase_price_absent():
+    """When purchase_price is truly absent/None, default_cost is the fallback
+    (matches ServiceVariant vs Variant shape divergence)."""
+    from katana_mcp.tools.foundation.items import _variant_to_summary
+
+    summary = _variant_to_summary(
+        {
+            "id": 502,
+            "sku": "SRV-ITEM",
+            "default_cost": 50.0,
+            "type": "service",
+        }
+    )
+
+    assert summary is not None
+    assert summary.purchase_price == 50.0
+
+
+def test_render_config_md_emits_empty_values_as_explicit_brackets():
+    """Regression: empty `values` list used to be silently omitted from the
+    rendered block. Per the #346 follow-on convention, list-shaped fields
+    render `[]` explicitly so an LLM consumer can't confuse absent with empty."""
+    from katana_mcp.tools.foundation.items import ItemConfigInfo, _render_config_md
+
+    empty = ItemConfigInfo(id=1, name="Empty Config", values=[])
+    md = _render_config_md(empty)
+
+    assert "**values**: []" in md
+    assert md.count("\n") == 2  # id, name, values — three lines
