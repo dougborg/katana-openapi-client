@@ -48,8 +48,8 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **create_purchase_order** - Create PO with preview/confirm pattern
 - **list_purchase_orders** - List POs with supplier/status/date filters
 - **receive_purchase_order** - Receive items and update inventory
-- **verify_order_document** - Verify supplier documents against POs
-- **get_purchase_order** - Look up a PO by number or ID with line items
+- **verify_order_document** - Verify supplier documents against POs (returns the full PO alongside match/discrepancy details)
+- **get_purchase_order** - Look up a PO by number or ID — exhaustive detail (every PO/row field, additional cost rows, accounting metadata)
 
 ### Manufacturing & Sales
 - **create_manufacturing_order** - Create production work orders
@@ -620,7 +620,13 @@ Verify a supplier document (invoice, packing slip) against a PO.
 - `document_items` (required): Array of items from document with sku, quantity, unit_price
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
-**Returns:** Match status, discrepancies, and suggested actions.
+**Returns:** Match status, discrepancies, suggested actions, and the full
+`purchase_order` in the same exhaustive shape as `get_purchase_order` —
+so callers can trace every compared value back to a concrete PO field
+without a follow-up lookup. Markdown output uses canonical Pydantic field
+names as labels (`**matches**`, `**discrepancies**`, `**purchase_order**`)
+to keep LLM consumers from misreading a prettified header as a different
+field (#346 follow-on).
 
 ---
 
@@ -666,14 +672,31 @@ expected_arrival_date, total, row_count. When `page` is set, also returns
 ---
 
 ### get_purchase_order
-Look up a purchase order by order number or ID with all line items.
+Look up a purchase order by order number or ID — exhaustive detail.
 
 **Parameters:**
 - `order_no` (optional): PO number (e.g., "PO-1022")
 - `order_id` (optional): PO ID
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
-**Returns:** Order details (status, supplier, total) plus rows with variant_id, quantity, price, arrival/received dates.
+**Returns:** Every field Katana exposes on the PO record — status, billing
+status, supplier, location, totals (including `total_in_base_currency`),
+timestamps, `last_document_status`, `tracking_location_id`,
+`additional_info`, plus:
+- `purchase_order_rows` — full line items (UOM, conversion rates,
+  landed_cost, batch_transactions, every row field)
+- `additional_cost_rows` — shipping, duties, handling (every field on
+  `PurchaseOrderAdditionalCostRow`)
+- `accounting_metadata` — bill IDs, integration type (every field on
+  `PurchaseOrderAccountingMetadata`)
+
+Two extra HTTP calls fetch the additional cost rows (by PO
+`default_group_id`) and accounting metadata (by PO id) on top of the
+PO-detail fetch. Markdown output uses canonical Pydantic field names as
+labels (`**status**`, `**purchase_order_rows** (N):`, `**additional_cost_rows**: []`)
+so LLM consumers can't misread a section header as a different field
+(#346 follow-on). Use this whenever full detail is needed; use
+`list_purchase_orders` for discovery.
 
 ---
 

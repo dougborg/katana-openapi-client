@@ -38,12 +38,69 @@ from tests.conftest import create_mock_context
 # ============================================================================
 
 
+# After #346, get_purchase_order and verify_order_document fetch additional
+# cost rows and accounting metadata via extra HTTP calls. Every test in this
+# module that exercises those impls would otherwise need to patch those
+# helpers individually — instead, autouse-default them to empty and let the
+# specific tests that care override via their own patch.
+_FETCH_PO_ADDITIONAL_COSTS = (
+    "katana_mcp.tools.foundation.purchase_orders._fetch_po_additional_cost_rows"
+)
+_FETCH_PO_ACCOUNTING_META = (
+    "katana_mcp.tools.foundation.purchase_orders._fetch_po_accounting_metadata"
+)
+
+
+@pytest.fixture(autouse=True)
+def _auto_mock_po_side_data_fetches():
+    """Default the #346 side-data fetches to empty lists for every test.
+
+    Tests that want to verify these are called override the patch locally.
+    """
+    with (
+        patch(_FETCH_PO_ADDITIONAL_COSTS, AsyncMock(return_value=[])),
+        patch(_FETCH_PO_ACCOUNTING_META, AsyncMock(return_value=[])),
+    ):
+        yield
+
+
 def create_mock_po_row(variant_id: int, quantity: float, price: float):
-    """Create a mock PO row."""
+    """Create a mock PO row.
+
+    Exhaustive response model (#346) reads many more row fields than the
+    old shape. Default them all to UNSET so Pydantic validation sees
+    ``None`` rather than a stray ``MagicMock`` instance.
+    """
     row = MagicMock()
     row.variant_id = variant_id
     row.quantity = quantity
     row.price_per_unit = price
+    # id is required on PurchaseOrderRowInfo — give it a stable default that
+    # callers can ignore.
+    row.id = 1
+    # Fields touched by _po_row_info() but not set by callers — UNSET so
+    # unwrap_unset() collapses them to None.
+    for field in (
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "tax_rate_id",
+        "price_per_unit_in_base_currency",
+        "purchase_uom_conversion_rate",
+        "purchase_uom",
+        "currency",
+        "conversion_rate",
+        "total",
+        "total_in_base_currency",
+        "conversion_date",
+        "received_date",
+        "arrival_date",
+        "purchase_order_id",
+        "landed_cost",
+        "group_id",
+        "batch_transactions",
+    ):
+        setattr(row, field, UNSET)
     return row
 
 
@@ -56,11 +113,37 @@ def create_mock_variant(variant_id: int, sku: str):
 
 
 def create_mock_po(order_id: int, order_no: str, rows: list):
-    """Create a mock RegularPurchaseOrder."""
+    """Create a mock RegularPurchaseOrder.
+
+    Exhaustive get_purchase_order (#346) reads every PurchaseOrder field.
+    Default optional ones to UNSET so Pydantic sees ``None`` rather than a
+    stray ``MagicMock`` when the response is built during verification.
+    """
     po = MagicMock(spec=RegularPurchaseOrder)
     po.id = order_id
     po.order_no = order_no
     po.purchase_order_rows = rows
+    for field in (
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "status",
+        "entity_type",
+        "default_group_id",
+        "supplier_id",
+        "currency",
+        "expected_arrival_date",
+        "order_created_date",
+        "additional_info",
+        "location_id",
+        "total",
+        "total_in_base_currency",
+        "billing_status",
+        "last_document_status",
+        "tracking_location_id",
+        "supplier",
+    ):
+        setattr(po, field, UNSET)
     return po
 
 
@@ -470,9 +553,9 @@ async def test_verify_order_document_unset_values():
     """Test verification with UNSET values in PO data."""
     context, lifespan_ctx = create_mock_context()
 
-    # Mock PO row with UNSET values
-    po_row = MagicMock()
-    po_row.variant_id = 1
+    # Mock PO row with UNSET values — start from create_mock_po_row so the
+    # exhaustive response builder (#346) doesn't trip on stray MagicMocks.
+    po_row = create_mock_po_row(variant_id=1, quantity=UNSET, price=UNSET)
     po_row.quantity = UNSET
     po_row.price_per_unit = UNSET
 
@@ -589,12 +672,12 @@ async def test_verify_order_document_unset_order_no():
     """Test verification when order_no is UNSET."""
     context, lifespan_ctx = create_mock_context()
 
-    # Mock PO with UNSET order_no
+    # Mock PO with UNSET order_no — build via create_mock_po so every
+    # exhaustive-response field defaults to UNSET instead of leaking a
+    # stray MagicMock into Pydantic validation.
     po_rows = [create_mock_po_row(variant_id=1, quantity=100.0, price=25.50)]
-    mock_po = MagicMock(spec=RegularPurchaseOrder)
-    mock_po.id = 1234
-    mock_po.order_no = UNSET  # UNSET value
-    mock_po.purchase_order_rows = po_rows
+    mock_po = create_mock_po(order_id=1234, order_no="ignored", rows=po_rows)
+    mock_po.order_no = UNSET  # UNSET value under test
 
     mock_po_response = MagicMock()
     mock_po_response.status_code = 200
@@ -1339,24 +1422,44 @@ _UNWRAP = "katana_mcp.tools.foundation.purchase_orders.unwrap"
 
 
 def _make_mock_po(order_no: str = "PO-TEST") -> MagicMock:
-    """Create a mock PO with rows."""
-    row1 = MagicMock()
-    row1.id = 7001
-    row1.variant_id = 100
-    row1.quantity = 3.0
-    row1.price_per_unit = 250.0
-    row1.arrival_date = datetime(2026, 4, 15, tzinfo=UTC)
-    row1.received_date = UNSET
-    row1.total = 750.0
+    """Create a mock PO with rows.
 
-    row2 = MagicMock()
-    row2.id = 7002
-    row2.variant_id = 101
-    row2.quantity = 3.0
-    row2.price_per_unit = 50.0
-    row2.arrival_date = datetime(2026, 4, 15, tzinfo=UTC)
-    row2.received_date = UNSET
-    row2.total = 150.0
+    After #346 every PurchaseOrder / PurchaseOrderRow field is surfaced on
+    the exhaustive response, so un-set attributes must be UNSET (not bare
+    MagicMocks) to keep Pydantic validation happy.
+    """
+
+    def _mock_row(row_id: int, variant_id: int, qty: float, price: float, total: float):
+        row = MagicMock()
+        row.id = row_id
+        row.variant_id = variant_id
+        row.quantity = qty
+        row.price_per_unit = price
+        row.arrival_date = datetime(2026, 4, 15, tzinfo=UTC)
+        row.received_date = UNSET
+        row.total = total
+        for field in (
+            "created_at",
+            "updated_at",
+            "deleted_at",
+            "tax_rate_id",
+            "price_per_unit_in_base_currency",
+            "purchase_uom_conversion_rate",
+            "purchase_uom",
+            "currency",
+            "conversion_rate",
+            "total_in_base_currency",
+            "conversion_date",
+            "purchase_order_id",
+            "landed_cost",
+            "group_id",
+            "batch_transactions",
+        ):
+            setattr(row, field, UNSET)
+        return row
+
+    row1 = _mock_row(7001, 100, 3.0, 250.0, 750.0)
+    row2 = _mock_row(7002, 101, 3.0, 50.0, 150.0)
 
     po = MagicMock()
     po.id = 12345
@@ -1368,6 +1471,21 @@ def _make_mock_po(order_no: str = "PO-TEST") -> MagicMock:
     po.expected_arrival_date = datetime(2026, 4, 15, tzinfo=UTC)
     po.total = 900.0
     po.purchase_order_rows = [row1, row2]
+    for field in (
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "entity_type",
+        "default_group_id",
+        "order_created_date",
+        "additional_info",
+        "total_in_base_currency",
+        "billing_status",
+        "last_document_status",
+        "tracking_location_id",
+        "supplier",
+    ):
+        setattr(po, field, UNSET)
     return po
 
 
@@ -1389,10 +1507,10 @@ async def test_get_purchase_order_by_number():
     assert result.supplier_id == 999
     assert result.location_id == 160411
     assert result.total == 900.0
-    assert len(result.rows) == 2
-    assert result.rows[0].id == 7001
-    assert result.rows[0].variant_id == 100
-    assert result.rows[1].variant_id == 101
+    assert len(result.purchase_order_rows) == 2
+    assert result.purchase_order_rows[0].id == 7001
+    assert result.purchase_order_rows[0].variant_id == 100
+    assert result.purchase_order_rows[1].variant_id == 101
 
 
 @pytest.mark.asyncio
@@ -1434,7 +1552,281 @@ async def test_get_purchase_order_by_id():
 
     assert result.id == 12345
     assert result.order_no == "PO-BYID"
-    assert len(result.rows) == 2
+    assert len(result.purchase_order_rows) == 2
+
+
+# ============================================================================
+# get_purchase_order exhaustive detail (#346)
+# ============================================================================
+
+
+def _make_exhaustive_mock_po_row() -> MagicMock:
+    """Build a mock PurchaseOrderRow with every field set.
+
+    Mirrors the shape ``_po_row_info`` consumes, so asserting on the
+    resulting ``PurchaseOrderRowInfo`` covers every field surfaced by
+    the exhaustive get_purchase_order response.
+    """
+    row = MagicMock()
+    row.id = 7001
+    row.created_at = datetime(2026, 1, 10, 9, 0, tzinfo=UTC)
+    row.updated_at = datetime(2026, 1, 15, 14, 30, tzinfo=UTC)
+    row.deleted_at = UNSET
+    row.quantity = 3.0
+    row.variant_id = 100
+    row.tax_rate_id = 42
+    row.price_per_unit = 250.0
+    row.price_per_unit_in_base_currency = 260.0
+    row.purchase_uom_conversion_rate = 1.0
+    row.purchase_uom = "kg"
+    row.currency = "USD"
+    row.conversion_rate = 1.0
+    row.total = 750.0
+    row.total_in_base_currency = 780.0
+    row.conversion_date = datetime(2026, 1, 10, tzinfo=UTC)
+    row.received_date = UNSET
+    row.arrival_date = datetime(2026, 4, 15, tzinfo=UTC)
+    row.purchase_order_id = 12345
+    row.landed_cost = 795.0
+    row.group_id = 8080
+    row.batch_transactions = UNSET
+    return row
+
+
+def _make_exhaustive_mock_po() -> MagicMock:
+    """Build a mock RegularPurchaseOrder with every field set."""
+    po = MagicMock()
+    po.id = 12345
+    po.created_at = datetime(2026, 1, 10, 9, 0, tzinfo=UTC)
+    po.updated_at = datetime(2026, 1, 15, 14, 30, tzinfo=UTC)
+    po.deleted_at = UNSET
+    po.status = "NOT_RECEIVED"
+    po.order_no = "PO-1022"
+    po.entity_type = "regular"
+    po.default_group_id = 8080
+    po.supplier_id = 999
+    po.currency = "USD"
+    po.expected_arrival_date = datetime(2026, 4, 15, tzinfo=UTC)
+    po.order_created_date = datetime(2026, 1, 10, 9, 0, tzinfo=UTC)
+    po.additional_info = "urgent delivery"
+    po.location_id = 160411
+    po.total = 900.0
+    po.total_in_base_currency = 930.0
+    po.billing_status = "NOT_BILLED"
+    po.last_document_status = "SENT"
+    po.tracking_location_id = UNSET
+    po.purchase_order_rows = [_make_exhaustive_mock_po_row()]
+    return po
+
+
+@pytest.mark.asyncio
+async def test_get_purchase_order_full_field_coverage():
+    """Every PurchaseOrder / PurchaseOrderRow field the cache carries
+    surfaces on the exhaustive response (#346)."""
+    context, _ = create_mock_context()
+    mock_po = _make_exhaustive_mock_po()
+
+    with (
+        patch(f"{_PO_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP, return_value=mock_po),
+    ):
+        request = GetPurchaseOrderRequest(order_id=12345)
+        result = await _get_purchase_order_impl(request, context)
+
+    # PO-scope scalar fields — every one Katana exposes on RegularPurchaseOrder
+    assert result.id == 12345
+    assert result.order_no == "PO-1022"
+    assert result.status == "NOT_RECEIVED"
+    assert result.entity_type == "regular"
+    assert result.default_group_id == 8080
+    assert result.supplier_id == 999
+    assert result.currency == "USD"
+    assert result.location_id == 160411
+    assert result.total == 900.0
+    assert result.total_in_base_currency == 930.0
+    assert result.billing_status == "NOT_BILLED"
+    assert result.last_document_status == "SENT"
+    assert result.additional_info == "urgent delivery"
+    assert result.expected_arrival_date == "2026-04-15T00:00:00+00:00"
+    assert result.order_created_date == "2026-01-10T09:00:00+00:00"
+    assert result.created_at == "2026-01-10T09:00:00+00:00"
+    assert result.updated_at == "2026-01-15T14:30:00+00:00"
+
+    # Row-scope — every PurchaseOrderRow field
+    assert len(result.purchase_order_rows) == 1
+    row = result.purchase_order_rows[0]
+    assert row.id == 7001
+    assert row.variant_id == 100
+    assert row.tax_rate_id == 42
+    assert row.quantity == 3.0
+    assert row.price_per_unit == 250.0
+    assert row.price_per_unit_in_base_currency == 260.0
+    assert row.purchase_uom == "kg"
+    assert row.purchase_uom_conversion_rate == 1.0
+    assert row.currency == "USD"
+    assert row.conversion_rate == 1.0
+    assert row.total == 750.0
+    assert row.total_in_base_currency == 780.0
+    assert row.arrival_date == "2026-04-15T00:00:00+00:00"
+    assert row.conversion_date == "2026-01-10T00:00:00+00:00"
+    assert row.purchase_order_id == 12345
+    assert row.landed_cost == 795.0
+    assert row.group_id == 8080
+    assert row.created_at == "2026-01-10T09:00:00+00:00"
+    assert row.updated_at == "2026-01-15T14:30:00+00:00"
+
+    # Side-data default (autouse fixture returns [])
+    assert result.additional_cost_rows == []
+    assert result.accounting_metadata == []
+
+
+@pytest.mark.asyncio
+async def test_get_purchase_order_fetches_additional_costs_and_accounting_metadata():
+    """Side-data fetches run on the PO's default_group_id / id and surface
+    into the exhaustive response (#346)."""
+    from katana_mcp.tools.foundation.purchase_orders import (
+        PurchaseOrderAccountingMetadataInfo,
+        PurchaseOrderAdditionalCostRowInfo,
+    )
+
+    context, _ = create_mock_context()
+    mock_po = _make_exhaustive_mock_po()
+
+    cost_row = PurchaseOrderAdditionalCostRowInfo(
+        id=201,
+        additional_cost_id=1,
+        group_id=8080,
+        name="International Shipping",
+        distribution_method="BY_VALUE",
+        tax_rate_id=1,
+        tax_rate=8.5,
+        price=125.0,
+        price_in_base=125.0,
+        currency="USD",
+        currency_conversion_rate=1.0,
+        currency_conversion_rate_fix_date="2026-01-10T09:00:00+00:00",
+    )
+    acc_meta = PurchaseOrderAccountingMetadataInfo(
+        id=301,
+        purchase_order_id=12345,
+        received_items_group_id=2001,
+        integration_type="quickBooks",
+        bill_id="BILL-2026-001",
+        created_at="2026-01-15T11:30:00+00:00",
+    )
+
+    with (
+        patch(f"{_PO_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP, return_value=mock_po),
+        # Override the module-level autouse fixture so this test can
+        # assert the fetched values flow through.
+        patch(
+            _FETCH_PO_ADDITIONAL_COSTS, AsyncMock(return_value=[cost_row])
+        ) as mock_fetch_costs,
+        patch(
+            _FETCH_PO_ACCOUNTING_META, AsyncMock(return_value=[acc_meta])
+        ) as mock_fetch_meta,
+    ):
+        request = GetPurchaseOrderRequest(order_id=12345)
+        result = await _get_purchase_order_impl(request, context)
+
+    # Side-data helpers called with the right PO-scope identifiers
+    mock_fetch_costs.assert_awaited_once()
+    assert mock_fetch_costs.await_args.args[1] == 8080  # default_group_id
+    mock_fetch_meta.assert_awaited_once()
+    assert mock_fetch_meta.await_args.args[1] == 12345  # PO id
+
+    # Fetched values flow through to the response
+    assert len(result.additional_cost_rows) == 1
+    assert result.additional_cost_rows[0].id == 201
+    assert result.additional_cost_rows[0].name == "International Shipping"
+    assert result.additional_cost_rows[0].price == 125.0
+    assert result.additional_cost_rows[0].distribution_method == "BY_VALUE"
+
+    assert len(result.accounting_metadata) == 1
+    assert result.accounting_metadata[0].id == 301
+    assert result.accounting_metadata[0].integration_type == "quickBooks"
+    assert result.accounting_metadata[0].bill_id == "BILL-2026-001"
+
+
+@pytest.mark.asyncio
+async def test_get_purchase_order_markdown_uses_canonical_field_names():
+    """Markdown labels use Pydantic field names (not prettified headers)
+    so LLM consumers can't misread a section label as a different field
+    (motivation: #346 follow-on, supplier_item_codes misread)."""
+    from katana_mcp.tools.foundation.purchase_orders import (
+        GetPurchaseOrderResponse,
+        PurchaseOrderAccountingMetadataInfo,
+        PurchaseOrderAdditionalCostRowInfo,
+        PurchaseOrderRowInfo,
+    )
+
+    context, _ = create_mock_context()
+
+    response = GetPurchaseOrderResponse(
+        id=12345,
+        order_no="PO-1022",
+        status="NOT_RECEIVED",
+        supplier_id=999,
+        location_id=160411,
+        entity_type="regular",
+        default_group_id=8080,
+        currency="USD",
+        total=900.0,
+        expected_arrival_date="2026-04-15T00:00:00+00:00",
+        purchase_order_rows=[
+            PurchaseOrderRowInfo(
+                id=7001,
+                variant_id=100,
+                quantity=3.0,
+                price_per_unit=250.0,
+                total=750.0,
+                arrival_date="2026-04-15T00:00:00+00:00",
+            )
+        ],
+        additional_cost_rows=[
+            PurchaseOrderAdditionalCostRowInfo(
+                id=201,
+                name="Shipping",
+                price=125.0,
+            )
+        ],
+        accounting_metadata=[
+            PurchaseOrderAccountingMetadataInfo(
+                id=301,
+                purchase_order_id=12345,
+                bill_id="BILL-2026-001",
+            )
+        ],
+    )
+
+    with patch(
+        "katana_mcp.tools.foundation.purchase_orders._get_purchase_order_impl",
+        new_callable=AsyncMock,
+        return_value=response,
+    ):
+        result = await get_purchase_order(order_id=12345, context=context)
+
+    text = _content_text(result)
+
+    # Scalar PO fields — canonical names appear as labels
+    assert "**order_no**: PO-1022" in text
+    assert "**status**: NOT_RECEIVED" in text
+    assert "**supplier_id**: 999" in text
+    assert "**default_group_id**: 8080" in text
+    assert "**billing_status**" not in text  # unset, should not appear
+
+    # List-shaped fields — count-labeled header, canonical key
+    assert "**purchase_order_rows** (1):" in text
+    assert "**variant_id**: 100" in text
+    assert "**additional_cost_rows** (1):" in text
+    assert "**name**: Shipping" in text
+    assert "**accounting_metadata** (1):" in text
+    assert "**bill_id**: BILL-2026-001" in text
+
+    # The canonical-name convention rules out these prettified labels:
+    assert "**Supplier ID**" not in text
+    assert "### Line Items" not in text
 
 
 # ============================================================================
@@ -1881,7 +2273,9 @@ async def test_get_purchase_order_format_json_returns_json():
             entity_type="regular",
             expected_arrival_date=None,
             total=100.0,
-            rows=[],
+            purchase_order_rows=[],
+            additional_cost_rows=[],
+            accounting_metadata=[],
         )
         result = await get_purchase_order(order_id=5, format="json", context=context)
 
