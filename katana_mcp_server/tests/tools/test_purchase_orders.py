@@ -1615,8 +1615,35 @@ def _make_exhaustive_mock_po() -> MagicMock:
     po.billing_status = "NOT_BILLED"
     po.last_document_status = "SENT"
     po.tracking_location_id = UNSET
+    po.supplier = UNSET
     po.purchase_order_rows = [_make_exhaustive_mock_po_row()]
     return po
+
+
+def _make_mock_supplier(
+    *,
+    id: int = 999,
+    name: str = "Acme Supplies",
+    email: str = "orders@acme.example",
+    phone: str = "+1-555-0100",
+    currency: str = "USD",
+    comment: str = "Preferred supplier",
+    default_address_id: int = 7001,
+) -> MagicMock:
+    """Build a mock embedded ``Supplier`` with every exposed field set."""
+    s = MagicMock()
+    s.id = id
+    s.name = name
+    s.email = email
+    s.phone = phone
+    s.currency = currency
+    s.comment = comment
+    s.default_address_id = default_address_id
+    s.addresses = UNSET
+    s.created_at = datetime(2026, 1, 1, tzinfo=UTC)
+    s.updated_at = datetime(2026, 1, 15, tzinfo=UTC)
+    s.deleted_at = UNSET
+    return s
 
 
 @pytest.mark.asyncio
@@ -1827,6 +1854,196 @@ async def test_get_purchase_order_markdown_uses_canonical_field_names():
     # The canonical-name convention rules out these prettified labels:
     assert "**Supplier ID**" not in text
     assert "### Line Items" not in text
+
+
+@pytest.mark.asyncio
+async def test_get_purchase_order_surfaces_embedded_supplier():
+    """When the PO payload embeds a ``Supplier``, every supplier field is
+    surfaced under ``response.supplier`` and rendered inline in markdown
+    (copilot feedback on #357 — supplier was dropped from the exhaustive
+    shape)."""
+    from katana_mcp.tools.foundation.purchase_orders import SupplierInfo
+
+    context, _ = create_mock_context()
+    mock_po = _make_exhaustive_mock_po()
+    mock_po.supplier = _make_mock_supplier()
+
+    with (
+        patch(f"{_PO_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP, return_value=mock_po),
+    ):
+        request = GetPurchaseOrderRequest(order_id=12345)
+        result = await _get_purchase_order_impl(request, context)
+
+    assert isinstance(result.supplier, SupplierInfo)
+    assert result.supplier.id == 999
+    assert result.supplier.name == "Acme Supplies"
+    assert result.supplier.email == "orders@acme.example"
+    assert result.supplier.phone == "+1-555-0100"
+    assert result.supplier.currency == "USD"
+    assert result.supplier.comment == "Preferred supplier"
+    assert result.supplier.default_address_id == 7001
+    assert result.supplier.created_at == "2026-01-01T00:00:00+00:00"
+    assert result.supplier.updated_at == "2026-01-15T00:00:00+00:00"
+
+
+@pytest.mark.asyncio
+async def test_get_purchase_order_markdown_renders_supplier_inline():
+    """Embedded supplier renders under a canonical ``**supplier**:`` block
+    with per-field labels, matching the convention used for rows and
+    accounting metadata."""
+    from katana_mcp.tools.foundation.purchase_orders import (
+        GetPurchaseOrderResponse,
+        SupplierInfo,
+    )
+
+    context, _ = create_mock_context()
+    response = GetPurchaseOrderResponse(
+        id=12345,
+        order_no="PO-1022",
+        supplier=SupplierInfo(
+            id=999,
+            name="Acme Supplies",
+            email="orders@acme.example",
+            default_address_id=7001,
+        ),
+    )
+
+    with patch(
+        "katana_mcp.tools.foundation.purchase_orders._get_purchase_order_impl",
+        new_callable=AsyncMock,
+        return_value=response,
+    ):
+        result = await get_purchase_order(order_id=12345, context=context)
+    text = _content_text(result)
+
+    assert "**supplier**:" in text
+    assert "**name**: Acme Supplies" in text
+    assert "**email**: orders@acme.example" in text
+    assert "**default_address_id**: 7001" in text
+
+
+@pytest.mark.asyncio
+async def test_get_purchase_order_markdown_renders_null_supplier_explicitly():
+    """When the PO payload does not embed a supplier the canonical key
+    still appears as ``**supplier**: null`` so an LLM consumer sees a
+    concrete field value rather than a missing section."""
+    from katana_mcp.tools.foundation.purchase_orders import GetPurchaseOrderResponse
+
+    context, _ = create_mock_context()
+    response = GetPurchaseOrderResponse(id=12345, order_no="PO-1022")
+
+    with patch(
+        "katana_mcp.tools.foundation.purchase_orders._get_purchase_order_impl",
+        new_callable=AsyncMock,
+        return_value=response,
+    ):
+        result = await get_purchase_order(order_id=12345, context=context)
+
+    assert "**supplier**: null" in _content_text(result)
+
+
+@pytest.mark.asyncio
+async def test_get_purchase_order_rejects_empty_order_no():
+    """Empty-string ``order_no`` is rejected up front rather than silently
+    routing to the list-by-order_no branch (copilot feedback on #357 —
+    truthiness checks misclassify valid-but-falsy inputs)."""
+    context, _ = create_mock_context()
+    request = GetPurchaseOrderRequest(order_no="")
+    with pytest.raises(ValueError, match="order_no must not be empty"):
+        await _get_purchase_order_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_get_purchase_order_accepts_zero_order_id_via_is_none_check():
+    """``order_id=0`` is a valid-but-falsy identifier. Explicit ``is None``
+    branch selection (not truthiness) must route it to the get-by-id
+    branch (copilot feedback on #357)."""
+    context, _ = create_mock_context()
+    mock_po = _make_exhaustive_mock_po()
+    mock_po.id = 0  # the identifier under test
+
+    with (
+        patch(f"{_PO_GET}.asyncio_detailed", new_callable=AsyncMock) as mock_detailed,
+        patch(_UNWRAP, return_value=mock_po),
+    ):
+        request = GetPurchaseOrderRequest(order_id=0)
+        result = await _get_purchase_order_impl(request, context)
+
+    mock_detailed.assert_awaited_once()
+    # ``find_purchase_orders`` (the list-by-order_no branch) must NOT have
+    # been exercised — the get-by-id path was taken.
+    assert mock_detailed.await_args.kwargs["id"] == 0
+    assert result.id == 0
+
+
+@pytest.mark.asyncio
+async def test_get_purchase_order_runs_side_data_fetches_concurrently():
+    """The two side-data fetches are awaited via ``asyncio.gather`` rather
+    than sequentially (copilot feedback on #357 — independent network
+    calls shouldn't double latency)."""
+    import asyncio as _asyncio
+
+    fetch_additional = AsyncMock(return_value=[])
+    fetch_accounting = AsyncMock(return_value=[])
+
+    context, _ = create_mock_context()
+    mock_po = _make_exhaustive_mock_po()
+
+    with (
+        patch(f"{_PO_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP, return_value=mock_po),
+        patch(_FETCH_PO_ADDITIONAL_COSTS, fetch_additional),
+        patch(_FETCH_PO_ACCOUNTING_META, fetch_accounting),
+        patch.object(_asyncio, "gather", wraps=_asyncio.gather) as spy_gather,
+    ):
+        request = GetPurchaseOrderRequest(order_id=12345)
+        await _get_purchase_order_impl(request, context)
+
+    # gather called with two awaitables — the two side-data coroutines.
+    spy_gather.assert_called_once()
+    assert len(spy_gather.call_args.args) == 2
+
+
+@pytest.mark.asyncio
+async def test_verify_order_document_embeds_po_without_nested_heading():
+    """When the exhaustive PO is embedded under ``**purchase_order**:`` in
+    the verify response the ``## PO …`` heading must be omitted — Markdown
+    treats up-to-3-leading-spaces headings as top-level, which would break
+    intended nesting (copilot feedback on #357)."""
+    context, lifespan_ctx = create_mock_context()
+
+    po_rows = [create_mock_po_row(variant_id=1, quantity=10.0, price=5.0)]
+    mock_po = create_mock_po(order_id=1234, order_no="PO-VERIFY-001", rows=po_rows)
+    mock_po_response = MagicMock()
+    mock_po_response.status_code = 200
+    mock_po_response.parsed = mock_po
+    mock_variants = [create_mock_variant(variant_id=1, sku="WIDGET-001")]
+
+    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
+    lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
+
+    request = VerifyOrderDocumentRequest(
+        order_id=1234,
+        document_items=[
+            DocumentItem(sku="WIDGET-001", quantity=10.0, unit_price=5.0),
+        ],
+    )
+
+    result = await verify_order_document(
+        order_id=request.order_id,
+        document_items=[i.model_dump() for i in request.document_items],
+        context=context,
+    )
+    text = _content_text(result)
+
+    # The verify-level heading is present...
+    assert "## Verification — PO 1234" in text
+    # ...but the nested PO block does NOT reintroduce a PO heading
+    # (indented or not). No ``## PO …`` anywhere in the output.
+    assert "## PO " not in text
+    # The canonical nesting label is present.
+    assert "**purchase_order**:" in text
 
 
 # ============================================================================

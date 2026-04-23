@@ -683,6 +683,9 @@ Look up a purchase order by order number or ID — exhaustive detail.
 status, supplier, location, totals (including `total_in_base_currency`),
 timestamps, `last_document_status`, `tracking_location_id`,
 `additional_info`, plus:
+- `supplier` — the full embedded supplier record when Katana attaches one
+  (every field on `Supplier`: name, email, phone, currency, comment,
+  default_address_id, addresses, timestamps)
 - `purchase_order_rows` — full line items (UOM, conversion rates,
   landed_cost, batch_transactions, every row field)
 - `additional_cost_rows` — shipping, duties, handling (every field on
@@ -692,11 +695,12 @@ timestamps, `last_document_status`, `tracking_location_id`,
 
 Two extra HTTP calls fetch the additional cost rows (by PO
 `default_group_id`) and accounting metadata (by PO id) on top of the
-PO-detail fetch. Markdown output uses canonical Pydantic field names as
-labels (`**status**`, `**purchase_order_rows** (N):`, `**additional_cost_rows**: []`)
-so LLM consumers can't misread a section header as a different field
-(#346 follow-on). Use this whenever full detail is needed; use
-`list_purchase_orders` for discovery.
+PO-detail fetch; they run concurrently via `asyncio.gather` so the extra
+wait is a single round-trip, not two. Markdown output uses canonical
+Pydantic field names as labels (`**status**`, `**purchase_order_rows** (N):`,
+`**additional_cost_rows**: []`) so LLM consumers can't misread a section
+header as a different field (#346 follow-on). Use this whenever full
+detail is needed; use `list_purchase_orders` for discovery.
 
 ---
 
