@@ -180,18 +180,13 @@ CACHE_TABLES: set[str] = {"SalesOrder", "SalesOrderRow"}
 
 @dataclass(frozen=True)
 class CacheTableRelationship:
-    """Declares a 1:N parent→child relationship between two cache tables.
+    """1:N parent→child relationship declaration between two cache tables."""
 
-    Drives AST generation of ``Relationship()`` declarations on both the
-    parent (list field) and the child (back-reference field), plus
-    ``foreign_key="<parent_table>.id"`` on the child's existing FK column.
-    """
-
-    parent: str  # class name, e.g. "SalesOrder"
-    parent_field: str  # list field on parent, e.g. "sales_order_rows"
-    child: str  # class name, e.g. "SalesOrderRow"
-    child_back_ref: str  # back-ref field to inject on child, e.g. "sales_order"
-    child_fk_field: str  # existing int FK field on child, e.g. "sales_order_id"
+    parent: str
+    parent_field: str
+    child: str
+    child_back_ref: str
+    child_fk_field: str
 
     @property
     def parent_table(self) -> str:
@@ -755,16 +750,16 @@ def inject_primary_key_in_table_classes(classes: list[ClassInfo]) -> list[ClassI
 def inject_table_annotations(classes: list[ClassInfo]) -> list[ClassInfo]:
     """Turn CACHE_TABLES entries into SQLModel tables.
 
-    Three rewrites per class:
+    Three rewrites per class, emitted in order as the first body statements:
     1. Append ``, table=True`` to the class header bases list.
-    2. Insert ``model_config = ConfigDict(frozen=False)`` as the first class
-       body statement. SQLAlchemy's ORM mutates instances during session
-       operations; the inherited ``frozen=True`` from ``KatanaPydanticBase``
-       would otherwise raise on every attribute write.
-    3. Insert ``__tablename__`` set to the snake_case class name. Otherwise
+    2. Insert ``__tablename__`` set to the snake_case class name. Otherwise
        SQLAlchemy defaults to the raw lowercase class name (``salesorder``
        vs. ``sales_order``), which breaks FK references that use the
        readable snake_case form.
+    3. Insert ``model_config = ConfigDict(frozen=False)``. SQLAlchemy's ORM
+       mutates instances during session operations; the inherited
+       ``frozen=True`` from ``KatanaPydanticBase`` would otherwise raise on
+       every attribute write.
     """
     fixed = []
     for cls in classes:
@@ -772,34 +767,24 @@ def inject_table_annotations(classes: list[ClassInfo]) -> list[ClassInfo]:
             fixed.append(cls)
             continue
         tablename = _snake_case(cls.name)
-        # 1. Class header: `class X(Parent):` → `class X(Parent, table=True):`
-        new_source, n1 = re.subn(
-            rf"^(class {re.escape(cls.name)}\([^)]*)\):",
-            r"\1, table=True):",
+        # Single pass: append `, table=True` to the class bases and inject
+        # __tablename__ + model_config as the first body statements.
+        new_source, n = re.subn(
+            rf"^(class {re.escape(cls.name)}\([^)]*)\):\n",
+            (
+                r"\1, table=True):" + "\n"
+                rf'    __tablename__ = "{tablename}"' + "\n"
+                r"    model_config = ConfigDict(frozen=False)" + "\n\n"
+            ),
             cls.source,
             count=1,
             flags=re.MULTILINE,
         )
-        if n1 != 1:
+        if n != 1:
             msg = (
-                f"Failed to inject table=True into class header for {cls.name}. "
+                f"Failed to inject table annotations (table=True, "
+                f"__tablename__, model_config) into {cls.name}. "
                 "The class-declaration shape may have changed."
-            )
-            raise GenerationError(msg)
-        # 2 & 3. Inject __tablename__ + model_config at top of body.
-        new_source, n2 = re.subn(
-            rf"(class {re.escape(cls.name)}\([^)]*, table=True\):\n)",
-            (
-                rf'\1    __tablename__ = "{tablename}"' + "\n"
-                r"    model_config = ConfigDict(frozen=False)" + "\n\n"
-            ),
-            new_source,
-            count=1,
-        )
-        if n2 != 1:
-            msg = (
-                f"Failed to inject __tablename__/model_config into {cls.name}. "
-                "The post-header newline may be missing."
             )
             raise GenerationError(msg)
         fixed.append(
@@ -1164,8 +1149,7 @@ def generate_module_imports(
     if needs_datetime_import:
         import_lines.append("from datetime import datetime")
 
-    # Find cross-module dependencies
-    classes_in_module = {cls.name for cls in classes}
+    # Find cross-module dependencies (classes_in_module set already built above).
     needed_imports: dict[str, set[str]] = defaultdict(set)  # module -> class names
 
     for cls in classes:
