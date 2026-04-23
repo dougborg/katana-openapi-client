@@ -7,6 +7,17 @@
 #
 # See issue #134 for background on why we use local hooks.
 
+# Global exclude — Claude Code agent worktrees are parallel git checkouts
+# living under the main repo only for locality. They have their own branches
+# and pre-commit cycles; formatting/linting them from a sibling worktree's
+# hook causes cross-contamination (observed during the #346 parallel-agent
+# rollup: a fixup commit from one worktree rewrote a sibling's commit
+# message because both hooks ran in the shared .git/ dir).
+exclude: |
+  (?x)(
+    ^\.claude/worktrees/
+  )
+
 repos:
   - repo: local
     hooks:

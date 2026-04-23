@@ -10,6 +10,7 @@ These tools provide:
 
 from __future__ import annotations
 
+import asyncio
 import datetime as _datetime
 import json
 from datetime import UTC, datetime
@@ -487,7 +488,712 @@ async def receive_purchase_order(
 
 
 # ============================================================================
-# Tool 3: verify_order_document
+# Tool: get_purchase_order
+#
+# Defined before ``verify_order_document`` so the verification tool can embed
+# the same exhaustive ``GetPurchaseOrderResponse`` shape on its response
+# (avoids a forward-reference + ``model_rebuild`` dance).
+# ============================================================================
+
+
+class GetPurchaseOrderRequest(BaseModel):
+    """Request to look up a purchase order by number or ID."""
+
+    order_no: str | None = Field(
+        default=None, description="Purchase order number (e.g., 'PO-1022')"
+    )
+    order_id: int | None = Field(default=None, description="Purchase order ID")
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data consumable by downstream tools/aggregations."
+        ),
+    )
+
+
+class PurchaseOrderRowInfo(BaseModel):
+    """Full purchase order line item — every field Katana exposes on
+    ``PurchaseOrderRow`` is surfaced so callers don't need follow-up lookups
+    for standard row fields (UOM conversion, currency, landed_cost, etc.).
+    """
+
+    id: int
+    created_at: str | None = None
+    updated_at: str | None = None
+    deleted_at: str | None = None
+    quantity: float | None = None
+    variant_id: int | None = None
+    tax_rate_id: int | None = None
+    price_per_unit: float | None = None
+    price_per_unit_in_base_currency: float | None = None
+    purchase_uom_conversion_rate: float | None = None
+    purchase_uom: str | None = None
+    currency: str | None = None
+    conversion_rate: float | None = None
+    total: float | None = None
+    total_in_base_currency: float | None = None
+    conversion_date: str | None = None
+    received_date: str | None = None
+    arrival_date: str | None = None
+    purchase_order_id: int | None = None
+    landed_cost: float | str | None = None
+    group_id: int | None = None
+    batch_transactions: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class PurchaseOrderAdditionalCostRowInfo(BaseModel):
+    """Full additional cost row — every field Katana exposes on
+    ``PurchaseOrderAdditionalCostRow`` (shipping, duties, handling, etc.).
+    """
+
+    id: int
+    created_at: str | None = None
+    updated_at: str | None = None
+    deleted_at: str | None = None
+    additional_cost_id: int | None = None
+    group_id: int | None = None
+    name: str | None = None
+    distribution_method: str | None = None
+    tax_rate_id: int | None = None
+    tax_rate: float | None = None
+    price: float | None = None
+    price_in_base: float | None = None
+    currency: str | None = None
+    currency_conversion_rate: float | None = None
+    currency_conversion_rate_fix_date: str | None = None
+
+
+class PurchaseOrderAccountingMetadataInfo(BaseModel):
+    """Full accounting-integration metadata — every field Katana exposes on
+    ``PurchaseOrderAccountingMetadata`` (bill IDs, integration type, etc.).
+    """
+
+    id: int
+    purchase_order_id: int
+    received_items_group_id: int | None = None
+    integration_type: str | None = None
+    bill_id: str | None = None
+    created_at: str | None = None
+
+
+class SupplierInfo(BaseModel):
+    """Embedded supplier details — every field Katana exposes on
+    ``Supplier`` when the PO payload includes the inline supplier record.
+    """
+
+    id: int
+    name: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    currency: str | None = None
+    comment: str | None = None
+    default_address_id: int | None = None
+    addresses: list[dict[str, Any]] = Field(default_factory=list)
+    created_at: str | None = None
+    updated_at: str | None = None
+    deleted_at: str | None = None
+
+
+class GetPurchaseOrderResponse(BaseModel):
+    """Full purchase-order details. Exhaustive — every field Katana exposes
+    on ``RegularPurchaseOrder`` is surfaced, plus nested inline rows and
+    fetched-on-demand additional cost rows and accounting metadata. Callers
+    don't need follow-up lookups for standard PO data.
+    """
+
+    id: int
+    created_at: str | None = None
+    updated_at: str | None = None
+    deleted_at: str | None = None
+    status: str | None = None
+    order_no: str | None = None
+    entity_type: str | None = None
+    default_group_id: int | None = None
+    supplier_id: int | None = None
+    supplier: SupplierInfo | None = None
+    currency: str | None = None
+    expected_arrival_date: str | None = None
+    order_created_date: str | None = None
+    additional_info: str | None = None
+    location_id: int | None = None
+    total: float | None = None
+    total_in_base_currency: float | None = None
+    billing_status: str | None = None
+    last_document_status: str | None = None
+    tracking_location_id: int | None = None
+    purchase_order_rows: list[PurchaseOrderRowInfo] = Field(default_factory=list)
+    additional_cost_rows: list[PurchaseOrderAdditionalCostRowInfo] = Field(
+        default_factory=list
+    )
+    accounting_metadata: list[PurchaseOrderAccountingMetadataInfo] = Field(
+        default_factory=list
+    )
+
+
+def _iso_optional(value: datetime | str | None) -> str | None:
+    """Return an ISO-8601 string for a datetime-or-str value, else None.
+
+    Callers must pre-unwrap UNSET via ``unwrap_unset(..., None)`` — this
+    helper only handles ``None``, a ``datetime``, or an already-formatted
+    string. Typed ``datetime | str | None`` so pyright catches misuse.
+    """
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return value
+
+
+def _po_row_info(row: Any) -> PurchaseOrderRowInfo:
+    """Extract full row info from an attrs ``PurchaseOrderRow``."""
+    # batch_transactions items are attrs models — serialize them to dicts so
+    # Pydantic can validate the list shape without cross-model coupling.
+    raw_batch = unwrap_unset(row.batch_transactions, None) or []
+    batch_dicts: list[dict[str, Any]] = []
+    for bt in raw_batch:
+        if hasattr(bt, "to_dict"):
+            batch_dicts.append(bt.to_dict())
+        elif isinstance(bt, dict):
+            batch_dicts.append(bt)
+
+    return PurchaseOrderRowInfo(
+        id=row.id,
+        created_at=_iso_optional(unwrap_unset(row.created_at, None)),
+        updated_at=_iso_optional(unwrap_unset(row.updated_at, None)),
+        deleted_at=_iso_optional(unwrap_unset(row.deleted_at, None)),
+        quantity=unwrap_unset(row.quantity, None),
+        variant_id=unwrap_unset(row.variant_id, None),
+        tax_rate_id=unwrap_unset(row.tax_rate_id, None),
+        price_per_unit=unwrap_unset(row.price_per_unit, None),
+        price_per_unit_in_base_currency=unwrap_unset(
+            row.price_per_unit_in_base_currency, None
+        ),
+        purchase_uom_conversion_rate=unwrap_unset(
+            row.purchase_uom_conversion_rate, None
+        ),
+        purchase_uom=unwrap_unset(row.purchase_uom, None),
+        currency=unwrap_unset(row.currency, None),
+        conversion_rate=unwrap_unset(row.conversion_rate, None),
+        total=unwrap_unset(row.total, None),
+        total_in_base_currency=unwrap_unset(row.total_in_base_currency, None),
+        conversion_date=_iso_optional(unwrap_unset(row.conversion_date, None)),
+        received_date=_iso_optional(unwrap_unset(row.received_date, None)),
+        arrival_date=_iso_optional(unwrap_unset(row.arrival_date, None)),
+        purchase_order_id=unwrap_unset(row.purchase_order_id, None),
+        landed_cost=unwrap_unset(row.landed_cost, None),
+        group_id=unwrap_unset(row.group_id, None),
+        batch_transactions=batch_dicts,
+    )
+
+
+def _po_additional_cost_row_info(row: Any) -> PurchaseOrderAdditionalCostRowInfo:
+    """Extract full info from an attrs ``PurchaseOrderAdditionalCostRow``."""
+    return PurchaseOrderAdditionalCostRowInfo(
+        id=row.id,
+        created_at=_iso_optional(unwrap_unset(row.created_at, None)),
+        updated_at=_iso_optional(unwrap_unset(row.updated_at, None)),
+        deleted_at=_iso_optional(unwrap_unset(row.deleted_at, None)),
+        additional_cost_id=unwrap_unset(row.additional_cost_id, None),
+        group_id=unwrap_unset(row.group_id, None),
+        name=unwrap_unset(row.name, None),
+        distribution_method=enum_to_str(unwrap_unset(row.distribution_method, None)),
+        tax_rate_id=unwrap_unset(row.tax_rate_id, None),
+        tax_rate=unwrap_unset(row.tax_rate, None),
+        price=unwrap_unset(row.price, None),
+        price_in_base=unwrap_unset(row.price_in_base, None),
+        currency=unwrap_unset(row.currency, None),
+        currency_conversion_rate=unwrap_unset(row.currency_conversion_rate, None),
+        currency_conversion_rate_fix_date=_iso_optional(
+            unwrap_unset(row.currency_conversion_rate_fix_date, None)
+        ),
+    )
+
+
+def _po_accounting_metadata_info(row: Any) -> PurchaseOrderAccountingMetadataInfo:
+    """Extract full info from an attrs ``PurchaseOrderAccountingMetadata``."""
+    return PurchaseOrderAccountingMetadataInfo(
+        id=row.id,
+        purchase_order_id=row.purchase_order_id,
+        received_items_group_id=unwrap_unset(row.received_items_group_id, None),
+        integration_type=unwrap_unset(row.integration_type, None),
+        bill_id=unwrap_unset(row.bill_id, None),
+        created_at=_iso_optional(unwrap_unset(row.created_at, None)),
+    )
+
+
+def _supplier_info(supplier: Any) -> SupplierInfo | None:
+    """Extract full info from an embedded attrs ``Supplier`` record.
+
+    Returns ``None`` when the PO payload doesn't include an inline supplier
+    (Katana only embeds the supplier on some endpoints — the exhaustive
+    response surfaces it when it's there so callers don't need a follow-up
+    lookup).
+    """
+    if supplier is None:
+        return None
+    # Addresses are attrs models — serialize to plain dicts so Pydantic can
+    # validate the list shape without cross-model coupling.
+    raw_addresses = unwrap_unset(supplier.addresses, None) or []
+    address_dicts: list[dict[str, Any]] = []
+    for addr in raw_addresses:
+        if hasattr(addr, "to_dict"):
+            address_dicts.append(addr.to_dict())
+        elif isinstance(addr, dict):
+            address_dicts.append(addr)
+
+    return SupplierInfo(
+        id=supplier.id,
+        name=unwrap_unset(supplier.name, None),
+        email=unwrap_unset(supplier.email, None),
+        phone=unwrap_unset(supplier.phone, None),
+        currency=unwrap_unset(supplier.currency, None),
+        comment=unwrap_unset(supplier.comment, None),
+        default_address_id=unwrap_unset(supplier.default_address_id, None),
+        addresses=address_dicts,
+        created_at=_iso_optional(unwrap_unset(supplier.created_at, None)),
+        updated_at=_iso_optional(unwrap_unset(supplier.updated_at, None)),
+        deleted_at=_iso_optional(unwrap_unset(supplier.deleted_at, None)),
+    )
+
+
+async def _fetch_po_additional_cost_rows(
+    services: Any, group_id: int | None
+) -> list[PurchaseOrderAdditionalCostRowInfo]:
+    """Fetch additional cost rows for a PO via its ``default_group_id``.
+
+    The ``/po_additional_cost_rows`` list endpoint filters by ``group_id``,
+    which for the PO-scope is the PO's ``default_group_id``. Returns an
+    empty list when no ``group_id`` is available (the PO has no group).
+    """
+    if group_id is None:
+        return []
+
+    import httpx
+
+    from katana_public_api_client.api.purchase_order_additional_cost_row import (
+        get_purchase_order_additional_cost_rows,
+    )
+    from katana_public_api_client.errors import UnexpectedStatus
+    from katana_public_api_client.utils import unwrap_data
+
+    # Best-effort: transport errors (httpx timeouts/connection) and unexpected
+    # statuses degrade to []. `unwrap_data(default=[])` alone only handles
+    # non-200 parsed responses, not errors raised before the response lands.
+    try:
+        # The generated client types `group_id` as float for historical spec
+        # reasons; cast at the boundary like `list_purchase_orders` does.
+        response = await get_purchase_order_additional_cost_rows.asyncio_detailed(
+            client=services.client,
+            group_id=float(group_id),
+            limit=250,
+        )
+    except (httpx.HTTPError, UnexpectedStatus):
+        return []
+    rows = unwrap_data(response, default=[], raise_on_error=False)
+    return [_po_additional_cost_row_info(r) for r in rows]
+
+
+async def _fetch_po_accounting_metadata(
+    services: Any, purchase_order_id: int
+) -> list[PurchaseOrderAccountingMetadataInfo]:
+    """Fetch accounting metadata entries for a PO.
+
+    The ``/purchase_order_accounting_metadata`` list endpoint filters by
+    ``purchase_order_id``. Returns an empty list when the PO has no
+    accounting-integration rows.
+    """
+    import httpx
+
+    from katana_public_api_client.api.purchase_order_accounting_metadata import (
+        get_all_purchase_order_accounting_metadata,
+    )
+    from katana_public_api_client.errors import UnexpectedStatus
+    from katana_public_api_client.utils import unwrap_data
+
+    # Best-effort: same pattern as _fetch_po_additional_cost_rows — transport
+    # errors don't take down get_purchase_order when the core PO was fine.
+    try:
+        # Generated client types `purchase_order_id` as float; cast at boundary.
+        response = await get_all_purchase_order_accounting_metadata.asyncio_detailed(
+            client=services.client,
+            purchase_order_id=float(purchase_order_id),
+            limit=250,
+        )
+    except (httpx.HTTPError, UnexpectedStatus):
+        return []
+    rows = unwrap_data(response, default=[], raise_on_error=False)
+    return [_po_accounting_metadata_info(r) for r in rows]
+
+
+def _build_get_purchase_order_response(
+    po: Any,
+    *,
+    additional_cost_rows: list[PurchaseOrderAdditionalCostRowInfo],
+    accounting_metadata: list[PurchaseOrderAccountingMetadataInfo],
+) -> GetPurchaseOrderResponse:
+    """Build an exhaustive response from an attrs PO plus fetched side data."""
+    raw_rows = unwrap_unset(po.purchase_order_rows, None) or []
+    rows = [_po_row_info(r) for r in raw_rows]
+    supplier = _supplier_info(unwrap_unset(po.supplier, None))
+
+    return GetPurchaseOrderResponse(
+        id=po.id,
+        created_at=_iso_optional(unwrap_unset(po.created_at, None)),
+        updated_at=_iso_optional(unwrap_unset(po.updated_at, None)),
+        deleted_at=_iso_optional(unwrap_unset(po.deleted_at, None)),
+        status=enum_to_str(unwrap_unset(po.status, None)),
+        order_no=unwrap_unset(po.order_no, None),
+        entity_type=enum_to_str(unwrap_unset(po.entity_type, None)),
+        default_group_id=unwrap_unset(po.default_group_id, None),
+        supplier_id=unwrap_unset(po.supplier_id, None),
+        supplier=supplier,
+        currency=unwrap_unset(po.currency, None),
+        expected_arrival_date=_iso_optional(
+            unwrap_unset(po.expected_arrival_date, None)
+        ),
+        order_created_date=_iso_optional(unwrap_unset(po.order_created_date, None)),
+        additional_info=unwrap_unset(po.additional_info, None),
+        location_id=unwrap_unset(po.location_id, None),
+        total=unwrap_unset(po.total, None),
+        total_in_base_currency=unwrap_unset(po.total_in_base_currency, None),
+        billing_status=enum_to_str(unwrap_unset(po.billing_status, None)),
+        last_document_status=enum_to_str(unwrap_unset(po.last_document_status, None)),
+        tracking_location_id=unwrap_unset(po.tracking_location_id, None),
+        purchase_order_rows=rows,
+        additional_cost_rows=additional_cost_rows,
+        accounting_metadata=accounting_metadata,
+    )
+
+
+async def _get_purchase_order_impl(
+    request: GetPurchaseOrderRequest, context: Context
+) -> GetPurchaseOrderResponse:
+    """Look up a PO by order_no or ID and return exhaustive details.
+
+    Additional cost rows and accounting metadata are fetched on demand from
+    separate endpoints — two extra HTTP calls per ``get_purchase_order``.
+    """
+    from katana_public_api_client.api.purchase_order import (
+        find_purchase_orders,
+        get_purchase_order as api_get_purchase_order,
+    )
+    from katana_public_api_client.models import ErrorResponse
+    from katana_public_api_client.utils import unwrap_data
+
+    # Explicit ``is None`` checks so valid-but-falsy values (``order_id=0``,
+    # ``order_no=""``) don't silently route to the wrong branch or error.
+    # Empty-string ``order_no`` is rejected up front as obviously invalid.
+    if request.order_id is None and request.order_no is None:
+        raise ValueError("Either order_no or order_id must be provided")
+    if request.order_no is not None and request.order_no == "":
+        raise ValueError("order_no must not be empty")
+
+    services = get_services(context)
+
+    if request.order_id is not None:
+        response = await api_get_purchase_order.asyncio_detailed(
+            id=request.order_id, client=services.client
+        )
+        # raise_on_error=False turns 404s and ErrorResponse payloads into None
+        # so we can raise a user-friendly ValueError instead of a raw APIError.
+        po_result = unwrap(response, raise_on_error=False)
+        if po_result is None or isinstance(po_result, ErrorResponse):
+            raise ValueError(f"Purchase order ID {request.order_id} not found")
+        po = po_result
+    else:
+        # ``order_no`` is guaranteed non-None/non-empty by the guards above.
+        assert request.order_no is not None
+        list_response = await find_purchase_orders.asyncio_detailed(
+            client=services.client, order_no=request.order_no, limit=1
+        )
+        orders = unwrap_data(list_response, default=[])
+        if not orders:
+            raise ValueError(f"Purchase order '{request.order_no}' not found")
+        po = orders[0]
+
+    # Fetch the two side-data resources concurrently — they're independent
+    # network calls (cost rows filter by group_id, accounting metadata by
+    # purchase_order_id), so gather avoids doubling end-to-end latency.
+    default_group_id = unwrap_unset(po.default_group_id, None)
+    additional_cost_rows, accounting_metadata = await asyncio.gather(
+        _fetch_po_additional_cost_rows(services, default_group_id),
+        _fetch_po_accounting_metadata(services, po.id),
+    )
+
+    return _build_get_purchase_order_response(
+        po,
+        additional_cost_rows=additional_cost_rows,
+        accounting_metadata=accounting_metadata,
+    )
+
+
+# ----------------------------------------------------------------------------
+# Markdown rendering — canonical Pydantic field names as labels so an LLM
+# consumer can't misread a section header as a differently-named field
+# (motivation: #346 follow-on).
+# ----------------------------------------------------------------------------
+
+_PO_SCALAR_FIELDS: tuple[str, ...] = (
+    "id",
+    "order_no",
+    "status",
+    "billing_status",
+    "entity_type",
+    "supplier_id",
+    "location_id",
+    "tracking_location_id",
+    "default_group_id",
+    "currency",
+    "total",
+    "total_in_base_currency",
+    "expected_arrival_date",
+    "order_created_date",
+    "last_document_status",
+    "additional_info",
+    "created_at",
+    "updated_at",
+    "deleted_at",
+)
+
+_PO_ROW_FIELDS: tuple[str, ...] = (
+    "id",
+    "variant_id",
+    "quantity",
+    "price_per_unit",
+    "price_per_unit_in_base_currency",
+    "total",
+    "total_in_base_currency",
+    "purchase_uom",
+    "purchase_uom_conversion_rate",
+    "tax_rate_id",
+    "currency",
+    "conversion_rate",
+    "conversion_date",
+    "arrival_date",
+    "received_date",
+    "purchase_order_id",
+    "landed_cost",
+    "group_id",
+    "created_at",
+    "updated_at",
+    "deleted_at",
+)
+
+_PO_ADDITIONAL_COST_FIELDS: tuple[str, ...] = (
+    "id",
+    "additional_cost_id",
+    "group_id",
+    "name",
+    "distribution_method",
+    "price",
+    "price_in_base",
+    "currency",
+    "currency_conversion_rate",
+    "currency_conversion_rate_fix_date",
+    "tax_rate_id",
+    "tax_rate",
+    "created_at",
+    "updated_at",
+    "deleted_at",
+)
+
+_PO_ACCOUNTING_META_FIELDS: tuple[str, ...] = (
+    "id",
+    "purchase_order_id",
+    "received_items_group_id",
+    "integration_type",
+    "bill_id",
+    "created_at",
+)
+
+
+def _render_po_row_md(row: PurchaseOrderRowInfo) -> list[str]:
+    """Render a PO row as a multi-line block under ``purchase_order_rows``."""
+    lines = [f"  - **id**: {row.id}"]
+    for fname in _PO_ROW_FIELDS:
+        if fname == "id":
+            continue
+        val = getattr(row, fname, None)
+        if val is None or val == "":
+            continue
+        lines.append(f"    **{fname}**: {val}")
+    if row.batch_transactions:
+        lines.append(
+            f"    **batch_transactions** ({len(row.batch_transactions)}): "
+            f"{row.batch_transactions}"
+        )
+    else:
+        lines.append("    **batch_transactions**: []")
+    return lines
+
+
+def _render_po_additional_cost_row_md(
+    row: PurchaseOrderAdditionalCostRowInfo,
+) -> list[str]:
+    """Render an additional cost row under ``additional_cost_rows``."""
+    lines = [f"  - **id**: {row.id}"]
+    for fname in _PO_ADDITIONAL_COST_FIELDS:
+        if fname == "id":
+            continue
+        val = getattr(row, fname, None)
+        if val is None or val == "":
+            continue
+        lines.append(f"    **{fname}**: {val}")
+    return lines
+
+
+def _render_po_accounting_metadata_md(
+    meta: PurchaseOrderAccountingMetadataInfo,
+) -> list[str]:
+    """Render an accounting metadata entry under ``accounting_metadata``."""
+    lines = [f"  - **id**: {meta.id}"]
+    for fname in _PO_ACCOUNTING_META_FIELDS:
+        if fname == "id":
+            continue
+        val = getattr(meta, fname, None)
+        if val is None or val == "":
+            continue
+        lines.append(f"    **{fname}**: {val}")
+    return lines
+
+
+_SUPPLIER_FIELDS: tuple[str, ...] = (
+    "id",
+    "name",
+    "email",
+    "phone",
+    "currency",
+    "comment",
+    "default_address_id",
+    "created_at",
+    "updated_at",
+    "deleted_at",
+)
+
+
+def _render_supplier_md(supplier: SupplierInfo) -> list[str]:
+    """Render an embedded supplier under ``**supplier**:`` using canonical
+    field names, matching the scheme used for rows and accounting metadata.
+    """
+    lines: list[str] = []
+    for fname in _SUPPLIER_FIELDS:
+        val = getattr(supplier, fname, None)
+        if val is None or val == "":
+            continue
+        lines.append(f"  **{fname}**: {val}")
+    if supplier.addresses:
+        lines.append(
+            f"  **addresses** ({len(supplier.addresses)}): {supplier.addresses}"
+        )
+    else:
+        lines.append("  **addresses**: []")
+    return lines
+
+
+def _render_get_purchase_order_md(
+    response: GetPurchaseOrderResponse, *, embed: bool = False
+) -> str:
+    """Render an exhaustive PO response as canonical-labeled markdown.
+
+    When ``embed=True`` the top-level ``## PO …`` heading is omitted —
+    used when the PO is rendered as a nested block under another response
+    (e.g., ``verify_order_document``) where an indented markdown heading
+    would still be parsed as a top-level heading and break intended
+    nesting (copilot feedback on #357).
+    """
+    md_lines: list[str] = []
+    if not embed:
+        md_lines.append(f"## PO {response.order_no or response.id}")
+
+    for fname in _PO_SCALAR_FIELDS:
+        val = getattr(response, fname)
+        if val is None or val == "":
+            continue
+        md_lines.append(f"**{fname}**: {val}")
+
+    # supplier: inline block under the canonical key so the LLM can trace
+    # every embedded supplier field without a separate lookup.
+    if response.supplier is not None:
+        md_lines.append("")
+        md_lines.append("**supplier**:")
+        md_lines.extend(_render_supplier_md(response.supplier))
+    else:
+        md_lines.append("**supplier**: null")
+
+    # purchase_order_rows: explicit list syntax so empty lists render as `[]`
+    # rather than a dangling section header an LLM could misread (#346).
+    if response.purchase_order_rows:
+        md_lines.append("")
+        md_lines.append(
+            f"**purchase_order_rows** ({len(response.purchase_order_rows)}):"
+        )
+        for row in response.purchase_order_rows:
+            md_lines.extend(_render_po_row_md(row))
+    else:
+        md_lines.append("**purchase_order_rows**: []")
+
+    if response.additional_cost_rows:
+        md_lines.append("")
+        md_lines.append(
+            f"**additional_cost_rows** ({len(response.additional_cost_rows)}):"
+        )
+        for row in response.additional_cost_rows:
+            md_lines.extend(_render_po_additional_cost_row_md(row))
+    else:
+        md_lines.append("**additional_cost_rows**: []")
+
+    if response.accounting_metadata:
+        md_lines.append("")
+        md_lines.append(
+            f"**accounting_metadata** ({len(response.accounting_metadata)}):"
+        )
+        for meta in response.accounting_metadata:
+            md_lines.extend(_render_po_accounting_metadata_md(meta))
+    else:
+        md_lines.append("**accounting_metadata**: []")
+
+    return "\n".join(md_lines)
+
+
+@observe_tool
+@unpack_pydantic_params
+async def get_purchase_order(
+    request: Annotated[GetPurchaseOrderRequest, Unpack()], context: Context
+) -> ToolResult:
+    """Look up a purchase order by order number or ID — exhaustive detail.
+
+    Returns every field Katana exposes on the PO record: status, billing
+    status, supplier, location, totals (including base-currency total),
+    timestamps, document status, tracking location, additional_info, plus
+    the full list of line items with every row field (UOM, conversion
+    rates, landed_cost, batch_transactions), the full list of additional
+    cost rows (shipping, duties, handling), and accounting-integration
+    metadata (bill IDs).
+
+    Two extra HTTP calls are made on top of the PO fetch — one for
+    additional cost rows, one for accounting metadata — so callers don't
+    need follow-up lookups for standard PO data. Use this tool whenever
+    full detail is needed; use ``list_purchase_orders`` for discovery.
+
+    Provide either order_no (e.g., 'PO-1022') or order_id.
+    """
+    response = await _get_purchase_order_impl(request, context)
+
+    if request.format == "json":
+        return ToolResult(
+            content=response.model_dump_json(indent=2),
+            structured_content=response.model_dump(),
+        )
+
+    return make_simple_result(
+        _render_get_purchase_order_md(response),
+        structured_data=response.model_dump(),
+    )
+
+
+# ============================================================================
+# Tool: verify_order_document
 # ============================================================================
 
 
@@ -546,9 +1252,20 @@ class VerifyOrderDocumentRequest(BaseModel):
 
 
 class VerifyOrderDocumentResponse(BaseModel):
-    """Response from verifying an order document."""
+    """Response from verifying an order document.
+
+    Successful responses include the full ``purchase_order`` in the same
+    exhaustive shape as ``get_purchase_order`` so callers don't need a
+    follow-up lookup to see what was compared against. The field is typed
+    ``Optional`` only because the model is constructed before the PO
+    payload is assigned during ``_verify_order_document_impl``; in
+    practice consumers only observe successful responses (errors on the
+    PO fetch propagate as exceptions), so ``purchase_order`` is present
+    on every response a caller receives.
+    """
 
     order_id: int
+    purchase_order: GetPurchaseOrderResponse | None = None
     matches: list[MatchResult] = Field(default_factory=list)
     discrepancies: list[Discrepancy] = Field(default_factory=list)
     suggested_actions: list[str] = Field(default_factory=list)
@@ -556,50 +1273,95 @@ class VerifyOrderDocumentResponse(BaseModel):
     message: str
 
 
+def _render_verify_order_document_md(
+    response: VerifyOrderDocumentResponse,
+) -> str:
+    """Render a verification response as canonical-labeled markdown.
+
+    Uses Pydantic field names as labels (``**matches** (N)``,
+    ``**discrepancies** (N)``, ``**purchase_order**``) so an LLM consumer
+    can't misread a prettified header as a different field (motivation:
+    #346 follow-on). Lists render with explicit counts; empty lists render
+    as ``**field**: []`` rather than a bare section header.
+    """
+    md_lines = [
+        f"## Verification — PO {response.order_id}",
+        f"**order_id**: {response.order_id}",
+        f"**overall_status**: {response.overall_status}",
+        f"**message**: {response.message}",
+    ]
+
+    if response.matches:
+        md_lines.append("")
+        md_lines.append(f"**matches** ({len(response.matches)}):")
+        for m in response.matches:
+            price = f"${m.unit_price:.2f}" if m.unit_price is not None else "—"
+            md_lines.append(
+                f"  - **sku**: {m.sku}, **quantity**: {m.quantity}, "
+                f"**unit_price**: {price}, **status**: {m.status}"
+            )
+    else:
+        md_lines.append("**matches**: []")
+
+    if response.discrepancies:
+        md_lines.append("")
+        md_lines.append(f"**discrepancies** ({len(response.discrepancies)}):")
+        for d in response.discrepancies:
+            md_lines.append(
+                f"  - **sku**: {d.sku}, **type**: {d.type.value}, "
+                f"**expected**: {d.expected}, **actual**: {d.actual}"
+            )
+            md_lines.append(f"    **message**: {d.message}")
+    else:
+        md_lines.append("**discrepancies**: []")
+
+    if response.suggested_actions:
+        md_lines.append("")
+        md_lines.append(f"**suggested_actions** ({len(response.suggested_actions)}):")
+        for a in response.suggested_actions:
+            md_lines.append(f"  - {a}")
+    else:
+        md_lines.append("**suggested_actions**: []")
+
+    # Embed the exhaustive PO under its canonical key so the LLM can trace
+    # every compared value back to a concrete PO field. Pass ``embed=True``
+    # to omit the ``## PO …`` heading — Markdown allows up to 3 leading
+    # spaces on headings, so indenting the heading would still render as a
+    # top-level heading and break intended nesting.
+    if response.purchase_order is not None:
+        md_lines.append("")
+        md_lines.append("**purchase_order**:")
+        po_md = _render_get_purchase_order_md(response.purchase_order, embed=True)
+        for line in po_md.splitlines():
+            md_lines.append(f"  {line}" if line else "")
+    else:
+        md_lines.append("**purchase_order**: null")
+
+    return "\n".join(md_lines)
+
+
 def _verify_response_to_tool_result(
     response: VerifyOrderDocumentResponse,
 ) -> ToolResult:
-    """Convert VerifyOrderDocumentResponse to ToolResult with markdown + Prefab UI."""
+    """Convert VerifyOrderDocumentResponse to ToolResult with canonical-labeled
+    markdown + Prefab UI.
+
+    The Prefab UI (``build_verification_ui``) path is preserved for Claude
+    Desktop — it's a separate rendering track attached via
+    ``structured_content``. The text content now uses canonical Pydantic
+    field names as labels so an LLM consumer can't misread a section
+    header as a different field (#346 follow-on).
+    """
     from katana_mcp.tools.prefab_ui import build_verification_ui
 
-    # Format matches and discrepancies as text for template
-    if response.matches:
-        matches_text = "\n".join(
-            f"- **{m.sku}**: {m.quantity} units @ ${m.unit_price or 0:.2f} ({m.status})"
-            for m in response.matches
-        )
-    else:
-        matches_text = "No matches found"
-
-    if response.discrepancies:
-        discrepancies_text = "\n".join(f"- {d.message}" for d in response.discrepancies)
-    else:
-        discrepancies_text = "No discrepancies"
-
-    suggested_actions_text = "\n".join(
-        f"- {action}" for action in response.suggested_actions
-    )
-
-    # Choose template based on overall status
-    if response.overall_status == "match":
-        template_name = "order_verification_match"
-    elif response.overall_status == "partial_match":
-        template_name = "order_verification_partial"
-    else:
-        template_name = "order_verification_no_match"
-
     ui = build_verification_ui(response.model_dump())
-
-    return make_tool_result(
-        response,
-        template_name,
-        ui=ui,
-        order_id=response.order_id,
-        overall_status=response.overall_status,
-        message=response.message,
-        matches_text=matches_text,
-        discrepancies_text=discrepancies_text,
-        suggested_actions_text=suggested_actions_text,
+    markdown = _render_verify_order_document_md(response)
+    # Mirror ``make_tool_result``'s contract: when a Prefab UI is present,
+    # ``structured_content`` carries the UI envelope; otherwise it carries
+    # the Pydantic dump for programmatic callers.
+    return ToolResult(
+        content=markdown,
+        structured_content=ui if ui is not None else response.model_dump(),
     )
 
 
@@ -637,6 +1399,21 @@ async def _verify_order_document_impl(
         # unwrap_as() raises typed exceptions on error, returns typed RegularPurchaseOrder
         po = unwrap_as(po_response, RegularPurchaseOrder)
 
+        # Build the exhaustive PO structured view — same shape as
+        # get_purchase_order — so callers have full context on what was
+        # compared against. Side-data fetches run concurrently via gather
+        # to avoid doubling latency on the verify path.
+        default_group_id = unwrap_unset(po.default_group_id, None)
+        additional_cost_rows, accounting_metadata = await asyncio.gather(
+            _fetch_po_additional_cost_rows(services, default_group_id),
+            _fetch_po_accounting_metadata(services, po.id),
+        )
+        exhaustive_po = _build_get_purchase_order_response(
+            po,
+            additional_cost_rows=additional_cost_rows,
+            accounting_metadata=accounting_metadata,
+        )
+
         # Extract order number safely using unwrap_unset
         order_no = unwrap_unset(po.order_no, f"PO-{request.order_id}")
 
@@ -645,6 +1422,7 @@ async def _verify_order_document_impl(
         if not po_rows_raw:
             return VerifyOrderDocumentResponse(
                 order_id=request.order_id,
+                purchase_order=exhaustive_po,
                 matches=[],
                 discrepancies=[],
                 suggested_actions=["Verify purchase order data in Katana"],
@@ -783,6 +1561,7 @@ async def _verify_order_document_impl(
 
         return VerifyOrderDocumentResponse(
             order_id=request.order_id,
+            purchase_order=exhaustive_po,
             matches=matches,
             discrepancies=discrepancies,
             suggested_actions=suggested_actions,
@@ -813,195 +1592,6 @@ async def verify_order_document(
             structured_content=response.model_dump(),
         )
     return _verify_response_to_tool_result(response)
-
-
-# ============================================================================
-# Tool: get_purchase_order
-# ============================================================================
-
-
-class GetPurchaseOrderRequest(BaseModel):
-    """Request to look up a purchase order by number or ID."""
-
-    order_no: str | None = Field(
-        default=None, description="Purchase order number (e.g., 'PO-1022')"
-    )
-    order_id: int | None = Field(default=None, description="Purchase order ID")
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data consumable by downstream tools/aggregations."
-        ),
-    )
-
-
-class PurchaseOrderRowInfo(BaseModel):
-    """Summary of a purchase order line item."""
-
-    id: int
-    variant_id: int | None
-    quantity: float | None
-    price_per_unit: float | None
-    arrival_date: str | None
-    received_date: str | None
-    total: float | None
-
-
-class GetPurchaseOrderResponse(BaseModel):
-    """Response containing purchase order details."""
-
-    id: int
-    order_no: str | None
-    status: str | None
-    supplier_id: int | None
-    location_id: int | None
-    currency: str | None
-    expected_arrival_date: str | None
-    total: float | None
-    rows: list[PurchaseOrderRowInfo]
-
-
-def _po_row_info(row: Any) -> PurchaseOrderRowInfo:
-    """Extract row info from an attrs PurchaseOrderRow."""
-    arrival = unwrap_unset(row.arrival_date, None)
-    received = unwrap_unset(row.received_date, None)
-    return PurchaseOrderRowInfo(
-        id=row.id,
-        variant_id=unwrap_unset(row.variant_id, None),
-        quantity=unwrap_unset(row.quantity, None),
-        price_per_unit=unwrap_unset(row.price_per_unit, None),
-        arrival_date=iso_or_none(arrival),
-        received_date=iso_or_none(received),
-        total=unwrap_unset(row.total, None),
-    )
-
-
-async def _get_purchase_order_impl(
-    request: GetPurchaseOrderRequest, context: Context
-) -> GetPurchaseOrderResponse:
-    """Look up a PO by order_no or ID and return structured details."""
-    from katana_public_api_client.api.purchase_order import (
-        find_purchase_orders,
-        get_purchase_order as api_get_purchase_order,
-    )
-    from katana_public_api_client.models import ErrorResponse
-    from katana_public_api_client.utils import unwrap_data
-
-    if not request.order_no and not request.order_id:
-        raise ValueError("Either order_no or order_id must be provided")
-
-    services = get_services(context)
-
-    if request.order_id:
-        response = await api_get_purchase_order.asyncio_detailed(
-            id=request.order_id, client=services.client
-        )
-        # raise_on_error=False turns 404s and ErrorResponse payloads into None
-        # so we can raise a user-friendly ValueError instead of a raw APIError.
-        po_result = unwrap(response, raise_on_error=False)
-        if po_result is None or isinstance(po_result, ErrorResponse):
-            raise ValueError(f"Purchase order ID {request.order_id} not found")
-        po = po_result
-    else:
-        if not request.order_no:
-            raise ValueError("order_no is required when order_id is not provided")
-        list_response = await find_purchase_orders.asyncio_detailed(
-            client=services.client, order_no=request.order_no, limit=1
-        )
-        orders = unwrap_data(list_response, default=[])
-        if not orders:
-            raise ValueError(f"Purchase order '{request.order_no}' not found")
-        po = orders[0]
-
-    # Extract rows
-    raw_rows = unwrap_unset(po.purchase_order_rows, [])
-    rows = [_po_row_info(r) for r in raw_rows] if raw_rows else []
-
-    expected_arrival = unwrap_unset(po.expected_arrival_date, None)
-
-    return GetPurchaseOrderResponse(
-        id=po.id,
-        order_no=unwrap_unset(po.order_no, None),
-        status=enum_to_str(unwrap_unset(po.status, None)),
-        supplier_id=unwrap_unset(po.supplier_id, None),
-        location_id=unwrap_unset(po.location_id, None),
-        currency=unwrap_unset(po.currency, None),
-        expected_arrival_date=expected_arrival.isoformat()
-        if expected_arrival
-        else None,
-        total=unwrap_unset(po.total, None),
-        rows=rows,
-    )
-
-
-@observe_tool
-@unpack_pydantic_params
-async def get_purchase_order(
-    request: Annotated[GetPurchaseOrderRequest, Unpack()], context: Context
-) -> ToolResult:
-    """Look up a purchase order by order number or ID.
-
-    Returns order details including status, supplier, location, total, and all
-    line items with variant_ids, quantities, prices, and arrival dates. Use to
-    inspect a PO before receiving, or to find the variant IDs of items on order.
-
-    Provide either order_no (e.g., 'PO-1022') or order_id.
-    """
-    from katana_mcp.tools.tool_result_utils import make_simple_result
-
-    response = await _get_purchase_order_impl(request, context)
-
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-
-    lines = [
-        f"## PO {response.order_no or response.id}",
-        f"- **Status**: {response.status}",
-    ]
-    if response.supplier_id is not None:
-        lines.append(f"- **Supplier ID**: {response.supplier_id}")
-    if response.location_id is not None:
-        lines.append(f"- **Location ID**: {response.location_id}")
-    if response.total is not None:
-        lines.append(f"- **Total**: {response.total} {response.currency or ''}")
-    if response.expected_arrival_date:
-        lines.append(f"- **Expected Arrival**: {response.expected_arrival_date}")
-
-    if response.rows:
-        lines.append("")
-        lines.append("### Line Items")
-        lines.append(
-            format_md_table(
-                headers=[
-                    "Row ID",
-                    "Variant ID",
-                    "Qty",
-                    "Price",
-                    "Arrival",
-                    "Received",
-                ],
-                rows=[
-                    [
-                        r.id,
-                        r.variant_id,
-                        r.quantity,
-                        r.price_per_unit,
-                        r.arrival_date or "N/A",
-                        r.received_date or "N/A",
-                    ]
-                    for r in response.rows
-                ],
-            )
-        )
-
-    return make_simple_result(
-        "\n".join(lines),
-        structured_data=response.model_dump(),
-    )
 
 
 # ============================================================================
