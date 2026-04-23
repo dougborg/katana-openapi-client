@@ -120,28 +120,115 @@ async def test_search_customers_handles_missing_fields():
 # ============================================================================
 
 
+_FETCH_ADDR_PATH = "katana_mcp.tools.foundation.customers._fetch_customer_addresses"
+
+
 @pytest.mark.asyncio
 async def test_get_customer_by_id():
-    """Test get_customer with mocked cache."""
+    """get_customer returns every Customer field the cache dict carries."""
     context, lifespan_ctx = create_mock_context()
     lifespan_ctx.cache.get_by_id = AsyncMock(
         return_value={
             "id": 42,
             "name": "Widgets Inc",
+            "first_name": "Sarah",
+            "last_name": "Johnson",
             "email": "hello@widgets.io",
+            "phone": "+1-555-0123",
+            "company": "Widgets Inc",
             "currency": "EUR",
+            "reference_id": "WGT-2024-001",
             "category": "retail",
+            "discount_rate": 5.0,
+            "default_billing_id": 3001,
+            "default_shipping_id": 3002,
+            "comment": "High-volume",
+            "created_at": "2024-01-10T09:00:00Z",
+            "updated_at": "2024-01-15T14:30:00Z",
+            "deleted_at": None,
         }
     )
 
     request = GetCustomerRequest(customer_id=42)
-    result = await _get_customer_impl(request, context)
+    with patch(_FETCH_ADDR_PATH, AsyncMock(return_value=[])):
+        result = await _get_customer_impl(request, context)
 
     assert result.id == 42
     assert result.name == "Widgets Inc"
+    # Every new field the pre-#346 response was dropping:
+    assert result.first_name == "Sarah"
+    assert result.last_name == "Johnson"
+    assert result.phone == "+1-555-0123"
+    assert result.reference_id == "WGT-2024-001"
+    assert result.discount_rate == 5.0
+    assert result.default_billing_id == 3001
+    assert result.default_shipping_id == 3002
+    assert result.created_at == "2024-01-10T09:00:00Z"
+    assert result.updated_at == "2024-01-15T14:30:00Z"
+    # Fields that were already there stay correct:
     assert result.email == "hello@widgets.io"
     assert result.currency == "EUR"
     assert result.category == "retail"
+    # Addresses default to empty list when none are registered:
+    assert result.addresses == []
+
+
+@pytest.mark.asyncio
+async def test_get_customer_fetches_and_surfaces_addresses():
+    """Addresses come from the customer_addresses endpoint, not the cache."""
+    from katana_mcp.tools.foundation.customers import CustomerAddressInfo
+
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_id = AsyncMock(
+        return_value={"id": 42, "name": "Widgets Inc"}
+    )
+    address = CustomerAddressInfo(
+        id=3001,
+        customer_id=42,
+        entity_type="billing",
+        default=True,
+        first_name="Sarah",
+        line_1="123 Main St",
+        city="Chicago",
+        state="IL",
+        zip="60601",
+        country="US",
+    )
+
+    request = GetCustomerRequest(customer_id=42)
+    with patch(_FETCH_ADDR_PATH, AsyncMock(return_value=[address])):
+        result = await _get_customer_impl(request, context)
+
+    assert len(result.addresses) == 1
+    assert result.addresses[0].id == 3001
+    assert result.addresses[0].line_1 == "123 Main St"
+    assert result.addresses[0].entity_type == "billing"
+
+
+@pytest.mark.asyncio
+async def test_get_customer_markdown_uses_canonical_field_names():
+    """Markdown labels use Pydantic field names (not prettified headers)
+    so LLM consumers can't misread a section label as a different field
+    (motivation: #346 follow-on, supplier_item_codes misread)."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_id = AsyncMock(
+        return_value={
+            "id": 42,
+            "name": "Widgets Inc",
+            "reference_id": "WGT-2024-001",
+            "discount_rate": 5.0,
+        }
+    )
+
+    with patch(_FETCH_ADDR_PATH, AsyncMock(return_value=[])):
+        result = await get_customer(customer_id=42, context=context)
+
+    text = result.content[0].text
+    assert "**reference_id**: WGT-2024-001" in text
+    assert "**discount_rate**: 5.0" in text
+    # Empty address list renders with explicit [] syntax, not a heading
+    # that a reader might mistake for a section:
+    assert "**addresses**: []" in text
 
 
 @pytest.mark.asyncio
@@ -206,7 +293,8 @@ async def test_get_customer_format_json_returns_json():
         return_value={"id": 42, "name": "Widgets Inc", "email": "hi@widgets.io"}
     )
 
-    result = await get_customer(customer_id=42, format="json", context=context)
+    with patch(_FETCH_ADDR_PATH, AsyncMock(return_value=[])):
+        result = await get_customer(customer_id=42, format="json", context=context)
 
     data = json.loads(_content_text(result))
     assert data["id"] == 42
