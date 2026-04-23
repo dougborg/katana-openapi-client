@@ -6,12 +6,16 @@ To regenerate, run:
     uv run poe generate-pydantic
 """
 
-from __future__ import annotations
-
+from datetime import datetime
 from enum import StrEnum
-from typing import Annotated
+from typing import Annotated, Optional
 
 from pydantic import AnyUrl, AwareDatetime, ConfigDict, Field
+from sqlalchemy import JSON, Column
+from sqlmodel import (
+    Field as SQLField,
+    Relationship,
+)
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 
@@ -81,10 +85,18 @@ class UpdateSalesOrderStatus(StrEnum):
     delivered = "DELIVERED"
 
 
-class SalesOrderRow(DeletableEntity):
-    id: Annotated[int, Field(description="Unique identifier for the sales order row")]
+class SalesOrderRow(DeletableEntity, table=True):
+    __tablename__ = "sales_order_row"
+    model_config = ConfigDict(frozen=False)
+
+    id: Annotated[int, SQLField(primary_key=True, description="Unique identifier")]
+
     sales_order_id: Annotated[
-        int | None, Field(description="ID of the sales order this row belongs to")
+        int | None,
+        SQLField(
+            foreign_key="sales_order.id",
+            description="ID of the sales order this row belongs to",
+        ),
     ] = None
     quantity: Annotated[
         float, Field(description="Ordered quantity of the product variant")
@@ -109,7 +121,7 @@ class SalesOrderRow(DeletableEntity):
         ),
     ] = None
     product_expected_date: Annotated[
-        AwareDatetime | None,
+        datetime | None,
         Field(
             description="Expected date when the product will be available if not currently in stock"
         ),
@@ -141,18 +153,23 @@ class SalesOrderRow(DeletableEntity):
     ] = None
     attributes: Annotated[
         list[Attribute] | None,
-        Field(description="Custom attributes associated with this sales order row"),
+        SQLField(
+            sa_column=Column(JSON),
+            description="Custom attributes associated with this sales order row",
+        ),
     ] = None
     batch_transactions: Annotated[
         list[BatchTransaction6] | None,
-        Field(
-            description="Batch allocations for this order row when using batch tracking"
+        SQLField(
+            sa_column=Column(JSON),
+            description="Batch allocations for this order row when using batch tracking",
         ),
     ] = None
     serial_numbers: Annotated[
         list[int] | None,
-        Field(
-            description="Serial numbers allocated to this order row for serialized products"
+        SQLField(
+            sa_column=Column(JSON),
+            description="Serial numbers allocated to this order row for serialized products",
         ),
     ] = None
     linked_manufacturing_order_id: Annotated[
@@ -165,9 +182,12 @@ class SalesOrderRow(DeletableEntity):
         float | None, Field(description="Currency conversion rate used for this row")
     ] = None
     conversion_date: Annotated[
-        AwareDatetime | None,
+        datetime | None,
         Field(description="Date when the currency conversion rate was applied"),
     ] = None
+    sales_order: Optional["SalesOrder"] = Relationship(
+        back_populates="sales_order_rows"
+    )
 
 
 class SalesOrderAddress(DeletableEntity):
@@ -938,7 +958,12 @@ class SalesReturnReason(KatanaPydanticBase):
     name: Annotated[str, Field(description="Return reason name")]
 
 
-class SalesOrder(DeletableEntity):
+class SalesOrder(DeletableEntity, table=True):
+    __tablename__ = "sales_order"
+    model_config = ConfigDict(frozen=False)
+
+    id: Annotated[int, SQLField(primary_key=True, description="Unique identifier")]
+
     customer_id: Annotated[
         int, Field(description="Unique identifier of the customer placing the order")
     ]
@@ -953,17 +978,17 @@ class SalesOrder(DeletableEntity):
         ),
     ] = None
     order_created_date: Annotated[
-        AwareDatetime | None,
+        datetime | None,
         Field(
             description="Date and time when the sales order was created in the system"
         ),
     ] = None
     delivery_date: Annotated[
-        AwareDatetime | None,
+        datetime | None,
         Field(description="Requested or promised delivery date for the order"),
     ] = None
     picked_date: Annotated[
-        AwareDatetime | None,
+        datetime | None,
         Field(description="Date when items were picked from inventory for shipment"),
     ] = None
     location_id: Annotated[
@@ -990,7 +1015,7 @@ class SalesOrder(DeletableEntity):
         ),
     ] = None
     conversion_date: Annotated[
-        AwareDatetime | None,
+        datetime | None,
         Field(description="Date when the currency conversion rate was applied"),
     ] = None
     invoicing_status: Annotated[
@@ -1014,12 +1039,7 @@ class SalesOrder(DeletableEntity):
         str | None,
         Field(description="Customer's reference number or purchase order number"),
     ] = None
-    sales_order_rows: Annotated[
-        list[SalesOrderRow] | None,
-        Field(
-            description="Line items included in the sales order with product details and quantities"
-        ),
-    ] = None
+    sales_order_rows: list["SalesOrderRow"] = Relationship(back_populates="sales_order")
     ecommerce_order_type: Annotated[
         str | None,
         Field(
@@ -1038,14 +1058,14 @@ class SalesOrder(DeletableEntity):
     ] = None
     product_availability: Annotated[ProductAvailability | None, Field()] = None
     product_expected_date: Annotated[
-        AwareDatetime | None,
+        datetime | None,
         Field(
             description="Expected date when products will be available for fulfillment"
         ),
     ] = None
     ingredient_availability: Annotated[IngredientAvailability | None, Field()] = None
     ingredient_expected_date: Annotated[
-        AwareDatetime | None,
+        datetime | None,
         Field(
             description="Expected date when ingredients will be available for production"
         ),
@@ -1080,13 +1100,17 @@ class SalesOrder(DeletableEntity):
     ] = None
     shipping_fee: Annotated[
         SalesOrderShippingFee | None,
-        Field(
+        SQLField(
+            sa_column=Column(JSON),
             description="Shipping fee details for this sales order",
         ),
     ] = None
     addresses: Annotated[
         list[SalesOrderAddress] | None,
-        Field(description="Complete address information for billing and shipping"),
+        SQLField(
+            sa_column=Column(JSON),
+            description="Complete address information for billing and shipping",
+        ),
     ] = None
 
 

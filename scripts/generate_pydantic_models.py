@@ -171,6 +171,59 @@ DOMAIN_GROUPS: dict[str, list[str]] = {
 }
 
 
+# Cache-table configuration for #342 — select generated pydantic classes opt
+# into SQLAlchemy table semantics (`table=True`) so they double as cache row
+# schemas. Expanded incrementally per-entity as list tools get cache-backed;
+# PR 2 covers SalesOrder + SalesOrderRow as the pattern-proving pair.
+CACHE_TABLES: set[str] = {"SalesOrder", "SalesOrderRow"}
+
+
+@dataclass(frozen=True)
+class CacheTableRelationship:
+    """Declares a 1:N parent→child relationship between two cache tables.
+
+    Drives AST generation of ``Relationship()`` declarations on both the
+    parent (list field) and the child (back-reference field), plus
+    ``foreign_key="<parent_table>.id"`` on the child's existing FK column.
+    """
+
+    parent: str  # class name, e.g. "SalesOrder"
+    parent_field: str  # list field on parent, e.g. "sales_order_rows"
+    child: str  # class name, e.g. "SalesOrderRow"
+    child_back_ref: str  # back-ref field to inject on child, e.g. "sales_order"
+    child_fk_field: str  # existing int FK field on child, e.g. "sales_order_id"
+
+    @property
+    def parent_table(self) -> str:
+        return _snake_case(self.parent)
+
+
+def _snake_case(name: str) -> str:
+    """CamelCase → snake_case — used for default SQLAlchemy tablenames."""
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+
+
+CACHE_RELATIONSHIPS: list[CacheTableRelationship] = [
+    CacheTableRelationship(
+        parent="SalesOrder",
+        parent_field="sales_order_rows",
+        child="SalesOrderRow",
+        child_back_ref="sales_order",
+        child_fk_field="sales_order_id",
+    ),
+]
+
+
+# Fields on cache tables that contain lists of non-cached nested models (e.g.,
+# polymorphic attributes, batch transactions, serial numbers). These are stored
+# as JSON rather than exploded into child tables — they're low-signal for the
+# cache's query workload and not worth the schema churn.
+CACHE_JSON_COLUMNS: dict[str, list[str]] = {
+    "SalesOrder": ["shipping_fee", "addresses"],
+    "SalesOrderRow": ["attributes", "batch_transactions", "serial_numbers"],
+}
+
+
 @dataclass
 class ClassInfo:
     """Information about a class definition."""
@@ -367,6 +420,20 @@ def parse_generated_file(
 
     # Add extra="ignore" to BaseEntity for API response tolerance (#295)
     classes = add_base_entity_extra_ignore(classes)
+
+    # #342 cache-table transforms — opt-in SQLModel table semantics for
+    # CACHE_TABLES entries. Order matters:
+    # 1. table=True + frozen=False model_config on the class header.
+    # 2. Redeclare id with primary_key=True (depends on the model_config
+    #    line placed by step 1).
+    # 3. Swap AwareDatetime → datetime so SQLModel's type inference works.
+    # 4. FK / relationship / JSON column annotations on field declarations.
+    classes = inject_table_annotations(classes)
+    classes = inject_primary_key_in_table_classes(classes)
+    classes = swap_awaredatetime_for_datetime(classes)
+    classes = inject_foreign_keys(classes)
+    classes = inject_relationship_fields(classes)
+    classes = inject_json_columns(classes)
 
     print(
         f"  Found {len(imports)} imports, {len(classes)} classes, "
@@ -627,6 +694,339 @@ def add_base_entity_extra_ignore(classes: list[ClassInfo]) -> list[ClassInfo]:
     return fixed_classes
 
 
+# ── #342 cache-table AST transforms ────────────────────────────────────────
+
+
+def inject_primary_key_in_table_classes(classes: list[ClassInfo]) -> list[ClassInfo]:
+    """Redeclare ``id`` on each table class with ``primary_key=True``.
+
+    ``primary_key`` is a SQLModel-specific ``Field`` kwarg, and base.py (where
+    ``BaseEntity.id`` lives) continues using ``pydantic.Field``. Redeclaring
+    ``id`` directly on each ``table=True`` class lets us use ``sqlmodel.Field``
+    (scoped to cache-table modules) and keep the base class untouched. Some
+    generated entity classes also declare their own ``id:`` field (with a
+    tailored description) that overrides ``BaseEntity.id`` — we strip that
+    declaration before injecting the primary-keyed form to avoid duplicates.
+    """
+    fixed = []
+    for cls in classes:
+        if cls.name not in CACHE_TABLES:
+            fixed.append(cls)
+            continue
+        # Strip any existing in-body `id: Annotated[int, Field(...)]`
+        # declaration. Multi-line tolerant (description may wrap).
+        stripped = re.sub(
+            r"    id:\s*Annotated\[int,\s*Field\([^)]*\)\][^\n]*\n",
+            "",
+            cls.source,
+            count=1,
+        )
+        # Insert the canonical primary-keyed id right after model_config.
+        # Uses SQLField (sqlmodel.Field alias) for the SQL-specific
+        # ``primary_key`` kwarg; pydantic.Field doesn't accept it.
+        id_line = (
+            "    id: Annotated[int, SQLField(primary_key=True, "
+            'description="Unique identifier")]\n'
+        )
+        new_source, n = re.subn(
+            r"(model_config = ConfigDict\(frozen=False\)\n\n)",
+            rf"\1{id_line}\n",
+            stripped,
+            count=1,
+        )
+        if n != 1:
+            msg = (
+                f"Failed to inject primary-key id on {cls.name}. "
+                "model_config line may be missing or differently formatted."
+            )
+            raise GenerationError(msg)
+        fixed.append(
+            ClassInfo(
+                name=cls.name,
+                source=new_source,
+                bases=cls.bases,
+                line_start=cls.line_start,
+                line_end=cls.line_end,
+            )
+        )
+    return fixed
+
+
+def inject_table_annotations(classes: list[ClassInfo]) -> list[ClassInfo]:
+    """Turn CACHE_TABLES entries into SQLModel tables.
+
+    Three rewrites per class:
+    1. Append ``, table=True`` to the class header bases list.
+    2. Insert ``model_config = ConfigDict(frozen=False)`` as the first class
+       body statement. SQLAlchemy's ORM mutates instances during session
+       operations; the inherited ``frozen=True`` from ``KatanaPydanticBase``
+       would otherwise raise on every attribute write.
+    3. Insert ``__tablename__`` set to the snake_case class name. Otherwise
+       SQLAlchemy defaults to the raw lowercase class name (``salesorder``
+       vs. ``sales_order``), which breaks FK references that use the
+       readable snake_case form.
+    """
+    fixed = []
+    for cls in classes:
+        if cls.name not in CACHE_TABLES:
+            fixed.append(cls)
+            continue
+        tablename = _snake_case(cls.name)
+        # 1. Class header: `class X(Parent):` → `class X(Parent, table=True):`
+        new_source, n1 = re.subn(
+            rf"^(class {re.escape(cls.name)}\([^)]*)\):",
+            r"\1, table=True):",
+            cls.source,
+            count=1,
+            flags=re.MULTILINE,
+        )
+        if n1 != 1:
+            msg = (
+                f"Failed to inject table=True into class header for {cls.name}. "
+                "The class-declaration shape may have changed."
+            )
+            raise GenerationError(msg)
+        # 2 & 3. Inject __tablename__ + model_config at top of body.
+        new_source, n2 = re.subn(
+            rf"(class {re.escape(cls.name)}\([^)]*, table=True\):\n)",
+            (
+                rf'\1    __tablename__ = "{tablename}"' + "\n"
+                r"    model_config = ConfigDict(frozen=False)" + "\n\n"
+            ),
+            new_source,
+            count=1,
+        )
+        if n2 != 1:
+            msg = (
+                f"Failed to inject __tablename__/model_config into {cls.name}. "
+                "The post-header newline may be missing."
+            )
+            raise GenerationError(msg)
+        fixed.append(
+            ClassInfo(
+                name=cls.name,
+                source=new_source,
+                bases=cls.bases,
+                line_start=cls.line_start,
+                line_end=cls.line_end,
+            )
+        )
+    return fixed
+
+
+def inject_foreign_keys(classes: list[ClassInfo]) -> list[ClassInfo]:
+    """Add ``foreign_key="<parent_table>.id"`` to child FK columns.
+
+    The generated pydantic models already carry the int FK fields
+    (e.g., ``SalesOrderRow.sales_order_id``); we just annotate the existing
+    ``Field(...)`` call with the SQLAlchemy FK constraint.
+    """
+    # Map child class → list of (fk_field, parent_tablename) for O(1) lookup.
+    by_child: dict[str, list[tuple[str, str]]] = defaultdict(list)
+    for rel in CACHE_RELATIONSHIPS:
+        by_child[rel.child].append((rel.child_fk_field, rel.parent_table))
+
+    fixed = []
+    for cls in classes:
+        if cls.name not in by_child:
+            fixed.append(cls)
+            continue
+        new_source = cls.source
+        for fk_field, parent_table in by_child[cls.name]:
+            # Rewrite `Field(` → `SQLField(` AND inject foreign_key kwarg.
+            # pydantic.Field doesn't accept ``foreign_key``; the dual-import
+            # scheme keeps pydantic.Field for normal validation fields and
+            # uses sqlmodel.Field (aliased SQLField) for SQL-specific ones.
+            pattern = (
+                rf"({re.escape(fk_field)}:\s*Annotated\[\s*int\s*\|\s*None,"
+                r"\s*)Field\(\s*(description=)"
+            )
+            replacement = rf'\1SQLField(foreign_key="{parent_table}.id", \2'
+            new_source, n = re.subn(pattern, replacement, new_source, count=1)
+            if n != 1:
+                msg = (
+                    f"Failed to inject foreign_key on {cls.name}.{fk_field}. "
+                    "Expected Annotated[int | None, Field(description=...)] shape."
+                )
+                raise GenerationError(msg)
+        fixed.append(
+            ClassInfo(
+                name=cls.name,
+                source=new_source,
+                bases=cls.bases,
+                line_start=cls.line_start,
+                line_end=cls.line_end,
+            )
+        )
+    return fixed
+
+
+def inject_relationship_fields(classes: list[ClassInfo]) -> list[ClassInfo]:
+    """Rewrite parent list fields as ``Relationship()`` and add child back-refs.
+
+    For each declared parent→child relationship:
+    - Parent: ``parent_field: Annotated[list[Child] | None, Field(...)] = None``
+      becomes ``parent_field: list["Child"] = Relationship(back_populates="child_back_ref")``.
+    - Child: a new field ``child_back_ref: "Parent | None" = Relationship(
+      back_populates="parent_field")`` is appended to the class body.
+    """
+    by_parent = {rel.parent: rel for rel in CACHE_RELATIONSHIPS}
+    by_child = {rel.child: rel for rel in CACHE_RELATIONSHIPS}
+
+    fixed = []
+    for cls in classes:
+        new_source = cls.source
+
+        # Parent side: replace the list field with Relationship().
+        if cls.name in by_parent:
+            rel = by_parent[cls.name]
+            # Match the whole field declaration including its `= None` default.
+            pattern = (
+                rf"{re.escape(rel.parent_field)}:\s*Annotated\[\s*"
+                rf"list\[{re.escape(rel.child)}\]\s*\|\s*None,\s*"
+                r"Field\([^)]*\),?\s*\]\s*=\s*None"
+            )
+            replacement = (
+                f'{rel.parent_field}: list["{rel.child}"] = '
+                f'Relationship(back_populates="{rel.child_back_ref}")'
+            )
+            new_source, n = re.subn(pattern, replacement, new_source, count=1)
+            if n != 1:
+                msg = (
+                    f"Failed to rewrite list relationship on "
+                    f"{cls.name}.{rel.parent_field}. Expected shape "
+                    f"`Annotated[list[{rel.child}] | None, Field(...)] = None`."
+                )
+                raise GenerationError(msg)
+
+        # Child side: append back-reference field at end of class body.
+        if cls.name in by_child:
+            rel = by_child[cls.name]
+            # SA's ``relationship()`` string-form resolution can't parse
+            # ``"Parent | None"``. Use ``Optional["Parent"]`` so the outer
+            # Optional[] is evaluated at class-def time and only the inner
+            # ``"Parent"`` stays as a forward reference.
+            backref_line = (
+                f'    {rel.child_back_ref}: Optional["{rel.parent}"] = '
+                f'Relationship(back_populates="{rel.parent_field}")\n'
+            )
+            new_source = new_source.rstrip() + "\n" + backref_line
+
+        if new_source != cls.source:
+            fixed.append(
+                ClassInfo(
+                    name=cls.name,
+                    source=new_source,
+                    bases=cls.bases,
+                    line_start=cls.line_start,
+                    line_end=cls.line_end,
+                )
+            )
+        else:
+            fixed.append(cls)
+    return fixed
+
+
+# Base classes whose fields propagate into cache tables via inheritance.
+# Their AwareDatetime annotations (created_at / updated_at / deleted_at /
+# archived_at) must be swapped to plain ``datetime`` too — otherwise
+# SQLModel's table-column inference on the inheriting cache class fails.
+_CACHE_BASE_CLASSES = frozenset(
+    {
+        "BaseEntity",
+        "UpdatableEntity",
+        "DeletableEntity",
+        "ArchivableEntity",
+        "ArchivableDeletableEntity",
+    }
+)
+
+
+def swap_awaredatetime_for_datetime(classes: list[ClassInfo]) -> list[ClassInfo]:
+    """Rewrite ``AwareDatetime`` as ``datetime`` in cache-table fields.
+
+    SQLModel's automatic column-type inference has a hardcoded list of
+    recognized Python types and does not know about pydantic's
+    ``AwareDatetime`` (a pydantic-specific wrapper, not a ``datetime``
+    subclass). Without this swap, defining a ``table=True`` class that
+    inherits or declares an ``AwareDatetime`` field raises
+    ``ValueError: AwareDatetime has no matching SQLAlchemy type`` at
+    class-definition time.
+
+    Applies to CACHE_TABLES entries *and* to the shared entity base
+    classes (BaseEntity, UpdatableEntity, DeletableEntity, etc.) — their
+    datetime fields are inherited by cache tables, so they too must speak
+    plain ``datetime``. Timezone awareness is a Katana wire-protocol
+    invariant; the extra pydantic validator was safety belt for data we
+    already trust.
+    """
+    swap_targets = CACHE_TABLES | _CACHE_BASE_CLASSES
+    fixed = []
+    for cls in classes:
+        if cls.name not in swap_targets:
+            fixed.append(cls)
+            continue
+        # Word-boundary swap: "AwareDatetime" → "datetime" in field
+        # annotations only within the targeted classes.
+        new_source = re.sub(r"\bAwareDatetime\b", "datetime", cls.source)
+        if new_source == cls.source:
+            fixed.append(cls)
+            continue
+        fixed.append(
+            ClassInfo(
+                name=cls.name,
+                source=new_source,
+                bases=cls.bases,
+                line_start=cls.line_start,
+                line_end=cls.line_end,
+            )
+        )
+    return fixed
+
+
+def inject_json_columns(classes: list[ClassInfo]) -> list[ClassInfo]:
+    """Annotate specified list fields with ``sa_column=Column(JSON)``.
+
+    For fields listed in ``CACHE_JSON_COLUMNS`` — typically lists of
+    polymorphic or non-cached nested models — this preserves the typed
+    pydantic interface while telling SQLAlchemy to store them as JSON rather
+    than attempting to normalize them into child tables.
+    """
+    fixed = []
+    for cls in classes:
+        fields = CACHE_JSON_COLUMNS.get(cls.name)
+        if not fields:
+            fixed.append(cls)
+            continue
+        new_source = cls.source
+        for field_name in fields:
+            # Rewrite `Field(` → `SQLField(` AND inject sa_column=Column(JSON).
+            # Same rationale as foreign_key injection — pydantic.Field
+            # doesn't accept ``sa_column``; SQLField does.
+            pattern = (
+                rf"({re.escape(field_name)}:\s*Annotated\[\s*"
+                rf"[^,]+,\s*)Field\(\s*(description=)"
+            )
+            replacement = r"\1SQLField(sa_column=Column(JSON), \2"
+            new_source, n = re.subn(pattern, replacement, new_source, count=1)
+            if n != 1:
+                msg = (
+                    f"Failed to inject JSON sa_column on "
+                    f"{cls.name}.{field_name}. Field shape may have changed."
+                )
+                raise GenerationError(msg)
+        fixed.append(
+            ClassInfo(
+                name=cls.name,
+                source=new_source,
+                bases=cls.bases,
+                line_start=cls.line_start,
+                line_end=cls.line_end,
+            )
+        )
+    return fixed
+
+
 def classify_class(class_name: str) -> str:
     """Determine which domain group a class belongs to.
 
@@ -702,16 +1102,31 @@ def generate_module_imports(
     """Generate import statements for a module file."""
     import_lines: list[str] = []
 
+    # #342: cache-table modules drop ``from __future__ import annotations``
+    # (SQLAlchemy's relationship type resolution needs live type objects),
+    # keep ``pydantic.Field`` (for original validation kwargs like ``pattern``
+    # and ``examples`` which ``sqlmodel.Field`` rejects), and additionally
+    # import ``sqlmodel.Field`` aliased as ``SQLField`` for SQL-specific
+    # kwargs (``primary_key``, ``foreign_key``, ``sa_column``). All
+    # generator-injected field declarations use ``SQLField``; original
+    # datamodel-codegen output keeps ``Field`` from pydantic.
+    classes_in_module = {cls.name for cls in classes}
+    has_cache_tables = bool(classes_in_module & CACHE_TABLES)
+    has_json_columns = any(cls.name in CACHE_JSON_COLUMNS for cls in classes)
+
     # Add standard imports from the original file
     for imp in imports:
         # Skip base class import - we'll add our own
         if imp.is_from_import and imp.module and "KatanaPydanticBase" in imp.names:
             continue
-        # Skip RootModel if present
-        if imp.is_from_import and "RootModel" in imp.names:
-            imp.names = [n for n in imp.names if n != "RootModel"]
-            if not imp.names:
-                continue
+        # #342: drop `from __future__ import annotations` in cache-table modules.
+        if (
+            has_cache_tables
+            and imp.is_from_import
+            and imp.module == "__future__"
+            and "annotations" in imp.names
+        ):
+            continue
         import_lines.append(imp.source)
 
     # Ensure we have the base class import
@@ -725,6 +1140,29 @@ def generate_module_imports(
         "ConfigDict" in line for line in import_lines
     ):
         import_lines.append("from pydantic import ConfigDict")
+
+    # #342: cache-table modules get sqlmodel's Field (aliased as SQLField to
+    # avoid collision with pydantic's Field), Relationship, and Optional for
+    # child back-reference annotations (``Optional["Parent"]`` form required
+    # so SQLAlchemy's string-form relationship resolution can parse the
+    # forward ref).
+    if has_cache_tables:
+        import_lines.append("from typing import Optional")
+        import_lines.append("from sqlmodel import Field as SQLField, Relationship")
+        if not any("ConfigDict" in line for line in import_lines):
+            import_lines.append("from pydantic import ConfigDict")
+        if has_json_columns:
+            import_lines.append("from sqlalchemy import JSON, Column")
+
+    # #342: any module whose classes had AwareDatetime swapped for plain
+    # datetime needs the stdlib datetime import. Applies to both cache-table
+    # modules and the base module (shared entity bases feed cache tables via
+    # inheritance).
+    needs_datetime_import = any(
+        cls.name in (CACHE_TABLES | _CACHE_BASE_CLASSES) for cls in classes
+    )
+    if needs_datetime_import:
+        import_lines.append("from datetime import datetime")
 
     # Find cross-module dependencies
     classes_in_module = {cls.name for cls in classes}
@@ -773,6 +1211,14 @@ def write_module_file(
     """Write a single module file."""
     file_path = output_dir / f"{module_name}.py"
 
+    # #342: modules with cache tables must NOT use `from __future__ import
+    # annotations` — SQLAlchemy's relationship type resolution needs live
+    # type objects at class-definition time.
+    has_cache_tables = any(cls.name in CACHE_TABLES for cls in classes)
+    future_annotations_line = (
+        "" if has_cache_tables else "from __future__ import annotations\n\n"
+    )
+
     header = f'''"""Auto-generated Pydantic models - {module_name} domain.
 
 DO NOT EDIT - This file is generated by scripts/generate_pydantic_models.py
@@ -781,9 +1227,7 @@ To regenerate, run:
     uv run poe generate-pydantic
 """
 
-from __future__ import annotations
-
-'''
+{future_annotations_line}'''
 
     # Generate imports
     import_section = generate_module_imports(

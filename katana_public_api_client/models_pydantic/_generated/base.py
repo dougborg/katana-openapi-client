@@ -8,9 +8,10 @@ To regenerate, run:
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Annotated
 
-from pydantic import AwareDatetime, ConfigDict, Field
+from pydantic import ConfigDict, Field
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 
@@ -23,55 +24,55 @@ class BaseEntity(KatanaPydanticBase):
 
 class UpdatableEntity(BaseEntity):
     created_at: Annotated[
-        AwareDatetime | None,
+        datetime | None,
         Field(description="Timestamp when the entity was first created"),
     ] = None
     updated_at: Annotated[
-        AwareDatetime | None,
+        datetime | None,
         Field(description="Timestamp when the entity was last updated"),
     ] = None
 
 
 class ArchivableEntity(BaseEntity):
     created_at: Annotated[
-        AwareDatetime | None,
+        datetime | None,
         Field(description="Timestamp when the entity was first created"),
     ] = None
     updated_at: Annotated[
-        AwareDatetime | None,
+        datetime | None,
         Field(description="Timestamp when the entity was last updated"),
     ] = None
     archived_at: Annotated[
-        AwareDatetime | None, Field(description="Nullable archive timestamp")
+        datetime | None, Field(description="Nullable archive timestamp")
     ] = None
 
 
 class DeletableEntity(BaseEntity):
     created_at: Annotated[
-        AwareDatetime | None,
+        datetime | None,
         Field(description="Timestamp when the entity was first created"),
     ] = None
     updated_at: Annotated[
-        AwareDatetime | None,
+        datetime | None,
         Field(description="Timestamp when the entity was last updated"),
     ] = None
     deleted_at: Annotated[
-        AwareDatetime | None, Field(description="Nullable deletion timestamp")
+        datetime | None, Field(description="Nullable deletion timestamp")
     ] = None
 
 
 class ArchivableDeletableEntity(BaseEntity):
     created_at: Annotated[
-        AwareDatetime | None,
+        datetime | None,
         Field(description="Timestamp when the entity was first created"),
     ] = None
     updated_at: Annotated[
-        AwareDatetime | None,
+        datetime | None,
         Field(description="Timestamp when the entity was last updated"),
     ] = None
     archived_at: Annotated[
-        AwareDatetime | None, Field(description="Nullable archive timestamp")
+        datetime | None, Field(description="Nullable archive timestamp")
     ] = None
     deleted_at: Annotated[
-        AwareDatetime | None, Field(description="Nullable deletion timestamp")
+        datetime | None, Field(description="Nullable deletion timestamp")
     ] = None

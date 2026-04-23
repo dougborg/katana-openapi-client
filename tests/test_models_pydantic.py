@@ -155,6 +155,89 @@ class TestModelConfiguration:
         for cls in (Product, Variant, SalesOrder):
             assert issubclass(cls, SQLModel), f"{cls.__name__} is not a SQLModel"
 
+    def test_cache_tables_are_sqlmodel_tables(self) -> None:
+        """Cache-target classes must have ``__table__`` with a snake_case name.
+
+        Sanity-check the #342 generator pipeline: ``SalesOrder`` and
+        ``SalesOrderRow`` opt into SQLModel table mode via ``table=True``.
+        Without the generator transforms, these would be plain pydantic
+        classes and ``__table__`` wouldn't exist.
+        """
+        from sqlmodel import SQLModel
+
+        from katana_public_api_client.models_pydantic._generated import (
+            SalesOrder,
+            SalesOrderRow,
+        )
+
+        # ``__table__`` is synthesized by SQLModel's metaclass and invisible
+        # to the static type checker. Reach it via ``SQLModel.metadata`` —
+        # same underlying object, with a fully-typed public accessor.
+        so_table = SQLModel.metadata.tables["sales_order"]
+        sor_table = SQLModel.metadata.tables["sales_order_row"]
+        assert so_table.name == "sales_order"
+        assert sor_table.name == "sales_order_row"
+        assert [c.name for c in so_table.primary_key.columns] == ["id"]
+        assert [c.name for c in sor_table.primary_key.columns] == ["id"]
+        # The class-level __table__ must be the same SQLAlchemy table object
+        # — guards against SQLModel's table registration ever skipping a
+        # cache-target class.
+        assert SalesOrder is not None and SalesOrderRow is not None
+
+    def test_cache_table_foreign_keys(self) -> None:
+        """SalesOrderRow must declare a FK back to sales_order.id."""
+        from sqlmodel import SQLModel
+
+        # Import forces table registration; reference keeps the import
+        # meaningful to ruff/F401.
+        from katana_public_api_client.models_pydantic._generated import SalesOrderRow
+
+        assert SalesOrderRow is not None
+        table = SQLModel.metadata.tables["sales_order_row"]
+        fks = {fk.target_fullname for fk in table.foreign_keys}
+        assert "sales_order.id" in fks
+
+    def test_cache_table_relationship_roundtrip(self) -> None:
+        """Full ORM roundtrip on the SQLModel cache tables.
+
+        Catches regressions in the generator's relationship injection step:
+        parent ↔ child back-references must resolve so we can insert, query,
+        and traverse both directions.
+        """
+        from sqlmodel import Session, SQLModel, create_engine, select
+
+        from katana_public_api_client.models_pydantic._generated import (
+            SalesOrder,
+            SalesOrderRow,
+            SalesOrderStatus,
+        )
+
+        engine = create_engine("sqlite://")
+        SQLModel.metadata.create_all(engine)
+
+        with Session(engine) as session:
+            order = SalesOrder(
+                id=1,
+                customer_id=42,
+                location_id=1,
+                order_no="SO-001",
+                status=SalesOrderStatus.not_shipped,
+            )
+            row = SalesOrderRow(id=1, sales_order_id=1, variant_id=100, quantity=5.0)
+            session.add(order)
+            session.add(row)
+            session.commit()
+
+            fetched = session.exec(select(SalesOrder)).one()
+            assert fetched.order_no == "SO-001"
+            assert len(fetched.sales_order_rows) == 1
+            assert fetched.sales_order_rows[0].variant_id == 100
+            # Back-reference must resolve in the other direction too. Narrow
+            # the Optional type before accessing the parent's attributes.
+            parent = fetched.sales_order_rows[0].sales_order
+            assert parent is not None
+            assert parent.order_no == "SO-001"
+
 
 class TestRegistry:
     """Tests for attrs↔pydantic registry."""
