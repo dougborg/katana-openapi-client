@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import asyncio
 import datetime as _datetime
-import json
 from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 
@@ -24,11 +23,14 @@ from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
+    PaginationMeta,
     enum_to_str,
     format_md_table,
     iso_or_none,
     make_tool_result,
     none_coro,
+    parse_iso_datetime,
+    parse_pagination_header,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET, Unset
@@ -470,27 +472,6 @@ class ListSalesOrdersRequest(BaseModel):
     )
 
 
-class PaginationMeta(BaseModel):
-    """Pagination metadata extracted from Katana's `x-pagination` response header.
-
-    Populated on `ListSalesOrdersResponse.pagination` only when the caller requested
-    a specific page (i.e. passed `page=N`). When auto-pagination is used, this field
-    is `None` because there is no single page to describe.
-    """
-
-    total_records: int | None = Field(
-        default=None, description="Total records across all pages"
-    )
-    total_pages: int | None = Field(default=None, description="Total number of pages")
-    page: int | None = Field(default=None, description="Current page number (1-based)")
-    first_page: bool | None = Field(
-        default=None, description="True if this is the first page"
-    )
-    last_page: bool | None = Field(
-        default=None, description="True if this is the last page"
-    )
-
-
 class SalesOrderRowInfo(BaseModel):
     """Summary of a sales order line item."""
 
@@ -534,75 +515,6 @@ class ListSalesOrdersResponse(BaseModel):
     )
 
 
-def _parse_iso_datetime(value: str, field_name: str) -> datetime:
-    """Parse an ISO-8601 datetime string, raising ValueError on malformed input.
-
-    Normalizes trailing ``Z`` / ``z`` (UTC shorthand) to ``+00:00`` before
-    parsing — ``datetime.fromisoformat`` didn't accept ``Z`` before Python
-    3.11. Raises ``ValueError`` with the field name on unparseable input so
-    caller mistakes surface loudly instead of being silently dropped.
-    """
-    normalized = value
-    if normalized.endswith(("Z", "z")):
-        normalized = normalized[:-1] + "+00:00"
-    try:
-        return datetime.fromisoformat(normalized)
-    except ValueError as e:
-        raise ValueError(
-            f"Invalid ISO-8601 datetime for {field_name!r}: {value!r}"
-        ) from e
-
-
-def _parse_pagination_header(raw: str | None) -> PaginationMeta | None:
-    """Parse Katana's `x-pagination` response header into a PaginationMeta.
-
-    Katana returns this as a JSON string with all fields as strings, e.g.:
-    `{"total_records":"2319","total_pages":"2319","offset":"0","page":"1",
-      "first_page":"true","last_page":"false"}`.
-
-    Returns `None` when the header is absent or the top-level JSON is invalid
-    (non-JSON or not a JSON object). When the header is valid JSON but
-    individual fields are missing or malformed, returns a `PaginationMeta`
-    with those specific fields set to `None` rather than discarding the
-    whole header.
-    """
-    if not raw:
-        return None
-    try:
-        data = json.loads(raw)
-    except (ValueError, TypeError):
-        return None
-    if not isinstance(data, dict):
-        return None
-
-    def _as_int(val: Any) -> int | None:
-        if val is None:
-            return None
-        try:
-            return int(val)
-        except (ValueError, TypeError):
-            return None
-
-    def _as_bool(val: Any) -> bool | None:
-        if isinstance(val, bool):
-            return val
-        if isinstance(val, str):
-            lowered = val.strip().lower()
-            if lowered == "true":
-                return True
-            if lowered == "false":
-                return False
-        return None
-
-    return PaginationMeta(
-        total_records=_as_int(data.get("total_records")),
-        total_pages=_as_int(data.get("total_pages")),
-        page=_as_int(data.get("page")),
-        first_page=_as_bool(data.get("first_page")),
-        last_page=_as_bool(data.get("last_page")),
-    )
-
-
 async def _list_sales_orders_impl(
     request: ListSalesOrdersRequest, context: Context
 ) -> ListSalesOrdersResponse:
@@ -642,19 +554,19 @@ async def _list_sales_orders_impl(
 
     # Server-side date filters
     if request.created_after is not None:
-        kwargs["created_at_min"] = _parse_iso_datetime(
+        kwargs["created_at_min"] = parse_iso_datetime(
             request.created_after, "created_after"
         )
     if request.created_before is not None:
-        kwargs["created_at_max"] = _parse_iso_datetime(
+        kwargs["created_at_max"] = parse_iso_datetime(
             request.created_before, "created_before"
         )
     if request.updated_after is not None:
-        kwargs["updated_at_min"] = _parse_iso_datetime(
+        kwargs["updated_at_min"] = parse_iso_datetime(
             request.updated_after, "updated_after"
         )
     if request.updated_before is not None:
-        kwargs["updated_at_max"] = _parse_iso_datetime(
+        kwargs["updated_at_max"] = parse_iso_datetime(
             request.updated_before, "updated_before"
         )
 
@@ -663,11 +575,11 @@ async def _list_sales_orders_impl(
     delivered_after_dt: datetime | None = None
     delivered_before_dt: datetime | None = None
     if request.delivered_after is not None:
-        delivered_after_dt = _parse_iso_datetime(
+        delivered_after_dt = parse_iso_datetime(
             request.delivered_after, "delivered_after"
         )
     if request.delivered_before is not None:
-        delivered_before_dt = _parse_iso_datetime(
+        delivered_before_dt = parse_iso_datetime(
             request.delivered_before, "delivered_before"
         )
     has_client_filter = (
@@ -717,7 +629,7 @@ async def _list_sales_orders_impl(
     if request.page is not None:
         headers = getattr(response, "headers", None)
         if headers is not None:
-            pagination = _parse_pagination_header(headers.get("x-pagination"))
+            pagination = parse_pagination_header(headers.get("x-pagination"))
 
     orders: list[SalesOrderSummary] = []
     for so in attrs_list:

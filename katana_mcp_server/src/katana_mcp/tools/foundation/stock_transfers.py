@@ -16,7 +16,6 @@ These tools provide:
 from __future__ import annotations
 
 import datetime as _datetime
-import json
 from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 
@@ -28,10 +27,13 @@ from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
+    PaginationMeta,
     enum_to_str,
     format_md_table,
     iso_or_none,
     make_simple_result,
+    parse_iso_datetime,
+    parse_pagination_header,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
@@ -62,76 +64,6 @@ def _status_literal_to_enum(status: StatusLiteral) -> StockTransferStatus:
 # ============================================================================
 # Shared response models
 # ============================================================================
-
-
-class PaginationMeta(BaseModel):
-    """Pagination metadata parsed from Katana's x-pagination header."""
-
-    page: int | None = None
-    total_pages: int | None = None
-    total_records: int | None = None
-    first_page: bool | None = None
-    last_page: bool | None = None
-
-
-def _parse_pagination_header(headers: Any) -> PaginationMeta | None:
-    """Parse Katana's x-pagination header into a PaginationMeta instance.
-
-    Returns None if the header is absent, empty, or malformed. Numeric and
-    boolean values arrive as strings; coerce where possible.
-    """
-    if not headers:
-        return None
-    raw = None
-    if hasattr(headers, "get"):
-        raw = headers.get("x-pagination") or headers.get("X-Pagination")
-    if not raw:
-        return None
-    try:
-        parsed = json.loads(raw)
-    except (json.JSONDecodeError, TypeError):
-        return None
-    if not isinstance(parsed, dict):
-        return None
-
-    def _as_int(value: Any) -> int | None:
-        if value is None:
-            return None
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            return None
-
-    def _as_bool(value: Any) -> bool | None:
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, str):
-            lowered = value.strip().lower()
-            if lowered == "true":
-                return True
-            if lowered == "false":
-                return False
-        return None
-
-    meta = PaginationMeta(
-        page=_as_int(parsed.get("page")),
-        total_pages=_as_int(parsed.get("total_pages")),
-        total_records=_as_int(parsed.get("total_records")),
-        first_page=_as_bool(parsed.get("first_page")),
-        last_page=_as_bool(parsed.get("last_page")),
-    )
-    if all(
-        v is None
-        for v in (
-            meta.page,
-            meta.total_pages,
-            meta.total_records,
-            meta.first_page,
-            meta.last_page,
-        )
-    ):
-        return None
-    return meta
 
 
 class StockTransferRowInfo(BaseModel):
@@ -202,22 +134,6 @@ def _build_summary(transfer: Any, *, include_rows: bool) -> StockTransferSummary
         row_count=len(raw_rows),
         rows=row_infos,
     )
-
-
-def _parse_iso_datetime(value: str, field_name: str) -> datetime:
-    """Parse an ISO-8601 datetime string, raising ValueError with a clear message.
-
-    Normalizes trailing ``Z`` (UTC) to ``+00:00`` before parsing — ``datetime.
-    fromisoformat`` only accepts the offset form in Python < 3.11 and still is
-    strict about ``Z`` in older APIs/clients.
-    """
-    normalized = value[:-1] + "+00:00" if value.endswith(("Z", "z")) else value
-    try:
-        return datetime.fromisoformat(normalized)
-    except ValueError as e:
-        raise ValueError(
-            f"Invalid ISO-8601 datetime for {field_name!r}: {value!r}"
-        ) from e
 
 
 # ============================================================================
@@ -559,11 +475,11 @@ async def _list_stock_transfers_impl(
     if request.stock_transfer_number is not None:
         kwargs["stock_transfer_number"] = request.stock_transfer_number
     if request.created_after is not None:
-        kwargs["created_at_min"] = _parse_iso_datetime(
+        kwargs["created_at_min"] = parse_iso_datetime(
             request.created_after, "created_after"
         )
     if request.created_before is not None:
-        kwargs["created_at_max"] = _parse_iso_datetime(
+        kwargs["created_at_max"] = parse_iso_datetime(
             request.created_before, "created_before"
         )
 
@@ -588,7 +504,9 @@ async def _list_stock_transfers_impl(
 
     pagination = None
     if request.page is not None:
-        pagination = _parse_pagination_header(getattr(response, "headers", None))
+        headers = getattr(response, "headers", None)
+        if headers is not None:
+            pagination = parse_pagination_header(headers.get("x-pagination"))
 
     return ListStockTransfersResponse(
         transfers=summaries,
