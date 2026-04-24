@@ -9,7 +9,6 @@ These tools provide:
 from __future__ import annotations
 
 import asyncio
-import datetime as _datetime
 from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 
@@ -30,7 +29,6 @@ from katana_mcp.tools.tool_result_utils import (
     make_tool_result,
     none_coro,
     parse_iso_datetime,
-    parse_pagination_header,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET, Unset
@@ -509,164 +507,212 @@ class ListSalesOrdersResponse(BaseModel):
     pagination: PaginationMeta | None = Field(
         default=None,
         description=(
-            "Pagination cursor populated from the API's `x-pagination` header when "
-            "the caller requested a specific page. `None` when auto-paginating."
+            "Pagination metadata — populated when the caller requests a "
+            "specific `page`. Computed locally from `SELECT COUNT(*)` "
+            "against the typed cache (post-#342); `None` when the caller "
+            "does not drive paging explicitly."
         ),
     )
+
+
+def _naive_utc(dt: datetime | None) -> datetime | None:
+    """Normalize a datetime to naive UTC for comparison against the cache.
+
+    The typed cache stores timestamps as naive UTC (SQLite's default
+    DateTime column doesn't preserve tzinfo). Tz-aware filter datetimes
+    are converted to naive UTC so SQLAlchemy comparisons don't raise
+    "can't compare offset-naive and offset-aware".
+    """
+    if dt is None:
+        return None
+    if dt.tzinfo is not None:
+        return dt.astimezone(UTC).replace(tzinfo=None)
+    return dt
+
+
+def _apply_sales_order_filters(stmt: Any, request: ListSalesOrdersRequest) -> Any:
+    """Translate request filters into WHERE clauses on a ``SalesOrder`` query.
+
+    Shared by both the data SELECT and the COUNT SELECT used for
+    ``PaginationMeta`` — keeps the two queries in sync so pagination
+    totals reflect the same filter set.
+    """
+    from katana_public_api_client.models_pydantic._generated import (
+        SalesOrder as CachedSalesOrder,
+        SalesOrderProductionStatus,
+        SalesOrderStatus,
+    )
+
+    production_status = request.production_status
+    if production_status is None and request.needs_work_orders:
+        production_status = "NONE"
+
+    if request.order_no is not None:
+        stmt = stmt.where(CachedSalesOrder.order_no == request.order_no)
+    if request.ids is not None:
+        stmt = stmt.where(CachedSalesOrder.id.in_(request.ids))
+    if request.customer_id is not None:
+        stmt = stmt.where(CachedSalesOrder.customer_id == request.customer_id)
+    if request.location_id is not None:
+        stmt = stmt.where(CachedSalesOrder.location_id == request.location_id)
+    # Enum-typed filters: validate + coerce to the actual enum members so
+    # invalid input raises loudly instead of returning an empty result set.
+    # Enum-column comparisons in SQLAlchemy are safest when both sides are
+    # the enum member; string equality happens to work for StrEnum today
+    # but the coercion makes the contract explicit.
+    if request.status is not None:
+        try:
+            status_enum = SalesOrderStatus(request.status)
+        except ValueError as e:
+            valid = ", ".join(s.value for s in SalesOrderStatus)
+            msg = f"Invalid status {request.status!r}. Valid: {valid}"
+            raise ValueError(msg) from e
+        stmt = stmt.where(CachedSalesOrder.status == status_enum)
+    if production_status is not None:
+        try:
+            prod_enum = SalesOrderProductionStatus(production_status)
+        except ValueError as e:
+            valid = ", ".join(s.value for s in SalesOrderProductionStatus)
+            msg = f"Invalid production_status {production_status!r}. Valid: {valid}"
+            raise ValueError(msg) from e
+        stmt = stmt.where(CachedSalesOrder.production_status == prod_enum)
+    if request.invoicing_status is not None:
+        stmt = stmt.where(CachedSalesOrder.invoicing_status == request.invoicing_status)
+    if request.currency is not None:
+        stmt = stmt.where(CachedSalesOrder.currency == request.currency)
+    if not request.include_deleted:
+        stmt = stmt.where(CachedSalesOrder.deleted_at.is_(None))
+
+    # Date windows — all indexed SQL range queries. No more split
+    # server-side/client-side distinction; ``delivery_date`` filters
+    # that previously ran post-fetch now run inline.
+    if request.created_after is not None:
+        stmt = stmt.where(
+            CachedSalesOrder.created_at
+            >= _naive_utc(parse_iso_datetime(request.created_after, "created_after"))
+        )
+    if request.created_before is not None:
+        stmt = stmt.where(
+            CachedSalesOrder.created_at
+            <= _naive_utc(parse_iso_datetime(request.created_before, "created_before"))
+        )
+    if request.updated_after is not None:
+        stmt = stmt.where(
+            CachedSalesOrder.updated_at
+            >= _naive_utc(parse_iso_datetime(request.updated_after, "updated_after"))
+        )
+    if request.updated_before is not None:
+        stmt = stmt.where(
+            CachedSalesOrder.updated_at
+            <= _naive_utc(parse_iso_datetime(request.updated_before, "updated_before"))
+        )
+    if request.delivered_after is not None:
+        stmt = stmt.where(
+            CachedSalesOrder.delivery_date
+            >= _naive_utc(
+                parse_iso_datetime(request.delivered_after, "delivered_after")
+            )
+        )
+    if request.delivered_before is not None:
+        stmt = stmt.where(
+            CachedSalesOrder.delivery_date
+            <= _naive_utc(
+                parse_iso_datetime(request.delivered_before, "delivered_before")
+            )
+        )
+
+    return stmt
 
 
 async def _list_sales_orders_impl(
     request: ListSalesOrdersRequest, context: Context
 ) -> ListSalesOrdersResponse:
-    """List sales orders with filters (list-tool pattern v2)."""
-    from katana_public_api_client.api.sales_order import get_all_sales_orders
-    from katana_public_api_client.utils import unwrap_data
+    """List sales orders with filters (list-tool pattern v2, cache-backed).
+
+    Reads from the SQLModel typed cache instead of the live API.
+    ``ensure_sales_orders_synced`` runs an incremental ``updated_at_min``
+    delta on every call (near-zero cost steady-state; cold-start pulls
+    full history once); the query then translates request filters into
+    indexed SQL and returns results directly — no pagination dance, no
+    post-fetch client-side filtering. See ADR-0018 and #342.
+    """
+    from sqlalchemy.orm import selectinload
+    from sqlmodel import func, select
+
+    from katana_mcp.typed_cache import ensure_sales_orders_synced
+    from katana_public_api_client.models_pydantic._generated import (
+        SalesOrder as CachedSalesOrder,
+    )
 
     services = get_services(context)
 
-    # Pass through only the filters the caller actually set. `is not None`
-    # (not truthy) so 0-valued customer_id/location_id still filter.
-    production_status = request.production_status
-    if production_status is None and request.needs_work_orders:
-        production_status = "NONE"
-    kwargs: dict[str, Any] = {
-        "client": services.client,
-        "limit": request.limit,
-    }
-    if request.order_no is not None:
-        kwargs["order_no"] = request.order_no
-    if request.ids is not None:
-        kwargs["ids"] = request.ids
-    if request.customer_id is not None:
-        kwargs["customer_id"] = request.customer_id
-    if request.location_id is not None:
-        kwargs["location_id"] = request.location_id
-    if request.status is not None:
-        kwargs["status"] = request.status
-    if production_status is not None:
-        kwargs["production_status"] = production_status
-    if request.invoicing_status is not None:
-        kwargs["invoicing_status"] = request.invoicing_status
-    if request.currency is not None:
-        kwargs["currency"] = request.currency
-    if request.include_deleted is not None:
-        kwargs["include_deleted"] = request.include_deleted
+    # 1. Refresh the cache (incremental — near-zero cost steady state).
+    await ensure_sales_orders_synced(services.client, services.typed_cache)
 
-    # Server-side date filters
-    if request.created_after is not None:
-        kwargs["created_at_min"] = parse_iso_datetime(
-            request.created_after, "created_after"
-        )
-    if request.created_before is not None:
-        kwargs["created_at_max"] = parse_iso_datetime(
-            request.created_before, "created_before"
-        )
-    if request.updated_after is not None:
-        kwargs["updated_at_min"] = parse_iso_datetime(
-            request.updated_after, "updated_after"
-        )
-    if request.updated_before is not None:
-        kwargs["updated_at_max"] = parse_iso_datetime(
-            request.updated_before, "updated_before"
-        )
-
-    # Client-side date filters — parsed eagerly so bad input fails loudly
-    # before we spend an API call.
-    delivered_after_dt: datetime | None = None
-    delivered_before_dt: datetime | None = None
-    if request.delivered_after is not None:
-        delivered_after_dt = parse_iso_datetime(
-            request.delivered_after, "delivered_after"
-        )
-    if request.delivered_before is not None:
-        delivered_before_dt = parse_iso_datetime(
-            request.delivered_before, "delivered_before"
-        )
-    has_client_filter = (
-        delivered_after_dt is not None or delivered_before_dt is not None
+    # 2. Build the data query with filters + ordering + pagination.
+    # Eager-load rows always so we can report ``row_count`` accurately even
+    # when ``include_rows=False``, and serialize the detail when asked.
+    stmt = select(CachedSalesOrder).options(
+        selectinload(CachedSalesOrder.sales_order_rows)
     )
-
-    # Pagination strategy:
-    # - If `page` is set, the caller is driving pagination manually; forward
-    #   it so PaginationTransport disables auto-pagination and lets callers
-    #   walk beyond the transport's max_pages ceiling.
-    # - Otherwise, when `limit` fits in a single Katana page (<=250, the API's
-    #   max page size) AND no client-side-only filter is active, pass page=1
-    #   to short-circuit auto-pagination. When a client-side filter IS active,
-    #   skip the short-circuit so the transport's auto-pagination can scan
-    #   enough rows to find `limit` matching ones post-filter.
+    stmt = _apply_sales_order_filters(stmt, request)
+    stmt = stmt.order_by(CachedSalesOrder.created_at.desc(), CachedSalesOrder.id.desc())
     if request.page is not None:
-        kwargs["page"] = request.page
-    elif 1 <= request.limit <= 250 and not has_client_filter:
-        kwargs["page"] = 1
+        stmt = stmt.offset((request.page - 1) * request.limit).limit(request.limit)
+    else:
+        stmt = stmt.limit(request.limit)
 
-    response = await get_all_sales_orders.asyncio_detailed(**kwargs)
-    attrs_list = unwrap_data(response, default=[])
+    # 3. Execute data query and (when paginating) a separate COUNT for meta.
+    async with services.typed_cache.session() as session:
+        data_result = await session.exec(stmt)
+        cached_orders = list(data_result.all())
 
-    # Client-side delivery_date filter (Katana has no server-side param).
-    if has_client_filter:
-
-        def _in_delivery_window(so: Any) -> bool:
-            delivery = unwrap_unset(so.delivery_date, None)
-            if not isinstance(delivery, _datetime.datetime):
-                return False
-            if delivered_after_dt is not None and delivery < delivered_after_dt:
-                return False
-            return not (
-                delivered_before_dt is not None and delivery > delivered_before_dt
+        pagination: PaginationMeta | None = None
+        if request.page is not None:
+            count_stmt = _apply_sales_order_filters(
+                select(func.count()).select_from(CachedSalesOrder), request
+            )
+            total_records = (await session.exec(count_stmt)).one()
+            total_pages = (total_records + request.limit - 1) // request.limit
+            pagination = PaginationMeta(
+                total_records=total_records,
+                total_pages=total_pages,
+                page=request.page,
+                first_page=request.page == 1,
+                last_page=request.page >= total_pages,
             )
 
-        attrs_list = [so for so in attrs_list if _in_delivery_window(so)]
-
-    # Safety net: cap to request.limit post-pagination so we never return more
-    # than the caller asked for, regardless of how the transport behaved.
-    attrs_list = attrs_list[: request.limit]
-
-    # Surface pagination metadata from the `x-pagination` response header only
-    # when the caller is driving paging manually. During auto-pagination the
-    # header describes just the final fetched page, which would be misleading.
-    pagination: PaginationMeta | None = None
-    if request.page is not None:
-        headers = getattr(response, "headers", None)
-        if headers is not None:
-            pagination = parse_pagination_header(headers.get("x-pagination"))
-
+    # 4. Materialize summaries. ``sku`` stays None — resolving it would
+    # require a variant lookup per row and defeat the single-query win.
     orders: list[SalesOrderSummary] = []
-    for so in attrs_list:
-        rows = unwrap_unset(so.sales_order_rows, [])
-        # When include_rows is set, expose row-level detail on each summary.
-        # `sku` is left None in list context — resolving it would require a
-        # variant cache lookup per row (up to 250 rows * N variants), which
-        # defeats the "one call for 50 orders" goal. Callers that need SKUs
-        # should use `get_sales_order` on a specific order.
+    for so in cached_orders:
+        rows = so.sales_order_rows
         row_infos: list[SalesOrderRowInfo] | None = None
         if request.include_rows:
             row_infos = [
                 SalesOrderRowInfo(
                     id=r.id,
-                    variant_id=unwrap_unset(r.variant_id, None),
+                    variant_id=r.variant_id,
                     sku=None,
-                    quantity=unwrap_unset(r.quantity, None),
-                    price_per_unit=unwrap_unset(r.price_per_unit, None),
-                    linked_manufacturing_order_id=unwrap_unset(
-                        r.linked_manufacturing_order_id, None
-                    ),
+                    quantity=r.quantity,
+                    price_per_unit=r.price_per_unit,
+                    linked_manufacturing_order_id=r.linked_manufacturing_order_id,
                 )
                 for r in rows
             ]
         orders.append(
             SalesOrderSummary(
                 id=so.id,
-                order_no=unwrap_unset(so.order_no, None),
-                customer_id=unwrap_unset(so.customer_id, None),
-                location_id=unwrap_unset(so.location_id, None),
-                status=enum_to_str(unwrap_unset(so.status, None)),
-                production_status=enum_to_str(unwrap_unset(so.production_status, None)),
-                invoicing_status=enum_to_str(unwrap_unset(so.invoicing_status, None)),
-                created_at=iso_or_none(unwrap_unset(so.created_at, None)),
-                delivery_date=iso_or_none(unwrap_unset(so.delivery_date, None)),
-                total=unwrap_unset(so.total, None),
-                currency=unwrap_unset(so.currency, None),
+                order_no=so.order_no,
+                customer_id=so.customer_id,
+                location_id=so.location_id,
+                status=enum_to_str(so.status),
+                production_status=enum_to_str(so.production_status),
+                invoicing_status=so.invoicing_status,
+                created_at=iso_or_none(so.created_at),
+                delivery_date=iso_or_none(so.delivery_date),
+                total=so.total,
+                currency=so.currency,
                 row_count=len(rows),
                 rows=row_infos,
             )
