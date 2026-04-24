@@ -118,6 +118,46 @@ def mock_context():
     return create_mock_context()
 
 
+@pytest_asyncio.fixture
+async def typed_cache_engine():
+    """Per-test in-memory ``TypedCacheEngine``.
+
+    Uses ``in_memory=True`` — a ``:memory:`` SQLite backed by
+    ``StaticPool`` so concurrent sessions share one DB within the engine.
+    No filesystem I/O per test. Engine and schema are created fresh per
+    test function; if this pattern starts feeling slow as the suite
+    grows, upgrade to a session-scoped engine with per-test SAVEPOINT
+    rollback (SQLAlchemy's "joining an external transaction" recipe).
+    """
+    from katana_mcp.typed_cache import TypedCacheEngine
+
+    engine = TypedCacheEngine(in_memory=True)
+    await engine.open()
+    try:
+        yield engine
+    finally:
+        await engine.close()
+
+
+@pytest_asyncio.fixture
+async def context_with_typed_cache(typed_cache_engine):
+    """Mock context with a real in-memory ``TypedCacheEngine`` attached.
+
+    Cache-backed tools (``list_sales_orders`` post-#342) need a real
+    ``TypedCacheEngine`` on ``services.typed_cache`` — ``MagicMock``
+    isn't usable as an ``async with`` session. Tests that mock
+    ``get_all_sales_orders.asyncio_detailed`` have their attrs return
+    values convert + upsert into the cache via the sync helper before
+    the tool queries it.
+
+    Yields:
+        Tuple of ``(context, lifespan_context, typed_cache_engine)``.
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache = typed_cache_engine
+    yield context, lifespan_ctx, typed_cache_engine
+
+
 @pytest.fixture
 def mock_get_purchase_order():
     """Fixture for mocking get_purchase_order API call."""

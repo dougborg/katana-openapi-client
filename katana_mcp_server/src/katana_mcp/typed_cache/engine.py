@@ -14,6 +14,7 @@ from pathlib import Path
 
 from platformdirs import user_cache_dir
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -41,18 +42,45 @@ class TypedCacheEngine:
     before kicking off a sync so concurrent callers don't fan out.
     """
 
-    def __init__(self, db_path: Path | None = None) -> None:
-        self._db_path = db_path if db_path is not None else _DEFAULT_DB_PATH
+    def __init__(
+        self,
+        db_path: Path | None = None,
+        *,
+        in_memory: bool = False,
+    ) -> None:
+        """Configure the engine but don't open it yet.
+
+        Args:
+            db_path: SQLite file path for file-backed mode. Defaults to the
+                user cache dir when ``None`` and ``in_memory`` is false.
+                Must not be provided when ``in_memory=True``.
+            in_memory: Use a ``:memory:`` SQLite backend instead of a file.
+                Intended for tests — all data lives in process memory and
+                is lost when the engine is closed. A ``StaticPool`` keeps
+                one connection alive across sessions so they share the
+                same in-memory database (the default pool would give each
+                session a fresh, empty DB). Passing ``db_path`` together
+                with ``in_memory=True`` raises ``ValueError``.
+        """
+        if in_memory and db_path is not None:
+            msg = "Pass either `db_path` or `in_memory=True`, not both."
+            raise ValueError(msg)
+        self._in_memory = in_memory
+        self._db_path: Path | None = (
+            None
+            if in_memory
+            else (db_path if db_path is not None else _DEFAULT_DB_PATH)
+        )
         self._engine: AsyncEngine | None = None
         self._locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
     @property
-    def db_path(self) -> Path:
+    def db_path(self) -> Path | None:
+        """The SQLite file path, or ``None`` for in-memory engines."""
         return self._db_path
 
     async def open(self) -> None:
-        """Create the SQLite file (if needed), register cache-target tables,
-        and apply the schema via ``SQLModel.metadata.create_all``.
+        """Create/open the SQLite backend and apply the SQLModel schema.
 
         Safe to call only once per engine instance; subsequent calls raise
         ``RuntimeError``.
@@ -60,10 +88,22 @@ class TypedCacheEngine:
         if self._engine is not None:
             msg = "TypedCacheEngine.open() called on an already-open engine"
             raise RuntimeError(msg)
-        self._db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._engine = create_async_engine(
-            f"sqlite+aiosqlite:///{self._db_path}",
-        )
+        if self._in_memory:
+            # ``StaticPool`` + ``check_same_thread=False`` are the canonical
+            # pairing for async :memory: SQLite: a single shared connection
+            # that all sessions bind to, so seeded data persists across
+            # session boundaries within one engine.
+            self._engine = create_async_engine(
+                "sqlite+aiosqlite:///:memory:",
+                poolclass=StaticPool,
+                connect_args={"check_same_thread": False},
+            )
+        else:
+            assert self._db_path is not None  # guaranteed by __init__
+            self._db_path.parent.mkdir(parents=True, exist_ok=True)
+            self._engine = create_async_engine(
+                f"sqlite+aiosqlite:///{self._db_path}",
+            )
         async with self._engine.begin() as conn:
             await conn.run_sync(SQLModel.metadata.create_all)
 

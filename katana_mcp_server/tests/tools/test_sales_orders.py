@@ -646,358 +646,399 @@ def _make_mock_row(
     return r
 
 
-@pytest.mark.asyncio
-async def test_list_sales_orders_passes_explicit_filters():
-    """All explicit non-None filters end up in the API kwargs."""
-    context, _ = create_mock_context()
-    captured_kwargs: dict = {}
+# ----------------------------------------------------------------------------
+# Cache-seeding helpers (list_sales_orders reads from the SQLModel typed cache
+# after #342). Tests pre-populate the cache with ``CachedSalesOrder`` rows,
+# no-op the API-side sync via the ``no_sync`` fixture, and assert on the query
+# results — mirroring how the live tool behaves in steady state (cache warm,
+# sync returns zero rows).
+# ----------------------------------------------------------------------------
 
-    async def fake_asyncio_detailed(**kwargs):
-        captured_kwargs.update(kwargs)
-        return MagicMock()
 
-    request = ListSalesOrdersRequest(
-        order_no="SO-100",
-        customer_id=42,
-        location_id=7,
-        status="PENDING",
-        limit=25,
+@pytest.fixture
+def no_sync():
+    """Patch ``ensure_sales_orders_synced`` to a no-op for cache-backed tests.
+
+    Tests that seed the cache directly don't want the sync helper to fire
+    API calls; stubbing the sync point isolates the query-side behavior we
+    care about (filters, pagination, row projection).
+    """
+
+    async def _noop(_client, _cache):
+        return None
+
+    # The impl imports ``ensure_sales_orders_synced`` inline (deferred to
+    # keep the typed_cache module out of startup-time import chains), so we
+    # patch at the source module rather than the tool module.
+    with patch(
+        "katana_mcp.typed_cache.ensure_sales_orders_synced",
+        side_effect=_noop,
+    ):
+        yield
+
+
+async def _seed_orders(typed_cache, orders):
+    """Insert pre-built SQLModel SalesOrder rows into the test cache."""
+    async with typed_cache.session() as session:
+        for order in orders:
+            session.add(order)
+        await session.commit()
+
+
+def _make_cache_so(
+    *,
+    id: int = 1,
+    order_no: str = "SO-TEST",
+    customer_id: int = 42,
+    location_id: int = 1,
+    status=None,
+    production_status: str | None = "NONE",
+    invoicing_status: str | None = None,
+    created_at: datetime | None = None,
+    delivery_date: datetime | None = None,
+    updated_at: datetime | None = None,
+    total: float | None = 999.0,
+    currency: str | None = "USD",
+    deleted_at: datetime | None = None,
+    rows=None,
+):
+    """Build a SQLModel ``SalesOrder`` for direct cache insertion.
+
+    Uses naive UTC datetimes (the typed cache stores timestamps without
+    tzinfo — SQLite's default DateTime column doesn't preserve offsets).
+    """
+    from katana_public_api_client.models_pydantic._generated import (
+        SalesOrder as CachedSalesOrder,
+        SalesOrderStatus as CachedSalesOrderStatus,
     )
 
-    with (
-        patch(f"{_SO_GET_ALL}.asyncio_detailed", side_effect=fake_asyncio_detailed),
-        patch(_SO_UNWRAP_DATA, return_value=[]),
-    ):
-        result = await _list_sales_orders_impl(request, context)
-
-    assert captured_kwargs["order_no"] == "SO-100"
-    assert captured_kwargs["customer_id"] == 42
-    assert captured_kwargs["location_id"] == 7
-    assert captured_kwargs["status"] == "PENDING"
-    assert captured_kwargs["limit"] == 25
-    assert "production_status" not in captured_kwargs
-    assert result.total_count == 0
-
-
-@pytest.mark.asyncio
-async def test_list_sales_orders_zero_valued_filters_are_passed_through():
-    """customer_id=0 / location_id=0 must be passed as filters, not dropped."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    request = ListSalesOrdersRequest(customer_id=0, location_id=0)
-
-    with (
-        patch(f"{_SO_GET_ALL}.asyncio_detailed", side_effect=fake),
-        patch(_SO_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_sales_orders_impl(request, context)
-
-    assert captured["customer_id"] == 0
-    assert captured["location_id"] == 0
-
-
-@pytest.mark.asyncio
-async def test_list_sales_orders_needs_work_orders_shortcut():
-    """needs_work_orders=True sets production_status=NONE."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    request = ListSalesOrdersRequest(needs_work_orders=True)
-
-    with (
-        patch(f"{_SO_GET_ALL}.asyncio_detailed", side_effect=fake),
-        patch(_SO_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_sales_orders_impl(request, context)
-
-    assert captured["production_status"] == "NONE"
-
-
-@pytest.mark.asyncio
-async def test_list_sales_orders_explicit_production_status_wins_over_shortcut():
-    """Explicit production_status overrides needs_work_orders=True."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    request = ListSalesOrdersRequest(
-        production_status="IN_PROGRESS",
-        needs_work_orders=True,
+    return CachedSalesOrder(
+        id=id,
+        order_no=order_no,
+        customer_id=customer_id,
+        location_id=location_id,
+        status=status if status is not None else CachedSalesOrderStatus.not_shipped,
+        production_status=production_status,
+        invoicing_status=invoicing_status,
+        created_at=created_at if created_at is not None else datetime(2026, 4, 1),
+        updated_at=updated_at,
+        delivery_date=delivery_date,
+        total=total,
+        currency=currency,
+        deleted_at=deleted_at,
+        sales_order_rows=rows if rows is not None else [],
     )
 
-    with (
-        patch(f"{_SO_GET_ALL}.asyncio_detailed", side_effect=fake),
-        patch(_SO_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_sales_orders_impl(request, context)
 
-    assert captured["production_status"] == "IN_PROGRESS"
+def _make_cache_row(
+    *,
+    id: int,
+    sales_order_id: int,
+    variant_id: int,
+    quantity: float = 1.0,
+    price_per_unit: float | None = None,
+    linked_manufacturing_order_id: int | None = None,
+):
+    """Build a SQLModel ``SalesOrderRow`` for direct cache insertion."""
+    from katana_public_api_client.models_pydantic._generated import (
+        SalesOrderRow as CachedSalesOrderRow,
+    )
+
+    return CachedSalesOrderRow(
+        id=id,
+        sales_order_id=sales_order_id,
+        variant_id=variant_id,
+        quantity=quantity,
+        price_per_unit=price_per_unit,
+        linked_manufacturing_order_id=linked_manufacturing_order_id,
+    )
+
+
+# ============================================================================
+# list_sales_orders — filter predicates (translated from API kwargs to SQL
+# WHERE clauses post-#342)
+# ============================================================================
 
 
 @pytest.mark.asyncio
-async def test_list_sales_orders_caps_results_to_request_limit():
-    """Regression for #329: even if transport returns more rows than asked,
-    the response is sliced to request.limit."""
-    context, _ = create_mock_context()
+async def test_list_sales_orders_passes_explicit_filters(
+    context_with_typed_cache, no_sync
+):
+    """Explicit filters translate to SQL predicates that narrow the result set."""
+    context, _, typed_cache = context_with_typed_cache
+    await _seed_orders(
+        typed_cache,
+        [
+            _make_cache_so(id=1, order_no="SO-100", customer_id=42),
+            _make_cache_so(id=2, order_no="SO-101", customer_id=43),
+            _make_cache_so(id=3, order_no="SO-102", customer_id=44),
+        ],
+    )
 
-    # Simulate transport returning way more rows than requested (this is the
-    # #329 symptom: auto-pagination flooded the response).
-    over_fetched = [_make_mock_so(id=i, order_no=f"SO-{i}") for i in range(200)]
+    result = await _list_sales_orders_impl(
+        ListSalesOrdersRequest(customer_id=42), context
+    )
 
-    with (
-        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_SO_UNWRAP_DATA, return_value=over_fetched),
-    ):
-        request = ListSalesOrdersRequest(limit=50)
-        result = await _list_sales_orders_impl(request, context)
+    assert result.total_count == 1
+    assert result.orders[0].customer_id == 42
+    assert result.orders[0].order_no == "SO-100"
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_zero_valued_filters_are_passed_through(
+    context_with_typed_cache, no_sync
+):
+    """customer_id=0 is a valid predicate — must not be dropped as falsy."""
+    context, _, typed_cache = context_with_typed_cache
+    await _seed_orders(
+        typed_cache,
+        [
+            _make_cache_so(id=1, customer_id=0),
+            _make_cache_so(id=2, customer_id=1),
+        ],
+    )
+
+    result = await _list_sales_orders_impl(
+        ListSalesOrdersRequest(customer_id=0), context
+    )
+
+    assert result.total_count == 1
+    assert result.orders[0].id == 1
+    assert result.orders[0].customer_id == 0
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_needs_work_orders_shortcut(
+    context_with_typed_cache, no_sync
+):
+    """needs_work_orders=True maps to production_status=NONE."""
+    context, _, typed_cache = context_with_typed_cache
+    await _seed_orders(
+        typed_cache,
+        [
+            _make_cache_so(id=1, production_status="NONE"),
+            _make_cache_so(id=2, production_status="IN_PROGRESS"),
+        ],
+    )
+
+    result = await _list_sales_orders_impl(
+        ListSalesOrdersRequest(needs_work_orders=True), context
+    )
+
+    assert result.total_count == 1
+    assert result.orders[0].id == 1
+    assert result.orders[0].production_status == "NONE"
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_explicit_production_status_wins_over_shortcut(
+    context_with_typed_cache, no_sync
+):
+    """Explicit production_status overrides the needs_work_orders shortcut."""
+    context, _, typed_cache = context_with_typed_cache
+    await _seed_orders(
+        typed_cache,
+        [
+            _make_cache_so(id=1, production_status="NONE"),
+            _make_cache_so(id=2, production_status="IN_PROGRESS"),
+        ],
+    )
+
+    result = await _list_sales_orders_impl(
+        ListSalesOrdersRequest(production_status="IN_PROGRESS", needs_work_orders=True),
+        context,
+    )
+
+    assert result.total_count == 1
+    assert result.orders[0].id == 2
+    assert result.orders[0].production_status == "IN_PROGRESS"
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_server_side_date_filters_passed_through(
+    context_with_typed_cache, no_sync
+):
+    """created_after / created_before bound the ``created_at`` range inclusively."""
+    context, _, typed_cache = context_with_typed_cache
+    await _seed_orders(
+        typed_cache,
+        [
+            _make_cache_so(id=1, created_at=datetime(2025, 12, 15)),  # before window
+            _make_cache_so(id=2, created_at=datetime(2026, 2, 15)),  # inside
+            _make_cache_so(id=3, created_at=datetime(2026, 5, 1)),  # after window
+        ],
+    )
+
+    result = await _list_sales_orders_impl(
+        ListSalesOrdersRequest(
+            created_after="2026-01-01T00:00:00+00:00",
+            created_before="2026-04-01T00:00:00Z",
+        ),
+        context,
+    )
+
+    assert result.total_count == 1
+    assert result.orders[0].id == 2
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_ids_include_deleted_pass_through(
+    context_with_typed_cache, no_sync
+):
+    """``include_deleted=True`` surfaces soft-deleted rows; default hides them."""
+    context, _, typed_cache = context_with_typed_cache
+    await _seed_orders(
+        typed_cache,
+        [
+            _make_cache_so(id=1, deleted_at=None),
+            _make_cache_so(id=2, deleted_at=datetime(2026, 3, 15)),
+        ],
+    )
+
+    # Default hides soft-deleted rows.
+    default_result = await _list_sales_orders_impl(ListSalesOrdersRequest(), context)
+    assert default_result.total_count == 1
+    assert default_result.orders[0].id == 1
+
+    # include_deleted=True surfaces them.
+    with_deleted = await _list_sales_orders_impl(
+        ListSalesOrdersRequest(include_deleted=True), context
+    )
+    assert with_deleted.total_count == 2
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_delivered_filter_applied_server_side(
+    context_with_typed_cache, no_sync
+):
+    """delivery_date range is now an indexed SQL predicate (post-#342).
+
+    Renamed from ``..._client_side``: the pre-cache impl filtered these
+    post-fetch; with the typed cache they're plain SQL WHERE clauses.
+    """
+    context, _, typed_cache = context_with_typed_cache
+    await _seed_orders(
+        typed_cache,
+        [
+            _make_cache_so(id=1, delivery_date=datetime(2026, 4, 20)),  # in window
+            _make_cache_so(id=2, delivery_date=datetime(2027, 1, 1)),  # outside
+        ],
+    )
+
+    result = await _list_sales_orders_impl(
+        ListSalesOrdersRequest(
+            delivered_after="2026-04-01T00:00:00Z",
+            delivered_before="2026-04-30T00:00:00Z",
+        ),
+        context,
+    )
+
+    assert result.total_count == 1
+    assert result.orders[0].id == 1
+
+
+# ============================================================================
+# list_sales_orders — pagination + result shaping
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_caps_results_to_request_limit(
+    context_with_typed_cache, no_sync
+):
+    """``limit`` caps the result set at the SQL level (no over-fetch)."""
+    context, _, typed_cache = context_with_typed_cache
+    await _seed_orders(
+        typed_cache,
+        [_make_cache_so(id=i, order_no=f"SO-{i}") for i in range(1, 201)],
+    )
+
+    result = await _list_sales_orders_impl(ListSalesOrdersRequest(limit=50), context)
 
     assert len(result.orders) == 50
     assert result.total_count == 50
 
 
 @pytest.mark.asyncio
-async def test_list_sales_orders_passes_page_1_when_limit_fits_single_page():
-    """Regression for #329: when limit <= 250 (Katana page max), pass page=1
-    so PaginationTransport skips auto-pagination."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    request = ListSalesOrdersRequest(limit=10)
-
-    with (
-        patch(f"{_SO_GET_ALL}.asyncio_detailed", side_effect=fake),
-        patch(_SO_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_sales_orders_impl(request, context)
-
-    assert captured["page"] == 1
-    assert captured["limit"] == 10
-
-
-@pytest.mark.asyncio
-async def test_list_sales_orders_returns_summary_rows():
-    """Response rows carry order_no, totals, and row_count."""
-    context, _ = create_mock_context()
-    mock_so = _make_mock_so(
-        id=42,
-        order_no="SO-42",
-        total=1234.56,
-        rows=[
-            _make_mock_row(id=1, variant_id=100, quantity=2, price_per_unit=500.0),
-            _make_mock_row(id=2, variant_id=101, quantity=1, price_per_unit=234.56),
-        ],
+async def test_list_sales_orders_returns_summary_rows(
+    context_with_typed_cache, no_sync
+):
+    """Summaries carry id, order_no, total, and row_count from the cache."""
+    context, _, typed_cache = context_with_typed_cache
+    rows = [
+        _make_cache_row(id=1, sales_order_id=42, variant_id=100, quantity=2),
+        _make_cache_row(id=2, sales_order_id=42, variant_id=101, quantity=1),
+    ]
+    await _seed_orders(
+        typed_cache,
+        [_make_cache_so(id=42, order_no="SO-42", total=1234.56, rows=rows)],
     )
 
-    with (
-        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_SO_UNWRAP_DATA, return_value=[mock_so]),
-    ):
-        result = await _list_sales_orders_impl(ListSalesOrdersRequest(), context)
+    result = await _list_sales_orders_impl(ListSalesOrdersRequest(), context)
 
     assert result.total_count == 1
-    assert result.orders[0].id == 42
-    assert result.orders[0].order_no == "SO-42"
-    assert result.orders[0].total == 1234.56
-    assert result.orders[0].row_count == 2
+    summary = result.orders[0]
+    assert summary.id == 42
+    assert summary.order_no == "SO-42"
+    assert summary.total == 1234.56
+    assert summary.row_count == 2
 
 
 @pytest.mark.asyncio
-async def test_list_sales_orders_page_forwards_and_parses_header():
-    """Explicit page forwards to API and x-pagination header populates PaginationMeta."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    # Build a response that carries the Katana `x-pagination` header format.
-    mock_response = MagicMock()
-    mock_response.headers = {
-        "x-pagination": (
-            '{"total_records":"100","total_pages":"2","offset":"0","page":"1",'
-            '"first_page":"true","last_page":"false"}'
-        )
-    }
-
-    async def fake_asyncio_detailed(**kwargs):
-        captured.update(kwargs)
-        return mock_response
-
-    request = ListSalesOrdersRequest(page=1, limit=50)
-
-    with (
-        patch(f"{_SO_GET_ALL}.asyncio_detailed", side_effect=fake_asyncio_detailed),
-        patch(_SO_UNWRAP_DATA, return_value=[]),
-    ):
-        result = await _list_sales_orders_impl(request, context)
-
-    # Explicit page was forwarded to the API (which disables auto-pagination).
-    assert captured["page"] == 1
-    assert captured["limit"] == 50
-
-    assert result.pagination is not None
-    assert result.pagination.total_records == 100
-    assert result.pagination.total_pages == 2
-    assert result.pagination.page == 1
-    assert result.pagination.first_page is True
-    assert result.pagination.last_page is False
-
-
-@pytest.mark.asyncio
-async def test_list_sales_orders_no_page_leaves_pagination_none():
-    """When caller did not pass `page`, response.pagination stays None even
-    if the underlying request short-circuited with page=1 and the transport
-    passed through an `x-pagination` header — that header describes a single
-    internal page and would be misleading to surface to the caller."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    mock_response = MagicMock()
-    mock_response.headers = {
-        "x-pagination": (
-            '{"total_records":"100","total_pages":"2","offset":"0","page":"1",'
-            '"first_page":"true","last_page":"false"}'
-        )
-    }
-
-    async def fake_asyncio_detailed(**kwargs):
-        captured.update(kwargs)
-        return mock_response
-
-    # limit=50 <= 250 triggers the short-circuit that forwards page=1
-    # internally (see #329). We still must not surface pagination metadata
-    # because the *caller* did not request a specific page.
-    request = ListSalesOrdersRequest(limit=50)
-
-    with (
-        patch(f"{_SO_GET_ALL}.asyncio_detailed", side_effect=fake_asyncio_detailed),
-        patch(_SO_UNWRAP_DATA, return_value=[]),
-    ):
-        result = await _list_sales_orders_impl(request, context)
-
-    # Short-circuit forwards page=1 internally, but pagination metadata is
-    # gated on the *request's* page field, not what we sent to the API.
-    assert captured["page"] == 1
-    assert result.pagination is None
-
-
-# ============================================================================
-# list_sales_orders — date filters + pattern v2 refinements
-# ============================================================================
-
-
-@pytest.mark.asyncio
-async def test_list_sales_orders_server_side_date_filters_passed_through():
-    """created_after/before + updated_after/before forward as datetime kwargs."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    request = ListSalesOrdersRequest(
-        created_after="2026-01-01T00:00:00+00:00",
-        created_before="2026-04-01T00:00:00Z",
-        updated_after="2026-02-01T00:00:00z",
-        updated_before="2026-03-31T23:59:59+00:00",
+async def test_list_sales_orders_page_populates_pagination_meta(
+    context_with_typed_cache, no_sync
+):
+    """Explicit ``page`` populates PaginationMeta from a SQL COUNT(*)."""
+    context, _, typed_cache = context_with_typed_cache
+    await _seed_orders(
+        typed_cache,
+        [_make_cache_so(id=i, order_no=f"SO-{i}") for i in range(1, 31)],
     )
 
-    with (
-        patch(f"{_SO_GET_ALL}.asyncio_detailed", side_effect=fake),
-        patch(_SO_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_sales_orders_impl(request, context)
+    result = await _list_sales_orders_impl(
+        ListSalesOrdersRequest(page=2, limit=10), context
+    )
 
-    assert isinstance(captured["created_at_min"], datetime)
-    assert isinstance(captured["created_at_max"], datetime)
-    assert isinstance(captured["updated_at_min"], datetime)
-    assert isinstance(captured["updated_at_max"], datetime)
-    # Z / z normalized to +00:00
-    assert captured["created_at_max"].tzinfo is not None
-    assert captured["updated_at_min"].tzinfo is not None
+    assert result.pagination is not None
+    assert result.pagination.total_records == 30
+    assert result.pagination.total_pages == 3
+    assert result.pagination.page == 2
+    assert result.pagination.first_page is False
+    assert result.pagination.last_page is False
+    assert len(result.orders) == 10
 
 
 @pytest.mark.asyncio
-async def test_list_sales_orders_invalid_server_date_raises():
-    """Malformed ISO-8601 for a server-side date surfaces as ValueError."""
-    context, _ = create_mock_context()
+async def test_list_sales_orders_no_page_leaves_pagination_none(
+    context_with_typed_cache, no_sync
+):
+    """Without explicit ``page``, ``pagination`` stays None — the cache has
+    no equivalent of a server-side ``x-pagination`` header to leak through."""
+    context, _, typed_cache = context_with_typed_cache
+    await _seed_orders(typed_cache, [_make_cache_so(id=i) for i in range(1, 6)])
 
-    with (
-        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_SO_UNWRAP_DATA, return_value=[]),
-        pytest.raises(ValueError, match=r"Invalid ISO-8601.*created_after"),
-    ):
+    result = await _list_sales_orders_impl(ListSalesOrdersRequest(), context)
+
+    assert result.pagination is None
+    assert result.total_count == 5
+
+
+# ============================================================================
+# list_sales_orders — validation
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_invalid_server_date_raises(
+    context_with_typed_cache, no_sync
+):
+    """Malformed ISO-8601 in a date filter surfaces as ValueError."""
+    context, _, _ = context_with_typed_cache
+
+    with pytest.raises(ValueError, match=r"Invalid ISO-8601.*created_after"):
         await _list_sales_orders_impl(
             ListSalesOrdersRequest(created_after="not-a-date"), context
         )
-
-
-@pytest.mark.asyncio
-async def test_list_sales_orders_delivered_filter_applied_client_side():
-    """delivered_after/before filter post-fetch (Katana has no server param)."""
-    context, _ = create_mock_context()
-
-    sos = [
-        _make_mock_so(id=1, order_no="SO-1"),
-        _make_mock_so(id=2, order_no="SO-2"),
-    ]
-    # SO-1 has delivery_date=2026-04-20 (from _make_mock_so default).
-    # Push SO-2 to 2027-01-01 — outside the filter window.
-    sos[1].delivery_date = datetime(2027, 1, 1, tzinfo=UTC)
-
-    with (
-        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_SO_UNWRAP_DATA, return_value=sos),
-    ):
-        result = await _list_sales_orders_impl(
-            ListSalesOrdersRequest(
-                delivered_after="2026-04-01T00:00:00Z",
-                delivered_before="2026-04-30T00:00:00Z",
-            ),
-            context,
-        )
-
-    assert result.total_count == 1
-    assert result.orders[0].id == 1
-
-
-@pytest.mark.asyncio
-async def test_list_sales_orders_skips_page1_short_circuit_when_delivered_filter_set():
-    """When a client-side delivered filter is active, don't short-circuit page=1
-    so auto-pagination can scan enough rows post-filter."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    request = ListSalesOrdersRequest(limit=10, delivered_after="2026-04-01T00:00:00Z")
-
-    with (
-        patch(f"{_SO_GET_ALL}.asyncio_detailed", side_effect=fake),
-        patch(_SO_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_sales_orders_impl(request, context)
-
-    # page must NOT be set because we need auto-pagination to scan enough
-    # rows to post-filter down to `limit`.
-    assert "page" not in captured
-    assert captured["limit"] == 10
 
 
 @pytest.mark.asyncio
@@ -1018,51 +1059,24 @@ async def test_list_sales_orders_page_ge_1_validation():
         ListSalesOrdersRequest(page=0)
 
 
-@pytest.mark.asyncio
-async def test_list_sales_orders_ids_include_deleted_pass_through():
-    """ids and include_deleted forward to API kwargs when set."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    request = ListSalesOrdersRequest(ids=[1, 2, 3], include_deleted=True)
-
-    with (
-        patch(f"{_SO_GET_ALL}.asyncio_detailed", side_effect=fake),
-        patch(_SO_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_sales_orders_impl(request, context)
-
-    assert captured["ids"] == [1, 2, 3]
-    assert captured["include_deleted"] is True
-
-
 # ============================================================================
 # list_sales_orders — include_rows (#332)
 # ============================================================================
 
 
 @pytest.mark.asyncio
-async def test_list_sales_orders_include_rows_default_false_leaves_rows_none():
+async def test_list_sales_orders_include_rows_default_false_leaves_rows_none(
+    context_with_typed_cache, no_sync
+):
     """By default summaries carry rows=None (only row_count is populated)."""
-    context, _ = create_mock_context()
-    mock_so = _make_mock_so(
-        id=1,
-        order_no="SO-1",
-        rows=[
-            _make_mock_row(id=10, variant_id=100, quantity=2, price_per_unit=50.0),
-            _make_mock_row(id=11, variant_id=101, quantity=1, price_per_unit=75.0),
-        ],
-    )
+    context, _, typed_cache = context_with_typed_cache
+    rows = [
+        _make_cache_row(id=10, sales_order_id=1, variant_id=100, quantity=2),
+        _make_cache_row(id=11, sales_order_id=1, variant_id=101, quantity=1),
+    ]
+    await _seed_orders(typed_cache, [_make_cache_so(id=1, order_no="SO-1", rows=rows)])
 
-    with (
-        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_SO_UNWRAP_DATA, return_value=[mock_so]),
-    ):
-        result = await _list_sales_orders_impl(ListSalesOrdersRequest(), context)
+    result = await _list_sales_orders_impl(ListSalesOrdersRequest(), context)
 
     assert result.total_count == 1
     assert result.orders[0].row_count == 2
@@ -1070,80 +1084,78 @@ async def test_list_sales_orders_include_rows_default_false_leaves_rows_none():
 
 
 @pytest.mark.asyncio
-async def test_list_sales_orders_include_rows_true_populates_rows():
+async def test_list_sales_orders_include_rows_true_populates_rows(
+    context_with_typed_cache, no_sync
+):
     """include_rows=True surfaces per-row detail from sales_order_rows."""
-    context, _ = create_mock_context()
-    mock_so = _make_mock_so(
-        id=42,
-        order_no="SO-42",
-        rows=[
-            _make_mock_row(
-                id=10,
-                variant_id=100,
-                quantity=2,
-                price_per_unit=50.0,
-                linked_mo_id=555,
-            ),
-            _make_mock_row(id=11, variant_id=101, quantity=1, price_per_unit=75.0),
-        ],
+    context, _, typed_cache = context_with_typed_cache
+    rows = [
+        _make_cache_row(
+            id=10,
+            sales_order_id=42,
+            variant_id=100,
+            quantity=2,
+            price_per_unit=50.0,
+            linked_manufacturing_order_id=555,
+        ),
+        _make_cache_row(
+            id=11,
+            sales_order_id=42,
+            variant_id=101,
+            quantity=1,
+            price_per_unit=75.0,
+        ),
+    ]
+    await _seed_orders(
+        typed_cache, [_make_cache_so(id=42, order_no="SO-42", rows=rows)]
     )
 
-    with (
-        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_SO_UNWRAP_DATA, return_value=[mock_so]),
-    ):
-        result = await _list_sales_orders_impl(
-            ListSalesOrdersRequest(include_rows=True), context
-        )
+    result = await _list_sales_orders_impl(
+        ListSalesOrdersRequest(include_rows=True), context
+    )
 
-    assert result.total_count == 1
     summary = result.orders[0]
-    assert summary.row_count == 2
     assert summary.rows is not None
     assert len(summary.rows) == 2
 
-    first, second = summary.rows
-    assert first.id == 10
-    assert first.variant_id == 100
-    assert first.quantity == 2
-    assert first.price_per_unit == 50.0
-    assert first.linked_manufacturing_order_id == 555
+    by_id = {r.id: r for r in summary.rows}
+    assert by_id[10].variant_id == 100
+    assert by_id[10].quantity == 2
+    assert by_id[10].price_per_unit == 50.0
+    assert by_id[10].linked_manufacturing_order_id == 555
     # sku is intentionally None in list context (get_sales_order enriches).
-    assert first.sku is None
+    assert by_id[10].sku is None
 
-    assert second.id == 11
-    assert second.variant_id == 101
-    assert second.linked_manufacturing_order_id is None
+    assert by_id[11].variant_id == 101
+    assert by_id[11].linked_manufacturing_order_id is None
 
 
 @pytest.mark.asyncio
-async def test_list_sales_orders_include_rows_handles_unset_fields():
-    """A row with UNSET optional fields surfaces as None instead of raising."""
-    context, _ = create_mock_context()
+async def test_list_sales_orders_include_rows_handles_unset_fields(
+    context_with_typed_cache, no_sync
+):
+    """Rows with None-valued optional fields serialize without crashing."""
+    context, _, typed_cache = context_with_typed_cache
+    sparse_row = _make_cache_row(
+        id=99,
+        sales_order_id=1,
+        variant_id=500,
+        quantity=1.0,
+        price_per_unit=None,
+        linked_manufacturing_order_id=None,
+    )
+    await _seed_orders(
+        typed_cache, [_make_cache_so(id=1, order_no="SO-1", rows=[sparse_row])]
+    )
 
-    # Row with UNSET price_per_unit and UNSET quantity — should map to None.
-    sparse_row = MagicMock()
-    sparse_row.id = 99
-    sparse_row.variant_id = UNSET
-    sparse_row.quantity = UNSET
-    sparse_row.price_per_unit = UNSET
-    sparse_row.linked_manufacturing_order_id = UNSET
-
-    mock_so = _make_mock_so(id=1, order_no="SO-1", rows=[sparse_row])
-
-    with (
-        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_SO_UNWRAP_DATA, return_value=[mock_so]),
-    ):
-        result = await _list_sales_orders_impl(
-            ListSalesOrdersRequest(include_rows=True), context
-        )
+    result = await _list_sales_orders_impl(
+        ListSalesOrdersRequest(include_rows=True), context
+    )
 
     assert result.orders[0].rows is not None
     row = result.orders[0].rows[0]
     assert row.id == 99
-    assert row.variant_id is None
-    assert row.quantity is None
+    assert row.variant_id == 500
     assert row.price_per_unit is None
     assert row.linked_manufacturing_order_id is None
     assert row.sku is None
@@ -1550,16 +1562,14 @@ def _content_text(result) -> str:
 
 
 @pytest.mark.asyncio
-async def test_list_sales_orders_format_json_returns_json():
+async def test_list_sales_orders_format_json_returns_json(
+    context_with_typed_cache, no_sync
+):
     """format='json' returns JSON-parseable content."""
-    context, _ = create_mock_context()
-    mock_so = _make_mock_so(id=1, order_no="SO-1")
+    context, _, typed_cache = context_with_typed_cache
+    await _seed_orders(typed_cache, [_make_cache_so(id=1, order_no="SO-1")])
 
-    with (
-        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_SO_UNWRAP_DATA, return_value=[mock_so]),
-    ):
-        result = await list_sales_orders(format="json", context=context)
+    result = await list_sales_orders(format="json", context=context)
 
     data = json.loads(_content_text(result))
     assert data["total_count"] == 1
@@ -1567,16 +1577,14 @@ async def test_list_sales_orders_format_json_returns_json():
 
 
 @pytest.mark.asyncio
-async def test_list_sales_orders_format_markdown_default():
+async def test_list_sales_orders_format_markdown_default(
+    context_with_typed_cache, no_sync
+):
     """Default markdown format produces a table."""
-    context, _ = create_mock_context()
-    mock_so = _make_mock_so(id=1, order_no="SO-1")
+    context, _, typed_cache = context_with_typed_cache
+    await _seed_orders(typed_cache, [_make_cache_so(id=1, order_no="SO-1")])
 
-    with (
-        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_SO_UNWRAP_DATA, return_value=[mock_so]),
-    ):
-        result = await list_sales_orders(context=context)
+    result = await list_sales_orders(context=context)
 
     text = _content_text(result)
     assert "|" in text  # markdown table
