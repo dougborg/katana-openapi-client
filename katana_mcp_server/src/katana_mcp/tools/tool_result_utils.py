@@ -13,7 +13,8 @@ renders the Prefab UI; other clients fall back to markdown content.
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from collections.abc import Iterable
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from fastmcp.tools import ToolResult
@@ -72,6 +73,43 @@ def parse_iso_datetime(value: str, field_name: str) -> datetime:
     except ValueError as e:
         msg = f"Invalid ISO-8601 datetime for {field_name!r}: {value!r}"
         raise ValueError(msg) from e
+
+
+def naive_utc(dt: datetime | None) -> datetime | None:
+    """Normalize a datetime to naive UTC for comparison against the typed cache.
+
+    Cache-backed list tools compare filter datetimes against SQLModel
+    ``DateTime`` columns — SQLite's default ``DateTime`` doesn't preserve
+    tzinfo, so stored values are naive UTC. Tz-aware inputs are converted to
+    UTC and the tzinfo is stripped so SQLAlchemy comparisons don't raise
+    ``TypeError: can't compare offset-naive and offset-aware datetimes``.
+    Naive inputs are passed through unchanged (assumed UTC already).
+    """
+    if dt is None:
+        return None
+    if dt.tzinfo is not None:
+        return dt.astimezone(UTC).replace(tzinfo=None)
+    return dt
+
+
+def parse_request_dates(
+    request: BaseModel,
+    field_names: Iterable[str],
+) -> dict[str, datetime | None]:
+    """Parse ISO-8601 date filter fields from a request into naive UTC.
+
+    Cache-backed list tools call their ``_apply_<entity>_filters`` helper
+    twice on the paginated path (once for the data SELECT, once for the
+    COUNT SELECT); parsing the filter strings once up front avoids doing
+    the work twice. Unset fields map to ``None`` in the result.
+    """
+    result: dict[str, datetime | None] = {}
+    for name in field_names:
+        raw = getattr(request, name, None)
+        result[name] = (
+            naive_utc(parse_iso_datetime(raw, name)) if raw is not None else None
+        )
+    return result
 
 
 class PaginationMeta(BaseModel):

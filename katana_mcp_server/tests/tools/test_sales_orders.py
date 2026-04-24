@@ -24,7 +24,8 @@ from katana_public_api_client.models import (
     SalesOrderStatus,
 )
 from katana_public_api_client.utils import APIError
-from tests.conftest import create_mock_context
+from tests.conftest import create_mock_context, patch_typed_cache_sync
+from tests.factories import make_sales_order, make_sales_order_row, seed_cache
 
 # ============================================================================
 # Unit Tests (with mocks)
@@ -659,99 +660,11 @@ def _make_mock_row(
 def no_sync():
     """Patch ``ensure_sales_orders_synced`` to a no-op for cache-backed tests.
 
-    Tests that seed the cache directly don't want the sync helper to fire
-    API calls; stubbing the sync point isolates the query-side behavior we
-    care about (filters, pagination, row projection).
+    Uses the shared ``patch_typed_cache_sync`` helper from conftest so the
+    same pattern applies to every entity's cache-backed tool tests.
     """
-
-    async def _noop(_client, _cache):
-        return None
-
-    # The impl imports ``ensure_sales_orders_synced`` inline (deferred to
-    # keep the typed_cache module out of startup-time import chains), so we
-    # patch at the source module rather than the tool module.
-    with patch(
-        "katana_mcp.typed_cache.ensure_sales_orders_synced",
-        side_effect=_noop,
-    ):
+    with patch_typed_cache_sync("sales_orders"):
         yield
-
-
-async def _seed_orders(typed_cache, orders):
-    """Insert pre-built SQLModel SalesOrder rows into the test cache."""
-    async with typed_cache.session() as session:
-        for order in orders:
-            session.add(order)
-        await session.commit()
-
-
-def _make_cache_so(
-    *,
-    id: int = 1,
-    order_no: str = "SO-TEST",
-    customer_id: int = 42,
-    location_id: int = 1,
-    status=None,
-    production_status: str | None = "NONE",
-    invoicing_status: str | None = None,
-    created_at: datetime | None = None,
-    delivery_date: datetime | None = None,
-    updated_at: datetime | None = None,
-    total: float | None = 999.0,
-    currency: str | None = "USD",
-    deleted_at: datetime | None = None,
-    rows=None,
-):
-    """Build a SQLModel ``SalesOrder`` for direct cache insertion.
-
-    Uses naive UTC datetimes (the typed cache stores timestamps without
-    tzinfo — SQLite's default DateTime column doesn't preserve offsets).
-    """
-    from katana_public_api_client.models_pydantic._generated import (
-        SalesOrder as CachedSalesOrder,
-        SalesOrderStatus as CachedSalesOrderStatus,
-    )
-
-    return CachedSalesOrder(
-        id=id,
-        order_no=order_no,
-        customer_id=customer_id,
-        location_id=location_id,
-        status=status if status is not None else CachedSalesOrderStatus.not_shipped,
-        production_status=production_status,
-        invoicing_status=invoicing_status,
-        created_at=created_at if created_at is not None else datetime(2026, 4, 1),
-        updated_at=updated_at,
-        delivery_date=delivery_date,
-        total=total,
-        currency=currency,
-        deleted_at=deleted_at,
-        sales_order_rows=rows if rows is not None else [],
-    )
-
-
-def _make_cache_row(
-    *,
-    id: int,
-    sales_order_id: int,
-    variant_id: int,
-    quantity: float = 1.0,
-    price_per_unit: float | None = None,
-    linked_manufacturing_order_id: int | None = None,
-):
-    """Build a SQLModel ``SalesOrderRow`` for direct cache insertion."""
-    from katana_public_api_client.models_pydantic._generated import (
-        SalesOrderRow as CachedSalesOrderRow,
-    )
-
-    return CachedSalesOrderRow(
-        id=id,
-        sales_order_id=sales_order_id,
-        variant_id=variant_id,
-        quantity=quantity,
-        price_per_unit=price_per_unit,
-        linked_manufacturing_order_id=linked_manufacturing_order_id,
-    )
 
 
 # ============================================================================
@@ -766,12 +679,12 @@ async def test_list_sales_orders_passes_explicit_filters(
 ):
     """Explicit filters translate to SQL predicates that narrow the result set."""
     context, _, typed_cache = context_with_typed_cache
-    await _seed_orders(
+    await seed_cache(
         typed_cache,
         [
-            _make_cache_so(id=1, order_no="SO-100", customer_id=42),
-            _make_cache_so(id=2, order_no="SO-101", customer_id=43),
-            _make_cache_so(id=3, order_no="SO-102", customer_id=44),
+            make_sales_order(id=1, order_no="SO-100", customer_id=42),
+            make_sales_order(id=2, order_no="SO-101", customer_id=43),
+            make_sales_order(id=3, order_no="SO-102", customer_id=44),
         ],
     )
 
@@ -790,11 +703,11 @@ async def test_list_sales_orders_zero_valued_filters_are_passed_through(
 ):
     """customer_id=0 is a valid predicate — must not be dropped as falsy."""
     context, _, typed_cache = context_with_typed_cache
-    await _seed_orders(
+    await seed_cache(
         typed_cache,
         [
-            _make_cache_so(id=1, customer_id=0),
-            _make_cache_so(id=2, customer_id=1),
+            make_sales_order(id=1, customer_id=0),
+            make_sales_order(id=2, customer_id=1),
         ],
     )
 
@@ -813,11 +726,11 @@ async def test_list_sales_orders_needs_work_orders_shortcut(
 ):
     """needs_work_orders=True maps to production_status=NONE."""
     context, _, typed_cache = context_with_typed_cache
-    await _seed_orders(
+    await seed_cache(
         typed_cache,
         [
-            _make_cache_so(id=1, production_status="NONE"),
-            _make_cache_so(id=2, production_status="IN_PROGRESS"),
+            make_sales_order(id=1, production_status="NONE"),
+            make_sales_order(id=2, production_status="IN_PROGRESS"),
         ],
     )
 
@@ -836,11 +749,11 @@ async def test_list_sales_orders_explicit_production_status_wins_over_shortcut(
 ):
     """Explicit production_status overrides the needs_work_orders shortcut."""
     context, _, typed_cache = context_with_typed_cache
-    await _seed_orders(
+    await seed_cache(
         typed_cache,
         [
-            _make_cache_so(id=1, production_status="NONE"),
-            _make_cache_so(id=2, production_status="IN_PROGRESS"),
+            make_sales_order(id=1, production_status="NONE"),
+            make_sales_order(id=2, production_status="IN_PROGRESS"),
         ],
     )
 
@@ -860,12 +773,12 @@ async def test_list_sales_orders_server_side_date_filters_passed_through(
 ):
     """created_after / created_before bound the ``created_at`` range inclusively."""
     context, _, typed_cache = context_with_typed_cache
-    await _seed_orders(
+    await seed_cache(
         typed_cache,
         [
-            _make_cache_so(id=1, created_at=datetime(2025, 12, 15)),  # before window
-            _make_cache_so(id=2, created_at=datetime(2026, 2, 15)),  # inside
-            _make_cache_so(id=3, created_at=datetime(2026, 5, 1)),  # after window
+            make_sales_order(id=1, created_at=datetime(2025, 12, 15)),  # before window
+            make_sales_order(id=2, created_at=datetime(2026, 2, 15)),  # inside
+            make_sales_order(id=3, created_at=datetime(2026, 5, 1)),  # after window
         ],
     )
 
@@ -887,11 +800,11 @@ async def test_list_sales_orders_ids_include_deleted_pass_through(
 ):
     """``include_deleted=True`` surfaces soft-deleted rows; default hides them."""
     context, _, typed_cache = context_with_typed_cache
-    await _seed_orders(
+    await seed_cache(
         typed_cache,
         [
-            _make_cache_so(id=1, deleted_at=None),
-            _make_cache_so(id=2, deleted_at=datetime(2026, 3, 15)),
+            make_sales_order(id=1, deleted_at=None),
+            make_sales_order(id=2, deleted_at=datetime(2026, 3, 15)),
         ],
     )
 
@@ -917,11 +830,11 @@ async def test_list_sales_orders_delivered_filter_applied_server_side(
     post-fetch; with the typed cache they're plain SQL WHERE clauses.
     """
     context, _, typed_cache = context_with_typed_cache
-    await _seed_orders(
+    await seed_cache(
         typed_cache,
         [
-            _make_cache_so(id=1, delivery_date=datetime(2026, 4, 20)),  # in window
-            _make_cache_so(id=2, delivery_date=datetime(2027, 1, 1)),  # outside
+            make_sales_order(id=1, delivery_date=datetime(2026, 4, 20)),  # in window
+            make_sales_order(id=2, delivery_date=datetime(2027, 1, 1)),  # outside
         ],
     )
 
@@ -948,9 +861,9 @@ async def test_list_sales_orders_caps_results_to_request_limit(
 ):
     """``limit`` caps the result set at the SQL level (no over-fetch)."""
     context, _, typed_cache = context_with_typed_cache
-    await _seed_orders(
+    await seed_cache(
         typed_cache,
-        [_make_cache_so(id=i, order_no=f"SO-{i}") for i in range(1, 201)],
+        [make_sales_order(id=i, order_no=f"SO-{i}") for i in range(1, 201)],
     )
 
     result = await _list_sales_orders_impl(ListSalesOrdersRequest(limit=50), context)
@@ -966,12 +879,12 @@ async def test_list_sales_orders_returns_summary_rows(
     """Summaries carry id, order_no, total, and row_count from the cache."""
     context, _, typed_cache = context_with_typed_cache
     rows = [
-        _make_cache_row(id=1, sales_order_id=42, variant_id=100, quantity=2),
-        _make_cache_row(id=2, sales_order_id=42, variant_id=101, quantity=1),
+        make_sales_order_row(id=1, sales_order_id=42, variant_id=100, quantity=2),
+        make_sales_order_row(id=2, sales_order_id=42, variant_id=101, quantity=1),
     ]
-    await _seed_orders(
+    await seed_cache(
         typed_cache,
-        [_make_cache_so(id=42, order_no="SO-42", total=1234.56, rows=rows)],
+        [make_sales_order(id=42, order_no="SO-42", total=1234.56, rows=rows)],
     )
 
     result = await _list_sales_orders_impl(ListSalesOrdersRequest(), context)
@@ -990,9 +903,9 @@ async def test_list_sales_orders_page_populates_pagination_meta(
 ):
     """Explicit ``page`` populates PaginationMeta from a SQL COUNT(*)."""
     context, _, typed_cache = context_with_typed_cache
-    await _seed_orders(
+    await seed_cache(
         typed_cache,
-        [_make_cache_so(id=i, order_no=f"SO-{i}") for i in range(1, 31)],
+        [make_sales_order(id=i, order_no=f"SO-{i}") for i in range(1, 31)],
     )
 
     result = await _list_sales_orders_impl(
@@ -1015,7 +928,7 @@ async def test_list_sales_orders_no_page_leaves_pagination_none(
     """Without explicit ``page``, ``pagination`` stays None — the cache has
     no equivalent of a server-side ``x-pagination`` header to leak through."""
     context, _, typed_cache = context_with_typed_cache
-    await _seed_orders(typed_cache, [_make_cache_so(id=i) for i in range(1, 6)])
+    await seed_cache(typed_cache, [make_sales_order(id=i) for i in range(1, 6)])
 
     result = await _list_sales_orders_impl(ListSalesOrdersRequest(), context)
 
@@ -1071,10 +984,10 @@ async def test_list_sales_orders_include_rows_default_false_leaves_rows_none(
     """By default summaries carry rows=None (only row_count is populated)."""
     context, _, typed_cache = context_with_typed_cache
     rows = [
-        _make_cache_row(id=10, sales_order_id=1, variant_id=100, quantity=2),
-        _make_cache_row(id=11, sales_order_id=1, variant_id=101, quantity=1),
+        make_sales_order_row(id=10, sales_order_id=1, variant_id=100, quantity=2),
+        make_sales_order_row(id=11, sales_order_id=1, variant_id=101, quantity=1),
     ]
-    await _seed_orders(typed_cache, [_make_cache_so(id=1, order_no="SO-1", rows=rows)])
+    await seed_cache(typed_cache, [make_sales_order(id=1, order_no="SO-1", rows=rows)])
 
     result = await _list_sales_orders_impl(ListSalesOrdersRequest(), context)
 
@@ -1090,7 +1003,7 @@ async def test_list_sales_orders_include_rows_true_populates_rows(
     """include_rows=True surfaces per-row detail from sales_order_rows."""
     context, _, typed_cache = context_with_typed_cache
     rows = [
-        _make_cache_row(
+        make_sales_order_row(
             id=10,
             sales_order_id=42,
             variant_id=100,
@@ -1098,7 +1011,7 @@ async def test_list_sales_orders_include_rows_true_populates_rows(
             price_per_unit=50.0,
             linked_manufacturing_order_id=555,
         ),
-        _make_cache_row(
+        make_sales_order_row(
             id=11,
             sales_order_id=42,
             variant_id=101,
@@ -1106,8 +1019,8 @@ async def test_list_sales_orders_include_rows_true_populates_rows(
             price_per_unit=75.0,
         ),
     ]
-    await _seed_orders(
-        typed_cache, [_make_cache_so(id=42, order_no="SO-42", rows=rows)]
+    await seed_cache(
+        typed_cache, [make_sales_order(id=42, order_no="SO-42", rows=rows)]
     )
 
     result = await _list_sales_orders_impl(
@@ -1136,7 +1049,7 @@ async def test_list_sales_orders_include_rows_handles_unset_fields(
 ):
     """Rows with None-valued optional fields serialize without crashing."""
     context, _, typed_cache = context_with_typed_cache
-    sparse_row = _make_cache_row(
+    sparse_row = make_sales_order_row(
         id=99,
         sales_order_id=1,
         variant_id=500,
@@ -1144,8 +1057,8 @@ async def test_list_sales_orders_include_rows_handles_unset_fields(
         price_per_unit=None,
         linked_manufacturing_order_id=None,
     )
-    await _seed_orders(
-        typed_cache, [_make_cache_so(id=1, order_no="SO-1", rows=[sparse_row])]
+    await seed_cache(
+        typed_cache, [make_sales_order(id=1, order_no="SO-1", rows=[sparse_row])]
     )
 
     result = await _list_sales_orders_impl(
@@ -1567,7 +1480,7 @@ async def test_list_sales_orders_format_json_returns_json(
 ):
     """format='json' returns JSON-parseable content."""
     context, _, typed_cache = context_with_typed_cache
-    await _seed_orders(typed_cache, [_make_cache_so(id=1, order_no="SO-1")])
+    await seed_cache(typed_cache, [make_sales_order(id=1, order_no="SO-1")])
 
     result = await list_sales_orders(format="json", context=context)
 
@@ -1582,7 +1495,7 @@ async def test_list_sales_orders_format_markdown_default(
 ):
     """Default markdown format produces a table."""
     context, _, typed_cache = context_with_typed_cache
-    await _seed_orders(typed_cache, [_make_cache_so(id=1, order_no="SO-1")])
+    await seed_cache(typed_cache, [make_sales_order(id=1, order_no="SO-1")])
 
     result = await list_sales_orders(context=context)
 
