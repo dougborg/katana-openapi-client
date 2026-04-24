@@ -144,11 +144,10 @@ async def context_with_typed_cache(typed_cache_engine):
     """Mock context with a real in-memory ``TypedCacheEngine`` attached.
 
     Cache-backed tools (``list_sales_orders`` post-#342) need a real
-    ``TypedCacheEngine`` on ``services.typed_cache`` — ``MagicMock``
-    isn't usable as an ``async with`` session. Tests that mock
-    ``get_all_sales_orders.asyncio_detailed`` have their attrs return
-    values convert + upsert into the cache via the sync helper before
-    the tool queries it.
+    engine on ``services.typed_cache`` — ``MagicMock`` isn't usable as
+    an ``async with`` session. Tests typically seed the cache directly
+    via the engine's session and patch the sync helper to a no-op so
+    the tool reads the seeded rows without attempting an API fetch.
 
     Yields:
         Tuple of ``(context, lifespan_context, typed_cache_engine)``.
