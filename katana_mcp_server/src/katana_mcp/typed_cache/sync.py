@@ -43,18 +43,16 @@ async def ensure_sales_orders_synced(
             state = await session.get(SyncState, "sales_order")
             last_synced = state.last_synced if state is not None else None
 
-        if last_synced is not None:
-            # ``last_synced`` is persisted as naive UTC (SQLite's default
-            # DateTime column strips tzinfo). Re-attach UTC before sending
-            # it to the API so the generated client serializes an explicit
-            # timezone offset — matches how the legacy cache_sync module
-            # handles watermarks.
-            updated_at_min = last_synced.replace(tzinfo=UTC)
-            response = await get_all_sales_orders.asyncio_detailed(
-                client=client, updated_at_min=updated_at_min
-            )
-        else:
-            response = await get_all_sales_orders.asyncio_detailed(client=client)
+        # ``last_synced`` is persisted as naive UTC (SQLite's default
+        # DateTime column strips tzinfo). Re-attach UTC before sending to
+        # the API so the generated client serializes an explicit offset —
+        # matches the legacy cache_sync watermark handling.
+        kwargs = (
+            {"updated_at_min": last_synced.replace(tzinfo=UTC)}
+            if last_synced is not None
+            else {}
+        )
+        response = await get_all_sales_orders.asyncio_detailed(client=client, **kwargs)
         attrs_orders = unwrap_data(response, default=[])
 
         rows = [PydanticSalesOrder.from_attrs(ao) for ao in attrs_orders]
@@ -62,24 +60,16 @@ async def ensure_sales_orders_synced(
         async with cache.session() as session:
             for row in rows:
                 await session.merge(row)
-            # Naive UTC on the write side too — SQLite's DateTime column
-            # doesn't preserve tzinfo.
-            now = datetime.now(tz=UTC).replace(tzinfo=None)
-            existing = await session.get(SyncState, "sales_order")
-            # ``row_count`` captures the last-fetch size (not the cumulative
-            # cached total, which would drift since ``rows`` includes updates
-            # and re-synced duplicates). Consumers that need a true total
-            # can ``SELECT COUNT(*)`` against the entity's own table.
-            if existing is None:
-                session.add(
-                    SyncState(
-                        entity_type="sales_order",
-                        last_synced=now,
-                        row_count=len(rows),
-                    )
+            # SQLite's DateTime column doesn't preserve tzinfo, so naive
+            # UTC on the write side. ``row_count`` is the last-fetch size
+            # (not a cumulative total, which would drift since ``rows``
+            # includes re-sync duplicates); consumers needing a true
+            # total run ``SELECT COUNT(*)`` on the entity table itself.
+            await session.merge(
+                SyncState(
+                    entity_type="sales_order",
+                    last_synced=datetime.now(tz=UTC).replace(tzinfo=None),
+                    row_count=len(rows),
                 )
-            else:
-                existing.last_synced = now
-                existing.row_count = len(rows)
-                session.add(existing)
+            )
             await session.commit()
