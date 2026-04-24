@@ -99,10 +99,16 @@ class TypedCacheEngine:
                 connect_args={"check_same_thread": False},
             )
         else:
-            assert self._db_path is not None  # guaranteed by __init__
-            self._db_path.parent.mkdir(parents=True, exist_ok=True)
+            # ``_db_path`` is never None on this branch (``__init__`` only
+            # leaves it unset when ``in_memory`` is true), but narrow the
+            # type explicitly so static checkers see it.
+            db_path = self._db_path
+            if db_path is None:
+                msg = "TypedCacheEngine: db_path is required for file-backed mode"
+                raise RuntimeError(msg)
+            db_path.parent.mkdir(parents=True, exist_ok=True)
             self._engine = create_async_engine(
-                f"sqlite+aiosqlite:///{self._db_path}",
+                f"sqlite+aiosqlite:///{db_path}",
             )
         async with self._engine.begin() as conn:
             await conn.run_sync(SQLModel.metadata.create_all)
