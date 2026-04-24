@@ -265,21 +265,81 @@ select = [
     "I",      # isort
     "B",      # flake8-bugbear
     "C4",     # flake8-comprehensions
+    "C90",    # mccabe complexity
     "UP",     # pyupgrade
     "SIM",    # flake8-simplify
     "RUF",    # ruff-specific rules
     "PLE",    # pylint errors
     "PLW",    # pylint warnings
+    "PLR0912",  # pylint: too many branches
+    "PLR0913",  # pylint: too many arguments
+    "PLR0915",  # pylint: too many statements
 ]
 ignore = [
     "E501",   # line too long (handled by formatter)
     "B008",   # do not perform function calls in argument defaults
-    "C901",   # too complex
     "SIM108", # use ternary operator instead of if-else
 ]
 
+# Complexity thresholds — pragmatic defaults calibrated against the current
+# codebase post-#347 helper consolidation. Ratchet tighter in follow-up PRs
+# as specific modules split / get refactored. Fat legacy modules that can't
+# meet these today are handled via per-file-ignore below.
+[tool.ruff.lint.mccabe]
+max-complexity = 15  # C901 threshold (default 10 is aggressive for API-shape code)
+
+[tool.ruff.lint.pylint]
+max-args = 8        # PLR0913 (default 5)
+max-branches = 15   # PLR0912 (default 12)
+max-statements = 80 # PLR0915 (default 50)
+
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["PLR2004"]  # magic value used in comparison
+# Generated API and model files — complexity rules don't apply (emitted
+# by openapi-python-client); listed here so CI doesn't surface noise on
+# every regeneration. See `[tool.poe.tasks] regenerate-client`.
+"katana_public_api_client/api/**" = ["C90", "PLR0912", "PLR0913", "PLR0915"]
+"katana_public_api_client/models/**" = ["C90", "PLR0912", "PLR0913", "PLR0915"]
+"katana_public_api_client/client.py" = ["C90", "PLR0912", "PLR0913", "PLR0915"]
+"katana_public_api_client/models_pydantic/_generated/**" = [
+    "C90", "PLR0912", "PLR0913", "PLR0915",
+]
+
+# Tests — magic values are idiomatic; test setup/assert logic is allowed
+# to be complex without refactoring into helpers just to satisfy lint.
+# Recursive ``**`` glob to catch nested dirs like ``tests/tools/`` and
+# ``tests/integration/``.
+"tests/**" = ["PLR2004", "C90", "PLR0912", "PLR0913", "PLR0915"]
+"katana_mcp_server/tests/**" = ["PLR2004", "C90", "PLR0912", "PLR0913", "PLR0915"]
+
+# Scripts — analysis/utility scripts are one-shot tools; they get reduced
+# complexity enforcement so we can iterate on them without splitting into
+# artificial helpers.
+"scripts/**" = ["C90", "PLR0912", "PLR0913", "PLR0915"]
+
+# Generated pydantic registry — emitted by scripts/generate_pydantic_models.py
+# and intentionally flat/list-shaped; complexity rules don't apply.
+"katana_public_api_client/models_pydantic/_auto_registry.py" = [
+    "C90", "PLR0912", "PLR0913", "PLR0915",
+]
+
+# Legacy fat modules with complex functions pre-dating the complexity
+# ratchet. Split into sub-modules (rendering, batch ops, etc.) in
+# follow-ups tracked via individual issues. Don't add new violations here.
+"katana_public_api_client/katana_client.py" = ["C90", "PLR0912", "PLR0915"]
+"katana_public_api_client/utils.py" = ["C90", "PLR0912"]
+"katana_mcp_server/src/katana_mcp/unpack.py" = ["C90", "PLR0912"]
+"katana_mcp_server/src/katana_mcp/tools/foundation/manufacturing_orders.py" = [
+    "C90", "PLR0912", "PLR0913", "PLR0915",
+]
+"katana_mcp_server/src/katana_mcp/tools/foundation/purchase_orders.py" = [
+    "C90", "PLR0912", "PLR0913", "PLR0915",
+]
+"katana_mcp_server/src/katana_mcp/tools/foundation/sales_orders.py" = [
+    "C90", "PLR0912", "PLR0913", "PLR0915",
+]
+"katana_mcp_server/src/katana_mcp/tools/foundation/inventory.py" = [
+    "C90", "PLR0912", "PLR0913", "PLR0915",
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["katana_public_api_client"]

@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import asyncio
 import datetime as _datetime
-import json
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal
@@ -26,11 +25,14 @@ from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
+    PaginationMeta,
     enum_to_str,
     format_md_table,
     iso_or_none,
     make_simple_result,
     make_tool_result,
+    parse_iso_datetime,
+    parse_pagination_header,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
@@ -1599,72 +1601,6 @@ async def verify_order_document(
 # ============================================================================
 
 
-def _parse_iso_datetime(value: str, field_name: str) -> datetime:
-    """Parse an ISO-8601 datetime string, raising ValueError on bad input.
-
-    Normalizes trailing ``Z`` / ``z`` (UTC shorthand) to ``+00:00`` before
-    parsing. Raises ``ValueError`` with the field name on unparseable input.
-    """
-    normalized = value
-    if normalized.endswith(("Z", "z")):
-        normalized = normalized[:-1] + "+00:00"
-    try:
-        return datetime.fromisoformat(normalized)
-    except ValueError as e:
-        raise ValueError(
-            f"Invalid ISO-8601 datetime for {field_name!r}: {value!r}"
-        ) from e
-
-
-class POPaginationMeta(BaseModel):
-    """Pagination metadata parsed from Katana's ``x-pagination`` header."""
-
-    total_records: int | None = None
-    total_pages: int | None = None
-    page: int | None = None
-    first_page: bool | None = None
-    last_page: bool | None = None
-
-
-def _parse_po_pagination_header(raw: str | None) -> POPaginationMeta | None:
-    """Parse Katana's ``x-pagination`` response header into POPaginationMeta."""
-    if not raw:
-        return None
-    try:
-        data = json.loads(raw)
-    except (ValueError, TypeError):
-        return None
-    if not isinstance(data, dict):
-        return None
-
-    def _as_int(val: Any) -> int | None:
-        if val is None:
-            return None
-        try:
-            return int(val)
-        except (ValueError, TypeError):
-            return None
-
-    def _as_bool(val: Any) -> bool | None:
-        if isinstance(val, bool):
-            return val
-        if isinstance(val, str):
-            lowered = val.strip().lower()
-            if lowered == "true":
-                return True
-            if lowered == "false":
-                return False
-        return None
-
-    return POPaginationMeta(
-        total_records=_as_int(data.get("total_records")),
-        total_pages=_as_int(data.get("total_pages")),
-        page=_as_int(data.get("page")),
-        first_page=_as_bool(data.get("first_page")),
-        last_page=_as_bool(data.get("last_page")),
-    )
-
-
 class ListPurchaseOrdersRequest(BaseModel):
     """Request to list/filter purchase orders (list-tool pattern v2)."""
 
@@ -1811,7 +1747,7 @@ class ListPurchaseOrdersResponse(BaseModel):
 
     orders: list[PurchaseOrderSummary]
     total_count: int
-    pagination: POPaginationMeta | None = None
+    pagination: PaginationMeta | None = None
 
 
 def _po_row_summary(row: Any) -> PurchaseOrderRowSummary:
@@ -1870,19 +1806,19 @@ async def _list_purchase_orders_impl(
 
     # Server-side date filters
     if request.created_after is not None:
-        kwargs["created_at_min"] = _parse_iso_datetime(
+        kwargs["created_at_min"] = parse_iso_datetime(
             request.created_after, "created_after"
         )
     if request.created_before is not None:
-        kwargs["created_at_max"] = _parse_iso_datetime(
+        kwargs["created_at_max"] = parse_iso_datetime(
             request.created_before, "created_before"
         )
     if request.updated_after is not None:
-        kwargs["updated_at_min"] = _parse_iso_datetime(
+        kwargs["updated_at_min"] = parse_iso_datetime(
             request.updated_after, "updated_after"
         )
     if request.updated_before is not None:
-        kwargs["updated_at_max"] = _parse_iso_datetime(
+        kwargs["updated_at_max"] = parse_iso_datetime(
             request.updated_before, "updated_before"
         )
 
@@ -1890,11 +1826,11 @@ async def _list_purchase_orders_impl(
     arrival_after_dt: datetime | None = None
     arrival_before_dt: datetime | None = None
     if request.expected_arrival_after is not None:
-        arrival_after_dt = _parse_iso_datetime(
+        arrival_after_dt = parse_iso_datetime(
             request.expected_arrival_after, "expected_arrival_after"
         )
     if request.expected_arrival_before is not None:
-        arrival_before_dt = _parse_iso_datetime(
+        arrival_before_dt = parse_iso_datetime(
             request.expected_arrival_before, "expected_arrival_before"
         )
     has_client_filter = arrival_after_dt is not None or arrival_before_dt is not None
@@ -1924,11 +1860,11 @@ async def _list_purchase_orders_impl(
     attrs_list = attrs_list[: request.limit]
 
     # Pagination meta — only when caller set `page` explicitly.
-    pagination: POPaginationMeta | None = None
+    pagination: PaginationMeta | None = None
     if request.page is not None:
         headers = getattr(response, "headers", None)
         if headers is not None:
-            pagination = _parse_po_pagination_header(headers.get("x-pagination"))
+            pagination = parse_pagination_header(headers.get("x-pagination"))
 
     summaries: list[PurchaseOrderSummary] = []
     for po in attrs_list:

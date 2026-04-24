@@ -12,11 +12,12 @@ renders the Prefab UI; other clients fall back to markdown content.
 
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from katana_mcp.templates import format_template
 
@@ -49,6 +50,99 @@ def iso_or_none(dt: datetime | None) -> str | None:
     Shorthand for `dt.isoformat() if dt else None`.
     """
     return dt.isoformat() if dt else None
+
+
+def parse_iso_datetime(value: str, field_name: str) -> datetime:
+    """Parse an ISO-8601 datetime string, raising ValueError with field context.
+
+    Normalizes trailing ``Z`` / ``z`` (UTC shorthand) to ``+00:00`` before
+    parsing — ``datetime.fromisoformat`` didn't accept ``Z`` before Python
+    3.11. Raises ``ValueError`` with the field name when input is unparseable
+    so caller mistakes surface loudly instead of being silently dropped.
+
+    Callers with optional values should guard ``if value is not None:``
+    before calling — this function requires a non-None string so the return
+    type stays narrow (``datetime``, not ``datetime | None``).
+    """
+    normalized = value
+    if normalized.endswith(("Z", "z")):
+        normalized = normalized[:-1] + "+00:00"
+    try:
+        return datetime.fromisoformat(normalized)
+    except ValueError as e:
+        msg = f"Invalid ISO-8601 datetime for {field_name!r}: {value!r}"
+        raise ValueError(msg) from e
+
+
+class PaginationMeta(BaseModel):
+    """Pagination metadata extracted from Katana's ``x-pagination`` header.
+
+    Populated on list-tool responses only when the caller requested a
+    specific page (i.e. passed ``page=N``). When auto-pagination is used,
+    this field is ``None`` because there is no single page to describe.
+    """
+
+    total_records: int | None = Field(
+        default=None, description="Total records across all pages"
+    )
+    total_pages: int | None = Field(default=None, description="Total number of pages")
+    page: int | None = Field(default=None, description="Current page number (1-based)")
+    first_page: bool | None = Field(
+        default=None, description="True if this is the first page"
+    )
+    last_page: bool | None = Field(
+        default=None, description="True if this is the last page"
+    )
+
+
+def parse_pagination_header(raw: str | None) -> PaginationMeta | None:
+    """Parse Katana's ``x-pagination`` response header into a PaginationMeta.
+
+    Katana returns this as a JSON string with stringy values, e.g.:
+    ``{"total_records":"2319","total_pages":"2319","offset":"0","page":"1",
+    "first_page":"true","last_page":"false"}``.
+
+    Returns ``None`` when the header is absent or the top-level JSON is
+    invalid (non-JSON or not a JSON object). When the header is valid JSON
+    but individual fields are missing or malformed, returns a
+    ``PaginationMeta`` with those specific fields set to ``None`` rather
+    than discarding the whole header.
+    """
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(data, dict):
+        return None
+
+    def _as_int(val: Any) -> int | None:
+        if val is None:
+            return None
+        try:
+            return int(val)
+        except (ValueError, TypeError):
+            return None
+
+    def _as_bool(val: Any) -> bool | None:
+        if isinstance(val, bool):
+            return val
+        if isinstance(val, str):
+            lowered = val.strip().lower()
+            if lowered == "true":
+                return True
+            if lowered == "false":
+                return False
+        return None
+
+    return PaginationMeta(
+        total_records=_as_int(data.get("total_records")),
+        total_pages=_as_int(data.get("total_pages")),
+        page=_as_int(data.get("page")),
+        first_page=_as_bool(data.get("first_page")),
+        last_page=_as_bool(data.get("last_page")),
+    )
 
 
 async def none_coro() -> None:
