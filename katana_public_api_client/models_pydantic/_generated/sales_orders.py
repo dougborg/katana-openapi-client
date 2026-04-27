@@ -26,9 +26,9 @@ from .common import (
     Attribute,
     Attribute1,
     Attribute3,
-    IngredientAvailability,
     ProductAvailability,
 )
+from .purchase_orders import OutsourcedPurchaseOrderIngredientAvailability
 from .stock import (
     BatchTransaction,
     BatchTransaction6,
@@ -1047,7 +1047,10 @@ class SalesOrder(DeletableEntity):
             description="Expected date when products will be available for fulfillment"
         ),
     ] = None
-    ingredient_availability: Annotated[IngredientAvailability | None, Field()] = None
+    ingredient_availability: Annotated[
+        OutsourcedPurchaseOrderIngredientAvailability | None,
+        Field(),
+    ] = None
     ingredient_expected_date: Annotated[
         AwareDatetime | None,
         Field(
@@ -1404,7 +1407,10 @@ class CachedSalesOrder(DeletableEntity, table=True):
             description="Expected date when products will be available for fulfillment"
         ),
     ] = None
-    ingredient_availability: Annotated[IngredientAvailability | None, Field()] = None
+    ingredient_availability: Annotated[
+        OutsourcedPurchaseOrderIngredientAvailability | None,
+        Field(),
+    ] = None
     ingredient_expected_date: Annotated[
         datetime | None,
         Field(
