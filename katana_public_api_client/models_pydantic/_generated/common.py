@@ -42,15 +42,6 @@ class ProductAvailability(StrEnum):
     not_applicable = "NOT_APPLICABLE"
 
 
-class IngredientAvailability(StrEnum):
-    processed = "PROCESSED"
-    in_stock = "IN_STOCK"
-    not_available = "NOT_AVAILABLE"
-    expected = "EXPECTED"
-    no_recipe = "NO_RECIPE"
-    not_applicable = "NOT_APPLICABLE"
-
-
 class InventoryItemType(StrEnum):
     product = "product"
     material = "material"

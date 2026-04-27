@@ -40,6 +40,7 @@ class OutsourcedPurchaseOrderIngredientAvailability(StrEnum):
     not_available = "NOT_AVAILABLE"
     expected = "EXPECTED"
     no_recipe = "NO_RECIPE"
+    not_applicable = "NOT_APPLICABLE"
 
 
 class PurchaseOrderEntityType(StrEnum):

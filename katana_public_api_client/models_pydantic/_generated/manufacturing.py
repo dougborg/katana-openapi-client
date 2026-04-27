@@ -22,11 +22,11 @@ from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 from .base import DeletableEntity
 from .common import (
     AssignedOperator,
-    IngredientAvailability,
     ManufacturingOperationStatus,
     Operator,
     Row,
 )
+from .purchase_orders import OutsourcedPurchaseOrderIngredientAvailability
 from .stock import (
     BatchTransaction,
     BatchTransaction1,
@@ -618,7 +618,7 @@ class ManufacturingOrder(DeletableEntity):
         ),
     ] = None
     ingredient_availability: Annotated[
-        IngredientAvailability | None,
+        OutsourcedPurchaseOrderIngredientAvailability | None,
         Field(
             description="Status of material ingredient availability for production",
         ),
@@ -1017,7 +1017,7 @@ class CachedManufacturingOrder(DeletableEntity, table=True):
         ),
     ] = None
     ingredient_availability: Annotated[
-        IngredientAvailability | None,
+        OutsourcedPurchaseOrderIngredientAvailability | None,
         Field(
             description="Status of material ingredient availability for production",
         ),
