@@ -13,6 +13,7 @@ from katana_mcp.tools.foundation.inventory import (
     ListStockAdjustmentsRequest,
     LowStockRequest,
     StockAdjustmentRow,
+    StockInfo,
     UpdateStockAdjustmentParams,
     _check_inventory_impl,
     _create_stock_adjustment_impl,
@@ -1762,21 +1763,41 @@ async def test_check_inventory_single_variant_id():
 
 @pytest.mark.asyncio
 async def test_check_inventory_mixed_sku_and_variant_id():
-    """Mixed string + integer input exercises both the cache-by-sku and fetch-by-id routes."""
+    """Mixed string + integer input exercises both the cache-by-sku and fetch-by-id routes.
+
+    Output order matches input order: ``["WIDGET-1", 42]`` produces results
+    ``[WIDGET-1, WIDGET-42]`` regardless of how parallel resolution interleaves.
+    """
     context, lifespan_ctx = create_mock_context()
     lifespan_ctx.cache.get_by_sku = AsyncMock(
         return_value={"id": 101, "sku": "WIDGET-1", "display_name": "Widget 1"}
     )
 
-    mock_inv_sku = MagicMock()
-    mock_inv_sku.quantity_in_stock = "10.0"
-    mock_inv_sku.quantity_committed = "1.0"
-    mock_inv_sku.quantity_expected = "2.0"
+    # Patch _fetch_stock_for_variant to return per-variant StockInfo deterministically,
+    # avoiding fragile assumptions about parallel-task scheduling order.
+    stock_by_id = {
+        101: StockInfo(
+            variant_id=101,
+            sku="WIDGET-1",
+            product_name="Widget 1",
+            in_stock=10.0,
+            committed=1.0,
+            expected=2.0,
+            available_stock=9.0,
+        ),
+        42: StockInfo(
+            variant_id=42,
+            sku="WIDGET-42",
+            product_name="Widget 42",
+            in_stock=20.0,
+            committed=5.0,
+            expected=0.0,
+            available_stock=15.0,
+        ),
+    }
 
-    mock_inv_id = MagicMock()
-    mock_inv_id.quantity_in_stock = "20.0"
-    mock_inv_id.quantity_committed = "5.0"
-    mock_inv_id.quantity_expected = "0.0"
+    async def _fake_fetch_stock(_services, variant_id, _sku, _product_name):
+        return stock_by_id[variant_id]
 
     with (
         patch(
@@ -1784,30 +1805,28 @@ async def test_check_inventory_mixed_sku_and_variant_id():
             new_callable=AsyncMock,
             return_value={"id": 42, "sku": "WIDGET-42", "display_name": "Widget 42"},
         ) as mock_fetch,
-        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
-        # Both inventory calls go through unwrap_data — give each its own response.
-        # The SKU lookup is gathered first (sku_results), then the variant_id (id_results),
-        # so the call order matches.
-        patch(_UNWRAP_DATA, side_effect=[[mock_inv_sku], [mock_inv_id]]),
+        patch(
+            "katana_mcp.tools.foundation.inventory._fetch_stock_for_variant",
+            side_effect=_fake_fetch_stock,
+        ),
     ):
         request = CheckInventoryRequest(skus_or_variant_ids=["WIDGET-1", 42])
         results = await _check_inventory_impl(request, context)
 
     assert len(results) == 2
 
-    # Both routes were used
     lifespan_ctx.cache.get_by_sku.assert_awaited_once()
     mock_fetch.assert_awaited_once()
     assert mock_fetch.await_args.args[1] == 42
 
-    # Both items appear in the response (SKU result first, then variant_id result)
-    sku_result = next(r for r in results if r.sku == "WIDGET-1")
-    id_result = next(r for r in results if r.sku == "WIDGET-42")
-    assert sku_result.in_stock == 10.0
-    assert sku_result.available_stock == 9.0  # 10 - 1
-    assert id_result.variant_id == 42
-    assert id_result.in_stock == 20.0
-    assert id_result.available_stock == 15.0  # 20 - 5
+    # Output order matches input order.
+    assert results[0].sku == "WIDGET-1"
+    assert results[0].in_stock == 10.0
+    assert results[0].available_stock == 9.0
+    assert results[1].sku == "WIDGET-42"
+    assert results[1].variant_id == 42
+    assert results[1].in_stock == 20.0
+    assert results[1].available_stock == 15.0  # 20 - 5
 
 
 # ============================================================================

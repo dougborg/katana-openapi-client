@@ -43,12 +43,13 @@ class CheckInventoryRequest(BaseModel):
     """Request model for checking inventory."""
 
     skus_or_variant_ids: list[str | int] = Field(
-        default_factory=list,
+        ...,
         min_length=1,
         description=(
             "SKUs (strings) or variant IDs (integers) to check — mix freely. "
             "Pass one for a detailed stock card; pass many for a summary table. "
-            "Batching N items in a single call beats N separate invocations."
+            "Batching N items in a single call beats N separate invocations. "
+            "Output order matches input order."
         ),
     )
     format: Literal["markdown", "json"] = Field(
@@ -107,72 +108,62 @@ async def _fetch_stock_for_variant(
 async def _check_inventory_impl(
     request: CheckInventoryRequest, context: Context
 ) -> list[StockInfo]:
-    """Look up one or more variants by SKU/ID and return their stock info."""
-    skus: list[str] = []
-    variant_ids: list[int] = []
+    """Look up one or more variants by SKU/ID and return their stock info.
 
-    for item in request.skus_or_variant_ids:
-        if isinstance(item, str):
-            normalized = item.strip()
+    Output order matches input order — mixed `["SKU-1", 42, "SKU-2"]` returns
+    results in that exact sequence.
+    """
+    # Normalize SKU inputs once; reject blank strings up front.
+    items: list[str | int] = []
+    for raw in request.skus_or_variant_ids:
+        if isinstance(raw, str):
+            normalized = raw.strip()
             if not normalized:
                 raise ValueError("SKU cannot be empty")
-            skus.append(normalized)
+            items.append(normalized)
         else:
-            variant_ids.append(item)
+            items.append(raw)
 
-    if not skus and not variant_ids:
-        raise ValueError(
-            "skus_or_variant_ids must contain at least one SKU or variant ID"
-        )
-
+    sku_count = sum(1 for item in items if isinstance(item, str))
     start_time = time.monotonic()
     logger.info(
         "inventory_check_started",
-        sku_count=len(skus),
-        variant_id_count=len(variant_ids),
+        sku_count=sku_count,
+        variant_id_count=len(items) - sku_count,
     )
 
     try:
         services = get_services(context)
 
-        # Phase 1: resolve all SKUs and variant_ids to variant dicts in parallel.
-        # For variant_ids, _fetch_variant_by_id falls back to the API on cache miss
-        # so a cold cache doesn't silently return empty stock.
+        # ``_fetch_variant_by_id`` falls back to the API on cache miss so a
+        # cold cache doesn't silently return empty stock.
         from katana_mcp.tools.foundation.items import _fetch_variant_by_id
 
-        sku_variants, id_variants = await asyncio.gather(
-            asyncio.gather(*(services.cache.get_by_sku(sku=s) for s in skus)),
-            asyncio.gather(
-                *(_fetch_variant_by_id(services, v_id) for v_id in variant_ids)
-            ),
-        )
-
-        # Phase 2: fetch stock for all resolved variants in parallel
-        async def _fetch_for_sku(sku: str, variant: dict | None) -> StockInfo:
-            if not variant:
-                logger.warning("inventory_check_not_found", sku=sku)
-                return StockInfo(
-                    sku=sku,
-                    product_name="",
-                    available_stock=0,
-                    committed=0,
-                    expected=0,
-                    in_stock=0,
+        async def _fetch(item: str | int) -> StockInfo:
+            if isinstance(item, str):
+                variant = await services.cache.get_by_sku(sku=item)
+                if not variant:
+                    logger.warning("inventory_check_not_found", sku=item)
+                    return StockInfo(
+                        sku=item,
+                        product_name="",
+                        available_stock=0,
+                        committed=0,
+                        expected=0,
+                        in_stock=0,
+                    )
+                return await _fetch_stock_for_variant(
+                    services,
+                    variant["id"],
+                    item,
+                    variant.get("display_name") or variant.get("sku") or "",
                 )
-            return await _fetch_stock_for_variant(
-                services,
-                variant["id"],
-                sku,
-                variant.get("display_name") or variant.get("sku") or "",
-            )
 
-        async def _fetch_for_variant_id(
-            variant_id: int, variant: dict | None
-        ) -> StockInfo:
+            variant = await _fetch_variant_by_id(services, item)
             if not variant:
-                logger.warning("inventory_check_not_found", variant_id=variant_id)
+                logger.warning("inventory_check_not_found", variant_id=item)
                 return StockInfo(
-                    variant_id=variant_id,
+                    variant_id=item,
                     sku="",
                     product_name="",
                     available_stock=0,
@@ -181,23 +172,11 @@ async def _check_inventory_impl(
                     in_stock=0,
                 )
             sku = variant.get("sku", "")
-            product_name = variant.get("display_name") or sku or ""
             return await _fetch_stock_for_variant(
-                services, variant_id, sku, product_name
+                services, item, sku, variant.get("display_name") or sku or ""
             )
 
-        sku_results, id_results = await asyncio.gather(
-            asyncio.gather(
-                *(_fetch_for_sku(s, v) for s, v in zip(skus, sku_variants, strict=True))
-            ),
-            asyncio.gather(
-                *(
-                    _fetch_for_variant_id(v_id, v)
-                    for v_id, v in zip(variant_ids, id_variants, strict=True)
-                )
-            ),
-        )
-        results: list[StockInfo] = [*sku_results, *id_results]
+        results = list(await asyncio.gather(*(_fetch(item) for item in items)))
 
         duration_ms = round((time.monotonic() - start_time) * 1000, 2)
         logger.info(

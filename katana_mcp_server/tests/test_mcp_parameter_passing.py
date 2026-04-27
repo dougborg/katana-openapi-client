@@ -106,16 +106,17 @@ class TestMCPParameterPassing:
             "format",
             "context",
         ], "check_inventory has flattened params: skus_or_variant_ids, format, context"
-        # skus_or_variant_ids defaults to empty list at the Python level;
-        # the min_length=1 Pydantic constraint enforces non-empty at validation time.
-        assert sig2.parameters["skus_or_variant_ids"].default == []
+        # skus_or_variant_ids is required (no default) so the MCP schema marks
+        # it required; the min_length=1 Pydantic constraint also rejects [].
+        assert sig2.parameters["skus_or_variant_ids"].default is inspect.Parameter.empty
         assert sig2.parameters["format"].default == "markdown"
-        # Verify min_length=1 is enforced: empty list must raise ValidationError.
         from katana_mcp.tools.foundation.inventory import CheckInventoryRequest
         from pydantic import ValidationError as PydanticValidationError
 
         with pytest.raises(PydanticValidationError):
             CheckInventoryRequest(skus_or_variant_ids=[])
+        with pytest.raises(PydanticValidationError):
+            CheckInventoryRequest.model_validate({})  # missing required field
 
 
 class TestMCPProtocolSimulation:
