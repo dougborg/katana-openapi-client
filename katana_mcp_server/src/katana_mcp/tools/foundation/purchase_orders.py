@@ -11,7 +11,6 @@ These tools provide:
 from __future__ import annotations
 
 import asyncio
-import datetime as _datetime
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal
@@ -31,8 +30,7 @@ from katana_mcp.tools.tool_result_utils import (
     iso_or_none,
     make_simple_result,
     make_tool_result,
-    parse_iso_datetime,
-    parse_pagination_header,
+    parse_request_dates,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
@@ -1610,20 +1608,21 @@ class ListPurchaseOrdersRequest(BaseModel):
         ge=1,
         le=250,
         description=(
-            "Max rows to return (default 50, min 1, max 250 — Katana's "
-            "per-page ceiling). When `page` is set, acts as the page size."
+            "Max rows to return (default 50, min 1, max 250). When `page` "
+            "is set, acts as the page size for that request."
         ),
     )
     page: int | None = Field(
         default=None,
         ge=1,
         description=(
-            "Page number (1-based). When set, disables auto-pagination; "
-            "use with `limit` as page size."
+            "Page number (1-based). When set, the response includes "
+            "`pagination` metadata (total_records, total_pages) computed "
+            "via SQL COUNT against the same filter predicate."
         ),
     )
 
-    # Domain filters (server-side on Katana)
+    # Domain filters
     ids: list[int] | None = Field(
         default=None, description="Filter by explicit list of purchase order IDs"
     )
@@ -1652,14 +1651,20 @@ class ListPurchaseOrdersRequest(BaseModel):
         default=None, description="Filter by receiving location ID"
     )
     tracking_location_id: int | None = Field(
-        default=None, description="Filter by tracking location ID (outsourced POs)"
+        default=None,
+        description=(
+            "Filter by tracking location ID (outsourced POs). The cache "
+            "stores this as a hoisted column on every row; regular POs "
+            "match only when ``None`` is filtered, which doesn't apply "
+            "here — pair with ``entity_type='outsourced'`` to scope."
+        ),
     )
     supplier_id: int | None = Field(default=None, description="Filter by supplier ID")
     include_deleted: bool | None = Field(
         default=None, description="When true, include soft-deleted purchase orders."
     )
 
-    # Time-window filters (server-side)
+    # Time-window filters (all run as indexed SQL date-range queries)
     created_after: str | None = Field(
         default=None, description="ISO-8601 datetime lower bound on created_at."
     )
@@ -1672,22 +1677,18 @@ class ListPurchaseOrdersRequest(BaseModel):
     updated_before: str | None = Field(
         default=None, description="ISO-8601 datetime upper bound on updated_at."
     )
-
-    # Time-window filters (client-side — Katana does not expose server-side
-    # filters for expected_arrival_date).
     expected_arrival_after: str | None = Field(
         default=None,
         description=(
-            "ISO-8601 datetime lower bound on expected_arrival_date. "
-            "Applied client-side — Katana has no server-side filter. Pair "
-            "with a created_at window to keep fetched rows bounded."
+            "ISO-8601 datetime lower bound on expected_arrival_date — "
+            "indexed SQL range filter against the cache."
         ),
     )
     expected_arrival_before: str | None = Field(
         default=None,
         description=(
-            "ISO-8601 datetime upper bound on expected_arrival_date. "
-            "Applied client-side — see `expected_arrival_after`."
+            "ISO-8601 datetime upper bound on expected_arrival_date — "
+            "indexed SQL range filter against the cache."
         ),
     )
 
@@ -1696,9 +1697,7 @@ class ListPurchaseOrdersRequest(BaseModel):
         default=False,
         description=(
             "When true, populate row-level detail (variant_id, quantity, "
-            "price, arrival date) on each summary. Katana bundles "
-            "purchase_order_rows inline on the list endpoint, so this is "
-            "free compared to `list_sales_orders`."
+            "price, arrival date) on each summary."
         ),
     )
 
@@ -1750,146 +1749,207 @@ class ListPurchaseOrdersResponse(BaseModel):
     pagination: PaginationMeta | None = None
 
 
-def _po_row_summary(row: Any) -> PurchaseOrderRowSummary:
-    arrival = unwrap_unset(row.arrival_date, None)
-    received = unwrap_unset(row.received_date, None)
-    return PurchaseOrderRowSummary(
-        id=unwrap_unset(row.id, None),
-        variant_id=unwrap_unset(row.variant_id, None),
-        quantity=unwrap_unset(row.quantity, None),
-        price_per_unit=unwrap_unset(row.price_per_unit, None),
-        arrival_date=iso_or_none(arrival)
-        if isinstance(arrival, _datetime.datetime)
-        else None,
-        received_date=iso_or_none(received)
-        if isinstance(received, _datetime.datetime)
-        else None,
-        total=unwrap_unset(row.total, None),
+_PURCHASE_ORDER_DATE_FIELDS = (
+    "created_after",
+    "created_before",
+    "updated_after",
+    "updated_before",
+    "expected_arrival_after",
+    "expected_arrival_before",
+)
+
+
+def _apply_purchase_order_filters(
+    stmt: Any,
+    request: ListPurchaseOrdersRequest,
+    parsed_dates: dict[str, datetime | None],
+) -> Any:
+    """Translate request filters into WHERE clauses on a CachedPurchaseOrder query.
+
+    Shared by the data SELECT and the COUNT SELECT so pagination totals
+    reflect exactly the same filter set as the data rows.
+    """
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedPurchaseOrder,
+        PurchaseOrderBillingStatus,
+        PurchaseOrderEntityType,
+        PurchaseOrderStatus,
     )
+
+    if request.ids is not None:
+        stmt = stmt.where(CachedPurchaseOrder.id.in_(request.ids))
+    if request.order_no is not None:
+        stmt = stmt.where(CachedPurchaseOrder.order_no == request.order_no)
+    if request.entity_type is not None:
+        try:
+            entity_enum = PurchaseOrderEntityType(request.entity_type.value)
+        except ValueError as e:
+            valid = ", ".join(s.value for s in PurchaseOrderEntityType)
+            msg = f"Invalid entity_type {request.entity_type!r}. Valid: {valid}"
+            raise ValueError(msg) from e
+        stmt = stmt.where(CachedPurchaseOrder.entity_type == entity_enum)
+    if request.status is not None:
+        try:
+            status_enum = PurchaseOrderStatus(request.status.value)
+        except ValueError as e:
+            valid = ", ".join(s.value for s in PurchaseOrderStatus)
+            msg = f"Invalid status {request.status!r}. Valid: {valid}"
+            raise ValueError(msg) from e
+        stmt = stmt.where(CachedPurchaseOrder.status == status_enum)
+    if request.billing_status is not None:
+        try:
+            billing_enum = PurchaseOrderBillingStatus(request.billing_status.value)
+        except ValueError as e:
+            valid = ", ".join(s.value for s in PurchaseOrderBillingStatus)
+            msg = f"Invalid billing_status {request.billing_status!r}. Valid: {valid}"
+            raise ValueError(msg) from e
+        stmt = stmt.where(CachedPurchaseOrder.billing_status == billing_enum)
+    if request.currency is not None:
+        stmt = stmt.where(CachedPurchaseOrder.currency == request.currency)
+    if request.location_id is not None:
+        stmt = stmt.where(CachedPurchaseOrder.location_id == request.location_id)
+    if request.tracking_location_id is not None:
+        # Cache-only column hoisted from OutsourcedPurchaseOrder via
+        # CACHE_EXTRA_FIELDS — regular POs always carry None here.
+        stmt = stmt.where(
+            CachedPurchaseOrder.tracking_location_id == request.tracking_location_id
+        )
+    if request.supplier_id is not None:
+        stmt = stmt.where(CachedPurchaseOrder.supplier_id == request.supplier_id)
+    if not request.include_deleted:
+        stmt = stmt.where(CachedPurchaseOrder.deleted_at.is_(None))
+
+    date_columns: list[tuple[str, Any, str]] = [
+        ("created_after", CachedPurchaseOrder.created_at, ">="),
+        ("created_before", CachedPurchaseOrder.created_at, "<="),
+        ("updated_after", CachedPurchaseOrder.updated_at, ">="),
+        ("updated_before", CachedPurchaseOrder.updated_at, "<="),
+        (
+            "expected_arrival_after",
+            CachedPurchaseOrder.expected_arrival_date,
+            ">=",
+        ),
+        (
+            "expected_arrival_before",
+            CachedPurchaseOrder.expected_arrival_date,
+            "<=",
+        ),
+    ]
+    for name, col, comp in date_columns:
+        dt = parsed_dates[name]
+        if dt is None:
+            continue
+        stmt = stmt.where(col >= dt if comp == ">=" else col <= dt)
+
+    return stmt
 
 
 async def _list_purchase_orders_impl(
     request: ListPurchaseOrdersRequest, context: Context
 ) -> ListPurchaseOrdersResponse:
-    """List purchase orders with filters — follows list-tool pattern v2."""
-    from katana_public_api_client.api.purchase_order import find_purchase_orders
-    from katana_public_api_client.utils import unwrap_data
+    """List purchase orders with filters (cache-backed).
+
+    Reads from the SQLModel typed cache instead of the live API.
+    ``ensure_purchase_orders_synced`` runs an incremental ``updated_at_min``
+    delta on every call (near-zero cost steady state; cold-start pulls
+    full history once); the query then translates request filters into
+    indexed SQL. ``expected_arrival_date`` and ``tracking_location_id``
+    were both client-side post-fetch pre-cache; they now run as direct
+    SQL predicates. See ADR-0018 and #342.
+    """
+    from sqlalchemy.orm import selectinload
+    from sqlmodel import func, select
+
+    from katana_mcp.typed_cache import ensure_purchase_orders_synced
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedPurchaseOrder,
+        CachedPurchaseOrderRow,
+    )
 
     services = get_services(context)
 
-    kwargs: dict[str, Any] = {
-        "client": services.client,
-        "limit": request.limit,
-    }
-    if request.ids is not None:
-        kwargs["ids"] = request.ids
-    if request.order_no is not None:
-        kwargs["order_no"] = request.order_no
-    if request.entity_type is not None:
-        kwargs["entity_type"] = request.entity_type
-    if request.status is not None:
-        kwargs["status"] = request.status
-    if request.billing_status is not None:
-        kwargs["billing_status"] = request.billing_status
-    if request.currency is not None:
-        kwargs["currency"] = request.currency
-    if request.location_id is not None:
-        kwargs["location_id"] = request.location_id
-    # Generated client types these as float for historical spec reasons;
-    # cast ints we accept at the tool boundary to keep the schema consistent.
-    if request.tracking_location_id is not None:
-        kwargs["tracking_location_id"] = float(request.tracking_location_id)
-    if request.supplier_id is not None:
-        kwargs["supplier_id"] = float(request.supplier_id)
-    if request.include_deleted is not None:
-        kwargs["include_deleted"] = request.include_deleted
+    # 1. Refresh the cache (incremental — near-zero cost steady state).
+    await ensure_purchase_orders_synced(services.client, services.typed_cache)
 
-    # Server-side date filters
-    if request.created_after is not None:
-        kwargs["created_at_min"] = parse_iso_datetime(
-            request.created_after, "created_after"
-        )
-    if request.created_before is not None:
-        kwargs["created_at_max"] = parse_iso_datetime(
-            request.created_before, "created_before"
-        )
-    if request.updated_after is not None:
-        kwargs["updated_at_min"] = parse_iso_datetime(
-            request.updated_after, "updated_after"
-        )
-    if request.updated_before is not None:
-        kwargs["updated_at_max"] = parse_iso_datetime(
-            request.updated_before, "updated_before"
-        )
+    # 2. Parse date filters once so the data SELECT and the (optional)
+    # COUNT SELECT don't each re-parse the same ISO-8601 strings.
+    parsed_dates = parse_request_dates(request, _PURCHASE_ORDER_DATE_FIELDS)
 
-    # Client-side filter parsing (eager — bad input fails loudly)
-    arrival_after_dt: datetime | None = None
-    arrival_before_dt: datetime | None = None
-    if request.expected_arrival_after is not None:
-        arrival_after_dt = parse_iso_datetime(
-            request.expected_arrival_after, "expected_arrival_after"
-        )
-    if request.expected_arrival_before is not None:
-        arrival_before_dt = parse_iso_datetime(
-            request.expected_arrival_before, "expected_arrival_before"
-        )
-    has_client_filter = arrival_after_dt is not None or arrival_before_dt is not None
-
-    # Pagination — skip short-circuit when client-side filter active.
+    # 3. Build the data query. Pair each row with a scalar-subquery
+    # ``row_count`` so the common ``include_rows=False`` case doesn't pay
+    # the selectinload cost.
+    row_count_subq = (
+        select(func.count(CachedPurchaseOrderRow.id))
+        .where(CachedPurchaseOrderRow.purchase_order_id == CachedPurchaseOrder.id)
+        .correlate(CachedPurchaseOrder)
+        .scalar_subquery()
+        .label("row_count")
+    )
+    stmt = select(CachedPurchaseOrder, row_count_subq)
+    if request.include_rows:
+        stmt = stmt.options(selectinload(CachedPurchaseOrder.purchase_order_rows))
+    stmt = _apply_purchase_order_filters(stmt, request, parsed_dates)
+    stmt = stmt.order_by(
+        CachedPurchaseOrder.created_at.desc(), CachedPurchaseOrder.id.desc()
+    )
     if request.page is not None:
-        kwargs["page"] = request.page
-    elif 1 <= request.limit <= 250 and not has_client_filter:
-        kwargs["page"] = 1
+        stmt = stmt.offset((request.page - 1) * request.limit).limit(request.limit)
+    else:
+        stmt = stmt.limit(request.limit)
 
-    response = await find_purchase_orders.asyncio_detailed(**kwargs)
-    attrs_list = unwrap_data(response, default=[])
+    # 4. Execute data query and (when paginating) a separate COUNT for meta.
+    async with services.typed_cache.session() as session:
+        data_result = await session.exec(stmt)
+        orders_with_counts: list[tuple[CachedPurchaseOrder, int]] = data_result.all()
 
-    if has_client_filter:
+        pagination: PaginationMeta | None = None
+        if request.page is not None:
+            count_stmt = _apply_purchase_order_filters(
+                select(func.count()).select_from(CachedPurchaseOrder),
+                request,
+                parsed_dates,
+            )
+            total_records = (await session.exec(count_stmt)).one()
+            total_pages = (total_records + request.limit - 1) // request.limit
+            pagination = PaginationMeta(
+                total_records=total_records,
+                total_pages=total_pages,
+                page=request.page,
+                first_page=request.page == 1,
+                last_page=request.page >= total_pages,
+            )
 
-        def _in_arrival_window(po: Any) -> bool:
-            arrival = unwrap_unset(po.expected_arrival_date, None)
-            if not isinstance(arrival, _datetime.datetime):
-                return False
-            if arrival_after_dt is not None and arrival < arrival_after_dt:
-                return False
-            return not (arrival_before_dt is not None and arrival > arrival_before_dt)
-
-        attrs_list = [po for po in attrs_list if _in_arrival_window(po)]
-
-    # Safety net: cap to request.limit post-pagination.
-    attrs_list = attrs_list[: request.limit]
-
-    # Pagination meta — only when caller set `page` explicitly.
-    pagination: PaginationMeta | None = None
-    if request.page is not None:
-        headers = getattr(response, "headers", None)
-        if headers is not None:
-            pagination = parse_pagination_header(headers.get("x-pagination"))
-
+    # 5. Materialize summaries.
     summaries: list[PurchaseOrderSummary] = []
-    for po in attrs_list:
-        raw_rows = unwrap_unset(po.purchase_order_rows, None) or []
-        rows = [_po_row_summary(r) for r in raw_rows] if request.include_rows else None
-        created_date = unwrap_unset(po.order_created_date, None)
-        expected = unwrap_unset(po.expected_arrival_date, None)
+    for po, row_count in orders_with_counts:
+        rows: list[PurchaseOrderRowSummary] | None = None
+        if request.include_rows:
+            rows = [
+                PurchaseOrderRowSummary(
+                    id=r.id,
+                    variant_id=r.variant_id,
+                    quantity=r.quantity,
+                    price_per_unit=r.price_per_unit,
+                    arrival_date=iso_or_none(r.arrival_date),
+                    received_date=iso_or_none(r.received_date),
+                    total=r.total,
+                )
+                for r in po.purchase_order_rows
+            ]
         summaries.append(
             PurchaseOrderSummary(
                 id=po.id,
-                order_no=unwrap_unset(po.order_no, None),
-                status=enum_to_str(unwrap_unset(po.status, None)),
-                billing_status=enum_to_str(unwrap_unset(po.billing_status, None)),
-                entity_type=enum_to_str(unwrap_unset(po.entity_type, None)),
-                supplier_id=unwrap_unset(po.supplier_id, None),
-                location_id=unwrap_unset(po.location_id, None),
-                currency=unwrap_unset(po.currency, None),
-                created_date=iso_or_none(created_date)
-                if isinstance(created_date, _datetime.datetime)
-                else None,
-                expected_arrival_date=iso_or_none(expected)
-                if isinstance(expected, _datetime.datetime)
-                else None,
-                total=unwrap_unset(po.total, None),
-                row_count=len(raw_rows),
+                order_no=po.order_no,
+                status=enum_to_str(po.status),
+                billing_status=enum_to_str(po.billing_status),
+                entity_type=enum_to_str(po.entity_type),
+                supplier_id=po.supplier_id,
+                location_id=po.location_id,
+                currency=po.currency,
+                created_date=iso_or_none(po.order_created_date),
+                expected_arrival_date=iso_or_none(po.expected_arrival_date),
+                total=po.total,
+                row_count=row_count,
                 rows=rows,
             )
         )
@@ -1904,7 +1964,7 @@ async def _list_purchase_orders_impl(
 async def list_purchase_orders(
     request: Annotated[ListPurchaseOrdersRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """List purchase orders with filters (list-tool pattern v2).
+    """List purchase orders with filters (cache-backed).
 
     Use this for discovery workflows — find POs by supplier, status, location,
     or within a date window. Returns summary info (order_no, status, supplier,
@@ -1914,14 +1974,21 @@ async def list_purchase_orders(
     - `status="NOT_RECEIVED"` — open POs awaiting delivery
     - `supplier_id=N` — POs for a specific supplier
     - `billing_status="NOT_BILLED"` — unbilled POs
+    - `entity_type="outsourced"` — outsourced POs only
+    - `tracking_location_id=N` — outsourced POs at a tracking location
 
-    **Time windows:**
-    - `created_after` / `created_before` — server-side bounds on `created_at`
-    - `updated_after` / `updated_before` — server-side bounds on `updated_at`
-    - `expected_arrival_after` / `expected_arrival_before` — client-side
-      bounds on `expected_arrival_date` (Katana has no server-side filter).
-      When set, the tool skips the page=1 short-circuit so auto-pagination
-      can scan enough rows to find `limit` matches post-filter.
+    **Time windows** (all run as indexed SQL date-range queries):
+    - `created_after` / `created_before` — bounds on `created_at`
+    - `updated_after` / `updated_before` — bounds on `updated_at`
+    - `expected_arrival_after` / `expected_arrival_before` — bounds on
+      `expected_arrival_date` (was a client-side post-fetch filter
+      pre-cache; now indexed SQL)
+
+    **Paging:**
+    - `limit` caps the number of rows (default 50, min 1).
+    - `page=N` returns a single page; the response includes `pagination`
+      metadata (total_records, total_pages, first/last flags) computed
+      via SQL COUNT against the same filter predicate.
 
     Pass `include_rows=True` to populate per-PO line item details.
     For full details on a specific PO, use `get_purchase_order`.

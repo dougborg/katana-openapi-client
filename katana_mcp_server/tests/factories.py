@@ -21,11 +21,15 @@ if TYPE_CHECKING:
 
     from katana_public_api_client.models_pydantic._generated import (
         CachedManufacturingOrder,
+        CachedPurchaseOrder,
+        CachedPurchaseOrderRow,
         CachedSalesOrder,
         CachedSalesOrderRow,
         CachedStockAdjustment,
         CachedStockAdjustmentRow,
         ManufacturingOrderStatus,
+        PurchaseOrderEntityType,
+        PurchaseOrderStatus,
         SalesOrderProductionStatus,
         SalesOrderStatus,
     )
@@ -271,4 +275,104 @@ def make_manufacturing_order(
         created_at=naive_utc(created_at) or datetime(2026, 4, 1),
         updated_at=naive_utc(updated_at),
         deleted_at=naive_utc(deleted_at),
+    )
+
+
+# ----------------------------------------------------------------------------
+# purchase_orders
+# ----------------------------------------------------------------------------
+
+
+def make_purchase_order(
+    *,
+    id: int = 1,
+    order_no: str = "PO-TEST",
+    entity_type: PurchaseOrderEntityType | str = "regular",
+    status: PurchaseOrderStatus | str | None = None,
+    billing_status: str | None = None,
+    supplier_id: int | None = 4001,
+    location_id: int | None = 1,
+    tracking_location_id: int | None = None,
+    currency: str | None = "USD",
+    expected_arrival_date: datetime | None = None,
+    order_created_date: datetime | None = None,
+    total: float | None = 100.0,
+    created_at: datetime | None = None,
+    updated_at: datetime | None = None,
+    deleted_at: datetime | None = None,
+    rows: list[CachedPurchaseOrderRow] | None = None,
+) -> CachedPurchaseOrder:
+    """Build a ``CachedPurchaseOrder`` for direct cache insertion.
+
+    Same datetime-normalization contract as :func:`make_sales_order`. The
+    ``entity_type`` discriminator defaults to ``"regular"`` so tests that
+    don't care about the regular/outsourced split still build valid rows;
+    pass ``"outsourced"`` plus a ``tracking_location_id`` for outsourced
+    fixtures.
+    """
+    from katana_mcp.tools.tool_result_utils import naive_utc
+
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedPurchaseOrder as _CachedPurchaseOrder,
+        PurchaseOrderEntityType as _EntityType,
+        PurchaseOrderStatus as _Status,
+    )
+
+    resolved_entity_type = (
+        _EntityType(entity_type) if isinstance(entity_type, str) else entity_type
+    )
+    resolved_status = (
+        _Status(status)
+        if isinstance(status, str)
+        else (status if status is not None else _Status.not_received)
+    )
+
+    cached = _CachedPurchaseOrder(
+        id=id,
+        order_no=order_no,
+        entity_type=resolved_entity_type,
+        status=resolved_status,
+        billing_status=billing_status,
+        supplier_id=supplier_id,
+        location_id=location_id,
+        tracking_location_id=tracking_location_id,
+        currency=currency,
+        expected_arrival_date=naive_utc(expected_arrival_date),
+        order_created_date=naive_utc(order_created_date),
+        total=total,
+        created_at=naive_utc(created_at) or datetime(2026, 4, 1),
+        updated_at=naive_utc(updated_at),
+        deleted_at=naive_utc(deleted_at),
+    )
+    cached.purchase_order_rows = rows if rows is not None else []
+    return cached
+
+
+def make_purchase_order_row(
+    *,
+    id: int,
+    purchase_order_id: int,
+    variant_id: int,
+    quantity: float = 1.0,
+    price_per_unit: float | None = None,
+    arrival_date: datetime | None = None,
+    received_date: datetime | None = None,
+    total: float | None = None,
+) -> CachedPurchaseOrderRow:
+    """Build a ``CachedPurchaseOrderRow`` for direct cache insertion."""
+    from katana_mcp.tools.tool_result_utils import naive_utc
+
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedPurchaseOrderRow as _CachedPurchaseOrderRow,
+    )
+
+    return _CachedPurchaseOrderRow(
+        id=id,
+        purchase_order_id=purchase_order_id,
+        variant_id=variant_id,
+        quantity=quantity,
+        price_per_unit=price_per_unit,
+        arrival_date=naive_utc(arrival_date),
+        received_date=naive_utc(received_date),
+        total=total,
     )

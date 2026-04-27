@@ -629,11 +629,17 @@ field (#346 follow-on).
 ---
 
 ### list_purchase_orders
-List purchase orders with filters (list-tool pattern v2).
+List purchase orders with filters. Cache-backed post-#378 — all filters run as
+indexed SQL queries against the SQLModel typed cache. ``PurchaseOrderBase`` shadows
+both ``RegularPurchaseOrder`` and ``OutsourcedPurchaseOrder`` as one cache table
+named ``purchase_order``; the outsourced-only ``tracking_location_id`` field is
+hoisted onto the cache row so it's queryable across both subtypes.
 
 **Paging:**
 - `limit` (optional, default 50, min 1, max 250): Max rows to return
-- `page` (optional, min 1): Page number (1-based), disables auto-pagination
+- `page` (optional, min 1): Page number (1-based); when set, the response includes
+  `pagination` metadata (total_records, total_pages) computed via SQL COUNT against
+  the same filter predicate
 
 **Domain filters:**
 - `ids` (optional): Explicit list of PO IDs
@@ -643,23 +649,18 @@ List purchase orders with filters (list-tool pattern v2).
 - `billing_status` (optional): BILLED, NOT_BILLED, PARTIALLY_BILLED
 - `currency` (optional): Currency code (e.g. "USD")
 - `location_id` (optional): Receiving location ID
-- `tracking_location_id` (optional): Tracking location ID (outsourced)
+- `tracking_location_id` (optional): Tracking location ID (outsourced POs)
 - `supplier_id` (optional): Supplier ID
 - `include_deleted` (optional): Include soft-deleted POs
 
-**Time windows (server-side):**
+**Time windows** (all run as indexed SQL date-range queries):
 - `created_after` / `created_before`: ISO-8601 bounds on `created_at`
 - `updated_after` / `updated_before`: ISO-8601 bounds on `updated_at`
-
-**Time windows (client-side — Katana has no server filter):**
 - `expected_arrival_after` / `expected_arrival_before`: bounds on
-  `expected_arrival_date`. When set, the tool skips the page=1
-  short-circuit so auto-pagination can scan enough rows to find `limit`
-  matches post-filter.
+  `expected_arrival_date` (was a client-side post-fetch filter pre-cache; now indexed SQL)
 
 - `include_rows` (optional, default false): Populate per-PO line item detail
-  (variant_id, quantity, price, arrival). The list endpoint bundles rows
-  inline, so this is free compared to `list_sales_orders`.
+  (variant_id, quantity, price, arrival).
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Summary rows with id, order_no, status, billing_status,
