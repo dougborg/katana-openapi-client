@@ -28,7 +28,7 @@ from katana_mcp.tools.tool_result_utils import (
     iso_or_none,
     make_tool_result,
     none_coro,
-    parse_iso_datetime,
+    parse_request_dates,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET, Unset
@@ -504,45 +504,14 @@ class ListSalesOrdersResponse(BaseModel):
     )
 
 
-def _naive_utc(dt: datetime | None) -> datetime | None:
-    """Normalize a datetime to naive UTC for comparison against the cache.
-
-    The typed cache stores timestamps as naive UTC (SQLite's default
-    DateTime column doesn't preserve tzinfo). Tz-aware filter datetimes
-    are converted to naive UTC so SQLAlchemy comparisons don't raise
-    "can't compare offset-naive and offset-aware".
-    """
-    if dt is None:
-        return None
-    if dt.tzinfo is not None:
-        return dt.astimezone(UTC).replace(tzinfo=None)
-    return dt
-
-
-def _parse_date_filters(
-    request: ListSalesOrdersRequest,
-) -> dict[str, datetime | None]:
-    """Parse every ISO-8601 date filter on the request to naive UTC.
-
-    Run once in the impl so repeated calls to ``_apply_sales_order_filters``
-    (data SELECT + COUNT SELECT on the paginated path) don't re-parse the
-    same strings.
-    """
-    names = (
-        "created_after",
-        "created_before",
-        "updated_after",
-        "updated_before",
-        "delivered_after",
-        "delivered_before",
-    )
-    result: dict[str, datetime | None] = {}
-    for name in names:
-        raw = getattr(request, name)
-        result[name] = (
-            _naive_utc(parse_iso_datetime(raw, name)) if raw is not None else None
-        )
-    return result
+_SALES_ORDER_DATE_FIELDS = (
+    "created_after",
+    "created_before",
+    "updated_after",
+    "updated_before",
+    "delivered_after",
+    "delivered_before",
+)
 
 
 def _apply_sales_order_filters(
@@ -554,7 +523,7 @@ def _apply_sales_order_filters(
 
     Shared by the data SELECT and the COUNT SELECT so pagination totals
     reflect exactly the same filter set as the data rows. ``parsed_dates``
-    must come from :func:`_parse_date_filters` — keeping parsing out of
+    must come from :func:`parse_request_dates` — keeping parsing out of
     this function lets the paginated path avoid re-parsing on the COUNT
     query.
     """
@@ -648,7 +617,7 @@ async def _list_sales_orders_impl(
 
     # 2. Parse date filters once so the data SELECT and the (optional)
     # COUNT SELECT don't each re-parse the same ISO-8601 strings.
-    parsed_dates = _parse_date_filters(request)
+    parsed_dates = parse_request_dates(request, _SALES_ORDER_DATE_FIELDS)
 
     # 3. Build the data query. Pair each row with a scalar-subquery
     # ``row_count`` so the common ``include_rows=False`` case doesn't pay
