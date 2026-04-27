@@ -1,13 +1,21 @@
 """Reporting and aggregation tools for Katana MCP Server.
 
 Read-only aggregation tools that compute rollups client-side from paginated
-sales-order data. These exist to replace multi-call analytical workflows
-(e.g. "top 20 selling bikes over the last 90 days") with a single tool call.
+sales-order data — and, for inventory velocity, from completed-MO recipe
+rows joined out of the typed cache. These exist to replace multi-call
+analytical workflows (e.g. "top 20 selling bikes over the last 90 days")
+with a single tool call.
 
 Tools:
 - top_selling_variants: top-N variants by units or revenue over a date window
 - sales_summary: group sales in a window by day/week/month/variant/customer/category
-- inventory_velocity: units_sold, avg_daily, stock_on_hand, days_of_cover for a SKU
+- inventory_velocity: units_sold, avg_daily, stock_on_hand, days_of_cover.
+  Accepts either a single ``sku_or_variant_id`` or a batch of up to 100 via
+  ``sku_or_variant_ids`` (one row per item). When ``include_mo_consumption``
+  is true (default), units consumed as ingredients on completed manufacturing
+  orders within the window are added to the velocity figure on top of the
+  delivered-SO units, sourced from the ``manufacturing_order_recipe_row``
+  cache table.
 
 **Implementation notes:**
 
@@ -21,6 +29,9 @@ Tools:
   semantics are "order was created within [start, end]".
 - Variant → category lookup is cached per tool call in a local dict to avoid
   N+1 API calls across many sales-order rows.
+- ``inventory_velocity``'s MO-consumption path filters cached MOs to
+  ``status=DONE`` with ``done_date`` inside the window before joining recipe
+  rows — so partially completed or in-progress MOs don't contribute.
 """
 
 from __future__ import annotations
@@ -788,6 +799,9 @@ async def _fetch_completed_mo_recipe_rows_in_window(
         ManufacturingOrderStatus,
     )
 
+    # Parallel-safe: the two sync helpers acquire disjoint per-entity locks
+    # (``manufacturing_order`` vs ``manufacturing_order_recipe_row``), so
+    # ``asyncio.gather`` won't deadlock or interleave writes within a table.
     await asyncio.gather(
         ensure_manufacturing_orders_synced(services.client, services.typed_cache),
         ensure_manufacturing_order_recipe_rows_synced(
