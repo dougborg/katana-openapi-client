@@ -21,12 +21,43 @@ allowed-tools:
   - Bash(uv run poe check)
   - Bash(uv run poe agent-check)
   - Bash(uv run poe fix)
+  - Bash(./.claude/skills/review-pr/scripts/fetch-review-threads.sh*)
 ---
 
-# PR Review Comment Workflow
+# /review-pr — PR Review Comment Workflow
 
-Address all unresolved PR review comments: fix the code, validate, commit, push, and
-reply.
+## PURPOSE
+
+Address every unresolved PR review comment: fix code, validate, commit, push, reply.
+
+## CRITICAL
+
+- **Fix first, reply after push** — replies confirm the fix is live; never reply on stale code.
+- **Reply to every unresolved comment** — none left without a response.
+- **No shortcuts** — never `--no-verify`, `noqa`, `type: ignore`, or `@pytest.mark.skip` to make validation pass.
+- **Reply in thread, not on the PR** — use `POST /repos/{owner}/{repo}/pulls/{number}/comments/{comment_id}/replies` (or the `in_reply_to` body param on the comments endpoint). Plain `gh pr comment` loses thread context.
+- **File issues for deferred work** — every "acknowledged but deferring" reply must reference a GitHub issue (`gh issue create` first; include the number in the reply).
+- **Clean history via rebase** — fold review fixes into target commits with `fixup!` + `--autosquash`. Don't squash everything into one; preserve meaningful boundaries.
+
+## STANDARD PATH
+
+1. **Identify the PR** — `$ARGUMENTS` or auto-detect; capture base branch (Phase 1).
+2. **Check mergeability** — resolve conflicts and CI failures BEFORE addressing comments (Phase 1b).
+3. **Fetch all comments** — REST + GraphQL for resolved status (Phase 2).
+4. **Triage each unresolved comment** — fix needed / already fixed / acknowledge (Phase 3).
+5. **Fix all issues** — code changes + `uv run poe check` clean (Phase 4).
+6. **Commit, rebase, push** — fixup commits + `rebase --autosquash` + `push --force-with-lease` (Phase 5).
+7. **Reply to every comment** — using the correct replies endpoint (Phase 6).
+8. **Update PR description** — reflect any scope changes (Phase 7).
+9. **Summary** — counts, files changed, validation result (Phase 8).
+
+See phase detail below.
+
+## EDGE CASES
+
+- **Comment has prior replies** — check whether the issue was actually resolved. If not, fix it and add a new reply.
+- **Reviewer feedback contradicts project standards** — acknowledge, explain the constraint, link `CLAUDE.md` or ADR. Don't dismiss; don't capitulate to a wrong direction.
+- **Cross-cutting fix** — if a fix doesn't map to one original commit, create a standalone descriptive commit instead of forcing a `fixup!`.
 
 ## Phase 1: Identify the PR
 
@@ -93,33 +124,13 @@ Fetch every review comment on the PR:
 gh api repos/{owner}/{repo}/pulls/{number}/comments --paginate
 ```
 
-Also fetch review threads to check resolved status:
+Also fetch review threads to check resolved status — use the helper script (avoids inline GraphQL drift and paginates correctly through both `reviewThreads` and per-thread `comments`, so PRs with >100 threads or >100 comments per thread don't silently drop entries):
 
 ```bash
-gh api graphql -f query='
-  query($owner: String!, $repo: String!, $number: Int!) {
-    repository(owner: $owner, name: $repo) {
-      pullRequest(number: $number) {
-        reviewThreads(first: 100) {
-          nodes {
-            isResolved
-            comments(first: 100) {
-              nodes {
-                id
-                databaseId
-                body
-                path
-                line
-                author { login }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-' -F owner="{owner}" -F repo="{repo}" -F number={number}
+./.claude/skills/review-pr/scripts/fetch-review-threads.sh {owner} {repo} {number}
 ```
+
+The script returns a JSON array of threads with `isResolved` plus the comments in each thread (id, databaseId, body, path, line, author).
 
 Present a summary table of all comments:
 
