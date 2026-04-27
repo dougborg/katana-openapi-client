@@ -20,10 +20,38 @@ allowed-tools:
   - Bash(uv run poe fix)
 ---
 
-# Open PR Workflow
+# /open-pr — Open PR Workflow
 
-Take the current feature branch from "implementation done" to "PR open, CI green,
-first-round review addressed."
+## PURPOSE
+
+Take a feature branch from "implementation done" to "PR open, CI green, review addressed."
+
+## CRITICAL
+
+- **Validate before opening** — `uv run poe check` must pass; never use `--no-verify`, `noqa`, or `type: ignore`.
+- **Self-review the full diff** — review every change before opening, not just the latest commit.
+- **Stage specific files** — never `git add -A` or `git add .`.
+- **HEREDOC for messages** — commit messages and PR bodies always use HEREDOC for proper formatting.
+- **File issues for deferred work** — if the self-review identifies out-of-scope problems, create a tracking issue with `gh issue create` before opening the PR.
+- **Delegate review-comment handling** — never duplicate `/review-pr`; invoke it.
+
+## STANDARD PATH
+
+1. **Pre-flight** — confirm not on `main`, run `uv run poe check`, check for existing PR (Phase 1).
+2. **Self-review** — read the full diff vs base; fix issues found (Phase 2).
+3. **Organize commits** — group into logical commits with conventional format (Phase 3).
+4. **Push and create** — `git push -u`, `gh pr create` with HEREDOC body (Phase 4).
+5. **Wait for CI** — `gh pr checks --watch`; fix failures in-place (Phase 5).
+6. **Wait for review** — poll for ≤15 min; if comments arrive, delegate to `/review-pr` (Phases 6–7).
+7. **Summary** — print PR URL, commit count, CI status, review state (Phase 8).
+
+See phase detail below.
+
+## EDGE CASES
+
+- **Existing open PR on this branch** — stop and tell the user to use `/review-pr` instead.
+- **CI fails** — fetch logs with `gh run view --log-failed`, fix locally, push; never close + reopen.
+- **15-minute review timeout** — report "CI green, no comments yet" and stop. Don't wait forever.
 
 ## Phase 1: Pre-flight checks
 

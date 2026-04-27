@@ -1,0 +1,68 @@
+{
+  "$comment": "Tracks provenance of files in .claude/. 'source: harness-kit' files came from the upstream plugin baseline; 'source: local' are project-specific. Run /harness-kit:harness update to sync upstream changes.",
+  "sources": {
+    "harness-kit": {
+      "version": "0.4.0",
+      "installed": "2026-04-27"
+    }
+  },
+  "files": {
+    ".claude/agents/code-reviewer.md": {
+      "source": "harness-kit",
+      "modified": true,
+      "note": "Project-tuned with Katana conventions (UNSET, unwrap_*, generated-file boundaries, list data envelope, help-resource sync)"
+    },
+    ".claude/agents/verifier.md": {
+      "source": "harness-kit",
+      "modified": true,
+      "note": "Project-tuned with hardcoded uv run poe check verification command"
+    },
+    ".claude/agents/domain-advisor.md": {
+      "source": "local"
+    },
+    ".claude/agents/spec-auditor.md": {
+      "source": "local"
+    },
+    ".claude/agents/code-modernizer.md": {
+      "source": "local"
+    },
+    ".claude/agents/pr-preparer.md": {
+      "source": "local"
+    },
+    ".claude/skills/open-pr/SKILL.md": {
+      "source": "local",
+      "note": "Project-flavored open-pr workflow; harness-kit:open-pr available via plugin for the generic version"
+    },
+    ".claude/skills/review-pr/SKILL.md": {
+      "source": "local",
+      "note": "Project-flavored review-pr workflow; harness-kit:review-pr available via plugin"
+    },
+    ".claude/skills/review-pr/scripts/fetch-review-threads.sh": {
+      "source": "local"
+    },
+    ".claude/skills/pre-commit/SKILL.md": {
+      "source": "local",
+      "note": "Migrated from .claude/commands/pre-commit.md"
+    },
+    ".claude/skills/review/SKILL.md": {
+      "source": "local",
+      "note": "Migrated from .claude/commands/review.md; delegates to code-reviewer agent"
+    },
+    ".claude/skills/techdebt/SKILL.md": {
+      "source": "local",
+      "note": "Migrated from .claude/commands/techdebt.md"
+    },
+    ".claude/skills/verify/SKILL.md": {
+      "source": "local",
+      "note": "Migrated from .claude/commands/verify.md; heavier sibling of verifier agent"
+    },
+    ".claude/skills/write-tests/SKILL.md": {
+      "source": "local",
+      "note": "Migrated from .claude/commands/write-tests.md"
+    },
+    ".claude/skills/generate-docs/SKILL.md": {
+      "source": "local",
+      "note": "Migrated from .claude/commands/generate-docs.md"
+    }
+  }
+}
