@@ -73,6 +73,27 @@ fixes.
 - **Generated (DO NOT EDIT):** `api/**/*.py`, `models/**/*.py`, `client.py`
 - **Editable:** `katana_client.py`, `log_setup.py`, tests, docs
 
+**Generator-rewrite philosophy: regex first, libcst when the pattern grows, never
+jinja.**
+
+`scripts/generate_pydantic_models.py` runs *on top of* `datamodel-codegen`'s output.
+datamodel-codegen already does the hard work (OpenAPI → pydantic, type inference,
+discriminated unions, validators); our job is purely additive — inject SQLModel
+annotations, add `Cached<Name>` siblings, attach `Column(JSON)` on JSON-typed list
+fields, etc. For that scope, **regex-based source rewrites on top of the generated
+output are the right tool**: auditable, minimal, fast, and the failure mode (failed
+substitution) is loud (`raise GenerationError`).
+
+Triggers to upgrade the rewriting layer:
+
+- More than ~5 additional transforms accumulate, *or*
+- Recurring whitespace/formatting edge cases bite repeated transforms
+
+→ migrate to **libcst** (preserves formatting exactly, structured idempotent rewrites).
+**Do not** swap in jinja or hand-roll a new code-generation framework — full
+template-replacement of datamodel-codegen is out of scope and would multiply the surface
+area we have to keep in sync with the spec.
+
 **📄 ADR:**
 [ADR-002: OpenAPI Code Generation](../../../katana_public_api_client/docs/adr/0002-openapi-code-generation.md)
 

@@ -34,6 +34,8 @@ Take a feature branch from "implementation done" to "PR open, CI green, review a
 - **HEREDOC for messages** — commit messages and PR bodies always use HEREDOC for proper formatting.
 - **File issues for deferred work** — if the self-review identifies out-of-scope problems, create a tracking issue with `gh issue create` before opening the PR.
 - **Delegate review-comment handling** — never duplicate `/review-pr`; invoke it.
+- **Run `/review-pr` before auto-merge can land** — CI-green is not the only gate. Reviewer feedback (Copilot, human, bot) is the other half. Auto-merge fires the moment CI passes, which can race ahead of unresolved comments and silently land a PR with unaddressed findings. After opening the PR, **always** invoke `/review-pr <#>` to surface and address every unresolved comment before allowing the merge to land. Applies to small cleanup PRs too — the failure mode compounds across multi-PR epics.
+- **In multi-PR epics, run `/simplify` and `/review-pr` between each PR** — after each PR in a series merges to `main`, do a cleanup pass on `main` before starting the next PR. Post-merge is the cheapest time to catch complexity accretion, drift, and review follow-ups that slipped through. Waiting until the end of the epic means the whole series carries forward whatever cruft each step introduced. Bake the pair into the plan as an explicit step between PR N and PR N+1, not a one-off step at the end. Recent epic context: applied during #342 cache-back wave and the #346 `get_*` exhaustive wave.
 
 ## STANDARD PATH
 
