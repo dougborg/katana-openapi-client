@@ -28,6 +28,7 @@ from __future__ import annotations
 from .engine import TypedCacheEngine
 from .sync import (
     ensure_manufacturing_orders_synced,
+    ensure_purchase_orders_synced,
     ensure_sales_orders_synced,
     ensure_stock_adjustments_synced,
 )
@@ -37,6 +38,7 @@ __all__ = [
     "SyncState",
     "TypedCacheEngine",
     "ensure_manufacturing_orders_synced",
+    "ensure_purchase_orders_synced",
     "ensure_sales_orders_synced",
     "ensure_stock_adjustments_synced",
 ]

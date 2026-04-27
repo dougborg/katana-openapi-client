@@ -19,15 +19,19 @@ from typing import TYPE_CHECKING
 from katana_public_api_client.api.manufacturing_order import (
     get_all_manufacturing_orders,
 )
+from katana_public_api_client.api.purchase_order import find_purchase_orders
 from katana_public_api_client.api.sales_order import get_all_sales_orders
 from katana_public_api_client.api.stock_adjustment import get_all_stock_adjustments
 from katana_public_api_client.models_pydantic._generated import (
     CachedManufacturingOrder,
+    CachedPurchaseOrder,
+    CachedPurchaseOrderRow,
     CachedSalesOrder,
     CachedSalesOrderRow,
     CachedStockAdjustment,
     CachedStockAdjustmentRow,
     ManufacturingOrder as PydanticManufacturingOrder,
+    PurchaseOrderBase as PydanticPurchaseOrderBase,
     SalesOrder as PydanticSalesOrder,
     StockAdjustment as PydanticStockAdjustment,
 )
@@ -256,6 +260,100 @@ async def ensure_manufacturing_orders_synced(
                     entity_type="manufacturing_order",
                     last_synced=datetime.now(tz=UTC).replace(tzinfo=None),
                     row_count=len(cached_orders),
+                )
+            )
+            await session.commit()
+
+
+def _attrs_purchase_order_to_cached(
+    attrs_po: object,
+) -> tuple[CachedPurchaseOrder, list[CachedPurchaseOrderRow]]:
+    """Convert one attrs ``PurchaseOrder`` (regular | outsourced) to cache rows.
+
+    Three-step:
+    1. Pick the right API pydantic class from the attrs subtype: regular
+       and outsourced POs share ``PurchaseOrderBase`` fields but differ in
+       ``entity_type`` literal and the outsourced-only
+       ``tracking_location_id`` / ``ingredient_*`` fields.
+    2. Dump the API model and re-validate into ``CachedPurchaseOrder`` —
+       the cache class shadows ``PurchaseOrderBase`` (renamed via
+       ``CACHE_TABLE_RENAMES``) and carries an extra
+       ``tracking_location_id`` column hoisted from the outsourced
+       subclass via ``CACHE_EXTRA_FIELDS``. The dump captures it
+       automatically when the source is an outsourced PO.
+    3. Build child rows with ``purchase_order_id`` set explicitly from the
+       parent, mirroring the stock-adjustment shape.
+    """
+    # Dispatch by attrs class via the model registry so we round-trip the
+    # right subclass (regular/outsourced) — calling
+    # ``PydanticPurchaseOrderBase.from_attrs`` directly would lose the
+    # outsourced-only fields (``tracking_location_id`` etc.).
+    from katana_public_api_client.models_pydantic._registry import get_pydantic_class
+
+    api_class = get_pydantic_class(type(attrs_po))
+    if api_class is None:
+        msg = (
+            f"No pydantic class registered for attrs purchase order "
+            f"type {type(attrs_po).__name__}"
+        )
+        raise RuntimeError(msg)
+    api_po: PydanticPurchaseOrderBase = api_class.from_attrs(attrs_po)
+
+    parent_data = api_po.model_dump(exclude={"purchase_order_rows"})
+    cached_parent = CachedPurchaseOrder.model_validate(parent_data)
+
+    child_rows: list[CachedPurchaseOrderRow] = []
+    api_rows = api_po.purchase_order_rows or []
+    for api_row in api_rows:
+        row_data = api_row.model_dump()
+        # Re-assert from the parent. Katana already returns
+        # ``purchase_order_id`` on rows, but the parent's id is the
+        # source of truth on insert.
+        row_data["purchase_order_id"] = api_po.id
+        child_rows.append(CachedPurchaseOrderRow.model_validate(row_data))
+    return cached_parent, child_rows
+
+
+async def ensure_purchase_orders_synced(
+    client: KatanaClient, cache: TypedCacheEngine
+) -> None:
+    """Pull updated purchase orders from Katana and upsert into the cache.
+
+    Mirror of :func:`ensure_sales_orders_synced` for the ``PurchaseOrder``
+    discriminated-union entity. Cold-start fetches full history; subsequent
+    calls pass ``updated_at_min``. Per-entity lock keeps cold-start fan-out
+    single-flight.
+    """
+    async with cache.lock_for("purchase_order"):
+        async with cache.session() as session:
+            state = await session.get(SyncState, "purchase_order")
+            last_synced = state.last_synced if state is not None else None
+
+        kwargs = (
+            {"updated_at_min": last_synced.replace(tzinfo=UTC)}
+            if last_synced is not None
+            else {}
+        )
+        response = await find_purchase_orders.asyncio_detailed(client=client, **kwargs)
+        attrs_orders = unwrap_data(response, default=[])
+
+        cached_parents: list[CachedPurchaseOrder] = []
+        cached_children: list[CachedPurchaseOrderRow] = []
+        for attrs_po in attrs_orders:
+            parent, children = _attrs_purchase_order_to_cached(attrs_po)
+            cached_parents.append(parent)
+            cached_children.extend(children)
+
+        async with cache.session() as session:
+            for parent in cached_parents:
+                await session.merge(parent)
+            for child in cached_children:
+                await session.merge(child)
+            await session.merge(
+                SyncState(
+                    entity_type="purchase_order",
+                    last_synced=datetime.now(tz=UTC).replace(tzinfo=None),
+                    row_count=len(cached_parents),
                 )
             )
             await session.commit()

@@ -222,6 +222,8 @@ from .manufacturing import (
     UpdateRecipeRowRequest,
 )
 from .purchase_orders import (
+    CachedPurchaseOrder,
+    CachedPurchaseOrderRow,
     CreateOutsourcedPurchaseOrderRecipeRowRequest,
     CreatePurchaseOrderAdditionalCostRowRequest,
     CreatePurchaseOrderInitialStatus,
@@ -409,6 +411,8 @@ __all__ = [
     "BomRow",
     "BomRowListResponse",
     "CachedManufacturingOrder",
+    "CachedPurchaseOrder",
+    "CachedPurchaseOrderRow",
     "CachedSalesOrder",
     "CachedSalesOrderRow",
     "CachedStockAdjustment",

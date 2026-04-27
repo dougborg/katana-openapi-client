@@ -181,6 +181,30 @@ CACHE_TABLES: set[str] = {
     "StockAdjustment",
     "StockAdjustmentRow",
     "ManufacturingOrder",
+    "PurchaseOrderBase",
+    "PurchaseOrderRow",
+}
+
+
+# Cache class name overrides — when the API class name reads awkwardly as a
+# cache class, remap. Example: ``PurchaseOrderBase`` is the API discriminated
+# union root (sibling of RegularPurchaseOrder + OutsourcedPurchaseOrder); the
+# cache class shadows it as ``CachedPurchaseOrder`` (and ``__tablename__`` is
+# ``purchase_order``, not ``purchase_order_base``).
+CACHE_TABLE_RENAMES: dict[str, str] = {
+    "PurchaseOrderBase": "PurchaseOrder",
+}
+
+
+# Cache-only fields hoisted from API subclasses into the cache base. Used when
+# a discriminated-union root (PurchaseOrderBase) is cached as one SQL table
+# but the listing tool needs to filter by a column that lives on a subclass
+# (OutsourcedPurchaseOrder.tracking_location_id). The converter copies these
+# fields out of the subclass instance when the entity_type matches.
+CACHE_EXTRA_FIELDS: dict[str, list[str]] = {
+    "PurchaseOrderBase": [
+        "    tracking_location_id: int | None = None",
+    ],
 }
 
 
@@ -196,7 +220,12 @@ class CacheTableRelationship:
 
     @property
     def parent_table(self) -> str:
-        return _snake_case(self.parent)
+        # Honor ``CACHE_TABLE_RENAMES`` so FK ``foreign_key="<table>.id"``
+        # references match the renamed tablename (e.g.,
+        # ``PurchaseOrderBase`` → ``purchase_order``, not
+        # ``purchase_order_base``).
+        renamed = CACHE_TABLE_RENAMES.get(self.parent, self.parent)
+        return _snake_case(renamed)
 
 
 def _snake_case(name: str) -> str:
@@ -210,10 +239,10 @@ def _cached_name(name: str) -> str:
     Cache rows live as ``Cached<Name>`` siblings of the API pydantic models
     so the API surface stays pure (no ``table=True``, no FK pollution) while
     the cache schema can carry SQLAlchemy machinery, FK back-pointers, and
-    relationships. Use this everywhere instead of string-formatting so the
-    convention is centralized.
+    relationships. ``CACHE_TABLE_RENAMES`` lets a class shadow under a
+    different name (``PurchaseOrderBase`` → ``CachedPurchaseOrder``).
     """
-    return f"Cached{name}"
+    return f"Cached{CACHE_TABLE_RENAMES.get(name, name)}"
 
 
 CACHE_RELATIONSHIPS: list[CacheTableRelationship] = [
@@ -231,6 +260,13 @@ CACHE_RELATIONSHIPS: list[CacheTableRelationship] = [
         child_back_ref="stock_adjustment",
         child_fk_field="stock_adjustment_id",
     ),
+    CacheTableRelationship(
+        parent="PurchaseOrderBase",
+        parent_field="purchase_order_rows",
+        child="PurchaseOrderRow",
+        child_back_ref="purchase_order",
+        child_fk_field="purchase_order_id",
+    ),
 ]
 
 
@@ -243,6 +279,12 @@ CACHE_JSON_COLUMNS: dict[str, list[str]] = {
     "SalesOrderRow": ["attributes", "batch_transactions", "serial_numbers"],
     "StockAdjustmentRow": ["batch_transactions"],
     "ManufacturingOrder": ["batch_transactions", "serial_numbers"],
+    # PurchaseOrderBase.supplier is a single nested ``Supplier`` object that
+    # SQLAlchemy can't auto-map; cache it as JSON so the row stays denormalized.
+    "PurchaseOrderBase": ["supplier"],
+    # ``landed_cost: str | float | None`` is a non-optional inner union
+    # that SQLAlchemy can't auto-type — JSON-column it instead of dropping.
+    "PurchaseOrderRow": ["batch_transactions", "landed_cost"],
 }
 
 
@@ -461,6 +503,7 @@ def parse_generated_file(
     classes = inject_foreign_keys(classes)
     classes = inject_relationship_fields(classes)
     classes = inject_json_columns(classes)
+    classes = inject_extra_cache_fields(classes)
 
     print(
         f"  Found {len(imports)} imports, {len(classes)} classes, "
@@ -1146,6 +1189,41 @@ def swap_awaredatetime_for_datetime(classes: list[ClassInfo]) -> list[ClassInfo]
         if new_source == cls.source:
             fixed.append(cls)
             continue
+        fixed.append(
+            ClassInfo(
+                name=cls.name,
+                source=new_source,
+                bases=cls.bases,
+                line_start=cls.line_start,
+                line_end=cls.line_end,
+            )
+        )
+    return fixed
+
+
+def inject_extra_cache_fields(classes: list[ClassInfo]) -> list[ClassInfo]:
+    """Append ``CACHE_EXTRA_FIELDS`` declarations to the cache class body.
+
+    For discriminated-union roots (PurchaseOrderBase) cached as a single
+    SQL table, this hoists subclass-only fields onto the cache class so
+    queries can filter by them without a UNION across two tables. The
+    converter copies the values from the API subclass instance.
+
+    Inserts each declaration line at the end of the class body. Plain
+    pydantic ``Field`` annotation is sufficient — SQLModel infers the
+    column type from the annotation. ``Optional`` types stay nullable on
+    the column.
+    """
+    cached_extras = {
+        _cached_name(name): fields for name, fields in CACHE_EXTRA_FIELDS.items()
+    }
+    fixed = []
+    for cls in classes:
+        extra_lines = cached_extras.get(cls.name)
+        if not extra_lines:
+            fixed.append(cls)
+            continue
+        new_source = cls.source.rstrip() + "\n" + "\n".join(extra_lines) + "\n"
         fixed.append(
             ClassInfo(
                 name=cls.name,
