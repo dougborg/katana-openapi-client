@@ -90,16 +90,52 @@ Common mistakes to avoid:
 - **Polluting the API spec/models with cache-only fields** - The OpenAPI spec at
   `docs/katana-openapi.yaml` and the generated pydantic models in
   `katana_public_api_client/models_pydantic/_generated/*.py` reflect Katana's actual
-  wire contract. **Never** add fields to the spec or inject fields into the API
-  pydantic classes to satisfy cache-schema, MCP-tool, or other consumer needs. Cache
-  schemas live on sibling `Cached<Name>` classes emitted by the same generator pass —
-  the API class stays pure pydantic, the cache class carries `table=True`, foreign
-  keys, relationships, JSON columns, and any cache-only fields. See
-  `scripts/generate_pydantic_models.py::duplicate_cache_tables_as_cached_siblings`
-  and `katana_mcp_server/src/katana_mcp/typed_cache/sync.py::_attrs_<entity>_to_cached`
-  for the conversion pattern: attrs → API pydantic (via the registry) → cache pydantic
-  (via `model_dump`/`model_validate`), with relationship fields set after construction
-  since SQLModel `Relationship` descriptors don't accept input via `__init__`.
+  wire contract. **Never** add fields to the spec or inject fields into the API pydantic
+  classes to satisfy cache-schema, MCP-tool, or other consumer needs. Cache schemas live
+  on sibling `Cached<Name>` classes emitted by the same generator pass — the API class
+  stays pure pydantic, the cache class carries `table=True`, foreign keys,
+  relationships, JSON columns, and any cache-only fields. See
+  `scripts/generate_pydantic_models.py::duplicate_cache_tables_as_cached_siblings` and
+  `katana_mcp_server/src/katana_mcp/typed_cache/sync.py::_attrs_<entity>_to_cached` for
+  the conversion pattern: attrs → API pydantic (via the registry) → cache pydantic (via
+  `model_dump`/`model_validate`), with relationship fields set after construction since
+  SQLModel `Relationship` descriptors don't accept input via `__init__`.
+- **Fix bugs at the client/generator layer when the root cause lives there** - The
+  Katana client (`katana_public_api_client`) is a published, standalone package.
+  Third-party Python users hit the same bugs we hit in MCP. When a bug surfaces in
+  `katana_mcp_server/.../typed_cache/sync.py`, in a foundation tool, or in a helper but
+  originates in generated client code (attrs, pydantic, `from_attrs`, `Cached*`
+  schemas), apply the fix to the **generator or spec** — not the consumer. Test: *"would
+  a standalone client user hit this bug?"* If yes, fix it in the client. Examples:
+  `Pydantic*.from_attrs` raising on `{}` from Katana → fix `from_attrs` codegen, not
+  `_attrs_*_to_cached`. `Column(JSON)` failing to serialize a pydantic instance → fix
+  `inject_json_columns` in `scripts/generate_pydantic_models.py`, not `sync.py`. Missing
+  enum value → patch spec + regenerate, not enum-tolerant deserialization downstream.
+- **List responses must use a `ListResponse` schema with `data` array property** -
+  Katana wraps every GET list endpoint in `{"data": [...]}`. If the OpenAPI spec defines
+  a 200 response as `type: array`, the generated parser iterates `response.json()`
+  directly — when the API returns the dict wrapper, iteration yields keys (strings) and
+  `Model.from_dict("data")` raises
+  `ValueError: dictionary update sequence element #0 has length 1; 2 is required`.
+  Always define a proper `MyListResponse` schema (`type: object`,
+  `properties.data: {type: array, items: {$ref: ...}}`) and reference it from the
+  operation. The only documented exception is `/user_info`, which returns a flat object,
+  not wrapped.
+- **Real names and emails from live API responses must never enter the repo** - When
+  testing against the live Katana API and incorporating response data into the spec,
+  examples, or test fixtures, replace real names/emails with generic placeholders
+  (`Jane Doe`, `jane.doe@example.com`, etc.). Privacy concern — real user data from
+  production accounts should not be committed.
+- **Always call functions with named/keyword arguments** - Use `func(param=value)`, not
+  `func(value)`, for all calls — including third-party constructors (especially
+  `prefab_ui` components, which only accept keyword args), API methods, and cache
+  helpers. Caught by review when positional args caused runtime errors with
+  `prefab_ui.Metric`. Explicitness > brevity.
+- **Never delete `.claude/worktrees/` directories or their contents** - Other agents may
+  be actively working inside them; deleting destroys their in-progress context. If a
+  worktree causes downstream issues (e.g., `ty` type checker scanning into it),
+  **exclude the path in tool config** — never `rm -rf` the directory. Treat
+  `.claude/worktrees/` as off-limits for destructive operations.
 
 ## Using the LSP tool
 
@@ -255,14 +291,14 @@ audits and updates.
 
 Spawn via the `Agent` tool with `subagent_type` set to the agent name.
 
-| Agent             | Model  | Purpose                                                          |
-| ----------------- | ------ | ---------------------------------------------------------------- |
-| `code-reviewer`   | sonnet | Six-dimension read-only review of the current diff               |
-| `verifier`        | haiku  | Mechanical pre-PR gate (validation, debug code, history)         |
-| `domain-advisor`  | sonnet | Read-only Q&A on Katana conventions (UNSET, unwrap, helpers)     |
-| `code-modernizer` | sonnet | Actively rewrites Katana-specific anti-patterns                  |
-| `pr-preparer`     | haiku  | Project-specific PR readiness (coverage, ADRs, help-resource)    |
-| `spec-auditor`    | sonnet | Audit local OpenAPI spec vs upstream Katana API                  |
+| Agent             | Model  | Purpose                                                       |
+| ----------------- | ------ | ------------------------------------------------------------- |
+| `code-reviewer`   | sonnet | Six-dimension read-only review of the current diff            |
+| `verifier`        | haiku  | Mechanical pre-PR gate (validation, debug code, history)      |
+| `domain-advisor`  | sonnet | Read-only Q&A on Katana conventions (UNSET, unwrap, helpers)  |
+| `code-modernizer` | sonnet | Actively rewrites Katana-specific anti-patterns               |
+| `pr-preparer`     | haiku  | Project-specific PR readiness (coverage, ADRs, help-resource) |
+| `spec-auditor`    | sonnet | Audit local OpenAPI spec vs upstream Katana API               |
 
 Recommended PR pipeline: `code-modernizer` → `verifier` → `pr-preparer` →
 `code-reviewer` → `/open-pr`.
