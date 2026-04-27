@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 from collections.abc import Iterable
 from datetime import UTC, datetime
+from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 from fastmcp.tools import ToolResult
@@ -110,6 +111,51 @@ def parse_request_dates(
             naive_utc(parse_iso_datetime(raw, name)) if raw is not None else None
         )
     return result
+
+
+def apply_date_window_filters(
+    stmt: Any,
+    parsed_dates: dict[str, datetime | None],
+    *,
+    ge_pairs: dict[str, Any],
+    le_pairs: dict[str, Any],
+) -> Any:
+    """Attach ``>=`` / ``<=`` WHERE clauses for a set of date-range filters.
+
+    ``ge_pairs`` maps ``request_field_name -> sql_column`` for lower bounds
+    (``created_after`` → ``CachedX.created_at``, etc.); ``le_pairs`` does
+    the same for upper bounds. ``parsed_dates`` is the dict produced by
+    :func:`parse_request_dates`; missing keys (i.e. unset filters) are
+    skipped without error.
+    """
+    for name, col in ge_pairs.items():
+        dt = parsed_dates.get(name)
+        if dt is not None:
+            stmt = stmt.where(col >= dt)
+    for name, col in le_pairs.items():
+        dt = parsed_dates.get(name)
+        if dt is not None:
+            stmt = stmt.where(col <= dt)
+    return stmt
+
+
+def coerce_enum(value: Any, enum_cls: type[Enum], field_name: str) -> Enum:
+    """Coerce a request-level value (str or peer enum) into ``enum_cls``.
+
+    Cache-backed list tools accept caller-side enums like
+    ``GetAllManufacturingOrdersStatus`` but query against the cache
+    column's own enum (``ManufacturingOrderStatus``). The two share string
+    values; this helper round-trips through ``.value`` to translate while
+    raising a ``ValueError`` with the valid choices on bad input rather
+    than silently returning an empty result set.
+    """
+    raw = value.value if hasattr(value, "value") else value
+    try:
+        return enum_cls(raw)
+    except ValueError as e:
+        valid = ", ".join(s.value for s in enum_cls)
+        msg = f"Invalid {field_name} {value!r}. Valid: {valid}"
+        raise ValueError(msg) from e
 
 
 class PaginationMeta(BaseModel):

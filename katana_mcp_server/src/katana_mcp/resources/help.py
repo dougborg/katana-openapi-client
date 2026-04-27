@@ -447,9 +447,9 @@ Create a stock adjustment to correct inventory levels.
 ---
 
 ### list_stock_adjustments
-List existing stock adjustments with filters, paging, and optional row detail. Cache-backed
-post-#376 — all filters run as indexed SQL queries against the SQLModel typed cache, so
-`variant_id` finds matches regardless of how many adjustments precede them in the cache.
+List existing stock adjustments with filters, paging, and optional row detail. All filters
+run as indexed SQL against the typed cache, so `variant_id` finds matches regardless of
+how many adjustments precede them.
 
 **Parameters:**
 - `limit` (optional, default 50, min 1, max 250): Max adjustments to return — also the page size when `page` is set
@@ -504,9 +504,8 @@ confirming.
 ---
 
 ### list_manufacturing_orders
-List manufacturing orders with filters. Cache-backed post-#377 — all filters run as
-indexed SQL queries against the SQLModel typed cache, including `production_deadline_*`
-which was a client-side post-fetch filter pre-cache.
+List manufacturing orders with filters. All filters (including `production_deadline_*`)
+run as indexed SQL against the typed cache.
 
 **Paging:**
 - `limit` (optional, default 50, min 1, max 250): Max rows to return
@@ -629,11 +628,10 @@ field (#346 follow-on).
 ---
 
 ### list_purchase_orders
-List purchase orders with filters. Cache-backed post-#378 — all filters run as
-indexed SQL queries against the SQLModel typed cache. ``PurchaseOrderBase`` shadows
-both ``RegularPurchaseOrder`` and ``OutsourcedPurchaseOrder`` as one cache table
-named ``purchase_order``; the outsourced-only ``tracking_location_id`` field is
-hoisted onto the cache row so it's queryable across both subtypes.
+List purchase orders with filters. All filters run as indexed SQL against the typed
+cache. Both `RegularPurchaseOrder` and `OutsourcedPurchaseOrder` live in one cache table
+(`purchase_order`) keyed on `entity_type`; the outsourced-only `tracking_location_id`
+field is hoisted onto the row so it's queryable across both subtypes.
 
 **Paging:**
 - `limit` (optional, default 50, min 1, max 250): Max rows to return
@@ -656,8 +654,7 @@ hoisted onto the cache row so it's queryable across both subtypes.
 **Time windows** (all run as indexed SQL date-range queries):
 - `created_after` / `created_before`: ISO-8601 bounds on `created_at`
 - `updated_after` / `updated_before`: ISO-8601 bounds on `updated_at`
-- `expected_arrival_after` / `expected_arrival_before`: bounds on
-  `expected_arrival_date` (was a client-side post-fetch filter pre-cache; now indexed SQL)
+- `expected_arrival_after` / `expected_arrival_before`: bounds on `expected_arrival_date`
 
 - `include_rows` (optional, default false): Populate per-PO line item detail
   (variant_id, quantity, price, arrival).
@@ -813,13 +810,14 @@ Create a sales order.
 ---
 
 ### list_sales_orders
-List sales orders with filters (list-tool pattern v2).
+List sales orders with filters. All filters run as indexed SQL against the typed cache.
 
 **Paging:**
 - `limit` (optional, default 50, min 1, max 250): Max rows to return. When
   `page` is set, acts as the page size.
-- `page` (optional, min 1): Page number (1-based). When set, disables
-  auto-pagination; use with `limit` as page size.
+- `page` (optional, min 1): Page number (1-based); when set, the response includes
+  `pagination` metadata (total_records, total_pages) computed via SQL COUNT against
+  the same filter predicate.
 
 **Domain filters:**
 - `order_no` (optional): Exact order number
@@ -834,15 +832,10 @@ List sales orders with filters (list-tool pattern v2).
 - `needs_work_orders` (optional): Shortcut for `production_status="NONE"` —
   finds sales orders that haven't had manufacturing orders created yet
 
-**Time windows (server-side):**
+**Time windows** (all run as indexed SQL date-range queries):
 - `created_after` / `created_before`: ISO-8601 bounds on `created_at`
 - `updated_after` / `updated_before`: ISO-8601 bounds on `updated_at`
-
-**Time windows (client-side — Katana has no server filter):**
-- `delivered_after` / `delivered_before`: ISO-8601 bounds on `delivery_date`.
-  When set, the tool skips the page=1 short-circuit so auto-pagination can
-  scan enough rows to find `limit` matching results post-filter. Pair with a
-  `created_at` window to keep fetched rows bounded.
+- `delivered_after` / `delivered_before`: ISO-8601 bounds on `delivery_date`
 
 **Row detail:**
 - `include_rows` (optional, default false): When true, populate per-order row
@@ -921,9 +914,8 @@ Create a stock transfer moving inventory between two locations.
 ---
 
 ### list_stock_transfers
-List stock transfers with filters. Cache-backed post-#379 — all filters run as
-indexed SQL queries against the SQLModel typed cache, including `status` which
-was a client-side post-fetch filter pre-cache.
+List stock transfers with filters. All filters (including `status`) run as indexed
+SQL against the typed cache.
 
 **Parameters:**
 - `limit` (optional, default 50, min 1): Max rows to return

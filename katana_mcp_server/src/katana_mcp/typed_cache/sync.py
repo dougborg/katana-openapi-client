@@ -13,7 +13,7 @@ Each ``ensure_<entity>_synced`` helper:
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 from katana_public_api_client.api.manufacturing_order import (
@@ -42,6 +42,19 @@ from katana_public_api_client.models_pydantic._generated import (
 from katana_public_api_client.utils import unwrap_data
 
 from .sync_state import SyncState
+
+# Skip the API call when the cache was synced this recently. Mirrors the
+# legacy ``cache_sync._NO_INCREMENTAL_DEBOUNCE`` so back-to-back tool
+# calls don't each kick off an HTTP RTT for an empty delta.
+_SYNC_DEBOUNCE = timedelta(seconds=300)
+
+
+def _is_fresh(last_synced: datetime | None) -> bool:
+    """True when the cache was synced within ``_SYNC_DEBOUNCE``."""
+    if last_synced is None:
+        return False
+    return (datetime.now(tz=UTC).replace(tzinfo=None) - last_synced) < _SYNC_DEBOUNCE
+
 
 if TYPE_CHECKING:
     from katana_public_api_client import KatanaClient
@@ -98,6 +111,9 @@ async def ensure_sales_orders_synced(
         async with cache.session() as session:
             state = await session.get(SyncState, "sales_order")
             last_synced = state.last_synced if state is not None else None
+
+        if _is_fresh(last_synced):
+            return
 
         # ``last_synced`` is persisted as naive UTC (SQLite's default
         # DateTime column strips tzinfo). Re-attach UTC before sending to
@@ -178,6 +194,9 @@ async def ensure_stock_adjustments_synced(
             state = await session.get(SyncState, "stock_adjustment")
             last_synced = state.last_synced if state is not None else None
 
+        if _is_fresh(last_synced):
+            return
+
         kwargs = (
             {"updated_at_min": last_synced.replace(tzinfo=UTC)}
             if last_synced is not None
@@ -241,6 +260,9 @@ async def ensure_manufacturing_orders_synced(
         async with cache.session() as session:
             state = await session.get(SyncState, "manufacturing_order")
             last_synced = state.last_synced if state is not None else None
+
+        if _is_fresh(last_synced):
+            return
 
         kwargs = (
             {"updated_at_min": last_synced.replace(tzinfo=UTC)}
@@ -333,6 +355,9 @@ async def ensure_purchase_orders_synced(
             state = await session.get(SyncState, "purchase_order")
             last_synced = state.last_synced if state is not None else None
 
+        if _is_fresh(last_synced):
+            return
+
         kwargs = (
             {"updated_at_min": last_synced.replace(tzinfo=UTC)}
             if last_synced is not None
@@ -400,6 +425,9 @@ async def ensure_stock_transfers_synced(
         async with cache.session() as session:
             state = await session.get(SyncState, "stock_transfer")
             last_synced = state.last_synced if state is not None else None
+
+        if _is_fresh(last_synced):
+            return
 
         kwargs = (
             {"updated_at_min": last_synced.replace(tzinfo=UTC)}

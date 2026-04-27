@@ -25,6 +25,8 @@ from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
     PaginationMeta,
+    apply_date_window_filters,
+    coerce_enum,
     enum_to_str,
     format_md_table,
     iso_or_none,
@@ -1781,36 +1783,29 @@ def _apply_purchase_order_filters(
     if request.order_no is not None:
         stmt = stmt.where(CachedPurchaseOrder.order_no == request.order_no)
     if request.entity_type is not None:
-        try:
-            entity_enum = PurchaseOrderEntityType(request.entity_type.value)
-        except ValueError as e:
-            valid = ", ".join(s.value for s in PurchaseOrderEntityType)
-            msg = f"Invalid entity_type {request.entity_type!r}. Valid: {valid}"
-            raise ValueError(msg) from e
-        stmt = stmt.where(CachedPurchaseOrder.entity_type == entity_enum)
+        stmt = stmt.where(
+            CachedPurchaseOrder.entity_type
+            == coerce_enum(request.entity_type, PurchaseOrderEntityType, "entity_type")
+        )
     if request.status is not None:
-        try:
-            status_enum = PurchaseOrderStatus(request.status.value)
-        except ValueError as e:
-            valid = ", ".join(s.value for s in PurchaseOrderStatus)
-            msg = f"Invalid status {request.status!r}. Valid: {valid}"
-            raise ValueError(msg) from e
-        stmt = stmt.where(CachedPurchaseOrder.status == status_enum)
+        stmt = stmt.where(
+            CachedPurchaseOrder.status
+            == coerce_enum(request.status, PurchaseOrderStatus, "status")
+        )
     if request.billing_status is not None:
-        try:
-            billing_enum = PurchaseOrderBillingStatus(request.billing_status.value)
-        except ValueError as e:
-            valid = ", ".join(s.value for s in PurchaseOrderBillingStatus)
-            msg = f"Invalid billing_status {request.billing_status!r}. Valid: {valid}"
-            raise ValueError(msg) from e
-        stmt = stmt.where(CachedPurchaseOrder.billing_status == billing_enum)
+        stmt = stmt.where(
+            CachedPurchaseOrder.billing_status
+            == coerce_enum(
+                request.billing_status, PurchaseOrderBillingStatus, "billing_status"
+            )
+        )
     if request.currency is not None:
         stmt = stmt.where(CachedPurchaseOrder.currency == request.currency)
     if request.location_id is not None:
         stmt = stmt.where(CachedPurchaseOrder.location_id == request.location_id)
     if request.tracking_location_id is not None:
-        # Cache-only column hoisted from OutsourcedPurchaseOrder via
-        # CACHE_EXTRA_FIELDS — regular POs always carry None here.
+        # Cache-only column hoisted from OutsourcedPurchaseOrder; regular
+        # POs always carry None here, so this filter implies outsourced.
         stmt = stmt.where(
             CachedPurchaseOrder.tracking_location_id == request.tracking_location_id
         )
@@ -1819,43 +1814,32 @@ def _apply_purchase_order_filters(
     if not request.include_deleted:
         stmt = stmt.where(CachedPurchaseOrder.deleted_at.is_(None))
 
-    date_columns: list[tuple[str, Any, str]] = [
-        ("created_after", CachedPurchaseOrder.created_at, ">="),
-        ("created_before", CachedPurchaseOrder.created_at, "<="),
-        ("updated_after", CachedPurchaseOrder.updated_at, ">="),
-        ("updated_before", CachedPurchaseOrder.updated_at, "<="),
-        (
-            "expected_arrival_after",
-            CachedPurchaseOrder.expected_arrival_date,
-            ">=",
-        ),
-        (
-            "expected_arrival_before",
-            CachedPurchaseOrder.expected_arrival_date,
-            "<=",
-        ),
-    ]
-    for name, col, comp in date_columns:
-        dt = parsed_dates[name]
-        if dt is None:
-            continue
-        stmt = stmt.where(col >= dt if comp == ">=" else col <= dt)
-
-    return stmt
+    return apply_date_window_filters(
+        stmt,
+        parsed_dates,
+        ge_pairs={
+            "created_after": CachedPurchaseOrder.created_at,
+            "updated_after": CachedPurchaseOrder.updated_at,
+            "expected_arrival_after": CachedPurchaseOrder.expected_arrival_date,
+        },
+        le_pairs={
+            "created_before": CachedPurchaseOrder.created_at,
+            "updated_before": CachedPurchaseOrder.updated_at,
+            "expected_arrival_before": CachedPurchaseOrder.expected_arrival_date,
+        },
+    )
 
 
 async def _list_purchase_orders_impl(
     request: ListPurchaseOrdersRequest, context: Context
 ) -> ListPurchaseOrdersResponse:
-    """List purchase orders with filters (cache-backed).
+    """List purchase orders with filters via the typed cache.
 
-    Reads from the SQLModel typed cache instead of the live API.
-    ``ensure_purchase_orders_synced`` runs an incremental ``updated_at_min``
-    delta on every call (near-zero cost steady state; cold-start pulls
-    full history once); the query then translates request filters into
-    indexed SQL. ``expected_arrival_date`` and ``tracking_location_id``
-    were both client-side post-fetch pre-cache; they now run as direct
-    SQL predicates. See ADR-0018 and #342.
+    ``ensure_purchase_orders_synced`` runs an incremental
+    ``updated_at_min`` delta (debounced — see :data:`_SYNC_DEBOUNCE`).
+    Filters (including ``expected_arrival_date`` and the hoisted
+    outsourced-only ``tracking_location_id``) translate to indexed SQL.
+    See ADR-0018.
     """
     from sqlalchemy.orm import selectinload
     from sqlmodel import func, select
@@ -1868,26 +1852,26 @@ async def _list_purchase_orders_impl(
 
     services = get_services(context)
 
-    # 1. Refresh the cache (incremental — near-zero cost steady state).
     await ensure_purchase_orders_synced(services.client, services.typed_cache)
 
-    # 2. Parse date filters once so the data SELECT and the (optional)
-    # COUNT SELECT don't each re-parse the same ISO-8601 strings.
     parsed_dates = parse_request_dates(request, _PURCHASE_ORDER_DATE_FIELDS)
 
-    # 3. Build the data query. Pair each row with a scalar-subquery
-    # ``row_count`` so the common ``include_rows=False`` case doesn't pay
-    # the selectinload cost.
-    row_count_subq = (
-        select(func.count(CachedPurchaseOrderRow.id))
-        .where(CachedPurchaseOrderRow.purchase_order_id == CachedPurchaseOrder.id)
-        .correlate(CachedPurchaseOrder)
-        .scalar_subquery()
-        .label("row_count")
-    )
-    stmt = select(CachedPurchaseOrder, row_count_subq)
+    # When ``include_rows`` is set, ``selectinload`` eager-loads the
+    # children, so ``len(po.purchase_order_rows)`` is free at materialization
+    # time and we skip the correlated COUNT subquery.
     if request.include_rows:
-        stmt = stmt.options(selectinload(CachedPurchaseOrder.purchase_order_rows))
+        stmt = select(CachedPurchaseOrder).options(
+            selectinload(CachedPurchaseOrder.purchase_order_rows)
+        )
+    else:
+        row_count_subq = (
+            select(func.count(CachedPurchaseOrderRow.id))
+            .where(CachedPurchaseOrderRow.purchase_order_id == CachedPurchaseOrder.id)
+            .correlate(CachedPurchaseOrder)
+            .scalar_subquery()
+            .label("row_count")
+        )
+        stmt = select(CachedPurchaseOrder, row_count_subq)
     stmt = _apply_purchase_order_filters(stmt, request, parsed_dates)
     stmt = stmt.order_by(
         CachedPurchaseOrder.created_at.desc(), CachedPurchaseOrder.id.desc()
@@ -1897,10 +1881,15 @@ async def _list_purchase_orders_impl(
     else:
         stmt = stmt.limit(request.limit)
 
-    # 4. Execute data query and (when paginating) a separate COUNT for meta.
     async with services.typed_cache.session() as session:
         data_result = await session.exec(stmt)
-        orders_with_counts: list[tuple[CachedPurchaseOrder, int]] = data_result.all()
+        if request.include_rows:
+            cached_orders = list(data_result.all())
+            orders_with_counts: list[tuple[CachedPurchaseOrder, int]] = [
+                (po, len(po.purchase_order_rows)) for po in cached_orders
+            ]
+        else:
+            orders_with_counts = data_result.all()
 
         pagination: PaginationMeta | None = None
         if request.page is not None:
@@ -1919,7 +1908,6 @@ async def _list_purchase_orders_impl(
                 last_page=request.page >= total_pages,
             )
 
-    # 5. Materialize summaries.
     summaries: list[PurchaseOrderSummary] = []
     for po, row_count in orders_with_counts:
         rows: list[PurchaseOrderRowSummary] | None = None

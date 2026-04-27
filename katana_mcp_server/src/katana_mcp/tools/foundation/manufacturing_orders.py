@@ -24,6 +24,8 @@ from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
     PaginationMeta,
+    apply_date_window_filters,
+    coerce_enum,
     enum_to_str,
     format_md_table,
     iso_or_none,
@@ -2213,17 +2215,13 @@ def _apply_manufacturing_order_filters(
     if request.order_no is not None:
         stmt = stmt.where(CachedManufacturingOrder.order_no == request.order_no)
     if request.status is not None:
-        # ``GetAllManufacturingOrdersStatus`` is the API filter enum;
-        # ``ManufacturingOrderStatus`` is the cache column type. Both share
-        # the same string values, so coerce by .value to avoid coupling the
-        # caller to the cache enum class directly.
-        try:
-            status_enum = ManufacturingOrderStatus(request.status.value)
-        except ValueError as e:
-            valid = ", ".join(s.value for s in ManufacturingOrderStatus)
-            msg = f"Invalid status {request.status!r}. Valid: {valid}"
-            raise ValueError(msg) from e
-        stmt = stmt.where(CachedManufacturingOrder.status == status_enum)
+        # ``GetAllManufacturingOrdersStatus`` (caller) and
+        # ``ManufacturingOrderStatus`` (cache column) share string values
+        # but are distinct types — coerce_enum round-trips through .value.
+        stmt = stmt.where(
+            CachedManufacturingOrder.status
+            == coerce_enum(request.status, ManufacturingOrderStatus, "status")
+        )
     if request.location_id is not None:
         stmt = stmt.where(CachedManufacturingOrder.location_id == request.location_id)
     if request.is_linked_to_sales_order is not None:
@@ -2234,43 +2232,31 @@ def _apply_manufacturing_order_filters(
     if not request.include_deleted:
         stmt = stmt.where(CachedManufacturingOrder.deleted_at.is_(None))
 
-    date_columns: list[tuple[str, Any, str]] = [
-        ("created_after", CachedManufacturingOrder.created_at, ">="),
-        ("created_before", CachedManufacturingOrder.created_at, "<="),
-        ("updated_after", CachedManufacturingOrder.updated_at, ">="),
-        ("updated_before", CachedManufacturingOrder.updated_at, "<="),
-        (
-            "production_deadline_after",
-            CachedManufacturingOrder.production_deadline_date,
-            ">=",
-        ),
-        (
-            "production_deadline_before",
-            CachedManufacturingOrder.production_deadline_date,
-            "<=",
-        ),
-    ]
-    for name, col, comp in date_columns:
-        dt = parsed_dates[name]
-        if dt is None:
-            continue
-        stmt = stmt.where(col >= dt if comp == ">=" else col <= dt)
-
-    return stmt
+    return apply_date_window_filters(
+        stmt,
+        parsed_dates,
+        ge_pairs={
+            "created_after": CachedManufacturingOrder.created_at,
+            "updated_after": CachedManufacturingOrder.updated_at,
+            "production_deadline_after": CachedManufacturingOrder.production_deadline_date,
+        },
+        le_pairs={
+            "created_before": CachedManufacturingOrder.created_at,
+            "updated_before": CachedManufacturingOrder.updated_at,
+            "production_deadline_before": CachedManufacturingOrder.production_deadline_date,
+        },
+    )
 
 
 async def _list_manufacturing_orders_impl(
     request: ListManufacturingOrdersRequest, context: Context
 ) -> ListManufacturingOrdersResponse:
-    """List manufacturing orders with filters (cache-backed).
+    """List manufacturing orders with filters via the typed cache.
 
-    Reads from the SQLModel typed cache instead of the live API.
     ``ensure_manufacturing_orders_synced`` runs an incremental
-    ``updated_at_min`` delta on every call (near-zero cost steady-state;
-    cold-start pulls full history once); the query then translates request
-    filters into indexed SQL. ``production_deadline_*`` was a client-side
-    post-fetch filter pre-cache; it now runs as a date-range SQL predicate
-    just like any other date column. See ADR-0018 and #342.
+    ``updated_at_min`` delta (debounced — see :data:`_SYNC_DEBOUNCE`).
+    Filters (including ``production_deadline_*``) translate to indexed
+    SQL. See ADR-0018.
     """
     from sqlmodel import func, select
 
@@ -2281,14 +2267,10 @@ async def _list_manufacturing_orders_impl(
 
     services = get_services(context)
 
-    # 1. Refresh the cache (incremental — near-zero cost steady state).
     await ensure_manufacturing_orders_synced(services.client, services.typed_cache)
 
-    # 2. Parse date filters once so the data SELECT and the (optional)
-    # COUNT SELECT don't each re-parse the same ISO-8601 strings.
     parsed_dates = parse_request_dates(request, _MANUFACTURING_ORDER_DATE_FIELDS)
 
-    # 3. Build the data query.
     stmt = select(CachedManufacturingOrder)
     stmt = _apply_manufacturing_order_filters(stmt, request, parsed_dates)
     stmt = stmt.order_by(
@@ -2300,7 +2282,6 @@ async def _list_manufacturing_orders_impl(
     else:
         stmt = stmt.limit(request.limit)
 
-    # 4. Execute data query and (when paginating) a separate COUNT for meta.
     async with services.typed_cache.session() as session:
         data_result = await session.exec(stmt)
         cached_orders: list[CachedManufacturingOrder] = list(data_result.all())
@@ -2322,7 +2303,6 @@ async def _list_manufacturing_orders_impl(
                 last_page=request.page >= total_pages,
             )
 
-    # 5. Materialize summaries.
     summaries: list[ManufacturingOrderSummary] = []
     for mo in cached_orders:
         summaries.append(

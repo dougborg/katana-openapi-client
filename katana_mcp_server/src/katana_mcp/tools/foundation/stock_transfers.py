@@ -28,6 +28,8 @@ from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     PaginationMeta,
+    apply_date_window_filters,
+    coerce_enum,
     enum_to_str,
     format_md_table,
     iso_or_none,
@@ -458,19 +460,20 @@ def _apply_stock_transfer_filters(
     """Translate request filters into WHERE clauses on a CachedStockTransfer query.
 
     Shared by the data SELECT and the COUNT SELECT so pagination totals
-    reflect exactly the same filter set as the data rows. ``status`` was a
-    client-side post-fetch filter pre-cache (Katana's list endpoint
-    doesn't expose it server-side); it's now an indexed string-equality
-    filter against the cache column. The cache stores the lowercase value
-    Katana returns, so the request's uppercase ``Literal`` is folded to
-    lowercase before comparison.
+    reflect exactly the same filter set as the data rows. The ``status``
+    request field is the uppercase ``StatusLiteral`` (PENDING, etc.); the
+    cache column stores the lowercase value Katana returns. ``coerce_enum``
+    validates the input against ``StockTransferStatus`` (raising loudly on
+    a typo rather than silently returning zero rows) before the comparison.
     """
     from katana_public_api_client.models_pydantic._generated import (
         CachedStockTransfer,
+        StockTransferStatus,
     )
 
     if request.status is not None:
-        stmt = stmt.where(CachedStockTransfer.status == request.status.lower())
+        status_enum = coerce_enum(request.status.lower(), StockTransferStatus, "status")
+        stmt = stmt.where(CachedStockTransfer.status == status_enum.value)
     if request.source_location_id is not None:
         stmt = stmt.where(
             CachedStockTransfer.source_location_id == request.source_location_id
@@ -485,31 +488,23 @@ def _apply_stock_transfer_filters(
         )
     stmt = stmt.where(CachedStockTransfer.deleted_at.is_(None))
 
-    date_columns: list[tuple[str, Any, str]] = [
-        ("created_after", CachedStockTransfer.created_at, ">="),
-        ("created_before", CachedStockTransfer.created_at, "<="),
-    ]
-    for name, col, comp in date_columns:
-        dt = parsed_dates[name]
-        if dt is None:
-            continue
-        stmt = stmt.where(col >= dt if comp == ">=" else col <= dt)
-
-    return stmt
+    return apply_date_window_filters(
+        stmt,
+        parsed_dates,
+        ge_pairs={"created_after": CachedStockTransfer.created_at},
+        le_pairs={"created_before": CachedStockTransfer.created_at},
+    )
 
 
 async def _list_stock_transfers_impl(
     request: ListStockTransfersRequest, context: Context
 ) -> ListStockTransfersResponse:
-    """List stock transfers with filters (cache-backed).
+    """List stock transfers with filters via the typed cache.
 
-    Reads from the SQLModel typed cache instead of the live API.
-    ``ensure_stock_transfers_synced`` runs an incremental ``updated_at_min``
-    delta on every call (near-zero cost steady-state; cold-start pulls
-    full history once); the query then translates request filters into
-    indexed SQL. ``status`` was client-side pre-cache (Katana doesn't
-    expose it as a server-side filter); now it's an indexed equality
-    comparison. See ADR-0018 and #342.
+    ``ensure_stock_transfers_synced`` runs an incremental
+    ``updated_at_min`` delta (debounced — see :data:`_SYNC_DEBOUNCE`).
+    Filters (including ``status``, which Katana doesn't expose as a
+    server-side filter) translate to indexed SQL. See ADR-0018.
     """
     from sqlalchemy.orm import selectinload
     from sqlmodel import func, select
@@ -522,26 +517,26 @@ async def _list_stock_transfers_impl(
 
     services = get_services(context)
 
-    # 1. Refresh the cache (incremental — near-zero cost steady state).
     await ensure_stock_transfers_synced(services.client, services.typed_cache)
 
-    # 2. Parse date filters once so the data SELECT and the (optional)
-    # COUNT SELECT don't each re-parse the same ISO-8601 strings.
     parsed_dates = parse_request_dates(request, _STOCK_TRANSFER_DATE_FIELDS)
 
-    # 3. Build the data query. Pair each row with a scalar-subquery
-    # ``row_count`` so the common ``include_rows=False`` case doesn't pay
-    # the selectinload cost.
-    row_count_subq = (
-        select(func.count(CachedStockTransferRow.id))
-        .where(CachedStockTransferRow.stock_transfer_id == CachedStockTransfer.id)
-        .correlate(CachedStockTransfer)
-        .scalar_subquery()
-        .label("row_count")
-    )
-    stmt = select(CachedStockTransfer, row_count_subq)
+    # When ``include_rows`` is set, ``selectinload`` eager-loads the
+    # children, so ``len(transfer.stock_transfer_rows)`` is free at
+    # materialization time and we skip the correlated COUNT subquery.
     if request.include_rows:
-        stmt = stmt.options(selectinload(CachedStockTransfer.stock_transfer_rows))
+        stmt = select(CachedStockTransfer).options(
+            selectinload(CachedStockTransfer.stock_transfer_rows)
+        )
+    else:
+        row_count_subq = (
+            select(func.count(CachedStockTransferRow.id))
+            .where(CachedStockTransferRow.stock_transfer_id == CachedStockTransfer.id)
+            .correlate(CachedStockTransfer)
+            .scalar_subquery()
+            .label("row_count")
+        )
+        stmt = select(CachedStockTransfer, row_count_subq)
     stmt = _apply_stock_transfer_filters(stmt, request, parsed_dates)
     stmt = stmt.order_by(
         CachedStockTransfer.created_at.desc(), CachedStockTransfer.id.desc()
@@ -551,10 +546,15 @@ async def _list_stock_transfers_impl(
     else:
         stmt = stmt.limit(request.limit)
 
-    # 4. Execute data query and (when paginating) a separate COUNT for meta.
     async with services.typed_cache.session() as session:
         data_result = await session.exec(stmt)
-        transfers_with_counts: list[tuple[CachedStockTransfer, int]] = data_result.all()
+        if request.include_rows:
+            cached_transfers = list(data_result.all())
+            transfers_with_counts: list[tuple[CachedStockTransfer, int]] = [
+                (t, len(t.stock_transfer_rows)) for t in cached_transfers
+            ]
+        else:
+            transfers_with_counts = data_result.all()
 
         pagination: PaginationMeta | None = None
         if request.page is not None:
@@ -573,9 +573,9 @@ async def _list_stock_transfers_impl(
                 last_page=request.page >= total_pages,
             )
 
-    # 5. Materialize summaries. The cached row exposes fields directly
-    # (no UNSET sentinels) so we don't reuse ``_build_summary`` (which
-    # expects the attrs API shape with ``unwrap_unset``).
+    # Cached rows expose fields directly (no UNSET sentinels), so we
+    # don't reuse ``_build_summary`` — that helper expects the attrs API
+    # shape with ``unwrap_unset``.
     summaries: list[StockTransferSummary] = []
     for transfer, row_count in transfers_with_counts:
         row_infos: list[StockTransferRowInfo] | None = None
