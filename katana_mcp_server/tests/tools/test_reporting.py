@@ -31,6 +31,9 @@ from tests.conftest import create_mock_context
 _SO_GET_ALL = "katana_public_api_client.api.sales_order.get_all_sales_orders"
 _INV_GET_ALL = "katana_public_api_client.api.inventory.get_all_inventory_point"
 _REPORTING_UNWRAP_DATA = "katana_mcp.tools.foundation.reporting.unwrap_data"
+_FETCH_MO_RECIPE = (
+    "katana_mcp.tools.foundation.reporting._fetch_completed_mo_recipe_rows_in_window"
+)
 
 
 @pytest.fixture(autouse=True)
@@ -397,10 +400,6 @@ async def test_sales_summary_group_by_customer():
 # ============================================================================
 # inventory_velocity
 # ============================================================================
-
-_FETCH_MO_RECIPE = (
-    "katana_mcp.tools.foundation.reporting._fetch_completed_mo_recipe_rows_in_window"
-)
 
 
 @pytest.mark.asyncio

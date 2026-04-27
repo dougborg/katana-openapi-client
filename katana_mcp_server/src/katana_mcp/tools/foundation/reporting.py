@@ -678,7 +678,7 @@ class InventoryVelocityRequest(BaseModel):
         """True when the batch shape was used."""
         return self.sku_or_variant_ids is not None
 
-    def model_post_init(self, __context: Any) -> None:
+    def model_post_init(self, _context: Any) -> None:
         """Validate that exactly one shape is provided."""
         has_single = self.sku_or_variant_id is not None
         has_batch = self.sku_or_variant_ids is not None
