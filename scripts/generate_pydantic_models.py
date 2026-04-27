@@ -308,6 +308,22 @@ class ClassInfo:
     line_start: int
     line_end: int
 
+    def with_source(self, new_source: str) -> ClassInfo:
+        """Return a copy with a rewritten ``source`` (other fields preserved).
+
+        Used by the cache-table inject passes — each pass mutates the
+        generated source string in-place; using this helper avoids the
+        repetitive ``ClassInfo(name=cls.name, source=new_source, ...)``
+        reconstruction with four passthrough fields.
+        """
+        return ClassInfo(
+            name=self.name,
+            source=new_source,
+            bases=self.bases,
+            line_start=self.line_start,
+            line_end=self.line_end,
+        )
+
 
 @dataclass
 class TypeAliasInfo:
@@ -918,15 +934,7 @@ def inject_primary_key_in_table_classes(classes: list[ClassInfo]) -> list[ClassI
                 "model_config line may be missing or differently formatted."
             )
             raise GenerationError(msg)
-        fixed.append(
-            ClassInfo(
-                name=cls.name,
-                source=new_source,
-                bases=cls.bases,
-                line_start=cls.line_start,
-                line_end=cls.line_end,
-            )
-        )
+        fixed.append(cls.with_source(new_source))
     return fixed
 
 
@@ -975,15 +983,7 @@ def inject_table_annotations(classes: list[ClassInfo]) -> list[ClassInfo]:
                 "The class-declaration shape may have changed."
             )
             raise GenerationError(msg)
-        fixed.append(
-            ClassInfo(
-                name=cls.name,
-                source=new_source,
-                bases=cls.bases,
-                line_start=cls.line_start,
-                line_end=cls.line_end,
-            )
-        )
+        fixed.append(cls.with_source(new_source))
     return fixed
 
 
@@ -1064,15 +1064,7 @@ def inject_foreign_keys(classes: list[ClassInfo]) -> list[ClassInfo]:
                     "Expected Annotated[int | None, Field(description=...)] shape."
                 )
                 raise GenerationError(msg)
-        fixed.append(
-            ClassInfo(
-                name=cls.name,
-                source=new_source,
-                bases=cls.bases,
-                line_start=cls.line_start,
-                line_end=cls.line_end,
-            )
-        )
+        fixed.append(cls.with_source(new_source))
     return fixed
 
 
@@ -1139,15 +1131,7 @@ def inject_relationship_fields(classes: list[ClassInfo]) -> list[ClassInfo]:
             new_source = new_source.rstrip() + "\n" + backref_line
 
         if new_source != cls.source:
-            fixed.append(
-                ClassInfo(
-                    name=cls.name,
-                    source=new_source,
-                    bases=cls.bases,
-                    line_start=cls.line_start,
-                    line_end=cls.line_end,
-                )
-            )
+            fixed.append(cls.with_source(new_source))
         else:
             fixed.append(cls)
     return fixed
@@ -1199,15 +1183,7 @@ def swap_awaredatetime_for_datetime(classes: list[ClassInfo]) -> list[ClassInfo]
         if new_source == cls.source:
             fixed.append(cls)
             continue
-        fixed.append(
-            ClassInfo(
-                name=cls.name,
-                source=new_source,
-                bases=cls.bases,
-                line_start=cls.line_start,
-                line_end=cls.line_end,
-            )
-        )
+        fixed.append(cls.with_source(new_source))
     return fixed
 
 
@@ -1234,15 +1210,7 @@ def inject_extra_cache_fields(classes: list[ClassInfo]) -> list[ClassInfo]:
             fixed.append(cls)
             continue
         new_source = cls.source.rstrip() + "\n" + "\n".join(extra_lines) + "\n"
-        fixed.append(
-            ClassInfo(
-                name=cls.name,
-                source=new_source,
-                bases=cls.bases,
-                line_start=cls.line_start,
-                line_end=cls.line_end,
-            )
-        )
+        fixed.append(cls.with_source(new_source))
     return fixed
 
 
@@ -1282,15 +1250,7 @@ def inject_json_columns(classes: list[ClassInfo]) -> list[ClassInfo]:
                     f"{cls.name}.{field_name}. Field shape may have changed."
                 )
                 raise GenerationError(msg)
-        fixed.append(
-            ClassInfo(
-                name=cls.name,
-                source=new_source,
-                bases=cls.bases,
-                line_start=cls.line_start,
-                line_end=cls.line_end,
-            )
-        )
+        fixed.append(cls.with_source(new_source))
     return fixed
 
 
