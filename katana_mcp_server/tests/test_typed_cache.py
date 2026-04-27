@@ -102,18 +102,18 @@ class TestCacheTables:
 
     @pytest.mark.asyncio
     async def test_can_insert_and_query_sales_order(self, typed_cache_engine):
-        """End-to-end: insert a SalesOrder + SalesOrderRow, traverse the
-        relationship, query back. Proves the generator-emitted schema is
-        live against the engine's SQLModel.metadata.create_all call."""
+        """End-to-end: insert a CachedSalesOrder + CachedSalesOrderRow,
+        traverse the relationship, query back. Proves the generator-emitted
+        schema is live against the engine's SQLModel.metadata.create_all call."""
         from katana_public_api_client.models_pydantic._generated import (
-            SalesOrder,
-            SalesOrderRow,
+            CachedSalesOrder,
+            CachedSalesOrderRow,
             SalesOrderStatus,
         )
 
         async with typed_cache_engine.session() as session:
             session.add(
-                SalesOrder(
+                CachedSalesOrder(
                     id=1,
                     customer_id=42,
                     location_id=1,
@@ -122,12 +122,16 @@ class TestCacheTables:
                 )
             )
             session.add(
-                SalesOrderRow(id=1, sales_order_id=1, variant_id=100, quantity=2.0)
+                CachedSalesOrderRow(
+                    id=1, sales_order_id=1, variant_id=100, quantity=2.0
+                )
             )
             await session.commit()
 
         async with typed_cache_engine.session() as session:
-            stmt = select(SalesOrder).where(SalesOrder.order_no == "SO-INT-001")
+            stmt = select(CachedSalesOrder).where(
+                CachedSalesOrder.order_no == "SO-INT-001"
+            )
             result = await session.exec(stmt)
             order = result.one()
             assert order.customer_id == 42

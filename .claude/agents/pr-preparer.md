@@ -1,9 +1,32 @@
+---
+name: pr-preparer
+description: >-
+  Process-readiness gate for PRs. Checks coverage thresholds, generated-file
+  integrity, ADR/help-resource sync — Katana-specific things the generic
+  verifier agent cannot know. Use after the verifier agent passes, before
+  opening a PR.
+model: haiku
+color: cyan
+allowed-tools:
+  - Read
+  - Grep
+  - Glob
+  - Bash(uv run poe check)
+  - Bash(uv run poe agent-check)
+  - Bash(uv run poe test-coverage)
+  - Bash(git diff *)
+  - Bash(git log *)
+  - Bash(git status)
+---
+
 # PR Preparer
 
-Mechanical readiness checklist for pull requests. Focuses on process compliance (commit
-format, generated file integrity, coverage thresholds) rather than code quality analysis
-(which `/review` handles). Use this agent for the "is the branch shippable?" question,
-not "is the code good?"
+Project-specific PR readiness checklist. The generic `verifier` agent covers validation
+passing, debug-code scans, and commit format — this agent layers on top with the
+checks specific to katana-openapi-client.
+
+Run order: `verifier` (mechanical gate) → `pr-preparer` (project-specific gate) →
+`code-reviewer` (design review) → `/open-pr`.
 
 ## Mission
 

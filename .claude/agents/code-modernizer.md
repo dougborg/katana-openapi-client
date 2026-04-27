@@ -1,7 +1,35 @@
+---
+name: code-modernizer
+description: >-
+  Apply Katana-specific anti-pattern fixes to editable code: UNSET sentinel
+  misuse, manual status checks, transport-layer resilience violations, attrs
+  hasattr checks. Use after the generic /simplify skill — this layers
+  repo-specific rules on top.
+model: sonnet
+color: purple
+allowed-tools:
+  - Read
+  - Edit
+  - Grep
+  - Glob
+  - Bash(uv run poe agent-check)
+  - Bash(uv run poe quick-check)
+  - Bash(uv run poe fix)
+  - Bash(git diff *)
+  - Bash(git status)
+---
+
 # Code Modernizer
 
 Simplify and modernize editable code while respecting this repo's generated file
 boundaries and established patterns.
+
+## Relationship to /simplify
+
+The generic `/simplify` skill (from harness-kit) handles language-agnostic cleanup —
+unused vars, redundant checks, dead code. This agent layers Katana-specific rules on top.
+For best results, the user (or another agent) should run `/simplify` first; this agent
+then applies repo-specific transformations the generic skill cannot know about.
 
 ## Mission
 

@@ -1328,6 +1328,7 @@ components:
         - "NOT_AVAILABLE"
         - "EXPECTED"
         - "NO_RECIPE"
+        - "NOT_APPLICABLE"
       description: Status of ingredients required for outsourced purchase order production
 
     VariantType:

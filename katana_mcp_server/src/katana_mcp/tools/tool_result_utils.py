@@ -13,7 +13,9 @@ renders the Prefab UI; other clients fall back to markdown content.
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from collections.abc import Iterable
+from datetime import UTC, datetime
+from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 from fastmcp.tools import ToolResult
@@ -71,6 +73,88 @@ def parse_iso_datetime(value: str, field_name: str) -> datetime:
         return datetime.fromisoformat(normalized)
     except ValueError as e:
         msg = f"Invalid ISO-8601 datetime for {field_name!r}: {value!r}"
+        raise ValueError(msg) from e
+
+
+def naive_utc(dt: datetime | None) -> datetime | None:
+    """Normalize a datetime to naive UTC for comparison against the typed cache.
+
+    Cache-backed list tools compare filter datetimes against SQLModel
+    ``DateTime`` columns — SQLite's default ``DateTime`` doesn't preserve
+    tzinfo, so stored values are naive UTC. Tz-aware inputs are converted to
+    UTC and the tzinfo is stripped so SQLAlchemy comparisons don't raise
+    ``TypeError: can't compare offset-naive and offset-aware datetimes``.
+    Naive inputs are passed through unchanged (assumed UTC already).
+    """
+    if dt is None:
+        return None
+    if dt.tzinfo is not None:
+        return dt.astimezone(UTC).replace(tzinfo=None)
+    return dt
+
+
+def parse_request_dates(
+    request: BaseModel,
+    field_names: Iterable[str],
+) -> dict[str, datetime | None]:
+    """Parse ISO-8601 date filter fields from a request into naive UTC.
+
+    Cache-backed list tools call their ``_apply_<entity>_filters`` helper
+    twice on the paginated path (once for the data SELECT, once for the
+    COUNT SELECT); parsing the filter strings once up front avoids doing
+    the work twice. Unset fields map to ``None`` in the result.
+    """
+    result: dict[str, datetime | None] = {}
+    for name in field_names:
+        raw = getattr(request, name, None)
+        result[name] = (
+            naive_utc(parse_iso_datetime(raw, name)) if raw is not None else None
+        )
+    return result
+
+
+def apply_date_window_filters(
+    stmt: Any,
+    parsed_dates: dict[str, datetime | None],
+    *,
+    ge_pairs: dict[str, Any],
+    le_pairs: dict[str, Any],
+) -> Any:
+    """Attach ``>=`` / ``<=`` WHERE clauses for a set of date-range filters.
+
+    ``ge_pairs`` maps ``request_field_name -> sql_column`` for lower bounds
+    (``created_after`` → ``CachedX.created_at``, etc.); ``le_pairs`` does
+    the same for upper bounds. ``parsed_dates`` is the dict produced by
+    :func:`parse_request_dates`; missing keys (i.e. unset filters) are
+    skipped without error.
+    """
+    for name, col in ge_pairs.items():
+        dt = parsed_dates.get(name)
+        if dt is not None:
+            stmt = stmt.where(col >= dt)
+    for name, col in le_pairs.items():
+        dt = parsed_dates.get(name)
+        if dt is not None:
+            stmt = stmt.where(col <= dt)
+    return stmt
+
+
+def coerce_enum(value: Any, enum_cls: type[Enum], field_name: str) -> Enum:
+    """Coerce a request-level value (str or peer enum) into ``enum_cls``.
+
+    Cache-backed list tools accept caller-side enums like
+    ``GetAllManufacturingOrdersStatus`` but query against the cache
+    column's own enum (``ManufacturingOrderStatus``). The two share string
+    values; this helper round-trips through ``.value`` to translate while
+    raising a ``ValueError`` with the valid choices on bad input rather
+    than silently returning an empty result set.
+    """
+    raw = value.value if hasattr(value, "value") else value
+    try:
+        return enum_cls(raw)
+    except ValueError as e:
+        valid = ", ".join(s.value for s in enum_cls)
+        msg = f"Invalid {field_name} {value!r}. Valid: {valid}"
         raise ValueError(msg) from e
 
 

@@ -447,27 +447,23 @@ Create a stock adjustment to correct inventory levels.
 ---
 
 ### list_stock_adjustments
-List existing stock adjustments with filters, paging, and optional row detail.
+List existing stock adjustments with filters, paging, and optional row detail. All filters
+run as indexed SQL against the typed cache, so `variant_id` finds matches regardless of
+how many adjustments precede them.
 
-**Parameters (server-side filters):**
+**Parameters:**
 - `limit` (optional, default 50, min 1, max 250): Max adjustments to return — also the page size when `page` is set
-- `page` (optional, min 1): Page number (1-based); when set, disables auto-pagination and the response includes `pagination` metadata
+- `page` (optional, min 1): Page number (1-based); when set, the response includes `pagination` metadata (total_records, total_pages) computed via SQL COUNT against the same filter predicate
 - `location_id` (optional): Filter by location
 - `ids` (optional): Restrict to a specific set of adjustment IDs
 - `stock_adjustment_number` (optional): Exact match on the adjustment number
 - `created_after` / `created_before` (optional): ISO-8601 datetime bounds on `created_at`
 - `updated_after` / `updated_before` (optional): ISO-8601 datetime bounds on `updated_at` (useful for incremental sync)
 - `include_deleted` (optional, default false): Include soft-deleted adjustments
-
-**Parameters (client-side filters — scan the fetched page set):**
-- `variant_id` (optional): Only adjustments whose rows touch this variant
-- `reason` (optional): Case-insensitive substring match on the `reason` field
-
-**Other:**
+- `variant_id` (optional): Only adjustments whose rows touch this variant — runs as an EXISTS subquery against the indexed FK on the rows table
+- `reason` (optional): Case-insensitive substring match on the `reason` field (SQL ILIKE)
 - `include_rows` (optional, default false): When true, populate row-level details on each summary
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
-
-When a client-side filter is active, the tool skips the single-page short-circuit so auto-pagination can scan enough rows to find matches that may live on later pages.
 
 **Returns:** Summary rows with `id`, `stock_adjustment_number`, `location_id`, dates,
 `reason`, and row count (plus per-row detail when `include_rows=true`), plus optional
@@ -508,29 +504,28 @@ confirming.
 ---
 
 ### list_manufacturing_orders
-List manufacturing orders with filters (list-tool pattern v2).
+List manufacturing orders with filters. All filters (including `production_deadline_*`)
+run as indexed SQL against the typed cache.
 
 **Paging:**
 - `limit` (optional, default 50, min 1, max 250): Max rows to return
-- `page` (optional, min 1): Page number (1-based), disables auto-pagination
+- `page` (optional, min 1): Page number (1-based); when set, the response includes
+  `pagination` metadata (total_records, total_pages) computed via SQL COUNT against
+  the same filter predicate
 
 **Domain filters:**
 - `ids` (optional): Explicit list of MO IDs
 - `order_no` (optional): Exact order_no
-- `status` (optional): NOT_STARTED, IN_PROGRESS, BLOCKED, PAUSED, COMPLETED
+- `status` (optional): NOT_STARTED, IN_PROGRESS, BLOCKED, DONE
 - `location_id` (optional): Production location ID
 - `is_linked_to_sales_order` (optional): True/False filter on SO linkage
 - `include_deleted` (optional): Include soft-deleted MOs
 
-**Time windows (server-side):**
+**Time windows** (all run as indexed SQL date-range queries):
 - `created_after` / `created_before`: ISO-8601 bounds on `created_at`
 - `updated_after` / `updated_before`: ISO-8601 bounds on `updated_at`
-
-**Time windows (client-side — Katana has no server filter):**
 - `production_deadline_after` / `production_deadline_before`: bounds on
-  `production_deadline_date`. When set, the tool skips the page=1
-  short-circuit so auto-pagination can scan enough rows to find `limit`
-  matches post-filter.
+  `production_deadline_date`
 
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
@@ -633,11 +628,16 @@ field (#346 follow-on).
 ---
 
 ### list_purchase_orders
-List purchase orders with filters (list-tool pattern v2).
+List purchase orders with filters. All filters run as indexed SQL against the typed
+cache. Both `RegularPurchaseOrder` and `OutsourcedPurchaseOrder` live in one cache table
+(`purchase_order`) keyed on `entity_type`; the outsourced-only `tracking_location_id`
+field is hoisted onto the row so it's queryable across both subtypes.
 
 **Paging:**
 - `limit` (optional, default 50, min 1, max 250): Max rows to return
-- `page` (optional, min 1): Page number (1-based), disables auto-pagination
+- `page` (optional, min 1): Page number (1-based); when set, the response includes
+  `pagination` metadata (total_records, total_pages) computed via SQL COUNT against
+  the same filter predicate
 
 **Domain filters:**
 - `ids` (optional): Explicit list of PO IDs
@@ -647,23 +647,17 @@ List purchase orders with filters (list-tool pattern v2).
 - `billing_status` (optional): BILLED, NOT_BILLED, PARTIALLY_BILLED
 - `currency` (optional): Currency code (e.g. "USD")
 - `location_id` (optional): Receiving location ID
-- `tracking_location_id` (optional): Tracking location ID (outsourced)
+- `tracking_location_id` (optional): Tracking location ID (outsourced POs)
 - `supplier_id` (optional): Supplier ID
 - `include_deleted` (optional): Include soft-deleted POs
 
-**Time windows (server-side):**
+**Time windows** (all run as indexed SQL date-range queries):
 - `created_after` / `created_before`: ISO-8601 bounds on `created_at`
 - `updated_after` / `updated_before`: ISO-8601 bounds on `updated_at`
-
-**Time windows (client-side — Katana has no server filter):**
-- `expected_arrival_after` / `expected_arrival_before`: bounds on
-  `expected_arrival_date`. When set, the tool skips the page=1
-  short-circuit so auto-pagination can scan enough rows to find `limit`
-  matches post-filter.
+- `expected_arrival_after` / `expected_arrival_before`: bounds on `expected_arrival_date`
 
 - `include_rows` (optional, default false): Populate per-PO line item detail
-  (variant_id, quantity, price, arrival). The list endpoint bundles rows
-  inline, so this is free compared to `list_sales_orders`.
+  (variant_id, quantity, price, arrival).
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Summary rows with id, order_no, status, billing_status,
@@ -816,13 +810,14 @@ Create a sales order.
 ---
 
 ### list_sales_orders
-List sales orders with filters (list-tool pattern v2).
+List sales orders with filters. All filters run as indexed SQL against the typed cache.
 
 **Paging:**
 - `limit` (optional, default 50, min 1, max 250): Max rows to return. When
   `page` is set, acts as the page size.
-- `page` (optional, min 1): Page number (1-based). When set, disables
-  auto-pagination; use with `limit` as page size.
+- `page` (optional, min 1): Page number (1-based); when set, the response includes
+  `pagination` metadata (total_records, total_pages) computed via SQL COUNT against
+  the same filter predicate.
 
 **Domain filters:**
 - `order_no` (optional): Exact order number
@@ -837,15 +832,10 @@ List sales orders with filters (list-tool pattern v2).
 - `needs_work_orders` (optional): Shortcut for `production_status="NONE"` —
   finds sales orders that haven't had manufacturing orders created yet
 
-**Time windows (server-side):**
+**Time windows** (all run as indexed SQL date-range queries):
 - `created_after` / `created_before`: ISO-8601 bounds on `created_at`
 - `updated_after` / `updated_before`: ISO-8601 bounds on `updated_at`
-
-**Time windows (client-side — Katana has no server filter):**
-- `delivered_after` / `delivered_before`: ISO-8601 bounds on `delivery_date`.
-  When set, the tool skips the page=1 short-circuit so auto-pagination can
-  scan enough rows to find `limit` matching results post-filter. Pair with a
-  `created_at` window to keep fetched rows bounded.
+- `delivered_after` / `delivered_before`: ISO-8601 bounds on `delivery_date`
 
 **Row detail:**
 - `include_rows` (optional, default false): When true, populate per-order row
@@ -924,16 +914,21 @@ Create a stock transfer moving inventory between two locations.
 ---
 
 ### list_stock_transfers
-List stock transfers with filters (list-tool pattern v2).
+List stock transfers with filters. All filters (including `status`) run as indexed
+SQL against the typed cache.
 
 **Parameters:**
 - `limit` (optional, default 50, min 1): Max rows to return
-- `page` (optional): Page number (1-based) — disables auto-pagination
+- `page` (optional): Page number (1-based); when set, the response includes
+  `pagination` metadata (total_records, total_pages) computed via SQL COUNT
+  against the same filter predicate
 - `status` (optional): "PENDING", "IN_TRANSIT", "COMPLETED", or "CANCELLED"
+  (folded to lowercase against the cache column)
 - `source_location_id` (optional): Filter by source location ID
 - `destination_location_id` (optional): Filter by destination (target) location ID
 - `stock_transfer_number` (optional): Exact match on the transfer number
-- `created_after` / `created_before` (optional): ISO-8601 datetime bounds on created_at
+- `created_after` / `created_before` (optional): ISO-8601 datetime bounds on
+  created_at — indexed SQL range filter
 - `include_rows` (optional, default false): Populate per-transfer row details
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 

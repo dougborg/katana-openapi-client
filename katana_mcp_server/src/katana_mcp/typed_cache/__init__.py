@@ -26,11 +26,21 @@ Public API::
 from __future__ import annotations
 
 from .engine import TypedCacheEngine
-from .sync import ensure_sales_orders_synced
+from .sync import (
+    ensure_manufacturing_orders_synced,
+    ensure_purchase_orders_synced,
+    ensure_sales_orders_synced,
+    ensure_stock_adjustments_synced,
+    ensure_stock_transfers_synced,
+)
 from .sync_state import SyncState
 
 __all__ = [
     "SyncState",
     "TypedCacheEngine",
+    "ensure_manufacturing_orders_synced",
+    "ensure_purchase_orders_synced",
     "ensure_sales_orders_synced",
+    "ensure_stock_adjustments_synced",
+    "ensure_stock_transfers_synced",
 ]

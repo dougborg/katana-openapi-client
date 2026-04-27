@@ -23,11 +23,19 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 # entity modules here as they come online.
 from katana_mcp.typed_cache import sync_state as _sync_state_mod
 from katana_public_api_client.models_pydantic._generated import (
+    manufacturing as _manufacturing_mod,
+    purchase_orders as _purchase_orders_mod,
     sales_orders as _sales_orders_mod,
+    stock as _stock_mod,
 )
 
+# ``stock`` already covers StockTransfer (sibling to StockAdjustment in the
+# same generated module), so no extra side-effect import is needed.
 assert _sync_state_mod is not None
 assert _sales_orders_mod is not None
+assert _stock_mod is not None
+assert _manufacturing_mod is not None
+assert _purchase_orders_mod is not None
 
 _DEFAULT_DB_PATH = Path(user_cache_dir("katana-mcp")) / "typed_cache.db"
 

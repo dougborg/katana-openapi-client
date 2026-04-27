@@ -23,12 +23,14 @@ from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
     PaginationMeta,
+    apply_date_window_filters,
+    coerce_enum,
     enum_to_str,
     format_md_table,
     iso_or_none,
     make_tool_result,
     none_coro,
-    parse_iso_datetime,
+    parse_request_dates,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET, Unset
@@ -504,45 +506,14 @@ class ListSalesOrdersResponse(BaseModel):
     )
 
 
-def _naive_utc(dt: datetime | None) -> datetime | None:
-    """Normalize a datetime to naive UTC for comparison against the cache.
-
-    The typed cache stores timestamps as naive UTC (SQLite's default
-    DateTime column doesn't preserve tzinfo). Tz-aware filter datetimes
-    are converted to naive UTC so SQLAlchemy comparisons don't raise
-    "can't compare offset-naive and offset-aware".
-    """
-    if dt is None:
-        return None
-    if dt.tzinfo is not None:
-        return dt.astimezone(UTC).replace(tzinfo=None)
-    return dt
-
-
-def _parse_date_filters(
-    request: ListSalesOrdersRequest,
-) -> dict[str, datetime | None]:
-    """Parse every ISO-8601 date filter on the request to naive UTC.
-
-    Run once in the impl so repeated calls to ``_apply_sales_order_filters``
-    (data SELECT + COUNT SELECT on the paginated path) don't re-parse the
-    same strings.
-    """
-    names = (
-        "created_after",
-        "created_before",
-        "updated_after",
-        "updated_before",
-        "delivered_after",
-        "delivered_before",
-    )
-    result: dict[str, datetime | None] = {}
-    for name in names:
-        raw = getattr(request, name)
-        result[name] = (
-            _naive_utc(parse_iso_datetime(raw, name)) if raw is not None else None
-        )
-    return result
+_SALES_ORDER_DATE_FIELDS = (
+    "created_after",
+    "created_before",
+    "updated_after",
+    "updated_before",
+    "delivered_after",
+    "delivered_before",
+)
 
 
 def _apply_sales_order_filters(
@@ -554,12 +525,12 @@ def _apply_sales_order_filters(
 
     Shared by the data SELECT and the COUNT SELECT so pagination totals
     reflect exactly the same filter set as the data rows. ``parsed_dates``
-    must come from :func:`_parse_date_filters` — keeping parsing out of
+    must come from :func:`parse_request_dates` — keeping parsing out of
     this function lets the paginated path avoid re-parsing on the COUNT
     query.
     """
     from katana_public_api_client.models_pydantic._generated import (
-        SalesOrder as CachedSalesOrder,
+        CachedSalesOrder,
         SalesOrderProductionStatus,
         SalesOrderStatus,
     )
@@ -576,24 +547,18 @@ def _apply_sales_order_filters(
         stmt = stmt.where(CachedSalesOrder.customer_id == request.customer_id)
     if request.location_id is not None:
         stmt = stmt.where(CachedSalesOrder.location_id == request.location_id)
-    # Enum-typed filters: validate + coerce so invalid input raises
-    # loudly instead of silently returning an empty set.
     if request.status is not None:
-        try:
-            status_enum = SalesOrderStatus(request.status)
-        except ValueError as e:
-            valid = ", ".join(s.value for s in SalesOrderStatus)
-            msg = f"Invalid status {request.status!r}. Valid: {valid}"
-            raise ValueError(msg) from e
-        stmt = stmt.where(CachedSalesOrder.status == status_enum)
+        stmt = stmt.where(
+            CachedSalesOrder.status
+            == coerce_enum(request.status, SalesOrderStatus, "status")
+        )
     if production_status is not None:
-        try:
-            prod_enum = SalesOrderProductionStatus(production_status)
-        except ValueError as e:
-            valid = ", ".join(s.value for s in SalesOrderProductionStatus)
-            msg = f"Invalid production_status {production_status!r}. Valid: {valid}"
-            raise ValueError(msg) from e
-        stmt = stmt.where(CachedSalesOrder.production_status == prod_enum)
+        stmt = stmt.where(
+            CachedSalesOrder.production_status
+            == coerce_enum(
+                production_status, SalesOrderProductionStatus, "production_status"
+            )
+        )
     if request.invoicing_status is not None:
         stmt = stmt.where(CachedSalesOrder.invoicing_status == request.invoicing_status)
     if request.currency is not None:
@@ -601,70 +566,63 @@ def _apply_sales_order_filters(
     if not request.include_deleted:
         stmt = stmt.where(CachedSalesOrder.deleted_at.is_(None))
 
-    # Date windows — all indexed SQL range queries. ``delivery_date``
-    # now participates (was post-fetch client-side before cache-back).
-    date_columns: list[tuple[str, Any, str]] = [
-        ("created_after", CachedSalesOrder.created_at, ">="),
-        ("created_before", CachedSalesOrder.created_at, "<="),
-        ("updated_after", CachedSalesOrder.updated_at, ">="),
-        ("updated_before", CachedSalesOrder.updated_at, "<="),
-        ("delivered_after", CachedSalesOrder.delivery_date, ">="),
-        ("delivered_before", CachedSalesOrder.delivery_date, "<="),
-    ]
-    for name, col, comp in date_columns:
-        dt = parsed_dates[name]
-        if dt is None:
-            continue
-        stmt = stmt.where(col >= dt if comp == ">=" else col <= dt)
-
-    return stmt
+    return apply_date_window_filters(
+        stmt,
+        parsed_dates,
+        ge_pairs={
+            "created_after": CachedSalesOrder.created_at,
+            "updated_after": CachedSalesOrder.updated_at,
+            "delivered_after": CachedSalesOrder.delivery_date,
+        },
+        le_pairs={
+            "created_before": CachedSalesOrder.created_at,
+            "updated_before": CachedSalesOrder.updated_at,
+            "delivered_before": CachedSalesOrder.delivery_date,
+        },
+    )
 
 
 async def _list_sales_orders_impl(
     request: ListSalesOrdersRequest, context: Context
 ) -> ListSalesOrdersResponse:
-    """List sales orders with filters (list-tool pattern v2, cache-backed).
+    """List sales orders with filters via the typed cache.
 
-    Reads from the SQLModel typed cache instead of the live API.
     ``ensure_sales_orders_synced`` runs an incremental ``updated_at_min``
-    delta on every call (near-zero cost steady-state; cold-start pulls
-    full history once); the query then translates request filters into
-    indexed SQL and returns results directly — no pagination dance, no
-    post-fetch client-side filtering. See ADR-0018 and #342.
+    delta (debounced — see :data:`_SYNC_DEBOUNCE`); the query then
+    translates request filters into indexed SQL and returns results
+    directly. See ADR-0018.
     """
     from sqlalchemy.orm import selectinload
     from sqlmodel import func, select
 
     from katana_mcp.typed_cache import ensure_sales_orders_synced
     from katana_public_api_client.models_pydantic._generated import (
-        SalesOrder as CachedSalesOrder,
-        SalesOrderRow as CachedSalesOrderRow,
+        CachedSalesOrder,
+        CachedSalesOrderRow,
     )
 
     services = get_services(context)
 
-    # 1. Refresh the cache (incremental — near-zero cost steady state).
     await ensure_sales_orders_synced(services.client, services.typed_cache)
 
-    # 2. Parse date filters once so the data SELECT and the (optional)
-    # COUNT SELECT don't each re-parse the same ISO-8601 strings.
-    parsed_dates = _parse_date_filters(request)
+    parsed_dates = parse_request_dates(request, _SALES_ORDER_DATE_FIELDS)
 
-    # 3. Build the data query. Pair each row with a scalar-subquery
-    # ``row_count`` so the common ``include_rows=False`` case doesn't pay
-    # the selectinload cost of materializing every line item just to
-    # report counts. Only eager-load the row detail when the caller asks
-    # for it.
-    row_count_subq = (
-        select(func.count(CachedSalesOrderRow.id))
-        .where(CachedSalesOrderRow.sales_order_id == CachedSalesOrder.id)
-        .correlate(CachedSalesOrder)
-        .scalar_subquery()
-        .label("row_count")
-    )
-    stmt = select(CachedSalesOrder, row_count_subq)
+    # When ``include_rows`` is set, ``selectinload`` eager-loads the
+    # children, so ``len(so.sales_order_rows)`` is free at materialization
+    # time and we skip the correlated COUNT subquery entirely.
     if request.include_rows:
-        stmt = stmt.options(selectinload(CachedSalesOrder.sales_order_rows))
+        stmt = select(CachedSalesOrder).options(
+            selectinload(CachedSalesOrder.sales_order_rows)
+        )
+    else:
+        row_count_subq = (
+            select(func.count(CachedSalesOrderRow.id))
+            .where(CachedSalesOrderRow.sales_order_id == CachedSalesOrder.id)
+            .correlate(CachedSalesOrder)
+            .scalar_subquery()
+            .label("row_count")
+        )
+        stmt = select(CachedSalesOrder, row_count_subq)
     stmt = _apply_sales_order_filters(stmt, request, parsed_dates)
     stmt = stmt.order_by(CachedSalesOrder.created_at.desc(), CachedSalesOrder.id.desc())
     if request.page is not None:
@@ -672,13 +630,20 @@ async def _list_sales_orders_impl(
     else:
         stmt = stmt.limit(request.limit)
 
-    # 4. Execute data query and (when paginating) a separate COUNT for meta.
     async with services.typed_cache.session() as session:
         data_result = await session.exec(stmt)
-        orders_with_counts: list[tuple[CachedSalesOrder, int]] = data_result.all()
+        if request.include_rows:
+            cached_orders = list(data_result.all())
+            orders_with_counts: list[tuple[CachedSalesOrder, int]] = [
+                (so, len(so.sales_order_rows)) for so in cached_orders
+            ]
+        else:
+            orders_with_counts = data_result.all()
 
         pagination: PaginationMeta | None = None
         if request.page is not None:
+            # Re-apply the same filter predicate to the COUNT so totals
+            # never disagree with the data set.
             count_stmt = _apply_sales_order_filters(
                 select(func.count()).select_from(CachedSalesOrder),
                 request,
@@ -694,8 +659,8 @@ async def _list_sales_orders_impl(
                 last_page=request.page >= total_pages,
             )
 
-    # 5. Materialize summaries. ``sku`` stays None — resolving it would
-    # require a variant lookup per row and defeat the single-query win.
+    # ``sku`` stays None — resolving it would require a variant lookup
+    # per row and defeat the single-query win.
     orders: list[SalesOrderSummary] = []
     for so, row_count in orders_with_counts:
         row_infos: list[SalesOrderRowInfo] | None = None

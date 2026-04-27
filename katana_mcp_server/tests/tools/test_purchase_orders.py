@@ -31,7 +31,12 @@ from katana_public_api_client.models import (
     RegularPurchaseOrder,
 )
 from katana_public_api_client.utils import APIError
-from tests.conftest import create_mock_context
+from tests.conftest import create_mock_context, patch_typed_cache_sync
+from tests.factories import (
+    make_purchase_order,
+    make_purchase_order_row,
+    seed_cache,
+)
 
 # ============================================================================
 # Test Helpers
@@ -2051,256 +2056,11 @@ async def test_verify_order_document_embeds_po_without_nested_heading():
 # ============================================================================
 
 
-def _make_mock_list_po(
-    *,
-    id: int = 1,
-    order_no: str | None = "PO-1",
-    status: str | None = "NOT_RECEIVED",
-    billing_status: str | None = "NOT_BILLED",
-    entity_type: str | None = "regular",
-    supplier_id: int | None = 10,
-    location_id: int | None = 1,
-    currency: str | None = "USD",
-    order_created_date: datetime | None = None,
-    expected_arrival_date: datetime | None = None,
-    total: float | None = 999.0,
-    rows: list | None = None,
-) -> MagicMock:
-    """Build a mock purchase order attrs object for list-tool tests."""
-    po = MagicMock()
-    po.id = id
-    po.order_no = order_no if order_no is not None else UNSET
-    po.status = status if status is not None else UNSET
-    po.billing_status = billing_status if billing_status is not None else UNSET
-    po.entity_type = entity_type if entity_type is not None else UNSET
-    po.supplier_id = supplier_id if supplier_id is not None else UNSET
-    po.location_id = location_id if location_id is not None else UNSET
-    po.currency = currency if currency is not None else UNSET
-    po.order_created_date = (
-        order_created_date if order_created_date is not None else UNSET
-    )
-    po.expected_arrival_date = (
-        expected_arrival_date if expected_arrival_date is not None else UNSET
-    )
-    po.total = total if total is not None else UNSET
-    po.purchase_order_rows = rows if rows is not None else UNSET
-    return po
-
-
-def _make_mock_po_row(
-    *,
-    id: int = 1,
-    variant_id: int = 100,
-    quantity: float = 2.0,
-    price_per_unit: float = 50.0,
-    arrival_date: datetime | None = None,
-) -> MagicMock:
-    """Build a mock purchase order row."""
-    r = MagicMock()
-    r.id = id
-    r.variant_id = variant_id
-    r.quantity = quantity
-    r.price_per_unit = price_per_unit
-    r.arrival_date = arrival_date if arrival_date is not None else UNSET
-    r.received_date = UNSET
-    r.total = quantity * price_per_unit
-    return r
-
-
-@pytest.mark.asyncio
-async def test_list_purchase_orders_server_side_filters_pass_through():
-    """Server-side filters forward to find_purchase_orders kwargs."""
-    from katana_mcp.tools.foundation.purchase_orders import (
-        ListPurchaseOrdersRequest,
-        _list_purchase_orders_impl,
-    )
-
-    from katana_public_api_client.models import (
-        FindPurchaseOrdersBillingStatus,
-        FindPurchaseOrdersStatus,
-        PurchaseOrderEntityType,
-    )
-
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    request = ListPurchaseOrdersRequest(
-        ids=[1, 2, 3],
-        order_no="PO-42",
-        entity_type=PurchaseOrderEntityType.REGULAR,
-        status=FindPurchaseOrdersStatus.NOT_RECEIVED,
-        billing_status=FindPurchaseOrdersBillingStatus.NOT_BILLED,
-        currency="USD",
-        location_id=5,
-        supplier_id=99,
-        include_deleted=False,
-        limit=25,
-    )
-
-    with (
-        patch(f"{_PO_FIND}.asyncio_detailed", side_effect=fake),
-        patch(_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_purchase_orders_impl(request, context)
-
-    assert captured["ids"] == [1, 2, 3]
-    assert captured["order_no"] == "PO-42"
-    assert captured["entity_type"] == PurchaseOrderEntityType.REGULAR
-    assert captured["status"] == FindPurchaseOrdersStatus.NOT_RECEIVED
-    assert captured["billing_status"] == FindPurchaseOrdersBillingStatus.NOT_BILLED
-    assert captured["currency"] == "USD"
-    assert captured["location_id"] == 5
-    # supplier_id cast to float at the API boundary (generated-client signature
-    # uses `float` historically); the tool-facing field is `int`.
-    assert captured["supplier_id"] == 99.0
-    assert isinstance(captured["supplier_id"], float)
-    assert captured["include_deleted"] is False
-    assert captured["limit"] == 25
-
-
-@pytest.mark.asyncio
-async def test_list_purchase_orders_page_short_circuit_single_page():
-    """limit <= 250 with no client-side filter adds page=1."""
-    from katana_mcp.tools.foundation.purchase_orders import (
-        ListPurchaseOrdersRequest,
-        _list_purchase_orders_impl,
-    )
-
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    with (
-        patch(f"{_PO_FIND}.asyncio_detailed", side_effect=fake),
-        patch(_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_purchase_orders_impl(ListPurchaseOrdersRequest(limit=10), context)
-
-    assert captured["page"] == 1
-    assert captured["limit"] == 10
-
-
-@pytest.mark.asyncio
-async def test_list_purchase_orders_caller_page_preserved():
-    """Explicit page overrides the short-circuit."""
-    from katana_mcp.tools.foundation.purchase_orders import (
-        ListPurchaseOrdersRequest,
-        _list_purchase_orders_impl,
-    )
-
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    with (
-        patch(f"{_PO_FIND}.asyncio_detailed", side_effect=fake),
-        patch(_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_purchase_orders_impl(
-            ListPurchaseOrdersRequest(limit=50, page=2), context
-        )
-
-    assert captured["page"] == 2
-    assert captured["limit"] == 50
-
-
-@pytest.mark.asyncio
-async def test_list_purchase_orders_skips_short_circuit_when_client_filter_set():
-    """expected_arrival filter suppresses the page=1 short-circuit."""
-    from katana_mcp.tools.foundation.purchase_orders import (
-        ListPurchaseOrdersRequest,
-        _list_purchase_orders_impl,
-    )
-
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    with (
-        patch(f"{_PO_FIND}.asyncio_detailed", side_effect=fake),
-        patch(_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_purchase_orders_impl(
-            ListPurchaseOrdersRequest(
-                limit=10, expected_arrival_after="2026-04-01T00:00:00Z"
-            ),
-            context,
-        )
-
-    assert "page" not in captured
-    assert captured["limit"] == 10
-
-
-@pytest.mark.asyncio
-async def test_list_purchase_orders_pagination_meta_from_header():
-    """x-pagination header populates PaginationMeta when page is set."""
-    from katana_mcp.tools.foundation.purchase_orders import (
-        ListPurchaseOrdersRequest,
-        _list_purchase_orders_impl,
-    )
-
-    context, _ = create_mock_context()
-
-    mock_response = MagicMock()
-    mock_response.headers = {
-        "x-pagination": (
-            '{"total_records":"200","total_pages":"4","offset":"0","page":"2",'
-            '"first_page":"false","last_page":"false"}'
-        )
-    }
-
-    async def fake(**kwargs):
-        return mock_response
-
-    with (
-        patch(f"{_PO_FIND}.asyncio_detailed", side_effect=fake),
-        patch(_UNWRAP_DATA, return_value=[]),
-    ):
-        result = await _list_purchase_orders_impl(
-            ListPurchaseOrdersRequest(page=2, limit=50), context
-        )
-
-    assert result.pagination is not None
-    assert result.pagination.total_records == 200
-    assert result.pagination.total_pages == 4
-    assert result.pagination.page == 2
-    assert result.pagination.first_page is False
-
-
-@pytest.mark.asyncio
-async def test_list_purchase_orders_caps_to_limit():
-    """Safety net: slice results to request.limit."""
-    from katana_mcp.tools.foundation.purchase_orders import (
-        ListPurchaseOrdersRequest,
-        _list_purchase_orders_impl,
-    )
-
-    context, _ = create_mock_context()
-    over_fetched = [_make_mock_list_po(id=i, order_no=f"PO-{i}") for i in range(100)]
-
-    with (
-        patch(f"{_PO_FIND}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_UNWRAP_DATA, return_value=over_fetched),
-    ):
-        result = await _list_purchase_orders_impl(
-            ListPurchaseOrdersRequest(limit=25), context
-        )
-
-    assert len(result.orders) == 25
-    assert result.total_count == 25
+@pytest.fixture
+def no_po_sync():
+    """Patch ``ensure_purchase_orders_synced`` to a no-op."""
+    with patch_typed_cache_sync("purchase_orders"):
+        yield
 
 
 @pytest.mark.asyncio
@@ -2316,128 +2076,320 @@ async def test_list_purchase_orders_limit_le_250_validation():
 
 
 @pytest.mark.asyncio
-async def test_list_purchase_orders_invalid_date_raises():
+async def test_list_purchase_orders_filters_by_ids(
+    context_with_typed_cache, no_po_sync
+):
+    """`ids` restricts the returned set to specific PO IDs."""
+    from katana_mcp.tools.foundation.purchase_orders import (
+        ListPurchaseOrdersRequest,
+        _list_purchase_orders_impl,
+    )
+
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_purchase_order(id=1),
+            make_purchase_order(id=2),
+            make_purchase_order(id=3),
+        ],
+    )
+
+    result = await _list_purchase_orders_impl(
+        ListPurchaseOrdersRequest(ids=[1, 3]), context
+    )
+
+    assert {o.id for o in result.orders} == {1, 3}
+
+
+@pytest.mark.asyncio
+async def test_list_purchase_orders_filters_by_status_and_billing(
+    context_with_typed_cache, no_po_sync
+):
+    """`status` and `billing_status` apply as enum-typed column filters."""
+    from katana_mcp.tools.foundation.purchase_orders import (
+        ListPurchaseOrdersRequest,
+        _list_purchase_orders_impl,
+    )
+
+    from katana_public_api_client.models import (
+        FindPurchaseOrdersBillingStatus,
+        FindPurchaseOrdersStatus,
+    )
+
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_purchase_order(
+                id=1, status="NOT_RECEIVED", billing_status="NOT_BILLED"
+            ),
+            make_purchase_order(id=2, status="RECEIVED", billing_status="BILLED"),
+            make_purchase_order(id=3, status="NOT_RECEIVED", billing_status="BILLED"),
+        ],
+    )
+
+    result = await _list_purchase_orders_impl(
+        ListPurchaseOrdersRequest(
+            status=FindPurchaseOrdersStatus.NOT_RECEIVED,
+            billing_status=FindPurchaseOrdersBillingStatus.NOT_BILLED,
+        ),
+        context,
+    )
+
+    assert {o.id for o in result.orders} == {1}
+
+
+@pytest.mark.asyncio
+async def test_list_purchase_orders_filters_by_entity_type_and_tracking_location(
+    context_with_typed_cache, no_po_sync
+):
+    """`entity_type` filters regular vs outsourced; `tracking_location_id` is hoisted from the outsourced subclass."""
+    from katana_mcp.tools.foundation.purchase_orders import (
+        ListPurchaseOrdersRequest,
+        _list_purchase_orders_impl,
+    )
+
+    from katana_public_api_client.models import PurchaseOrderEntityType
+
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_purchase_order(id=1, entity_type="regular"),
+            make_purchase_order(
+                id=2, entity_type="outsourced", tracking_location_id=99
+            ),
+            make_purchase_order(
+                id=3, entity_type="outsourced", tracking_location_id=100
+            ),
+        ],
+    )
+
+    by_type = await _list_purchase_orders_impl(
+        ListPurchaseOrdersRequest(entity_type=PurchaseOrderEntityType.OUTSOURCED),
+        context,
+    )
+    assert {o.id for o in by_type.orders} == {2, 3}
+
+    by_tracking = await _list_purchase_orders_impl(
+        ListPurchaseOrdersRequest(tracking_location_id=99), context
+    )
+    assert {o.id for o in by_tracking.orders} == {2}
+
+
+@pytest.mark.asyncio
+async def test_list_purchase_orders_filters_by_supplier_currency_and_location(
+    context_with_typed_cache, no_po_sync
+):
+    """Direct column filters: supplier_id, currency, location_id."""
+    from katana_mcp.tools.foundation.purchase_orders import (
+        ListPurchaseOrdersRequest,
+        _list_purchase_orders_impl,
+    )
+
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_purchase_order(id=1, supplier_id=10, currency="USD", location_id=1),
+            make_purchase_order(id=2, supplier_id=10, currency="EUR", location_id=2),
+            make_purchase_order(id=3, supplier_id=20, currency="USD", location_id=1),
+        ],
+    )
+
+    by_supplier = await _list_purchase_orders_impl(
+        ListPurchaseOrdersRequest(supplier_id=10), context
+    )
+    assert {o.id for o in by_supplier.orders} == {1, 2}
+
+    by_currency = await _list_purchase_orders_impl(
+        ListPurchaseOrdersRequest(currency="USD"), context
+    )
+    assert {o.id for o in by_currency.orders} == {1, 3}
+
+    by_location = await _list_purchase_orders_impl(
+        ListPurchaseOrdersRequest(location_id=1), context
+    )
+    assert {o.id for o in by_location.orders} == {1, 3}
+
+
+@pytest.mark.asyncio
+async def test_list_purchase_orders_excludes_deleted_by_default(
+    context_with_typed_cache, no_po_sync
+):
+    """Soft-deleted POs are filtered unless include_deleted=True."""
+    from katana_mcp.tools.foundation.purchase_orders import (
+        ListPurchaseOrdersRequest,
+        _list_purchase_orders_impl,
+    )
+
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_purchase_order(id=1, deleted_at=None),
+            make_purchase_order(id=2, deleted_at=datetime(2026, 3, 15)),
+        ],
+    )
+
+    default = await _list_purchase_orders_impl(ListPurchaseOrdersRequest(), context)
+    assert {o.id for o in default.orders} == {1}
+
+    with_deleted = await _list_purchase_orders_impl(
+        ListPurchaseOrdersRequest(include_deleted=True), context
+    )
+    assert {o.id for o in with_deleted.orders} == {1, 2}
+
+
+@pytest.mark.asyncio
+async def test_list_purchase_orders_date_filters(context_with_typed_cache, no_po_sync):
+    """`created_*` and `expected_arrival_*` apply as indexed range filters."""
+    from katana_mcp.tools.foundation.purchase_orders import (
+        ListPurchaseOrdersRequest,
+        _list_purchase_orders_impl,
+    )
+
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_purchase_order(
+                id=1,
+                created_at=datetime(2026, 2, 15),
+                expected_arrival_date=datetime(2026, 4, 15),
+            ),
+            make_purchase_order(
+                id=2,
+                created_at=datetime(2026, 5, 1),
+                expected_arrival_date=datetime(2027, 1, 1),
+            ),
+        ],
+    )
+
+    created = await _list_purchase_orders_impl(
+        ListPurchaseOrdersRequest(
+            created_after="2026-01-01T00:00:00Z",
+            created_before="2026-04-01T00:00:00Z",
+        ),
+        context,
+    )
+    assert {o.id for o in created.orders} == {1}
+
+    arrival = await _list_purchase_orders_impl(
+        ListPurchaseOrdersRequest(
+            expected_arrival_after="2026-04-01T00:00:00Z",
+            expected_arrival_before="2026-04-30T00:00:00Z",
+        ),
+        context,
+    )
+    assert {o.id for o in arrival.orders} == {1}
+
+
+@pytest.mark.asyncio
+async def test_list_purchase_orders_invalid_date_raises(
+    context_with_typed_cache, no_po_sync
+):
     """Malformed ISO-8601 surfaces as ValueError."""
     from katana_mcp.tools.foundation.purchase_orders import (
         ListPurchaseOrdersRequest,
         _list_purchase_orders_impl,
     )
 
-    context, _ = create_mock_context()
+    context, _, _typed_cache = context_with_typed_cache
 
-    with (
-        patch(f"{_PO_FIND}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_UNWRAP_DATA, return_value=[]),
-        pytest.raises(ValueError, match=r"Invalid ISO-8601.*created_after"),
-    ):
+    with pytest.raises(ValueError, match=r"Invalid ISO-8601.*created_after"):
         await _list_purchase_orders_impl(
             ListPurchaseOrdersRequest(created_after="not-a-date"), context
         )
 
 
 @pytest.mark.asyncio
-async def test_list_purchase_orders_date_z_normalization():
-    """Trailing Z/z normalize to +00:00 and forward as datetimes."""
+async def test_list_purchase_orders_caps_to_limit(context_with_typed_cache, no_po_sync):
+    """`limit` caps the result size even when more rows match."""
     from katana_mcp.tools.foundation.purchase_orders import (
         ListPurchaseOrdersRequest,
         _list_purchase_orders_impl,
     )
 
-    context, _ = create_mock_context()
-    captured: dict = {}
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [make_purchase_order(id=i) for i in range(1, 31)],
+    )
 
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
+    result = await _list_purchase_orders_impl(
+        ListPurchaseOrdersRequest(limit=5), context
+    )
 
-    with (
-        patch(f"{_PO_FIND}.asyncio_detailed", side_effect=fake),
-        patch(_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_purchase_orders_impl(
-            ListPurchaseOrdersRequest(
-                created_after="2026-01-01T00:00:00Z",
-                updated_before="2026-04-01T00:00:00z",
-            ),
-            context,
-        )
-
-    assert isinstance(captured["created_at_min"], datetime)
-    assert isinstance(captured["updated_at_max"], datetime)
+    assert len(result.orders) == 5
 
 
 @pytest.mark.asyncio
-async def test_list_purchase_orders_expected_arrival_client_side_filter():
-    """expected_arrival_after/before filters post-fetch."""
+async def test_list_purchase_orders_pagination_meta_populated_on_explicit_page(
+    context_with_typed_cache, no_po_sync
+):
+    """An explicit `page` populates `pagination` from a SQL COUNT against the same filter set."""
     from katana_mcp.tools.foundation.purchase_orders import (
         ListPurchaseOrdersRequest,
         _list_purchase_orders_impl,
     )
 
-    context, _ = create_mock_context()
-    pos = [
-        _make_mock_list_po(
-            id=1,
-            order_no="PO-1",
-            expected_arrival_date=datetime(2026, 4, 15, tzinfo=UTC),
-        ),
-        _make_mock_list_po(
-            id=2,
-            order_no="PO-2",
-            expected_arrival_date=datetime(2027, 1, 1, tzinfo=UTC),
-        ),
-    ]
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [make_purchase_order(id=i) for i in range(1, 12)],
+    )
 
-    with (
-        patch(f"{_PO_FIND}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_UNWRAP_DATA, return_value=pos),
-    ):
-        result = await _list_purchase_orders_impl(
-            ListPurchaseOrdersRequest(
-                expected_arrival_after="2026-04-01T00:00:00Z",
-                expected_arrival_before="2026-04-30T00:00:00Z",
-            ),
-            context,
-        )
+    result = await _list_purchase_orders_impl(
+        ListPurchaseOrdersRequest(limit=5, page=2), context
+    )
 
-    assert result.total_count == 1
-    assert result.orders[0].id == 1
+    assert result.pagination is not None
+    assert result.pagination.total_records == 11
+    assert result.pagination.total_pages == 3
+    assert result.pagination.page == 2
+    assert len(result.orders) == 5
 
 
 @pytest.mark.asyncio
-async def test_list_purchase_orders_include_rows_populates_details():
+async def test_list_purchase_orders_include_rows(context_with_typed_cache, no_po_sync):
     """include_rows=True exposes per-PO line item detail."""
     from katana_mcp.tools.foundation.purchase_orders import (
         ListPurchaseOrdersRequest,
         _list_purchase_orders_impl,
     )
 
-    context, _ = create_mock_context()
-    mock_po = _make_mock_list_po(
-        id=7,
-        rows=[
-            _make_mock_po_row(id=1, variant_id=100, quantity=5, price_per_unit=10.0),
-            _make_mock_po_row(id=2, variant_id=200, quantity=2, price_per_unit=25.0),
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_purchase_order(
+                id=7,
+                rows=[
+                    make_purchase_order_row(
+                        id=1, purchase_order_id=7, variant_id=100, quantity=5.0
+                    ),
+                    make_purchase_order_row(
+                        id=2, purchase_order_id=7, variant_id=200, quantity=2.0
+                    ),
+                ],
+            ),
         ],
     )
 
-    with (
-        patch(f"{_PO_FIND}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_UNWRAP_DATA, return_value=[mock_po]),
-    ):
-        result_with = await _list_purchase_orders_impl(
-            ListPurchaseOrdersRequest(include_rows=True), context
-        )
-        result_without = await _list_purchase_orders_impl(
-            ListPurchaseOrdersRequest(include_rows=False), context
-        )
+    with_rows = await _list_purchase_orders_impl(
+        ListPurchaseOrdersRequest(include_rows=True), context
+    )
+    without_rows = await _list_purchase_orders_impl(
+        ListPurchaseOrdersRequest(include_rows=False), context
+    )
 
-    assert result_with.orders[0].rows is not None
-    assert len(result_with.orders[0].rows) == 2
-    assert result_with.orders[0].row_count == 2
-    assert result_without.orders[0].rows is None
-    # row_count should still reflect the true count regardless of include_rows
-    assert result_without.orders[0].row_count == 2
+    assert with_rows.orders[0].rows is not None
+    assert len(with_rows.orders[0].rows) == 2
+    assert with_rows.orders[0].row_count == 2
+    assert without_rows.orders[0].rows is None
+    assert without_rows.orders[0].row_count == 2
 
 
 # ============================================================================

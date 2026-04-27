@@ -2,6 +2,101 @@
 
 <!-- version list -->
 
+## v0.54.0 (2026-04-27)
+
+### Bug Fixes
+
+- **client**: Add NOT_APPLICABLE to OutsourcedPurchaseOrderIngredientAvailability
+  ([#394](https://github.com/dougborg/katana-openapi-client/pull/394),
+  [`70140c5`](https://github.com/dougborg/katana-openapi-client/commit/70140c51ea92e1eb408cfb41bfd733efd515f22a))
+
+### Chores
+
+- Sync uv.lock with workspace version bump
+  ([#383](https://github.com/dougborg/katana-openapi-client/pull/383),
+  [`3ac564f`](https://github.com/dougborg/katana-openapi-client/commit/3ac564f1504c25ac151c447485aa8ebf5172d94e))
+
+- **client**: Simplify PR #363 generator transforms + tests
+  ([#364](https://github.com/dougborg/katana-openapi-client/pull/364),
+  [`5a54305`](https://github.com/dougborg/katana-openapi-client/commit/5a54305061601adf934021c545c6e72147b1643f))
+
+- **harness**: Add lock file, restructure open-pr/review-pr, refresh CLAUDE.md
+  ([#383](https://github.com/dougborg/katana-openapi-client/pull/383),
+  [`3ac564f`](https://github.com/dougborg/katana-openapi-client/commit/3ac564f1504c25ac151c447485aa8ebf5172d94e))
+
+- **harness**: Adopt code-reviewer/verifier agents; add domain-advisor
+  ([#383](https://github.com/dougborg/katana-openapi-client/pull/383),
+  [`3ac564f`](https://github.com/dougborg/katana-openapi-client/commit/3ac564f1504c25ac151c447485aa8ebf5172d94e))
+
+- **harness**: Migrate legacy commands to skills
+  ([#383](https://github.com/dougborg/katana-openapi-client/pull/383),
+  [`3ac564f`](https://github.com/dougborg/katana-openapi-client/commit/3ac564f1504c25ac151c447485aa8ebf5172d94e))
+
+- **harness**: Rebuild .claude/ harness from /harness audit findings
+  ([#383](https://github.com/dougborg/katana-openapi-client/pull/383),
+  [`3ac564f`](https://github.com/dougborg/katana-openapi-client/commit/3ac564f1504c25ac151c447485aa8ebf5172d94e))
+
+- **mcp**: Post-#342 cleanup — sync debounce, query-shape branching, helper extractions
+  ([#391](https://github.com/dougborg/katana-openapi-client/pull/391),
+  [`e95a128`](https://github.com/dougborg/katana-openapi-client/commit/e95a128d5bd588d4e27adf2db05ff6634b9ed9fd))
+
+- **mcp**: Simplify PR #365 typed-cache sync + engine
+  ([#367](https://github.com/dougborg/katana-openapi-client/pull/367),
+  [`9fa5f5e`](https://github.com/dougborg/katana-openapi-client/commit/9fa5f5eb3584a7794f0a6e77ffafdf97b1c59749))
+
+- **mcp**: Simplify PR #373 list_sales_orders cache-back
+  ([#375](https://github.com/dougborg/katana-openapi-client/pull/375),
+  [`dcd1648`](https://github.com/dougborg/katana-openapi-client/commit/dcd1648a763e8295d1ca3f7a769b8983e9df6330))
+
+- **mcp**: Update client dependency to v0.53.0
+  ([`438f18b`](https://github.com/dougborg/katana-openapi-client/commit/438f18ba48d35e2b3a96b4bd30e412b38d9bc5c2))
+
+- **release**: Mcp v0.41.0
+  ([`3238a2d`](https://github.com/dougborg/katana-openapi-client/commit/3238a2d8956c1c8c0c4db26fc2fa0a890ed21ca7))
+
+- **release**: Mcp v0.42.0
+  ([`e209830`](https://github.com/dougborg/katana-openapi-client/commit/e2098300683a91b9a100546578b177d57e55f3c2))
+
+### Features
+
+- **client+mcp**: Cache-back list_manufacturing_orders (#377)
+  ([#386](https://github.com/dougborg/katana-openapi-client/pull/386),
+  [`3b85b05`](https://github.com/dougborg/katana-openapi-client/commit/3b85b057a3c2a28953190a315d00663db647a13f))
+
+- **client+mcp**: Cache-back list_purchase_orders (#378)
+  ([#387](https://github.com/dougborg/katana-openapi-client/pull/387),
+  [`037ff60`](https://github.com/dougborg/katana-openapi-client/commit/037ff60cf28eaf812cd4cad18a3a0f67ab8b513f))
+
+- **client+mcp**: Cache-back list_stock_transfers (#379)
+  ([#388](https://github.com/dougborg/katana-openapi-client/pull/388),
+  [`581e876`](https://github.com/dougborg/katana-openapi-client/commit/581e8769155f404d7bcb72d8c9bdb351eedc7521))
+
+- **client+mcp**: Emit Cached<Name> sibling classes; cache-back list_stock_adjustments
+  (#376) ([#385](https://github.com/dougborg/katana-openapi-client/pull/385),
+  [`409c45a`](https://github.com/dougborg/katana-openapi-client/commit/409c45a848715867f0d003382843b6fd6d16a67a))
+
+- **mcp**: Migrate list_sales_orders to cache-backed query (#368)
+  ([#373](https://github.com/dougborg/katana-openapi-client/pull/373),
+  [`31e4199`](https://github.com/dougborg/katana-openapi-client/commit/31e4199aeed976eed32d2ce3a99ea141c6abf337))
+
+- **mcp**: SQLModel-backed typed cache runtime foundation (#342)
+  ([#365](https://github.com/dougborg/katana-openapi-client/pull/365),
+  [`ddaf4aa`](https://github.com/dougborg/katana-openapi-client/commit/ddaf4aa6127e7c0b52da63497de9b0ba48aa5c40))
+
+### Refactoring
+
+- **mcp**: Consolidate list-tool helpers + enable complexity linting (#347)
+  ([#369](https://github.com/dougborg/katana-openapi-client/pull/369),
+  [`f13574e`](https://github.com/dougborg/katana-openapi-client/commit/f13574e252339ed4a9790ba96afde74049d5a674))
+
+- **mcp**: Promote typed-cache test helpers
+  ([#380](https://github.com/dougborg/katana-openapi-client/pull/380),
+  [`71acdaa`](https://github.com/dougborg/katana-openapi-client/commit/71acdaac56119e83ee1dc5ee67ee1c430010045d))
+
+- **mcp**: Promote typed-cache test helpers (#374)
+  ([#380](https://github.com/dougborg/katana-openapi-client/pull/380),
+  [`71acdaa`](https://github.com/dougborg/katana-openapi-client/commit/71acdaac56119e83ee1dc5ee67ee1c430010045d))
+
 ## v0.53.0 (2026-04-23)
 
 ### Chores

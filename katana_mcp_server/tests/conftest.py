@@ -1,7 +1,7 @@
 """Shared pytest fixtures for MCP server tests."""
 
 import os
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import pytest_asyncio
@@ -137,6 +137,38 @@ async def typed_cache_engine():
         yield engine
     finally:
         await engine.close()
+
+
+def patch_typed_cache_sync(entity_type: str):
+    """Patch a cache-backed list tool's ``ensure_<entity>_synced`` to a no-op.
+
+    Cache-backed list impls (``_list_<entity>_impl``) do a deferred
+    ``from katana_mcp.typed_cache import ensure_<entity>_synced`` inside
+    the function body, then call it to refresh the cache before querying.
+    Tests that seed the cache directly want that call stubbed so it
+    doesn't fire a real API request — and the patch must target the
+    source module (``katana_mcp.typed_cache``), not the importer, because
+    the deferred import means the name doesn't exist in the tool module's
+    namespace until the function runs.
+
+    Usage from a per-test-module fixture::
+
+        @pytest.fixture
+        def no_sync():
+            with patch_typed_cache_sync("sales_orders"):
+                yield
+
+    ``entity_type`` is the plural suffix used in the sync helper's name
+    (``sales_orders`` → ``ensure_sales_orders_synced``).
+    """
+
+    async def _noop(_client, _cache):
+        return None
+
+    return patch(
+        f"katana_mcp.typed_cache.ensure_{entity_type}_synced",
+        side_effect=_noop,
+    )
 
 
 @pytest_asyncio.fixture

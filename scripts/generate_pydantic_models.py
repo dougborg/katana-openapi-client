@@ -175,7 +175,39 @@ DOMAIN_GROUPS: dict[str, list[str]] = {
 # into SQLAlchemy table semantics (`table=True`) so they double as cache row
 # schemas. Expanded incrementally per-entity as list tools get cache-backed;
 # PR 2 covers SalesOrder + SalesOrderRow as the pattern-proving pair.
-CACHE_TABLES: set[str] = {"SalesOrder", "SalesOrderRow"}
+CACHE_TABLES: set[str] = {
+    "SalesOrder",
+    "SalesOrderRow",
+    "StockAdjustment",
+    "StockAdjustmentRow",
+    "ManufacturingOrder",
+    "PurchaseOrderBase",
+    "PurchaseOrderRow",
+    "StockTransfer",
+    "StockTransferRow",
+}
+
+
+# Cache class name overrides — when the API class name reads awkwardly as a
+# cache class, remap. Example: ``PurchaseOrderBase`` is the API discriminated
+# union root (sibling of RegularPurchaseOrder + OutsourcedPurchaseOrder); the
+# cache class shadows it as ``CachedPurchaseOrder`` (and ``__tablename__`` is
+# ``purchase_order``, not ``purchase_order_base``).
+CACHE_TABLE_RENAMES: dict[str, str] = {
+    "PurchaseOrderBase": "PurchaseOrder",
+}
+
+
+# Cache-only fields hoisted from API subclasses into the cache base. Used when
+# a discriminated-union root (PurchaseOrderBase) is cached as one SQL table
+# but the listing tool needs to filter by a column that lives on a subclass
+# (OutsourcedPurchaseOrder.tracking_location_id). The converter copies these
+# fields out of the subclass instance when the entity_type matches.
+CACHE_EXTRA_FIELDS: dict[str, list[str]] = {
+    "PurchaseOrderBase": [
+        "    tracking_location_id: int | None = None",
+    ],
+}
 
 
 @dataclass(frozen=True)
@@ -190,12 +222,29 @@ class CacheTableRelationship:
 
     @property
     def parent_table(self) -> str:
-        return _snake_case(self.parent)
+        # Honor ``CACHE_TABLE_RENAMES`` so FK ``foreign_key="<table>.id"``
+        # references match the renamed tablename (e.g.,
+        # ``PurchaseOrderBase`` → ``purchase_order``, not
+        # ``purchase_order_base``).
+        renamed = CACHE_TABLE_RENAMES.get(self.parent, self.parent)
+        return _snake_case(renamed)
 
 
 def _snake_case(name: str) -> str:
     """CamelCase → snake_case — used for default SQLAlchemy tablenames."""
     return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+
+
+def _cached_name(name: str) -> str:
+    """API class name → cache-row class name (``SalesOrder`` → ``CachedSalesOrder``).
+
+    Cache rows live as ``Cached<Name>`` siblings of the API pydantic models
+    so the API surface stays pure (no ``table=True``, no FK pollution) while
+    the cache schema can carry SQLAlchemy machinery, FK back-pointers, and
+    relationships. ``CACHE_TABLE_RENAMES`` lets a class shadow under a
+    different name (``PurchaseOrderBase`` → ``CachedPurchaseOrder``).
+    """
+    return f"Cached{CACHE_TABLE_RENAMES.get(name, name)}"
 
 
 CACHE_RELATIONSHIPS: list[CacheTableRelationship] = [
@@ -205,6 +254,27 @@ CACHE_RELATIONSHIPS: list[CacheTableRelationship] = [
         child="SalesOrderRow",
         child_back_ref="sales_order",
         child_fk_field="sales_order_id",
+    ),
+    CacheTableRelationship(
+        parent="StockAdjustment",
+        parent_field="stock_adjustment_rows",
+        child="StockAdjustmentRow",
+        child_back_ref="stock_adjustment",
+        child_fk_field="stock_adjustment_id",
+    ),
+    CacheTableRelationship(
+        parent="PurchaseOrderBase",
+        parent_field="purchase_order_rows",
+        child="PurchaseOrderRow",
+        child_back_ref="purchase_order",
+        child_fk_field="purchase_order_id",
+    ),
+    CacheTableRelationship(
+        parent="StockTransfer",
+        parent_field="stock_transfer_rows",
+        child="StockTransferRow",
+        child_back_ref="stock_transfer",
+        child_fk_field="stock_transfer_id",
     ),
 ]
 
@@ -216,6 +286,15 @@ CACHE_RELATIONSHIPS: list[CacheTableRelationship] = [
 CACHE_JSON_COLUMNS: dict[str, list[str]] = {
     "SalesOrder": ["shipping_fee", "addresses"],
     "SalesOrderRow": ["attributes", "batch_transactions", "serial_numbers"],
+    "StockAdjustmentRow": ["batch_transactions"],
+    "ManufacturingOrder": ["batch_transactions", "serial_numbers"],
+    # PurchaseOrderBase.supplier is a single nested ``Supplier`` object that
+    # SQLAlchemy can't auto-map; cache it as JSON so the row stays denormalized.
+    "PurchaseOrderBase": ["supplier"],
+    # ``landed_cost: str | float | None`` is a non-optional inner union
+    # that SQLAlchemy can't auto-type — JSON-column it instead of dropping.
+    "PurchaseOrderRow": ["batch_transactions", "landed_cost"],
+    "StockTransferRow": ["batch_transactions"],
 }
 
 
@@ -228,6 +307,22 @@ class ClassInfo:
     bases: list[str]
     line_start: int
     line_end: int
+
+    def with_source(self, new_source: str) -> ClassInfo:
+        """Return a copy with a rewritten ``source`` (other fields preserved).
+
+        Used by the cache-table inject passes — each pass mutates the
+        generated source string in-place; using this helper avoids the
+        repetitive ``ClassInfo(name=cls.name, source=new_source, ...)``
+        reconstruction with four passthrough fields.
+        """
+        return ClassInfo(
+            name=self.name,
+            source=new_source,
+            bases=self.bases,
+            line_start=self.line_start,
+            line_end=self.line_end,
+        )
 
 
 @dataclass
@@ -416,19 +511,25 @@ def parse_generated_file(
     # Add extra="ignore" to BaseEntity for API response tolerance (#295)
     classes = add_base_entity_extra_ignore(classes)
 
-    # #342 cache-table transforms — opt-in SQLModel table semantics for
-    # CACHE_TABLES entries. Order matters:
-    # 1. table=True + frozen=False model_config on the class header.
-    # 2. Redeclare id with primary_key=True (depends on the model_config
-    #    line placed by step 1).
-    # 3. Swap AwareDatetime → datetime so SQLModel's type inference works.
-    # 4. FK / relationship / JSON column annotations on field declarations.
+    # #342 cache-table transforms — emit a ``Cached<Name>`` sibling for
+    # each CACHE_TABLES entry. The original API class stays pure pydantic;
+    # the cache class carries SQLModel ``table=True``, primary keys, FKs,
+    # relationships, and JSON columns. Order matters:
+    # 1. Duplicate each CACHE_TABLES API class as a ``Cached<Name>`` copy
+    #    with internal references to other cached siblings rewritten.
+    # 2. table=True + frozen=False model_config on the cached class header.
+    # 3. Redeclare id with primary_key=True (depends on the model_config
+    #    line placed by step 2).
+    # 4. Swap AwareDatetime → datetime so SQLModel's type inference works.
+    # 5. FK / relationship / JSON column annotations on field declarations.
+    classes = duplicate_cache_tables_as_cached_siblings(classes)
     classes = inject_table_annotations(classes)
     classes = inject_primary_key_in_table_classes(classes)
     classes = swap_awaredatetime_for_datetime(classes)
     classes = inject_foreign_keys(classes)
     classes = inject_relationship_fields(classes)
     classes = inject_json_columns(classes)
+    classes = inject_extra_cache_fields(classes)
 
     print(
         f"  Found {len(imports)} imports, {len(classes)} classes, "
@@ -692,6 +793,103 @@ def add_base_entity_extra_ignore(classes: list[ClassInfo]) -> list[ClassInfo]:
 # ── #342 cache-table AST transforms ────────────────────────────────────────
 
 
+def duplicate_cache_tables_as_cached_siblings(
+    classes: list[ClassInfo],
+) -> list[ClassInfo]:
+    """For each CACHE_TABLES entry, emit a ``Cached<Name>`` sibling class.
+
+    The original API class stays pure pydantic — never gets ``table=True``,
+    FKs, or relationships. The cached sibling is a copy of the source with:
+    - The class identifier rewritten ``<Name>`` → ``Cached<Name>``.
+    - References to other cached siblings rewritten (e.g.,
+      ``list[SalesOrderRow]`` → ``list[CachedSalesOrderRow]``) so a
+      relationship between two cache tables wires up to the cache copies,
+      not the API ones.
+    - Forward-reference strings inside ``Annotated`` / type hints rewritten
+      the same way (covers cases where the type appears in a string-quoted
+      forward ref).
+
+    All subsequent inject passes target the ``Cached<Name>`` copies; the
+    originals are left untouched. References from non-cache classes
+    (``SalesOrderListResponse.data: list[SalesOrder]``) keep pointing at
+    the API classes.
+    """
+    cached_targets = {n: _cached_name(n) for n in CACHE_TABLES}
+
+    def _rewrite_internal_refs(source: str) -> str:
+        new_source = source
+        # Word-boundary swap so e.g. ``SalesOrder`` → ``CachedSalesOrder``
+        # doesn't also touch ``SalesOrderRow`` (the longer name handled in
+        # its own iteration). Iterate longest-first to avoid corrupting
+        # nested references like ``SalesOrderRow`` → ``CachedSalesOrderRow``
+        # when ``SalesOrder`` is rewritten first.
+        for original in sorted(cached_targets, key=len, reverse=True):
+            cached = cached_targets[original]
+            new_source = re.sub(rf"\b{re.escape(original)}\b", cached, new_source)
+        return new_source
+
+    cached_copies: list[ClassInfo] = []
+    for cls in classes:
+        if cls.name not in cached_targets:
+            continue
+        cached_name = cached_targets[cls.name]
+        # Replace the class header identifier first (single hit), then
+        # rewrite remaining cross-cache references in field annotations.
+        # Bases are left intact — cache classes inherit from the same base
+        # entity classes (DeletableEntity, etc.) as their API siblings.
+        new_source = re.sub(
+            rf"^class {re.escape(cls.name)}\b",
+            f"class {cached_name}",
+            cls.source,
+            count=1,
+            flags=re.MULTILINE,
+        )
+        new_source = _rewrite_internal_refs(new_source)
+        # Strip body-level statements that the cache passes will replace
+        # with their SQL-aware equivalents. Standalone classes (extending
+        # ``KatanaPydanticBase`` directly rather than an entity base) emit
+        # their own ``model_config = ConfigDict(extra="forbid")`` plus an
+        # optional ``id`` field — both must go before ``inject_table_annotations``
+        # injects ``model_config = ConfigDict(frozen=False)`` and
+        # ``inject_primary_key_in_table_classes`` injects the primary-key
+        # ``id`` declaration. Match both single-line and multi-line forms.
+        new_source = re.sub(
+            r"    model_config = ConfigDict\([^)]*\)\n",
+            "",
+            new_source,
+        )
+        # Two shapes datamodel-codegen emits for ``id``:
+        #   1. ``id: Annotated[int | None, Field(description=...)] = None``
+        #      (multi-line tolerant — description may wrap)
+        #   2. ``id: int | None = None`` (no description on the source field)
+        # Either gets stripped so ``inject_primary_key_in_table_classes`` can
+        # inject the canonical primary-keyed declaration without a duplicate.
+        new_source = re.sub(
+            r"    id:\s*Annotated\[\s*int(?:\s*\|\s*None)?\s*,"
+            r"[^]]*\][^\n]*\n",
+            "",
+            new_source,
+            count=1,
+            flags=re.DOTALL,
+        )
+        new_source = re.sub(
+            r"    id:\s*int(?:\s*\|\s*None)?(?:\s*=\s*None)?\n",
+            "",
+            new_source,
+            count=1,
+        )
+        cached_copies.append(
+            ClassInfo(
+                name=cached_name,
+                source=new_source,
+                bases=list(cls.bases),
+                line_start=cls.line_start,
+                line_end=cls.line_end,
+            )
+        )
+    return classes + cached_copies
+
+
 def inject_primary_key_in_table_classes(classes: list[ClassInfo]) -> list[ClassInfo]:
     """Redeclare ``id`` on each table class with ``primary_key=True``.
 
@@ -703,9 +901,10 @@ def inject_primary_key_in_table_classes(classes: list[ClassInfo]) -> list[ClassI
     tailored description) that overrides ``BaseEntity.id`` — we strip that
     declaration before injecting the primary-keyed form to avoid duplicates.
     """
+    cache_class_names = {_cached_name(n) for n in CACHE_TABLES}
     fixed = []
     for cls in classes:
-        if cls.name not in CACHE_TABLES:
+        if cls.name not in cache_class_names:
             fixed.append(cls)
             continue
         # Strip any existing in-body `id: Annotated[int, Field(...)]`
@@ -735,15 +934,7 @@ def inject_primary_key_in_table_classes(classes: list[ClassInfo]) -> list[ClassI
                 "model_config line may be missing or differently formatted."
             )
             raise GenerationError(msg)
-        fixed.append(
-            ClassInfo(
-                name=cls.name,
-                source=new_source,
-                bases=cls.bases,
-                line_start=cls.line_start,
-                line_end=cls.line_end,
-            )
-        )
+        fixed.append(cls.with_source(new_source))
     return fixed
 
 
@@ -761,12 +952,17 @@ def inject_table_annotations(classes: list[ClassInfo]) -> list[ClassInfo]:
        ``frozen=True`` from ``KatanaPydanticBase`` would otherwise raise on
        every attribute write.
     """
+    cache_class_names = {_cached_name(n) for n in CACHE_TABLES}
     fixed = []
     for cls in classes:
-        if cls.name not in CACHE_TABLES:
+        if cls.name not in cache_class_names:
             fixed.append(cls)
             continue
-        tablename = _snake_case(cls.name)
+        # ``__tablename__`` is the snake_case of the *original* (un-prefixed)
+        # entity name so FK references like ``sales_order.id`` resolve
+        # correctly — both API consumers and cache code think of the table
+        # as "sales_order", not "cached_sales_order".
+        tablename = _snake_case(cls.name.removeprefix("Cached"))
         # Single pass: append `, table=True` to the class bases and inject
         # __tablename__ + model_config as the first body statements.
         new_source, n = re.subn(
@@ -787,29 +983,32 @@ def inject_table_annotations(classes: list[ClassInfo]) -> list[ClassInfo]:
                 "The class-declaration shape may have changed."
             )
             raise GenerationError(msg)
-        fixed.append(
-            ClassInfo(
-                name=cls.name,
-                source=new_source,
-                bases=cls.bases,
-                line_start=cls.line_start,
-                line_end=cls.line_end,
-            )
-        )
+        fixed.append(cls.with_source(new_source))
     return fixed
 
 
 def inject_foreign_keys(classes: list[ClassInfo]) -> list[ClassInfo]:
-    """Add ``foreign_key="<parent_table>.id"`` to child FK columns.
+    """Add ``foreign_key="<parent_table>.id"`` to child cache-row FK columns.
 
-    The generated pydantic models already carry the int FK fields
-    (e.g., ``SalesOrderRow.sales_order_id``); we just annotate the existing
-    ``Field(...)`` call with the SQLAlchemy FK constraint.
+    Two cases:
+    1. The API model already carries the FK field (e.g.,
+       ``SalesOrderRow.sales_order_id`` — Katana returns it). Rewrite the
+       existing ``Field(...)`` call to ``SQLField(foreign_key=..., ...)``.
+    2. The API model lacks the field because Katana doesn't return one
+       (e.g., ``StockAdjustmentRow``: rows are nested under the parent on
+       the wire, no back-pointer). Insert a fresh ``SQLField`` declaration
+       — the FK is a cache-only column, populated by SQLAlchemy when the
+       parent's relationship is set on ``session.merge``.
+
+    Either way we operate exclusively on the ``Cached<Name>`` siblings;
+    the API class never gets a SQL-specific kwarg or a synthetic FK field.
     """
-    # Map child class → list of (fk_field, parent_tablename) for O(1) lookup.
+    # Map cache-class → list of (fk_field, parent_tablename). Lookup uses
+    # the cached name (``CachedSalesOrderRow``) since the API class
+    # (``SalesOrderRow``) is excluded from cache transforms.
     by_child: dict[str, list[tuple[str, str]]] = defaultdict(list)
     for rel in CACHE_RELATIONSHIPS:
-        by_child[rel.child].append((rel.child_fk_field, rel.parent_table))
+        by_child[_cached_name(rel.child)].append((rel.child_fk_field, rel.parent_table))
 
     fixed = []
     for cls in classes:
@@ -828,51 +1027,84 @@ def inject_foreign_keys(classes: list[ClassInfo]) -> list[ClassInfo]:
             )
             replacement = rf'\1SQLField(foreign_key="{parent_table}.id", \2'
             new_source, n = re.subn(pattern, replacement, new_source, count=1)
+            if n == 0:
+                # Field doesn't exist in the API model — insert a fresh
+                # cache-only declaration after the model_config block. This
+                # is the StockAdjustmentRow / PurchaseOrderRow / StockTransferRow
+                # case: Katana doesn't return the parent FK on row objects;
+                # we synthesize the column so SQLAlchemy can wire the
+                # parent→child relationship on insert.
+                fk_line = (
+                    f"    {fk_field}: Annotated[\n"
+                    f"        int | None,\n"
+                    f"        SQLField(\n"
+                    f'            foreign_key="{parent_table}.id",\n'
+                    f'            description="(cache-only) ID of the parent '
+                    f'row, populated by SQLAlchemy on insert.",\n'
+                    f"        ),\n"
+                    f"    ] = None\n"
+                )
+                new_source, n = re.subn(
+                    r"(model_config = ConfigDict\(frozen=False\)\n\n)",
+                    rf"\1{fk_line}\n",
+                    new_source,
+                    count=1,
+                )
+                if n != 1:
+                    msg = (
+                        f"Failed to insert synthesized foreign_key "
+                        f"{cls.name}.{fk_field}. Expected model_config "
+                        "block on the cache class."
+                    )
+                    raise GenerationError(msg)
+                continue
             if n != 1:
                 msg = (
                     f"Failed to inject foreign_key on {cls.name}.{fk_field}. "
                     "Expected Annotated[int | None, Field(description=...)] shape."
                 )
                 raise GenerationError(msg)
-        fixed.append(
-            ClassInfo(
-                name=cls.name,
-                source=new_source,
-                bases=cls.bases,
-                line_start=cls.line_start,
-                line_end=cls.line_end,
-            )
-        )
+        fixed.append(cls.with_source(new_source))
     return fixed
 
 
 def inject_relationship_fields(classes: list[ClassInfo]) -> list[ClassInfo]:
     """Rewrite parent list fields as ``Relationship()`` and add child back-refs.
 
+    Operates on the ``Cached<Name>`` siblings only — both sides of the
+    relationship reference cached classes so the SQLAlchemy graph doesn't
+    cross over into the pure-pydantic API surface.
+
     For each declared parent→child relationship:
-    - Parent: ``parent_field: Annotated[list[Child] | None, Field(...)] = None``
-      becomes ``parent_field: list["Child"] = Relationship(back_populates="child_back_ref")``.
-    - Child: a new field ``child_back_ref: "Parent | None" = Relationship(
-      back_populates="parent_field")`` is appended to the class body.
+    - Parent (``Cached<Parent>``): the ``Annotated[list[Child] | None,
+      Field(...)] = None`` field — note the inner type was rewritten to
+      ``Cached<Child>`` by ``duplicate_cache_tables_as_cached_siblings``
+      — becomes ``parent_field: list["Cached<Child>"] = Relationship(
+      back_populates="child_back_ref")``.
+    - Child (``Cached<Child>``): a new ``child_back_ref:
+      Optional["Cached<Parent>"] = Relationship(back_populates="parent_field")``
+      field is appended to the class body.
     """
-    by_parent = {rel.parent: rel for rel in CACHE_RELATIONSHIPS}
-    by_child = {rel.child: rel for rel in CACHE_RELATIONSHIPS}
+    by_parent = {_cached_name(rel.parent): rel for rel in CACHE_RELATIONSHIPS}
+    by_child = {_cached_name(rel.child): rel for rel in CACHE_RELATIONSHIPS}
 
     fixed = []
     for cls in classes:
         new_source = cls.source
 
-        # Parent side: replace the list field with Relationship().
+        # Parent side: replace the list field with Relationship(). The inner
+        # type was rewritten to ``Cached<Child>`` during duplication, so the
+        # match pattern uses the cached child name.
         if cls.name in by_parent:
             rel = by_parent[cls.name]
-            # Match the whole field declaration including its `= None` default.
+            cached_child = _cached_name(rel.child)
             pattern = (
                 rf"{re.escape(rel.parent_field)}:\s*Annotated\[\s*"
-                rf"list\[{re.escape(rel.child)}\]\s*\|\s*None,\s*"
+                rf"list\[{re.escape(cached_child)}\]\s*\|\s*None,\s*"
                 r"Field\([^)]*\),?\s*\]\s*=\s*None"
             )
             replacement = (
-                f'{rel.parent_field}: list["{rel.child}"] = '
+                f'{rel.parent_field}: list["{cached_child}"] = '
                 f'Relationship(back_populates="{rel.child_back_ref}")'
             )
             new_source, n = re.subn(pattern, replacement, new_source, count=1)
@@ -880,33 +1112,26 @@ def inject_relationship_fields(classes: list[ClassInfo]) -> list[ClassInfo]:
                 msg = (
                     f"Failed to rewrite list relationship on "
                     f"{cls.name}.{rel.parent_field}. Expected shape "
-                    f"`Annotated[list[{rel.child}] | None, Field(...)] = None`."
+                    f"`Annotated[list[{cached_child}] | None, Field(...)] = None`."
                 )
                 raise GenerationError(msg)
 
         # Child side: append back-reference field at end of class body.
         if cls.name in by_child:
             rel = by_child[cls.name]
+            cached_parent = _cached_name(rel.parent)
             # SA's ``relationship()`` string-form resolution can't parse
-            # ``"Parent | None"``. Use ``Optional["Parent"]`` so the outer
-            # Optional[] is evaluated at class-def time and only the inner
-            # ``"Parent"`` stays as a forward reference.
+            # ``"Cached<Parent> | None"``. Use ``Optional["Cached<Parent>"]``
+            # so the outer Optional[] is evaluated at class-def time and only
+            # the inner ``"Cached<Parent>"`` stays as a forward reference.
             backref_line = (
-                f'    {rel.child_back_ref}: Optional["{rel.parent}"] = '
+                f'    {rel.child_back_ref}: Optional["{cached_parent}"] = '
                 f'Relationship(back_populates="{rel.parent_field}")\n'
             )
             new_source = new_source.rstrip() + "\n" + backref_line
 
         if new_source != cls.source:
-            fixed.append(
-                ClassInfo(
-                    name=cls.name,
-                    source=new_source,
-                    bases=cls.bases,
-                    line_start=cls.line_start,
-                    line_end=cls.line_end,
-                )
-            )
+            fixed.append(cls.with_source(new_source))
         else:
             fixed.append(cls)
     return fixed
@@ -938,14 +1163,15 @@ def swap_awaredatetime_for_datetime(classes: list[ClassInfo]) -> list[ClassInfo]
     ``ValueError: AwareDatetime has no matching SQLAlchemy type`` at
     class-definition time.
 
-    Applies to CACHE_TABLES entries *and* to the shared entity base
+    Applies to ``Cached<Name>`` siblings *and* to the shared entity base
     classes (BaseEntity, UpdatableEntity, DeletableEntity, etc.) — their
     datetime fields are inherited by cache tables, so they too must speak
-    plain ``datetime``. Timezone awareness is a Katana wire-protocol
-    invariant; the extra pydantic validator was safety belt for data we
-    already trust.
+    plain ``datetime``. The pure-pydantic API classes are unaffected, but
+    swapping their inherited base ripples into them — that's accepted
+    since timezone awareness is a Katana wire-protocol invariant; the
+    extra pydantic validator was safety belt for data we already trust.
     """
-    swap_targets = CACHE_TABLES | _CACHE_BASE_CLASSES
+    swap_targets = {_cached_name(n) for n in CACHE_TABLES} | _CACHE_BASE_CLASSES
     fixed = []
     for cls in classes:
         if cls.name not in swap_targets:
@@ -957,15 +1183,34 @@ def swap_awaredatetime_for_datetime(classes: list[ClassInfo]) -> list[ClassInfo]
         if new_source == cls.source:
             fixed.append(cls)
             continue
-        fixed.append(
-            ClassInfo(
-                name=cls.name,
-                source=new_source,
-                bases=cls.bases,
-                line_start=cls.line_start,
-                line_end=cls.line_end,
-            )
-        )
+        fixed.append(cls.with_source(new_source))
+    return fixed
+
+
+def inject_extra_cache_fields(classes: list[ClassInfo]) -> list[ClassInfo]:
+    """Append ``CACHE_EXTRA_FIELDS`` declarations to the cache class body.
+
+    For discriminated-union roots (PurchaseOrderBase) cached as a single
+    SQL table, this hoists subclass-only fields onto the cache class so
+    queries can filter by them without a UNION across two tables. The
+    converter copies the values from the API subclass instance.
+
+    Inserts each declaration line at the end of the class body. Plain
+    pydantic ``Field`` annotation is sufficient — SQLModel infers the
+    column type from the annotation. ``Optional`` types stay nullable on
+    the column.
+    """
+    cached_extras = {
+        _cached_name(name): fields for name, fields in CACHE_EXTRA_FIELDS.items()
+    }
+    fixed = []
+    for cls in classes:
+        extra_lines = cached_extras.get(cls.name)
+        if not extra_lines:
+            fixed.append(cls)
+            continue
+        new_source = cls.source.rstrip() + "\n" + "\n".join(extra_lines) + "\n"
+        fixed.append(cls.with_source(new_source))
     return fixed
 
 
@@ -975,11 +1220,16 @@ def inject_json_columns(classes: list[ClassInfo]) -> list[ClassInfo]:
     For fields listed in ``CACHE_JSON_COLUMNS`` — typically lists of
     polymorphic or non-cached nested models — this preserves the typed
     pydantic interface while telling SQLAlchemy to store them as JSON rather
-    than attempting to normalize them into child tables.
+    than attempting to normalize them into child tables. Operates on the
+    ``Cached<Name>`` siblings: ``CACHE_JSON_COLUMNS`` keys are user-facing
+    API names so the cached lookup converts via ``_cached_name``.
     """
+    cached_json_columns = {
+        _cached_name(name): fields for name, fields in CACHE_JSON_COLUMNS.items()
+    }
     fixed = []
     for cls in classes:
-        fields = CACHE_JSON_COLUMNS.get(cls.name)
+        fields = cached_json_columns.get(cls.name)
         if not fields:
             fixed.append(cls)
             continue
@@ -1000,15 +1250,7 @@ def inject_json_columns(classes: list[ClassInfo]) -> list[ClassInfo]:
                     f"{cls.name}.{field_name}. Field shape may have changed."
                 )
                 raise GenerationError(msg)
-        fixed.append(
-            ClassInfo(
-                name=cls.name,
-                source=new_source,
-                bases=cls.bases,
-                line_start=cls.line_start,
-                line_end=cls.line_end,
-            )
-        )
+        fixed.append(cls.with_source(new_source))
     return fixed
 
 
@@ -1017,18 +1259,23 @@ def classify_class(class_name: str) -> str:
 
     Exact matches are checked first (across all groups) before prefix matches.
     This ensures that explicit class names take priority over wildcard patterns.
+    Cached siblings (``Cached<Name>``) classify under the same group as
+    their underlying API class, so cache classes co-locate in the same
+    module file as the model they shadow.
     """
+    effective_name = class_name.removeprefix("Cached")
+
     # First pass: check for exact matches across all groups
     for group_name, patterns in DOMAIN_GROUPS.items():
         for pattern in patterns:
-            if not pattern.endswith("*") and class_name == pattern:
+            if not pattern.endswith("*") and effective_name == pattern:
                 return group_name
 
     # Second pass: check for prefix matches
     for group_name, patterns in DOMAIN_GROUPS.items():
         for pattern in patterns:
             # Prefix match: pattern ends with * and class_name starts with pattern prefix
-            if pattern.endswith("*") and class_name.startswith(pattern[:-1]):
+            if pattern.endswith("*") and effective_name.startswith(pattern[:-1]):
                 return group_name
     return "common"
 
@@ -1096,8 +1343,10 @@ def generate_module_imports(
     # generator-injected field declarations use ``SQLField``; original
     # datamodel-codegen output keeps ``Field`` from pydantic.
     classes_in_module = {cls.name for cls in classes}
-    has_cache_tables = bool(classes_in_module & CACHE_TABLES)
-    has_json_columns = any(cls.name in CACHE_JSON_COLUMNS for cls in classes)
+    cached_class_names = {_cached_name(n) for n in CACHE_TABLES}
+    has_cache_tables = bool(classes_in_module & cached_class_names)
+    cached_json_class_names = {_cached_name(n) for n in CACHE_JSON_COLUMNS}
+    has_json_columns = any(cls.name in cached_json_class_names for cls in classes)
 
     # Add standard imports from the original file
     for imp in imports:
@@ -1144,7 +1393,7 @@ def generate_module_imports(
     # modules and the base module (shared entity bases feed cache tables via
     # inheritance).
     needs_datetime_import = any(
-        cls.name in (CACHE_TABLES | _CACHE_BASE_CLASSES) for cls in classes
+        cls.name in (cached_class_names | _CACHE_BASE_CLASSES) for cls in classes
     )
     if needs_datetime_import:
         import_lines.append("from datetime import datetime")
@@ -1198,7 +1447,8 @@ def write_module_file(
     # #342: modules with cache tables must NOT use `from __future__ import
     # annotations` — SQLAlchemy's relationship type resolution needs live
     # type objects at class-definition time.
-    has_cache_tables = any(cls.name in CACHE_TABLES for cls in classes)
+    cached_class_names = {_cached_name(n) for n in CACHE_TABLES}
+    has_cache_tables = any(cls.name in cached_class_names for cls in classes)
     future_annotations_line = (
         "" if has_cache_tables else "from __future__ import annotations\n\n"
     )

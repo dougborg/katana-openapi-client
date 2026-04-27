@@ -87,6 +87,19 @@ Common mistakes to avoid:
 - **None-to-UNSET conversion** - When building attrs API request models from optional
   fields, use `to_unset(value)` from `katana_public_api_client.domain.converters`
   instead of `value if value is not None else UNSET`.
+- **Polluting the API spec/models with cache-only fields** - The OpenAPI spec at
+  `docs/katana-openapi.yaml` and the generated pydantic models in
+  `katana_public_api_client/models_pydantic/_generated/*.py` reflect Katana's actual
+  wire contract. **Never** add fields to the spec or inject fields into the API
+  pydantic classes to satisfy cache-schema, MCP-tool, or other consumer needs. Cache
+  schemas live on sibling `Cached<Name>` classes emitted by the same generator pass —
+  the API class stays pure pydantic, the cache class carries `table=True`, foreign
+  keys, relationships, JSON columns, and any cache-only fields. See
+  `scripts/generate_pydantic_models.py::duplicate_cache_tables_as_cached_siblings`
+  and `katana_mcp_server/src/katana_mcp/typed_cache/sync.py::_attrs_<entity>_to_cached`
+  for the conversion pattern: attrs → API pydantic (via the registry) → cache pydantic
+  (via `model_dump`/`model_validate`), with relationship fields set after construction
+  since SQLModel `Relationship` descriptors don't accept input via `__init__`.
 
 ## Using the LSP tool
 
@@ -217,31 +230,51 @@ status = unwrap_unset(order.status, None)
 - `ServerError` - 5xx server errors
 - `APIError` - Other errors (400, 403, 404, etc.)
 
-## Claude Code Commands
+## Claude Code Harness
 
-Project slash commands in `.claude/commands/` and skills in `.claude/skills/`:
+The harness lives in `.claude/skills/` (workflows) and `.claude/agents/` (delegated
+sub-agents). Provenance is tracked in `.harness-lock.json`. The
+[harness-kit plugin](https://github.com/dougborg/harness-kit) is loaded — its skills
+appear under the `harness-kit:` prefix and its meta-skill `/harness-kit:harness` runs
+audits and updates.
 
-| Command          | Purpose                                      |
-| ---------------- | -------------------------------------------- |
-| `/techdebt`      | Scan for tech debt and anti-patterns         |
-| `/review`        | Structured code review of current branch     |
-| `/write-tests`   | Write comprehensive tests for target code    |
-| `/generate-docs` | Generate or update documentation             |
-| `/verify`        | Skeptically validate implementation quality  |
-| `/pre-commit`    | Quick pre-flight check before committing     |
-| `/review-pr`     | Address PR review comments, fix, push, reply |
-| `/open-pr`       | Open PR with self-review, CI wait, feedback  |
+### Skills (slash commands)
 
-## Claude Code Agents
+| Skill            | Purpose                                                |
+| ---------------- | ------------------------------------------------------ |
+| `/pre-commit`    | Fast pre-flight before `git commit`                    |
+| `/review`        | Branch review delegating to `code-reviewer` agent      |
+| `/techdebt`      | Scan for tech debt and anti-patterns (reports only)    |
+| `/write-tests`   | Write tests with AAA pattern + edge-case checklist     |
+| `/generate-docs` | Generate or update docstrings, ADRs, READMEs           |
+| `/verify`        | Skeptical end-to-end verification                      |
+| `/open-pr`       | Open PR: validate, self-review, push, wait for CI      |
+| `/review-pr`     | Address PR review comments: fix, push, reply in thread |
 
-Sub-agents in `.claude/agents/` that can be spawned for delegated work during complex
-tasks:
+### Agents (delegated work)
 
-| Agent             | Purpose                                              |
-| ----------------- | ---------------------------------------------------- |
-| `spec-auditor`    | Audit local OpenAPI spec against upstream for drift  |
-| `code-modernizer` | Simplify code using repo-specific patterns and rules |
-| `pr-preparer`     | Validate branch readiness for pull request           |
+Spawn via the `Agent` tool with `subagent_type` set to the agent name.
+
+| Agent             | Model  | Purpose                                                          |
+| ----------------- | ------ | ---------------------------------------------------------------- |
+| `code-reviewer`   | sonnet | Six-dimension read-only review of the current diff               |
+| `verifier`        | haiku  | Mechanical pre-PR gate (validation, debug code, history)         |
+| `domain-advisor`  | sonnet | Read-only Q&A on Katana conventions (UNSET, unwrap, helpers)     |
+| `code-modernizer` | sonnet | Actively rewrites Katana-specific anti-patterns                  |
+| `pr-preparer`     | haiku  | Project-specific PR readiness (coverage, ADRs, help-resource)    |
+| `spec-auditor`    | sonnet | Audit local OpenAPI spec vs upstream Katana API                  |
+
+Recommended PR pipeline: `code-modernizer` → `verifier` → `pr-preparer` →
+`code-reviewer` → `/open-pr`.
+
+### Automation hooks
+
+Configured in `.claude/settings.local.json` (gitignored):
+
+- **PostToolUse / Edit|Write|MultiEdit** — runs `uv run poe fix` silently after any
+  Python file is edited. Fixes lint/format issues before Claude reads the result.
+- **Stop** — when the session touched more than 3 files, prints a reminder to run
+  `/harness-kit:harness retro` to capture learnings.
 
 ## Detailed Documentation
 

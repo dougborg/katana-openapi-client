@@ -28,12 +28,13 @@ from katana_mcp.services import get_services
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     PaginationMeta,
+    apply_date_window_filters,
+    coerce_enum,
     enum_to_str,
     format_md_table,
     iso_or_none,
     make_simple_result,
-    parse_iso_datetime,
-    parse_pagination_header,
+    parse_request_dates,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
@@ -445,68 +446,164 @@ class ListStockTransfersResponse(BaseModel):
     pagination: PaginationMeta | None = None
 
 
+_STOCK_TRANSFER_DATE_FIELDS = (
+    "created_after",
+    "created_before",
+)
+
+
+def _apply_stock_transfer_filters(
+    stmt: Any,
+    request: ListStockTransfersRequest,
+    parsed_dates: dict[str, datetime | None],
+) -> Any:
+    """Translate request filters into WHERE clauses on a CachedStockTransfer query.
+
+    Shared by the data SELECT and the COUNT SELECT so pagination totals
+    reflect exactly the same filter set as the data rows. The ``status``
+    request field is the uppercase ``StatusLiteral`` (PENDING, etc.); the
+    cache column stores the lowercase value Katana returns. ``coerce_enum``
+    validates the input against ``StockTransferStatus`` (raising loudly on
+    a typo rather than silently returning zero rows) before the comparison.
+    """
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedStockTransfer,
+        StockTransferStatus,
+    )
+
+    if request.status is not None:
+        status_enum = coerce_enum(request.status.lower(), StockTransferStatus, "status")
+        stmt = stmt.where(CachedStockTransfer.status == status_enum.value)
+    if request.source_location_id is not None:
+        stmt = stmt.where(
+            CachedStockTransfer.source_location_id == request.source_location_id
+        )
+    if request.destination_location_id is not None:
+        stmt = stmt.where(
+            CachedStockTransfer.target_location_id == request.destination_location_id
+        )
+    if request.stock_transfer_number is not None:
+        stmt = stmt.where(
+            CachedStockTransfer.stock_transfer_number == request.stock_transfer_number
+        )
+    stmt = stmt.where(CachedStockTransfer.deleted_at.is_(None))
+
+    return apply_date_window_filters(
+        stmt,
+        parsed_dates,
+        ge_pairs={"created_after": CachedStockTransfer.created_at},
+        le_pairs={"created_before": CachedStockTransfer.created_at},
+    )
+
+
 async def _list_stock_transfers_impl(
     request: ListStockTransfersRequest, context: Context
 ) -> ListStockTransfersResponse:
-    """List stock transfers with filters — follows list-tool pattern v2."""
-    from katana_public_api_client.api.stock_transfer import get_all_stock_transfers
-    from katana_public_api_client.utils import unwrap_data
+    """List stock transfers with filters via the typed cache.
+
+    ``ensure_stock_transfers_synced`` runs an incremental
+    ``updated_at_min`` delta (debounced — see :data:`_SYNC_DEBOUNCE`).
+    Filters (including ``status``, which Katana doesn't expose as a
+    server-side filter) translate to indexed SQL. See ADR-0018.
+    """
+    from sqlalchemy.orm import selectinload
+    from sqlmodel import func, select
+
+    from katana_mcp.typed_cache import ensure_stock_transfers_synced
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedStockTransfer,
+        CachedStockTransferRow,
+    )
 
     services = get_services(context)
 
-    kwargs: dict[str, Any] = {
-        "client": services.client,
-        "limit": request.limit,
-    }
+    await ensure_stock_transfers_synced(services.client, services.typed_cache)
 
-    # `status` is applied client-side (Katana's list endpoint doesn't expose
-    # it) so we need auto-pagination to run if it's set; otherwise a small
-    # limit could return silently under-truncated results.
-    has_client_filter = request.status is not None
-    if request.page is not None:
-        kwargs["page"] = request.page
-    elif not has_client_filter and 1 <= request.limit <= 250:
-        kwargs["page"] = 1
+    parsed_dates = parse_request_dates(request, _STOCK_TRANSFER_DATE_FIELDS)
 
-    if request.source_location_id is not None:
-        kwargs["source_location_id"] = request.source_location_id
-    if request.destination_location_id is not None:
-        kwargs["target_location_id"] = request.destination_location_id
-    if request.stock_transfer_number is not None:
-        kwargs["stock_transfer_number"] = request.stock_transfer_number
-    if request.created_after is not None:
-        kwargs["created_at_min"] = parse_iso_datetime(
-            request.created_after, "created_after"
+    # When ``include_rows`` is set, ``selectinload`` eager-loads the
+    # children, so ``len(transfer.stock_transfer_rows)`` is free at
+    # materialization time and we skip the correlated COUNT subquery.
+    if request.include_rows:
+        stmt = select(CachedStockTransfer).options(
+            selectinload(CachedStockTransfer.stock_transfer_rows)
         )
-    if request.created_before is not None:
-        kwargs["created_at_max"] = parse_iso_datetime(
-            request.created_before, "created_before"
+    else:
+        row_count_subq = (
+            select(func.count(CachedStockTransferRow.id))
+            .where(CachedStockTransferRow.stock_transfer_id == CachedStockTransfer.id)
+            .correlate(CachedStockTransfer)
+            .scalar_subquery()
+            .label("row_count")
         )
-
-    response = await get_all_stock_transfers.asyncio_detailed(**kwargs)
-    attrs_list = unwrap_data(response, default=[])
-
-    # Status is not exposed as a server-side filter on this endpoint, so we
-    # apply it client-side when specified. Katana returns lowercase enum
-    # values; the Literal type is uppercase, so fold to lowercase for compare.
-    if request.status is not None:
-        target = request.status.lower()
-        attrs_list = [
-            t for t in attrs_list if enum_to_str(unwrap_unset(t.status, None)) == target
-        ]
-
-    # Safety net: cap to request.limit post-pagination.
-    attrs_list = attrs_list[: request.limit]
-
-    summaries = [
-        _build_summary(t, include_rows=request.include_rows) for t in attrs_list
-    ]
-
-    pagination = None
+        stmt = select(CachedStockTransfer, row_count_subq)
+    stmt = _apply_stock_transfer_filters(stmt, request, parsed_dates)
+    stmt = stmt.order_by(
+        CachedStockTransfer.created_at.desc(), CachedStockTransfer.id.desc()
+    )
     if request.page is not None:
-        headers = getattr(response, "headers", None)
-        if headers is not None:
-            pagination = parse_pagination_header(headers.get("x-pagination"))
+        stmt = stmt.offset((request.page - 1) * request.limit).limit(request.limit)
+    else:
+        stmt = stmt.limit(request.limit)
+
+    async with services.typed_cache.session() as session:
+        data_result = await session.exec(stmt)
+        if request.include_rows:
+            cached_transfers = list(data_result.all())
+            transfers_with_counts: list[tuple[CachedStockTransfer, int]] = [
+                (t, len(t.stock_transfer_rows)) for t in cached_transfers
+            ]
+        else:
+            transfers_with_counts = data_result.all()
+
+        pagination: PaginationMeta | None = None
+        if request.page is not None:
+            count_stmt = _apply_stock_transfer_filters(
+                select(func.count()).select_from(CachedStockTransfer),
+                request,
+                parsed_dates,
+            )
+            total_records = (await session.exec(count_stmt)).one()
+            total_pages = (total_records + request.limit - 1) // request.limit
+            pagination = PaginationMeta(
+                total_records=total_records,
+                total_pages=total_pages,
+                page=request.page,
+                first_page=request.page == 1,
+                last_page=request.page >= total_pages,
+            )
+
+    # Cached rows expose fields directly (no UNSET sentinels), so we
+    # don't reuse ``_build_summary`` — that helper expects the attrs API
+    # shape with ``unwrap_unset``.
+    summaries: list[StockTransferSummary] = []
+    for transfer, row_count in transfers_with_counts:
+        row_infos: list[StockTransferRowInfo] | None = None
+        if request.include_rows:
+            row_infos = [
+                StockTransferRowInfo(
+                    id=r.id,
+                    variant_id=r.variant_id,
+                    quantity=r.quantity,
+                    cost_per_unit=r.cost_per_unit,
+                    batch_transactions=None,
+                )
+                for r in transfer.stock_transfer_rows
+            ]
+        summaries.append(
+            StockTransferSummary(
+                id=transfer.id,
+                stock_transfer_number=transfer.stock_transfer_number,
+                source_location_id=transfer.source_location_id,
+                target_location_id=transfer.target_location_id,
+                status=transfer.status,
+                transfer_date=iso_or_none(transfer.transfer_date),
+                expected_arrival_date=iso_or_none(transfer.expected_arrival_date),
+                created_at=iso_or_none(transfer.created_at),
+                row_count=row_count,
+                rows=row_infos,
+            )
+        )
 
     return ListStockTransfersResponse(
         transfers=summaries,
@@ -520,13 +617,20 @@ async def _list_stock_transfers_impl(
 async def list_stock_transfers(
     request: Annotated[ListStockTransfersRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """List stock transfers with filters.
+    """List stock transfers with filters (cache-backed).
 
     Use for discovery workflows — find transfers by status, between specific
-    locations, or within a date range. Follows list-tool pattern v2: small
-    `limit` values skip auto-pagination for a single fast call; set `page`
-    for explicit paging through large result sets. Pass `include_rows=true`
-    to populate per-transfer line items.
+    locations, or within a date range. All filters (including `status`,
+    which was a client-side post-fetch filter pre-cache) run as indexed
+    SQL against the SQLModel typed cache.
+
+    **Paging:**
+    - `limit` caps the number of rows (default 50, min 1).
+    - `page=N` returns a single page; the response includes `pagination`
+      metadata (total_records, total_pages, first/last flags) computed
+      via SQL COUNT against the same filter predicate.
+
+    Pass `include_rows=True` to populate per-transfer line items.
     """
     response = await _list_stock_transfers_impl(request, context)
 

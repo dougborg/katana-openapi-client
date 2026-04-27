@@ -22,12 +22,12 @@ from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
     PaginationMeta,
+    apply_date_window_filters,
     format_md_table,
     iso_or_none,
     make_simple_result,
     make_tool_result,
-    parse_iso_datetime,
-    parse_pagination_header,
+    parse_request_dates,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
@@ -876,21 +876,19 @@ class ListStockAdjustmentsRequest(BaseModel):
         ge=1,
         le=250,
         description=(
-            "Max adjustments to return (default 50, min 1, max 250 — Katana's "
-            "API page-size cap). When `page` is set, acts as the page size for "
-            "that request."
+            "Max adjustments to return (default 50, min 1, max 250). When "
+            "`page` is set, acts as the page size for that request."
         ),
     )
     page: int | None = Field(
         default=None,
         ge=1,
         description=(
-            "Page number (1-based). When set, returns a single page and "
-            "disables auto-pagination; `limit` becomes the page size. Invalid "
-            "pages (0, negative) are rejected at the schema boundary."
+            "Page number (1-based). When set, the response includes "
+            "pagination metadata describing total records and pages. "
+            "Invalid pages (0, negative) are rejected at the schema boundary."
         ),
     )
-    # Server-side filters (forwarded to Katana's GET /stock_adjustments)
     location_id: int | None = Field(default=None, description="Filter by location ID")
     ids: list[int] | None = Field(
         default=None,
@@ -920,16 +918,13 @@ class ListStockAdjustmentsRequest(BaseModel):
         description="Include soft-deleted adjustments in the result",
     )
 
-    # Client-side filters (applied post-fetch; Katana's list endpoint does not
-    # expose these server-side). When either is set the `page=1` short-circuit
-    # is skipped so auto-pagination can scan enough rows to find matches.
     variant_id: int | None = Field(
         default=None,
-        description="Filter to adjustments that touch this variant ID (client-side)",
+        description="Filter to adjustments that touch this variant ID",
     )
     reason: str | None = Field(
         default=None,
-        description="Case-insensitive substring match on the `reason` field (client-side)",
+        description="Case-insensitive substring match on the `reason` field",
     )
 
     include_rows: bool = Field(
@@ -978,134 +973,190 @@ class ListStockAdjustmentsResponse(BaseModel):
     pagination: PaginationMeta | None = Field(
         default=None,
         description=(
-            "Pagination cursor populated from the API's `x-pagination` header "
-            "when the caller requested a specific page. `None` when "
-            "auto-paginating."
+            "Pagination metadata — populated when the caller requests a "
+            "specific `page`; `None` otherwise."
         ),
+    )
+
+
+_STOCK_ADJUSTMENT_DATE_FIELDS = (
+    "created_after",
+    "created_before",
+    "updated_after",
+    "updated_before",
+)
+
+
+def _apply_stock_adjustment_filters(
+    stmt: Any,
+    request: ListStockAdjustmentsRequest,
+    parsed_dates: dict[str, datetime | None],
+) -> Any:
+    """Translate request filters into WHERE clauses on a CachedStockAdjustment query.
+
+    Shared by the data SELECT and the COUNT SELECT so pagination totals
+    reflect exactly the same filter set as the data rows. ``parsed_dates``
+    must come from :func:`parse_request_dates` — keeping parsing out of
+    this function lets the paginated path avoid re-parsing on the COUNT
+    query.
+    """
+    from sqlmodel import exists, select
+
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedStockAdjustment,
+        CachedStockAdjustmentRow,
+    )
+
+    if request.location_id is not None:
+        stmt = stmt.where(CachedStockAdjustment.location_id == request.location_id)
+    if request.ids is not None:
+        stmt = stmt.where(CachedStockAdjustment.id.in_(request.ids))
+    if request.stock_adjustment_number is not None:
+        stmt = stmt.where(
+            CachedStockAdjustment.stock_adjustment_number
+            == request.stock_adjustment_number
+        )
+    if not request.include_deleted:
+        stmt = stmt.where(CachedStockAdjustment.deleted_at.is_(None))
+
+    # ``variant_id`` is a row-level field — EXISTS subquery scans the
+    # indexed FK directly so a match on any row of any adjustment is
+    # found regardless of pagination position.
+    if request.variant_id is not None:
+        row_filter = (
+            select(CachedStockAdjustmentRow.id)
+            .where(
+                CachedStockAdjustmentRow.stock_adjustment_id
+                == CachedStockAdjustment.id,
+                CachedStockAdjustmentRow.variant_id == request.variant_id,
+            )
+            .correlate(CachedStockAdjustment)
+        )
+        stmt = stmt.where(exists(row_filter))
+
+    if request.reason is not None:
+        needle = request.reason.strip()
+        if needle:
+            stmt = stmt.where(CachedStockAdjustment.reason.ilike(f"%{needle}%"))
+
+    return apply_date_window_filters(
+        stmt,
+        parsed_dates,
+        ge_pairs={
+            "created_after": CachedStockAdjustment.created_at,
+            "updated_after": CachedStockAdjustment.updated_at,
+        },
+        le_pairs={
+            "created_before": CachedStockAdjustment.created_at,
+            "updated_before": CachedStockAdjustment.updated_at,
+        },
     )
 
 
 async def _list_stock_adjustments_impl(
     request: ListStockAdjustmentsRequest, context: Context
 ) -> ListStockAdjustmentsResponse:
-    """List stock adjustments with filters."""
-    from katana_public_api_client.api.stock_adjustment import (
-        get_all_stock_adjustments,
+    """List stock adjustments with filters via the typed cache.
+
+    ``ensure_stock_adjustments_synced`` runs an incremental
+    ``updated_at_min`` delta (debounced — see :data:`_SYNC_DEBOUNCE`).
+    Filters translate to indexed SQL; ``variant_id`` runs as an EXISTS
+    subquery against the row table so a match on any row is found
+    regardless of how many adjustments precede it. See ADR-0018.
+    """
+    from sqlalchemy.orm import selectinload
+    from sqlmodel import func, select
+
+    from katana_mcp.typed_cache import ensure_stock_adjustments_synced
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedStockAdjustment,
+        CachedStockAdjustmentRow,
     )
-    from katana_public_api_client.utils import unwrap_data
 
     services = get_services(context)
 
-    # Pass through server-side filters Katana supports; variant_id and reason
-    # are applied client-side below.
-    kwargs: dict[str, Any] = {
-        "client": services.client,
-        "limit": request.limit,
-    }
-    if request.location_id is not None:
-        kwargs["location_id"] = request.location_id
-    if request.ids is not None:
-        kwargs["ids"] = request.ids
-    if request.stock_adjustment_number is not None:
-        kwargs["stock_adjustment_number"] = request.stock_adjustment_number
-    if request.include_deleted:
-        kwargs["include_deleted"] = True
+    await ensure_stock_adjustments_synced(services.client, services.typed_cache)
 
-    if request.created_after is not None:
-        kwargs["created_at_min"] = parse_iso_datetime(
-            request.created_after, "created_after"
-        )
-    if request.created_before is not None:
-        kwargs["created_at_max"] = parse_iso_datetime(
-            request.created_before, "created_before"
-        )
-    if request.updated_after is not None:
-        kwargs["updated_at_min"] = parse_iso_datetime(
-            request.updated_after, "updated_after"
-        )
-    if request.updated_before is not None:
-        kwargs["updated_at_max"] = parse_iso_datetime(
-            request.updated_before, "updated_before"
-        )
+    parsed_dates = parse_request_dates(request, _STOCK_ADJUSTMENT_DATE_FIELDS)
 
-    # Pagination strategy:
-    # - If `page` is set, forward it so PaginationTransport disables
-    #   auto-pagination and lets callers walk beyond max_pages.
-    # - Else if any client-side-only filter (variant_id, reason) is active,
-    #   skip the short-circuit so auto-pagination scans enough rows to find
-    #   matches; a single page would miss records on later pages.
-    # - Otherwise, when `limit` fits in a single Katana page (<=250), pass
-    #   page=1 to short-circuit auto-pagination and avoid fetching thousands
-    #   of rows. Lower bound is defence-in-depth with `ge=1` on Field.
-    has_client_filter = request.variant_id is not None or request.reason is not None
+    # When ``include_rows`` is set, ``selectinload`` eager-loads the
+    # children, so ``len(adj.stock_adjustment_rows)`` is free at
+    # materialization time and we skip the correlated COUNT subquery.
+    if request.include_rows:
+        stmt = select(CachedStockAdjustment).options(
+            selectinload(CachedStockAdjustment.stock_adjustment_rows)
+        )
+    else:
+        row_count_subq = (
+            select(func.count(CachedStockAdjustmentRow.id))
+            .where(
+                CachedStockAdjustmentRow.stock_adjustment_id == CachedStockAdjustment.id
+            )
+            .correlate(CachedStockAdjustment)
+            .scalar_subquery()
+            .label("row_count")
+        )
+        stmt = select(CachedStockAdjustment, row_count_subq)
+    stmt = _apply_stock_adjustment_filters(stmt, request, parsed_dates)
+    stmt = stmt.order_by(
+        CachedStockAdjustment.created_at.desc(), CachedStockAdjustment.id.desc()
+    )
     if request.page is not None:
-        kwargs["page"] = request.page
-    elif not has_client_filter and 1 <= request.limit <= 250:
-        kwargs["page"] = 1
+        stmt = stmt.offset((request.page - 1) * request.limit).limit(request.limit)
+    else:
+        stmt = stmt.limit(request.limit)
 
-    response = await get_all_stock_adjustments.asyncio_detailed(**kwargs)
-    attrs_list = unwrap_data(response, default=[])
+    async with services.typed_cache.session() as session:
+        data_result = await session.exec(stmt)
+        if request.include_rows:
+            cached_adjustments = list(data_result.all())
+            adjustments_with_counts: list[tuple[CachedStockAdjustment, int]] = [
+                (adj, len(adj.stock_adjustment_rows)) for adj in cached_adjustments
+            ]
+        else:
+            adjustments_with_counts = data_result.all()
 
-    # Apply client-side filters that Katana's list endpoint doesn't accept.
-    if request.variant_id is not None:
-        target_variant = request.variant_id
-
-        def _matches_variant(adj: Any) -> bool:
-            rows = unwrap_unset(adj.stock_adjustment_rows, [])
-            return any(row.variant_id == target_variant for row in rows)
-
-        attrs_list = [adj for adj in attrs_list if _matches_variant(adj)]
-
-    if request.reason is not None:
-        reason_needle = request.reason.strip().lower()
-        if reason_needle:
-
-            def _matches_reason(adj: Any) -> bool:
-                reason_val = unwrap_unset(adj.reason, None)
-                return bool(reason_val and reason_needle in str(reason_val).lower())
-
-            attrs_list = [adj for adj in attrs_list if _matches_reason(adj)]
-
-    # Safety net: cap to request.limit post-pagination/filter so we never
-    # return more than the caller asked for.
-    attrs_list = attrs_list[: request.limit]
-
-    # Surface pagination metadata from the `x-pagination` header only when
-    # the caller is driving paging manually. During auto-pagination the header
-    # describes just the final fetched page, which would be misleading.
-    pagination: PaginationMeta | None = None
-    if request.page is not None:
-        headers = getattr(response, "headers", None)
-        if headers is not None:
-            pagination = parse_pagination_header(headers.get("x-pagination"))
+        pagination: PaginationMeta | None = None
+        if request.page is not None:
+            count_stmt = _apply_stock_adjustment_filters(
+                select(func.count()).select_from(CachedStockAdjustment),
+                request,
+                parsed_dates,
+            )
+            total_records = (await session.exec(count_stmt)).one()
+            total_pages = (total_records + request.limit - 1) // request.limit
+            pagination = PaginationMeta(
+                total_records=total_records,
+                total_pages=total_pages,
+                page=request.page,
+                first_page=request.page == 1,
+                last_page=request.page >= total_pages,
+            )
 
     adjustments: list[StockAdjustmentSummary] = []
-    for adj in attrs_list:
-        rows = unwrap_unset(adj.stock_adjustment_rows, [])
+    for adj, row_count in adjustments_with_counts:
         row_infos: list[StockAdjustmentRowInfo] | None = None
         if request.include_rows:
             row_infos = [
                 StockAdjustmentRowInfo(
-                    id=unwrap_unset(row.id, None),
+                    id=row.id,
                     variant_id=row.variant_id,
                     quantity=row.quantity,
-                    cost_per_unit=unwrap_unset(row.cost_per_unit, None),
+                    cost_per_unit=row.cost_per_unit,
                 )
-                for row in rows
+                for row in adj.stock_adjustment_rows
             ]
         adjustments.append(
             StockAdjustmentSummary(
                 id=adj.id,
                 stock_adjustment_number=adj.stock_adjustment_number,
                 location_id=adj.location_id,
-                stock_adjustment_date=iso_or_none(
-                    unwrap_unset(adj.stock_adjustment_date, None)
-                ),
-                created_at=iso_or_none(unwrap_unset(adj.created_at, None)),
-                updated_at=iso_or_none(unwrap_unset(adj.updated_at, None)),
-                reason=unwrap_unset(adj.reason, None),
-                additional_info=unwrap_unset(adj.additional_info, None),
-                row_count=len(rows),
+                stock_adjustment_date=iso_or_none(adj.stock_adjustment_date),
+                created_at=iso_or_none(adj.created_at),
+                updated_at=iso_or_none(adj.updated_at),
+                reason=adj.reason,
+                additional_info=adj.additional_info,
+                row_count=row_count,
                 rows=row_infos,
             )
         )
@@ -1122,7 +1173,7 @@ async def _list_stock_adjustments_impl(
 async def list_stock_adjustments(
     request: Annotated[ListStockAdjustmentsRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """List stock adjustments with filters.
+    """List stock adjustments with filters (cache-backed).
 
     Use for discovery — find recent adjustments at a location, adjustments
     touching a specific variant, or adjustments matching a reason substring.
@@ -1132,15 +1183,21 @@ async def list_stock_adjustments(
 
     **Paging**
     - `limit` caps the number of rows returned (default 50, min 1).
-    - Set `page=N` for manual paging; the response includes `pagination`
-      metadata parsed from Katana's `x-pagination` header.
-    - Otherwise auto-pagination kicks in automatically (bounded by
-      `KatanaClient.max_pages`).
+    - Set `page=N` for explicit paging; the response includes `pagination`
+      metadata (total_records, total_pages, first/last flags) computed from
+      a SQL COUNT against the same filter predicate.
+    - Otherwise the response returns up to `limit` rows ordered by created_at
+      desc with no pagination metadata.
 
-    **Filters**
-    - `location_id`, `created_after`, `created_before` — server-side.
-    - `variant_id`, `reason` — applied client-side; combine with other filters
-      to narrow the result set before the client-side pass.
+    **Filters** all run as indexed SQL against the typed cache:
+    - `location_id`, `ids`, `stock_adjustment_number`, `include_deleted` —
+      direct column filters.
+    - `variant_id` — EXISTS subquery on the rows table (no page-bound
+      truncation; an adjustment touching the variant is found regardless
+      of how many other adjustments precede it).
+    - `reason` — case-insensitive `ILIKE %needle%`.
+    - `created_after`/`before`, `updated_after`/`before` — date-range
+      bounds on the corresponding columns.
     """
     response = await _list_stock_adjustments_impl(request, context)
 

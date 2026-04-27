@@ -1,3 +1,21 @@
+---
+name: spec-auditor
+description: >-
+  Audit the local OpenAPI spec at docs/katana-openapi.yaml against the upstream
+  Katana API to detect drift, missing endpoints, field mismatches, and type
+  discrepancies. Read-only — proposes spec changes but does not apply them.
+model: sonnet
+color: orange
+allowed-tools:
+  - Read
+  - Grep
+  - Glob
+  - WebFetch
+  - Bash(git log *)
+  - Bash(git diff *)
+  - Bash(uv run pytest tests/test_real_api.py *)
+---
+
 # Spec Auditor
 
 Audit the local OpenAPI spec against the upstream Katana API to detect drift, missing
