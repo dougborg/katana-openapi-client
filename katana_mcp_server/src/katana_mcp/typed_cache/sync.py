@@ -22,6 +22,7 @@ from katana_public_api_client.api.manufacturing_order import (
 from katana_public_api_client.api.purchase_order import find_purchase_orders
 from katana_public_api_client.api.sales_order import get_all_sales_orders
 from katana_public_api_client.api.stock_adjustment import get_all_stock_adjustments
+from katana_public_api_client.api.stock_transfer import get_all_stock_transfers
 from katana_public_api_client.models_pydantic._generated import (
     CachedManufacturingOrder,
     CachedPurchaseOrder,
@@ -30,10 +31,13 @@ from katana_public_api_client.models_pydantic._generated import (
     CachedSalesOrderRow,
     CachedStockAdjustment,
     CachedStockAdjustmentRow,
+    CachedStockTransfer,
+    CachedStockTransferRow,
     ManufacturingOrder as PydanticManufacturingOrder,
     PurchaseOrderBase as PydanticPurchaseOrderBase,
     SalesOrder as PydanticSalesOrder,
     StockAdjustment as PydanticStockAdjustment,
+    StockTransfer as PydanticStockTransfer,
 )
 from katana_public_api_client.utils import unwrap_data
 
@@ -352,6 +356,76 @@ async def ensure_purchase_orders_synced(
             await session.merge(
                 SyncState(
                     entity_type="purchase_order",
+                    last_synced=datetime.now(tz=UTC).replace(tzinfo=None),
+                    row_count=len(cached_parents),
+                )
+            )
+            await session.commit()
+
+
+def _attrs_stock_transfer_to_cached(
+    attrs_st: object,
+) -> tuple[CachedStockTransfer, list[CachedStockTransferRow]]:
+    """Convert one attrs ``StockTransfer`` to a cache parent + child rows.
+
+    ``StockTransferRow`` doesn't carry a parent FK on the wire (rows
+    nested under the parent in API responses), so the cache populates
+    ``stock_transfer_id`` from the parent's ``id`` on insert. Mirrors the
+    stock-adjustment converter's shape.
+    """
+    api_st = PydanticStockTransfer.from_attrs(attrs_st)
+    parent_data = api_st.model_dump(exclude={"stock_transfer_rows"})
+    cached_parent = CachedStockTransfer.model_validate(parent_data)
+
+    child_rows: list[CachedStockTransferRow] = []
+    api_rows = api_st.stock_transfer_rows or []
+    for api_row in api_rows:
+        row_data = api_row.model_dump()
+        row_data["stock_transfer_id"] = api_st.id
+        child_rows.append(CachedStockTransferRow.model_validate(row_data))
+    return cached_parent, child_rows
+
+
+async def ensure_stock_transfers_synced(
+    client: KatanaClient, cache: TypedCacheEngine
+) -> None:
+    """Pull updated stock transfers from Katana and upsert into the cache.
+
+    Mirror of :func:`ensure_sales_orders_synced` for the ``StockTransfer``
+    entity. Cold-start fetches the full history; subsequent calls pass
+    ``updated_at_min`` and pick up only changed rows. Per-entity lock
+    serializes concurrent calls to keep cold-start fan-out single-flight.
+    """
+    async with cache.lock_for("stock_transfer"):
+        async with cache.session() as session:
+            state = await session.get(SyncState, "stock_transfer")
+            last_synced = state.last_synced if state is not None else None
+
+        kwargs = (
+            {"updated_at_min": last_synced.replace(tzinfo=UTC)}
+            if last_synced is not None
+            else {}
+        )
+        response = await get_all_stock_transfers.asyncio_detailed(
+            client=client, **kwargs
+        )
+        attrs_transfers = unwrap_data(response, default=[])
+
+        cached_parents: list[CachedStockTransfer] = []
+        cached_children: list[CachedStockTransferRow] = []
+        for attrs_st in attrs_transfers:
+            parent, children = _attrs_stock_transfer_to_cached(attrs_st)
+            cached_parents.append(parent)
+            cached_children.extend(children)
+
+        async with cache.session() as session:
+            for parent in cached_parents:
+                await session.merge(parent)
+            for child in cached_children:
+                await session.merge(child)
+            await session.merge(
+                SyncState(
+                    entity_type="stock_transfer",
                     last_synced=datetime.now(tz=UTC).replace(tzinfo=None),
                     row_count=len(cached_parents),
                 )

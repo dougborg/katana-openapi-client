@@ -33,7 +33,12 @@ from katana_mcp.tools.foundation.stock_transfers import (
 
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.utils import APIError
-from tests.conftest import create_mock_context
+from tests.conftest import create_mock_context, patch_typed_cache_sync
+from tests.factories import (
+    make_stock_transfer,
+    make_stock_transfer_row,
+    seed_cache,
+)
 
 _ST_CREATE = "katana_public_api_client.api.stock_transfer.create_stock_transfer"
 _ST_LIST = "katana_public_api_client.api.stock_transfer.get_all_stock_transfers"
@@ -222,264 +227,203 @@ async def test_create_stock_transfer_rejects_empty_rows():
 # ============================================================================
 
 
-@pytest.mark.asyncio
-async def test_list_stock_transfers_page_short_circuit_single_page():
-    """limit <= 250 (and no explicit page) adds page=1 to disable auto-pagination."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    with (
-        patch(f"{_ST_LIST}.asyncio_detailed", side_effect=fake),
-        patch(_ST_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_stock_transfers_impl(ListStockTransfersRequest(limit=10), context)
-
-    assert captured["page"] == 1
-    assert captured["limit"] == 10
+@pytest.fixture
+def no_st_sync():
+    """Patch ``ensure_stock_transfers_synced`` to a no-op."""
+    with patch_typed_cache_sync("stock_transfers"):
+        yield
 
 
 @pytest.mark.asyncio
-async def test_list_stock_transfers_caller_page_preserved():
-    """An explicit page overrides the short-circuit."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    with (
-        patch(f"{_ST_LIST}.asyncio_detailed", side_effect=fake),
-        patch(_ST_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_stock_transfers_impl(
-            ListStockTransfersRequest(limit=50, page=3), context
-        )
-
-    assert captured["page"] == 3
-    assert captured["limit"] == 50
-
-
-@pytest.mark.asyncio
-async def test_list_stock_transfers_large_limit_omits_page():
-    """limit > 250 lets auto-pagination drive."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    with (
-        patch(f"{_ST_LIST}.asyncio_detailed", side_effect=fake),
-        patch(_ST_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_stock_transfers_impl(ListStockTransfersRequest(limit=500), context)
-
-    assert "page" not in captured
-    assert captured["limit"] == 500
-
-
-@pytest.mark.asyncio
-async def test_list_stock_transfers_caps_results_to_request_limit():
-    """Safety net: even if transport returns more rows than limit, slice them."""
-    context, _ = create_mock_context()
-
-    over_fetched = [
-        _make_mock_transfer(id=i, stock_transfer_number=f"ST-{i}") for i in range(100)
-    ]
-
-    with (
-        patch(f"{_ST_LIST}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_ST_UNWRAP_DATA, return_value=over_fetched),
-    ):
-        result = await _list_stock_transfers_impl(
-            ListStockTransfersRequest(limit=25), context
-        )
-
-    assert len(result.transfers) == 25
-    assert result.total_count == 25
-
-
-@pytest.mark.asyncio
-async def test_list_stock_transfers_date_filters_passed_through():
-    """created_after / created_before forward as created_at_min / created_at_max datetimes."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    with (
-        patch(f"{_ST_LIST}.asyncio_detailed", side_effect=fake),
-        patch(_ST_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_stock_transfers_impl(
-            ListStockTransfersRequest(
-                created_after="2026-01-01T00:00:00+00:00",
-                created_before="2026-04-01T00:00:00+00:00",
-            ),
-            context,
-        )
-
-    assert isinstance(captured["created_at_min"], datetime)
-    assert isinstance(captured["created_at_max"], datetime)
-    assert captured["created_at_min"].year == 2026
-    assert captured["created_at_max"].month == 4
-
-
-@pytest.mark.asyncio
-async def test_list_stock_transfers_invalid_date_raises():
+async def test_list_stock_transfers_invalid_date_raises(
+    context_with_typed_cache, no_st_sync
+):
     """Malformed ISO-8601 date is surfaced as ValueError."""
-    context, _ = create_mock_context()
+    context, _, _typed_cache = context_with_typed_cache
 
-    with (
-        patch(f"{_ST_LIST}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_ST_UNWRAP_DATA, return_value=[]),
-        pytest.raises(ValueError, match="Invalid ISO-8601"),
-    ):
+    with pytest.raises(ValueError, match="Invalid ISO-8601"):
         await _list_stock_transfers_impl(
             ListStockTransfersRequest(created_after="not-a-date"), context
         )
 
 
 @pytest.mark.asyncio
-async def test_list_stock_transfers_status_filter_client_side():
-    """status filter is applied client-side (Katana endpoint has no server filter)."""
-    context, _ = create_mock_context()
-
-    transfers = [
-        _make_mock_transfer(id=1, status="pending"),
-        _make_mock_transfer(id=2, status="in_transit"),
-        _make_mock_transfer(id=3, status="completed"),
-    ]
-
-    with (
-        patch(f"{_ST_LIST}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_ST_UNWRAP_DATA, return_value=transfers),
-    ):
-        result = await _list_stock_transfers_impl(
-            ListStockTransfersRequest(status="IN_TRANSIT"), context
-        )
-
-    assert result.total_count == 1
-    assert result.transfers[0].id == 2
-
-
-@pytest.mark.asyncio
-async def test_list_stock_transfers_location_filters_passed_through():
-    """source/destination filters forward to API kwargs."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    with (
-        patch(f"{_ST_LIST}.asyncio_detailed", side_effect=fake),
-        patch(_ST_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_stock_transfers_impl(
-            ListStockTransfersRequest(source_location_id=5, destination_location_id=9),
-            context,
-        )
-
-    assert captured["source_location_id"] == 5
-    assert captured["target_location_id"] == 9
-
-
-@pytest.mark.asyncio
-async def test_list_stock_transfers_include_rows_populates_details():
-    """include_rows=True exposes per-transfer row details."""
-    context, _ = create_mock_context()
-
-    mock_transfer = _make_mock_transfer(
-        id=7,
-        rows=[
-            _make_mock_row(id=1, variant_id=100, quantity=5),
-            _make_mock_row(id=2, variant_id=200, quantity=2),
+async def test_list_stock_transfers_filters_by_status(
+    context_with_typed_cache, no_st_sync
+):
+    """Status filter (uppercase Literal) folds to lowercase against the cache column."""
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_stock_transfer(id=1, status="pending"),
+            make_stock_transfer(id=2, status="in_transit"),
+            make_stock_transfer(id=3, status="completed"),
         ],
     )
 
-    with (
-        patch(f"{_ST_LIST}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_ST_UNWRAP_DATA, return_value=[mock_transfer]),
-    ):
-        result_with = await _list_stock_transfers_impl(
-            ListStockTransfersRequest(include_rows=True), context
-        )
-        result_without = await _list_stock_transfers_impl(
-            ListStockTransfersRequest(include_rows=False), context
-        )
+    result = await _list_stock_transfers_impl(
+        ListStockTransfersRequest(status="IN_TRANSIT"), context
+    )
 
-    assert result_with.transfers[0].rows is not None
-    assert len(result_with.transfers[0].rows) == 2
-    assert result_with.transfers[0].row_count == 2
-    assert result_without.transfers[0].rows is None
-    assert result_without.transfers[0].row_count == 2
+    assert {t.id for t in result.transfers} == {2}
 
 
 @pytest.mark.asyncio
-async def test_list_stock_transfers_pagination_meta_when_page_set():
-    """When page is set, parse x-pagination into PaginationMeta on response."""
-    context, _ = create_mock_context()
+async def test_list_stock_transfers_location_filters(
+    context_with_typed_cache, no_st_sync
+):
+    """source_location_id / destination_location_id apply as direct column filters."""
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_stock_transfer(id=1, source_location_id=5, target_location_id=9),
+            make_stock_transfer(id=2, source_location_id=5, target_location_id=10),
+            make_stock_transfer(id=3, source_location_id=6, target_location_id=9),
+        ],
+    )
 
-    mock_response = MagicMock()
-    mock_response.headers = {
-        "x-pagination": json.dumps(
-            {
-                "page": 2,
-                "total_pages": 5,
-                "total_records": 120,
-                "first_page": False,
-                "last_page": False,
-            }
-        )
-    }
+    by_source = await _list_stock_transfers_impl(
+        ListStockTransfersRequest(source_location_id=5), context
+    )
+    assert {t.id for t in by_source.transfers} == {1, 2}
 
-    async def fake(**kwargs):
-        return mock_response
+    by_dest = await _list_stock_transfers_impl(
+        ListStockTransfersRequest(destination_location_id=9), context
+    )
+    assert {t.id for t in by_dest.transfers} == {1, 3}
 
-    with (
-        patch(f"{_ST_LIST}.asyncio_detailed", side_effect=fake),
-        patch(_ST_UNWRAP_DATA, return_value=[]),
-    ):
-        result = await _list_stock_transfers_impl(
-            ListStockTransfersRequest(page=2, limit=50), context
-        )
+
+@pytest.mark.asyncio
+async def test_list_stock_transfers_filters_by_number(
+    context_with_typed_cache, no_st_sync
+):
+    """`stock_transfer_number` is an exact-match column filter."""
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_stock_transfer(id=1, stock_transfer_number="ST-100"),
+            make_stock_transfer(id=2, stock_transfer_number="ST-200"),
+        ],
+    )
+
+    result = await _list_stock_transfers_impl(
+        ListStockTransfersRequest(stock_transfer_number="ST-200"), context
+    )
+
+    assert {t.id for t in result.transfers} == {2}
+
+
+@pytest.mark.asyncio
+async def test_list_stock_transfers_date_filters(context_with_typed_cache, no_st_sync):
+    """`created_after` / `created_before` apply as indexed range filters."""
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_stock_transfer(id=1, created_at=datetime(2025, 12, 15)),  # before
+            make_stock_transfer(id=2, created_at=datetime(2026, 2, 15)),  # inside
+            make_stock_transfer(id=3, created_at=datetime(2026, 5, 1)),  # after
+        ],
+    )
+
+    result = await _list_stock_transfers_impl(
+        ListStockTransfersRequest(
+            created_after="2026-01-01T00:00:00+00:00",
+            created_before="2026-04-01T00:00:00+00:00",
+        ),
+        context,
+    )
+
+    assert {t.id for t in result.transfers} == {2}
+
+
+@pytest.mark.asyncio
+async def test_list_stock_transfers_caps_to_limit(context_with_typed_cache, no_st_sync):
+    """`limit` caps the result size even when more rows match."""
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [make_stock_transfer(id=i) for i in range(1, 31)],
+    )
+
+    result = await _list_stock_transfers_impl(
+        ListStockTransfersRequest(limit=5), context
+    )
+
+    assert len(result.transfers) == 5
+
+
+@pytest.mark.asyncio
+async def test_list_stock_transfers_include_rows(context_with_typed_cache, no_st_sync):
+    """include_rows=True exposes per-transfer row details."""
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_stock_transfer(
+                id=7,
+                rows=[
+                    make_stock_transfer_row(
+                        id=1, stock_transfer_id=7, variant_id=100, quantity=5.0
+                    ),
+                    make_stock_transfer_row(
+                        id=2, stock_transfer_id=7, variant_id=200, quantity=2.0
+                    ),
+                ],
+            ),
+        ],
+    )
+
+    with_rows = await _list_stock_transfers_impl(
+        ListStockTransfersRequest(include_rows=True), context
+    )
+    without_rows = await _list_stock_transfers_impl(
+        ListStockTransfersRequest(include_rows=False), context
+    )
+
+    assert with_rows.transfers[0].rows is not None
+    assert len(with_rows.transfers[0].rows) == 2
+    assert with_rows.transfers[0].row_count == 2
+    assert without_rows.transfers[0].rows is None
+    assert without_rows.transfers[0].row_count == 2
+
+
+@pytest.mark.asyncio
+async def test_list_stock_transfers_pagination_meta_when_page_set(
+    context_with_typed_cache, no_st_sync
+):
+    """An explicit `page` populates `pagination` from a SQL COUNT against the same filter set."""
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [make_stock_transfer(id=i) for i in range(1, 12)],
+    )
+
+    result = await _list_stock_transfers_impl(
+        ListStockTransfersRequest(limit=5, page=2), context
+    )
 
     assert result.pagination is not None
+    assert result.pagination.total_records == 11
+    assert result.pagination.total_pages == 3
     assert result.pagination.page == 2
-    assert result.pagination.total_pages == 5
-    assert result.pagination.total_records == 120
     assert result.pagination.first_page is False
-    assert result.pagination.last_page is False
 
 
 @pytest.mark.asyncio
-async def test_list_stock_transfers_no_pagination_when_page_not_set():
+async def test_list_stock_transfers_no_pagination_when_page_not_set(
+    context_with_typed_cache, no_st_sync
+):
     """When page is not set, pagination meta stays None."""
-    context, _ = create_mock_context()
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(typed_cache, [make_stock_transfer(id=1)])
 
-    mock_response = MagicMock()
-    mock_response.headers = {"x-pagination": json.dumps({"page": 1, "total_pages": 1})}
-
-    async def fake(**kwargs):
-        return mock_response
-
-    with (
-        patch(f"{_ST_LIST}.asyncio_detailed", side_effect=fake),
-        patch(_ST_UNWRAP_DATA, return_value=[]),
-    ):
-        result = await _list_stock_transfers_impl(
-            ListStockTransfersRequest(limit=10), context
-        )
+    result = await _list_stock_transfers_impl(
+        ListStockTransfersRequest(limit=10), context
+    )
 
     assert result.pagination is None
 

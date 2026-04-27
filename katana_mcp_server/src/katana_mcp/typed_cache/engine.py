@@ -29,6 +29,8 @@ from katana_public_api_client.models_pydantic._generated import (
     stock as _stock_mod,
 )
 
+# ``stock`` already covers StockTransfer (sibling to StockAdjustment in the
+# same generated module), so no extra side-effect import is needed.
 assert _sync_state_mod is not None
 assert _sales_orders_mod is not None
 assert _stock_mod is not None

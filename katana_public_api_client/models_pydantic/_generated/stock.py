@@ -977,3 +977,89 @@ class CachedStockAdjustment(DeletableEntity, table=True):
     stock_adjustment_rows: list["CachedStockAdjustmentRow"] = Relationship(
         back_populates="stock_adjustment"
     )
+
+
+class CachedStockTransferRow(KatanaPydanticBase, table=True):
+    __tablename__ = "stock_transfer_row"
+    model_config = ConfigDict(frozen=False)
+
+    stock_transfer_id: Annotated[
+        int | None,
+        SQLField(
+            foreign_key="stock_transfer.id",
+            description="(cache-only) ID of the parent row, populated by SQLAlchemy on insert.",
+        ),
+    ] = None
+
+    id: Annotated[int, SQLField(primary_key=True, description="Unique identifier")]
+
+    variant_id: Annotated[
+        int,
+        Field(description="ID of the product or material variant being transferred"),
+    ]
+    quantity: Annotated[
+        float, Field(description="Quantity of the variant being transferred")
+    ]
+    cost_per_unit: Annotated[
+        float | None, Field(description="Cost per unit for the transferred variant")
+    ] = None
+    batch_transactions: Annotated[
+        list[BatchTransaction7] | None,
+        SQLField(
+            sa_column=Column(JSON),
+            description="Batch transaction details for batch-tracked items",
+        ),
+    ] = None
+    deleted_at: Annotated[
+        datetime | None,
+        Field(description="Nullable deletion timestamp for the row"),
+    ] = None
+    stock_transfer: Optional["CachedStockTransfer"] = Relationship(
+        back_populates="stock_transfer_rows"
+    )
+
+
+class CachedStockTransfer(DeletableEntity, table=True):
+    __tablename__ = "stock_transfer"
+    model_config = ConfigDict(frozen=False)
+
+    id: Annotated[int, SQLField(primary_key=True, description="Unique identifier")]
+
+    stock_transfer_number: Annotated[
+        str,
+        Field(description="Human-readable reference number for tracking the transfer"),
+    ]
+    source_location_id: Annotated[
+        int,
+        Field(
+            description="ID of the source location where stock is being transferred from"
+        ),
+    ]
+    target_location_id: Annotated[
+        int,
+        Field(
+            description="ID of the destination location where stock is being transferred to"
+        ),
+    ]
+    status: Annotated[
+        str | None, Field(description="Current status of the stock transfer workflow")
+    ] = None
+    transfer_date: Annotated[
+        datetime | None,
+        Field(description="Date and time when the transfer was executed"),
+    ] = None
+    order_created_date: Annotated[
+        datetime | None,
+        Field(description="Date and time when the transfer order was created"),
+    ] = None
+    expected_arrival_date: Annotated[
+        datetime | None,
+        Field(description="Expected arrival date for the transferred stock"),
+    ] = None
+    additional_info: Annotated[
+        str | None,
+        Field(description="Optional notes or comments about the transfer purpose"),
+    ] = None
+    stock_transfer_rows: list["CachedStockTransferRow"] = Relationship(
+        back_populates="stock_transfer"
+    )

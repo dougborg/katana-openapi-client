@@ -27,6 +27,8 @@ if TYPE_CHECKING:
         CachedSalesOrderRow,
         CachedStockAdjustment,
         CachedStockAdjustmentRow,
+        CachedStockTransfer,
+        CachedStockTransferRow,
         ManufacturingOrderStatus,
         PurchaseOrderEntityType,
         PurchaseOrderStatus,
@@ -375,4 +377,77 @@ def make_purchase_order_row(
         arrival_date=naive_utc(arrival_date),
         received_date=naive_utc(received_date),
         total=total,
+    )
+
+
+# ----------------------------------------------------------------------------
+# stock_transfers
+# ----------------------------------------------------------------------------
+
+
+def make_stock_transfer(
+    *,
+    id: int = 1,
+    stock_transfer_number: str = "ST-TEST",
+    source_location_id: int = 1,
+    target_location_id: int = 2,
+    status: str | None = "pending",
+    transfer_date: datetime | None = None,
+    order_created_date: datetime | None = None,
+    expected_arrival_date: datetime | None = None,
+    additional_info: str | None = None,
+    created_at: datetime | None = None,
+    updated_at: datetime | None = None,
+    deleted_at: datetime | None = None,
+    rows: list[CachedStockTransferRow] | None = None,
+) -> CachedStockTransfer:
+    """Build a ``CachedStockTransfer`` for direct cache insertion.
+
+    ``status`` is stored on the cache row as ``str | None`` (the OpenAPI
+    spec types it that way; Katana returns lowercase enum values). Pass
+    raw lowercase strings here — that matches what real API rows carry.
+    """
+    from katana_mcp.tools.tool_result_utils import naive_utc
+
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedStockTransfer as _CachedStockTransfer,
+    )
+
+    cached = _CachedStockTransfer(
+        id=id,
+        stock_transfer_number=stock_transfer_number,
+        source_location_id=source_location_id,
+        target_location_id=target_location_id,
+        status=status,
+        transfer_date=naive_utc(transfer_date),
+        order_created_date=naive_utc(order_created_date),
+        expected_arrival_date=naive_utc(expected_arrival_date),
+        additional_info=additional_info,
+        created_at=naive_utc(created_at) or datetime(2026, 4, 1),
+        updated_at=naive_utc(updated_at),
+        deleted_at=naive_utc(deleted_at),
+    )
+    cached.stock_transfer_rows = rows if rows is not None else []
+    return cached
+
+
+def make_stock_transfer_row(
+    *,
+    id: int,
+    stock_transfer_id: int,
+    variant_id: int,
+    quantity: float = 1.0,
+    cost_per_unit: float | None = None,
+) -> CachedStockTransferRow:
+    """Build a ``CachedStockTransferRow`` for direct cache insertion."""
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedStockTransferRow as _CachedStockTransferRow,
+    )
+
+    return _CachedStockTransferRow(
+        id=id,
+        stock_transfer_id=stock_transfer_id,
+        variant_id=variant_id,
+        quantity=quantity,
+        cost_per_unit=cost_per_unit,
     )
