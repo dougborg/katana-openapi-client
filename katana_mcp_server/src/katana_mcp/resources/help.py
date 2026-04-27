@@ -921,16 +921,22 @@ Create a stock transfer moving inventory between two locations.
 ---
 
 ### list_stock_transfers
-List stock transfers with filters (list-tool pattern v2).
+List stock transfers with filters. Cache-backed post-#379 — all filters run as
+indexed SQL queries against the SQLModel typed cache, including `status` which
+was a client-side post-fetch filter pre-cache.
 
 **Parameters:**
 - `limit` (optional, default 50, min 1): Max rows to return
-- `page` (optional): Page number (1-based) — disables auto-pagination
+- `page` (optional): Page number (1-based); when set, the response includes
+  `pagination` metadata (total_records, total_pages) computed via SQL COUNT
+  against the same filter predicate
 - `status` (optional): "PENDING", "IN_TRANSIT", "COMPLETED", or "CANCELLED"
+  (folded to lowercase against the cache column)
 - `source_location_id` (optional): Filter by source location ID
 - `destination_location_id` (optional): Filter by destination (target) location ID
 - `stock_transfer_number` (optional): Exact match on the transfer number
-- `created_after` / `created_before` (optional): ISO-8601 datetime bounds on created_at
+- `created_after` / `created_before` (optional): ISO-8601 datetime bounds on
+  created_at — indexed SQL range filter
 - `include_rows` (optional, default false): Populate per-transfer row details
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 

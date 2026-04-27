@@ -31,6 +31,7 @@ from .sync import (
     ensure_purchase_orders_synced,
     ensure_sales_orders_synced,
     ensure_stock_adjustments_synced,
+    ensure_stock_transfers_synced,
 )
 from .sync_state import SyncState
 
@@ -41,4 +42,5 @@ __all__ = [
     "ensure_purchase_orders_synced",
     "ensure_sales_orders_synced",
     "ensure_stock_adjustments_synced",
+    "ensure_stock_transfers_synced",
 ]

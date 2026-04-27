@@ -183,6 +183,8 @@ CACHE_TABLES: set[str] = {
     "ManufacturingOrder",
     "PurchaseOrderBase",
     "PurchaseOrderRow",
+    "StockTransfer",
+    "StockTransferRow",
 }
 
 
@@ -267,6 +269,13 @@ CACHE_RELATIONSHIPS: list[CacheTableRelationship] = [
         child_back_ref="purchase_order",
         child_fk_field="purchase_order_id",
     ),
+    CacheTableRelationship(
+        parent="StockTransfer",
+        parent_field="stock_transfer_rows",
+        child="StockTransferRow",
+        child_back_ref="stock_transfer",
+        child_fk_field="stock_transfer_id",
+    ),
 ]
 
 
@@ -285,6 +294,7 @@ CACHE_JSON_COLUMNS: dict[str, list[str]] = {
     # ``landed_cost: str | float | None`` is a non-optional inner union
     # that SQLAlchemy can't auto-type — JSON-column it instead of dropping.
     "PurchaseOrderRow": ["batch_transactions", "landed_cost"],
+    "StockTransferRow": ["batch_transactions"],
 }
 
 
