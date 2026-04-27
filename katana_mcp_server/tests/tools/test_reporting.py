@@ -825,3 +825,224 @@ async def test_inventory_velocity_format_json_returns_json():
     assert data["items"][0]["units_sold"] == 5.0
     assert data["items"][0]["units_consumed_by_mos"] == 2.0
     assert data["items"][0]["units_total"] == 7.0
+
+
+# ============================================================================
+# Integration: _fetch_completed_mo_recipe_rows_in_window against real cache
+# ============================================================================
+#
+# The boundary mock at ``_FETCH_MO_RECIPE`` covers the orchestration in
+# ``_inventory_velocity_impl`` but skips the two correctness-critical
+# filters inside ``_fetch_completed_mo_recipe_rows_in_window`` itself:
+# ``status == DONE`` and ``done_date`` inside the window. These tests seed
+# real ``CachedManufacturingOrder`` parents with mixed statuses and
+# done_dates against an in-memory ``TypedCacheEngine`` and assert that
+# only DONE-status MOs with done_dates inside the window contribute to
+# the joined recipe rows.
+
+
+@pytest.fixture
+def _no_mo_or_recipe_sync():
+    """Stub both ``ensure_*_synced`` helpers used by the MO-consumption path."""
+    from tests.conftest import patch_typed_cache_sync
+
+    with (
+        patch_typed_cache_sync("manufacturing_orders"),
+        patch_typed_cache_sync("manufacturing_order_recipe_rows"),
+    ):
+        yield
+
+
+@pytest.mark.asyncio
+async def test_fetch_completed_mo_recipe_rows_only_includes_done_status(
+    context_with_typed_cache, _no_mo_or_recipe_sync
+):
+    """Only MOs with ``status=DONE`` contribute recipe rows; others are filtered out."""
+    from katana_mcp.tools.foundation.reporting import (
+        _fetch_completed_mo_recipe_rows_in_window,
+    )
+
+    from tests.factories import (
+        make_manufacturing_order,
+        make_manufacturing_order_recipe_row,
+        seed_cache,
+    )
+
+    _, lifespan_ctx, typed_cache = context_with_typed_cache
+
+    window_start = datetime(2026, 4, 1)
+    window_end = datetime(2026, 4, 30, 23, 59, 59)
+    inside_window = datetime(2026, 4, 15)
+
+    await seed_cache(
+        typed_cache,
+        [
+            # All three MOs touch variant 42 inside the window — only the
+            # DONE one should contribute.
+            make_manufacturing_order(
+                id=1, order_no="MO-DONE", status="DONE", done_date=inside_window
+            ),
+            make_manufacturing_order(
+                id=2,
+                order_no="MO-IN-PROGRESS",
+                status="IN_PROGRESS",
+                done_date=inside_window,
+            ),
+            make_manufacturing_order(
+                id=3,
+                order_no="MO-BLOCKED",
+                status="BLOCKED",
+                done_date=inside_window,
+            ),
+            make_manufacturing_order_recipe_row(
+                id=10, manufacturing_order_id=1, variant_id=42, total_actual_quantity=5
+            ),
+            make_manufacturing_order_recipe_row(
+                id=11, manufacturing_order_id=2, variant_id=42, total_actual_quantity=7
+            ),
+            make_manufacturing_order_recipe_row(
+                id=12, manufacturing_order_id=3, variant_id=42, total_actual_quantity=9
+            ),
+        ],
+    )
+
+    rows = await _fetch_completed_mo_recipe_rows_in_window(
+        lifespan_ctx, window_start, window_end
+    )
+
+    # Only the DONE MO's recipe row (id=10) should be returned.
+    assert {r.id for r in rows} == {10}
+    assert {r.manufacturing_order_id for r in rows} == {1}
+
+
+@pytest.mark.asyncio
+async def test_fetch_completed_mo_recipe_rows_filters_done_date_window(
+    context_with_typed_cache, _no_mo_or_recipe_sync
+):
+    """MOs whose done_date is outside the window don't contribute, even if DONE."""
+    from katana_mcp.tools.foundation.reporting import (
+        _fetch_completed_mo_recipe_rows_in_window,
+    )
+
+    from tests.factories import (
+        make_manufacturing_order,
+        make_manufacturing_order_recipe_row,
+        seed_cache,
+    )
+
+    _, lifespan_ctx, typed_cache = context_with_typed_cache
+
+    window_start = datetime(2026, 4, 1)
+    window_end = datetime(2026, 4, 30, 23, 59, 59)
+
+    await seed_cache(
+        typed_cache,
+        [
+            # In-window: should contribute.
+            make_manufacturing_order(
+                id=1,
+                order_no="MO-IN",
+                status="DONE",
+                done_date=datetime(2026, 4, 15),
+            ),
+            # Before window: must NOT contribute.
+            make_manufacturing_order(
+                id=2,
+                order_no="MO-BEFORE",
+                status="DONE",
+                done_date=datetime(2026, 3, 15),
+            ),
+            # After window: must NOT contribute.
+            make_manufacturing_order(
+                id=3,
+                order_no="MO-AFTER",
+                status="DONE",
+                done_date=datetime(2026, 5, 15),
+            ),
+            # No done_date: must NOT contribute (is_not(None) filter).
+            make_manufacturing_order(
+                id=4,
+                order_no="MO-NONE",
+                status="DONE",
+                done_date=None,
+            ),
+            make_manufacturing_order_recipe_row(
+                id=10, manufacturing_order_id=1, variant_id=99, total_actual_quantity=1
+            ),
+            make_manufacturing_order_recipe_row(
+                id=11, manufacturing_order_id=2, variant_id=99, total_actual_quantity=2
+            ),
+            make_manufacturing_order_recipe_row(
+                id=12, manufacturing_order_id=3, variant_id=99, total_actual_quantity=3
+            ),
+            make_manufacturing_order_recipe_row(
+                id=13, manufacturing_order_id=4, variant_id=99, total_actual_quantity=4
+            ),
+        ],
+    )
+
+    rows = await _fetch_completed_mo_recipe_rows_in_window(
+        lifespan_ctx, window_start, window_end
+    )
+
+    assert {r.id for r in rows} == {10}
+    assert {r.manufacturing_order_id for r in rows} == {1}
+
+
+@pytest.mark.asyncio
+async def test_fetch_completed_mo_recipe_rows_excludes_soft_deleted_mos(
+    context_with_typed_cache, _no_mo_or_recipe_sync
+):
+    """Soft-deleted MOs (``deleted_at`` set) don't contribute even if DONE in window."""
+    from katana_mcp.tools.foundation.reporting import (
+        _fetch_completed_mo_recipe_rows_in_window,
+    )
+
+    from tests.factories import (
+        make_manufacturing_order,
+        make_manufacturing_order_recipe_row,
+        seed_cache,
+    )
+
+    _, lifespan_ctx, typed_cache = context_with_typed_cache
+
+    window_start = datetime(2026, 4, 1)
+    window_end = datetime(2026, 4, 30, 23, 59, 59)
+    inside_window = datetime(2026, 4, 15)
+
+    await seed_cache(
+        typed_cache,
+        [
+            make_manufacturing_order(
+                id=1, order_no="MO-LIVE", status="DONE", done_date=inside_window
+            ),
+            make_manufacturing_order(
+                id=2,
+                order_no="MO-DELETED",
+                status="DONE",
+                done_date=inside_window,
+                deleted_at=datetime(2026, 4, 20),
+            ),
+            make_manufacturing_order_recipe_row(
+                id=10, manufacturing_order_id=1, variant_id=7, total_actual_quantity=1
+            ),
+            make_manufacturing_order_recipe_row(
+                id=11, manufacturing_order_id=2, variant_id=7, total_actual_quantity=2
+            ),
+        ],
+    )
+
+    rows = await _fetch_completed_mo_recipe_rows_in_window(
+        lifespan_ctx, window_start, window_end
+    )
+
+    assert {r.id for r in rows} == {10}
+
+
+@pytest.mark.asyncio
+async def test_inventory_velocity_request_rejects_empty_batch():
+    """``sku_or_variant_ids`` of length 0 is rejected at schema validation."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        InventoryVelocityRequest(sku_or_variant_ids=[])

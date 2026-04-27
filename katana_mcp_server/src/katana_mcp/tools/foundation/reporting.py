@@ -636,10 +636,11 @@ class InventoryVelocityRequest(BaseModel):
     sku_or_variant_ids: list[str | int] | None = Field(
         default=None,
         description=(
-            "Batch shape — list of SKUs and/or variant IDs (max 100). "
+            "Batch shape — list of SKUs and/or variant IDs (1-100 items). "
             "Returns one row per item in a markdown table. "
             "Use this for cross-variant reports."
         ),
+        min_length=1,
         max_length=100,
     )
     period_days: int = Field(
