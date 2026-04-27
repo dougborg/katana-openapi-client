@@ -20,10 +20,12 @@ if TYPE_CHECKING:
     from katana_mcp.typed_cache import TypedCacheEngine
 
     from katana_public_api_client.models_pydantic._generated import (
-        SalesOrder as CachedSalesOrder,
+        CachedSalesOrder,
+        CachedSalesOrderRow,
+        CachedStockAdjustment,
+        CachedStockAdjustmentRow,
         SalesOrderProductionStatus,
-        SalesOrderRow as CachedSalesOrderRow,
-        SalesOrderStatus as CachedSalesOrderStatus,
+        SalesOrderStatus,
     )
 
 
@@ -51,7 +53,7 @@ def make_sales_order(
     order_no: str = "SO-TEST",
     customer_id: int = 42,
     location_id: int = 1,
-    status: CachedSalesOrderStatus | str | None = None,
+    status: SalesOrderStatus | str | None = None,
     production_status: SalesOrderProductionStatus | str | None = "NONE",
     invoicing_status: str | None = None,
     created_at: datetime | None = None,
@@ -62,7 +64,7 @@ def make_sales_order(
     deleted_at: datetime | None = None,
     rows: list[CachedSalesOrderRow] | None = None,
 ) -> CachedSalesOrder:
-    """Build a SQLModel ``SalesOrder`` for direct cache insertion.
+    """Build a ``CachedSalesOrder`` for direct cache insertion.
 
     Datetime args are normalized to naive UTC (the typed cache stores
     timestamps without tzinfo — SQLite's default ``DateTime`` column
@@ -75,15 +77,15 @@ def make_sales_order(
     from katana_mcp.tools.tool_result_utils import naive_utc
 
     from katana_public_api_client.models_pydantic._generated import (
-        SalesOrder as CachedSalesOrder,
+        CachedSalesOrder as _CachedSalesOrder,
         SalesOrderProductionStatus as _ProductionStatus,
-        SalesOrderStatus as CachedSalesOrderStatus,
+        SalesOrderStatus as _SalesOrderStatus,
     )
 
     resolved_status = (
-        CachedSalesOrderStatus(status)
+        _SalesOrderStatus(status)
         if isinstance(status, str)
-        else (status if status is not None else CachedSalesOrderStatus.not_shipped)
+        else (status if status is not None else _SalesOrderStatus.not_shipped)
     )
     resolved_prod_status = (
         _ProductionStatus(production_status)
@@ -91,7 +93,7 @@ def make_sales_order(
         else production_status
     )
 
-    return CachedSalesOrder(
+    cached = _CachedSalesOrder(
         id=id,
         order_no=order_no,
         customer_id=customer_id,
@@ -105,8 +107,11 @@ def make_sales_order(
         total=total,
         currency=currency,
         deleted_at=naive_utc(deleted_at),
-        sales_order_rows=rows if rows is not None else [],
     )
+    # ``sales_order_rows`` is a SQLModel ``Relationship`` — set after
+    # construction since the descriptor doesn't accept input via __init__.
+    cached.sales_order_rows = rows if rows is not None else []
+    return cached
 
 
 def make_sales_order_row(
@@ -118,16 +123,85 @@ def make_sales_order_row(
     price_per_unit: float | None = None,
     linked_manufacturing_order_id: int | None = None,
 ) -> CachedSalesOrderRow:
-    """Build a SQLModel ``SalesOrderRow`` for direct cache insertion."""
+    """Build a ``CachedSalesOrderRow`` for direct cache insertion."""
     from katana_public_api_client.models_pydantic._generated import (
-        SalesOrderRow as CachedSalesOrderRow,
+        CachedSalesOrderRow as _CachedSalesOrderRow,
     )
 
-    return CachedSalesOrderRow(
+    return _CachedSalesOrderRow(
         id=id,
         sales_order_id=sales_order_id,
         variant_id=variant_id,
         quantity=quantity,
         price_per_unit=price_per_unit,
         linked_manufacturing_order_id=linked_manufacturing_order_id,
+    )
+
+
+# ----------------------------------------------------------------------------
+# stock_adjustments
+# ----------------------------------------------------------------------------
+
+
+def make_stock_adjustment(
+    *,
+    id: int = 1,
+    stock_adjustment_number: str = "SA-TEST",
+    location_id: int = 1,
+    stock_adjustment_date: datetime | None = None,
+    reason: str | None = None,
+    additional_info: str | None = None,
+    created_at: datetime | None = None,
+    updated_at: datetime | None = None,
+    deleted_at: datetime | None = None,
+    rows: list[CachedStockAdjustmentRow] | None = None,
+) -> CachedStockAdjustment:
+    """Build a ``CachedStockAdjustment`` for direct cache insertion.
+
+    Same datetime-normalization contract as :func:`make_sales_order` —
+    callers may pass tz-aware datetimes; the factory routes everything
+    through ``naive_utc`` so cache filter comparisons work either way.
+    ``created_at`` defaults to 2026-04-01 to match the sales-order builder
+    so cross-entity date-window tests share a baseline.
+    """
+    from katana_mcp.tools.tool_result_utils import naive_utc
+
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedStockAdjustment as _CachedStockAdjustment,
+    )
+
+    cached = _CachedStockAdjustment(
+        id=id,
+        stock_adjustment_number=stock_adjustment_number,
+        location_id=location_id,
+        stock_adjustment_date=naive_utc(stock_adjustment_date),
+        reason=reason,
+        additional_info=additional_info,
+        created_at=naive_utc(created_at) or datetime(2026, 4, 1),
+        updated_at=naive_utc(updated_at),
+        deleted_at=naive_utc(deleted_at),
+    )
+    cached.stock_adjustment_rows = rows if rows is not None else []
+    return cached
+
+
+def make_stock_adjustment_row(
+    *,
+    id: int,
+    stock_adjustment_id: int,
+    variant_id: int,
+    quantity: float = 1.0,
+    cost_per_unit: float | None = None,
+) -> CachedStockAdjustmentRow:
+    """Build a ``CachedStockAdjustmentRow`` for direct cache insertion."""
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedStockAdjustmentRow as _CachedStockAdjustmentRow,
+    )
+
+    return _CachedStockAdjustmentRow(
+        id=id,
+        stock_adjustment_id=stock_adjustment_id,
+        variant_id=variant_id,
+        quantity=quantity,
+        cost_per_unit=cost_per_unit,
     )

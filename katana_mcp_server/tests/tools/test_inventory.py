@@ -37,7 +37,12 @@ from katana_mcp.tools.foundation.items import (
 from pydantic import ValidationError
 
 from katana_public_api_client.client_types import UNSET
-from tests.conftest import create_mock_context
+from tests.conftest import create_mock_context, patch_typed_cache_sync
+from tests.factories import (
+    make_stock_adjustment,
+    make_stock_adjustment_row,
+    seed_cache,
+)
 
 
 def _content_text(result) -> str:
@@ -878,8 +883,19 @@ async def test_get_variant_details_with_timestamps():
 
 
 # ============================================================================
-# list_stock_adjustments Tests
+# list_stock_adjustments Tests (cache-backed)
 # ============================================================================
+#
+# Post-#376: list_stock_adjustments reads from the SQLModel typed cache via
+# ``_list_stock_adjustments_impl``. Tests seed ``CachedStockAdjustment`` /
+# ``CachedStockAdjustmentRow`` rows with the factories from ``tests/factories``
+# and assert the impl's filter/pagination logic against the query results.
+# The ``no_sync`` fixture stubs ``ensure_stock_adjustments_synced`` so the
+# impl never tries to talk to the API during these unit tests.
+#
+# update_stock_adjustment / delete_stock_adjustment tests further down still
+# go through the live API path (those tools call the Katana API directly),
+# so the mock-API helpers below are kept for them.
 
 _SA_GET_ALL = "katana_public_api_client.api.stock_adjustment.get_all_stock_adjustments"
 _SA_UNWRAP_DATA = "katana_public_api_client.utils.unwrap_data"
@@ -899,7 +915,8 @@ def _make_mock_adjustment(
     rows: list | None = None,
     created_at: datetime | None = None,
 ) -> MagicMock:
-    """Build a mock StockAdjustment attrs object for testing."""
+    """Build a mock StockAdjustment attrs object for live-API-path tests
+    (``update_stock_adjustment`` / ``delete_stock_adjustment``)."""
     adj = MagicMock()
     adj.id = id
     adj.stock_adjustment_number = stock_adjustment_number
@@ -922,7 +939,7 @@ def _make_mock_adjustment_row(
     quantity: float = 5.0,
     cost_per_unit: float | None = None,
 ) -> MagicMock:
-    """Build a mock StockAdjustmentRow for testing."""
+    """Build a mock StockAdjustmentRow for live-API-path tests."""
     row = MagicMock()
     row.id = id
     row.variant_id = variant_id
@@ -931,354 +948,322 @@ def _make_mock_adjustment_row(
     return row
 
 
-@pytest.mark.asyncio
-async def test_list_stock_adjustments_short_circuits_page_for_small_limit():
-    """Small `limit` (<=250) with no explicit `page` injects page=1 to short-circuit."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    with (
-        patch(f"{_SA_GET_ALL}.asyncio_detailed", side_effect=fake),
-        patch(_SA_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_stock_adjustments_impl(
-            ListStockAdjustmentsRequest(limit=25), context
-        )
-
-    assert captured["page"] == 1
-    assert captured["limit"] == 25
-
-
-@pytest.mark.asyncio
-async def test_list_stock_adjustments_forwards_explicit_page():
-    """Explicit `page=N` is forwarded (overrides the short-circuit)."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    with (
-        patch(f"{_SA_GET_ALL}.asyncio_detailed", side_effect=fake),
-        patch(_SA_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_stock_adjustments_impl(
-            ListStockAdjustmentsRequest(limit=50, page=3), context
-        )
-
-    assert captured["page"] == 3
+@pytest.fixture
+def no_sync():
+    """Patch ``ensure_stock_adjustments_synced`` to a no-op for these tests."""
+    with patch_typed_cache_sync("stock_adjustments"):
+        yield
 
 
 def test_list_stock_adjustments_rejects_limit_above_page_cap():
-    """`limit > 250` is rejected at the schema boundary (Katana's API page-size cap)."""
+    """`limit > 250` is rejected at the schema boundary."""
     with pytest.raises(ValidationError):
         ListStockAdjustmentsRequest(limit=500)
 
 
 @pytest.mark.asyncio
-async def test_list_stock_adjustments_forwards_new_server_side_filters():
-    """ids, stock_adjustment_number, updated_after/before, include_deleted forward to the API."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    with (
-        patch(f"{_SA_GET_ALL}.asyncio_detailed", side_effect=fake),
-        patch(_SA_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_stock_adjustments_impl(
-            ListStockAdjustmentsRequest(
-                limit=10,
-                ids=[101, 102],
-                stock_adjustment_number="SA-00042",
-                updated_after="2026-01-01T00:00:00+00:00",
-                updated_before="2026-04-01T00:00:00+00:00",
-                include_deleted=True,
-            ),
-            context,
-        )
-
-    assert captured["ids"] == [101, 102]
-    assert captured["stock_adjustment_number"] == "SA-00042"
-    assert captured["updated_at_min"] == datetime(2026, 1, 1, tzinfo=UTC)
-    assert captured["updated_at_max"] == datetime(2026, 4, 1, tzinfo=UTC)
-    assert captured["include_deleted"] is True
-
-
-@pytest.mark.asyncio
-async def test_list_stock_adjustments_skips_short_circuit_when_variant_id_filter_set():
-    """Client-side filters need to scan more than one page; short-circuit must be skipped."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    with (
-        patch(f"{_SA_GET_ALL}.asyncio_detailed", side_effect=fake),
-        patch(_SA_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_stock_adjustments_impl(
-            ListStockAdjustmentsRequest(limit=10, variant_id=42), context
-        )
-
-    # No `page` forwarded → auto-pagination runs → can find variant_id matches
-    # on later pages. Without this, a single page would be the whole haystack.
-    assert "page" not in captured
-
-
-@pytest.mark.asyncio
-async def test_list_stock_adjustments_skips_short_circuit_when_reason_filter_set():
-    """Same as above but for the `reason` client-side filter."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    with (
-        patch(f"{_SA_GET_ALL}.asyncio_detailed", side_effect=fake),
-        patch(_SA_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_stock_adjustments_impl(
-            ListStockAdjustmentsRequest(limit=10, reason="recount"), context
-        )
-
-    assert "page" not in captured
-
-
-@pytest.mark.asyncio
-async def test_list_stock_adjustments_pagination_meta_populated_on_explicit_page():
-    """An explicit `page` populates `pagination` from the x-pagination header."""
-    context, _ = create_mock_context()
-
-    mock_response = MagicMock()
-    mock_response.headers = {
-        "x-pagination": (
-            '{"total_records":"231","total_pages":"5","page":"2",'
-            '"first_page":"false","last_page":"false"}'
-        )
-    }
-
-    with (
-        patch(
-            f"{_SA_GET_ALL}.asyncio_detailed",
-            new=AsyncMock(return_value=mock_response),
-        ),
-        patch(_SA_UNWRAP_DATA, return_value=[]),
-    ):
-        result = await _list_stock_adjustments_impl(
-            ListStockAdjustmentsRequest(limit=50, page=2), context
-        )
-
-    assert result.pagination is not None
-    assert result.pagination.total_records == 231
-    assert result.pagination.total_pages == 5
-    assert result.pagination.page == 2
-    assert result.pagination.first_page is False
-    assert result.pagination.last_page is False
-
-
-@pytest.mark.asyncio
-async def test_list_stock_adjustments_pagination_meta_none_on_auto_pagination():
-    """Without an explicit `page`, `pagination` is `None` (auto-pagination)."""
-    context, _ = create_mock_context()
-
-    mock_response = MagicMock()
-    mock_response.headers = {
-        "x-pagination": '{"total_records":"10","total_pages":"1","page":"1"}'
-    }
-
-    with (
-        patch(
-            f"{_SA_GET_ALL}.asyncio_detailed",
-            new=AsyncMock(return_value=mock_response),
-        ),
-        patch(_SA_UNWRAP_DATA, return_value=[]),
-    ):
-        result = await _list_stock_adjustments_impl(
-            ListStockAdjustmentsRequest(limit=50), context
-        )
-
-    assert result.pagination is None
-
-
-@pytest.mark.asyncio
-async def test_list_stock_adjustments_date_filters_forwarded():
-    """`created_after` and `created_before` map to `created_at_min`/`_max`."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    with (
-        patch(f"{_SA_GET_ALL}.asyncio_detailed", side_effect=fake),
-        patch(_SA_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_stock_adjustments_impl(
-            ListStockAdjustmentsRequest(
-                created_after="2026-01-01T00:00:00Z",
-                created_before="2026-04-01T00:00:00Z",
-            ),
-            context,
-        )
-
-    assert isinstance(captured["created_at_min"], datetime)
-    assert isinstance(captured["created_at_max"], datetime)
-
-
-@pytest.mark.asyncio
-async def test_list_stock_adjustments_location_filter_forwarded():
-    """`location_id` is forwarded as-is to the API."""
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    with (
-        patch(f"{_SA_GET_ALL}.asyncio_detailed", side_effect=fake),
-        patch(_SA_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_stock_adjustments_impl(
-            ListStockAdjustmentsRequest(location_id=7), context
-        )
-
-    assert captured["location_id"] == 7
-
-
-@pytest.mark.asyncio
-async def test_list_stock_adjustments_variant_id_filter_clientside():
-    """`variant_id` is applied client-side against returned rows."""
-    context, _ = create_mock_context()
-
-    adj_match = _make_mock_adjustment(
-        id=1, rows=[_make_mock_adjustment_row(variant_id=777)]
-    )
-    adj_skip = _make_mock_adjustment(
-        id=2, rows=[_make_mock_adjustment_row(variant_id=888)]
-    )
-
-    with (
-        patch(f"{_SA_GET_ALL}.asyncio_detailed", new=AsyncMock()),
-        patch(_SA_UNWRAP_DATA, return_value=[adj_match, adj_skip]),
-    ):
-        result = await _list_stock_adjustments_impl(
-            ListStockAdjustmentsRequest(variant_id=777), context
-        )
-
-    assert result.total_count == 1
-    assert result.adjustments[0].id == 1
-
-
-@pytest.mark.asyncio
-async def test_list_stock_adjustments_reason_filter_clientside():
-    """`reason` applies a case-insensitive substring match client-side."""
-    context, _ = create_mock_context()
-
-    adj_match = _make_mock_adjustment(id=1, reason="Cycle count correction")
-    adj_skip = _make_mock_adjustment(id=2, reason="Sample received")
-
-    with (
-        patch(f"{_SA_GET_ALL}.asyncio_detailed", new=AsyncMock()),
-        patch(_SA_UNWRAP_DATA, return_value=[adj_match, adj_skip]),
-    ):
-        result = await _list_stock_adjustments_impl(
-            ListStockAdjustmentsRequest(reason="cycle"), context
-        )
-
-    assert result.total_count == 1
-    assert result.adjustments[0].id == 1
-
-
-@pytest.mark.asyncio
-async def test_list_stock_adjustments_include_rows_false_omits_rows():
-    """With `include_rows=False`, summary rows is None."""
-    context, _ = create_mock_context()
-
-    adj = _make_mock_adjustment(
-        id=10,
-        rows=[
-            _make_mock_adjustment_row(id=1, variant_id=100, quantity=5.0),
-            _make_mock_adjustment_row(id=2, variant_id=101, quantity=-2.0),
+async def test_list_stock_adjustments_filters_by_ids(context_with_typed_cache, no_sync):
+    """`ids` restricts the returned set to the specified adjustment IDs."""
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_stock_adjustment(id=1),
+            make_stock_adjustment(id=2),
+            make_stock_adjustment(id=3),
         ],
     )
 
-    with (
-        patch(f"{_SA_GET_ALL}.asyncio_detailed", new=AsyncMock()),
-        patch(_SA_UNWRAP_DATA, return_value=[adj]),
-    ):
-        result = await _list_stock_adjustments_impl(
-            ListStockAdjustmentsRequest(include_rows=False), context
-        )
+    result = await _list_stock_adjustments_impl(
+        ListStockAdjustmentsRequest(ids=[1, 3]), context
+    )
+
+    assert {a.id for a in result.adjustments} == {1, 3}
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_filters_by_stock_adjustment_number(
+    context_with_typed_cache, no_sync
+):
+    """`stock_adjustment_number` is an exact-match filter."""
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_stock_adjustment(id=1, stock_adjustment_number="SA-100"),
+            make_stock_adjustment(id=2, stock_adjustment_number="SA-200"),
+        ],
+    )
+
+    result = await _list_stock_adjustments_impl(
+        ListStockAdjustmentsRequest(stock_adjustment_number="SA-200"), context
+    )
+
+    assert len(result.adjustments) == 1
+    assert result.adjustments[0].id == 2
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_filters_by_location_id(
+    context_with_typed_cache, no_sync
+):
+    """`location_id` narrows the result to that location."""
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_stock_adjustment(id=1, location_id=7),
+            make_stock_adjustment(id=2, location_id=8),
+        ],
+    )
+
+    result = await _list_stock_adjustments_impl(
+        ListStockAdjustmentsRequest(location_id=7), context
+    )
+
+    assert len(result.adjustments) == 1
+    assert result.adjustments[0].id == 1
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_excludes_deleted_by_default(
+    context_with_typed_cache, no_sync
+):
+    """Soft-deleted adjustments are filtered out unless include_deleted=True."""
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_stock_adjustment(id=1, deleted_at=None),
+            make_stock_adjustment(id=2, deleted_at=datetime(2026, 3, 15)),
+        ],
+    )
+
+    default = await _list_stock_adjustments_impl(ListStockAdjustmentsRequest(), context)
+    assert {a.id for a in default.adjustments} == {1}
+
+    with_deleted = await _list_stock_adjustments_impl(
+        ListStockAdjustmentsRequest(include_deleted=True), context
+    )
+    assert {a.id for a in with_deleted.adjustments} == {1, 2}
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_date_filters(context_with_typed_cache, no_sync):
+    """`created_after` / `created_before` apply as indexed range filters."""
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_stock_adjustment(id=1, created_at=datetime(2025, 12, 15)),  # before
+            make_stock_adjustment(id=2, created_at=datetime(2026, 2, 15)),  # inside
+            make_stock_adjustment(id=3, created_at=datetime(2026, 5, 1)),  # after
+        ],
+    )
+
+    result = await _list_stock_adjustments_impl(
+        ListStockAdjustmentsRequest(
+            created_after="2026-01-01T00:00:00Z",
+            created_before="2026-04-01T00:00:00Z",
+        ),
+        context,
+    )
+
+    assert {a.id for a in result.adjustments} == {2}
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_variant_id_filter_via_rows(
+    context_with_typed_cache, no_sync
+):
+    """`variant_id` matches when ANY row of the adjustment touches the variant.
+
+    This closes the filter-breadth bug from #342: the pre-cache impl ran
+    this filter client-side after a single API page, missing matches on
+    later pages. The cache-backed query uses an EXISTS subquery over the
+    indexed FK column, so depth doesn't matter.
+    """
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_stock_adjustment(
+                id=1,
+                rows=[
+                    make_stock_adjustment_row(
+                        id=10, stock_adjustment_id=1, variant_id=777
+                    ),
+                ],
+            ),
+            make_stock_adjustment(
+                id=2,
+                rows=[
+                    make_stock_adjustment_row(
+                        id=11, stock_adjustment_id=2, variant_id=888
+                    ),
+                ],
+            ),
+        ],
+    )
+
+    result = await _list_stock_adjustments_impl(
+        ListStockAdjustmentsRequest(variant_id=777), context
+    )
+
+    assert {a.id for a in result.adjustments} == {1}
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_reason_filter_case_insensitive_substring(
+    context_with_typed_cache, no_sync
+):
+    """`reason` applies a case-insensitive substring (ILIKE) match."""
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_stock_adjustment(id=1, reason="Cycle count correction"),
+            make_stock_adjustment(id=2, reason="Sample received"),
+        ],
+    )
+
+    result = await _list_stock_adjustments_impl(
+        ListStockAdjustmentsRequest(reason="cycle"), context
+    )
+
+    assert {a.id for a in result.adjustments} == {1}
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_include_rows_false_omits_rows(
+    context_with_typed_cache, no_sync
+):
+    """With `include_rows=False`, summary rows is None but row_count is set."""
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_stock_adjustment(
+                id=10,
+                rows=[
+                    make_stock_adjustment_row(
+                        id=1, stock_adjustment_id=10, variant_id=100, quantity=5.0
+                    ),
+                    make_stock_adjustment_row(
+                        id=2, stock_adjustment_id=10, variant_id=101, quantity=-2.0
+                    ),
+                ],
+            ),
+        ],
+    )
+
+    result = await _list_stock_adjustments_impl(
+        ListStockAdjustmentsRequest(include_rows=False), context
+    )
 
     assert result.adjustments[0].row_count == 2
     assert result.adjustments[0].rows is None
 
 
 @pytest.mark.asyncio
-async def test_list_stock_adjustments_include_rows_true_populates_rows():
-    """With `include_rows=True`, summary rows contains row details."""
-    context, _ = create_mock_context()
-
-    adj = _make_mock_adjustment(
-        id=11,
-        rows=[
-            _make_mock_adjustment_row(
-                id=1, variant_id=100, quantity=5.0, cost_per_unit=1.23
+async def test_list_stock_adjustments_include_rows_true_populates_rows(
+    context_with_typed_cache, no_sync
+):
+    """With `include_rows=True`, summary rows carries variant/quantity/cost."""
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_stock_adjustment(
+                id=11,
+                rows=[
+                    make_stock_adjustment_row(
+                        id=1,
+                        stock_adjustment_id=11,
+                        variant_id=100,
+                        quantity=5.0,
+                        cost_per_unit=1.23,
+                    ),
+                    make_stock_adjustment_row(
+                        id=2, stock_adjustment_id=11, variant_id=101, quantity=-2.0
+                    ),
+                ],
             ),
-            _make_mock_adjustment_row(id=2, variant_id=101, quantity=-2.0),
         ],
     )
 
-    with (
-        patch(f"{_SA_GET_ALL}.asyncio_detailed", new=AsyncMock()),
-        patch(_SA_UNWRAP_DATA, return_value=[adj]),
-    ):
-        result = await _list_stock_adjustments_impl(
-            ListStockAdjustmentsRequest(include_rows=True), context
-        )
+    result = await _list_stock_adjustments_impl(
+        ListStockAdjustmentsRequest(include_rows=True), context
+    )
 
     rows = result.adjustments[0].rows
     assert rows is not None
     assert len(rows) == 2
-    assert rows[0].variant_id == 100
-    assert rows[0].quantity == 5.0
-    assert rows[0].cost_per_unit == 1.23
-    assert rows[1].variant_id == 101
-    assert rows[1].cost_per_unit is None
+    by_variant = {r.variant_id: r for r in rows}
+    assert by_variant[100].quantity == 5.0
+    assert by_variant[100].cost_per_unit == 1.23
+    assert by_variant[101].cost_per_unit is None
 
 
 @pytest.mark.asyncio
-async def test_list_stock_adjustments_limit_caps_result_size():
-    """Result list is capped at `request.limit` even when API returns more."""
-    context, _ = create_mock_context()
+async def test_list_stock_adjustments_limit_caps_result_size(
+    context_with_typed_cache, no_sync
+):
+    """Result list is capped at `request.limit` even when more rows exist."""
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [make_stock_adjustment(id=i) for i in range(20)],
+    )
 
-    many = [_make_mock_adjustment(id=i) for i in range(20)]
-
-    with (
-        patch(f"{_SA_GET_ALL}.asyncio_detailed", new=AsyncMock()),
-        patch(_SA_UNWRAP_DATA, return_value=many),
-    ):
-        result = await _list_stock_adjustments_impl(
-            ListStockAdjustmentsRequest(limit=5), context
-        )
+    result = await _list_stock_adjustments_impl(
+        ListStockAdjustmentsRequest(limit=5), context
+    )
 
     assert len(result.adjustments) == 5
     assert result.total_count == 5
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_pagination_meta_populated_on_explicit_page(
+    context_with_typed_cache, no_sync
+):
+    """An explicit `page` populates `pagination` from a SQL COUNT against the same filter set."""
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [make_stock_adjustment(id=i) for i in range(1, 12)],
+    )
+
+    result = await _list_stock_adjustments_impl(
+        ListStockAdjustmentsRequest(limit=5, page=2), context
+    )
+
+    assert result.pagination is not None
+    assert result.pagination.total_records == 11
+    assert result.pagination.total_pages == 3
+    assert result.pagination.page == 2
+    assert result.pagination.first_page is False
+    assert result.pagination.last_page is False
+    assert len(result.adjustments) == 5
+
+
+@pytest.mark.asyncio
+async def test_list_stock_adjustments_pagination_meta_none_without_page(
+    context_with_typed_cache, no_sync
+):
+    """Without an explicit `page`, `pagination` is `None`."""
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [make_stock_adjustment(id=1)],
+    )
+
+    result = await _list_stock_adjustments_impl(
+        ListStockAdjustmentsRequest(limit=50), context
+    )
+
+    assert result.pagination is None
 
 
 # ============================================================================

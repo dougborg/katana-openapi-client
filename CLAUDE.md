@@ -87,6 +87,19 @@ Common mistakes to avoid:
 - **None-to-UNSET conversion** - When building attrs API request models from optional
   fields, use `to_unset(value)` from `katana_public_api_client.domain.converters`
   instead of `value if value is not None else UNSET`.
+- **Polluting the API spec/models with cache-only fields** - The OpenAPI spec at
+  `docs/katana-openapi.yaml` and the generated pydantic models in
+  `katana_public_api_client/models_pydantic/_generated/*.py` reflect Katana's actual
+  wire contract. **Never** add fields to the spec or inject fields into the API
+  pydantic classes to satisfy cache-schema, MCP-tool, or other consumer needs. Cache
+  schemas live on sibling `Cached<Name>` classes emitted by the same generator pass —
+  the API class stays pure pydantic, the cache class carries `table=True`, foreign
+  keys, relationships, JSON columns, and any cache-only fields. See
+  `scripts/generate_pydantic_models.py::duplicate_cache_tables_as_cached_siblings`
+  and `katana_mcp_server/src/katana_mcp/typed_cache/sync.py::_attrs_<entity>_to_cached`
+  for the conversion pattern: attrs → API pydantic (via the registry) → cache pydantic
+  (via `model_dump`/`model_validate`), with relationship fields set after construction
+  since SQLModel `Relationship` descriptors don't accept input via `__init__`.
 
 ## Using the LSP tool
 

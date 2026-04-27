@@ -6,12 +6,16 @@ To regenerate, run:
     uv run poe generate-pydantic
 """
 
-from __future__ import annotations
-
+from datetime import datetime
 from enum import StrEnum
-from typing import Annotated
+from typing import Annotated, Optional
 
 from pydantic import AwareDatetime, ConfigDict, Field
+from sqlalchemy import JSON, Column
+from sqlmodel import (
+    Field as SQLField,
+    Relationship,
+)
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 
@@ -903,3 +907,73 @@ class SerialNumberStockListResponse(KatanaPydanticBase):
         list[SerialNumberStock] | None,
         Field(description="Array of serial number stock items"),
     ] = None
+
+
+class CachedStockAdjustmentRow(KatanaPydanticBase, table=True):
+    __tablename__ = "stock_adjustment_row"
+    model_config = ConfigDict(frozen=False)
+
+    stock_adjustment_id: Annotated[
+        int | None,
+        SQLField(
+            foreign_key="stock_adjustment.id",
+            description="(cache-only) ID of the parent row, populated by SQLAlchemy on insert.",
+        ),
+    ] = None
+
+    id: Annotated[int, SQLField(primary_key=True, description="Unique identifier")]
+
+    variant_id: Annotated[
+        int, Field(description="ID of the product or material variant being adjusted")
+    ]
+    quantity: Annotated[
+        float, Field(description="Quantity to adjust (positive or negative)")
+    ]
+    cost_per_unit: Annotated[
+        float | None,
+        Field(
+            description="Cost per unit for this adjustment (defaults to current average cost if not specified)"
+        ),
+    ] = None
+    batch_transactions: Annotated[
+        list[StockAdjustmentBatchTransaction] | None,
+        SQLField(
+            sa_column=Column(JSON),
+            description="Optional batch-specific adjustments for tracked inventory",
+        ),
+    ] = None
+    stock_adjustment: Optional["CachedStockAdjustment"] = Relationship(
+        back_populates="stock_adjustment_rows"
+    )
+
+
+class CachedStockAdjustment(DeletableEntity, table=True):
+    __tablename__ = "stock_adjustment"
+    model_config = ConfigDict(frozen=False)
+
+    id: Annotated[int, SQLField(primary_key=True, description="Unique identifier")]
+
+    stock_adjustment_number: Annotated[
+        str,
+        Field(
+            description="Human-readable reference number for tracking and audit purposes"
+        ),
+    ]
+    stock_adjustment_date: Annotated[
+        datetime | None,
+        Field(description="Date and time when the adjustment was performed"),
+    ] = None
+    location_id: Annotated[
+        int,
+        Field(description="ID of the location where the stock adjustment is performed"),
+    ]
+    reason: Annotated[
+        str | None, Field(description="Reason for the stock adjustment")
+    ] = None
+    additional_info: Annotated[
+        str | None,
+        Field(description="Optional notes or comments about the adjustment reason"),
+    ] = None
+    stock_adjustment_rows: list["CachedStockAdjustmentRow"] = Relationship(
+        back_populates="stock_adjustment"
+    )

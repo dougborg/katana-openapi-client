@@ -447,27 +447,23 @@ Create a stock adjustment to correct inventory levels.
 ---
 
 ### list_stock_adjustments
-List existing stock adjustments with filters, paging, and optional row detail.
+List existing stock adjustments with filters, paging, and optional row detail. Cache-backed
+post-#376 — all filters run as indexed SQL queries against the SQLModel typed cache, so
+`variant_id` finds matches regardless of how many adjustments precede them in the cache.
 
-**Parameters (server-side filters):**
+**Parameters:**
 - `limit` (optional, default 50, min 1, max 250): Max adjustments to return — also the page size when `page` is set
-- `page` (optional, min 1): Page number (1-based); when set, disables auto-pagination and the response includes `pagination` metadata
+- `page` (optional, min 1): Page number (1-based); when set, the response includes `pagination` metadata (total_records, total_pages) computed via SQL COUNT against the same filter predicate
 - `location_id` (optional): Filter by location
 - `ids` (optional): Restrict to a specific set of adjustment IDs
 - `stock_adjustment_number` (optional): Exact match on the adjustment number
 - `created_after` / `created_before` (optional): ISO-8601 datetime bounds on `created_at`
 - `updated_after` / `updated_before` (optional): ISO-8601 datetime bounds on `updated_at` (useful for incremental sync)
 - `include_deleted` (optional, default false): Include soft-deleted adjustments
-
-**Parameters (client-side filters — scan the fetched page set):**
-- `variant_id` (optional): Only adjustments whose rows touch this variant
-- `reason` (optional): Case-insensitive substring match on the `reason` field
-
-**Other:**
+- `variant_id` (optional): Only adjustments whose rows touch this variant — runs as an EXISTS subquery against the indexed FK on the rows table
+- `reason` (optional): Case-insensitive substring match on the `reason` field (SQL ILIKE)
 - `include_rows` (optional, default false): When true, populate row-level details on each summary
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
-
-When a client-side filter is active, the tool skips the single-page short-circuit so auto-pagination can scan enough rows to find matches that may live on later pages.
 
 **Returns:** Summary rows with `id`, `stock_adjustment_number`, `location_id`, dates,
 `reason`, and row count (plus per-row detail when `include_rows=true`), plus optional

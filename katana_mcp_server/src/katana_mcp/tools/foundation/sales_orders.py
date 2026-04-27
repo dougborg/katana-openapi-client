@@ -528,7 +528,7 @@ def _apply_sales_order_filters(
     query.
     """
     from katana_public_api_client.models_pydantic._generated import (
-        SalesOrder as CachedSalesOrder,
+        CachedSalesOrder,
         SalesOrderProductionStatus,
         SalesOrderStatus,
     )
@@ -606,8 +606,8 @@ async def _list_sales_orders_impl(
 
     from katana_mcp.typed_cache import ensure_sales_orders_synced
     from katana_public_api_client.models_pydantic._generated import (
-        SalesOrder as CachedSalesOrder,
-        SalesOrderRow as CachedSalesOrderRow,
+        CachedSalesOrder,
+        CachedSalesOrderRow,
     )
 
     services = get_services(context)
