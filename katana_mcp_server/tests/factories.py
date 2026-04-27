@@ -20,10 +20,12 @@ if TYPE_CHECKING:
     from katana_mcp.typed_cache import TypedCacheEngine
 
     from katana_public_api_client.models_pydantic._generated import (
+        CachedManufacturingOrder,
         CachedSalesOrder,
         CachedSalesOrderRow,
         CachedStockAdjustment,
         CachedStockAdjustmentRow,
+        ManufacturingOrderStatus,
         SalesOrderProductionStatus,
         SalesOrderStatus,
     )
@@ -204,4 +206,69 @@ def make_stock_adjustment_row(
         variant_id=variant_id,
         quantity=quantity,
         cost_per_unit=cost_per_unit,
+    )
+
+
+# ----------------------------------------------------------------------------
+# manufacturing_orders
+# ----------------------------------------------------------------------------
+
+
+def make_manufacturing_order(
+    *,
+    id: int = 1,
+    order_no: str = "MO-TEST",
+    status: ManufacturingOrderStatus | str | None = None,
+    variant_id: int | None = 100,
+    location_id: int | None = 1,
+    planned_quantity: float | None = 10.0,
+    actual_quantity: float | None = None,
+    is_linked_to_sales_order: bool | None = False,
+    sales_order_id: int | None = None,
+    total_cost: float | None = None,
+    order_created_date: datetime | None = None,
+    production_deadline_date: datetime | None = None,
+    done_date: datetime | None = None,
+    created_at: datetime | None = None,
+    updated_at: datetime | None = None,
+    deleted_at: datetime | None = None,
+) -> CachedManufacturingOrder:
+    """Build a ``CachedManufacturingOrder`` for direct cache insertion.
+
+    No row table — the ``/manufacturing_orders`` list endpoint returns
+    summary rows without nested children, so the cache-backed list tool
+    only ever queries this single table. ``order_created_date`` and
+    ``created_at`` both default to 2026-04-01 to match the other
+    factories' baseline.
+    """
+    from katana_mcp.tools.tool_result_utils import naive_utc
+
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedManufacturingOrder as _CachedManufacturingOrder,
+        ManufacturingOrderStatus as _ManufacturingOrderStatus,
+    )
+
+    resolved_status = (
+        _ManufacturingOrderStatus(status)
+        if isinstance(status, str)
+        else (status if status is not None else _ManufacturingOrderStatus.not_started)
+    )
+
+    return _CachedManufacturingOrder(
+        id=id,
+        order_no=order_no,
+        status=resolved_status,
+        variant_id=variant_id,
+        location_id=location_id,
+        planned_quantity=planned_quantity,
+        actual_quantity=actual_quantity,
+        is_linked_to_sales_order=is_linked_to_sales_order,
+        sales_order_id=sales_order_id,
+        total_cost=total_cost,
+        order_created_date=naive_utc(order_created_date),
+        production_deadline_date=naive_utc(production_deadline_date),
+        done_date=naive_utc(done_date),
+        created_at=naive_utc(created_at) or datetime(2026, 4, 1),
+        updated_at=naive_utc(updated_at),
+        deleted_at=naive_utc(deleted_at),
     )

@@ -6,13 +6,16 @@ To regenerate, run:
     uv run poe generate-pydantic
 """
 
-from __future__ import annotations
-
+from datetime import datetime
 from enum import StrEnum
 from typing import Annotated
 from uuid import UUID
 
 from pydantic import AwareDatetime, ConfigDict, Field
+from sqlalchemy import JSON, Column
+from sqlmodel import (
+    Field as SQLField,
+)
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 
@@ -937,4 +940,127 @@ class CreateManufacturingOrderProductionRequest(KatanaPydanticBase):
     serial_numbers: Annotated[
         list[str] | None,
         Field(description="Serial numbers to assign to produced items"),
+    ] = None
+
+
+class CachedManufacturingOrder(DeletableEntity, table=True):
+    __tablename__ = "manufacturing_order"
+    model_config = ConfigDict(frozen=False)
+
+    id: Annotated[int, SQLField(primary_key=True, description="Unique identifier")]
+
+    status: Annotated[
+        ManufacturingOrderStatus | None,
+        Field(description="Current production status of the manufacturing order"),
+    ] = None
+    order_no: Annotated[
+        str | None,
+        Field(
+            description="Unique manufacturing order number for tracking and reference"
+        ),
+    ] = None
+    variant_id: Annotated[
+        int | None, Field(description="ID of the product variant being manufactured")
+    ] = None
+    planned_quantity: Annotated[
+        float | None, Field(description="Originally planned quantity to produce")
+    ] = None
+    actual_quantity: Annotated[
+        float | None,
+        Field(description="Actual quantity produced, null if production not completed"),
+    ] = None
+    completed_quantity: Annotated[
+        float | None,
+        Field(
+            description="Total quantity completed so far (including partial completions)"
+        ),
+    ] = None
+    remaining_quantity: Annotated[
+        float | None,
+        Field(description="Remaining quantity to produce (planned - completed)"),
+    ] = None
+    includes_partial_completions: Annotated[
+        bool | None,
+        Field(description="Whether this order has been partially completed"),
+    ] = None
+    batch_transactions: Annotated[
+        list[BatchTransaction] | None,
+        SQLField(
+            sa_column=Column(JSON),
+            description="Batch transactions for produced items, typically one transaction per manufacturing order",
+        ),
+    ] = None
+    location_id: Annotated[
+        int | None,
+        Field(description="ID of the factory location where production takes place"),
+    ] = None
+    order_created_date: Annotated[
+        datetime | None,
+        Field(description="Date and time when the manufacturing order was created"),
+    ] = None
+    production_deadline_date: Annotated[
+        datetime | None,
+        Field(description="Target deadline for completing production"),
+    ] = None
+    done_date: Annotated[
+        datetime | None,
+        Field(description="Timestamp when the manufacturing order was completed"),
+    ] = None
+    additional_info: Annotated[
+        str | None,
+        Field(description="Optional notes or additional information about the order"),
+    ] = None
+    is_linked_to_sales_order: Annotated[
+        bool | None,
+        Field(
+            description="Whether this manufacturing order is linked to a sales order"
+        ),
+    ] = None
+    ingredient_availability: Annotated[
+        IngredientAvailability | None,
+        Field(
+            description="Status of material ingredient availability for production",
+        ),
+    ] = None
+    total_cost: Annotated[
+        float | None,
+        Field(
+            description="Total cost of the manufacturing order including all materials and operations"
+        ),
+    ] = None
+    total_actual_time: Annotated[
+        float | None,
+        Field(description="Total actual time spent on production operations"),
+    ] = None
+    total_planned_time: Annotated[
+        float | None,
+        Field(description="Total planned time for all production operations"),
+    ] = None
+    sales_order_id: Annotated[
+        int | None, Field(description="ID of the linked sales order, if applicable")
+    ] = None
+    sales_order_row_id: Annotated[
+        int | None,
+        Field(description="ID of the specific sales order row, if applicable"),
+    ] = None
+    sales_order_delivery_deadline: Annotated[
+        datetime | None,
+        Field(description="Delivery deadline from the linked sales order"),
+    ] = None
+    material_cost: Annotated[
+        float | None, Field(description="Total cost of materials used in production")
+    ] = None
+    subassemblies_cost: Annotated[
+        float | None,
+        Field(description="Total cost of subassemblies used in production"),
+    ] = None
+    operations_cost: Annotated[
+        float | None, Field(description="Total cost of production operations and labor")
+    ] = None
+    serial_numbers: Annotated[
+        list[SerialNumber] | None,
+        SQLField(
+            sa_column=Column(JSON),
+            description="Serial numbers assigned to produced items",
+        ),
     ] = None
