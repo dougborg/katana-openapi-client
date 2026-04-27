@@ -8,13 +8,14 @@ To regenerate, run:
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated
+from typing import Annotated, Optional
 from uuid import UUID
 
 from pydantic import AwareDatetime, ConfigDict, Field
 from sqlalchemy import Column
 from sqlmodel import (
     Field as SQLField,
+    Relationship,
 )
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
@@ -952,7 +953,10 @@ class CachedManufacturingOrderRecipeRow(DeletableEntity, table=True):
 
     manufacturing_order_id: Annotated[
         int | None,
-        Field(description="ID of the manufacturing order this recipe row belongs to"),
+        SQLField(
+            foreign_key="manufacturing_order.id",
+            description="ID of the manufacturing order this recipe row belongs to",
+        ),
     ] = None
     variant_id: Annotated[
         int | None,
@@ -1002,6 +1006,9 @@ class CachedManufacturingOrderRecipeRow(DeletableEntity, table=True):
         float | None,
         Field(description="Remaining quantity needed from this ingredient"),
     ] = None
+    manufacturing_order: Optional["CachedManufacturingOrder"] = Relationship(
+        back_populates="recipe_rows"
+    )
 
 
 class CachedManufacturingOrder(DeletableEntity, table=True):
@@ -1125,3 +1132,6 @@ class CachedManufacturingOrder(DeletableEntity, table=True):
             description="Serial numbers assigned to produced items",
         ),
     ] = None
+    recipe_rows: list["CachedManufacturingOrderRecipeRow"] = Relationship(
+        back_populates="manufacturing_order"
+    )
