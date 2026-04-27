@@ -1165,6 +1165,9 @@ async def get_purchase_order(
 ) -> ToolResult:
     """Look up a purchase order by order number or ID — exhaustive detail.
 
+    For multiple purchase orders at once, use ``list_purchase_orders(ids=[...])`` —
+    it returns a summary table and supports all the same filters.
+
     Returns every field Katana exposes on the PO record: status, billing
     status, supplier, location, totals (including base-currency total),
     timestamps, document status, tracking location, additional_info, plus
@@ -1952,7 +1955,7 @@ async def _list_purchase_orders_impl(
 async def list_purchase_orders(
     request: Annotated[ListPurchaseOrdersRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """List purchase orders with filters (cache-backed).
+    """List purchase orders with filters — pass `ids=[1,2,3]` to fetch a specific batch by ID (cache-backed).
 
     Use this for discovery workflows — find POs by supplier, status, location,
     or within a date window. Returns summary info (order_no, status, supplier,

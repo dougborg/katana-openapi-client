@@ -1150,6 +1150,9 @@ async def get_manufacturing_order(
 ) -> ToolResult:
     """Look up a manufacturing order by number or ID with exhaustive detail.
 
+    For multiple manufacturing orders at once, use ``list_manufacturing_orders(ids=[...])`` —
+    it returns a summary table and supports all the same filters.
+
     Returns every field Katana exposes on the manufacturing order (status,
     quantities, costs, timings, timestamps, linked sales order, batch and
     serial transactions) plus the full recipe rows, operation rows, and
@@ -1229,6 +1232,10 @@ async def get_manufacturing_order_recipe(
     context: Context,
 ) -> ToolResult:
     """List the ingredient (recipe) rows for a manufacturing order.
+
+    Single-MO: pass the ``manufacturing_order_id`` of interest. For recipe rows
+    across multiple MOs, call ``get_manufacturing_order`` once per MO — it
+    returns recipe rows inline (there is no batch shape for this tool).
 
     Returns every field Katana exposes on each ``ManufacturingOrderRecipeRow``
     (notes, planned/actual/consumed/remaining quantities, ingredient
@@ -2333,7 +2340,7 @@ async def _list_manufacturing_orders_impl(
 async def list_manufacturing_orders(
     request: Annotated[ListManufacturingOrdersRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """List manufacturing orders with filters (cache-backed).
+    """List manufacturing orders with filters — pass `ids=[1,2,3]` to fetch a specific batch by ID (cache-backed).
 
     Use this for discovery workflows — find MOs by status, location, linkage
     to a sales order, or within a date window. Returns summary info (order_no,

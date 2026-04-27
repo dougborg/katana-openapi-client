@@ -13,6 +13,7 @@ from katana_mcp.tools.foundation.inventory import (
     ListStockAdjustmentsRequest,
     LowStockRequest,
     StockAdjustmentRow,
+    StockInfo,
     UpdateStockAdjustmentParams,
     _check_inventory_impl,
     _create_stock_adjustment_impl,
@@ -91,7 +92,7 @@ async def test_check_inventory():
         patch(_UNWRAP_DATA, return_value=[mock_inv]),
     ):
         mock_api.return_value = MagicMock()
-        request = CheckInventoryRequest(sku="WIDGET-001")
+        request = CheckInventoryRequest(skus_or_variant_ids=["WIDGET-001"])
         _inv_results = await _check_inventory_impl(request, context)
         result = _inv_results[0]
 
@@ -127,7 +128,7 @@ async def test_check_inventory_multiple_locations():
         patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
         patch(_UNWRAP_DATA, return_value=[mock_inv_1, mock_inv_2]),
     ):
-        request = CheckInventoryRequest(sku="WIDGET-001")
+        request = CheckInventoryRequest(skus_or_variant_ids=["WIDGET-001"])
         _inv_results = await _check_inventory_impl(request, context)
         result = _inv_results[0]
 
@@ -143,7 +144,7 @@ async def test_check_inventory_not_found():
     context, lifespan_ctx = create_mock_context()
     lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
 
-    request = CheckInventoryRequest(sku="NOT-FOUND")
+    request = CheckInventoryRequest(skus_or_variant_ids=["NOT-FOUND"])
     _inv_results = await _check_inventory_impl(request, context)
     result = _inv_results[0]
 
@@ -611,10 +612,10 @@ async def test_create_stock_adjustment_empty_rows():
 
 @pytest.mark.asyncio
 async def test_check_inventory_empty_sku():
-    """Test check_inventory rejects empty SKU."""
+    """Test check_inventory rejects empty SKU string in the list."""
     context, _ = create_mock_context()
 
-    request = CheckInventoryRequest(sku="")
+    request = CheckInventoryRequest(skus_or_variant_ids=[""])
     with pytest.raises(ValueError, match="SKU cannot be empty"):
         await _check_inventory_impl(request, context)
 
@@ -624,9 +625,16 @@ async def test_check_inventory_whitespace_sku():
     """Test check_inventory rejects whitespace-only SKU."""
     context, _ = create_mock_context()
 
-    request = CheckInventoryRequest(sku="   ")
+    request = CheckInventoryRequest(skus_or_variant_ids=["   "])
     with pytest.raises(ValueError, match="SKU cannot be empty"):
         await _check_inventory_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_empty_list_rejected():
+    """Test CheckInventoryRequest rejects empty skus_or_variant_ids list (min_length=1)."""
+    with pytest.raises(ValidationError):
+        CheckInventoryRequest(skus_or_variant_ids=[])
 
 
 @pytest.mark.asyncio
@@ -1475,7 +1483,7 @@ async def test_check_inventory_integration(katana_context):
     - Network is unavailable
     - Test SKU doesn't exist (expected - returns zero stock)
     """
-    request = CheckInventoryRequest(sku="TEST-SKU-001")
+    request = CheckInventoryRequest(skus_or_variant_ids=["TEST-SKU-001"])
 
     try:
         _inv_results = await _check_inventory_impl(request, katana_context)
@@ -1580,7 +1588,7 @@ async def test_check_inventory_nonexistent_sku_integration(katana_context):
     rather than failing.
     """
     # Use a SKU that's extremely unlikely to exist
-    request = CheckInventoryRequest(sku="NONEXISTENT-SKU-99999")
+    request = CheckInventoryRequest(skus_or_variant_ids=["NONEXISTENT-SKU-99999"])
 
     try:
         _inv_results = await _check_inventory_impl(request, katana_context)
@@ -1704,7 +1712,7 @@ async def test_check_inventory_batch_skus():
         patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
         patch(_UNWRAP_DATA, return_value=[mock_inv]),
     ):
-        request = CheckInventoryRequest(skus=["WIDGET-A", "WIDGET-B"])
+        request = CheckInventoryRequest(skus_or_variant_ids=["WIDGET-A", "WIDGET-B"])
         results = await _check_inventory_impl(request, context)
 
     assert len(results) == 2
@@ -1712,6 +1720,113 @@ async def test_check_inventory_batch_skus():
     assert results[1].sku == "WIDGET-B"
     assert results[0].in_stock == 10.0
     assert results[0].available_stock == 7.0
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_single_variant_id():
+    """Pure integer input routes through _fetch_variant_by_id (cache-miss fallback)."""
+    context, _ = create_mock_context()
+
+    mock_inv = MagicMock()
+    mock_inv.quantity_in_stock = "42.0"
+    mock_inv.quantity_committed = "2.0"
+    mock_inv.quantity_expected = "5.0"
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.items._fetch_variant_by_id",
+            new_callable=AsyncMock,
+            return_value={"id": 42, "sku": "WIDGET-42", "display_name": "Widget 42"},
+        ) as mock_fetch,
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[mock_inv]),
+    ):
+        request = CheckInventoryRequest(skus_or_variant_ids=[42])
+        results = await _check_inventory_impl(request, context)
+
+    # Single-item batch — exercises the rich-card path in check_inventory
+    assert len(results) == 1
+    result = results[0]
+    assert result.variant_id == 42
+    assert result.sku == "WIDGET-42"
+    assert result.product_name == "Widget 42"
+    assert result.in_stock == 42.0
+    assert result.committed == 2.0
+    assert result.expected == 5.0
+    assert result.available_stock == 40.0  # 42 - 2
+
+    # Verify the variant_id path (not the SKU path) was taken
+    mock_fetch.assert_awaited_once()
+    call_args = mock_fetch.await_args
+    assert call_args.args[1] == 42
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_mixed_sku_and_variant_id():
+    """Mixed string + integer input exercises both the cache-by-sku and fetch-by-id routes.
+
+    Output order matches input order: ``["WIDGET-1", 42]`` produces results
+    ``[WIDGET-1, WIDGET-42]`` regardless of how parallel resolution interleaves.
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        return_value={"id": 101, "sku": "WIDGET-1", "display_name": "Widget 1"}
+    )
+
+    # Patch _fetch_stock_for_variant to return per-variant StockInfo deterministically,
+    # avoiding fragile assumptions about parallel-task scheduling order.
+    stock_by_id = {
+        101: StockInfo(
+            variant_id=101,
+            sku="WIDGET-1",
+            product_name="Widget 1",
+            in_stock=10.0,
+            committed=1.0,
+            expected=2.0,
+            available_stock=9.0,
+        ),
+        42: StockInfo(
+            variant_id=42,
+            sku="WIDGET-42",
+            product_name="Widget 42",
+            in_stock=20.0,
+            committed=5.0,
+            expected=0.0,
+            available_stock=15.0,
+        ),
+    }
+
+    async def _fake_fetch_stock(_services, variant_id, _sku, _product_name):
+        return stock_by_id[variant_id]
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.items._fetch_variant_by_id",
+            new_callable=AsyncMock,
+            return_value={"id": 42, "sku": "WIDGET-42", "display_name": "Widget 42"},
+        ) as mock_fetch,
+        patch(
+            "katana_mcp.tools.foundation.inventory._fetch_stock_for_variant",
+            side_effect=_fake_fetch_stock,
+        ),
+    ):
+        request = CheckInventoryRequest(skus_or_variant_ids=["WIDGET-1", 42])
+        results = await _check_inventory_impl(request, context)
+
+    assert len(results) == 2
+
+    lifespan_ctx.cache.get_by_sku.assert_awaited_once()
+    mock_fetch.assert_awaited_once()
+    assert mock_fetch.await_args.args[1] == 42
+
+    # Output order matches input order.
+    assert results[0].sku == "WIDGET-1"
+    assert results[0].in_stock == 10.0
+    assert results[0].available_stock == 9.0
+    assert results[1].sku == "WIDGET-42"
+    assert results[1].variant_id == 42
+    assert results[1].in_stock == 20.0
+    assert results[1].available_stock == 15.0  # 20 - 5
 
 
 # ============================================================================
@@ -1828,7 +1943,9 @@ async def test_check_inventory_format_json_returns_json():
             ),
         ]
         context, _ = create_mock_context()
-        result = await check_inventory(skus=["A", "B"], format="json", context=context)
+        result = await check_inventory(
+            skus_or_variant_ids=["A", "B"], format="json", context=context
+        )
 
     data = json.loads(_content_text(result))
     assert len(data["items"]) == 2

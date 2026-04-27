@@ -40,20 +40,17 @@ logger = get_logger(__name__)
 
 
 class CheckInventoryRequest(BaseModel):
-    """Request model for checking inventory.
+    """Request model for checking inventory."""
 
-    Accepts a single sku/variant_id OR a list (skus/variant_ids) for batch lookups.
-    """
-
-    sku: str | None = Field(default=None, description="Single SKU to check")
-    variant_id: int | None = Field(
-        default=None, description="Single variant ID to check"
-    )
-    skus: list[str] | None = Field(
-        default=None, description="Batch: list of SKUs to check"
-    )
-    variant_ids: list[int] | None = Field(
-        default=None, description="Batch: list of variant IDs to check"
+    skus_or_variant_ids: list[str | int] = Field(
+        ...,
+        min_length=1,
+        description=(
+            "SKUs (strings) or variant IDs (integers) to check — mix freely. "
+            "Pass one for a detailed stock card; pass many for a summary table. "
+            "Batching N items in a single call beats N separate invocations. "
+            "Output order matches input order."
+        ),
     )
     format: Literal["markdown", "json"] = Field(
         default="markdown",
@@ -111,75 +108,62 @@ async def _fetch_stock_for_variant(
 async def _check_inventory_impl(
     request: CheckInventoryRequest, context: Context
 ) -> list[StockInfo]:
-    """Look up one or more variants by SKU/ID and return their stock info."""
-    skus: list[str] = []
-    variant_ids: list[int] = []
+    """Look up one or more variants by SKU/ID and return their stock info.
 
-    if request.sku is not None:
-        normalized = request.sku.strip()
-        if not normalized:
-            raise ValueError("SKU cannot be empty")
-        skus.append(normalized)
-    if request.skus:
-        skus.extend(s.strip() for s in request.skus if s.strip())
-    if request.variant_id is not None:
-        variant_ids.append(request.variant_id)
-    if request.variant_ids:
-        variant_ids.extend(request.variant_ids)
+    Output order matches input order — mixed `["SKU-1", 42, "SKU-2"]` returns
+    results in that exact sequence.
+    """
+    # Normalize SKU inputs once; reject blank strings up front.
+    items: list[str | int] = []
+    for raw in request.skus_or_variant_ids:
+        if isinstance(raw, str):
+            normalized = raw.strip()
+            if not normalized:
+                raise ValueError("SKU cannot be empty")
+            items.append(normalized)
+        else:
+            items.append(raw)
 
-    if not skus and not variant_ids:
-        raise ValueError(
-            "Must provide at least one of: sku, variant_id, skus, variant_ids"
-        )
-
+    sku_count = sum(1 for item in items if isinstance(item, str))
     start_time = time.monotonic()
     logger.info(
         "inventory_check_started",
-        sku_count=len(skus),
-        variant_id_count=len(variant_ids),
+        sku_count=sku_count,
+        variant_id_count=len(items) - sku_count,
     )
 
     try:
         services = get_services(context)
 
-        # Phase 1: resolve all SKUs and variant_ids to variant dicts in parallel.
-        # For variant_ids, _fetch_variant_by_id falls back to the API on cache miss
-        # so a cold cache doesn't silently return empty stock.
+        # ``_fetch_variant_by_id`` falls back to the API on cache miss so a
+        # cold cache doesn't silently return empty stock.
         from katana_mcp.tools.foundation.items import _fetch_variant_by_id
 
-        sku_variants, id_variants = await asyncio.gather(
-            asyncio.gather(*(services.cache.get_by_sku(sku=s) for s in skus)),
-            asyncio.gather(
-                *(_fetch_variant_by_id(services, v_id) for v_id in variant_ids)
-            ),
-        )
-
-        # Phase 2: fetch stock for all resolved variants in parallel
-        async def _fetch_for_sku(sku: str, variant: dict | None) -> StockInfo:
-            if not variant:
-                logger.warning("inventory_check_not_found", sku=sku)
-                return StockInfo(
-                    sku=sku,
-                    product_name="",
-                    available_stock=0,
-                    committed=0,
-                    expected=0,
-                    in_stock=0,
+        async def _fetch(item: str | int) -> StockInfo:
+            if isinstance(item, str):
+                variant = await services.cache.get_by_sku(sku=item)
+                if not variant:
+                    logger.warning("inventory_check_not_found", sku=item)
+                    return StockInfo(
+                        sku=item,
+                        product_name="",
+                        available_stock=0,
+                        committed=0,
+                        expected=0,
+                        in_stock=0,
+                    )
+                return await _fetch_stock_for_variant(
+                    services,
+                    variant["id"],
+                    item,
+                    variant.get("display_name") or variant.get("sku") or "",
                 )
-            return await _fetch_stock_for_variant(
-                services,
-                variant["id"],
-                sku,
-                variant.get("display_name") or variant.get("sku") or "",
-            )
 
-        async def _fetch_for_variant_id(
-            variant_id: int, variant: dict | None
-        ) -> StockInfo:
+            variant = await _fetch_variant_by_id(services, item)
             if not variant:
-                logger.warning("inventory_check_not_found", variant_id=variant_id)
+                logger.warning("inventory_check_not_found", variant_id=item)
                 return StockInfo(
-                    variant_id=variant_id,
+                    variant_id=item,
                     sku="",
                     product_name="",
                     available_stock=0,
@@ -188,23 +172,11 @@ async def _check_inventory_impl(
                     in_stock=0,
                 )
             sku = variant.get("sku", "")
-            product_name = variant.get("display_name") or sku or ""
             return await _fetch_stock_for_variant(
-                services, variant_id, sku, product_name
+                services, item, sku, variant.get("display_name") or sku or ""
             )
 
-        sku_results, id_results = await asyncio.gather(
-            asyncio.gather(
-                *(_fetch_for_sku(s, v) for s, v in zip(skus, sku_variants, strict=True))
-            ),
-            asyncio.gather(
-                *(
-                    _fetch_for_variant_id(v_id, v)
-                    for v_id, v in zip(variant_ids, id_variants, strict=True)
-                )
-            ),
-        )
-        results: list[StockInfo] = [*sku_results, *id_results]
+        results = list(await asyncio.gather(*(_fetch(item) for item in items)))
 
         duration_ms = round((time.monotonic() - start_time) * 1000, 2)
         logger.info(
@@ -233,13 +205,15 @@ async def check_inventory(
 ) -> ToolResult:
     """Check current stock levels for one or more SKUs or variant IDs.
 
-    Accepts a single sku/variant_id or a batch list (skus/variant_ids). Returns
-    available, committed, expected, and in_stock quantities summed across all
-    locations.
+    Pass a list of SKUs (strings) or variant IDs (integers) — or mix both — to
+    ``skus_or_variant_ids``. A single item returns a rich stock card; multiple
+    items return a summary table. Batching N checks in one call is faster than
+    N separate invocations.
 
-    Use before creating orders to verify stock availability, or with a batch
-    list to check multiple ingredients at once (e.g. all EXPECTED items in an
-    MO recipe).
+    Returns available, committed, expected, and in_stock quantities summed
+    across all locations. Use before creating orders to verify stock
+    availability, or with a batch list to check multiple ingredients at once
+    (e.g. all EXPECTED items in an MO recipe).
     """
     from katana_mcp.tools.prefab_ui import build_inventory_check_ui
 
@@ -253,7 +227,7 @@ async def check_inventory(
         )
 
     # Single-variant request: preserve the rich Prefab card output
-    is_single = len(results) == 1 and not request.skus and not request.variant_ids
+    is_single = len(results) == 1 and len(request.skus_or_variant_ids) == 1
     if is_single:
         response = results[0]
         ui = build_inventory_check_ui(response.model_dump())
@@ -629,6 +603,9 @@ async def get_inventory_movements(
     """Get inventory movement history for a SKU — every stock change with dates,
     quantities, valuation (value_per_unit, value_in_stock_after, average_cost_after),
     and what caused each movement (sales, purchases, manufacturing, adjustments).
+
+    Single-SKU: pass the SKU of interest. For movements across multiple variants,
+    call this tool once per variant (there is no batch shape for this tool).
 
     Exhaustive — every field Katana exposes on ``InventoryMovement`` is surfaced
     (identity, variant/location pointers, resource pointers, valuation fields,
@@ -1173,10 +1150,11 @@ async def _list_stock_adjustments_impl(
 async def list_stock_adjustments(
     request: Annotated[ListStockAdjustmentsRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """List stock adjustments with filters (cache-backed).
+    """List stock adjustments with filters — pass `ids=[1,2,3]` to fetch a specific batch by ID (cache-backed).
 
-    Use for discovery — find recent adjustments at a location, adjustments
-    touching a specific variant, or adjustments matching a reason substring.
+    For batch lookup by known IDs, pass `ids=[...]` and get a summary table back in
+    a single call. Use for discovery — find recent adjustments at a location,
+    adjustments touching a specific variant, or adjustments matching a reason substring.
     Returns summary rows (number, location, dates, reason, row count). Set
     `include_rows=true` to also populate per-row details (variant_id, quantity,
     cost_per_unit).

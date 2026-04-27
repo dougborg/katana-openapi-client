@@ -704,7 +704,7 @@ async def _list_sales_orders_impl(
 async def list_sales_orders(
     request: Annotated[ListSalesOrdersRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """List sales orders with filters (list-tool pattern v2).
+    """List sales orders with filters — pass `ids=[1,2,3]` to fetch a specific batch by ID (cache-backed, indexed SQL).
 
     Use this for discovery workflows — find recent orders, orders needing work
     orders, orders for a specific customer, etc. Returns summary info (order_no,
@@ -1244,6 +1244,9 @@ async def get_sales_order(
     request: Annotated[GetSalesOrderRequest, Unpack()], context: Context
 ) -> ToolResult:
     """Look up a sales order by number or ID with all line items.
+
+    For multiple sales orders at once, use ``list_sales_orders(ids=[...])`` —
+    it returns a summary table and supports all the same filters.
 
     Returns every field Katana exposes on the sales order record — identity,
     status/workflow flags, dates, totals, tracking, ecommerce metadata,

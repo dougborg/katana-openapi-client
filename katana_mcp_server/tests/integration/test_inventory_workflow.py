@@ -102,7 +102,7 @@ class TestInventorySearchWorkflow:
 
         # Step 2: Check inventory for first item
         first_item = search_result.items[0]
-        inventory_request = CheckInventoryRequest(sku=first_item.sku)
+        inventory_request = CheckInventoryRequest(skus_or_variant_ids=[first_item.sku])
 
         _inv_results = await _check_inventory_impl(
             inventory_request, integration_context
@@ -160,7 +160,7 @@ class TestInventorySearchWorkflow:
 
         # Step 3: Check inventory for each item with details
         for details in details_results:
-            inventory_request = CheckInventoryRequest(sku=details.sku)
+            inventory_request = CheckInventoryRequest(skus_or_variant_ids=[details.sku])
             _inv_results = await _check_inventory_impl(
                 inventory_request, integration_context
             )
@@ -212,7 +212,7 @@ class TestLowStockWorkflow:
                 continue
 
             # Get detailed inventory check
-            inventory_request = CheckInventoryRequest(sku=item.sku)
+            inventory_request = CheckInventoryRequest(skus_or_variant_ids=[item.sku])
             _inv_results = await _check_inventory_impl(
                 inventory_request, integration_context
             )
@@ -330,7 +330,7 @@ class TestInventoryDataConsistency:
             if not item.sku:
                 continue
 
-            inventory_request = CheckInventoryRequest(sku=item.sku)
+            inventory_request = CheckInventoryRequest(skus_or_variant_ids=[item.sku])
             _inv_results = await _check_inventory_impl(
                 inventory_request, integration_context
             )

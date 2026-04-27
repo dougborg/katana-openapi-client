@@ -40,7 +40,7 @@ Manufacturing ERP tools for inventory, orders, and production management.
 ### Inventory & Catalog
 - **search_items** - Find products, materials, services by name/SKU
 - **get_variant_details** - Get full details for a specific item
-- **check_inventory** - Check stock levels for a SKU
+- **check_inventory** - Check stock levels for one or more SKUs or variant IDs (pass a list for a summary table)
 - **list_low_stock_items** - Find items needing reorder
 - **create_stock_adjustment / list_stock_adjustments / update_stock_adjustment / delete_stock_adjustment** - Full CRUD for manual inventory adjustments
 
@@ -204,7 +204,7 @@ Detailed step-by-step guides for common manufacturing ERP workflows.
 2. **Verify materials available**
    ```json
    Tool: check_inventory
-   Request: {"sku": "WIDGET-001"}
+   Request: {"skus_or_variant_ids": ["WIDGET-001"]}
    ```
 
 3. **Complete the order**
@@ -232,7 +232,7 @@ Detailed step-by-step guides for common manufacturing ERP workflows.
 2. **Verify stock available**
    ```json
    Tool: check_inventory
-   Request: {"sku": "WIDGET-001"}
+   Request: {"skus_or_variant_ids": ["WIDGET-001"]}
    ```
 
 3. **Fulfill the order**
@@ -271,7 +271,7 @@ Detailed step-by-step guides for common manufacturing ERP workflows.
 3. **Check stock**
    ```json
    Tool: check_inventory
-   Request: {"sku": "WIDGET-001"}
+   Request: {"skus_or_variant_ids": ["WIDGET-001"]}
    ```
    Returns current stock levels and availability.
 
@@ -353,6 +353,9 @@ exposes on the Variant record is surfaced — no follow-up lookups needed
 for pricing, barcodes, supplier codes, config attributes, custom fields,
 or timestamps (including `deleted_at`).
 
+For multiple variants at once, pass `skus=[...]` or `variant_ids=[...]` —
+batching N lookups in one call beats N separate invocations.
+
 **Parameters (at least one of the first four is required):**
 - `sku` (optional): Single SKU to look up (exact case-insensitive match)
 - `variant_id` (optional): Single variant ID to look up directly
@@ -382,20 +385,17 @@ requested.
 ---
 
 ### check_inventory
-Check current stock levels for one or more items.
+Check current stock levels for one or more SKUs or variant IDs — pass a list for a summary table, one item for a detailed card.
 
-**Parameters (at least one of the first four is required):**
-- `sku` (optional): Single SKU to check
-- `variant_id` (optional): Single variant ID to check
-- `skus` (optional): Batch — list of SKUs to check
-- `variant_ids` (optional): Batch — list of variant IDs to check
-- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
+**Parameters:**
+- `skus_or_variant_ids` (required, min 1): List of SKUs (strings) or variant IDs (integers) — mix freely. Pass one for a stock card, many for a summary table.
+- `format` (optional, default "markdown"): "markdown" | "json"
 
 **Examples:**
 ```json
-{"sku": "WIDGET-001"}
-{"variant_id": 12345}
-{"skus": ["WIDGET-001", "WIDGET-002"]}
+{"skus_or_variant_ids": ["WIDGET-001"]}
+{"skus_or_variant_ids": ["WIDGET-001", "WIDGET-002"]}
+{"skus_or_variant_ids": ["WIDGET-001", 12345]}
 ```
 
 **Returns:** Stock levels (in_stock, available_stock, committed, expected) per variant.
@@ -540,6 +540,9 @@ specific MO — the list endpoint doesn't bundle them.
 
 ### get_manufacturing_order
 Look up a manufacturing order by order number or ID with exhaustive detail.
+For multiple manufacturing orders at once, use
+`list_manufacturing_orders(ids=[...])` — it returns a summary table and
+supports all the same filters in a single call.
 
 **Parameters:**
 - `order_no` (optional): Order number (e.g., '#WEB20082 / 1')
@@ -669,6 +672,9 @@ expected_arrival_date, total, row_count. When `page` is set, also returns
 
 ### get_purchase_order
 Look up a purchase order by order number or ID — exhaustive detail.
+For multiple purchase orders at once, use `list_purchase_orders(ids=[...],
+include_rows=True)` — it returns a summary table and supports all the
+same filters in a single call.
 
 **Parameters:**
 - `order_no` (optional): PO number (e.g., "PO-1022")
@@ -740,6 +746,8 @@ Get full details for a customer by ID.
 
 ### get_manufacturing_order_recipe
 List the ingredient (recipe) rows for a manufacturing order with exhaustive detail.
+For recipe rows across multiple MOs, call `get_manufacturing_order` once per MO —
+it returns recipe rows inline (there is no batch shape for this tool).
 
 **Parameters:**
 - `manufacturing_order_id` (required): MO ID
@@ -856,6 +864,9 @@ also carries a `rows` list.
 
 ### get_sales_order
 Look up a single sales order by order number or ID with exhaustive detail.
+For multiple sales orders at once, use `list_sales_orders(ids=[...],
+include_rows=True)` — it returns a summary table and supports all the
+same filters in a single call.
 
 **Parameters:**
 - `order_no` (optional): SO number (e.g., "#WEB20394")
