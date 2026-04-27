@@ -1242,7 +1242,7 @@ def inject_json_columns(classes: list[ClassInfo]) -> list[ClassInfo]:
                 rf"({re.escape(field_name)}:\s*Annotated\[\s*"
                 rf"[^,]+,\s*)Field\(\s*(description=)"
             )
-            replacement = r"\1SQLField(sa_column=Column(JSON), \2"
+            replacement = r"\1SQLField(sa_column=Column(PydanticJSON), \2"
             new_source, n = re.subn(pattern, replacement, new_source, count=1)
             if n != 1:
                 msg = (
@@ -1386,7 +1386,10 @@ def generate_module_imports(
         if not any("ConfigDict" in line for line in import_lines):
             import_lines.append("from pydantic import ConfigDict")
         if has_json_columns:
-            import_lines.append("from sqlalchemy import JSON, Column")
+            import_lines.append("from sqlalchemy import Column")
+            import_lines.append(
+                "from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON"
+            )
 
     # #342: any module whose classes had AwareDatetime swapped for plain
     # datetime needs the stdlib datetime import. Applies to both cache-table
