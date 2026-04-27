@@ -9,8 +9,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from katana_mcp.tools.foundation.reporting import (
     InventoryVelocityRequest,
+    InventoryVelocityResponse,
     SalesSummaryRequest,
     TopSellingVariantsRequest,
+    VelocityStats,
     _inventory_velocity_impl,
     _sales_summary_impl,
     _top_selling_variants_impl,
@@ -396,6 +398,10 @@ async def test_sales_summary_group_by_customer():
 # inventory_velocity
 # ============================================================================
 
+_FETCH_MO_RECIPE = (
+    "katana_mcp.tools.foundation.reporting._fetch_completed_mo_recipe_rows_in_window"
+)
+
 
 @pytest.mark.asyncio
 async def test_inventory_velocity_computes_avg_daily_and_days_of_cover():
@@ -435,9 +441,6 @@ async def test_inventory_velocity_computes_avg_daily_and_days_of_cover():
         period_days=90,
     )
 
-    # The inventory fetch inside _fetch_stock_on_hand uses a different
-    # unwrap_data import path — patch both the reporting alias (used by
-    # _fetch_delivered_sales_orders_in_window) and the inventory call site.
     with (
         patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
         patch(
@@ -445,16 +448,19 @@ async def test_inventory_velocity_computes_avg_daily_and_days_of_cover():
             new_callable=AsyncMock,
         ),
         patch(_REPORTING_UNWRAP_DATA, side_effect=[orders, inv_items]),
+        patch(_FETCH_MO_RECIPE, new_callable=AsyncMock, return_value=[]),
     ):
         result = await _inventory_velocity_impl(request, context)
 
-    assert result.variant_id == 500
-    assert result.sku == "BIKE-MTB-01"
-    assert result.units_sold == 180
-    assert result.avg_daily == pytest.approx(2.0)
-    assert result.stock_on_hand == 600
-    assert result.days_of_cover == pytest.approx(300.0)
-    assert result.period_days == 90
+    assert result.items[0].variant_id == 500
+    assert result.items[0].sku == "BIKE-MTB-01"
+    assert result.items[0].units_sold == 180
+    assert result.items[0].units_consumed_by_mos == 0.0
+    assert result.items[0].units_total == 180
+    assert result.items[0].avg_daily == pytest.approx(2.0)
+    assert result.items[0].stock_on_hand == 600
+    assert result.items[0].days_of_cover == pytest.approx(300.0)
+    assert result.items[0].period_days == 90
 
 
 @pytest.mark.asyncio
@@ -477,13 +483,190 @@ async def test_inventory_velocity_zero_sales_returns_none_cover():
         patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
         patch(f"{_INV_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
         patch(_REPORTING_UNWRAP_DATA, side_effect=[[], inv_items]),
+        patch(_FETCH_MO_RECIPE, new_callable=AsyncMock, return_value=[]),
     ):
         result = await _inventory_velocity_impl(request, context)
 
-    assert result.units_sold == 0
-    assert result.avg_daily == 0.0
-    assert result.stock_on_hand == 50
-    assert result.days_of_cover is None
+    assert result.items[0].units_sold == 0
+    assert result.items[0].units_consumed_by_mos == 0.0
+    assert result.items[0].units_total == 0
+    assert result.items[0].avg_daily == 0.0
+    assert result.items[0].stock_on_hand == 50
+    assert result.items[0].days_of_cover is None
+
+
+@pytest.mark.asyncio
+async def test_inventory_velocity_includes_mo_consumption():
+    """MO ingredient consumption adds to units_total when include_mo_consumption=True."""
+    context, lifespan_ctx = create_mock_context()
+
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        return_value={"id": 42, "sku": "SCREW-M5", "display_name": "M5 Screw"}
+    )
+
+    orders = [
+        _mock_so(
+            id=1,
+            created_at=None,
+            rows=[_mock_row(id=1, variant_id=42, quantity=30, price_per_unit=0)],
+        ),
+    ]
+    inv_items = [_mock_inv_item(200)]
+
+    # Simulate a recipe row from a completed MO
+    mock_rr = MagicMock()
+    mock_rr.variant_id = 42
+    mock_rr.total_actual_quantity = 50.0
+
+    request = InventoryVelocityRequest(
+        sku_or_variant_id="SCREW-M5",
+        period_days=30,
+        include_mo_consumption=True,
+    )
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(f"{_INV_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_REPORTING_UNWRAP_DATA, side_effect=[orders, inv_items]),
+        patch(_FETCH_MO_RECIPE, new_callable=AsyncMock, return_value=[mock_rr]),
+    ):
+        result = await _inventory_velocity_impl(request, context)
+
+    stats = result.items[0]
+    assert stats.units_sold == 30
+    assert stats.units_consumed_by_mos == 50.0
+    assert stats.units_total == 80.0
+    # avg_daily = 80 / 30 ≈ 2.667; days_of_cover = 200 / 2.667 ≈ 75
+    assert stats.avg_daily == pytest.approx(80 / 30, rel=1e-3)
+    assert stats.days_of_cover == pytest.approx(200 / (80 / 30), rel=1e-2)
+
+
+@pytest.mark.asyncio
+async def test_inventory_velocity_exclude_mo_consumption():
+    """include_mo_consumption=False reproduces legacy SO-only numbers."""
+    context, lifespan_ctx = create_mock_context()
+
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        return_value={"id": 42, "sku": "SCREW-M5", "display_name": "M5 Screw"}
+    )
+
+    orders = [
+        _mock_so(
+            id=1,
+            created_at=None,
+            rows=[_mock_row(id=1, variant_id=42, quantity=30, price_per_unit=0)],
+        ),
+    ]
+    inv_items = [_mock_inv_item(200)]
+
+    request = InventoryVelocityRequest(
+        sku_or_variant_id="SCREW-M5",
+        period_days=30,
+        include_mo_consumption=False,
+    )
+
+    # _fetch_completed_mo_recipe_rows_in_window should NOT be called
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(f"{_INV_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_REPORTING_UNWRAP_DATA, side_effect=[orders, inv_items]),
+        patch(_FETCH_MO_RECIPE, new_callable=AsyncMock) as mock_mo,
+    ):
+        result = await _inventory_velocity_impl(request, context)
+
+    # MO fetch must not have been called
+    mock_mo.assert_not_called()
+
+    stats = result.items[0]
+    assert stats.units_sold == 30
+    assert stats.units_consumed_by_mos == 0.0
+    assert stats.units_total == 30.0
+    assert stats.avg_daily == pytest.approx(1.0)
+
+
+@pytest.mark.asyncio
+async def test_inventory_velocity_batch_returns_multiple_rows():
+    """Batch shape returns one VelocityStats per input variant."""
+    context, lifespan_ctx = create_mock_context()
+
+    # Both resolved via get_by_sku
+    async def fake_get_by_sku(sku: str) -> dict:
+        return {
+            "WIDGET-1": {"id": 10, "sku": "WIDGET-1"},
+            "WIDGET-2": {"id": 20, "sku": "WIDGET-2"},
+        }.get(sku)
+
+    lifespan_ctx.cache.get_by_sku = AsyncMock(side_effect=fake_get_by_sku)
+
+    orders = [
+        _mock_so(
+            id=1,
+            created_at=None,
+            rows=[
+                _mock_row(id=1, variant_id=10, quantity=10, price_per_unit=0),
+                _mock_row(id=2, variant_id=20, quantity=25, price_per_unit=0),
+            ],
+        ),
+    ]
+    inv_10 = [_mock_inv_item(100)]
+    inv_20 = [_mock_inv_item(50)]
+
+    request = InventoryVelocityRequest(
+        sku_or_variant_ids=["WIDGET-1", "WIDGET-2"],
+        period_days=30,
+    )
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(f"{_INV_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        # Two inventory fetches (one per variant) + one SO fetch
+        patch(
+            _REPORTING_UNWRAP_DATA,
+            side_effect=[orders, inv_10, inv_20],
+        ),
+        patch(_FETCH_MO_RECIPE, new_callable=AsyncMock, return_value=[]),
+    ):
+        result = await _inventory_velocity_impl(request, context)
+
+    assert len(result.items) == 2
+    assert result.items[0].sku == "WIDGET-1"
+    assert result.items[0].units_sold == 10
+    assert result.items[1].sku == "WIDGET-2"
+    assert result.items[1].units_sold == 25
+
+
+@pytest.mark.asyncio
+async def test_inventory_velocity_batch_with_int_id():
+    """Batch shape accepts integer variant IDs as well as SKU strings."""
+    context, lifespan_ctx = create_mock_context()
+
+    from katana_mcp.cache import EntityType
+
+    async def fake_get_by_id(entity_type, variant_id):
+        if entity_type == EntityType.VARIANT and variant_id == 99:
+            return {"id": 99, "sku": "INT-VARIANT"}
+        return None
+
+    lifespan_ctx.cache.get_by_id = AsyncMock(side_effect=fake_get_by_id)
+
+    inv_items = [_mock_inv_item(0)]
+
+    request = InventoryVelocityRequest(
+        sku_or_variant_ids=[99],
+        period_days=30,
+    )
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(f"{_INV_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_REPORTING_UNWRAP_DATA, side_effect=[[], inv_items]),
+        patch(_FETCH_MO_RECIPE, new_callable=AsyncMock, return_value=[]),
+    ):
+        result = await _inventory_velocity_impl(request, context)
+
+    assert len(result.items) == 1
+    assert result.items[0].variant_id == 99
+    assert result.items[0].sku == "INT-VARIANT"
 
 
 # ============================================================================
@@ -511,6 +694,34 @@ def test_inventory_velocity_rejects_out_of_bounds_period():
         InventoryVelocityRequest(sku_or_variant_id="X", period_days=0)
     with pytest.raises(ValidationError):
         InventoryVelocityRequest(sku_or_variant_id="X", period_days=400)
+
+
+def test_inventory_velocity_rejects_no_shape():
+    """Neither sku_or_variant_id nor sku_or_variant_ids raises ValidationError."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="Provide either"):
+        InventoryVelocityRequest(period_days=30)
+
+
+def test_inventory_velocity_rejects_both_shapes():
+    """Both sku_or_variant_id and sku_or_variant_ids raises ValidationError."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="only one"):
+        InventoryVelocityRequest(
+            sku_or_variant_id="X",
+            sku_or_variant_ids=["X", "Y"],
+            period_days=30,
+        )
+
+
+def test_inventory_velocity_rejects_batch_too_large():
+    """sku_or_variant_ids length must be <= 100."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        InventoryVelocityRequest(sku_or_variant_ids=["SKU"] * 101)
 
 
 # ============================================================================
@@ -579,7 +790,6 @@ async def test_sales_summary_format_json_returns_json():
 
 @pytest.mark.asyncio
 async def test_inventory_velocity_format_json_returns_json():
-    from katana_mcp.tools.foundation.reporting import VelocityStats
 
     context, _ = create_mock_context()
 
@@ -587,16 +797,22 @@ async def test_inventory_velocity_format_json_returns_json():
         "katana_mcp.tools.foundation.reporting._inventory_velocity_impl",
         new_callable=AsyncMock,
     ) as mock_impl:
-        mock_impl.return_value = VelocityStats(
-            sku="V-1",
-            variant_id=1,
-            units_sold=5.0,
-            avg_daily=0.5,
-            stock_on_hand=10,
-            days_of_cover=20.0,
-            period_days=10,
-            window_start="2026-01-01",
-            window_end="2026-01-10",
+        mock_impl.return_value = InventoryVelocityResponse(
+            items=[
+                VelocityStats(
+                    sku="V-1",
+                    variant_id=1,
+                    units_sold=5.0,
+                    units_consumed_by_mos=2.0,
+                    units_total=7.0,
+                    avg_daily=0.5,
+                    stock_on_hand=10,
+                    days_of_cover=20.0,
+                    period_days=10,
+                    window_start="2026-01-01",
+                    window_end="2026-01-10",
+                )
+            ]
         )
         result = await inventory_velocity(
             sku_or_variant_id="V-1",
@@ -606,5 +822,7 @@ async def test_inventory_velocity_format_json_returns_json():
         )
 
     data = json.loads(_content_text(result))
-    assert data["variant_id"] == 1
-    assert data["units_sold"] == 5.0
+    assert data["items"][0]["variant_id"] == 1
+    assert data["items"][0]["units_sold"] == 5.0
+    assert data["items"][0]["units_consumed_by_mos"] == 2.0
+    assert data["items"][0]["units_total"] == 7.0

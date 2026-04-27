@@ -181,6 +181,7 @@ CACHE_TABLES: set[str] = {
     "StockAdjustment",
     "StockAdjustmentRow",
     "ManufacturingOrder",
+    "ManufacturingOrderRecipeRow",
     "PurchaseOrderBase",
     "PurchaseOrderRow",
     "StockTransfer",
@@ -288,6 +289,7 @@ CACHE_JSON_COLUMNS: dict[str, list[str]] = {
     "SalesOrderRow": ["attributes", "batch_transactions", "serial_numbers"],
     "StockAdjustmentRow": ["batch_transactions"],
     "ManufacturingOrder": ["batch_transactions", "serial_numbers"],
+    "ManufacturingOrderRecipeRow": ["batch_transactions"],
     # PurchaseOrderBase.supplier is a single nested ``Supplier`` object that
     # SQLAlchemy can't auto-map; cache it as JSON so the row stays denormalized.
     "PurchaseOrderBase": ["supplier"],

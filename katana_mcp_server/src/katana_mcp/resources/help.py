@@ -101,8 +101,9 @@ through hundreds of sales orders client-side. All read-only, no `confirm`.
   date window. Filters: category, location.
 - **sales_summary** — group sales by day/week/month, variant, customer,
   or category over a window.
-- **inventory_velocity** — units sold, avg-daily, stock-on-hand, and
-  days-of-cover for a single SKU or variant.
+- **inventory_velocity** — units sold (SO), units consumed by completed MOs,
+  avg-daily, stock-on-hand, and days-of-cover for one SKU or a batch of SKUs.
+  Use ``sku_or_variant_ids`` for cross-variant reports in a single call.
 """
 
 HELP_WORKFLOWS = """
@@ -316,9 +317,10 @@ through hundreds of orders.
    Tool: inventory_velocity
    Request: {"sku_or_variant_id": "BIKE-MTB-01", "period_days": 90}
    ```
-   Returns `units_sold`, `avg_daily`, `stock_on_hand`, and `days_of_cover`.
-   Use to decide when to reorder. `days_of_cover` is `null` when there
-   have been no sales in the window (can't project).
+   Returns `{items: [{sku, variant_id, units_sold, units_consumed_by_mos,
+   units_total, avg_daily, stock_on_hand, days_of_cover, ...}]}`. Use
+   ``sku_or_variant_ids`` for a batch cross-variant report in one call.
+   `days_of_cover` is `null` when average daily demand is 0 (no history).
 """
 
 HELP_TOOLS = """
@@ -1026,16 +1028,25 @@ descending.
 ---
 
 ### inventory_velocity
-Velocity stats and days-of-cover for a single SKU or variant.
+Velocity stats and days-of-cover for one or more SKUs/variants. Includes both
+sales-order demand and manufacturing-order ingredient consumption. Use
+``sku_or_variant_ids`` for cross-variant batch reports in a single call.
 
 **Parameters:**
-- `sku_or_variant_id` (required): SKU (string) or variant_id (int)
+- `sku_or_variant_id` (required for single): SKU (string) or variant_id (int)
+- `sku_or_variant_ids` (required for batch): list of SKUs and/or variant IDs
+  (max 100). Exactly one of `sku_or_variant_id` or `sku_or_variant_ids` must
+  be provided.
 - `period_days` (optional, default 90, max 365): Rolling window size
+- `include_mo_consumption` (optional, default true): Include units consumed as
+  ingredients on completed MOs. Set false for SO-only numbers (legacy behavior).
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
-**Returns:** `{sku, variant_id, units_sold, avg_daily, stock_on_hand,
-days_of_cover, period_days, window_start, window_end}`. `days_of_cover`
-is `null` when `avg_daily` is 0 (no sales in window).
+**Returns:** `{items: [{sku, variant_id, units_sold, units_consumed_by_mos,
+units_total, avg_daily, stock_on_hand, days_of_cover, period_days,
+window_start, window_end}]}`. `days_of_cover` is `null` when `avg_daily` is 0
+(no demand in window). Single-item calls return a rich card; batch calls return
+a markdown table.
 """
 
 HELP_RESOURCES = """

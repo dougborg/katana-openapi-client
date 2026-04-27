@@ -944,6 +944,66 @@ class CreateManufacturingOrderProductionRequest(KatanaPydanticBase):
     ] = None
 
 
+class CachedManufacturingOrderRecipeRow(DeletableEntity, table=True):
+    __tablename__ = "manufacturing_order_recipe_row"
+    model_config = ConfigDict(frozen=False)
+
+    id: Annotated[int, SQLField(primary_key=True, description="Unique identifier")]
+
+    manufacturing_order_id: Annotated[
+        int | None,
+        Field(description="ID of the manufacturing order this recipe row belongs to"),
+    ] = None
+    variant_id: Annotated[
+        int | None,
+        Field(description="ID of the ingredient variant required for production"),
+    ] = None
+    notes: Annotated[
+        str | None,
+        Field(
+            description="Additional notes about this ingredient or special handling instructions"
+        ),
+    ] = None
+    planned_quantity_per_unit: Annotated[
+        float | None,
+        Field(
+            description="Planned quantity of this ingredient needed per unit produced"
+        ),
+    ] = None
+    total_actual_quantity: Annotated[
+        float | None,
+        Field(description="Total actual quantity of this ingredient consumed"),
+    ] = None
+    ingredient_availability: Annotated[
+        str | None, Field(description="Current availability status of this ingredient")
+    ] = None
+    ingredient_expected_date: Annotated[
+        datetime | None,
+        Field(
+            description="Expected date when ingredient will be available if currently unavailable"
+        ),
+    ] = None
+    batch_transactions: Annotated[
+        list[BatchTransaction3] | None,
+        SQLField(
+            sa_column=Column(PydanticJSON),
+            description="Batch tracking transactions for this ingredient consumption",
+        ),
+    ] = None
+    cost: Annotated[
+        float | None,
+        Field(description="Total cost of this ingredient for the manufacturing order"),
+    ] = None
+    total_consumed_quantity: Annotated[
+        float | None,
+        Field(description="Total quantity consumed so far from this ingredient"),
+    ] = None
+    total_remaining_quantity: Annotated[
+        float | None,
+        Field(description="Remaining quantity needed from this ingredient"),
+    ] = None
+
+
 class CachedManufacturingOrder(DeletableEntity, table=True):
     __tablename__ = "manufacturing_order"
     model_config = ConfigDict(frozen=False)
