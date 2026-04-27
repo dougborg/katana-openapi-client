@@ -353,6 +353,9 @@ exposes on the Variant record is surfaced — no follow-up lookups needed
 for pricing, barcodes, supplier codes, config attributes, custom fields,
 or timestamps (including `deleted_at`).
 
+For multiple variants at once, pass `skus=[...]` or `variant_ids=[...]` —
+batching N lookups in one call beats N separate invocations.
+
 **Parameters (at least one of the first four is required):**
 - `sku` (optional): Single SKU to look up (exact case-insensitive match)
 - `variant_id` (optional): Single variant ID to look up directly
@@ -537,6 +540,9 @@ specific MO — the list endpoint doesn't bundle them.
 
 ### get_manufacturing_order
 Look up a manufacturing order by order number or ID with exhaustive detail.
+For multiple manufacturing orders at once, use
+`list_manufacturing_orders(ids=[...])` — it returns a summary table and
+supports all the same filters in a single call.
 
 **Parameters:**
 - `order_no` (optional): Order number (e.g., '#WEB20082 / 1')
@@ -666,6 +672,9 @@ expected_arrival_date, total, row_count. When `page` is set, also returns
 
 ### get_purchase_order
 Look up a purchase order by order number or ID — exhaustive detail.
+For multiple purchase orders at once, use `list_purchase_orders(ids=[...],
+include_rows=True)` — it returns a summary table and supports all the
+same filters in a single call.
 
 **Parameters:**
 - `order_no` (optional): PO number (e.g., "PO-1022")
@@ -737,6 +746,8 @@ Get full details for a customer by ID.
 
 ### get_manufacturing_order_recipe
 List the ingredient (recipe) rows for a manufacturing order with exhaustive detail.
+For recipe rows across multiple MOs, call `get_manufacturing_order` once per MO —
+it returns recipe rows inline (there is no batch shape for this tool).
 
 **Parameters:**
 - `manufacturing_order_id` (required): MO ID
@@ -853,6 +864,9 @@ also carries a `rows` list.
 
 ### get_sales_order
 Look up a single sales order by order number or ID with exhaustive detail.
+For multiple sales orders at once, use `list_sales_orders(ids=[...],
+include_rows=True)` — it returns a summary table and supports all the
+same filters in a single call.
 
 **Parameters:**
 - `order_no` (optional): SO number (e.g., "#WEB20394")

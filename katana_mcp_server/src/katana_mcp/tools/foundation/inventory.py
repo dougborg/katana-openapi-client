@@ -1171,7 +1171,7 @@ async def _list_stock_adjustments_impl(
 async def list_stock_adjustments(
     request: Annotated[ListStockAdjustmentsRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """List stock adjustments with filters — pass `ids=[1,2,3]` to fetch a specific batch by ID (cache-backed, indexed SQL).
+    """List stock adjustments with filters — pass `ids=[1,2,3]` to fetch a specific batch by ID (cache-backed).
 
     For batch lookup by known IDs, pass `ids=[...]` and get a summary table back in
     a single call. Use for discovery — find recent adjustments at a location,

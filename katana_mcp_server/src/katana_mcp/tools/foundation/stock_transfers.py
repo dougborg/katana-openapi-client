@@ -624,9 +624,9 @@ async def list_stock_transfers(
     which was a client-side post-fetch filter pre-cache) run as indexed
     SQL against the SQLModel typed cache.
 
-    **Available filters:** `status`, `source_location_id`, `target_location_id`,
-    `created_after`/`created_before`, `updated_after`/`updated_before`,
-    `expected_arrival_after`/`expected_arrival_before`.
+    **Available filters:** `status`, `source_location_id`,
+    `destination_location_id`, `stock_transfer_number`,
+    `created_after`/`created_before`.
 
     **Paging:**
     - `limit` caps the number of rows (default 50, min 1).

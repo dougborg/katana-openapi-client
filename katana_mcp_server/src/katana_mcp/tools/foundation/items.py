@@ -1349,8 +1349,15 @@ async def get_variant_details(
             structured_content=payload,
         )
 
-    # If a single-variant request, return the single-variant markdown + UI
-    is_single = len(responses) == 1 and not request.skus and not request.variant_ids
+    # If a single-variant request, return the single-variant markdown + UI.
+    # Treat a single-element batch list (skus=[X] or variant_ids=[X]) the same
+    # as the singular form to honor the docstring's "single item" promise.
+    is_single = len(responses) == 1 and (
+        request.sku is not None
+        or request.variant_id is not None
+        or len(request.skus or []) == 1
+        or len(request.variant_ids or []) == 1
+    )
     if is_single:
         return _variant_details_to_tool_result(responses[0])
 
