@@ -1721,6 +1721,95 @@ async def test_check_inventory_batch_skus():
     assert results[0].available_stock == 7.0
 
 
+@pytest.mark.asyncio
+async def test_check_inventory_single_variant_id():
+    """Pure integer input routes through _fetch_variant_by_id (cache-miss fallback)."""
+    context, _ = create_mock_context()
+
+    mock_inv = MagicMock()
+    mock_inv.quantity_in_stock = "42.0"
+    mock_inv.quantity_committed = "2.0"
+    mock_inv.quantity_expected = "5.0"
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.items._fetch_variant_by_id",
+            new_callable=AsyncMock,
+            return_value={"id": 42, "sku": "WIDGET-42", "display_name": "Widget 42"},
+        ) as mock_fetch,
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[mock_inv]),
+    ):
+        request = CheckInventoryRequest(skus_or_variant_ids=[42])
+        results = await _check_inventory_impl(request, context)
+
+    # Single-item batch — exercises the rich-card path in check_inventory
+    assert len(results) == 1
+    result = results[0]
+    assert result.variant_id == 42
+    assert result.sku == "WIDGET-42"
+    assert result.product_name == "Widget 42"
+    assert result.in_stock == 42.0
+    assert result.committed == 2.0
+    assert result.expected == 5.0
+    assert result.available_stock == 40.0  # 42 - 2
+
+    # Verify the variant_id path (not the SKU path) was taken
+    mock_fetch.assert_awaited_once()
+    call_args = mock_fetch.await_args
+    assert call_args.args[1] == 42
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_mixed_sku_and_variant_id():
+    """Mixed string + integer input exercises both the cache-by-sku and fetch-by-id routes."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        return_value={"id": 101, "sku": "WIDGET-1", "display_name": "Widget 1"}
+    )
+
+    mock_inv_sku = MagicMock()
+    mock_inv_sku.quantity_in_stock = "10.0"
+    mock_inv_sku.quantity_committed = "1.0"
+    mock_inv_sku.quantity_expected = "2.0"
+
+    mock_inv_id = MagicMock()
+    mock_inv_id.quantity_in_stock = "20.0"
+    mock_inv_id.quantity_committed = "5.0"
+    mock_inv_id.quantity_expected = "0.0"
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.items._fetch_variant_by_id",
+            new_callable=AsyncMock,
+            return_value={"id": 42, "sku": "WIDGET-42", "display_name": "Widget 42"},
+        ) as mock_fetch,
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        # Both inventory calls go through unwrap_data — give each its own response.
+        # The SKU lookup is gathered first (sku_results), then the variant_id (id_results),
+        # so the call order matches.
+        patch(_UNWRAP_DATA, side_effect=[[mock_inv_sku], [mock_inv_id]]),
+    ):
+        request = CheckInventoryRequest(skus_or_variant_ids=["WIDGET-1", 42])
+        results = await _check_inventory_impl(request, context)
+
+    assert len(results) == 2
+
+    # Both routes were used
+    lifespan_ctx.cache.get_by_sku.assert_awaited_once()
+    mock_fetch.assert_awaited_once()
+    assert mock_fetch.await_args.args[1] == 42
+
+    # Both items appear in the response (SKU result first, then variant_id result)
+    sku_result = next(r for r in results if r.sku == "WIDGET-1")
+    id_result = next(r for r in results if r.sku == "WIDGET-42")
+    assert sku_result.in_stock == 10.0
+    assert sku_result.available_stock == 9.0  # 10 - 1
+    assert id_result.variant_id == 42
+    assert id_result.in_stock == 20.0
+    assert id_result.available_stock == 15.0  # 20 - 5
+
+
 # ============================================================================
 # format=json / format=markdown (items tools)
 # ============================================================================
