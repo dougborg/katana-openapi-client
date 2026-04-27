@@ -68,7 +68,9 @@ class TestMCPParameterPassing:
         # This is how Claude Code calls the tool - with flat parameters
         # With Unpack decorator, this should work!
         result = await check_inventory(
-            sku="TEST-001",  # Flat parameter, not request.sku
+            skus_or_variant_ids=[
+                "TEST-001"
+            ],  # Flat parameter, not request.skus_or_variant_ids
             context=context,
         )
 
@@ -100,18 +102,20 @@ class TestMCPParameterPassing:
         params2 = list(sig2.parameters.keys())
 
         assert params2 == [
-            "sku",
-            "variant_id",
-            "skus",
-            "variant_ids",
+            "skus_or_variant_ids",
             "format",
             "context",
-        ], (
-            "check_inventory has flattened params: sku, variant_id, skus, variant_ids, format, context"
-        )
-        # sku is optional now (can be None)
-        assert sig2.parameters["sku"].default is None
+        ], "check_inventory has flattened params: skus_or_variant_ids, format, context"
+        # skus_or_variant_ids defaults to empty list at the Python level;
+        # the min_length=1 Pydantic constraint enforces non-empty at validation time.
+        assert sig2.parameters["skus_or_variant_ids"].default == []
         assert sig2.parameters["format"].default == "markdown"
+        # Verify min_length=1 is enforced: empty list must raise ValidationError.
+        from katana_mcp.tools.foundation.inventory import CheckInventoryRequest
+        from pydantic import ValidationError as PydanticValidationError
+
+        with pytest.raises(PydanticValidationError):
+            CheckInventoryRequest(skus_or_variant_ids=[])
 
 
 class TestMCPProtocolSimulation:

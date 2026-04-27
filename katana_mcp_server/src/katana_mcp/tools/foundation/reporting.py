@@ -353,7 +353,7 @@ async def _top_selling_variants_impl(
 async def top_selling_variants(
     request: Annotated[TopSellingVariantsRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """Top-selling product variants over a date window.
+    """Top-selling product variants over a date window — returns multiple ranked rows.
 
     Aggregates DELIVERED sales orders in the window, rolls up units sold and
     revenue per variant, and returns the top-N sorted by ``order_by`` (default
@@ -570,7 +570,7 @@ async def _sales_summary_impl(
 async def sales_summary(
     request: Annotated[SalesSummaryRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """Group DELIVERED sales in a window by time or dimension.
+    """Group DELIVERED sales in a window by time or dimension — returns one row per group.
 
     ``group_by`` supports ``day``, ``week`` (ISO week), ``month``, ``variant``
     (by SKU), ``customer`` (by customer ID), and ``category`` (by item

@@ -40,20 +40,16 @@ logger = get_logger(__name__)
 
 
 class CheckInventoryRequest(BaseModel):
-    """Request model for checking inventory.
+    """Request model for checking inventory."""
 
-    Accepts a single sku/variant_id OR a list (skus/variant_ids) for batch lookups.
-    """
-
-    sku: str | None = Field(default=None, description="Single SKU to check")
-    variant_id: int | None = Field(
-        default=None, description="Single variant ID to check"
-    )
-    skus: list[str] | None = Field(
-        default=None, description="Batch: list of SKUs to check"
-    )
-    variant_ids: list[int] | None = Field(
-        default=None, description="Batch: list of variant IDs to check"
+    skus_or_variant_ids: list[str | int] = Field(
+        default_factory=list,
+        min_length=1,
+        description=(
+            "SKUs (strings) or variant IDs (integers) to check — mix freely. "
+            "Pass one for a detailed stock card; pass many for a summary table. "
+            "Batching N items in a single call beats N separate invocations."
+        ),
     )
     format: Literal["markdown", "json"] = Field(
         default="markdown",
@@ -115,21 +111,18 @@ async def _check_inventory_impl(
     skus: list[str] = []
     variant_ids: list[int] = []
 
-    if request.sku is not None:
-        normalized = request.sku.strip()
-        if not normalized:
-            raise ValueError("SKU cannot be empty")
-        skus.append(normalized)
-    if request.skus:
-        skus.extend(s.strip() for s in request.skus if s.strip())
-    if request.variant_id is not None:
-        variant_ids.append(request.variant_id)
-    if request.variant_ids:
-        variant_ids.extend(request.variant_ids)
+    for item in request.skus_or_variant_ids:
+        if isinstance(item, str):
+            normalized = item.strip()
+            if not normalized:
+                raise ValueError("SKU cannot be empty")
+            skus.append(normalized)
+        else:
+            variant_ids.append(item)
 
     if not skus and not variant_ids:
         raise ValueError(
-            "Must provide at least one of: sku, variant_id, skus, variant_ids"
+            "skus_or_variant_ids must contain at least one SKU or variant ID"
         )
 
     start_time = time.monotonic()
@@ -233,13 +226,15 @@ async def check_inventory(
 ) -> ToolResult:
     """Check current stock levels for one or more SKUs or variant IDs.
 
-    Accepts a single sku/variant_id or a batch list (skus/variant_ids). Returns
-    available, committed, expected, and in_stock quantities summed across all
-    locations.
+    Pass a list of SKUs (strings) or variant IDs (integers) — or mix both — to
+    ``skus_or_variant_ids``. A single item returns a rich stock card; multiple
+    items return a summary table. Batching N checks in one call is faster than
+    N separate invocations.
 
-    Use before creating orders to verify stock availability, or with a batch
-    list to check multiple ingredients at once (e.g. all EXPECTED items in an
-    MO recipe).
+    Returns available, committed, expected, and in_stock quantities summed
+    across all locations. Use before creating orders to verify stock
+    availability, or with a batch list to check multiple ingredients at once
+    (e.g. all EXPECTED items in an MO recipe).
     """
     from katana_mcp.tools.prefab_ui import build_inventory_check_ui
 
@@ -253,7 +248,7 @@ async def check_inventory(
         )
 
     # Single-variant request: preserve the rich Prefab card output
-    is_single = len(results) == 1 and not request.skus and not request.variant_ids
+    is_single = len(results) == 1 and len(request.skus_or_variant_ids) == 1
     if is_single:
         response = results[0]
         ui = build_inventory_check_ui(response.model_dump())
@@ -629,6 +624,9 @@ async def get_inventory_movements(
     """Get inventory movement history for a SKU — every stock change with dates,
     quantities, valuation (value_per_unit, value_in_stock_after, average_cost_after),
     and what caused each movement (sales, purchases, manufacturing, adjustments).
+
+    Single-SKU: pass the SKU of interest. For movements across multiple variants,
+    call this tool once per variant (there is no batch shape for this tool).
 
     Exhaustive — every field Katana exposes on ``InventoryMovement`` is surfaced
     (identity, variant/location pointers, resource pointers, valuation fields,
@@ -1173,10 +1171,11 @@ async def _list_stock_adjustments_impl(
 async def list_stock_adjustments(
     request: Annotated[ListStockAdjustmentsRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """List stock adjustments with filters (cache-backed).
+    """List stock adjustments with filters — pass `ids=[1,2,3]` to fetch a specific batch by ID (cache-backed, indexed SQL).
 
-    Use for discovery — find recent adjustments at a location, adjustments
-    touching a specific variant, or adjustments matching a reason substring.
+    For batch lookup by known IDs, pass `ids=[...]` and get a summary table back in
+    a single call. Use for discovery — find recent adjustments at a location,
+    adjustments touching a specific variant, or adjustments matching a reason substring.
     Returns summary rows (number, location, dates, reason, row count). Set
     `include_rows=true` to also populate per-row details (variant_id, quantity,
     cost_per_unit).

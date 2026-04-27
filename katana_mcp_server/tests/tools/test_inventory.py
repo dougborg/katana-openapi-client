@@ -91,7 +91,7 @@ async def test_check_inventory():
         patch(_UNWRAP_DATA, return_value=[mock_inv]),
     ):
         mock_api.return_value = MagicMock()
-        request = CheckInventoryRequest(sku="WIDGET-001")
+        request = CheckInventoryRequest(skus_or_variant_ids=["WIDGET-001"])
         _inv_results = await _check_inventory_impl(request, context)
         result = _inv_results[0]
 
@@ -127,7 +127,7 @@ async def test_check_inventory_multiple_locations():
         patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
         patch(_UNWRAP_DATA, return_value=[mock_inv_1, mock_inv_2]),
     ):
-        request = CheckInventoryRequest(sku="WIDGET-001")
+        request = CheckInventoryRequest(skus_or_variant_ids=["WIDGET-001"])
         _inv_results = await _check_inventory_impl(request, context)
         result = _inv_results[0]
 
@@ -143,7 +143,7 @@ async def test_check_inventory_not_found():
     context, lifespan_ctx = create_mock_context()
     lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
 
-    request = CheckInventoryRequest(sku="NOT-FOUND")
+    request = CheckInventoryRequest(skus_or_variant_ids=["NOT-FOUND"])
     _inv_results = await _check_inventory_impl(request, context)
     result = _inv_results[0]
 
@@ -611,10 +611,10 @@ async def test_create_stock_adjustment_empty_rows():
 
 @pytest.mark.asyncio
 async def test_check_inventory_empty_sku():
-    """Test check_inventory rejects empty SKU."""
+    """Test check_inventory rejects empty SKU string in the list."""
     context, _ = create_mock_context()
 
-    request = CheckInventoryRequest(sku="")
+    request = CheckInventoryRequest(skus_or_variant_ids=[""])
     with pytest.raises(ValueError, match="SKU cannot be empty"):
         await _check_inventory_impl(request, context)
 
@@ -624,9 +624,16 @@ async def test_check_inventory_whitespace_sku():
     """Test check_inventory rejects whitespace-only SKU."""
     context, _ = create_mock_context()
 
-    request = CheckInventoryRequest(sku="   ")
+    request = CheckInventoryRequest(skus_or_variant_ids=["   "])
     with pytest.raises(ValueError, match="SKU cannot be empty"):
         await _check_inventory_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_empty_list_rejected():
+    """Test CheckInventoryRequest rejects empty skus_or_variant_ids list (min_length=1)."""
+    with pytest.raises(ValidationError):
+        CheckInventoryRequest(skus_or_variant_ids=[])
 
 
 @pytest.mark.asyncio
@@ -1475,7 +1482,7 @@ async def test_check_inventory_integration(katana_context):
     - Network is unavailable
     - Test SKU doesn't exist (expected - returns zero stock)
     """
-    request = CheckInventoryRequest(sku="TEST-SKU-001")
+    request = CheckInventoryRequest(skus_or_variant_ids=["TEST-SKU-001"])
 
     try:
         _inv_results = await _check_inventory_impl(request, katana_context)
@@ -1580,7 +1587,7 @@ async def test_check_inventory_nonexistent_sku_integration(katana_context):
     rather than failing.
     """
     # Use a SKU that's extremely unlikely to exist
-    request = CheckInventoryRequest(sku="NONEXISTENT-SKU-99999")
+    request = CheckInventoryRequest(skus_or_variant_ids=["NONEXISTENT-SKU-99999"])
 
     try:
         _inv_results = await _check_inventory_impl(request, katana_context)
@@ -1704,7 +1711,7 @@ async def test_check_inventory_batch_skus():
         patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
         patch(_UNWRAP_DATA, return_value=[mock_inv]),
     ):
-        request = CheckInventoryRequest(skus=["WIDGET-A", "WIDGET-B"])
+        request = CheckInventoryRequest(skus_or_variant_ids=["WIDGET-A", "WIDGET-B"])
         results = await _check_inventory_impl(request, context)
 
     assert len(results) == 2
@@ -1828,7 +1835,9 @@ async def test_check_inventory_format_json_returns_json():
             ),
         ]
         context, _ = create_mock_context()
-        result = await check_inventory(skus=["A", "B"], format="json", context=context)
+        result = await check_inventory(
+            skus_or_variant_ids=["A", "B"], format="json", context=context
+        )
 
     data = json.loads(_content_text(result))
     assert len(data["items"]) == 2

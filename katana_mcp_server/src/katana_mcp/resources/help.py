@@ -40,7 +40,7 @@ Manufacturing ERP tools for inventory, orders, and production management.
 ### Inventory & Catalog
 - **search_items** - Find products, materials, services by name/SKU
 - **get_variant_details** - Get full details for a specific item
-- **check_inventory** - Check stock levels for a SKU
+- **check_inventory** - Check stock levels for one or more SKUs or variant IDs (pass a list for a summary table)
 - **list_low_stock_items** - Find items needing reorder
 - **create_stock_adjustment / list_stock_adjustments / update_stock_adjustment / delete_stock_adjustment** - Full CRUD for manual inventory adjustments
 
@@ -204,7 +204,7 @@ Detailed step-by-step guides for common manufacturing ERP workflows.
 2. **Verify materials available**
    ```json
    Tool: check_inventory
-   Request: {"sku": "WIDGET-001"}
+   Request: {"skus_or_variant_ids": ["WIDGET-001"]}
    ```
 
 3. **Complete the order**
@@ -232,7 +232,7 @@ Detailed step-by-step guides for common manufacturing ERP workflows.
 2. **Verify stock available**
    ```json
    Tool: check_inventory
-   Request: {"sku": "WIDGET-001"}
+   Request: {"skus_or_variant_ids": ["WIDGET-001"]}
    ```
 
 3. **Fulfill the order**
@@ -271,7 +271,7 @@ Detailed step-by-step guides for common manufacturing ERP workflows.
 3. **Check stock**
    ```json
    Tool: check_inventory
-   Request: {"sku": "WIDGET-001"}
+   Request: {"skus_or_variant_ids": ["WIDGET-001"]}
    ```
    Returns current stock levels and availability.
 
@@ -382,20 +382,17 @@ requested.
 ---
 
 ### check_inventory
-Check current stock levels for one or more items.
+Check current stock levels for one or more SKUs or variant IDs — pass a list for a summary table, one item for a detailed card.
 
-**Parameters (at least one of the first four is required):**
-- `sku` (optional): Single SKU to check
-- `variant_id` (optional): Single variant ID to check
-- `skus` (optional): Batch — list of SKUs to check
-- `variant_ids` (optional): Batch — list of variant IDs to check
-- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
+**Parameters:**
+- `skus_or_variant_ids` (required, min 1): List of SKUs (strings) or variant IDs (integers) — mix freely. Pass one for a stock card, many for a summary table.
+- `format` (optional, default "markdown"): "markdown" | "json"
 
 **Examples:**
 ```json
-{"sku": "WIDGET-001"}
-{"variant_id": 12345}
-{"skus": ["WIDGET-001", "WIDGET-002"]}
+{"skus_or_variant_ids": ["WIDGET-001"]}
+{"skus_or_variant_ids": ["WIDGET-001", "WIDGET-002"]}
+{"skus_or_variant_ids": ["WIDGET-001", 12345]}
 ```
 
 **Returns:** Stock levels (in_stock, available_stock, committed, expected) per variant.

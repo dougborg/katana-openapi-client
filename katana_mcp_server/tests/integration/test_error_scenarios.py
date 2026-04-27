@@ -51,10 +51,10 @@ class TestValidationErrors:
     """Test input validation error handling."""
 
     async def test_check_inventory_empty_sku(self):
-        """Test that empty SKU raises validation error."""
+        """Test that empty SKU string in list raises validation error."""
         context, _ = create_mock_context()
 
-        request = CheckInventoryRequest(sku="")
+        request = CheckInventoryRequest(skus_or_variant_ids=[""])
         with pytest.raises(ValueError, match="SKU cannot be empty"):
             await _check_inventory_impl(request, context)
 
@@ -62,7 +62,7 @@ class TestValidationErrors:
         """Test that whitespace-only SKU raises validation error."""
         context, _ = create_mock_context()
 
-        request = CheckInventoryRequest(sku="   ")
+        request = CheckInventoryRequest(skus_or_variant_ids=["   "])
         with pytest.raises(ValueError, match="SKU cannot be empty"):
             await _check_inventory_impl(request, context)
 
@@ -110,7 +110,7 @@ class TestAPIErrorHandling:
         # Cache returns None (SKU not found)
         lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
 
-        request = CheckInventoryRequest(sku="NONEXISTENT-SKU")
+        request = CheckInventoryRequest(skus_or_variant_ids=["NONEXISTENT-SKU"])
         _inv_results = await _check_inventory_impl(request, context)
         result = _inv_results[0]
 
@@ -158,7 +158,7 @@ class TestAPIErrorHandling:
             new_callable=AsyncMock,
             side_effect=Exception("API Error: Rate limit exceeded"),
         ):
-            request = CheckInventoryRequest(sku="TEST-SKU")
+            request = CheckInventoryRequest(skus_or_variant_ids=["TEST-SKU"])
             with pytest.raises(Exception, match="Rate limit exceeded"):
                 await _check_inventory_impl(request, context)
 
@@ -182,7 +182,7 @@ class TestNetworkErrorHandling:
             new_callable=AsyncMock,
             side_effect=ConnectionError("Unable to connect to API server"),
         ):
-            request = CheckInventoryRequest(sku="TEST-SKU")
+            request = CheckInventoryRequest(skus_or_variant_ids=["TEST-SKU"])
             with pytest.raises(ConnectionError, match="Unable to connect"):
                 await _check_inventory_impl(request, context)
 

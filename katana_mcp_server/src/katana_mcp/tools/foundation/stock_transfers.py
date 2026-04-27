@@ -617,12 +617,16 @@ async def _list_stock_transfers_impl(
 async def list_stock_transfers(
     request: Annotated[ListStockTransfersRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """List stock transfers with filters (cache-backed).
+    """List stock transfers with filters — returns multiple transfers for discovery or bulk review.
 
     Use for discovery workflows — find transfers by status, between specific
     locations, or within a date range. All filters (including `status`,
     which was a client-side post-fetch filter pre-cache) run as indexed
     SQL against the SQLModel typed cache.
+
+    **Available filters:** `status`, `source_location_id`, `target_location_id`,
+    `created_after`/`created_before`, `updated_after`/`updated_before`,
+    `expected_arrival_after`/`expected_arrival_before`.
 
     **Paging:**
     - `limit` caps the number of rows (default 50, min 1).
