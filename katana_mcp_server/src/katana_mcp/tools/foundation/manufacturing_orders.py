@@ -9,7 +9,6 @@ These tools provide:
 from __future__ import annotations
 
 import asyncio
-import datetime as _datetime
 from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal
@@ -31,8 +30,7 @@ from katana_mcp.tools.tool_result_utils import (
     make_simple_result,
     make_tool_result,
     none_coro,
-    parse_iso_datetime,
-    parse_pagination_header,
+    parse_request_dates,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
@@ -2075,7 +2073,7 @@ async def batch_update_manufacturing_order_recipes(
 
 
 class ListManufacturingOrdersRequest(BaseModel):
-    """Request to list/filter manufacturing orders (list-tool pattern v2)."""
+    """Request to list/filter manufacturing orders (cache-backed)."""
 
     # Paging
     limit: int = Field(
@@ -2083,20 +2081,21 @@ class ListManufacturingOrdersRequest(BaseModel):
         ge=1,
         le=250,
         description=(
-            "Max rows to return (default 50, min 1, max 250 — Katana's "
-            "per-page ceiling). When `page` is set, acts as the page size."
+            "Max rows to return (default 50, min 1, max 250). When `page` is "
+            "set, acts as the page size for that request."
         ),
     )
     page: int | None = Field(
         default=None,
         ge=1,
         description=(
-            "Page number (1-based). When set, disables auto-pagination; "
-            "use with `limit` as page size."
+            "Page number (1-based). When set, the response includes "
+            "`pagination` metadata (total_records, total_pages) computed via "
+            "SQL COUNT against the same filter predicate."
         ),
     )
 
-    # Domain filters (server-side on Katana)
+    # Domain filters
     ids: list[int] | None = Field(
         default=None, description="Filter by explicit list of manufacturing order IDs"
     )
@@ -2119,7 +2118,7 @@ class ListManufacturingOrdersRequest(BaseModel):
         description="When true, include soft-deleted manufacturing orders.",
     )
 
-    # Time-window filters (server-side)
+    # Time-window filters
     created_after: str | None = Field(
         default=None, description="ISO-8601 datetime lower bound on created_at."
     )
@@ -2132,22 +2131,18 @@ class ListManufacturingOrdersRequest(BaseModel):
     updated_before: str | None = Field(
         default=None, description="ISO-8601 datetime upper bound on updated_at."
     )
-
-    # Time-window filters (client-side — Katana does not expose server-side
-    # filters for production_deadline).
     production_deadline_after: str | None = Field(
         default=None,
         description=(
-            "ISO-8601 datetime lower bound on production_deadline_date. "
-            "Applied client-side — Katana has no server-side filter. Pair "
-            "with a created_at window to keep fetched rows bounded."
+            "ISO-8601 datetime lower bound on production_deadline_date — "
+            "indexed SQL range filter against the cache."
         ),
     )
     production_deadline_before: str | None = Field(
         default=None,
         description=(
-            "ISO-8601 datetime upper bound on production_deadline_date. "
-            "Applied client-side — see `production_deadline_after`."
+            "ISO-8601 datetime upper bound on production_deadline_date — "
+            "indexed SQL range filter against the cache."
         ),
     )
 
@@ -2187,123 +2182,164 @@ class ListManufacturingOrdersResponse(BaseModel):
     pagination: PaginationMeta | None = None
 
 
+_MANUFACTURING_ORDER_DATE_FIELDS = (
+    "created_after",
+    "created_before",
+    "updated_after",
+    "updated_before",
+    "production_deadline_after",
+    "production_deadline_before",
+)
+
+
+def _apply_manufacturing_order_filters(
+    stmt: Any,
+    request: ListManufacturingOrdersRequest,
+    parsed_dates: dict[str, datetime | None],
+) -> Any:
+    """Translate request filters into WHERE clauses on a CachedManufacturingOrder query.
+
+    Shared by the data SELECT and the COUNT SELECT so pagination totals
+    reflect exactly the same filter set as the data rows. ``parsed_dates``
+    must come from :func:`parse_request_dates`.
+    """
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedManufacturingOrder,
+        ManufacturingOrderStatus,
+    )
+
+    if request.ids is not None:
+        stmt = stmt.where(CachedManufacturingOrder.id.in_(request.ids))
+    if request.order_no is not None:
+        stmt = stmt.where(CachedManufacturingOrder.order_no == request.order_no)
+    if request.status is not None:
+        # ``GetAllManufacturingOrdersStatus`` is the API filter enum;
+        # ``ManufacturingOrderStatus`` is the cache column type. Both share
+        # the same string values, so coerce by .value to avoid coupling the
+        # caller to the cache enum class directly.
+        try:
+            status_enum = ManufacturingOrderStatus(request.status.value)
+        except ValueError as e:
+            valid = ", ".join(s.value for s in ManufacturingOrderStatus)
+            msg = f"Invalid status {request.status!r}. Valid: {valid}"
+            raise ValueError(msg) from e
+        stmt = stmt.where(CachedManufacturingOrder.status == status_enum)
+    if request.location_id is not None:
+        stmt = stmt.where(CachedManufacturingOrder.location_id == request.location_id)
+    if request.is_linked_to_sales_order is not None:
+        stmt = stmt.where(
+            CachedManufacturingOrder.is_linked_to_sales_order
+            == request.is_linked_to_sales_order
+        )
+    if not request.include_deleted:
+        stmt = stmt.where(CachedManufacturingOrder.deleted_at.is_(None))
+
+    date_columns: list[tuple[str, Any, str]] = [
+        ("created_after", CachedManufacturingOrder.created_at, ">="),
+        ("created_before", CachedManufacturingOrder.created_at, "<="),
+        ("updated_after", CachedManufacturingOrder.updated_at, ">="),
+        ("updated_before", CachedManufacturingOrder.updated_at, "<="),
+        (
+            "production_deadline_after",
+            CachedManufacturingOrder.production_deadline_date,
+            ">=",
+        ),
+        (
+            "production_deadline_before",
+            CachedManufacturingOrder.production_deadline_date,
+            "<=",
+        ),
+    ]
+    for name, col, comp in date_columns:
+        dt = parsed_dates[name]
+        if dt is None:
+            continue
+        stmt = stmt.where(col >= dt if comp == ">=" else col <= dt)
+
+    return stmt
+
+
 async def _list_manufacturing_orders_impl(
     request: ListManufacturingOrdersRequest, context: Context
 ) -> ListManufacturingOrdersResponse:
-    """List manufacturing orders with filters — follows list-tool pattern v2."""
-    from katana_public_api_client.api.manufacturing_order import (
-        get_all_manufacturing_orders,
+    """List manufacturing orders with filters (cache-backed).
+
+    Reads from the SQLModel typed cache instead of the live API.
+    ``ensure_manufacturing_orders_synced`` runs an incremental
+    ``updated_at_min`` delta on every call (near-zero cost steady-state;
+    cold-start pulls full history once); the query then translates request
+    filters into indexed SQL. ``production_deadline_*`` was a client-side
+    post-fetch filter pre-cache; it now runs as a date-range SQL predicate
+    just like any other date column. See ADR-0018 and #342.
+    """
+    from sqlmodel import func, select
+
+    from katana_mcp.typed_cache import ensure_manufacturing_orders_synced
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedManufacturingOrder,
     )
-    from katana_public_api_client.utils import unwrap_data
 
     services = get_services(context)
 
-    kwargs: dict[str, Any] = {
-        "client": services.client,
-        "limit": request.limit,
-    }
-    if request.ids is not None:
-        kwargs["ids"] = request.ids
-    if request.order_no is not None:
-        kwargs["order_no"] = request.order_no
-    if request.status is not None:
-        kwargs["status"] = request.status
-    if request.location_id is not None:
-        kwargs["location_id"] = request.location_id
-    if request.is_linked_to_sales_order is not None:
-        kwargs["is_linked_to_sales_order"] = request.is_linked_to_sales_order
-    if request.include_deleted is not None:
-        kwargs["include_deleted"] = request.include_deleted
+    # 1. Refresh the cache (incremental — near-zero cost steady state).
+    await ensure_manufacturing_orders_synced(services.client, services.typed_cache)
 
-    # Server-side date filters
-    if request.created_after is not None:
-        kwargs["created_at_min"] = parse_iso_datetime(
-            request.created_after, "created_after"
-        )
-    if request.created_before is not None:
-        kwargs["created_at_max"] = parse_iso_datetime(
-            request.created_before, "created_before"
-        )
-    if request.updated_after is not None:
-        kwargs["updated_at_min"] = parse_iso_datetime(
-            request.updated_after, "updated_after"
-        )
-    if request.updated_before is not None:
-        kwargs["updated_at_max"] = parse_iso_datetime(
-            request.updated_before, "updated_before"
-        )
+    # 2. Parse date filters once so the data SELECT and the (optional)
+    # COUNT SELECT don't each re-parse the same ISO-8601 strings.
+    parsed_dates = parse_request_dates(request, _MANUFACTURING_ORDER_DATE_FIELDS)
 
-    # Client-side filter parsing (eager — bad input fails loudly)
-    deadline_after_dt: datetime | None = None
-    deadline_before_dt: datetime | None = None
-    if request.production_deadline_after is not None:
-        deadline_after_dt = parse_iso_datetime(
-            request.production_deadline_after, "production_deadline_after"
-        )
-    if request.production_deadline_before is not None:
-        deadline_before_dt = parse_iso_datetime(
-            request.production_deadline_before, "production_deadline_before"
-        )
-    has_client_filter = deadline_after_dt is not None or deadline_before_dt is not None
-
-    # Pagination strategy — short-circuit only when no client-side filter is
-    # active, otherwise auto-pag needs to scan enough rows to satisfy `limit`
-    # after post-filter.
+    # 3. Build the data query.
+    stmt = select(CachedManufacturingOrder)
+    stmt = _apply_manufacturing_order_filters(stmt, request, parsed_dates)
+    stmt = stmt.order_by(
+        CachedManufacturingOrder.created_at.desc(),
+        CachedManufacturingOrder.id.desc(),
+    )
     if request.page is not None:
-        kwargs["page"] = request.page
-    elif 1 <= request.limit <= 250 and not has_client_filter:
-        kwargs["page"] = 1
+        stmt = stmt.offset((request.page - 1) * request.limit).limit(request.limit)
+    else:
+        stmt = stmt.limit(request.limit)
 
-    response = await get_all_manufacturing_orders.asyncio_detailed(**kwargs)
-    attrs_list = unwrap_data(response, default=[])
+    # 4. Execute data query and (when paginating) a separate COUNT for meta.
+    async with services.typed_cache.session() as session:
+        data_result = await session.exec(stmt)
+        cached_orders: list[CachedManufacturingOrder] = list(data_result.all())
 
-    if has_client_filter:
-
-        def _in_deadline_window(mo: Any) -> bool:
-            deadline = unwrap_unset(mo.production_deadline_date, None)
-            if not isinstance(deadline, _datetime.datetime):
-                return False
-            if deadline_after_dt is not None and deadline < deadline_after_dt:
-                return False
-            return not (
-                deadline_before_dt is not None and deadline > deadline_before_dt
+        pagination: PaginationMeta | None = None
+        if request.page is not None:
+            count_stmt = _apply_manufacturing_order_filters(
+                select(func.count()).select_from(CachedManufacturingOrder),
+                request,
+                parsed_dates,
+            )
+            total_records = (await session.exec(count_stmt)).one()
+            total_pages = (total_records + request.limit - 1) // request.limit
+            pagination = PaginationMeta(
+                total_records=total_records,
+                total_pages=total_pages,
+                page=request.page,
+                first_page=request.page == 1,
+                last_page=request.page >= total_pages,
             )
 
-        attrs_list = [mo for mo in attrs_list if _in_deadline_window(mo)]
-
-    # Safety net: cap to request.limit post-pagination.
-    attrs_list = attrs_list[: request.limit]
-
-    # Pagination meta — only when caller set `page` explicitly.
-    pagination: PaginationMeta | None = None
-    if request.page is not None:
-        headers = getattr(response, "headers", None)
-        if headers is not None:
-            pagination = parse_pagination_header(headers.get("x-pagination"))
-
+    # 5. Materialize summaries.
     summaries: list[ManufacturingOrderSummary] = []
-    for mo in attrs_list:
+    for mo in cached_orders:
         summaries.append(
             ManufacturingOrderSummary(
                 id=mo.id,
-                order_no=unwrap_unset(mo.order_no, None),
-                status=enum_to_str(unwrap_unset(mo.status, None)),
-                variant_id=unwrap_unset(mo.variant_id, None),
-                planned_quantity=unwrap_unset(mo.planned_quantity, None),
-                actual_quantity=unwrap_unset(mo.actual_quantity, None),
-                location_id=unwrap_unset(mo.location_id, None),
-                order_created_date=iso_or_none(
-                    unwrap_unset(mo.order_created_date, None)
-                ),
-                production_deadline_date=iso_or_none(
-                    unwrap_unset(mo.production_deadline_date, None)
-                ),
-                done_date=iso_or_none(unwrap_unset(mo.done_date, None)),
-                is_linked_to_sales_order=unwrap_unset(
-                    mo.is_linked_to_sales_order, None
-                ),
-                sales_order_id=unwrap_unset(mo.sales_order_id, None),
-                total_cost=unwrap_unset(mo.total_cost, None),
+                order_no=mo.order_no,
+                status=enum_to_str(mo.status),
+                variant_id=mo.variant_id,
+                planned_quantity=mo.planned_quantity,
+                actual_quantity=mo.actual_quantity,
+                location_id=mo.location_id,
+                order_created_date=iso_or_none(mo.order_created_date),
+                production_deadline_date=iso_or_none(mo.production_deadline_date),
+                done_date=iso_or_none(mo.done_date),
+                is_linked_to_sales_order=mo.is_linked_to_sales_order,
+                sales_order_id=mo.sales_order_id,
+                total_cost=mo.total_cost,
             )
         )
 
@@ -2317,7 +2353,7 @@ async def _list_manufacturing_orders_impl(
 async def list_manufacturing_orders(
     request: Annotated[ListManufacturingOrdersRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """List manufacturing orders with filters (list-tool pattern v2).
+    """List manufacturing orders with filters (cache-backed).
 
     Use this for discovery workflows — find MOs by status, location, linkage
     to a sales order, or within a date window. Returns summary info (order_no,
@@ -2328,14 +2364,18 @@ async def list_manufacturing_orders(
     - `is_linked_to_sales_order=true` — MOs tied to a customer order
     - `location_id=N` — MOs at a specific production location
 
-    **Time windows:**
-    - `created_after` / `created_before` — server-side bounds on `created_at`
-    - `updated_after` / `updated_before` — server-side bounds on `updated_at`
-    - `production_deadline_after` / `production_deadline_before` —
-      client-side bounds on `production_deadline_date` (Katana has no
-      server-side filter). When set, the tool skips the page=1 short-circuit
-      so auto-pagination can scan enough rows to find `limit` matches
-      post-filter.
+    **Time windows** (all run as indexed SQL date-range queries):
+    - `created_after` / `created_before` — bounds on `created_at`
+    - `updated_after` / `updated_before` — bounds on `updated_at`
+    - `production_deadline_after` / `production_deadline_before` — bounds
+      on `production_deadline_date` (was a client-side post-fetch filter
+      pre-cache; now a SQL range filter)
+
+    **Paging:**
+    - `limit` caps the number of rows (default 50, min 1).
+    - `page=N` returns a single page; the response includes `pagination`
+      metadata (total_records, total_pages, first/last flags) computed
+      via SQL COUNT against the same filter predicate.
 
     For full details on a specific MO, use `get_manufacturing_order`.
     For its recipe rows, use `get_manufacturing_order_recipe`.

@@ -32,7 +32,8 @@ from katana_public_api_client.models import (
     ManufacturingOrderStatus,
 )
 from katana_public_api_client.utils import APIError
-from tests.conftest import create_mock_context
+from tests.conftest import create_mock_context, patch_typed_cache_sync
+from tests.factories import make_manufacturing_order, seed_cache
 
 # ============================================================================
 # Unit Tests (with mocks)
@@ -905,238 +906,20 @@ async def test_create_manufacturing_order_make_to_order_with_subassemblies():
 
 
 # ============================================================================
-# list_manufacturing_orders — pattern v2
+# list_manufacturing_orders — cache-backed (#377)
 # ============================================================================
-
-_MO_GET_ALL = (
-    "katana_public_api_client.api.manufacturing_order.get_all_manufacturing_orders"
-)
-_MO_UNWRAP_DATA = "katana_public_api_client.utils.unwrap_data"
-
-
-def _make_mock_mo(
-    *,
-    id: int = 1,
-    order_no: str | None = "MO-1",
-    status: str | None = "NOT_STARTED",
-    variant_id: int | None = 100,
-    planned_quantity: float | None = 5.0,
-    actual_quantity: float | None = None,
-    location_id: int | None = 1,
-    order_created_date: datetime | None = None,
-    production_deadline_date: datetime | None = None,
-    done_date: datetime | None = None,
-    is_linked_to_sales_order: bool | None = False,
-    sales_order_id: int | None = None,
-    total_cost: float | None = 999.0,
-) -> MagicMock:
-    """Build a mock ManufacturingOrder attrs object for tests."""
-    mo = MagicMock()
-    mo.id = id
-    mo.order_no = order_no if order_no is not None else UNSET
-    mo.status = status if status is not None else UNSET
-    mo.variant_id = variant_id if variant_id is not None else UNSET
-    mo.planned_quantity = planned_quantity if planned_quantity is not None else UNSET
-    mo.actual_quantity = actual_quantity if actual_quantity is not None else UNSET
-    mo.location_id = location_id if location_id is not None else UNSET
-    mo.order_created_date = (
-        order_created_date if order_created_date is not None else UNSET
-    )
-    mo.production_deadline_date = (
-        production_deadline_date if production_deadline_date is not None else UNSET
-    )
-    mo.done_date = done_date if done_date is not None else UNSET
-    mo.is_linked_to_sales_order = (
-        is_linked_to_sales_order if is_linked_to_sales_order is not None else UNSET
-    )
-    mo.sales_order_id = sales_order_id if sales_order_id is not None else UNSET
-    mo.total_cost = total_cost if total_cost is not None else UNSET
-    return mo
+#
+# Tests seed ``CachedManufacturingOrder`` rows directly with ``make_manufacturing_order``
+# and assert the impl's filter/pagination logic against the query results.
+# The ``no_sync`` fixture stubs ``ensure_manufacturing_orders_synced`` so the
+# impl never tries to talk to the API during these unit tests.
 
 
-@pytest.mark.asyncio
-async def test_list_manufacturing_orders_server_side_filters_pass_through():
-    """Server-side filters forward to the API kwargs when set."""
-    from katana_mcp.tools.foundation.manufacturing_orders import (
-        ListManufacturingOrdersRequest,
-        _list_manufacturing_orders_impl,
-    )
-
-    from katana_public_api_client.models import GetAllManufacturingOrdersStatus
-
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    request = ListManufacturingOrdersRequest(
-        ids=[1, 2, 3],
-        order_no="MO-42",
-        status=GetAllManufacturingOrdersStatus.IN_PROGRESS,
-        location_id=7,
-        is_linked_to_sales_order=True,
-        include_deleted=False,
-        limit=25,
-    )
-
-    with (
-        patch(f"{_MO_GET_ALL}.asyncio_detailed", side_effect=fake),
-        patch(_MO_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_manufacturing_orders_impl(request, context)
-
-    assert captured["ids"] == [1, 2, 3]
-    assert captured["order_no"] == "MO-42"
-    assert captured["status"] == GetAllManufacturingOrdersStatus.IN_PROGRESS
-    assert captured["location_id"] == 7
-    assert captured["is_linked_to_sales_order"] is True
-    assert captured["include_deleted"] is False
-    assert captured["limit"] == 25
-
-
-@pytest.mark.asyncio
-async def test_list_manufacturing_orders_page_short_circuit_single_page():
-    """limit <= 250 with no client-side filter adds page=1."""
-    from katana_mcp.tools.foundation.manufacturing_orders import (
-        ListManufacturingOrdersRequest,
-        _list_manufacturing_orders_impl,
-    )
-
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    with (
-        patch(f"{_MO_GET_ALL}.asyncio_detailed", side_effect=fake),
-        patch(_MO_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_manufacturing_orders_impl(
-            ListManufacturingOrdersRequest(limit=10), context
-        )
-
-    assert captured["page"] == 1
-    assert captured["limit"] == 10
-
-
-@pytest.mark.asyncio
-async def test_list_manufacturing_orders_caller_page_preserved():
-    """Caller's explicit `page` overrides the short-circuit."""
-    from katana_mcp.tools.foundation.manufacturing_orders import (
-        ListManufacturingOrdersRequest,
-        _list_manufacturing_orders_impl,
-    )
-
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    with (
-        patch(f"{_MO_GET_ALL}.asyncio_detailed", side_effect=fake),
-        patch(_MO_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_manufacturing_orders_impl(
-            ListManufacturingOrdersRequest(limit=50, page=3), context
-        )
-
-    assert captured["page"] == 3
-    assert captured["limit"] == 50
-
-
-@pytest.mark.asyncio
-async def test_list_manufacturing_orders_skips_short_circuit_when_client_filter_set():
-    """production_deadline filter (client-side) suppresses the page=1 short-circuit."""
-    from katana_mcp.tools.foundation.manufacturing_orders import (
-        ListManufacturingOrdersRequest,
-        _list_manufacturing_orders_impl,
-    )
-
-    context, _ = create_mock_context()
-    captured: dict = {}
-
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
-
-    with (
-        patch(f"{_MO_GET_ALL}.asyncio_detailed", side_effect=fake),
-        patch(_MO_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_manufacturing_orders_impl(
-            ListManufacturingOrdersRequest(
-                limit=10, production_deadline_after="2026-04-01T00:00:00Z"
-            ),
-            context,
-        )
-
-    assert "page" not in captured
-    assert captured["limit"] == 10
-
-
-@pytest.mark.asyncio
-async def test_list_manufacturing_orders_pagination_meta_from_header():
-    """x-pagination header populates PaginationMeta when page is set."""
-    from katana_mcp.tools.foundation.manufacturing_orders import (
-        ListManufacturingOrdersRequest,
-        _list_manufacturing_orders_impl,
-    )
-
-    context, _ = create_mock_context()
-
-    mock_response = MagicMock()
-    mock_response.headers = {
-        "x-pagination": (
-            '{"total_records":"200","total_pages":"4","offset":"0","page":"2",'
-            '"first_page":"false","last_page":"false"}'
-        )
-    }
-
-    async def fake(**kwargs):
-        return mock_response
-
-    with (
-        patch(f"{_MO_GET_ALL}.asyncio_detailed", side_effect=fake),
-        patch(_MO_UNWRAP_DATA, return_value=[]),
-    ):
-        result = await _list_manufacturing_orders_impl(
-            ListManufacturingOrdersRequest(page=2, limit=50), context
-        )
-
-    assert result.pagination is not None
-    assert result.pagination.total_records == 200
-    assert result.pagination.total_pages == 4
-    assert result.pagination.page == 2
-    assert result.pagination.first_page is False
-
-
-@pytest.mark.asyncio
-async def test_list_manufacturing_orders_caps_to_limit():
-    """Safety net: slice results to request.limit regardless of transport."""
-    from katana_mcp.tools.foundation.manufacturing_orders import (
-        ListManufacturingOrdersRequest,
-        _list_manufacturing_orders_impl,
-    )
-
-    context, _ = create_mock_context()
-    over_fetched = [_make_mock_mo(id=i, order_no=f"MO-{i}") for i in range(100)]
-
-    with (
-        patch(f"{_MO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_MO_UNWRAP_DATA, return_value=over_fetched),
-    ):
-        result = await _list_manufacturing_orders_impl(
-            ListManufacturingOrdersRequest(limit=25), context
-        )
-
-    assert len(result.orders) == 25
-    assert result.total_count == 25
+@pytest.fixture
+def no_mo_sync():
+    """Patch ``ensure_manufacturing_orders_synced`` to a no-op."""
+    with patch_typed_cache_sync("manufacturing_orders"):
+        yield
 
 
 @pytest.mark.asyncio
@@ -1152,94 +935,269 @@ async def test_list_manufacturing_orders_limit_le_250_validation():
 
 
 @pytest.mark.asyncio
-async def test_list_manufacturing_orders_invalid_date_raises():
+async def test_list_manufacturing_orders_filters_by_ids(
+    context_with_typed_cache, no_mo_sync
+):
+    """`ids` restricts the returned set to the specified MO IDs."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        ListManufacturingOrdersRequest,
+        _list_manufacturing_orders_impl,
+    )
+
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_manufacturing_order(id=1, order_no="MO-1"),
+            make_manufacturing_order(id=2, order_no="MO-2"),
+            make_manufacturing_order(id=3, order_no="MO-3"),
+        ],
+    )
+
+    result = await _list_manufacturing_orders_impl(
+        ListManufacturingOrdersRequest(ids=[1, 3]), context
+    )
+
+    assert {o.id for o in result.orders} == {1, 3}
+
+
+@pytest.mark.asyncio
+async def test_list_manufacturing_orders_filters_by_status(
+    context_with_typed_cache, no_mo_sync
+):
+    """`status` matches the cache's enum column exactly."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        ListManufacturingOrdersRequest,
+        _list_manufacturing_orders_impl,
+    )
+
+    from katana_public_api_client.models import GetAllManufacturingOrdersStatus
+
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_manufacturing_order(id=1, status="IN_PROGRESS"),
+            make_manufacturing_order(id=2, status="NOT_STARTED"),
+            make_manufacturing_order(id=3, status="DONE"),
+        ],
+    )
+
+    result = await _list_manufacturing_orders_impl(
+        ListManufacturingOrdersRequest(
+            status=GetAllManufacturingOrdersStatus.IN_PROGRESS
+        ),
+        context,
+    )
+
+    assert {o.id for o in result.orders} == {1}
+
+
+@pytest.mark.asyncio
+async def test_list_manufacturing_orders_filters_by_location_and_so_link(
+    context_with_typed_cache, no_mo_sync
+):
+    """`location_id` and `is_linked_to_sales_order` apply as direct column filters."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        ListManufacturingOrdersRequest,
+        _list_manufacturing_orders_impl,
+    )
+
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_manufacturing_order(
+                id=1, location_id=7, is_linked_to_sales_order=True, sales_order_id=100
+            ),
+            make_manufacturing_order(
+                id=2, location_id=7, is_linked_to_sales_order=False
+            ),
+            make_manufacturing_order(
+                id=3, location_id=8, is_linked_to_sales_order=True, sales_order_id=101
+            ),
+        ],
+    )
+
+    by_loc = await _list_manufacturing_orders_impl(
+        ListManufacturingOrdersRequest(location_id=7), context
+    )
+    assert {o.id for o in by_loc.orders} == {1, 2}
+
+    linked = await _list_manufacturing_orders_impl(
+        ListManufacturingOrdersRequest(is_linked_to_sales_order=True), context
+    )
+    assert {o.id for o in linked.orders} == {1, 3}
+
+
+@pytest.mark.asyncio
+async def test_list_manufacturing_orders_excludes_deleted_by_default(
+    context_with_typed_cache, no_mo_sync
+):
+    """Soft-deleted MOs are filtered unless include_deleted=True."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        ListManufacturingOrdersRequest,
+        _list_manufacturing_orders_impl,
+    )
+
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_manufacturing_order(id=1, deleted_at=None),
+            make_manufacturing_order(id=2, deleted_at=datetime(2026, 3, 15)),
+        ],
+    )
+
+    default = await _list_manufacturing_orders_impl(
+        ListManufacturingOrdersRequest(), context
+    )
+    assert {o.id for o in default.orders} == {1}
+
+    with_deleted = await _list_manufacturing_orders_impl(
+        ListManufacturingOrdersRequest(include_deleted=True), context
+    )
+    assert {o.id for o in with_deleted.orders} == {1, 2}
+
+
+@pytest.mark.asyncio
+async def test_list_manufacturing_orders_date_filters(
+    context_with_typed_cache, no_mo_sync
+):
+    """All four date columns (created_at, updated_at, production_deadline_date) apply as ranges."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        ListManufacturingOrdersRequest,
+        _list_manufacturing_orders_impl,
+    )
+
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_manufacturing_order(
+                id=1,
+                created_at=datetime(2026, 2, 15),
+                production_deadline_date=datetime(2026, 4, 15),
+            ),
+            make_manufacturing_order(
+                id=2,
+                created_at=datetime(2026, 5, 1),
+                production_deadline_date=datetime(2027, 1, 1),
+            ),
+        ],
+    )
+
+    # Created window
+    created = await _list_manufacturing_orders_impl(
+        ListManufacturingOrdersRequest(
+            created_after="2026-01-01T00:00:00Z",
+            created_before="2026-04-01T00:00:00Z",
+        ),
+        context,
+    )
+    assert {o.id for o in created.orders} == {1}
+
+    # production_deadline window — was a client-side filter pre-cache,
+    # now indexed SQL.
+    deadline = await _list_manufacturing_orders_impl(
+        ListManufacturingOrdersRequest(
+            production_deadline_after="2026-04-01T00:00:00Z",
+            production_deadline_before="2026-04-30T00:00:00Z",
+        ),
+        context,
+    )
+    assert {o.id for o in deadline.orders} == {1}
+
+
+@pytest.mark.asyncio
+async def test_list_manufacturing_orders_invalid_date_raises(
+    context_with_typed_cache, no_mo_sync
+):
     """Malformed ISO-8601 for a date filter surfaces as ValueError."""
     from katana_mcp.tools.foundation.manufacturing_orders import (
         ListManufacturingOrdersRequest,
         _list_manufacturing_orders_impl,
     )
 
-    context, _ = create_mock_context()
+    context, _, _typed_cache = context_with_typed_cache
 
-    with (
-        patch(f"{_MO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_MO_UNWRAP_DATA, return_value=[]),
-        pytest.raises(ValueError, match=r"Invalid ISO-8601.*created_after"),
-    ):
+    with pytest.raises(ValueError, match=r"Invalid ISO-8601.*created_after"):
         await _list_manufacturing_orders_impl(
             ListManufacturingOrdersRequest(created_after="not-a-date"), context
         )
 
 
 @pytest.mark.asyncio
-async def test_list_manufacturing_orders_date_z_normalization():
-    """Trailing Z and z both normalize to +00:00 and forward as datetimes."""
+async def test_list_manufacturing_orders_caps_to_limit(
+    context_with_typed_cache, no_mo_sync
+):
+    """`limit` caps the result size even when more rows match."""
     from katana_mcp.tools.foundation.manufacturing_orders import (
         ListManufacturingOrdersRequest,
         _list_manufacturing_orders_impl,
     )
 
-    context, _ = create_mock_context()
-    captured: dict = {}
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [make_manufacturing_order(id=i) for i in range(1, 31)],
+    )
 
-    async def fake(**kwargs):
-        captured.update(kwargs)
-        return MagicMock()
+    result = await _list_manufacturing_orders_impl(
+        ListManufacturingOrdersRequest(limit=5), context
+    )
 
-    with (
-        patch(f"{_MO_GET_ALL}.asyncio_detailed", side_effect=fake),
-        patch(_MO_UNWRAP_DATA, return_value=[]),
-    ):
-        await _list_manufacturing_orders_impl(
-            ListManufacturingOrdersRequest(
-                created_after="2026-01-01T00:00:00Z",
-                updated_before="2026-04-01T00:00:00z",
-            ),
-            context,
-        )
-
-    assert isinstance(captured["created_at_min"], datetime)
-    assert isinstance(captured["updated_at_max"], datetime)
-    assert captured["created_at_min"].tzinfo is not None
-    assert captured["updated_at_max"].tzinfo is not None
+    assert len(result.orders) == 5
+    assert result.total_count == 5
 
 
 @pytest.mark.asyncio
-async def test_list_manufacturing_orders_production_deadline_client_side_filter():
-    """production_deadline_after/before filters post-fetch via client code."""
+async def test_list_manufacturing_orders_pagination_meta_populated_on_explicit_page(
+    context_with_typed_cache, no_mo_sync
+):
+    """An explicit `page` populates `pagination` from a SQL COUNT against the same filter set."""
     from katana_mcp.tools.foundation.manufacturing_orders import (
         ListManufacturingOrdersRequest,
         _list_manufacturing_orders_impl,
     )
 
-    context, _ = create_mock_context()
-    mos = [
-        _make_mock_mo(
-            id=1,
-            order_no="MO-1",
-            production_deadline_date=datetime(2026, 4, 15, tzinfo=UTC),
-        ),
-        _make_mock_mo(
-            id=2,
-            order_no="MO-2",
-            production_deadline_date=datetime(2027, 1, 1, tzinfo=UTC),
-        ),
-    ]
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [make_manufacturing_order(id=i) for i in range(1, 12)],
+    )
 
-    with (
-        patch(f"{_MO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_MO_UNWRAP_DATA, return_value=mos),
-    ):
-        result = await _list_manufacturing_orders_impl(
-            ListManufacturingOrdersRequest(
-                production_deadline_after="2026-04-01T00:00:00Z",
-                production_deadline_before="2026-04-30T00:00:00Z",
-            ),
-            context,
-        )
+    result = await _list_manufacturing_orders_impl(
+        ListManufacturingOrdersRequest(limit=5, page=2), context
+    )
 
-    assert result.total_count == 1
-    assert result.orders[0].id == 1
+    assert result.pagination is not None
+    assert result.pagination.total_records == 11
+    assert result.pagination.total_pages == 3
+    assert result.pagination.page == 2
+    assert result.pagination.first_page is False
+    assert result.pagination.last_page is False
+    assert len(result.orders) == 5
+
+
+@pytest.mark.asyncio
+async def test_list_manufacturing_orders_pagination_meta_none_without_page(
+    context_with_typed_cache, no_mo_sync
+):
+    """Without an explicit `page`, `pagination` is `None`."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        ListManufacturingOrdersRequest,
+        _list_manufacturing_orders_impl,
+    )
+
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(typed_cache, [make_manufacturing_order(id=1)])
+
+    result = await _list_manufacturing_orders_impl(
+        ListManufacturingOrdersRequest(limit=50), context
+    )
+
+    assert result.pagination is None
 
 
 # ============================================================================

@@ -16,13 +16,18 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+from katana_public_api_client.api.manufacturing_order import (
+    get_all_manufacturing_orders,
+)
 from katana_public_api_client.api.sales_order import get_all_sales_orders
 from katana_public_api_client.api.stock_adjustment import get_all_stock_adjustments
 from katana_public_api_client.models_pydantic._generated import (
+    CachedManufacturingOrder,
     CachedSalesOrder,
     CachedSalesOrderRow,
     CachedStockAdjustment,
     CachedStockAdjustmentRow,
+    ManufacturingOrder as PydanticManufacturingOrder,
     SalesOrder as PydanticSalesOrder,
     StockAdjustment as PydanticStockAdjustment,
 )
@@ -192,6 +197,65 @@ async def ensure_stock_adjustments_synced(
                     entity_type="stock_adjustment",
                     last_synced=datetime.now(tz=UTC).replace(tzinfo=None),
                     row_count=len(cached_parents),
+                )
+            )
+            await session.commit()
+
+
+def _attrs_manufacturing_order_to_cached(
+    attrs_mo: object,
+) -> CachedManufacturingOrder:
+    """Convert one attrs ``ManufacturingOrder`` to a ``CachedManufacturingOrder``.
+
+    Simpler than the sales-order / stock-adjustment converters: the
+    ``/manufacturing_orders`` list endpoint returns summary objects with
+    no nested rows (recipe rows live at ``/manufacturing_order_recipe_rows``
+    and aren't cached here), so there's only one entity to build per row.
+    JSON-typed list fields (``batch_transactions``, ``serial_numbers``)
+    survive ``model_dump`` as plain dict lists and ``model_validate``
+    routes them into the cache class's JSON column unchanged.
+    """
+    api_mo = PydanticManufacturingOrder.from_attrs(attrs_mo)
+    return CachedManufacturingOrder.model_validate(api_mo.model_dump())
+
+
+async def ensure_manufacturing_orders_synced(
+    client: KatanaClient, cache: TypedCacheEngine
+) -> None:
+    """Pull updated manufacturing orders from Katana and upsert into the cache.
+
+    Mirror of :func:`ensure_sales_orders_synced` for the ``ManufacturingOrder``
+    entity. Cold-start fetches the full history; subsequent calls pass
+    ``updated_at_min`` and pick up only changed rows. Per-entity lock
+    serializes concurrent calls to keep cold-start fan-out single-flight.
+    """
+    async with cache.lock_for("manufacturing_order"):
+        async with cache.session() as session:
+            state = await session.get(SyncState, "manufacturing_order")
+            last_synced = state.last_synced if state is not None else None
+
+        kwargs = (
+            {"updated_at_min": last_synced.replace(tzinfo=UTC)}
+            if last_synced is not None
+            else {}
+        )
+        response = await get_all_manufacturing_orders.asyncio_detailed(
+            client=client, **kwargs
+        )
+        attrs_orders = unwrap_data(response, default=[])
+
+        cached_orders = [
+            _attrs_manufacturing_order_to_cached(mo) for mo in attrs_orders
+        ]
+
+        async with cache.session() as session:
+            for order in cached_orders:
+                await session.merge(order)
+            await session.merge(
+                SyncState(
+                    entity_type="manufacturing_order",
+                    last_synced=datetime.now(tz=UTC).replace(tzinfo=None),
+                    row_count=len(cached_orders),
                 )
             )
             await session.commit()

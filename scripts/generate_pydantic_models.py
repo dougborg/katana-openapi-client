@@ -180,6 +180,7 @@ CACHE_TABLES: set[str] = {
     "SalesOrderRow",
     "StockAdjustment",
     "StockAdjustmentRow",
+    "ManufacturingOrder",
 }
 
 
@@ -241,6 +242,7 @@ CACHE_JSON_COLUMNS: dict[str, list[str]] = {
     "SalesOrder": ["shipping_fee", "addresses"],
     "SalesOrderRow": ["attributes", "batch_transactions", "serial_numbers"],
     "StockAdjustmentRow": ["batch_transactions"],
+    "ManufacturingOrder": ["batch_transactions", "serial_numbers"],
 }
 
 
@@ -787,6 +789,12 @@ def duplicate_cache_tables_as_cached_siblings(
             "",
             new_source,
         )
+        # Two shapes datamodel-codegen emits for ``id``:
+        #   1. ``id: Annotated[int | None, Field(description=...)] = None``
+        #      (multi-line tolerant — description may wrap)
+        #   2. ``id: int | None = None`` (no description on the source field)
+        # Either gets stripped so ``inject_primary_key_in_table_classes`` can
+        # inject the canonical primary-keyed declaration without a duplicate.
         new_source = re.sub(
             r"    id:\s*Annotated\[\s*int(?:\s*\|\s*None)?\s*,"
             r"[^]]*\][^\n]*\n",
@@ -794,6 +802,12 @@ def duplicate_cache_tables_as_cached_siblings(
             new_source,
             count=1,
             flags=re.DOTALL,
+        )
+        new_source = re.sub(
+            r"    id:\s*int(?:\s*\|\s*None)?(?:\s*=\s*None)?\n",
+            "",
+            new_source,
+            count=1,
         )
         cached_copies.append(
             ClassInfo(

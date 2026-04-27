@@ -504,29 +504,29 @@ confirming.
 ---
 
 ### list_manufacturing_orders
-List manufacturing orders with filters (list-tool pattern v2).
+List manufacturing orders with filters. Cache-backed post-#377 — all filters run as
+indexed SQL queries against the SQLModel typed cache, including `production_deadline_*`
+which was a client-side post-fetch filter pre-cache.
 
 **Paging:**
 - `limit` (optional, default 50, min 1, max 250): Max rows to return
-- `page` (optional, min 1): Page number (1-based), disables auto-pagination
+- `page` (optional, min 1): Page number (1-based); when set, the response includes
+  `pagination` metadata (total_records, total_pages) computed via SQL COUNT against
+  the same filter predicate
 
 **Domain filters:**
 - `ids` (optional): Explicit list of MO IDs
 - `order_no` (optional): Exact order_no
-- `status` (optional): NOT_STARTED, IN_PROGRESS, BLOCKED, PAUSED, COMPLETED
+- `status` (optional): NOT_STARTED, IN_PROGRESS, BLOCKED, DONE
 - `location_id` (optional): Production location ID
 - `is_linked_to_sales_order` (optional): True/False filter on SO linkage
 - `include_deleted` (optional): Include soft-deleted MOs
 
-**Time windows (server-side):**
+**Time windows** (all run as indexed SQL date-range queries):
 - `created_after` / `created_before`: ISO-8601 bounds on `created_at`
 - `updated_after` / `updated_before`: ISO-8601 bounds on `updated_at`
-
-**Time windows (client-side — Katana has no server filter):**
 - `production_deadline_after` / `production_deadline_before`: bounds on
-  `production_deadline_date`. When set, the tool skips the page=1
-  short-circuit so auto-pagination can scan enough rows to find `limit`
-  matches post-filter.
+  `production_deadline_date`
 
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
