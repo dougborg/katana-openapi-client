@@ -130,10 +130,16 @@ class KatanaPydanticBase(SQLModel):
                 # Handle lists of nested objects
                 value = [_convert_nested_value(item, _registry) for item in value]
             elif isinstance(value, dict) and field_name != "additional_properties":
-                # Handle dict values (but not additional_properties)
-                value = {
-                    k: _convert_nested_value(v, _registry) for k, v in value.items()
-                }
+                # Normalize an empty dict to None. Katana sometimes returns {}
+                # instead of null for absent optional nested objects (e.g.
+                # shipping_fee). An empty mapping cannot satisfy any schema
+                # that has required fields, so treat it the same as null.
+                if not value:
+                    value = None
+                else:
+                    value = {
+                        k: _convert_nested_value(v, _registry) for k, v in value.items()
+                    }
             else:
                 value = _convert_nested_value(value, _registry)
 

@@ -141,6 +141,98 @@ class TestCacheTables:
             assert order.sales_order_rows[0].variant_id == 100
 
 
+class TestSyncShippingFeeEmpty:
+    """Regression tests for shipping_fee: {} Katana quirk.
+
+    Katana returns ``shipping_fee: {}`` (empty object) instead of ``null``
+    when a sales order has no shipping fee. Our attrs parser can't populate
+    the required inner fields, so it falls back to returning the raw ``{}``
+    dict. The ``from_attrs`` converter in ``_base.py`` must normalise that
+    empty dict to ``None`` before handing data to pydantic validation — if
+    it doesn't, validation raises three ``Field required`` errors and the
+    whole cache sync transaction is rolled back.
+    """
+
+    def test_attrs_sales_order_with_empty_shipping_fee_converts(self):
+        """``from_attrs`` must not raise when attrs shipping_fee is ``{}``."""
+        from katana_public_api_client.models import SalesOrder as AttrsSalesOrder
+        from katana_public_api_client.models_pydantic._generated import (
+            SalesOrder as PydanticSalesOrder,
+        )
+
+        # Simulate the wire shape Katana sends for a no-fee order. The attrs
+        # parser can't populate required inner fields from {}, catches the
+        # KeyError, and falls back to storing the raw {} dict.
+        attrs_so = AttrsSalesOrder.from_dict(
+            {
+                "id": 9001,
+                "customer_id": 42,
+                "order_no": "SO-FEE-TEST",
+                "location_id": 1,
+                "status": "NOT_SHIPPED",
+                "shipping_fee": {},
+            }
+        )
+
+        # This must not raise pydantic ValidationError.
+        pydantic_so = PydanticSalesOrder.from_attrs(attrs_so)
+        assert pydantic_so.shipping_fee is None
+
+    @pytest.mark.asyncio
+    async def test_ensure_sales_orders_synced_with_empty_shipping_fee(
+        self, typed_cache_engine
+    ):
+        """Full sync path: ``ensure_sales_orders_synced`` must succeed and
+        populate the cache when the API returns an order with
+        ``shipping_fee: {}``.
+        """
+        from unittest.mock import AsyncMock, MagicMock, patch
+
+        from katana_mcp.typed_cache.sync import ensure_sales_orders_synced
+        from sqlmodel import select
+
+        from katana_public_api_client.models import SalesOrder as AttrsSalesOrder
+        from katana_public_api_client.models_pydantic._generated import CachedSalesOrder
+
+        # Build the attrs order that the paginated API would return.
+        attrs_so = AttrsSalesOrder.from_dict(
+            {
+                "id": 9001,
+                "customer_id": 42,
+                "order_no": "SO-FEE-SYNC",
+                "location_id": 1,
+                "status": "NOT_SHIPPED",
+                "shipping_fee": {},
+            }
+        )
+
+        # Build a minimal mock response that satisfies unwrap_data(response).
+        mock_parsed = MagicMock()
+        mock_parsed.data = [attrs_so]
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.parsed = mock_parsed
+
+        mock_client = MagicMock()
+
+        with patch(
+            "katana_mcp.typed_cache.sync.get_all_sales_orders.asyncio_detailed",
+            new=AsyncMock(return_value=mock_response),
+        ):
+            # Should complete without raising.
+            await ensure_sales_orders_synced(
+                client=mock_client, cache=typed_cache_engine
+            )
+
+        # The order must be in the cache.
+        async with typed_cache_engine.session() as session:
+            stmt = select(CachedSalesOrder).where(CachedSalesOrder.id == 9001)
+            result = await session.exec(stmt)
+            cached = result.one()
+            assert cached.order_no == "SO-FEE-SYNC"
+            assert cached.shipping_fee is None
+
+
 class TestLocks:
     """Per-entity asyncio.Lock registry."""
 
