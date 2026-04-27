@@ -64,12 +64,16 @@ def make_sales_order(
 ) -> CachedSalesOrder:
     """Build a SQLModel ``SalesOrder`` for direct cache insertion.
 
-    Uses naive UTC datetimes (the typed cache stores timestamps without
-    tzinfo — SQLite's default ``DateTime`` column doesn't preserve
-    offsets, so filter comparisons require naive values on both sides).
-    ``created_at`` defaults to 2026-04-01 so date-window filter tests
-    have a stable reference point.
+    Datetime args are normalized to naive UTC (the typed cache stores
+    timestamps without tzinfo — SQLite's default ``DateTime`` column
+    doesn't preserve offsets, so filter comparisons require naive values
+    on both sides). Tz-aware inputs are converted via ``naive_utc`` so
+    the factory enforces the cache's contract; callers can pass either
+    flavor without breaking later comparisons. ``created_at`` defaults
+    to 2026-04-01 so date-window filter tests have a stable reference.
     """
+    from katana_mcp.tools.tool_result_utils import naive_utc
+
     from katana_public_api_client.models_pydantic._generated import (
         SalesOrder as CachedSalesOrder,
         SalesOrderProductionStatus as _ProductionStatus,
@@ -95,12 +99,12 @@ def make_sales_order(
         status=resolved_status,
         production_status=resolved_prod_status,
         invoicing_status=invoicing_status,
-        created_at=created_at if created_at is not None else datetime(2026, 4, 1),
-        updated_at=updated_at,
-        delivery_date=delivery_date,
+        created_at=naive_utc(created_at) or datetime(2026, 4, 1),
+        updated_at=naive_utc(updated_at),
+        delivery_date=naive_utc(delivery_date),
         total=total,
         currency=currency,
-        deleted_at=deleted_at,
+        deleted_at=naive_utc(deleted_at),
         sales_order_rows=rows if rows is not None else [],
     )
 
