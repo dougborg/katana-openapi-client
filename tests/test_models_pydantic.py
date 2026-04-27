@@ -207,8 +207,8 @@ class TestModelConfiguration:
         from sqlmodel import Session, SQLModel, create_engine, select
 
         from katana_public_api_client.models_pydantic._generated import (
-            SalesOrder,
-            SalesOrderRow,
+            CachedSalesOrder,
+            CachedSalesOrderRow,
             SalesOrderStatus,
         )
 
@@ -216,19 +216,21 @@ class TestModelConfiguration:
         SQLModel.metadata.create_all(engine)
 
         with Session(engine) as session:
-            order = SalesOrder(
+            order = CachedSalesOrder(
                 id=1,
                 customer_id=42,
                 location_id=1,
                 order_no="SO-001",
                 status=SalesOrderStatus.not_shipped,
             )
-            row = SalesOrderRow(id=1, sales_order_id=1, variant_id=100, quantity=5.0)
+            row = CachedSalesOrderRow(
+                id=1, sales_order_id=1, variant_id=100, quantity=5.0
+            )
             session.add(order)
             session.add(row)
             session.commit()
 
-            fetched = session.exec(select(SalesOrder)).one()
+            fetched = session.exec(select(CachedSalesOrder)).one()
             assert fetched.order_no == "SO-001"
             assert len(fetched.sales_order_rows) == 1
             assert fetched.sales_order_rows[0].variant_id == 100

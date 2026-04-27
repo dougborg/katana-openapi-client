@@ -253,6 +253,8 @@ from .purchase_orders import (
 )
 from .sales_orders import (
     Address1,
+    CachedSalesOrder,
+    CachedSalesOrderRow,
     CreateSalesOrderAddressRequest,
     CreateSalesOrderFulfillmentRequest,
     CreateSalesOrderRequest,
@@ -316,6 +318,8 @@ from .stock import (
     BatchTransaction9,
     BatchTransaction10,
     BatchTransactionRequest,
+    CachedStockAdjustment,
+    CachedStockAdjustmentRow,
     CreateSerialNumberResourceType,
     CreateSerialNumbersRequest,
     CreateStockAdjustmentRequest,
@@ -403,6 +407,10 @@ __all__ = [
     "BatchTransactionRequest",
     "BomRow",
     "BomRowListResponse",
+    "CachedSalesOrder",
+    "CachedSalesOrderRow",
+    "CachedStockAdjustment",
+    "CachedStockAdjustmentRow",
     "ClearDemandForecastRequest",
     "Code",
     "Code1",
