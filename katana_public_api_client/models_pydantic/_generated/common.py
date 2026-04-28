@@ -68,9 +68,10 @@ class ProductOperationType(StrEnum):
 
 class ManufacturingOperationStatus(StrEnum):
     not_started = "NOT_STARTED"
+    blocked = "BLOCKED"
     in_progress = "IN_PROGRESS"
-    completed = "COMPLETED"
     paused = "PAUSED"
+    completed = "COMPLETED"
 
 
 class DocumentSendStatus(StrEnum):

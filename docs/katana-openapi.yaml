@@ -1445,9 +1445,10 @@ components:
       type: string
       enum:
         - NOT_STARTED
+        - BLOCKED
         - IN_PROGRESS
-        - COMPLETED
         - PAUSED
+        - COMPLETED
       description: Status of a manufacturing order operation
 
     PurchaseOrderStatus:
