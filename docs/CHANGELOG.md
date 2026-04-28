@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.55.1 (2026-04-28)
+
+### Bug Fixes
+
+- **client**: Add NO_RECIPE to OutsourcedRecipeIngredientAvailability
+  ([#409](https://github.com/dougborg/katana-openapi-client/pull/409),
+  [`0611273`](https://github.com/dougborg/katana-openapi-client/commit/06112730bbbd2e29e84592456ba042722283fe41))
+
 ## v0.55.0 (2026-04-28)
 
 ### Bug Fixes
