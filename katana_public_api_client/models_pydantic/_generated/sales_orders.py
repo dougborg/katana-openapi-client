@@ -45,6 +45,12 @@ class SalesReturnStatus(StrEnum):
     restocked_all = "RESTOCKED_ALL"
 
 
+class SalesReturnRefundStatus(StrEnum):
+    not_refunded = "NOT_REFUNDED"
+    refunded_all = "REFUNDED_ALL"
+    partially_refunded = "PARTIALLY_REFUNDED"
+
+
 class SalesOrderStatus(StrEnum):
     not_shipped = "NOT_SHIPPED"
     partially_packed = "PARTIALLY_PACKED"
@@ -1151,7 +1157,10 @@ class SalesReturn(DeletableEntity):
         str | None, Field(description="Additional notes or comments about the return")
     ] = None
     refund_status: Annotated[
-        str | None, Field(description="Current status of the refund processing")
+        SalesReturnRefundStatus | None,
+        Field(
+            description="Current status of the refund processing",
+        ),
     ] = None
     tracking_number: Annotated[
         str | None, Field(description="Tracking number for the return shipment")
