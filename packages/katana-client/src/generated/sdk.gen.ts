@@ -180,6 +180,9 @@ import type {
   DeletePurchaseOrderRowData,
   DeletePurchaseOrderRowErrors,
   DeletePurchaseOrderRowResponses,
+  DeleteRecipeData,
+  DeleteRecipeErrors,
+  DeleteRecipeResponses,
   DeleteRecipeRowData,
   DeleteRecipeRowErrors,
   DeleteRecipeRowResponses,
@@ -459,12 +462,18 @@ import type {
   GetSalesReturnRowUnassignedBatchTransactionsData,
   GetSalesReturnRowUnassignedBatchTransactionsErrors,
   GetSalesReturnRowUnassignedBatchTransactionsResponses,
+  GetSerialNumbersStockAltData,
+  GetSerialNumbersStockAltErrors,
+  GetSerialNumbersStockAltResponses,
   GetServiceData,
   GetServiceErrors,
   GetServiceResponses,
   GetSupplierAddressesData,
   GetSupplierAddressesErrors,
   GetSupplierAddressesResponses,
+  GetUserInfoData,
+  GetUserInfoErrors,
+  GetUserInfoResponses,
   GetVariantData,
   GetVariantErrors,
   GetVariantResponses,
@@ -696,7 +705,7 @@ export const updateBatchStock = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: "bearer", type: "http" }],
-    url: "/batch_stocks/{batch_id}",
+    url: "/batch_stocks/{id}",
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -2715,6 +2724,26 @@ export const createRecipes = <ThrowOnError extends boolean = false>(
   });
 
 /**
+ * Delete a recipe
+ *
+ * Deletes all recipe rows for a product by ID. This endpoint is deprecated in favor of BOM rows.
+ *
+ * @deprecated
+ */
+export const deleteRecipe = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteRecipeData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteRecipeResponses,
+    DeleteRecipeErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/recipes/{id}",
+    ...options,
+  });
+
+/**
  * Delete a recipe row
  *
  * Deletes a recipe row. The recipe rows endpoint is deprecated in favor of BOM rows.
@@ -2756,6 +2785,24 @@ export const updateRecipeRow = <ThrowOnError extends boolean = false>(
       "Content-Type": "application/json",
       ...options.headers,
     },
+  });
+
+/**
+ * Get current user info
+ *
+ * Returns information about the currently authenticated user.
+ */
+export const getUserInfo = <ThrowOnError extends boolean = false>(
+  options?: Options<GetUserInfoData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetUserInfoResponses,
+    GetUserInfoErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/user_info",
+    ...options,
   });
 
 /**
@@ -4304,6 +4351,24 @@ export const createSerialNumbers = <ThrowOnError extends boolean = false>(
       "Content-Type": "application/json",
       ...options.headers,
     },
+  });
+
+/**
+ * List serial number stock (alternate path)
+ *
+ * Returns a list of serial number stock. This is an alternate path for the /serial_numbers_stock endpoint.
+ */
+export const getSerialNumbersStockAlt = <ThrowOnError extends boolean = false>(
+  options?: Options<GetSerialNumbersStockAltData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetSerialNumbersStockAltResponses,
+    GetSerialNumbersStockAltErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/serial_numbers/serial_numbers_stock",
+    ...options,
   });
 
 /**

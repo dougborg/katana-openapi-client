@@ -48,7 +48,7 @@ class SalesReturnStatus(StrEnum):
 
 class SalesReturnRefundStatus(StrEnum):
     not_refunded = "NOT_REFUNDED"
-    refunded_all = "REFUNDED_ALL"
+    refunded = "REFUNDED"
     partially_refunded = "PARTIALLY_REFUNDED"
 
 

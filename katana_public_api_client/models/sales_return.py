@@ -29,7 +29,7 @@ class SalesReturn:
         {'id': 3001, 'customer_id': 1001, 'sales_order_id': 2001, 'order_no': 'SR-2023-001', 'return_location_id': 1,
             'status': 'RETURNED_ALL', 'currency': 'USD', 'return_date': '2023-10-15T14:30:00Z', 'order_created_date':
             '2023-10-10T10:00:00Z', 'additional_info': 'Customer reported damaged items during shipping', 'refund_status':
-            'PROCESSED', 'sales_return_rows': [{'id': 3501, 'sales_return_id': 3001, 'variant_id': 2002, 'quantity': '2.0',
+            'REFUNDED', 'sales_return_rows': [{'id': 3501, 'sales_return_id': 3001, 'variant_id': 2002, 'quantity': '2.0',
             'return_reason_id': 1, 'notes': 'Packaging was damaged', 'unit_price': 25.0, 'total_price': 50.0, 'created_at':
             '2023-10-15T14:00:00Z', 'updated_at': '2023-10-15T15:00:00Z'}], 'created_at': '2023-10-15T14:00:00Z',
             'updated_at': '2023-10-15T15:00:00Z', 'deleted_at': None}

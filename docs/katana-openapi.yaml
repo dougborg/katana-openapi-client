@@ -1386,7 +1386,7 @@ components:
       type: string
       enum:
         - NOT_REFUNDED
-        - REFUNDED_ALL
+        - REFUNDED
         - PARTIALLY_REFUNDED
       description: Refund status of a sales return
 
@@ -2051,6 +2051,7 @@ components:
         data:
           - id: 12345
             name: Bin-2
+            bin_name: Bin-2
             location_id: 12346
             created_at: "2020-10-23T10:37:05.085Z"
             updated_at: "2020-10-23T10:37:05.085Z"
@@ -10160,7 +10161,7 @@ components:
         return_date: "2023-10-15T14:30:00Z"
         order_created_date: "2023-10-10T10:00:00Z"
         additional_info: Customer reported damaged items during shipping
-        refund_status: PROCESSED
+        refund_status: REFUNDED
         sales_return_rows:
           - id: 3501
             sales_return_id: 3001
@@ -10906,7 +10907,7 @@ components:
             return_date: "2023-10-15T14:30:00Z"
             order_created_date: "2023-10-10T10:00:00Z"
             additional_info: Customer reported damaged items
-            refund_status: PROCESSED
+            refund_status: REFUNDED
     SalesReturnRowListResponse:
       description: Response containing a list of sales return row items with product return details and quantities
       type: object
@@ -16598,17 +16599,11 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateSalesReturnRequest"
             example:
-              customer_id: 12345
               sales_order_id: 67890
-              order_no: RET-001
               return_location_id: 1
-              currency: USD
+              order_no: RET-001
+              order_created_date: "2023-10-10T10:00:00Z"
               additional_info: Items damaged during shipping
-              sales_return_rows:
-                - variant_id: 11111
-                  quantity: 2
-                  return_reason_id: 1
-                  notes: Defective items
       responses:
         "200":
           description: Sales return created successfully
@@ -18973,11 +18968,6 @@ paths:
               $ref: "#/components/schemas/CreatePriceListRequest"
             example:
               name: VIP Customer Pricing
-              currency: USD
-              is_default: false
-              markup_percentage: 15.0
-              start_date: "2023-01-01T00:00:00.000Z"
-              end_date: "2023-12-31T23:59:59.999Z"
       responses:
         "200":
           description: Price list created successfully
@@ -19166,9 +19156,10 @@ paths:
               $ref: "#/components/schemas/CreatePriceListRowRequest"
             example:
               price_list_id: 12345
-              variant_id: 67890
-              price: 29.99
-              currency: USD
+              price_list_rows:
+                - variant_id: 67890
+                  adjustment_method: fixed
+                  amount: 29.99
       responses:
         "200":
           description: Price list row created successfully
@@ -19356,7 +19347,8 @@ paths:
               $ref: "#/components/schemas/CreatePriceListCustomerRequest"
             example:
               price_list_id: 12345
-              customer_id: 67890
+              price_list_customers:
+                - customer_id: 67890
       responses:
         "200":
           description: Price list customer assignment created successfully
