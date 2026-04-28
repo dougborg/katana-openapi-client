@@ -21,11 +21,7 @@ from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON
 
 from .base import DeletableEntity
-from .common import (
-    CostDistributionMethod,
-    DocumentSendStatus,
-    OutsourcedRecipeIngredientAvailability,
-)
+from .common import CostDistributionMethod, DocumentSendStatus
 from .contacts import Supplier
 from .stock import (
     BatchTransaction4,
@@ -604,7 +600,7 @@ class OutsourcedPurchaseOrderRecipeRow(DeletableEntity):
         ),
     ]
     ingredient_availability: Annotated[
-        OutsourcedRecipeIngredientAvailability | None,
+        OutsourcedPurchaseOrderIngredientAvailability | None,
         Field(description="Current availability status of this ingredient"),
     ] = None
     ingredient_expected_date: Annotated[

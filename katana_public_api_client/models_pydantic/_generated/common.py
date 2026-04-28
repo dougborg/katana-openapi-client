@@ -116,14 +116,6 @@ class AccountingIntegrationType(StrEnum):
     custom = "custom"
 
 
-class OutsourcedRecipeIngredientAvailability(StrEnum):
-    processed = "PROCESSED"
-    in_stock = "IN_STOCK"
-    not_available = "NOT_AVAILABLE"
-    expected = "EXPECTED"
-    not_applicable = "NOT_APPLICABLE"
-
-
 class AdditionalCost(DeletableEntity):
     name: str
 

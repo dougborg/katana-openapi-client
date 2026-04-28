@@ -1630,6 +1630,7 @@ components:
         - IN_STOCK
         - NOT_AVAILABLE
         - EXPECTED
+        - NO_RECIPE
         - NOT_APPLICABLE
       description: Ingredient availability for outsourced purchase order recipe rows
 
