@@ -11,6 +11,7 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
+from ..models.ingredient_availability import IngredientAvailability
 
 if TYPE_CHECKING:
     from ..models.manufacturing_order_recipe_row_batch_transactions_item import (
@@ -42,7 +43,7 @@ class ManufacturingOrderRecipeRow:
     notes: str | Unset = UNSET
     planned_quantity_per_unit: float | Unset = UNSET
     total_actual_quantity: float | Unset = UNSET
-    ingredient_availability: str | Unset = UNSET
+    ingredient_availability: IngredientAvailability | Unset = UNSET
     ingredient_expected_date: datetime.datetime | None | Unset = UNSET
     batch_transactions: (
         list[ManufacturingOrderRecipeRowBatchTransactionsItem] | Unset
@@ -81,7 +82,9 @@ class ManufacturingOrderRecipeRow:
 
         total_actual_quantity = self.total_actual_quantity
 
-        ingredient_availability = self.ingredient_availability
+        ingredient_availability: str | Unset = UNSET
+        if not isinstance(self.ingredient_availability, Unset):
+            ingredient_availability = self.ingredient_availability.value
 
         ingredient_expected_date: None | str | Unset
         if isinstance(self.ingredient_expected_date, Unset):
@@ -192,7 +195,12 @@ class ManufacturingOrderRecipeRow:
 
         total_actual_quantity = d.pop("total_actual_quantity", UNSET)
 
-        ingredient_availability = d.pop("ingredient_availability", UNSET)
+        _ingredient_availability = d.pop("ingredient_availability", UNSET)
+        ingredient_availability: IngredientAvailability | Unset
+        if isinstance(_ingredient_availability, Unset):
+            ingredient_availability = UNSET
+        else:
+            ingredient_availability = IngredientAvailability(_ingredient_availability)
 
         def _parse_ingredient_expected_date(
             data: object,
