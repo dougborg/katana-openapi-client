@@ -21,6 +21,9 @@ import type {
   CreateCustomerData,
   CreateCustomerErrors,
   CreateCustomerResponses,
+  CreateCustomFieldDefinitionData,
+  CreateCustomFieldDefinitionErrors,
+  CreateCustomFieldDefinitionResponses,
   CreateDemandForecastData,
   CreateDemandForecastErrors,
   CreateDemandForecastResponses,
@@ -138,6 +141,9 @@ import type {
   DeleteCustomerData,
   DeleteCustomerErrors,
   DeleteCustomerResponses,
+  DeleteCustomFieldDefinitionData,
+  DeleteCustomFieldDefinitionErrors,
+  DeleteCustomFieldDefinitionResponses,
   DeleteManufacturingOrderData,
   DeleteManufacturingOrderErrors,
   DeleteManufacturingOrderOperationRowData,
@@ -258,6 +264,9 @@ import type {
   GetAllCustomersData,
   GetAllCustomersErrors,
   GetAllCustomersResponses,
+  GetAllCustomFieldDefinitionsData,
+  GetAllCustomFieldDefinitionsErrors,
+  GetAllCustomFieldDefinitionsResponses,
   GetAllCustomFieldsCollectionsData,
   GetAllCustomFieldsCollectionsErrors,
   GetAllCustomFieldsCollectionsResponses,
@@ -375,6 +384,9 @@ import type {
   GetBatchStockData,
   GetBatchStockErrors,
   GetBatchStockResponses,
+  GetCustomFieldDefinitionData,
+  GetCustomFieldDefinitionErrors,
+  GetCustomFieldDefinitionResponses,
   GetDemandForecastsData,
   GetDemandForecastsErrors,
   GetDemandForecastsResponses,
@@ -492,6 +504,9 @@ import type {
   RerankProductOperationsData,
   RerankProductOperationsErrors,
   RerankProductOperationsResponses,
+  SearchSalesOrdersData,
+  SearchSalesOrdersErrors,
+  SearchSalesOrdersResponses,
   UnlinkManufacturingOrderData,
   UnlinkManufacturingOrderErrors,
   UnlinkManufacturingOrderResponses,
@@ -513,6 +528,9 @@ import type {
   UpdateCustomerData,
   UpdateCustomerErrors,
   UpdateCustomerResponses,
+  UpdateCustomFieldDefinitionData,
+  UpdateCustomFieldDefinitionErrors,
+  UpdateCustomFieldDefinitionResponses,
   UpdateDefaultStorageBinData,
   UpdateDefaultStorageBinErrors,
   UpdateDefaultStorageBinResponses,
@@ -3021,6 +3039,31 @@ export const updateSalesOrder = <ThrowOnError extends boolean = false>(
   });
 
 /**
+ * Search sales orders
+ *
+ * Searches sales orders using arbitrary filter criteria. Returns the
+ * same shape as ``GET /sales_orders`` — paginated list of
+ * ``SalesOrder`` records.
+ *
+ */
+export const searchSalesOrders = <ThrowOnError extends boolean = false>(
+  options: Options<SearchSalesOrdersData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    SearchSalesOrdersResponses,
+    SearchSalesOrdersErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/sales_orders/search",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
  * Get returnable items for a sales order
  *
  * Retrieves a list of items that can be returned from a sales order.
@@ -4301,9 +4344,9 @@ export const updateStocktakeRow = <ThrowOnError extends boolean = false>(
  * Deletes serial numbers for a resource.
  */
 export const deleteSerialNumbers = <ThrowOnError extends boolean = false>(
-  options?: Options<DeleteSerialNumbersData, ThrowOnError>,
+  options: Options<DeleteSerialNumbersData, ThrowOnError>,
 ) =>
-  (options?.client ?? client).delete<
+  (options.client ?? client).delete<
     DeleteSerialNumbersResponses,
     DeleteSerialNumbersErrors,
     ThrowOnError
@@ -4311,6 +4354,10 @@ export const deleteSerialNumbers = <ThrowOnError extends boolean = false>(
     security: [{ scheme: "bearer", type: "http" }],
     url: "/serial_numbers",
     ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
   });
 
 /**
@@ -4443,6 +4490,116 @@ export const getAllCustomFieldsCollections = <
     security: [{ scheme: "bearer", type: "http" }],
     url: "/custom_fields_collections",
     ...options,
+  });
+
+/**
+ * List custom field definitions
+ *
+ * Returns a paginated list of custom field definitions. Each definition
+ * configures a custom field that callers can attach to a resource (sales
+ * order, service, product, etc.) via the resource's ``custom_fields``
+ * property.
+ *
+ */
+export const getAllCustomFieldDefinitions = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<GetAllCustomFieldDefinitionsData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetAllCustomFieldDefinitionsResponses,
+    GetAllCustomFieldDefinitionsErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/custom_field_definitions",
+    ...options,
+  });
+
+/**
+ * Create a custom field definition
+ *
+ * Creates a new custom field definition.
+ */
+export const createCustomFieldDefinition = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<CreateCustomFieldDefinitionData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateCustomFieldDefinitionResponses,
+    CreateCustomFieldDefinitionErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/custom_field_definitions",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
+ * Delete a custom field definition
+ *
+ * Deletes an existing custom field definition.
+ */
+export const deleteCustomFieldDefinition = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<DeleteCustomFieldDefinitionData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteCustomFieldDefinitionResponses,
+    DeleteCustomFieldDefinitionErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/custom_field_definitions/{id}",
+    ...options,
+  });
+
+/**
+ * Retrieve a custom field definition
+ *
+ * Retrieves a single custom field definition by ID.
+ */
+export const getCustomFieldDefinition = <ThrowOnError extends boolean = false>(
+  options: Options<GetCustomFieldDefinitionData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetCustomFieldDefinitionResponses,
+    GetCustomFieldDefinitionErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/custom_field_definitions/{id}",
+    ...options,
+  });
+
+/**
+ * Update a custom field definition
+ *
+ * Updates an existing custom field definition.
+ */
+export const updateCustomFieldDefinition = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<UpdateCustomFieldDefinitionData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateCustomFieldDefinitionResponses,
+    UpdateCustomFieldDefinitionErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/custom_field_definitions/{id}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
   });
 
 /**

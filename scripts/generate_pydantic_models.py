@@ -110,6 +110,7 @@ DOMAIN_GROUPS: dict[str, list[str]] = {
         "SerialNumber*",
         "ResourceType1",  # Enum for CreateSerialNumbersRequest - must be co-located
         "CreateSerial*",
+        "DeleteSerial*",  # DeleteSerialNumbersRequest references SerialNumberResourceType
         "CreateStock*",
         "CreateStocktake*",
         "UpdateStock*",

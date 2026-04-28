@@ -1,25 +1,28 @@
 from http import HTTPStatus
-from typing import Any, cast
+from typing import Any
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import Response
-from ...models.delete_serial_numbers_request import DeleteSerialNumbersRequest
+from ...models.create_custom_field_definition_request import (
+    CreateCustomFieldDefinitionRequest,
+)
+from ...models.custom_field_definition import CustomFieldDefinition
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 
 
 def _get_kwargs(
     *,
-    body: DeleteSerialNumbersRequest,
+    body: CreateCustomFieldDefinitionRequest,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
     _kwargs: dict[str, Any] = {
-        "method": "delete",
-        "url": "/serial_numbers",
+        "method": "post",
+        "url": "/custom_field_definitions",
     }
 
     _kwargs["json"] = body.to_dict()
@@ -32,10 +35,11 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Any | DetailedErrorResponse | ErrorResponse | None:
-    if response.status_code == 204:
-        response_204 = cast(Any, None)
-        return response_204
+) -> CustomFieldDefinition | DetailedErrorResponse | ErrorResponse | None:
+    if response.status_code == 200:
+        response_200 = CustomFieldDefinition.from_dict(response.json())
+
+        return response_200
 
     if response.status_code == 400:
         response_400 = ErrorResponse.from_dict(response.json())
@@ -46,11 +50,6 @@ def _parse_response(
         response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
-
-    if response.status_code == 404:
-        response_404 = ErrorResponse.from_dict(response.json())
-
-        return response_404
 
     if response.status_code == 422:
         response_422 = DetailedErrorResponse.from_dict(response.json())
@@ -75,7 +74,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
+) -> Response[CustomFieldDefinition | DetailedErrorResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -87,19 +86,17 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: DeleteSerialNumbersRequest,
-) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
-    """Delete serial numbers
+    body: CreateCustomFieldDefinitionRequest,
+) -> Response[CustomFieldDefinition | DetailedErrorResponse | ErrorResponse]:
+    """Create a custom field definition
 
-     Deletes serial numbers for a resource.
+     Creates a new custom field definition.
 
     Args:
-        body (DeleteSerialNumbersRequest): Request payload for deleting serial numbers from a
-            resource. The
-            delete is scoped to a single resource (``resource_type`` +
-            ``resource_id``) and a list of serial-number IDs.
-             Example: {'resource_type': 'ManufacturingOrder', 'resource_id': 3001, 'ids': [1001,
-            1002]}.
+        body (CreateCustomFieldDefinitionRequest): Request payload for creating a new custom field
+            definition. Example: {'label': 'Quality Grade', 'field_type': 'select', 'entity_type':
+            'product', 'source': 'user', 'description': 'Customer-facing quality classification',
+            'options': {'values': ['A', 'B', 'C']}}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -107,7 +104,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Any | DetailedErrorResponse | ErrorResponse]
+        Response[CustomFieldDefinition | DetailedErrorResponse | ErrorResponse]
     """
 
     kwargs = _get_kwargs(
@@ -124,19 +121,17 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    body: DeleteSerialNumbersRequest,
-) -> Any | DetailedErrorResponse | ErrorResponse | None:
-    """Delete serial numbers
+    body: CreateCustomFieldDefinitionRequest,
+) -> CustomFieldDefinition | DetailedErrorResponse | ErrorResponse | None:
+    """Create a custom field definition
 
-     Deletes serial numbers for a resource.
+     Creates a new custom field definition.
 
     Args:
-        body (DeleteSerialNumbersRequest): Request payload for deleting serial numbers from a
-            resource. The
-            delete is scoped to a single resource (``resource_type`` +
-            ``resource_id``) and a list of serial-number IDs.
-             Example: {'resource_type': 'ManufacturingOrder', 'resource_id': 3001, 'ids': [1001,
-            1002]}.
+        body (CreateCustomFieldDefinitionRequest): Request payload for creating a new custom field
+            definition. Example: {'label': 'Quality Grade', 'field_type': 'select', 'entity_type':
+            'product', 'source': 'user', 'description': 'Customer-facing quality classification',
+            'options': {'values': ['A', 'B', 'C']}}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -144,7 +139,7 @@ def sync(
 
 
     Returns:
-        Any | DetailedErrorResponse | ErrorResponse
+        CustomFieldDefinition | DetailedErrorResponse | ErrorResponse
     """
 
     return sync_detailed(
@@ -156,19 +151,17 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: DeleteSerialNumbersRequest,
-) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
-    """Delete serial numbers
+    body: CreateCustomFieldDefinitionRequest,
+) -> Response[CustomFieldDefinition | DetailedErrorResponse | ErrorResponse]:
+    """Create a custom field definition
 
-     Deletes serial numbers for a resource.
+     Creates a new custom field definition.
 
     Args:
-        body (DeleteSerialNumbersRequest): Request payload for deleting serial numbers from a
-            resource. The
-            delete is scoped to a single resource (``resource_type`` +
-            ``resource_id``) and a list of serial-number IDs.
-             Example: {'resource_type': 'ManufacturingOrder', 'resource_id': 3001, 'ids': [1001,
-            1002]}.
+        body (CreateCustomFieldDefinitionRequest): Request payload for creating a new custom field
+            definition. Example: {'label': 'Quality Grade', 'field_type': 'select', 'entity_type':
+            'product', 'source': 'user', 'description': 'Customer-facing quality classification',
+            'options': {'values': ['A', 'B', 'C']}}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -176,7 +169,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Any | DetailedErrorResponse | ErrorResponse]
+        Response[CustomFieldDefinition | DetailedErrorResponse | ErrorResponse]
     """
 
     kwargs = _get_kwargs(
@@ -191,19 +184,17 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    body: DeleteSerialNumbersRequest,
-) -> Any | DetailedErrorResponse | ErrorResponse | None:
-    """Delete serial numbers
+    body: CreateCustomFieldDefinitionRequest,
+) -> CustomFieldDefinition | DetailedErrorResponse | ErrorResponse | None:
+    """Create a custom field definition
 
-     Deletes serial numbers for a resource.
+     Creates a new custom field definition.
 
     Args:
-        body (DeleteSerialNumbersRequest): Request payload for deleting serial numbers from a
-            resource. The
-            delete is scoped to a single resource (``resource_type`` +
-            ``resource_id``) and a list of serial-number IDs.
-             Example: {'resource_type': 'ManufacturingOrder', 'resource_id': 3001, 'ids': [1001,
-            1002]}.
+        body (CreateCustomFieldDefinitionRequest): Request payload for creating a new custom field
+            definition. Example: {'label': 'Quality Grade', 'field_type': 'select', 'entity_type':
+            'product', 'source': 'user', 'description': 'Customer-facing quality classification',
+            'options': {'values': ['A', 'B', 'C']}}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -211,7 +202,7 @@ async def asyncio(
 
 
     Returns:
-        Any | DetailedErrorResponse | ErrorResponse
+        CustomFieldDefinition | DetailedErrorResponse | ErrorResponse
     """
 
     return (

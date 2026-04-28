@@ -81,15 +81,6 @@ class TestExternalDocumentationComparison:
             "Comprehensive spec should be a dictionary"
         )
 
-    @pytest.mark.xfail(
-        reason=(
-            "Refreshed live spec exposes 3 endpoints we don't yet expose "
-            "(/custom_field_definitions, /sales_orders/search). Tracked by "
-            "the in-flight live-spec alignment work. Will un-xfail once "
-            "those endpoints are added."
-        ),
-        strict=True,
-    )
     def test_no_critical_endpoints_missing(self, validation_results: dict[str, Any]):
         """Test that NO endpoints from external documentation are missing - ZERO tolerance."""
         missing_endpoints = validation_results["endpoints"]["missing_in_current"]

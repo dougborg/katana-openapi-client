@@ -773,6 +773,22 @@ class CreateSerialNumbersRequest(KatanaPydanticBase):
     ] = None
 
 
+class DeleteSerialNumbersRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    resource_type: Annotated[
+        SerialNumberResourceType,
+        Field(description="Resource type the serial numbers belong to"),
+    ]
+    resource_id: Annotated[
+        int, Field(description="Resource ID the serial numbers belong to")
+    ]
+    ids: Annotated[
+        list[int], Field(description="Serial number IDs to delete", min_length=1)
+    ]
+
+
 class StockTransferRowRequest(KatanaPydanticBase):
     variant_id: Annotated[int | None, Field(description="Product variant ID")] = None
     quantity: Annotated[float | None, Field(description="Quantity to transfer")] = None

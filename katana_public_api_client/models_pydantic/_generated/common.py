@@ -865,6 +865,99 @@ class CustomFieldModel(KatanaPydanticBase):
     ] = None
 
 
+class CustomFieldDefinition(UpdatableEntity):
+    id: Annotated[
+        int, Field(description="Unique identifier for the custom field definition")
+    ]
+    label: Annotated[
+        str, Field(description="Display label shown in the Katana UI", max_length=255)
+    ]
+    field_type: Annotated[
+        str,
+        Field(
+            description="Field input type (e.g. ``text``, ``number``, ``date``,\n``select``). Drives how Katana renders and validates the\nfield's values.\n",
+            max_length=50,
+        ),
+    ]
+    entity_type: Annotated[
+        str,
+        Field(
+            description="Resource type the definition applies to (matches the\nresource's ``custom_fields`` API field — e.g.\n``sales_order``, ``service``, ``product``).\n",
+            max_length=50,
+        ),
+    ]
+    source: Annotated[
+        str,
+        Field(
+            description="Origin / namespace of the definition (e.g. ``katana``, ``user``).",
+            max_length=255,
+        ),
+    ]
+    description: Annotated[
+        str | None,
+        Field(description="Optional long-form description of the field's purpose"),
+    ] = None
+    options: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Free-form configuration object — shape varies per\n``field_type`` (e.g., select fields carry the option list\nhere).\n"
+        ),
+    ] = None
+
+
+class CreateCustomFieldDefinitionRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    label: Annotated[
+        str, Field(description="Display label shown in the Katana UI", max_length=255)
+    ]
+    field_type: Annotated[
+        str,
+        Field(
+            description="Field input type (text, number, date, select, etc.)",
+            max_length=50,
+        ),
+    ]
+    entity_type: Annotated[
+        str, Field(description="Resource type the definition applies to", max_length=50)
+    ]
+    source: Annotated[
+        str, Field(description="Origin / namespace of the definition", max_length=255)
+    ]
+    description: Annotated[
+        str | None, Field(description="Optional long-form description")
+    ] = None
+    options: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Free-form configuration object — shape varies per ``field_type``"
+        ),
+    ] = None
+
+
+class UpdateCustomFieldDefinitionRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    label: Annotated[
+        str | None, Field(description="Updated display label", max_length=255)
+    ] = None
+    description: Annotated[
+        str | None, Field(description="Updated long-form description")
+    ] = None
+    options: Annotated[
+        dict[str, Any] | None, Field(description="Updated configuration object")
+    ] = None
+
+
+class CustomFieldDefinitionListResponse(KatanaPydanticBase):
+    data: Annotated[
+        list[CustomFieldDefinition] | None,
+        Field(description="Array of custom field definitions"),
+    ] = None
+
+
 class Transaction(KatanaPydanticBase):
     id: Annotated[str, Field(description="Transaction ID")]
     resource_id: Annotated[

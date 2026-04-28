@@ -8,7 +8,7 @@ To regenerate, run:
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Optional
+from typing import Annotated, Any, Optional
 
 from pydantic import AnyUrl, AwareDatetime, ConfigDict, Field
 from sqlalchemy import Column
@@ -769,6 +769,18 @@ class UpdateSalesOrderShippingFeeRequest(KatanaPydanticBase):
     ]
     tax_rate_id: Annotated[
         int | None, Field(description="ID of the tax rate to apply to the shipping fee")
+    ] = None
+
+
+class SalesOrderSearchRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    filter: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Free-form filter criteria. Keys map to sales-order fields the\nAPI supports searching on.\n"
+        ),
     ] = None
 
 

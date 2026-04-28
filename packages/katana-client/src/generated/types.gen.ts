@@ -6099,6 +6099,117 @@ export type CustomFieldsCollectionListResponse = {
 };
 
 /**
+ * A configured custom field definition that callers can attach to a
+ * resource (sales order, service, product, etc.) via the resource's
+ * ``custom_fields`` property. Definitions are scoped to a specific
+ * ``entity_type`` and shape what values consumers can store.
+ *
+ */
+export type CustomFieldDefinition = {
+  /**
+   * Unique identifier for the custom field definition
+   */
+  id: number;
+  /**
+   * Display label shown in the Katana UI
+   */
+  label: string;
+  /**
+   * Field input type (e.g. ``text``, ``number``, ``date``,
+   * ``select``). Drives how Katana renders and validates the
+   * field's values.
+   *
+   */
+  field_type: string;
+  /**
+   * Resource type the definition applies to (matches the
+   * resource's ``custom_fields`` API field — e.g.
+   * ``sales_order``, ``service``, ``product``).
+   *
+   */
+  entity_type: string;
+  /**
+   * Origin / namespace of the definition (e.g. ``katana``, ``user``).
+   */
+  source: string;
+  /**
+   * Optional long-form description of the field's purpose
+   */
+  description?: string | null;
+  /**
+   * Free-form configuration object — shape varies per
+   * ``field_type`` (e.g., select fields carry the option list
+   * here).
+   *
+   */
+  options?: {
+    [key: string]: unknown;
+  } | null;
+} & UpdatableEntity;
+
+/**
+ * Request payload for creating a new custom field definition.
+ */
+export type CreateCustomFieldDefinitionRequest = {
+  /**
+   * Display label shown in the Katana UI
+   */
+  label: string;
+  /**
+   * Field input type (text, number, date, select, etc.)
+   */
+  field_type: string;
+  /**
+   * Resource type the definition applies to
+   */
+  entity_type: string;
+  /**
+   * Origin / namespace of the definition
+   */
+  source: string;
+  /**
+   * Optional long-form description
+   */
+  description?: string | null;
+  /**
+   * Free-form configuration object — shape varies per ``field_type``
+   */
+  options?: {
+    [key: string]: unknown;
+  } | null;
+};
+
+/**
+ * Request payload for updating an existing custom field definition.
+ */
+export type UpdateCustomFieldDefinitionRequest = {
+  /**
+   * Updated display label
+   */
+  label?: string;
+  /**
+   * Updated long-form description
+   */
+  description?: string | null;
+  /**
+   * Updated configuration object
+   */
+  options?: {
+    [key: string]: unknown;
+  } | null;
+};
+
+/**
+ * List of custom field definitions
+ */
+export type CustomFieldDefinitionListResponse = {
+  /**
+   * Array of custom field definitions
+   */
+  data?: Array<CustomFieldDefinition>;
+};
+
+/**
  * Physical inventory count process for reconciling actual stock levels with system records
  */
 export type Stocktake = {
@@ -7402,6 +7513,24 @@ export type UpdateSalesOrderShippingFeeRequest = {
 };
 
 /**
+ * Request payload for searching sales orders with arbitrary filter
+ * criteria. The ``filter`` object accepts free-form key-value pairs
+ * — supported keys are documented in the Katana API reference
+ * (matches POST /sales_orders/search behaviour).
+ *
+ */
+export type SalesOrderSearchRequest = {
+  /**
+   * Free-form filter criteria. Keys map to sales-order fields the
+   * API supports searching on.
+   *
+   */
+  filter?: {
+    [key: string]: unknown;
+  };
+};
+
+/**
  * Request payload for updating a sales order
  */
 export type UpdateSalesOrderRequest = {
@@ -7509,6 +7638,27 @@ export type CreateSerialNumbersRequest = {
    * List of serial numbers to create
    */
   serial_numbers?: Array<string>;
+};
+
+/**
+ * Request payload for deleting serial numbers from a resource. The
+ * delete is scoped to a single resource (``resource_type`` +
+ * ``resource_id``) and a list of serial-number IDs.
+ *
+ */
+export type DeleteSerialNumbersRequest = {
+  /**
+   * Resource type the serial numbers belong to
+   */
+  resource_type: SerialNumberResourceType;
+  /**
+   * Resource ID the serial numbers belong to
+   */
+  resource_id: number;
+  /**
+   * Serial number IDs to delete
+   */
+  ids: Array<number>;
 };
 
 /**
@@ -14401,6 +14551,52 @@ export type UpdateSalesOrderResponses = {
   200: unknown;
 };
 
+export type SearchSalesOrdersData = {
+  /**
+   * Search filter criteria
+   */
+  body: SalesOrderSearchRequest;
+  path?: never;
+  query?: never;
+  url: "/sales_orders/search";
+};
+
+export type SearchSalesOrdersErrors = {
+  /**
+   * Bad Request Error.
+   */
+  400: ErrorResponse;
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type SearchSalesOrdersError =
+  SearchSalesOrdersErrors[keyof SearchSalesOrdersErrors];
+
+export type SearchSalesOrdersResponses = {
+  /**
+   * Matching sales orders
+   */
+  200: SalesOrderListResponse;
+};
+
+export type SearchSalesOrdersResponse =
+  SearchSalesOrdersResponses[keyof SearchSalesOrdersResponses];
+
 export type GetSalesOrderReturnableItemsData = {
   body?: never;
   path: {
@@ -17794,7 +17990,10 @@ export type UpdateStocktakeRowResponse =
   UpdateStocktakeRowResponses[keyof UpdateStocktakeRowResponses];
 
 export type DeleteSerialNumbersData = {
-  body?: never;
+  /**
+   * Serial number deletion details
+   */
+  body: DeleteSerialNumbersRequest;
   path?: never;
   query?: never;
   url: "/serial_numbers";
@@ -17813,6 +18012,10 @@ export type DeleteSerialNumbersErrors = {
    * Not found.
    */
   404: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
   /**
    * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
    */
@@ -18141,6 +18344,267 @@ export type GetAllCustomFieldsCollectionsResponses = {
 
 export type GetAllCustomFieldsCollectionsResponse =
   GetAllCustomFieldsCollectionsResponses[keyof GetAllCustomFieldsCollectionsResponses];
+
+export type GetAllCustomFieldDefinitionsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Number of records to return per page.
+     */
+    limit?: number;
+    /**
+     * Page number to return.
+     */
+    page?: number;
+    /**
+     * Minimum creation date (ISO 8601 format).
+     */
+    created_at_min?: string;
+    /**
+     * Maximum creation date (ISO 8601 format).
+     */
+    created_at_max?: string;
+    /**
+     * Minimum update date (ISO 8601 format).
+     */
+    updated_at_min?: string;
+    /**
+     * Maximum update date (ISO 8601 format).
+     */
+    updated_at_max?: string;
+    /**
+     * Filters definitions by their display label
+     */
+    label?: string;
+    /**
+     * Filters definitions by their field_type
+     */
+    field_type?: string;
+    /**
+     * Filters definitions by the resource entity_type they target
+     */
+    entity_type?: string;
+  };
+  url: "/custom_field_definitions";
+};
+
+export type GetAllCustomFieldDefinitionsErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type GetAllCustomFieldDefinitionsError =
+  GetAllCustomFieldDefinitionsErrors[keyof GetAllCustomFieldDefinitionsErrors];
+
+export type GetAllCustomFieldDefinitionsResponses = {
+  /**
+   * List of custom field definitions
+   */
+  200: CustomFieldDefinitionListResponse;
+};
+
+export type GetAllCustomFieldDefinitionsResponse =
+  GetAllCustomFieldDefinitionsResponses[keyof GetAllCustomFieldDefinitionsResponses];
+
+export type CreateCustomFieldDefinitionData = {
+  /**
+   * Custom field definition details
+   */
+  body: CreateCustomFieldDefinitionRequest;
+  path?: never;
+  query?: never;
+  url: "/custom_field_definitions";
+};
+
+export type CreateCustomFieldDefinitionErrors = {
+  /**
+   * Bad Request Error.
+   */
+  400: ErrorResponse;
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type CreateCustomFieldDefinitionError =
+  CreateCustomFieldDefinitionErrors[keyof CreateCustomFieldDefinitionErrors];
+
+export type CreateCustomFieldDefinitionResponses = {
+  /**
+   * Custom field definition created successfully
+   */
+  200: CustomFieldDefinition;
+};
+
+export type CreateCustomFieldDefinitionResponse =
+  CreateCustomFieldDefinitionResponses[keyof CreateCustomFieldDefinitionResponses];
+
+export type DeleteCustomFieldDefinitionData = {
+  body?: never;
+  path: {
+    /**
+     * Resource identifier
+     */
+    id: number;
+  };
+  query?: never;
+  url: "/custom_field_definitions/{id}";
+};
+
+export type DeleteCustomFieldDefinitionErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Not found.
+   */
+  404: ErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type DeleteCustomFieldDefinitionError =
+  DeleteCustomFieldDefinitionErrors[keyof DeleteCustomFieldDefinitionErrors];
+
+export type DeleteCustomFieldDefinitionResponses = {
+  /**
+   * Custom field definition deleted successfully
+   */
+  204: void;
+};
+
+export type DeleteCustomFieldDefinitionResponse =
+  DeleteCustomFieldDefinitionResponses[keyof DeleteCustomFieldDefinitionResponses];
+
+export type GetCustomFieldDefinitionData = {
+  body?: never;
+  path: {
+    /**
+     * Resource identifier
+     */
+    id: number;
+  };
+  query?: never;
+  url: "/custom_field_definitions/{id}";
+};
+
+export type GetCustomFieldDefinitionErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Not found.
+   */
+  404: ErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type GetCustomFieldDefinitionError =
+  GetCustomFieldDefinitionErrors[keyof GetCustomFieldDefinitionErrors];
+
+export type GetCustomFieldDefinitionResponses = {
+  /**
+   * Custom field definition retrieved successfully
+   */
+  200: CustomFieldDefinition;
+};
+
+export type GetCustomFieldDefinitionResponse =
+  GetCustomFieldDefinitionResponses[keyof GetCustomFieldDefinitionResponses];
+
+export type UpdateCustomFieldDefinitionData = {
+  /**
+   * Custom field definition update details
+   */
+  body: UpdateCustomFieldDefinitionRequest;
+  path: {
+    /**
+     * Resource identifier
+     */
+    id: number;
+  };
+  query?: never;
+  url: "/custom_field_definitions/{id}";
+};
+
+export type UpdateCustomFieldDefinitionErrors = {
+  /**
+   * Bad Request Error.
+   */
+  400: ErrorResponse;
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Not found.
+   */
+  404: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type UpdateCustomFieldDefinitionError =
+  UpdateCustomFieldDefinitionErrors[keyof UpdateCustomFieldDefinitionErrors];
+
+export type UpdateCustomFieldDefinitionResponses = {
+  /**
+   * Custom field definition updated successfully
+   */
+  200: CustomFieldDefinition;
+};
+
+export type UpdateCustomFieldDefinitionResponse =
+  UpdateCustomFieldDefinitionResponses[keyof UpdateCustomFieldDefinitionResponses];
 
 export type CreateInventoryReorderPointData = {
   /**

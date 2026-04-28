@@ -4361,8 +4361,6 @@ components:
         batch_tracked: false
         serial_tracked: true
         operations_in_sequence: true
-        lead_time: 14
-        minimum_order_quantity: 1
         configs:
           - name: Piece Count
             values:
@@ -6376,8 +6374,6 @@ components:
         sku: KNF-PRO-8PC-UPD
         sales_price: 319.99
         purchase_price: 160.0
-        product_id: 101
-        material_id: null
         supplier_item_codes:
           - SUP-KNF-8PC-002
         internal_barcode: INT-KNF-002
@@ -9973,6 +9969,170 @@ components:
                   - COD
             created_at: "2024-01-10T11:00:00Z"
             updated_at: "2024-01-14T09:15:00Z"
+    CustomFieldDefinition:
+      description: |
+        A configured custom field definition that callers can attach to a
+        resource (sales order, service, product, etc.) via the resource's
+        ``custom_fields`` property. Definitions are scoped to a specific
+        ``entity_type`` and shape what values consumers can store.
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+              description: Unique identifier for the custom field definition
+            label:
+              type: string
+              maxLength: 255
+              description: Display label shown in the Katana UI
+            field_type:
+              type: string
+              maxLength: 50
+              description: |
+                Field input type (e.g. ``text``, ``number``, ``date``,
+                ``select``). Drives how Katana renders and validates the
+                field's values.
+            entity_type:
+              type: string
+              maxLength: 50
+              description: |
+                Resource type the definition applies to (matches the
+                resource's ``custom_fields`` API field — e.g.
+                ``sales_order``, ``service``, ``product``).
+            source:
+              type: string
+              maxLength: 255
+              description: Origin / namespace of the definition (e.g. ``katana``, ``user``).
+            description:
+              type:
+                - string
+                - "null"
+              description: Optional long-form description of the field's purpose
+            options:
+              type:
+                - object
+                - "null"
+              additionalProperties: true
+              description: |
+                Free-form configuration object — shape varies per
+                ``field_type`` (e.g., select fields carry the option list
+                here).
+          required:
+            - id
+            - label
+            - field_type
+            - entity_type
+            - source
+        - $ref: "#/components/schemas/UpdatableEntity"
+      example:
+        id: 42
+        label: Quality Grade
+        field_type: select
+        entity_type: product
+        source: user
+        description: Customer-facing quality classification
+        options:
+          values:
+            - A
+            - B
+            - C
+        created_at: "2024-01-08T10:00:00Z"
+        updated_at: "2024-01-12T15:30:00Z"
+    CreateCustomFieldDefinitionRequest:
+      description: Request payload for creating a new custom field definition.
+      type: object
+      additionalProperties: false
+      required:
+        - label
+        - field_type
+        - entity_type
+        - source
+      properties:
+        label:
+          type: string
+          maxLength: 255
+          description: Display label shown in the Katana UI
+        field_type:
+          type: string
+          maxLength: 50
+          description: Field input type (text, number, date, select, etc.)
+        entity_type:
+          type: string
+          maxLength: 50
+          description: Resource type the definition applies to
+        source:
+          type: string
+          maxLength: 255
+          description: Origin / namespace of the definition
+        description:
+          type:
+            - string
+            - "null"
+          description: Optional long-form description
+        options:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: Free-form configuration object — shape varies per ``field_type``
+      example:
+        label: Quality Grade
+        field_type: select
+        entity_type: product
+        source: user
+        description: Customer-facing quality classification
+        options:
+          values:
+            - A
+            - B
+            - C
+    UpdateCustomFieldDefinitionRequest:
+      description: Request payload for updating an existing custom field definition.
+      type: object
+      additionalProperties: false
+      properties:
+        label:
+          type: string
+          maxLength: 255
+          description: Updated display label
+        description:
+          type:
+            - string
+            - "null"
+          description: Updated long-form description
+        options:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: Updated configuration object
+      example:
+        label: Quality Grade (revised)
+        description: Updated customer-facing quality classification
+    CustomFieldDefinitionListResponse:
+      description: List of custom field definitions
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of custom field definitions
+          items:
+            $ref: "#/components/schemas/CustomFieldDefinition"
+      example:
+        data:
+          - id: 42
+            label: Quality Grade
+            field_type: select
+            entity_type: product
+            source: user
+            description: Customer-facing quality classification
+            options:
+              values:
+                - A
+                - B
+                - C
+            created_at: "2024-01-08T10:00:00Z"
+            updated_at: "2024-01-12T15:30:00Z"
     Stocktake:
       description: Physical inventory count process for reconciling actual stock levels with system records
       allOf:
@@ -11709,6 +11869,25 @@ components:
         tax_rate_id:
           type: integer
           description: ID of the tax rate to apply to the shipping fee
+    SalesOrderSearchRequest:
+      description: |
+        Request payload for searching sales orders with arbitrary filter
+        criteria. The ``filter`` object accepts free-form key-value pairs
+        — supported keys are documented in the Katana API reference
+        (matches POST /sales_orders/search behaviour).
+      type: object
+      additionalProperties: false
+      properties:
+        filter:
+          type: object
+          additionalProperties: true
+          description: |
+            Free-form filter criteria. Keys map to sales-order fields the
+            API supports searching on.
+      example:
+        filter:
+          customer_id: 1501
+          status: PACKED
     UpdateSalesOrderRequest:
       description: Request payload for updating a sales order
       type: object
@@ -11828,6 +12007,36 @@ components:
           description: List of serial numbers to create
           items:
             type: string
+    DeleteSerialNumbersRequest:
+      description: |
+        Request payload for deleting serial numbers from a resource. The
+        delete is scoped to a single resource (``resource_type`` +
+        ``resource_id``) and a list of serial-number IDs.
+      type: object
+      additionalProperties: false
+      required:
+        - resource_type
+        - resource_id
+        - ids
+      properties:
+        resource_type:
+          description: Resource type the serial numbers belong to
+          $ref: "#/components/schemas/SerialNumberResourceType"
+        resource_id:
+          type: integer
+          description: Resource ID the serial numbers belong to
+        ids:
+          type: array
+          minItems: 1
+          description: Serial number IDs to delete
+          items:
+            type: integer
+      example:
+        resource_type: ManufacturingOrder
+        resource_id: 3001
+        ids:
+          - 1001
+          - 1002
     StockTransferRowRequest:
       description: A stock transfer row item specifying which variant and quantity to transfer
       type: object
@@ -17703,6 +17912,47 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalServerError"
+  /sales_orders/search:
+    post:
+      summary: Search sales orders
+      tags:
+        - Sales order
+      description: |
+        Searches sales orders using arbitrary filter criteria. Returns the
+        same shape as ``GET /sales_orders`` — paginated list of
+        ``SalesOrder`` records.
+      operationId: searchSalesOrders
+      requestBody:
+        description: Search filter criteria
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SalesOrderSearchRequest"
+      responses:
+        "200":
+          description: Matching sales orders
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesOrderListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /sales_orders/{id}/returnable_items:
     get:
       summary: Get returnable items for a sales order
@@ -20148,6 +20398,13 @@ paths:
         - Serial number
       description: Deletes serial numbers for a resource.
       operationId: deleteSerialNumbers
+      requestBody:
+        description: Serial number deletion details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteSerialNumbersRequest"
       responses:
         "204":
           description: Serial numbers deleted successfully
@@ -20164,6 +20421,8 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "404":
           $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
@@ -20312,6 +20571,197 @@ paths:
                 $ref: "#/components/schemas/CustomFieldsCollectionListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /custom_field_definitions:
+    get:
+      summary: List custom field definitions
+      tags:
+        - Custom fields
+      description: |
+        Returns a paginated list of custom field definitions. Each definition
+        configures a custom field that callers can attach to a resource (sales
+        order, service, product, etc.) via the resource's ``custom_fields``
+        property.
+      operationId: getAllCustomFieldDefinitions
+      parameters:
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/created_at_min"
+        - $ref: "#/components/parameters/created_at_max"
+        - $ref: "#/components/parameters/updated_at_min"
+        - $ref: "#/components/parameters/updated_at_max"
+        - name: label
+          in: query
+          required: false
+          description: Filters definitions by their display label
+          schema:
+            type: string
+        - name: field_type
+          in: query
+          required: false
+          description: Filters definitions by their field_type
+          schema:
+            type: string
+        - name: entity_type
+          in: query
+          required: false
+          description: Filters definitions by the resource entity_type they target
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of custom field definitions
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomFieldDefinitionListResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      summary: Create a custom field definition
+      tags:
+        - Custom fields
+      description: Creates a new custom field definition.
+      operationId: createCustomFieldDefinition
+      requestBody:
+        description: Custom field definition details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCustomFieldDefinitionRequest"
+      responses:
+        "200":
+          description: Custom field definition created successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomFieldDefinition"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /custom_field_definitions/{id}:
+    get:
+      summary: Retrieve a custom field definition
+      tags:
+        - Custom fields
+      description: Retrieves a single custom field definition by ID.
+      operationId: getCustomFieldDefinition
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Custom field definition retrieved successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomFieldDefinition"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    patch:
+      summary: Update a custom field definition
+      tags:
+        - Custom fields
+      description: Updates an existing custom field definition.
+      operationId: updateCustomFieldDefinition
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        description: Custom field definition update details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCustomFieldDefinitionRequest"
+      responses:
+        "200":
+          description: Custom field definition updated successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomFieldDefinition"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      summary: Delete a custom field definition
+      tags:
+        - Custom fields
+      description: Deletes an existing custom field definition.
+      operationId: deleteCustomFieldDefinition
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "204":
+          description: Custom field definition deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
@@ -20799,7 +21249,7 @@ paths:
               $ref: "#/components/schemas/CreateSalesOrderShippingFeeRequest"
             example:
               sales_order_id: 12345
-              amount: 15.99
+              amount: "15.99"
               description: Standard shipping
       responses:
         "200":

@@ -26,6 +26,10 @@ from .clear_demand_forecast_request_periods_item import (
 from .coded_error_response import CodedErrorResponse
 from .cost_distribution_method import CostDistributionMethod
 from .create_bom_row_request import CreateBomRowRequest
+from .create_custom_field_definition_request import CreateCustomFieldDefinitionRequest
+from .create_custom_field_definition_request_options_type_0 import (
+    CreateCustomFieldDefinitionRequestOptionsType0,
+)
 from .create_customer_address_request import CreateCustomerAddressRequest
 from .create_customer_request import CreateCustomerRequest
 from .create_customer_request_addresses_item import CreateCustomerRequestAddressesItem
@@ -128,6 +132,9 @@ from .create_variant_request_custom_fields_item import (
 from .create_webhook_request import CreateWebhookRequest
 from .custom_field import CustomField
 from .custom_field_collection_resource_type import CustomFieldCollectionResourceType
+from .custom_field_definition import CustomFieldDefinition
+from .custom_field_definition_list_response import CustomFieldDefinitionListResponse
+from .custom_field_definition_options_type_0 import CustomFieldDefinitionOptionsType0
 from .custom_field_value import CustomFieldValue
 from .custom_fields_collection import CustomFieldsCollection
 from .custom_fields_collection_list_response import CustomFieldsCollectionListResponse
@@ -136,6 +143,7 @@ from .customer_address import CustomerAddress
 from .customer_address_list_response import CustomerAddressListResponse
 from .customer_list_response import CustomerListResponse
 from .deletable_entity import DeletableEntity
+from .delete_serial_numbers_request import DeleteSerialNumbersRequest
 from .demand_forecast_period import DemandForecastPeriod
 from .demand_forecast_response import DemandForecastResponse
 from .detailed_error_response import DetailedErrorResponse
@@ -324,6 +332,8 @@ from .sales_order_row import SalesOrderRow
 from .sales_order_row_attributes_item import SalesOrderRowAttributesItem
 from .sales_order_row_batch_transactions_item import SalesOrderRowBatchTransactionsItem
 from .sales_order_row_list_response import SalesOrderRowListResponse
+from .sales_order_search_request import SalesOrderSearchRequest
+from .sales_order_search_request_filter import SalesOrderSearchRequestFilter
 from .sales_order_shipping_fee import SalesOrderShippingFee
 from .sales_order_shipping_fee_list_response import SalesOrderShippingFeeListResponse
 from .sales_order_status import SalesOrderStatus
@@ -390,6 +400,10 @@ from .unrecognized_keys_validation_error import UnrecognizedKeysValidationError
 from .unrecognized_keys_validation_error_code import UnrecognizedKeysValidationErrorCode
 from .updatable_entity import UpdatableEntity
 from .update_bom_row_request import UpdateBomRowRequest
+from .update_custom_field_definition_request import UpdateCustomFieldDefinitionRequest
+from .update_custom_field_definition_request_options_type_0 import (
+    UpdateCustomFieldDefinitionRequestOptionsType0,
+)
 from .update_customer_address_request import UpdateCustomerAddressRequest
 from .update_customer_request import UpdateCustomerRequest
 from .update_manufacturing_order_operation_row_request import (
@@ -504,6 +518,8 @@ __all__ = (
     "CodedErrorResponse",
     "CostDistributionMethod",
     "CreateBomRowRequest",
+    "CreateCustomFieldDefinitionRequest",
+    "CreateCustomFieldDefinitionRequestOptionsType0",
     "CreateCustomerAddressRequest",
     "CreateCustomerRequest",
     "CreateCustomerRequestAddressesItem",
@@ -566,6 +582,9 @@ __all__ = (
     "CreateWebhookRequest",
     "CustomField",
     "CustomFieldCollectionResourceType",
+    "CustomFieldDefinition",
+    "CustomFieldDefinitionListResponse",
+    "CustomFieldDefinitionOptionsType0",
     "CustomFieldValue",
     "CustomFieldsCollection",
     "CustomFieldsCollectionListResponse",
@@ -574,6 +593,7 @@ __all__ = (
     "CustomerAddressListResponse",
     "CustomerListResponse",
     "DeletableEntity",
+    "DeleteSerialNumbersRequest",
     "DemandForecastPeriod",
     "DemandForecastResponse",
     "DetailedErrorResponse",
@@ -716,6 +736,8 @@ __all__ = (
     "SalesOrderRowAttributesItem",
     "SalesOrderRowBatchTransactionsItem",
     "SalesOrderRowListResponse",
+    "SalesOrderSearchRequest",
+    "SalesOrderSearchRequestFilter",
     "SalesOrderShippingFee",
     "SalesOrderShippingFeeListResponse",
     "SalesOrderStatus",
@@ -776,6 +798,8 @@ __all__ = (
     "UnrecognizedKeysValidationErrorCode",
     "UpdatableEntity",
     "UpdateBomRowRequest",
+    "UpdateCustomFieldDefinitionRequest",
+    "UpdateCustomFieldDefinitionRequestOptionsType0",
     "UpdateCustomerAddressRequest",
     "UpdateCustomerRequest",
     "UpdateManufacturingOrderOperationRowRequest",
