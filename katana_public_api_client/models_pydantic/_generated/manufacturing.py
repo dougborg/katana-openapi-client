@@ -12,12 +12,13 @@ from typing import Annotated
 from uuid import UUID
 
 from pydantic import AwareDatetime, ConfigDict, Field
-from sqlalchemy import JSON, Column
+from sqlalchemy import Column
 from sqlmodel import (
     Field as SQLField,
 )
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
+from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON
 
 from .base import DeletableEntity
 from .common import (
@@ -986,7 +987,7 @@ class CachedManufacturingOrder(DeletableEntity, table=True):
     batch_transactions: Annotated[
         list[BatchTransaction] | None,
         SQLField(
-            sa_column=Column(JSON),
+            sa_column=Column(PydanticJSON),
             description="Batch transactions for produced items, typically one transaction per manufacturing order",
         ),
     ] = None
@@ -1060,7 +1061,7 @@ class CachedManufacturingOrder(DeletableEntity, table=True):
     serial_numbers: Annotated[
         list[SerialNumber] | None,
         SQLField(
-            sa_column=Column(JSON),
+            sa_column=Column(PydanticJSON),
             description="Serial numbers assigned to produced items",
         ),
     ] = None

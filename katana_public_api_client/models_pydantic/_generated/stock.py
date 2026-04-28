@@ -11,13 +11,14 @@ from enum import StrEnum
 from typing import Annotated, Optional
 
 from pydantic import AwareDatetime, ConfigDict, Field
-from sqlalchemy import JSON, Column
+from sqlalchemy import Column
 from sqlmodel import (
     Field as SQLField,
     Relationship,
 )
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
+from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON
 
 from .base import DeletableEntity, UpdatableEntity
 from .common import Transaction
@@ -938,7 +939,7 @@ class CachedStockAdjustmentRow(KatanaPydanticBase, table=True):
     batch_transactions: Annotated[
         list[StockAdjustmentBatchTransaction] | None,
         SQLField(
-            sa_column=Column(JSON),
+            sa_column=Column(PydanticJSON),
             description="Optional batch-specific adjustments for tracked inventory",
         ),
     ] = None
@@ -1006,7 +1007,7 @@ class CachedStockTransferRow(KatanaPydanticBase, table=True):
     batch_transactions: Annotated[
         list[BatchTransaction7] | None,
         SQLField(
-            sa_column=Column(JSON),
+            sa_column=Column(PydanticJSON),
             description="Batch transaction details for batch-tracked items",
         ),
     ] = None
