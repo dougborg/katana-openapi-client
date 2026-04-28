@@ -2,6 +2,67 @@
 
 <!-- version list -->
 
+## v0.55.0 (2026-04-28)
+
+### Bug Fixes
+
+- **client**: Tighten SalesReturn.refund_status + operators.working_area to enums
+  ([#411](https://github.com/dougborg/katana-openapi-client/pull/411),
+  [`5d4da09`](https://github.com/dougborg/katana-openapi-client/commit/5d4da09811b2347f4a572d5556f4f13bc14c8bee))
+
+- **client**: Type ManufacturingOrderRecipeRow.ingredient_availability as
+  IngredientAvailability
+  ([#410](https://github.com/dougborg/katana-openapi-client/pull/410),
+  [`ec68692`](https://github.com/dougborg/katana-openapi-client/commit/ec68692fd1f57c06efc936cc1419545b63a41717))
+
+- **mcp**: Address code review: \_context, move \_FETCH_MO_RECIPE constant
+  ([#396](https://github.com/dougborg/katana-openapi-client/pull/396),
+  [`c4b042f`](https://github.com/dougborg/katana-openapi-client/commit/c4b042f42f09494363913e76497e65ba0214f485))
+
+### Chores
+
+- **mcp**: Update client dependency to v0.54.3
+  ([`10ff9a5`](https://github.com/dougborg/katana-openapi-client/commit/10ff9a5a54411dd68b58a10bac232be9f8b58e31))
+
+- **release**: Mcp v0.43.0
+  ([`74e8fdb`](https://github.com/dougborg/katana-openapi-client/commit/74e8fdb72c80a676b745e49ad10c1d7cda0d3de2))
+
+### Documentation
+
+- **mcp**: Add ADR-0019 tool description and batch-field conventions
+  ([#405](https://github.com/dougborg/katana-openapi-client/pull/405),
+  [`02694a9`](https://github.com/dougborg/katana-openapi-client/commit/02694a9efe6577a7fbd4989b70e95eaa3350038e))
+
+- **mcp**: Refresh reporting module docstring + clarify gather safety
+  ([#396](https://github.com/dougborg/katana-openapi-client/pull/396),
+  [`c4b042f`](https://github.com/dougborg/katana-openapi-client/commit/c4b042f42f09494363913e76497e65ba0214f485))
+
+### Features
+
+- **mcp**: Add ManufacturingOrder→RecipeRow CACHE_RELATIONSHIPS entry
+  ([#396](https://github.com/dougborg/katana-openapi-client/pull/396),
+  [`c4b042f`](https://github.com/dougborg/katana-openapi-client/commit/c4b042f42f09494363913e76497e65ba0214f485))
+
+- **mcp**: Inventory_velocity batch shape + MO ingredient consumption
+  ([#396](https://github.com/dougborg/katana-openapi-client/pull/396),
+  [`c4b042f`](https://github.com/dougborg/katana-openapi-client/commit/c4b042f42f09494363913e76497e65ba0214f485))
+
+- **mcp**: Inventory_velocity — batch shape + manufacturing-order consumption
+  ([#396](https://github.com/dougborg/katana-openapi-client/pull/396),
+  [`c4b042f`](https://github.com/dougborg/katana-openapi-client/commit/c4b042f42f09494363913e76497e65ba0214f485))
+
+### Refactoring
+
+- **client**: Consolidate cache-table generator config behind CacheTableSpec
+  ([#407](https://github.com/dougborg/katana-openapi-client/pull/407),
+  [`cb34dab`](https://github.com/dougborg/katana-openapi-client/commit/cb34dab5f6ab2005bdedef0d202280f2f0ca0bb7))
+
+### Testing
+
+- **mcp**: Integration tests for inventory_velocity MO filters + min_length
+  ([#396](https://github.com/dougborg/katana-openapi-client/pull/396),
+  [`c4b042f`](https://github.com/dougborg/katana-openapi-client/commit/c4b042f42f09494363913e76497e65ba0214f485))
+
 ## v0.54.3 (2026-04-28)
 
 ### Bug Fixes
