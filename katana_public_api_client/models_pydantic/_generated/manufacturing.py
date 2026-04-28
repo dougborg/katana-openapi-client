@@ -256,7 +256,8 @@ class ManufacturingOrderRecipeRow(DeletableEntity):
         Field(description="Total actual quantity of this ingredient consumed"),
     ] = None
     ingredient_availability: Annotated[
-        str | None, Field(description="Current availability status of this ingredient")
+        OutsourcedPurchaseOrderIngredientAvailability | None,
+        Field(description="Current availability status of this ingredient"),
     ] = None
     ingredient_expected_date: Annotated[
         AwareDatetime | None,

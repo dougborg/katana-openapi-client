@@ -3473,8 +3473,8 @@ components:
               type: number
               description: Total actual quantity of this ingredient consumed
             ingredient_availability:
-              type: string
               description: Current availability status of this ingredient
+              $ref: "#/components/schemas/IngredientAvailability"
             ingredient_expected_date:
               type:
                 - string
