@@ -22,13 +22,11 @@ from katana_mcp.tools.tool_result_utils import UI_META, make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.domain.converters import unwrap_unset
 from katana_public_api_client.models import (
-    CreateSalesOrderFulfillmentRequest,
     ManufacturingOrder,
     SalesOrder,
-    SalesOrderFulfillmentStatus,
     UpdateManufacturingOrderRequest,
 )
-from katana_public_api_client.utils import is_success, unwrap, unwrap_as
+from katana_public_api_client.utils import unwrap_as
 
 logger = get_logger(__name__)
 
@@ -294,43 +292,23 @@ async def _fulfill_sales_order(
             next_actions=["Review the order details and try again with confirm=true"],
         )
 
-    from katana_public_api_client.api.sales_order_fulfillment import (
-        create_sales_order_fulfillment as api_create_sales_order_fulfillment,
-    )
-
-    # TODO(post-alignment): the live API requires
-    # ``sales_order_fulfillment_rows`` (the line items being fulfilled). The
-    # current tool surface doesn't accept rows — it just fulfills "the
-    # whole order". Until this tool is enhanced to either fetch the order's
-    # rows or take them as input, we send an empty array which the live
-    # API will reject with 422. Tests mock the API call so this is fine
-    # for unit tests but breaks against real Katana.
-    fulfillment_body = CreateSalesOrderFulfillmentRequest(
-        sales_order_id=request.order_id,
-        status=SalesOrderFulfillmentStatus.PACKED,
-        sales_order_fulfillment_rows=[],
-    )
-    fulfillment_response = await api_create_sales_order_fulfillment.asyncio_detailed(
-        client=services.client, body=fulfillment_body
-    )
-    if not is_success(fulfillment_response):
-        unwrap(fulfillment_response)
-
-    logger.info(f"Successfully created fulfillment for sales order {order_number}")
-    return FulfillOrderResponse(
-        order_id=request.order_id,
-        order_type="sales",
-        order_number=order_number,
-        status="FULFILLED",
-        is_preview=False,
-        inventory_updates=inventory_updates,
-        warnings=warnings,
-        next_actions=[
-            f"Sales order {order_number} fulfilled",
-            "Inventory has been updated",
-            "Fulfillment record created",
-        ],
-        message=f"Successfully fulfilled sales order {order_number}",
+    # The live API requires ``sales_order_fulfillment_rows`` (the line
+    # items being fulfilled — variants, quantities, batch transactions).
+    # Our current ``FulfillOrderRequest`` tool surface doesn't model
+    # rows. Fail fast with a clear, actionable message rather than send
+    # an empty array (which would 422 against live Katana with a
+    # confusing validation error and consume an API call). The
+    # row-aware extension is tracked for follow-up.
+    raise NotImplementedError(
+        "fulfill_order(order_type='sales', confirm=true) is not yet "
+        "supported. The live Katana API requires per-row fulfillment "
+        "input on POST /sales_order_fulfillments "
+        "(``sales_order_fulfillment_rows``: variants, quantities, batch "
+        "transactions), which this tool's request shape does not yet "
+        "expose. Until the tool is extended (either to fetch the order's "
+        "rows automatically or to accept fulfillment rows as input), use "
+        "the Katana UI or a row-aware client to mark sales orders as "
+        "fulfilled."
     )
 
 

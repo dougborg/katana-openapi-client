@@ -22,8 +22,11 @@ pair so findings are immediately actionable as fix PRs:
    so only semantic differences are reported.
 
 Default output is Markdown to stdout; ``--json`` emits a machine-readable
-report; ``--output FILE`` writes to disk. Exit code 0 on no drift, 1 on
-drift detected, 2 on script error.
+report; ``--output FILE`` writes to disk. Exit code is **0 on success**
+regardless of drift, so the command works equally well for human
+inspection and CI. Pass ``--strict`` to make any drift exit 1 (suitable
+for CI gating); ``2`` is reserved for script errors (missing input
+file, invalid YAML, etc.).
 
 Usage:
 
@@ -87,8 +90,10 @@ class EndpointDrift:
 class AuditReport:
     """Top-level audit findings."""
 
-    live_path_count: int
+    live_path_count: int  # unique paths (e.g. /sales_orders, /sales_orders/{id})
     local_path_count: int
+    live_endpoint_count: int = 0  # path-method pairs (e.g. GET /sales_orders)
+    local_endpoint_count: int = 0
     paths_only_in_live: list[tuple[str, str]] = field(default_factory=list)
     paths_only_in_local: list[tuple[str, str]] = field(default_factory=list)
     shared_endpoints: int = 0
@@ -253,6 +258,8 @@ def audit(local: dict[str, Any], live: dict[str, Any]) -> AuditReport:
     report = AuditReport(
         live_path_count=len({p for p, _ in live_paths}),
         local_path_count=len({p for p, _ in local_paths}),
+        live_endpoint_count=len(live_paths),
+        local_endpoint_count=len(local_paths),
     )
     report.paths_only_in_live = sorted(live_paths - local_paths)
     report.paths_only_in_local = sorted(local_paths - live_paths)
@@ -310,9 +317,12 @@ def format_markdown(report: AuditReport) -> str:
     lines.append("")
     lines.append(
         f"- Live spec: {report.live_path_count} unique paths, "
-        f"{report.live_path_count} endpoints w/ HTTP methods"
+        f"{report.live_endpoint_count} path-method endpoints"
     )
-    lines.append(f"- Local spec: {report.local_path_count} unique paths")
+    lines.append(
+        f"- Local spec: {report.local_path_count} unique paths, "
+        f"{report.local_endpoint_count} path-method endpoints"
+    )
     lines.append(f"- Shared endpoints with named DTOs: {report.shared_endpoints}")
     lines.append(
         f"- Endpoints with drift: **{len(report.drifted_endpoints)}** "
@@ -366,6 +376,8 @@ def format_json(report: AuditReport) -> str:
         {
             "live_path_count": report.live_path_count,
             "local_path_count": report.local_path_count,
+            "live_endpoint_count": report.live_endpoint_count,
+            "local_endpoint_count": report.local_endpoint_count,
             "shared_endpoints": report.shared_endpoints,
             "paths_only_in_live": [
                 {"method": m, "path": p} for p, m in report.paths_only_in_live

@@ -12,7 +12,6 @@ from katana_public_api_client.models import (
     ManufacturingOrder,
     ManufacturingOrderStatus,
     SalesOrder,
-    SalesOrderFulfillment,
 )
 from katana_public_api_client.models.sales_order_status import SalesOrderStatus
 from katana_public_api_client.utils import APIError
@@ -241,8 +240,15 @@ async def test_fulfill_sales_order_preview():
 
 
 @pytest.mark.asyncio
-async def test_fulfill_sales_order_confirm():
-    """Test fulfill_order confirm mode for sales order."""
+async def test_fulfill_sales_order_confirm_not_implemented():
+    """Confirm mode raises NotImplementedError until row-aware request shape lands.
+
+    The live ``POST /sales_order_fulfillments`` requires per-row fulfillment
+    input (``sales_order_fulfillment_rows``: variants, quantities, batch
+    transactions) — a shape this tool's ``FulfillOrderRequest`` doesn't yet
+    expose. Sending an empty array would 422 against live Katana, so the
+    tool fails fast with a clear message instead.
+    """
     context, _lifespan_ctx = create_mock_context()
 
     # Mock SalesOrder for get
@@ -254,36 +260,13 @@ async def test_fulfill_sales_order_confirm():
     mock_get_response.status_code = 200
     mock_get_response.parsed = mock_so
 
-    # Mock SalesOrderFulfillment for create
-    mock_fulfillment = MagicMock(spec=SalesOrderFulfillment)
-
-    mock_create_response = MagicMock()
-    mock_create_response.status_code = 201
-    mock_create_response.parsed = mock_fulfillment
-
-    # Mock the API calls
     from katana_public_api_client.api.sales_order import get_sales_order
-    from katana_public_api_client.api.sales_order_fulfillment import (
-        create_sales_order_fulfillment,
-    )
 
     get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
-    create_sales_order_fulfillment.asyncio_detailed = AsyncMock(
-        return_value=mock_create_response
-    )
 
     request = FulfillOrderRequest(order_id=5678, order_type="sales", confirm=True)
-    result = await _fulfill_order_impl(request, context)
-
-    assert result.order_id == 5678
-    assert result.order_type == "sales"
-    assert result.order_number == "SO-002"
-    assert result.status == "FULFILLED"
-    assert result.is_preview is False
-    assert "fulfilled" in result.message.lower()
-
-    # Verify fulfillment was created
-    create_sales_order_fulfillment.asyncio_detailed.assert_called_once()
+    with pytest.raises(NotImplementedError, match="sales_order_fulfillment_rows"):
+        await _fulfill_order_impl(request, context)
 
 
 @pytest.mark.asyncio
@@ -313,22 +296,11 @@ async def test_fulfill_sales_order_already_fulfilled():
     # DELIVERED should have a warning
     assert any("delivered" in w.lower() for w in result.warnings)
 
-    # Confirm mode - should still allow fulfillment (Katana allows multiple fulfillments)
+    # Confirm mode raises NotImplementedError — see
+    # ``test_fulfill_sales_order_confirm_not_implemented`` for the rationale.
     request = FulfillOrderRequest(order_id=5678, order_type="sales", confirm=True)
-    # This will actually try to create fulfillment, so we need to mock it
-    from katana_public_api_client.api.sales_order_fulfillment import (
-        create_sales_order_fulfillment,
-    )
-
-    mock_create_response = MagicMock()
-    mock_create_response.status_code = 201
-    create_sales_order_fulfillment.asyncio_detailed = AsyncMock(
-        return_value=mock_create_response
-    )
-
-    result = await _fulfill_order_impl(request, context)
-    assert result.is_preview is False
-    assert result.status == "FULFILLED"  # Status changes after fulfillment created
+    with pytest.raises(NotImplementedError, match="sales_order_fulfillment_rows"):
+        await _fulfill_order_impl(request, context)
 
 
 @pytest.mark.asyncio
@@ -408,36 +380,9 @@ async def test_fulfill_manufacturing_order_api_error():
         await _fulfill_order_impl(request, context)
 
 
-@pytest.mark.asyncio
-async def test_fulfill_sales_order_api_error():
-    """Test fulfill_order when sales order fulfillment API returns error."""
-    context, _lifespan_ctx = create_mock_context()
-
-    # Mock SalesOrder
-    mock_so = MagicMock(spec=SalesOrder)
-    mock_so.order_no = "SO-005"
-    mock_so.status = SalesOrderStatus.NOT_SHIPPED
-
-    mock_get_response = MagicMock()
-    mock_get_response.status_code = 200
-    mock_get_response.parsed = mock_so
-
-    # Mock create fulfillment API returning error
-    mock_create_response = MagicMock()
-    mock_create_response.status_code = 400
-    mock_create_response.parsed = None
-
-    from katana_public_api_client.api.sales_order import get_sales_order
-    from katana_public_api_client.api.sales_order_fulfillment import (
-        create_sales_order_fulfillment,
-    )
-
-    get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
-    create_sales_order_fulfillment.asyncio_detailed = AsyncMock(
-        return_value=mock_create_response
-    )
-
-    request = FulfillOrderRequest(order_id=5678, order_type="sales", confirm=True)
-
-    with pytest.raises(APIError):
-        await _fulfill_order_impl(request, context)
+# NOTE: ``test_fulfill_sales_order_api_error`` was removed — the tool no
+# longer reaches the ``POST /sales_order_fulfillments`` API call (it raises
+# ``NotImplementedError`` early; see
+# ``test_fulfill_sales_order_confirm_not_implemented``). Once the tool is
+# extended to send the live-required ``sales_order_fulfillment_rows``,
+# restore an API-error test that exercises the row-aware path.

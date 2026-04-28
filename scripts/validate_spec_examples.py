@@ -160,54 +160,107 @@ def _validate_against_media_schema(
         report.inline_examples_skipped += 1
 
 
-def _walk_request_examples(
-    spec: dict[str, Any], registry: Registry, report: ValidationReport
+def _validate_media_examples(
+    base_location: str,
+    cval: dict[str, Any],
+    registry: Registry,
+    report: ValidationReport,
 ) -> None:
-    """Validate any ``example`` inside a request body's media-type entry."""
-    for path, methods in spec.get("paths", {}).items():
-        for method, op in methods.items():
-            if method not in HTTP_METHODS:
+    """Walk every example carried by a media-type entry (singular + plural).
+
+    OpenAPI media-type objects can carry examples in three places:
+
+    1. ``content.<ctype>.example`` — singular inline example
+    2. ``content.<ctype>.examples`` — map of named examples, each with a
+       ``value`` (and optional ``summary``/``description``/
+       ``externalValue``). Plural form lets a spec carry multiple examples
+       for the same endpoint (e.g., ``created``, ``updated``, ``deleted``
+       webhook payload examples sharing one schema).
+    3. ``content.<ctype>.schema.example`` — singular example baked into
+       the schema definition.
+
+    Validate every populated location against the media-type's schema.
+    """
+    schema = cval.get("schema") or {}
+
+    # Singular ``example``: media-type-level wins over schema-level when
+    # both are present (per OpenAPI semantics).
+    singular = cval.get("example")
+    if singular is None:
+        singular = schema.get("example")
+    if singular is not None:
+        report.examples_checked += 1
+        _validate_against_media_schema(
+            f"{base_location}.example", schema, singular, registry, report
+        )
+
+    # Plural ``examples``: each entry is an object with a ``value``
+    # (string keys are the example names — used for the report location).
+    examples = cval.get("examples") or {}
+    if isinstance(examples, dict):
+        for name, entry in examples.items():
+            if not isinstance(entry, dict):
                 continue
+            if "value" not in entry:
+                # ``externalValue`` (URL) or ``$ref``-only entries — can't
+                # validate without fetching; skip silently.
+                continue
+            report.examples_checked += 1
+            _validate_against_media_schema(
+                f"{base_location}.examples.{name}.value",
+                schema,
+                entry["value"],
+                registry,
+                report,
+            )
+
+
+def _walk_operations(
+    section_name: str,
+    operations_root: dict[str, Any],
+    registry: Registry,
+    report: ValidationReport,
+) -> None:
+    """Walk every operation under a ``paths``- or ``webhooks``-shaped root.
+
+    OpenAPI 3.1 puts ``webhooks:`` at the top level alongside ``paths:``;
+    both are maps of operation containers (path-or-webhook key → method →
+    operation), so a single walker covers both. The ``section_name``
+    becomes the prefix in failure-report locations
+    (``paths.<...>`` vs ``webhooks.<...>``).
+    """
+    for key, methods in operations_root.items():
+        if not isinstance(methods, dict):
+            continue
+        for method, op in methods.items():
+            if method not in HTTP_METHODS or not isinstance(op, dict):
+                continue
+            # Request body
             rb = op.get("requestBody") or {}
-            for ctype, cval in rb.get("content", {}).items():
-                schema = cval.get("schema") or {}
-                example = cval.get("example")
-                if example is None:
-                    example = schema.get("example")
-                if example is None:
+            for ctype, cval in (rb.get("content") or {}).items():
+                if not isinstance(cval, dict):
                     continue
-                report.examples_checked += 1
-                location = f"paths.{path}.{method}.requestBody.content.{ctype}.example"
-                _validate_against_media_schema(
-                    location, schema, example, registry, report
+                _validate_media_examples(
+                    f"{section_name}.{key}.{method}.requestBody.content.{ctype}",
+                    cval,
+                    registry,
+                    report,
                 )
-
-
-def _walk_response_examples(
-    spec: dict[str, Any], registry: Registry, report: ValidationReport
-) -> None:
-    """Validate any ``example`` inside a response's media-type entry."""
-    for path, methods in spec.get("paths", {}).items():
-        for method, op in methods.items():
-            if method not in HTTP_METHODS:
-                continue
+            # Responses
             for status, response in (op.get("responses") or {}).items():
                 if not isinstance(response, dict):
                     continue
                 for ctype, cval in (response.get("content") or {}).items():
-                    schema = cval.get("schema") or {}
-                    example = cval.get("example")
-                    if example is None:
-                        example = schema.get("example")
-                    if example is None:
+                    if not isinstance(cval, dict):
                         continue
-                    report.examples_checked += 1
-                    location = (
-                        f"paths.{path}.{method}.responses.{status}"
-                        f".content.{ctype}.example"
-                    )
-                    _validate_against_media_schema(
-                        location, schema, example, registry, report
+                    _validate_media_examples(
+                        (
+                            f"{section_name}.{key}.{method}.responses."
+                            f"{status}.content.{ctype}"
+                        ),
+                        cval,
+                        registry,
+                        report,
                     )
 
 
@@ -216,8 +269,8 @@ def validate_spec(spec: dict[str, Any]) -> ValidationReport:
     registry = _build_registry(spec)
     report = ValidationReport()
     validate_component_schemas(spec, registry, report)
-    _walk_request_examples(spec, registry, report)
-    _walk_response_examples(spec, registry, report)
+    _walk_operations("paths", spec.get("paths") or {}, registry, report)
+    _walk_operations("webhooks", spec.get("webhooks") or {}, registry, report)
     return report
 
 
