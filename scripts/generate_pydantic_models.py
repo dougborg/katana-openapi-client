@@ -171,68 +171,165 @@ DOMAIN_GROUPS: dict[str, list[str]] = {
 }
 
 
+@dataclass(frozen=True)
+class CacheExtraField:
+    """A cache-only field hoisted onto a cache class.
+
+    Used when a discriminated-union root (``PurchaseOrderBase``) is cached as
+    one SQL table but the listing tool needs to filter by a column that
+    lives on a subclass (``OutsourcedPurchaseOrder.tracking_location_id``).
+    The converter copies the value out of the subclass instance.
+
+    ``render()`` emits the field declaration as a Python source line. The
+    caller pastes it into the cache class body via ``inject_extra_cache_fields``;
+    SQLModel infers the column type from the annotation (``Optional`` types
+    stay nullable). When ``description`` is set the renderer uses
+    ``Annotated[..., Field(description=...)]`` so the field is self-
+    documenting in the generated source.
+    """
+
+    name: str
+    python_type: str
+    default: str = "None"
+    description: str | None = None
+
+    def render(self) -> str:
+        if self.description is None:
+            return f"    {self.name}: {self.python_type} = {self.default}"
+        return (
+            f"    {self.name}: Annotated[\n"
+            f"        {self.python_type},\n"
+            f"        Field(description={self.description!r}),\n"
+            f"    ] = {self.default}"
+        )
+
+
+@dataclass(frozen=True)
+class CacheTableSpec:
+    """Per-class cache-table configuration.
+
+    All entry-keyed cache settings live here so a reader doesn't need to
+    consult four parallel dicts to know what one class produces.
+    ``CACHE_RELATIONSHIPS`` (list of parent→child links) stays separate
+    because it has different cardinality.
+
+    - ``name_override``: post-rename base name (no ``Cached`` prefix) used
+      to derive both the cache class name and the SQLAlchemy
+      ``__tablename__`` when the API class name reads awkwardly. Example:
+      ``PurchaseOrderBase`` sets ``name_override="PurchaseOrder"``,
+      yielding cache class ``CachedPurchaseOrder`` (via ``_cached_name``)
+      and ``__tablename__`` ``purchase_order`` (via ``_snake_case``).
+    - ``extra_fields``: cache-only fields hoisted from API subclasses
+      (e.g., outsourced-PO's ``tracking_location_id``).
+    - ``json_columns``: fields whose values stay JSON in the cache (lists
+      of polymorphic / non-cached nested models, single nested objects
+      SQLAlchemy can't auto-map).
+    """
+
+    name_override: str | None = None
+    extra_fields: tuple[CacheExtraField, ...] = ()
+    json_columns: tuple[str, ...] = ()
+
+
 # Cache-table configuration for #342 — select generated pydantic classes opt
-# into SQLAlchemy table semantics (`table=True`) so they double as cache row
-# schemas. Expanded incrementally per-entity as list tools get cache-backed;
-# PR 2 covers SalesOrder + SalesOrderRow as the pattern-proving pair.
-CACHE_TABLES: set[str] = {
-    "SalesOrder",
-    "SalesOrderRow",
-    "StockAdjustment",
-    "StockAdjustmentRow",
-    "ManufacturingOrder",
-    "PurchaseOrderBase",
-    "PurchaseOrderRow",
-    "StockTransfer",
-    "StockTransferRow",
-}
-
-
-# Cache class name overrides — when the API class name reads awkwardly as a
-# cache class, remap. Example: ``PurchaseOrderBase`` is the API discriminated
-# union root (sibling of RegularPurchaseOrder + OutsourcedPurchaseOrder); the
-# cache class shadows it as ``CachedPurchaseOrder`` (and ``__tablename__`` is
-# ``purchase_order``, not ``purchase_order_base``).
-CACHE_TABLE_RENAMES: dict[str, str] = {
-    "PurchaseOrderBase": "PurchaseOrder",
-}
-
-
-# Cache-only fields hoisted from API subclasses into the cache base. Used when
-# a discriminated-union root (PurchaseOrderBase) is cached as one SQL table
-# but the listing tool needs to filter by a column that lives on a subclass
-# (OutsourcedPurchaseOrder.tracking_location_id). The converter copies these
-# fields out of the subclass instance when the entity_type matches.
-CACHE_EXTRA_FIELDS: dict[str, list[str]] = {
-    "PurchaseOrderBase": [
-        "    tracking_location_id: int | None = None",
-    ],
+# into SQLAlchemy table semantics (``table=True``) so they double as cache
+# row schemas. Each entry's spec carries any per-class overrides; an empty
+# ``CacheTableSpec()`` means "default cache table, no overrides".
+CACHE_TABLES: dict[str, CacheTableSpec] = {
+    "SalesOrder": CacheTableSpec(
+        # ``shipping_fee`` is a single nested object; ``addresses`` is a
+        # list of nested ``SalesOrderAddress``. Both stay JSON because
+        # they're low-signal for the cache's filter workload.
+        json_columns=("shipping_fee", "addresses"),
+    ),
+    "SalesOrderRow": CacheTableSpec(
+        json_columns=("attributes", "batch_transactions", "serial_numbers"),
+    ),
+    "StockAdjustment": CacheTableSpec(),
+    "StockAdjustmentRow": CacheTableSpec(json_columns=("batch_transactions",)),
+    "ManufacturingOrder": CacheTableSpec(
+        json_columns=("batch_transactions", "serial_numbers"),
+    ),
+    "ManufacturingOrderRecipeRow": CacheTableSpec(
+        json_columns=("batch_transactions",),
+    ),
+    "PurchaseOrderBase": CacheTableSpec(
+        # API discriminated-union root (sibling of RegularPurchaseOrder +
+        # OutsourcedPurchaseOrder); cache shadows as ``CachedPurchaseOrder``
+        # (``__tablename__`` ``purchase_order``, not ``purchase_order_base``).
+        name_override="PurchaseOrder",
+        extra_fields=(
+            CacheExtraField(
+                name="tracking_location_id",
+                python_type="int | None",
+                description=(
+                    "(cache-only) Hoisted from OutsourcedPurchaseOrder so the "
+                    "single ``purchase_order`` cache table can filter by tracking "
+                    "location without a UNION across regular/outsourced rows."
+                ),
+            ),
+        ),
+        # ``supplier`` is a single nested ``Supplier`` object; SQLAlchemy
+        # can't auto-map it, JSON-column instead.
+        json_columns=("supplier",),
+    ),
+    "PurchaseOrderRow": CacheTableSpec(
+        # ``landed_cost: str | float | None`` is a non-optional inner union
+        # SQLAlchemy can't auto-type — JSON-column it instead of dropping.
+        json_columns=("batch_transactions", "landed_cost"),
+    ),
+    "StockTransfer": CacheTableSpec(),
+    "StockTransferRow": CacheTableSpec(json_columns=("batch_transactions",)),
 }
 
 
 @dataclass(frozen=True)
 class CacheTableRelationship:
-    """1:N parent→child relationship declaration between two cache tables."""
+    """1:N parent→child relationship declaration between two cache tables.
+
+    When the API model exposes the children as a nested list field on the
+    parent (e.g., ``SalesOrder.sales_order_rows``), set ``parent_field`` to
+    that field name and ``cache_only_parent_field`` to ``False`` — the
+    generator rewrites the list field as a SQLModel ``Relationship``.
+
+    When the API model does NOT expose the children on the wire (e.g.,
+    ``ManufacturingOrder``: recipe rows are fetched via a separate
+    endpoint), set ``cache_only_parent_field=True`` and ``parent_field``
+    to the desired cache-only attribute name. The generator appends a
+    fresh ``Relationship`` descriptor to the cached parent class — useful
+    for orphan-cleanup and back-pointer traversal in cache queries.
+    """
 
     parent: str
     parent_field: str
     child: str
     child_back_ref: str
     child_fk_field: str
+    cache_only_parent_field: bool = False
 
     @property
     def parent_table(self) -> str:
-        # Honor ``CACHE_TABLE_RENAMES`` so FK ``foreign_key="<table>.id"``
-        # references match the renamed tablename (e.g.,
-        # ``PurchaseOrderBase`` → ``purchase_order``, not
+        # Honor the cache spec's ``name_override`` so FK
+        # ``foreign_key="<table>.id"`` matches the renamed tablename
+        # (e.g., ``PurchaseOrderBase`` → ``purchase_order``, not
         # ``purchase_order_base``).
-        renamed = CACHE_TABLE_RENAMES.get(self.parent, self.parent)
-        return _snake_case(renamed)
+        return _snake_case(_resolve_cache_class(self.parent))
 
 
 def _snake_case(name: str) -> str:
     """CamelCase → snake_case — used for default SQLAlchemy tablenames."""
     return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+
+
+def _resolve_cache_class(name: str) -> str:
+    """API class name → cache class name (post-rename, no ``Cached`` prefix).
+
+    Returns the cache class's final name without the ``Cached`` prefix. Used
+    by ``_cached_name`` and by ``CacheTableRelationship.parent_table`` so
+    cache references resolve to the renamed table consistently.
+    """
+    spec = CACHE_TABLES.get(name)
+    return spec.name_override if (spec and spec.name_override is not None) else name
 
 
 def _cached_name(name: str) -> str:
@@ -241,10 +338,10 @@ def _cached_name(name: str) -> str:
     Cache rows live as ``Cached<Name>`` siblings of the API pydantic models
     so the API surface stays pure (no ``table=True``, no FK pollution) while
     the cache schema can carry SQLAlchemy machinery, FK back-pointers, and
-    relationships. ``CACHE_TABLE_RENAMES`` lets a class shadow under a
-    different name (``PurchaseOrderBase`` → ``CachedPurchaseOrder``).
+    relationships. ``CacheTableSpec.name_override`` lets a class shadow
+    under a different name (``PurchaseOrderBase`` → ``CachedPurchaseOrder``).
     """
-    return f"Cached{CACHE_TABLE_RENAMES.get(name, name)}"
+    return f"Cached{_resolve_cache_class(name)}"
 
 
 CACHE_RELATIONSHIPS: list[CacheTableRelationship] = [
@@ -276,26 +373,24 @@ CACHE_RELATIONSHIPS: list[CacheTableRelationship] = [
         child_back_ref="stock_transfer",
         child_fk_field="stock_transfer_id",
     ),
+    # ManufacturingOrder does NOT expose recipe_rows on the wire — the
+    # rows are fetched via a separate ``manufacturing_order_recipe``
+    # endpoint. ``cache_only_parent_field=True`` tells the generator to
+    # append a fresh ``Relationship`` descriptor to the cached parent
+    # rather than rewriting an existing list field. On the child,
+    # ``inject_foreign_keys`` rewrites the existing
+    # ``manufacturing_order_id`` field (returned on the wire) into an
+    # FK-aware ``SQLField(...)``, so orphan cleanup queries can traverse
+    # parent→children correctly.
+    CacheTableRelationship(
+        parent="ManufacturingOrder",
+        parent_field="recipe_rows",
+        child="ManufacturingOrderRecipeRow",
+        child_back_ref="manufacturing_order",
+        child_fk_field="manufacturing_order_id",
+        cache_only_parent_field=True,
+    ),
 ]
-
-
-# Fields on cache tables that contain lists of non-cached nested models (e.g.,
-# polymorphic attributes, batch transactions, serial numbers). These are stored
-# as JSON rather than exploded into child tables — they're low-signal for the
-# cache's query workload and not worth the schema churn.
-CACHE_JSON_COLUMNS: dict[str, list[str]] = {
-    "SalesOrder": ["shipping_fee", "addresses"],
-    "SalesOrderRow": ["attributes", "batch_transactions", "serial_numbers"],
-    "StockAdjustmentRow": ["batch_transactions"],
-    "ManufacturingOrder": ["batch_transactions", "serial_numbers"],
-    # PurchaseOrderBase.supplier is a single nested ``Supplier`` object that
-    # SQLAlchemy can't auto-map; cache it as JSON so the row stays denormalized.
-    "PurchaseOrderBase": ["supplier"],
-    # ``landed_cost: str | float | None`` is a non-optional inner union
-    # that SQLAlchemy can't auto-type — JSON-column it instead of dropping.
-    "PurchaseOrderRow": ["batch_transactions", "landed_cost"],
-    "StockTransferRow": ["batch_transactions"],
-}
 
 
 @dataclass
@@ -545,6 +640,13 @@ ENTITY_SUBTYPES = {
     "ArchivableEntity",
     "ArchivableDeletableEntity",
 }
+
+
+# Base classes whose fields propagate into cache tables via inheritance.
+# Their AwareDatetime annotations (created_at / updated_at / deleted_at /
+# archived_at) must be swapped to plain ``datetime`` too — otherwise
+# SQLModel's table-column inference on the inheriting cache class fails.
+ENTITY_BASE_CLASSES: frozenset[str] = frozenset(ENTITY_SUBTYPES | {"BaseEntity"})
 
 
 def fix_mro_issues(classes: list[ClassInfo]) -> list[ClassInfo]:
@@ -1095,26 +1197,37 @@ def inject_relationship_fields(classes: list[ClassInfo]) -> list[ClassInfo]:
         # Parent side: replace the list field with Relationship(). The inner
         # type was rewritten to ``Cached<Child>`` during duplication, so the
         # match pattern uses the cached child name.
+        #
+        # ``cache_only_parent_field=True`` means the API model never had a
+        # nested children field — append a fresh Relationship descriptor at
+        # the end of the class body instead of rewriting one in place.
         if cls.name in by_parent:
             rel = by_parent[cls.name]
             cached_child = _cached_name(rel.child)
-            pattern = (
-                rf"{re.escape(rel.parent_field)}:\s*Annotated\[\s*"
-                rf"list\[{re.escape(cached_child)}\]\s*\|\s*None,\s*"
-                r"Field\([^)]*\),?\s*\]\s*=\s*None"
-            )
-            replacement = (
-                f'{rel.parent_field}: list["{cached_child}"] = '
-                f'Relationship(back_populates="{rel.child_back_ref}")'
-            )
-            new_source, n = re.subn(pattern, replacement, new_source, count=1)
-            if n != 1:
-                msg = (
-                    f"Failed to rewrite list relationship on "
-                    f"{cls.name}.{rel.parent_field}. Expected shape "
-                    f"`Annotated[list[{cached_child}] | None, Field(...)] = None`."
+            if rel.cache_only_parent_field:
+                rel_line = (
+                    f'    {rel.parent_field}: list["{cached_child}"] = '
+                    f'Relationship(back_populates="{rel.child_back_ref}")\n'
                 )
-                raise GenerationError(msg)
+                new_source = new_source.rstrip() + "\n" + rel_line
+            else:
+                pattern = (
+                    rf"{re.escape(rel.parent_field)}:\s*Annotated\[\s*"
+                    rf"list\[{re.escape(cached_child)}\]\s*\|\s*None,\s*"
+                    r"Field\([^)]*\),?\s*\]\s*=\s*None"
+                )
+                replacement = (
+                    f'{rel.parent_field}: list["{cached_child}"] = '
+                    f'Relationship(back_populates="{rel.child_back_ref}")'
+                )
+                new_source, n = re.subn(pattern, replacement, new_source, count=1)
+                if n != 1:
+                    msg = (
+                        f"Failed to rewrite list relationship on "
+                        f"{cls.name}.{rel.parent_field}. Expected shape "
+                        f"`Annotated[list[{cached_child}] | None, Field(...)] = None`."
+                    )
+                    raise GenerationError(msg)
 
         # Child side: append back-reference field at end of class body.
         if cls.name in by_child:
@@ -1137,21 +1250,6 @@ def inject_relationship_fields(classes: list[ClassInfo]) -> list[ClassInfo]:
     return fixed
 
 
-# Base classes whose fields propagate into cache tables via inheritance.
-# Their AwareDatetime annotations (created_at / updated_at / deleted_at /
-# archived_at) must be swapped to plain ``datetime`` too — otherwise
-# SQLModel's table-column inference on the inheriting cache class fails.
-_CACHE_BASE_CLASSES = frozenset(
-    {
-        "BaseEntity",
-        "UpdatableEntity",
-        "DeletableEntity",
-        "ArchivableEntity",
-        "ArchivableDeletableEntity",
-    }
-)
-
-
 def swap_awaredatetime_for_datetime(classes: list[ClassInfo]) -> list[ClassInfo]:
     """Rewrite ``AwareDatetime`` as ``datetime`` in cache-table fields.
 
@@ -1171,7 +1269,7 @@ def swap_awaredatetime_for_datetime(classes: list[ClassInfo]) -> list[ClassInfo]
     since timezone awareness is a Katana wire-protocol invariant; the
     extra pydantic validator was safety belt for data we already trust.
     """
-    swap_targets = {_cached_name(n) for n in CACHE_TABLES} | _CACHE_BASE_CLASSES
+    swap_targets = {_cached_name(n) for n in CACHE_TABLES} | ENTITY_BASE_CLASSES
     fixed = []
     for cls in classes:
         if cls.name not in swap_targets:
@@ -1188,7 +1286,7 @@ def swap_awaredatetime_for_datetime(classes: list[ClassInfo]) -> list[ClassInfo]
 
 
 def inject_extra_cache_fields(classes: list[ClassInfo]) -> list[ClassInfo]:
-    """Append ``CACHE_EXTRA_FIELDS`` declarations to the cache class body.
+    """Append ``CacheTableSpec.extra_fields`` declarations to the cache class body.
 
     For discriminated-union roots (PurchaseOrderBase) cached as a single
     SQL table, this hoists subclass-only fields onto the cache class so
@@ -1201,15 +1299,18 @@ def inject_extra_cache_fields(classes: list[ClassInfo]) -> list[ClassInfo]:
     the column.
     """
     cached_extras = {
-        _cached_name(name): fields for name, fields in CACHE_EXTRA_FIELDS.items()
+        _cached_name(name): spec.extra_fields
+        for name, spec in CACHE_TABLES.items()
+        if spec.extra_fields
     }
     fixed = []
     for cls in classes:
-        extra_lines = cached_extras.get(cls.name)
-        if not extra_lines:
+        extras = cached_extras.get(cls.name)
+        if not extras:
             fixed.append(cls)
             continue
-        new_source = cls.source.rstrip() + "\n" + "\n".join(extra_lines) + "\n"
+        rendered = "\n".join(extra.render() for extra in extras)
+        new_source = cls.source.rstrip() + "\n" + rendered + "\n"
         fixed.append(cls.with_source(new_source))
     return fixed
 
@@ -1217,15 +1318,17 @@ def inject_extra_cache_fields(classes: list[ClassInfo]) -> list[ClassInfo]:
 def inject_json_columns(classes: list[ClassInfo]) -> list[ClassInfo]:
     """Annotate specified list fields with ``sa_column=Column(JSON)``.
 
-    For fields listed in ``CACHE_JSON_COLUMNS`` — typically lists of
+    For fields in ``CacheTableSpec.json_columns`` — typically lists of
     polymorphic or non-cached nested models — this preserves the typed
     pydantic interface while telling SQLAlchemy to store them as JSON rather
     than attempting to normalize them into child tables. Operates on the
-    ``Cached<Name>`` siblings: ``CACHE_JSON_COLUMNS`` keys are user-facing
-    API names so the cached lookup converts via ``_cached_name``.
+    ``Cached<Name>`` siblings: spec keys are user-facing API names so the
+    cached lookup converts via ``_cached_name``.
     """
     cached_json_columns = {
-        _cached_name(name): fields for name, fields in CACHE_JSON_COLUMNS.items()
+        _cached_name(name): spec.json_columns
+        for name, spec in CACHE_TABLES.items()
+        if spec.json_columns
     }
     fixed = []
     for cls in classes:
@@ -1242,7 +1345,7 @@ def inject_json_columns(classes: list[ClassInfo]) -> list[ClassInfo]:
                 rf"({re.escape(field_name)}:\s*Annotated\[\s*"
                 rf"[^,]+,\s*)Field\(\s*(description=)"
             )
-            replacement = r"\1SQLField(sa_column=Column(JSON), \2"
+            replacement = r"\1SQLField(sa_column=Column(PydanticJSON), \2"
             new_source, n = re.subn(pattern, replacement, new_source, count=1)
             if n != 1:
                 msg = (
@@ -1345,7 +1448,9 @@ def generate_module_imports(
     classes_in_module = {cls.name for cls in classes}
     cached_class_names = {_cached_name(n) for n in CACHE_TABLES}
     has_cache_tables = bool(classes_in_module & cached_class_names)
-    cached_json_class_names = {_cached_name(n) for n in CACHE_JSON_COLUMNS}
+    cached_json_class_names = {
+        _cached_name(name) for name, spec in CACHE_TABLES.items() if spec.json_columns
+    }
     has_json_columns = any(cls.name in cached_json_class_names for cls in classes)
 
     # Add standard imports from the original file
@@ -1386,14 +1491,17 @@ def generate_module_imports(
         if not any("ConfigDict" in line for line in import_lines):
             import_lines.append("from pydantic import ConfigDict")
         if has_json_columns:
-            import_lines.append("from sqlalchemy import JSON, Column")
+            import_lines.append("from sqlalchemy import Column")
+            import_lines.append(
+                "from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON"
+            )
 
     # #342: any module whose classes had AwareDatetime swapped for plain
     # datetime needs the stdlib datetime import. Applies to both cache-table
     # modules and the base module (shared entity bases feed cache tables via
     # inheritance).
     needs_datetime_import = any(
-        cls.name in (cached_class_names | _CACHE_BASE_CLASSES) for cls in classes
+        cls.name in (cached_class_names | ENTITY_BASE_CLASSES) for cls in classes
     )
     if needs_datetime_import:
         import_lines.append("from datetime import datetime")

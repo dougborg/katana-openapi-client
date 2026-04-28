@@ -2,6 +2,42 @@
 
 <!-- version list -->
 
+## v0.54.3 (2026-04-28)
+
+### Bug Fixes
+
+- **client**: Add PydanticJSON TypeDecorator to fix JSON column serialization of nested
+  pydantic models ([#404](https://github.com/dougborg/katana-openapi-client/pull/404),
+  [`6767454`](https://github.com/dougborg/katana-openapi-client/commit/67674541ec7b24135d0c8abaa6b8b00b5dc26052))
+
+- **client**: PydanticJSON TypeDecorator fixes JSON column serialization of nested
+  pydantic models ([#404](https://github.com/dougborg/katana-openapi-client/pull/404),
+  [`6767454`](https://github.com/dougborg/katana-openapi-client/commit/67674541ec7b24135d0c8abaa6b8b00b5dc26052))
+
+### Chores
+
+- **mcp**: Update client dependency to v0.54.2
+  ([`756169a`](https://github.com/dougborg/katana-openapi-client/commit/756169af4c5702a4e4471327243600a0bfe8fde8))
+
+## v0.54.2 (2026-04-28)
+
+### Bug Fixes
+
+- **client**: Add BLOCKED to ManufacturingOperationStatus + spec audit report
+  ([#408](https://github.com/dougborg/katana-openapi-client/pull/408),
+  [`e2c2493`](https://github.com/dougborg/katana-openapi-client/commit/e2c249358e2fa0ddfae509b68cb85c8472f193ac))
+
+### Chores
+
+- **mcp**: Update client dependency to v0.54.1
+  ([`b143d68`](https://github.com/dougborg/katana-openapi-client/commit/b143d68dc994cc96b6770aea932a6da393cf7e07))
+
+### Refactoring
+
+- **mcp**: EntitySpec + generic ensure_synced for typed-cache sync
+  ([#406](https://github.com/dougborg/katana-openapi-client/pull/406),
+  [`4de8394`](https://github.com/dougborg/katana-openapi-client/commit/4de8394f5fd53b2aa65a97121c0c6f99ded3cf64))
+
 ## v0.54.1 (2026-04-28)
 
 ### Bug Fixes

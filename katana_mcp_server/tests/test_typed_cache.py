@@ -140,6 +140,97 @@ class TestCacheTables:
             assert len(order.sales_order_rows) == 1
             assert order.sales_order_rows[0].variant_id == 100
 
+    @pytest.mark.asyncio
+    async def test_json_column_round_trips_pydantic_instances(self, typed_cache_engine):
+        """Regression: JSON columns with nested pydantic models survive flush.
+
+        ``CachedManufacturingOrder.serial_numbers`` is typed
+        ``list[SerialNumber] | None`` and stored via ``Column(PydanticJSON)``.
+        The ``model_dump → model_validate`` conversion round-trip re-creates
+        real ``SerialNumber`` pydantic instances in the field.  Before the
+        ``PydanticJSON`` fix, SQLAlchemy's stock ``JSON`` column called
+        ``json.dumps`` on the field value at flush time and raised
+        ``TypeError: Object of type SerialNumber is not JSON serializable``.
+
+        This test writes a ``CachedManufacturingOrder`` with a non-empty
+        ``serial_numbers`` list *directly via the SQLAlchemy session* (no MCP
+        layer) and asserts the round-trip succeeds and the values are
+        preserved.  This proves the cache classes are correct standalone —
+        not just when MCP does the writing.
+        """
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedManufacturingOrder,
+            ManufacturingOrderStatus,
+        )
+        from katana_public_api_client.models_pydantic._generated.stock import (
+            SerialNumber,
+        )
+
+        serial_numbers = [
+            SerialNumber(serial_number="SN-001"),
+            SerialNumber(serial_number="SN-002"),
+        ]
+
+        async with typed_cache_engine.session() as session:
+            session.add(
+                CachedManufacturingOrder(
+                    id=99,
+                    order_no="MO-JSON-001",
+                    status=ManufacturingOrderStatus.in_progress,
+                    serial_numbers=serial_numbers,
+                )
+            )
+            await session.commit()
+
+        async with typed_cache_engine.session() as session:
+            stmt = select(CachedManufacturingOrder).where(
+                CachedManufacturingOrder.order_no == "MO-JSON-001"
+            )
+            result = await session.exec(stmt)
+            mo = result.one()
+            assert mo.serial_numbers is not None
+            assert len(mo.serial_numbers) == 2
+            # SQLAlchemy loads JSON columns as plain Python dicts via json.loads —
+            # it never reconstructs pydantic models. The key assertion is that the
+            # write succeeded (no TypeError) and data round-tripped faithfully.
+            sn0 = mo.serial_numbers[0]
+            assert isinstance(sn0, dict)
+            assert sn0["serial_number"] == "SN-001"
+            sn1 = mo.serial_numbers[1]
+            assert isinstance(sn1, dict)
+            assert sn1["serial_number"] == "SN-002"
+            # Semantic round-trip: the read-back dict must validate cleanly back
+            # into the source pydantic model. Catches ``model_dump`` / ``model_validate``
+            # format drift (datetime serialization, enum representation, etc.) that
+            # would surface only at consumer-side reconstruction.
+            assert SerialNumber.model_validate(sn0) == serial_numbers[0]
+            assert SerialNumber.model_validate(sn1) == serial_numbers[1]
+
+    @pytest.mark.asyncio
+    async def test_json_column_round_trips_empty_list(self, typed_cache_engine):
+        """Edge case: empty list in a JSON column round-trips without error."""
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedManufacturingOrder,
+        )
+
+        async with typed_cache_engine.session() as session:
+            session.add(
+                CachedManufacturingOrder(
+                    id=100,
+                    order_no="MO-EMPTY-001",
+                    batch_transactions=[],
+                )
+            )
+            await session.commit()
+
+        async with typed_cache_engine.session() as session:
+            stmt = select(CachedManufacturingOrder).where(
+                CachedManufacturingOrder.order_no == "MO-EMPTY-001"
+            )
+            result = await session.exec(stmt)
+            mo = result.one()
+            assert mo.batch_transactions == []
+
 
 class TestSyncShippingFeeEmpty:
     """Regression tests for shipping_fee: {} Katana quirk.

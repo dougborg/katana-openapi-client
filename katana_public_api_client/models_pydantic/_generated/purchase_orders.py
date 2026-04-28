@@ -11,13 +11,14 @@ from enum import StrEnum
 from typing import Annotated, Literal, Optional
 
 from pydantic import AwareDatetime, ConfigDict, Field, RootModel
-from sqlalchemy import JSON, Column
+from sqlalchemy import Column
 from sqlmodel import (
     Field as SQLField,
     Relationship,
 )
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
+from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON
 
 from .base import DeletableEntity
 from .common import (
@@ -933,7 +934,7 @@ class CachedPurchaseOrderRow(DeletableEntity, table=True):
     batch_transactions: Annotated[
         list[BatchTransaction4] | None,
         SQLField(
-            sa_column=Column(JSON),
+            sa_column=Column(PydanticJSON),
             description="An array of batch transactions and their quantities. You can receive stock for the same item in multiple\nbatches.\n",
         ),
     ] = None
@@ -947,7 +948,7 @@ class CachedPurchaseOrderRow(DeletableEntity, table=True):
     landed_cost: Annotated[
         str | float | None,
         SQLField(
-            sa_column=Column(JSON),
+            sa_column=Column(PydanticJSON),
             description="Total landed cost including shipping, duties, and other charges",
         ),
     ] = None
@@ -1041,8 +1042,13 @@ class CachedPurchaseOrder(DeletableEntity, table=True):
     supplier: Annotated[
         Supplier | None,
         SQLField(
-            sa_column=Column(JSON),
+            sa_column=Column(PydanticJSON),
             description="Complete supplier information for this purchase order",
         ),
     ] = None
-    tracking_location_id: int | None = None
+    tracking_location_id: Annotated[
+        int | None,
+        Field(
+            description="(cache-only) Hoisted from OutsourcedPurchaseOrder so the single ``purchase_order`` cache table can filter by tracking location without a UNION across regular/outsourced rows."
+        ),
+    ] = None

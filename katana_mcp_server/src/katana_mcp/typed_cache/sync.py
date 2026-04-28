@@ -29,12 +29,16 @@ from typing import TYPE_CHECKING, Any
 from katana_public_api_client.api.manufacturing_order import (
     get_all_manufacturing_orders,
 )
+from katana_public_api_client.api.manufacturing_order_recipe import (
+    get_all_manufacturing_order_recipe_rows,
+)
 from katana_public_api_client.api.purchase_order import find_purchase_orders
 from katana_public_api_client.api.sales_order import get_all_sales_orders
 from katana_public_api_client.api.stock_adjustment import get_all_stock_adjustments
 from katana_public_api_client.api.stock_transfer import get_all_stock_transfers
 from katana_public_api_client.models_pydantic._generated import (
     CachedManufacturingOrder,
+    CachedManufacturingOrderRecipeRow,
     CachedPurchaseOrder,
     CachedPurchaseOrderRow,
     CachedSalesOrder,
@@ -44,6 +48,7 @@ from katana_public_api_client.models_pydantic._generated import (
     CachedStockTransfer,
     CachedStockTransferRow,
     ManufacturingOrder as PydanticManufacturingOrder,
+    ManufacturingOrderRecipeRow as PydanticManufacturingOrderRecipeRow,
     PurchaseOrderBase as PydanticPurchaseOrderBase,
     SalesOrder as PydanticSalesOrder,
     StockAdjustment as PydanticStockAdjustment,
@@ -281,6 +286,20 @@ _MANUFACTURING_ORDER_SPEC = EntitySpec(
 )
 
 
+# Manufacturing-order recipe rows: fetched from the separate
+# ``/manufacturing_order_recipe_rows`` endpoint, not nested under the MO
+# parent — so they have their own ``updated_at_min`` watermark and sync
+# lock. Direct conversion via the pydantic intermediary; ``batch_transactions``
+# survives ``model_dump`` as a plain dict list and lands in the cache class's
+# JSON column unchanged.
+_MANUFACTURING_ORDER_RECIPE_ROW_SPEC = EntitySpec(
+    entity_key="manufacturing_order_recipe_row",
+    api_fn=get_all_manufacturing_order_recipe_rows,
+    cache_cls=CachedManufacturingOrderRecipeRow,
+    pydantic_cls=PydanticManufacturingOrderRecipeRow,
+)
+
+
 # Purchase orders: discriminated-union entity. The cache class shadows
 # ``PurchaseOrderBase`` (renamed via ``CACHE_TABLE_RENAMES``) and carries
 # an extra ``tracking_location_id`` column hoisted from the outsourced
@@ -349,3 +368,16 @@ async def ensure_stock_transfers_synced(
 ) -> None:
     """Pull updated stock transfers from Katana and upsert into the cache."""
     await _ensure_synced(client, cache, _STOCK_TRANSFER_SPEC)
+
+
+async def ensure_manufacturing_order_recipe_rows_synced(
+    client: KatanaClient, cache: TypedCacheEngine
+) -> None:
+    """Pull updated MO recipe rows from Katana and upsert into the cache.
+
+    Recipe rows are fetched from the separate
+    ``/manufacturing_order_recipe_rows`` endpoint (not nested under the MO
+    parent), so they have their own ``updated_at_min`` watermark and sync
+    lock — distinct from the manufacturing-orders sync.
+    """
+    await _ensure_synced(client, cache, _MANUFACTURING_ORDER_RECIPE_ROW_SPEC)
