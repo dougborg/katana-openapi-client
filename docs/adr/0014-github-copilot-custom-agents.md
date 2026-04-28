@@ -2,11 +2,24 @@
 
 ## Status
 
-Accepted
+**Superseded**
 
 Date: 2025-01-06
+Superseded: 2026-04-28
 
 ## Context
+
+This ADR was superseded by the [harness-kit](https://github.com/dougborg/harness-kit)
+plugin + `.claude/skills/` (workflows) + `.claude/agents/` (delegated sub-agents)
+layout described in `CLAUDE.md`. The three-tier `.github/agents/*.agent.md` system
+this ADR proposed was the right answer at the time but has been replaced by the
+Claude Code harness, which provides equivalent specialization (skills as workflows,
+agents as delegated sub-agents) with better tooling and a shared plugin ecosystem.
+Several `.github/agents/*.agent.md` definition files still exist for historical
+reference and for GitHub Copilot consumers, but the canonical agent system is the
+harness.
+
+### Original Context
 
 As the katana-openapi-client project grew to include both a Python client library and an
 MCP server, we needed a way to provide specialized AI assistance for different
@@ -162,8 +175,9 @@ Agents use the `read` tool to load these guides only when needed.
    complexity but provides organization
 1. **Monorepo considerations**: Agents handle both client and MCP server, requiring
    awareness of both
-1. **Documentation duplication**: Some content duplicated between CLAUDE.md,
-   AGENT_WORKFLOW.md, and agent files
+1. **Documentation duplication**: At the time, some content was duplicated between
+   CLAUDE.md, an `AGENT_WORKFLOW.md` guide, and the agent files (since deleted —
+   see superseding harness layout described in CLAUDE.md)
 
 ## Alternatives Considered
 
@@ -235,6 +249,6 @@ development tasks
   examples and patterns
 - PR #145: Initial three-tier architecture migration
 - PR #146: Adoption of official GitHub structure
-- `.github/agents/guides/CONTEXT_INVESTIGATION.md` - Investigation findings
-- `.github/agents/guides/COPILOT_ARCHITECTURE.md` - Architecture documentation
-- `.github/agents/guides/REFACTORING_SUMMARY.md` - Implementation metrics
+- PR #418: Superseded — deleted historical guide files (`CONTEXT_INVESTIGATION.md`,
+  `COPILOT_ARCHITECTURE.md`, `REFACTORING_SUMMARY.md`, `AGENT_WORKFLOW.md`) when
+  this ADR was retired in favour of the harness-kit layout

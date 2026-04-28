@@ -176,8 +176,7 @@ When you need detailed guidance, use the `read` tool to access:
 - `.github/agents/guides/shared/COMMIT_STANDARDS.md` - Semantic commits
 - `.github/agents/guides/shared/FILE_ORGANIZATION.md` - Project structure
 - `.github/copilot-instructions.md` - General Copilot instructions
-- `CLAUDE.md` - Claude Code agent instructions
-- `AGENT_WORKFLOW.md` - Multi-agent workflow guidance
+- `CLAUDE.md` - Canonical agent guidance (Claude Code + multi-agent workflow)
 - `docs/adr/README.md` - Architecture Decision Records index
 
 ## Quality Standards

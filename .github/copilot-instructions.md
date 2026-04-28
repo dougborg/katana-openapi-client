@@ -22,8 +22,8 @@ information in these instructions is incomplete or found to be in error.**
 - `uv run poe test` - Run tests (~27s)
 - `uv run poe help` - List all available tasks
 
-**Complete workflow documentation:** See [AGENT_WORKFLOW.md](../AGENT_WORKFLOW.md) for
-detailed step-by-step instructions.
+**Complete workflow documentation:** See [CLAUDE.md](../CLAUDE.md) for the
+authoritative session guide and `.claude/skills/` for invokable workflows.
 
 ______________________________________________________________________
 
@@ -390,9 +390,8 @@ ______________________________________________________________________
 
 ## Additional Resources
 
-- **[AGENT_WORKFLOW.md](../AGENT_WORKFLOW.md)** - Complete step-by-step workflow for AI
-  agents
-- **[CLAUDE.md](../CLAUDE.md)** - Claude Code specific instructions
+- **[CLAUDE.md](../CLAUDE.md)** - Claude Code specific instructions and session
+  workflow
 - **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** - Contribution guidelines
 - **[TESTING_GUIDE.md](docs/TESTING_GUIDE.md)** - Testing strategy and coverage
 - **[docs/adr/](docs/adr/)** - Architecture Decision Records

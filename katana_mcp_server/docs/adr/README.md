@@ -38,8 +38,19 @@ We use the format proposed by Michael Nygard in his article
 
 ## Creating a New ADR
 
-1. Copy the template from the shared ADR directory
-1. Update the number (NNNN) to be the next sequential number
+1. Copy the template from the shared ADR directory:
+
+   ```bash
+   cp docs/adr/template.md katana_mcp_server/docs/adr/NNNN-your-title.md
+   ```
+
+1. Use the **next number across all three ADR directories** — the sequence is
+   shared between `katana_public_api_client/docs/adr/` (client package),
+   `docs/adr/` (monorepo-level), and this directory (MCP-server-specific), not
+   per-package. Check the highest existing number across all three.
+1. Decide which directory the ADR belongs in: client package decision →
+   `katana_public_api_client/docs/adr/`; monorepo / build / process →
+   `docs/adr/`; MCP-server-specific architecture → here.
 1. Fill in the sections
 1. Create a PR for discussion
 1. After acceptance, update status to "Accepted"
