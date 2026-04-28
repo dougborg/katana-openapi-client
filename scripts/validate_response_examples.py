@@ -5,8 +5,8 @@ The live OpenAPI spec at ``https://api.katanamrp.com/v1/openapi.json``
 defines request DTOs but no response shapes — every ``200`` response in
 the live spec is just ``{description: "Return value of FooController..."}``
 with no schema or example. The README.io-scraped markdown files in
-``docs/katana-api-comprehensive/`` (251 files), on the other hand, *do*
-contain rich JSON response examples copied from Katana's developer docs.
+``docs/katana-api-comprehensive/``, on the other hand, *do* contain rich
+JSON response examples copied from Katana's developer docs.
 
 This script bridges the two:
 
@@ -99,6 +99,7 @@ class ValidationReport:
     examples_validated: int = 0
     examples_skipped_no_schema: int = 0
     examples_skipped_non_2xx: int = 0
+    examples_skipped_invalid_json: int = 0
     failures: list[ValidationFailure] = field(default_factory=list)
     # informational
     paths_no_match: list[tuple[str, str, str]] = field(default_factory=list)
@@ -151,21 +152,26 @@ def _unwrap_labeled_example(payload: Any) -> Any:
     return value
 
 
-def parse_md_file(path: Path) -> list[ScrapedExample]:
+def parse_md_file(path: Path) -> tuple[list[ScrapedExample], int]:
     """Extract every (method, path, status_code, json) tuple from one .md file.
 
-    Returns an empty list for files without a recognizable endpoint header
-    (e.g. object-documentation pages, login.md).
+    Returns ``(examples, invalid_json_count)``. ``invalid_json_count`` lets
+    the caller surface how many code blocks were dropped due to malformed
+    JSON (typically multi-line string examples with un-escaped embedded
+    newlines that ``json.loads`` rejects). For files without a
+    recognizable endpoint header (object-documentation pages, login.md),
+    returns ``([], 0)``.
     """
     text = path.read_text(encoding="utf-8")
     header_match = _HEADER_RE.search(text)
     if not header_match:
-        return []
+        return [], 0
     method = header_match.group(1).upper()
     raw_path = header_match.group(2)
     spec_path = _normalize_path(raw_path)
 
     out: list[ScrapedExample] = []
+    invalid_json = 0
     # Scan response sections in document order; the JSON block immediately
     # following each ``#### NNN Response`` heading belongs to that section.
     for sec_match in _SECTION_RE.finditer(text):
@@ -182,10 +188,11 @@ def parse_md_file(path: Path) -> list[ScrapedExample]:
         try:
             payload = json.loads(json_text)
         except json.JSONDecodeError:
-            # Some examples have ``"foo": "bar"`` where bar is a multi-line
-            # string with embedded newlines that break json.loads. Skip
-            # silently — those are documentation issues, not schema-drift
-            # signals we can validate against anyway.
+            # Multi-line string examples (e.g. error message bodies with
+            # embedded newlines) break ``json.loads``. Count them so the
+            # report surfaces *why* the input/output ratio is what it is,
+            # rather than silently dropping them.
+            invalid_json += 1
             continue
         payload = _unwrap_labeled_example(payload)
         out.append(
@@ -197,16 +204,19 @@ def parse_md_file(path: Path) -> list[ScrapedExample]:
                 payload=payload,
             )
         )
-    return out
+    return out, invalid_json
 
 
-def scan_docs_dir(docs_dir: Path) -> tuple[list[ScrapedExample], int]:
-    """Walk the docs dir, return all examples + a count of files scanned."""
+def scan_docs_dir(docs_dir: Path) -> tuple[list[ScrapedExample], int, int]:
+    """Walk the docs dir; return ``(examples, files_scanned, invalid_json)``."""
     md_files = sorted(p for p in docs_dir.glob("*.md") if p.name != "README.md")
     examples: list[ScrapedExample] = []
+    invalid_json = 0
     for p in md_files:
-        examples.extend(parse_md_file(p))
-    return examples, len(md_files)
+        ex, ij = parse_md_file(p)
+        examples.extend(ex)
+        invalid_json += ij
+    return examples, len(md_files), invalid_json
 
 
 # ----------------------------------------------------------------------------
@@ -260,11 +270,14 @@ def validate(
     md_files_scanned: int,
     *,
     only_2xx: bool = True,
+    examples_skipped_invalid_json: int = 0,
 ) -> ValidationReport:
     """Validate every scraped example against the matching response schema."""
     registry = _build_registry(spec)
     report = ValidationReport(
-        md_files_scanned=md_files_scanned, examples_extracted=len(examples)
+        md_files_scanned=md_files_scanned,
+        examples_extracted=len(examples),
+        examples_skipped_invalid_json=examples_skipped_invalid_json,
     )
 
     for ex in examples:
@@ -291,9 +304,18 @@ def validate(
                 if err.absolute_path
                 else "/"
             )
+            # ``relative_to`` raises when ``--docs-dir`` lives outside the
+            # repo (e.g. running against a scratch copy or a CI cache
+            # mount). Fall back to the absolute path so the validation
+            # pass doesn't abort just because the report can't be made
+            # repo-relative.
+            try:
+                md_path = str(ex.md_path.relative_to(REPO_ROOT))
+            except ValueError:
+                md_path = str(ex.md_path)
             report.failures.append(
                 ValidationFailure(
-                    md_path=str(ex.md_path.relative_to(REPO_ROOT)),
+                    md_path=md_path,
                     method=ex.method,
                     path=ex.path,
                     status_code=ex.status_code,
@@ -321,11 +343,23 @@ def format_report(report: ValidationReport, *, show_unmatched: bool = False) -> 
         f"- Examples validated: **{report.examples_validated}**",
         f"- Examples skipped (no local schema): {report.examples_skipped_no_schema}",
         f"- Examples skipped (non-2xx): {report.examples_skipped_non_2xx}",
+        (f"- Examples skipped (invalid JSON): {report.examples_skipped_invalid_json}"),
         f"- Failures: **{len(report.failures)}**",
         "",
     ]
-    if report.ok and report.examples_validated > 0:
-        lines.append("All validated examples conform to their local schemas.")
+    if report.ok:
+        if report.examples_validated == 0:
+            # Zero failures *and* zero validated — usually means filters
+            # excluded everything (e.g. ``--docs-dir`` pointed at a dir
+            # with no recognized markdown, or all responses were non-2xx
+            # with the default filter). Make this explicit so the report
+            # doesn't read as "everything passed."
+            lines.append(
+                "No examples were validated against schemas — nothing to "
+                "report. Check ``--docs-dir`` and ``--all-statuses``."
+            )
+        else:
+            lines.append("All validated examples conform to their local schemas.")
         if show_unmatched and report.paths_no_match:
             lines.append("")
             lines.append("## Endpoints scraped but unmatched in local spec")
@@ -412,8 +446,14 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     spec = yaml.safe_load(args.spec.read_text(encoding="utf-8"))
-    examples, files = scan_docs_dir(args.docs_dir)
-    report = validate(spec, examples, files, only_2xx=not args.all_statuses)
+    examples, files, invalid_json = scan_docs_dir(args.docs_dir)
+    report = validate(
+        spec,
+        examples,
+        files,
+        only_2xx=not args.all_statuses,
+        examples_skipped_invalid_json=invalid_json,
+    )
     text = format_report(report, show_unmatched=args.show_unmatched)
     if args.output:
         args.output.write_text(text, encoding="utf-8")

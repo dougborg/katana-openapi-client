@@ -83,7 +83,13 @@ snake_case (`purchase_order_id`, `integration_type`, `received_items_group_id`,
 - Examples validated: 122
 - Examples skipped (no local schema): 10
 - Examples skipped (non-2xx): 553
+- Examples skipped (invalid JSON): 67
 - Failures: 5  (all documentation-artefacts; see "Closed as no-op" above)
 ```
+
+The 67 invalid-JSON skips are response code blocks where Katana's docs contain
+multi-line string values (e.g. error message bodies with embedded newlines) that
+`json.loads` rejects. They aren't dropped silently — the counter surfaces them so audit
+reproducibility is preserved.
 
 To reproduce: `uv run poe validate-response-examples`.
