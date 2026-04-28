@@ -81,7 +81,13 @@ Common mistakes to avoid:
   without its regen leaves CI green-but-stale until the next time someone runs
   the generator; pushing regen output without the input change drifts in the
   other direction. Note the generated-file impact in the PR description (e.g.,
-  "byte-identical except X" or list affected files).
+  "byte-identical except X" or list affected files). When the regen drops a
+  previously-public class (e.g., a `StrEnum` deduped into a sibling) or
+  narrows a field's type, the commit must use the breaking-change marker
+  (`feat(client)!:` / `fix(client)!:`) with a `BREAKING CHANGE:` footer
+  naming the affected symbol — see
+  [`.github/agents/guides/shared/COMMIT_STANDARDS.md`](.github/agents/guides/shared/COMMIT_STANDARDS.md)
+  "Schema and Generator Changes" for the full rule.
 - **OpenAPI spec is 3.1 — use 3.1 conventions** - `docs/katana-openapi.yaml`
   declares `openapi: 3.1.0`. Use 3.1 features rather than 3.0 work-arounds.
   Specifically: **`$ref` siblings are legal in 3.1**, so attach property
