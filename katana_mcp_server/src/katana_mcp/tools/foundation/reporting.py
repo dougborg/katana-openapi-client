@@ -1,13 +1,21 @@
 """Reporting and aggregation tools for Katana MCP Server.
 
 Read-only aggregation tools that compute rollups client-side from paginated
-sales-order data. These exist to replace multi-call analytical workflows
-(e.g. "top 20 selling bikes over the last 90 days") with a single tool call.
+sales-order data — and, for inventory velocity, from completed-MO recipe
+rows joined out of the typed cache. These exist to replace multi-call
+analytical workflows (e.g. "top 20 selling bikes over the last 90 days")
+with a single tool call.
 
 Tools:
 - top_selling_variants: top-N variants by units or revenue over a date window
 - sales_summary: group sales in a window by day/week/month/variant/customer/category
-- inventory_velocity: units_sold, avg_daily, stock_on_hand, days_of_cover for a SKU
+- inventory_velocity: units_sold, avg_daily, stock_on_hand, days_of_cover.
+  Accepts either a single ``sku_or_variant_id`` or a batch of up to 100 via
+  ``sku_or_variant_ids`` (one row per item). When ``include_mo_consumption``
+  is true (default), units consumed as ingredients on completed manufacturing
+  orders within the window are added to the velocity figure on top of the
+  delivered-SO units, sourced from the ``manufacturing_order_recipe_row``
+  cache table.
 
 **Implementation notes:**
 
@@ -21,6 +29,9 @@ Tools:
   semantics are "order was created within [start, end]".
 - Variant → category lookup is cached per tool call in a local dict to avoid
   N+1 API calls across many sales-order rows.
+- ``inventory_velocity``'s MO-consumption path filters cached MOs to
+  ``status=DONE`` with ``done_date`` inside the window before joining recipe
+  rows — so partially completed or in-progress MOs don't contribute.
 """
 
 from __future__ import annotations
@@ -40,6 +51,7 @@ from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.decorators import cache_read
 from katana_mcp.tools.tool_result_utils import (
+    apply_date_window_filters,
     format_md_table,
     make_simple_result,
 )
@@ -142,6 +154,11 @@ _PARENT_BY_VARIANT_TYPE: dict[str, tuple[EntityType, str]] = {
     "material": (EntityType.MATERIAL, "material_id"),
     "service": (EntityType.SERVICE, "product_id"),
 }
+
+# Cap concurrent ``/inventory`` requests for ``inventory_velocity`` batches.
+# Transport-layer rate limiting handles 429s, but a semaphore prevents 100+
+# simultaneous requests from saturating the HTTP connection pool.
+_STOCK_FETCH_CONCURRENCY = 10
 
 
 async def _resolve_variant_info(
@@ -617,16 +634,39 @@ async def sales_summary(
 
 
 class InventoryVelocityRequest(BaseModel):
-    """Request for inventory-velocity stats for a SKU/variant."""
+    """Request for inventory-velocity stats for one or more SKUs/variants.
 
-    sku_or_variant_id: str | int = Field(
-        ..., description="SKU (string) or variant_id (int) to analyze"
+    Exactly one of ``sku_or_variant_id`` (single-item shape) or
+    ``sku_or_variant_ids`` (batch shape) must be provided.
+    """
+
+    sku_or_variant_id: str | int | None = Field(
+        default=None,
+        description=("SKU (string) or variant_id (int) to analyze. Single-item shape."),
+    )
+    sku_or_variant_ids: list[str | int] | None = Field(
+        default=None,
+        description=(
+            "Batch shape — list of SKUs and/or variant IDs (1-100 items). "
+            "Returns one row per item in a markdown table. "
+            "Use this for cross-variant reports."
+        ),
+        min_length=1,
+        max_length=100,
     )
     period_days: int = Field(
         default=90,
         ge=1,
         le=365,
         description="Rolling-window size in days (default 90, max 365)",
+    )
+    include_mo_consumption: bool = Field(
+        default=True,
+        description=(
+            "When true (default), units consumed as ingredients on completed "
+            "MOs in the window are added to the velocity figure. "
+            "Set false to match the legacy SO-only behavior."
+        ),
     )
     format: Literal["markdown", "json"] = Field(
         default="markdown",
@@ -636,19 +676,56 @@ class InventoryVelocityRequest(BaseModel):
         ),
     )
 
+    @property
+    def resolved_inputs(self) -> list[str | int]:
+        """Return the canonical list of SKU/ID inputs to analyze."""
+        if self.sku_or_variant_ids is not None:
+            return list(self.sku_or_variant_ids)
+        if self.sku_or_variant_id is not None:
+            return [self.sku_or_variant_id]
+        return []
+
+    @property
+    def is_batch(self) -> bool:
+        """True when the batch shape was used."""
+        return self.sku_or_variant_ids is not None
+
+    def model_post_init(self, _context: Any) -> None:
+        """Validate that exactly one shape is provided."""
+        has_single = self.sku_or_variant_id is not None
+        has_batch = self.sku_or_variant_ids is not None
+        if not has_single and not has_batch:
+            raise ValueError(
+                "Provide either 'sku_or_variant_id' (single) or "
+                "'sku_or_variant_ids' (batch)."
+            )
+        if has_single and has_batch:
+            raise ValueError(
+                "Provide only one of 'sku_or_variant_id' or 'sku_or_variant_ids', "
+                "not both."
+            )
+
 
 class VelocityStats(BaseModel):
-    """Velocity response."""
+    """Per-variant velocity statistics."""
 
     sku: str | None
     variant_id: int
     units_sold: float
+    units_consumed_by_mos: float
+    units_total: float
     avg_daily: float
     stock_on_hand: float
     days_of_cover: float | None
     period_days: int
     window_start: str
     window_end: str
+
+
+class InventoryVelocityResponse(BaseModel):
+    """Response wrapper — one ``VelocityStats`` row per requested variant."""
+
+    items: list[VelocityStats]
 
 
 async def _resolve_sku_or_variant_id(
@@ -692,68 +769,262 @@ async def _fetch_stock_on_hand(services: Any, variant_id: int) -> float:
     return total
 
 
+async def _fetch_completed_mo_recipe_rows_in_window(
+    services: Any,
+    window_start_naive: datetime,
+    window_end_naive: datetime,
+) -> list[Any]:
+    """Return recipe rows from completed MOs whose done_date falls in the window.
+
+    A single ``SELECT ... JOIN ... WHERE`` statement filters recipe rows by
+    joining ``CachedManufacturingOrderRecipeRow`` to its parent
+    ``CachedManufacturingOrder`` and applying ``status=done``, the
+    ``done_date`` window, and the soft-delete guard against the parent. The
+    JOIN avoids a separate ID-collection round-trip and sidesteps SQLite's
+    bound-parameter limit (≈ 999) when many MOs match the window.
+
+    Both tables are tz-naive in SQLite (offsets stripped on insert), so the
+    window datetimes must also be naive UTC — callers are responsible for
+    stripping tzinfo before passing.
+    """
+    from sqlmodel import select
+
+    from katana_mcp.typed_cache import (
+        ensure_manufacturing_order_recipe_rows_synced,
+        ensure_manufacturing_orders_synced,
+    )
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedManufacturingOrder,
+        CachedManufacturingOrderRecipeRow,
+        ManufacturingOrderStatus,
+    )
+
+    # Parallel-safe: the two sync helpers acquire disjoint per-entity locks
+    # (``manufacturing_order`` vs ``manufacturing_order_recipe_row``), so
+    # ``asyncio.gather`` won't deadlock or interleave writes within a table.
+    await asyncio.gather(
+        ensure_manufacturing_orders_synced(services.client, services.typed_cache),
+        ensure_manufacturing_order_recipe_rows_synced(
+            services.client, services.typed_cache
+        ),
+    )
+
+    async with services.typed_cache.session() as session:
+        # Filter both sides of the join for soft-delete: a recipe row could
+        # be tombstoned even while its parent MO is still live, so each table's
+        # ``deleted_at`` guard is independently necessary to keep tombstoned
+        # consumption out of velocity totals.
+        row_stmt = (
+            select(CachedManufacturingOrderRecipeRow)
+            .join(
+                CachedManufacturingOrder,
+                CachedManufacturingOrder.id
+                == CachedManufacturingOrderRecipeRow.manufacturing_order_id,
+            )
+            .where(CachedManufacturingOrder.status == ManufacturingOrderStatus.done)
+            .where(CachedManufacturingOrder.done_date.is_not(None))
+            .where(CachedManufacturingOrder.deleted_at.is_(None))
+            .where(CachedManufacturingOrderRecipeRow.deleted_at.is_(None))
+        )
+        row_stmt = apply_date_window_filters(
+            row_stmt,
+            {
+                "window_start": window_start_naive,
+                "window_end": window_end_naive,
+            },
+            ge_pairs={"window_start": CachedManufacturingOrder.done_date},
+            le_pairs={"window_end": CachedManufacturingOrder.done_date},
+        )
+        return list((await session.exec(row_stmt)).all())
+
+
 async def _inventory_velocity_impl(
     request: InventoryVelocityRequest, context: Context
-) -> VelocityStats:
-    """Compute inventory-velocity stats for one variant."""
+) -> InventoryVelocityResponse:
+    """Compute inventory-velocity stats for one or more variants."""
     services = get_services(context)
 
-    variant_id, sku = await _resolve_sku_or_variant_id(
-        services, request.sku_or_variant_id
-    )
+    inputs = request.resolved_inputs
 
     # Inclusive window [window_start, window_end] covers exactly period_days
     # calendar days. Subtract period_days - 1 so a 7-day window ending today
     # starts 6 days ago, not 7.
     window_end = datetime.now(tz=UTC).date()
     window_start = window_end - timedelta(days=request.period_days - 1)
+    # Naive UTC versions for cache comparisons (SQLite stores tz-stripped
+    # datetimes). The end-of-day upper bound runs to 23:59:59.999999 so an MO
+    # whose ``done_date`` carries microseconds (e.g. ``23:59:59.500000``) is
+    # included by the inclusive ``<=`` filter — without the microsecond pad,
+    # any sub-second-precision timestamp on the last day of the window would
+    # be silently dropped.
+    window_end_dt = datetime(
+        window_end.year,
+        window_end.month,
+        window_end.day,
+        23,
+        59,
+        59,
+        999_999,
+    )
+    window_start_dt = datetime(window_start.year, window_start.month, window_start.day)
 
     logger.info(
         "inventory_velocity_started",
-        variant_id=variant_id,
-        sku=sku,
+        inputs=inputs,
         period_days=request.period_days,
+        include_mo_consumption=request.include_mo_consumption,
     )
 
-    # Orders fetch and current-stock fetch are independent — run them in
-    # parallel so velocity isn't paying two serial round-trips per call.
-    orders, stock_on_hand = await asyncio.gather(
+    # Resolve all variant IDs up front (sequential; each is a cache lookup).
+    resolved: list[tuple[int, str | None]] = []
+    for inp in inputs:
+        variant_id, sku = await _resolve_sku_or_variant_id(services, inp)
+        resolved.append((variant_id, sku))
+
+    # Fetch sales orders (and optionally MO recipe rows) in parallel.
+    fetch_tasks: list[Any] = [
         _fetch_delivered_sales_orders_in_window(services, window_start, window_end),
-        _fetch_stock_on_hand(services, variant_id),
+    ]
+    if request.include_mo_consumption:
+        fetch_tasks.append(
+            _fetch_completed_mo_recipe_rows_in_window(
+                services, window_start_dt, window_end_dt
+            )
+        )
+
+    fetch_results = await asyncio.gather(*fetch_tasks)
+    sales_orders = fetch_results[0]
+    recipe_rows: list[Any] = fetch_results[1] if request.include_mo_consumption else []
+
+    # Stock-on-hand must be fetched per variant (separate API call each).
+    # Cap concurrency so a 100-variant batch doesn't burst 100 simultaneous
+    # ``/inventory`` requests at the connection pool — transport-layer
+    # rate limiting handles 429s, but a semaphore prevents the burst
+    # entirely.
+    stock_fetch_semaphore = asyncio.Semaphore(_STOCK_FETCH_CONCURRENCY)
+
+    async def _fetch_stock_limited(variant_id: int) -> float:
+        async with stock_fetch_semaphore:
+            return await _fetch_stock_on_hand(services, variant_id)
+
+    stock_values = await asyncio.gather(
+        *(_fetch_stock_limited(variant_id) for variant_id, _ in resolved)
     )
 
-    units_sold = 0.0
-    for so in orders:
+    # Pre-aggregate demand per variant in a single pass over each row source,
+    # so the per-variant loop below is O(variant_count) instead of
+    # O(variant_count * total_rows).
+    units_sold_by_variant: dict[int, float] = defaultdict(float)
+    for so in sales_orders:
         for row in _iter_rows(so):
-            if unwrap_unset(row.variant_id, None) == variant_id:
-                units_sold += float(unwrap_unset(row.quantity, 0) or 0)
+            row_variant_id = unwrap_unset(row.variant_id, None)
+            if row_variant_id is not None:
+                units_sold_by_variant[row_variant_id] += float(
+                    unwrap_unset(row.quantity, 0) or 0
+                )
 
-    avg_daily = units_sold / request.period_days if request.period_days > 0 else 0.0
-    days_of_cover: float | None
-    if avg_daily > 0:
-        days_of_cover = round(stock_on_hand / avg_daily, 2)
-    else:
-        days_of_cover = None
+    units_consumed_by_variant: dict[int, float] = defaultdict(float)
+    if request.include_mo_consumption:
+        for rr in recipe_rows:
+            units_consumed_by_variant[rr.variant_id] += float(
+                rr.total_actual_quantity or 0
+            )
+
+    items: list[VelocityStats] = []
+    for (variant_id, sku), stock_on_hand in zip(resolved, stock_values, strict=True):
+        units_sold = units_sold_by_variant.get(variant_id, 0.0)
+        units_consumed_by_mos = units_consumed_by_variant.get(variant_id, 0.0)
+        units_total = units_sold + units_consumed_by_mos
+        avg_daily = (
+            units_total / request.period_days if request.period_days > 0 else 0.0
+        )
+        days_of_cover: float | None
+        if avg_daily > 0:
+            days_of_cover = round(stock_on_hand / avg_daily, 2)
+        else:
+            days_of_cover = None
+
+        items.append(
+            VelocityStats(
+                sku=sku,
+                variant_id=variant_id,
+                units_sold=round(units_sold, 4),
+                units_consumed_by_mos=round(units_consumed_by_mos, 4),
+                units_total=round(units_total, 4),
+                avg_daily=round(avg_daily, 4),
+                stock_on_hand=round(stock_on_hand, 4),
+                days_of_cover=days_of_cover,
+                period_days=request.period_days,
+                window_start=window_start.isoformat(),
+                window_end=window_end.isoformat(),
+            )
+        )
 
     logger.info(
         "inventory_velocity_completed",
-        variant_id=variant_id,
-        units_sold=units_sold,
-        stock_on_hand=stock_on_hand,
-        avg_daily=avg_daily,
+        variant_count=len(items),
     )
 
-    return VelocityStats(
-        sku=sku,
-        variant_id=variant_id,
-        units_sold=round(units_sold, 4),
-        avg_daily=round(avg_daily, 4),
-        stock_on_hand=round(stock_on_hand, 4),
-        days_of_cover=days_of_cover,
-        period_days=request.period_days,
-        window_start=window_start.isoformat(),
-        window_end=window_end.isoformat(),
+    return InventoryVelocityResponse(items=items)
+
+
+def _format_velocity_card(stats: VelocityStats) -> str:
+    """Render a single variant's velocity as a rich markdown card."""
+    cover = (
+        f"{stats.days_of_cover:.1f} days"
+        if stats.days_of_cover is not None
+        else "N/A (no demand history in window)"
     )
+    lines = [
+        f"## Inventory Velocity: {stats.sku or stats.variant_id}",
+        f"- **Variant ID**: {stats.variant_id}",
+        f"- **Window**: {stats.window_start} to {stats.window_end} "
+        f"({stats.period_days} days)",
+        f"- **Units Sold (SO)**: {stats.units_sold:g}",
+        f"- **Units Consumed (MO)**: {stats.units_consumed_by_mos:g}",
+        f"- **Total Demand**: {stats.units_total:g}",
+        f"- **Average Daily**: {stats.avg_daily:.2f}",
+        f"- **Stock on Hand**: {stats.stock_on_hand:g}",
+        f"- **Days of Cover**: {cover}",
+    ]
+    return "\n".join(lines)
+
+
+def _format_velocity_table(response: InventoryVelocityResponse) -> str:
+    """Render a batch velocity response as a markdown table."""
+    headers = [
+        "SKU",
+        "Variant ID",
+        "Units Sold (SO)",
+        "Units Consumed (MO)",
+        "Total",
+        "Avg/day",
+        "Stock",
+        "Days Cover",
+    ]
+    rows = []
+    for s in response.items:
+        cover = f"{s.days_of_cover:.1f}" if s.days_of_cover is not None else "N/A"
+        rows.append(
+            [
+                s.sku or "",
+                str(s.variant_id),
+                f"{s.units_sold:g}",
+                f"{s.units_consumed_by_mos:g}",
+                f"{s.units_total:g}",
+                f"{s.avg_daily:.2f}",
+                f"{s.stock_on_hand:g}",
+                cover,
+            ]
+        )
+    first = response.items[0] if response.items else None
+    title = (
+        f"## Inventory Velocity Report "
+        f"({first.window_start} to {first.window_end}, {first.period_days} days)"
+        if first
+        else "## Inventory Velocity Report"
+    )
+    return f"{title}\n\n{format_md_table(headers, rows)}"
 
 
 @observe_tool
@@ -761,13 +1032,17 @@ async def _inventory_velocity_impl(
 async def inventory_velocity(
     request: Annotated[InventoryVelocityRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """How fast is a SKU moving? Units sold, avg-daily, stock, and days of cover.
+    """Velocity stats for one or more SKUs: units sold/consumed, avg-daily, days of cover.
 
-    Computes units sold in the trailing ``period_days`` (default 90) from
-    DELIVERED sales orders, divides by the period to get average daily sales,
-    and pairs it with current stock-on-hand to produce a ``days_of_cover``
-    estimate. ``days_of_cover`` is ``None`` when average daily sales are 0
-    (no sales history, can't project).
+    Computes demand in the trailing ``period_days`` (default 90) from DELIVERED
+    sales orders **and** completed manufacturing-order ingredient consumption,
+    divides by the period to get average daily demand, and pairs it with
+    current stock-on-hand to produce a ``days_of_cover`` estimate.
+
+    Use ``sku_or_variant_id`` for a single-variant rich card, or
+    ``sku_or_variant_ids`` for a cross-variant batch table.
+    Set ``include_mo_consumption=false`` to use only SO-side numbers (legacy
+    behaviour). ``days_of_cover`` is ``None`` when average daily demand is 0.
     """
     response = await _inventory_velocity_impl(request, context)
 
@@ -777,23 +1052,12 @@ async def inventory_velocity(
             structured_content=response.model_dump(),
         )
 
-    cover = (
-        f"{response.days_of_cover:.1f} days"
-        if response.days_of_cover is not None
-        else "N/A (no sales history in window)"
-    )
-    lines = [
-        f"## Inventory Velocity: {response.sku or response.variant_id}",
-        f"- **Variant ID**: {response.variant_id}",
-        f"- **Window**: {response.window_start} to {response.window_end} "
-        f"({response.period_days} days)",
-        f"- **Units Sold**: {response.units_sold:g}",
-        f"- **Average Daily**: {response.avg_daily:.2f}",
-        f"- **Stock on Hand**: {response.stock_on_hand:g}",
-        f"- **Days of Cover**: {cover}",
-    ]
+    if request.is_batch or len(response.items) > 1:
+        md = _format_velocity_table(response)
+    else:
+        md = _format_velocity_card(response.items[0]) if response.items else ""
 
-    return make_simple_result("\n".join(lines), structured_data=response.model_dump())
+    return make_simple_result(md, structured_data=response.model_dump())
 
 
 # ============================================================================

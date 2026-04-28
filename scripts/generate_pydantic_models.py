@@ -181,6 +181,7 @@ CACHE_TABLES: set[str] = {
     "StockAdjustment",
     "StockAdjustmentRow",
     "ManufacturingOrder",
+    "ManufacturingOrderRecipeRow",
     "PurchaseOrderBase",
     "PurchaseOrderRow",
     "StockTransfer",
@@ -212,13 +213,27 @@ CACHE_EXTRA_FIELDS: dict[str, list[str]] = {
 
 @dataclass(frozen=True)
 class CacheTableRelationship:
-    """1:N parent→child relationship declaration between two cache tables."""
+    """1:N parent→child relationship declaration between two cache tables.
+
+    When the API model exposes the children as a nested list field on the
+    parent (e.g., ``SalesOrder.sales_order_rows``), set ``parent_field`` to
+    that field name and ``cache_only_parent_field`` to ``False`` — the
+    generator rewrites the list field as a SQLModel ``Relationship``.
+
+    When the API model does NOT expose the children on the wire (e.g.,
+    ``ManufacturingOrder``: recipe rows are fetched via a separate
+    endpoint), set ``cache_only_parent_field=True`` and ``parent_field``
+    to the desired cache-only attribute name. The generator appends a
+    fresh ``Relationship`` descriptor to the cached parent class — useful
+    for orphan-cleanup and back-pointer traversal in cache queries.
+    """
 
     parent: str
     parent_field: str
     child: str
     child_back_ref: str
     child_fk_field: str
+    cache_only_parent_field: bool = False
 
     @property
     def parent_table(self) -> str:
@@ -276,6 +291,23 @@ CACHE_RELATIONSHIPS: list[CacheTableRelationship] = [
         child_back_ref="stock_transfer",
         child_fk_field="stock_transfer_id",
     ),
+    # ManufacturingOrder does NOT expose recipe_rows on the wire — the
+    # rows are fetched via a separate ``manufacturing_order_recipe``
+    # endpoint. ``cache_only_parent_field=True`` tells the generator to
+    # append a fresh ``Relationship`` descriptor to the cached parent
+    # rather than rewriting an existing list field. On the child,
+    # ``inject_foreign_keys`` rewrites the existing
+    # ``manufacturing_order_id`` field (returned on the wire) into an
+    # FK-aware ``SQLField(...)``, so orphan cleanup queries can traverse
+    # parent→children correctly.
+    CacheTableRelationship(
+        parent="ManufacturingOrder",
+        parent_field="recipe_rows",
+        child="ManufacturingOrderRecipeRow",
+        child_back_ref="manufacturing_order",
+        child_fk_field="manufacturing_order_id",
+        cache_only_parent_field=True,
+    ),
 ]
 
 
@@ -288,6 +320,7 @@ CACHE_JSON_COLUMNS: dict[str, list[str]] = {
     "SalesOrderRow": ["attributes", "batch_transactions", "serial_numbers"],
     "StockAdjustmentRow": ["batch_transactions"],
     "ManufacturingOrder": ["batch_transactions", "serial_numbers"],
+    "ManufacturingOrderRecipeRow": ["batch_transactions"],
     # PurchaseOrderBase.supplier is a single nested ``Supplier`` object that
     # SQLAlchemy can't auto-map; cache it as JSON so the row stays denormalized.
     "PurchaseOrderBase": ["supplier"],
@@ -1095,26 +1128,37 @@ def inject_relationship_fields(classes: list[ClassInfo]) -> list[ClassInfo]:
         # Parent side: replace the list field with Relationship(). The inner
         # type was rewritten to ``Cached<Child>`` during duplication, so the
         # match pattern uses the cached child name.
+        #
+        # ``cache_only_parent_field=True`` means the API model never had a
+        # nested children field — append a fresh Relationship descriptor at
+        # the end of the class body instead of rewriting one in place.
         if cls.name in by_parent:
             rel = by_parent[cls.name]
             cached_child = _cached_name(rel.child)
-            pattern = (
-                rf"{re.escape(rel.parent_field)}:\s*Annotated\[\s*"
-                rf"list\[{re.escape(cached_child)}\]\s*\|\s*None,\s*"
-                r"Field\([^)]*\),?\s*\]\s*=\s*None"
-            )
-            replacement = (
-                f'{rel.parent_field}: list["{cached_child}"] = '
-                f'Relationship(back_populates="{rel.child_back_ref}")'
-            )
-            new_source, n = re.subn(pattern, replacement, new_source, count=1)
-            if n != 1:
-                msg = (
-                    f"Failed to rewrite list relationship on "
-                    f"{cls.name}.{rel.parent_field}. Expected shape "
-                    f"`Annotated[list[{cached_child}] | None, Field(...)] = None`."
+            if rel.cache_only_parent_field:
+                rel_line = (
+                    f'    {rel.parent_field}: list["{cached_child}"] = '
+                    f'Relationship(back_populates="{rel.child_back_ref}")\n'
                 )
-                raise GenerationError(msg)
+                new_source = new_source.rstrip() + "\n" + rel_line
+            else:
+                pattern = (
+                    rf"{re.escape(rel.parent_field)}:\s*Annotated\[\s*"
+                    rf"list\[{re.escape(cached_child)}\]\s*\|\s*None,\s*"
+                    r"Field\([^)]*\),?\s*\]\s*=\s*None"
+                )
+                replacement = (
+                    f'{rel.parent_field}: list["{cached_child}"] = '
+                    f'Relationship(back_populates="{rel.child_back_ref}")'
+                )
+                new_source, n = re.subn(pattern, replacement, new_source, count=1)
+                if n != 1:
+                    msg = (
+                        f"Failed to rewrite list relationship on "
+                        f"{cls.name}.{rel.parent_field}. Expected shape "
+                        f"`Annotated[list[{cached_child}] | None, Field(...)] = None`."
+                    )
+                    raise GenerationError(msg)
 
         # Child side: append back-reference field at end of class body.
         if cls.name in by_child:

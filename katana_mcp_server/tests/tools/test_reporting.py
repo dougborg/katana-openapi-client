@@ -9,8 +9,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from katana_mcp.tools.foundation.reporting import (
     InventoryVelocityRequest,
+    InventoryVelocityResponse,
     SalesSummaryRequest,
     TopSellingVariantsRequest,
+    VelocityStats,
     _inventory_velocity_impl,
     _sales_summary_impl,
     _top_selling_variants_impl,
@@ -29,6 +31,9 @@ from tests.conftest import create_mock_context
 _SO_GET_ALL = "katana_public_api_client.api.sales_order.get_all_sales_orders"
 _INV_GET_ALL = "katana_public_api_client.api.inventory.get_all_inventory_point"
 _REPORTING_UNWRAP_DATA = "katana_mcp.tools.foundation.reporting.unwrap_data"
+_FETCH_MO_RECIPE = (
+    "katana_mcp.tools.foundation.reporting._fetch_completed_mo_recipe_rows_in_window"
+)
 
 
 @pytest.fixture(autouse=True)
@@ -435,9 +440,6 @@ async def test_inventory_velocity_computes_avg_daily_and_days_of_cover():
         period_days=90,
     )
 
-    # The inventory fetch inside _fetch_stock_on_hand uses a different
-    # unwrap_data import path — patch both the reporting alias (used by
-    # _fetch_delivered_sales_orders_in_window) and the inventory call site.
     with (
         patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
         patch(
@@ -445,16 +447,19 @@ async def test_inventory_velocity_computes_avg_daily_and_days_of_cover():
             new_callable=AsyncMock,
         ),
         patch(_REPORTING_UNWRAP_DATA, side_effect=[orders, inv_items]),
+        patch(_FETCH_MO_RECIPE, new_callable=AsyncMock, return_value=[]),
     ):
         result = await _inventory_velocity_impl(request, context)
 
-    assert result.variant_id == 500
-    assert result.sku == "BIKE-MTB-01"
-    assert result.units_sold == 180
-    assert result.avg_daily == pytest.approx(2.0)
-    assert result.stock_on_hand == 600
-    assert result.days_of_cover == pytest.approx(300.0)
-    assert result.period_days == 90
+    assert result.items[0].variant_id == 500
+    assert result.items[0].sku == "BIKE-MTB-01"
+    assert result.items[0].units_sold == 180
+    assert result.items[0].units_consumed_by_mos == 0.0
+    assert result.items[0].units_total == 180
+    assert result.items[0].avg_daily == pytest.approx(2.0)
+    assert result.items[0].stock_on_hand == 600
+    assert result.items[0].days_of_cover == pytest.approx(300.0)
+    assert result.items[0].period_days == 90
 
 
 @pytest.mark.asyncio
@@ -477,13 +482,190 @@ async def test_inventory_velocity_zero_sales_returns_none_cover():
         patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
         patch(f"{_INV_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
         patch(_REPORTING_UNWRAP_DATA, side_effect=[[], inv_items]),
+        patch(_FETCH_MO_RECIPE, new_callable=AsyncMock, return_value=[]),
     ):
         result = await _inventory_velocity_impl(request, context)
 
-    assert result.units_sold == 0
-    assert result.avg_daily == 0.0
-    assert result.stock_on_hand == 50
-    assert result.days_of_cover is None
+    assert result.items[0].units_sold == 0
+    assert result.items[0].units_consumed_by_mos == 0.0
+    assert result.items[0].units_total == 0
+    assert result.items[0].avg_daily == 0.0
+    assert result.items[0].stock_on_hand == 50
+    assert result.items[0].days_of_cover is None
+
+
+@pytest.mark.asyncio
+async def test_inventory_velocity_includes_mo_consumption():
+    """MO ingredient consumption adds to units_total when include_mo_consumption=True."""
+    context, lifespan_ctx = create_mock_context()
+
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        return_value={"id": 42, "sku": "SCREW-M5", "display_name": "M5 Screw"}
+    )
+
+    orders = [
+        _mock_so(
+            id=1,
+            created_at=None,
+            rows=[_mock_row(id=1, variant_id=42, quantity=30, price_per_unit=0)],
+        ),
+    ]
+    inv_items = [_mock_inv_item(200)]
+
+    # Simulate a recipe row from a completed MO
+    mock_rr = MagicMock()
+    mock_rr.variant_id = 42
+    mock_rr.total_actual_quantity = 50.0
+
+    request = InventoryVelocityRequest(
+        sku_or_variant_id="SCREW-M5",
+        period_days=30,
+        include_mo_consumption=True,
+    )
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(f"{_INV_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_REPORTING_UNWRAP_DATA, side_effect=[orders, inv_items]),
+        patch(_FETCH_MO_RECIPE, new_callable=AsyncMock, return_value=[mock_rr]),
+    ):
+        result = await _inventory_velocity_impl(request, context)
+
+    stats = result.items[0]
+    assert stats.units_sold == 30
+    assert stats.units_consumed_by_mos == 50.0
+    assert stats.units_total == 80.0
+    # avg_daily = 80 / 30 ≈ 2.667; days_of_cover = 200 / 2.667 ≈ 75
+    assert stats.avg_daily == pytest.approx(80 / 30, rel=1e-3)
+    assert stats.days_of_cover == pytest.approx(200 / (80 / 30), rel=1e-2)
+
+
+@pytest.mark.asyncio
+async def test_inventory_velocity_exclude_mo_consumption():
+    """include_mo_consumption=False reproduces legacy SO-only numbers."""
+    context, lifespan_ctx = create_mock_context()
+
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        return_value={"id": 42, "sku": "SCREW-M5", "display_name": "M5 Screw"}
+    )
+
+    orders = [
+        _mock_so(
+            id=1,
+            created_at=None,
+            rows=[_mock_row(id=1, variant_id=42, quantity=30, price_per_unit=0)],
+        ),
+    ]
+    inv_items = [_mock_inv_item(200)]
+
+    request = InventoryVelocityRequest(
+        sku_or_variant_id="SCREW-M5",
+        period_days=30,
+        include_mo_consumption=False,
+    )
+
+    # _fetch_completed_mo_recipe_rows_in_window should NOT be called
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(f"{_INV_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_REPORTING_UNWRAP_DATA, side_effect=[orders, inv_items]),
+        patch(_FETCH_MO_RECIPE, new_callable=AsyncMock) as mock_mo,
+    ):
+        result = await _inventory_velocity_impl(request, context)
+
+    # MO fetch must not have been called
+    mock_mo.assert_not_called()
+
+    stats = result.items[0]
+    assert stats.units_sold == 30
+    assert stats.units_consumed_by_mos == 0.0
+    assert stats.units_total == 30.0
+    assert stats.avg_daily == pytest.approx(1.0)
+
+
+@pytest.mark.asyncio
+async def test_inventory_velocity_batch_returns_multiple_rows():
+    """Batch shape returns one VelocityStats per input variant."""
+    context, lifespan_ctx = create_mock_context()
+
+    # Both resolved via get_by_sku
+    async def fake_get_by_sku(sku: str) -> dict:
+        return {
+            "WIDGET-1": {"id": 10, "sku": "WIDGET-1"},
+            "WIDGET-2": {"id": 20, "sku": "WIDGET-2"},
+        }.get(sku)
+
+    lifespan_ctx.cache.get_by_sku = AsyncMock(side_effect=fake_get_by_sku)
+
+    orders = [
+        _mock_so(
+            id=1,
+            created_at=None,
+            rows=[
+                _mock_row(id=1, variant_id=10, quantity=10, price_per_unit=0),
+                _mock_row(id=2, variant_id=20, quantity=25, price_per_unit=0),
+            ],
+        ),
+    ]
+    inv_10 = [_mock_inv_item(100)]
+    inv_20 = [_mock_inv_item(50)]
+
+    request = InventoryVelocityRequest(
+        sku_or_variant_ids=["WIDGET-1", "WIDGET-2"],
+        period_days=30,
+    )
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(f"{_INV_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        # Two inventory fetches (one per variant) + one SO fetch
+        patch(
+            _REPORTING_UNWRAP_DATA,
+            side_effect=[orders, inv_10, inv_20],
+        ),
+        patch(_FETCH_MO_RECIPE, new_callable=AsyncMock, return_value=[]),
+    ):
+        result = await _inventory_velocity_impl(request, context)
+
+    assert len(result.items) == 2
+    assert result.items[0].sku == "WIDGET-1"
+    assert result.items[0].units_sold == 10
+    assert result.items[1].sku == "WIDGET-2"
+    assert result.items[1].units_sold == 25
+
+
+@pytest.mark.asyncio
+async def test_inventory_velocity_batch_with_int_id():
+    """Batch shape accepts integer variant IDs as well as SKU strings."""
+    context, lifespan_ctx = create_mock_context()
+
+    from katana_mcp.cache import EntityType
+
+    async def fake_get_by_id(entity_type, variant_id):
+        if entity_type == EntityType.VARIANT and variant_id == 99:
+            return {"id": 99, "sku": "INT-VARIANT"}
+        return None
+
+    lifespan_ctx.cache.get_by_id = AsyncMock(side_effect=fake_get_by_id)
+
+    inv_items = [_mock_inv_item(0)]
+
+    request = InventoryVelocityRequest(
+        sku_or_variant_ids=[99],
+        period_days=30,
+    )
+
+    with (
+        patch(f"{_SO_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(f"{_INV_GET_ALL}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_REPORTING_UNWRAP_DATA, side_effect=[[], inv_items]),
+        patch(_FETCH_MO_RECIPE, new_callable=AsyncMock, return_value=[]),
+    ):
+        result = await _inventory_velocity_impl(request, context)
+
+    assert len(result.items) == 1
+    assert result.items[0].variant_id == 99
+    assert result.items[0].sku == "INT-VARIANT"
 
 
 # ============================================================================
@@ -511,6 +693,34 @@ def test_inventory_velocity_rejects_out_of_bounds_period():
         InventoryVelocityRequest(sku_or_variant_id="X", period_days=0)
     with pytest.raises(ValidationError):
         InventoryVelocityRequest(sku_or_variant_id="X", period_days=400)
+
+
+def test_inventory_velocity_rejects_no_shape():
+    """Neither sku_or_variant_id nor sku_or_variant_ids raises ValidationError."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="Provide either"):
+        InventoryVelocityRequest(period_days=30)
+
+
+def test_inventory_velocity_rejects_both_shapes():
+    """Both sku_or_variant_id and sku_or_variant_ids raises ValidationError."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="only one"):
+        InventoryVelocityRequest(
+            sku_or_variant_id="X",
+            sku_or_variant_ids=["X", "Y"],
+            period_days=30,
+        )
+
+
+def test_inventory_velocity_rejects_batch_too_large():
+    """sku_or_variant_ids length must be <= 100."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        InventoryVelocityRequest(sku_or_variant_ids=["SKU"] * 101)
 
 
 # ============================================================================
@@ -579,7 +789,6 @@ async def test_sales_summary_format_json_returns_json():
 
 @pytest.mark.asyncio
 async def test_inventory_velocity_format_json_returns_json():
-    from katana_mcp.tools.foundation.reporting import VelocityStats
 
     context, _ = create_mock_context()
 
@@ -587,16 +796,22 @@ async def test_inventory_velocity_format_json_returns_json():
         "katana_mcp.tools.foundation.reporting._inventory_velocity_impl",
         new_callable=AsyncMock,
     ) as mock_impl:
-        mock_impl.return_value = VelocityStats(
-            sku="V-1",
-            variant_id=1,
-            units_sold=5.0,
-            avg_daily=0.5,
-            stock_on_hand=10,
-            days_of_cover=20.0,
-            period_days=10,
-            window_start="2026-01-01",
-            window_end="2026-01-10",
+        mock_impl.return_value = InventoryVelocityResponse(
+            items=[
+                VelocityStats(
+                    sku="V-1",
+                    variant_id=1,
+                    units_sold=5.0,
+                    units_consumed_by_mos=2.0,
+                    units_total=7.0,
+                    avg_daily=0.5,
+                    stock_on_hand=10,
+                    days_of_cover=20.0,
+                    period_days=10,
+                    window_start="2026-01-01",
+                    window_end="2026-01-10",
+                )
+            ]
         )
         result = await inventory_velocity(
             sku_or_variant_id="V-1",
@@ -606,5 +821,228 @@ async def test_inventory_velocity_format_json_returns_json():
         )
 
     data = json.loads(_content_text(result))
-    assert data["variant_id"] == 1
-    assert data["units_sold"] == 5.0
+    assert data["items"][0]["variant_id"] == 1
+    assert data["items"][0]["units_sold"] == 5.0
+    assert data["items"][0]["units_consumed_by_mos"] == 2.0
+    assert data["items"][0]["units_total"] == 7.0
+
+
+# ============================================================================
+# Integration: _fetch_completed_mo_recipe_rows_in_window against real cache
+# ============================================================================
+#
+# The boundary mock at ``_FETCH_MO_RECIPE`` covers the orchestration in
+# ``_inventory_velocity_impl`` but skips the two correctness-critical
+# filters inside ``_fetch_completed_mo_recipe_rows_in_window`` itself:
+# ``status == DONE`` and ``done_date`` inside the window. These tests seed
+# real ``CachedManufacturingOrder`` parents with mixed statuses and
+# done_dates against an in-memory ``TypedCacheEngine`` and assert that
+# only DONE-status MOs with done_dates inside the window contribute to
+# the joined recipe rows.
+
+
+@pytest.fixture
+def _no_mo_or_recipe_sync():
+    """Stub both ``ensure_*_synced`` helpers used by the MO-consumption path."""
+    from tests.conftest import patch_typed_cache_sync
+
+    with (
+        patch_typed_cache_sync("manufacturing_orders"),
+        patch_typed_cache_sync("manufacturing_order_recipe_rows"),
+    ):
+        yield
+
+
+@pytest.mark.asyncio
+async def test_fetch_completed_mo_recipe_rows_only_includes_done_status(
+    context_with_typed_cache, _no_mo_or_recipe_sync
+):
+    """Only MOs with ``status=DONE`` contribute recipe rows; others are filtered out."""
+    from katana_mcp.tools.foundation.reporting import (
+        _fetch_completed_mo_recipe_rows_in_window,
+    )
+
+    from tests.factories import (
+        make_manufacturing_order,
+        make_manufacturing_order_recipe_row,
+        seed_cache,
+    )
+
+    _, lifespan_ctx, typed_cache = context_with_typed_cache
+
+    window_start = datetime(2026, 4, 1)
+    window_end = datetime(2026, 4, 30, 23, 59, 59)
+    inside_window = datetime(2026, 4, 15)
+
+    await seed_cache(
+        typed_cache,
+        [
+            # All three MOs touch variant 42 inside the window — only the
+            # DONE one should contribute.
+            make_manufacturing_order(
+                id=1, order_no="MO-DONE", status="DONE", done_date=inside_window
+            ),
+            make_manufacturing_order(
+                id=2,
+                order_no="MO-IN-PROGRESS",
+                status="IN_PROGRESS",
+                done_date=inside_window,
+            ),
+            make_manufacturing_order(
+                id=3,
+                order_no="MO-BLOCKED",
+                status="BLOCKED",
+                done_date=inside_window,
+            ),
+            make_manufacturing_order_recipe_row(
+                id=10, manufacturing_order_id=1, variant_id=42, total_actual_quantity=5
+            ),
+            make_manufacturing_order_recipe_row(
+                id=11, manufacturing_order_id=2, variant_id=42, total_actual_quantity=7
+            ),
+            make_manufacturing_order_recipe_row(
+                id=12, manufacturing_order_id=3, variant_id=42, total_actual_quantity=9
+            ),
+        ],
+    )
+
+    rows = await _fetch_completed_mo_recipe_rows_in_window(
+        lifespan_ctx, window_start, window_end
+    )
+
+    # Only the DONE MO's recipe row (id=10) should be returned.
+    assert {r.id for r in rows} == {10}
+    assert {r.manufacturing_order_id for r in rows} == {1}
+
+
+@pytest.mark.asyncio
+async def test_fetch_completed_mo_recipe_rows_filters_done_date_window(
+    context_with_typed_cache, _no_mo_or_recipe_sync
+):
+    """MOs whose done_date is outside the window don't contribute, even if DONE."""
+    from katana_mcp.tools.foundation.reporting import (
+        _fetch_completed_mo_recipe_rows_in_window,
+    )
+
+    from tests.factories import (
+        make_manufacturing_order,
+        make_manufacturing_order_recipe_row,
+        seed_cache,
+    )
+
+    _, lifespan_ctx, typed_cache = context_with_typed_cache
+
+    window_start = datetime(2026, 4, 1)
+    window_end = datetime(2026, 4, 30, 23, 59, 59)
+
+    await seed_cache(
+        typed_cache,
+        [
+            # In-window: should contribute.
+            make_manufacturing_order(
+                id=1,
+                order_no="MO-IN",
+                status="DONE",
+                done_date=datetime(2026, 4, 15),
+            ),
+            # Before window: must NOT contribute.
+            make_manufacturing_order(
+                id=2,
+                order_no="MO-BEFORE",
+                status="DONE",
+                done_date=datetime(2026, 3, 15),
+            ),
+            # After window: must NOT contribute.
+            make_manufacturing_order(
+                id=3,
+                order_no="MO-AFTER",
+                status="DONE",
+                done_date=datetime(2026, 5, 15),
+            ),
+            # No done_date: must NOT contribute (is_not(None) filter).
+            make_manufacturing_order(
+                id=4,
+                order_no="MO-NONE",
+                status="DONE",
+                done_date=None,
+            ),
+            make_manufacturing_order_recipe_row(
+                id=10, manufacturing_order_id=1, variant_id=99, total_actual_quantity=1
+            ),
+            make_manufacturing_order_recipe_row(
+                id=11, manufacturing_order_id=2, variant_id=99, total_actual_quantity=2
+            ),
+            make_manufacturing_order_recipe_row(
+                id=12, manufacturing_order_id=3, variant_id=99, total_actual_quantity=3
+            ),
+            make_manufacturing_order_recipe_row(
+                id=13, manufacturing_order_id=4, variant_id=99, total_actual_quantity=4
+            ),
+        ],
+    )
+
+    rows = await _fetch_completed_mo_recipe_rows_in_window(
+        lifespan_ctx, window_start, window_end
+    )
+
+    assert {r.id for r in rows} == {10}
+    assert {r.manufacturing_order_id for r in rows} == {1}
+
+
+@pytest.mark.asyncio
+async def test_fetch_completed_mo_recipe_rows_excludes_soft_deleted_mos(
+    context_with_typed_cache, _no_mo_or_recipe_sync
+):
+    """Soft-deleted MOs (``deleted_at`` set) don't contribute even if DONE in window."""
+    from katana_mcp.tools.foundation.reporting import (
+        _fetch_completed_mo_recipe_rows_in_window,
+    )
+
+    from tests.factories import (
+        make_manufacturing_order,
+        make_manufacturing_order_recipe_row,
+        seed_cache,
+    )
+
+    _, lifespan_ctx, typed_cache = context_with_typed_cache
+
+    window_start = datetime(2026, 4, 1)
+    window_end = datetime(2026, 4, 30, 23, 59, 59)
+    inside_window = datetime(2026, 4, 15)
+
+    await seed_cache(
+        typed_cache,
+        [
+            make_manufacturing_order(
+                id=1, order_no="MO-LIVE", status="DONE", done_date=inside_window
+            ),
+            make_manufacturing_order(
+                id=2,
+                order_no="MO-DELETED",
+                status="DONE",
+                done_date=inside_window,
+                deleted_at=datetime(2026, 4, 20),
+            ),
+            make_manufacturing_order_recipe_row(
+                id=10, manufacturing_order_id=1, variant_id=7, total_actual_quantity=1
+            ),
+            make_manufacturing_order_recipe_row(
+                id=11, manufacturing_order_id=2, variant_id=7, total_actual_quantity=2
+            ),
+        ],
+    )
+
+    rows = await _fetch_completed_mo_recipe_rows_in_window(
+        lifespan_ctx, window_start, window_end
+    )
+
+    assert {r.id for r in rows} == {10}
+
+
+@pytest.mark.asyncio
+async def test_inventory_velocity_request_rejects_empty_batch():
+    """``sku_or_variant_ids`` of length 0 is rejected at schema validation."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        InventoryVelocityRequest(sku_or_variant_ids=[])

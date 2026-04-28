@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
     from katana_public_api_client.models_pydantic._generated import (
         CachedManufacturingOrder,
+        CachedManufacturingOrderRecipeRow,
         CachedPurchaseOrder,
         CachedPurchaseOrderRow,
         CachedSalesOrder,
@@ -277,6 +278,41 @@ def make_manufacturing_order(
         created_at=naive_utc(created_at) or datetime(2026, 4, 1),
         updated_at=naive_utc(updated_at),
         deleted_at=naive_utc(deleted_at),
+    )
+
+
+def make_manufacturing_order_recipe_row(
+    *,
+    id: int,
+    manufacturing_order_id: int,
+    variant_id: int,
+    planned_quantity_per_unit: float | None = None,
+    total_actual_quantity: float | None = None,
+    total_consumed_quantity: float | None = None,
+    total_remaining_quantity: float | None = None,
+    cost: float | None = None,
+) -> CachedManufacturingOrderRecipeRow:
+    """Build a ``CachedManufacturingOrderRecipeRow`` for direct cache insertion.
+
+    Mirrors :func:`make_stock_adjustment_row`'s shape — the row carries an
+    FK back to its parent ``CachedManufacturingOrder.id`` via
+    ``manufacturing_order_id``. Use alongside :func:`make_manufacturing_order`
+    to build parent-child fixtures for tools that join MOs to recipe rows
+    (e.g., ``inventory_velocity``'s MO-consumption path).
+    """
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedManufacturingOrderRecipeRow as _CachedManufacturingOrderRecipeRow,
+    )
+
+    return _CachedManufacturingOrderRecipeRow(
+        id=id,
+        manufacturing_order_id=manufacturing_order_id,
+        variant_id=variant_id,
+        planned_quantity_per_unit=planned_quantity_per_unit,
+        total_actual_quantity=total_actual_quantity,
+        total_consumed_quantity=total_consumed_quantity,
+        total_remaining_quantity=total_remaining_quantity,
+        cost=cost,
     )
 
 
