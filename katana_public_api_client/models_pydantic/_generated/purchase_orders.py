@@ -1046,4 +1046,9 @@ class CachedPurchaseOrder(DeletableEntity, table=True):
             description="Complete supplier information for this purchase order",
         ),
     ] = None
-    tracking_location_id: int | None = None
+    tracking_location_id: Annotated[
+        int | None,
+        Field(
+            description="(cache-only) Hoisted from OutsourcedPurchaseOrder so the single ``purchase_order`` cache table can filter by tracking location without a UNION across regular/outsourced rows."
+        ),
+    ] = None
