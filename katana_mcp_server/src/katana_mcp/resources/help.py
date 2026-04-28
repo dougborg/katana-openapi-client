@@ -63,7 +63,7 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **create_stock_transfer** - Move inventory between locations (preview/confirm)
 - **list_stock_transfers** - List transfers with status / location / date filters
 - **update_stock_transfer** - Update transfer body fields
-- **update_stock_transfer_status** - Transition status (PENDING → IN_TRANSIT → COMPLETED)
+- **update_stock_transfer_status** - Transition status (DRAFT → IN_TRANSIT → RECEIVED)
 - **delete_stock_transfer** - Delete a transfer
 
 ## Safety Pattern
@@ -935,8 +935,9 @@ SQL against the typed cache.
 - `page` (optional): Page number (1-based); when set, the response includes
   `pagination` metadata (total_records, total_pages) computed via SQL COUNT
   against the same filter predicate
-- `status` (optional): "PENDING", "IN_TRANSIT", "COMPLETED", or "CANCELLED"
-  (folded to lowercase against the cache column)
+- `status` (optional): "DRAFT", "IN_TRANSIT", or "RECEIVED" (mapped to the
+  Katana wire values "draft" / "inTransit" / "received" against the cache
+  column)
 - `source_location_id` (optional): Filter by source location ID
 - `destination_location_id` (optional): Filter by destination (target) location ID
 - `stock_transfer_number` (optional): Exact match on the transfer number
@@ -967,15 +968,16 @@ to change the transfer's status — it's a separate endpoint.
 ---
 
 ### update_stock_transfer_status
-Transition a stock transfer through the 4-state machine.
+Transition a stock transfer through the 3-state machine.
 
 **Parameters:**
 - `id` (required): Stock transfer ID
-- `new_status` (required): "PENDING", "IN_TRANSIT", "COMPLETED", or "CANCELLED"
+- `new_status` (required): "DRAFT", "IN_TRANSIT", or "RECEIVED" (mapped to
+  the Katana wire values "draft" / "inTransit" / "received")
 - `confirm` (optional, default false): false=preview, true=apply
 
-**Typical flow:** PENDING → IN_TRANSIT → COMPLETED. Katana rejects invalid
-transitions (e.g. COMPLETED → IN_TRANSIT); the tool surfaces the API error
+**Typical flow:** DRAFT → IN_TRANSIT → RECEIVED. Katana rejects invalid
+transitions (e.g. RECEIVED → IN_TRANSIT); the tool surfaces the API error
 message as a ValueError.
 
 ---
