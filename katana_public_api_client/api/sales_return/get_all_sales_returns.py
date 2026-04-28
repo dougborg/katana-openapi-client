@@ -8,8 +8,8 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
-from ...models.get_all_sales_returns_refund_status import GetAllSalesReturnsRefundStatus
 from ...models.sales_return_list_response import SalesReturnListResponse
+from ...models.sales_return_refund_status import SalesReturnRefundStatus
 
 
 def _get_kwargs(
@@ -25,7 +25,7 @@ def _get_kwargs(
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
     return_order_no: str | Unset = UNSET,
-    refund_status: GetAllSalesReturnsRefundStatus | Unset = UNSET,
+    refund_status: SalesReturnRefundStatus | Unset = UNSET,
     return_date_min: datetime.datetime | Unset = UNSET,
     return_date_max: datetime.datetime | Unset = UNSET,
     order_created_date_min: datetime.datetime | Unset = UNSET,
@@ -163,7 +163,7 @@ def sync_detailed(
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
     return_order_no: str | Unset = UNSET,
-    refund_status: GetAllSalesReturnsRefundStatus | Unset = UNSET,
+    refund_status: SalesReturnRefundStatus | Unset = UNSET,
     return_date_min: datetime.datetime | Unset = UNSET,
     return_date_max: datetime.datetime | Unset = UNSET,
     order_created_date_min: datetime.datetime | Unset = UNSET,
@@ -187,7 +187,7 @@ def sync_detailed(
         updated_at_min (datetime.datetime | Unset):
         updated_at_max (datetime.datetime | Unset):
         return_order_no (str | Unset):
-        refund_status (GetAllSalesReturnsRefundStatus | Unset):
+        refund_status (SalesReturnRefundStatus | Unset): Refund status of a sales return
         return_date_min (datetime.datetime | Unset):
         return_date_max (datetime.datetime | Unset):
         order_created_date_min (datetime.datetime | Unset):
@@ -242,7 +242,7 @@ def sync(
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
     return_order_no: str | Unset = UNSET,
-    refund_status: GetAllSalesReturnsRefundStatus | Unset = UNSET,
+    refund_status: SalesReturnRefundStatus | Unset = UNSET,
     return_date_min: datetime.datetime | Unset = UNSET,
     return_date_max: datetime.datetime | Unset = UNSET,
     order_created_date_min: datetime.datetime | Unset = UNSET,
@@ -266,7 +266,7 @@ def sync(
         updated_at_min (datetime.datetime | Unset):
         updated_at_max (datetime.datetime | Unset):
         return_order_no (str | Unset):
-        refund_status (GetAllSalesReturnsRefundStatus | Unset):
+        refund_status (SalesReturnRefundStatus | Unset): Refund status of a sales return
         return_date_min (datetime.datetime | Unset):
         return_date_max (datetime.datetime | Unset):
         order_created_date_min (datetime.datetime | Unset):
@@ -316,7 +316,7 @@ async def asyncio_detailed(
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
     return_order_no: str | Unset = UNSET,
-    refund_status: GetAllSalesReturnsRefundStatus | Unset = UNSET,
+    refund_status: SalesReturnRefundStatus | Unset = UNSET,
     return_date_min: datetime.datetime | Unset = UNSET,
     return_date_max: datetime.datetime | Unset = UNSET,
     order_created_date_min: datetime.datetime | Unset = UNSET,
@@ -340,7 +340,7 @@ async def asyncio_detailed(
         updated_at_min (datetime.datetime | Unset):
         updated_at_max (datetime.datetime | Unset):
         return_order_no (str | Unset):
-        refund_status (GetAllSalesReturnsRefundStatus | Unset):
+        refund_status (SalesReturnRefundStatus | Unset): Refund status of a sales return
         return_date_min (datetime.datetime | Unset):
         return_date_max (datetime.datetime | Unset):
         order_created_date_min (datetime.datetime | Unset):
@@ -393,7 +393,7 @@ async def asyncio(
     updated_at_min: datetime.datetime | Unset = UNSET,
     updated_at_max: datetime.datetime | Unset = UNSET,
     return_order_no: str | Unset = UNSET,
-    refund_status: GetAllSalesReturnsRefundStatus | Unset = UNSET,
+    refund_status: SalesReturnRefundStatus | Unset = UNSET,
     return_date_min: datetime.datetime | Unset = UNSET,
     return_date_max: datetime.datetime | Unset = UNSET,
     order_created_date_min: datetime.datetime | Unset = UNSET,
@@ -417,7 +417,7 @@ async def asyncio(
         updated_at_min (datetime.datetime | Unset):
         updated_at_max (datetime.datetime | Unset):
         return_order_no (str | Unset):
-        refund_status (GetAllSalesReturnsRefundStatus | Unset):
+        refund_status (SalesReturnRefundStatus | Unset): Refund status of a sales return
         return_date_min (datetime.datetime | Unset):
         return_date_max (datetime.datetime | Unset):
         order_created_date_min (datetime.datetime | Unset):

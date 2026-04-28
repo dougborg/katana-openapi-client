@@ -759,11 +759,7 @@ components:
       description: Filters sales returns by a refund status
       required: false
       schema:
-        type: string
-        enum:
-          - NOT_REFUNDED
-          - REFUNDED_ALL
-          - PARTIALLY_REFUNDED
+        $ref: "#/components/schemas/SalesReturnRefundStatus"
     return_date_min:
       name: return_date_min
       in: query
@@ -1385,6 +1381,21 @@ components:
         - RETURNED_ALL
         - RESTOCKED_ALL
       description: Processing status of a sales return
+
+    SalesReturnRefundStatus:
+      type: string
+      enum:
+        - NOT_REFUNDED
+        - REFUNDED_ALL
+        - PARTIALLY_REFUNDED
+      description: Refund status of a sales return
+
+    OperatorWorkingArea:
+      type: string
+      enum:
+        - shopFloor
+        - warehouse
+      description: Operator's primary working area in the shop
 
     ProductAvailability:
       type: string
@@ -10101,9 +10112,9 @@ components:
                 - "null"
               description: Additional notes or comments about the return
             refund_status:
-              type:
-                - string
-                - "null"
+              oneOf:
+                - $ref: "#/components/schemas/SalesReturnRefundStatus"
+                - type: "null"
               description: Current status of the refund processing
             tracking_number:
               type:
@@ -20144,7 +20155,7 @@ paths:
           in: query
           description: Filters operators by their working area
           schema:
-            type: string
+            $ref: "#/components/schemas/OperatorWorkingArea"
         - $ref: "#/components/parameters/resource_id"
         - $ref: "#/components/parameters/limit"
         - $ref: "#/components/parameters/page"

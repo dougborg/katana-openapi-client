@@ -159,7 +159,6 @@ from .get_all_sales_order_rows_product_availability import (
 from .get_all_sales_orders_product_availability import (
     GetAllSalesOrdersProductAvailability,
 )
-from .get_all_sales_returns_refund_status import GetAllSalesReturnsRefundStatus
 from .get_all_serial_numbers_resource_type import GetAllSerialNumbersResourceType
 from .get_all_variants_extend_item import GetAllVariantsExtendItem
 from .get_material_extend_item import GetMaterialExtendItem
@@ -228,6 +227,7 @@ from .negative_stock import NegativeStock
 from .negative_stock_list_response import NegativeStockListResponse
 from .operator import Operator
 from .operator_list_response import OperatorListResponse
+from .operator_working_area import OperatorWorkingArea
 from .outsourced_purchase_order import OutsourcedPurchaseOrder
 from .outsourced_purchase_order_entity_type import OutsourcedPurchaseOrderEntityType
 from .outsourced_purchase_order_ingredient_availability import (
@@ -321,6 +321,7 @@ from .sales_order_status import SalesOrderStatus
 from .sales_return import SalesReturn
 from .sales_return_list_response import SalesReturnListResponse
 from .sales_return_reason import SalesReturnReason
+from .sales_return_refund_status import SalesReturnRefundStatus
 from .sales_return_row import SalesReturnRow
 from .sales_return_row_batch_transactions_item import (
     SalesReturnRowBatchTransactionsItem,
@@ -583,7 +584,6 @@ __all__ = (
     "GetAllSalesOrderRowsExtendItem",
     "GetAllSalesOrderRowsProductAvailability",
     "GetAllSalesOrdersProductAvailability",
-    "GetAllSalesReturnsRefundStatus",
     "GetAllSerialNumbersResourceType",
     "GetAllVariantsExtendItem",
     "GetMaterialExtendItem",
@@ -636,6 +636,7 @@ __all__ = (
     "NegativeStockListResponse",
     "Operator",
     "OperatorListResponse",
+    "OperatorWorkingArea",
     "OutsourcedPurchaseOrder",
     "OutsourcedPurchaseOrderEntityType",
     "OutsourcedPurchaseOrderIngredientAvailability",
@@ -707,6 +708,7 @@ __all__ = (
     "SalesReturn",
     "SalesReturnListResponse",
     "SalesReturnReason",
+    "SalesReturnRefundStatus",
     "SalesReturnRow",
     "SalesReturnRowBatchTransactionsItem",
     "SalesReturnRowListResponse",

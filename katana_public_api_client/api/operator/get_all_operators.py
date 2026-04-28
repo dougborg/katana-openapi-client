@@ -8,11 +8,12 @@ from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
 from ...models.operator_list_response import OperatorListResponse
+from ...models.operator_working_area import OperatorWorkingArea
 
 
 def _get_kwargs(
     *,
-    working_area: str | Unset = UNSET,
+    working_area: OperatorWorkingArea | Unset = UNSET,
     resource_id: int | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -20,7 +21,11 @@ def _get_kwargs(
 
     params: dict[str, Any] = {}
 
-    params["working_area"] = working_area
+    json_working_area: str | Unset = UNSET
+    if not isinstance(working_area, Unset):
+        json_working_area = working_area.value
+
+    params["working_area"] = json_working_area
 
     params["resource_id"] = resource_id
 
@@ -82,7 +87,7 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    working_area: str | Unset = UNSET,
+    working_area: OperatorWorkingArea | Unset = UNSET,
     resource_id: int | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -92,7 +97,7 @@ def sync_detailed(
      Retrieves a list of operators based on the provided filters.
 
     Args:
-        working_area (str | Unset):
+        working_area (OperatorWorkingArea | Unset): Operator's primary working area in the shop
         resource_id (int | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
@@ -124,7 +129,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    working_area: str | Unset = UNSET,
+    working_area: OperatorWorkingArea | Unset = UNSET,
     resource_id: int | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -134,7 +139,7 @@ def sync(
      Retrieves a list of operators based on the provided filters.
 
     Args:
-        working_area (str | Unset):
+        working_area (OperatorWorkingArea | Unset): Operator's primary working area in the shop
         resource_id (int | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
@@ -161,7 +166,7 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    working_area: str | Unset = UNSET,
+    working_area: OperatorWorkingArea | Unset = UNSET,
     resource_id: int | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -171,7 +176,7 @@ async def asyncio_detailed(
      Retrieves a list of operators based on the provided filters.
 
     Args:
-        working_area (str | Unset):
+        working_area (OperatorWorkingArea | Unset): Operator's primary working area in the shop
         resource_id (int | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
@@ -201,7 +206,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    working_area: str | Unset = UNSET,
+    working_area: OperatorWorkingArea | Unset = UNSET,
     resource_id: int | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -211,7 +216,7 @@ async def asyncio(
      Retrieves a list of operators based on the provided filters.
 
     Args:
-        working_area (str | Unset):
+        working_area (OperatorWorkingArea | Unset): Operator's primary working area in the shop
         resource_id (int | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
