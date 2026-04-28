@@ -34,6 +34,11 @@ class CostDistributionMethod(StrEnum):
     non_distributed = "NON_DISTRIBUTED"
 
 
+class OperatorWorkingArea(StrEnum):
+    shop_floor = "shopFloor"
+    warehouse = "warehouse"
+
+
 class ProductAvailability(StrEnum):
     in_stock = "IN_STOCK"
     expected = "EXPECTED"

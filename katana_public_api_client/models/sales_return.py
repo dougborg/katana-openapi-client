@@ -11,6 +11,7 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
+from ..models.sales_return_refund_status import SalesReturnRefundStatus
 from ..models.sales_return_status import SalesReturnStatus
 
 if TYPE_CHECKING:
@@ -47,7 +48,7 @@ class SalesReturn:
     return_date: datetime.datetime | None | Unset = UNSET
     order_created_date: datetime.datetime | Unset = UNSET
     additional_info: None | str | Unset = UNSET
-    refund_status: None | str | Unset = UNSET
+    refund_status: None | SalesReturnRefundStatus | Unset = UNSET
     tracking_number: None | str | Unset = UNSET
     tracking_number_url: None | str | Unset = UNSET
     tracking_carrier: None | str | Unset = UNSET
@@ -111,6 +112,8 @@ class SalesReturn:
         refund_status: None | str | Unset
         if isinstance(self.refund_status, Unset):
             refund_status = UNSET
+        elif isinstance(self.refund_status, SalesReturnRefundStatus):
+            refund_status = self.refund_status.value
         else:
             refund_status = self.refund_status
 
@@ -277,12 +280,22 @@ class SalesReturn:
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 
-        def _parse_refund_status(data: object) -> None | str | Unset:
+        def _parse_refund_status(
+            data: object,
+        ) -> None | SalesReturnRefundStatus | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                refund_status_type_0 = SalesReturnRefundStatus(data)
+
+                return refund_status_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(None | SalesReturnRefundStatus | Unset, data)
 
         refund_status = _parse_refund_status(d.pop("refund_status", UNSET))
 
