@@ -212,6 +212,69 @@ Before version 1.0.0, breaking changes still bump MINOR (not MAJOR):
 1. **Don't break conventions** - Follow the format strictly
 1. **Don't commit broken code** - Run validation before committing
 
+## Schema and Generator Changes
+
+Edits to the OpenAPI spec (`docs/katana-openapi.yaml`) or to the generator scripts
+(`scripts/generate_pydantic_models.py`, `scripts/regenerate_client.py`) can ripple
+into the **public client surface** in ways that break consumers — even when each
+individual change reads as a "fix" or "chore". Those ripples must be captured in
+the commit message so the auto-generated changelog flags them.
+
+### What counts as a breaking schema change
+
+Use `feat(client)!:` (or `fix(client)!:`) **with a `BREAKING CHANGE:` footer**
+whenever a spec or generator edit causes any of the following in the regenerated
+client output:
+
+- A previously-exported class **disappears** (e.g., a `StrEnum` was deduped into
+  a structurally identical sibling — see #414 / `OutsourcedRecipeIngredientAvailability`
+  collapsed into `OutsourcedPurchaseOrderIngredientAvailability`)
+- A field **type narrows** in a way that makes previously-valid values raise
+  (e.g., `type: string` → `$ref` to a `StrEnum` — see #410)
+- A field is **renamed** or **removed** on a response or request schema
+- An endpoint path is **removed**
+- A required field becomes **optional** (changes parse semantics) or vice versa
+
+The footer must list the affected name(s) so a consumer searching the
+changelog for the broken import or attribute can find the change:
+
+```
+fix(client)!: dedupe collapses OutsourcedRecipeIngredientAvailability
+
+The pydantic generator's structural-dedupe pass (``reuse-model = true`` in
+datamodel-codegen) now collapses ``OutsourcedRecipeIngredientAvailability``
+into ``OutsourcedPurchaseOrderIngredientAvailability`` because their value
+sets matched after #409 added ``NO_RECIPE``.
+
+BREAKING CHANGE: ``katana_public_api_client.models_pydantic.OutsourcedRecipeIngredientAvailability``
+no longer exists; import ``OutsourcedPurchaseOrderIngredientAvailability``
+instead. Both enums had identical values; the rewrite is mechanical.
+Refs #409
+```
+
+### What does NOT need the breaking-change marker
+
+- Adding a new endpoint or field (purely additive)
+- Adding a value to an existing enum (parse stays tolerant; old values still work)
+- Generated-file diff is byte-identical (e.g., a docstring tweak in the generator
+  that doesn't change emitted code)
+- Internal-only refactors that don't change the surface (e.g., consolidating
+  generator config dicts — see #407)
+
+### Why this matters pre-1.0
+
+The package is pre-1.0, so breaking changes bump MINOR (per the
+"Pre-1.0 Special Rules" section above) — *not* MAJOR. That's a smaller
+version-number signal than a 1.x → 2.x bump, so the **changelog entry** carries
+the discoverability for affected consumers. Without the breaking-change footer,
+the change shows up in the changelog as a normal `fix:` line and consumers hit
+an `ImportError` (or `ValueError`, etc.) without a breadcrumb to follow.
+
+When in doubt, run `uv run poe regenerate-client && uv run poe generate-pydantic`
+and inspect `git diff katana_public_api_client/`. If the diff removes any
+top-level class, removes any `__all__` entry, or changes a field's type
+annotation in a non-additive way, use `!` and `BREAKING CHANGE:`.
+
 ## Multi-Package Changes
 
 If a change affects both packages, create separate commits:
