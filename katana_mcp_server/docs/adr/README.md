@@ -30,7 +30,11 @@ We use the format proposed by Michael Nygard in his article
 
 ### Accepted Architecture Decisions
 
-- [ADR-010: Create Katana MCP Server for Claude Code Integration](0010-katana-mcp-server.md)
+- [ADR-0010: Create Katana MCP Server for Claude Code Integration](0010-katana-mcp-server.md)
+- [ADR-0016: Tool Interface Pattern](0016-tool-interface-pattern.md)
+- [ADR-0017: Automated Tool Documentation](0017-automated-tool-documentation.md)
+- [ADR-0018: SQLModel-backed Typed Cache for Transactional List Tools](0018-sqlmodel-typed-cache.md)
+- [ADR-0019: MCP Tool Description and Batch-Field Conventions](0019-tool-description-batch-conventions.md)
 
 ## Creating a New ADR
 
