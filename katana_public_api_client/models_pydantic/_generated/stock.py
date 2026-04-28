@@ -32,10 +32,9 @@ class StocktakeStatus(StrEnum):
 
 
 class StockTransferStatus(StrEnum):
-    pending = "pending"
-    in_transit = "in_transit"
-    completed = "completed"
-    cancelled = "cancelled"
+    draft = "draft"
+    received = "received"
+    in_transit = "inTransit"
 
 
 class SerialNumberResourceType(StrEnum):
@@ -50,7 +49,6 @@ class SerialNumberResourceType(StrEnum):
 
 class CreateSerialNumberResourceType(StrEnum):
     manufacturing_order = "ManufacturingOrder"
-    production = "Production"
     stock_adjustment_row = "StockAdjustmentRow"
     stock_transfer_row = "StockTransferRow"
     purchase_order_row = "PurchaseOrderRow"
@@ -154,13 +152,7 @@ class StorageBinUpdate(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    bin_name: Annotated[str | None, Field(description="Name of the storage bin")] = None
-    location_id: Annotated[
-        int | None,
-        Field(
-            description="Unique identifier of the location where storage bin is located"
-        ),
-    ] = None
+    bin_name: Annotated[str, Field(description="Name of the storage bin")]
 
 
 class StorageBinListResponse(KatanaPydanticBase):
@@ -421,11 +413,11 @@ class CreateStockAdjustmentRequest(KatanaPydanticBase):
         extra="forbid",
     )
     stock_adjustment_number: Annotated[
-        str | None,
+        str,
         Field(
             description="Human-readable reference number for tracking and audit purposes"
         ),
-    ] = None
+    ]
     stock_adjustment_date: Annotated[
         AwareDatetime | None,
         Field(description="Date and time when the adjustment was performed"),
@@ -728,9 +720,9 @@ class CreateStocktakeRowRequest(KatanaPydanticBase):
         int, Field(description="ID of the stocktake this row belongs to")
     ]
     stocktake_rows: Annotated[
-        list[StocktakeRow2],
+        list[StocktakeRow2] | None,
         Field(description="Array of stocktake rows to create", max_length=250),
-    ]
+    ] = None
 
 
 class UpdateStocktakeRowRequest(KatanaPydanticBase):
@@ -773,11 +765,27 @@ class CreateSerialNumbersRequest(KatanaPydanticBase):
         extra="forbid",
     )
     resource_type: Annotated[
-        CreateSerialNumberResourceType, Field(description="Resource type")
-    ]
+        CreateSerialNumberResourceType | None, Field(description="Resource type")
+    ] = None
     resource_id: Annotated[int, Field(description="Resource ID")]
     serial_numbers: Annotated[
-        list[str], Field(description="List of serial numbers to create")
+        list[str] | None, Field(description="List of serial numbers to create")
+    ] = None
+
+
+class DeleteSerialNumbersRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    resource_type: Annotated[
+        SerialNumberResourceType,
+        Field(description="Resource type the serial numbers belong to"),
+    ]
+    resource_id: Annotated[
+        int, Field(description="Resource ID the serial numbers belong to")
+    ]
+    ids: Annotated[
+        list[int], Field(description="Serial number IDs to delete", min_length=1)
     ]
 
 
@@ -791,8 +799,8 @@ class CreateStockTransferRequest(KatanaPydanticBase):
         extra="forbid",
     )
     stock_transfer_number: Annotated[
-        str | None, Field(description="Unique stock transfer number for tracking")
-    ] = None
+        str, Field(description="Unique stock transfer number for tracking")
+    ]
     source_location_id: Annotated[
         int, Field(description="Source location ID where items are transferred from")
     ]
@@ -814,9 +822,8 @@ class CreateStockTransferRequest(KatanaPydanticBase):
         Field(description="Additional notes or information about the transfer"),
     ] = None
     stock_transfer_rows: Annotated[
-        list[StockTransferRowRequest] | None,
-        Field(description="Line items being transferred"),
-    ] = None
+        list[StockTransferRowRequest], Field(description="Line items being transferred")
+    ]
 
 
 class UpdateStockTransferRequest(KatanaPydanticBase):
@@ -845,8 +852,9 @@ class UpdateStockTransferStatusRequest(KatanaPydanticBase):
         extra="forbid",
     )
     status: Annotated[
-        StockTransferStatus, Field(description="New status for the stock transfer")
-    ]
+        StockTransferStatus | None,
+        Field(description="New status for the stock transfer"),
+    ] = None
 
 
 class StockTransfer(DeletableEntity):

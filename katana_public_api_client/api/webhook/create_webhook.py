@@ -88,8 +88,8 @@ def sync_detailed(
     Args:
         body (CreateWebhookRequest): Request payload for creating a new webhook subscription to
             receive real-time event notifications Example: {'url':
-            'https://api.customer.com/webhooks/katana', 'subscribed_events': ['sales_order.created',
-            'sales_order.delivered', 'current_inventory.product_out_of_stock',
+            'https://api.customer.com/webhooks/katana', 'enabled': True, 'subscribed_events':
+            ['sales_order.created', 'sales_order.delivered', 'current_inventory.product_out_of_stock',
             'manufacturing_order.done'], 'description': 'ERP integration webhook for inventory and
             order sync'}.
 
@@ -125,8 +125,8 @@ def sync(
     Args:
         body (CreateWebhookRequest): Request payload for creating a new webhook subscription to
             receive real-time event notifications Example: {'url':
-            'https://api.customer.com/webhooks/katana', 'subscribed_events': ['sales_order.created',
-            'sales_order.delivered', 'current_inventory.product_out_of_stock',
+            'https://api.customer.com/webhooks/katana', 'enabled': True, 'subscribed_events':
+            ['sales_order.created', 'sales_order.delivered', 'current_inventory.product_out_of_stock',
             'manufacturing_order.done'], 'description': 'ERP integration webhook for inventory and
             order sync'}.
 
@@ -157,8 +157,8 @@ async def asyncio_detailed(
     Args:
         body (CreateWebhookRequest): Request payload for creating a new webhook subscription to
             receive real-time event notifications Example: {'url':
-            'https://api.customer.com/webhooks/katana', 'subscribed_events': ['sales_order.created',
-            'sales_order.delivered', 'current_inventory.product_out_of_stock',
+            'https://api.customer.com/webhooks/katana', 'enabled': True, 'subscribed_events':
+            ['sales_order.created', 'sales_order.delivered', 'current_inventory.product_out_of_stock',
             'manufacturing_order.done'], 'description': 'ERP integration webhook for inventory and
             order sync'}.
 
@@ -192,8 +192,8 @@ async def asyncio(
     Args:
         body (CreateWebhookRequest): Request payload for creating a new webhook subscription to
             receive real-time event notifications Example: {'url':
-            'https://api.customer.com/webhooks/katana', 'subscribed_events': ['sales_order.created',
-            'sales_order.delivered', 'current_inventory.product_out_of_stock',
+            'https://api.customer.com/webhooks/katana', 'enabled': True, 'subscribed_events':
+            ['sales_order.created', 'sales_order.delivered', 'current_inventory.product_out_of_stock',
             'manufacturing_order.done'], 'description': 'ERP integration webhook for inventory and
             order sync'}.
 

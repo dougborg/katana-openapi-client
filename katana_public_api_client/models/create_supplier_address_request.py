@@ -20,7 +20,7 @@ class CreateSupplierAddressRequest:
     """
 
     supplier_id: int
-    line_1: str
+    line_1: str | Unset = UNSET
     line_2: None | str | Unset = UNSET
     city: None | str | Unset = UNSET
     state: None | str | Unset = UNSET
@@ -67,9 +67,10 @@ class CreateSupplierAddressRequest:
         field_dict.update(
             {
                 "supplier_id": supplier_id,
-                "line_1": line_1,
             }
         )
+        if line_1 is not UNSET:
+            field_dict["line_1"] = line_1
         if line_2 is not UNSET:
             field_dict["line_2"] = line_2
         if city is not UNSET:
@@ -88,7 +89,7 @@ class CreateSupplierAddressRequest:
         d = dict(src_dict)
         supplier_id = d.pop("supplier_id")
 
-        line_1 = d.pop("line_1")
+        line_1 = d.pop("line_1", UNSET)
 
         def _parse_line_2(data: object) -> None | str | Unset:
             if data is None:

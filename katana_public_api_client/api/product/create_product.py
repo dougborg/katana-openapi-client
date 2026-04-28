@@ -93,14 +93,13 @@ def sync_detailed(
             'Kitchen Equipment', 'is_sellable': True, 'is_producible': True, 'is_purchasable': False,
             'is_auto_assembly': False, 'additional_info': 'High-quality steel construction with
             ergonomic handles', 'batch_tracked': False, 'serial_tracked': True,
-            'operations_in_sequence': True, 'lead_time': 14, 'minimum_order_quantity': 1, 'configs':
-            [{'name': 'Piece Count', 'values': ['6-piece', '8-piece', '12-piece']}, {'name': 'Handle
-            Material', 'values': ['Steel', 'Wooden', 'Composite']}], 'variants': [{'sku': 'KNF-
-            PRO-8PC-STL', 'sales_price': 299.99, 'purchase_price': 150.0, 'supplier_item_codes':
-            ['KNF-8PC-STEEL-001'], 'lead_time': 14, 'minimum_order_quantity': 1, 'config_attributes':
-            [{'config_name': 'Piece Count', 'config_value': '8-piece'}, {'config_name': 'Handle
-            Material', 'config_value': 'Steel'}]}]}.
-
+            'operations_in_sequence': True, 'configs': [{'name': 'Piece Count', 'values': ['6-piece',
+            '8-piece', '12-piece']}, {'name': 'Handle Material', 'values': ['Steel', 'Wooden',
+            'Composite']}], 'variants': [{'sku': 'KNF-PRO-8PC-STL', 'sales_price': 299.99,
+            'purchase_price': 150.0, 'supplier_item_codes': ['KNF-8PC-STEEL-001'], 'lead_time': 14,
+            'minimum_order_quantity': 1, 'config_attributes': [{'config_name': 'Piece Count',
+            'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
+            'Steel'}]}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -139,14 +138,13 @@ def sync(
             'Kitchen Equipment', 'is_sellable': True, 'is_producible': True, 'is_purchasable': False,
             'is_auto_assembly': False, 'additional_info': 'High-quality steel construction with
             ergonomic handles', 'batch_tracked': False, 'serial_tracked': True,
-            'operations_in_sequence': True, 'lead_time': 14, 'minimum_order_quantity': 1, 'configs':
-            [{'name': 'Piece Count', 'values': ['6-piece', '8-piece', '12-piece']}, {'name': 'Handle
-            Material', 'values': ['Steel', 'Wooden', 'Composite']}], 'variants': [{'sku': 'KNF-
-            PRO-8PC-STL', 'sales_price': 299.99, 'purchase_price': 150.0, 'supplier_item_codes':
-            ['KNF-8PC-STEEL-001'], 'lead_time': 14, 'minimum_order_quantity': 1, 'config_attributes':
-            [{'config_name': 'Piece Count', 'config_value': '8-piece'}, {'config_name': 'Handle
-            Material', 'config_value': 'Steel'}]}]}.
-
+            'operations_in_sequence': True, 'configs': [{'name': 'Piece Count', 'values': ['6-piece',
+            '8-piece', '12-piece']}, {'name': 'Handle Material', 'values': ['Steel', 'Wooden',
+            'Composite']}], 'variants': [{'sku': 'KNF-PRO-8PC-STL', 'sales_price': 299.99,
+            'purchase_price': 150.0, 'supplier_item_codes': ['KNF-8PC-STEEL-001'], 'lead_time': 14,
+            'minimum_order_quantity': 1, 'config_attributes': [{'config_name': 'Piece Count',
+            'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
+            'Steel'}]}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -180,14 +178,13 @@ async def asyncio_detailed(
             'Kitchen Equipment', 'is_sellable': True, 'is_producible': True, 'is_purchasable': False,
             'is_auto_assembly': False, 'additional_info': 'High-quality steel construction with
             ergonomic handles', 'batch_tracked': False, 'serial_tracked': True,
-            'operations_in_sequence': True, 'lead_time': 14, 'minimum_order_quantity': 1, 'configs':
-            [{'name': 'Piece Count', 'values': ['6-piece', '8-piece', '12-piece']}, {'name': 'Handle
-            Material', 'values': ['Steel', 'Wooden', 'Composite']}], 'variants': [{'sku': 'KNF-
-            PRO-8PC-STL', 'sales_price': 299.99, 'purchase_price': 150.0, 'supplier_item_codes':
-            ['KNF-8PC-STEEL-001'], 'lead_time': 14, 'minimum_order_quantity': 1, 'config_attributes':
-            [{'config_name': 'Piece Count', 'config_value': '8-piece'}, {'config_name': 'Handle
-            Material', 'config_value': 'Steel'}]}]}.
-
+            'operations_in_sequence': True, 'configs': [{'name': 'Piece Count', 'values': ['6-piece',
+            '8-piece', '12-piece']}, {'name': 'Handle Material', 'values': ['Steel', 'Wooden',
+            'Composite']}], 'variants': [{'sku': 'KNF-PRO-8PC-STL', 'sales_price': 299.99,
+            'purchase_price': 150.0, 'supplier_item_codes': ['KNF-8PC-STEEL-001'], 'lead_time': 14,
+            'minimum_order_quantity': 1, 'config_attributes': [{'config_name': 'Piece Count',
+            'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
+            'Steel'}]}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -224,14 +221,13 @@ async def asyncio(
             'Kitchen Equipment', 'is_sellable': True, 'is_producible': True, 'is_purchasable': False,
             'is_auto_assembly': False, 'additional_info': 'High-quality steel construction with
             ergonomic handles', 'batch_tracked': False, 'serial_tracked': True,
-            'operations_in_sequence': True, 'lead_time': 14, 'minimum_order_quantity': 1, 'configs':
-            [{'name': 'Piece Count', 'values': ['6-piece', '8-piece', '12-piece']}, {'name': 'Handle
-            Material', 'values': ['Steel', 'Wooden', 'Composite']}], 'variants': [{'sku': 'KNF-
-            PRO-8PC-STL', 'sales_price': 299.99, 'purchase_price': 150.0, 'supplier_item_codes':
-            ['KNF-8PC-STEEL-001'], 'lead_time': 14, 'minimum_order_quantity': 1, 'config_attributes':
-            [{'config_name': 'Piece Count', 'config_value': '8-piece'}, {'config_name': 'Handle
-            Material', 'config_value': 'Steel'}]}]}.
-
+            'operations_in_sequence': True, 'configs': [{'name': 'Piece Count', 'values': ['6-piece',
+            '8-piece', '12-piece']}, {'name': 'Handle Material', 'values': ['Steel', 'Wooden',
+            'Composite']}], 'variants': [{'sku': 'KNF-PRO-8PC-STL', 'sales_price': 299.99,
+            'purchase_price': 150.0, 'supplier_item_codes': ['KNF-8PC-STEEL-001'], 'lead_time': 14,
+            'minimum_order_quantity': 1, 'config_attributes': [{'config_name': 'Piece Count',
+            'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
+            'Steel'}]}]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

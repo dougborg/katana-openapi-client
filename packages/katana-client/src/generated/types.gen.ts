@@ -207,7 +207,299 @@ export type OutsourcedPurchaseOrderIngredientAvailability =
   | "IN_STOCK"
   | "NOT_AVAILABLE"
   | "EXPECTED"
-  | "NO_RECIPE";
+  | "NO_RECIPE"
+  | "NOT_APPLICABLE";
+
+/**
+ * Type classification of a variant
+ */
+export type VariantType = "product" | "material" | "service";
+
+/**
+ * Address type - billing for invoicing, shipping for delivery
+ */
+export type AddressEntityType = "billing" | "shipping";
+
+/**
+ * Production status of a manufacturing order
+ */
+export type ManufacturingOrderStatus =
+  | "NOT_STARTED"
+  | "BLOCKED"
+  | "IN_PROGRESS"
+  | "PARTIALLY_COMPLETED"
+  | "DONE";
+
+/**
+ * Method for distributing additional costs across purchase order items
+ */
+export type CostDistributionMethod = "BY_VALUE" | "NON_DISTRIBUTED";
+
+/**
+ * Type of purchase order - regular for materials or outsourced for subcontracted work
+ */
+export type PurchaseOrderEntityType = "regular" | "outsourced";
+
+/**
+ * Current status of a stocktake process
+ */
+export type StocktakeStatus =
+  | "NOT_STARTED"
+  | "IN_PROGRESS"
+  | "COUNTED"
+  | "COMPLETED";
+
+/**
+ * Processing status of a sales return
+ */
+export type SalesReturnStatus =
+  | "NOT_RETURNED"
+  | "RETURNED_ALL"
+  | "RESTOCKED_ALL";
+
+/**
+ * Refund status of a sales return
+ */
+export type SalesReturnRefundStatus =
+  | "NOT_REFUNDED"
+  | "REFUNDED"
+  | "PARTIALLY_REFUNDED";
+
+/**
+ * Operator's primary working area in the shop
+ */
+export type OperatorWorkingArea = "shopFloor" | "warehouse";
+
+/**
+ * Availability status of a product for order fulfillment
+ */
+export type ProductAvailability =
+  | "IN_STOCK"
+  | "EXPECTED"
+  | "PICKED"
+  | "NOT_AVAILABLE"
+  | "NOT_APPLICABLE";
+
+/**
+ * Availability status of ingredients for production
+ */
+export type IngredientAvailability =
+  | "PROCESSED"
+  | "IN_STOCK"
+  | "NOT_AVAILABLE"
+  | "EXPECTED"
+  | "NO_RECIPE"
+  | "NOT_APPLICABLE";
+
+/**
+ * Item type discriminator for products and materials
+ */
+export type InventoryItemType = "product" | "material";
+
+/**
+ * Item type discriminator for materials
+ */
+export type MaterialType = "material";
+
+/**
+ * Item type discriminator for products
+ */
+export type ProductType = "product";
+
+/**
+ * Item type discriminator for services
+ */
+export type ServiceType = "service";
+
+/**
+ * Cost calculation method for product operations
+ */
+export type ProductOperationType = "process" | "setup" | "perUnit" | "fixed";
+
+/**
+ * Status of a manufacturing order operation row
+ */
+export type ManufacturingOperationStatus =
+  | "NOT_STARTED"
+  | "BLOCKED"
+  | "IN_PROGRESS"
+  | "PAUSED"
+  | "COMPLETED";
+
+/**
+ * Type of operation defining how time and cost are calculated
+ */
+export type ManufacturingOperationType =
+  | "process"
+  | "setup"
+  | "perUnit"
+  | "fixed";
+
+/**
+ * Pricing adjustment method for price list rows
+ */
+export type PriceAdjustmentMethod = "fixed" | "markup" | "percentage";
+
+/**
+ * Fulfillment status of a purchase order
+ */
+export type PurchaseOrderStatus =
+  | "DRAFT"
+  | "NOT_RECEIVED"
+  | "PARTIALLY_RECEIVED"
+  | "RECEIVED";
+
+/**
+ * Initial status when creating a purchase order
+ */
+export type CreatePurchaseOrderInitialStatus = "DRAFT" | "NOT_RECEIVED";
+
+/**
+ * Billing status through accounting integration
+ */
+export type PurchaseOrderBillingStatus =
+  | "BILLED"
+  | "NOT_BILLED"
+  | "PARTIALLY_BILLED";
+
+/**
+ * Status of the last document e-mail sent
+ */
+export type DocumentSendStatus = "NOT_SENT" | "SENDING" | "FAILED" | "SENT";
+
+/**
+ * Fulfillment status of a sales order
+ */
+export type SalesOrderStatus =
+  | "NOT_SHIPPED"
+  | "PARTIALLY_PACKED"
+  | "PARTIALLY_DELIVERED"
+  | "PACKED"
+  | "DELIVERED";
+
+/**
+ * Production status of a sales order
+ */
+export type SalesOrderProductionStatus =
+  | "NOT_STARTED"
+  | "NONE"
+  | "NOT_APPLICABLE"
+  | "IN_PROGRESS"
+  | "BLOCKED"
+  | "DONE";
+
+/**
+ * Initial status when creating a sales order
+ */
+export type CreateSalesOrderStatus = "NOT_SHIPPED" | "PENDING";
+
+/**
+ * Status of a sales order fulfillment
+ */
+export type SalesOrderFulfillmentStatus = "PACKED" | "DELIVERED";
+
+/**
+ * Invoice status of a sales order fulfillment
+ */
+export type SalesOrderFulfillmentInvoiceStatus =
+  | "NOT_INVOICED"
+  | "INVOICED"
+  | "PARTIALLY_INVOICED";
+
+/**
+ * Allowed status values when updating a sales order
+ */
+export type UpdateSalesOrderStatus =
+  | "NOT_SHIPPED"
+  | "PENDING"
+  | "PACKED"
+  | "DELIVERED";
+
+/**
+ * Status of a stock transfer. Values match the live API at
+ * ``PATCH /stock_transfers/{id}/status`` (verified 2026-04-28). Note
+ * the camelCase ``inTransit``.
+ *
+ */
+export type StockTransferStatus = "draft" | "received" | "inTransit";
+
+/**
+ * Type of resource that caused an inventory movement
+ */
+export type InventoryMovementResourceType =
+  | "Production"
+  | "PurchaseOrderRow"
+  | "PurchaseOrderRecipeRow"
+  | "SalesOrderRow"
+  | "ManufacturingOrderRecipeRow"
+  | "StockAdjustmentRow"
+  | "StockTransferRow"
+  | "ManufacturingOrder"
+  | "SystemGenerated"
+  | "ProductionIngredient";
+
+/**
+ * Type of resource associated with a serial number
+ */
+export type SerialNumberResourceType =
+  | "ManufacturingOrder"
+  | "Production"
+  | "StockAdjustmentRow"
+  | "StockTransferRow"
+  | "PurchaseOrderRow"
+  | "SalesOrderRow"
+  | "SalesOrderFulfillmentRow";
+
+/**
+ * Allowed resource types when creating serial numbers via
+ * ``POST /serial_numbers``. Note: ``Production`` is valid when
+ * *retrieving* serial numbers (see ``SerialNumberResourceType``) but
+ * is not accepted as input here — the API rejects it with 422.
+ *
+ */
+export type CreateSerialNumberResourceType =
+  | "ManufacturingOrder"
+  | "StockAdjustmentRow"
+  | "StockTransferRow"
+  | "PurchaseOrderRow"
+  | "SalesOrderRow";
+
+/**
+ * Type of business object a custom fields collection applies to
+ */
+export type CustomFieldCollectionResourceType =
+  | "product"
+  | "material"
+  | "variant"
+  | "customer"
+  | "sales_order"
+  | "purchase_order"
+  | "stocktake";
+
+/**
+ * Method used for price list adjustments
+ */
+export type PriceListAdjustmentMethod = "fixed" | "percentage" | "markup";
+
+/**
+ * Type of accounting system integration
+ */
+export type AccountingIntegrationType =
+  | "xero"
+  | "quickBooks"
+  | "sage"
+  | "custom";
+
+/**
+ * Ingredient availability for outsourced purchase order recipe rows
+ */
+export type OutsourcedRecipeIngredientAvailability =
+  | "PROCESSED"
+  | "IN_STOCK"
+  | "NOT_AVAILABLE"
+  | "EXPECTED"
+  | "NO_RECIPE"
+  | "NOT_APPLICABLE";
 
 /**
  * Base entity with unique identifier
@@ -467,17 +759,13 @@ export type StorageBin = {
 export type StorageBinResponse = StorageBin & DeletableEntity;
 
 /**
- * Storage bin fields for update operations (all optional for PATCH)
+ * Storage bin fields for update operations
  */
 export type StorageBinUpdate = {
   /**
    * Name of the storage bin
    */
-  bin_name?: string;
-  /**
-   * Unique identifier of the location where storage bin is located
-   */
-  location_id?: number;
+  bin_name: string;
 };
 
 /**
@@ -506,17 +794,7 @@ export type InventoryMovement = {
   /**
    * The type of resource that caused the movement.
    */
-  resource_type:
-    | "Production"
-    | "PurchaseOrderRow"
-    | "PurchaseOrderRecipeRow"
-    | "SalesOrderRow"
-    | "ManufacturingOrderRecipeRow"
-    | "StockAdjustmentRow"
-    | "StockTransferRow"
-    | "ManufacturingOrder"
-    | "SystemGenerated"
-    | "ProductionIngredient";
+  resource_type: InventoryMovementResourceType;
   /**
    * Identifier of the resource that initiated the movement.
    */
@@ -594,10 +872,7 @@ export type Variant = UpdatableEntity & {
    * Cost to purchase this variant from suppliers
    */
   purchase_price?: number;
-  /**
-   * Type classification - either 'product' or 'material'
-   */
-  type?: "product" | "material";
+  type?: VariantType;
   /**
    * Internal barcode for warehouse scanning and tracking
    */
@@ -668,10 +943,7 @@ export type ServiceVariant = UpdatableEntity & {
    * ID of the service this variant belongs to
    */
   service_id: number;
-  /**
-   * Type classification - always 'service' for service variants
-   */
-  type?: "service";
+  type?: VariantType;
   /**
    * Custom field values specific to this service variant
    */
@@ -873,13 +1145,16 @@ export type InventorySafetyStockLevelResponse = InventorySafetyStockLevel &
  */
 export type CreateManufacturingOrderRequest = {
   /**
-   * Initial production status of the manufacturing order
+   * Initial production status of the manufacturing order. The live API
+   * only accepts NOT_STARTED on create; further transitions go through
+   * PATCH /manufacturing_orders/{id}.
+   *
    */
-  status?: "NOT_STARTED" | "BLOCKED" | "IN_PROGRESS" | "DONE";
+  status?: "NOT_STARTED";
   /**
    * Custom manufacturing order number for tracking and reference
    */
-  order_no?: string;
+  order_no: string;
   /**
    * ID of the product variant to manufacture
    */
@@ -922,7 +1197,7 @@ export type ManufacturingOrder = {
   /**
    * Current production status of the manufacturing order
    */
-  status?: "NOT_STARTED" | "BLOCKED" | "IN_PROGRESS" | "DONE";
+  status?: ManufacturingOrderStatus;
   /**
    * Unique manufacturing order number for tracking and reference
    */
@@ -982,14 +1257,7 @@ export type ManufacturingOrder = {
   /**
    * Status of material ingredient availability for production
    */
-  ingredient_availability?:
-    | "PROCESSED"
-    | "IN_STOCK"
-    | "NOT_AVAILABLE"
-    | "EXPECTED"
-    | "NO_RECIPE"
-    | "NOT_APPLICABLE"
-    | null;
+  ingredient_availability?: IngredientAvailability | null;
   /**
    * Total cost of the manufacturing order including all materials and operations
    */
@@ -1039,7 +1307,7 @@ export type UpdateManufacturingOrderRequest = {
   /**
    * Updated production status of the manufacturing order
    */
-  status?: "NOT_STARTED" | "BLOCKED" | "IN_PROGRESS" | "DONE";
+  status?: ManufacturingOrderStatus;
   /**
    * Updated manufacturing order number for tracking and reference
    */
@@ -1097,11 +1365,15 @@ export type CreateManufacturingOrderProductionRequest = {
   /**
    * Date and time when the production was completed
    */
-  completed_date: string;
+  completed_date?: string;
   /**
    * Whether this is the final production run that completes the manufacturing order
    */
   is_final?: boolean;
+  /**
+   * Batch transaction allocation for this production run
+   */
+  batch_transaction?: BatchTransaction;
   /**
    * Ingredients consumed during this production run
    */
@@ -1205,7 +1477,7 @@ export type ManufacturingOrderOperationRow = {
   /**
    * Current status of the operation
    */
-  status?: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "PAUSED";
+  status?: ManufacturingOperationStatus;
   /**
    * Type classification of the operation
    */
@@ -1307,11 +1579,11 @@ export type CreateManufacturingOrderOperationRowRequest = {
   /**
    * ID of the operation being performed
    */
-  operation_id: number;
+  operation_id?: number;
   /**
-   * Type of operation (e.g., manual, automatic)
+   * Type of operation defining how time and cost are calculated
    */
-  type?: string;
+  type?: ManufacturingOperationType;
   /**
    * Name of the operation
    */
@@ -1341,9 +1613,11 @@ export type CreateManufacturingOrderOperationRowRequest = {
    */
   cost_per_hour?: number;
   /**
-   * Current status of the operation
+   * Initial status of the operation row. Live API only accepts
+   * NOT_STARTED on create; transitions go through PATCH.
+   *
    */
-  status?: string;
+  status: "NOT_STARTED";
   /**
    * Operators assigned to perform this operation
    */
@@ -1355,17 +1629,13 @@ export type CreateManufacturingOrderOperationRowRequest = {
  */
 export type UpdateManufacturingOrderOperationRowRequest = {
   /**
-   * ID of the manufacturing order this operation belongs to
-   */
-  manufacturing_order_id?: number;
-  /**
    * ID of the operation being performed
    */
   operation_id?: number;
   /**
-   * Type of operation (e.g., manual, automatic)
+   * Type of operation defining how time and cost are calculated
    */
-  type?: string;
+  type?: ManufacturingOperationType;
   /**
    * Name of the operation
    */
@@ -1401,7 +1671,7 @@ export type UpdateManufacturingOrderOperationRowRequest = {
   /**
    * Current status of the operation
    */
-  status?: string;
+  status?: ManufacturingOperationStatus;
   /**
    * Operators assigned to perform this operation
    */
@@ -1534,7 +1804,7 @@ export type ManufacturingOrderRecipeRow = {
   /**
    * Current availability status of this ingredient
    */
-  ingredient_availability?: string;
+  ingredient_availability?: IngredientAvailability;
   /**
    * Expected date when ingredient will be available if currently unavailable
    */
@@ -1597,14 +1867,7 @@ export type SerialNumber = {
   /**
    * Type of resource/transaction that generated or moved this serial number
    */
-  resource_type?:
-    | "ManufacturingOrder"
-    | "Production"
-    | "StockAdjustmentRow"
-    | "StockTransferRow"
-    | "PurchaseOrderRow"
-    | "SalesOrderRow"
-    | "SalesOrderFulfillmentRow";
+  resource_type?: SerialNumberResourceType;
   /**
    * Unique identifier of the specific resource instance
    */
@@ -1826,7 +2089,7 @@ export type InventoryItem = ArchivableEntity & {
   /**
    * Item type discriminator - either 'product' or 'material'
    */
-  type: "product" | "material";
+  type: InventoryItemType;
 };
 
 /**
@@ -1836,7 +2099,7 @@ export type Material = InventoryItem & {
   /**
    * Item type discriminator. Material objects are of type "material"
    */
-  type: "material";
+  type: MaterialType;
   /**
    * Timestamp when this material was soft-deleted
    */
@@ -2044,14 +2307,6 @@ export type CreateProductRequest = {
    */
   purchase_uom_conversion_rate?: number;
   /**
-   * Expected lead time in days for procurement or production
-   */
-  lead_time?: number | null;
-  /**
-   * Minimum quantity that must be ordered from suppliers
-   */
-  minimum_order_quantity?: number;
-  /**
    * Product configuration options for creating variants
    */
   configs?: Array<{
@@ -2171,7 +2426,7 @@ export type Product = InventoryItem & {
   /**
    * Item type discriminator. Product objects are of type "product"
    */
-  type: "product";
+  type: ProductType;
   /**
    * Whether this product can be manufactured in-house
    */
@@ -2228,10 +2483,7 @@ export type CreatePurchaseOrderRequest = {
    * Unique purchase order number for tracking and reference
    */
   order_no: string;
-  /**
-   * Type of purchase order - regular for materials or outsourced for subcontracted work
-   */
-  entity_type?: "regular" | "outsourced";
+  entity_type?: PurchaseOrderEntityType;
   /**
    * Unique identifier of the supplier providing the materials or services
    */
@@ -2243,7 +2495,7 @@ export type CreatePurchaseOrderRequest = {
   /**
    * Initial status of the purchase order when created
    */
-  status?: "NOT_RECEIVED";
+  status?: CreatePurchaseOrderInitialStatus;
   /**
    * Date when the purchase order was created
    */
@@ -2311,7 +2563,7 @@ export type PurchaseOrderBase = DeletableEntity & {
   /**
    * Status of the order.
    */
-  status?: "NOT_RECEIVED" | "PARTIALLY_RECEIVED" | "RECEIVED";
+  status?: PurchaseOrderStatus;
   /**
    * A unique, identifying string used in the UI and controlled by the user.
    */
@@ -2319,7 +2571,7 @@ export type PurchaseOrderBase = DeletableEntity & {
   /**
    * Either "regular" or "outsourced", depending on the purchase order type.
    */
-  entity_type?: "regular" | "outsourced";
+  entity_type?: PurchaseOrderEntityType;
   /**
    * Default grouping identifier for organizational purposes
    */
@@ -2363,11 +2615,11 @@ export type PurchaseOrderBase = DeletableEntity & {
    * Online. "PARTIALLY_BILLED" does not apply to Xero integration.
    *
    */
-  billing_status?: "BILLED" | "NOT_BILLED" | "PARTIALLY_BILLED";
+  billing_status?: PurchaseOrderBillingStatus;
   /**
    * Status of the last e-mail sent from (O)PO card.
    */
-  last_document_status?: "NOT_SENT" | "SENDING" | "FAILED" | "SENT";
+  last_document_status?: DocumentSendStatus;
   /**
    * List of line items in this purchase order
    */
@@ -2565,7 +2817,7 @@ export type UpdatePurchaseOrderRequest = {
   /**
    * Current status indicating progress of order fulfillment
    */
-  status?: "NOT_RECEIVED" | "RECEIVED" | "PARTIALLY_RECEIVED";
+  status?: PurchaseOrderStatus;
   /**
    * Updatable only when status is in NOT_RECEIVED or PARTIALLY_RECEIVED. Update will override arrival_date on purchase order rows
    */
@@ -2604,10 +2856,7 @@ export type CreatePurchaseOrderAdditionalCostRowRequest = {
    * Amount of the additional cost in the purchase order currency
    */
   price: number;
-  /**
-   * Method for distributing this cost across purchase order items
-   */
-  distribution_method?: "BY_VALUE" | "NON_DISTRIBUTED";
+  distribution_method?: CostDistributionMethod;
 };
 
 /**
@@ -2690,10 +2939,7 @@ export type UpdatePurchaseOrderAdditionalCostRowRequest = {
    * Updated amount of the additional cost in the purchase order currency
    */
   price?: number;
-  /**
-   * Method for distributing this cost across purchase order items
-   */
-  distribution_method?: "BY_VALUE" | "NON_DISTRIBUTED";
+  distribution_method?: CostDistributionMethod;
 };
 
 /**
@@ -2749,9 +2995,20 @@ export type CreatePurchaseOrderRowRequest = {
    */
   tax_rate_id?: number;
   /**
-   * Group identifier for organizing related line items
+   * Tax label snapshot to record on this line item
    */
-  group_id?: number;
+  tax_name?: string;
+  /**
+   * Tax rate percentage snapshot to record on this line item. Sent
+   * as a string to preserve exact decimal precision (Katana's wire
+   * format).
+   *
+   */
+  tax_rate?: string;
+  /**
+   * ISO 4217 currency code for the line price (overrides PO currency)
+   */
+  currency?: string;
   /**
    * Unit price for each item in this line
    */
@@ -2787,9 +3044,16 @@ export type UpdatePurchaseOrderRowRequest = {
    */
   tax_rate_id?: number;
   /**
-   * Updatable only when received_date is null
+   * Tax label snapshot to record on this line item
    */
-  group_id?: number;
+  tax_name?: string;
+  /**
+   * Tax rate percentage snapshot to record on this line item. Sent
+   * as a string to preserve exact decimal precision (Katana's wire
+   * format).
+   *
+   */
+  tax_rate?: string;
   /**
    * Updatable only when received_date is null
    */
@@ -3041,7 +3305,7 @@ export type CreateSupplierAddressRequest = {
   /**
    * Primary address line (street number, street name)
    */
-  line_1: string;
+  line_1?: string;
   /**
    * Secondary address line (suite, apartment, building)
    */
@@ -3157,7 +3421,7 @@ export type CreateVariantRequest = {
   /**
    * Stock keeping unit code for unique identification of this product variant
    */
-  sku: string;
+  sku?: string;
   /**
    * Default selling price per unit for this product variant
    */
@@ -3251,10 +3515,7 @@ export type VariantResponse = {
    * ID of the parent material if this variant belongs to a raw material
    */
   material_id?: number | null;
-  /**
-   * Type classification of this variant
-   */
-  type?: "product" | "material" | "service";
+  type?: VariantType;
   /**
    * Internal barcode for warehouse scanning and tracking
    */
@@ -3314,7 +3575,9 @@ export type VariantResponse = {
 } & DeletableEntity;
 
 /**
- * Request payload for updating product variant details including pricing, configuration, and inventory information
+ * Request payload for updating product variant details including pricing, configuration, and inventory information.
+ * Note: ``product_id`` and ``material_id`` are not present here — a variant's parent
+ * is set at create time and cannot be reassigned via PATCH.
  *
  */
 export type UpdateVariantRequest = {
@@ -3330,14 +3593,6 @@ export type UpdateVariantRequest = {
    * Default purchase cost per unit for this product variant
    */
   purchase_price?: number;
-  /**
-   * Reference to the parent product when this is a product variant
-   */
-  product_id?: number | null;
-  /**
-   * Reference to the parent material when this is a material variant
-   */
-  material_id?: number | null;
   /**
    * Supplier-specific codes for ordering this variant
    */
@@ -3573,6 +3828,10 @@ export type CreateWebhookRequest = {
    */
   url: string;
   /**
+   * Whether this webhook subscription should be active immediately on creation (defaults to true)
+   */
+  enabled?: boolean;
+  /**
    * List of event types to subscribe to (at least one event type required)
    */
   subscribed_events: Array<WebhookEvent>;
@@ -3589,7 +3848,7 @@ export type UpdateWebhookRequest = {
   /**
    * HTTPS endpoint URL where webhook events will be sent (must use HTTPS for security)
    */
-  url: string;
+  url?: string;
   /**
    * Whether this webhook subscription should be active and receive events
    */
@@ -3597,7 +3856,7 @@ export type UpdateWebhookRequest = {
   /**
    * List of event types to subscribe to (at least one event type required)
    */
-  subscribed_events: Array<WebhookEvent>;
+  subscribed_events?: Array<WebhookEvent>;
   /**
    * Optional human-readable description of this webhook's purpose for management and documentation
    */
@@ -3780,7 +4039,7 @@ export type Service = ArchivableDeletableEntity & {
   /**
    * Indicating the item type. Service objects are of type "service"
    */
-  type?: "service";
+  type?: ServiceType;
   /**
    * A string attached to the object to add any internal comments, links to external files, additional
    * instructions, etc.
@@ -3920,6 +4179,13 @@ export type UpdateServiceRequest = {
    * ID of the custom field collection to associate with this service
    */
   custom_field_collection_id?: number | null;
+  /**
+   * Custom field values to attach to the service. Field names must
+   * match those configured for the ``service`` resource type (see
+   * ``GET /custom_fields_collections``).
+   *
+   */
+  custom_fields?: Array<CustomFieldValue>;
 };
 
 /**
@@ -4098,10 +4364,7 @@ export type CustomerAddress = {
    * ID of the customer this address belongs to
    */
   customer_id: number;
-  /**
-   * Address type - billing for invoicing, shipping for delivery
-   */
-  entity_type: "billing" | "shipping";
+  entity_type: AddressEntityType;
   /**
    * Whether this is the default address for the specified entity type
    */
@@ -4210,7 +4473,7 @@ export type CreateCustomerRequest = {
    * Customer addresses to create with the customer
    */
   addresses?: Array<{
-    entity_type?: "billing" | "shipping";
+    entity_type?: AddressEntityType;
     first_name?: string;
     last_name?: string;
     company?: string;
@@ -4313,12 +4576,7 @@ export type SalesOrder = BaseEntity & {
   /**
    * Current fulfillment status of the sales order
    */
-  status:
-    | "NOT_SHIPPED"
-    | "PARTIALLY_PACKED"
-    | "PARTIALLY_DELIVERED"
-    | "PACKED"
-    | "DELIVERED";
+  status: SalesOrderStatus;
   /**
    * Currency code for the order pricing (ISO 4217 format)
    */
@@ -4367,25 +4625,12 @@ export type SalesOrder = BaseEntity & {
    * Original order ID from the external ecommerce platform
    */
   ecommerce_order_id?: string | null;
-  product_availability?:
-    | "IN_STOCK"
-    | "EXPECTED"
-    | "PICKED"
-    | "NOT_AVAILABLE"
-    | "NOT_APPLICABLE"
-    | null;
+  product_availability?: ProductAvailability | null;
   /**
    * Expected date when products will be available for fulfillment
    */
   product_expected_date?: string | null;
-  ingredient_availability?:
-    | "PROCESSED"
-    | "IN_STOCK"
-    | "NOT_AVAILABLE"
-    | "EXPECTED"
-    | "NO_RECIPE"
-    | "NOT_APPLICABLE"
-    | null;
+  ingredient_availability?: IngredientAvailability | null;
   /**
    * Expected date when ingredients will be available for production
    */
@@ -4393,14 +4638,7 @@ export type SalesOrder = BaseEntity & {
   /**
    * Current status of production for items in this order
    */
-  production_status?:
-    | "NOT_STARTED"
-    | "NONE"
-    | "NOT_APPLICABLE"
-    | "IN_PROGRESS"
-    | "BLOCKED"
-    | "DONE"
-    | null;
+  production_status?: SalesOrderProductionStatus | null;
   /**
    * Shipping carrier tracking number for package tracking
    */
@@ -4466,13 +4704,7 @@ export type SalesOrderRow = {
   /**
    * Current availability status of the product for this order row
    */
-  product_availability?:
-    | "IN_STOCK"
-    | "EXPECTED"
-    | "PICKED"
-    | "NOT_AVAILABLE"
-    | "NOT_APPLICABLE"
-    | null;
+  product_availability?: ProductAvailability | null;
   /**
    * Expected date when the product will be available if not currently in stock
    */
@@ -4554,10 +4786,7 @@ export type SalesOrderAddress = {
    * ID of the sales order this address belongs to
    */
   sales_order_id: number;
-  /**
-   * Type of address - billing for invoicing or shipping for delivery
-   */
-  entity_type: "billing" | "shipping";
+  entity_type: AddressEntityType;
   /**
    * First name of the contact person
    */
@@ -4697,10 +4926,7 @@ export type CreateSalesOrderAddressRequest = {
    * ID of the sales order this address belongs to
    */
   sales_order_id: number;
-  /**
-   * Type of address (billing or shipping)
-   */
-  entity_type: "billing" | "shipping";
+  entity_type: AddressEntityType;
   /**
    * First name for the address contact
    */
@@ -4716,7 +4942,7 @@ export type CreateSalesOrderAddressRequest = {
   /**
    * Primary address line
    */
-  line_1: string;
+  line_1?: string;
   /**
    * Secondary address line
    */
@@ -4724,7 +4950,7 @@ export type CreateSalesOrderAddressRequest = {
   /**
    * City name
    */
-  city: string;
+  city?: string;
   /**
    * State or province
    */
@@ -4736,7 +4962,7 @@ export type CreateSalesOrderAddressRequest = {
   /**
    * Country code
    */
-  country: string;
+  country?: string;
   /**
    * Contact phone number
    */
@@ -4885,7 +5111,7 @@ export type CreateSalesOrderRequest = {
   /**
    * Initial status of the order
    */
-  status?: "NOT_SHIPPED" | "PENDING";
+  status?: CreateSalesOrderStatus;
   /**
    * Additional notes or instructions for the order
    */
@@ -4906,6 +5132,13 @@ export type CreateSalesOrderRequest = {
    * Original order ID from the ecommerce platform
    */
   ecommerce_order_id?: string | null;
+  /**
+   * Custom field values to attach to the sales order. Field names
+   * must match those configured for the ``sales_order`` resource
+   * type (see ``GET /custom_fields_collections``).
+   *
+   */
+  custom_fields?: Array<CustomFieldValue>;
 };
 
 /**
@@ -4999,7 +5232,7 @@ export type CreateStockAdjustmentRequest = {
   /**
    * Human-readable reference number for tracking and audit purposes
    */
-  stock_adjustment_number?: string;
+  stock_adjustment_number: string;
   /**
    * Date and time when the adjustment was performed
    */
@@ -5029,7 +5262,7 @@ export type CreateStockAdjustmentRequest = {
      */
     quantity: number;
     /**
-     * Cost per unit for this adjustment (defaults to current average cost if not specified)
+     * Cost per unit for this adjustment. Only allowed when quantity is positive; for negative adjustments, the item's average cost is used automatically and sending this field will result in a 422 validation error.
      */
     cost_per_unit?: number;
     /**
@@ -5180,11 +5413,11 @@ export type SalesOrderFulfillment = {
   /**
    * Current fulfillment status
    */
-  status?: "PACKED" | "DELIVERED";
+  status?: SalesOrderFulfillmentStatus;
   /**
    * Current invoice status of the fulfillment
    */
-  invoice_status?: "NOT_INVOICED" | "INVOICED" | "PARTIALLY_INVOICED";
+  invoice_status?: SalesOrderFulfillmentInvoiceStatus | null;
   /**
    * Currency conversion rate applied to this fulfillment
    */
@@ -5338,9 +5571,13 @@ export type UpdatePriceListRequest = {
  */
 export type UpdatePriceListRowRequest = {
   /**
+   * ID of the product variant being priced
+   */
+  variant_id?: number;
+  /**
    * Method for price adjustment
    */
-  adjustment_method?: string;
+  adjustment_method?: PriceAdjustmentMethod;
   /**
    * Adjustment amount
    */
@@ -5354,7 +5591,7 @@ export type UpdatePriceListCustomerRequest = {
   /**
    * ID of the customer to assign to price list
    */
-  customer_id?: number;
+  customer_id: number;
 };
 
 /**
@@ -5376,7 +5613,7 @@ export type PriceListRow = {
   /**
    * Method used for price adjustment (fixed, percentage, markup)
    */
-  adjustment_method: "fixed" | "percentage" | "markup";
+  adjustment_method: PriceListAdjustmentMethod;
   /**
    * Amount value for the price adjustment based on the adjustment method
    */
@@ -5796,19 +6033,30 @@ export type CustomFieldsCollection = {
   /**
    * The type of business object this custom fields collection applies to
    */
-  resource_type?:
-    | "product"
-    | "material"
-    | "variant"
-    | "customer"
-    | "sales_order"
-    | "purchase_order"
-    | "stocktake";
+  resource_type?: CustomFieldCollectionResourceType;
   /**
    * Array of custom field definitions with their types, validation rules, and configuration
    */
   custom_fields?: Array<CustomField>;
 } & DeletableEntity;
+
+/**
+ * A single custom field value attached to a resource (e.g., a sales
+ * order, service, product). Custom fields are configured via
+ * ``GET /custom_fields_collections``; each value pairs the field's
+ * configured name with the value to set.
+ *
+ */
+export type CustomFieldValue = {
+  /**
+   * Name of the custom field (matches a configured field's ``name``)
+   */
+  field_name: string;
+  /**
+   * Value to set for this custom field
+   */
+  field_value: string;
+};
 
 /**
  * Individual custom field definition with validation rules and configuration options
@@ -5851,6 +6099,117 @@ export type CustomFieldsCollectionListResponse = {
 };
 
 /**
+ * A configured custom field definition that callers can attach to a
+ * resource (sales order, service, product, etc.) via the resource's
+ * ``custom_fields`` property. Definitions are scoped to a specific
+ * ``entity_type`` and shape what values consumers can store.
+ *
+ */
+export type CustomFieldDefinition = {
+  /**
+   * Unique identifier for the custom field definition
+   */
+  id: number;
+  /**
+   * Display label shown in the Katana UI
+   */
+  label: string;
+  /**
+   * Field input type (e.g. ``text``, ``number``, ``date``,
+   * ``select``). Drives how Katana renders and validates the
+   * field's values.
+   *
+   */
+  field_type: string;
+  /**
+   * Resource type the definition applies to (matches the
+   * resource's ``custom_fields`` API field — e.g.
+   * ``sales_order``, ``service``, ``product``).
+   *
+   */
+  entity_type: string;
+  /**
+   * Origin / namespace of the definition (e.g. ``katana``, ``user``).
+   */
+  source: string;
+  /**
+   * Optional long-form description of the field's purpose
+   */
+  description?: string | null;
+  /**
+   * Free-form configuration object — shape varies per
+   * ``field_type`` (e.g., select fields carry the option list
+   * here).
+   *
+   */
+  options?: {
+    [key: string]: unknown;
+  } | null;
+} & UpdatableEntity;
+
+/**
+ * Request payload for creating a new custom field definition.
+ */
+export type CreateCustomFieldDefinitionRequest = {
+  /**
+   * Display label shown in the Katana UI
+   */
+  label: string;
+  /**
+   * Field input type (text, number, date, select, etc.)
+   */
+  field_type: string;
+  /**
+   * Resource type the definition applies to
+   */
+  entity_type: string;
+  /**
+   * Origin / namespace of the definition
+   */
+  source: string;
+  /**
+   * Optional long-form description
+   */
+  description?: string | null;
+  /**
+   * Free-form configuration object — shape varies per ``field_type``
+   */
+  options?: {
+    [key: string]: unknown;
+  } | null;
+};
+
+/**
+ * Request payload for updating an existing custom field definition.
+ */
+export type UpdateCustomFieldDefinitionRequest = {
+  /**
+   * Updated display label
+   */
+  label?: string;
+  /**
+   * Updated long-form description
+   */
+  description?: string | null;
+  /**
+   * Updated configuration object
+   */
+  options?: {
+    [key: string]: unknown;
+  } | null;
+};
+
+/**
+ * List of custom field definitions
+ */
+export type CustomFieldDefinitionListResponse = {
+  /**
+   * Array of custom field definitions
+   */
+  data?: Array<CustomFieldDefinition>;
+};
+
+/**
  * Physical inventory count process for reconciling actual stock levels with system records
  */
 export type Stocktake = {
@@ -5866,7 +6225,7 @@ export type Stocktake = {
   /**
    * Current status of the stocktake process
    */
-  status: "NOT_STARTED" | "IN_PROGRESS" | "COUNTED" | "COMPLETED";
+  status: StocktakeStatus;
   /**
    * Date and time when the stocktake was created
    */
@@ -6017,7 +6376,7 @@ export type SalesReturn = {
   /**
    * Current processing status of the sales return
    */
-  status: "NOT_RETURNED" | "RETURNED_ALL" | "RESTOCKED_ALL";
+  status: SalesReturnStatus;
   /**
    * Currency code for refund amounts (ISO 4217 format)
    */
@@ -6037,7 +6396,7 @@ export type SalesReturn = {
   /**
    * Current status of the refund processing
    */
-  refund_status?: string | null;
+  refund_status?: SalesReturnRefundStatus | null;
   /**
    * Tracking number for the return shipment
    */
@@ -6084,6 +6443,22 @@ export type CreateSalesReturnRequest = {
    * Optional notes or comments about the return
    */
   additional_info?: string;
+  /**
+   * Tracking number for the return shipment
+   */
+  tracking_number?: string | null;
+  /**
+   * URL to track the return shipment
+   */
+  tracking_number_url?: string | null;
+  /**
+   * Carrier used for the return shipment
+   */
+  tracking_carrier?: string | null;
+  /**
+   * Shipping method used for the return
+   */
+  tracking_method?: string | null;
 };
 
 /**
@@ -6093,7 +6468,7 @@ export type UpdateSalesReturnRequest = {
   /**
    * Status of the sales return
    */
-  status?: "NOT_RETURNED" | "RETURNED_ALL" | "RESTOCKED_ALL";
+  status?: SalesReturnStatus;
   /**
    * Date of the return. Updatable only when current return status is not restockedAll.
    */
@@ -6114,6 +6489,22 @@ export type UpdateSalesReturnRequest = {
    * Additional information about the return. Updatable only when current return status is not restockedAll.
    */
   additional_info?: string | null;
+  /**
+   * Tracking number for the return shipment
+   */
+  tracking_number?: string | null;
+  /**
+   * URL to track the return shipment
+   */
+  tracking_number_url?: string | null;
+  /**
+   * Carrier used for the return shipment
+   */
+  tracking_carrier?: string | null;
+  /**
+   * Shipping method used for the return
+   */
+  tracking_method?: string | null;
 };
 
 /**
@@ -6282,10 +6673,7 @@ export type CreateCustomerAddressRequest = {
    * ID of the customer this address belongs to
    */
   customer_id: number;
-  /**
-   * Address type - billing for invoicing, shipping for delivery
-   */
-  entity_type: "billing" | "shipping";
+  entity_type: AddressEntityType;
   /**
    * First name for the contact person at this address
    */
@@ -6446,7 +6834,7 @@ export type UpdateStocktakeRequest = {
   /**
    * Status of the stocktake
    */
-  status?: "NOT_STARTED" | "IN_PROGRESS" | "COUNTED" | "COMPLETED";
+  status?: StocktakeStatus;
   /**
    * Additional notes or information about the stocktake
    */
@@ -6476,7 +6864,7 @@ export type CreateStocktakeRowRequest = {
   /**
    * Array of stocktake rows to create
    */
-  stocktake_rows: Array<{
+  stocktake_rows?: Array<{
     /**
      * ID of the variant being counted
      */
@@ -6539,6 +6927,28 @@ export type SalesReturnRowListResponse = {
 };
 
 /**
+ * Information about the currently authenticated user
+ */
+export type UserInfo = {
+  /**
+   * Unique identifier for the user account
+   */
+  id: number;
+  /**
+   * User's first name
+   */
+  firstName: string;
+  /**
+   * User's last name
+   */
+  lastName: string;
+  /**
+   * Email address used for login and notifications
+   */
+  email: string;
+};
+
+/**
  * List of system users with their account information and role assignments
  */
 export type UserListResponse = {
@@ -6583,12 +6993,7 @@ export type OutsourcedPurchaseOrderRecipeRow = {
   /**
    * Current availability status of this ingredient
    */
-  ingredient_availability?:
-    | "PROCESSED"
-    | "IN_STOCK"
-    | "NOT_AVAILABLE"
-    | "EXPECTED"
-    | "NOT_APPLICABLE";
+  ingredient_availability?: OutsourcedRecipeIngredientAvailability;
   /**
    * Expected date when this ingredient will be available
    */
@@ -6677,7 +7082,7 @@ export type SalesOrderAccountingMetadata = {
   /**
    * Type of accounting system integration used
    */
-  integration_type: "xero" | "quickBooks" | "sage" | "custom";
+  integration_type: AccountingIntegrationType;
   /**
    * Date and time when the accounting metadata was created
    */
@@ -6729,9 +7134,11 @@ export type CreateSalesOrderShippingFeeRequest = {
    */
   sales_order_id: number;
   /**
-   * Shipping fee amount in the order currency
+   * Shipping fee amount in the order currency. Sent as a string to
+   * preserve exact decimal precision (Katana's wire format).
+   *
    */
-  amount: number;
+  amount: string;
   /**
    * Description of the shipping service or fee type
    */
@@ -6874,7 +7281,7 @@ export type CreateProductOperationRowItem = {
    * Fixed cost: The fixed cost operation type is useful for adding
    * the expected extra costs that go into producing a product.
    */
-  type?: "process" | "setup" | "perUnit" | "fixed";
+  type?: ProductOperationType;
   /**
    * The expected cost of an operation, either total or per hour/unit of product (based on type).
    * Total cost of the operation on a manufacturing order is calculated as follows:
@@ -6936,9 +7343,9 @@ export type UpdateProductOperationRowRequest = {
    */
   operation_name?: string;
   /**
-   * Type of operation
+   * Type of operation defining how time and cost are calculated
    */
-  type?: string;
+  type?: ManufacturingOperationType;
   /**
    * ID of the resource performing the operation
    */
@@ -7012,7 +7419,7 @@ export type CreateSalesOrderFulfillmentRequest = {
   /**
    * Fulfillment status
    */
-  status?: string;
+  status: SalesOrderFulfillmentStatus;
   /**
    * Currency conversion rate
    */
@@ -7040,7 +7447,7 @@ export type CreateSalesOrderFulfillmentRequest = {
   /**
    * Fulfillment row items
    */
-  sales_order_fulfillment_rows?: Array<SalesOrderFulfillmentRowRequest>;
+  sales_order_fulfillment_rows: Array<SalesOrderFulfillmentRowRequest>;
 };
 
 /**
@@ -7054,7 +7461,7 @@ export type UpdateSalesOrderFulfillmentRequest = {
   /**
    * Fulfillment status
    */
-  status?: string;
+  status?: SalesOrderFulfillmentStatus;
   /**
    * Currency conversion rate
    */
@@ -7094,13 +7501,33 @@ export type UpdateSalesOrderShippingFeeRequest = {
    */
   description?: string;
   /**
-   * Shipping fee amount
+   * Shipping fee amount. Sent as a string to preserve exact decimal
+   * precision (Katana's wire format).
+   *
    */
-  amount?: number;
+  amount: string;
   /**
    * ID of the tax rate to apply to the shipping fee
    */
   tax_rate_id?: number;
+};
+
+/**
+ * Request payload for searching sales orders with arbitrary filter
+ * criteria. The ``filter`` object accepts free-form key-value pairs
+ * — supported keys are documented in the Katana API reference
+ * (matches POST /sales_orders/search behaviour).
+ *
+ */
+export type SalesOrderSearchRequest = {
+  /**
+   * Free-form filter criteria. Keys map to sales-order fields the
+   * API supports searching on.
+   *
+   */
+  filter?: {
+    [key: string]: unknown;
+  };
 };
 
 /**
@@ -7134,7 +7561,7 @@ export type UpdateSalesOrderRequest = {
   /**
    * When the status is omitted, NOT_SHIPPED is used as default. Use PENDING when you want to create sales order quotes.
    */
-  status?: "NOT_SHIPPED" | "PENDING" | "PACKED" | "DELIVERED";
+  status?: UpdateSalesOrderStatus;
   /**
    * E.g. USD, EUR. All currently active currency codes in ISO 4217 format. Updatable only when sales
    * order status is NOT_SHIPPED or PENDING.
@@ -7164,6 +7591,13 @@ export type UpdateSalesOrderRequest = {
    * URL link to track the shipment on carrier website
    */
   tracking_number_url?: string | null;
+  /**
+   * Custom field values to attach to the sales order. Field names
+   * must match those configured for the ``sales_order`` resource
+   * type (see ``GET /custom_fields_collections``).
+   *
+   */
+  custom_fields?: Array<CustomFieldValue>;
 };
 
 /**
@@ -7195,13 +7629,7 @@ export type CreateSerialNumbersRequest = {
   /**
    * Resource type
    */
-  resource_type:
-    | "ManufacturingOrder"
-    | "Production"
-    | "StockAdjustmentRow"
-    | "StockTransferRow"
-    | "PurchaseOrderRow"
-    | "SalesOrderRow";
+  resource_type?: CreateSerialNumberResourceType;
   /**
    * Resource ID
    */
@@ -7209,7 +7637,28 @@ export type CreateSerialNumbersRequest = {
   /**
    * List of serial numbers to create
    */
-  serial_numbers: Array<string>;
+  serial_numbers?: Array<string>;
+};
+
+/**
+ * Request payload for deleting serial numbers from a resource. The
+ * delete is scoped to a single resource (``resource_type`` +
+ * ``resource_id``) and a list of serial-number IDs.
+ *
+ */
+export type DeleteSerialNumbersRequest = {
+  /**
+   * Resource type the serial numbers belong to
+   */
+  resource_type: SerialNumberResourceType;
+  /**
+   * Resource ID the serial numbers belong to
+   */
+  resource_id: number;
+  /**
+   * Serial number IDs to delete
+   */
+  ids: Array<number>;
 };
 
 /**
@@ -7233,7 +7682,7 @@ export type CreateStockTransferRequest = {
   /**
    * Unique stock transfer number for tracking
    */
-  stock_transfer_number?: string;
+  stock_transfer_number: string;
   /**
    * Source location ID where items are transferred from
    */
@@ -7261,7 +7710,7 @@ export type CreateStockTransferRequest = {
   /**
    * Line items being transferred
    */
-  stock_transfer_rows?: Array<StockTransferRowRequest>;
+  stock_transfer_rows: Array<StockTransferRowRequest>;
 };
 
 /**
@@ -7297,7 +7746,7 @@ export type UpdateStockTransferStatusRequest = {
   /**
    * New status for the stock transfer
    */
-  status: "pending" | "in_transit" | "completed" | "cancelled";
+  status?: StockTransferStatus;
 };
 
 /**
@@ -7654,12 +8103,16 @@ export type OrderNo = string;
 /**
  * Filters purchase orders by an entity type
  */
-export type EntityType = "regular" | "outsourced";
+export type EntityType = PurchaseOrderEntityType;
 
 /**
  * Filters purchase orders by a status
  */
-export type PoStatus = "NOT_RECEIVED" | "PARTIALLY_RECEIVED" | "RECEIVED";
+export type PoStatus =
+  | "DRAFT"
+  | "NOT_RECEIVED"
+  | "PARTIALLY_RECEIVED"
+  | "RECEIVED";
 
 /**
  * Filters purchase orders by a billing status
@@ -7699,7 +8152,7 @@ export type TaxRateId = number;
 /**
  * Filters purchase order additional cost rows by an distribution method
  */
-export type DistributionMethod = "BY_VALUE" | "NON_DISTRIBUTED";
+export type DistributionMethod = CostDistributionMethod;
 
 /**
  * Filters purchase order rows by purchase order id
@@ -7789,13 +8242,7 @@ export type Country = string;
 /**
  * Filters manufacturing orders by an ingredient availability.
  */
-export type IngredientAvailability =
-  | "PROCESSED"
-  | "IN_STOCK"
-  | "NOT_AVAILABLE"
-  | "EXPECTED"
-  | "NO_RECIPE"
-  | "NOT_APPLICABLE";
+export type IngredientAvailability2 = IngredientAvailability;
 
 /**
  * Filters tax rates by rate
@@ -7876,10 +8323,7 @@ export type ReturnOrderNo = string;
 /**
  * Filters sales returns by a refund status
  */
-export type RefundStatus =
-  | "NOT_REFUNDED"
-  | "REFUNDED_ALL"
-  | "PARTIALLY_REFUNDED";
+export type RefundStatus = SalesReturnRefundStatus;
 
 /**
  * Minimum value for return_date range. Must be compatible with ISO 8601 format
@@ -8171,12 +8615,12 @@ export type UpdateBatchStockData = {
   body: BatchStockUpdate;
   path: {
     /**
-     * Batch id
+     * Resource identifier
      */
-    batch_id: number;
+    id: number;
   };
   query?: never;
-  url: "/batch_stocks/{batch_id}";
+  url: "/batch_stocks/{id}";
 };
 
 export type UpdateBatchStockErrors = {
@@ -9589,13 +10033,7 @@ export type GetAllManufacturingOrderRecipeRowsData = {
     /**
      * Filters manufacturing orders by an ingredient availability.
      */
-    ingredient_availability?:
-      | "PROCESSED"
-      | "IN_STOCK"
-      | "NOT_AVAILABLE"
-      | "EXPECTED"
-      | "NO_RECIPE"
-      | "NOT_APPLICABLE";
+    ingredient_availability?: IngredientAvailability;
     /**
      * Soft-deleted data is excluded from result set by default. Set to true to include it.
      */
@@ -10486,11 +10924,11 @@ export type FindPurchaseOrdersData = {
     /**
      * Filters purchase orders by an entity type
      */
-    entity_type?: "regular" | "outsourced";
+    entity_type?: PurchaseOrderEntityType;
     /**
      * Filters purchase orders by a status
      */
-    status?: "NOT_RECEIVED" | "PARTIALLY_RECEIVED" | "RECEIVED";
+    status?: "DRAFT" | "NOT_RECEIVED" | "PARTIALLY_RECEIVED" | "RECEIVED";
     /**
      * Filters purchase orders by a billing status
      */
@@ -10780,7 +11218,7 @@ export type GetPurchaseOrderAdditionalCostRowsData = {
     /**
      * Filters purchase order additional cost rows by an distribution method
      */
-    distribution_method?: "BY_VALUE" | "NON_DISTRIBUTED";
+    distribution_method?: CostDistributionMethod;
     /**
      * Soft-deleted data is excluded from result set by default. Set to true to include it.
      */
@@ -12618,7 +13056,7 @@ export type GetAllSalesReturnsData = {
     /**
      * Filters sales returns by a refund status
      */
-    refund_status?: "NOT_REFUNDED" | "REFUNDED_ALL" | "PARTIALLY_REFUNDED";
+    refund_status?: SalesReturnRefundStatus;
     /**
      * Minimum value for return_date range. Must be compatible with ISO 8601 format
      */
@@ -13241,9 +13679,9 @@ export type GetAllRecipesData = {
      */
     ingredient_variant_id?: number;
     /**
-     * Filter by product variant IDs (comma-separated)
+     * Filters recipes by an array of product variant IDs.
      */
-    product_variant_ids?: string;
+    product_variant_ids?: Array<number>;
     /**
      * Filters variants by a product id
      */
@@ -13323,6 +13761,49 @@ export type CreateRecipesResponses = {
 
 export type CreateRecipesResponse =
   CreateRecipesResponses[keyof CreateRecipesResponses];
+
+export type DeleteRecipeData = {
+  body?: never;
+  path: {
+    /**
+     * Resource identifier
+     */
+    id: number;
+  };
+  query?: never;
+  url: "/recipes/{id}";
+};
+
+export type DeleteRecipeErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Not found.
+   */
+  404: ErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type DeleteRecipeError = DeleteRecipeErrors[keyof DeleteRecipeErrors];
+
+export type DeleteRecipeResponses = {
+  /**
+   * Recipe deleted successfully
+   */
+  204: void;
+};
+
+export type DeleteRecipeResponse =
+  DeleteRecipeResponses[keyof DeleteRecipeResponses];
 
 export type DeleteRecipeRowData = {
   body?: never;
@@ -13422,6 +13903,40 @@ export type UpdateRecipeRowResponses = {
 
 export type UpdateRecipeRowResponse =
   UpdateRecipeRowResponses[keyof UpdateRecipeRowResponses];
+
+export type GetUserInfoData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/user_info";
+};
+
+export type GetUserInfoErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type GetUserInfoError = GetUserInfoErrors[keyof GetUserInfoErrors];
+
+export type GetUserInfoResponses = {
+  /**
+   * Current user information
+   */
+  200: UserInfo;
+};
+
+export type GetUserInfoResponse =
+  GetUserInfoResponses[keyof GetUserInfoResponses];
 
 export type GetAllUsersData = {
   body?: never;
@@ -13825,13 +14340,7 @@ export type GetAllSalesOrdersData = {
     /**
      * Filters manufacturing orders by an ingredient availability.
      */
-    ingredient_availability?:
-      | "PROCESSED"
-      | "IN_STOCK"
-      | "NOT_AVAILABLE"
-      | "EXPECTED"
-      | "NO_RECIPE"
-      | "NOT_APPLICABLE";
+    ingredient_availability?: IngredientAvailability;
     /**
      * Filters sales order rows by product availability
      */
@@ -14041,6 +14550,52 @@ export type UpdateSalesOrderResponses = {
    */
   200: unknown;
 };
+
+export type SearchSalesOrdersData = {
+  /**
+   * Search filter criteria
+   */
+  body: SalesOrderSearchRequest;
+  path?: never;
+  query?: never;
+  url: "/sales_orders/search";
+};
+
+export type SearchSalesOrdersErrors = {
+  /**
+   * Bad Request Error.
+   */
+  400: ErrorResponse;
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type SearchSalesOrdersError =
+  SearchSalesOrdersErrors[keyof SearchSalesOrdersErrors];
+
+export type SearchSalesOrdersResponses = {
+  /**
+   * Matching sales orders
+   */
+  200: SalesOrderListResponse;
+};
+
+export type SearchSalesOrdersResponse =
+  SearchSalesOrdersResponses[keyof SearchSalesOrdersResponses];
 
 export type GetSalesOrderReturnableItemsData = {
   body?: never;
@@ -15254,7 +15809,7 @@ export type GetAllSalesOrderAddressesData = {
     /**
      * Filters purchase orders by an entity type
      */
-    entity_type?: "regular" | "outsourced";
+    entity_type?: PurchaseOrderEntityType;
     /**
      * Filters results by an array of IDs.
      */
@@ -15788,7 +16343,7 @@ export type GetAllCustomerAddressesData = {
     /**
      * Filters purchase orders by an entity type
      */
-    entity_type?: "regular" | "outsourced";
+    entity_type?: PurchaseOrderEntityType;
     /**
      * Filters results by an array of IDs.
      */
@@ -17435,7 +17990,10 @@ export type UpdateStocktakeRowResponse =
   UpdateStocktakeRowResponses[keyof UpdateStocktakeRowResponses];
 
 export type DeleteSerialNumbersData = {
-  body?: never;
+  /**
+   * Serial number deletion details
+   */
+  body: DeleteSerialNumbersRequest;
   path?: never;
   query?: never;
   url: "/serial_numbers";
@@ -17454,6 +18012,10 @@ export type DeleteSerialNumbersErrors = {
    * Not found.
    */
   404: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
   /**
    * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
    */
@@ -17584,6 +18146,50 @@ export type CreateSerialNumbersResponses = {
 export type CreateSerialNumbersResponse =
   CreateSerialNumbersResponses[keyof CreateSerialNumbersResponses];
 
+export type GetSerialNumbersStockAltData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Number of records to return per page.
+     */
+    limit?: number;
+    /**
+     * Page number to return.
+     */
+    page?: number;
+  };
+  url: "/serial_numbers/serial_numbers_stock";
+};
+
+export type GetSerialNumbersStockAltErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type GetSerialNumbersStockAltError =
+  GetSerialNumbersStockAltErrors[keyof GetSerialNumbersStockAltErrors];
+
+export type GetSerialNumbersStockAltResponses = {
+  /**
+   * List of serial number stock
+   */
+  200: SerialNumberStockListResponse;
+};
+
+export type GetSerialNumbersStockAltResponse =
+  GetSerialNumbersStockAltResponses[keyof GetSerialNumbersStockAltResponses];
+
 export type GetAllSerialNumbersStockData = {
   body?: never;
   path?: never;
@@ -17659,7 +18265,7 @@ export type GetAllOperatorsData = {
     /**
      * Filters operators by their working area
      */
-    working_area?: string;
+    working_area?: OperatorWorkingArea;
     /**
      * Filters results by a resource ID.
      */
@@ -17738,6 +18344,267 @@ export type GetAllCustomFieldsCollectionsResponses = {
 
 export type GetAllCustomFieldsCollectionsResponse =
   GetAllCustomFieldsCollectionsResponses[keyof GetAllCustomFieldsCollectionsResponses];
+
+export type GetAllCustomFieldDefinitionsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Number of records to return per page.
+     */
+    limit?: number;
+    /**
+     * Page number to return.
+     */
+    page?: number;
+    /**
+     * Minimum creation date (ISO 8601 format).
+     */
+    created_at_min?: string;
+    /**
+     * Maximum creation date (ISO 8601 format).
+     */
+    created_at_max?: string;
+    /**
+     * Minimum update date (ISO 8601 format).
+     */
+    updated_at_min?: string;
+    /**
+     * Maximum update date (ISO 8601 format).
+     */
+    updated_at_max?: string;
+    /**
+     * Filters definitions by their display label
+     */
+    label?: string;
+    /**
+     * Filters definitions by their field_type
+     */
+    field_type?: string;
+    /**
+     * Filters definitions by the resource entity_type they target
+     */
+    entity_type?: string;
+  };
+  url: "/custom_field_definitions";
+};
+
+export type GetAllCustomFieldDefinitionsErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type GetAllCustomFieldDefinitionsError =
+  GetAllCustomFieldDefinitionsErrors[keyof GetAllCustomFieldDefinitionsErrors];
+
+export type GetAllCustomFieldDefinitionsResponses = {
+  /**
+   * List of custom field definitions
+   */
+  200: CustomFieldDefinitionListResponse;
+};
+
+export type GetAllCustomFieldDefinitionsResponse =
+  GetAllCustomFieldDefinitionsResponses[keyof GetAllCustomFieldDefinitionsResponses];
+
+export type CreateCustomFieldDefinitionData = {
+  /**
+   * Custom field definition details
+   */
+  body: CreateCustomFieldDefinitionRequest;
+  path?: never;
+  query?: never;
+  url: "/custom_field_definitions";
+};
+
+export type CreateCustomFieldDefinitionErrors = {
+  /**
+   * Bad Request Error.
+   */
+  400: ErrorResponse;
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type CreateCustomFieldDefinitionError =
+  CreateCustomFieldDefinitionErrors[keyof CreateCustomFieldDefinitionErrors];
+
+export type CreateCustomFieldDefinitionResponses = {
+  /**
+   * Custom field definition created successfully
+   */
+  200: CustomFieldDefinition;
+};
+
+export type CreateCustomFieldDefinitionResponse =
+  CreateCustomFieldDefinitionResponses[keyof CreateCustomFieldDefinitionResponses];
+
+export type DeleteCustomFieldDefinitionData = {
+  body?: never;
+  path: {
+    /**
+     * Resource identifier
+     */
+    id: number;
+  };
+  query?: never;
+  url: "/custom_field_definitions/{id}";
+};
+
+export type DeleteCustomFieldDefinitionErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Not found.
+   */
+  404: ErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type DeleteCustomFieldDefinitionError =
+  DeleteCustomFieldDefinitionErrors[keyof DeleteCustomFieldDefinitionErrors];
+
+export type DeleteCustomFieldDefinitionResponses = {
+  /**
+   * Custom field definition deleted successfully
+   */
+  204: void;
+};
+
+export type DeleteCustomFieldDefinitionResponse =
+  DeleteCustomFieldDefinitionResponses[keyof DeleteCustomFieldDefinitionResponses];
+
+export type GetCustomFieldDefinitionData = {
+  body?: never;
+  path: {
+    /**
+     * Resource identifier
+     */
+    id: number;
+  };
+  query?: never;
+  url: "/custom_field_definitions/{id}";
+};
+
+export type GetCustomFieldDefinitionErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Not found.
+   */
+  404: ErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type GetCustomFieldDefinitionError =
+  GetCustomFieldDefinitionErrors[keyof GetCustomFieldDefinitionErrors];
+
+export type GetCustomFieldDefinitionResponses = {
+  /**
+   * Custom field definition retrieved successfully
+   */
+  200: CustomFieldDefinition;
+};
+
+export type GetCustomFieldDefinitionResponse =
+  GetCustomFieldDefinitionResponses[keyof GetCustomFieldDefinitionResponses];
+
+export type UpdateCustomFieldDefinitionData = {
+  /**
+   * Custom field definition update details
+   */
+  body: UpdateCustomFieldDefinitionRequest;
+  path: {
+    /**
+     * Resource identifier
+     */
+    id: number;
+  };
+  query?: never;
+  url: "/custom_field_definitions/{id}";
+};
+
+export type UpdateCustomFieldDefinitionErrors = {
+  /**
+   * Bad Request Error.
+   */
+  400: ErrorResponse;
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Not found.
+   */
+  404: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type UpdateCustomFieldDefinitionError =
+  UpdateCustomFieldDefinitionErrors[keyof UpdateCustomFieldDefinitionErrors];
+
+export type UpdateCustomFieldDefinitionResponses = {
+  /**
+   * Custom field definition updated successfully
+   */
+  200: CustomFieldDefinition;
+};
+
+export type UpdateCustomFieldDefinitionResponse =
+  UpdateCustomFieldDefinitionResponses[keyof UpdateCustomFieldDefinitionResponses];
 
 export type CreateInventoryReorderPointData = {
   /**

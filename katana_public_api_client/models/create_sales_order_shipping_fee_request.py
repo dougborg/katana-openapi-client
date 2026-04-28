@@ -15,12 +15,12 @@ class CreateSalesOrderShippingFeeRequest:
     """Request payload for adding a shipping fee to an existing sales order
 
     Example:
-        {'sales_order_id': 2001, 'amount': 25.99, 'description': 'Express Shipping - Next Day Delivery', 'tax_rate_id':
-            301}
+        {'sales_order_id': 2001, 'amount': '25.99', 'description': 'Express Shipping - Next Day Delivery',
+            'tax_rate_id': 301}
     """
 
     sales_order_id: int
-    amount: float
+    amount: str
     description: str | Unset = UNSET
     tax_rate_id: int | Unset = UNSET
 

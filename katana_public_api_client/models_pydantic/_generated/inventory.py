@@ -35,6 +35,7 @@ from .common import (
     CustomField3,
     CustomField4,
     CustomField5,
+    CustomFieldValue,
     InventoryItemType,
     InventoryMovementResourceType,
     Location1,
@@ -571,11 +572,11 @@ class CreateVariantRequest(KatanaPydanticBase):
         extra="forbid",
     )
     sku: Annotated[
-        str,
+        str | None,
         Field(
             description="Stock keeping unit code for unique identification of this product variant"
         ),
-    ]
+    ] = None
     sales_price: Annotated[
         float | None,
         Field(
@@ -679,20 +680,6 @@ class UpdateVariantRequest(KatanaPydanticBase):
             description="Default purchase cost per unit for this product variant",
             ge=0.0,
             le=100000000000.0,
-        ),
-    ] = None
-    product_id: Annotated[
-        int | None,
-        Field(
-            description="Reference to the parent product when this is a product variant",
-            le=2147483647,
-        ),
-    ] = None
-    material_id: Annotated[
-        int | None,
-        Field(
-            description="Reference to the parent material when this is a material variant",
-            le=2147483647,
         ),
     ] = None
     supplier_item_codes: Annotated[
@@ -814,63 +801,6 @@ class CreateServiceVariantRequest(KatanaPydanticBase):
     ] = None
 
 
-class UpdateServiceRequest(KatanaPydanticBase):
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    name: Annotated[str | None, Field(description="The service's unique name")] = None
-    uom: Annotated[
-        str | None,
-        Field(
-            description="The unit used to measure the quantity of the service (e.g. pcs, hours)",
-            max_length=7,
-        ),
-    ] = None
-    category_name: Annotated[
-        str | None,
-        Field(
-            description="A string used to group similar items for better organization and analysis"
-        ),
-    ] = None
-    additional_info: Annotated[
-        str | None,
-        Field(
-            description="A string attached to the object to add any internal comments, links to external files, additional\ninstructions, etc.\n"
-        ),
-    ] = None
-    is_sellable: Annotated[
-        bool | None,
-        Field(description="Sellable services can be added to Quotes and Sales orders"),
-    ] = None
-    is_archived: Annotated[
-        bool | None, Field(description="Whether the service is archived or not")
-    ] = None
-    sales_price: Annotated[
-        float | None,
-        Field(
-            description="Default sales price (excluding tax)", ge=0.0, le=100000000000.0
-        ),
-    ] = None
-    default_cost: Annotated[
-        float | None,
-        Field(
-            description="Default cost which is used to calculate profit",
-            ge=0.0,
-            le=100000000000.0,
-        ),
-    ] = None
-    sku: Annotated[
-        str | None, Field(description="A unique service code for the primary variant")
-    ] = None
-    custom_field_collection_id: Annotated[
-        int | None,
-        Field(
-            description="ID of the custom field collection to associate with this service",
-            le=2147483647,
-        ),
-    ] = None
-
-
 class CreateInventoryReorderPointRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
@@ -980,7 +910,12 @@ class UpdateProductOperationRowRequest(KatanaPydanticBase):
     operation_name: Annotated[
         str | None, Field(description="Name of the operation")
     ] = None
-    type: Annotated[str | None, Field(description="Type of operation")] = None
+    type: Annotated[
+        ProductOperationType | None,
+        Field(
+            description="Type of operation defining how time and cost are calculated"
+        ),
+    ] = None
     resource_id: Annotated[
         int | None, Field(description="ID of the resource performing the operation")
     ] = None
@@ -1155,21 +1090,6 @@ class CreateProductRequest(KatanaPydanticBase):
             le=1000000000000.0,
         ),
     ] = None
-    lead_time: Annotated[
-        int | None,
-        Field(
-            description="Expected lead time in days for procurement or production",
-            le=999,
-        ),
-    ] = None
-    minimum_order_quantity: Annotated[
-        float | None,
-        Field(
-            description="Minimum quantity that must be ordered from suppliers",
-            ge=0.0,
-            le=999999999.0,
-        ),
-    ] = None
     configs: Annotated[
         list[Config1] | None,
         Field(
@@ -1236,6 +1156,70 @@ class CreateServiceRequest(KatanaPydanticBase):
             min_length=1,
         ),
     ]
+
+
+class UpdateServiceRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    name: Annotated[str | None, Field(description="The service's unique name")] = None
+    uom: Annotated[
+        str | None,
+        Field(
+            description="The unit used to measure the quantity of the service (e.g. pcs, hours)",
+            max_length=7,
+        ),
+    ] = None
+    category_name: Annotated[
+        str | None,
+        Field(
+            description="A string used to group similar items for better organization and analysis"
+        ),
+    ] = None
+    additional_info: Annotated[
+        str | None,
+        Field(
+            description="A string attached to the object to add any internal comments, links to external files, additional\ninstructions, etc.\n"
+        ),
+    ] = None
+    is_sellable: Annotated[
+        bool | None,
+        Field(description="Sellable services can be added to Quotes and Sales orders"),
+    ] = None
+    is_archived: Annotated[
+        bool | None, Field(description="Whether the service is archived or not")
+    ] = None
+    sales_price: Annotated[
+        float | None,
+        Field(
+            description="Default sales price (excluding tax)", ge=0.0, le=100000000000.0
+        ),
+    ] = None
+    default_cost: Annotated[
+        float | None,
+        Field(
+            description="Default cost which is used to calculate profit",
+            ge=0.0,
+            le=100000000000.0,
+        ),
+    ] = None
+    sku: Annotated[
+        str | None, Field(description="A unique service code for the primary variant")
+    ] = None
+    custom_field_collection_id: Annotated[
+        int | None,
+        Field(
+            description="ID of the custom field collection to associate with this service",
+            le=2147483647,
+        ),
+    ] = None
+    custom_fields: Annotated[
+        list[CustomFieldValue] | None,
+        Field(
+            description="Custom field values to attach to the service. Field names must\nmatch those configured for the ``service`` resource type (see\n``GET /custom_fields_collections``).\n",
+            max_length=3,
+        ),
+    ] = None
 
 
 class InventoryItem(ArchivableEntity):

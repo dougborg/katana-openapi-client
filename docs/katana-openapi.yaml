@@ -1348,6 +1348,7 @@ components:
         - NOT_STARTED
         - BLOCKED
         - IN_PROGRESS
+        - PARTIALLY_COMPLETED
         - DONE
       description: Production status of a manufacturing order
 
@@ -1386,7 +1387,7 @@ components:
       type: string
       enum:
         - NOT_REFUNDED
-        - REFUNDED_ALL
+        - REFUNDED
         - PARTIALLY_REFUNDED
       description: Refund status of a sales return
 
@@ -1460,7 +1461,22 @@ components:
         - IN_PROGRESS
         - PAUSED
         - COMPLETED
-      description: Status of a manufacturing order operation
+      description: Status of a manufacturing order operation row
+    ManufacturingOperationType:
+      type: string
+      enum:
+        - process
+        - setup
+        - perUnit
+        - fixed
+      description: Type of operation defining how time and cost are calculated
+    PriceAdjustmentMethod:
+      type: string
+      enum:
+        - fixed
+        - markup
+        - percentage
+      description: Pricing adjustment method for price list rows
 
     PurchaseOrderStatus:
       type: string
@@ -1550,11 +1566,13 @@ components:
     StockTransferStatus:
       type: string
       enum:
-        - pending
-        - in_transit
-        - completed
-        - cancelled
-      description: Status of a stock transfer
+        - draft
+        - received
+        - inTransit
+      description: |
+        Status of a stock transfer. Values match the live API at
+        ``PATCH /stock_transfers/{id}/status`` (verified 2026-04-28). Note
+        the camelCase ``inTransit``.
 
     InventoryMovementResourceType:
       type: string
@@ -1587,12 +1605,15 @@ components:
       type: string
       enum:
         - ManufacturingOrder
-        - Production
         - StockAdjustmentRow
         - StockTransferRow
         - PurchaseOrderRow
         - SalesOrderRow
-      description: Allowed resource types when creating serial numbers
+      description: |
+        Allowed resource types when creating serial numbers via
+        ``POST /serial_numbers``. Note: ``Production`` is valid when
+        *retrieving* serial numbers (see ``SerialNumberResourceType``) but
+        is not accepted as input here — the API rejects it with 422.
 
     CustomFieldCollectionResourceType:
       type: string
@@ -2026,18 +2047,16 @@ components:
         deleted_at: null
     StorageBinUpdate:
       type: object
-      description: Storage bin fields for update operations (all optional for PATCH)
+      description: Storage bin fields for update operations
       additionalProperties: false
+      required:
+        - bin_name
       properties:
         bin_name:
           type: string
           description: Name of the storage bin
-        location_id:
-          type: integer
-          description: Unique identifier of the location where storage bin is located
       example:
         bin_name: A-01-SHELF-2
-        location_id: 2
     StorageBinListResponse:
       type: object
       description: List of storage bin records showing all warehouse storage locations and their organization structure
@@ -2051,6 +2070,7 @@ components:
         data:
           - id: 12345
             name: Bin-2
+            bin_name: Bin-2
             location_id: 12346
             created_at: "2020-10-23T10:37:05.085Z"
             updated_at: "2020-10-23T10:37:05.085Z"
@@ -2610,10 +2630,16 @@ components:
         - variant_id
         - planned_quantity
         - location_id
+        - order_no
       properties:
         status:
-          description: Initial production status of the manufacturing order
-          $ref: "#/components/schemas/ManufacturingOrderStatus"
+          type: string
+          enum:
+            - NOT_STARTED
+          description: |
+            Initial production status of the manufacturing order. The live API
+            only accepts NOT_STARTED on create; further transitions go through
+            PATCH /manufacturing_orders/{id}.
         order_no:
           type: string
           description: Custom manufacturing order number for tracking and reference
@@ -2649,6 +2675,7 @@ components:
         variant_id: 2101
         planned_quantity: 50
         location_id: 1
+        order_no: MO-2024-001
         order_created_date: "2024-01-15T08:00:00Z"
         production_deadline_date: "2024-01-25T17:00:00Z"
         additional_info: Priority order for new product launch
@@ -2861,7 +2888,6 @@ components:
       required:
         - manufacturing_order_id
         - completed_quantity
-        - completed_date
       properties:
         manufacturing_order_id:
           type: integer
@@ -2876,6 +2902,9 @@ components:
         is_final:
           type: boolean
           description: Whether this is the final production run that completes the manufacturing order
+        batch_transaction:
+          description: Batch transaction allocation for this production run
+          $ref: "#/components/schemas/BatchTransaction"
         ingredients:
           type: array
           description: Ingredients consumed during this production run
@@ -3229,7 +3258,7 @@ components:
       type: object
       required:
         - manufacturing_order_id
-        - operation_id
+        - status
       properties:
         manufacturing_order_id:
           type: integer
@@ -3238,8 +3267,8 @@ components:
           type: integer
           description: ID of the operation being performed
         type:
-          type: string
-          description: Type of operation (e.g., manual, automatic)
+          description: Type of operation defining how time and cost are calculated
+          $ref: "#/components/schemas/ManufacturingOperationType"
         operation_name:
           type: string
           description: Name of the operation
@@ -3263,7 +3292,11 @@ components:
           description: Hourly cost rate for this operation
         status:
           type: string
-          description: Current status of the operation
+          enum:
+            - NOT_STARTED
+          description: |
+            Initial status of the operation row. Live API only accepts
+            NOT_STARTED on create; transitions go through PATCH.
         assigned_operators:
           type: array
           description: Operators assigned to perform this operation
@@ -3272,7 +3305,7 @@ components:
       example:
         manufacturing_order_id: 1001
         operation_id: 201
-        type: manual
+        type: process
         operation_name: Assembly
         resource_id: 501
         resource_name: Workstation A
@@ -3285,15 +3318,12 @@ components:
       description: Request payload for updating a manufacturing order operation row with actual completion data
       type: object
       properties:
-        manufacturing_order_id:
-          type: integer
-          description: ID of the manufacturing order this operation belongs to
         operation_id:
           type: integer
           description: ID of the operation being performed
         type:
-          type: string
-          description: Type of operation (e.g., manual, automatic)
+          description: Type of operation defining how time and cost are calculated
+          $ref: "#/components/schemas/ManufacturingOperationType"
         operation_name:
           type: string
           description: Name of the operation
@@ -3319,8 +3349,8 @@ components:
           type: number
           description: Hourly cost rate for this operation
         status:
-          type: string
           description: Current status of the operation
+          $ref: "#/components/schemas/ManufacturingOperationStatus"
         assigned_operators:
           type: array
           description: Operators assigned to perform this operation
@@ -3334,7 +3364,7 @@ components:
       example:
         operation_name: Assembly
         total_actual_time: 52.3
-        status: DONE
+        status: COMPLETED
         completed_by_operators:
           - id: 101
             operator_name: John Smith
@@ -4288,17 +4318,6 @@ components:
           description: |-
             The conversion rate between the purchase and product UoMs. If used, product must have a purchase_uom
             that is different from uom.
-        lead_time:
-          type:
-            - integer
-            - "null"
-          maximum: 999
-          description: Expected lead time in days for procurement or production
-        minimum_order_quantity:
-          type: number
-          maximum: 999999999
-          minimum: 0
-          description: Minimum quantity that must be ordered from suppliers
         configs:
           type: array
           minItems: 1
@@ -4342,8 +4361,6 @@ components:
         batch_tracked: false
         serial_tracked: true
         operations_in_sequence: true
-        lead_time: 14
-        minimum_order_quantity: 1
         configs:
           - name: Piece Count
             values:
@@ -5449,10 +5466,19 @@ components:
           type: integer
           maximum: 2147483647
           description: Tax rate identifier to apply to this line item
-        group_id:
-          type: integer
-          maximum: 2147483647
-          description: Group identifier for organizing related line items
+        tax_name:
+          type: string
+          description: Tax label snapshot to record on this line item
+        tax_rate:
+          type: string
+          description: |
+            Tax rate percentage snapshot to record on this line item. Sent
+            as a string to preserve exact decimal precision (Katana's wire
+            format).
+        currency:
+          type: string
+          pattern: ^[A-Z]{3}$
+          description: ISO 4217 currency code for the line price (overrides PO currency)
         price_per_unit:
           type: number
           minimum: 0
@@ -5476,7 +5502,6 @@ components:
         quantity: 50
         variant_id: 503
         tax_rate_id: 1
-        group_id: 1
         price_per_unit: 8.75
         purchase_uom_conversion_rate: 1.0
         purchase_uom: pieces
@@ -5498,10 +5523,15 @@ components:
           type: integer
           maximum: 2147483647
           description: Updatable only when received_date is null
-        group_id:
-          type: integer
-          maximum: 2147483647
-          description: Updatable only when received_date is null
+        tax_name:
+          type: string
+          description: Tax label snapshot to record on this line item
+        tax_rate:
+          type: string
+          description: |
+            Tax rate percentage snapshot to record on this line item. Sent
+            as a string to preserve exact decimal precision (Katana's wire
+            format).
         price_per_unit:
           type: number
           minimum: 0
@@ -5866,7 +5896,6 @@ components:
       additionalProperties: false
       required:
         - supplier_id
-        - line_1
       properties:
         supplier_id:
           type: integer
@@ -6038,8 +6067,6 @@ components:
         Request payload for creating a new product or material variant with specific SKU and configuration attributes
       type: object
       additionalProperties: false
-      required:
-        - sku
       properties:
         sku:
           type: string
@@ -6275,7 +6302,9 @@ components:
         deleted_at: null
     UpdateVariantRequest:
       description: |
-        Request payload for updating product variant details including pricing, configuration, and inventory information
+        Request payload for updating product variant details including pricing, configuration, and inventory information.
+        Note: ``product_id`` and ``material_id`` are not present here — a variant's parent
+        is set at create time and cannot be reassigned via PATCH.
       type: object
       additionalProperties: false
       properties:
@@ -6292,18 +6321,6 @@ components:
           minimum: 0
           description: Default purchase cost per unit for this product variant
           maximum: 100000000000
-        product_id:
-          type:
-            - integer
-            - "null"
-          maximum: 2147483647
-          description: Reference to the parent product when this is a product variant
-        material_id:
-          type:
-            - integer
-            - "null"
-          maximum: 2147483647
-          description: Reference to the parent material when this is a material variant
         supplier_item_codes:
           type: array
           description: Supplier-specific codes for ordering this variant
@@ -6357,8 +6374,6 @@ components:
         sku: KNF-PRO-8PC-UPD
         sales_price: 319.99
         purchase_price: 160.0
-        product_id: 101
-        material_id: null
         supplier_item_codes:
           - SUP-KNF-8PC-002
         internal_barcode: INT-KNF-002
@@ -6648,6 +6663,9 @@ components:
           type: string
           pattern: ^https://.*$
           description: HTTPS endpoint URL where webhook events will be sent (must use HTTPS for security)
+        enabled:
+          type: boolean
+          description: Whether this webhook subscription should be active immediately on creation (defaults to true)
         subscribed_events:
           type: array
           minItems: 1
@@ -6659,6 +6677,7 @@ components:
           description: Optional human-readable description of this webhook's purpose for management and documentation
       example:
         url: https://api.customer.com/webhooks/katana
+        enabled: true
         subscribed_events:
           - sales_order.created
           - sales_order.delivered
@@ -6669,9 +6688,6 @@ components:
       type: object
       description: Request payload for updating an existing webhook subscription configuration
       additionalProperties: false
-      required:
-        - url
-        - subscribed_events
       properties:
         url:
           type: string
@@ -7143,6 +7159,15 @@ components:
             - "null"
           maximum: 2147483647
           description: ID of the custom field collection to associate with this service
+        custom_fields:
+          type: array
+          maxItems: 3
+          description: |
+            Custom field values to attach to the service. Field names must
+            match those configured for the ``service`` resource type (see
+            ``GET /custom_fields_collections``).
+          items:
+            $ref: "#/components/schemas/CustomFieldValue"
       example:
         name: Updated Assembly Service
         uom: hours
@@ -8257,9 +8282,6 @@ components:
       required:
         - sales_order_id
         - entity_type
-        - line_1
-        - city
-        - country
       properties:
         sales_order_id:
           type: integer
@@ -8510,6 +8532,15 @@ components:
             - string
             - "null"
           description: Original order ID from the ecommerce platform
+        custom_fields:
+          type: array
+          maxItems: 3
+          description: |
+            Custom field values to attach to the sales order. Field names
+            must match those configured for the ``sales_order`` resource
+            type (see ``GET /custom_fields_collections``).
+          items:
+            $ref: "#/components/schemas/CustomFieldValue"
       required:
         - order_no
         - customer_id
@@ -8726,6 +8757,7 @@ components:
       additionalProperties: false
       required:
         - location_id
+        - stock_adjustment_number
         - stock_adjustment_rows
       properties:
         stock_adjustment_number:
@@ -9193,19 +9225,25 @@ components:
       type: object
       additionalProperties: false
       properties:
+        variant_id:
+          type: integer
+          description: ID of the product variant being priced
         adjustment_method:
-          type: string
           description: Method for price adjustment
+          $ref: "#/components/schemas/PriceAdjustmentMethod"
         amount:
           type: number
           description: Adjustment amount
       example:
+        variant_id: 67890
         adjustment_method: fixed
         amount: 259.99
     UpdatePriceListCustomerRequest:
       description: Request payload for updating an existing price list customer assignment
       type: object
       additionalProperties: false
+      required:
+        - customer_id
       properties:
         customer_id:
           type: integer
@@ -9821,6 +9859,28 @@ components:
             required: false
         created_at: "2024-01-08T10:00:00Z"
         updated_at: "2024-01-12T15:30:00Z"
+    CustomFieldValue:
+      description: |
+        A single custom field value attached to a resource (e.g., a sales
+        order, service, product). Custom fields are configured via
+        ``GET /custom_fields_collections``; each value pairs the field's
+        configured name with the value to set.
+      type: object
+      additionalProperties: false
+      required:
+        - field_name
+        - field_value
+      properties:
+        field_name:
+          type: string
+          maxLength: 40
+          description: Name of the custom field (matches a configured field's ``name``)
+        field_value:
+          type: string
+          description: Value to set for this custom field
+      example:
+        field_name: quality_grade
+        field_value: A
     CustomField:
       description: Individual custom field definition with validation rules and configuration options
       type: object
@@ -9909,6 +9969,170 @@ components:
                   - COD
             created_at: "2024-01-10T11:00:00Z"
             updated_at: "2024-01-14T09:15:00Z"
+    CustomFieldDefinition:
+      description: |
+        A configured custom field definition that callers can attach to a
+        resource (sales order, service, product, etc.) via the resource's
+        ``custom_fields`` property. Definitions are scoped to a specific
+        ``entity_type`` and shape what values consumers can store.
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+              description: Unique identifier for the custom field definition
+            label:
+              type: string
+              maxLength: 255
+              description: Display label shown in the Katana UI
+            field_type:
+              type: string
+              maxLength: 50
+              description: |
+                Field input type (e.g. ``text``, ``number``, ``date``,
+                ``select``). Drives how Katana renders and validates the
+                field's values.
+            entity_type:
+              type: string
+              maxLength: 50
+              description: |
+                Resource type the definition applies to (matches the
+                resource's ``custom_fields`` API field — e.g.
+                ``sales_order``, ``service``, ``product``).
+            source:
+              type: string
+              maxLength: 255
+              description: Origin / namespace of the definition (e.g. ``katana``, ``user``).
+            description:
+              type:
+                - string
+                - "null"
+              description: Optional long-form description of the field's purpose
+            options:
+              type:
+                - object
+                - "null"
+              additionalProperties: true
+              description: |
+                Free-form configuration object — shape varies per
+                ``field_type`` (e.g., select fields carry the option list
+                here).
+          required:
+            - id
+            - label
+            - field_type
+            - entity_type
+            - source
+        - $ref: "#/components/schemas/UpdatableEntity"
+      example:
+        id: 42
+        label: Quality Grade
+        field_type: select
+        entity_type: product
+        source: user
+        description: Customer-facing quality classification
+        options:
+          values:
+            - A
+            - B
+            - C
+        created_at: "2024-01-08T10:00:00Z"
+        updated_at: "2024-01-12T15:30:00Z"
+    CreateCustomFieldDefinitionRequest:
+      description: Request payload for creating a new custom field definition.
+      type: object
+      additionalProperties: false
+      required:
+        - label
+        - field_type
+        - entity_type
+        - source
+      properties:
+        label:
+          type: string
+          maxLength: 255
+          description: Display label shown in the Katana UI
+        field_type:
+          type: string
+          maxLength: 50
+          description: Field input type (text, number, date, select, etc.)
+        entity_type:
+          type: string
+          maxLength: 50
+          description: Resource type the definition applies to
+        source:
+          type: string
+          maxLength: 255
+          description: Origin / namespace of the definition
+        description:
+          type:
+            - string
+            - "null"
+          description: Optional long-form description
+        options:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: Free-form configuration object — shape varies per ``field_type``
+      example:
+        label: Quality Grade
+        field_type: select
+        entity_type: product
+        source: user
+        description: Customer-facing quality classification
+        options:
+          values:
+            - A
+            - B
+            - C
+    UpdateCustomFieldDefinitionRequest:
+      description: Request payload for updating an existing custom field definition.
+      type: object
+      additionalProperties: false
+      properties:
+        label:
+          type: string
+          maxLength: 255
+          description: Updated display label
+        description:
+          type:
+            - string
+            - "null"
+          description: Updated long-form description
+        options:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: Updated configuration object
+      example:
+        label: Quality Grade (revised)
+        description: Updated customer-facing quality classification
+    CustomFieldDefinitionListResponse:
+      description: List of custom field definitions
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of custom field definitions
+          items:
+            $ref: "#/components/schemas/CustomFieldDefinition"
+      example:
+        data:
+          - id: 42
+            label: Quality Grade
+            field_type: select
+            entity_type: product
+            source: user
+            description: Customer-facing quality classification
+            options:
+              values:
+                - A
+                - B
+                - C
+            created_at: "2024-01-08T10:00:00Z"
+            updated_at: "2024-01-12T15:30:00Z"
     Stocktake:
       description: Physical inventory count process for reconciling actual stock levels with system records
       allOf:
@@ -10160,7 +10384,7 @@ components:
         return_date: "2023-10-15T14:30:00Z"
         order_created_date: "2023-10-10T10:00:00Z"
         additional_info: Customer reported damaged items during shipping
-        refund_status: PROCESSED
+        refund_status: REFUNDED
         sales_return_rows:
           - id: 3501
             sales_return_id: 3001
@@ -10199,6 +10423,26 @@ components:
         additional_info:
           type: string
           description: Optional notes or comments about the return
+        tracking_number:
+          type:
+            - string
+            - "null"
+          description: Tracking number for the return shipment
+        tracking_number_url:
+          type:
+            - string
+            - "null"
+          description: URL to track the return shipment
+        tracking_carrier:
+          type:
+            - string
+            - "null"
+          description: Carrier used for the return shipment
+        tracking_method:
+          type:
+            - string
+            - "null"
+          description: Shipping method used for the return
       example:
         sales_order_id: 2001
         order_created_date: "2023-10-10T10:00:00Z"
@@ -10232,6 +10476,26 @@ components:
             - string
             - "null"
           description: Additional information about the return. Updatable only when current return status is not restockedAll.
+        tracking_number:
+          type:
+            - string
+            - "null"
+          description: Tracking number for the return shipment
+        tracking_number_url:
+          type:
+            - string
+            - "null"
+          description: URL to track the return shipment
+        tracking_carrier:
+          type:
+            - string
+            - "null"
+          description: Carrier used for the return shipment
+        tracking_method:
+          type:
+            - string
+            - "null"
+          description: Shipping method used for the return
       example:
         status: RETURNED_ALL
         return_date: "2023-10-12T10:00:00Z"
@@ -10814,7 +11078,6 @@ components:
       additionalProperties: false
       required:
         - stocktake_id
-        - stocktake_rows
       properties:
         stocktake_id:
           type: integer
@@ -10906,7 +11169,7 @@ components:
             return_date: "2023-10-15T14:30:00Z"
             order_created_date: "2023-10-10T10:00:00Z"
             additional_info: Customer reported damaged items
-            refund_status: PROCESSED
+            refund_status: REFUNDED
     SalesReturnRowListResponse:
       description: Response containing a list of sales return row items with product return details and quantities
       type: object
@@ -11205,8 +11468,10 @@ components:
           type: integer
           description: ID of the sales order to add shipping fee to
         amount:
-          type: number
-          description: Shipping fee amount in the order currency
+          type: string
+          description: |
+            Shipping fee amount in the order currency. Sent as a string to
+            preserve exact decimal precision (Katana's wire format).
         description:
           type: string
           description: Description of the shipping service or fee type
@@ -11215,7 +11480,7 @@ components:
           description: ID of the tax rate to apply to the shipping fee
       example:
         sales_order_id: 2001
-        amount: 25.99
+        amount: "25.99"
         description: |-
           Express Shipping - Next Day Delivery
         tax_rate_id: 301
@@ -11464,8 +11729,8 @@ components:
           type: string
           description: Name of the operation
         type:
-          type: string
-          description: Type of operation
+          description: Type of operation defining how time and cost are calculated
+          $ref: "#/components/schemas/ManufacturingOperationType"
         resource_id:
           type: integer
           description: ID of the resource performing the operation
@@ -11515,6 +11780,8 @@ components:
       additionalProperties: false
       required:
         - sales_order_id
+        - status
+        - sales_order_fulfillment_rows
       properties:
         sales_order_id:
           type: integer
@@ -11524,8 +11791,8 @@ components:
           format: date-time
           description: Date when items were picked
         status:
-          type: string
           description: Fulfillment status
+          $ref: "#/components/schemas/SalesOrderFulfillmentStatus"
         conversion_rate:
           type: number
           description: Currency conversion rate
@@ -11560,13 +11827,13 @@ components:
           format: date-time
           description: Date when items were picked
         status:
-          type: string
           description: Fulfillment status
+          $ref: "#/components/schemas/SalesOrderFulfillmentStatus"
         conversion_rate:
           type: number
           description: Currency conversion rate
         packer_id:
-          type: number
+          type: integer
           description: ID of the packer who packed the order
         conversion_date:
           type: string
@@ -11588,16 +11855,39 @@ components:
       description: Request payload for updating a sales order shipping fee
       type: object
       additionalProperties: false
+      required:
+        - amount
       properties:
         description:
           type: string
           description: Shipping fee description
         amount:
-          type: integer
-          description: Shipping fee amount
+          type: string
+          description: |
+            Shipping fee amount. Sent as a string to preserve exact decimal
+            precision (Katana's wire format).
         tax_rate_id:
           type: integer
           description: ID of the tax rate to apply to the shipping fee
+    SalesOrderSearchRequest:
+      description: |
+        Request payload for searching sales orders with arbitrary filter
+        criteria. The ``filter`` object accepts free-form key-value pairs
+        — supported keys are documented in the Katana API reference
+        (matches POST /sales_orders/search behaviour).
+      type: object
+      additionalProperties: false
+      properties:
+        filter:
+          type: object
+          additionalProperties: true
+          description: |
+            Free-form filter criteria. Keys map to sales-order fields the
+            API supports searching on.
+      example:
+        filter:
+          customer_id: 1501
+          status: PACKED
     UpdateSalesOrderRequest:
       description: Request payload for updating a sales order
       type: object
@@ -11670,6 +11960,15 @@ components:
             - "null"
           description: URL link to track the shipment on carrier website
           maxLength: 2048
+        custom_fields:
+          type: array
+          maxItems: 3
+          description: |
+            Custom field values to attach to the sales order. Field names
+            must match those configured for the ``sales_order`` resource
+            type (see ``GET /custom_fields_collections``).
+          items:
+            $ref: "#/components/schemas/CustomFieldValue"
     UpdateSalesReturnRowRequest:
       description: Request payload for updating a sales return row
       type: object
@@ -11695,9 +11994,7 @@ components:
       type: object
       additionalProperties: false
       required:
-        - resource_type
         - resource_id
-        - serial_numbers
       properties:
         resource_type:
           description: Resource type
@@ -11710,6 +12007,36 @@ components:
           description: List of serial numbers to create
           items:
             type: string
+    DeleteSerialNumbersRequest:
+      description: |
+        Request payload for deleting serial numbers from a resource. The
+        delete is scoped to a single resource (``resource_type`` +
+        ``resource_id``) and a list of serial-number IDs.
+      type: object
+      additionalProperties: false
+      required:
+        - resource_type
+        - resource_id
+        - ids
+      properties:
+        resource_type:
+          description: Resource type the serial numbers belong to
+          $ref: "#/components/schemas/SerialNumberResourceType"
+        resource_id:
+          type: integer
+          description: Resource ID the serial numbers belong to
+        ids:
+          type: array
+          minItems: 1
+          description: Serial number IDs to delete
+          items:
+            type: integer
+      example:
+        resource_type: ManufacturingOrder
+        resource_id: 3001
+        ids:
+          - 1001
+          - 1002
     StockTransferRowRequest:
       description: A stock transfer row item specifying which variant and quantity to transfer
       type: object
@@ -11727,6 +12054,8 @@ components:
       required:
         - source_location_id
         - target_location_id
+        - stock_transfer_number
+        - stock_transfer_rows
       properties:
         stock_transfer_number:
           type: string
@@ -11784,8 +12113,6 @@ components:
       description: Request payload for updating a stock transfer status
       type: object
       additionalProperties: false
-      required:
-        - status
       properties:
         status:
           description: New status for the stock transfer
@@ -16598,17 +16925,11 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateSalesReturnRequest"
             example:
-              customer_id: 12345
               sales_order_id: 67890
-              order_no: RET-001
               return_location_id: 1
-              currency: USD
+              order_no: RET-001
+              order_created_date: "2023-10-10T10:00:00Z"
               additional_info: Items damaged during shipping
-              sales_return_rows:
-                - variant_id: 11111
-                  quantity: 2
-                  return_reason_id: 1
-                  notes: Defective items
       responses:
         "200":
           description: Sales return created successfully
@@ -17587,6 +17908,47 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "404":
           $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /sales_orders/search:
+    post:
+      summary: Search sales orders
+      tags:
+        - Sales order
+      description: |
+        Searches sales orders using arbitrary filter criteria. Returns the
+        same shape as ``GET /sales_orders`` — paginated list of
+        ``SalesOrder`` records.
+      operationId: searchSalesOrders
+      requestBody:
+        description: Search filter criteria
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SalesOrderSearchRequest"
+      responses:
+        "200":
+          description: Matching sales orders
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesOrderListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
@@ -18973,11 +19335,6 @@ paths:
               $ref: "#/components/schemas/CreatePriceListRequest"
             example:
               name: VIP Customer Pricing
-              currency: USD
-              is_default: false
-              markup_percentage: 15.0
-              start_date: "2023-01-01T00:00:00.000Z"
-              end_date: "2023-12-31T23:59:59.999Z"
       responses:
         "200":
           description: Price list created successfully
@@ -19166,9 +19523,10 @@ paths:
               $ref: "#/components/schemas/CreatePriceListRowRequest"
             example:
               price_list_id: 12345
-              variant_id: 67890
-              price: 29.99
-              currency: USD
+              price_list_rows:
+                - variant_id: 67890
+                  adjustment_method: fixed
+                  amount: 29.99
       responses:
         "200":
           description: Price list row created successfully
@@ -19356,7 +19714,8 @@ paths:
               $ref: "#/components/schemas/CreatePriceListCustomerRequest"
             example:
               price_list_id: 12345
-              customer_id: 67890
+              price_list_customers:
+                - customer_id: 67890
       responses:
         "200":
           description: Price list customer assignment created successfully
@@ -20039,6 +20398,13 @@ paths:
         - Serial number
       description: Deletes serial numbers for a resource.
       operationId: deleteSerialNumbers
+      requestBody:
+        description: Serial number deletion details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteSerialNumbersRequest"
       responses:
         "204":
           description: Serial numbers deleted successfully
@@ -20055,6 +20421,8 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "404":
           $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
@@ -20203,6 +20571,197 @@ paths:
                 $ref: "#/components/schemas/CustomFieldsCollectionListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /custom_field_definitions:
+    get:
+      summary: List custom field definitions
+      tags:
+        - Custom fields
+      description: |
+        Returns a paginated list of custom field definitions. Each definition
+        configures a custom field that callers can attach to a resource (sales
+        order, service, product, etc.) via the resource's ``custom_fields``
+        property.
+      operationId: getAllCustomFieldDefinitions
+      parameters:
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/created_at_min"
+        - $ref: "#/components/parameters/created_at_max"
+        - $ref: "#/components/parameters/updated_at_min"
+        - $ref: "#/components/parameters/updated_at_max"
+        - name: label
+          in: query
+          required: false
+          description: Filters definitions by their display label
+          schema:
+            type: string
+        - name: field_type
+          in: query
+          required: false
+          description: Filters definitions by their field_type
+          schema:
+            type: string
+        - name: entity_type
+          in: query
+          required: false
+          description: Filters definitions by the resource entity_type they target
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of custom field definitions
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomFieldDefinitionListResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      summary: Create a custom field definition
+      tags:
+        - Custom fields
+      description: Creates a new custom field definition.
+      operationId: createCustomFieldDefinition
+      requestBody:
+        description: Custom field definition details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCustomFieldDefinitionRequest"
+      responses:
+        "200":
+          description: Custom field definition created successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomFieldDefinition"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /custom_field_definitions/{id}:
+    get:
+      summary: Retrieve a custom field definition
+      tags:
+        - Custom fields
+      description: Retrieves a single custom field definition by ID.
+      operationId: getCustomFieldDefinition
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Custom field definition retrieved successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomFieldDefinition"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    patch:
+      summary: Update a custom field definition
+      tags:
+        - Custom fields
+      description: Updates an existing custom field definition.
+      operationId: updateCustomFieldDefinition
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        description: Custom field definition update details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCustomFieldDefinitionRequest"
+      responses:
+        "200":
+          description: Custom field definition updated successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomFieldDefinition"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      summary: Delete a custom field definition
+      tags:
+        - Custom fields
+      description: Deletes an existing custom field definition.
+      operationId: deleteCustomFieldDefinition
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "204":
+          description: Custom field definition deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
@@ -20690,7 +21249,7 @@ paths:
               $ref: "#/components/schemas/CreateSalesOrderShippingFeeRequest"
             example:
               sales_order_id: 12345
-              amount: 15.99
+              amount: "15.99"
               description: Standard shipping
       responses:
         "200":

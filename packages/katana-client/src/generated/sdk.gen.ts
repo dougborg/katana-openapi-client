@@ -21,6 +21,9 @@ import type {
   CreateCustomerData,
   CreateCustomerErrors,
   CreateCustomerResponses,
+  CreateCustomFieldDefinitionData,
+  CreateCustomFieldDefinitionErrors,
+  CreateCustomFieldDefinitionResponses,
   CreateDemandForecastData,
   CreateDemandForecastErrors,
   CreateDemandForecastResponses,
@@ -138,6 +141,9 @@ import type {
   DeleteCustomerData,
   DeleteCustomerErrors,
   DeleteCustomerResponses,
+  DeleteCustomFieldDefinitionData,
+  DeleteCustomFieldDefinitionErrors,
+  DeleteCustomFieldDefinitionResponses,
   DeleteManufacturingOrderData,
   DeleteManufacturingOrderErrors,
   DeleteManufacturingOrderOperationRowData,
@@ -180,6 +186,9 @@ import type {
   DeletePurchaseOrderRowData,
   DeletePurchaseOrderRowErrors,
   DeletePurchaseOrderRowResponses,
+  DeleteRecipeData,
+  DeleteRecipeErrors,
+  DeleteRecipeResponses,
   DeleteRecipeRowData,
   DeleteRecipeRowErrors,
   DeleteRecipeRowResponses,
@@ -255,6 +264,9 @@ import type {
   GetAllCustomersData,
   GetAllCustomersErrors,
   GetAllCustomersResponses,
+  GetAllCustomFieldDefinitionsData,
+  GetAllCustomFieldDefinitionsErrors,
+  GetAllCustomFieldDefinitionsResponses,
   GetAllCustomFieldsCollectionsData,
   GetAllCustomFieldsCollectionsErrors,
   GetAllCustomFieldsCollectionsResponses,
@@ -372,6 +384,9 @@ import type {
   GetBatchStockData,
   GetBatchStockErrors,
   GetBatchStockResponses,
+  GetCustomFieldDefinitionData,
+  GetCustomFieldDefinitionErrors,
+  GetCustomFieldDefinitionResponses,
   GetDemandForecastsData,
   GetDemandForecastsErrors,
   GetDemandForecastsResponses,
@@ -459,12 +474,18 @@ import type {
   GetSalesReturnRowUnassignedBatchTransactionsData,
   GetSalesReturnRowUnassignedBatchTransactionsErrors,
   GetSalesReturnRowUnassignedBatchTransactionsResponses,
+  GetSerialNumbersStockAltData,
+  GetSerialNumbersStockAltErrors,
+  GetSerialNumbersStockAltResponses,
   GetServiceData,
   GetServiceErrors,
   GetServiceResponses,
   GetSupplierAddressesData,
   GetSupplierAddressesErrors,
   GetSupplierAddressesResponses,
+  GetUserInfoData,
+  GetUserInfoErrors,
+  GetUserInfoResponses,
   GetVariantData,
   GetVariantErrors,
   GetVariantResponses,
@@ -483,6 +504,9 @@ import type {
   RerankProductOperationsData,
   RerankProductOperationsErrors,
   RerankProductOperationsResponses,
+  SearchSalesOrdersData,
+  SearchSalesOrdersErrors,
+  SearchSalesOrdersResponses,
   UnlinkManufacturingOrderData,
   UnlinkManufacturingOrderErrors,
   UnlinkManufacturingOrderResponses,
@@ -504,6 +528,9 @@ import type {
   UpdateCustomerData,
   UpdateCustomerErrors,
   UpdateCustomerResponses,
+  UpdateCustomFieldDefinitionData,
+  UpdateCustomFieldDefinitionErrors,
+  UpdateCustomFieldDefinitionResponses,
   UpdateDefaultStorageBinData,
   UpdateDefaultStorageBinErrors,
   UpdateDefaultStorageBinResponses,
@@ -696,7 +723,7 @@ export const updateBatchStock = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: "bearer", type: "http" }],
-    url: "/batch_stocks/{batch_id}",
+    url: "/batch_stocks/{id}",
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -2715,6 +2742,26 @@ export const createRecipes = <ThrowOnError extends boolean = false>(
   });
 
 /**
+ * Delete a recipe
+ *
+ * Deletes all recipe rows for a product by ID. This endpoint is deprecated in favor of BOM rows.
+ *
+ * @deprecated
+ */
+export const deleteRecipe = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteRecipeData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteRecipeResponses,
+    DeleteRecipeErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/recipes/{id}",
+    ...options,
+  });
+
+/**
  * Delete a recipe row
  *
  * Deletes a recipe row. The recipe rows endpoint is deprecated in favor of BOM rows.
@@ -2756,6 +2803,24 @@ export const updateRecipeRow = <ThrowOnError extends boolean = false>(
       "Content-Type": "application/json",
       ...options.headers,
     },
+  });
+
+/**
+ * Get current user info
+ *
+ * Returns information about the currently authenticated user.
+ */
+export const getUserInfo = <ThrowOnError extends boolean = false>(
+  options?: Options<GetUserInfoData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetUserInfoResponses,
+    GetUserInfoErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/user_info",
+    ...options,
   });
 
 /**
@@ -2966,6 +3031,31 @@ export const updateSalesOrder = <ThrowOnError extends boolean = false>(
   >({
     security: [{ scheme: "bearer", type: "http" }],
     url: "/sales_orders/{id}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
+ * Search sales orders
+ *
+ * Searches sales orders using arbitrary filter criteria. Returns the
+ * same shape as ``GET /sales_orders`` — paginated list of
+ * ``SalesOrder`` records.
+ *
+ */
+export const searchSalesOrders = <ThrowOnError extends boolean = false>(
+  options: Options<SearchSalesOrdersData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    SearchSalesOrdersResponses,
+    SearchSalesOrdersErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/sales_orders/search",
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -4254,9 +4344,9 @@ export const updateStocktakeRow = <ThrowOnError extends boolean = false>(
  * Deletes serial numbers for a resource.
  */
 export const deleteSerialNumbers = <ThrowOnError extends boolean = false>(
-  options?: Options<DeleteSerialNumbersData, ThrowOnError>,
+  options: Options<DeleteSerialNumbersData, ThrowOnError>,
 ) =>
-  (options?.client ?? client).delete<
+  (options.client ?? client).delete<
     DeleteSerialNumbersResponses,
     DeleteSerialNumbersErrors,
     ThrowOnError
@@ -4264,6 +4354,10 @@ export const deleteSerialNumbers = <ThrowOnError extends boolean = false>(
     security: [{ scheme: "bearer", type: "http" }],
     url: "/serial_numbers",
     ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
   });
 
 /**
@@ -4304,6 +4398,24 @@ export const createSerialNumbers = <ThrowOnError extends boolean = false>(
       "Content-Type": "application/json",
       ...options.headers,
     },
+  });
+
+/**
+ * List serial number stock (alternate path)
+ *
+ * Returns a list of serial number stock. This is an alternate path for the /serial_numbers_stock endpoint.
+ */
+export const getSerialNumbersStockAlt = <ThrowOnError extends boolean = false>(
+  options?: Options<GetSerialNumbersStockAltData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetSerialNumbersStockAltResponses,
+    GetSerialNumbersStockAltErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/serial_numbers/serial_numbers_stock",
+    ...options,
   });
 
 /**
@@ -4378,6 +4490,116 @@ export const getAllCustomFieldsCollections = <
     security: [{ scheme: "bearer", type: "http" }],
     url: "/custom_fields_collections",
     ...options,
+  });
+
+/**
+ * List custom field definitions
+ *
+ * Returns a paginated list of custom field definitions. Each definition
+ * configures a custom field that callers can attach to a resource (sales
+ * order, service, product, etc.) via the resource's ``custom_fields``
+ * property.
+ *
+ */
+export const getAllCustomFieldDefinitions = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<GetAllCustomFieldDefinitionsData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetAllCustomFieldDefinitionsResponses,
+    GetAllCustomFieldDefinitionsErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/custom_field_definitions",
+    ...options,
+  });
+
+/**
+ * Create a custom field definition
+ *
+ * Creates a new custom field definition.
+ */
+export const createCustomFieldDefinition = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<CreateCustomFieldDefinitionData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateCustomFieldDefinitionResponses,
+    CreateCustomFieldDefinitionErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/custom_field_definitions",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
+ * Delete a custom field definition
+ *
+ * Deletes an existing custom field definition.
+ */
+export const deleteCustomFieldDefinition = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<DeleteCustomFieldDefinitionData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteCustomFieldDefinitionResponses,
+    DeleteCustomFieldDefinitionErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/custom_field_definitions/{id}",
+    ...options,
+  });
+
+/**
+ * Retrieve a custom field definition
+ *
+ * Retrieves a single custom field definition by ID.
+ */
+export const getCustomFieldDefinition = <ThrowOnError extends boolean = false>(
+  options: Options<GetCustomFieldDefinitionData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetCustomFieldDefinitionResponses,
+    GetCustomFieldDefinitionErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/custom_field_definitions/{id}",
+    ...options,
+  });
+
+/**
+ * Update a custom field definition
+ *
+ * Updates an existing custom field definition.
+ */
+export const updateCustomFieldDefinition = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<UpdateCustomFieldDefinitionData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateCustomFieldDefinitionResponses,
+    UpdateCustomFieldDefinitionErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/custom_field_definitions/{id}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
   });
 
 /**

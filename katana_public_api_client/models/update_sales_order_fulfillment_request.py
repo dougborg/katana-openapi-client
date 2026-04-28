@@ -8,6 +8,7 @@ from attrs import define as _attrs_define
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
+from ..models.sales_order_fulfillment_status import SalesOrderFulfillmentStatus
 
 T = TypeVar("T", bound="UpdateSalesOrderFulfillmentRequest")
 
@@ -17,9 +18,9 @@ class UpdateSalesOrderFulfillmentRequest:
     """Request payload for updating a sales order fulfillment"""
 
     picked_date: datetime.datetime | Unset = UNSET
-    status: str | Unset = UNSET
+    status: SalesOrderFulfillmentStatus | Unset = UNSET
     conversion_rate: float | Unset = UNSET
-    packer_id: float | Unset = UNSET
+    packer_id: int | Unset = UNSET
     conversion_date: datetime.datetime | Unset = UNSET
     tracking_number: str | Unset = UNSET
     tracking_url: str | Unset = UNSET
@@ -31,7 +32,9 @@ class UpdateSalesOrderFulfillmentRequest:
         if not isinstance(self.picked_date, Unset):
             picked_date = self.picked_date.isoformat()
 
-        status = self.status
+        status: str | Unset = UNSET
+        if not isinstance(self.status, Unset):
+            status = self.status.value
 
         conversion_rate = self.conversion_rate
 
@@ -83,7 +86,12 @@ class UpdateSalesOrderFulfillmentRequest:
         else:
             picked_date = isoparse(_picked_date)
 
-        status = d.pop("status", UNSET)
+        _status = d.pop("status", UNSET)
+        status: SalesOrderFulfillmentStatus | Unset
+        if isinstance(_status, Unset):
+            status = UNSET
+        else:
+            status = SalesOrderFulfillmentStatus(_status)
 
         conversion_rate = d.pop("conversion_rate", UNSET)
 

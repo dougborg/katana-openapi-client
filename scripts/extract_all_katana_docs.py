@@ -34,6 +34,14 @@ logger = logging.getLogger(__name__)
 
 
 class KatanaDocumentationExtractor:
+    # Canonical, current OpenAPI spec served by the API gateway. Public (no
+    # auth required). This is the authoritative source for paths, schemas,
+    # and enums. Prefer this over the HTML-embedded spec, which is brittle
+    # (extracted from README.io's <script> tags) and historically stale —
+    # see ``docs/audit-2026-04-28.md`` for examples where the HTML-derived
+    # spec disagreed with the live API on enum values.
+    LIVE_OPENAPI_SPEC_URL = "https://api.katanamrp.com/v1/openapi.json"
+
     def __init__(
         self,
         base_url: str = "https://developer.katanamrp.com",
@@ -45,6 +53,10 @@ class KatanaDocumentationExtractor:
         self.failed_urls: list[str] = []
         self.api_endpoints: list[dict[str, str]] = []
         self.openapi_spec: dict[str, Any] | None = None
+        # Tracks where ``self.openapi_spec`` came from. ``"live"`` means the
+        # spec was pulled from ``LIVE_OPENAPI_SPEC_URL`` (authoritative);
+        # ``"html"`` means it was extracted from a README.io page (fallback).
+        self.openapi_spec_source: str | None = None
 
         # Create output directory
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -58,6 +70,49 @@ class KatanaDocumentationExtractor:
             "Connection": "keep-alive",
             "Upgrade-Insecure-Requests": "1",
         }
+
+    async def fetch_live_openapi_spec(
+        self, session: aiohttp.ClientSession
+    ) -> dict[str, Any] | None:
+        """Fetch the authoritative OpenAPI spec from the live API gateway.
+
+        The spec served at ``LIVE_OPENAPI_SPEC_URL`` is what the API actually
+        validates requests against. Use this as the source of truth; fall
+        back to the README.io HTML-embedded spec only if this is unreachable.
+
+        Returns the parsed spec dict or ``None`` on failure.
+        """
+        url = self.LIVE_OPENAPI_SPEC_URL
+        logger.info(f"📥 Fetching live OpenAPI spec: {url}")
+        try:
+            async with session.get(url, headers=self.headers) as response:
+                if response.status != 200:
+                    logger.warning(
+                        f"Live OpenAPI fetch returned HTTP {response.status}; "
+                        f"falling back to HTML extraction"
+                    )
+                    return None
+                text = await response.text()
+                spec = json.loads(text)
+                if not isinstance(spec, dict) or "paths" not in spec:
+                    logger.warning(
+                        "Live OpenAPI response is not a valid spec "
+                        "(missing 'paths'); falling back to HTML extraction"
+                    )
+                    return None
+                paths = spec.get("paths", {})
+                schemas = spec.get("components", {}).get("schemas", {})
+                logger.info(
+                    f"📋 Live OpenAPI spec: {len(paths)} paths, "
+                    f"{len(schemas)} schemas, "
+                    f"OpenAPI version {spec.get('openapi', '?')}"
+                )
+                return spec
+        except (aiohttp.ClientError, json.JSONDecodeError, TimeoutError) as e:
+            logger.warning(
+                f"Live OpenAPI fetch failed: {e}; falling back to HTML extraction"
+            )
+            return None
 
     async def fetch_page(
         self, session: aiohttp.ClientSession, url: str
@@ -125,12 +180,17 @@ class KatanaDocumentationExtractor:
 
         url, content, _title = await self.fetch_page(session, main_reference_url)
         if content:
-            # Extract OpenAPI spec if present
+            # Only extract OpenAPI spec from HTML if we don't already have a
+            # live-fetched one. The live spec is canonical; HTML extraction is
+            # a brittle fallback that has historically returned a stale spec.
             if not self.openapi_spec:
                 self.openapi_spec = self.extract_openapi_from_html(content)
                 if self.openapi_spec:
+                    self.openapi_spec_source = "html"
                     logger.info(
-                        f"📋 Found OpenAPI spec with {len(self.openapi_spec.get('paths', {}))} endpoints"
+                        f"📋 Extracted OpenAPI spec from HTML "
+                        f"({len(self.openapi_spec.get('paths', {}))} endpoints) "
+                        f"— fallback path; consider why live fetch failed"
                     )
 
             # Extract all API reference links
@@ -156,9 +216,13 @@ class KatanaDocumentationExtractor:
                     self.visited_urls.add(url)
                     endpoint_url, content, title = await self.fetch_page(session, url)
                     if content:
-                        # Extract OpenAPI spec if we haven't found one yet
+                        # Same fallback as discover_api_structure: only mine
+                        # the HTML for a spec if we don't already have a live
+                        # one.
                         if not self.openapi_spec:
                             self.openapi_spec = self.extract_openapi_from_html(content)
+                            if self.openapi_spec:
+                                self.openapi_spec_source = "html"
 
                         return (endpoint_url, content, title)
                 return None
@@ -1280,22 +1344,28 @@ class KatanaDocumentationExtractor:
             except Exception as e:
                 logger.error(f"Error processing {url}: {e}")
 
-        # Save the OpenAPI specification (with path normalization)
+        # Save the OpenAPI specification. Skip path normalization for live
+        # specs (the API gateway already emits canonical ``{id}`` syntax);
+        # only normalize HTML-extracted specs, which sometimes have placeholder
+        # tokens like ``:id`` or ``<id>`` that need rewriting.
         if self.openapi_spec:
-            path_overrides = self.load_path_param_overrides()
-            if path_overrides:
-                normalized_paths: dict[str, Any] = {}
-                for path, spec in self.openapi_spec.get("paths", {}).items():
-                    normalized = self.normalize_path(path, path_overrides)
-                    normalized_paths[normalized] = spec
-                    if normalized != path:
-                        logger.info(f"  Normalized path: {path} -> {normalized}")
-                self.openapi_spec["paths"] = normalized_paths
+            if self.openapi_spec_source == "html":
+                path_overrides = self.load_path_param_overrides()
+                if path_overrides:
+                    normalized_paths: dict[str, Any] = {}
+                    for path, spec in self.openapi_spec.get("paths", {}).items():
+                        normalized = self.normalize_path(path, path_overrides)
+                        normalized_paths[normalized] = spec
+                        if normalized != path:
+                            logger.info(f"  Normalized path: {path} -> {normalized}")
+                    self.openapi_spec["paths"] = normalized_paths
 
             openapi_file = self.output_dir / "openapi-spec.json"
             async with aiofiles.open(openapi_file, "w", encoding="utf-8") as f:
                 await f.write(json.dumps(self.openapi_spec, indent=2))
-            logger.info(f"Saved OpenAPI spec: {openapi_file}")
+            logger.info(
+                f"Saved OpenAPI spec ({self.openapi_spec_source}): {openapi_file}"
+            )
 
         # Summary
         size_reduction = (
@@ -1322,6 +1392,15 @@ class KatanaDocumentationExtractor:
             focus_pages: Optional list of specific page names to extract (e.g., ['list-all-products'])
         """
         async with aiohttp.ClientSession() as session:
+            # Step 0: pull the canonical OpenAPI spec from the live API
+            # gateway. This is the authoritative source — README.io HTML
+            # extraction (steps 1-2 below) is now only a fallback for when
+            # the live endpoint is unreachable.
+            live_spec = await self.fetch_live_openapi_spec(session)
+            if live_spec is not None:
+                self.openapi_spec = live_spec
+                self.openapi_spec_source = "live"
+
             # Discover API structure
             api_links = await self.discover_api_structure(session)
 
@@ -1368,7 +1447,7 @@ This directory contains complete documentation for the Katana Manufacturing ERP 
 ## Content Summary
 
 - **Total pages processed**: {len(list(self.output_dir.glob("*.md")))}
-- **OpenAPI specification**: {"✅ Included" if self.openapi_spec else "❌ Not found"}
+- **OpenAPI specification**: {f"✅ Included ({self.openapi_spec_source})" if self.openapi_spec else "❌ Not found"}
 - **API endpoints**: {len(self.openapi_spec.get("paths", {})) if self.openapi_spec else "Unknown"}
 - **Failed URLs**: {len(self.failed_urls)}
 
@@ -1397,7 +1476,8 @@ This directory contains complete documentation for the Katana Manufacturing ERP 
 ## Extraction Details
 
 - **Base URL**: {self.base_url}
-- **Extraction method**: Combined crawling and OpenAPI spec extraction
+- **OpenAPI spec source**: {self.openapi_spec_source or "unavailable"} ({"live API gateway " + self.LIVE_OPENAPI_SPEC_URL if self.openapi_spec_source == "live" else "extracted from README.io HTML (fallback)"})
+- **Extraction method**: Live OpenAPI fetch (primary) + README.io crawling (narrative content + per-endpoint examples)
 - **Content source**: README.io documentation platform with embedded JSON data
 
 This documentation is optimized for AI/LLM analysis and includes:

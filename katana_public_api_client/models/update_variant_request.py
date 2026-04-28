@@ -21,21 +21,21 @@ T = TypeVar("T", bound="UpdateVariantRequest")
 
 @_attrs_define
 class UpdateVariantRequest:
-    """Request payload for updating product variant details including pricing, configuration, and inventory information
+    """Request payload for updating product variant details including pricing, configuration, and inventory information.
+    Note: ``product_id`` and ``material_id`` are not present here — a variant's parent
+    is set at create time and cannot be reassigned via PATCH.
 
-    Example:
-        {'sku': 'KNF-PRO-8PC-UPD', 'sales_price': 319.99, 'purchase_price': 160.0, 'product_id': 101, 'material_id':
-            None, 'supplier_item_codes': ['SUP-KNF-8PC-002'], 'internal_barcode': 'INT-KNF-002', 'registered_barcode':
-            '789123456790', 'lead_time': 5, 'minimum_order_quantity': 1, 'config_attributes': [{'config_name': 'Piece
-            Count', 'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value': 'Premium Steel'}],
-            'custom_fields': [{'field_name': 'Warranty Period', 'field_value': '7 years'}]}
+        Example:
+            {'sku': 'KNF-PRO-8PC-UPD', 'sales_price': 319.99, 'purchase_price': 160.0, 'supplier_item_codes': ['SUP-
+                KNF-8PC-002'], 'internal_barcode': 'INT-KNF-002', 'registered_barcode': '789123456790', 'lead_time': 5,
+                'minimum_order_quantity': 1, 'config_attributes': [{'config_name': 'Piece Count', 'config_value': '8-piece'},
+                {'config_name': 'Handle Material', 'config_value': 'Premium Steel'}], 'custom_fields': [{'field_name': 'Warranty
+                Period', 'field_value': '7 years'}]}
     """
 
     sku: str | Unset = UNSET
     sales_price: float | Unset = UNSET
     purchase_price: float | Unset = UNSET
-    product_id: int | None | Unset = UNSET
-    material_id: int | None | Unset = UNSET
     supplier_item_codes: list[str] | Unset = UNSET
     internal_barcode: str | Unset = UNSET
     registered_barcode: str | Unset = UNSET
@@ -50,18 +50,6 @@ class UpdateVariantRequest:
         sales_price = self.sales_price
 
         purchase_price = self.purchase_price
-
-        product_id: int | None | Unset
-        if isinstance(self.product_id, Unset):
-            product_id = UNSET
-        else:
-            product_id = self.product_id
-
-        material_id: int | None | Unset
-        if isinstance(self.material_id, Unset):
-            material_id = UNSET
-        else:
-            material_id = self.material_id
 
         supplier_item_codes: list[str] | Unset = UNSET
         if not isinstance(self.supplier_item_codes, Unset):
@@ -102,10 +90,6 @@ class UpdateVariantRequest:
             field_dict["sales_price"] = sales_price
         if purchase_price is not UNSET:
             field_dict["purchase_price"] = purchase_price
-        if product_id is not UNSET:
-            field_dict["product_id"] = product_id
-        if material_id is not UNSET:
-            field_dict["material_id"] = material_id
         if supplier_item_codes is not UNSET:
             field_dict["supplier_item_codes"] = supplier_item_codes
         if internal_barcode is not UNSET:
@@ -138,24 +122,6 @@ class UpdateVariantRequest:
         sales_price = d.pop("sales_price", UNSET)
 
         purchase_price = d.pop("purchase_price", UNSET)
-
-        def _parse_product_id(data: object) -> int | None | Unset:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(int | None | Unset, data)
-
-        product_id = _parse_product_id(d.pop("product_id", UNSET))
-
-        def _parse_material_id(data: object) -> int | None | Unset:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(int | None | Unset, data)
-
-        material_id = _parse_material_id(d.pop("material_id", UNSET))
 
         supplier_item_codes = cast(list[str], d.pop("supplier_item_codes", UNSET))
 
@@ -204,8 +170,6 @@ class UpdateVariantRequest:
             sku=sku,
             sales_price=sales_price,
             purchase_price=purchase_price,
-            product_id=product_id,
-            material_id=material_id,
             supplier_item_codes=supplier_item_codes,
             internal_barcode=internal_barcode,
             registered_barcode=registered_barcode,

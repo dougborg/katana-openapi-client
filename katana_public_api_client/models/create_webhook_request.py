@@ -16,13 +16,14 @@ class CreateWebhookRequest:
     """Request payload for creating a new webhook subscription to receive real-time event notifications
 
     Example:
-        {'url': 'https://api.customer.com/webhooks/katana', 'subscribed_events': ['sales_order.created',
-            'sales_order.delivered', 'current_inventory.product_out_of_stock', 'manufacturing_order.done'], 'description':
-            'ERP integration webhook for inventory and order sync'}
+        {'url': 'https://api.customer.com/webhooks/katana', 'enabled': True, 'subscribed_events':
+            ['sales_order.created', 'sales_order.delivered', 'current_inventory.product_out_of_stock',
+            'manufacturing_order.done'], 'description': 'ERP integration webhook for inventory and order sync'}
     """
 
     url: str
     subscribed_events: list[WebhookEvent]
+    enabled: bool | Unset = UNSET
     description: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
@@ -32,6 +33,8 @@ class CreateWebhookRequest:
         for subscribed_events_item_data in self.subscribed_events:
             subscribed_events_item = subscribed_events_item_data.value
             subscribed_events.append(subscribed_events_item)
+
+        enabled = self.enabled
 
         description = self.description
 
@@ -43,6 +46,8 @@ class CreateWebhookRequest:
                 "subscribed_events": subscribed_events,
             }
         )
+        if enabled is not UNSET:
+            field_dict["enabled"] = enabled
         if description is not UNSET:
             field_dict["description"] = description
 
@@ -60,11 +65,14 @@ class CreateWebhookRequest:
 
             subscribed_events.append(subscribed_events_item)
 
+        enabled = d.pop("enabled", UNSET)
+
         description = d.pop("description", UNSET)
 
         create_webhook_request = cls(
             url=url,
             subscribed_events=subscribed_events,
+            enabled=enabled,
             description=description,
         )
 

@@ -2,13 +2,17 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 from ..models.update_sales_order_status import UpdateSalesOrderStatus
+
+if TYPE_CHECKING:
+    from ..models.custom_field_value import CustomFieldValue
+
 
 T = TypeVar("T", bound="UpdateSalesOrderRequest")
 
@@ -31,6 +35,7 @@ class UpdateSalesOrderRequest:
     customer_ref: None | str | Unset = UNSET
     tracking_number: None | str | Unset = UNSET
     tracking_number_url: None | str | Unset = UNSET
+    custom_fields: list[CustomFieldValue] | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         order_no = self.order_no
@@ -85,6 +90,13 @@ class UpdateSalesOrderRequest:
         else:
             tracking_number_url = self.tracking_number_url
 
+        custom_fields: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.custom_fields, Unset):
+            custom_fields = []
+            for custom_fields_item_data in self.custom_fields:
+                custom_fields_item = custom_fields_item_data.to_dict()
+                custom_fields.append(custom_fields_item)
+
         field_dict: dict[str, Any] = {}
 
         field_dict.update({})
@@ -116,11 +128,15 @@ class UpdateSalesOrderRequest:
             field_dict["tracking_number"] = tracking_number
         if tracking_number_url is not UNSET:
             field_dict["tracking_number_url"] = tracking_number_url
+        if custom_fields is not UNSET:
+            field_dict["custom_fields"] = custom_fields
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.custom_field_value import CustomFieldValue
+
         d = dict(src_dict)
         order_no = d.pop("order_no", UNSET)
 
@@ -200,6 +216,15 @@ class UpdateSalesOrderRequest:
             d.pop("tracking_number_url", UNSET)
         )
 
+        _custom_fields = d.pop("custom_fields", UNSET)
+        custom_fields: list[CustomFieldValue] | Unset = UNSET
+        if _custom_fields is not UNSET:
+            custom_fields = []
+            for custom_fields_item_data in _custom_fields:
+                custom_fields_item = CustomFieldValue.from_dict(custom_fields_item_data)
+
+                custom_fields.append(custom_fields_item)
+
         update_sales_order_request = cls(
             order_no=order_no,
             customer_id=customer_id,
@@ -215,6 +240,7 @@ class UpdateSalesOrderRequest:
             customer_ref=customer_ref,
             tracking_number=tracking_number,
             tracking_number_url=tracking_number_url,
+            custom_fields=custom_fields,
         )
 
         return update_sales_order_request

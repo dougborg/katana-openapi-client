@@ -6,22 +6,33 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import Response
+from ...models.delete_serial_numbers_request import DeleteSerialNumbersRequest
+from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 
 
-def _get_kwargs() -> dict[str, Any]:
+def _get_kwargs(
+    *,
+    body: DeleteSerialNumbersRequest,
+) -> dict[str, Any]:
+    headers: dict[str, Any] = {}
 
     _kwargs: dict[str, Any] = {
         "method": "delete",
         "url": "/serial_numbers",
     }
 
+    _kwargs["json"] = body.to_dict()
+
+    headers["Content-Type"] = "application/json"
+
+    _kwargs["headers"] = headers
     return _kwargs
 
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Any | ErrorResponse | None:
+) -> Any | DetailedErrorResponse | ErrorResponse | None:
     if response.status_code == 204:
         response_204 = cast(Any, None)
         return response_204
@@ -41,6 +52,11 @@ def _parse_response(
 
         return response_404
 
+    if response.status_code == 422:
+        response_422 = DetailedErrorResponse.from_dict(response.json())
+
+        return response_422
+
     if response.status_code == 429:
         response_429 = ErrorResponse.from_dict(response.json())
 
@@ -59,7 +75,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[Any | ErrorResponse]:
+) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -71,10 +87,19 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-) -> Response[Any | ErrorResponse]:
+    body: DeleteSerialNumbersRequest,
+) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
     """Delete serial numbers
 
      Deletes serial numbers for a resource.
+
+    Args:
+        body (DeleteSerialNumbersRequest): Request payload for deleting serial numbers from a
+            resource. The
+            delete is scoped to a single resource (``resource_type`` +
+            ``resource_id``) and a list of serial-number IDs.
+             Example: {'resource_type': 'ManufacturingOrder', 'resource_id': 3001, 'ids': [1001,
+            1002]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -82,10 +107,12 @@ def sync_detailed(
 
 
     Returns:
-        Response[Any | ErrorResponse]
+        Response[Any | DetailedErrorResponse | ErrorResponse]
     """
 
-    kwargs = _get_kwargs()
+    kwargs = _get_kwargs(
+        body=body,
+    )
 
     response = client.get_httpx_client().request(
         **kwargs,
@@ -97,10 +124,19 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-) -> Any | ErrorResponse | None:
+    body: DeleteSerialNumbersRequest,
+) -> Any | DetailedErrorResponse | ErrorResponse | None:
     """Delete serial numbers
 
      Deletes serial numbers for a resource.
+
+    Args:
+        body (DeleteSerialNumbersRequest): Request payload for deleting serial numbers from a
+            resource. The
+            delete is scoped to a single resource (``resource_type`` +
+            ``resource_id``) and a list of serial-number IDs.
+             Example: {'resource_type': 'ManufacturingOrder', 'resource_id': 3001, 'ids': [1001,
+            1002]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -108,21 +144,31 @@ def sync(
 
 
     Returns:
-        Any | ErrorResponse
+        Any | DetailedErrorResponse | ErrorResponse
     """
 
     return sync_detailed(
         client=client,
+        body=body,
     ).parsed
 
 
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-) -> Response[Any | ErrorResponse]:
+    body: DeleteSerialNumbersRequest,
+) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
     """Delete serial numbers
 
      Deletes serial numbers for a resource.
+
+    Args:
+        body (DeleteSerialNumbersRequest): Request payload for deleting serial numbers from a
+            resource. The
+            delete is scoped to a single resource (``resource_type`` +
+            ``resource_id``) and a list of serial-number IDs.
+             Example: {'resource_type': 'ManufacturingOrder', 'resource_id': 3001, 'ids': [1001,
+            1002]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -130,10 +176,12 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Any | ErrorResponse]
+        Response[Any | DetailedErrorResponse | ErrorResponse]
     """
 
-    kwargs = _get_kwargs()
+    kwargs = _get_kwargs(
+        body=body,
+    )
 
     response = await client.get_async_httpx_client().request(**kwargs)
 
@@ -143,10 +191,19 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-) -> Any | ErrorResponse | None:
+    body: DeleteSerialNumbersRequest,
+) -> Any | DetailedErrorResponse | ErrorResponse | None:
     """Delete serial numbers
 
      Deletes serial numbers for a resource.
+
+    Args:
+        body (DeleteSerialNumbersRequest): Request payload for deleting serial numbers from a
+            resource. The
+            delete is scoped to a single resource (``resource_type`` +
+            ``resource_id``) and a list of serial-number IDs.
+             Example: {'resource_type': 'ManufacturingOrder', 'resource_id': 3001, 'ids': [1001,
+            1002]}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -154,11 +211,12 @@ async def asyncio(
 
 
     Returns:
-        Any | ErrorResponse
+        Any | DetailedErrorResponse | ErrorResponse
     """
 
     return (
         await asyncio_detailed(
             client=client,
+            body=body,
         )
     ).parsed

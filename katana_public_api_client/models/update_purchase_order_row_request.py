@@ -24,7 +24,8 @@ class UpdatePurchaseOrderRowRequest:
     quantity: float | Unset = UNSET
     variant_id: int | Unset = UNSET
     tax_rate_id: int | Unset = UNSET
-    group_id: int | Unset = UNSET
+    tax_name: str | Unset = UNSET
+    tax_rate: str | Unset = UNSET
     price_per_unit: float | Unset = UNSET
     purchase_uom_conversion_rate: float | Unset = UNSET
     purchase_uom: str | Unset = UNSET
@@ -38,7 +39,9 @@ class UpdatePurchaseOrderRowRequest:
 
         tax_rate_id = self.tax_rate_id
 
-        group_id = self.group_id
+        tax_name = self.tax_name
+
+        tax_rate = self.tax_rate
 
         price_per_unit = self.price_per_unit
 
@@ -63,8 +66,10 @@ class UpdatePurchaseOrderRowRequest:
             field_dict["variant_id"] = variant_id
         if tax_rate_id is not UNSET:
             field_dict["tax_rate_id"] = tax_rate_id
-        if group_id is not UNSET:
-            field_dict["group_id"] = group_id
+        if tax_name is not UNSET:
+            field_dict["tax_name"] = tax_name
+        if tax_rate is not UNSET:
+            field_dict["tax_rate"] = tax_rate
         if price_per_unit is not UNSET:
             field_dict["price_per_unit"] = price_per_unit
         if purchase_uom_conversion_rate is not UNSET:
@@ -87,7 +92,9 @@ class UpdatePurchaseOrderRowRequest:
 
         tax_rate_id = d.pop("tax_rate_id", UNSET)
 
-        group_id = d.pop("group_id", UNSET)
+        tax_name = d.pop("tax_name", UNSET)
+
+        tax_rate = d.pop("tax_rate", UNSET)
 
         price_per_unit = d.pop("price_per_unit", UNSET)
 
@@ -113,7 +120,8 @@ class UpdatePurchaseOrderRowRequest:
             quantity=quantity,
             variant_id=variant_id,
             tax_rate_id=tax_rate_id,
-            group_id=group_id,
+            tax_name=tax_name,
+            tax_rate=tax_rate,
             price_per_unit=price_per_unit,
             purchase_uom_conversion_rate=purchase_uom_conversion_rate,
             purchase_uom=purchase_uom,

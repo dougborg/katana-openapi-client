@@ -472,11 +472,20 @@ class CreatePurchaseOrderRowRequest(KatanaPydanticBase):
             description="Tax rate identifier to apply to this line item", le=2147483647
         ),
     ] = None
-    group_id: Annotated[
-        int | None,
+    tax_name: Annotated[
+        str | None, Field(description="Tax label snapshot to record on this line item")
+    ] = None
+    tax_rate: Annotated[
+        str | None,
         Field(
-            description="Group identifier for organizing related line items",
-            le=2147483647,
+            description="Tax rate percentage snapshot to record on this line item. Sent\nas a string to preserve exact decimal precision (Katana's wire\nformat).\n"
+        ),
+    ] = None
+    currency: Annotated[
+        str | None,
+        Field(
+            description="ISO 4217 currency code for the line price (overrides PO currency)",
+            pattern="^[A-Z]{3}$",
         ),
     ] = None
     price_per_unit: Annotated[
@@ -517,9 +526,14 @@ class UpdatePurchaseOrderRowRequest(KatanaPydanticBase):
         int | None,
         Field(description="Updatable only when received_date is null", le=2147483647),
     ] = None
-    group_id: Annotated[
-        int | None,
-        Field(description="Updatable only when received_date is null", le=2147483647),
+    tax_name: Annotated[
+        str | None, Field(description="Tax label snapshot to record on this line item")
+    ] = None
+    tax_rate: Annotated[
+        str | None,
+        Field(
+            description="Tax rate percentage snapshot to record on this line item. Sent\nas a string to preserve exact decimal precision (Katana's wire\nformat).\n"
+        ),
     ] = None
     price_per_unit: Annotated[
         float | None,

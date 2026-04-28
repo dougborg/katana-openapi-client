@@ -59,6 +59,9 @@ from katana_public_api_client.models.coded_error_response import (
 from katana_public_api_client.models.create_bom_row_request import (
     CreateBomRowRequest as AttrsCreateBomRowRequest,
 )
+from katana_public_api_client.models.create_custom_field_definition_request import (
+    CreateCustomFieldDefinitionRequest as AttrsCreateCustomFieldDefinitionRequest,
+)
 from katana_public_api_client.models.create_customer_address_request import (
     CreateCustomerAddressRequest as AttrsCreateCustomerAddressRequest,
 )
@@ -177,6 +180,15 @@ from katana_public_api_client.models.create_webhook_request import (
     CreateWebhookRequest as AttrsCreateWebhookRequest,
 )
 from katana_public_api_client.models.custom_field import CustomField as AttrsCustomField
+from katana_public_api_client.models.custom_field_definition import (
+    CustomFieldDefinition as AttrsCustomFieldDefinition,
+)
+from katana_public_api_client.models.custom_field_definition_list_response import (
+    CustomFieldDefinitionListResponse as AttrsCustomFieldDefinitionListResponse,
+)
+from katana_public_api_client.models.custom_field_value import (
+    CustomFieldValue as AttrsCustomFieldValue,
+)
 from katana_public_api_client.models.custom_fields_collection import (
     CustomFieldsCollection as AttrsCustomFieldsCollection,
 )
@@ -195,6 +207,9 @@ from katana_public_api_client.models.customer_list_response import (
 )
 from katana_public_api_client.models.deletable_entity import (
     DeletableEntity as AttrsDeletableEntity,
+)
+from katana_public_api_client.models.delete_serial_numbers_request import (
+    DeleteSerialNumbersRequest as AttrsDeleteSerialNumbersRequest,
 )
 from katana_public_api_client.models.demand_forecast_period import (
     DemandForecastPeriod as AttrsDemandForecastPeriod,
@@ -427,6 +442,9 @@ from katana_public_api_client.models.sales_order_row import (
 from katana_public_api_client.models.sales_order_row_list_response import (
     SalesOrderRowListResponse as AttrsSalesOrderRowListResponse,
 )
+from katana_public_api_client.models.sales_order_search_request import (
+    SalesOrderSearchRequest as AttrsSalesOrderSearchRequest,
+)
 from katana_public_api_client.models.sales_order_shipping_fee import (
     SalesOrderShippingFee as AttrsSalesOrderShippingFee,
 )
@@ -552,6 +570,9 @@ from katana_public_api_client.models.updatable_entity import (
 )
 from katana_public_api_client.models.update_bom_row_request import (
     UpdateBomRowRequest as AttrsUpdateBomRowRequest,
+)
+from katana_public_api_client.models.update_custom_field_definition_request import (
+    UpdateCustomFieldDefinitionRequest as AttrsUpdateCustomFieldDefinitionRequest,
 )
 from katana_public_api_client.models.update_customer_address_request import (
     UpdateCustomerAddressRequest as AttrsUpdateCustomerAddressRequest,
@@ -702,11 +723,15 @@ from ._generated.common import (
     AdditionalCostListResponse as PydanticAdditionalCostListResponse,
     AssignedOperator as PydanticAssignedOperator,
     ClearDemandForecastRequest as PydanticClearDemandForecastRequest,
+    CreateCustomFieldDefinitionRequest as PydanticCreateCustomFieldDefinitionRequest,
     CreateDemandForecastRequest as PydanticCreateDemandForecastRequest,
     CreateTaxRateRequest as PydanticCreateTaxRateRequest,
     CustomField as PydanticCustomField,
+    CustomFieldDefinition as PydanticCustomFieldDefinition,
+    CustomFieldDefinitionListResponse as PydanticCustomFieldDefinitionListResponse,
     CustomFieldsCollection as PydanticCustomFieldsCollection,
     CustomFieldsCollectionListResponse as PydanticCustomFieldsCollectionListResponse,
+    CustomFieldValue as PydanticCustomFieldValue,
     DemandForecastPeriod as PydanticDemandForecastPeriod,
     DemandForecastResponse as PydanticDemandForecastResponse,
     Factory as PydanticFactory,
@@ -721,6 +746,7 @@ from ._generated.common import (
     TaxRate as PydanticTaxRate,
     TaxRateListResponse as PydanticTaxRateListResponse,
     UnlinkVariantBinLocationRequest as PydanticUnlinkVariantBinLocationRequest,
+    UpdateCustomFieldDefinitionRequest as PydanticUpdateCustomFieldDefinitionRequest,
     User as PydanticUser,
     UserInfo as PydanticUserInfo,
     UserListResponse as PydanticUserListResponse,
@@ -887,6 +913,7 @@ from ._generated.sales_orders import (
     SalesOrderListResponse as PydanticSalesOrderListResponse,
     SalesOrderRow as PydanticSalesOrderRow,
     SalesOrderRowListResponse as PydanticSalesOrderRowListResponse,
+    SalesOrderSearchRequest as PydanticSalesOrderSearchRequest,
     SalesOrderShippingFee as PydanticSalesOrderShippingFee,
     SalesOrderShippingFeeListResponse as PydanticSalesOrderShippingFeeListResponse,
     SalesReturn as PydanticSalesReturn,
@@ -917,6 +944,7 @@ from ._generated.stock import (
     CreateStocktakeRequest as PydanticCreateStocktakeRequest,
     CreateStocktakeRowRequest as PydanticCreateStocktakeRowRequest,
     CreateStockTransferRequest as PydanticCreateStockTransferRequest,
+    DeleteSerialNumbersRequest as PydanticDeleteSerialNumbersRequest,
     NegativeStock as PydanticNegativeStock,
     NegativeStockListResponse as PydanticNegativeStockListResponse,
     SerialNumber as PydanticSerialNumber,
@@ -979,6 +1007,10 @@ def register_all_models() -> None:
     register(AttrsClearDemandForecastRequest, PydanticClearDemandForecastRequest)
     register(AttrsCodedErrorResponse, PydanticCodedErrorResponse)
     register(AttrsCreateBomRowRequest, PydanticCreateBomRowRequest)
+    register(
+        AttrsCreateCustomFieldDefinitionRequest,
+        PydanticCreateCustomFieldDefinitionRequest,
+    )
     register(AttrsCreateCustomerAddressRequest, PydanticCreateCustomerAddressRequest)
     register(AttrsCreateCustomerRequest, PydanticCreateCustomerRequest)
     register(AttrsCreateDemandForecastRequest, PydanticCreateDemandForecastRequest)
@@ -1052,6 +1084,12 @@ def register_all_models() -> None:
     register(AttrsCreateVariantRequest, PydanticCreateVariantRequest)
     register(AttrsCreateWebhookRequest, PydanticCreateWebhookRequest)
     register(AttrsCustomField, PydanticCustomField)
+    register(AttrsCustomFieldDefinition, PydanticCustomFieldDefinition)
+    register(
+        AttrsCustomFieldDefinitionListResponse,
+        PydanticCustomFieldDefinitionListResponse,
+    )
+    register(AttrsCustomFieldValue, PydanticCustomFieldValue)
     register(AttrsCustomFieldsCollection, PydanticCustomFieldsCollection)
     register(
         AttrsCustomFieldsCollectionListResponse,
@@ -1062,6 +1100,7 @@ def register_all_models() -> None:
     register(AttrsCustomerAddressListResponse, PydanticCustomerAddressListResponse)
     register(AttrsCustomerListResponse, PydanticCustomerListResponse)
     register(AttrsDeletableEntity, PydanticDeletableEntity)
+    register(AttrsDeleteSerialNumbersRequest, PydanticDeleteSerialNumbersRequest)
     register(AttrsDemandForecastPeriod, PydanticDemandForecastPeriod)
     register(AttrsDemandForecastResponse, PydanticDemandForecastResponse)
     register(AttrsDetailedErrorResponse, PydanticDetailedErrorResponse)
@@ -1198,6 +1237,7 @@ def register_all_models() -> None:
     register(AttrsSalesOrderListResponse, PydanticSalesOrderListResponse)
     register(AttrsSalesOrderRow, PydanticSalesOrderRow)
     register(AttrsSalesOrderRowListResponse, PydanticSalesOrderRowListResponse)
+    register(AttrsSalesOrderSearchRequest, PydanticSalesOrderSearchRequest)
     register(AttrsSalesOrderShippingFee, PydanticSalesOrderShippingFee)
     register(
         AttrsSalesOrderShippingFeeListResponse,
@@ -1258,6 +1298,10 @@ def register_all_models() -> None:
     )
     register(AttrsUpdatableEntity, PydanticUpdatableEntity)
     register(AttrsUpdateBomRowRequest, PydanticUpdateBomRowRequest)
+    register(
+        AttrsUpdateCustomFieldDefinitionRequest,
+        PydanticUpdateCustomFieldDefinitionRequest,
+    )
     register(AttrsUpdateCustomerAddressRequest, PydanticUpdateCustomerAddressRequest)
     register(AttrsUpdateCustomerRequest, PydanticUpdateCustomerRequest)
     register(

@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 
+from ..client_types import UNSET, Unset
+
 if TYPE_CHECKING:
     from ..models.create_stocktake_row_request_stocktake_rows_item import (
         CreateStocktakeRowRequestStocktakeRowsItem,
@@ -24,24 +26,27 @@ class CreateStocktakeRowRequest:
     """
 
     stocktake_id: int
-    stocktake_rows: list[CreateStocktakeRowRequestStocktakeRowsItem]
+    stocktake_rows: list[CreateStocktakeRowRequestStocktakeRowsItem] | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         stocktake_id = self.stocktake_id
 
-        stocktake_rows = []
-        for stocktake_rows_item_data in self.stocktake_rows:
-            stocktake_rows_item = stocktake_rows_item_data.to_dict()
-            stocktake_rows.append(stocktake_rows_item)
+        stocktake_rows: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.stocktake_rows, Unset):
+            stocktake_rows = []
+            for stocktake_rows_item_data in self.stocktake_rows:
+                stocktake_rows_item = stocktake_rows_item_data.to_dict()
+                stocktake_rows.append(stocktake_rows_item)
 
         field_dict: dict[str, Any] = {}
 
         field_dict.update(
             {
                 "stocktake_id": stocktake_id,
-                "stocktake_rows": stocktake_rows,
             }
         )
+        if stocktake_rows is not UNSET:
+            field_dict["stocktake_rows"] = stocktake_rows
 
         return field_dict
 
@@ -54,14 +59,18 @@ class CreateStocktakeRowRequest:
         d = dict(src_dict)
         stocktake_id = d.pop("stocktake_id")
 
-        stocktake_rows = []
-        _stocktake_rows = d.pop("stocktake_rows")
-        for stocktake_rows_item_data in _stocktake_rows:
-            stocktake_rows_item = CreateStocktakeRowRequestStocktakeRowsItem.from_dict(
-                stocktake_rows_item_data
-            )
+        _stocktake_rows = d.pop("stocktake_rows", UNSET)
+        stocktake_rows: list[CreateStocktakeRowRequestStocktakeRowsItem] | Unset = UNSET
+        if _stocktake_rows is not UNSET:
+            stocktake_rows = []
+            for stocktake_rows_item_data in _stocktake_rows:
+                stocktake_rows_item = (
+                    CreateStocktakeRowRequestStocktakeRowsItem.from_dict(
+                        stocktake_rows_item_data
+                    )
+                )
 
-            stocktake_rows.append(stocktake_rows_item)
+                stocktake_rows.append(stocktake_rows_item)
 
         create_stocktake_row_request = cls(
             stocktake_id=stocktake_id,

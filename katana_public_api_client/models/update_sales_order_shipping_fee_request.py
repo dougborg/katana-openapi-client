@@ -14,24 +14,26 @@ T = TypeVar("T", bound="UpdateSalesOrderShippingFeeRequest")
 class UpdateSalesOrderShippingFeeRequest:
     """Request payload for updating a sales order shipping fee"""
 
+    amount: str
     description: str | Unset = UNSET
-    amount: int | Unset = UNSET
     tax_rate_id: int | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        description = self.description
-
         amount = self.amount
+
+        description = self.description
 
         tax_rate_id = self.tax_rate_id
 
         field_dict: dict[str, Any] = {}
 
-        field_dict.update({})
+        field_dict.update(
+            {
+                "amount": amount,
+            }
+        )
         if description is not UNSET:
             field_dict["description"] = description
-        if amount is not UNSET:
-            field_dict["amount"] = amount
         if tax_rate_id is not UNSET:
             field_dict["tax_rate_id"] = tax_rate_id
 
@@ -40,15 +42,15 @@ class UpdateSalesOrderShippingFeeRequest:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        description = d.pop("description", UNSET)
+        amount = d.pop("amount")
 
-        amount = d.pop("amount", UNSET)
+        description = d.pop("description", UNSET)
 
         tax_rate_id = d.pop("tax_rate_id", UNSET)
 
         update_sales_order_shipping_fee_request = cls(
-            description=description,
             amount=amount,
+            description=description,
             tax_rate_id=tax_rate_id,
         )
 

@@ -28,6 +28,10 @@ class UpdateSalesReturnRequest:
     return_location_id: int | Unset = UNSET
     order_no: str | Unset = UNSET
     additional_info: None | str | Unset = UNSET
+    tracking_number: None | str | Unset = UNSET
+    tracking_number_url: None | str | Unset = UNSET
+    tracking_carrier: None | str | Unset = UNSET
+    tracking_method: None | str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         status: str | Unset = UNSET
@@ -52,6 +56,30 @@ class UpdateSalesReturnRequest:
         else:
             additional_info = self.additional_info
 
+        tracking_number: None | str | Unset
+        if isinstance(self.tracking_number, Unset):
+            tracking_number = UNSET
+        else:
+            tracking_number = self.tracking_number
+
+        tracking_number_url: None | str | Unset
+        if isinstance(self.tracking_number_url, Unset):
+            tracking_number_url = UNSET
+        else:
+            tracking_number_url = self.tracking_number_url
+
+        tracking_carrier: None | str | Unset
+        if isinstance(self.tracking_carrier, Unset):
+            tracking_carrier = UNSET
+        else:
+            tracking_carrier = self.tracking_carrier
+
+        tracking_method: None | str | Unset
+        if isinstance(self.tracking_method, Unset):
+            tracking_method = UNSET
+        else:
+            tracking_method = self.tracking_method
+
         field_dict: dict[str, Any] = {}
 
         field_dict.update({})
@@ -67,6 +95,14 @@ class UpdateSalesReturnRequest:
             field_dict["order_no"] = order_no
         if additional_info is not UNSET:
             field_dict["additional_info"] = additional_info
+        if tracking_number is not UNSET:
+            field_dict["tracking_number"] = tracking_number
+        if tracking_number_url is not UNSET:
+            field_dict["tracking_number_url"] = tracking_number_url
+        if tracking_carrier is not UNSET:
+            field_dict["tracking_carrier"] = tracking_carrier
+        if tracking_method is not UNSET:
+            field_dict["tracking_method"] = tracking_method
 
         return field_dict
 
@@ -107,6 +143,44 @@ class UpdateSalesReturnRequest:
 
         additional_info = _parse_additional_info(d.pop("additional_info", UNSET))
 
+        def _parse_tracking_number(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        tracking_number = _parse_tracking_number(d.pop("tracking_number", UNSET))
+
+        def _parse_tracking_number_url(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        tracking_number_url = _parse_tracking_number_url(
+            d.pop("tracking_number_url", UNSET)
+        )
+
+        def _parse_tracking_carrier(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        tracking_carrier = _parse_tracking_carrier(d.pop("tracking_carrier", UNSET))
+
+        def _parse_tracking_method(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        tracking_method = _parse_tracking_method(d.pop("tracking_method", UNSET))
+
         update_sales_return_request = cls(
             status=status,
             return_date=return_date,
@@ -114,6 +188,10 @@ class UpdateSalesReturnRequest:
             return_location_id=return_location_id,
             order_no=order_no,
             additional_info=additional_info,
+            tracking_number=tracking_number,
+            tracking_number_url=tracking_number_url,
+            tracking_carrier=tracking_carrier,
+            tracking_method=tracking_method,
         )
 
         return update_sales_return_request

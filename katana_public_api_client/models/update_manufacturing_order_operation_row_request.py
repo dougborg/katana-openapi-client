@@ -9,6 +9,8 @@ from attrs import (
 )
 
 from ..client_types import UNSET, Unset
+from ..models.manufacturing_operation_status import ManufacturingOperationStatus
+from ..models.manufacturing_operation_type import ManufacturingOperationType
 
 if TYPE_CHECKING:
     from ..models.operator import Operator
@@ -22,14 +24,13 @@ class UpdateManufacturingOrderOperationRowRequest:
     """Request payload for updating a manufacturing order operation row with actual completion data
 
     Example:
-        {'operation_name': 'Assembly', 'total_actual_time': 52.3, 'status': 'DONE', 'completed_by_operators': [{'id':
-            101, 'operator_name': 'John Smith', 'created_at': '2024-01-15T08:00:00.000Z', 'updated_at':
+        {'operation_name': 'Assembly', 'total_actual_time': 52.3, 'status': 'COMPLETED', 'completed_by_operators':
+            [{'id': 101, 'operator_name': 'John Smith', 'created_at': '2024-01-15T08:00:00.000Z', 'updated_at':
             '2024-01-15T08:00:00.000Z', 'deleted_at': None}]}
     """
 
-    manufacturing_order_id: int | Unset = UNSET
     operation_id: int | Unset = UNSET
-    type_: str | Unset = UNSET
+    type_: ManufacturingOperationType | Unset = UNSET
     operation_name: str | Unset = UNSET
     resource_id: int | Unset = UNSET
     resource_name: str | Unset = UNSET
@@ -38,17 +39,17 @@ class UpdateManufacturingOrderOperationRowRequest:
     total_actual_time: float | Unset = UNSET
     cost_parameter: float | Unset = UNSET
     cost_per_hour: float | Unset = UNSET
-    status: str | Unset = UNSET
+    status: ManufacturingOperationStatus | Unset = UNSET
     assigned_operators: list[Operator] | Unset = UNSET
     completed_by_operators: list[Operator] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        manufacturing_order_id = self.manufacturing_order_id
-
         operation_id = self.operation_id
 
-        type_ = self.type_
+        type_: str | Unset = UNSET
+        if not isinstance(self.type_, Unset):
+            type_ = self.type_.value
 
         operation_name = self.operation_name
 
@@ -66,7 +67,9 @@ class UpdateManufacturingOrderOperationRowRequest:
 
         cost_per_hour = self.cost_per_hour
 
-        status = self.status
+        status: str | Unset = UNSET
+        if not isinstance(self.status, Unset):
+            status = self.status.value
 
         assigned_operators: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.assigned_operators, Unset):
@@ -85,8 +88,6 @@ class UpdateManufacturingOrderOperationRowRequest:
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
-        if manufacturing_order_id is not UNSET:
-            field_dict["manufacturing_order_id"] = manufacturing_order_id
         if operation_id is not UNSET:
             field_dict["operation_id"] = operation_id
         if type_ is not UNSET:
@@ -121,11 +122,14 @@ class UpdateManufacturingOrderOperationRowRequest:
         from ..models.operator import Operator
 
         d = dict(src_dict)
-        manufacturing_order_id = d.pop("manufacturing_order_id", UNSET)
-
         operation_id = d.pop("operation_id", UNSET)
 
-        type_ = d.pop("type", UNSET)
+        _type_ = d.pop("type", UNSET)
+        type_: ManufacturingOperationType | Unset
+        if isinstance(_type_, Unset):
+            type_ = UNSET
+        else:
+            type_ = ManufacturingOperationType(_type_)
 
         operation_name = d.pop("operation_name", UNSET)
 
@@ -143,7 +147,12 @@ class UpdateManufacturingOrderOperationRowRequest:
 
         cost_per_hour = d.pop("cost_per_hour", UNSET)
 
-        status = d.pop("status", UNSET)
+        _status = d.pop("status", UNSET)
+        status: ManufacturingOperationStatus | Unset
+        if isinstance(_status, Unset):
+            status = UNSET
+        else:
+            status = ManufacturingOperationStatus(_status)
 
         _assigned_operators = d.pop("assigned_operators", UNSET)
         assigned_operators: list[Operator] | Unset = UNSET
@@ -168,7 +177,6 @@ class UpdateManufacturingOrderOperationRowRequest:
                 completed_by_operators.append(completed_by_operators_item)
 
         update_manufacturing_order_operation_row_request = cls(
-            manufacturing_order_id=manufacturing_order_id,
             operation_id=operation_id,
             type_=type_,
             operation_name=operation_name,

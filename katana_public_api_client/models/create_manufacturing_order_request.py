@@ -11,7 +11,9 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
-from ..models.manufacturing_order_status import ManufacturingOrderStatus
+from ..models.create_manufacturing_order_request_status import (
+    CreateManufacturingOrderRequestStatus,
+)
 
 if TYPE_CHECKING:
     from ..models.batch_transaction import BatchTransaction
@@ -25,15 +27,16 @@ class CreateManufacturingOrderRequest:
     """Request payload for creating a new manufacturing order to initiate production of products or components.
 
     Example:
-        {'variant_id': 2101, 'planned_quantity': 50, 'location_id': 1, 'order_created_date': '2024-01-15T08:00:00Z',
-            'production_deadline_date': '2024-01-25T17:00:00Z', 'additional_info': 'Priority order for new product launch'}
+        {'variant_id': 2101, 'planned_quantity': 50, 'location_id': 1, 'order_no': 'MO-2024-001', 'order_created_date':
+            '2024-01-15T08:00:00Z', 'production_deadline_date': '2024-01-25T17:00:00Z', 'additional_info': 'Priority order
+            for new product launch'}
     """
 
+    order_no: str
     variant_id: int
     location_id: int
     planned_quantity: float
-    status: ManufacturingOrderStatus | Unset = UNSET
-    order_no: str | Unset = UNSET
+    status: CreateManufacturingOrderRequestStatus | Unset = UNSET
     actual_quantity: float | Unset = UNSET
     order_created_date: datetime.datetime | Unset = UNSET
     production_deadline_date: datetime.datetime | Unset = UNSET
@@ -42,6 +45,8 @@ class CreateManufacturingOrderRequest:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        order_no = self.order_no
+
         variant_id = self.variant_id
 
         location_id = self.location_id
@@ -51,8 +56,6 @@ class CreateManufacturingOrderRequest:
         status: str | Unset = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
-
-        order_no = self.order_no
 
         actual_quantity = self.actual_quantity
 
@@ -77,6 +80,7 @@ class CreateManufacturingOrderRequest:
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
+                "order_no": order_no,
                 "variant_id": variant_id,
                 "location_id": location_id,
                 "planned_quantity": planned_quantity,
@@ -84,8 +88,6 @@ class CreateManufacturingOrderRequest:
         )
         if status is not UNSET:
             field_dict["status"] = status
-        if order_no is not UNSET:
-            field_dict["order_no"] = order_no
         if actual_quantity is not UNSET:
             field_dict["actual_quantity"] = actual_quantity
         if order_created_date is not UNSET:
@@ -104,6 +106,8 @@ class CreateManufacturingOrderRequest:
         from ..models.batch_transaction import BatchTransaction
 
         d = dict(src_dict)
+        order_no = d.pop("order_no")
+
         variant_id = d.pop("variant_id")
 
         location_id = d.pop("location_id")
@@ -111,13 +115,11 @@ class CreateManufacturingOrderRequest:
         planned_quantity = d.pop("planned_quantity")
 
         _status = d.pop("status", UNSET)
-        status: ManufacturingOrderStatus | Unset
+        status: CreateManufacturingOrderRequestStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:
-            status = ManufacturingOrderStatus(_status)
-
-        order_no = d.pop("order_no", UNSET)
+            status = CreateManufacturingOrderRequestStatus(_status)
 
         actual_quantity = d.pop("actual_quantity", UNSET)
 
@@ -149,11 +151,11 @@ class CreateManufacturingOrderRequest:
                 batch_transactions.append(batch_transactions_item)
 
         create_manufacturing_order_request = cls(
+            order_no=order_no,
             variant_id=variant_id,
             location_id=location_id,
             planned_quantity=planned_quantity,
             status=status,
-            order_no=order_no,
             actual_quantity=actual_quantity,
             order_created_date=order_created_date,
             production_deadline_date=production_deadline_date,

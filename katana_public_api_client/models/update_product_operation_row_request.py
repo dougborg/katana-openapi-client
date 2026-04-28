@@ -6,6 +6,7 @@ from typing import Any, TypeVar
 from attrs import define as _attrs_define
 
 from ..client_types import UNSET, Unset
+from ..models.manufacturing_operation_type import ManufacturingOperationType
 
 T = TypeVar("T", bound="UpdateProductOperationRowRequest")
 
@@ -16,7 +17,7 @@ class UpdateProductOperationRowRequest:
 
     operation_id: int | Unset = UNSET
     operation_name: str | Unset = UNSET
-    type_: str | Unset = UNSET
+    type_: ManufacturingOperationType | Unset = UNSET
     resource_id: int | Unset = UNSET
     resource_name: str | Unset = UNSET
     planned_time_parameter: float | Unset = UNSET
@@ -29,7 +30,9 @@ class UpdateProductOperationRowRequest:
 
         operation_name = self.operation_name
 
-        type_ = self.type_
+        type_: str | Unset = UNSET
+        if not isinstance(self.type_, Unset):
+            type_ = self.type_.value
 
         resource_id = self.resource_id
 
@@ -74,7 +77,12 @@ class UpdateProductOperationRowRequest:
 
         operation_name = d.pop("operation_name", UNSET)
 
-        type_ = d.pop("type", UNSET)
+        _type_ = d.pop("type", UNSET)
+        type_: ManufacturingOperationType | Unset
+        if isinstance(_type_, Unset):
+            type_ = UNSET
+        else:
+            type_ = ManufacturingOperationType(_type_)
 
         resource_id = d.pop("resource_id", UNSET)
 
