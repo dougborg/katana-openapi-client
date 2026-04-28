@@ -11,129 +11,79 @@ observed behaviour) are right. The README.io-scraped markdown files do contain J
 response examples — this validator uses those examples as ground truth and flags drift
 in our local schemas.
 
-## Triage
+## Status (after fixes)
 
-The 9 failures fall into three categories:
+- 9 initial failures triaged into three buckets.
+- **3 real schema drift items fixed** in this PR (regen output reflects).
+- **4 documentation-artefact failures remain** (5 individual errors); these are Katana
+  docs with stale/wrong example data — verified against the live API or CLAUDE.md.
 
-| Category                                         | Count | Action                                        |
-| ------------------------------------------------ | ----- | --------------------------------------------- |
-| Real schema drift — local schema is wrong        | ~3    | Fix locally                                   |
-| Documentation artefact — Katana's docs are wrong | ~4    | No-op (CLAUDE.md / integration tests confirm) |
-| Mixed — needs investigation                      | ~2    | Investigate before fixing                     |
+## Fixes applied (real schema drift)
 
-**Real schema drift to fix:**
+### `StockAdjustmentBatchTransaction.batch_id` — now nullable
 
-- `GET /purchase_order_accounting_metadata → 200`: scraped example uses camelCase keys
-  (`createdAt`, `purchaseOrderId`, `integrationType`, `porReceivedGroupId`, `billId`);
-  local schema uses snake_case. Either the API actually returns camelCase for this
-  endpoint (different from rest of API) or the docs are wrong — verify against live API
-  before acting.
-- `StockAdjustmentRow.batch_transactions[].batch_id`: scraped examples include `null`
-  values; local schema requires non-null integer. Make `batch_id` nullable.
-- `ProductOperationRow.cost_parameter` / `.planned_time_parameter`: scraped examples
-  have numeric values (`15`, `7200`); local schema types these as `string|null`. Verify
-  and likely change to `number|null`.
+Scraped examples include `"batch_id": null`; local schema previously required non-null
+integer. Behaviour confirmed by the docs example for `POST /stock_adjustments` showing a
+transaction with `batch_id: null` next to a real batch transaction (Katana allows mixing
+batched and unbatched adjustments in the same row). Schema relaxed to `[integer, null]`
+and description updated to explain when `null` appears.
 
-**Documentation artefacts (no fix needed):**
+### `ProductOperationRow.cost_parameter` / `.planned_time_parameter` — now numeric
 
-- `GET /bin_locations`: example uses `name` (deprecated) but schema requires `bin_name`.
-  The integration tests confirm the live API returns `bin_name`; the doc example just
-  hasn't been updated. (Same example bug we already fixed in
-  `StorageBinListResponse.example` in PR #420.)
-- `GET /operators`, `GET /serial_numbers`: scraped examples are raw arrays `[...]`, but
-  the live API wraps in `{"data": [...]}` per `CLAUDE.md` and verified by the
-  `tests/test_real_api.py::TestSchemaValidation` integration tests. Doc examples are
-  wrong.
+Scraped examples have numeric values (`15`, `7200`); local schema typed both as
+`string|null`. Verified against the live API: `GET /v1/product_operation_rows` returns
+either a JSON number or `null` for both fields. Schema corrected to `number|null`.
 
-The `PATCH /stock_transfers/{id}/status` failure was already addressed in PR #420 by the
-M-1 fix (the example matches the new schema; the remaining mismatch is the
-`id`/`stock_transfer_number`/etc. required-field issue from the `allOf` composition with
-`DeletableEntity` — likely a schema-composition quirk worth re-examining).
+While there, tightened `ProductOperationRow.type` from plain `string` to a `$ref` of the
+existing `ManufacturingOperationType` enum (`[process, setup, perUnit, fixed]`) — the
+field was already enum-constrained on the request side via
+`UpdateProductOperationRowRequest`, the response side just hadn't been tightened.
 
-## Raw findings
+### `PATCH /stock_transfers/{id}/status` — fixed by wrapper-strip
 
+The remaining failures here were a parsing artefact, not real drift: the scraped example
+was wrapped in `{"example": {...}}` (README.io's labelled- example markup). Adding the
+`_unwrap_labeled_example` heuristic to the validator strips the wrapper before
+validation; schema is fine.
+
+## Closed as no-op (documentation artefacts)
+
+These remain in the failure report because the tool is comparing examples against
+schemas; the *schemas are correct* (verified) and the *docs are wrong*. We're not
+chasing them in this PR.
+
+### `GET /bin_locations` — example uses `name` instead of `bin_name`
+
+Live API returns `bin_name` (verified by integration tests in
+`tests/test_real_api.py::TestSchemaValidation`). The doc example uses an old field name
+that's been deprecated. Same root cause as the `StorageBinListResponse.example` fix in
+PR #420.
+
+### `GET /operators`, `GET /serial_numbers` — example is a raw array
+
+Both scraped examples show a raw `[...]` array; our local schema wraps in
+`{"data": [...]}`. CLAUDE.md is explicit: "Katana wraps ALL list responses in
+`{data: [...]}`. The only documented exception is `/user_info`." The integration test
+`tests/test_real_api.py::TestSchemaValidation::test_operator_endpoint_validates`
+exercises both endpoints against the live API and confirms the wrap. Doc examples are
+wrong.
+
+### `GET /purchase_order_accounting_metadata` — example uses camelCase keys
+
+Doc example shows `createdAt`, `purchaseOrderId`, `integrationType`,
+`porReceivedGroupId`, `billId`. Verified against the live API — actual response uses
+snake_case (`purchase_order_id`, `integration_type`, `received_items_group_id`,
+`bill_id`, `created_at`). Local schema is correct; doc is wrong.
+
+## Raw findings (post-fix)
+
+```
 - Markdown files scanned: 249
 - Response examples extracted: 685
-- Examples validated: **122**
+- Examples validated: 122
 - Examples skipped (no local schema): 10
 - Examples skipped (non-2xx): 553
-- Failures: **9**
+- Failures: 5  (all documentation-artefacts; see "Closed as no-op" above)
+```
 
-## Failures
-
-### `GET /bin_locations → 200`
-
-_schema:_ `StorageBinListResponse` _from:_
-`docs/katana-api-comprehensive/getallstoragebins.md`
-
-- error path: `/data/0`
-  - failing value:
-    `{'id': 12345, 'name': 'Bin-2', 'location_id': 12346, 'created_at': '2020-10-23T10:37:05.085Z', 'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}`
-  - message: 'bin_name' is a required property
-
-### `GET /operators → 200`
-
-_schema:_ `OperatorListResponse` _from:_ `docs/katana-api-comprehensive/getoperators.md`
-
-- error path: `/`
-  - failing value:
-    `[{'id': 1, 'operator_name': 'Shopfloor Thomas'}, {'id': 2, 'operator_name': 'Warehouse Mike'}]`
-  - message: \[{'id': 1, 'operator_name': 'Shopfloor Thomas'}, {'id': 2,
-    'operator_name': 'Warehouse Mike'}\] is not of type 'object'
-
-### `GET /purchase_order_accounting_metadata → 200`
-
-_schema:_ `PurchaseOrderAccountingMetadataListResponse` _from:_
-`docs/katana-api-comprehensive/getallpurchaseorderaccountingmetadata.md`
-
-- error path: `/data/0`
-  - failing value:
-    `{'createdAt': '2023-04-17T13:38:07.024Z', 'id': 35, 'integrationType': 'quickBooks', 'purchaseOrderId': 311, 'porReceivedGroupId': 2000037, 'billId': '1082'}`
-  - message: 'purchase_order_id' is a required property
-- error path: `/data/1`
-  - failing value:
-    `{'createdAt': '2023-04-17T13:38:07.024Z', 'id': 36, 'integrationType': 'quickBooks', 'purchaseOrderId': 312, 'porReceivedGroupId': 2000038, 'billId': '1083'}`
-  - message: 'purchase_order_id' is a required property
-
-### `GET /serial_numbers → 200`
-
-_schema:_ `SerialNumberListResponse` _from:_
-`docs/katana-api-comprehensive/getserialnumbers.md`
-
-- error path: `/`
-  - failing value:
-    `[{'id': 1, 'transaction_id': 'eb4da756-0842-4495-9118-f8135f681234', 'serial_number': 'SN1', 'resource_type': 'ManufacturingOrder', 'resource_id': 2, 'transaction_date': '2020-10-23T10:37:05.085Z', 'q...`
-  - message: \[{'id': 1, 'transaction_id': 'eb4da756-0842-4495-9118-f8135f681234',
-    'serial_number': 'SN1', 'resource_type': 'ManufacturingOrder', 'resource_id': 2,
-    'transaction_date': '2020-10-23T10:37:05.085Z', 'quantity_change': 1}\] is not of
-    type 'object'
-
-### `GET /stock_adjustments → 200`
-
-_schema:_ `StockAdjustmentListResponse` _from:_
-`docs/katana-api-comprehensive/findstockadjustments.md`
-
-- error path: `/data/0/stock_adjustment_rows/0/batch_transactions/1/batch_id`
-  - failing value: `None`
-  - message: None is not of type 'integer'
-
-### `PATCH /product_operation_rows/{id} → 200`
-
-_schema:_ `ProductOperationRow` _from:_
-`docs/katana-api-comprehensive/updateproductoperationrow.md`
-
-- error path: `/cost_parameter`
-  - failing value: `15`
-  - message: 15 is not of type 'string', 'null'
-- error path: `/planned_time_parameter`
-  - failing value: `7200`
-  - message: 7200 is not of type 'string', 'null'
-
-### `POST /stock_adjustments → 200`
-
-_schema:_ `StockAdjustment` _from:_
-`docs/katana-api-comprehensive/createstockadjustment.md`
-
-- error path: `/stock_adjustment_rows/0/batch_transactions/1/batch_id`
-  - failing value: `None`
-  - message: None is not of type 'integer'
+To reproduce: `uv run poe validate-response-examples`.

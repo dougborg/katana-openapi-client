@@ -308,8 +308,11 @@ class StockAdjustmentBatchTransaction(KatanaPydanticBase):
         extra="forbid",
     )
     batch_id: Annotated[
-        int, Field(description="Unique identifier for the batch being adjusted")
-    ]
+        int | None,
+        Field(
+            description="Unique identifier for the batch being adjusted, or ``null``\nwhen the adjustment targets unbatched stock.\n"
+        ),
+    ] = None
     quantity: Annotated[
         float, Field(description="Quantity adjusted for this specific batch")
     ]
