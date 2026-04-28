@@ -2,6 +2,23 @@
 
 <!-- version list -->
 
+## v0.54.3 (2026-04-28)
+
+### Bug Fixes
+
+- **client**: Add PydanticJSON TypeDecorator to fix JSON column serialization of nested
+  pydantic models ([#404](https://github.com/dougborg/katana-openapi-client/pull/404),
+  [`6767454`](https://github.com/dougborg/katana-openapi-client/commit/67674541ec7b24135d0c8abaa6b8b00b5dc26052))
+
+- **client**: PydanticJSON TypeDecorator fixes JSON column serialization of nested
+  pydantic models ([#404](https://github.com/dougborg/katana-openapi-client/pull/404),
+  [`6767454`](https://github.com/dougborg/katana-openapi-client/commit/67674541ec7b24135d0c8abaa6b8b00b5dc26052))
+
+### Chores
+
+- **mcp**: Update client dependency to v0.54.2
+  ([`756169a`](https://github.com/dougborg/katana-openapi-client/commit/756169af4c5702a4e4471327243600a0bfe8fde8))
+
 ## v0.54.2 (2026-04-28)
 
 ### Bug Fixes

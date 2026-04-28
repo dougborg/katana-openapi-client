@@ -11,13 +11,14 @@ from enum import StrEnum
 from typing import Annotated, Optional
 
 from pydantic import AnyUrl, AwareDatetime, ConfigDict, Field
-from sqlalchemy import JSON, Column
+from sqlalchemy import Column
 from sqlmodel import (
     Field as SQLField,
     Relationship,
 )
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
+from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON
 
 from .base import DeletableEntity, UpdatableEntity
 from .common import (
@@ -1264,21 +1265,21 @@ class CachedSalesOrderRow(DeletableEntity, table=True):
     attributes: Annotated[
         list[Attribute] | None,
         SQLField(
-            sa_column=Column(JSON),
+            sa_column=Column(PydanticJSON),
             description="Custom attributes associated with this sales order row",
         ),
     ] = None
     batch_transactions: Annotated[
         list[BatchTransaction6] | None,
         SQLField(
-            sa_column=Column(JSON),
+            sa_column=Column(PydanticJSON),
             description="Batch allocations for this order row when using batch tracking",
         ),
     ] = None
     serial_numbers: Annotated[
         list[int] | None,
         SQLField(
-            sa_column=Column(JSON),
+            sa_column=Column(PydanticJSON),
             description="Serial numbers allocated to this order row for serialized products",
         ),
     ] = None
@@ -1448,14 +1449,14 @@ class CachedSalesOrder(DeletableEntity, table=True):
     shipping_fee: Annotated[
         SalesOrderShippingFee | None,
         SQLField(
-            sa_column=Column(JSON),
+            sa_column=Column(PydanticJSON),
             description="Shipping fee details for this sales order",
         ),
     ] = None
     addresses: Annotated[
         list[SalesOrderAddress] | None,
         SQLField(
-            sa_column=Column(JSON),
+            sa_column=Column(PydanticJSON),
             description="Complete address information for billing and shipping",
         ),
     ] = None

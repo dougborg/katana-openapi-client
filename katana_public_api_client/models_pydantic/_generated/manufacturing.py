@@ -8,16 +8,18 @@ To regenerate, run:
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated
+from typing import Annotated, Optional
 from uuid import UUID
 
 from pydantic import AwareDatetime, ConfigDict, Field
-from sqlalchemy import JSON, Column
+from sqlalchemy import Column
 from sqlmodel import (
     Field as SQLField,
+    Relationship,
 )
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
+from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON
 
 from .base import DeletableEntity
 from .common import (
@@ -943,6 +945,72 @@ class CreateManufacturingOrderProductionRequest(KatanaPydanticBase):
     ] = None
 
 
+class CachedManufacturingOrderRecipeRow(DeletableEntity, table=True):
+    __tablename__ = "manufacturing_order_recipe_row"
+    model_config = ConfigDict(frozen=False)
+
+    id: Annotated[int, SQLField(primary_key=True, description="Unique identifier")]
+
+    manufacturing_order_id: Annotated[
+        int | None,
+        SQLField(
+            foreign_key="manufacturing_order.id",
+            description="ID of the manufacturing order this recipe row belongs to",
+        ),
+    ] = None
+    variant_id: Annotated[
+        int | None,
+        Field(description="ID of the ingredient variant required for production"),
+    ] = None
+    notes: Annotated[
+        str | None,
+        Field(
+            description="Additional notes about this ingredient or special handling instructions"
+        ),
+    ] = None
+    planned_quantity_per_unit: Annotated[
+        float | None,
+        Field(
+            description="Planned quantity of this ingredient needed per unit produced"
+        ),
+    ] = None
+    total_actual_quantity: Annotated[
+        float | None,
+        Field(description="Total actual quantity of this ingredient consumed"),
+    ] = None
+    ingredient_availability: Annotated[
+        str | None, Field(description="Current availability status of this ingredient")
+    ] = None
+    ingredient_expected_date: Annotated[
+        datetime | None,
+        Field(
+            description="Expected date when ingredient will be available if currently unavailable"
+        ),
+    ] = None
+    batch_transactions: Annotated[
+        list[BatchTransaction3] | None,
+        SQLField(
+            sa_column=Column(PydanticJSON),
+            description="Batch tracking transactions for this ingredient consumption",
+        ),
+    ] = None
+    cost: Annotated[
+        float | None,
+        Field(description="Total cost of this ingredient for the manufacturing order"),
+    ] = None
+    total_consumed_quantity: Annotated[
+        float | None,
+        Field(description="Total quantity consumed so far from this ingredient"),
+    ] = None
+    total_remaining_quantity: Annotated[
+        float | None,
+        Field(description="Remaining quantity needed from this ingredient"),
+    ] = None
+    manufacturing_order: Optional["CachedManufacturingOrder"] = Relationship(
+        back_populates="recipe_rows"
+    )
+
+
 class CachedManufacturingOrder(DeletableEntity, table=True):
     __tablename__ = "manufacturing_order"
     model_config = ConfigDict(frozen=False)
@@ -986,7 +1054,7 @@ class CachedManufacturingOrder(DeletableEntity, table=True):
     batch_transactions: Annotated[
         list[BatchTransaction] | None,
         SQLField(
-            sa_column=Column(JSON),
+            sa_column=Column(PydanticJSON),
             description="Batch transactions for produced items, typically one transaction per manufacturing order",
         ),
     ] = None
@@ -1060,7 +1128,10 @@ class CachedManufacturingOrder(DeletableEntity, table=True):
     serial_numbers: Annotated[
         list[SerialNumber] | None,
         SQLField(
-            sa_column=Column(JSON),
+            sa_column=Column(PydanticJSON),
             description="Serial numbers assigned to produced items",
         ),
     ] = None
+    recipe_rows: list["CachedManufacturingOrderRecipeRow"] = Relationship(
+        back_populates="manufacturing_order"
+    )
