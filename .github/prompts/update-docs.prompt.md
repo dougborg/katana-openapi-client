@@ -12,7 +12,7 @@ implementation.
 1. **Identify documentation needs** based on changes:
 
    - **User-facing changes**: README, guides, cookbook
-   - **Developer changes**: CONTRIBUTING, CLAUDE.md, AGENT_WORKFLOW.md
+   - **Developer changes**: CONTRIBUTING, CLAUDE.md
    - **Architectural changes**: New ADR or update existing
    - **API changes**: Docstrings, API reference
    - **Process changes**: Workflow guides
@@ -89,8 +89,7 @@ implementation.
 ### Main Documentation
 
 - `README.md` - Project overview
-- `CLAUDE.md` - Claude Code guide
-- `AGENT_WORKFLOW.md` - AI agent workflows
+- `CLAUDE.md` - Claude Code guide and canonical agent guidance
 - `.github/copilot-instructions.md` - Copilot instructions
 
 ### User Guides

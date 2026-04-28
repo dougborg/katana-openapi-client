@@ -37,9 +37,9 @@ We use the format proposed by Michael Nygard in his article
 
 ### Accepted Shared/Monorepo Decisions
 
-- [ADR-009: Migrate from Poetry to uv Package Manager](0009-migrate-from-poetry-to-uv.md)
-- [ADR-013: Module-Local Documentation Structure](0013-module-local-documentation.md)
-- [ADR-014: GitHub Copilot Custom Agents with Three-Tier Architecture](0014-github-copilot-custom-agents.md)
+- [ADR-0009: Migrate from Poetry to uv Package Manager](0009-migrate-from-poetry-to-uv.md)
+- [ADR-0013: Module-Local Documentation Structure](0013-module-local-documentation.md)
+- [ADR-0014: GitHub Copilot Custom Agents with Three-Tier Architecture](0014-github-copilot-custom-agents.md) — **superseded** by harness-kit + `.claude/`
 
 ## Creating a New ADR
 
@@ -65,8 +65,20 @@ We use the format proposed by Michael Nygard in his article
 
 ## ADR Numbering
 
-ADRs are numbered sequentially starting from 0001. The number is part of the filename to
-ensure ordering.
+ADRs are numbered sequentially starting from 0001, with a **single shared sequence
+across all three ADR directories**:
+
+- `katana_public_api_client/docs/adr/` — client package decisions (0001-0008,
+  0011-0012)
+- `docs/adr/` — shared / monorepo-level decisions (0009, 0013-0014)
+- `katana_mcp_server/docs/adr/` — MCP-server-specific decisions (0010,
+  0016-0019)
+
+The sequence interleaves across the three directories. When you write a new
+ADR, take the next number across **all three** directories — don't restart per
+package, and don't reuse historical numbers (0015 is a dead draft, but reusing
+it would create ambiguous references). Leave gaps if needed; numbers are
+monotonic.
 
 ## Related Documentation
 

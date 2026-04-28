@@ -31,7 +31,6 @@ succeed and developers to contribute confidently.
 
 - `README.md` - Project overview and quick start
 - `CLAUDE.md` - Claude Code development guide
-- `AGENT_WORKFLOW.md` - AI agent workflow patterns
 - `.github/copilot-instructions.md` - GitHub Copilot instructions
 
 ### docs/ Directory
@@ -273,7 +272,7 @@ Before documenting:
 Determine what needs updating:
 
 - **User-facing changes**: README, guides, cookbook
-- **Developer changes**: CONTRIBUTING, CLAUDE.md, AGENT_WORKFLOW.md
+- **Developer changes**: CONTRIBUTING, CLAUDE.md
 - **Architectural changes**: New ADR or update existing
 - **API changes**: Docstrings, API reference
 - **Process changes**: Workflow guides

@@ -359,8 +359,7 @@ When you need detailed guidance, use the `read` tool:
 ### Development Guidelines
 
 - `.github/copilot-instructions.md` - Complete development instructions
-- `CLAUDE.md` - Quick reference for commands
-- `AGENT_WORKFLOW.md` - Step-by-step workflow patterns
+- `CLAUDE.md` - Canonical agent guidance and command reference
 
 ### Architecture Decisions
 

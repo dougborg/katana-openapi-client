@@ -65,9 +65,9 @@ for a specific workflow stage:
 
 ### Documentation Integration
 
-- Add tier reference to AGENT_WORKFLOW.md (complete guide)
-- Add tier summary to CLAUDE.md (Claude Code quick reference)
-- Add tier details to .github/copilot-instructions.md (GitHub Copilot)
+- Add tier summary to CLAUDE.md (Claude Code quick reference and canonical
+  agent guidance — see CLAUDE.md "Essential Commands" table)
+- Add tier details to `.github/copilot-instructions.md` (GitHub Copilot)
 - Include in timeout reference tables
 
 ## Consequences
@@ -143,6 +143,8 @@ for a specific workflow stage:
 
 - [Issue #93: infra: Create quick-check and agent-check poe tasks](https://github.com/dougborg/katana-openapi-client/issues/93)
 - [PR #107: docs: update copilot-instructions.md and CLAUDE.md with uv and validation tiers](https://github.com/dougborg/katana-openapi-client/pull/107)
-- [AGENT_WORKFLOW.md](../../AGENT_WORKFLOW.md) - Complete agent workflow guide
-- [ADR-009: Migrate from Poetry to uv](0009-migrate-from-poetry-to-uv.md) - Package
-  manager that enabled fast validation
+- [CLAUDE.md](../../../CLAUDE.md) - Canonical agent guidance (replaced
+  the historical `AGENT_WORKFLOW.md` referenced in this ADR — see ADR-0014
+  for the supersession history)
+- [ADR-0009: Migrate from Poetry to uv](../../../docs/adr/0009-migrate-from-poetry-to-uv.md) -
+  Package manager that enabled fast validation
