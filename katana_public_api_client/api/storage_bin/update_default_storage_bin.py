@@ -99,9 +99,8 @@ def sync_detailed(
 
     Args:
         id (int):
-        body (StorageBinUpdate): Storage bin fields for update operations (all optional for PATCH)
-            Example: {'bin_name': 'A-01-SHELF-2', 'location_id': 2}.
-
+        body (StorageBinUpdate): Storage bin fields for update operations Example: {'bin_name':
+            'A-01-SHELF-2'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -138,9 +137,8 @@ def sync(
 
     Args:
         id (int):
-        body (StorageBinUpdate): Storage bin fields for update operations (all optional for PATCH)
-            Example: {'bin_name': 'A-01-SHELF-2', 'location_id': 2}.
-
+        body (StorageBinUpdate): Storage bin fields for update operations Example: {'bin_name':
+            'A-01-SHELF-2'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -172,9 +170,8 @@ async def asyncio_detailed(
 
     Args:
         id (int):
-        body (StorageBinUpdate): Storage bin fields for update operations (all optional for PATCH)
-            Example: {'bin_name': 'A-01-SHELF-2', 'location_id': 2}.
-
+        body (StorageBinUpdate): Storage bin fields for update operations Example: {'bin_name':
+            'A-01-SHELF-2'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -209,9 +206,8 @@ async def asyncio(
 
     Args:
         id (int):
-        body (StorageBinUpdate): Storage bin fields for update operations (all optional for PATCH)
-            Example: {'bin_name': 'A-01-SHELF-2', 'location_id': 2}.
-
+        body (StorageBinUpdate): Storage bin fields for update operations Example: {'bin_name':
+            'A-01-SHELF-2'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

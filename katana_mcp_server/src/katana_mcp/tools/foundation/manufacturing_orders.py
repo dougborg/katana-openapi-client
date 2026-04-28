@@ -9,7 +9,7 @@ These tools provide:
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal
 
@@ -93,6 +93,14 @@ class CreateManufacturingOrderRequest(BaseModel):
     )
     additional_info: str | None = Field(
         default=None, description="Additional notes (standalone mode only)"
+    )
+    order_no: str | None = Field(
+        default=None,
+        description=(
+            "Manufacturing order reference number (standalone mode only). "
+            "Required by the live API; if omitted, a timestamp-based default "
+            "(``MO-<unix-ts>``) is generated client-side."
+        ),
     )
     confirm: bool = Field(
         default=False,
@@ -255,10 +263,15 @@ async def _create_manufacturing_order_impl(
             assert request.variant_id is not None
             assert request.planned_quantity is not None
             assert request.location_id is not None
+            # ``order_no`` is required by the live API. Auto-generate a
+            # timestamp-based default if the caller didn't provide one so
+            # the request constructs and Katana accepts it.
+            order_no = request.order_no or (f"MO-{int(datetime.now(UTC).timestamp())}")
             api_request = APICreateManufacturingOrderRequest(
                 variant_id=request.variant_id,
                 planned_quantity=request.planned_quantity,
                 location_id=request.location_id,
+                order_no=order_no,
                 order_created_date=to_unset(request.order_created_date),
                 production_deadline_date=to_unset(request.production_deadline_date),
                 additional_info=to_unset(request.additional_info),

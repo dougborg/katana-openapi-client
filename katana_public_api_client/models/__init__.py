@@ -37,6 +37,9 @@ from .create_inventory_reorder_point_request import CreateInventoryReorderPointR
 from .create_manufacturing_order_operation_row_request import (
     CreateManufacturingOrderOperationRowRequest,
 )
+from .create_manufacturing_order_operation_row_request_status import (
+    CreateManufacturingOrderOperationRowRequestStatus,
+)
 from .create_manufacturing_order_production_request import (
     CreateManufacturingOrderProductionRequest,
 )
@@ -47,6 +50,9 @@ from .create_manufacturing_order_recipe_row_request_batch_transactions_item impo
     CreateManufacturingOrderRecipeRowRequestBatchTransactionsItem,
 )
 from .create_manufacturing_order_request import CreateManufacturingOrderRequest
+from .create_manufacturing_order_request_status import (
+    CreateManufacturingOrderRequestStatus,
+)
 from .create_material_request import CreateMaterialRequest
 from .create_outsourced_purchase_order_recipe_row_request import (
     CreateOutsourcedPurchaseOrderRecipeRowRequest,
@@ -122,6 +128,7 @@ from .create_variant_request_custom_fields_item import (
 from .create_webhook_request import CreateWebhookRequest
 from .custom_field import CustomField
 from .custom_field_collection_resource_type import CustomFieldCollectionResourceType
+from .custom_field_value import CustomFieldValue
 from .custom_fields_collection import CustomFieldsCollection
 from .custom_fields_collection_list_response import CustomFieldsCollectionListResponse
 from .customer import Customer
@@ -188,6 +195,7 @@ from .make_to_order_manufacturing_order_request import (
     MakeToOrderManufacturingOrderRequest,
 )
 from .manufacturing_operation_status import ManufacturingOperationStatus
+from .manufacturing_operation_type import ManufacturingOperationType
 from .manufacturing_order import ManufacturingOrder
 from .manufacturing_order_list_response import ManufacturingOrderListResponse
 from .manufacturing_order_operation_production import (
@@ -245,6 +253,7 @@ from .outsourced_recipe_ingredient_availability import (
 )
 from .pattern_validation_error import PatternValidationError
 from .pattern_validation_error_code import PatternValidationErrorCode
+from .price_adjustment_method import PriceAdjustmentMethod
 from .price_list import PriceList
 from .price_list_adjustment_method import PriceListAdjustmentMethod
 from .price_list_customer import PriceListCustomer
@@ -502,10 +511,12 @@ __all__ = (
     "CreateDemandForecastRequestPeriodsItem",
     "CreateInventoryReorderPointRequest",
     "CreateManufacturingOrderOperationRowRequest",
+    "CreateManufacturingOrderOperationRowRequestStatus",
     "CreateManufacturingOrderProductionRequest",
     "CreateManufacturingOrderRecipeRowRequest",
     "CreateManufacturingOrderRecipeRowRequestBatchTransactionsItem",
     "CreateManufacturingOrderRequest",
+    "CreateManufacturingOrderRequestStatus",
     "CreateMaterialRequest",
     "CreateOutsourcedPurchaseOrderRecipeRowRequest",
     "CreatePriceListCustomerRequest",
@@ -555,6 +566,7 @@ __all__ = (
     "CreateWebhookRequest",
     "CustomField",
     "CustomFieldCollectionResourceType",
+    "CustomFieldValue",
     "CustomFieldsCollection",
     "CustomFieldsCollectionListResponse",
     "Customer",
@@ -611,6 +623,7 @@ __all__ = (
     "LocationType0",
     "MakeToOrderManufacturingOrderRequest",
     "ManufacturingOperationStatus",
+    "ManufacturingOperationType",
     "ManufacturingOrder",
     "ManufacturingOrderListResponse",
     "ManufacturingOrderOperationProduction",
@@ -646,6 +659,7 @@ __all__ = (
     "OutsourcedRecipeIngredientAvailability",
     "PatternValidationError",
     "PatternValidationErrorCode",
+    "PriceAdjustmentMethod",
     "PriceList",
     "PriceListAdjustmentMethod",
     "PriceListCustomer",

@@ -26,7 +26,9 @@ from .common import (
     AssignedOperator,
     ManufacturingOperationStatus,
     Operator,
+    ProductOperationType,
     Row,
+    Status,
 )
 from .purchase_orders import OutsourcedPurchaseOrderIngredientAvailability
 from .stock import (
@@ -42,20 +44,23 @@ class ManufacturingOrderStatus(StrEnum):
     not_started = "NOT_STARTED"
     blocked = "BLOCKED"
     in_progress = "IN_PROGRESS"
+    partially_completed = "PARTIALLY_COMPLETED"
     done = "DONE"
 
 
 class CreateManufacturingOrderRequest(KatanaPydanticBase):
     status: Annotated[
-        ManufacturingOrderStatus | None,
-        Field(description="Initial production status of the manufacturing order"),
+        Status | None,
+        Field(
+            description="Initial production status of the manufacturing order. The live API\nonly accepts NOT_STARTED on create; further transitions go through\nPATCH /manufacturing_orders/{id}.\n"
+        ),
     ] = None
     order_no: Annotated[
-        str | None,
+        str,
         Field(
             description="Custom manufacturing order number for tracking and reference"
         ),
-    ] = None
+    ]
     variant_id: Annotated[
         int, Field(description="ID of the product variant to manufacture")
     ]
@@ -804,10 +809,13 @@ class CreateManufacturingOrderOperationRowRequest(KatanaPydanticBase):
         Field(description="ID of the manufacturing order this operation belongs to"),
     ]
     operation_id: Annotated[
-        int, Field(description="ID of the operation being performed")
-    ]
+        int | None, Field(description="ID of the operation being performed")
+    ] = None
     type: Annotated[
-        str | None, Field(description="Type of operation (e.g., manual, automatic)")
+        ProductOperationType | None,
+        Field(
+            description="Type of operation defining how time and cost are calculated"
+        ),
     ] = None
     operation_name: Annotated[
         str | None, Field(description="Name of the operation")
@@ -834,8 +842,11 @@ class CreateManufacturingOrderOperationRowRequest(KatanaPydanticBase):
         float | None, Field(description="Hourly cost rate for this operation")
     ] = None
     status: Annotated[
-        str | None, Field(description="Current status of the operation")
-    ] = None
+        Status,
+        Field(
+            description="Initial status of the operation row. Live API only accepts\nNOT_STARTED on create; transitions go through PATCH.\n"
+        ),
+    ]
     assigned_operators: Annotated[
         list[Operator] | None,
         Field(description="Operators assigned to perform this operation"),
@@ -843,15 +854,14 @@ class CreateManufacturingOrderOperationRowRequest(KatanaPydanticBase):
 
 
 class UpdateManufacturingOrderOperationRowRequest(KatanaPydanticBase):
-    manufacturing_order_id: Annotated[
-        int | None,
-        Field(description="ID of the manufacturing order this operation belongs to"),
-    ] = None
     operation_id: Annotated[
         int | None, Field(description="ID of the operation being performed")
     ] = None
     type: Annotated[
-        str | None, Field(description="Type of operation (e.g., manual, automatic)")
+        ProductOperationType | None,
+        Field(
+            description="Type of operation defining how time and cost are calculated"
+        ),
     ] = None
     operation_name: Annotated[
         str | None, Field(description="Name of the operation")
@@ -882,7 +892,8 @@ class UpdateManufacturingOrderOperationRowRequest(KatanaPydanticBase):
         float | None, Field(description="Hourly cost rate for this operation")
     ] = None
     status: Annotated[
-        str | None, Field(description="Current status of the operation")
+        ManufacturingOperationStatus | None,
+        Field(description="Current status of the operation"),
     ] = None
     assigned_operators: Annotated[
         list[Operator] | None,
@@ -923,14 +934,18 @@ class CreateManufacturingOrderProductionRequest(KatanaPydanticBase):
         float, Field(description="Quantity produced in this production run")
     ]
     completed_date: Annotated[
-        AwareDatetime,
+        AwareDatetime | None,
         Field(description="Date and time when the production was completed"),
-    ]
+    ] = None
     is_final: Annotated[
         bool | None,
         Field(
             description="Whether this is the final production run that completes the manufacturing order"
         ),
+    ] = None
+    batch_transaction: Annotated[
+        BatchTransaction | None,
+        Field(description="Batch transaction allocation for this production run"),
     ] = None
     ingredients: Annotated[
         list[ManufacturingOrderProductionIngredient] | None,

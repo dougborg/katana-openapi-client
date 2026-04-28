@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
 from ..client_types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.custom_field_value import CustomFieldValue
+
 
 T = TypeVar("T", bound="UpdateServiceRequest")
 
@@ -30,6 +34,7 @@ class UpdateServiceRequest:
     default_cost: float | None | Unset = UNSET
     sku: str | Unset = UNSET
     custom_field_collection_id: int | None | Unset = UNSET
+    custom_fields: list[CustomFieldValue] | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
@@ -64,6 +69,13 @@ class UpdateServiceRequest:
         else:
             custom_field_collection_id = self.custom_field_collection_id
 
+        custom_fields: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.custom_fields, Unset):
+            custom_fields = []
+            for custom_fields_item_data in self.custom_fields:
+                custom_fields_item = custom_fields_item_data.to_dict()
+                custom_fields.append(custom_fields_item)
+
         field_dict: dict[str, Any] = {}
 
         field_dict.update({})
@@ -87,11 +99,15 @@ class UpdateServiceRequest:
             field_dict["sku"] = sku
         if custom_field_collection_id is not UNSET:
             field_dict["custom_field_collection_id"] = custom_field_collection_id
+        if custom_fields is not UNSET:
+            field_dict["custom_fields"] = custom_fields
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.custom_field_value import CustomFieldValue
+
         d = dict(src_dict)
         name = d.pop("name", UNSET)
 
@@ -136,6 +152,15 @@ class UpdateServiceRequest:
             d.pop("custom_field_collection_id", UNSET)
         )
 
+        _custom_fields = d.pop("custom_fields", UNSET)
+        custom_fields: list[CustomFieldValue] | Unset = UNSET
+        if _custom_fields is not UNSET:
+            custom_fields = []
+            for custom_fields_item_data in _custom_fields:
+                custom_fields_item = CustomFieldValue.from_dict(custom_fields_item_data)
+
+                custom_fields.append(custom_fields_item)
+
         update_service_request = cls(
             name=name,
             uom=uom,
@@ -147,6 +172,7 @@ class UpdateServiceRequest:
             default_cost=default_cost,
             sku=sku,
             custom_field_collection_id=custom_field_collection_id,
+            custom_fields=custom_fields,
         )
 
         return update_service_request

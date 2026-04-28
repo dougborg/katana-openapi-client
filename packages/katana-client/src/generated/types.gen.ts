@@ -227,6 +227,7 @@ export type ManufacturingOrderStatus =
   | "NOT_STARTED"
   | "BLOCKED"
   | "IN_PROGRESS"
+  | "PARTIALLY_COMPLETED"
   | "DONE";
 
 /**
@@ -316,7 +317,7 @@ export type ServiceType = "service";
 export type ProductOperationType = "process" | "setup" | "perUnit" | "fixed";
 
 /**
- * Status of a manufacturing order operation
+ * Status of a manufacturing order operation row
  */
 export type ManufacturingOperationStatus =
   | "NOT_STARTED"
@@ -324,6 +325,20 @@ export type ManufacturingOperationStatus =
   | "IN_PROGRESS"
   | "PAUSED"
   | "COMPLETED";
+
+/**
+ * Type of operation defining how time and cost are calculated
+ */
+export type ManufacturingOperationType =
+  | "process"
+  | "setup"
+  | "perUnit"
+  | "fixed";
+
+/**
+ * Pricing adjustment method for price list rows
+ */
+export type PriceAdjustmentMethod = "fixed" | "markup" | "percentage";
 
 /**
  * Fulfillment status of a purchase order
@@ -401,13 +416,12 @@ export type UpdateSalesOrderStatus =
   | "DELIVERED";
 
 /**
- * Status of a stock transfer
+ * Status of a stock transfer. Values match the live API at
+ * ``PATCH /stock_transfers/{id}/status`` (verified 2026-04-28). Note
+ * the camelCase ``inTransit``.
+ *
  */
-export type StockTransferStatus =
-  | "pending"
-  | "in_transit"
-  | "completed"
-  | "cancelled";
+export type StockTransferStatus = "draft" | "received" | "inTransit";
 
 /**
  * Type of resource that caused an inventory movement
@@ -437,11 +451,14 @@ export type SerialNumberResourceType =
   | "SalesOrderFulfillmentRow";
 
 /**
- * Allowed resource types when creating serial numbers
+ * Allowed resource types when creating serial numbers via
+ * ``POST /serial_numbers``. Note: ``Production`` is valid when
+ * *retrieving* serial numbers (see ``SerialNumberResourceType``) but
+ * is not accepted as input here — the API rejects it with 422.
+ *
  */
 export type CreateSerialNumberResourceType =
   | "ManufacturingOrder"
-  | "Production"
   | "StockAdjustmentRow"
   | "StockTransferRow"
   | "PurchaseOrderRow"
@@ -742,17 +759,13 @@ export type StorageBin = {
 export type StorageBinResponse = StorageBin & DeletableEntity;
 
 /**
- * Storage bin fields for update operations (all optional for PATCH)
+ * Storage bin fields for update operations
  */
 export type StorageBinUpdate = {
   /**
    * Name of the storage bin
    */
-  bin_name?: string;
-  /**
-   * Unique identifier of the location where storage bin is located
-   */
-  location_id?: number;
+  bin_name: string;
 };
 
 /**
@@ -1132,13 +1145,16 @@ export type InventorySafetyStockLevelResponse = InventorySafetyStockLevel &
  */
 export type CreateManufacturingOrderRequest = {
   /**
-   * Initial production status of the manufacturing order
+   * Initial production status of the manufacturing order. The live API
+   * only accepts NOT_STARTED on create; further transitions go through
+   * PATCH /manufacturing_orders/{id}.
+   *
    */
-  status?: ManufacturingOrderStatus;
+  status?: "NOT_STARTED";
   /**
    * Custom manufacturing order number for tracking and reference
    */
-  order_no?: string;
+  order_no: string;
   /**
    * ID of the product variant to manufacture
    */
@@ -1349,11 +1365,15 @@ export type CreateManufacturingOrderProductionRequest = {
   /**
    * Date and time when the production was completed
    */
-  completed_date: string;
+  completed_date?: string;
   /**
    * Whether this is the final production run that completes the manufacturing order
    */
   is_final?: boolean;
+  /**
+   * Batch transaction allocation for this production run
+   */
+  batch_transaction?: BatchTransaction;
   /**
    * Ingredients consumed during this production run
    */
@@ -1559,11 +1579,11 @@ export type CreateManufacturingOrderOperationRowRequest = {
   /**
    * ID of the operation being performed
    */
-  operation_id: number;
+  operation_id?: number;
   /**
-   * Type of operation (e.g., manual, automatic)
+   * Type of operation defining how time and cost are calculated
    */
-  type?: string;
+  type?: ManufacturingOperationType;
   /**
    * Name of the operation
    */
@@ -1593,9 +1613,11 @@ export type CreateManufacturingOrderOperationRowRequest = {
    */
   cost_per_hour?: number;
   /**
-   * Current status of the operation
+   * Initial status of the operation row. Live API only accepts
+   * NOT_STARTED on create; transitions go through PATCH.
+   *
    */
-  status?: string;
+  status: "NOT_STARTED";
   /**
    * Operators assigned to perform this operation
    */
@@ -1607,17 +1629,13 @@ export type CreateManufacturingOrderOperationRowRequest = {
  */
 export type UpdateManufacturingOrderOperationRowRequest = {
   /**
-   * ID of the manufacturing order this operation belongs to
-   */
-  manufacturing_order_id?: number;
-  /**
    * ID of the operation being performed
    */
   operation_id?: number;
   /**
-   * Type of operation (e.g., manual, automatic)
+   * Type of operation defining how time and cost are calculated
    */
-  type?: string;
+  type?: ManufacturingOperationType;
   /**
    * Name of the operation
    */
@@ -1653,7 +1671,7 @@ export type UpdateManufacturingOrderOperationRowRequest = {
   /**
    * Current status of the operation
    */
-  status?: string;
+  status?: ManufacturingOperationStatus;
   /**
    * Operators assigned to perform this operation
    */
@@ -2288,14 +2306,6 @@ export type CreateProductRequest = {
    * that is different from uom.
    */
   purchase_uom_conversion_rate?: number;
-  /**
-   * Expected lead time in days for procurement or production
-   */
-  lead_time?: number | null;
-  /**
-   * Minimum quantity that must be ordered from suppliers
-   */
-  minimum_order_quantity?: number;
   /**
    * Product configuration options for creating variants
    */
@@ -2985,9 +2995,20 @@ export type CreatePurchaseOrderRowRequest = {
    */
   tax_rate_id?: number;
   /**
-   * Group identifier for organizing related line items
+   * Tax label snapshot to record on this line item
    */
-  group_id?: number;
+  tax_name?: string;
+  /**
+   * Tax rate percentage snapshot to record on this line item. Sent
+   * as a string to preserve exact decimal precision (Katana's wire
+   * format).
+   *
+   */
+  tax_rate?: string;
+  /**
+   * ISO 4217 currency code for the line price (overrides PO currency)
+   */
+  currency?: string;
   /**
    * Unit price for each item in this line
    */
@@ -3023,9 +3044,16 @@ export type UpdatePurchaseOrderRowRequest = {
    */
   tax_rate_id?: number;
   /**
-   * Updatable only when received_date is null
+   * Tax label snapshot to record on this line item
    */
-  group_id?: number;
+  tax_name?: string;
+  /**
+   * Tax rate percentage snapshot to record on this line item. Sent
+   * as a string to preserve exact decimal precision (Katana's wire
+   * format).
+   *
+   */
+  tax_rate?: string;
   /**
    * Updatable only when received_date is null
    */
@@ -3277,7 +3305,7 @@ export type CreateSupplierAddressRequest = {
   /**
    * Primary address line (street number, street name)
    */
-  line_1: string;
+  line_1?: string;
   /**
    * Secondary address line (suite, apartment, building)
    */
@@ -3393,7 +3421,7 @@ export type CreateVariantRequest = {
   /**
    * Stock keeping unit code for unique identification of this product variant
    */
-  sku: string;
+  sku?: string;
   /**
    * Default selling price per unit for this product variant
    */
@@ -3547,7 +3575,9 @@ export type VariantResponse = {
 } & DeletableEntity;
 
 /**
- * Request payload for updating product variant details including pricing, configuration, and inventory information
+ * Request payload for updating product variant details including pricing, configuration, and inventory information.
+ * Note: ``product_id`` and ``material_id`` are not present here — a variant's parent
+ * is set at create time and cannot be reassigned via PATCH.
  *
  */
 export type UpdateVariantRequest = {
@@ -3563,14 +3593,6 @@ export type UpdateVariantRequest = {
    * Default purchase cost per unit for this product variant
    */
   purchase_price?: number;
-  /**
-   * Reference to the parent product when this is a product variant
-   */
-  product_id?: number | null;
-  /**
-   * Reference to the parent material when this is a material variant
-   */
-  material_id?: number | null;
   /**
    * Supplier-specific codes for ordering this variant
    */
@@ -3806,6 +3828,10 @@ export type CreateWebhookRequest = {
    */
   url: string;
   /**
+   * Whether this webhook subscription should be active immediately on creation (defaults to true)
+   */
+  enabled?: boolean;
+  /**
    * List of event types to subscribe to (at least one event type required)
    */
   subscribed_events: Array<WebhookEvent>;
@@ -3822,7 +3848,7 @@ export type UpdateWebhookRequest = {
   /**
    * HTTPS endpoint URL where webhook events will be sent (must use HTTPS for security)
    */
-  url: string;
+  url?: string;
   /**
    * Whether this webhook subscription should be active and receive events
    */
@@ -3830,7 +3856,7 @@ export type UpdateWebhookRequest = {
   /**
    * List of event types to subscribe to (at least one event type required)
    */
-  subscribed_events: Array<WebhookEvent>;
+  subscribed_events?: Array<WebhookEvent>;
   /**
    * Optional human-readable description of this webhook's purpose for management and documentation
    */
@@ -4153,6 +4179,13 @@ export type UpdateServiceRequest = {
    * ID of the custom field collection to associate with this service
    */
   custom_field_collection_id?: number | null;
+  /**
+   * Custom field values to attach to the service. Field names must
+   * match those configured for the ``service`` resource type (see
+   * ``GET /custom_fields_collections``).
+   *
+   */
+  custom_fields?: Array<CustomFieldValue>;
 };
 
 /**
@@ -4909,7 +4942,7 @@ export type CreateSalesOrderAddressRequest = {
   /**
    * Primary address line
    */
-  line_1: string;
+  line_1?: string;
   /**
    * Secondary address line
    */
@@ -4917,7 +4950,7 @@ export type CreateSalesOrderAddressRequest = {
   /**
    * City name
    */
-  city: string;
+  city?: string;
   /**
    * State or province
    */
@@ -4929,7 +4962,7 @@ export type CreateSalesOrderAddressRequest = {
   /**
    * Country code
    */
-  country: string;
+  country?: string;
   /**
    * Contact phone number
    */
@@ -5099,6 +5132,13 @@ export type CreateSalesOrderRequest = {
    * Original order ID from the ecommerce platform
    */
   ecommerce_order_id?: string | null;
+  /**
+   * Custom field values to attach to the sales order. Field names
+   * must match those configured for the ``sales_order`` resource
+   * type (see ``GET /custom_fields_collections``).
+   *
+   */
+  custom_fields?: Array<CustomFieldValue>;
 };
 
 /**
@@ -5192,7 +5232,7 @@ export type CreateStockAdjustmentRequest = {
   /**
    * Human-readable reference number for tracking and audit purposes
    */
-  stock_adjustment_number?: string;
+  stock_adjustment_number: string;
   /**
    * Date and time when the adjustment was performed
    */
@@ -5531,9 +5571,13 @@ export type UpdatePriceListRequest = {
  */
 export type UpdatePriceListRowRequest = {
   /**
+   * ID of the product variant being priced
+   */
+  variant_id?: number;
+  /**
    * Method for price adjustment
    */
-  adjustment_method?: string;
+  adjustment_method?: PriceAdjustmentMethod;
   /**
    * Adjustment amount
    */
@@ -5547,7 +5591,7 @@ export type UpdatePriceListCustomerRequest = {
   /**
    * ID of the customer to assign to price list
    */
-  customer_id?: number;
+  customer_id: number;
 };
 
 /**
@@ -5997,6 +6041,24 @@ export type CustomFieldsCollection = {
 } & DeletableEntity;
 
 /**
+ * A single custom field value attached to a resource (e.g., a sales
+ * order, service, product). Custom fields are configured via
+ * ``GET /custom_fields_collections``; each value pairs the field's
+ * configured name with the value to set.
+ *
+ */
+export type CustomFieldValue = {
+  /**
+   * Name of the custom field (matches a configured field's ``name``)
+   */
+  field_name: string;
+  /**
+   * Value to set for this custom field
+   */
+  field_value: string;
+};
+
+/**
  * Individual custom field definition with validation rules and configuration options
  */
 export type CustomField = {
@@ -6270,6 +6332,22 @@ export type CreateSalesReturnRequest = {
    * Optional notes or comments about the return
    */
   additional_info?: string;
+  /**
+   * Tracking number for the return shipment
+   */
+  tracking_number?: string | null;
+  /**
+   * URL to track the return shipment
+   */
+  tracking_number_url?: string | null;
+  /**
+   * Carrier used for the return shipment
+   */
+  tracking_carrier?: string | null;
+  /**
+   * Shipping method used for the return
+   */
+  tracking_method?: string | null;
 };
 
 /**
@@ -6300,6 +6378,22 @@ export type UpdateSalesReturnRequest = {
    * Additional information about the return. Updatable only when current return status is not restockedAll.
    */
   additional_info?: string | null;
+  /**
+   * Tracking number for the return shipment
+   */
+  tracking_number?: string | null;
+  /**
+   * URL to track the return shipment
+   */
+  tracking_number_url?: string | null;
+  /**
+   * Carrier used for the return shipment
+   */
+  tracking_carrier?: string | null;
+  /**
+   * Shipping method used for the return
+   */
+  tracking_method?: string | null;
 };
 
 /**
@@ -6659,7 +6753,7 @@ export type CreateStocktakeRowRequest = {
   /**
    * Array of stocktake rows to create
    */
-  stocktake_rows: Array<{
+  stocktake_rows?: Array<{
     /**
      * ID of the variant being counted
      */
@@ -6929,9 +7023,11 @@ export type CreateSalesOrderShippingFeeRequest = {
    */
   sales_order_id: number;
   /**
-   * Shipping fee amount in the order currency
+   * Shipping fee amount in the order currency. Sent as a string to
+   * preserve exact decimal precision (Katana's wire format).
+   *
    */
-  amount: number;
+  amount: string;
   /**
    * Description of the shipping service or fee type
    */
@@ -7136,9 +7232,9 @@ export type UpdateProductOperationRowRequest = {
    */
   operation_name?: string;
   /**
-   * Type of operation
+   * Type of operation defining how time and cost are calculated
    */
-  type?: string;
+  type?: ManufacturingOperationType;
   /**
    * ID of the resource performing the operation
    */
@@ -7212,7 +7308,7 @@ export type CreateSalesOrderFulfillmentRequest = {
   /**
    * Fulfillment status
    */
-  status?: string;
+  status: SalesOrderFulfillmentStatus;
   /**
    * Currency conversion rate
    */
@@ -7240,7 +7336,7 @@ export type CreateSalesOrderFulfillmentRequest = {
   /**
    * Fulfillment row items
    */
-  sales_order_fulfillment_rows?: Array<SalesOrderFulfillmentRowRequest>;
+  sales_order_fulfillment_rows: Array<SalesOrderFulfillmentRowRequest>;
 };
 
 /**
@@ -7254,7 +7350,7 @@ export type UpdateSalesOrderFulfillmentRequest = {
   /**
    * Fulfillment status
    */
-  status?: string;
+  status?: SalesOrderFulfillmentStatus;
   /**
    * Currency conversion rate
    */
@@ -7294,9 +7390,11 @@ export type UpdateSalesOrderShippingFeeRequest = {
    */
   description?: string;
   /**
-   * Shipping fee amount
+   * Shipping fee amount. Sent as a string to preserve exact decimal
+   * precision (Katana's wire format).
+   *
    */
-  amount?: number;
+  amount: string;
   /**
    * ID of the tax rate to apply to the shipping fee
    */
@@ -7364,6 +7462,13 @@ export type UpdateSalesOrderRequest = {
    * URL link to track the shipment on carrier website
    */
   tracking_number_url?: string | null;
+  /**
+   * Custom field values to attach to the sales order. Field names
+   * must match those configured for the ``sales_order`` resource
+   * type (see ``GET /custom_fields_collections``).
+   *
+   */
+  custom_fields?: Array<CustomFieldValue>;
 };
 
 /**
@@ -7395,7 +7500,7 @@ export type CreateSerialNumbersRequest = {
   /**
    * Resource type
    */
-  resource_type: CreateSerialNumberResourceType;
+  resource_type?: CreateSerialNumberResourceType;
   /**
    * Resource ID
    */
@@ -7403,7 +7508,7 @@ export type CreateSerialNumbersRequest = {
   /**
    * List of serial numbers to create
    */
-  serial_numbers: Array<string>;
+  serial_numbers?: Array<string>;
 };
 
 /**
@@ -7427,7 +7532,7 @@ export type CreateStockTransferRequest = {
   /**
    * Unique stock transfer number for tracking
    */
-  stock_transfer_number?: string;
+  stock_transfer_number: string;
   /**
    * Source location ID where items are transferred from
    */
@@ -7455,7 +7560,7 @@ export type CreateStockTransferRequest = {
   /**
    * Line items being transferred
    */
-  stock_transfer_rows?: Array<StockTransferRowRequest>;
+  stock_transfer_rows: Array<StockTransferRowRequest>;
 };
 
 /**
@@ -7491,7 +7596,7 @@ export type UpdateStockTransferStatusRequest = {
   /**
    * New status for the stock transfer
    */
-  status: StockTransferStatus;
+  status?: StockTransferStatus;
 };
 
 /**

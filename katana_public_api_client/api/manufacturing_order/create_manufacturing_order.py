@@ -83,8 +83,8 @@ def sync_detailed(
     Args:
         body (CreateManufacturingOrderRequest): Request payload for creating a new manufacturing
             order to initiate production of products or components.
-             Example: {'variant_id': 2101, 'planned_quantity': 50, 'location_id': 1,
-            'order_created_date': '2024-01-15T08:00:00Z', 'production_deadline_date':
+             Example: {'variant_id': 2101, 'planned_quantity': 50, 'location_id': 1, 'order_no':
+            'MO-2024-001', 'order_created_date': '2024-01-15T08:00:00Z', 'production_deadline_date':
             '2024-01-25T17:00:00Z', 'additional_info': 'Priority order for new product launch'}.
 
     Raises:
@@ -120,8 +120,8 @@ def sync(
     Args:
         body (CreateManufacturingOrderRequest): Request payload for creating a new manufacturing
             order to initiate production of products or components.
-             Example: {'variant_id': 2101, 'planned_quantity': 50, 'location_id': 1,
-            'order_created_date': '2024-01-15T08:00:00Z', 'production_deadline_date':
+             Example: {'variant_id': 2101, 'planned_quantity': 50, 'location_id': 1, 'order_no':
+            'MO-2024-001', 'order_created_date': '2024-01-15T08:00:00Z', 'production_deadline_date':
             '2024-01-25T17:00:00Z', 'additional_info': 'Priority order for new product launch'}.
 
     Raises:
@@ -152,8 +152,8 @@ async def asyncio_detailed(
     Args:
         body (CreateManufacturingOrderRequest): Request payload for creating a new manufacturing
             order to initiate production of products or components.
-             Example: {'variant_id': 2101, 'planned_quantity': 50, 'location_id': 1,
-            'order_created_date': '2024-01-15T08:00:00Z', 'production_deadline_date':
+             Example: {'variant_id': 2101, 'planned_quantity': 50, 'location_id': 1, 'order_no':
+            'MO-2024-001', 'order_created_date': '2024-01-15T08:00:00Z', 'production_deadline_date':
             '2024-01-25T17:00:00Z', 'additional_info': 'Priority order for new product launch'}.
 
     Raises:
@@ -187,8 +187,8 @@ async def asyncio(
     Args:
         body (CreateManufacturingOrderRequest): Request payload for creating a new manufacturing
             order to initiate production of products or components.
-             Example: {'variant_id': 2101, 'planned_quantity': 50, 'location_id': 1,
-            'order_created_date': '2024-01-15T08:00:00Z', 'production_deadline_date':
+             Example: {'variant_id': 2101, 'planned_quantity': 50, 'location_id': 1, 'order_no':
+            'MO-2024-001', 'order_created_date': '2024-01-15T08:00:00Z', 'production_deadline_date':
             '2024-01-25T17:00:00Z', 'additional_info': 'Priority order for new product launch'}.
 
     Raises:

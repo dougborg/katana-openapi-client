@@ -25,6 +25,7 @@ from katana_public_api_client.models import (
     CreateSalesOrderFulfillmentRequest,
     ManufacturingOrder,
     SalesOrder,
+    SalesOrderFulfillmentStatus,
     UpdateManufacturingOrderRequest,
 )
 from katana_public_api_client.utils import is_success, unwrap, unwrap_as
@@ -297,8 +298,17 @@ async def _fulfill_sales_order(
         create_sales_order_fulfillment as api_create_sales_order_fulfillment,
     )
 
+    # TODO(post-alignment): the live API requires
+    # ``sales_order_fulfillment_rows`` (the line items being fulfilled). The
+    # current tool surface doesn't accept rows — it just fulfills "the
+    # whole order". Until this tool is enhanced to either fetch the order's
+    # rows or take them as input, we send an empty array which the live
+    # API will reject with 422. Tests mock the API call so this is fine
+    # for unit tests but breaks against real Katana.
     fulfillment_body = CreateSalesOrderFulfillmentRequest(
-        sales_order_id=request.order_id
+        sales_order_id=request.order_id,
+        status=SalesOrderFulfillmentStatus.PACKED,
+        sales_order_fulfillment_rows=[],
     )
     fulfillment_response = await api_create_sales_order_fulfillment.asyncio_detailed(
         client=services.client, body=fulfillment_body

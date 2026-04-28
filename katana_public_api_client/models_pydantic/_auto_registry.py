@@ -177,6 +177,9 @@ from katana_public_api_client.models.create_webhook_request import (
     CreateWebhookRequest as AttrsCreateWebhookRequest,
 )
 from katana_public_api_client.models.custom_field import CustomField as AttrsCustomField
+from katana_public_api_client.models.custom_field_value import (
+    CustomFieldValue as AttrsCustomFieldValue,
+)
 from katana_public_api_client.models.custom_fields_collection import (
     CustomFieldsCollection as AttrsCustomFieldsCollection,
 )
@@ -707,6 +710,7 @@ from ._generated.common import (
     CustomField as PydanticCustomField,
     CustomFieldsCollection as PydanticCustomFieldsCollection,
     CustomFieldsCollectionListResponse as PydanticCustomFieldsCollectionListResponse,
+    CustomFieldValue as PydanticCustomFieldValue,
     DemandForecastPeriod as PydanticDemandForecastPeriod,
     DemandForecastResponse as PydanticDemandForecastResponse,
     Factory as PydanticFactory,
@@ -1052,6 +1056,7 @@ def register_all_models() -> None:
     register(AttrsCreateVariantRequest, PydanticCreateVariantRequest)
     register(AttrsCreateWebhookRequest, PydanticCreateWebhookRequest)
     register(AttrsCustomField, PydanticCustomField)
+    register(AttrsCustomFieldValue, PydanticCustomFieldValue)
     register(AttrsCustomFieldsCollection, PydanticCustomFieldsCollection)
     register(
         AttrsCustomFieldsCollectionListResponse,

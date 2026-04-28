@@ -94,8 +94,8 @@ def sync_detailed(
         id (int):
         body (UpdateManufacturingOrderOperationRowRequest): Request payload for updating a
             manufacturing order operation row with actual completion data Example: {'operation_name':
-            'Assembly', 'total_actual_time': 52.3, 'status': 'DONE', 'completed_by_operators': [{'id':
-            101, 'operator_name': 'John Smith', 'created_at': '2024-01-15T08:00:00.000Z',
+            'Assembly', 'total_actual_time': 52.3, 'status': 'COMPLETED', 'completed_by_operators':
+            [{'id': 101, 'operator_name': 'John Smith', 'created_at': '2024-01-15T08:00:00.000Z',
             'updated_at': '2024-01-15T08:00:00.000Z', 'deleted_at': None}]}.
 
     Raises:
@@ -137,8 +137,8 @@ def sync(
         id (int):
         body (UpdateManufacturingOrderOperationRowRequest): Request payload for updating a
             manufacturing order operation row with actual completion data Example: {'operation_name':
-            'Assembly', 'total_actual_time': 52.3, 'status': 'DONE', 'completed_by_operators': [{'id':
-            101, 'operator_name': 'John Smith', 'created_at': '2024-01-15T08:00:00.000Z',
+            'Assembly', 'total_actual_time': 52.3, 'status': 'COMPLETED', 'completed_by_operators':
+            [{'id': 101, 'operator_name': 'John Smith', 'created_at': '2024-01-15T08:00:00.000Z',
             'updated_at': '2024-01-15T08:00:00.000Z', 'deleted_at': None}]}.
 
     Raises:
@@ -175,8 +175,8 @@ async def asyncio_detailed(
         id (int):
         body (UpdateManufacturingOrderOperationRowRequest): Request payload for updating a
             manufacturing order operation row with actual completion data Example: {'operation_name':
-            'Assembly', 'total_actual_time': 52.3, 'status': 'DONE', 'completed_by_operators': [{'id':
-            101, 'operator_name': 'John Smith', 'created_at': '2024-01-15T08:00:00.000Z',
+            'Assembly', 'total_actual_time': 52.3, 'status': 'COMPLETED', 'completed_by_operators':
+            [{'id': 101, 'operator_name': 'John Smith', 'created_at': '2024-01-15T08:00:00.000Z',
             'updated_at': '2024-01-15T08:00:00.000Z', 'deleted_at': None}]}.
 
     Raises:
@@ -216,8 +216,8 @@ async def asyncio(
         id (int):
         body (UpdateManufacturingOrderOperationRowRequest): Request payload for updating a
             manufacturing order operation row with actual completion data Example: {'operation_name':
-            'Assembly', 'total_actual_time': 52.3, 'status': 'DONE', 'completed_by_operators': [{'id':
-            101, 'operator_name': 'John Smith', 'created_at': '2024-01-15T08:00:00.000Z',
+            'Assembly', 'total_actual_time': 52.3, 'status': 'COMPLETED', 'completed_by_operators':
+            [{'id': 101, 'operator_name': 'John Smith', 'created_at': '2024-01-15T08:00:00.000Z',
             'updated_at': '2024-01-15T08:00:00.000Z', 'deleted_at': None}]}.
 
     Raises:

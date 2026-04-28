@@ -94,7 +94,9 @@ def sync_detailed(
     Args:
         id (int):
         body (UpdateVariantRequest): Request payload for updating product variant details
-            including pricing, configuration, and inventory information
+            including pricing, configuration, and inventory information.
+            Note: ``product_id`` and ``material_id`` are not present here — a variant's parent
+            is set at create time and cannot be reassigned via PATCH.
              Example: {'sku': 'KNF-PRO-8PC-UPD', 'sales_price': 319.99, 'purchase_price': 160.0,
             'product_id': 101, 'material_id': None, 'supplier_item_codes': ['SUP-KNF-8PC-002'],
             'internal_barcode': 'INT-KNF-002', 'registered_barcode': '789123456790', 'lead_time': 5,
@@ -138,7 +140,9 @@ def sync(
     Args:
         id (int):
         body (UpdateVariantRequest): Request payload for updating product variant details
-            including pricing, configuration, and inventory information
+            including pricing, configuration, and inventory information.
+            Note: ``product_id`` and ``material_id`` are not present here — a variant's parent
+            is set at create time and cannot be reassigned via PATCH.
              Example: {'sku': 'KNF-PRO-8PC-UPD', 'sales_price': 319.99, 'purchase_price': 160.0,
             'product_id': 101, 'material_id': None, 'supplier_item_codes': ['SUP-KNF-8PC-002'],
             'internal_barcode': 'INT-KNF-002', 'registered_barcode': '789123456790', 'lead_time': 5,
@@ -177,7 +181,9 @@ async def asyncio_detailed(
     Args:
         id (int):
         body (UpdateVariantRequest): Request payload for updating product variant details
-            including pricing, configuration, and inventory information
+            including pricing, configuration, and inventory information.
+            Note: ``product_id`` and ``material_id`` are not present here — a variant's parent
+            is set at create time and cannot be reassigned via PATCH.
              Example: {'sku': 'KNF-PRO-8PC-UPD', 'sales_price': 319.99, 'purchase_price': 160.0,
             'product_id': 101, 'material_id': None, 'supplier_item_codes': ['SUP-KNF-8PC-002'],
             'internal_barcode': 'INT-KNF-002', 'registered_barcode': '789123456790', 'lead_time': 5,
@@ -219,7 +225,9 @@ async def asyncio(
     Args:
         id (int):
         body (UpdateVariantRequest): Request payload for updating product variant details
-            including pricing, configuration, and inventory information
+            including pricing, configuration, and inventory information.
+            Note: ``product_id`` and ``material_id`` are not present here — a variant's parent
+            is set at create time and cannot be reassigned via PATCH.
              Example: {'sku': 'KNF-PRO-8PC-UPD', 'sales_price': 319.99, 'purchase_price': 160.0,
             'product_id': 101, 'material_id': None, 'supplier_item_codes': ['SUP-KNF-8PC-002'],
             'internal_barcode': 'INT-KNF-002', 'registered_barcode': '789123456790', 'lead_time': 5,

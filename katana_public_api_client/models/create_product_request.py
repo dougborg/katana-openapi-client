@@ -49,8 +49,6 @@ class CreateProductRequest:
     operations_in_sequence: bool | Unset = UNSET
     purchase_uom: str | Unset = UNSET
     purchase_uom_conversion_rate: float | Unset = UNSET
-    lead_time: int | None | Unset = UNSET
-    minimum_order_quantity: float | Unset = UNSET
     configs: list[CreateProductRequestConfigsItem] | Unset = UNSET
     custom_field_collection_id: int | None | Unset = UNSET
 
@@ -87,14 +85,6 @@ class CreateProductRequest:
         purchase_uom = self.purchase_uom
 
         purchase_uom_conversion_rate = self.purchase_uom_conversion_rate
-
-        lead_time: int | None | Unset
-        if isinstance(self.lead_time, Unset):
-            lead_time = UNSET
-        else:
-            lead_time = self.lead_time
-
-        minimum_order_quantity = self.minimum_order_quantity
 
         configs: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.configs, Unset):
@@ -143,10 +133,6 @@ class CreateProductRequest:
             field_dict["purchase_uom"] = purchase_uom
         if purchase_uom_conversion_rate is not UNSET:
             field_dict["purchase_uom_conversion_rate"] = purchase_uom_conversion_rate
-        if lead_time is not UNSET:
-            field_dict["lead_time"] = lead_time
-        if minimum_order_quantity is not UNSET:
-            field_dict["minimum_order_quantity"] = minimum_order_quantity
         if configs is not UNSET:
             field_dict["configs"] = configs
         if custom_field_collection_id is not UNSET:
@@ -197,17 +183,6 @@ class CreateProductRequest:
 
         purchase_uom_conversion_rate = d.pop("purchase_uom_conversion_rate", UNSET)
 
-        def _parse_lead_time(data: object) -> int | None | Unset:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(int | None | Unset, data)
-
-        lead_time = _parse_lead_time(d.pop("lead_time", UNSET))
-
-        minimum_order_quantity = d.pop("minimum_order_quantity", UNSET)
-
         _configs = d.pop("configs", UNSET)
         configs: list[CreateProductRequestConfigsItem] | Unset = UNSET
         if _configs is not UNSET:
@@ -246,8 +221,6 @@ class CreateProductRequest:
             operations_in_sequence=operations_in_sequence,
             purchase_uom=purchase_uom,
             purchase_uom_conversion_rate=purchase_uom_conversion_rate,
-            lead_time=lead_time,
-            minimum_order_quantity=minimum_order_quantity,
             configs=configs,
             custom_field_collection_id=custom_field_collection_id,
         )

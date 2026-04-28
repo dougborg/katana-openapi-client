@@ -32,7 +32,7 @@ class CreateVariantRequest:
             Instructions', 'field_value': 'Hand wash only'}]}
     """
 
-    sku: str
+    sku: str | Unset = UNSET
     sales_price: float | Unset = UNSET
     purchase_price: float | Unset = UNSET
     product_id: int | None | Unset = UNSET
@@ -96,11 +96,9 @@ class CreateVariantRequest:
 
         field_dict: dict[str, Any] = {}
 
-        field_dict.update(
-            {
-                "sku": sku,
-            }
-        )
+        field_dict.update({})
+        if sku is not UNSET:
+            field_dict["sku"] = sku
         if sales_price is not UNSET:
             field_dict["sales_price"] = sales_price
         if purchase_price is not UNSET:
@@ -136,7 +134,7 @@ class CreateVariantRequest:
         )
 
         d = dict(src_dict)
-        sku = d.pop("sku")
+        sku = d.pop("sku", UNSET)
 
         sales_price = d.pop("sales_price", UNSET)
 

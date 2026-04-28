@@ -8,6 +8,7 @@ from attrs import define as _attrs_define
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
+from ..models.sales_order_fulfillment_status import SalesOrderFulfillmentStatus
 
 if TYPE_CHECKING:
     from ..models.sales_order_fulfillment_row_request import (
@@ -23,24 +24,31 @@ class CreateSalesOrderFulfillmentRequest:
     """Request payload for creating a new sales order fulfillment"""
 
     sales_order_id: int
+    status: SalesOrderFulfillmentStatus
+    sales_order_fulfillment_rows: list[SalesOrderFulfillmentRowRequest]
     picked_date: datetime.datetime | Unset = UNSET
-    status: str | Unset = UNSET
     conversion_rate: float | Unset = UNSET
     conversion_date: datetime.datetime | Unset = UNSET
     tracking_number: str | Unset = UNSET
     tracking_url: str | Unset = UNSET
     tracking_carrier: str | Unset = UNSET
     tracking_method: str | Unset = UNSET
-    sales_order_fulfillment_rows: list[SalesOrderFulfillmentRowRequest] | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         sales_order_id = self.sales_order_id
 
+        status = self.status.value
+
+        sales_order_fulfillment_rows = []
+        for sales_order_fulfillment_rows_item_data in self.sales_order_fulfillment_rows:
+            sales_order_fulfillment_rows_item = (
+                sales_order_fulfillment_rows_item_data.to_dict()
+            )
+            sales_order_fulfillment_rows.append(sales_order_fulfillment_rows_item)
+
         picked_date: str | Unset = UNSET
         if not isinstance(self.picked_date, Unset):
             picked_date = self.picked_date.isoformat()
-
-        status = self.status
 
         conversion_rate = self.conversion_rate
 
@@ -56,28 +64,17 @@ class CreateSalesOrderFulfillmentRequest:
 
         tracking_method = self.tracking_method
 
-        sales_order_fulfillment_rows: list[dict[str, Any]] | Unset = UNSET
-        if not isinstance(self.sales_order_fulfillment_rows, Unset):
-            sales_order_fulfillment_rows = []
-            for (
-                sales_order_fulfillment_rows_item_data
-            ) in self.sales_order_fulfillment_rows:
-                sales_order_fulfillment_rows_item = (
-                    sales_order_fulfillment_rows_item_data.to_dict()
-                )
-                sales_order_fulfillment_rows.append(sales_order_fulfillment_rows_item)
-
         field_dict: dict[str, Any] = {}
 
         field_dict.update(
             {
                 "sales_order_id": sales_order_id,
+                "status": status,
+                "sales_order_fulfillment_rows": sales_order_fulfillment_rows,
             }
         )
         if picked_date is not UNSET:
             field_dict["picked_date"] = picked_date
-        if status is not UNSET:
-            field_dict["status"] = status
         if conversion_rate is not UNSET:
             field_dict["conversion_rate"] = conversion_rate
         if conversion_date is not UNSET:
@@ -90,8 +87,6 @@ class CreateSalesOrderFulfillmentRequest:
             field_dict["tracking_carrier"] = tracking_carrier
         if tracking_method is not UNSET:
             field_dict["tracking_method"] = tracking_method
-        if sales_order_fulfillment_rows is not UNSET:
-            field_dict["sales_order_fulfillment_rows"] = sales_order_fulfillment_rows
 
         return field_dict
 
@@ -104,14 +99,25 @@ class CreateSalesOrderFulfillmentRequest:
         d = dict(src_dict)
         sales_order_id = d.pop("sales_order_id")
 
+        status = SalesOrderFulfillmentStatus(d.pop("status"))
+
+        sales_order_fulfillment_rows = []
+        _sales_order_fulfillment_rows = d.pop("sales_order_fulfillment_rows")
+        for sales_order_fulfillment_rows_item_data in _sales_order_fulfillment_rows:
+            sales_order_fulfillment_rows_item = (
+                SalesOrderFulfillmentRowRequest.from_dict(
+                    sales_order_fulfillment_rows_item_data
+                )
+            )
+
+            sales_order_fulfillment_rows.append(sales_order_fulfillment_rows_item)
+
         _picked_date = d.pop("picked_date", UNSET)
         picked_date: datetime.datetime | Unset
         if isinstance(_picked_date, Unset):
             picked_date = UNSET
         else:
             picked_date = isoparse(_picked_date)
-
-        status = d.pop("status", UNSET)
 
         conversion_rate = d.pop("conversion_rate", UNSET)
 
@@ -130,32 +136,17 @@ class CreateSalesOrderFulfillmentRequest:
 
         tracking_method = d.pop("tracking_method", UNSET)
 
-        _sales_order_fulfillment_rows = d.pop("sales_order_fulfillment_rows", UNSET)
-        sales_order_fulfillment_rows: list[SalesOrderFulfillmentRowRequest] | Unset = (
-            UNSET
-        )
-        if _sales_order_fulfillment_rows is not UNSET:
-            sales_order_fulfillment_rows = []
-            for sales_order_fulfillment_rows_item_data in _sales_order_fulfillment_rows:
-                sales_order_fulfillment_rows_item = (
-                    SalesOrderFulfillmentRowRequest.from_dict(
-                        sales_order_fulfillment_rows_item_data
-                    )
-                )
-
-                sales_order_fulfillment_rows.append(sales_order_fulfillment_rows_item)
-
         create_sales_order_fulfillment_request = cls(
             sales_order_id=sales_order_id,
-            picked_date=picked_date,
             status=status,
+            sales_order_fulfillment_rows=sales_order_fulfillment_rows,
+            picked_date=picked_date,
             conversion_rate=conversion_rate,
             conversion_date=conversion_date,
             tracking_number=tracking_number,
             tracking_url=tracking_url,
             tracking_carrier=tracking_carrier,
             tracking_method=tracking_method,
-            sales_order_fulfillment_rows=sales_order_fulfillment_rows,
         )
 
         return create_sales_order_fulfillment_request

@@ -16,7 +16,7 @@ from pydantic import ConfigDict, EmailStr, Field, RootModel
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 
 from .base import DeletableEntity, UpdatableEntity
-from .common import Address, AddressEntityType
+from .common import Address, AddressEntityType, PriceAdjustmentMethod
 
 
 class PriceListAdjustmentMethod(StrEnum):
@@ -115,8 +115,9 @@ class CreateSupplierAddressRequest(KatanaPydanticBase):
         Field(description="Unique identifier of the supplier this address belongs to"),
     ]
     line_1: Annotated[
-        str, Field(description="Primary address line (street number, street name)")
-    ]
+        str | None,
+        Field(description="Primary address line (street number, street name)"),
+    ] = None
     line_2: Annotated[
         str | None,
         Field(description="Secondary address line (suite, apartment, building)"),
@@ -380,8 +381,11 @@ class UpdatePriceListRowRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
+    variant_id: Annotated[
+        int | None, Field(description="ID of the product variant being priced")
+    ] = None
     adjustment_method: Annotated[
-        str | None, Field(description="Method for price adjustment")
+        PriceAdjustmentMethod | None, Field(description="Method for price adjustment")
     ] = None
     amount: Annotated[float | None, Field(description="Adjustment amount")] = None
 
@@ -391,8 +395,8 @@ class UpdatePriceListCustomerRequest(KatanaPydanticBase):
         extra="forbid",
     )
     customer_id: Annotated[
-        int | None, Field(description="ID of the customer to assign to price list")
-    ] = None
+        int, Field(description="ID of the customer to assign to price list")
+    ]
 
 
 class PriceListRow1(UpdatableEntity):

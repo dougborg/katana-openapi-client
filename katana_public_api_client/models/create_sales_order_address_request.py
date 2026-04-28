@@ -23,29 +23,29 @@ class CreateSalesOrderAddressRequest:
     Attributes:
         sales_order_id (int): ID of the sales order this address belongs to
         entity_type (AddressEntityType): Address type - billing for invoicing, shipping for delivery
-        line_1 (str): Primary address line
-        city (str): City name
-        country (str): Country code
         first_name (str | Unset): First name for the address contact
         last_name (str | Unset): Last name for the address contact
         company (str | Unset): Company name for the address
+        line_1 (str | Unset): Primary address line
         line_2 (str | Unset): Secondary address line
+        city (str | Unset): City name
         state (str | Unset): State or province
         zip_ (str | Unset): Postal code
+        country (str | Unset): Country code
         phone (str | Unset): Contact phone number
     """
 
     sales_order_id: int
     entity_type: AddressEntityType
-    line_1: str
-    city: str
-    country: str
     first_name: str | Unset = UNSET
     last_name: str | Unset = UNSET
     company: str | Unset = UNSET
+    line_1: str | Unset = UNSET
     line_2: str | Unset = UNSET
+    city: str | Unset = UNSET
     state: str | Unset = UNSET
     zip_: str | Unset = UNSET
+    country: str | Unset = UNSET
     phone: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
@@ -53,23 +53,23 @@ class CreateSalesOrderAddressRequest:
 
         entity_type = self.entity_type.value
 
-        line_1 = self.line_1
-
-        city = self.city
-
-        country = self.country
-
         first_name = self.first_name
 
         last_name = self.last_name
 
         company = self.company
 
+        line_1 = self.line_1
+
         line_2 = self.line_2
+
+        city = self.city
 
         state = self.state
 
         zip_ = self.zip_
+
+        country = self.country
 
         phone = self.phone
 
@@ -79,9 +79,6 @@ class CreateSalesOrderAddressRequest:
             {
                 "sales_order_id": sales_order_id,
                 "entity_type": entity_type,
-                "line_1": line_1,
-                "city": city,
-                "country": country,
             }
         )
         if first_name is not UNSET:
@@ -90,12 +87,18 @@ class CreateSalesOrderAddressRequest:
             field_dict["last_name"] = last_name
         if company is not UNSET:
             field_dict["company"] = company
+        if line_1 is not UNSET:
+            field_dict["line_1"] = line_1
         if line_2 is not UNSET:
             field_dict["line_2"] = line_2
+        if city is not UNSET:
+            field_dict["city"] = city
         if state is not UNSET:
             field_dict["state"] = state
         if zip_ is not UNSET:
             field_dict["zip"] = zip_
+        if country is not UNSET:
+            field_dict["country"] = country
         if phone is not UNSET:
             field_dict["phone"] = phone
 
@@ -108,38 +111,38 @@ class CreateSalesOrderAddressRequest:
 
         entity_type = AddressEntityType(d.pop("entity_type"))
 
-        line_1 = d.pop("line_1")
-
-        city = d.pop("city")
-
-        country = d.pop("country")
-
         first_name = d.pop("first_name", UNSET)
 
         last_name = d.pop("last_name", UNSET)
 
         company = d.pop("company", UNSET)
 
+        line_1 = d.pop("line_1", UNSET)
+
         line_2 = d.pop("line_2", UNSET)
+
+        city = d.pop("city", UNSET)
 
         state = d.pop("state", UNSET)
 
         zip_ = d.pop("zip", UNSET)
+
+        country = d.pop("country", UNSET)
 
         phone = d.pop("phone", UNSET)
 
         create_sales_order_address_request = cls(
             sales_order_id=sales_order_id,
             entity_type=entity_type,
-            line_1=line_1,
-            city=city,
-            country=country,
             first_name=first_name,
             last_name=last_name,
             company=company,
+            line_1=line_1,
             line_2=line_2,
+            city=city,
             state=state,
             zip_=zip_,
+            country=country,
             phone=phone,
         )
 

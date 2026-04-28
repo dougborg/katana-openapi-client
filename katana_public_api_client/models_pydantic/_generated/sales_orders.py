@@ -27,6 +27,7 @@ from .common import (
     Attribute,
     Attribute1,
     Attribute3,
+    CustomFieldValue,
     ProductAvailability,
 )
 from .purchase_orders import OutsourcedPurchaseOrderIngredientAvailability
@@ -300,12 +301,12 @@ class CreateSalesOrderAddressRequest(KatanaPydanticBase):
     company: Annotated[
         str | None, Field(description="Company name for the address")
     ] = None
-    line_1: Annotated[str, Field(description="Primary address line")]
+    line_1: Annotated[str | None, Field(description="Primary address line")] = None
     line_2: Annotated[str | None, Field(description="Secondary address line")] = None
-    city: Annotated[str, Field(description="City name")]
+    city: Annotated[str | None, Field(description="City name")] = None
     state: Annotated[str | None, Field(description="State or province")] = None
     zip: Annotated[str | None, Field(description="Postal code")] = None
-    country: Annotated[str, Field(description="Country code")]
+    country: Annotated[str | None, Field(description="Country code")] = None
     phone: Annotated[str | None, Field(description="Contact phone number")] = None
 
 
@@ -359,70 +360,6 @@ class SalesOrderRow1(KatanaPydanticBase):
 
 class Address1(SalesOrderAddress):
     pass
-
-
-class CreateSalesOrderRequest(KatanaPydanticBase):
-    order_no: Annotated[
-        str, Field(description="Unique order number for tracking and reference")
-    ]
-    customer_id: Annotated[
-        int, Field(description="ID of the customer placing the order")
-    ]
-    sales_order_rows: Annotated[
-        list[SalesOrderRow1],
-        Field(
-            description="List of products and quantities being ordered", min_length=1
-        ),
-    ]
-    tracking_number: Annotated[
-        str | None, Field(description="Shipping tracking number if already known")
-    ] = None
-    tracking_number_url: Annotated[
-        AnyUrl | None, Field(description="URL for tracking shipment status")
-    ] = None
-    addresses: Annotated[
-        list[Address1] | None,
-        Field(description="Billing and shipping addresses for the order"),
-    ] = None
-    order_created_date: Annotated[
-        AwareDatetime | None,
-        Field(
-            description="Date when the order was originally created (defaults to current time)"
-        ),
-    ] = None
-    delivery_date: Annotated[
-        AwareDatetime | None, Field(description="Requested delivery date")
-    ] = None
-    currency: Annotated[
-        str | None,
-        Field(
-            description="Currency code for the order (defaults to company base currency)"
-        ),
-    ] = None
-    location_id: Annotated[
-        int | None, Field(description="Primary fulfillment location for the order")
-    ] = None
-    status: Annotated[
-        CreateSalesOrderStatus | None, Field(description="Initial status of the order")
-    ] = None
-    additional_info: Annotated[
-        str | None, Field(description="Additional notes or instructions for the order")
-    ] = None
-    customer_ref: Annotated[
-        str | None, Field(description="Customer's internal reference number")
-    ] = None
-    ecommerce_order_type: Annotated[
-        str | None, Field(description="Type of ecommerce order if applicable")
-    ] = None
-    ecommerce_store_name: Annotated[
-        str | None,
-        Field(
-            description="Name of the ecommerce store if order originated from online"
-        ),
-    ] = None
-    ecommerce_order_id: Annotated[
-        str | None, Field(description="Original order ID from the ecommerce platform")
-    ] = None
 
 
 class SalesOrderFulfillmentRow(KatanaPydanticBase):
@@ -516,6 +453,18 @@ class CreateSalesReturnRequest(KatanaPydanticBase):
     additional_info: Annotated[
         str | None, Field(description="Optional notes or comments about the return")
     ] = None
+    tracking_number: Annotated[
+        str | None, Field(description="Tracking number for the return shipment")
+    ] = None
+    tracking_number_url: Annotated[
+        str | None, Field(description="URL to track the return shipment")
+    ] = None
+    tracking_carrier: Annotated[
+        str | None, Field(description="Carrier used for the return shipment")
+    ] = None
+    tracking_method: Annotated[
+        str | None, Field(description="Shipping method used for the return")
+    ] = None
 
 
 class UpdateSalesReturnRequest(KatanaPydanticBase):
@@ -554,6 +503,18 @@ class UpdateSalesReturnRequest(KatanaPydanticBase):
         Field(
             description="Additional information about the return. Updatable only when current return status is not restockedAll."
         ),
+    ] = None
+    tracking_number: Annotated[
+        str | None, Field(description="Tracking number for the return shipment")
+    ] = None
+    tracking_number_url: Annotated[
+        str | None, Field(description="URL to track the return shipment")
+    ] = None
+    tracking_carrier: Annotated[
+        str | None, Field(description="Carrier used for the return shipment")
+    ] = None
+    tracking_method: Annotated[
+        str | None, Field(description="Shipping method used for the return")
     ] = None
 
 
@@ -705,7 +666,10 @@ class CreateSalesOrderShippingFeeRequest(KatanaPydanticBase):
         int, Field(description="ID of the sales order to add shipping fee to")
     ]
     amount: Annotated[
-        float, Field(description="Shipping fee amount in the order currency")
+        str,
+        Field(
+            description="Shipping fee amount in the order currency. Sent as a string to\npreserve exact decimal precision (Katana's wire format).\n"
+        ),
     ]
     description: Annotated[
         str | None, Field(description="Description of the shipping service or fee type")
@@ -730,7 +694,9 @@ class CreateSalesOrderFulfillmentRequest(KatanaPydanticBase):
     picked_date: Annotated[
         AwareDatetime | None, Field(description="Date when items were picked")
     ] = None
-    status: Annotated[str | None, Field(description="Fulfillment status")] = None
+    status: Annotated[
+        SalesOrderFulfillmentStatus, Field(description="Fulfillment status")
+    ]
     conversion_rate: Annotated[
         float | None, Field(description="Currency conversion rate")
     ] = None
@@ -750,9 +716,9 @@ class CreateSalesOrderFulfillmentRequest(KatanaPydanticBase):
         str | None, Field(description="Shipping method used")
     ] = None
     sales_order_fulfillment_rows: Annotated[
-        list[SalesOrderFulfillmentRowRequest] | None,
+        list[SalesOrderFulfillmentRowRequest],
         Field(description="Fulfillment row items"),
-    ] = None
+    ]
 
 
 class UpdateSalesOrderFulfillmentRequest(KatanaPydanticBase):
@@ -762,12 +728,14 @@ class UpdateSalesOrderFulfillmentRequest(KatanaPydanticBase):
     picked_date: Annotated[
         AwareDatetime | None, Field(description="Date when items were picked")
     ] = None
-    status: Annotated[str | None, Field(description="Fulfillment status")] = None
+    status: Annotated[
+        SalesOrderFulfillmentStatus | None, Field(description="Fulfillment status")
+    ] = None
     conversion_rate: Annotated[
         float | None, Field(description="Currency conversion rate")
     ] = None
     packer_id: Annotated[
-        float | None, Field(description="ID of the packer who packed the order")
+        int | None, Field(description="ID of the packer who packed the order")
     ] = None
     conversion_date: Annotated[
         AwareDatetime | None, Field(description="Date of currency conversion")
@@ -793,7 +761,12 @@ class UpdateSalesOrderShippingFeeRequest(KatanaPydanticBase):
     description: Annotated[
         str | None, Field(description="Shipping fee description")
     ] = None
-    amount: Annotated[int | None, Field(description="Shipping fee amount")] = None
+    amount: Annotated[
+        str,
+        Field(
+            description="Shipping fee amount. Sent as a string to preserve exact decimal\nprecision (Katana's wire format).\n"
+        ),
+    ]
     tax_rate_id: Annotated[
         int | None, Field(description="ID of the tax rate to apply to the shipping fee")
     ] = None
@@ -887,6 +860,13 @@ class UpdateSalesOrderRequest(KatanaPydanticBase):
         Field(
             description="URL link to track the shipment on carrier website",
             max_length=2048,
+        ),
+    ] = None
+    custom_fields: Annotated[
+        list[CustomFieldValue] | None,
+        Field(
+            description="Custom field values to attach to the sales order. Field names\nmust match those configured for the ``sales_order`` resource\ntype (see ``GET /custom_fields_collections``).\n",
+            max_length=3,
         ),
     ] = None
 
@@ -1109,6 +1089,77 @@ class SalesOrderListResponse(KatanaPydanticBase):
         list[SalesOrder] | None,
         Field(
             description="Array of sales orders with complete order details and status information"
+        ),
+    ] = None
+
+
+class CreateSalesOrderRequest(KatanaPydanticBase):
+    order_no: Annotated[
+        str, Field(description="Unique order number for tracking and reference")
+    ]
+    customer_id: Annotated[
+        int, Field(description="ID of the customer placing the order")
+    ]
+    sales_order_rows: Annotated[
+        list[SalesOrderRow1],
+        Field(
+            description="List of products and quantities being ordered", min_length=1
+        ),
+    ]
+    tracking_number: Annotated[
+        str | None, Field(description="Shipping tracking number if already known")
+    ] = None
+    tracking_number_url: Annotated[
+        AnyUrl | None, Field(description="URL for tracking shipment status")
+    ] = None
+    addresses: Annotated[
+        list[Address1] | None,
+        Field(description="Billing and shipping addresses for the order"),
+    ] = None
+    order_created_date: Annotated[
+        AwareDatetime | None,
+        Field(
+            description="Date when the order was originally created (defaults to current time)"
+        ),
+    ] = None
+    delivery_date: Annotated[
+        AwareDatetime | None, Field(description="Requested delivery date")
+    ] = None
+    currency: Annotated[
+        str | None,
+        Field(
+            description="Currency code for the order (defaults to company base currency)"
+        ),
+    ] = None
+    location_id: Annotated[
+        int | None, Field(description="Primary fulfillment location for the order")
+    ] = None
+    status: Annotated[
+        CreateSalesOrderStatus | None, Field(description="Initial status of the order")
+    ] = None
+    additional_info: Annotated[
+        str | None, Field(description="Additional notes or instructions for the order")
+    ] = None
+    customer_ref: Annotated[
+        str | None, Field(description="Customer's internal reference number")
+    ] = None
+    ecommerce_order_type: Annotated[
+        str | None, Field(description="Type of ecommerce order if applicable")
+    ] = None
+    ecommerce_store_name: Annotated[
+        str | None,
+        Field(
+            description="Name of the ecommerce store if order originated from online"
+        ),
+    ] = None
+    ecommerce_order_id: Annotated[
+        str | None, Field(description="Original order ID from the ecommerce platform")
+    ] = None
+    custom_fields: Annotated[
+        list[CustomFieldValue] | None,
+        Field(
+            description="Custom field values to attach to the sales order. Field names\nmust match those configured for the ``sales_order`` resource\ntype (see ``GET /custom_fields_collections``).\n",
+            max_length=3,
         ),
     ] = None
 

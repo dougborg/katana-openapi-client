@@ -28,22 +28,22 @@ class CreateStockAdjustmentRequest:
             [{'variant_id': 501, 'quantity': 100, 'cost_per_unit': 123.45}, {'variant_id': 502, 'quantity': -25}]}
     """
 
+    stock_adjustment_number: str
     location_id: int
     stock_adjustment_rows: list[CreateStockAdjustmentRequestStockAdjustmentRowsItem]
-    stock_adjustment_number: str | Unset = UNSET
     stock_adjustment_date: datetime.datetime | Unset = UNSET
     reason: str | Unset = UNSET
     additional_info: str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
+        stock_adjustment_number = self.stock_adjustment_number
+
         location_id = self.location_id
 
         stock_adjustment_rows = []
         for stock_adjustment_rows_item_data in self.stock_adjustment_rows:
             stock_adjustment_rows_item = stock_adjustment_rows_item_data.to_dict()
             stock_adjustment_rows.append(stock_adjustment_rows_item)
-
-        stock_adjustment_number = self.stock_adjustment_number
 
         stock_adjustment_date: str | Unset = UNSET
         if not isinstance(self.stock_adjustment_date, Unset):
@@ -57,12 +57,11 @@ class CreateStockAdjustmentRequest:
 
         field_dict.update(
             {
+                "stock_adjustment_number": stock_adjustment_number,
                 "location_id": location_id,
                 "stock_adjustment_rows": stock_adjustment_rows,
             }
         )
-        if stock_adjustment_number is not UNSET:
-            field_dict["stock_adjustment_number"] = stock_adjustment_number
         if stock_adjustment_date is not UNSET:
             field_dict["stock_adjustment_date"] = stock_adjustment_date
         if reason is not UNSET:
@@ -79,6 +78,8 @@ class CreateStockAdjustmentRequest:
         )
 
         d = dict(src_dict)
+        stock_adjustment_number = d.pop("stock_adjustment_number")
+
         location_id = d.pop("location_id")
 
         stock_adjustment_rows = []
@@ -92,8 +93,6 @@ class CreateStockAdjustmentRequest:
 
             stock_adjustment_rows.append(stock_adjustment_rows_item)
 
-        stock_adjustment_number = d.pop("stock_adjustment_number", UNSET)
-
         _stock_adjustment_date = d.pop("stock_adjustment_date", UNSET)
         stock_adjustment_date: datetime.datetime | Unset
         if isinstance(_stock_adjustment_date, Unset):
@@ -106,9 +105,9 @@ class CreateStockAdjustmentRequest:
         additional_info = d.pop("additional_info", UNSET)
 
         create_stock_adjustment_request = cls(
+            stock_adjustment_number=stock_adjustment_number,
             location_id=location_id,
             stock_adjustment_rows=stock_adjustment_rows,
-            stock_adjustment_number=stock_adjustment_number,
             stock_adjustment_date=stock_adjustment_date,
             reason=reason,
             additional_info=additional_info,

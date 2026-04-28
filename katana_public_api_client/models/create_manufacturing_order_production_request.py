@@ -13,6 +13,7 @@ from dateutil.parser import isoparse
 from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
+    from ..models.batch_transaction import BatchTransaction
     from ..models.manufacturing_order_operation_row import (
         ManufacturingOrderOperationRow,
     )
@@ -39,8 +40,9 @@ class CreateManufacturingOrderProductionRequest:
 
     manufacturing_order_id: int
     completed_quantity: float
-    completed_date: datetime.datetime
+    completed_date: datetime.datetime | Unset = UNSET
     is_final: bool | Unset = UNSET
+    batch_transaction: BatchTransaction | Unset = UNSET
     ingredients: list[ManufacturingOrderProductionIngredient] | Unset = UNSET
     operations: list[ManufacturingOrderOperationRow] | Unset = UNSET
     serial_numbers: list[str] | Unset = UNSET
@@ -51,9 +53,15 @@ class CreateManufacturingOrderProductionRequest:
 
         completed_quantity = self.completed_quantity
 
-        completed_date = self.completed_date.isoformat()
+        completed_date: str | Unset = UNSET
+        if not isinstance(self.completed_date, Unset):
+            completed_date = self.completed_date.isoformat()
 
         is_final = self.is_final
+
+        batch_transaction: dict[str, Any] | Unset = UNSET
+        if not isinstance(self.batch_transaction, Unset):
+            batch_transaction = self.batch_transaction.to_dict()
 
         ingredients: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.ingredients, Unset):
@@ -79,11 +87,14 @@ class CreateManufacturingOrderProductionRequest:
             {
                 "manufacturing_order_id": manufacturing_order_id,
                 "completed_quantity": completed_quantity,
-                "completed_date": completed_date,
             }
         )
+        if completed_date is not UNSET:
+            field_dict["completed_date"] = completed_date
         if is_final is not UNSET:
             field_dict["is_final"] = is_final
+        if batch_transaction is not UNSET:
+            field_dict["batch_transaction"] = batch_transaction
         if ingredients is not UNSET:
             field_dict["ingredients"] = ingredients
         if operations is not UNSET:
@@ -95,6 +106,7 @@ class CreateManufacturingOrderProductionRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.batch_transaction import BatchTransaction
         from ..models.manufacturing_order_operation_row import (
             ManufacturingOrderOperationRow,
         )
@@ -107,9 +119,21 @@ class CreateManufacturingOrderProductionRequest:
 
         completed_quantity = d.pop("completed_quantity")
 
-        completed_date = isoparse(d.pop("completed_date"))
+        _completed_date = d.pop("completed_date", UNSET)
+        completed_date: datetime.datetime | Unset
+        if isinstance(_completed_date, Unset):
+            completed_date = UNSET
+        else:
+            completed_date = isoparse(_completed_date)
 
         is_final = d.pop("is_final", UNSET)
+
+        _batch_transaction = d.pop("batch_transaction", UNSET)
+        batch_transaction: BatchTransaction | Unset
+        if isinstance(_batch_transaction, Unset):
+            batch_transaction = UNSET
+        else:
+            batch_transaction = BatchTransaction.from_dict(_batch_transaction)
 
         _ingredients = d.pop("ingredients", UNSET)
         ingredients: list[ManufacturingOrderProductionIngredient] | Unset = UNSET
@@ -140,6 +164,7 @@ class CreateManufacturingOrderProductionRequest:
             completed_quantity=completed_quantity,
             completed_date=completed_date,
             is_final=is_final,
+            batch_transaction=batch_transaction,
             ingredients=ingredients,
             operations=operations,
             serial_numbers=serial_numbers,

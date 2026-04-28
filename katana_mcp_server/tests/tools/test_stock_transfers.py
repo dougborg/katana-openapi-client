@@ -64,7 +64,7 @@ def _make_mock_transfer(
     stock_transfer_number: str | None = "ST-1",
     source_location_id: int = 1,
     target_location_id: int = 2,
-    status: str = "pending",
+    status: str = "draft",
     transfer_date: datetime | None = None,
     expected_arrival_date: datetime | None = None,
     created_at: datetime | None = None,
@@ -145,7 +145,7 @@ async def test_create_stock_transfer_confirm_success():
         stock_transfer_number="ST-42",
         source_location_id=1,
         target_location_id=2,
-        status="pending",
+        status="draft",
         expected_arrival_date=datetime(2026, 5, 1, 12, 0, tzinfo=UTC),
     )
 
@@ -173,7 +173,7 @@ async def test_create_stock_transfer_confirm_success():
     assert result.is_preview is False
     assert result.id == 42
     assert result.stock_transfer_number == "ST-42"
-    assert result.status == "pending"
+    assert result.status == "draft"
 
     # Verify API was called
     mock_api.assert_awaited_once()
@@ -256,9 +256,9 @@ async def test_list_stock_transfers_filters_by_status(
     await seed_cache(
         typed_cache,
         [
-            make_stock_transfer(id=1, status="pending"),
-            make_stock_transfer(id=2, status="in_transit"),
-            make_stock_transfer(id=3, status="completed"),
+            make_stock_transfer(id=1, status="draft"),
+            make_stock_transfer(id=2, status="inTransit"),
+            make_stock_transfer(id=3, status="received"),
         ],
     )
 
@@ -463,7 +463,7 @@ async def test_update_stock_transfer_confirm_success():
     context, _ = create_mock_context()
 
     mock_transfer = _make_mock_transfer(
-        id=42, stock_transfer_number="ST-42-revised", status="pending"
+        id=42, stock_transfer_number="ST-42-revised", status="draft"
     )
 
     with (
@@ -508,7 +508,7 @@ async def test_update_stock_transfer_status_preview():
 async def test_update_stock_transfer_status_confirm_success():
     context, _ = create_mock_context()
 
-    mock_transfer = _make_mock_transfer(id=42, status="in_transit")
+    mock_transfer = _make_mock_transfer(id=42, status="inTransit")
 
     with (
         patch(
@@ -523,12 +523,13 @@ async def test_update_stock_transfer_status_confirm_success():
 
     assert result.is_preview is False
     assert result.id == 42
-    assert result.status == "in_transit"
+    assert result.status == "inTransit"
     mock_api.assert_awaited_once()
     kwargs = mock_api.await_args.kwargs
     assert kwargs["id"] == 42
-    # Verify the API status enum was set to "in_transit"
-    assert kwargs["body"].status.value == "in_transit"
+    # Verify the API status enum was set to camelCase ``inTransit`` (the
+    # actual wire value Katana validates against).
+    assert kwargs["body"].status.value == "inTransit"
 
 
 @pytest.mark.asyncio
@@ -536,7 +537,7 @@ async def test_update_stock_transfer_status_invalid_transition_surfaces_error():
     """APIError from invalid transition is surfaced as ValueError with message."""
     context, _ = create_mock_context()
 
-    api_error = APIError("Cannot transition from COMPLETED to IN_TRANSIT", 400)
+    api_error = APIError("Cannot transition from RECEIVED to IN_TRANSIT", 400)
 
     with (
         patch(f"{_ST_UPDATE_STATUS}.asyncio_detailed", new_callable=AsyncMock),
@@ -558,7 +559,7 @@ async def test_update_stock_transfer_status_user_declines():
         f"{_ST_UPDATE_STATUS}.asyncio_detailed", new_callable=AsyncMock
     ) as mock_api:
         request = UpdateStockTransferStatusRequest(
-            id=42, new_status="CANCELLED", confirm=True
+            id=42, new_status="RECEIVED", confirm=True
         )
         result = await _update_stock_transfer_status_impl(request, context)
 

@@ -94,7 +94,7 @@ def sync_detailed(
 
     Args:
         body (CreateSalesOrderShippingFeeRequest): Request payload for adding a shipping fee to an
-            existing sales order Example: {'sales_order_id': 2001, 'amount': 25.99, 'description':
+            existing sales order Example: {'sales_order_id': 2001, 'amount': '25.99', 'description':
             'Express Shipping - Next Day Delivery', 'tax_rate_id': 301}.
 
     Raises:
@@ -128,7 +128,7 @@ def sync(
 
     Args:
         body (CreateSalesOrderShippingFeeRequest): Request payload for adding a shipping fee to an
-            existing sales order Example: {'sales_order_id': 2001, 'amount': 25.99, 'description':
+            existing sales order Example: {'sales_order_id': 2001, 'amount': '25.99', 'description':
             'Express Shipping - Next Day Delivery', 'tax_rate_id': 301}.
 
     Raises:
@@ -157,7 +157,7 @@ async def asyncio_detailed(
 
     Args:
         body (CreateSalesOrderShippingFeeRequest): Request payload for adding a shipping fee to an
-            existing sales order Example: {'sales_order_id': 2001, 'amount': 25.99, 'description':
+            existing sales order Example: {'sales_order_id': 2001, 'amount': '25.99', 'description':
             'Express Shipping - Next Day Delivery', 'tax_rate_id': 301}.
 
     Raises:
@@ -189,7 +189,7 @@ async def asyncio(
 
     Args:
         body (CreateSalesOrderShippingFeeRequest): Request payload for adding a shipping fee to an
-            existing sales order Example: {'sales_order_id': 2001, 'amount': 25.99, 'description':
+            existing sales order Example: {'sales_order_id': 2001, 'amount': '25.99', 'description':
             'Express Shipping - Next Day Delivery', 'tax_rate_id': 301}.
 
     Raises:

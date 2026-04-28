@@ -79,6 +79,12 @@ class ManufacturingOperationStatus(StrEnum):
     completed = "COMPLETED"
 
 
+class PriceAdjustmentMethod(StrEnum):
+    fixed = "fixed"
+    markup = "markup"
+    percentage = "percentage"
+
+
 class DocumentSendStatus(StrEnum):
     not_sent = "NOT_SENT"
     sending = "SENDING"
@@ -187,6 +193,10 @@ class Location1(KatanaPydanticBase):
     sales_allowed: bool | None = None
     purchase_allowed: bool | None = None
     manufacturing_allowed: bool | None = None
+
+
+class Status(StrEnum):
+    not_started = "NOT_STARTED"
 
 
 class Config(KatanaPydanticBase):
@@ -816,6 +826,20 @@ class AssignedOperator(KatanaPydanticBase):
         AwareDatetime | None,
         Field(description="Deletion timestamp if operator assignment was removed"),
     ] = None
+
+
+class CustomFieldValue(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    field_name: Annotated[
+        str,
+        Field(
+            description="Name of the custom field (matches a configured field's ``name``)",
+            max_length=40,
+        ),
+    ]
+    field_value: Annotated[str, Field(description="Value to set for this custom field")]
 
 
 class CustomFieldModel(KatanaPydanticBase):

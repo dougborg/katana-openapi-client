@@ -2,8 +2,8 @@
 
 Foundation tools covering the full stock-transfer lifecycle: create a transfer
 between locations, list transfers with filters, update transfer body fields,
-transition status through the four-state machine
-(PENDING / IN_TRANSIT / COMPLETED / CANCELLED), and delete.
+transition status through the three-state machine
+(DRAFT / IN_TRANSIT / RECEIVED), and delete.
 
 These tools provide:
 - create_stock_transfer: Create a transfer with preview/confirm pattern
@@ -29,7 +29,6 @@ from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     PaginationMeta,
     apply_date_window_filters,
-    coerce_enum,
     enum_to_str,
     format_md_table,
     iso_or_none,
@@ -52,14 +51,27 @@ from katana_public_api_client.utils import APIError, is_success, unwrap, unwrap_
 logger = get_logger(__name__)
 
 
-# Status literal shared across tools — mirrors the 4-state enum in
+# Status literal shared across tools — mirrors the 3-state enum in
 # StockTransferStatus while keeping the tool surface user-friendly (uppercase).
-StatusLiteral = Literal["PENDING", "IN_TRANSIT", "COMPLETED", "CANCELLED"]
+# The Katana API accepts {draft, received, inTransit} (camelCase ``inTransit``);
+# verified 2026-04-28 against the live PATCH /stock_transfers/{id}/status
+# endpoint. The previous {pending, in_transit, completed, cancelled} values
+# were shipped in error and would 422 on every call against the live API.
+StatusLiteral = Literal["DRAFT", "RECEIVED", "IN_TRANSIT"]
+
+
+# Tool-facing uppercase literal → API enum value (the live Katana API uses
+# lowercase + camelCase mix: ``draft``, ``received``, ``inTransit``).
+_STATUS_API_VALUE: dict[StatusLiteral, StockTransferStatus] = {
+    "DRAFT": StockTransferStatus.DRAFT,
+    "RECEIVED": StockTransferStatus.RECEIVED,
+    "IN_TRANSIT": StockTransferStatus.INTRANSIT,
+}
 
 
 def _status_literal_to_enum(status: StatusLiteral) -> StockTransferStatus:
-    """Map the tool-facing uppercase literal to the lowercase API enum."""
-    return StockTransferStatus(status.lower())
+    """Map the tool-facing uppercase literal to the API enum value."""
+    return _STATUS_API_VALUE[status]
 
 
 # ============================================================================
@@ -278,7 +290,7 @@ async def _create_stock_transfer_impl(
             stock_transfer_number=request.order_no,
             source_location_id=request.source_location_id,
             target_location_id=request.destination_location_id,
-            status="PENDING",
+            status="DRAFT",
             expected_arrival_date=request.expected_arrival_date.isoformat(),
             is_preview=True,
             next_actions=[
@@ -299,7 +311,7 @@ async def _create_stock_transfer_impl(
             stock_transfer_number=request.order_no,
             source_location_id=request.source_location_id,
             target_location_id=request.destination_location_id,
-            status="PENDING",
+            status="DRAFT",
             expected_arrival_date=request.expected_arrival_date.isoformat(),
             is_preview=True,
             message=f"Stock transfer creation {confirmation} by user",
@@ -335,7 +347,7 @@ async def _create_stock_transfer_impl(
     )
     result.next_actions = [
         f"Stock transfer created with ID {transfer.id}",
-        "Use update_stock_transfer_status to transition it through IN_TRANSIT → COMPLETED",
+        "Use update_stock_transfer_status to transition it through IN_TRANSIT → RECEIVED",
     ]
     return result
 
@@ -401,7 +413,7 @@ class ListStockTransfersRequest(BaseModel):
     # Domain filters
     status: StatusLiteral | None = Field(
         default=None,
-        description="Filter by transfer status (PENDING, IN_TRANSIT, COMPLETED, CANCELLED)",
+        description="Filter by transfer status (DRAFT, IN_TRANSIT, RECEIVED)",
     )
     source_location_id: int | None = Field(
         default=None, description="Filter by source location ID"
@@ -461,19 +473,18 @@ def _apply_stock_transfer_filters(
 
     Shared by the data SELECT and the COUNT SELECT so pagination totals
     reflect exactly the same filter set as the data rows. The ``status``
-    request field is the uppercase ``StatusLiteral`` (PENDING, etc.); the
-    cache column stores the lowercase value Katana returns. ``coerce_enum``
-    validates the input against ``StockTransferStatus`` (raising loudly on
-    a typo rather than silently returning zero rows) before the comparison.
+    request field is the uppercase ``StatusLiteral`` (DRAFT, IN_TRANSIT,
+    RECEIVED); ``_STATUS_API_VALUE`` maps it to the Katana wire value
+    (``draft``, ``inTransit`` (camelCase!), ``received``) which is what the
+    cache column stores.
     """
     from katana_public_api_client.models_pydantic._generated import (
         CachedStockTransfer,
-        StockTransferStatus,
     )
 
     if request.status is not None:
-        status_enum = coerce_enum(request.status.lower(), StockTransferStatus, "status")
-        stmt = stmt.where(CachedStockTransfer.status == status_enum.value)
+        api_value = _STATUS_API_VALUE[request.status]
+        stmt = stmt.where(CachedStockTransfer.status == api_value.value)
     if request.source_location_id is not None:
         stmt = stmt.where(
             CachedStockTransfer.source_location_id == request.source_location_id
@@ -817,14 +828,14 @@ async def update_stock_transfer(
 
 
 class UpdateStockTransferStatusRequest(BaseModel):
-    """Request to transition a stock transfer through the 4-state machine."""
+    """Request to transition a stock transfer through the 3-state machine."""
 
     id: int = Field(..., description="Stock transfer ID")
     new_status: StatusLiteral = Field(
         ...,
         description=(
             "Target status. Valid transitions are governed by Katana — typical flow "
-            "is PENDING → IN_TRANSIT → COMPLETED. CANCELLED reverses."
+            "is DRAFT → IN_TRANSIT → RECEIVED."
         ),
     )
     confirm: bool = Field(
@@ -883,7 +894,7 @@ async def _update_stock_transfer_status_impl(
         )
         transfer = unwrap_as(response, StockTransfer)
     except APIError as e:
-        # Katana rejects invalid state transitions (e.g. COMPLETED → IN_TRANSIT)
+        # Katana rejects invalid state transitions (e.g. RECEIVED → IN_TRANSIT)
         # with a typed error. Re-raise as ValueError so the tool surfaces a
         # clean, caller-actionable message.
         logger.warning(
@@ -917,12 +928,12 @@ async def _update_stock_transfer_status_impl(
 async def update_stock_transfer_status(
     request: Annotated[UpdateStockTransferStatusRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """Transition a stock transfer through the 4-state machine.
+    """Transition a stock transfer through the 3-state machine.
 
-    Two-step flow: confirm=false to preview, confirm=true to apply. The four
-    valid states are PENDING, IN_TRANSIT, COMPLETED, CANCELLED. Katana rejects
-    invalid transitions (e.g. COMPLETED → IN_TRANSIT); the tool surfaces the
-    API error message as a ValueError.
+    Two-step flow: confirm=false to preview, confirm=true to apply. The
+    three valid states are DRAFT, IN_TRANSIT, RECEIVED. Katana rejects
+    invalid transitions (e.g. RECEIVED → IN_TRANSIT); the tool surfaces
+    the API error message as a ValueError.
     """
     response = await _update_stock_transfer_status_impl(request, context)
 

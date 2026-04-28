@@ -144,6 +144,12 @@ class CreateWebhookRequest(KatanaPydanticBase):
             pattern="^https://.*$",
         ),
     ]
+    enabled: Annotated[
+        bool | None,
+        Field(
+            description="Whether this webhook subscription should be active immediately on creation (defaults to true)"
+        ),
+    ] = None
     subscribed_events: Annotated[
         list[WebhookEvent],
         Field(
@@ -164,12 +170,12 @@ class UpdateWebhookRequest(KatanaPydanticBase):
         extra="forbid",
     )
     url: Annotated[
-        str,
+        str | None,
         Field(
             description="HTTPS endpoint URL where webhook events will be sent (must use HTTPS for security)",
             pattern="^https://.*$",
         ),
-    ]
+    ] = None
     enabled: Annotated[
         bool | None,
         Field(
@@ -177,12 +183,12 @@ class UpdateWebhookRequest(KatanaPydanticBase):
         ),
     ] = None
     subscribed_events: Annotated[
-        list[WebhookEvent],
+        list[WebhookEvent] | None,
         Field(
             description="List of event types to subscribe to (at least one event type required)",
             min_length=1,
         ),
-    ]
+    ] = None
     description: Annotated[
         str | None,
         Field(
