@@ -228,7 +228,7 @@ async def test_create_stock_transfer_rejects_empty_rows():
 
 
 @pytest.fixture
-def no_st_sync():
+def no_sync():
     """Patch ``ensure_stock_transfers_synced`` to a no-op."""
     with patch_typed_cache_sync("stock_transfers"):
         yield
@@ -236,7 +236,7 @@ def no_st_sync():
 
 @pytest.mark.asyncio
 async def test_list_stock_transfers_invalid_date_raises(
-    context_with_typed_cache, no_st_sync
+    context_with_typed_cache, no_sync
 ):
     """Malformed ISO-8601 date is surfaced as ValueError."""
     context, _, _typed_cache = context_with_typed_cache
@@ -249,7 +249,7 @@ async def test_list_stock_transfers_invalid_date_raises(
 
 @pytest.mark.asyncio
 async def test_list_stock_transfers_filters_by_status(
-    context_with_typed_cache, no_st_sync
+    context_with_typed_cache, no_sync
 ):
     """Status filter (uppercase Literal) folds to lowercase against the cache column."""
     context, _, typed_cache = context_with_typed_cache
@@ -270,9 +270,7 @@ async def test_list_stock_transfers_filters_by_status(
 
 
 @pytest.mark.asyncio
-async def test_list_stock_transfers_location_filters(
-    context_with_typed_cache, no_st_sync
-):
+async def test_list_stock_transfers_location_filters(context_with_typed_cache, no_sync):
     """source_location_id / destination_location_id apply as direct column filters."""
     context, _, typed_cache = context_with_typed_cache
     await seed_cache(
@@ -297,7 +295,7 @@ async def test_list_stock_transfers_location_filters(
 
 @pytest.mark.asyncio
 async def test_list_stock_transfers_filters_by_number(
-    context_with_typed_cache, no_st_sync
+    context_with_typed_cache, no_sync
 ):
     """`stock_transfer_number` is an exact-match column filter."""
     context, _, typed_cache = context_with_typed_cache
@@ -317,7 +315,7 @@ async def test_list_stock_transfers_filters_by_number(
 
 
 @pytest.mark.asyncio
-async def test_list_stock_transfers_date_filters(context_with_typed_cache, no_st_sync):
+async def test_list_stock_transfers_date_filters(context_with_typed_cache, no_sync):
     """`created_after` / `created_before` apply as indexed range filters."""
     context, _, typed_cache = context_with_typed_cache
     await seed_cache(
@@ -341,7 +339,7 @@ async def test_list_stock_transfers_date_filters(context_with_typed_cache, no_st
 
 
 @pytest.mark.asyncio
-async def test_list_stock_transfers_caps_to_limit(context_with_typed_cache, no_st_sync):
+async def test_list_stock_transfers_caps_to_limit(context_with_typed_cache, no_sync):
     """`limit` caps the result size even when more rows match."""
     context, _, typed_cache = context_with_typed_cache
     await seed_cache(
@@ -357,7 +355,7 @@ async def test_list_stock_transfers_caps_to_limit(context_with_typed_cache, no_s
 
 
 @pytest.mark.asyncio
-async def test_list_stock_transfers_include_rows(context_with_typed_cache, no_st_sync):
+async def test_list_stock_transfers_include_rows(context_with_typed_cache, no_sync):
     """include_rows=True exposes per-transfer row details."""
     context, _, typed_cache = context_with_typed_cache
     await seed_cache(
@@ -393,7 +391,7 @@ async def test_list_stock_transfers_include_rows(context_with_typed_cache, no_st
 
 @pytest.mark.asyncio
 async def test_list_stock_transfers_pagination_meta_when_page_set(
-    context_with_typed_cache, no_st_sync
+    context_with_typed_cache, no_sync
 ):
     """An explicit `page` populates `pagination` from a SQL COUNT against the same filter set."""
     context, _, typed_cache = context_with_typed_cache
@@ -415,7 +413,7 @@ async def test_list_stock_transfers_pagination_meta_when_page_set(
 
 @pytest.mark.asyncio
 async def test_list_stock_transfers_no_pagination_when_page_not_set(
-    context_with_typed_cache, no_st_sync
+    context_with_typed_cache, no_sync
 ):
     """When page is not set, pagination meta stays None."""
     context, _, typed_cache = context_with_typed_cache

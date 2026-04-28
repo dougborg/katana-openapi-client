@@ -2057,7 +2057,7 @@ async def test_verify_order_document_embeds_po_without_nested_heading():
 
 
 @pytest.fixture
-def no_po_sync():
+def no_sync():
     """Patch ``ensure_purchase_orders_synced`` to a no-op."""
     with patch_typed_cache_sync("purchase_orders"):
         yield
@@ -2076,9 +2076,7 @@ async def test_list_purchase_orders_limit_le_250_validation():
 
 
 @pytest.mark.asyncio
-async def test_list_purchase_orders_filters_by_ids(
-    context_with_typed_cache, no_po_sync
-):
+async def test_list_purchase_orders_filters_by_ids(context_with_typed_cache, no_sync):
     """`ids` restricts the returned set to specific PO IDs."""
     from katana_mcp.tools.foundation.purchase_orders import (
         ListPurchaseOrdersRequest,
@@ -2104,7 +2102,7 @@ async def test_list_purchase_orders_filters_by_ids(
 
 @pytest.mark.asyncio
 async def test_list_purchase_orders_filters_by_status_and_billing(
-    context_with_typed_cache, no_po_sync
+    context_with_typed_cache, no_sync
 ):
     """`status` and `billing_status` apply as enum-typed column filters."""
     from katana_mcp.tools.foundation.purchase_orders import (
@@ -2142,7 +2140,7 @@ async def test_list_purchase_orders_filters_by_status_and_billing(
 
 @pytest.mark.asyncio
 async def test_list_purchase_orders_filters_by_entity_type_and_tracking_location(
-    context_with_typed_cache, no_po_sync
+    context_with_typed_cache, no_sync
 ):
     """`entity_type` filters regular vs outsourced; `tracking_location_id` is hoisted from the outsourced subclass."""
     from katana_mcp.tools.foundation.purchase_orders import (
@@ -2180,7 +2178,7 @@ async def test_list_purchase_orders_filters_by_entity_type_and_tracking_location
 
 @pytest.mark.asyncio
 async def test_list_purchase_orders_filters_by_supplier_currency_and_location(
-    context_with_typed_cache, no_po_sync
+    context_with_typed_cache, no_sync
 ):
     """Direct column filters: supplier_id, currency, location_id."""
     from katana_mcp.tools.foundation.purchase_orders import (
@@ -2216,7 +2214,7 @@ async def test_list_purchase_orders_filters_by_supplier_currency_and_location(
 
 @pytest.mark.asyncio
 async def test_list_purchase_orders_excludes_deleted_by_default(
-    context_with_typed_cache, no_po_sync
+    context_with_typed_cache, no_sync
 ):
     """Soft-deleted POs are filtered unless include_deleted=True."""
     from katana_mcp.tools.foundation.purchase_orders import (
@@ -2243,7 +2241,7 @@ async def test_list_purchase_orders_excludes_deleted_by_default(
 
 
 @pytest.mark.asyncio
-async def test_list_purchase_orders_date_filters(context_with_typed_cache, no_po_sync):
+async def test_list_purchase_orders_date_filters(context_with_typed_cache, no_sync):
     """`created_*` and `expected_arrival_*` apply as indexed range filters."""
     from katana_mcp.tools.foundation.purchase_orders import (
         ListPurchaseOrdersRequest,
@@ -2288,7 +2286,7 @@ async def test_list_purchase_orders_date_filters(context_with_typed_cache, no_po
 
 @pytest.mark.asyncio
 async def test_list_purchase_orders_invalid_date_raises(
-    context_with_typed_cache, no_po_sync
+    context_with_typed_cache, no_sync
 ):
     """Malformed ISO-8601 surfaces as ValueError."""
     from katana_mcp.tools.foundation.purchase_orders import (
@@ -2305,7 +2303,7 @@ async def test_list_purchase_orders_invalid_date_raises(
 
 
 @pytest.mark.asyncio
-async def test_list_purchase_orders_caps_to_limit(context_with_typed_cache, no_po_sync):
+async def test_list_purchase_orders_caps_to_limit(context_with_typed_cache, no_sync):
     """`limit` caps the result size even when more rows match."""
     from katana_mcp.tools.foundation.purchase_orders import (
         ListPurchaseOrdersRequest,
@@ -2327,7 +2325,7 @@ async def test_list_purchase_orders_caps_to_limit(context_with_typed_cache, no_p
 
 @pytest.mark.asyncio
 async def test_list_purchase_orders_pagination_meta_populated_on_explicit_page(
-    context_with_typed_cache, no_po_sync
+    context_with_typed_cache, no_sync
 ):
     """An explicit `page` populates `pagination` from a SQL COUNT against the same filter set."""
     from katana_mcp.tools.foundation.purchase_orders import (
@@ -2353,7 +2351,7 @@ async def test_list_purchase_orders_pagination_meta_populated_on_explicit_page(
 
 
 @pytest.mark.asyncio
-async def test_list_purchase_orders_include_rows(context_with_typed_cache, no_po_sync):
+async def test_list_purchase_orders_include_rows(context_with_typed_cache, no_sync):
     """include_rows=True exposes per-PO line item detail."""
     from katana_mcp.tools.foundation.purchase_orders import (
         ListPurchaseOrdersRequest,

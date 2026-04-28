@@ -916,7 +916,7 @@ async def test_create_manufacturing_order_make_to_order_with_subassemblies():
 
 
 @pytest.fixture
-def no_mo_sync():
+def no_sync():
     """Patch ``ensure_manufacturing_orders_synced`` to a no-op."""
     with patch_typed_cache_sync("manufacturing_orders"):
         yield
@@ -936,7 +936,7 @@ async def test_list_manufacturing_orders_limit_le_250_validation():
 
 @pytest.mark.asyncio
 async def test_list_manufacturing_orders_filters_by_ids(
-    context_with_typed_cache, no_mo_sync
+    context_with_typed_cache, no_sync
 ):
     """`ids` restricts the returned set to the specified MO IDs."""
     from katana_mcp.tools.foundation.manufacturing_orders import (
@@ -963,7 +963,7 @@ async def test_list_manufacturing_orders_filters_by_ids(
 
 @pytest.mark.asyncio
 async def test_list_manufacturing_orders_filters_by_status(
-    context_with_typed_cache, no_mo_sync
+    context_with_typed_cache, no_sync
 ):
     """`status` matches the cache's enum column exactly."""
     from katana_mcp.tools.foundation.manufacturing_orders import (
@@ -995,7 +995,7 @@ async def test_list_manufacturing_orders_filters_by_status(
 
 @pytest.mark.asyncio
 async def test_list_manufacturing_orders_filters_by_location_and_so_link(
-    context_with_typed_cache, no_mo_sync
+    context_with_typed_cache, no_sync
 ):
     """`location_id` and `is_linked_to_sales_order` apply as direct column filters."""
     from katana_mcp.tools.foundation.manufacturing_orders import (
@@ -1032,7 +1032,7 @@ async def test_list_manufacturing_orders_filters_by_location_and_so_link(
 
 @pytest.mark.asyncio
 async def test_list_manufacturing_orders_excludes_deleted_by_default(
-    context_with_typed_cache, no_mo_sync
+    context_with_typed_cache, no_sync
 ):
     """Soft-deleted MOs are filtered unless include_deleted=True."""
     from katana_mcp.tools.foundation.manufacturing_orders import (
@@ -1062,7 +1062,7 @@ async def test_list_manufacturing_orders_excludes_deleted_by_default(
 
 @pytest.mark.asyncio
 async def test_list_manufacturing_orders_date_filters(
-    context_with_typed_cache, no_mo_sync
+    context_with_typed_cache, no_sync
 ):
     """All four date columns (created_at, updated_at, production_deadline_date) apply as ranges."""
     from katana_mcp.tools.foundation.manufacturing_orders import (
@@ -1111,7 +1111,7 @@ async def test_list_manufacturing_orders_date_filters(
 
 @pytest.mark.asyncio
 async def test_list_manufacturing_orders_invalid_date_raises(
-    context_with_typed_cache, no_mo_sync
+    context_with_typed_cache, no_sync
 ):
     """Malformed ISO-8601 for a date filter surfaces as ValueError."""
     from katana_mcp.tools.foundation.manufacturing_orders import (
@@ -1129,7 +1129,7 @@ async def test_list_manufacturing_orders_invalid_date_raises(
 
 @pytest.mark.asyncio
 async def test_list_manufacturing_orders_caps_to_limit(
-    context_with_typed_cache, no_mo_sync
+    context_with_typed_cache, no_sync
 ):
     """`limit` caps the result size even when more rows match."""
     from katana_mcp.tools.foundation.manufacturing_orders import (
@@ -1153,7 +1153,7 @@ async def test_list_manufacturing_orders_caps_to_limit(
 
 @pytest.mark.asyncio
 async def test_list_manufacturing_orders_pagination_meta_populated_on_explicit_page(
-    context_with_typed_cache, no_mo_sync
+    context_with_typed_cache, no_sync
 ):
     """An explicit `page` populates `pagination` from a SQL COUNT against the same filter set."""
     from katana_mcp.tools.foundation.manufacturing_orders import (
@@ -1182,7 +1182,7 @@ async def test_list_manufacturing_orders_pagination_meta_populated_on_explicit_p
 
 @pytest.mark.asyncio
 async def test_list_manufacturing_orders_pagination_meta_none_without_page(
-    context_with_typed_cache, no_mo_sync
+    context_with_typed_cache, no_sync
 ):
     """Without an explicit `page`, `pagination` is `None`."""
     from katana_mcp.tools.foundation.manufacturing_orders import (
