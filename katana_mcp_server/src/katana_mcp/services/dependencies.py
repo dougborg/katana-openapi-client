@@ -22,12 +22,18 @@ class Services:
     the lifespan function in server.py) and returned by get_services().
 
     Attributes:
-        client: The KatanaClient instance for API operations
-        cache: Persistent SQLite catalog cache with FTS5 search (legacy,
-            holds reference entity types; retires per-entity during #342).
-        typed_cache: SQLModel-backed cache for transactional list tools
-            (sales orders first; see #342). Coexists with ``cache`` until
-            the reference-entity migration epic completes.
+        client: The KatanaClient instance for API operations.
+        cache: ``CatalogCache`` — SQLite + FTS5 store for the 10 reference
+            entity types (variants, products, materials, services, suppliers,
+            customers, locations, tax rates, operators, factories). Powers
+            ``search_items`` and ``get_variant_details``-style lookups.
+        typed_cache: ``TypedCacheEngine`` — SQLModel-backed per-entity tables
+            for transactional types (sales orders, manufacturing orders,
+            purchase orders, stock adjustments/transfers, MO recipe rows).
+            Powers cache-backed ``list_*`` tools.
+
+    Both caches are permanent and complementary; see ADR-0018 and the
+    ``katana_mcp.typed_cache`` package docstring for the rationale.
     """
 
     client: KatanaClient
