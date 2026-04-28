@@ -2,6 +2,51 @@
 
 <!-- version list -->
 
+## v0.54.1 (2026-04-28)
+
+### Bug Fixes
+
+- **client**: Normalize empty dict to None in from_attrs for absent nullable nested
+  objects ([#403](https://github.com/dougborg/katana-openapi-client/pull/403),
+  [`c5c7d3a`](https://github.com/dougborg/katana-openapi-client/commit/c5c7d3ad6996b83ac10c37843535539775035586))
+
+- **mcp**: Check_inventory preserves input order, skus_or_variant_ids is required
+  ([#397](https://github.com/dougborg/katana-openapi-client/pull/397),
+  [`f32066f`](https://github.com/dougborg/katana-openapi-client/commit/f32066f65da8d6bf949a2788a087d9f8c55b68fd))
+
+- **mcp**: Correct list_stock_transfers filters, get_variant_details single-card check,
+  help cross-refs ([#397](https://github.com/dougborg/katana-openapi-client/pull/397),
+  [`f32066f`](https://github.com/dougborg/katana-openapi-client/commit/f32066f65da8d6bf949a2788a087d9f8c55b68fd))
+
+### Chores
+
+- **actions)(deps**: Bump aquasecurity/trivy-action
+  ([#381](https://github.com/dougborg/katana-openapi-client/pull/381),
+  [`147700d`](https://github.com/dougborg/katana-openapi-client/commit/147700df8194ac0f1d66ca13b7e6a752e61ba77e))
+
+- **deps)(deps**: Bump the python-minor-patch group across 1 directory with 6 updates
+  ([#384](https://github.com/dougborg/katana-openapi-client/pull/384),
+  [`b8b7bfc`](https://github.com/dougborg/katana-openapi-client/commit/b8b7bfc7311bd3d23a05924cb13807d6ca644578))
+
+- **mcp**: Audit tool descriptions to surface batchable shapes and standardize style
+  ([#397](https://github.com/dougborg/katana-openapi-client/pull/397),
+  [`f32066f`](https://github.com/dougborg/katana-openapi-client/commit/f32066f65da8d6bf949a2788a087d9f8c55b68fd))
+
+- **mcp**: Update client dependency to v0.54.0
+  ([`7503c1a`](https://github.com/dougborg/katana-openapi-client/commit/7503c1a4b34ae51ed4f891c81513d4cd36c36b7f))
+
+### Documentation
+
+- **harness**: Harvest project-wide rules from local memory
+  ([#402](https://github.com/dougborg/katana-openapi-client/pull/402),
+  [`79e5f4f`](https://github.com/dougborg/katana-openapi-client/commit/79e5f4fc7d7bd8662b94c9f8861dbf865b25e05d))
+
+### Testing
+
+- **mcp**: Add check_inventory tests for variant_id and mixed-input paths
+  ([#397](https://github.com/dougborg/katana-openapi-client/pull/397),
+  [`f32066f`](https://github.com/dougborg/katana-openapi-client/commit/f32066f65da8d6bf949a2788a087d9f8c55b68fd))
+
 ## v0.54.0 (2026-04-27)
 
 ### Bug Fixes
