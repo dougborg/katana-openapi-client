@@ -47,7 +47,6 @@ We use the format proposed by Michael Nygard in his article
 ## Related Documentation
 
 - [Architecture Design](../architecture.md) - MCP architecture and patterns
-- [Implementation Plan](../implementation-plan.md) - MCP v0.1.0 roadmap
 - [Development Guide](../development.md) - Development workflow
 - [Contributing Guide](../../../docs/CONTRIBUTING.md) - Contribution guidelines
 - [Monorepo ADRs](../../../docs/adr/README.md) - Shared/monorepo-level ADRs

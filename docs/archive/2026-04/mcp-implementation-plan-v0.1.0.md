@@ -1,5 +1,20 @@
 # MCP v0.1.0 Implementation Plan
 
+> **Archived 2026-04.** This plan was executed (issues #172–#195 all merged); the
+> MCP server has since shipped multiple post-v0.1.0 epics (typed cache #342,
+> tool-description audit #393, EntitySpec refactor #389). For the current MCP
+> architecture, read
+> [`mcp-server/architecture.md`](../../mcp-server/architecture.md) and
+> [ADR-0010](../../mcp-server/adr/0010-katana-mcp-server.md) /
+> [ADR-0018](../../mcp-server/adr/0018-sqlmodel-typed-cache.md).
+> The text below is preserved verbatim for historical context.
+>
+> *Path note: links use the `mcp-server/` MkDocs alias (`docs/mcp-server` is a
+> symlink to `katana_mcp_server/docs`) so they resolve in the published site
+> as well as on GitHub.*
+
+______________________________________________________________________
+
 **Goal**: Build a small but complete MCP implementation that showcases ALL MCP features
 while supporting actual workflows.
 

@@ -385,8 +385,7 @@ katana-openapi-client/
 └── katana_mcp_server/
     └── docs/                       # MCP-specific docs
         ├── adr/                    # MCP ADRs
-        ├── architecture.md
-        └── implementation-plan.md
+        └── architecture.md
 ```
 
 **Benefits:**
@@ -559,8 +558,6 @@ ______________________________________________________________________
 ### MCP Documentation
 
 - **[MCP Architecture](../../../katana_mcp_server/docs/architecture.md)** - MCP design
-- **[Implementation Plan](../../../katana_mcp_server/docs/implementation-plan.md)** -
-  MCP roadmap
 
 ______________________________________________________________________
 
