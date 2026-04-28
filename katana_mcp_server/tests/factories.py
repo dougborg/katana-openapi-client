@@ -14,28 +14,28 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-if TYPE_CHECKING:
-    from katana_mcp.typed_cache import TypedCacheEngine
+from katana_mcp.tools.tool_result_utils import naive_utc
+from katana_mcp.typed_cache import TypedCacheEngine
 
-    from katana_public_api_client.models_pydantic._generated import (
-        CachedManufacturingOrder,
-        CachedManufacturingOrderRecipeRow,
-        CachedPurchaseOrder,
-        CachedPurchaseOrderRow,
-        CachedSalesOrder,
-        CachedSalesOrderRow,
-        CachedStockAdjustment,
-        CachedStockAdjustmentRow,
-        CachedStockTransfer,
-        CachedStockTransferRow,
-        ManufacturingOrderStatus,
-        PurchaseOrderEntityType,
-        PurchaseOrderStatus,
-        SalesOrderProductionStatus,
-        SalesOrderStatus,
-    )
+from katana_public_api_client.models_pydantic._generated import (
+    CachedManufacturingOrder,
+    CachedManufacturingOrderRecipeRow,
+    CachedPurchaseOrder,
+    CachedPurchaseOrderRow,
+    CachedSalesOrder,
+    CachedSalesOrderRow,
+    CachedStockAdjustment,
+    CachedStockAdjustmentRow,
+    CachedStockTransfer,
+    CachedStockTransferRow,
+    ManufacturingOrderStatus,
+    PurchaseOrderEntityType,
+    PurchaseOrderStatus,
+    SalesOrderProductionStatus,
+    SalesOrderStatus,
+)
 
 
 async def seed_cache(typed_cache: TypedCacheEngine, entities: Iterable[Any]) -> None:
@@ -83,26 +83,19 @@ def make_sales_order(
     flavor without breaking later comparisons. ``created_at`` defaults
     to 2026-04-01 so date-window filter tests have a stable reference.
     """
-    from katana_mcp.tools.tool_result_utils import naive_utc
-
-    from katana_public_api_client.models_pydantic._generated import (
-        CachedSalesOrder as _CachedSalesOrder,
-        SalesOrderProductionStatus as _ProductionStatus,
-        SalesOrderStatus as _SalesOrderStatus,
-    )
 
     resolved_status = (
-        _SalesOrderStatus(status)
+        SalesOrderStatus(status)
         if isinstance(status, str)
-        else (status if status is not None else _SalesOrderStatus.not_shipped)
+        else (status if status is not None else SalesOrderStatus.not_shipped)
     )
     resolved_prod_status = (
-        _ProductionStatus(production_status)
+        SalesOrderProductionStatus(production_status)
         if isinstance(production_status, str)
         else production_status
     )
 
-    cached = _CachedSalesOrder(
+    cached = CachedSalesOrder(
         id=id,
         order_no=order_no,
         customer_id=customer_id,
@@ -133,11 +126,7 @@ def make_sales_order_row(
     linked_manufacturing_order_id: int | None = None,
 ) -> CachedSalesOrderRow:
     """Build a ``CachedSalesOrderRow`` for direct cache insertion."""
-    from katana_public_api_client.models_pydantic._generated import (
-        CachedSalesOrderRow as _CachedSalesOrderRow,
-    )
-
-    return _CachedSalesOrderRow(
+    return CachedSalesOrderRow(
         id=id,
         sales_order_id=sales_order_id,
         variant_id=variant_id,
@@ -173,13 +162,8 @@ def make_stock_adjustment(
     ``created_at`` defaults to 2026-04-01 to match the sales-order builder
     so cross-entity date-window tests share a baseline.
     """
-    from katana_mcp.tools.tool_result_utils import naive_utc
 
-    from katana_public_api_client.models_pydantic._generated import (
-        CachedStockAdjustment as _CachedStockAdjustment,
-    )
-
-    cached = _CachedStockAdjustment(
+    cached = CachedStockAdjustment(
         id=id,
         stock_adjustment_number=stock_adjustment_number,
         location_id=location_id,
@@ -203,11 +187,7 @@ def make_stock_adjustment_row(
     cost_per_unit: float | None = None,
 ) -> CachedStockAdjustmentRow:
     """Build a ``CachedStockAdjustmentRow`` for direct cache insertion."""
-    from katana_public_api_client.models_pydantic._generated import (
-        CachedStockAdjustmentRow as _CachedStockAdjustmentRow,
-    )
-
-    return _CachedStockAdjustmentRow(
+    return CachedStockAdjustmentRow(
         id=id,
         stock_adjustment_id=stock_adjustment_id,
         variant_id=variant_id,
@@ -248,20 +228,14 @@ def make_manufacturing_order(
     ``created_at`` both default to 2026-04-01 to match the other
     factories' baseline.
     """
-    from katana_mcp.tools.tool_result_utils import naive_utc
-
-    from katana_public_api_client.models_pydantic._generated import (
-        CachedManufacturingOrder as _CachedManufacturingOrder,
-        ManufacturingOrderStatus as _ManufacturingOrderStatus,
-    )
 
     resolved_status = (
-        _ManufacturingOrderStatus(status)
+        ManufacturingOrderStatus(status)
         if isinstance(status, str)
-        else (status if status is not None else _ManufacturingOrderStatus.not_started)
+        else (status if status is not None else ManufacturingOrderStatus.not_started)
     )
 
-    return _CachedManufacturingOrder(
+    return CachedManufacturingOrder(
         id=id,
         order_no=order_no,
         status=resolved_status,
@@ -300,11 +274,7 @@ def make_manufacturing_order_recipe_row(
     to build parent-child fixtures for tools that join MOs to recipe rows
     (e.g., ``inventory_velocity``'s MO-consumption path).
     """
-    from katana_public_api_client.models_pydantic._generated import (
-        CachedManufacturingOrderRecipeRow as _CachedManufacturingOrderRecipeRow,
-    )
-
-    return _CachedManufacturingOrderRecipeRow(
+    return CachedManufacturingOrderRecipeRow(
         id=id,
         manufacturing_order_id=manufacturing_order_id,
         variant_id=variant_id,
@@ -348,24 +318,19 @@ def make_purchase_order(
     pass ``"outsourced"`` plus a ``tracking_location_id`` for outsourced
     fixtures.
     """
-    from katana_mcp.tools.tool_result_utils import naive_utc
-
-    from katana_public_api_client.models_pydantic._generated import (
-        CachedPurchaseOrder as _CachedPurchaseOrder,
-        PurchaseOrderEntityType as _EntityType,
-        PurchaseOrderStatus as _Status,
-    )
 
     resolved_entity_type = (
-        _EntityType(entity_type) if isinstance(entity_type, str) else entity_type
+        PurchaseOrderEntityType(entity_type)
+        if isinstance(entity_type, str)
+        else entity_type
     )
     resolved_status = (
-        _Status(status)
+        PurchaseOrderStatus(status)
         if isinstance(status, str)
-        else (status if status is not None else _Status.not_received)
+        else (status if status is not None else PurchaseOrderStatus.not_received)
     )
 
-    cached = _CachedPurchaseOrder(
+    cached = CachedPurchaseOrder(
         id=id,
         order_no=order_no,
         entity_type=resolved_entity_type,
@@ -398,13 +363,8 @@ def make_purchase_order_row(
     total: float | None = None,
 ) -> CachedPurchaseOrderRow:
     """Build a ``CachedPurchaseOrderRow`` for direct cache insertion."""
-    from katana_mcp.tools.tool_result_utils import naive_utc
 
-    from katana_public_api_client.models_pydantic._generated import (
-        CachedPurchaseOrderRow as _CachedPurchaseOrderRow,
-    )
-
-    return _CachedPurchaseOrderRow(
+    return CachedPurchaseOrderRow(
         id=id,
         purchase_order_id=purchase_order_id,
         variant_id=variant_id,
@@ -443,13 +403,8 @@ def make_stock_transfer(
     spec types it that way; Katana returns lowercase enum values). Pass
     raw lowercase strings here — that matches what real API rows carry.
     """
-    from katana_mcp.tools.tool_result_utils import naive_utc
 
-    from katana_public_api_client.models_pydantic._generated import (
-        CachedStockTransfer as _CachedStockTransfer,
-    )
-
-    cached = _CachedStockTransfer(
+    cached = CachedStockTransfer(
         id=id,
         stock_transfer_number=stock_transfer_number,
         source_location_id=source_location_id,
@@ -476,11 +431,7 @@ def make_stock_transfer_row(
     cost_per_unit: float | None = None,
 ) -> CachedStockTransferRow:
     """Build a ``CachedStockTransferRow`` for direct cache insertion."""
-    from katana_public_api_client.models_pydantic._generated import (
-        CachedStockTransferRow as _CachedStockTransferRow,
-    )
-
-    return _CachedStockTransferRow(
+    return CachedStockTransferRow(
         id=id,
         stock_transfer_id=stock_transfer_id,
         variant_id=variant_id,
