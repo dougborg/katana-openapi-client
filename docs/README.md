@@ -66,7 +66,6 @@ katana_mcp_server/docs/              # MCP server documentation
 ├── development.md                   # Development guide
 ├── deployment.md                    # Deployment guide
 ├── docker.md                        # Docker deployment
-├── implementation-plan.md           # Implementation roadmap
 └── adr/                            # MCP ADRs (010)
 
 packages/katana-client/docs/         # TypeScript client documentation
