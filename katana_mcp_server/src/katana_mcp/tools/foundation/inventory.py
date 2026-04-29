@@ -217,6 +217,8 @@ async def check_inventory(
     availability, or with a batch list to check multiple ingredients at once
     (e.g. all EXPECTED items in an MO recipe).
     """
+    from katana_mcp.tools.prefab_ui import build_inventory_check_ui
+
     results = await _check_inventory_impl(request, context)
 
     if request.format == "json":
@@ -226,20 +228,12 @@ async def check_inventory(
             structured_content=payload,
         )
 
-    # Single-variant request: render via the inventory_check template
+    # Single-variant request: preserve the rich Prefab card output
     is_single = len(results) == 1 and len(request.skus_or_variant_ids) == 1
     if is_single:
         response = results[0]
-        return make_tool_result(
-            response,
-            "inventory_check",
-            sku=response.sku,
-            product_name=response.product_name,
-            in_stock=response.in_stock,
-            available_stock=response.available_stock,
-            committed=response.committed,
-            expected=response.expected,
-        )
+        ui = build_inventory_check_ui(response.model_dump())
+        return make_tool_result(response, ui=ui)
 
     # Batch response: summary table
     from katana_mcp.tools.tool_result_utils import format_md_table, make_simple_result
@@ -395,6 +389,8 @@ async def list_low_stock_items(
 
     Default threshold is 10 units, default limit is 50 items.
     """
+    from katana_mcp.tools.prefab_ui import build_low_stock_ui
+
     response = await _list_low_stock_items_impl(request, context)
 
     if request.format == "json":
@@ -403,21 +399,10 @@ async def list_low_stock_items(
             structured_content=response.model_dump(),
         )
 
-    if response.items:
-        items_table = "\n".join(
-            f"- **{item.sku}**: {item.product_name} — {item.current_stock} units"
-            for item in response.items
-        )
-    else:
-        items_table = "No items below threshold."
+    items_dicts = [item.model_dump() for item in response.items]
+    ui = build_low_stock_ui(items_dicts, request.threshold, response.total_count)
 
-    return make_tool_result(
-        response,
-        "low_stock_report",
-        threshold=request.threshold,
-        total_count=response.total_count,
-        items_table=items_table,
-    )
+    return make_tool_result(response, ui=ui)
 
 
 # ============================================================================

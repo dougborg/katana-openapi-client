@@ -136,85 +136,6 @@ async def test_get_variant_details_surfaces_every_variant_field():
 
 
 @pytest.mark.asyncio
-async def test_get_variant_details_markdown_uses_canonical_labels():
-    """Markdown labels use canonical Pydantic field names so an LLM consumer
-    can't mistake a section header for a differently-named field
-    (motivation: #346 follow-on — the SW7083 supplier_item_codes misread)."""
-    context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=dict(_FULL_VARIANT_DICT))
-
-    result = await get_variant_details(sku="KNF-PRO-8PC-STL", context=context)
-    text = _content_text(result)
-
-    # Canonical field names appear as bold labels, not prettified headers.
-    assert "**sku**: KNF-PRO-8PC-STL" in text
-    assert "**internal_barcode**: INT-KNF-001" in text
-    assert "**registered_barcode**: 789123456789" in text
-    # The old prettified heading must NOT appear — that's the whole point.
-    assert "## Supplier Info" not in text
-    assert "Supplier Info" not in text
-
-
-@pytest.mark.asyncio
-async def test_get_variant_details_renders_supplier_item_codes_as_explicit_list():
-    """One-element supplier_item_codes renders in bracket syntax (not as a
-    bare bullet that an LLM could read as a scalar supplier ID).
-
-    This pins the exact shape called out in #346 follow-on: a single-entry
-    list renders as ``**supplier_item_codes**: [10654627]``. The catalog may
-    store multiple codes (including the house SKU for retail pass-throughs
-    where it equals the vendor SKU); cache_sync passes the list through
-    verbatim — no mutation, no stripping — and the renderer shows every
-    entry in explicit bracket syntax.
-    """
-    context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
-        return_value={
-            "id": 42,
-            "sku": "SW7083",
-            "display_name": "Widget SW7083",
-            "parent_name": "Widget SW7083",
-            "type": "product",
-            "supplier_item_codes": ["10654627"],
-            "config_attributes": [],
-            "custom_fields": [],
-        }
-    )
-
-    result = await get_variant_details(sku="SW7083", context=context)
-    text = _content_text(result)
-
-    assert "**supplier_item_codes**: [10654627]" in text
-    # Empty list fields still render with explicit shape:
-    assert "**config_attributes**: []" in text
-    assert "**custom_fields**: []" in text
-
-
-@pytest.mark.asyncio
-async def test_get_variant_details_empty_supplier_item_codes_rendered_as_brackets():
-    """Empty supplier_item_codes renders as ``[]`` — never as an empty
-    section that an LLM might treat as a missing-value marker."""
-    context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
-        return_value={
-            "id": 7,
-            "sku": "NO-SUPPLIERS",
-            "display_name": "No Suppliers",
-            "parent_name": "No Suppliers",
-            "type": "product",
-            "supplier_item_codes": [],
-            "config_attributes": [],
-            "custom_fields": [],
-        }
-    )
-
-    result = await get_variant_details(sku="NO-SUPPLIERS", context=context)
-    text = _content_text(result)
-
-    assert "**supplier_item_codes**: []" in text
-
-
-@pytest.mark.asyncio
 async def test_get_variant_details_format_json_includes_deleted_at():
     """format='json' round-trips deleted_at (the pre-#346 drop)."""
     context, lifespan_ctx = create_mock_context()
@@ -504,48 +425,6 @@ async def test_get_item_service_surfaces_every_field():
 
 
 @pytest.mark.asyncio
-async def test_get_item_markdown_uses_canonical_labels_and_list_shape():
-    """Product markdown uses canonical field-name labels plus explicit list
-    shape for ``variants`` / ``configs`` / ``supplier`` (#346 follow-on)."""
-    context, _ = create_mock_context()
-    attrs_product = _make_attrs(_FULL_PRODUCT_DICT)
-
-    with patch(_FETCH_ITEM_PATH, AsyncMock(return_value=attrs_product)):
-        result = await get_item(id=101, type="product", context=context)
-    text = _content_text(result)
-
-    # Scalar labels are canonical field names:
-    assert "**uom**: set" in text
-    assert "**category_name**: Kitchenware" in text
-    assert "**is_producible**: True" in text
-    assert "**purchase_uom_conversion_rate**: 1.0" in text
-    # Nested collections render with explicit count / bracket shape:
-    assert "**variants** (1):" in text
-    assert "**configs** (1):" in text
-    assert "**supplier**:" in text
-    # Variant summary is labeled, not bare:
-    assert "**sku**: KNF-PRO-8PC-STL" in text
-    # The pre-#346 "## Supplier Info" heading is gone:
-    assert "Supplier Info" not in text
-
-
-@pytest.mark.asyncio
-async def test_get_item_service_markdown_shows_empty_list_shape():
-    """A Service (which has no configs / supplier) renders those as ``[]`` /
-    ``None`` so the caller sees the field even when empty."""
-    context, _ = create_mock_context()
-    attrs_service = _make_attrs(_FULL_SERVICE_DICT)
-
-    with patch(_FETCH_ITEM_PATH, AsyncMock(return_value=attrs_service)):
-        result = await get_item(id=800, type="service", context=context)
-    text = _content_text(result)
-
-    assert "**variants** (1):" in text
-    assert "**configs**: []" in text
-    assert "**supplier**: None" in text
-
-
-@pytest.mark.asyncio
 async def test_get_item_format_json_round_trips_nested():
     """format='json' emits the full response including nested variants/configs/supplier."""
     context, _ = create_mock_context()
@@ -605,16 +484,3 @@ def test_variant_to_summary_falls_back_to_default_cost_when_purchase_price_absen
 
     assert summary is not None
     assert summary.purchase_price == 50.0
-
-
-def test_render_config_md_emits_empty_values_as_explicit_brackets():
-    """Regression: empty `values` list used to be silently omitted from the
-    rendered block. Per the #346 follow-on convention, list-shaped fields
-    render `[]` explicitly so an LLM consumer can't confuse absent with empty."""
-    from katana_mcp.tools.foundation.items import ItemConfigInfo, _render_config_md
-
-    empty = ItemConfigInfo(id=1, name="Empty Config", values=[])
-    md = _render_config_md(empty)
-
-    assert "**values**: []" in md
-    assert md.count("\n") == 2  # id, name, values — three lines

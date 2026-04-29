@@ -2010,47 +2010,6 @@ async def test_get_purchase_order_runs_side_data_fetches_concurrently():
     assert len(spy_gather.call_args.args) == 2
 
 
-@pytest.mark.asyncio
-async def test_verify_order_document_embeds_po_without_nested_heading():
-    """When the exhaustive PO is embedded under ``**purchase_order**:`` in
-    the verify response the ``## PO …`` heading must be omitted — Markdown
-    treats up-to-3-leading-spaces headings as top-level, which would break
-    intended nesting (copilot feedback on #357)."""
-    context, lifespan_ctx = create_mock_context()
-
-    po_rows = [create_mock_po_row(variant_id=1, quantity=10.0, price=5.0)]
-    mock_po = create_mock_po(order_id=1234, order_no="PO-VERIFY-001", rows=po_rows)
-    mock_po_response = MagicMock()
-    mock_po_response.status_code = 200
-    mock_po_response.parsed = mock_po
-    mock_variants = [create_mock_variant(variant_id=1, sku="WIDGET-001")]
-
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
-    lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
-
-    request = VerifyOrderDocumentRequest(
-        order_id=1234,
-        document_items=[
-            DocumentItem(sku="WIDGET-001", quantity=10.0, unit_price=5.0),
-        ],
-    )
-
-    result = await verify_order_document(
-        order_id=request.order_id,
-        document_items=[i.model_dump() for i in request.document_items],
-        context=context,
-    )
-    text = _content_text(result)
-
-    # The verify-level heading is present...
-    assert "## Verification — PO 1234" in text
-    # ...but the nested PO block does NOT reintroduce a PO heading
-    # (indented or not). No ``## PO …`` anywhere in the output.
-    assert "## PO " not in text
-    # The canonical nesting label is present.
-    assert "**purchase_order**:" in text
-
-
 # ============================================================================
 # list_purchase_orders — pattern v2
 # ============================================================================

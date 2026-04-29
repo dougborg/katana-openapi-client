@@ -1,8 +1,8 @@
 """Prefab UI builders for Katana MCP Server tool responses.
 
 Provides reusable Prefab component builders that produce rich interactive UIs
-for Claude Desktop (via structuredContent), while tools continue to serve
-markdown fallback via templates for non-Prefab MCP clients.
+for MCP Apps-capable hosts (Claude Desktop, etc.) via the
+``ui://prefab/renderer.html`` resource auto-registered by fastmcp 3.x.
 
 Usage::
 
@@ -16,9 +16,7 @@ Usage::
     # In a tool's *_to_tool_result function:
     items_dicts = [item.model_dump() for item in response.items]
     app = build_search_results_ui(items_dicts, query, response.total_count)
-    return make_tool_result(
-        response, "item_search_results", ui=app, **template_vars
-    )
+    return make_tool_result(response, ui=app)
 """
 
 from __future__ import annotations

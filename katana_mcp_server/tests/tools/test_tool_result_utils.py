@@ -1,20 +1,16 @@
-"""Tests for tool_result_utils — specifically the make_tool_result contract
-around structured_content.
+"""Tests for tool_result_utils — the make_tool_result contract for UI tools.
 
-make_tool_result is load-bearing for every tool. structured_content must be
-the Pydantic model dump regardless of whether ``ui`` is provided — it's the
-data Claude (the model) and programmatic callers consume.
-
-The previous implementation passed ``PrefabApp`` instances through to
-``ToolResult(structured_content=...)``, which triggered fastmcp's
-``_prefab_to_json`` auto-detection and produced a ``$prefab`` v0.2 wire
-envelope no MCP client renders. Claude Desktop displayed the envelope as
-raw JSON. The fix: ``ui`` is now ignored; ``structured_content`` is always
-``response.model_dump()``. Proper interactive UI rendering via the official
-MCP Apps spec is tracked in #422.
+When a tool emits a Prefab UI via ``make_tool_result(response, ui=app)``,
+fastmcp's ``ToolResult.__init__`` converts the ``PrefabApp`` into the Prefab
+wire envelope and stuffs it into ``structuredContent``. An MCP Apps host
+with the auto-registered ``ui://prefab/renderer.html`` resource ingests it
+via ``ui/notifications/tool-result`` (SEP-1865, #422). content carries the
+JSON dump of the response so the LLM can act on the data.
 """
 
 from __future__ import annotations
+
+import json
 
 from katana_mcp.tools.tool_result_utils import UI_META, make_tool_result
 from prefab_ui.app import PrefabApp
@@ -31,31 +27,43 @@ def _make_response() -> _StubResponse:
     return _StubResponse(id=42, label="hello")
 
 
-def test_make_tool_result_without_ui_sets_pydantic_dump_as_structured_content():
-    response = _make_response()
-    result = make_tool_result(response, template_name="nonexistent_template_fallback")
-
-    assert result.structured_content == {"id": 42, "label": "hello"}
-
-
-def test_make_tool_result_ignores_ui_and_keeps_pydantic_dump_as_structured_content():
+def test_make_tool_result_emits_prefab_envelope_as_structured_content():
     response = _make_response()
     with PrefabApp(state={"label": response.label}) as app:
         Text(content="{{ label }}")
 
-    result = make_tool_result(
-        response,
-        template_name="nonexistent_template_fallback",
-        ui=app,
-    )
+    result = make_tool_result(response, ui=app)
 
-    # structured_content must be the Pydantic dump — never the Prefab wire
-    # envelope (see #422). Exact-equality covers the regression.
-    assert result.structured_content == {"id": 42, "label": "hello"}
+    # fastmcp converts the PrefabApp to its wire envelope in ToolResult.__init__.
+    # The envelope has "$prefab", "view", and "state" keys; the data lives
+    # under .state. The host's auto-registered renderer iframe ingests this
+    # via ui/notifications/tool-result.
+    assert result.structured_content is not None
+    assert "$prefab" in result.structured_content
+    assert "view" in result.structured_content
+    assert result.structured_content["state"]["label"] == "hello"
+
+
+def test_make_tool_result_emits_response_json_as_content():
+    """Per MCP Apps spec, ``content`` IS the model context (structuredContent
+    is for UI binding only). The JSON dump gives the LLM the data without UI
+    tree noise."""
+    response = _make_response()
+    with PrefabApp(state={"label": response.label}) as app:
+        Text(content="{{ label }}")
+
+    result = make_tool_result(response, ui=app)
+
+    # content comes back as a list of TextContent blocks; assert the first
+    # block parses as the response JSON.
+    assert result.content
+    text = result.content[0].text  # type: ignore[union-attr]
+    assert json.loads(text) == {"id": 42, "label": "hello"}
 
 
 def test_ui_meta_is_the_opt_in_marker_for_prefab_rendering():
-    # Keep UI_META's shape stable — tools pass it by reference to mcp.tool(meta=...).
-    # The marker itself is harmless for now; #422 will replace it with
-    # ``{"ui": {"resourceUri": "ui://..."}}`` per the MCP Apps spec.
+    # UI_META is the opt-in marker for fastmcp's _maybe_apply_prefab_ui hook.
+    # When fastmcp sees meta={"ui": True} on a tool, it expands it into the
+    # full _meta.ui = {"resourceUri": "ui://prefab/renderer.html", "csp": ...}
+    # shape required by MCP Apps and registers the renderer resource.
     assert UI_META == {"ui": True}

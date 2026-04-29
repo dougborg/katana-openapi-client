@@ -104,29 +104,21 @@ class SearchItemsResponse(BaseModel):
 def _search_response_to_tool_result(
     response: SearchItemsResponse, query: str
 ) -> ToolResult:
-    """Convert SearchItemsResponse to ToolResult with markdown content."""
-    if response.items:
-        items_table = "\n".join(
-            f"- **{item.sku}**: {item.name} (ID: {item.id}, Sellable: {item.is_sellable})"
-            for item in response.items
-        )
-    else:
-        items_table = "No items found matching your query."
+    """Convert SearchItemsResponse to ToolResult with the Prefab UI."""
+    from katana_mcp.tools.prefab_ui import build_search_results_ui
 
-    product_count = sum(1 for item in response.items if item.item_type == "product")
-    material_count = sum(1 for item in response.items if item.item_type == "material")
-    service_count = sum(1 for item in response.items if item.item_type == "service")
-
-    return make_tool_result(
-        response,
-        "item_search_results",
-        query=query,
-        result_count=response.total_count,
-        items_table=items_table,
-        product_count=product_count,
-        material_count=material_count,
-        service_count=service_count,
+    # Drill-down (CallTool on row click) requires a SKU. Filter once and emit
+    # the filtered set to BOTH the LLM (via content JSON) and the UI, so the
+    # model and user see the same data — otherwise the model could reference
+    # an item the user can't see in the table.
+    filtered_items = [item for item in response.items if item.sku]
+    filtered_response = SearchItemsResponse(
+        items=filtered_items, total_count=len(filtered_items)
     )
+    items_dicts = [item.model_dump() for item in filtered_items]
+    ui = build_search_results_ui(items_dicts, query, len(items_dicts))
+
+    return make_tool_result(filtered_response, ui=ui)
 
 
 @cache_read(EntityType.VARIANT)
@@ -312,17 +304,12 @@ async def create_item(
 
     Creates the item with a single variant. Returns the new item ID.
     """
-    response = await _create_item_impl(request, context)
+    from katana_mcp.tools.prefab_ui import build_item_mutation_ui
 
-    return make_tool_result(
-        response,
-        "item_created",
-        id=response.id,
-        name=response.name,
-        item_type=response.type,
-        sku=response.sku or "",
-        message=response.message,
-    )
+    response = await _create_item_impl(request, context)
+    ui = build_item_mutation_ui(response.model_dump(), "Created")
+
+    return make_tool_result(response, ui=ui)
 
 
 # ============================================================================
@@ -580,119 +567,19 @@ async def _get_item_impl(
     )
 
 
-def _render_variant_summary_md(v: ItemVariantSummary) -> str:
-    """Render a variant summary as a compact multi-line block.
-
-    Uses canonical field names so an LLM consuming the markdown can't mistake
-    a rendered value for a differently-labeled field (#346 follow-on).
-    """
-    lines = [f"  - **id**: {v.id}", f"    **sku**: {v.sku}"]
-    for fname in ("type", "sales_price", "purchase_price"):
-        val = getattr(v, fname)
-        if val is not None and val != "":
-            lines.append(f"    **{fname}**: {val}")
-    return "\n".join(lines)
-
-
-def _render_config_md(c: ItemConfigInfo) -> str:
-    """Render an ItemConfig as a compact multi-line block."""
-    values = ", ".join(c.values) if c.values else ""
-    # Always emit `values` with explicit brackets; empty list renders as `[]`
-    # rather than being omitted, so an LLM consumer can't confuse "absent"
-    # with "empty" (#346 follow-on convention).
-    return "\n".join(
-        [
-            f"  - **id**: {c.id}",
-            f"    **name**: {c.name}",
-            f"    **values**: [{values}]",
-        ]
-    )
-
-
-def _render_supplier_md(s: ItemSupplierInfo) -> str:
-    """Render an ItemSupplierInfo as a compact multi-line block."""
-    lines = [f"  - **id**: {s.id}"]
-    for fname in (
-        "name",
-        "email",
-        "phone",
-        "currency",
-        "comment",
-        "default_address_id",
-    ):
-        val = getattr(s, fname)
-        if val is not None and val != "":
-            lines.append(f"    **{fname}**: {val}")
-    return "\n".join(lines)
-
-
 def _item_details_to_tool_result(response: ItemDetailsResponse) -> ToolResult:
-    """Convert ItemDetailsResponse to ToolResult with canonical-name markdown.
+    """Convert ItemDetailsResponse to ToolResult.
 
-    Labels use the canonical Pydantic field names. Fields that don't apply
-    to the item's type (e.g. ``is_producible`` on a Service) are skipped
-    when ``None`` so the markdown stays compact.
+    content carries the raw response as JSON for the LLM (no UI tree noise);
+    structured_content carries the Prefab envelope rendered in the iframe on
+    UI-capable hosts (per MCP Apps spec, #422).
     """
-    name_line = (
-        f"## {response.name}" if response.name else f"## {response.type} {response.id}"
-    )
-    md_lines = [name_line]
+    from katana_mcp.tools.prefab_ui import build_item_detail_ui
 
-    scalar_fields = (
-        "id",
-        "type",
-        "uom",
-        "category_name",
-        "is_sellable",
-        "is_producible",
-        "is_purchasable",
-        "is_auto_assembly",
-        "batch_tracked",
-        "serial_tracked",
-        "operations_in_sequence",
-        "default_supplier_id",
-        "purchase_uom",
-        "purchase_uom_conversion_rate",
-        "lead_time",
-        "minimum_order_quantity",
-        "additional_info",
-        "custom_field_collection_id",
-        "created_at",
-        "updated_at",
-        "archived_at",
-        "deleted_at",
-    )
-    for fname in scalar_fields:
-        val = getattr(response, fname)
-        if val is None or val == "":
-            continue
-        md_lines.append(f"**{fname}**: {val}")
-
-    # Nested collections — always render with explicit list shape so the
-    # caller can see the field even when empty. (#346 follow-on.)
-    if response.variants:
-        md_lines.append(f"**variants** ({len(response.variants)}):")
-        for v in response.variants:
-            md_lines.append(_render_variant_summary_md(v))
-    else:
-        md_lines.append("**variants**: []")
-
-    if response.configs:
-        md_lines.append(f"**configs** ({len(response.configs)}):")
-        for c in response.configs:
-            md_lines.append(_render_config_md(c))
-    else:
-        md_lines.append("**configs**: []")
-
-    if response.supplier is not None:
-        md_lines.append("**supplier**:")
-        md_lines.append(_render_supplier_md(response.supplier))
-    else:
-        md_lines.append("**supplier**: None")
-
+    ui = build_item_detail_ui(response.model_dump())
     return ToolResult(
-        content="\n".join(md_lines),
-        structured_content=response.model_dump(),
+        content=response.model_dump_json(),
+        structured_content=ui,
     )
 
 
@@ -905,16 +792,12 @@ async def update_item(
     Only provided fields are updated; omitted fields remain unchanged.
     Requires the item ID and type. Use search_items first if you need to find the item.
     """
-    response = await _update_item_impl(request, context)
+    from katana_mcp.tools.prefab_ui import build_item_mutation_ui
 
-    return make_tool_result(
-        response,
-        "item_updated",
-        id=response.id,
-        name=response.name,
-        item_type=response.type,
-        message=response.message,
-    )
+    response = await _update_item_impl(request, context)
+    ui = build_item_mutation_ui(response.model_dump(), "Updated")
+
+    return make_tool_result(response, ui=ui)
 
 
 # ============================================================================
@@ -1011,15 +894,12 @@ async def delete_item(
     deleted, or confirm=true to execute (will prompt for confirmation).
     Requires the item ID and type.
     """
-    response = await _delete_item_impl(request, context)
+    from katana_mcp.tools.prefab_ui import build_item_mutation_ui
 
-    return make_tool_result(
-        response,
-        "item_deleted",
-        id=response.id,
-        item_type=response.type,
-        message=response.message,
-    )
+    response = await _delete_item_impl(request, context)
+    ui = build_item_mutation_ui(response.model_dump(), "Deleted")
+
+    return make_tool_result(response, ui=ui)
 
 
 # ============================================================================
@@ -1101,84 +981,19 @@ class VariantDetailsResponse(BaseModel):
     deleted_at: str | None = None
 
 
-def _render_list_field_md(field_name: str, items: list[Any]) -> list[str]:
-    """Render a list-shaped field with canonical label and explicit list syntax.
-
-    Empty lists render as ``**field_name**: []`` so an LLM consumer can't
-    mistake a section header for a value (#346 follow-on — supplier_item_codes
-    misread as a supplier ID). Non-empty scalar lists render as
-    ``**field_name**: [a, b, c]`` to keep the list shape visible.
-    """
-    if not items:
-        return [f"**{field_name}**: []"]
-    # Scalars (strings, numbers) render inline with bracket syntax.
-    if all(isinstance(it, str | int | float) for it in items):
-        rendered = ", ".join(str(it) for it in items)
-        return [f"**{field_name}**: [{rendered}]"]
-    # Dict-shaped lists (config_attributes, custom_fields) render as a
-    # labeled block with per-item bullets.
-    lines = [f"**{field_name}** ({len(items)}):"]
-    for item in items:
-        if isinstance(item, dict):
-            pairs = ", ".join(
-                f"{k}={v}" for k, v in item.items() if v not in (None, "")
-            )
-            lines.append(f"  - {pairs}" if pairs else "  - (empty)")
-        else:
-            lines.append(f"  - {item}")
-    return lines
-
-
 def _variant_details_to_tool_result(response: VariantDetailsResponse) -> ToolResult:
-    """Convert VariantDetailsResponse to ToolResult with canonical-name markdown.
+    """Convert VariantDetailsResponse to ToolResult.
 
-    Markdown labels use the Pydantic field names (``**supplier_item_codes**:
-    [10654627]`` rather than a ``Supplier Info`` header with bare bullets)
-    so LLM consumers can't confuse the section label with the field name.
-    Motivation: #346 follow-on — the previous ``Supplier Info`` heading
-    caused an LLM to misread a supplier_item_code as a supplier ID.
+    content carries the raw response as JSON for the LLM (no UI tree noise);
+    structured_content carries the Prefab envelope rendered in the iframe on
+    UI-capable hosts (per MCP Apps spec, #422).
     """
-    name_line = f"## {response.name}" if response.name else f"## variant {response.id}"
-    md_lines = [name_line]
+    from katana_mcp.tools.prefab_ui import build_variant_details_ui
 
-    # Scalar fields render as ``**canonical_name**: value`` — skip None/empty
-    # so the markdown stays compact but every populated field surfaces.
-    scalar_fields = (
-        "id",
-        "sku",
-        "type",
-        "product_id",
-        "material_id",
-        "product_or_material_name",
-        "sales_price",
-        "purchase_price",
-        "internal_barcode",
-        "registered_barcode",
-        "lead_time",
-        "minimum_order_quantity",
-        "created_at",
-        "updated_at",
-        "deleted_at",
-    )
-    for fname in scalar_fields:
-        val = getattr(response, fname)
-        if val is None or val == "":
-            continue
-        md_lines.append(f"**{fname}**: {val}")
-
-    # List-shaped fields always render — empty prints as ``[]`` so the field
-    # is visible in its true shape.
-    md_lines.extend(
-        _render_list_field_md("supplier_item_codes", response.supplier_item_codes)
-    )
-    md_lines.extend(
-        _render_list_field_md("config_attributes", response.config_attributes)
-    )
-    md_lines.extend(_render_list_field_md("custom_fields", response.custom_fields))
-
+    ui = build_variant_details_ui(response.model_dump())
     return ToolResult(
-        content="\n".join(md_lines),
-        structured_content=response.model_dump(),
+        content=response.model_dump_json(),
+        structured_content=ui,
     )
 
 

@@ -108,28 +108,19 @@ class PurchaseOrderResponse(BaseModel):
 
 
 def _po_response_to_tool_result(response: PurchaseOrderResponse) -> ToolResult:
-    """Convert PurchaseOrderResponse to ToolResult with markdown content."""
-    next_actions_text = "\n".join(f"- {action}" for action in response.next_actions)
-
-    # Handle None values for template
-    total_cost = response.total_cost if response.total_cost is not None else 0.0
-    currency = response.currency if response.currency else "USD"
-
-    template_name = "order_preview" if response.is_preview else "order_created"
-
-    return make_tool_result(
-        response,
-        template_name,
-        id=response.id,
-        order_number=response.order_number,
-        supplier_id=response.supplier_id,
-        location_id=response.location_id,
-        status=response.status,
-        total_cost=total_cost,
-        currency=currency,
-        entity_type=response.entity_type,
-        next_actions_text=next_actions_text,
+    """Convert PurchaseOrderResponse to ToolResult with the appropriate Prefab UI."""
+    from katana_mcp.tools.prefab_ui import (
+        build_order_created_ui,
+        build_order_preview_ui,
     )
+
+    order_dict = response.model_dump()
+    if response.is_preview:
+        ui = build_order_preview_ui(order_dict, "Purchase Order")
+    else:
+        ui = build_order_created_ui(order_dict, "Purchase Order")
+
+    return make_tool_result(response, ui=ui)
 
 
 async def _create_purchase_order_impl(
@@ -328,15 +319,12 @@ class ReceivePurchaseOrderResponse(BaseModel):
 def _receive_response_to_tool_result(
     response: ReceivePurchaseOrderResponse,
 ) -> ToolResult:
-    """Convert ReceivePurchaseOrderResponse to ToolResult with markdown content."""
-    return make_tool_result(
-        response,
-        "order_received",
-        order_id=response.order_id,
-        order_number=response.order_number,
-        items_received=response.items_received,
-        message=response.message,
-    )
+    """Convert ReceivePurchaseOrderResponse to ToolResult with JSON content + Prefab UI."""
+    from katana_mcp.tools.prefab_ui import build_receipt_ui
+
+    ui = build_receipt_ui(response.model_dump())
+
+    return make_tool_result(response, ui=ui)
 
 
 async def _receive_purchase_order_impl(
@@ -1261,84 +1249,21 @@ class VerifyOrderDocumentResponse(BaseModel):
     message: str
 
 
-def _render_verify_order_document_md(
-    response: VerifyOrderDocumentResponse,
-) -> str:
-    """Render a verification response as canonical-labeled markdown.
-
-    Uses Pydantic field names as labels (``**matches** (N)``,
-    ``**discrepancies** (N)``, ``**purchase_order**``) so an LLM consumer
-    can't misread a prettified header as a different field (motivation:
-    #346 follow-on). Lists render with explicit counts; empty lists render
-    as ``**field**: []`` rather than a bare section header.
-    """
-    md_lines = [
-        f"## Verification — PO {response.order_id}",
-        f"**order_id**: {response.order_id}",
-        f"**overall_status**: {response.overall_status}",
-        f"**message**: {response.message}",
-    ]
-
-    if response.matches:
-        md_lines.append("")
-        md_lines.append(f"**matches** ({len(response.matches)}):")
-        for m in response.matches:
-            price = f"${m.unit_price:.2f}" if m.unit_price is not None else "—"
-            md_lines.append(
-                f"  - **sku**: {m.sku}, **quantity**: {m.quantity}, "
-                f"**unit_price**: {price}, **status**: {m.status}"
-            )
-    else:
-        md_lines.append("**matches**: []")
-
-    if response.discrepancies:
-        md_lines.append("")
-        md_lines.append(f"**discrepancies** ({len(response.discrepancies)}):")
-        for d in response.discrepancies:
-            md_lines.append(
-                f"  - **sku**: {d.sku}, **type**: {d.type.value}, "
-                f"**expected**: {d.expected}, **actual**: {d.actual}"
-            )
-            md_lines.append(f"    **message**: {d.message}")
-    else:
-        md_lines.append("**discrepancies**: []")
-
-    if response.suggested_actions:
-        md_lines.append("")
-        md_lines.append(f"**suggested_actions** ({len(response.suggested_actions)}):")
-        for a in response.suggested_actions:
-            md_lines.append(f"  - {a}")
-    else:
-        md_lines.append("**suggested_actions**: []")
-
-    # Embed the exhaustive PO under its canonical key so the LLM can trace
-    # every compared value back to a concrete PO field. Pass ``embed=True``
-    # to omit the ``## PO …`` heading — Markdown allows up to 3 leading
-    # spaces on headings, so indenting the heading would still render as a
-    # top-level heading and break intended nesting.
-    if response.purchase_order is not None:
-        md_lines.append("")
-        md_lines.append("**purchase_order**:")
-        po_md = _render_get_purchase_order_md(response.purchase_order, embed=True)
-        for line in po_md.splitlines():
-            md_lines.append(f"  {line}" if line else "")
-    else:
-        md_lines.append("**purchase_order**: null")
-
-    return "\n".join(md_lines)
-
-
 def _verify_response_to_tool_result(
     response: VerifyOrderDocumentResponse,
 ) -> ToolResult:
-    """Convert VerifyOrderDocumentResponse to ToolResult with canonical-labeled markdown.
+    """Convert VerifyOrderDocumentResponse to ToolResult.
 
-    Text labels use canonical Pydantic field names so an LLM consumer can't
-    misread a section header as a different field (#346 follow-on).
+    content carries the raw response as JSON for the LLM (no UI tree noise);
+    structured_content carries the Prefab envelope rendered in the iframe on
+    UI-capable hosts (per MCP Apps spec, #422).
     """
+    from katana_mcp.tools.prefab_ui import build_verification_ui
+
+    ui = build_verification_ui(response.model_dump())
     return ToolResult(
-        content=_render_verify_order_document_md(response),
-        structured_content=response.model_dump(),
+        content=response.model_dump_json(),
+        structured_content=ui,
     )
 
 

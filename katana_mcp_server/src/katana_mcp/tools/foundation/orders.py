@@ -8,7 +8,6 @@ These tools provide:
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Annotated, Literal
 
 from fastmcp import Context, FastMCP
@@ -66,32 +65,19 @@ class FulfillOrderResponse(BaseModel):
 
 
 def _fulfill_response_to_tool_result(response: FulfillOrderResponse) -> ToolResult:
-    """Convert FulfillOrderResponse to ToolResult with markdown content."""
-    inventory_updates_text = (
-        "\n".join(f"- {update}" for update in response.inventory_updates)
-        if response.inventory_updates
-        else "No inventory updates"
+    """Convert FulfillOrderResponse to ToolResult with the appropriate Prefab UI."""
+    from katana_mcp.tools.prefab_ui import (
+        build_fulfill_preview_ui,
+        build_fulfill_success_ui,
     )
 
-    next_steps_text = (
-        "\n".join(f"- {action}" for action in response.next_actions)
-        if response.next_actions
-        else "No next steps"
-    )
+    response_dict = response.model_dump()
+    if response.is_preview:
+        ui = build_fulfill_preview_ui(response_dict)
+    else:
+        ui = build_fulfill_success_ui(response_dict)
 
-    return make_tool_result(
-        response,
-        "order_fulfilled",
-        order_type=response.order_type.title(),
-        order_number=response.order_number,
-        order_id=response.order_id,
-        fulfilled_at=datetime.now(UTC).isoformat(),
-        items_count="N/A",  # Not available in fulfill response
-        total_value="N/A",  # Not available in fulfill response
-        status=response.status,
-        inventory_updates=inventory_updates_text,
-        next_steps=next_steps_text,
-    )
+    return make_tool_result(response, ui=ui)
 
 
 async def _fulfill_manufacturing_order(
