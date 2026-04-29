@@ -21,7 +21,6 @@ from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.list_coercion import CoercedIntList, CoercedIntListOpt
-from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
     PaginationMeta,
@@ -216,31 +215,6 @@ async def _create_manufacturing_order_impl(
             message=preview_msg,
         )
 
-    # Confirm mode — elicit confirmation
-    confirm_msg = (
-        f"Start make-to-order MO from sales_order_row_id={request.sales_order_row_id}?"
-        if is_make_to_order
-        else (
-            f"Start manufacturing order for variant {request.variant_id} "
-            f"with quantity {request.planned_quantity}?"
-        )
-    )
-    confirmation = await require_confirmation(context, confirm_msg)
-
-    if confirmation != ConfirmationResult.CONFIRMED:
-        return ManufacturingOrderResponse(
-            variant_id=request.variant_id,
-            planned_quantity=request.planned_quantity,
-            location_id=request.location_id,
-            order_created_date=request.order_created_date,
-            production_deadline_date=request.production_deadline_date,
-            additional_info=request.additional_info,
-            is_preview=True,
-            message=f"User {confirmation} the manufacturing order",
-            next_actions=["Review the order details and try again with confirm=true"],
-        )
-
-    # Execute
     try:
         services = get_services(context)
 
@@ -347,19 +321,28 @@ async def create_manufacturing_order(
     to also create MOs for subassemblies. This is what you want when processing
     a new sales order that needs production.
 
-    Two-step flow: confirm=false to preview, confirm=true to create (prompts
-    for confirmation).
+    Two-step flow: confirm=false to preview, confirm=true to create.
     """
     from katana_mcp.tools.prefab_ui import (
         build_order_created_ui,
         build_order_preview_ui,
+        call_tool_from_request,
     )
 
     response = await _create_manufacturing_order_impl(request, context)
 
     order_dict = response.model_dump()
     if response.is_preview:
-        ui = build_order_preview_ui(order_dict, "Manufacturing Order")
+        ui = build_order_preview_ui(
+            order_dict,
+            "Manufacturing Order",
+            request=request.model_dump(),
+            confirm_action=call_tool_from_request(
+                "create_manufacturing_order",
+                CreateManufacturingOrderRequest,
+                overrides={"confirm": True},
+            ),
+        )
     else:
         ui = build_order_created_ui(order_dict, "Manufacturing Order")
 
@@ -1292,7 +1275,7 @@ class AddRecipeRowRequest(BaseModel):
     notes: str | None = Field(default=None, description="Optional notes")
     confirm: bool = Field(
         default=False,
-        description="Set false to preview, true to add (prompts for confirmation)",
+        description="Set false to preview, true to add",
     )
 
 
@@ -1409,22 +1392,6 @@ async def _add_recipe_row_impl(
             ),
         )
 
-    confirmation = await require_confirmation(
-        context,
-        f"Add {request.planned_quantity_per_unit}x {display_name} "
-        f"to MO {request.manufacturing_order_id}?",
-    )
-    if confirmation != ConfirmationResult.CONFIRMED:
-        return AddRecipeRowResponse(
-            id=None,
-            manufacturing_order_id=request.manufacturing_order_id,
-            variant_id=variant_id,
-            sku=sku,
-            planned_quantity_per_unit=request.planned_quantity_per_unit,
-            is_preview=True,
-            message=f"User {confirmation} adding the recipe row",
-        )
-
     result = await _api_create_recipe_row(
         services,
         manufacturing_order_id=request.manufacturing_order_id,
@@ -1477,7 +1444,7 @@ class DeleteRecipeRowRequest(BaseModel):
     recipe_row_id: int = Field(..., description="Recipe row ID to delete")
     confirm: bool = Field(
         default=False,
-        description="Set false to preview, true to delete (prompts for confirmation)",
+        description="Set false to preview, true to delete",
     )
 
 
@@ -1500,17 +1467,6 @@ async def _delete_recipe_row_impl(
             recipe_row_id=request.recipe_row_id,
             is_preview=True,
             message=f"Preview: Would delete recipe row {request.recipe_row_id}",
-        )
-
-    confirmation = await require_confirmation(
-        context,
-        f"Remove recipe row {request.recipe_row_id}? This cannot be undone.",
-    )
-    if confirmation != ConfirmationResult.CONFIRMED:
-        return DeleteRecipeRowResponse(
-            recipe_row_id=request.recipe_row_id,
-            is_preview=True,
-            message=f"User {confirmation} removing the recipe row",
         )
 
     await _api_delete_recipe_row(services, request.recipe_row_id)
@@ -1941,33 +1897,6 @@ async def _batch_update_impl(
             message=f"Preview: {total} sub-operations planned. Set confirm=true to execute.",
         )
 
-    # 3. Single confirmation for the batch
-    del_count = sum(1 for o in planned if o.op_type == OpType.DELETE)
-    add_count = sum(
-        1
-        for o in planned
-        if o.op_type == OpType.ADD and o.status != SubOpStatus.SKIPPED
-    )
-    mo_count = len({o.manufacturing_order_id for o in planned})
-    confirmation = await require_confirmation(
-        context,
-        f"Apply batch recipe update? {del_count} deletions, {add_count} additions "
-        f"across {mo_count} MOs. Cannot be undone.",
-    )
-    if confirmation != ConfirmationResult.CONFIRMED:
-        skipped = sum(1 for o in planned if o.status == SubOpStatus.SKIPPED)
-        return BatchUpdateRecipesResponse(
-            is_preview=True,
-            total_ops=total,
-            success_count=0,
-            failed_count=0,
-            skipped_count=skipped,
-            results=planned,
-            warnings=warnings,
-            message=f"User {confirmation} the batch recipe update",
-        )
-
-    # 4. Execute
     results = await _execute_batch_update(planned, request, context)
 
     # 5. Tally
@@ -2006,7 +1935,7 @@ async def batch_update_manufacturing_order_recipes(
       for arbitrary edits.
 
     Two-step flow: confirm=false to preview (resolves row IDs, shows full plan),
-    confirm=true to execute (single confirmation elicitation for the whole batch).
+    confirm=true to execute (single batch operation).
 
     Semantics:
     - Within a replacement group, old rows are deleted first, then new rows are
@@ -2020,10 +1949,25 @@ async def batch_update_manufacturing_order_recipes(
     """
     from fastmcp.tools import ToolResult
 
-    from katana_mcp.tools.prefab_ui import build_batch_recipe_update_ui
+    from katana_mcp.tools.prefab_ui import (
+        build_batch_recipe_update_ui,
+        call_tool_from_request,
+    )
 
     response = await _batch_update_impl(request, context)
-    ui = build_batch_recipe_update_ui(response.model_dump())
+    ui = build_batch_recipe_update_ui(
+        response.model_dump(),
+        request=request.model_dump() if response.is_preview else None,
+        confirm_action=(
+            call_tool_from_request(
+                "batch_update_manufacturing_order_recipes",
+                BatchUpdateRecipesRequest,
+                overrides={"confirm": True},
+            )
+            if response.is_preview
+            else None
+        ),
+    )
 
     return ToolResult(
         content=response.model_dump_json(),

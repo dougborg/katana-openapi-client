@@ -187,28 +187,6 @@ async def test_create_stock_transfer_confirm_success():
 
 
 @pytest.mark.asyncio
-async def test_create_stock_transfer_user_declines():
-    """When user declines elicitation, no API call happens; preview returned."""
-    context, _ = create_mock_context(elicit_confirm=False)
-
-    request = CreateStockTransferRequest(
-        source_location_id=1,
-        destination_location_id=2,
-        expected_arrival_date=datetime(2026, 5, 1, 12, 0, tzinfo=UTC),
-        rows=[StockTransferRowInput(variant_id=100, quantity=5)],
-        confirm=True,
-    )
-
-    with patch(f"{_ST_CREATE}.asyncio_detailed", new_callable=AsyncMock) as mock_api:
-        result = await _create_stock_transfer_impl(request, context)
-
-    assert result.is_preview is True
-    assert result.id is None
-    assert "cancelled" in result.message.lower()
-    mock_api.assert_not_awaited()
-
-
-@pytest.mark.asyncio
 async def test_create_stock_transfer_rejects_empty_rows():
     from pydantic import ValidationError
 
@@ -550,24 +528,6 @@ async def test_update_stock_transfer_status_invalid_transition_surfaces_error():
             await _update_stock_transfer_status_impl(request, context)
 
 
-@pytest.mark.asyncio
-async def test_update_stock_transfer_status_user_declines():
-    """Declined elicitation — no API call, preview returned."""
-    context, _ = create_mock_context(elicit_confirm=False)
-
-    with patch(
-        f"{_ST_UPDATE_STATUS}.asyncio_detailed", new_callable=AsyncMock
-    ) as mock_api:
-        request = UpdateStockTransferStatusRequest(
-            id=42, new_status="RECEIVED", confirm=True
-        )
-        result = await _update_stock_transfer_status_impl(request, context)
-
-    assert result.is_preview is True
-    assert "cancelled" in result.message.lower()
-    mock_api.assert_not_awaited()
-
-
 # ============================================================================
 # delete_stock_transfer
 # ============================================================================
@@ -610,19 +570,6 @@ async def test_delete_stock_transfer_confirm_success():
     mock_api.assert_awaited_once()
     kwargs = mock_api.await_args.kwargs
     assert kwargs["id"] == 42
-
-
-@pytest.mark.asyncio
-async def test_delete_stock_transfer_user_declines():
-    context, _ = create_mock_context(elicit_confirm=False)
-
-    with patch(f"{_ST_DELETE}.asyncio_detailed", new_callable=AsyncMock) as mock_api:
-        request = DeleteStockTransferRequest(id=42, confirm=True)
-        result = await _delete_stock_transfer_impl(request, context)
-
-    assert result.is_preview is True
-    assert "cancelled" in result.message.lower()
-    mock_api.assert_not_awaited()
 
 
 # ============================================================================

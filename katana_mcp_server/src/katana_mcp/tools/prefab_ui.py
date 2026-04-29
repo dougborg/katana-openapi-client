@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from prefab_ui.actions import SetState, ShowToast
+from prefab_ui.actions import Action, SetState, ShowToast
 from prefab_ui.actions.mcp import CallTool, SendMessage
 from prefab_ui.app import PrefabApp
 from prefab_ui.components import (
@@ -47,6 +47,42 @@ from prefab_ui.components import (
 from prefab_ui.components.control_flow import ForEach
 from prefab_ui.components.slot import Slot
 from prefab_ui.rx import RESULT
+from pydantic import BaseModel
+
+
+def call_tool_from_request(
+    tool_name: str,
+    request_model: type[BaseModel],
+    *,
+    state_key: str = "request",
+    overrides: dict[str, Any] | None = None,
+) -> CallTool:
+    """Build a CallTool action that re-invokes ``tool_name`` with every field
+    of ``request_model`` templated from iframe state.
+
+    Each field on the Pydantic request model maps to a ``{{ <state_key>.field }}``
+    template string. ``overrides`` (e.g. ``{"confirm": True}``) take precedence
+    over the templated values — use them to flip a flag or substitute a literal.
+
+    The caller must seed the iframe state with the original request under
+    ``state_key`` (default ``"request"``); the matching builder
+    (``build_order_preview_ui`` and friends) accepts a ``request=`` kwarg
+    that does this.
+    """
+    valid_fields = set(request_model.model_fields)
+    args: dict[str, Any] = {
+        name: f"{{{{ {state_key}.{name} }}}}" for name in valid_fields
+    }
+    if overrides:
+        bad = sorted(set(overrides) - valid_fields)
+        if bad:
+            raise ValueError(
+                f"Invalid override field(s) for {request_model.__name__}: "
+                f"{', '.join(bad)}"
+            )
+        args.update(overrides)
+    return CallTool(tool_name, arguments=args)
+
 
 # ============================================================================
 # Search & Browse UIs
@@ -344,11 +380,23 @@ def _render_order_fields(order: dict[str, Any], *, total: Any, currency: str) ->
 def build_order_preview_ui(
     order: dict[str, Any],
     order_type: OrderType,
+    *,
+    confirm_action: Action,
+    request: dict[str, Any],
 ) -> PrefabApp:
-    """Build an order preview card with confirm/cancel buttons."""
-    fields = _extract_order_fields(order)
+    """Build an order preview card with confirm/cancel buttons.
 
-    with PrefabApp(state={"order": order}, css_class="p-4") as app, Card():
+    Caller supplies ``confirm_action`` (typically a ``CallTool`` built via
+    ``call_tool_from_request``) so each tool (sales/PO/MO) wires its own
+    direct re-invocation with ``confirm=True``. ``request`` is the original
+    input dict (``request.model_dump()``); it's seeded into iframe state at
+    ``state.request`` so ``CallTool``'s ``{{ request.* }}`` templates
+    resolve.
+    """
+    fields = _extract_order_fields(order)
+    state: dict[str, Any] = {"order": order, "request": request}
+
+    with PrefabApp(state=state, css_class="p-4") as app, Card():
         with CardHeader(), Row(gap=2):
             CardTitle(content=f"{order_type} Preview")
             Badge(label=fields["order_number"], variant="outline")
@@ -375,9 +423,7 @@ def build_order_preview_ui(
                 Button(
                     label="Confirm & Create",
                     variant="default",
-                    on_click=SendMessage(
-                        f"Place the {order_type.lower()} with confirm=true"
-                    ),
+                    on_click=confirm_action,
                 )
                 Button(
                     label="Cancel",
@@ -467,7 +513,12 @@ def _render_inventory_updates(
 def build_fulfill_preview_ui(
     response: dict[str, Any],
 ) -> PrefabApp:
-    """Build a fulfillment preview card."""
+    """Build a fulfillment preview card.
+
+    The "Confirm Fulfillment" button invokes ``fulfill_order`` directly via
+    ``CallTool`` with ``confirm=True`` and the original order_id/order_type
+    sourced from the response (where they're echoed). No LLM round-trip.
+    """
     order_type, order_number, status = _extract_fulfill_fields(response)
 
     with PrefabApp(state={"response": response}, css_class="p-4") as app, Card():
@@ -488,9 +539,13 @@ def build_fulfill_preview_ui(
             Button(
                 label="Confirm Fulfillment",
                 variant="default",
-                on_click=SendMessage(
-                    f"Fulfill the {response.get('order_type', '')} order "
-                    f"{response.get('order_id', '')} with confirm=true"
+                on_click=CallTool(
+                    "fulfill_order",
+                    arguments={
+                        "order_id": "{{ response.order_id }}",
+                        "order_type": "{{ response.order_type }}",
+                        "confirm": True,
+                    },
                 ),
             )
             Button(
@@ -657,12 +712,26 @@ def build_item_mutation_ui(
 
 def build_receipt_ui(
     response: dict[str, Any],
+    *,
+    request: dict[str, Any] | None = None,
+    confirm_action: Action | None = None,
 ) -> PrefabApp:
-    """Build a receipt card for received purchase order items."""
+    """Build a receipt card for received purchase order items.
+
+    On the preview branch the caller must supply both ``request`` (seeded
+    into iframe state at ``state.request``) and ``confirm_action`` (a
+    ``CallTool`` built via ``call_tool_from_request``) so the "Confirm
+    Receipt" button can re-invoke ``receive_purchase_order`` directly with
+    ``confirm=True``. Both kwargs are optional because the same builder is
+    reused for the non-preview render where no confirm button is shown.
+    """
     order_number = response.get("order_number", "N/A")
     is_preview = response.get("is_preview", True)
+    state: dict[str, Any] = {"response": response}
+    if request is not None:
+        state["request"] = request
 
-    with PrefabApp(state={"response": response}, css_class="p-4") as app, Card():
+    with PrefabApp(state=state, css_class="p-4") as app, Card():
         with CardHeader(), Row(gap=2):
             CardTitle(content="Purchase Order Receipt")
             Badge(label=order_number, variant="outline")
@@ -680,15 +749,12 @@ def build_receipt_ui(
             )
 
         with CardFooter():
-            if is_preview:
+            if is_preview and confirm_action is not None:
                 with Row(gap=2):
                     Button(
                         label="Confirm Receipt",
                         variant="default",
-                        on_click=SendMessage(
-                            f"Receive items for PO {response.get('order_id', '')} "
-                            "with confirm=true"
-                        ),
+                        on_click=confirm_action,
                     )
                     Button(
                         label="Cancel",
@@ -711,11 +777,22 @@ def build_receipt_ui(
 # ============================================================================
 
 
-def build_batch_recipe_update_ui(response: dict[str, Any]) -> PrefabApp:
+def build_batch_recipe_update_ui(
+    response: dict[str, Any],
+    *,
+    request: dict[str, Any] | None = None,
+    confirm_action: Action | None = None,
+) -> PrefabApp:
     """Build a batch recipe update card with per-group tables and summary metrics.
 
     Shows one row per planned sub-op grouped by replacement group_label.
     Preview mode shows all ops as PENDING; executed mode shows SUCCESS/FAILED/SKIPPED.
+
+    On the preview branch, the "Execute batch" button uses ``confirm_action``
+    (typically a ``CallTool`` built from the original request via
+    ``call_tool_from_request``) for direct re-invocation with ``confirm=True``.
+    Pass ``request=request.model_dump()`` from the caller so the iframe state
+    has the original input under ``state.request``.
     """
     is_preview = response.get("is_preview", True)
     results = response.get("results", [])
@@ -758,20 +835,24 @@ def build_batch_recipe_update_ui(response: dict[str, Any]) -> PrefabApp:
         "secondary" if is_preview else ("destructive" if failed > 0 else "default")
     )
 
+    state: dict[str, Any] = {
+        "rows": flat_rows,
+        "summary": {
+            "total": total,
+            "success": success,
+            "failed": failed,
+            "skipped": skipped,
+        },
+        "is_preview": is_preview,
+        "warnings": warnings,
+        "groups": list(groups.keys()),
+    }
+    if request is not None:
+        state["request"] = request
+
     with (
         PrefabApp(
-            state={
-                "rows": flat_rows,
-                "summary": {
-                    "total": total,
-                    "success": success,
-                    "failed": failed,
-                    "skipped": skipped,
-                },
-                "is_preview": is_preview,
-                "warnings": warnings,
-                "groups": list(groups.keys()),
-            },
+            state=state,
             css_class="p-4",
         ) as app,
         Column(gap=4),
@@ -815,14 +896,11 @@ def build_batch_recipe_update_ui(response: dict[str, Any]) -> PrefabApp:
 
         # Action buttons
         with Row(gap=2):
-            if is_preview:
+            if is_preview and confirm_action is not None:
                 Button(
                     label="Execute batch",
                     variant="default",
-                    on_click=SendMessage(
-                        "Re-run the previous batch_update_manufacturing_order_recipes "
-                        "call with confirm=true"
-                    ),
+                    on_click=confirm_action,
                 )
             elif failed > 0:
                 Button(

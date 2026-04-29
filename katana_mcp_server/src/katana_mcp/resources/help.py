@@ -68,9 +68,13 @@ Manufacturing ERP tools for inventory, orders, and production management.
 
 ## Safety Pattern
 
-All create/modify operations use a **two-step confirmation**:
+All create/modify operations use a **two-step confirm pattern**:
 1. Call with `confirm=false` to preview (no changes made)
-2. Call with `confirm=true` to execute (prompts for confirmation)
+2. Call with `confirm=true` to execute
+
+Destructive tools advertise this via the standard MCP `destructiveHint`
+tool annotation; hosts that respect the annotation prompt the user before
+invoking. The server does not gate further.
 
 ## Output Format
 
@@ -151,7 +155,7 @@ Detailed step-by-step guides for common manufacturing ERP workflows.
    Tool: create_purchase_order
    Request: {...same as above..., "confirm": true}
    ```
-   Creates actual PO after user confirmation.
+   Creates actual PO once invoked with confirm=true.
 
 ---
 
@@ -189,7 +193,7 @@ Detailed step-by-step guides for common manufacturing ERP workflows.
    Tool: receive_purchase_order
    Request: {...same as above..., "confirm": true}
    ```
-   Updates inventory after user confirmation.
+   Updates inventory once invoked with confirm=true.
 
 ---
 

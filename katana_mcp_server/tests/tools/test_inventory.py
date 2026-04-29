@@ -1297,8 +1297,8 @@ async def test_update_stock_adjustment_preview_returns_is_preview_true():
 
 @pytest.mark.asyncio
 async def test_update_stock_adjustment_confirm_calls_api():
-    """confirm=True elicits confirmation and calls the PATCH endpoint."""
-    context, _ = create_mock_context(elicit_confirm=True)
+    """confirm=True calls the PATCH endpoint directly (host already confirmed)."""
+    context, _ = create_mock_context()
 
     # The API returns an updated StockAdjustment. `_update_stock_adjustment_impl`
     # imports `unwrap_as` from katana_public_api_client.utils inside the
@@ -1327,20 +1327,6 @@ async def test_update_stock_adjustment_confirm_calls_api():
     assert result.id == 42
     assert result.stock_adjustment_number == "SA-UPDATED"
     mock_api.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_update_stock_adjustment_decline_short_circuits():
-    """When the user declines the elicitation, API is not called."""
-    context, _ = create_mock_context(elicit_confirm=False)
-
-    request = UpdateStockAdjustmentParams(id=42, reason="Updated reason", confirm=True)
-
-    with patch(f"{_SA_UPDATE}.asyncio_detailed", new=AsyncMock()) as mock_api:
-        result = await _update_stock_adjustment_impl(request, context)
-
-    assert result.is_preview is True
-    mock_api.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -1399,8 +1385,8 @@ async def test_delete_stock_adjustment_preview_returns_what_would_be_deleted():
 
 @pytest.mark.asyncio
 async def test_delete_stock_adjustment_confirm_calls_api():
-    """confirm=True elicits confirmation then calls DELETE."""
-    context, _ = create_mock_context(elicit_confirm=True)
+    """confirm=True calls DELETE directly (host already confirmed)."""
+    context, _ = create_mock_context()
 
     adj = _make_mock_adjustment(
         id=99,
@@ -1428,26 +1414,6 @@ async def test_delete_stock_adjustment_confirm_calls_api():
     assert result.id == 99
     assert result.stock_adjustment_number == "SA-DELETE"
     mock_delete.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_delete_stock_adjustment_decline_short_circuits():
-    """When the user declines the elicitation, DELETE is not called."""
-    context, _ = create_mock_context(elicit_confirm=False)
-
-    adj = _make_mock_adjustment(id=99, stock_adjustment_number="SA-DELETE")
-
-    with (
-        patch(f"{_SA_GET_ALL}.asyncio_detailed", new=AsyncMock()),
-        patch(_SA_UNWRAP_DATA, return_value=[adj]),
-        patch(f"{_SA_DELETE}.asyncio_detailed", new=AsyncMock()) as mock_delete,
-    ):
-        result = await _delete_stock_adjustment_impl(
-            DeleteStockAdjustmentRequest(id=99, confirm=True), context
-        )
-
-    assert result.is_preview is True
-    mock_delete.assert_not_called()
 
 
 @pytest.mark.asyncio

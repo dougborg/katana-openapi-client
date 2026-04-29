@@ -22,7 +22,6 @@ from pydantic import BaseModel, Field
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.list_coercion import CoercedIntListOpt
-from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
     PaginationMeta,
@@ -107,16 +106,34 @@ class PurchaseOrderResponse(BaseModel):
     message: str
 
 
-def _po_response_to_tool_result(response: PurchaseOrderResponse) -> ToolResult:
-    """Convert PurchaseOrderResponse to ToolResult with the appropriate Prefab UI."""
+def _po_response_to_tool_result(
+    response: PurchaseOrderResponse,
+    request: CreatePurchaseOrderRequest,
+) -> ToolResult:
+    """Convert PurchaseOrderResponse to ToolResult with the appropriate Prefab UI.
+
+    On the preview branch, the rendered UI's "Confirm & Create" button
+    invokes ``create_purchase_order`` directly via ``CallTool`` with the
+    original args + ``confirm=True``.
+    """
     from katana_mcp.tools.prefab_ui import (
         build_order_created_ui,
         build_order_preview_ui,
+        call_tool_from_request,
     )
 
     order_dict = response.model_dump()
     if response.is_preview:
-        ui = build_order_preview_ui(order_dict, "Purchase Order")
+        ui = build_order_preview_ui(
+            order_dict,
+            "Purchase Order",
+            request=request.model_dump(),
+            confirm_action=call_tool_from_request(
+                "create_purchase_order",
+                CreatePurchaseOrderRequest,
+                overrides={"confirm": True},
+            ),
+        )
     else:
         ui = build_order_created_ui(order_dict, "Purchase Order")
 
@@ -167,28 +184,6 @@ async def _create_purchase_order_impl(
             message=f"Preview: Purchase order {request.order_number} with {len(request.items)} items totaling {total_cost:.2f}",
         )
 
-    # Confirm mode - use elicitation to get user confirmation before creating
-    confirmation = await require_confirmation(
-        context,
-        f"Place purchase order {request.order_number} with {len(request.items)} items totaling {total_cost:.2f}?",
-    )
-
-    if confirmation != ConfirmationResult.CONFIRMED:
-        logger.info(f"User did not confirm creation of PO {request.order_number}")
-        return PurchaseOrderResponse(
-            order_number=request.order_number,
-            supplier_id=request.supplier_id,
-            location_id=request.location_id,
-            status=request.status or "NOT_RECEIVED",
-            entity_type="regular",
-            total_cost=total_cost,
-            currency=request.currency,
-            is_preview=True,
-            message=f"Purchase order creation {confirmation} by user",
-            next_actions=["Review the order details and try again with confirm=true"],
-        )
-
-    # User confirmed - create the purchase order via API
     try:
         services = get_services(context)
 
@@ -272,12 +267,12 @@ async def create_purchase_order(
     """Create a purchase order to buy items from a supplier.
 
     Two-step flow: set confirm=false to preview totals without creating, then
-    confirm=true to create (prompts for confirmation). Requires supplier_id,
+    confirm=true to create. Requires supplier_id,
     location_id, order_number, and at least one line item with variant_id,
     quantity, and price_per_unit. Use get_variant_details to look up variant IDs.
     """
     response = await _create_purchase_order_impl(request, context)
-    return _po_response_to_tool_result(response)
+    return _po_response_to_tool_result(response, request=request)
 
 
 # ============================================================================
@@ -318,12 +313,37 @@ class ReceivePurchaseOrderResponse(BaseModel):
 
 def _receive_response_to_tool_result(
     response: ReceivePurchaseOrderResponse,
+    request: ReceivePurchaseOrderRequest | None = None,
 ) -> ToolResult:
-    """Convert ReceivePurchaseOrderResponse to ToolResult with JSON content + Prefab UI."""
-    from katana_mcp.tools.prefab_ui import build_receipt_ui
+    """Convert ReceivePurchaseOrderResponse to ToolResult with JSON content + Prefab UI.
 
-    ui = build_receipt_ui(response.model_dump())
+    On the preview branch, ``request`` is plumbed into the UI so the
+    "Confirm Receipt" button can re-invoke ``receive_purchase_order``
+    directly with ``confirm=True`` and the original items[].
+    """
+    from katana_mcp.tools.prefab_ui import build_receipt_ui, call_tool_from_request
 
+    # request and confirm_action are only used by the preview-mode Confirm
+    # Receipt button. Skip seeding them on the non-preview render to keep
+    # the structured UI payload trim.
+    seed_request = response.is_preview and request is not None
+    ui = build_receipt_ui(
+        response.model_dump(),
+        request=(
+            request.model_dump()
+            if response.is_preview and request is not None
+            else None
+        ),
+        confirm_action=(
+            call_tool_from_request(
+                "receive_purchase_order",
+                ReceivePurchaseOrderRequest,
+                overrides={"confirm": True},
+            )
+            if seed_request
+            else None
+        ),
+    )
     return make_tool_result(response, ui=ui)
 
 
@@ -382,24 +402,6 @@ async def _receive_purchase_order_impl(
                 message=f"Preview: Receive {len(request.items)} items for PO {order_no}",
             )
 
-        # Confirm mode - use elicitation to get user confirmation before receiving
-        confirmation = await require_confirmation(
-            context,
-            f"Receive {len(request.items)} items for purchase order {order_no} and update inventory?",
-        )
-
-        if confirmation != ConfirmationResult.CONFIRMED:
-            logger.info(f"User did not confirm receiving items for PO {order_no}")
-            return ReceivePurchaseOrderResponse(
-                order_id=request.order_id,
-                order_number=order_no,
-                items_received=0,
-                is_preview=True,
-                message=f"Item receipt {confirmation} by user",
-                next_actions=["Review the items and try again with confirm=true"],
-            )
-
-        # User confirmed - receive items via API
         from katana_public_api_client.api.purchase_order import (
             receive_purchase_order as api_receive_purchase_order,
         )
@@ -452,12 +454,12 @@ async def receive_purchase_order(
 ) -> ToolResult:
     """Receive delivered items from a purchase order and update inventory.
 
-    Two-step flow: confirm=false to preview, confirm=true to receive (prompts
-    for confirmation). Use verify_order_document first to validate a supplier
-    document against the PO before receiving. Requires the PO ID and row IDs.
+    Two-step flow: confirm=false to preview, confirm=true to receive. Use
+    verify_order_document first to validate a supplier document against the
+    PO before receiving. Requires the PO ID and row IDs.
     """
     response = await _receive_purchase_order_impl(request, context)
-    return _receive_response_to_tool_result(response)
+    return _receive_response_to_tool_result(response, request=request)
 
 
 # ============================================================================

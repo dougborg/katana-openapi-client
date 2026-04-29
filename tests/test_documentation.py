@@ -115,6 +115,17 @@ if __name__ == "__main__":
     test_documentation_has_openapi_docs()
 
 
+@pytest.mark.docs
+@pytest.mark.skip(
+    reason=(
+        "Asserts Sphinx-style search.html / searchindex.js artifacts that "
+        "MkDocs Material doesn't generate (search is JS-based via "
+        "search/search_index.json). Broken since the MkDocs migration in "
+        "commit e6dfff89; previously masked by a missing pytest-marker that "
+        "made the test time out before reaching the assertion. Re-enable "
+        "after rewriting the asserts against the MkDocs Material output."
+    )
+)
 def test_documentation_search_functionality():
     """Test that documentation search index is generated."""
     if os.getenv("CI_DOCS_BUILD", "false").lower() != "true":

@@ -19,7 +19,6 @@ from pydantic import BaseModel, Field
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.list_coercion import CoercedIntListOpt, CoercedStrIntList
-from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
     PaginationMeta,
@@ -685,7 +684,7 @@ class CreateStockAdjustmentRequest(BaseModel):
     additional_info: str | None = Field(default=None, description="Additional notes")
     confirm: bool = Field(
         default=False,
-        description="Set false to preview, true to create (prompts for confirmation)",
+        description="Set false to preview, true to create",
     )
 
 
@@ -1304,34 +1303,6 @@ async def _update_stock_adjustment_impl(
             ),
         )
 
-    # Confirm mode — elicit user confirmation before hitting the API.
-    confirm_prompt = (
-        f"Apply the supplied field changes to stock adjustment {request.id}?"
-    )
-    confirmation = await require_confirmation(context, confirm_prompt)
-    if confirmation != ConfirmationResult.CONFIRMED:
-        logger.info(
-            "stock_adjustment_update_declined",
-            id=request.id,
-            result=str(confirmation),
-        )
-        return UpdateStockAdjustmentResponse(
-            id=request.id,
-            is_preview=True,
-            stock_adjustment_number=request.stock_adjustment_number,
-            location_id=request.location_id,
-            stock_adjustment_date=request.stock_adjustment_date.isoformat()
-            if request.stock_adjustment_date
-            else None,
-            reason=request.reason,
-            additional_info=request.additional_info,
-            changes_summary=changes_summary,
-            message=(
-                f"Stock adjustment update {confirmation} by user — "
-                "call again with confirm=true to retry"
-            ),
-        )
-
     services = get_services(context)
     api_request = APIUpdateStockAdjustmentRequest(
         stock_adjustment_number=to_unset(request.stock_adjustment_number),
@@ -1480,30 +1451,6 @@ async def _delete_stock_adjustment_impl(
                 f"Preview — call again with confirm=true to delete stock "
                 f"adjustment {stock_adjustment_number} "
                 f"({row_count} row{'s' if row_count != 1 else ''})"
-            ),
-        )
-
-    confirm_prompt = (
-        f"Remove stock adjustment {stock_adjustment_number} "
-        f"(id={request.id}, {row_count} rows)? "
-        "This reverses the associated inventory movements."
-    )
-    confirmation = await require_confirmation(context, confirm_prompt)
-    if confirmation != ConfirmationResult.CONFIRMED:
-        logger.info(
-            "stock_adjustment_delete_declined",
-            id=request.id,
-            result=str(confirmation),
-        )
-        return DeleteStockAdjustmentResponse(
-            id=request.id,
-            is_preview=True,
-            stock_adjustment_number=stock_adjustment_number,
-            location_id=location_id,
-            row_count=row_count,
-            message=(
-                f"Stock adjustment delete {confirmation} by user — "
-                "call again with confirm=true to retry"
             ),
         )
 

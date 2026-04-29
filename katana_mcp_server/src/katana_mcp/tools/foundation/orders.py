@@ -16,7 +16,6 @@ from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
-from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import UI_META, make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.domain.converters import unwrap_unset
@@ -145,23 +144,6 @@ async def _fulfill_manufacturing_order(
             message=f"Manufacturing order {order_number} is already completed",
         )
 
-    confirmation = await require_confirmation(
-        context,
-        f"Mark manufacturing order {order_number} as DONE and update inventory?",
-    )
-    if confirmation != ConfirmationResult.CONFIRMED:
-        return FulfillOrderResponse(
-            order_id=request.order_id,
-            order_type="manufacturing",
-            order_number=order_number,
-            status=current_status,
-            is_preview=True,
-            inventory_updates=inventory_updates,
-            warnings=warnings,
-            message=f"Manufacturing order fulfillment {confirmation} by user",
-            next_actions=["Review the order details and try again with confirm=true"],
-        )
-
     from katana_public_api_client.api.manufacturing_order import (
         update_manufacturing_order as api_update_manufacturing_order,
     )
@@ -246,25 +228,6 @@ async def _fulfill_sales_order(
             message=f"Preview: Would fulfill sales order {order_number} (currently {current_status})",
         )
 
-    # Sales orders can have multiple fulfillments, so we don't prevent
-    # fulfillment based on status
-    confirmation = await require_confirmation(
-        context,
-        f"Fulfill sales order {order_number} and update inventory?",
-    )
-    if confirmation != ConfirmationResult.CONFIRMED:
-        return FulfillOrderResponse(
-            order_id=request.order_id,
-            order_type="sales",
-            order_number=order_number,
-            status=current_status,
-            is_preview=True,
-            inventory_updates=inventory_updates,
-            warnings=warnings,
-            message=f"Sales order fulfillment {confirmation} by user",
-            next_actions=["Review the order details and try again with confirm=true"],
-        )
-
     # The live API requires ``sales_order_fulfillment_rows`` (the line
     # items being fulfilled — variants, quantities, batch transactions).
     # Our current ``FulfillOrderRequest`` tool surface doesn't model
@@ -309,7 +272,7 @@ async def fulfill_order(
     """Complete a manufacturing order (mark DONE) or fulfill a sales order (ship items).
 
     Destructive operation that updates inventory. Two-step flow: confirm=false to
-    preview what would happen, confirm=true to execute (prompts for confirmation).
+    preview what would happen, confirm=true to execute.
 
     Manufacturing: marks order DONE, adds finished goods, consumes raw materials.
     Sales: creates a fulfillment record, reduces available inventory.
