@@ -25,7 +25,6 @@ from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
-from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     PaginationMeta,
     apply_date_window_filters,
@@ -300,26 +299,7 @@ async def _create_stock_transfer_impl(
             message=preview_message,
         )
 
-    confirmation = await require_confirmation(
-        context,
-        f"Create stock transfer with {row_count} row(s) from location "
-        f"{request.source_location_id} to {request.destination_location_id}?",
-    )
-    if confirmation != ConfirmationResult.CONFIRMED:
-        logger.info("User did not confirm stock transfer creation")
-        return StockTransferResponse(
-            stock_transfer_number=request.order_no,
-            source_location_id=request.source_location_id,
-            target_location_id=request.destination_location_id,
-            status="DRAFT",
-            expected_arrival_date=request.expected_arrival_date.isoformat(),
-            is_preview=True,
-            message=f"Stock transfer creation {confirmation} by user",
-            next_actions=[
-                "Review the transfer details and try again with confirm=true"
-            ],
-        )
-
+    # confirm=true — host already confirmed via destructiveHint annotation.
     services = get_services(context)
     api_rows = _build_row_requests(request.rows)
 
@@ -753,19 +733,7 @@ async def _update_stock_transfer_impl(
             message=preview_message,
         )
 
-    confirmation = await require_confirmation(
-        context,
-        f"Update stock transfer {request.id}? Fields: " + ", ".join(set_fields.keys()),
-    )
-    if confirmation != ConfirmationResult.CONFIRMED:
-        logger.info(f"User did not confirm update of stock transfer {request.id}")
-        return StockTransferResponse(
-            id=request.id,
-            is_preview=True,
-            message=f"Stock transfer update {confirmation} by user",
-            next_actions=["Review the update and try again with confirm=true"],
-        )
-
+    # confirm=true — host already confirmed via destructiveHint annotation.
     services = get_services(context)
     api_request = APIUpdateStockTransferRequest(
         stock_transfer_number=to_unset(request.stock_transfer_number),
@@ -865,21 +833,7 @@ async def _update_stock_transfer_status_impl(
             message=preview_message,
         )
 
-    confirmation = await require_confirmation(
-        context,
-        f"Transition stock transfer {request.id} to {request.new_status}?",
-    )
-    if confirmation != ConfirmationResult.CONFIRMED:
-        logger.info(
-            f"User did not confirm status change of stock transfer {request.id}"
-        )
-        return StockTransferResponse(
-            id=request.id,
-            status=request.new_status,
-            is_preview=True,
-            message=f"Stock transfer status change {confirmation} by user",
-            next_actions=["Review the transition and try again with confirm=true"],
-        )
+    # confirm=true — host already confirmed via destructiveHint annotation.
 
     services = get_services(context)
     api_request = APIUpdateStockTransferStatusRequest(
@@ -992,18 +946,7 @@ async def _delete_stock_transfer_impl(
             message=preview_message,
         )
 
-    confirmation = await require_confirmation(
-        context, f"Delete stock transfer {request.id}? This action is destructive."
-    )
-    if confirmation != ConfirmationResult.CONFIRMED:
-        logger.info(f"User did not confirm deletion of stock transfer {request.id}")
-        return DeleteStockTransferResponse(
-            id=request.id,
-            is_preview=True,
-            message=f"Stock transfer deletion {confirmation} by user",
-            next_actions=["Review the deletion and try again with confirm=true"],
-        )
-
+    # confirm=true — host already confirmed via destructiveHint annotation.
     services = get_services(context)
     from katana_public_api_client.api.stock_transfer import delete_stock_transfer
 

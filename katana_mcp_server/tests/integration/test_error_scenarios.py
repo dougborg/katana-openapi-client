@@ -11,7 +11,7 @@ as we cannot reliably trigger real API errors in integration tests.
 """
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from katana_mcp.tools.foundation.inventory import (
@@ -25,15 +25,6 @@ from katana_mcp.tools.foundation.items import (
     SearchItemsRequest,
     _get_variant_details_impl,
     _search_items_impl,
-)
-from katana_mcp.tools.foundation.manufacturing_orders import (
-    CreateManufacturingOrderRequest,
-    _create_manufacturing_order_impl,
-)
-from katana_mcp.tools.foundation.purchase_orders import (
-    CreatePurchaseOrderRequest,
-    PurchaseOrderItem,
-    _create_purchase_order_impl,
 )
 
 from tests.conftest import create_mock_context
@@ -198,65 +189,6 @@ class TestNetworkErrorHandling:
         request = SearchItemsRequest(query="test")
         with pytest.raises(asyncio.TimeoutError):
             await _search_items_impl(request, context)
-
-
-@pytest.mark.asyncio
-class TestElicitationErrors:
-    """Test handling of user elicitation errors/declines."""
-
-    async def test_user_declines_po_creation(self):
-        """Test handling when user declines PO creation."""
-        context, lifespan_ctx = create_mock_context(elicit_confirm=False)
-
-        # Set up mock client (even though we won't reach API call)
-        mock_client = MagicMock()
-        lifespan_ctx.client = mock_client
-
-        request = CreatePurchaseOrderRequest(
-            supplier_id=1,
-            location_id=1,
-            order_number="TEST-PO-001",
-            items=[
-                PurchaseOrderItem(
-                    variant_id=1,
-                    quantity=10,
-                    price_per_unit=100.00,
-                )
-            ],
-            confirm=True,  # User will decline
-        )
-
-        result = await _create_purchase_order_impl(request, context)
-
-        # Should return cancelled status, not error
-        assert result.is_preview is True
-        assert (
-            "declined" in result.message.lower()
-            or "cancelled" in result.message.lower()
-        )
-
-    async def test_user_declines_mo_creation(self):
-        """Test handling when user declines MO creation."""
-        context, lifespan_ctx = create_mock_context(elicit_confirm=False)
-
-        mock_client = MagicMock()
-        lifespan_ctx.client = mock_client
-
-        request = CreateManufacturingOrderRequest(
-            variant_id=1,
-            planned_quantity=50,
-            location_id=1,
-            confirm=True,  # User will decline
-        )
-
-        result = await _create_manufacturing_order_impl(request, context)
-
-        # Should return cancelled status, not error
-        assert result.is_preview is True
-        assert (
-            "declined" in result.message.lower()
-            or "cancelled" in result.message.lower()
-        )
 
 
 @pytest.mark.asyncio

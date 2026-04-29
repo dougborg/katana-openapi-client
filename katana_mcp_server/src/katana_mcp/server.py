@@ -243,7 +243,11 @@ Katana MCP Server — Manufacturing ERP tools for inventory, orders, and product
 
 All create/modify/delete operations use a two-step confirm pattern:
 1. Call with confirm=false — returns a preview (no changes made)
-2. Call with confirm=true — executes the operation (prompts for user confirmation)
+2. Call with confirm=true — executes the operation
+
+Destructive tools advertise this via the standard MCP ``destructiveHint``
+tool annotation, which the host uses to confirm with the user before
+invocation. The server itself does not gate further.
 
 ## Resources
 

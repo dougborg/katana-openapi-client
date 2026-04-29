@@ -829,9 +829,7 @@ class DeleteItemResponse(BaseModel):
 async def _delete_item_impl(
     request: DeleteItemRequest, context: Context
 ) -> DeleteItemResponse:
-    """Delete an item with two-step confirmation."""
-    from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
-
+    """Delete an item with two-step confirmation (preview/execute)."""
     services = get_services(context)
     helper = _get_type_helper(services.client, request.type)
 
@@ -852,22 +850,7 @@ async def _delete_item_impl(
             message=f"Preview: Would permanently delete {item_name}. Set confirm=true to proceed.",
         )
 
-    # Confirm mode
-    confirmation = await require_confirmation(
-        context,
-        f"Permanently delete {item_name}? This cannot be undone.",
-    )
-
-    if confirmation != ConfirmationResult.CONFIRMED:
-        return DeleteItemResponse(
-            id=request.id,
-            type=request.type,
-            is_preview=True,
-            success=False,
-            message=f"Deletion of {item_name} {confirmation} by user",
-        )
-
-    # Execute deletion
+    # confirm=true — host already confirmed via destructiveHint annotation.
     await helper.delete(request.id)
 
     # Invalidate only the affected type + variants

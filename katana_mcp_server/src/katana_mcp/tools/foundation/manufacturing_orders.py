@@ -21,7 +21,6 @@ from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.list_coercion import CoercedIntList, CoercedIntListOpt
-from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
     PaginationMeta,
@@ -216,31 +215,9 @@ async def _create_manufacturing_order_impl(
             message=preview_msg,
         )
 
-    # Confirm mode — elicit confirmation
-    confirm_msg = (
-        f"Start make-to-order MO from sales_order_row_id={request.sales_order_row_id}?"
-        if is_make_to_order
-        else (
-            f"Start manufacturing order for variant {request.variant_id} "
-            f"with quantity {request.planned_quantity}?"
-        )
-    )
-    confirmation = await require_confirmation(context, confirm_msg)
-
-    if confirmation != ConfirmationResult.CONFIRMED:
-        return ManufacturingOrderResponse(
-            variant_id=request.variant_id,
-            planned_quantity=request.planned_quantity,
-            location_id=request.location_id,
-            order_created_date=request.order_created_date,
-            production_deadline_date=request.production_deadline_date,
-            additional_info=request.additional_info,
-            is_preview=True,
-            message=f"User {confirmation} the manufacturing order",
-            next_actions=["Review the order details and try again with confirm=true"],
-        )
-
-    # Execute
+    # confirm=true — execute. Per spec, the host (driven by destructiveHint
+    # annotation) confirmed with the user before invoking; the server does
+    # not gate further.
     try:
         services = get_services(context)
 
@@ -1292,7 +1269,7 @@ class AddRecipeRowRequest(BaseModel):
     notes: str | None = Field(default=None, description="Optional notes")
     confirm: bool = Field(
         default=False,
-        description="Set false to preview, true to add (prompts for confirmation)",
+        description="Set false to preview, true to add",
     )
 
 
@@ -1409,22 +1386,7 @@ async def _add_recipe_row_impl(
             ),
         )
 
-    confirmation = await require_confirmation(
-        context,
-        f"Add {request.planned_quantity_per_unit}x {display_name} "
-        f"to MO {request.manufacturing_order_id}?",
-    )
-    if confirmation != ConfirmationResult.CONFIRMED:
-        return AddRecipeRowResponse(
-            id=None,
-            manufacturing_order_id=request.manufacturing_order_id,
-            variant_id=variant_id,
-            sku=sku,
-            planned_quantity_per_unit=request.planned_quantity_per_unit,
-            is_preview=True,
-            message=f"User {confirmation} adding the recipe row",
-        )
-
+    # confirm=true — host already confirmed via destructiveHint annotation.
     result = await _api_create_recipe_row(
         services,
         manufacturing_order_id=request.manufacturing_order_id,
@@ -1477,7 +1439,7 @@ class DeleteRecipeRowRequest(BaseModel):
     recipe_row_id: int = Field(..., description="Recipe row ID to delete")
     confirm: bool = Field(
         default=False,
-        description="Set false to preview, true to delete (prompts for confirmation)",
+        description="Set false to preview, true to delete",
     )
 
 
@@ -1502,17 +1464,7 @@ async def _delete_recipe_row_impl(
             message=f"Preview: Would delete recipe row {request.recipe_row_id}",
         )
 
-    confirmation = await require_confirmation(
-        context,
-        f"Remove recipe row {request.recipe_row_id}? This cannot be undone.",
-    )
-    if confirmation != ConfirmationResult.CONFIRMED:
-        return DeleteRecipeRowResponse(
-            recipe_row_id=request.recipe_row_id,
-            is_preview=True,
-            message=f"User {confirmation} removing the recipe row",
-        )
-
+    # confirm=true — host already confirmed via destructiveHint annotation.
     await _api_delete_recipe_row(services, request.recipe_row_id)
 
     return DeleteRecipeRowResponse(
@@ -1941,33 +1893,7 @@ async def _batch_update_impl(
             message=f"Preview: {total} sub-operations planned. Set confirm=true to execute.",
         )
 
-    # 3. Single confirmation for the batch
-    del_count = sum(1 for o in planned if o.op_type == OpType.DELETE)
-    add_count = sum(
-        1
-        for o in planned
-        if o.op_type == OpType.ADD and o.status != SubOpStatus.SKIPPED
-    )
-    mo_count = len({o.manufacturing_order_id for o in planned})
-    confirmation = await require_confirmation(
-        context,
-        f"Apply batch recipe update? {del_count} deletions, {add_count} additions "
-        f"across {mo_count} MOs. Cannot be undone.",
-    )
-    if confirmation != ConfirmationResult.CONFIRMED:
-        skipped = sum(1 for o in planned if o.status == SubOpStatus.SKIPPED)
-        return BatchUpdateRecipesResponse(
-            is_preview=True,
-            total_ops=total,
-            success_count=0,
-            failed_count=0,
-            skipped_count=skipped,
-            results=planned,
-            warnings=warnings,
-            message=f"User {confirmation} the batch recipe update",
-        )
-
-    # 4. Execute
+    # 3. Execute — host already confirmed via destructiveHint annotation.
     results = await _execute_batch_update(planned, request, context)
 
     # 5. Tally
@@ -2006,7 +1932,7 @@ async def batch_update_manufacturing_order_recipes(
       for arbitrary edits.
 
     Two-step flow: confirm=false to preview (resolves row IDs, shows full plan),
-    confirm=true to execute (single confirmation elicitation for the whole batch).
+    confirm=true to execute (single batch operation).
 
     Semantics:
     - Within a replacement group, old rows are deleted first, then new rows are

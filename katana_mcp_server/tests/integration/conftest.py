@@ -14,7 +14,7 @@ See test_utils.py for the TestSession class and cleanup utilities.
 
 import os
 import time
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 import pytest_asyncio
@@ -84,8 +84,6 @@ async def integration_context(katana_client):
     Structure:
         context.request_context.lifespan_context.client -> KatanaClient
 
-    Also includes a mock elicit() function that simulates user confirmation.
-
     Yields:
         MagicMock: Context object with real KatanaClient attached
     """
@@ -97,13 +95,6 @@ async def integration_context(katana_client):
     mock_lifespan_context.client = katana_client
     mock_request_context.lifespan_context = mock_lifespan_context
     context.request_context = mock_request_context
-
-    # Mock elicit() to simulate user confirmation (always accept)
-    mock_elicit_result = MagicMock()
-    mock_elicit_result.action = "accept"
-    mock_elicit_result.data = MagicMock()
-    mock_elicit_result.data.confirm = True
-    context.elicit = AsyncMock(return_value=mock_elicit_result)
 
     yield context
 

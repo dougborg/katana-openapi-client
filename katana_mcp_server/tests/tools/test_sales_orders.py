@@ -363,31 +363,6 @@ async def test_create_sales_order_confirm_with_minimal_fields():
         create_so_module.asyncio_detailed = original_asyncio_detailed
 
 
-@pytest.mark.asyncio
-async def test_create_sales_order_user_declines():
-    """Test create_sales_order when user declines elicitation."""
-    # Create context with elicit_confirm=False to simulate user declining
-    context, _ = create_mock_context(elicit_confirm=False)
-
-    request = CreateSalesOrderRequest(
-        customer_id=1501,
-        order_number="SO-2024-011",
-        items=[
-            SalesOrderItem(variant_id=2101, quantity=1, price_per_unit=99.99),
-        ],
-        confirm=True,
-    )
-    result = await _create_sales_order_impl(request, context)
-
-    # User declined, so it should return preview mode with cancellation message
-    assert result.is_preview is True
-    assert result.id is None
-    assert result.order_number == "SO-2024-011"
-    assert result.customer_id == 1501
-    assert "cancelled" in result.message.lower()
-    assert len(result.next_actions) > 0
-
-
 # ============================================================================
 # Validation Tests
 # ============================================================================

@@ -20,7 +20,6 @@ from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.list_coercion import CoercedIntListOpt
-from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
     PaginationMeta,
@@ -201,31 +200,9 @@ async def _create_sales_order_impl(
             + (f" totaling {total_estimate:.2f}" if total_estimate > 0 else ""),
         )
 
-    # Confirm mode - use elicitation to get user confirmation before creating
-    confirmation = await require_confirmation(
-        context,
-        f"Place sales order {request.order_number} for customer {request.customer_id} "
-        f"with {len(request.items)} items?",
-    )
-
-    if confirmation != ConfirmationResult.CONFIRMED:
-        logger.info(f"User did not confirm creation of SO {request.order_number}")
-        return SalesOrderResponse(
-            order_number=request.order_number,
-            customer_id=request.customer_id,
-            location_id=request.location_id,
-            status="PENDING",
-            total=total_estimate if total_estimate > 0 else None,
-            currency=request.currency,
-            delivery_date=request.delivery_date.isoformat()
-            if request.delivery_date
-            else None,
-            is_preview=True,
-            message=f"Sales order creation {confirmation} by user",
-            next_actions=["Review the order details and try again with confirm=true"],
-        )
-
-    # User confirmed - create the sales order via API
+    # confirm=true — create the sales order via API. Per spec, the host
+    # (driven by destructiveHint annotation) confirmed with the user before
+    # invoking; the server does not gate further.
     try:
         services = get_services(context)
 
@@ -324,10 +301,10 @@ async def create_sales_order(
 ) -> ToolResult:
     """Create a sales order for a customer purchase.
 
-    Two-step flow: confirm=false to preview totals, confirm=true to create
-    (prompts for confirmation). Requires customer_id, order_number, and at
-    least one line item with variant_id and quantity. Supports optional pricing
-    overrides, discounts, delivery dates, and billing/shipping addresses.
+    Two-step flow: confirm=false to preview totals, confirm=true to create.
+    Requires customer_id, order_number, and at least one line item with
+    variant_id and quantity. Supports optional pricing overrides, discounts,
+    delivery dates, and billing/shipping addresses.
     """
     from katana_mcp.tools.prefab_ui import (
         build_order_created_ui,
