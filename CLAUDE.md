@@ -69,8 +69,10 @@ Common mistakes to avoid:
 
 - **Editing generated files** - `api/**/*.py`, `models/**/*.py`, and `client.py` are
   generated. Run `uv run poe regenerate-client` instead of editing them directly.
+
 - **Forgetting pydantic regeneration** - After `uv run poe regenerate-client`, always
   run `uv run poe generate-pydantic` too. They must stay in sync.
+
 - **uv.lock drift during pre-commit** - When `uv.lock` shows up modified but you didn't
   touch dependencies (e.g., a sibling-package release on `main` bumped a workspace
   version), `git add uv.lock` and bundle it into your current commit. Don't
@@ -79,6 +81,7 @@ Common mistakes to avoid:
   confusing "files were modified by this hook" failures where nothing was actually wrong
   with the staged content. The lockfile must stay in sync with `pyproject.toml` at every
   commit anyway, so bundling is always the right call.
+
 - **Generator/schema edits without committing the regen** - Whenever you edit a
   generator script (`scripts/generate_pydantic_models.py`,
   `scripts/regenerate_client.py`) **or** the OpenAPI spec (`docs/katana-openapi.yaml`),
@@ -99,6 +102,7 @@ Common mistakes to avoid:
   [`docs/upstream-specs/README.md`](docs/upstream-specs/README.md)
   (`poe refresh-upstream-spec` → `poe audit-spec` → `poe validate-response-examples` →
   `poe validate-examples`).
+
 - **OpenAPI spec is 3.1 — use 3.1 conventions** - `docs/katana-openapi.yaml` declares
   `openapi: 3.1.0`. Use 3.1 features rather than 3.0 work-arounds. Specifically:
   **`$ref` siblings are legal in 3.1**, so attach property metadata (especially
@@ -106,6 +110,7 @@ Common mistakes to avoid:
   `allOf: [{$ref: ...}]` (the 3.0 idiom — usually unnecessary for new edits here, though
   the spec still has a few legacy cases). Use `allOf` only for real composition
   (combining a `$ref` with additional properties), not as a description-attacher.
+
 - **Property descriptions live at the use-site, not the schema-definition site** - When
   a property references a shared schema via `$ref`, put the property's `description` as
   a sibling of the `$ref` so the description describes the *role of this field on this
@@ -119,22 +124,29 @@ Common mistakes to avoid:
   use-site descriptions are also what surfaces in the generated client's IDE hovertext /
   generated docs. Bare `$ref` drops the description from generated pydantic — avoid
   except when the schema's own description is enough context for every caller (rare).
+
 - **UNSET vs None confusion** - attrs model fields that are unset use a sentinel value,
   not `None`. Use `unwrap_unset(field, default)` from
   `katana_public_api_client.domain.converters`, not `isinstance` or `hasattr` checks.
+
 - **Manual status code checks** - Don't write `if response.status_code == 200`. Use
   `unwrap_as()`, `unwrap_data()`, or `is_success()` from
   `katana_public_api_client.utils`.
+
 - **Wrapping API methods for retries** - Resilience (retries, rate limiting) is at the
   transport layer. All 100+ endpoints get it automatically via `KatanaClient`.
+
 - **Raw list responses in tests** - Katana wraps ALL list responses in
   `{"data": [...]}`. Never define raw arrays in mocks.
+
 - **Help resource drift** - `katana_mcp_server/.../resources/help.py` contains hardcoded
   tool documentation. When adding or modifying tool parameters, also update the help
   resource content to stay in sync.
+
 - **None-to-UNSET conversion** - When building attrs API request models from optional
   fields, use `to_unset(value)` from `katana_public_api_client.domain.converters`
   instead of `value if value is not None else UNSET`.
+
 - **Polluting the API spec/models with cache-only fields** - The OpenAPI spec at
   `docs/katana-openapi.yaml` and the generated pydantic models in
   `katana_public_api_client/models_pydantic/_generated/*.py` reflect Katana's actual
@@ -148,6 +160,7 @@ Common mistakes to avoid:
   the conversion pattern: attrs → API pydantic (via the registry) → cache pydantic (via
   `model_dump`/`model_validate`), with relationship fields set after construction since
   SQLModel `Relationship` descriptors don't accept input via `__init__`.
+
 - **Fix bugs at the client/generator layer when the root cause lives there** - The
   Katana client (`katana_public_api_client`) is a published, standalone package.
   Third-party Python users hit the same bugs we hit in MCP. When a bug surfaces in
@@ -159,6 +172,7 @@ Common mistakes to avoid:
   `_attrs_*_to_cached`. `Column(JSON)` failing to serialize a pydantic instance → fix
   `inject_json_columns` in `scripts/generate_pydantic_models.py`, not `sync.py`. Missing
   enum value → patch spec + regenerate, not enum-tolerant deserialization downstream.
+
 - **List responses must use a `ListResponse` schema with `data` array property** -
   Katana wraps every GET list endpoint in `{"data": [...]}`. If the OpenAPI spec defines
   a 200 response as `type: array`, the generated parser iterates `response.json()`
@@ -169,21 +183,47 @@ Common mistakes to avoid:
   `properties.data: {type: array, items: {$ref: ...}}`) and reference it from the
   operation. The only documented exception is `/user_info`, which returns a flat object,
   not wrapped.
+
 - **Real names and emails from live API responses must never enter the repo** - When
   testing against the live Katana API and incorporating response data into the spec,
   examples, or test fixtures, replace real names/emails with generic placeholders
   (`Jane Doe`, `jane.doe@example.com`, etc.). Privacy concern — real user data from
   production accounts should not be committed.
+
 - **Always call functions with named/keyword arguments** - Use `func(param=value)`, not
   `func(value)`, for all calls — including third-party constructors (especially
   `prefab_ui` components, which only accept keyword args), API methods, and cache
   helpers. Caught by review when positional args caused runtime errors with
   `prefab_ui.Metric`. Explicitness > brevity.
+
 - **Never delete `.claude/worktrees/` directories or their contents** - Other agents may
   be actively working inside them; deleting destroys their in-progress context. If a
   worktree causes downstream issues (e.g., `ty` type checker scanning into it),
   **exclude the path in tool config** — never `rm -rf` the directory. Treat
   `.claude/worktrees/` as off-limits for destructive operations.
+
+- **First push of a feature branch — use `HEAD:refs/heads/<name>`, not bare branch
+  name** - When a local branch was created via `git checkout -b <name> origin/main`, its
+  upstream is set to `origin/main`. A subsequent `git push -u origin <name>` then
+  resolves to its tracked upstream and pushes the local tip **straight to `main`** —
+  bypassing PR review and triggering semantic-release. This actually happened: commit
+  `30f3fd86` reached main + tagged `mcp-v0.44.1` + published to PyPI before we could
+  cancel the pipeline. **Always use the explicit destination ref** for first-time
+  pushes:
+
+  ```bash
+  # Wrong — pushes to whatever the local branch tracks (may be main)
+  git push -u origin chore/foo
+
+  # Right — explicit destination, creates the remote branch
+  git push -u origin HEAD:refs/heads/chore/foo
+  ```
+
+  A `pre-push` hook at `.pre-commit-config.yaml`'s `pre-push` stage enforces this for
+  contributors who run pre-commit; do not bypass with `--no-verify`. The `Protect Main`
+  ruleset has `bypass_mode: always` for the Admin role (required by semantic-release's
+  PAT-based pushes); tightening that bypass is tracked in #429 (GitHub App migration).
+  Until #429 lands, the local hook is the only mechanical guardrail.
 
 ## Using the LSP tool
 
