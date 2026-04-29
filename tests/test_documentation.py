@@ -115,6 +115,7 @@ if __name__ == "__main__":
     test_documentation_has_openapi_docs()
 
 
+@pytest.mark.docs
 def test_documentation_search_functionality():
     """Test that documentation search index is generated."""
     if os.getenv("CI_DOCS_BUILD", "false").lower() != "true":
