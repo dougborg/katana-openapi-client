@@ -32,6 +32,8 @@ Take a feature branch from "implementation done" to "PR open, CI green, review a
 - **Self-review the full diff** — review every change before opening, not just the latest commit.
 - **Stage specific files** — never `git add -A` or `git add .`.
 - **HEREDOC for messages** — commit messages and PR bodies always use HEREDOC for proper formatting.
+- **Push with the safe refspec, never the bare branch name** — use `git push -u origin HEAD:refs/heads/<branch-name>`, **not** `git push -u origin <branch-name>`. The bare form resolves the destination via the local branch's *upstream*. When a feature branch is created with `git checkout -b <name> origin/main`, its upstream is `origin/main` — and `git push -u origin <name>` then pushes straight to **`main`**, not to a new remote `<name>` ref. This actually happened twice in this repo (commit 30f3fd86 and again during #436 development); the pre-push guard at `scripts/pre-push-guard.sh` exists for this reason but does not fire from worktrees that haven't installed the repo hooks via `uv run pre-commit install`. Always use the explicit-destination form. Same rule applies to subsequent pushes (`git push --force-with-lease` after a rebase).
+- **Prefer `/open-pr` over manual `git push` + `gh pr create`** — never hand-roll the PR-opening flow even when the changes are small. The skill encodes the validate → self-review → push → CI-watch → review-address sequence; manual sequences skip self-review and reopen the push-refspec trap above. If the work isn't yet at a clean tip, run `/pre-commit` or `/verify` first, then `/open-pr`.
 - **File issues for deferred work** — if the self-review identifies out-of-scope problems, create a tracking issue with `gh issue create` before opening the PR.
 - **Delegate review-comment handling** — never duplicate `/review-pr`; invoke it.
 - **Run `/review-pr` before auto-merge can land** — CI-green is not the only gate. Reviewer feedback (Copilot, human, bot) is the other half. Auto-merge fires the moment CI passes, which can race ahead of unresolved comments and silently land a PR with unaddressed findings. After opening the PR, **always** invoke `/review-pr <#>` to surface and address every unresolved comment before allowing the merge to land. Applies to small cleanup PRs too — the failure mode compounds across multi-PR epics.
@@ -42,7 +44,7 @@ Take a feature branch from "implementation done" to "PR open, CI green, review a
 1. **Pre-flight** — confirm not on `main`, run `uv run poe check`, check for existing PR (Phase 1).
 2. **Self-review** — read the full diff vs base; fix issues found (Phase 2).
 3. **Organize commits** — group into logical commits with conventional format (Phase 3).
-4. **Push and create** — `git push -u`, `gh pr create` with HEREDOC body (Phase 4).
+4. **Push and create** — `git push -u origin HEAD:refs/heads/<branch>`, `gh pr create` with HEREDOC body (Phase 4).
 5. **Wait for CI** — `gh pr checks --watch`; fix failures in-place (Phase 5).
 6. **Wait for review** — poll for ≤15 min; if comments arrive, delegate to `/review-pr` (Phases 6–7).
 7. **Summary** — print PR URL, commit count, CI status, review state (Phase 8).

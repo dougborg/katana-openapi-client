@@ -6,9 +6,14 @@ Guidance for Claude Code working with this repository.
 
 ```bash
 uv sync --all-extras         # Install dependencies
-uv run pre-commit install    # Setup hooks
+uv run pre-commit install    # Setup hooks (installs both pre-commit AND pre-push)
 cp .env.example .env         # Add KATANA_API_KEY
 ```
+
+**Worktrees: re-run `uv run pre-commit install` after `git worktree add`** — pre-commit
+hooks aren't shared across worktrees. The `pre-push-guard.sh` that blocks unintended
+pushes to `main` (see `Known Pitfalls`) only fires when the hook is installed in the
+worktree's `.git/hooks/`.
 
 ## Essential Commands
 
