@@ -14,10 +14,11 @@ from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, BeforeValidator, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.tools.list_coercion import coerce_str_list_input
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
@@ -42,11 +43,14 @@ logger = get_logger(__name__)
 class CheckInventoryRequest(BaseModel):
     """Request model for checking inventory."""
 
-    skus_or_variant_ids: list[str | int] = Field(
+    skus_or_variant_ids: Annotated[
+        list[str | int], BeforeValidator(coerce_str_list_input)
+    ] = Field(
         ...,
         min_length=1,
         description=(
-            "SKUs (strings) or variant IDs (integers) to check — mix freely. "
+            "JSON array of SKUs (strings) or variant IDs (integers) — mix freely. "
+            'E.g., ["WS74001", 12345] or ["WS74001", "WS74002"]. '
             "Pass one for a detailed stock card; pass many for a summary table. "
             "Batching N items in a single call beats N separate invocations. "
             "Output order matches input order."
@@ -215,8 +219,6 @@ async def check_inventory(
     availability, or with a batch list to check multiple ingredients at once
     (e.g. all EXPECTED items in an MO recipe).
     """
-    from katana_mcp.tools.prefab_ui import build_inventory_check_ui
-
     results = await _check_inventory_impl(request, context)
 
     if request.format == "json":
@@ -226,15 +228,13 @@ async def check_inventory(
             structured_content=payload,
         )
 
-    # Single-variant request: preserve the rich Prefab card output
+    # Single-variant request: render via the inventory_check template
     is_single = len(results) == 1 and len(request.skus_or_variant_ids) == 1
     if is_single:
         response = results[0]
-        ui = build_inventory_check_ui(response.model_dump())
         return make_tool_result(
             response,
             "inventory_check",
-            ui=ui,
             sku=response.sku,
             product_name=response.product_name,
             in_stock=response.in_stock,
@@ -397,8 +397,6 @@ async def list_low_stock_items(
 
     Default threshold is 10 units, default limit is 50 items.
     """
-    from katana_mcp.tools.prefab_ui import build_low_stock_ui
-
     response = await _list_low_stock_items_impl(request, context)
 
     if request.format == "json":
@@ -415,13 +413,9 @@ async def list_low_stock_items(
     else:
         items_table = "No items below threshold."
 
-    items_dicts = [item.model_dump() for item in response.items]
-    ui = build_low_stock_ui(items_dicts, request.threshold, response.total_count)
-
     return make_tool_result(
         response,
         "low_stock_report",
-        ui=ui,
         threshold=request.threshold,
         total_count=response.total_count,
         items_table=items_table,
@@ -867,9 +861,12 @@ class ListStockAdjustmentsRequest(BaseModel):
         ),
     )
     location_id: int | None = Field(default=None, description="Filter by location ID")
-    ids: list[int] | None = Field(
+    ids: Annotated[list[int] | None, BeforeValidator(coerce_str_list_input)] = Field(
         default=None,
-        description="Restrict to a specific set of stock adjustment IDs",
+        description=(
+            "Restrict to a specific set of stock adjustment IDs. "
+            "JSON array of integers, e.g. [101, 202, 303]."
+        ),
     )
     stock_adjustment_number: str | None = Field(
         default=None, description="Exact match on the stock adjustment number"

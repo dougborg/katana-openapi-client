@@ -14,11 +14,12 @@ from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, BeforeValidator, Field
 
 from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.tools.list_coercion import coerce_str_list_input
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
@@ -328,25 +329,13 @@ async def create_sales_order(
     least one line item with variant_id and quantity. Supports optional pricing
     overrides, discounts, delivery dates, and billing/shipping addresses.
     """
-    from katana_mcp.tools.prefab_ui import (
-        build_order_created_ui,
-        build_order_preview_ui,
-    )
-
     response = await _create_sales_order_impl(request, context)
 
     next_actions_text = "\n".join(f"- {a}" for a in response.next_actions) or "None"
 
-    order_dict = response.model_dump()
-    if response.is_preview:
-        ui = build_order_preview_ui(order_dict, "Sales Order")
-    else:
-        ui = build_order_created_ui(order_dict, "Sales Order")
-
     return make_tool_result(
         response,
         "sales_order_created",
-        ui=ui,
         id=response.id or "N/A",
         order_number=response.order_number,
         customer_id=response.customer_id,
@@ -389,8 +378,12 @@ class ListSalesOrdersRequest(BaseModel):
 
     # Domain filters
     order_no: str | None = Field(default=None, description="Filter by exact order_no")
-    ids: list[int] | None = Field(
-        default=None, description="Filter by explicit list of sales order IDs"
+    ids: Annotated[list[int] | None, BeforeValidator(coerce_str_list_input)] = Field(
+        default=None,
+        description=(
+            "Filter by explicit list of sales order IDs. "
+            "JSON array of integers, e.g. [101, 202, 303]."
+        ),
     )
     customer_id: int | None = Field(default=None, description="Filter by customer ID")
     location_id: int | None = Field(default=None, description="Filter by location ID")

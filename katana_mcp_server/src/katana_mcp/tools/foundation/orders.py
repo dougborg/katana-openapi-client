@@ -66,13 +66,7 @@ class FulfillOrderResponse(BaseModel):
 
 
 def _fulfill_response_to_tool_result(response: FulfillOrderResponse) -> ToolResult:
-    """Convert FulfillOrderResponse to ToolResult with markdown + Prefab UI."""
-    from katana_mcp.tools.prefab_ui import (
-        build_fulfill_preview_ui,
-        build_fulfill_success_ui,
-    )
-
-    # Format lists for template
+    """Convert FulfillOrderResponse to ToolResult with markdown content."""
     inventory_updates_text = (
         "\n".join(f"- {update}" for update in response.inventory_updates)
         if response.inventory_updates
@@ -85,16 +79,9 @@ def _fulfill_response_to_tool_result(response: FulfillOrderResponse) -> ToolResu
         else "No next steps"
     )
 
-    response_dict = response.model_dump()
-    if response.is_preview:
-        ui = build_fulfill_preview_ui(response_dict)
-    else:
-        ui = build_fulfill_success_ui(response_dict)
-
     return make_tool_result(
         response,
         "order_fulfilled",
-        ui=ui,
         order_type=response.order_type.title(),
         order_number=response.order_number,
         order_id=response.order_id,

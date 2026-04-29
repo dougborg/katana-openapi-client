@@ -12,12 +12,13 @@ from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, BeforeValidator, Field
 
 from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.decorators import cache_read
+from katana_mcp.tools.list_coercion import coerce_str_list_input
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
     format_md_table,
@@ -103,10 +104,7 @@ class SearchItemsResponse(BaseModel):
 def _search_response_to_tool_result(
     response: SearchItemsResponse, query: str
 ) -> ToolResult:
-    """Convert SearchItemsResponse to ToolResult with markdown + Prefab UI."""
-    from katana_mcp.tools.prefab_ui import build_search_results_ui
-
-    # Build items table for template
+    """Convert SearchItemsResponse to ToolResult with markdown content."""
     if response.items:
         items_table = "\n".join(
             f"- **{item.sku}**: {item.name} (ID: {item.id}, Sellable: {item.is_sellable})"
@@ -119,14 +117,9 @@ def _search_response_to_tool_result(
     material_count = sum(1 for item in response.items if item.item_type == "material")
     service_count = sum(1 for item in response.items if item.item_type == "service")
 
-    # Filter out items without SKU — drill-down requires SKU for get_variant_details
-    items_dicts = [item.model_dump() for item in response.items if item.sku]
-    ui = build_search_results_ui(items_dicts, query, response.total_count)
-
     return make_tool_result(
         response,
         "item_search_results",
-        ui=ui,
         query=query,
         result_count=response.total_count,
         items_table=items_table,
@@ -319,15 +312,11 @@ async def create_item(
 
     Creates the item with a single variant. Returns the new item ID.
     """
-    from katana_mcp.tools.prefab_ui import build_item_mutation_ui
-
     response = await _create_item_impl(request, context)
-    ui = build_item_mutation_ui(response.model_dump(), "Created")
 
     return make_tool_result(
         response,
         "item_created",
-        ui=ui,
         id=response.id,
         name=response.name,
         item_type=response.type,
@@ -642,11 +631,8 @@ def _item_details_to_tool_result(response: ItemDetailsResponse) -> ToolResult:
 
     Labels use the canonical Pydantic field names. Fields that don't apply
     to the item's type (e.g. ``is_producible`` on a Service) are skipped
-    when ``None`` so the markdown stays compact. The Prefab UI is passed
-    through unchanged.
+    when ``None`` so the markdown stays compact.
     """
-    from katana_mcp.tools.prefab_ui import build_item_detail_ui
-
     name_line = (
         f"## {response.name}" if response.name else f"## {response.type} {response.id}"
     )
@@ -704,11 +690,9 @@ def _item_details_to_tool_result(response: ItemDetailsResponse) -> ToolResult:
     else:
         md_lines.append("**supplier**: None")
 
-    ui = build_item_detail_ui(response.model_dump())
-
     return ToolResult(
         content="\n".join(md_lines),
-        structured_content=ui,
+        structured_content=response.model_dump(),
     )
 
 
@@ -764,8 +748,14 @@ class UpdateItemRequest(BaseModel):
         None,
         description="SKU to identify which variant to update (uses first variant if omitted)",
     )
-    supplier_item_codes: list[str] | None = Field(
-        None, description="Supplier item codes (replaces all existing codes)"
+    supplier_item_codes: Annotated[
+        list[str] | None, BeforeValidator(coerce_str_list_input)
+    ] = Field(
+        default=None,
+        description=(
+            'JSON array of supplier item codes, e.g. ["10654627", "10654628"]. '
+            "Replaces all existing codes for the variant."
+        ),
     )
     registered_barcode: str | None = Field(None, description="UPC / registered barcode")
     internal_barcode: str | None = Field(None, description="Internal barcode")
@@ -917,15 +907,11 @@ async def update_item(
     Only provided fields are updated; omitted fields remain unchanged.
     Requires the item ID and type. Use search_items first if you need to find the item.
     """
-    from katana_mcp.tools.prefab_ui import build_item_mutation_ui
-
     response = await _update_item_impl(request, context)
-    ui = build_item_mutation_ui(response.model_dump(), "Updated")
 
     return make_tool_result(
         response,
         "item_updated",
-        ui=ui,
         id=response.id,
         name=response.name,
         item_type=response.type,
@@ -1027,15 +1013,11 @@ async def delete_item(
     deleted, or confirm=true to execute (will prompt for confirmation).
     Requires the item ID and type.
     """
-    from katana_mcp.tools.prefab_ui import build_item_mutation_ui
-
     response = await _delete_item_impl(request, context)
-    ui = build_item_mutation_ui(response.model_dump(), "Deleted")
 
     return make_tool_result(
         response,
         "item_deleted",
-        ui=ui,
         id=response.id,
         item_type=response.type,
         message=response.message,
@@ -1061,11 +1043,20 @@ class GetVariantDetailsRequest(BaseModel):
         default=None,
         description="Single variant ID to look up directly",
     )
-    skus: list[str] | None = Field(
-        default=None, description="Batch: list of SKUs to look up"
+    skus: Annotated[list[str] | None, BeforeValidator(coerce_str_list_input)] = Field(
+        default=None,
+        description=(
+            'Batch lookup: JSON array of SKUs, e.g. ["WS74001", "WS74002"]. '
+            "Each SKU is matched case-insensitively."
+        ),
     )
-    variant_ids: list[int] | None = Field(
-        default=None, description="Batch: list of variant IDs to look up"
+    variant_ids: Annotated[list[int] | None, BeforeValidator(coerce_str_list_input)] = (
+        Field(
+            default=None,
+            description=(
+                "Batch lookup: JSON array of variant IDs, e.g. [12345, 67890]."
+            ),
+        )
     )
     format: Literal["markdown", "json"] = Field(
         default="markdown",
@@ -1152,12 +1143,7 @@ def _variant_details_to_tool_result(response: VariantDetailsResponse) -> ToolRes
     so LLM consumers can't confuse the section label with the field name.
     Motivation: #346 follow-on — the previous ``Supplier Info`` heading
     caused an LLM to misread a supplier_item_code as a supplier ID.
-
-    The Prefab UI (for MCP-Apps clients) is passed through unchanged;
-    scope boundary from #346 keeps Prefab builders untouched.
     """
-    from katana_mcp.tools.prefab_ui import build_variant_details_ui
-
     name_line = f"## {response.name}" if response.name else f"## variant {response.id}"
     md_lines = [name_line]
 
@@ -1196,11 +1182,9 @@ def _variant_details_to_tool_result(response: VariantDetailsResponse) -> ToolRes
     )
     md_lines.extend(_render_list_field_md("custom_fields", response.custom_fields))
 
-    ui = build_variant_details_ui(response.model_dump())
-
     return ToolResult(
         content="\n".join(md_lines),
-        structured_content=ui,
+        structured_content=response.model_dump(),
     )
 
 
