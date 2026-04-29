@@ -428,7 +428,10 @@ def build_order_preview_ui(
                 Button(
                     label="Cancel",
                     variant="outline",
-                    on_click=SendMessage(f"Cancel the {order_type.lower()} creation"),
+                    on_click=ShowToast(
+                        message=f"{order_type} creation cancelled",
+                        variant="info",
+                    ),
                 )
     return app
 
@@ -551,7 +554,7 @@ def build_fulfill_preview_ui(
             Button(
                 label="Cancel",
                 variant="outline",
-                on_click=SendMessage("Cancel the fulfillment"),
+                on_click=ShowToast(message="Fulfillment cancelled", variant="info"),
             )
     return app
 
@@ -759,7 +762,7 @@ def build_receipt_ui(
                     Button(
                         label="Cancel",
                         variant="outline",
-                        on_click=SendMessage("Cancel the receipt"),
+                        on_click=ShowToast(message="Receipt cancelled", variant="info"),
                     )
             else:
                 Button(
