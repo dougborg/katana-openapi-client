@@ -32,8 +32,12 @@ while read -r local_ref _local_sha remote_ref _remote_sha; do
 
     # The local ref-name pushed to main must itself be `main`. Refuse anything else.
     case "$local_ref" in
-        refs/heads/main) ;;  # ok — main → main is the legitimate path for admins
-        *)
+        refs/heads/main)
+            # ok — main → main is the legitimate path for admins/release automation
+            ;;
+        refs/heads/*)
+            # Branch other than main → main: the common upstream-tracking mistake.
+            # Suggest the canonical safe form with the actual branch name.
             local_short="${local_ref#refs/heads/}"
             cat >&2 <<EOF
 ERROR: refusing to push '$local_short' to remote 'main'.
@@ -49,6 +53,25 @@ The fix: use an explicit destination ref so the remote branch name matches:
 If you genuinely need to push to main from a non-main branch (rare), do it
 through a PR. Bypassing this hook with --no-verify is forbidden by project policy
 — see CLAUDE.md 'Known Pitfalls'.
+EOF
+            EXIT_CODE=1
+            ;;
+        *)
+            # Detached HEAD push, tag-to-main push, or some other unusual ref shape.
+            # Don't try to construct a branch name from a ref we don't understand —
+            # print a generic safe form instead.
+            cat >&2 <<EOF
+ERROR: refusing to push '$local_ref' to remote 'main'.
+
+The local ref isn't a normal branch (got: $local_ref). Pushes to main from
+anything other than the local 'main' branch are blocked.
+
+If you intended to push your current work to a new feature branch:
+
+    git push -u origin HEAD:refs/heads/<branch-name>
+
+Then open a PR. Bypassing this hook with --no-verify is forbidden by project
+policy — see CLAUDE.md 'Known Pitfalls'.
 EOF
             EXIT_CODE=1
             ;;
