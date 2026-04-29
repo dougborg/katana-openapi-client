@@ -118,6 +118,12 @@ jobs:
         run: uv run poe docs-build
         env:
           CI_DOCS_BUILD: "true"
+          # Silences the "Warning from the Material for MkDocs team" prep-banner
+          # ahead of the MkDocs 2.0 transition (handled separately).
+          NO_MKDOCS_2_WARNING: "true"
+          # Silences the promotional banner injected by `properdocs`, pulled in
+          # transitively as a hard requirement of mkdocs-gen-files /
+          # mkdocs-literate-nav. See follow-up issue.
           DISABLE_MKDOCS_2_WARNING: "true"
 
       - name: Test documentation
@@ -125,4 +131,5 @@ jobs:
         run: uv run poe test-docs
         env:
           CI_DOCS_BUILD: "true"
+          NO_MKDOCS_2_WARNING: "true"
           DISABLE_MKDOCS_2_WARNING: "true"

@@ -42,6 +42,7 @@ jobs:
         run: uv run poe ci
         env:
           CI_DOCS_BUILD: "true"
+          NO_MKDOCS_2_WARNING: "true"
           DISABLE_MKDOCS_2_WARNING: "true"
 
   release-client:
