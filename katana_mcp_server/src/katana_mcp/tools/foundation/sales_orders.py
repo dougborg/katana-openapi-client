@@ -126,11 +126,13 @@ class SalesOrderResponse(BaseModel):
     id: int | None = None
     order_number: str
     customer_id: int
+    customer_name: str | None = None
     location_id: int | None = None
     status: str | None = None
     total: float | None = None
     currency: str | None = None
     delivery_date: str | None = None
+    item_count: int | None = None
     is_preview: bool
     warnings: list[str] = Field(default_factory=list)
     next_actions: list[str] = Field(default_factory=list)
@@ -163,14 +165,26 @@ async def _create_sales_order_impl(
         for item in request.items
     )
 
-    # Preview mode - just return calculations without API call
+    # Preview mode - resolve customer name from the cache so the preview UI
+    # shows "Customer: Jane Doe (ID: 42)" instead of just an opaque ID.
     if not request.confirm:
         logger.info(
             f"Preview mode: SO {request.order_number} would have {len(request.items)} items"
         )
 
-        # Generate warnings for missing optional fields
-        warnings = []
+        services = get_services(context)
+        customer_dict = await services.cache.get_by_id(
+            EntityType.CUSTOMER, request.customer_id
+        )
+        customer_name = (customer_dict or {}).get("name") or None
+
+        warnings: list[str] = []
+        if customer_dict is None:
+            warnings.append(
+                f"BLOCK: Customer with id={request.customer_id} was not found "
+                "in the customer cache. Verify the customer exists before "
+                "creating the order."
+            )
         if request.location_id is None:
             warnings.append(
                 "No location_id specified - order will use default location"
@@ -183,6 +197,7 @@ async def _create_sales_order_impl(
         return SalesOrderResponse(
             order_number=request.order_number,
             customer_id=request.customer_id,
+            customer_name=customer_name,
             location_id=request.location_id,
             status="PENDING",
             total=total_estimate if total_estimate > 0 else None,
@@ -190,6 +205,7 @@ async def _create_sales_order_impl(
             delivery_date=request.delivery_date.isoformat()
             if request.delivery_date
             else None,
+            item_count=len(request.items),
             is_preview=True,
             warnings=warnings,
             next_actions=[

@@ -791,6 +791,12 @@ async def test_receive_purchase_order_preview():
     mock_po.order_no = "PO-2024-001"
     mock_po.status = MagicMock()
     mock_po.status.value = "NOT_RECEIVED"
+    # Explicit UNSET on the fields the preview path reads — without these,
+    # MagicMock auto-attributes leak through unwrap_unset and Pydantic
+    # validation rejects them.
+    mock_po.supplier_id = UNSET
+    mock_po.currency = UNSET
+    mock_po.total = UNSET
 
     mock_get_response = MagicMock()
     mock_get_response.status_code = 200
@@ -982,6 +988,12 @@ async def test_receive_purchase_order_receive_api_fails():
     mock_po.order_no = "PO-2024-001"
     mock_po.status = MagicMock()
     mock_po.status.value = "NOT_RECEIVED"
+    # Explicit UNSET on the fields the preview path reads — without these,
+    # MagicMock auto-attributes leak through unwrap_unset and Pydantic
+    # validation rejects them.
+    mock_po.supplier_id = UNSET
+    mock_po.currency = UNSET
+    mock_po.total = UNSET
 
     mock_get_response = MagicMock()
     mock_get_response.status_code = 200
@@ -1028,6 +1040,9 @@ async def test_receive_purchase_order_order_no_unset():
     mock_po.order_no = UNSET
     mock_po.status = MagicMock()
     mock_po.status.value = "NOT_RECEIVED"
+    mock_po.supplier_id = UNSET
+    mock_po.currency = UNSET
+    mock_po.total = UNSET
 
     mock_get_response = MagicMock()
     mock_get_response.status_code = 200
@@ -1065,6 +1080,12 @@ async def test_receive_purchase_order_received_date_set():
     mock_po.order_no = "PO-2024-001"
     mock_po.status = MagicMock()
     mock_po.status.value = "NOT_RECEIVED"
+    # Explicit UNSET on the fields the preview path reads — without these,
+    # MagicMock auto-attributes leak through unwrap_unset and Pydantic
+    # validation rejects them.
+    mock_po.supplier_id = UNSET
+    mock_po.currency = UNSET
+    mock_po.total = UNSET
 
     mock_get_response = MagicMock()
     mock_get_response.status_code = 200
@@ -1157,6 +1178,12 @@ async def test_receive_purchase_order_wrapper():
     mock_po.order_no = "PO-2024-001"
     mock_po.status = MagicMock()
     mock_po.status.value = "NOT_RECEIVED"
+    # Explicit UNSET on the fields the preview path reads — without these,
+    # MagicMock auto-attributes leak through unwrap_unset and Pydantic
+    # validation rejects them.
+    mock_po.supplier_id = UNSET
+    mock_po.currency = UNSET
+    mock_po.total = UNSET
 
     mock_get_response = MagicMock()
     mock_get_response.status_code = 200

@@ -35,7 +35,9 @@ from tests.factories import make_sales_order, make_sales_order_row, seed_cache
 @pytest.mark.asyncio
 async def test_create_sales_order_preview():
     """Test create_sales_order in preview mode."""
-    context, _ = create_mock_context()
+    context, lifespan_ctx = create_mock_context()
+    # Seed customer cache so the BLOCK warning for missing customer doesn't fire.
+    lifespan_ctx.cache.get_by_id = AsyncMock(return_value={"id": 1501, "name": "Acme"})
 
     request = CreateSalesOrderRequest(
         customer_id=1501,
@@ -55,6 +57,7 @@ async def test_create_sales_order_preview():
 
     assert result.is_preview is True
     assert result.customer_id == 1501
+    assert result.customer_name == "Acme"
     assert result.order_number == "SO-2024-001"
     assert result.location_id == 1
     assert result.currency == "USD"
@@ -70,7 +73,8 @@ async def test_create_sales_order_preview():
 @pytest.mark.asyncio
 async def test_create_sales_order_preview_minimal_fields():
     """Test create_sales_order preview with only required fields."""
-    context, _ = create_mock_context()
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_id = AsyncMock(return_value={"id": 1501, "name": "Acme"})
 
     request = CreateSalesOrderRequest(
         customer_id=1501,
@@ -88,10 +92,37 @@ async def test_create_sales_order_preview_minimal_fields():
     assert result.location_id is None
     assert result.currency is None
     assert result.delivery_date is None
-    # Verify warnings for missing optional fields
-    assert len(result.warnings) == 2
-    assert any("location_id" in w for w in result.warnings)
-    assert any("delivery_date" in w for w in result.warnings)
+    # Verify warnings for missing optional fields (BLOCK warnings excluded
+    # since customer was found in cache).
+    non_block = [w for w in result.warnings if not w.startswith("BLOCK:")]
+    assert len(non_block) == 2
+    assert any("location_id" in w for w in non_block)
+    assert any("delivery_date" in w for w in non_block)
+
+
+@pytest.mark.asyncio
+async def test_create_sales_order_preview_blocks_when_customer_not_found():
+    """Customer cache miss should emit a BLOCK warning so the preview UI's
+    Confirm button is suppressed — preventing creation against a stale ID."""
+    context, lifespan_ctx = create_mock_context()
+    # Default mock behaviour: cache.get_by_id returns None.
+    lifespan_ctx.cache.get_by_id = AsyncMock(return_value=None)
+
+    request = CreateSalesOrderRequest(
+        customer_id=99999,
+        order_number="SO-X",
+        items=[SalesOrderItem(variant_id=1, quantity=1)],
+        location_id=1,
+        delivery_date=datetime(2024, 1, 22, 14, 0, 0, tzinfo=UTC),
+        confirm=False,
+    )
+    result = await _create_sales_order_impl(request, context)
+
+    assert result.is_preview is True
+    assert result.customer_name is None
+    block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
+    assert len(block_warnings) == 1
+    assert "99999" in block_warnings[0]
 
 
 @pytest.mark.asyncio

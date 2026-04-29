@@ -208,15 +208,27 @@ async def test_fulfill_manufacturing_order_not_found():
 # ============================================================================
 
 
+def _make_so_row(row_id: int, variant_id: int, quantity: float):
+    """Build a SalesOrderRow mock with the fields fulfill_sales_order reads."""
+    row = MagicMock()
+    row.id = row_id
+    row.variant_id = variant_id
+    row.quantity = quantity
+    return row
+
+
 @pytest.mark.asyncio
 async def test_fulfill_sales_order_preview():
-    """Test fulfill_order preview mode for sales order."""
+    """Preview must list the rows that will ship and not raise."""
     context, _lifespan_ctx = create_mock_context()
 
-    # Mock SalesOrder
     mock_so = MagicMock(spec=SalesOrder)
     mock_so.order_no = "SO-001"
     mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.sales_order_rows = [
+        _make_so_row(1, 100, 2.0),
+        _make_so_row(2, 200, 5.0),
+    ]
 
     mock_response = MagicMock()
     mock_response.status_code = 200
@@ -234,73 +246,80 @@ async def test_fulfill_sales_order_preview():
     assert result.order_number == "SO-001"
     assert result.status == "NOT_SHIPPED"
     assert result.is_preview is True
-    assert len(result.inventory_updates) > 0
-    assert any("inventory" in msg.lower() for msg in result.inventory_updates)
-    assert "Set confirm=true" in result.next_actions[2]
+    # Preview now lists the rows that will ship — one entry per SO row.
+    assert len(result.inventory_updates) == 2
+    assert any("variant 100" in u for u in result.inventory_updates)
+    assert any("variant 200" in u for u in result.inventory_updates)
+    # Last next_action should mention confirm=true.
+    assert any("confirm=true" in a for a in result.next_actions)
 
 
 @pytest.mark.asyncio
-async def test_fulfill_sales_order_confirm_not_implemented():
-    """Confirm mode raises NotImplementedError until row-aware request shape lands.
-
-    The live ``POST /sales_order_fulfillments`` requires per-row fulfillment
-    input (``sales_order_fulfillment_rows``: variants, quantities, batch
-    transactions) — a shape this tool's ``FulfillOrderRequest`` doesn't yet
-    expose. Sending an empty array would 422 against live Katana, so the
-    tool fails fast with a clear message instead.
-    """
+async def test_fulfill_sales_order_confirm_creates_fulfillment():
+    """Confirm path now calls POST /sales_order_fulfillments with one row per SO row."""
     context, _lifespan_ctx = create_mock_context()
 
-    # Mock SalesOrder for get
     mock_so = MagicMock(spec=SalesOrder)
     mock_so.order_no = "SO-002"
     mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.sales_order_rows = [_make_so_row(1, 100, 2.0)]
 
-    mock_get_response = MagicMock()
-    mock_get_response.status_code = 200
-    mock_get_response.parsed = mock_so
+    mock_get_response = MagicMock(status_code=200, parsed=mock_so)
 
     from katana_public_api_client.api.sales_order import get_sales_order
+    from katana_public_api_client.api.sales_order_fulfillment import (
+        create_sales_order_fulfillment,
+    )
 
     get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
 
+    from katana_public_api_client.models import SalesOrderFulfillment
+
+    fulfillment_obj = MagicMock(spec=SalesOrderFulfillment)
+    fulfillment_obj.id = 9999
+    mock_create_response = MagicMock(status_code=201, parsed=fulfillment_obj)
+    create_mock = AsyncMock(return_value=mock_create_response)
+    create_sales_order_fulfillment.asyncio_detailed = create_mock
+
     request = FulfillOrderRequest(order_id=5678, order_type="sales", confirm=True)
-    with pytest.raises(NotImplementedError, match="sales_order_fulfillment_rows"):
-        await _fulfill_order_impl(request, context)
+    result = await _fulfill_order_impl(request, context)
+
+    assert result.is_preview is False
+    assert result.status == "DELIVERED"
+    assert "9999" in result.message
+    create_mock.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_fulfill_sales_order_already_fulfilled():
-    """Test fulfill_order when sales order is already DELIVERED."""
+async def test_fulfill_sales_order_blocks_when_already_delivered():
+    """Already-DELIVERED SO should emit a BLOCK warning + refuse confirm."""
     context, _lifespan_ctx = create_mock_context()
 
-    # Mock SalesOrder already DELIVERED
     mock_so = MagicMock(spec=SalesOrder)
     mock_so.order_no = "SO-003"
     mock_so.status = SalesOrderStatus.DELIVERED
+    mock_so.sales_order_rows = [_make_so_row(1, 100, 2.0)]
 
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.parsed = mock_so
+    mock_response = MagicMock(status_code=200, parsed=mock_so)
 
     from katana_public_api_client.api.sales_order import get_sales_order
 
     get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_response)
 
-    # Preview mode
+    # Preview path: BLOCK warning present.
     request = FulfillOrderRequest(order_id=5678, order_type="sales", confirm=False)
     result = await _fulfill_order_impl(request, context)
-
-    assert result.status == "DELIVERED"
     assert result.is_preview is True
-    # DELIVERED should have a warning
-    assert any("delivered" in w.lower() for w in result.warnings)
+    block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
+    assert len(block_warnings) == 1
+    assert "DELIVERED" in block_warnings[0]
 
-    # Confirm mode raises NotImplementedError — see
-    # ``test_fulfill_sales_order_confirm_not_implemented`` for the rationale.
+    # Confirm path: refuses without raising — returns a no-op response.
     request = FulfillOrderRequest(order_id=5678, order_type="sales", confirm=True)
-    with pytest.raises(NotImplementedError, match="sales_order_fulfillment_rows"):
-        await _fulfill_order_impl(request, context)
+    result = await _fulfill_order_impl(request, context)
+    assert result.is_preview is False
+    assert result.status == "DELIVERED"
+    assert "refusing" in result.message.lower()
 
 
 @pytest.mark.asyncio
