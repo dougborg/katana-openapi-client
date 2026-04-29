@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from katana_public_api_client.api.product import get_all_products
 from katana_public_api_client.domain.converters import unwrap_unset
 from katana_public_api_client.helpers.base import Base
@@ -14,20 +12,13 @@ from katana_public_api_client.utils import unwrap_data
 class Inventory(Base):
     """Inventory and stock operations.
 
-    Provides methods for checking stock levels, movements, adjustments, and transfers.
+    Provides methods for checking stock levels (used by MCP tools).
     For product catalog CRUD, use client.products instead.
 
     Example:
         >>> async with KatanaClient() as client:
-        ...     # Check stock levels (MCP tool support)
         ...     stock = await client.inventory.check_stock("WIDGET-001")
         ...     low_stock = await client.inventory.list_low_stock(threshold=10)
-        ...
-        ...     # Stock movements and adjustments
-        ...     movements = await client.inventory.get_movements()
-        ...     await client.inventory.create_adjustment(
-        ...         {"product_id": 123, "quantity": 10}
-        ...     )
     """
 
     # === MCP Tool Support Methods ===
@@ -115,63 +106,3 @@ class Inventory(Base):
                 low_stock_items.append(product)
 
         return low_stock_items
-
-    # === Stock Operations (To be implemented with actual inventory APIs) ===
-    # These will use the inventory/, inventory_movements/, stock_adjustment/ APIs
-    # For now, providing the interface that MCP tools and users will call
-
-    async def get_inventory_points(self, **filters: Any) -> list[dict[str, Any]]:
-        """Get inventory points for all products.
-
-        This will use the inventory API to get current stock levels,
-        reorder points, and safety stock levels.
-
-        Args:
-            **filters: Filtering parameters.
-
-        Returns:
-            List of inventory point data.
-
-        Note:
-            To be implemented using katana_public_api_client.api.inventory
-        """
-        # TODO: Implement using get_all_inventory_point API
-        raise NotImplementedError("Coming soon - will use inventory API")
-
-    async def get_negative_stock(self) -> list[dict[str, Any]]:
-        """Get products with negative stock.
-
-        Returns:
-            List of products with negative inventory.
-
-        Note:
-            To be implemented using katana_public_api_client.api.inventory
-        """
-        # TODO: Implement using get_all_negative_stock API
-        raise NotImplementedError("Coming soon - will use inventory API")
-
-    async def set_reorder_point(self, product_id: int, quantity: int) -> None:
-        """Set reorder point for a product.
-
-        Args:
-            product_id: The product ID.
-            quantity: The reorder point quantity.
-
-        Note:
-            To be implemented using katana_public_api_client.api.inventory
-        """
-        # TODO: Implement using create_inventory_reorder_point API
-        raise NotImplementedError("Coming soon - will use inventory API")
-
-    async def set_safety_stock(self, product_id: int, quantity: int) -> None:
-        """Set safety stock level for a product.
-
-        Args:
-            product_id: The product ID.
-            quantity: The safety stock quantity.
-
-        Note:
-            To be implemented using katana_public_api_client.api.inventory
-        """
-        # TODO: Implement using create_inventory_safety_stock_level API
-        raise NotImplementedError("Coming soon - will use inventory API")

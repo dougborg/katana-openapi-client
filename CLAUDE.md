@@ -71,6 +71,14 @@ Common mistakes to avoid:
   generated. Run `uv run poe regenerate-client` instead of editing them directly.
 - **Forgetting pydantic regeneration** - After `uv run poe regenerate-client`, always
   run `uv run poe generate-pydantic` too. They must stay in sync.
+- **uv.lock drift during pre-commit** - When `uv.lock` shows up modified but you didn't
+  touch dependencies (e.g., a sibling-package release on `main` bumped a workspace
+  version), `git add uv.lock` and bundle it into your current commit. Don't
+  `git checkout -- uv.lock` to drop it: pre-commit's auto-stash/restore fights with the
+  lockfile being regenerated mid-hook (pytest's `uv run` re-syncs it), producing
+  confusing "files were modified by this hook" failures where nothing was actually wrong
+  with the staged content. The lockfile must stay in sync with `pyproject.toml` at every
+  commit anyway, so bundling is always the right call.
 - **Generator/schema edits without committing the regen** - Whenever you edit a
   generator script (`scripts/generate_pydantic_models.py`,
   `scripts/regenerate_client.py`) **or** the OpenAPI spec (`docs/katana-openapi.yaml`),
