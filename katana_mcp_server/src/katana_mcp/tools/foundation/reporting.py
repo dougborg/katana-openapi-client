@@ -44,13 +44,13 @@ from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, BeforeValidator, Field
+from pydantic import BaseModel, Field
 
 from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.decorators import cache_read
-from katana_mcp.tools.list_coercion import coerce_str_list_input
+from katana_mcp.tools.list_coercion import CoercedStrIntListOpt
 from katana_mcp.tools.tool_result_utils import (
     apply_date_window_filters,
     format_md_table,
@@ -645,9 +645,7 @@ class InventoryVelocityRequest(BaseModel):
         default=None,
         description=("SKU (string) or variant_id (int) to analyze. Single-item shape."),
     )
-    sku_or_variant_ids: Annotated[
-        list[str | int] | None, BeforeValidator(coerce_str_list_input)
-    ] = Field(
+    sku_or_variant_ids: CoercedStrIntListOpt = Field(
         default=None,
         description=(
             "Batch shape: JSON array of SKUs (strings) and/or variant IDs (integers), "

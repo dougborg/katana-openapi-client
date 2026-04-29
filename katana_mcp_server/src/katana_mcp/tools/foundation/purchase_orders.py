@@ -17,11 +17,11 @@ from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, BeforeValidator, Field
+from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
-from katana_mcp.tools.list_coercion import coerce_str_list_input
+from katana_mcp.tools.list_coercion import CoercedIntListOpt
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
@@ -1600,7 +1600,7 @@ class ListPurchaseOrdersRequest(BaseModel):
     )
 
     # Domain filters
-    ids: Annotated[list[int] | None, BeforeValidator(coerce_str_list_input)] = Field(
+    ids: CoercedIntListOpt = Field(
         default=None,
         description=(
             "Filter by explicit list of purchase order IDs. "
