@@ -109,7 +109,6 @@ uv run mkdocs gh-deploy
 
 - [ ] Configure custom domain DNS (katana-openapi-client.dougborg.org)
 - [ ] Add version information to docs (currently using mike but not configured)
-- [ ] Consider removing or consolidating 248 katana-api-comprehensive files
 
 ### Medium Priority
 

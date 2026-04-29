@@ -2768,9 +2768,14 @@ export type PurchaseOrderRow = {
      */
     quantity?: number;
     /**
-     * ID of the batch for the received item.
+     * ID of the batch for the received item, or ``null``
+     * when the receipt targets unbatched stock (e.g. an
+     * aggregate receipt against a non-batch-tracked
+     * variant). Same nullability semantics as
+     * ``StockAdjustmentBatchTransaction.batch_id``.
+     *
      */
-    batch_id?: number;
+    batch_id?: number | null;
   }>;
   /**
    * Unique identifier of the parent purchase order

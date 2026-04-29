@@ -171,7 +171,6 @@ packages = ["katana_public_api_client"]
 # files = ["katana_public_api_client", "tests", "scripts"]
 # exclude = [
 #   "tests/conftest.py",
-#   "scripts/extract_all_katana_docs.py",
 # ]
 # warn_unused_configs = true
 # warn_redundant_casts = true
@@ -565,8 +564,9 @@ generate-pydantic = "python scripts/generate_pydantic_models.py"
 regenerate-all = ["regenerate-client", "generate-pydantic"]
 validate-openapi = "openapi-spec-validator docs/katana-openapi.yaml"
 validate-openapi-redocly = "npx @redocly/cli lint docs/katana-openapi.yaml"
-# Refresh the upstream-of-record spec from https://api.katanamrp.com/v1/openapi.json.
-refresh-upstream-spec = "python scripts/extract_all_katana_docs.py"
+# Pull both upstream OpenAPI specs (live gateway + README.io ssr-props),
+# normalize to YAML, save to docs/upstream-specs/.
+refresh-upstream-spec = "python scripts/pull_upstream_specs.py"
 # Compare the local spec with the live upstream spec; reports drift.
 audit-spec = "python scripts/audit_spec_drift.py"
 # Validate inline `example:` blocks against their schemas.

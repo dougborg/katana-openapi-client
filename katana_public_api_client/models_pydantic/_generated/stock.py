@@ -277,7 +277,10 @@ class BatchTransaction4(KatanaPydanticBase):
         float | None, Field(description="The quantity received in a particular batch.")
     ] = None
     batch_id: Annotated[
-        int | None, Field(description="ID of the batch for the received item.")
+        int | None,
+        Field(
+            description="ID of the batch for the received item, or ``null``\nwhen the receipt targets unbatched stock (e.g. an\naggregate receipt against a non-batch-tracked\nvariant). Same nullability semantics as\n``StockAdjustmentBatchTransaction.batch_id``.\n"
+        ),
     ] = None
 
 

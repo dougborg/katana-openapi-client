@@ -5099,8 +5099,15 @@ components:
                     type: number
                     description: The quantity received in a particular batch.
                   batch_id:
-                    type: integer
-                    description: ID of the batch for the received item.
+                    type:
+                      - integer
+                      - "null"
+                    description: |
+                      ID of the batch for the received item, or ``null``
+                      when the receipt targets unbatched stock (e.g. an
+                      aggregate receipt against a non-batch-tracked
+                      variant). Same nullability semantics as
+                      ``StockAdjustmentBatchTransaction.batch_id``.
               description: |
                 An array of batch transactions and their quantities. You can receive stock for the same item in multiple
                 batches.
