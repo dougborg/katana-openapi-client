@@ -704,9 +704,12 @@ class ProductOperationRow(KatanaPydanticBase):
     operation_name: Annotated[
         str | None, Field(description="Name of the operation")
     ] = None
-    type: Annotated[str | None, Field(description="Operation type (e.g., process)")] = (
-        None
-    )
+    type: Annotated[
+        ProductOperationType | None,
+        Field(
+            description="Operation type defining how time and cost are calculated.\nMatches the enum used on manufacturing-order operation rows.\n"
+        ),
+    ] = None
     resource_id: Annotated[
         int | None, Field(description="Resource ID assigned to operation")
     ] = None
@@ -717,7 +720,10 @@ class ProductOperationRow(KatanaPydanticBase):
         float | None, Field(description="Cost per hour for this operation")
     ] = None
     cost_parameter: Annotated[
-        str | None, Field(description="Cost calculation parameter")
+        float | None,
+        Field(
+            description="Cost calculation parameter. Numeric — Katana returns it as a\nJSON number (e.g. ``15``) or ``null`` when not configured.\n"
+        ),
     ] = None
     planned_cost_per_unit: Annotated[
         float | None, Field(description="Planned cost per unit")
@@ -726,7 +732,10 @@ class ProductOperationRow(KatanaPydanticBase):
         float | None, Field(description="Planned time per unit")
     ] = None
     planned_time_parameter: Annotated[
-        str | None, Field(description="Time parameter for planning")
+        float | None,
+        Field(
+            description="Time calculation parameter. Numeric — Katana returns it as a\nJSON number (e.g. ``7200``) or ``null`` when not configured.\n"
+        ),
     ] = None
     rank: Annotated[int | None, Field(description="Operation sequence rank")] = None
     group_boundary: Annotated[

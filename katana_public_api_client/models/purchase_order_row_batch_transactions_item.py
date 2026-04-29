@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -16,13 +16,17 @@ T = TypeVar("T", bound="PurchaseOrderRowBatchTransactionsItem")
 @_attrs_define
 class PurchaseOrderRowBatchTransactionsItem:
     quantity: float | Unset = UNSET
-    batch_id: int | Unset = UNSET
+    batch_id: int | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         quantity = self.quantity
 
-        batch_id = self.batch_id
+        batch_id: int | None | Unset
+        if isinstance(self.batch_id, Unset):
+            batch_id = UNSET
+        else:
+            batch_id = self.batch_id
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -39,7 +43,14 @@ class PurchaseOrderRowBatchTransactionsItem:
         d = dict(src_dict)
         quantity = d.pop("quantity", UNSET)
 
-        batch_id = d.pop("batch_id", UNSET)
+        def _parse_batch_id(data: object) -> int | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(int | None | Unset, data)
+
+        batch_id = _parse_batch_id(d.pop("batch_id", UNSET))
 
         purchase_order_row_batch_transactions_item = cls(
             quantity=quantity,

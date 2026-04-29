@@ -2,9 +2,9 @@
 """Audit ``docs/katana-openapi.yaml`` against the canonical Katana OpenAPI spec.
 
 Compares the local spec with the live upstream spec at
-``docs/katana-api-comprehensive/openapi-spec.json`` (refreshed by
-``scripts/extract_all_katana_docs.py``, which now pulls
-``https://api.katanamrp.com/v1/openapi.json`` directly).
+``docs/upstream-specs/live-gateway.yaml`` (refreshed by
+``poe refresh-upstream-spec`` from
+``https://api.katanamrp.com/v1/openapi.json``).
 
 Reports four categories of drift, each scoped to a single ``(path, method)``
 pair so findings are immediately actionable as fix PRs:
@@ -48,7 +48,7 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_LOCAL = REPO_ROOT / "docs" / "katana-openapi.yaml"
-DEFAULT_LIVE = REPO_ROOT / "docs" / "katana-api-comprehensive" / "openapi-spec.json"
+DEFAULT_LIVE = REPO_ROOT / "docs" / "upstream-specs" / "live-gateway.yaml"
 
 HTTP_METHODS = {"get", "post", "put", "patch", "delete"}
 
@@ -428,7 +428,7 @@ def main(argv: list[str] | None = None) -> int:
         help=(
             f"Path to live/upstream OpenAPI spec "
             f"(default: {DEFAULT_LIVE.relative_to(REPO_ROOT)}). "
-            "Refresh with scripts/extract_all_katana_docs.py."
+            "Refresh with `poe refresh-upstream-spec`."
         ),
     )
     parser.add_argument(
@@ -454,7 +454,7 @@ def main(argv: list[str] | None = None) -> int:
     if not args.live.exists():
         print(
             f"error: live spec not found: {args.live}\n"
-            f"hint: run `uv run python scripts/extract_all_katana_docs.py` first",
+            f"hint: run `uv run poe refresh-upstream-spec` first",
             file=sys.stderr,
         )
         return 2

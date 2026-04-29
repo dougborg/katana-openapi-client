@@ -11,6 +11,7 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
+from ..models.manufacturing_operation_type import ManufacturingOperationType
 
 T = TypeVar("T", bound="ProductOperationRow")
 
@@ -24,14 +25,14 @@ class ProductOperationRow:
     product_variant_id: int | Unset = UNSET
     operation_id: int | Unset = UNSET
     operation_name: str | Unset = UNSET
-    type_: str | Unset = UNSET
+    type_: ManufacturingOperationType | Unset = UNSET
     resource_id: int | None | Unset = UNSET
     resource_name: None | str | Unset = UNSET
     cost_per_hour: float | None | Unset = UNSET
-    cost_parameter: None | str | Unset = UNSET
+    cost_parameter: float | None | Unset = UNSET
     planned_cost_per_unit: float | None | Unset = UNSET
     planned_time_per_unit: float | None | Unset = UNSET
-    planned_time_parameter: None | str | Unset = UNSET
+    planned_time_parameter: float | None | Unset = UNSET
     rank: int | Unset = UNSET
     group_boundary: None | str | Unset = UNSET
     created_at: datetime.datetime | Unset = UNSET
@@ -49,7 +50,9 @@ class ProductOperationRow:
 
         operation_name = self.operation_name
 
-        type_ = self.type_
+        type_: str | Unset = UNSET
+        if not isinstance(self.type_, Unset):
+            type_ = self.type_.value
 
         resource_id: int | None | Unset
         if isinstance(self.resource_id, Unset):
@@ -69,7 +72,7 @@ class ProductOperationRow:
         else:
             cost_per_hour = self.cost_per_hour
 
-        cost_parameter: None | str | Unset
+        cost_parameter: float | None | Unset
         if isinstance(self.cost_parameter, Unset):
             cost_parameter = UNSET
         else:
@@ -87,7 +90,7 @@ class ProductOperationRow:
         else:
             planned_time_per_unit = self.planned_time_per_unit
 
-        planned_time_parameter: None | str | Unset
+        planned_time_parameter: float | None | Unset
         if isinstance(self.planned_time_parameter, Unset):
             planned_time_parameter = UNSET
         else:
@@ -164,7 +167,12 @@ class ProductOperationRow:
 
         operation_name = d.pop("operation_name", UNSET)
 
-        type_ = d.pop("type", UNSET)
+        _type_ = d.pop("type", UNSET)
+        type_: ManufacturingOperationType | Unset
+        if isinstance(_type_, Unset):
+            type_ = UNSET
+        else:
+            type_ = ManufacturingOperationType(_type_)
 
         def _parse_resource_id(data: object) -> int | None | Unset:
             if data is None:
@@ -193,12 +201,12 @@ class ProductOperationRow:
 
         cost_per_hour = _parse_cost_per_hour(d.pop("cost_per_hour", UNSET))
 
-        def _parse_cost_parameter(data: object) -> None | str | Unset:
+        def _parse_cost_parameter(data: object) -> float | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(float | None | Unset, data)
 
         cost_parameter = _parse_cost_parameter(d.pop("cost_parameter", UNSET))
 
@@ -224,12 +232,12 @@ class ProductOperationRow:
             d.pop("planned_time_per_unit", UNSET)
         )
 
-        def _parse_planned_time_parameter(data: object) -> None | str | Unset:
+        def _parse_planned_time_parameter(data: object) -> float | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(float | None | Unset, data)
 
         planned_time_parameter = _parse_planned_time_parameter(
             d.pop("planned_time_parameter", UNSET)
