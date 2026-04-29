@@ -290,15 +290,14 @@ def make_tool_result(
     Args:
         response: Pydantic model response from the tool
         template_name: Name of the markdown template (without .md extension)
-        ui: Ignored. Kept for source compatibility — see #422 for the proper
-            fix that will give it semantics again.
+        ui: Ignored (see #422).
         **template_vars: Variables for template rendering
 
     Returns:
         ToolResult with markdown content and ``response.model_dump()`` as
         structured_content.
     """
-    del ui  # Drop before fastmcp sees it — see docstring + #422.
+    del ui
 
     try:
         markdown = format_template(template_name, **template_vars)

@@ -50,11 +50,8 @@ def test_make_tool_result_ignores_ui_and_keeps_pydantic_dump_as_structured_conte
     )
 
     # structured_content must be the Pydantic dump — never the Prefab wire
-    # envelope. If this regresses, Claude Desktop will dump the prefab tree
-    # as raw JSON in the chat (see #422 and the issue description).
+    # envelope (see #422). Exact-equality covers the regression.
     assert result.structured_content == {"id": 42, "label": "hello"}
-    assert "view" not in (result.structured_content or {})
-    assert "$prefab" not in (result.structured_content or {})
 
 
 def test_ui_meta_is_the_opt_in_marker_for_prefab_rendering():

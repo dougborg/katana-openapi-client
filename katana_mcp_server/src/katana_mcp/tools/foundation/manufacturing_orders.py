@@ -349,25 +349,13 @@ async def create_manufacturing_order(
     Two-step flow: confirm=false to preview, confirm=true to create (prompts
     for confirmation).
     """
-    from katana_mcp.tools.prefab_ui import (
-        build_order_created_ui,
-        build_order_preview_ui,
-    )
-
     response = await _create_manufacturing_order_impl(request, context)
 
     next_actions_text = "\n".join(f"- {a}" for a in response.next_actions) or "None"
 
-    order_dict = response.model_dump()
-    if response.is_preview:
-        ui = build_order_preview_ui(order_dict, "Manufacturing Order")
-    else:
-        ui = build_order_created_ui(order_dict, "Manufacturing Order")
-
     return make_tool_result(
         response,
         "manufacturing_order_created",
-        ui=ui,
         id=response.id or "N/A",
         order_no=response.order_no or "N/A",
         variant_id=response.variant_id,
@@ -2080,13 +2068,11 @@ async def batch_update_manufacturing_order_recipes(
     """
     from fastmcp.tools import ToolResult
 
-    from katana_mcp.tools.prefab_ui import build_batch_recipe_update_ui
-
     response = await _batch_update_impl(request, context)
-    markdown = _render_batch_markdown(response)
-    ui = build_batch_recipe_update_ui(response.model_dump())
-
-    return ToolResult(content=markdown, structured_content=ui)
+    return ToolResult(
+        content=_render_batch_markdown(response),
+        structured_content=response.model_dump(),
+    )
 
 
 # ============================================================================
