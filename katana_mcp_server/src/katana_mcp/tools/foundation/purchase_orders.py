@@ -107,13 +107,7 @@ class PurchaseOrderResponse(BaseModel):
 
 
 def _po_response_to_tool_result(response: PurchaseOrderResponse) -> ToolResult:
-    """Convert PurchaseOrderResponse to ToolResult with markdown + Prefab UI."""
-    from katana_mcp.tools.prefab_ui import (
-        build_order_created_ui,
-        build_order_preview_ui,
-    )
-
-    # Format next_actions as bullet list for template
+    """Convert PurchaseOrderResponse to ToolResult with markdown content."""
     next_actions_text = "\n".join(f"- {action}" for action in response.next_actions)
 
     # Handle None values for template
@@ -122,16 +116,9 @@ def _po_response_to_tool_result(response: PurchaseOrderResponse) -> ToolResult:
 
     template_name = "order_preview" if response.is_preview else "order_created"
 
-    order_dict = response.model_dump()
-    if response.is_preview:
-        ui = build_order_preview_ui(order_dict, "Purchase Order")
-    else:
-        ui = build_order_created_ui(order_dict, "Purchase Order")
-
     return make_tool_result(
         response,
         template_name,
-        ui=ui,
         id=response.id,
         order_number=response.order_number,
         supplier_id=response.supplier_id,
@@ -340,15 +327,10 @@ class ReceivePurchaseOrderResponse(BaseModel):
 def _receive_response_to_tool_result(
     response: ReceivePurchaseOrderResponse,
 ) -> ToolResult:
-    """Convert ReceivePurchaseOrderResponse to ToolResult with markdown + Prefab UI."""
-    from katana_mcp.tools.prefab_ui import build_receipt_ui
-
-    ui = build_receipt_ui(response.model_dump())
-
+    """Convert ReceivePurchaseOrderResponse to ToolResult with markdown content."""
     return make_tool_result(
         response,
         "order_received",
-        ui=ui,
         order_id=response.order_id,
         order_number=response.order_number,
         items_received=response.items_received,
@@ -1348,25 +1330,14 @@ def _render_verify_order_document_md(
 def _verify_response_to_tool_result(
     response: VerifyOrderDocumentResponse,
 ) -> ToolResult:
-    """Convert VerifyOrderDocumentResponse to ToolResult with canonical-labeled
-    markdown + Prefab UI.
+    """Convert VerifyOrderDocumentResponse to ToolResult with canonical-labeled markdown.
 
-    The Prefab UI (``build_verification_ui``) path is preserved for Claude
-    Desktop — it's a separate rendering track attached via
-    ``structured_content``. The text content now uses canonical Pydantic
-    field names as labels so an LLM consumer can't misread a section
-    header as a different field (#346 follow-on).
+    Text labels use canonical Pydantic field names so an LLM consumer can't
+    misread a section header as a different field (#346 follow-on).
     """
-    from katana_mcp.tools.prefab_ui import build_verification_ui
-
-    ui = build_verification_ui(response.model_dump())
-    markdown = _render_verify_order_document_md(response)
-    # Mirror ``make_tool_result``'s contract: when a Prefab UI is present,
-    # ``structured_content`` carries the UI envelope; otherwise it carries
-    # the Pydantic dump for programmatic callers.
     return ToolResult(
-        content=markdown,
-        structured_content=ui if ui is not None else response.model_dump(),
+        content=_render_verify_order_document_md(response),
+        structured_content=response.model_dump(),
     )
 
 

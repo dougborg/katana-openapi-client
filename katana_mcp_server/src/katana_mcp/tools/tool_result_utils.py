@@ -2,12 +2,12 @@
 
 This module provides helpers for converting Pydantic response models
 to FastMCP ToolResult objects with:
-- Human-readable markdown content (from templates) for non-Prefab clients
-- Machine-readable structured content (from Pydantic model) for programmatic access
-- Prefab UI (via structuredContent) for Claude Desktop and other Prefab-capable hosts
+- Human-readable markdown content (from templates) for end users
+- Machine-readable structured content (from Pydantic model) for the model and
+  programmatic callers
 
-When a PrefabApp is provided, it takes priority as structured_content. Claude Desktop
-renders the Prefab UI; other clients fall back to markdown content.
+The ``ui=`` argument on ``make_tool_result`` is accepted but ignored — interactive
+UI rendering via the official MCP Apps extension is tracked in #422.
 """
 
 from __future__ import annotations
@@ -269,34 +269,36 @@ def make_tool_result(
     ui: PrefabApp | None = None,
     **template_vars: Any,
 ) -> ToolResult:
-    """Create a ToolResult with markdown content and optional Prefab UI.
+    """Create a ToolResult with markdown content and the response as structured_content.
 
-    When ``ui`` is provided, the PrefabApp is passed through ``structured_content``
-    as-is — FastMCP's ``ToolResult.__init__`` detects it and converts to the wire
-    envelope via ``_prefab_to_json``. Combined with ``meta={"ui": True}`` on the
-    tool registration, this causes MCP-Apps-capable clients (Claude Desktop) to
-    render the Prefab UI. Non-Prefab clients still see the markdown fallback.
+    Always emits ``response.model_dump()`` as ``structured_content`` — clean,
+    typed data that Claude (the model) and programmatic callers consume.
 
-    Without ``ui``, ``structured_content`` is the Pydantic response dict so
-    programmatic callers can consume fields directly.
+    The ``ui`` argument is accepted for source compatibility with existing call
+    sites but is intentionally ignored: passing a ``PrefabApp`` through
+    ``structured_content`` triggers fastmcp's ``_prefab_to_json`` auto-detection
+    (`fastmcp/tools/base.py:96-102`), which emits a ``$prefab`` v0.2 wire
+    envelope. No current MCP client recognizes that envelope — Claude Desktop
+    falls back to displaying the raw JSON, which is worse UX than markdown
+    alone (and pollutes Claude's context with ``view``/``cssClass`` cruft).
 
-    **Contract for programmatic callers:** when ``ui`` is present, ``structured_content``
-    is the Prefab wire envelope — it does **not** include the raw response dict
-    under a stable key. The previous implementation spliced the Pydantic dump into
-    ``structured_content["data"]``; that is gone. Callers who need the response as
-    JSON should request it explicitly via the tool's ``format="json"`` parameter
-    (introduced in #334), which returns a pure Pydantic JSON dump with no UI
-    envelope — the right channel for programmatic access regardless of UI state.
+    This is the short-term mitigation. The proper fix is full MCP Apps spec
+    compliance (``ui://`` resources + ``_meta.ui.resourceUri`` on tool defs),
+    tracked in #422. Once that lands, this function will route ``ui`` into the
+    resource registry and the ``ui`` arg will be removed.
 
     Args:
         response: Pydantic model response from the tool
         template_name: Name of the markdown template (without .md extension)
-        ui: Optional PrefabApp for MCP-Apps rendering
+        ui: Ignored (see #422).
         **template_vars: Variables for template rendering
 
     Returns:
-        ToolResult with markdown content and structured_content
+        ToolResult with markdown content and ``response.model_dump()`` as
+        structured_content.
     """
+    del ui
+
     try:
         markdown = format_template(template_name, **template_vars)
     except (FileNotFoundError, KeyError) as e:
@@ -307,7 +309,7 @@ def make_tool_result(
 
     return ToolResult(
         content=markdown,
-        structured_content=ui if ui is not None else response.model_dump(),
+        structured_content=response.model_dump(),
     )
 
 
