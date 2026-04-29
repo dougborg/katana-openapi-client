@@ -1852,22 +1852,6 @@ async def test_search_items_format_json_returns_json():
 
 
 @pytest.mark.asyncio
-async def test_search_items_format_markdown_default():
-    """Default markdown format is not JSON."""
-    context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.smart_search = AsyncMock(
-        return_value=[{"id": 1, "sku": "WIDGET-1", "display_name": "Widget"}]
-    )
-
-    result = await search_items(query="widget", limit=10, context=context)
-
-    text = _content_text(result)
-    assert "WIDGET-1" in text
-    # Markdown, not JSON
-    assert not text.lstrip().startswith("{")
-
-
-@pytest.mark.asyncio
 async def test_get_variant_details_format_json_returns_json():
     """format='json' returns JSON-parseable content."""
     context, lifespan_ctx = create_mock_context()

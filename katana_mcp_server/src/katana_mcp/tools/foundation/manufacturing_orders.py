@@ -350,22 +350,20 @@ async def create_manufacturing_order(
     Two-step flow: confirm=false to preview, confirm=true to create (prompts
     for confirmation).
     """
+    from katana_mcp.tools.prefab_ui import (
+        build_order_created_ui,
+        build_order_preview_ui,
+    )
+
     response = await _create_manufacturing_order_impl(request, context)
 
-    next_actions_text = "\n".join(f"- {a}" for a in response.next_actions) or "None"
+    order_dict = response.model_dump()
+    if response.is_preview:
+        ui = build_order_preview_ui(order_dict, "Manufacturing Order")
+    else:
+        ui = build_order_created_ui(order_dict, "Manufacturing Order")
 
-    return make_tool_result(
-        response,
-        "manufacturing_order_created",
-        id=response.id or "N/A",
-        order_no=response.order_no or "N/A",
-        variant_id=response.variant_id,
-        planned_quantity=response.planned_quantity,
-        location_id=response.location_id,
-        status=response.status or ("PREVIEW" if response.is_preview else "N/A"),
-        message=response.message,
-        next_actions_text=next_actions_text,
-    )
+    return make_tool_result(response, ui=ui)
 
 
 # ============================================================================
@@ -1991,63 +1989,6 @@ async def _batch_update_impl(
     )
 
 
-def _render_batch_markdown(response: BatchUpdateRecipesResponse) -> str:
-    """Render a BatchUpdateRecipesResponse as markdown for fallback clients."""
-    mode = "PREVIEW" if response.is_preview else "RESULTS"
-    lines = [
-        f"## Batch Recipe Edits — {mode}",
-        "",
-        f"- **Total operations**: {response.total_ops}",
-    ]
-    if not response.is_preview:
-        lines.extend(
-            [
-                f"- **Succeeded**: {response.success_count}",
-                f"- **Failed**: {response.failed_count}",
-                f"- **Skipped**: {response.skipped_count}",
-            ]
-        )
-    lines.append("")
-
-    # Group by group_label
-    groups: dict[str, list[SubOpResult]] = {}
-    for op in response.results:
-        groups.setdefault(op.group_label or "(ungrouped)", []).append(op)
-
-    for label, ops in groups.items():
-        lines.append(f"### {label}")
-        lines.append("")
-        lines.append(
-            format_md_table(
-                headers=["MO", "Action", "Row ID", "SKU", "Qty", "Status", "Error"],
-                rows=[
-                    [
-                        op.manufacturing_order_id,
-                        op.op_type.upper(),
-                        str(op.recipe_row_id) if op.recipe_row_id else "(new)",
-                        op.sku or (f"variant {op.variant_id}" if op.variant_id else ""),
-                        str(op.planned_quantity_per_unit)
-                        if op.planned_quantity_per_unit is not None
-                        else "—",
-                        op.status.upper(),
-                        op.error or "",
-                    ]
-                    for op in ops
-                ],
-            )
-        )
-        lines.append("")
-
-    if response.warnings:
-        lines.append("### Warnings")
-        for w in response.warnings:
-            lines.append(f"- {w}")
-        lines.append("")
-
-    lines.append(f"**{response.message}**")
-    return "\n".join(lines)
-
-
 @observe_tool
 @unpack_pydantic_params
 async def batch_update_manufacturing_order_recipes(
@@ -2079,10 +2020,14 @@ async def batch_update_manufacturing_order_recipes(
     """
     from fastmcp.tools import ToolResult
 
+    from katana_mcp.tools.prefab_ui import build_batch_recipe_update_ui
+
     response = await _batch_update_impl(request, context)
+    ui = build_batch_recipe_update_ui(response.model_dump())
+
     return ToolResult(
-        content=_render_batch_markdown(response),
-        structured_content=response.model_dump(),
+        content=response.model_dump_json(),
+        structured_content=ui,
     )
 
 

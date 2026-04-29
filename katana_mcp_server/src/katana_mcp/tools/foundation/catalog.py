@@ -150,17 +150,12 @@ async def create_product(
     Products are sellable items (finished goods). For raw materials and components,
     use create_material. Creates the product with a single variant.
     """
-    response = await _create_product_impl(request, context)
+    from katana_mcp.tools.prefab_ui import build_item_mutation_ui
 
-    return make_tool_result(
-        response,
-        "item_created",
-        id=response.id,
-        name=response.name,
-        item_type="product",
-        sku=response.sku,
-        message=response.message,
-    )
+    response = await _create_product_impl(request, context)
+    ui = build_item_mutation_ui(response.model_dump(), "Created")
+
+    return make_tool_result(response, ui=ui)
 
 
 # ============================================================================
@@ -282,17 +277,12 @@ async def create_material(
     Materials are items used in manufacturing (not typically sold directly).
     For finished goods, use create_product. Creates the material with a single variant.
     """
-    response = await _create_material_impl(request, context)
+    from katana_mcp.tools.prefab_ui import build_item_mutation_ui
 
-    return make_tool_result(
-        response,
-        "item_created",
-        id=response.id,
-        name=response.name,
-        item_type="material",
-        sku=response.sku,
-        message=response.message,
-    )
+    response = await _create_material_impl(request, context)
+    ui = build_item_mutation_ui(response.model_dump(), "Created")
+
+    return make_tool_result(response, ui=ui)
 
 
 def register_tools(mcp: FastMCP) -> None:

@@ -1,13 +1,12 @@
-"""Utilities for creating ToolResult responses with template rendering.
+"""Utilities for creating ToolResult responses for UI-emitting tools.
 
-This module provides helpers for converting Pydantic response models
-to FastMCP ToolResult objects with:
-- Human-readable markdown content (from templates) for end users
-- Machine-readable structured content (from Pydantic model) for the model and
-  programmatic callers
-
-The ``ui=`` argument on ``make_tool_result`` is accepted but ignored — interactive
-UI rendering via the official MCP Apps extension is tracked in #422.
+This module provides ``make_tool_result``, the canonical helper for
+converting a Pydantic response + Prefab UI tree into a FastMCP ToolResult.
+Tools registered with ``meta=UI_META`` are linked to the auto-registered
+``ui://prefab/renderer.html`` resource by fastmcp's ``_expand_prefab_ui_meta``;
+the bundled renderer ingests the Prefab wire envelope from
+``ui/notifications/tool-result`` notifications and renders the component
+tree in a sandboxed iframe (MCP Apps SEP-1865, see #422).
 """
 
 from __future__ import annotations
@@ -21,16 +20,20 @@ from typing import TYPE_CHECKING, Any
 from fastmcp.tools import ToolResult
 from pydantic import BaseModel, Field
 
-from katana_mcp.templates import format_template
-
 if TYPE_CHECKING:
     from prefab_ui.app import PrefabApp
 
 
 # Opt-in marker for Prefab UI rendering. Pass as ``meta=UI_META`` in
-# ``mcp.tool(...)`` for every tool that returns a ``PrefabApp`` via
-# ``make_tool_result``. Any tool missing this marker will ship markdown only —
-# the UI will be built but silently discarded by the client.
+# ``mcp.tool(...)`` for every tool that emits a ``PrefabApp`` via
+# ``make_tool_result(ui=...)``. fastmcp's ``_maybe_apply_prefab_ui`` hook
+# (``fastmcp/server/providers/local_provider/decorators/tools.py``) expands
+# this marker into the full ``_meta.ui = {"resourceUri":
+# "ui://prefab/renderer.html", "csp": {...}}`` shape required by MCP Apps,
+# and lazily registers the Prefab renderer as a ``ui://`` resource the first
+# time it sees the marker. Tools missing this marker still return their JSON
+# ``content`` payload, but no Prefab UI metadata is attached, so hosts will
+# not render the UI and will treat the response as content-only.
 UI_META: dict[str, Any] = {"ui": True}
 
 
@@ -262,54 +265,25 @@ def format_md_table(
     return "\n".join([header_line, sep_line, *body_lines])
 
 
-def make_tool_result(
-    response: BaseModel,
-    template_name: str,
-    *,
-    ui: PrefabApp | None = None,
-    **template_vars: Any,
-) -> ToolResult:
-    """Create a ToolResult with markdown content and the response as structured_content.
+def make_tool_result(response: BaseModel, *, ui: PrefabApp) -> ToolResult:
+    """Create a ToolResult for a UI-emitting tool.
 
-    Always emits ``response.model_dump()`` as ``structured_content`` — clean,
-    typed data that Claude (the model) and programmatic callers consume.
+    Per MCP Apps spec (SEP-1865): ``content`` IS the model context the LLM
+    reads; ``structuredContent`` is for UI binding and is *not* added to
+    model context. content carries the response as JSON so the LLM has the
+    data the user sees in the iframe; structured_content carries the
+    ``PrefabApp``. fastmcp's ``ToolResult.__init__`` converts the PrefabApp
+    to the wire envelope, and the host (which has fetched
+    ``ui://prefab/renderer.html`` via the tool's ``_meta.ui.resourceUri``)
+    routes the envelope to its iframe via ``ui/notifications/tool-result``.
 
-    The ``ui`` argument is accepted for source compatibility with existing call
-    sites but is intentionally ignored: passing a ``PrefabApp`` through
-    ``structured_content`` triggers fastmcp's ``_prefab_to_json`` auto-detection
-    (`fastmcp/tools/base.py:96-102`), which emits a ``$prefab`` v0.2 wire
-    envelope. No current MCP client recognizes that envelope — Claude Desktop
-    falls back to displaying the raw JSON, which is worse UX than markdown
-    alone (and pollutes Claude's context with ``view``/``cssClass`` cruft).
-
-    This is the short-term mitigation. The proper fix is full MCP Apps spec
-    compliance (``ui://`` resources + ``_meta.ui.resourceUri`` on tool defs),
-    tracked in #422. Once that lands, this function will route ``ui`` into the
-    resource registry and the ``ui`` arg will be removed.
-
-    Args:
-        response: Pydantic model response from the tool
-        template_name: Name of the markdown template (without .md extension)
-        ui: Ignored (see #422).
-        **template_vars: Variables for template rendering
-
-    Returns:
-        ToolResult with markdown content and ``response.model_dump()`` as
-        structured_content.
+    This matches the data-heavy reference servers in
+    ``modelcontextprotocol/ext-apps/examples`` (customer-segmentation,
+    system-monitor, etc.) — none use formatted markdown for ``content``.
     """
-    del ui
-
-    try:
-        markdown = format_template(template_name, **template_vars)
-    except (FileNotFoundError, KeyError) as e:
-        markdown = (
-            f"# Response\n\n```json\n{response.model_dump_json(indent=2)}\n```\n\n"
-            f"Template error: {e}"
-        )
-
     return ToolResult(
-        content=markdown,
-        structured_content=response.model_dump(),
+        content=response.model_dump_json(),
+        structured_content=ui,
     )
 
 
