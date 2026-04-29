@@ -1469,7 +1469,7 @@ class KatanaClient(AuthenticatedClient):
     # Event hooks for observability
     async def _capture_pagination_metadata(self, response: httpx.Response) -> None:
         """Capture and store pagination metadata from response headers."""
-        if response.status_code == 200:
+        if response.status_code == HTTPStatus.OK:
             x_pagination = response.headers.get("X-Pagination")
             if x_pagination:
                 try:
