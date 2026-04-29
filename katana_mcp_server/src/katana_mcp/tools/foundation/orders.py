@@ -144,9 +144,6 @@ async def _fulfill_manufacturing_order(
             message=f"Manufacturing order {order_number} is already completed",
         )
 
-    # confirm=true — mark MO as DONE via API. Per spec, the host (driven by
-    # destructiveHint annotation) confirmed with the user before invoking;
-    # the server does not gate further.
     from katana_public_api_client.api.manufacturing_order import (
         update_manufacturing_order as api_update_manufacturing_order,
     )
@@ -230,10 +227,6 @@ async def _fulfill_sales_order(
             next_actions=next_actions,
             message=f"Preview: Would fulfill sales order {order_number} (currently {current_status})",
         )
-
-    # confirm=true — sales orders can have multiple fulfillments, so we
-    # don't prevent on status. Per spec, the host (driven by destructiveHint
-    # annotation) confirmed with the user before invoking.
 
     # The live API requires ``sales_order_fulfillment_rows`` (the line
     # items being fulfilled — variants, quantities, batch transactions).

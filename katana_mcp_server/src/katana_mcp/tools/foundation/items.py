@@ -850,7 +850,6 @@ async def _delete_item_impl(
             message=f"Preview: Would permanently delete {item_name}. Set confirm=true to proceed.",
         )
 
-    # confirm=true — host already confirmed via destructiveHint annotation.
     await helper.delete(request.id)
 
     # Invalidate only the affected type + variants

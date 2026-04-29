@@ -1303,7 +1303,6 @@ async def _update_stock_adjustment_impl(
             ),
         )
 
-    # confirm=true — host already confirmed via destructiveHint annotation.
     services = get_services(context)
     api_request = APIUpdateStockAdjustmentRequest(
         stock_adjustment_number=to_unset(request.stock_adjustment_number),
@@ -1455,7 +1454,6 @@ async def _delete_stock_adjustment_impl(
             ),
         )
 
-    # confirm=true — host already confirmed via destructiveHint annotation.
     response = await api_delete_stock_adjustment.asyncio_detailed(
         id=request.id, client=services.client
     )

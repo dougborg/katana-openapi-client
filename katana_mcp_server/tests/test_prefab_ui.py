@@ -146,6 +146,11 @@ class TestBuildLowStockUI:
 
 
 class TestBuildOrderPreviewUI:
+    def _stub_action(self):
+        from prefab_ui.actions.mcp import SendMessage
+
+        return SendMessage("stub")
+
     def test_purchase_order(self):
         order = {
             "order_number": "PO-001",
@@ -155,7 +160,12 @@ class TestBuildOrderPreviewUI:
             "total": 1500.0,
             "currency": "USD",
         }
-        app = build_order_preview_ui(order, "Purchase")
+        app = build_order_preview_ui(
+            order,
+            "Purchase Order",
+            request={},
+            confirm_action=self._stub_action(),
+        )
         _assert_valid_prefab(app)
 
     def test_sales_order(self):
@@ -166,7 +176,12 @@ class TestBuildOrderPreviewUI:
             "total": 500.0,
             "currency": "EUR",
         }
-        app = build_order_preview_ui(order, "Sales")
+        app = build_order_preview_ui(
+            order,
+            "Sales Order",
+            request={},
+            confirm_action=self._stub_action(),
+        )
         _assert_valid_prefab(app)
 
 

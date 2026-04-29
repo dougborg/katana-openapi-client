@@ -299,7 +299,6 @@ async def _create_stock_transfer_impl(
             message=preview_message,
         )
 
-    # confirm=true — host already confirmed via destructiveHint annotation.
     services = get_services(context)
     api_rows = _build_row_requests(request.rows)
 
@@ -733,7 +732,6 @@ async def _update_stock_transfer_impl(
             message=preview_message,
         )
 
-    # confirm=true — host already confirmed via destructiveHint annotation.
     services = get_services(context)
     api_request = APIUpdateStockTransferRequest(
         stock_transfer_number=to_unset(request.stock_transfer_number),
@@ -832,8 +830,6 @@ async def _update_stock_transfer_status_impl(
             ],
             message=preview_message,
         )
-
-    # confirm=true — host already confirmed via destructiveHint annotation.
 
     services = get_services(context)
     api_request = APIUpdateStockTransferStatusRequest(
@@ -946,7 +942,6 @@ async def _delete_stock_transfer_impl(
             message=preview_message,
         )
 
-    # confirm=true — host already confirmed via destructiveHint annotation.
     services = get_services(context)
     from katana_public_api_client.api.stock_transfer import delete_stock_transfer
 

@@ -108,13 +108,13 @@ class PurchaseOrderResponse(BaseModel):
 
 def _po_response_to_tool_result(
     response: PurchaseOrderResponse,
-    request: CreatePurchaseOrderRequest | None = None,
+    request: CreatePurchaseOrderRequest,
 ) -> ToolResult:
     """Convert PurchaseOrderResponse to ToolResult with the appropriate Prefab UI.
 
-    When ``request`` is supplied (preview path), the rendered UI's
-    "Confirm & Create" button invokes ``create_purchase_order`` directly via
-    ``CallTool`` with the original args + ``confirm=True``.
+    On the preview branch, the rendered UI's "Confirm & Create" button
+    invokes ``create_purchase_order`` directly via ``CallTool`` with the
+    original args + ``confirm=True``.
     """
     from katana_mcp.tools.prefab_ui import (
         build_order_created_ui,
@@ -127,15 +127,11 @@ def _po_response_to_tool_result(
         ui = build_order_preview_ui(
             order_dict,
             "Purchase Order",
-            request=request.model_dump() if request is not None else None,
-            confirm_action=(
-                call_tool_from_request(
-                    "create_purchase_order",
-                    CreatePurchaseOrderRequest,
-                    overrides={"confirm": True},
-                )
-                if request is not None
-                else None
+            request=request.model_dump(),
+            confirm_action=call_tool_from_request(
+                "create_purchase_order",
+                CreatePurchaseOrderRequest,
+                overrides={"confirm": True},
             ),
         )
     else:
@@ -188,9 +184,6 @@ async def _create_purchase_order_impl(
             message=f"Preview: Purchase order {request.order_number} with {len(request.items)} items totaling {total_cost:.2f}",
         )
 
-    # confirm=true — create the purchase order via API. Per spec, the host
-    # (driven by destructiveHint annotation) confirmed with the user before
-    # invoking; the server does not gate further.
     try:
         services = get_services(context)
 
@@ -330,16 +323,24 @@ def _receive_response_to_tool_result(
     """
     from katana_mcp.tools.prefab_ui import build_receipt_ui, call_tool_from_request
 
+    # request and confirm_action are only used by the preview-mode Confirm
+    # Receipt button. Skip seeding them on the non-preview render to keep
+    # the structured UI payload trim.
+    seed_request = response.is_preview and request is not None
     ui = build_receipt_ui(
         response.model_dump(),
-        request=request.model_dump() if request is not None else None,
+        request=(
+            request.model_dump()
+            if response.is_preview and request is not None
+            else None
+        ),
         confirm_action=(
             call_tool_from_request(
                 "receive_purchase_order",
                 ReceivePurchaseOrderRequest,
                 overrides={"confirm": True},
             )
-            if request is not None
+            if seed_request
             else None
         ),
     )
@@ -401,9 +402,6 @@ async def _receive_purchase_order_impl(
                 message=f"Preview: Receive {len(request.items)} items for PO {order_no}",
             )
 
-        # confirm=true — receive items via API. Per spec, the host (driven
-        # by destructiveHint annotation) confirmed with the user before
-        # invoking; the server does not gate further.
         from katana_public_api_client.api.purchase_order import (
             receive_purchase_order as api_receive_purchase_order,
         )

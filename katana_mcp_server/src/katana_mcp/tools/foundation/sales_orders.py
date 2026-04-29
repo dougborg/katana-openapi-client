@@ -200,9 +200,6 @@ async def _create_sales_order_impl(
             + (f" totaling {total_estimate:.2f}" if total_estimate > 0 else ""),
         )
 
-    # confirm=true — create the sales order via API. Per spec, the host
-    # (driven by destructiveHint annotation) confirmed with the user before
-    # invoking; the server does not gate further.
     try:
         services = get_services(context)
 

@@ -215,9 +215,6 @@ async def _create_manufacturing_order_impl(
             message=preview_msg,
         )
 
-    # confirm=true — execute. Per spec, the host (driven by destructiveHint
-    # annotation) confirmed with the user before invoking; the server does
-    # not gate further.
     try:
         services = get_services(context)
 
@@ -1395,7 +1392,6 @@ async def _add_recipe_row_impl(
             ),
         )
 
-    # confirm=true — host already confirmed via destructiveHint annotation.
     result = await _api_create_recipe_row(
         services,
         manufacturing_order_id=request.manufacturing_order_id,
@@ -1473,7 +1469,6 @@ async def _delete_recipe_row_impl(
             message=f"Preview: Would delete recipe row {request.recipe_row_id}",
         )
 
-    # confirm=true — host already confirmed via destructiveHint annotation.
     await _api_delete_recipe_row(services, request.recipe_row_id)
 
     return DeleteRecipeRowResponse(
@@ -1902,7 +1897,6 @@ async def _batch_update_impl(
             message=f"Preview: {total} sub-operations planned. Set confirm=true to execute.",
         )
 
-    # 3. Execute — host already confirmed via destructiveHint annotation.
     results = await _execute_batch_update(planned, request, context)
 
     # 5. Tally
