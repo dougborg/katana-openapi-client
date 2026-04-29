@@ -196,8 +196,9 @@ class CreateStockTransferRequest(BaseModel):
     order_no: str | None = Field(
         default=None,
         description=(
-            "Optional transfer number (stock_transfer_number). Katana auto-assigns "
-            "one when omitted."
+            "Optional transfer number (stock_transfer_number). When omitted, "
+            "the MCP tool generates a timestamp-based default (``ST-<unix-ts>``) "
+            "before the request is sent — Katana's API requires the field."
         ),
     )
     additional_info: str | None = Field(
@@ -378,12 +379,17 @@ async def _create_stock_transfer_impl(
 
     api_rows = _build_row_requests(request.rows)
 
+    # ``stock_transfer_number`` is required by the live API. Auto-generate a
+    # timestamp-based default if the caller didn't provide one — matches the
+    # pattern in ``_create_manufacturing_order_impl``.
+    transfer_number = request.order_no or f"ST-{int(datetime.now(UTC).timestamp())}"
+
     api_request = APICreateStockTransferRequest(
         source_location_id=request.source_location_id,
         target_location_id=request.destination_location_id,
         expected_arrival_date=request.expected_arrival_date,
         order_created_date=datetime.now(UTC),
-        stock_transfer_number=to_unset(request.order_no),
+        stock_transfer_number=transfer_number,
         additional_info=to_unset(request.additional_info),
         stock_transfer_rows=api_rows,
     )

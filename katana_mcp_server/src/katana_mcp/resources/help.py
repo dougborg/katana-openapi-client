@@ -998,7 +998,7 @@ Create a stock transfer moving inventory between two locations.
 - `expected_arrival_date` (required): Expected arrival datetime (ISO-8601)
 - `rows` (required): Line items `[{variant_id, quantity, batch_transactions?}]` —
   `batch_transactions` is `[{batch_id, quantity}]` for batch-tracked variants
-- `order_no` (optional): Stock transfer number (auto-assigned when omitted)
+- `order_no` (optional): Stock transfer number. When omitted, the tool generates a `ST-<unix-ts>` default before sending — Katana's API requires the field.
 - `additional_info` (optional): Notes
 - `confirm` (optional, default false): false=preview, true=create
 
