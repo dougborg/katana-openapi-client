@@ -26,6 +26,7 @@ from katana_mcp.tools.tool_result_utils import (
     make_tool_result,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
+from katana_mcp.web_urls import EntityKind, katana_web_url
 from katana_public_api_client.domain.converters import to_unset
 from katana_public_api_client.models import (
     CreateMaterialRequest,
@@ -210,6 +211,14 @@ class CreateItemRequest(BaseModel):
     additional_info: str | None = Field(None, description="Additional notes")
 
 
+def _item_katana_url(item_type: ItemType, id: int | None) -> str | None:
+    """Web URL for a product or material. Services have no URL pattern."""
+    if id is None or item_type == ItemType.SERVICE:
+        return None
+    kind: EntityKind = "product" if item_type == ItemType.PRODUCT else "material"
+    return katana_web_url(kind, id)
+
+
 class CreateItemResponse(BaseModel):
     """Response from creating an item."""
 
@@ -220,6 +229,7 @@ class CreateItemResponse(BaseModel):
     sku: str | None = None
     success: bool = True
     message: str = "Item created successfully"
+    katana_url: str | None = None
 
 
 async def _create_item_impl(
@@ -288,6 +298,7 @@ async def _create_item_impl(
         type=request.type,
         sku=request.sku,
         message=f"{request.type.value.title()} '{result.name}' created successfully with SKU {request.sku}",
+        katana_url=_item_katana_url(request.type, result.id),
     )
 
 
@@ -381,6 +392,7 @@ class ItemDetailsResponse(BaseModel):
     id: int
     name: str
     type: ItemType
+    katana_url: str | None = None
     uom: str | None = None
     category_name: str | None = None
     is_sellable: bool | None = None
@@ -534,10 +546,12 @@ async def _get_item_impl(
     configs = [c for c in (_config_to_info(raw) for raw in d.get("configs") or []) if c]
     supplier = _supplier_to_info(d.get("supplier"))
 
+    item_id = d.get("id", request.id)
     return ItemDetailsResponse(
-        id=d.get("id", request.id),
+        id=item_id,
         name=d.get("name") or "",
         type=request.type,
+        katana_url=_item_katana_url(request.type, item_id),
         uom=d.get("uom"),
         category_name=d.get("category_name"),
         is_sellable=d.get("is_sellable"),
@@ -672,6 +686,7 @@ class UpdateItemResponse(BaseModel):
     type: ItemType
     success: bool = True
     message: str = "Item updated successfully"
+    katana_url: str | None = None
 
 
 async def _update_item_impl(
@@ -779,6 +794,7 @@ async def _update_item_impl(
         name=item_name or "Unknown",
         type=request.type,
         message=f"{request.type.value.title()} (ID {request.id}) updated successfully",
+        katana_url=_item_katana_url(request.type, request.id),
     )
 
 
@@ -944,6 +960,11 @@ class VariantDetailsResponse(BaseModel):
     material_id: int | None = None
     product_or_material_name: str | None = None
 
+    # Deep-link to the parent product or material — variants don't have
+    # their own page in Katana's web app, so callers click through to the
+    # parent record.
+    katana_url: str | None = None
+
     # Barcode & Inventory
     internal_barcode: str | None = None
     registered_barcode: str | None = None
@@ -994,6 +1015,7 @@ def _dict_to_variant_details(v: dict[str, Any]) -> VariantDetailsResponse:
     Surfaces every field the generated ``Variant`` attrs model exposes, so
     callers get the full shape in a single call.
     """
+    parent_id = v.get("product_id") or v.get("material_id")
     return VariantDetailsResponse(
         id=v["id"],
         sku=v.get("sku") or "",
@@ -1004,6 +1026,7 @@ def _dict_to_variant_details(v: dict[str, Any]) -> VariantDetailsResponse:
         product_id=v.get("product_id"),
         material_id=v.get("material_id"),
         product_or_material_name=v.get("parent_name"),
+        katana_url=katana_web_url("product", parent_id),
         internal_barcode=v.get("internal_barcode"),
         registered_barcode=v.get("registered_barcode"),
         supplier_item_codes=v.get("supplier_item_codes") or [],

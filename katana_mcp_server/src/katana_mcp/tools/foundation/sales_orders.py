@@ -34,6 +34,7 @@ from katana_mcp.tools.tool_result_utils import (
     resolve_entity_name,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
+from katana_mcp.web_urls import katana_web_url
 from katana_public_api_client.client_types import UNSET, Unset
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
@@ -138,6 +139,7 @@ class SalesOrderResponse(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     next_actions: list[str] = Field(default_factory=list)
     message: str
+    katana_url: str | None = None
 
 
 async def _create_sales_order_impl(
@@ -289,6 +291,7 @@ async def _create_sales_order_impl(
             total=total,
             currency=currency,
             is_preview=False,
+            katana_url=katana_web_url("sales_order", so.id),
             next_actions=[
                 f"Sales order created with ID {so.id}",
                 "Use fulfill_order to ship items when ready",
@@ -475,6 +478,7 @@ class SalesOrderSummary(BaseModel):
     currency: str | None
     row_count: int
     rows: list[SalesOrderRowInfo] | None = None
+    katana_url: str | None = None
 
 
 class ListSalesOrdersResponse(BaseModel):
@@ -676,6 +680,7 @@ async def _list_sales_orders_impl(
                 currency=so.currency,
                 row_count=row_count,
                 rows=row_infos,
+                katana_url=katana_web_url("sales_order", so.id),
             )
         )
 
@@ -848,6 +853,7 @@ class GetSalesOrderResponse(BaseModel):
 
     # Identifiers / header
     id: int
+    katana_url: str | None = None
     order_no: str | None = None
     customer_id: int | None = None
     location_id: int | None = None
@@ -1069,6 +1075,7 @@ async def _get_sales_order_impl(
 
     return GetSalesOrderResponse(
         id=so.id,
+        katana_url=katana_web_url("sales_order", so.id),
         order_no=unwrap_unset(so.order_no, None),
         customer_id=unwrap_unset(so.customer_id, None),
         location_id=unwrap_unset(so.location_id, None),

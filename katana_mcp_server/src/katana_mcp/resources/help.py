@@ -87,6 +87,30 @@ Every list/get/search and reporting tool accepts a shared `format` parameter:
 Default behavior is unchanged. Pass `format="json"` when chaining tool calls
 or feeding output into downstream aggregation / filtering.
 
+## Linking to Katana
+
+`get_*` and `create_*` tools (and the rows on their `list_*` siblings)
+return a `katana_url` field for the entity. Prefer that over composing
+URLs by hand — Katana's path conventions are inconsistent
+(`/salesorder/{id}` is singular, `/products/{id}` is plural) and easy to
+get wrong silently.
+
+Patterns (base: `factory.katanamrp.com`, override via `KATANA_WEB_BASE_URL`):
+
+| Entity | Path |
+|--------|------|
+| Sales orders | `/salesorder/{id}` |
+| Manufacturing orders | `/manufacturingorder/{id}` |
+| Purchase orders | `/purchaseorder/{id}` |
+| Products / materials | `/products/{id}` (variants link to parent item) |
+| Customers | `/contacts/customers/{id}` |
+| Stock transfers | `/stocktransfer/{id}` |
+| Stock adjustments | `/stockadjustment/{id}` |
+
+`katana_url` is `None` when the entity id isn't available — typically
+create-tool previews (no id assigned until confirm=true). Update-tool
+previews already know the id and return a populated `katana_url`.
+
 ## Common Workflows
 
 1. **Reorder low stock**: check_inventory → create_purchase_order

@@ -21,7 +21,8 @@ Example:
           "args": ["katana-mcp-server"],
           "env": {
             "KATANA_API_KEY": "your-api-key",
-            "KATANA_BASE_URL": "https://api.katanamrp.com/v1"
+            "KATANA_BASE_URL": "https://api.katanamrp.com/v1",
+            "KATANA_WEB_BASE_URL": "https://factory.katanamrp.com"
           }
         }
       }

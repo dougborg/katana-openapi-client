@@ -17,6 +17,7 @@ from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.tool_result_utils import UI_META, make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
+from katana_mcp.web_urls import katana_web_url
 from katana_public_api_client.domain.converters import to_unset
 from katana_public_api_client.models import (
     CreateMaterialRequest as ApiCreateMaterialRequest,
@@ -59,6 +60,7 @@ class CreateProductResponse(BaseModel):
     type: str = "product"
     success: bool = True
     message: str = "Product created successfully"
+    katana_url: str | None = None
 
 
 async def _create_product_impl(
@@ -123,6 +125,7 @@ async def _create_product_impl(
             name=product.name or "",
             sku=request.sku,
             message=f"Product '{product.name}' created successfully with SKU {request.sku}",
+            katana_url=katana_web_url("product", product.id),
         )
 
     except Exception as e:
@@ -188,6 +191,7 @@ class CreateMaterialResponse(BaseModel):
     type: str = "material"
     success: bool = True
     message: str = "Material created successfully"
+    katana_url: str | None = None
 
 
 async def _create_material_impl(
@@ -250,6 +254,7 @@ async def _create_material_impl(
             name=material.name or "",
             sku=request.sku,
             message=f"Material '{material.name}' created successfully with SKU {request.sku}",
+            katana_url=katana_web_url("material", material.id),
         )
 
     except Exception as e:

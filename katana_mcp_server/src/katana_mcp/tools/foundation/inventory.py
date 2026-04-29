@@ -30,6 +30,7 @@ from katana_mcp.tools.tool_result_utils import (
     parse_request_dates,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
+from katana_mcp.web_urls import katana_web_url
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 
 logger = get_logger(__name__)
@@ -695,6 +696,7 @@ class StockAdjustmentResponse(BaseModel):
     is_preview: bool
     message: str
     rows_summary: str
+    katana_url: str | None = None
 
 
 async def _create_stock_adjustment_impl(
@@ -782,6 +784,7 @@ async def _create_stock_adjustment_impl(
         is_preview=False,
         message="Stock adjustment created successfully",
         rows_summary=rows_summary,
+        katana_url=katana_web_url("stock_adjustment", adj_id),
     )
 
 
@@ -809,6 +812,8 @@ async def create_stock_adjustment(
     )
     if response.id:
         md += f"\n**Adjustment ID**: {response.id}\n"
+    if response.katana_url:
+        md += f"**Katana URL**: {response.katana_url}\n"
 
     return make_simple_result(
         md,
@@ -919,6 +924,7 @@ class StockAdjustmentSummary(BaseModel):
     additional_info: str | None
     row_count: int
     rows: list[StockAdjustmentRowInfo] | None = None
+    katana_url: str | None = None
 
 
 class ListStockAdjustmentsResponse(BaseModel):
@@ -1114,6 +1120,7 @@ async def _list_stock_adjustments_impl(
                 additional_info=adj.additional_info,
                 row_count=row_count,
                 rows=row_infos,
+                katana_url=katana_web_url("stock_adjustment", adj.id),
             )
         )
 
@@ -1226,6 +1233,7 @@ class UpdateStockAdjustmentResponse(BaseModel):
     additional_info: str | None = None
     changes_summary: str
     message: str
+    katana_url: str | None = None
 
 
 def _format_changes_summary(request: UpdateStockAdjustmentParams) -> str:
@@ -1301,6 +1309,7 @@ async def _update_stock_adjustment_impl(
                 f"Preview — call again with confirm=true to update stock "
                 f"adjustment {request.id}"
             ),
+            katana_url=katana_web_url("stock_adjustment", request.id),
         )
 
     services = get_services(context)
@@ -1346,6 +1355,7 @@ async def _update_stock_adjustment_impl(
         additional_info=unwrap_unset(updated.additional_info, None),
         changes_summary=changes_summary,
         message=f"Stock adjustment {updated.id} updated successfully",
+        katana_url=katana_web_url("stock_adjustment", updated.id),
     )
 
 
