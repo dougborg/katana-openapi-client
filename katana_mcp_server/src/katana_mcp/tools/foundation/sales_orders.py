@@ -14,11 +14,12 @@ from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, BeforeValidator, Field
 
 from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.tools.list_coercion import coerce_str_list_input
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
@@ -377,8 +378,12 @@ class ListSalesOrdersRequest(BaseModel):
 
     # Domain filters
     order_no: str | None = Field(default=None, description="Filter by exact order_no")
-    ids: list[int] | None = Field(
-        default=None, description="Filter by explicit list of sales order IDs"
+    ids: Annotated[list[int] | None, BeforeValidator(coerce_str_list_input)] = Field(
+        default=None,
+        description=(
+            "Filter by explicit list of sales order IDs. "
+            "JSON array of integers, e.g. [101, 202, 303]."
+        ),
     )
     customer_id: int | None = Field(default=None, description="Filter by customer ID")
     location_id: int | None = Field(default=None, description="Filter by location ID")
