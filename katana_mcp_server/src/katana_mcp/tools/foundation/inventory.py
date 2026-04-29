@@ -14,11 +14,11 @@ from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, BeforeValidator, Field
+from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
-from katana_mcp.tools.list_coercion import coerce_str_list_input
+from katana_mcp.tools.list_coercion import CoercedIntListOpt, CoercedStrIntList
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
@@ -43,9 +43,7 @@ logger = get_logger(__name__)
 class CheckInventoryRequest(BaseModel):
     """Request model for checking inventory."""
 
-    skus_or_variant_ids: Annotated[
-        list[str | int], BeforeValidator(coerce_str_list_input)
-    ] = Field(
+    skus_or_variant_ids: CoercedStrIntList = Field(
         ...,
         min_length=1,
         description=(
@@ -861,7 +859,7 @@ class ListStockAdjustmentsRequest(BaseModel):
         ),
     )
     location_id: int | None = Field(default=None, description="Filter by location ID")
-    ids: Annotated[list[int] | None, BeforeValidator(coerce_str_list_input)] = Field(
+    ids: CoercedIntListOpt = Field(
         default=None,
         description=(
             "Restrict to a specific set of stock adjustment IDs. "

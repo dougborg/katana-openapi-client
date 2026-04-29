@@ -15,12 +15,12 @@ from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, BeforeValidator, Field
+from pydantic import BaseModel, Field
 
 from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
-from katana_mcp.tools.list_coercion import coerce_str_list_input
+from katana_mcp.tools.list_coercion import CoercedIntList, CoercedIntListOpt
 from katana_mcp.tools.schemas import ConfirmationResult, require_confirmation
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
@@ -1568,9 +1568,7 @@ class VariantSpec(BaseModel):
 class VariantReplacement(BaseModel):
     """Replace a variant across multiple MOs with one or more new components."""
 
-    manufacturing_order_ids: Annotated[
-        list[int], BeforeValidator(coerce_str_list_input)
-    ] = Field(
+    manufacturing_order_ids: CoercedIntList = Field(
         ...,
         min_length=1,
         description=(
@@ -1599,11 +1597,9 @@ class ExplicitChange(BaseModel):
     """Explicit per-MO list of row deletions and additions."""
 
     manufacturing_order_id: int
-    remove_row_ids: Annotated[list[int], BeforeValidator(coerce_str_list_input)] = (
-        Field(
-            default_factory=list,
-            description="JSON array of recipe row IDs to delete, e.g. [42, 87].",
-        )
+    remove_row_ids: CoercedIntList = Field(
+        default_factory=list,
+        description="JSON array of recipe row IDs to delete, e.g. [42, 87].",
     )
     add_variants: list[VariantSpec] = Field(default_factory=list)
 
@@ -2119,7 +2115,7 @@ class ListManufacturingOrdersRequest(BaseModel):
     )
 
     # Domain filters
-    ids: Annotated[list[int] | None, BeforeValidator(coerce_str_list_input)] = Field(
+    ids: CoercedIntListOpt = Field(
         default=None,
         description=(
             "Filter by explicit list of manufacturing order IDs. "

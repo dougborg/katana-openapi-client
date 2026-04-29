@@ -14,22 +14,26 @@ Both should now recover transparently without losing data.
 
 from __future__ import annotations
 
-from typing import Annotated
-
 import pytest
-from katana_mcp.tools.list_coercion import coerce_str_list_input
-from pydantic import BaseModel, BeforeValidator, Field, ValidationError
+from katana_mcp.tools.list_coercion import (
+    CoercedIntListOpt,
+    CoercedStrIntList,
+    CoercedStrListOpt,
+)
+from pydantic import BaseModel, Field, ValidationError
 
 
 class _RequestStub(BaseModel):
     """Mimics the shape of an LLM-facing request-model field."""
 
-    skus: Annotated[list[str] | None, BeforeValidator(coerce_str_list_input)] = Field(
-        default=None
-    )
-    ids: Annotated[list[int] | None, BeforeValidator(coerce_str_list_input)] = Field(
-        default=None
-    )
+    skus: CoercedStrListOpt = Field(default=None)
+    ids: CoercedIntListOpt = Field(default=None)
+    # Stub of a ``CoercedStrIntList`` (mixed str|int list, required-typed)
+    # so the mixed-type tests below can exercise the alias. Uses
+    # ``default_factory`` so ``_build()`` can omit it. The empty-string +
+    # ``min_length`` interaction is covered separately via an inline model
+    # in ``test_empty_string_plus_min_length_one_raises_min_length_error``.
+    required_mixed: CoercedStrIntList = Field(default_factory=list)
 
 
 def _build(**kwargs: object) -> _RequestStub:
@@ -110,3 +114,44 @@ def test_int_input_for_int_list_raises_normal_pydantic_error():
 def test_single_value_string_no_comma_yields_one_item_list():
     # ``skus="WS74001"`` is the LLM's most innocent form of the bug.
     assert _build(skus="WS74001").skus == ["WS74001"]
+
+
+def test_mixed_type_list_passthrough():
+    # The CoercedStrIntList alias accepts mixed input types — pydantic
+    # validates each element against ``str | int``.
+    req = _build(required_mixed=["WS74001", 12345, "WS74002"])
+    assert req.required_mixed == ["WS74001", 12345, "WS74002"]
+
+
+def test_csv_with_numeric_items_for_str_int_list_keeps_strings():
+    # CSV path returns strings; pydantic's ``str | int`` union accepts both.
+    # Numeric-looking pieces stay as the type pydantic picks (str on the
+    # left wins for ``str | int``).
+    req = _build(required_mixed="WS74001,12345")
+    assert req.required_mixed == ["WS74001", "12345"]
+
+
+def test_empty_string_plus_min_length_one_raises_min_length_error():
+    """Empty string coerces to ``[]``, so a field with ``min_length=1``
+    raises a ``too_short`` error rather than the original ``list_type``
+    error. Documents the resulting UX so a future contributor doesn't
+    accidentally regress to the old shape.
+    """
+
+    class _Req(BaseModel):
+        skus: CoercedStrListOpt = Field(default=None, min_length=1)
+
+    with pytest.raises(ValidationError) as exc_info:
+        _Req.model_validate({"skus": ""})
+
+    errors = exc_info.value.errors()
+    assert errors[0]["type"] == "too_short"
+
+
+def test_non_numeric_string_for_int_list_raises_pydantic_error():
+    # CSV split yields ``["WS74001"]``; pydantic can't coerce that to int.
+    # The error is per-item, not on the list shape — useful diagnostic.
+    with pytest.raises(ValidationError) as exc_info:
+        _build(ids="WS74001")
+    errors = exc_info.value.errors()
+    assert errors[0]["type"] == "int_parsing"

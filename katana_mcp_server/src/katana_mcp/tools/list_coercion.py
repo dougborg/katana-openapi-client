@@ -11,15 +11,18 @@ When this happens, pydantic raises ``Input should be a valid list
 to retry. The recovery is mechanical and lossless — split on commas (or
 parse as JSON), strip whitespace, hand pydantic a real list. So we do it.
 
-Usage on a request-model field::
+Usage on a request-model field — prefer the prebuilt aliases::
 
-    from typing import Annotated
-    from pydantic import BeforeValidator, Field
-    from katana_mcp.tools.list_coercion import coerce_str_list_input
+    from pydantic import Field
+    from katana_mcp.tools.list_coercion import CoercedStrListOpt
 
-    skus: Annotated[
-        list[str] | None, BeforeValidator(coerce_str_list_input)
-    ] = Field(default=None, description="Batch: list of SKUs to look up")
+    skus: CoercedStrListOpt = Field(
+        default=None, description="Batch: list of SKUs to look up"
+    )
+
+Required (non-Optional) variants and the heterogeneous ``str | int`` shape
+have aliases too — see below. Use the raw ``coerce_str_list_input``
+validator directly only for one-off types that don't fit the aliases.
 
 Apply only to **LLM-facing** request-model fields. Internal/response-side
 list fields don't need it — pydantic-on-pydantic round-trips already use
@@ -29,7 +32,9 @@ real lists.
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Annotated, Any
+
+from pydantic import BeforeValidator
 
 
 def coerce_str_list_input(value: Any) -> Any:
@@ -60,3 +65,18 @@ def coerce_str_list_input(value: Any) -> Any:
 
     # Fall back to CSV: split, strip, drop empty fragments.
     return [item.strip() for item in s.split(",") if item.strip()]
+
+
+# Type aliases — collapse the per-field
+# ``Annotated[list[X] | None, BeforeValidator(coerce_str_list_input)]`` boilerplate
+# into a single readable token at the call site. ``Opt`` suffix marks the
+# Optional/None-default variant; bare names are required (non-Optional).
+
+CoercedStrList = Annotated[list[str], BeforeValidator(coerce_str_list_input)]
+CoercedStrListOpt = Annotated[list[str] | None, BeforeValidator(coerce_str_list_input)]
+CoercedIntList = Annotated[list[int], BeforeValidator(coerce_str_list_input)]
+CoercedIntListOpt = Annotated[list[int] | None, BeforeValidator(coerce_str_list_input)]
+CoercedStrIntList = Annotated[list[str | int], BeforeValidator(coerce_str_list_input)]
+CoercedStrIntListOpt = Annotated[
+    list[str | int] | None, BeforeValidator(coerce_str_list_input)
+]

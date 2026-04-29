@@ -12,13 +12,13 @@ from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, BeforeValidator, Field
+from pydantic import BaseModel, Field
 
 from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.decorators import cache_read
-from katana_mcp.tools.list_coercion import coerce_str_list_input
+from katana_mcp.tools.list_coercion import CoercedIntListOpt, CoercedStrListOpt
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
     format_md_table,
@@ -748,9 +748,7 @@ class UpdateItemRequest(BaseModel):
         None,
         description="SKU to identify which variant to update (uses first variant if omitted)",
     )
-    supplier_item_codes: Annotated[
-        list[str] | None, BeforeValidator(coerce_str_list_input)
-    ] = Field(
+    supplier_item_codes: CoercedStrListOpt = Field(
         default=None,
         description=(
             'JSON array of supplier item codes, e.g. ["10654627", "10654628"]. '
@@ -1043,20 +1041,16 @@ class GetVariantDetailsRequest(BaseModel):
         default=None,
         description="Single variant ID to look up directly",
     )
-    skus: Annotated[list[str] | None, BeforeValidator(coerce_str_list_input)] = Field(
+    skus: CoercedStrListOpt = Field(
         default=None,
         description=(
             'Batch lookup: JSON array of SKUs, e.g. ["WS74001", "WS74002"]. '
             "Each SKU is matched case-insensitively."
         ),
     )
-    variant_ids: Annotated[list[int] | None, BeforeValidator(coerce_str_list_input)] = (
-        Field(
-            default=None,
-            description=(
-                "Batch lookup: JSON array of variant IDs, e.g. [12345, 67890]."
-            ),
-        )
+    variant_ids: CoercedIntListOpt = Field(
+        default=None,
+        description="Batch lookup: JSON array of variant IDs, e.g. [12345, 67890].",
     )
     format: Literal["markdown", "json"] = Field(
         default="markdown",
