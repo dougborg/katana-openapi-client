@@ -23,7 +23,7 @@ from .models.too_small_validation_error import TooSmallValidationError
 from .models.unrecognized_keys_validation_error import UnrecognizedKeysValidationError
 
 if TYPE_CHECKING:
-    from .models.variant import Variant
+    from .models.variant_response import VariantResponse
 
 
 class APIError(Exception):
@@ -560,55 +560,61 @@ def handle_response[T](
         return None
 
 
-def get_variant_display_name(variant: "Variant") -> str:
+def get_variant_display_name(variant: "VariantResponse") -> str:
     """Build the full variant display name matching Katana UI format.
 
     Format: "{Product/Material Name} / {Config Value 1} / {Config Value 2} / ..."
 
     Example: "Mayhem 140 / Liquid Black / Large / 5 Star"
 
-    When the variant has been fetched with extend=product_or_material, the API
-    returns variants with a nested product_or_material object (Product or Material).
-    This function extracts the base product/material name and appends config attribute
-    values separated by " / ".
+    Takes a `VariantResponse` (the discriminated-union variant schema with
+    typed `product_or_material: Material | Product | Unset`). Variants returned
+    *without* `?extend=product_or_material` have `product_or_material` UNSET, in
+    which case the display name falls back to empty string.
 
     Args:
-        variant: Variant object (ideally with product_or_material populated)
+        variant: VariantResponse fetched with `?extend=product_or_material`.
 
     Returns:
-        Formatted variant name with config values, or empty string if no name available
+        Formatted variant name with config values, or empty string if no name available.
 
     Example:
         ```python
         from katana_public_api_client import KatanaClient
-        from katana_public_api_client.api.variant import get_variant
-        from katana_public_api_client.utils import get_variant_display_name
+        from katana_public_api_client.api.variant import get_all_variants
+        from katana_public_api_client.models.get_all_variants_extend_item import (
+            GetAllVariantsExtendItem,
+        )
+        from katana_public_api_client.utils import (
+            get_variant_display_name,
+            unwrap_data,
+        )
 
         async with KatanaClient() as client:
-            response = await get_variant.asyncio_detailed(client=client, id=123)
-            variant = unwrap(response)
-            display_name = get_variant_display_name(variant)
-            print(display_name)  # "Mayhem 140 / Liquid Black / Large / 5 Star"
+            response = await get_all_variants.asyncio_detailed(
+                client=client,
+                extend=[GetAllVariantsExtendItem.PRODUCT_OR_MATERIAL],
+            )
+            for variant in unwrap_data(response):
+                print(get_variant_display_name(variant))
+                # e.g. "Mayhem 140 / Liquid Black / Large / 5 Star"
         ```
     """
-    # Get base product/material name
+    product_or_material = unwrap_unset(variant.product_or_material, None)
     base_name = ""
-    if hasattr(variant, "product_or_material") and variant.product_or_material:
-        product_or_material = variant.product_or_material
-        if hasattr(product_or_material, "name"):
-            base_name = product_or_material.name or ""
+    if product_or_material is not None:
+        base_name = unwrap_unset(product_or_material.name, "") or ""
 
     if not base_name:
         return ""
 
-    # Append config attribute values (just values, not "name: value")
     parts: list[str] = [str(base_name)]
-    if hasattr(variant, "config_attributes") and variant.config_attributes:
-        for attr in variant.config_attributes:
-            if hasattr(attr, "config_value") and attr.config_value:
-                parts.append(str(attr.config_value))
+    config_attributes = unwrap_unset(variant.config_attributes, [])
+    for attr in config_attributes or []:
+        config_value = unwrap_unset(attr.config_value, None)
+        if config_value:
+            parts.append(str(config_value))
 
-    # Join with forward slashes (Katana UI format)
     return " / ".join(parts)
 
 
