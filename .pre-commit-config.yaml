@@ -7,6 +7,11 @@
 #
 # See issue #134 for background on why we use local hooks.
 
+# Make `pre-commit install` set up the pre-push hook too. Without this, the
+# pre-push hook would silently not run for contributors who only ran the bare
+# `pre-commit install` from the README. See block-push-to-main below.
+default_install_hook_types: [pre-commit, pre-push]
+
 # Global exclude — Claude Code agent worktrees are parallel git checkouts
 # living under the main repo only for locality. They have their own branches
 # and pre-commit cycles; formatting/linting them from a sibling worktree's
@@ -67,5 +72,19 @@ repos:
         name: pytest
         entry: uv run poe test
         language: system
+        pass_filenames: false
+        always_run: true
+
+      # Refuse pushes that would land non-main commits on the `main` ref.
+      # See CLAUDE.md "Known Pitfalls" — git's tracked-upstream resolution can
+      # silently route `git push -u origin <branch>` to main when the local
+      # branch was created from origin/main. This hook is the only mechanical
+      # guardrail until #429 (GitHub App auth migration) lets us tighten the
+      # ruleset's admin bypass.
+      - id: block-push-to-main
+        name: block direct push to main from a non-main branch
+        entry: scripts/pre-push-guard.sh
+        language: system
+        stages: [pre-push]
         pass_filenames: false
         always_run: true
