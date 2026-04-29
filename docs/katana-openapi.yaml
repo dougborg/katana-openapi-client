@@ -3147,8 +3147,11 @@ components:
               description: Current status of the operation
               $ref: "#/components/schemas/ManufacturingOperationStatus"
             type:
-              type: string
-              description: Type classification of the operation
+              description: |
+                Type of operation defining how time and cost are calculated.
+                Same enum used on the request side
+                (``Create/UpdateManufacturingOrderOperationRowRequest``).
+              $ref: "#/components/schemas/ManufacturingOperationType"
             rank:
               type: number
               description: Order/sequence of this operation within the manufacturing process
@@ -5096,8 +5099,15 @@ components:
                     type: number
                     description: The quantity received in a particular batch.
                   batch_id:
-                    type: integer
-                    description: ID of the batch for the received item.
+                    type:
+                      - integer
+                      - "null"
+                    description: |
+                      ID of the batch for the received item, or ``null``
+                      when the receipt targets unbatched stock (e.g. an
+                      aggregate receipt against a non-batch-tracked
+                      variant). Same nullability semantics as
+                      ``StockAdjustmentBatchTransaction.batch_id``.
               description: |
                 An array of batch transactions and their quantities. You can receive stock for the same item in multiple
                 batches.
@@ -8596,16 +8606,24 @@ components:
         ecommerce_store_name: B2B Portal
         ecommerce_order_id: B2B-7891-2024
     StockAdjustmentBatchTransaction:
-      description: Batch-specific transaction for tracking stock adjustments per batch
+      description: |
+        Batch-specific transaction for tracking stock adjustments. Each
+        entry pairs a quantity with the batch it applies to; ``batch_id``
+        is nullable because some adjustments target unbatched stock (e.g.
+        an aggregate correction to a non-batch-tracked variant) — Katana
+        returns ``batch_id: null`` in that case.
       type: object
       additionalProperties: false
       required:
-        - batch_id
         - quantity
       properties:
         batch_id:
-          type: integer
-          description: Unique identifier for the batch being adjusted
+          type:
+            - integer
+            - "null"
+          description: |
+            Unique identifier for the batch being adjusted, or ``null``
+            when the adjustment targets unbatched stock.
         quantity:
           type: number
           description: Quantity adjusted for this specific batch
@@ -9332,8 +9350,10 @@ components:
           type: string
           description: Name of the operation
         type:
-          type: string
-          description: Operation type (e.g., process)
+          description: |
+            Operation type defining how time and cost are calculated.
+            Matches the enum used on manufacturing-order operation rows.
+          $ref: "#/components/schemas/ManufacturingOperationType"
         resource_id:
           type:
             - integer
@@ -9351,9 +9371,11 @@ components:
           description: Cost per hour for this operation
         cost_parameter:
           type:
-            - string
+            - number
             - "null"
-          description: Cost calculation parameter
+          description: |
+            Cost calculation parameter. Numeric — Katana returns it as a
+            JSON number (e.g. ``15``) or ``null`` when not configured.
         planned_cost_per_unit:
           type:
             - number
@@ -9366,9 +9388,11 @@ components:
           description: Planned time per unit
         planned_time_parameter:
           type:
-            - string
+            - number
             - "null"
-          description: Time parameter for planning
+          description: |
+            Time calculation parameter. Numeric — Katana returns it as a
+            JSON number (e.g. ``7200``) or ``null`` when not configured.
         rank:
           type: integer
           description: Operation sequence rank

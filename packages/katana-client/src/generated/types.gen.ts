@@ -1479,9 +1479,12 @@ export type ManufacturingOrderOperationRow = {
    */
   status?: ManufacturingOperationStatus;
   /**
-   * Type classification of the operation
+   * Type of operation defining how time and cost are calculated.
+   * Same enum used on the request side
+   * (``Create/UpdateManufacturingOrderOperationRowRequest``).
+   *
    */
-  type?: string;
+  type?: ManufacturingOperationType;
   /**
    * Order/sequence of this operation within the manufacturing process
    */
@@ -2765,9 +2768,14 @@ export type PurchaseOrderRow = {
      */
     quantity?: number;
     /**
-     * ID of the batch for the received item.
+     * ID of the batch for the received item, or ``null``
+     * when the receipt targets unbatched stock (e.g. an
+     * aggregate receipt against a non-batch-tracked
+     * variant). Same nullability semantics as
+     * ``StockAdjustmentBatchTransaction.batch_id``.
+     *
      */
-    batch_id?: number;
+    batch_id?: number | null;
   }>;
   /**
    * Unique identifier of the parent purchase order
@@ -5142,13 +5150,20 @@ export type CreateSalesOrderRequest = {
 };
 
 /**
- * Batch-specific transaction for tracking stock adjustments per batch
+ * Batch-specific transaction for tracking stock adjustments. Each
+ * entry pairs a quantity with the batch it applies to; ``batch_id``
+ * is nullable because some adjustments target unbatched stock (e.g.
+ * an aggregate correction to a non-batch-tracked variant) — Katana
+ * returns ``batch_id: null`` in that case.
+ *
  */
 export type StockAdjustmentBatchTransaction = {
   /**
-   * Unique identifier for the batch being adjusted
+   * Unique identifier for the batch being adjusted, or ``null``
+   * when the adjustment targets unbatched stock.
+   *
    */
-  batch_id: number;
+  batch_id?: number | null;
   /**
    * Quantity adjusted for this specific batch
    */
@@ -5663,9 +5678,11 @@ export type ProductOperationRow = {
    */
   operation_name?: string;
   /**
-   * Operation type (e.g., process)
+   * Operation type defining how time and cost are calculated.
+   * Matches the enum used on manufacturing-order operation rows.
+   *
    */
-  type?: string;
+  type?: ManufacturingOperationType;
   /**
    * Resource ID assigned to operation
    */
@@ -5679,9 +5696,11 @@ export type ProductOperationRow = {
    */
   cost_per_hour?: number | null;
   /**
-   * Cost calculation parameter
+   * Cost calculation parameter. Numeric — Katana returns it as a
+   * JSON number (e.g. ``15``) or ``null`` when not configured.
+   *
    */
-  cost_parameter?: string | null;
+  cost_parameter?: number | null;
   /**
    * Planned cost per unit
    */
@@ -5691,9 +5710,11 @@ export type ProductOperationRow = {
    */
   planned_time_per_unit?: number | null;
   /**
-   * Time parameter for planning
+   * Time calculation parameter. Numeric — Katana returns it as a
+   * JSON number (e.g. ``7200``) or ``null`` when not configured.
+   *
    */
-  planned_time_parameter?: string | null;
+  planned_time_parameter?: number | null;
   /**
    * Operation sequence rank
    */

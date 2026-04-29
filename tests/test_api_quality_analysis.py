@@ -1,8 +1,8 @@
-"""
-Test API quality analysis and design recommendations.
+"""Test API quality analysis and design recommendations.
 
-This module validates the strategic aspects of API design that the analyze_api_documentation.py
-script identifies, converting its recommendations into automated tests for continuous validation.
+Strategic API-design checks: orphaned component parameters, parameter
+consistency across endpoints, extractable parameters worth promoting to
+shared definitions, etc. Direct yaml inspection — no external scripts.
 """
 
 from pathlib import Path
