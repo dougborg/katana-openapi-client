@@ -73,44 +73,44 @@ Common mistakes to avoid:
   run `uv run poe generate-pydantic` too. They must stay in sync.
 - **Generator/schema edits without committing the regen** - Whenever you edit a
   generator script (`scripts/generate_pydantic_models.py`,
-  `scripts/regenerate_client.py`) **or** the OpenAPI spec
-  (`docs/katana-openapi.yaml`), run the regen, run `uv run poe check` (or at
-  minimum `agent-check` + `uv run poe test`), and commit the regenerated output **in the
-  same PR**. The input and its output stay locked together at every commit so
-  the cause-and-effect chain is reviewable. Pushing a generator/spec change
-  without its regen leaves CI green-but-stale until the next time someone runs
-  the generator; pushing regen output without the input change drifts in the
-  other direction. Note the generated-file impact in the PR description (e.g.,
-  "byte-identical except X" or list affected files). When the regen drops a
-  previously-public class (e.g., a `StrEnum` deduped into a sibling) or
-  narrows a field's type, the commit must use the breaking-change marker
-  (`feat(client)!:` / `fix(client)!:`) with a `BREAKING CHANGE:` footer
-  naming the affected symbol — see
+  `scripts/regenerate_client.py`) **or** the OpenAPI spec (`docs/katana-openapi.yaml`),
+  run the regen, run `uv run poe check` (or at minimum `agent-check` +
+  `uv run poe test`), and commit the regenerated output **in the same PR**. The input
+  and its output stay locked together at every commit so the cause-and-effect chain is
+  reviewable. Pushing a generator/spec change without its regen leaves CI
+  green-but-stale until the next time someone runs the generator; pushing regen output
+  without the input change drifts in the other direction. Note the generated-file impact
+  in the PR description (e.g., "byte-identical except X" or list affected files). When
+  the regen drops a previously-public class (e.g., a `StrEnum` deduped into a sibling)
+  or narrows a field's type, the commit must use the breaking-change marker
+  (`feat(client)!:` / `fix(client)!:`) with a `BREAKING CHANGE:` footer naming the
+  affected symbol — see
   [`.github/agents/guides/shared/COMMIT_STANDARDS.md`](.github/agents/guides/shared/COMMIT_STANDARDS.md)
-  "Schema and Generator Changes" for the full rule.
-- **OpenAPI spec is 3.1 — use 3.1 conventions** - `docs/katana-openapi.yaml`
-  declares `openapi: 3.1.0`. Use 3.1 features rather than 3.0 work-arounds.
-  Specifically: **`$ref` siblings are legal in 3.1**, so attach property
-  metadata (especially `description`) directly alongside `$ref` rather than
-  wrapping the ref in `allOf: [{$ref: ...}]` (the 3.0 idiom — usually
-  unnecessary for new edits here, though the spec still has a few legacy
-  cases). Use `allOf` only for real composition (combining a `$ref` with
-  additional properties), not as a description-attacher.
-- **Property descriptions live at the use-site, not the schema-definition
-  site** - When a property references a shared schema via `$ref`, put the
-  property's `description` as a sibling of the `$ref` so the description
-  describes the *role of this field on this object*. The shared schema's own
-  `description` should describe the type/enum's general meaning. The two
-  serve different audiences: schema-definition describes what the type *is*;
-  use-site describes what the field's value *means in context* (e.g.,
-  `ManufacturingOrder.status` references `ManufacturingOrderStatus` and adds
-  "Current production status of the manufacturing order"; the schema itself
-  just says "Status of a manufacturing order"). The pydantic generator only
-  emits `Annotated[..., Field(description=...)]` when the description is at
-  the use-site, so use-site descriptions are also what surfaces in the
-  generated client's IDE hovertext / generated docs. Bare `$ref` drops the
-  description from generated pydantic — avoid except when the schema's own
-  description is enough context for every caller (rare).
+  "Schema and Generator Changes" for the full rule. Before editing the spec, audit
+  upstream drift via the workflow in
+  [`docs/upstream-specs/README.md`](docs/upstream-specs/README.md)
+  (`poe refresh-upstream-spec` → `poe audit-spec` → `poe validate-response-examples` →
+  `poe validate-examples`).
+- **OpenAPI spec is 3.1 — use 3.1 conventions** - `docs/katana-openapi.yaml` declares
+  `openapi: 3.1.0`. Use 3.1 features rather than 3.0 work-arounds. Specifically:
+  **`$ref` siblings are legal in 3.1**, so attach property metadata (especially
+  `description`) directly alongside `$ref` rather than wrapping the ref in
+  `allOf: [{$ref: ...}]` (the 3.0 idiom — usually unnecessary for new edits here, though
+  the spec still has a few legacy cases). Use `allOf` only for real composition
+  (combining a `$ref` with additional properties), not as a description-attacher.
+- **Property descriptions live at the use-site, not the schema-definition site** - When
+  a property references a shared schema via `$ref`, put the property's `description` as
+  a sibling of the `$ref` so the description describes the *role of this field on this
+  object*. The shared schema's own `description` should describe the type/enum's general
+  meaning. The two serve different audiences: schema-definition describes what the type
+  *is*; use-site describes what the field's value *means in context* (e.g.,
+  `ManufacturingOrder.status` references `ManufacturingOrderStatus` and adds "Current
+  production status of the manufacturing order"; the schema itself just says "Status of
+  a manufacturing order"). The pydantic generator only emits
+  `Annotated[..., Field(description=...)]` when the description is at the use-site, so
+  use-site descriptions are also what surfaces in the generated client's IDE hovertext /
+  generated docs. Bare `$ref` drops the description from generated pydantic — avoid
+  except when the schema's own description is enough context for every caller (rare).
 - **UNSET vs None confusion** - attrs model fields that are unset use a sentinel value,
   not `None`. Use `unwrap_unset(field, default)` from
   `katana_public_api_client.domain.converters`, not `isinstance` or `hasattr` checks.

@@ -44,6 +44,7 @@ jobs:
         run: uv run poe docs-build
         env:
           CI_DOCS_BUILD: "true"
+          DISABLE_MKDOCS_2_WARNING: "true"
 
       - name: Upload documentation artifacts
         uses: actions/upload-pages-artifact@v5

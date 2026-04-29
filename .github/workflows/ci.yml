@@ -118,9 +118,11 @@ jobs:
         run: uv run poe docs-build
         env:
           CI_DOCS_BUILD: "true"
+          DISABLE_MKDOCS_2_WARNING: "true"
 
       - name: Test documentation
         if: needs.changes.outputs.code == 'true'
         run: uv run poe test-docs
         env:
           CI_DOCS_BUILD: "true"
+          DISABLE_MKDOCS_2_WARNING: "true"

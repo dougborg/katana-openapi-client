@@ -49,10 +49,36 @@ ______________________________________________________________________
 
 ## Regeneration Process
 
+### Step 0: Audit Upstream Drift (recommended for spec edits)
+
+If this regen is being driven by changes to `docs/katana-openapi.yaml`, refresh the
+cached upstream specs and audit drift before regenerating. Skip this step for
+generator-only updates (e.g., bumping `openapi-python-client`).
+
+```bash
+# Refresh cached upstream specs (live gateway + README.io portal)
+uv run poe refresh-upstream-spec
+
+# Request-side drift vs. live gateway
+uv run poe audit-spec
+
+# Response-side drift vs. README.io portal response examples
+uv run poe validate-response-examples
+
+# Local example/schema consistency
+uv run poe validate-examples
+```
+
+`refresh-upstream-spec` updates the cached YAMLs under `docs/upstream-specs/`
+(idempotent; will dirty the working tree if upstream has changed). The other three are
+read-only. See
+[`docs/upstream-specs/README.md`](../../../../docs/upstream-specs/README.md) for the
+full workflow and what each task catches.
+
 ### Step 1: Validate OpenAPI Spec
 
 ```bash
-# Validate with openapi-spec-validator
+# Basic structural validation (3.1 conformance)
 uv run poe validate-openapi
 
 # Expected output:

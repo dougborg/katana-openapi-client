@@ -40,6 +40,9 @@ jobs:
 
       - name: Run full CI pipeline
         run: uv run poe ci
+        env:
+          CI_DOCS_BUILD: "true"
+          DISABLE_MKDOCS_2_WARNING: "true"
 
   release-client:
     needs: test

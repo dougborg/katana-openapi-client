@@ -49,7 +49,8 @@ repos:
             katana_public_api_client/docs/CHANGELOG\.md|
             \.agent\.md$|
             katana_mcp_server/src/katana_mcp/templates/.*\.md$|
-            \.claude/skills/.*\.md$
+            \.claude/skills/.*\.md$|
+            \.claude/agents/.*\.md$
           )
         pass_filenames: true
 

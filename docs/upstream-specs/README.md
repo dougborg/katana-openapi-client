@@ -43,6 +43,43 @@ poe refresh-upstream-spec
 Idempotent. Both fetches run in parallel via `asyncio.gather`. Output is written through
 `yaml.safe_dump(..., sort_keys=True)` so diffs are stable across runs.
 
+## Workflow
+
+The full spec-maintenance loop, in order. Step 1 writes to `docs/upstream-specs/`
+(idempotent — re-running with no upstream changes is a no-op); steps 2–4 are read-only.
+None of steps 1–4 touch `docs/katana-openapi.yaml` or any generated client code, so
+they're safe to run any time.
+
+```
+1. uv run poe refresh-upstream-spec      # pull live gateway + README.io portal
+2. uv run poe audit-spec                 # request-side drift vs. live-gateway.yaml
+3. uv run poe validate-response-examples # response-side drift vs. readme-portal.yaml
+4. uv run poe validate-examples          # local internal consistency
+5. edit docs/katana-openapi.yaml         # address findings
+6. uv run poe regenerate-client && uv run poe generate-pydantic
+7. commit the spec edit + regen output together (per CLAUDE.md)
+```
+
+What each step catches:
+
+- **`audit-spec`** — paths/operations the local spec is missing or has extra; required
+  fields, type/enum drift on request DTOs. The live gateway is canonical here.
+- **`validate-response-examples`** — drift in our local response schemas, surfaced by
+  validating Katana's own README.io response examples against them. The live gateway has
+  no response shapes, so this is the only structured signal we have for response
+  accuracy.
+- **`validate-examples`** — every inline `example:` block in `docs/katana-openapi.yaml`
+  validated against its own schema. Catches typos and examples left behind when fields
+  change.
+
+Findings split into three buckets: real local-spec drift (fix in the spec),
+documentation artefact (Katana's docs are wrong, verify against live API and just record
+it), or needs verification (flag for a human to check against the live API). Past audit
+reports under `docs/audit-*.md` are good reference.
+
+The spec-auditor agent (`.claude/agents/spec-auditor.md`) drives steps 1–5 and produces
+a triaged report; invoke it via the `Agent` tool when you want a fresh audit.
+
 ## Why YAML?
 
 JSON would also work, but:
