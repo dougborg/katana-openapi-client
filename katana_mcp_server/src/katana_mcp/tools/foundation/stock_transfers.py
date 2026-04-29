@@ -15,6 +15,7 @@ These tools provide:
 
 from __future__ import annotations
 
+import asyncio
 import datetime as _datetime
 from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
@@ -26,6 +27,7 @@ from pydantic import BaseModel, Field
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.tool_result_utils import (
+    BLOCK_WARNING_PREFIX,
     PaginationMeta,
     apply_date_window_filters,
     enum_to_str,
@@ -33,6 +35,7 @@ from katana_mcp.tools.tool_result_utils import (
     iso_or_none,
     make_simple_result,
     parse_request_dates,
+    resolve_entity_name_or_block,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
@@ -214,7 +217,7 @@ class StockTransferResponse(BaseModel):
     target_location_name: str | None = None
     status: str | None = None
     expected_arrival_date: str | None = None
-    row_count: int | None = None
+    item_count: int | None = None
     is_preview: bool
     warnings: list[str] = Field(default_factory=list)
     next_actions: list[str] = Field(default_factory=list)
@@ -282,38 +285,31 @@ async def _create_stock_transfer_impl(
         f"({request.source_location_id} -> {request.destination_location_id})"
     )
 
-    row_count = len(request.rows)
+    item_count = len(request.rows)
 
     if not request.confirm:
-        # Resolve source + destination location names from cache so the preview
-        # message names them ("Warehouse A → Warehouse B") instead of opaque IDs.
         from katana_mcp.cache import EntityType
 
         services = get_services(context)
-        src_dict = await services.cache.get_by_id(
-            EntityType.LOCATION, request.source_location_id
+        (src_name, src_warn), (dst_name, dst_warn) = await asyncio.gather(
+            resolve_entity_name_or_block(
+                services.cache,
+                EntityType.LOCATION,
+                request.source_location_id,
+                entity_label="Source location",
+            ),
+            resolve_entity_name_or_block(
+                services.cache,
+                EntityType.LOCATION,
+                request.destination_location_id,
+                entity_label="Destination location",
+            ),
         )
-        dst_dict = await services.cache.get_by_id(
-            EntityType.LOCATION, request.destination_location_id
-        )
-        src_name = (src_dict or {}).get("name") or None
-        dst_name = (dst_dict or {}).get("name") or None
-
-        warnings: list[str] = []
-        if src_dict is None:
-            warnings.append(
-                f"BLOCK: Source location id={request.source_location_id} "
-                "not found in location cache."
-            )
-        if dst_dict is None:
-            warnings.append(
-                f"BLOCK: Destination location id={request.destination_location_id} "
-                "not found in location cache."
-            )
+        warnings: list[str] = [w for w in (src_warn, dst_warn) if w]
         if request.source_location_id == request.destination_location_id:
             warnings.append(
-                f"BLOCK: Source and destination are the same location "
-                f"(id={request.source_location_id}); transfer would be a no-op."
+                f"{BLOCK_WARNING_PREFIX} Source and destination are the same "
+                f"location (id={request.source_location_id}); transfer would be a no-op."
             )
 
         src_label = (
@@ -327,7 +323,7 @@ async def _create_stock_transfer_impl(
             else f"location id={request.destination_location_id}"
         )
         preview_message = (
-            f"Preview: Stock transfer with {row_count} row(s) from "
+            f"Preview: Stock transfer with {item_count} row(s) from "
             f"{src_label} to {dst_label}"
         )
 
@@ -339,7 +335,7 @@ async def _create_stock_transfer_impl(
             target_location_name=dst_name,
             status="DRAFT",
             expected_arrival_date=request.expected_arrival_date.isoformat(),
-            row_count=row_count,
+            item_count=item_count,
             is_preview=True,
             warnings=warnings,
             next_actions=[
@@ -417,8 +413,8 @@ async def create_stock_transfer(
             else str(response.target_location_id)
         )
         lines.append(f"- **Destination Location**: {dst_label}")
-    if response.row_count is not None:
-        lines.append(f"- **Rows**: {response.row_count}")
+    if response.item_count is not None:
+        lines.append(f"- **Rows**: {response.item_count}")
     if response.expected_arrival_date:
         lines.append(f"- **Expected Arrival**: {response.expected_arrival_date}")
     if response.status:
@@ -427,8 +423,9 @@ async def create_stock_transfer(
         lines.append("")
         lines.append("### Warnings")
         for w in response.warnings:
-            display = w.removeprefix("BLOCK:").lstrip() if w.startswith("BLOCK:") else w
-            prefix = "**[BLOCKED]** " if w.startswith("BLOCK:") else ""
+            is_block = w.startswith(BLOCK_WARNING_PREFIX)
+            display = w.removeprefix(BLOCK_WARNING_PREFIX).lstrip() if is_block else w
+            prefix = "**[BLOCKED]** " if is_block else ""
             lines.append(f"- {prefix}{display}")
     if response.next_actions:
         lines.append("")

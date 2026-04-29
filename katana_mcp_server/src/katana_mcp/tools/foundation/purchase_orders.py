@@ -23,6 +23,7 @@ from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.list_coercion import CoercedIntListOpt
 from katana_mcp.tools.tool_result_utils import (
+    BLOCK_WARNING_PREFIX,
     UI_META,
     PaginationMeta,
     apply_date_window_filters,
@@ -33,6 +34,7 @@ from katana_mcp.tools.tool_result_utils import (
     make_simple_result,
     make_tool_result,
     parse_request_dates,
+    resolve_entity_name_or_block,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
@@ -166,8 +168,6 @@ async def _create_purchase_order_impl(
     # Calculate preview total
     total_cost = sum(item.price_per_unit * item.quantity for item in request.items)
 
-    # Preview mode — resolve supplier + location names from cache so the
-    # preview UI shows "Supplier: Acme Co (ID: 42)" instead of opaque IDs.
     if not request.confirm:
         logger.info(
             f"Preview mode: PO {request.order_number} would have {len(request.items)} items"
@@ -176,24 +176,21 @@ async def _create_purchase_order_impl(
         services = get_services(context)
         from katana_mcp.cache import EntityType
 
-        supplier_dict, location_dict = await asyncio.gather(
-            services.cache.get_by_id(EntityType.SUPPLIER, request.supplier_id),
-            services.cache.get_by_id(EntityType.LOCATION, request.location_id),
+        (supplier_name, sup_warn), (location_name, loc_warn) = await asyncio.gather(
+            resolve_entity_name_or_block(
+                services.cache,
+                EntityType.SUPPLIER,
+                request.supplier_id,
+                entity_label="Supplier",
+            ),
+            resolve_entity_name_or_block(
+                services.cache,
+                EntityType.LOCATION,
+                request.location_id,
+                entity_label="Location",
+            ),
         )
-        supplier_name = (supplier_dict or {}).get("name") or None
-        location_name = (location_dict or {}).get("name") or None
-
-        warnings: list[str] = []
-        if supplier_dict is None:
-            warnings.append(
-                f"BLOCK: Supplier with id={request.supplier_id} was not found "
-                "in the supplier cache. Verify the supplier exists."
-            )
-        if location_dict is None:
-            warnings.append(
-                f"BLOCK: Location with id={request.location_id} was not found "
-                "in the location cache. Verify the location exists."
-            )
+        warnings: list[str] = [w for w in (sup_warn, loc_warn) if w]
 
         return PurchaseOrderResponse(
             order_number=request.order_number,
@@ -418,39 +415,39 @@ async def _receive_purchase_order_impl(
         # unwrap_as() raises typed exceptions on error, returns typed RegularPurchaseOrder
         po = unwrap_as(po_response, RegularPurchaseOrder)
 
-        # Extract order metadata for the preview UI. unwrap_unset gives us
-        # safe defaults when the live API omits a field.
         order_no = unwrap_unset(po.order_no, f"PO-{request.order_id}")
-        po_status_enum = unwrap_unset(po.status, None)
-        po_status = po_status_enum.value if po_status_enum else None
+        po_status = enum_to_str(unwrap_unset(po.status, None))
         supplier_id = unwrap_unset(po.supplier_id, None)
         currency = unwrap_unset(po.currency, None)
         total_cost = unwrap_unset(po.total, None)
 
-        # Preview mode - return summary without API call
         if not request.confirm:
             logger.info(
                 f"Preview mode: Would receive {len(request.items)} items for PO {order_no}"
             )
 
             supplier_name: str | None = None
+            warnings: list[str] = []
             if supplier_id is not None:
                 from katana_mcp.cache import EntityType
 
-                supplier_dict = await services.cache.get_by_id(
-                    EntityType.SUPPLIER, supplier_id
+                supplier_name, sup_warn = await resolve_entity_name_or_block(
+                    services.cache,
+                    EntityType.SUPPLIER,
+                    supplier_id,
+                    entity_label="Supplier",
                 )
-                supplier_name = (supplier_dict or {}).get("name") or None
+                if sup_warn:
+                    warnings.append(sup_warn)
 
-            warnings: list[str] = []
             next_actions = [
                 "Review the items to receive",
                 "Set confirm=true to receive the items and update inventory",
             ]
             if po_status == "RECEIVED":
                 warnings.append(
-                    f"BLOCK: Purchase order {order_no} is already RECEIVED. "
-                    "Receiving more items would create duplicate inventory."
+                    f"{BLOCK_WARNING_PREFIX} Purchase order {order_no} is already "
+                    "RECEIVED. Receiving more items would create duplicate inventory."
                 )
                 next_actions = ["No action needed — order is already fully received."]
 

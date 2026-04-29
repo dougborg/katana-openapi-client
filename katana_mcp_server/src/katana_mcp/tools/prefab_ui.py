@@ -49,11 +49,7 @@ from prefab_ui.components.slot import Slot
 from prefab_ui.rx import RESULT
 from pydantic import BaseModel
 
-# Marker prefix on a warning string that signals the preview should refuse to
-# expose a Confirm button — the target resource is already in a downstream/final
-# state (e.g. a sales-order row already linked to an MO, a PO already received).
-# Builders strip the prefix before rendering, so the user sees a clean message.
-BLOCK_WARNING_PREFIX = "BLOCK:"
+from katana_mcp.tools.tool_result_utils import BLOCK_WARNING_PREFIX
 
 
 def _split_warnings(

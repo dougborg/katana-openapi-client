@@ -22,6 +22,7 @@ from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.list_coercion import CoercedIntList, CoercedIntListOpt
 from katana_mcp.tools.tool_result_utils import (
+    BLOCK_WARNING_PREFIX,
     UI_META,
     PaginationMeta,
     apply_date_window_filters,
@@ -192,9 +193,10 @@ async def _create_manufacturing_order_impl(
 
             if linked_mo is not None:
                 warnings.append(
-                    f"BLOCK: sales_order_row {request.sales_order_row_id} is "
-                    f"already linked to manufacturing order {linked_mo}. "
-                    "Creating another would duplicate production."
+                    f"{BLOCK_WARNING_PREFIX} sales_order_row "
+                    f"{request.sales_order_row_id} is already linked to "
+                    f"manufacturing order {linked_mo}. Creating another "
+                    "would duplicate production."
                 )
                 next_actions = [
                     f"Use get_manufacturing_order with order_id={linked_mo} "

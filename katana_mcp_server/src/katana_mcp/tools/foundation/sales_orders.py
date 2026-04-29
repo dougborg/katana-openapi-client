@@ -31,6 +31,7 @@ from katana_mcp.tools.tool_result_utils import (
     make_tool_result,
     none_coro,
     parse_request_dates,
+    resolve_entity_name_or_block,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET, Unset
@@ -165,26 +166,19 @@ async def _create_sales_order_impl(
         for item in request.items
     )
 
-    # Preview mode - resolve customer name from the cache so the preview UI
-    # shows "Customer: Jane Doe (ID: 42)" instead of just an opaque ID.
     if not request.confirm:
         logger.info(
             f"Preview mode: SO {request.order_number} would have {len(request.items)} items"
         )
 
         services = get_services(context)
-        customer_dict = await services.cache.get_by_id(
-            EntityType.CUSTOMER, request.customer_id
+        customer_name, cust_warn = await resolve_entity_name_or_block(
+            services.cache,
+            EntityType.CUSTOMER,
+            request.customer_id,
+            entity_label="Customer",
         )
-        customer_name = (customer_dict or {}).get("name") or None
-
-        warnings: list[str] = []
-        if customer_dict is None:
-            warnings.append(
-                f"BLOCK: Customer with id={request.customer_id} was not found "
-                "in the customer cache. Verify the customer exists before "
-                "creating the order."
-            )
+        warnings: list[str] = [cust_warn] if cust_warn else []
         if request.location_id is None:
             warnings.append(
                 "No location_id specified - order will use default location"

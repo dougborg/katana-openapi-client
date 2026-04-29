@@ -16,7 +16,11 @@ from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
-from katana_mcp.tools.tool_result_utils import UI_META, make_tool_result
+from katana_mcp.tools.tool_result_utils import (
+    BLOCK_WARNING_PREFIX,
+    UI_META,
+    make_tool_result,
+)
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.domain.converters import unwrap_unset
 from katana_public_api_client.models import (
@@ -104,8 +108,8 @@ async def _fulfill_manufacturing_order(
     warnings: list[str] = []
     if current_status == "DONE":
         warnings.append(
-            f"BLOCK: Manufacturing order {order_number} is already completed. "
-            "No further action will mark it DONE again."
+            f"{BLOCK_WARNING_PREFIX} Manufacturing order {order_number} is already "
+            "completed. No further action will mark it DONE again."
         )
     elif current_status == "BLOCKED":
         warnings.append(
@@ -207,10 +211,8 @@ async def _fulfill_sales_order(
     current_status = so.status.value if so.status else "UNKNOWN"
     so_rows = unwrap_unset(so.sales_order_rows, []) or []
 
-    # Build a row summary list the preview UI can render — one entry per
-    # SO row. variant_id + qty is what the user needs to recognise the
-    # shipment; SKU resolution would require a per-row variant fetch and
-    # isn't worth the latency cost on a preview.
+    # SKU isn't resolved per row — that would cost an N-row variant fetch on
+    # every preview. variant_id + qty is enough to recognise the shipment.
     inventory_updates: list[str] = []
     for row in so_rows:
         rid = row.id
@@ -225,14 +227,16 @@ async def _fulfill_sales_order(
     warnings: list[str] = []
     if current_status in ("DELIVERED", "PARTIALLY_DELIVERED"):
         warnings.append(
-            f"BLOCK: Sales order {order_number} status is {current_status}. "
-            "Creating another fulfillment may double-ship items."
+            f"{BLOCK_WARNING_PREFIX} Sales order {order_number} status is "
+            f"{current_status}. Creating another fulfillment may double-ship items."
         )
     if not so_rows:
-        warnings.append(f"BLOCK: Sales order {order_number} has no rows to fulfill.")
+        warnings.append(
+            f"{BLOCK_WARNING_PREFIX} Sales order {order_number} has no rows to fulfill."
+        )
 
     if not request.confirm:
-        has_block = any(w.startswith("BLOCK:") for w in warnings)
+        has_block = any(w.startswith(BLOCK_WARNING_PREFIX) for w in warnings)
         next_actions = (
             ["Resolve the issue above (cancel and inspect via the Katana UI)"]
             if has_block

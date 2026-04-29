@@ -37,6 +37,40 @@ if TYPE_CHECKING:
 UI_META: dict[str, Any] = {"ui": True}
 
 
+# Marker prefix on a warning string that signals the preview should refuse to
+# expose a Confirm button — the target resource is already in a downstream/final
+# state (e.g. a sales-order row already linked to an MO, a PO already received).
+# Prefab UI builders strip the prefix before rendering, so the user sees clean
+# text; their presence tells the builder to omit the Confirm button.
+BLOCK_WARNING_PREFIX = "BLOCK:"
+
+
+async def resolve_entity_name_or_block(
+    cache: Any,
+    entity_type: Any,
+    entity_id: int,
+    *,
+    entity_label: str,
+) -> tuple[str | None, str | None]:
+    """Look up a cached entity by ID and return ``(name, block_warning)``.
+
+    On hit returns ``(name_or_None, None)``. On miss returns
+    ``(None, "BLOCK: <entity_label> with id=N not found...")`` — a ready-to-
+    append warning carrying the BLOCK prefix so the caller can drop it
+    directly into a response's ``warnings`` list. Centralises the cache
+    lookup + diagnostic phrasing used by every preview branch that
+    resolves an ID to a human-readable name.
+    """
+    d = await cache.get_by_id(entity_type, entity_id)
+    if d is None:
+        warning = (
+            f"{BLOCK_WARNING_PREFIX} {entity_label} with id={entity_id} was "
+            f"not found in the cache. Verify the {entity_label.lower()} exists."
+        )
+        return None, warning
+    return d.get("name") or None, None
+
+
 def enum_to_str(value: Any) -> str | None:
     """Extract the string value from an enum, or return as-is.
 
