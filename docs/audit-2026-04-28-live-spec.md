@@ -1,11 +1,9 @@
 # Live-Spec Audit — 2026-04-28
 
 Comparison of `docs/katana-openapi.yaml` (local) against the live OpenAPI document at
-`https://api.katanamrp.com/v1/openapi.json` (refreshed via the updated
-`scripts/extract_all_katana_docs.py`). This supersedes the parts of
-`docs/audit-2026-04-28.md` that were based on the now-stale archived upstream spec; the
-original audit is preserved as historical record but its field-level claims should be
-treated as superseded by this document.
+`https://api.katanamrp.com/v1/openapi.json` (refreshed via
+`scripts/pull_upstream_specs.py` / `uv run poe refresh-upstream-spec`, which writes
+`docs/upstream-specs/live-gateway.yaml`).
 
 ## Source of truth
 

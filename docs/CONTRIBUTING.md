@@ -233,6 +233,24 @@ KATANA_BASE_URL=https://api.katanamrp.com/v1
 The OpenAPI client is automatically generated from `katana-openapi.yaml` using
 [`openapi-python-client`](https://github.com/openapi-generators/openapi-python-client).
 
+### Spec Maintenance
+
+Before regenerating, audit the local spec against upstream. The full workflow lives in
+[`docs/upstream-specs/README.md`](https://github.com/dougborg/katana-openapi-client/blob/main/docs/upstream-specs/README.md)
+in the repo (kept out of the published docs site since the upstream-spec YAML and audit
+reports are maintainer-only artefacts). Quick reference:
+
+```bash
+uv run poe refresh-upstream-spec      # pull cached upstream specs
+uv run poe audit-spec                 # request-side drift vs. live gateway
+uv run poe validate-response-examples # response-side drift vs. README.io portal
+uv run poe validate-examples          # local example/schema consistency
+```
+
+`refresh-upstream-spec` writes to `docs/upstream-specs/` (idempotent — no-op if upstream
+hasn't changed); the other three are read-only. Run them whenever you're changing
+`docs/katana-openapi.yaml` or investigating possible upstream drift.
+
 ### Regeneration Process
 
 ```bash

@@ -8,6 +8,13 @@ repo_name: dougborg/katana-openapi-client
 repo_url: https://github.com/dougborg/katana-openapi-client
 edit_uri: edit/main/docs/
 
+# Maintainer-only artefacts that live in docs/ for review/audit purposes but should
+# not be published to gh-pages. See docs/upstream-specs/README.md for what these are.
+exclude_docs: |
+  audit-*.md
+  upstream-specs/
+  archive/
+
 theme:
   name: material
   features:
@@ -150,7 +157,6 @@ nav:
       - Development: mcp-server/development.md
       - Deployment: mcp-server/deployment.md
       - Docker: mcp-server/docker.md
-      - Implementation Plan: mcp-server/implementation-plan.md
       - ADRs:
           - Overview: mcp-server/adr/README.md
           - ADR-010 Katana MCP Server: mcp-server/adr/0010-katana-mcp-server.md

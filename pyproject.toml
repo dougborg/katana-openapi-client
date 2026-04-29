@@ -571,8 +571,9 @@ refresh-upstream-spec = "python scripts/pull_upstream_specs.py"
 audit-spec = "python scripts/audit_spec_drift.py"
 # Validate inline `example:` blocks against their schemas.
 validate-examples = "python scripts/validate_spec_examples.py"
-# Validate scraped README.io response JSON examples against local response
-# schemas — catches drift the live spec can't surface (no response shapes).
+# Validate README.io developer-portal response examples (from
+# docs/upstream-specs/readme-portal.yaml) against local response schemas —
+# catches drift the live gateway can't surface (no response shapes there).
 validate-response-examples = "python scripts/validate_response_examples.py"
 
 # -----------------------------------------------------------------------------

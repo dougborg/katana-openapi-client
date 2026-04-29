@@ -44,6 +44,10 @@ jobs:
         run: uv run poe docs-build
         env:
           CI_DOCS_BUILD: "true"
+          # Silences the Material-team "MkDocs 2.0" prep-banner.
+          NO_MKDOCS_2_WARNING: "true"
+          # Silences the properdocs promotional banner.
+          DISABLE_MKDOCS_2_WARNING: "true"
 
       - name: Upload documentation artifacts
         uses: actions/upload-pages-artifact@v5
