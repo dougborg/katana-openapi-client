@@ -309,13 +309,23 @@ async def create_sales_order(
     from katana_mcp.tools.prefab_ui import (
         build_order_created_ui,
         build_order_preview_ui,
+        call_tool_from_request,
     )
 
     response = await _create_sales_order_impl(request, context)
 
     order_dict = response.model_dump()
     if response.is_preview:
-        ui = build_order_preview_ui(order_dict, "Sales Order")
+        ui = build_order_preview_ui(
+            order_dict,
+            "Sales Order",
+            request=request.model_dump(),
+            confirm_action=call_tool_from_request(
+                "create_sales_order",
+                CreateSalesOrderRequest,
+                overrides={"confirm": True},
+            ),
+        )
     else:
         ui = build_order_created_ui(order_dict, "Sales Order")
 

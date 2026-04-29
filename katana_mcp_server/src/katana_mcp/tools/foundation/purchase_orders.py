@@ -106,16 +106,38 @@ class PurchaseOrderResponse(BaseModel):
     message: str
 
 
-def _po_response_to_tool_result(response: PurchaseOrderResponse) -> ToolResult:
-    """Convert PurchaseOrderResponse to ToolResult with the appropriate Prefab UI."""
+def _po_response_to_tool_result(
+    response: PurchaseOrderResponse,
+    request: CreatePurchaseOrderRequest | None = None,
+) -> ToolResult:
+    """Convert PurchaseOrderResponse to ToolResult with the appropriate Prefab UI.
+
+    When ``request`` is supplied (preview path), the rendered UI's
+    "Confirm & Create" button invokes ``create_purchase_order`` directly via
+    ``CallTool`` with the original args + ``confirm=True``.
+    """
     from katana_mcp.tools.prefab_ui import (
         build_order_created_ui,
         build_order_preview_ui,
+        call_tool_from_request,
     )
 
     order_dict = response.model_dump()
     if response.is_preview:
-        ui = build_order_preview_ui(order_dict, "Purchase Order")
+        ui = build_order_preview_ui(
+            order_dict,
+            "Purchase Order",
+            request=request.model_dump() if request is not None else None,
+            confirm_action=(
+                call_tool_from_request(
+                    "create_purchase_order",
+                    CreatePurchaseOrderRequest,
+                    overrides={"confirm": True},
+                )
+                if request is not None
+                else None
+            ),
+        )
     else:
         ui = build_order_created_ui(order_dict, "Purchase Order")
 
@@ -257,7 +279,7 @@ async def create_purchase_order(
     quantity, and price_per_unit. Use get_variant_details to look up variant IDs.
     """
     response = await _create_purchase_order_impl(request, context)
-    return _po_response_to_tool_result(response)
+    return _po_response_to_tool_result(response, request=request)
 
 
 # ============================================================================
@@ -298,12 +320,29 @@ class ReceivePurchaseOrderResponse(BaseModel):
 
 def _receive_response_to_tool_result(
     response: ReceivePurchaseOrderResponse,
+    request: ReceivePurchaseOrderRequest | None = None,
 ) -> ToolResult:
-    """Convert ReceivePurchaseOrderResponse to ToolResult with JSON content + Prefab UI."""
-    from katana_mcp.tools.prefab_ui import build_receipt_ui
+    """Convert ReceivePurchaseOrderResponse to ToolResult with JSON content + Prefab UI.
 
-    ui = build_receipt_ui(response.model_dump())
+    On the preview branch, ``request`` is plumbed into the UI so the
+    "Confirm Receipt" button can re-invoke ``receive_purchase_order``
+    directly with ``confirm=True`` and the original items[].
+    """
+    from katana_mcp.tools.prefab_ui import build_receipt_ui, call_tool_from_request
 
+    ui = build_receipt_ui(
+        response.model_dump(),
+        request=request.model_dump() if request is not None else None,
+        confirm_action=(
+            call_tool_from_request(
+                "receive_purchase_order",
+                ReceivePurchaseOrderRequest,
+                overrides={"confirm": True},
+            )
+            if request is not None
+            else None
+        ),
+    )
     return make_tool_result(response, ui=ui)
 
 
@@ -417,12 +456,12 @@ async def receive_purchase_order(
 ) -> ToolResult:
     """Receive delivered items from a purchase order and update inventory.
 
-    Two-step flow: confirm=false to preview, confirm=true to receive (prompts
-    for confirmation). Use verify_order_document first to validate a supplier
-    document against the PO before receiving. Requires the PO ID and row IDs.
+    Two-step flow: confirm=false to preview, confirm=true to receive. Use
+    verify_order_document first to validate a supplier document against the
+    PO before receiving. Requires the PO ID and row IDs.
     """
     response = await _receive_purchase_order_impl(request, context)
-    return _receive_response_to_tool_result(response)
+    return _receive_response_to_tool_result(response, request=request)
 
 
 # ============================================================================

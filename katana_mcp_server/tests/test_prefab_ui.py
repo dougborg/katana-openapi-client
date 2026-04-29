@@ -393,3 +393,127 @@ class TestBuildBatchRecipeUpdateUI:
         }
         app = build_batch_recipe_update_ui(response)
         _assert_valid_prefab(app)
+
+
+class TestCallToolFromRequest:
+    """Tests for the call_tool_from_request helper.
+
+    The helper introspects a Pydantic request model and emits a CallTool
+    action whose ``arguments`` template every field from iframe state.
+    Used to wire the Confirm buttons in preview UIs back to their tool with
+    ``confirm=True``, without an LLM round-trip.
+    """
+
+    def test_args_template_each_field(self):
+        from katana_mcp.tools.foundation.purchase_orders import (
+            CreatePurchaseOrderRequest,
+        )
+        from katana_mcp.tools.prefab_ui import call_tool_from_request
+
+        action = call_tool_from_request(
+            "create_purchase_order",
+            CreatePurchaseOrderRequest,
+            overrides={"confirm": True},
+        )
+        # Tool name is set
+        assert action.tool == "create_purchase_order"
+        # Every non-overridden field is templated from state.request
+        for fname in CreatePurchaseOrderRequest.model_fields:
+            if fname == "confirm":
+                continue  # overridden — verified separately
+            assert action.arguments[fname] == f"{{{{ request.{fname} }}}}"
+        # Override wins over the templated value
+        assert action.arguments["confirm"] is True
+
+    def test_state_key_override(self):
+        from katana_mcp.tools.foundation.orders import FulfillOrderRequest
+        from katana_mcp.tools.prefab_ui import call_tool_from_request
+
+        action = call_tool_from_request(
+            "fulfill_order", FulfillOrderRequest, state_key="response"
+        )
+        assert action.arguments["order_id"] == "{{ response.order_id }}"
+
+
+def _find_tool_call_actions(tree: object) -> list[dict]:
+    """Walk a Prefab envelope dict/list recursively and return every node
+    that looks like a ``toolCall`` action (i.e. a dict with ``action ==
+    "toolCall"``). Used by the confirm-button regression tests so they can
+    assert on the action's actual ``tool``/``arguments`` fields rather than
+    on the stringified envelope (which is brittle to ordering/quoting).
+    """
+    found: list[dict] = []
+    if isinstance(tree, dict):
+        if tree.get("action") == "toolCall":
+            found.append(tree)
+        for v in tree.values():
+            found.extend(_find_tool_call_actions(v))
+    elif isinstance(tree, list):
+        for item in tree:
+            found.extend(_find_tool_call_actions(item))
+    return found
+
+
+class TestConfirmButtonsUseCallTool:
+    """Tests asserting the Prefab confirm buttons emit CallTool actions
+    (not SendMessage) so the iframe re-invokes the tool directly with
+    ``confirm=True``, instead of round-tripping through the LLM.
+    """
+
+    def test_order_preview_confirm_action_emits_calltool(self):
+        from katana_mcp.tools.foundation.purchase_orders import (
+            CreatePurchaseOrderRequest,
+        )
+        from katana_mcp.tools.prefab_ui import call_tool_from_request
+
+        order_dict = {
+            "id": 1,
+            "order_number": "PO-1",
+            "supplier_id": 2,
+            "location_id": 3,
+            "status": "NOT_RECEIVED",
+            "entity_type": "regular",
+            "is_preview": True,
+            "warnings": [],
+            "next_actions": [],
+            "message": "Preview",
+        }
+        request_dict = {
+            "supplier_id": 2,
+            "location_id": 3,
+            "order_number": "PO-1",
+            "items": [],
+            "currency": "USD",
+            "expected_arrival_date": None,
+            "additional_info": None,
+            "status": "NOT_RECEIVED",
+            "confirm": False,
+        }
+        confirm_action = call_tool_from_request(
+            "create_purchase_order",
+            CreatePurchaseOrderRequest,
+            overrides={"confirm": True},
+        )
+        app = build_order_preview_ui(
+            order_dict,
+            "Purchase Order",
+            request=request_dict,
+            confirm_action=confirm_action,
+        )
+        envelope = app.to_json()
+
+        # Walk the envelope's view tree looking for a toolCall action that
+        # invokes create_purchase_order with confirm=True. If absent, the
+        # migration regressed — the button reverted to SendMessage.
+        actions = _find_tool_call_actions(envelope)
+        matching = [
+            a
+            for a in actions
+            if a.get("tool") == "create_purchase_order"
+            and a.get("arguments", {}).get("confirm") is True
+        ]
+        assert len(matching) == 1, (
+            f"Expected exactly one create_purchase_order toolCall with "
+            f"confirm=True; found {len(matching)}. Total toolCall actions "
+            f"in envelope: {len(actions)}."
+        )

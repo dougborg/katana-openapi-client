@@ -324,19 +324,28 @@ async def create_manufacturing_order(
     to also create MOs for subassemblies. This is what you want when processing
     a new sales order that needs production.
 
-    Two-step flow: confirm=false to preview, confirm=true to create (prompts
-    for confirmation).
+    Two-step flow: confirm=false to preview, confirm=true to create.
     """
     from katana_mcp.tools.prefab_ui import (
         build_order_created_ui,
         build_order_preview_ui,
+        call_tool_from_request,
     )
 
     response = await _create_manufacturing_order_impl(request, context)
 
     order_dict = response.model_dump()
     if response.is_preview:
-        ui = build_order_preview_ui(order_dict, "Manufacturing Order")
+        ui = build_order_preview_ui(
+            order_dict,
+            "Manufacturing Order",
+            request=request.model_dump(),
+            confirm_action=call_tool_from_request(
+                "create_manufacturing_order",
+                CreateManufacturingOrderRequest,
+                overrides={"confirm": True},
+            ),
+        )
     else:
         ui = build_order_created_ui(order_dict, "Manufacturing Order")
 
@@ -1946,10 +1955,25 @@ async def batch_update_manufacturing_order_recipes(
     """
     from fastmcp.tools import ToolResult
 
-    from katana_mcp.tools.prefab_ui import build_batch_recipe_update_ui
+    from katana_mcp.tools.prefab_ui import (
+        build_batch_recipe_update_ui,
+        call_tool_from_request,
+    )
 
     response = await _batch_update_impl(request, context)
-    ui = build_batch_recipe_update_ui(response.model_dump())
+    ui = build_batch_recipe_update_ui(
+        response.model_dump(),
+        request=request.model_dump() if response.is_preview else None,
+        confirm_action=(
+            call_tool_from_request(
+                "batch_update_manufacturing_order_recipes",
+                BatchUpdateRecipesRequest,
+                overrides={"confirm": True},
+            )
+            if response.is_preview
+            else None
+        ),
+    )
 
     return ToolResult(
         content=response.model_dump_json(),
