@@ -42,7 +42,7 @@ field was already enum-constrained on the request side via
 ### `PATCH /stock_transfers/{id}/status` — fixed by wrapper-strip
 
 The remaining failures here were a parsing artefact, not real drift: the scraped example
-was wrapped in `{"example": {...}}` (README.io's labelled- example markup). Adding the
+was wrapped in `{"example": {...}}` (README.io's labelled-example markup). Adding the
 `_unwrap_labeled_example` heuristic to the validator strips the wrapper before
 validation; schema is fine.
 

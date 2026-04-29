@@ -1479,9 +1479,12 @@ export type ManufacturingOrderOperationRow = {
    */
   status?: ManufacturingOperationStatus;
   /**
-   * Type classification of the operation
+   * Type of operation defining how time and cost are calculated.
+   * Same enum used on the request side
+   * (``Create/UpdateManufacturingOrderOperationRowRequest``).
+   *
    */
-  type?: string;
+  type?: ManufacturingOperationType;
   /**
    * Order/sequence of this operation within the manufacturing process
    */

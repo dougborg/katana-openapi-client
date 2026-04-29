@@ -720,7 +720,10 @@ class ManufacturingOrderOperationRow(DeletableEntity):
         Field(description="Current status of the operation"),
     ] = None
     type: Annotated[
-        str | None, Field(description="Type classification of the operation")
+        ProductOperationType | None,
+        Field(
+            description="Type of operation defining how time and cost are calculated.\nSame enum used on the request side\n(``Create/UpdateManufacturingOrderOperationRowRequest``).\n"
+        ),
     ] = None
     rank: Annotated[
         float | None,

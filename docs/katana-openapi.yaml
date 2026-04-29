@@ -3147,8 +3147,11 @@ components:
               description: Current status of the operation
               $ref: "#/components/schemas/ManufacturingOperationStatus"
             type:
-              type: string
-              description: Type classification of the operation
+              description: |
+                Type of operation defining how time and cost are calculated.
+                Same enum used on the request side
+                (``Create/UpdateManufacturingOrderOperationRowRequest``).
+              $ref: "#/components/schemas/ManufacturingOperationType"
             rank:
               type: number
               description: Order/sequence of this operation within the manufacturing process
