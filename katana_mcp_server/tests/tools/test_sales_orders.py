@@ -7,13 +7,19 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from katana_mcp.tools.foundation.sales_orders import (
     CreateSalesOrderRequest,
+    DeleteSalesOrderRequest,
     GetSalesOrderRequest,
     ListSalesOrdersRequest,
+    ModifySalesOrderRequest,
     SalesOrderAddress,
     SalesOrderItem,
+    SOHeaderPatch,
+    SORowAdd,
     _create_sales_order_impl,
+    _delete_sales_order_impl,
     _get_sales_order_impl,
     _list_sales_orders_impl,
+    _modify_sales_order_impl,
     get_sales_order,
     list_sales_orders,
 )
@@ -25,7 +31,12 @@ from katana_public_api_client.models import (
 )
 from katana_public_api_client.utils import APIError
 from tests.conftest import create_mock_context, patch_typed_cache_sync
-from tests.factories import make_sales_order, make_sales_order_row, seed_cache
+from tests.factories import (
+    make_sales_order,
+    make_sales_order_row,
+    mock_entity_for_modify,
+    seed_cache,
+)
 
 # ============================================================================
 # Unit Tests (with mocks)
@@ -1538,3 +1549,231 @@ async def test_get_sales_order_format_json_returns_json():
     data = json.loads(_content_text(result))
     assert data["id"] == 9
     assert data["order_no"] == "SO-9"
+
+
+# ============================================================================
+# modify_sales_order — unified modification surface
+# ============================================================================
+
+
+# Note: _SO_GET, _SO_UNWRAP_AS, _SO_UNWRAP_DATA are defined at top of file
+# (around line 572). Adding only the constants the modify/delete tests need.
+_MODIFY_SO_UPDATE = "katana_public_api_client.api.sales_order.update_sales_order"
+_MODIFY_SO_DELETE = "katana_public_api_client.api.sales_order.delete_sales_order"
+_MODIFY_SO_ROW_CREATE = (
+    "katana_public_api_client.api.sales_order_row.create_sales_order_row"
+)
+# The modify/delete dispatcher pipes through ``_modification_dispatch.unwrap_as``.
+_MODIFY_SO_UNWRAP_AS_LOCAL = "katana_mcp.tools._modification_dispatch.unwrap_as"
+
+
+def _mock_so(order_id: int = 1, order_no: str = "SO-1"):
+    """Build a mock SalesOrder attrs object with all fields defaulted to UNSET."""
+    return mock_entity_for_modify(SalesOrder, id=order_id, order_no=order_no)
+
+
+@pytest.mark.asyncio
+async def test_modify_so_requires_at_least_one_subpayload():
+    context, _ = create_mock_context()
+    with pytest.raises(ValueError, match="At least one sub-payload"):
+        await _modify_sales_order_impl(
+            ModifySalesOrderRequest(id=42, confirm=False), context
+        )
+
+
+@pytest.mark.asyncio
+async def test_modify_so_preview_emits_planned_actions():
+    """Preview returns one ActionResult per planned API call, all succeeded=None."""
+    context, _ = create_mock_context()
+    existing = _mock_so(order_id=42, order_no="SO-OLD")
+
+    with patch(
+        "katana_mcp.tools.foundation.sales_orders._fetch_sales_order_attrs",
+        new_callable=AsyncMock,
+        return_value=existing,
+    ):
+        request = ModifySalesOrderRequest(
+            id=42,
+            update_header=SOHeaderPatch(status="PACKED"),
+            add_rows=[SORowAdd(variant_id=100, quantity=2)],
+            confirm=False,
+        )
+        response = await _modify_sales_order_impl(request, context)
+
+    assert response.is_preview is True
+    assert response.entity_id == 42
+    assert len(response.actions) == 2
+    assert response.actions[0].operation == "update_header"
+    assert response.actions[1].operation == "add_row"
+    assert all(a.succeeded is None for a in response.actions)
+
+
+@pytest.mark.asyncio
+async def test_modify_so_confirm_executes_in_canonical_order():
+    """Header → row adds → row updates → row deletes → addresses → fulfillments → fees."""
+    context, _ = create_mock_context()
+    existing = _mock_so(order_id=42, order_no="SO-1")
+    updated_so = _mock_so(order_id=42, order_no="SO-1")
+    new_row = MagicMock()
+    new_row.id = 555
+
+    call_log: list[str] = []
+
+    async def fake_update_so(*, id, client, body):
+        call_log.append("PATCH /sales_orders/{id}")
+        resp = MagicMock()
+        resp.parsed = updated_so
+        return resp
+
+    async def fake_create_row(*, client, body):
+        call_log.append("POST /sales_order_rows")
+        resp = MagicMock()
+        resp.parsed = new_row
+        return resp
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.sales_orders._fetch_sales_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(f"{_MODIFY_SO_UPDATE}.asyncio_detailed", side_effect=fake_update_so),
+        patch(f"{_MODIFY_SO_ROW_CREATE}.asyncio_detailed", side_effect=fake_create_row),
+        patch(_MODIFY_SO_UNWRAP_AS_LOCAL, side_effect=[updated_so, new_row]),
+    ):
+        request = ModifySalesOrderRequest(
+            id=42,
+            update_header=SOHeaderPatch(status="PACKED"),
+            add_rows=[SORowAdd(variant_id=100, quantity=2)],
+            confirm=True,
+        )
+        response = await _modify_sales_order_impl(request, context)
+
+    assert response.is_preview is False
+    assert all(a.succeeded is True for a in response.actions)
+    assert call_log[0].startswith("PATCH")
+    assert call_log[1].startswith("POST")
+    assert response.prior_state is not None
+
+
+@pytest.mark.asyncio
+async def test_modify_so_address_update_marks_unknown_prior():
+    """Address has no get-by-id endpoint, so update previews always show
+    ``is_unknown_prior=True`` for the supplied fields."""
+    context, _ = create_mock_context()
+    existing = _mock_so(order_id=42, order_no="SO-1")
+
+    with patch(
+        "katana_mcp.tools.foundation.sales_orders._fetch_sales_order_attrs",
+        new_callable=AsyncMock,
+        return_value=existing,
+    ):
+        from katana_mcp.tools.foundation.sales_orders import SOAddressUpdate
+
+        request = ModifySalesOrderRequest(
+            id=42,
+            update_addresses=[
+                SOAddressUpdate(id=99, city="Springfield", zip="12345"),
+            ],
+            confirm=False,
+        )
+        response = await _modify_sales_order_impl(request, context)
+
+    assert response.is_preview is True
+    assert len(response.actions) == 1
+    assert response.actions[0].operation == "update_address"
+    diffs = response.actions[0].changes
+    assert all(c.is_unknown_prior for c in diffs)
+
+
+@pytest.mark.asyncio
+async def test_modify_so_fail_fast_halts_on_first_error():
+    context, _ = create_mock_context()
+    existing = _mock_so(order_id=42, order_no="SO-1")
+    updated_so = _mock_so(order_id=42, order_no="SO-1")
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.sales_orders._fetch_sales_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(f"{_MODIFY_SO_UPDATE}.asyncio_detailed", new_callable=AsyncMock),
+        patch(
+            f"{_MODIFY_SO_ROW_CREATE}.asyncio_detailed",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("boom"),
+        ),
+        patch(_MODIFY_SO_UNWRAP_AS_LOCAL, return_value=updated_so),
+    ):
+        request = ModifySalesOrderRequest(
+            id=42,
+            update_header=SOHeaderPatch(status="PACKED"),
+            add_rows=[SORowAdd(variant_id=100, quantity=2)],
+            confirm=True,
+        )
+        response = await _modify_sales_order_impl(request, context)
+
+    assert len(response.actions) == 2
+    assert response.actions[0].succeeded is True
+    assert response.actions[1].succeeded is False
+    assert "boom" in (response.actions[1].error or "")
+
+
+# ============================================================================
+# delete_sales_order — destructive sibling
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_delete_so_preview_returns_planned_action():
+    context, _ = create_mock_context()
+    existing = _mock_so(order_id=42, order_no="SO-1")
+
+    with patch(
+        "katana_mcp.tools.foundation.sales_orders._fetch_sales_order_attrs",
+        new_callable=AsyncMock,
+        return_value=existing,
+    ):
+        response = await _delete_sales_order_impl(
+            DeleteSalesOrderRequest(id=42, confirm=False), context
+        )
+
+    assert response.is_preview is True
+    assert response.entity_id == 42
+    assert len(response.actions) == 1
+    assert response.actions[0].operation == "delete"
+    assert response.actions[0].succeeded is None
+
+
+@pytest.mark.asyncio
+async def test_delete_so_confirm_calls_api_and_records_prior_state():
+    context, _ = create_mock_context()
+    existing = _mock_so(order_id=42, order_no="SO-1")
+    api_response = MagicMock()
+    api_response.status_code = 204
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.sales_orders._fetch_sales_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(
+            f"{_MODIFY_SO_DELETE}.asyncio_detailed", new_callable=AsyncMock
+        ) as mock_api,
+        patch(
+            "katana_mcp.tools._modification_dispatch.is_success",
+            return_value=True,
+        ),
+    ):
+        mock_api.return_value = api_response
+        response = await _delete_sales_order_impl(
+            DeleteSalesOrderRequest(id=42, confirm=True), context
+        )
+
+    assert response.is_preview is False
+    assert response.actions[0].succeeded is True
+    assert response.prior_state is not None
+    assert response.katana_url is None  # entity gone
+    mock_api.assert_awaited_once()

@@ -1,15 +1,21 @@
 """Sales order management tools for Katana MCP Server.
 
-Foundation tools for creating sales orders.
+Foundation tools covering the sales-order lifecycle: create, list, get
+(read-mostly tools), plus the unified modify/delete pair.
 
-These tools provide:
+Tools:
 - create_sales_order: Create sales orders with preview/confirm pattern
+- list_sales_orders / get_sales_order: discovery + exhaustive read
+- modify_sales_order: header + row CRUD + addresses + fulfillments +
+  shipping-fee CRUD via typed sub-payload slots
+- delete_sales_order: destructive sibling of modify_sales_order
 """
 
 from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
@@ -19,6 +25,27 @@ from pydantic import BaseModel, Field
 from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.tools._modification import (
+    ConfirmableRequest,
+    ModificationResponse,
+    compute_field_diff,
+    make_response_verifier,
+    to_tool_result,
+)
+from katana_mcp.tools._modification_dispatch import (
+    ActionSpec,
+    has_any_subpayload,
+    make_delete_apply,
+    make_patch_apply,
+    make_post_apply,
+    plan_creates,
+    plan_deletes,
+    plan_updates,
+    run_delete_plan,
+    run_modify_plan,
+    safe_fetch_for_diff,
+    unset_dict,
+)
 from katana_mcp.tools.list_coercion import CoercedIntListOpt
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
@@ -34,15 +61,62 @@ from katana_mcp.tools.tool_result_utils import (
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_mcp.web_urls import katana_web_url
+
+# Modify/delete API endpoints used by ``modify_sales_order`` /
+# ``delete_sales_order``. Hoisted to module scope for declarative dependency
+# tracking and consistency with the rest of the codebase.
+from katana_public_api_client.api.sales_order import (
+    delete_sales_order as api_delete_sales_order,
+    get_sales_order as api_get_sales_order,
+    update_sales_order as api_update_sales_order,
+)
+from katana_public_api_client.api.sales_order_address import (
+    create_sales_order_address as api_create_so_address,
+    delete_sales_order_address as api_delete_so_address,
+    update_sales_order_address as api_update_so_address,
+)
+from katana_public_api_client.api.sales_order_fulfillment import (
+    create_sales_order_fulfillment as api_create_so_fulfillment,
+    delete_sales_order_fulfillment as api_delete_so_fulfillment,
+    get_sales_order_fulfillment as api_get_so_fulfillment,
+    update_sales_order_fulfillment as api_update_so_fulfillment,
+)
+from katana_public_api_client.api.sales_order_row import (
+    create_sales_order_row as api_create_so_row,
+    delete_sales_order_row as api_delete_so_row,
+    get_sales_order_row as api_get_so_row,
+    update_sales_order_row as api_update_so_row,
+)
+from katana_public_api_client.api.sales_orders import (
+    create_sales_order_shipping_fee as api_create_so_shipping_fee,
+    delete_sales_order_shipping_fee as api_delete_so_shipping_fee,
+    get_sales_order_shipping_fee as api_get_so_shipping_fee,
+    update_sales_order_shipping_fee as api_update_so_shipping_fee,
+)
 from katana_public_api_client.client_types import UNSET, Unset
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
     AddressEntityType,
+    CreateSalesOrderAddressRequest as APICreateSOAddressRequest,
+    CreateSalesOrderFulfillmentRequest as APICreateSOFulfillmentRequest,
     CreateSalesOrderRequest as APICreateSalesOrderRequest,
     CreateSalesOrderRequestSalesOrderRowsItem,
+    CreateSalesOrderRowRequest as APICreateSORowRequest,
+    CreateSalesOrderShippingFeeRequest as APICreateSOShippingFeeRequest,
     CreateSalesOrderStatus,
     SalesOrder,
     SalesOrderAddress as APISalesOrderAddress,
+    SalesOrderFulfillment,
+    SalesOrderFulfillmentRowRequest,
+    SalesOrderFulfillmentStatus,
+    SalesOrderRow,
+    SalesOrderShippingFee,
+    UpdateSalesOrderAddressRequest as APIUpdateSOAddressRequest,
+    UpdateSalesOrderFulfillmentRequest as APIUpdateSOFulfillmentRequest,
+    UpdateSalesOrderRequest as APIUpdateSalesOrderRequest,
+    UpdateSalesOrderRowRequest as APIUpdateSORowRequest,
+    UpdateSalesOrderShippingFeeRequest as APIUpdateSOShippingFeeRequest,
+    UpdateSalesOrderStatus,
 )
 from katana_public_api_client.utils import unwrap_as
 
@@ -1301,6 +1375,624 @@ async def get_sales_order(
     )
 
 
+# ============================================================================
+# Tool: modify_sales_order — unified modification surface
+# ============================================================================
+
+
+class SOOperation(StrEnum):
+    """Operation names emitted on ActionSpecs by ``modify_sales_order`` /
+    ``delete_sales_order`` plan builders.
+    """
+
+    UPDATE_HEADER = "update_header"
+    DELETE = "delete"
+    ADD_ROW = "add_row"
+    UPDATE_ROW = "update_row"
+    DELETE_ROW = "delete_row"
+    ADD_ADDRESS = "add_address"
+    UPDATE_ADDRESS = "update_address"
+    DELETE_ADDRESS = "delete_address"
+    ADD_FULFILLMENT = "add_fulfillment"
+    UPDATE_FULFILLMENT = "update_fulfillment"
+    DELETE_FULFILLMENT = "delete_fulfillment"
+    ADD_SHIPPING_FEE = "add_shipping_fee"
+    UPDATE_SHIPPING_FEE = "update_shipping_fee"
+    DELETE_SHIPPING_FEE = "delete_shipping_fee"
+
+
+# Tool-facing literals — values match the API StrEnum's ``.value`` directly,
+# so ``EnumClass(literal)`` resolves the enum without a lookup table.
+SalesOrderStatusLiteral = Literal["NOT_SHIPPED", "PENDING", "PACKED", "DELIVERED"]
+FulfillmentStatusLiteral = Literal["DELIVERED", "PACKED"]
+AddressEntityTypeLiteral = Literal["billing", "shipping"]
+
+
+# ----------------------------------------------------------------------------
+# Diff-context fetchers
+# ----------------------------------------------------------------------------
+
+
+async def _fetch_sales_order_attrs(services: Any, so_id: int) -> SalesOrder | None:
+    return await safe_fetch_for_diff(
+        api_get_sales_order, services, so_id, return_type=SalesOrder, label="SO"
+    )
+
+
+async def _fetch_so_row(services: Any, row_id: int) -> SalesOrderRow | None:
+    return await safe_fetch_for_diff(
+        api_get_so_row, services, row_id, return_type=SalesOrderRow, label="SO row"
+    )
+
+
+async def _fetch_so_fulfillment(
+    services: Any, fulfillment_id: int
+) -> SalesOrderFulfillment | None:
+    return await safe_fetch_for_diff(
+        api_get_so_fulfillment,
+        services,
+        fulfillment_id,
+        return_type=SalesOrderFulfillment,
+        label="SO fulfillment",
+    )
+
+
+async def _fetch_so_shipping_fee(
+    services: Any, fee_id: int
+) -> SalesOrderShippingFee | None:
+    return await safe_fetch_for_diff(
+        api_get_so_shipping_fee,
+        services,
+        fee_id,
+        return_type=SalesOrderShippingFee,
+        label="SO shipping fee",
+    )
+
+
+# Note: addresses do not have a get-by-id endpoint (only list-by-SO). Updates
+# go through with ``unknown_prior=True`` since we can't cheaply fetch one row.
+
+
+# ----------------------------------------------------------------------------
+# Sub-payload models (typed slots on ModifySalesOrderRequest)
+# ----------------------------------------------------------------------------
+
+
+class SOHeaderPatch(BaseModel):
+    """Header fields to patch on an SO. Status is included here — the Katana
+    PATCH endpoint accepts it as a regular field."""
+
+    order_no: str | None = Field(default=None, description="New SO number")
+    customer_id: int | None = Field(default=None, description="New customer ID")
+    location_id: int | None = Field(default=None, description="New location ID")
+    status: SalesOrderStatusLiteral | None = Field(
+        default=None,
+        description="New status — NOT_SHIPPED / PENDING / PACKED / DELIVERED",
+    )
+    currency: str | None = Field(default=None, description="New currency code")
+    conversion_rate: float | None = Field(
+        default=None, description="New currency conversion rate"
+    )
+    conversion_date: str | None = Field(
+        default=None, description="New conversion date (ISO-8601)"
+    )
+    order_created_date: datetime | None = Field(
+        default=None, description="New order created date"
+    )
+    delivery_date: datetime | None = Field(
+        default=None, description="New delivery date"
+    )
+    picked_date: datetime | None = Field(default=None, description="New picked date")
+    additional_info: str | None = Field(
+        default=None, description="New notes / additional info"
+    )
+    customer_ref: str | None = Field(default=None, description="New customer reference")
+    tracking_number: str | None = Field(default=None, description="Tracking number")
+    tracking_number_url: str | None = Field(default=None, description="Tracking URL")
+
+
+class SORowAdd(BaseModel):
+    """A new line item to add to the SO."""
+
+    variant_id: int = Field(..., description="Variant ID")
+    quantity: float = Field(..., description="Quantity", gt=0)
+    price_per_unit: float | None = Field(default=None, description="Unit price")
+    tax_rate_id: int | None = Field(default=None, description="Tax rate ID")
+    location_id: int | None = Field(default=None, description="Location ID")
+    total_discount: float | None = Field(default=None, description="Total discount")
+
+
+class SORowUpdate(BaseModel):
+    """Patch to an existing SO row."""
+
+    id: int = Field(..., description="Row ID to update")
+    variant_id: int | None = Field(default=None, description="New variant ID")
+    quantity: float | None = Field(default=None, description="New quantity", gt=0)
+    price_per_unit: float | None = Field(default=None, description="New unit price")
+    tax_rate_id: int | None = Field(default=None, description="New tax rate ID")
+    location_id: int | None = Field(default=None, description="New location ID")
+    total_discount: float | None = Field(default=None, description="New discount")
+
+
+class SOAddressAdd(BaseModel):
+    """A new address to attach to the SO."""
+
+    entity_type: AddressEntityTypeLiteral = Field(
+        ..., description="Address kind — billing or shipping"
+    )
+    first_name: str | None = Field(default=None)
+    last_name: str | None = Field(default=None)
+    company: str | None = Field(default=None)
+    city: str | None = Field(default=None)
+    state: str | None = Field(default=None)
+    zip: str | None = Field(default=None)
+    country: str | None = Field(default=None)
+    phone: str | None = Field(default=None)
+
+
+class SOAddressUpdate(BaseModel):
+    """Patch to an existing SO address. Address get-by-id isn't exposed by
+    the Katana API, so previews show every supplied field as
+    ``is_unknown_prior=True`` — we can't read the prior values cheaply."""
+
+    id: int = Field(..., description="Address ID to update")
+    first_name: str | None = Field(default=None)
+    last_name: str | None = Field(default=None)
+    company: str | None = Field(default=None)
+    city: str | None = Field(default=None)
+    state: str | None = Field(default=None)
+    zip: str | None = Field(default=None)
+    country: str | None = Field(default=None)
+    phone: str | None = Field(default=None)
+
+
+class SOFulfillmentRowInput(BaseModel):
+    """A row inside a fulfillment — references an SO row + a quantity to fulfill."""
+
+    sales_order_row_id: int = Field(..., description="SO row being fulfilled")
+    quantity: float = Field(..., description="Quantity fulfilled", gt=0)
+
+
+class SOFulfillmentAdd(BaseModel):
+    """A new fulfillment for the SO."""
+
+    status: FulfillmentStatusLiteral = Field(
+        ..., description="Fulfillment status — DELIVERED or PACKED"
+    )
+    sales_order_fulfillment_rows: list[SOFulfillmentRowInput] = Field(
+        ..., description="Rows being fulfilled (variant + quantity)", min_length=1
+    )
+    picked_date: datetime | None = Field(default=None)
+    conversion_rate: float | None = Field(default=None)
+    conversion_date: datetime | None = Field(default=None)
+    tracking_number: str | None = Field(default=None)
+    tracking_url: str | None = Field(default=None)
+    tracking_carrier: str | None = Field(default=None)
+    tracking_method: str | None = Field(default=None)
+
+
+class SOFulfillmentUpdate(BaseModel):
+    """Patch to an existing SO fulfillment."""
+
+    id: int = Field(..., description="Fulfillment ID to update")
+    status: FulfillmentStatusLiteral | None = Field(default=None)
+    picked_date: datetime | None = Field(default=None)
+    packer_id: int | None = Field(default=None, description="New packer (operator)")
+    conversion_rate: float | None = Field(default=None)
+    conversion_date: datetime | None = Field(default=None)
+    tracking_number: str | None = Field(default=None)
+    tracking_url: str | None = Field(default=None)
+    tracking_carrier: str | None = Field(default=None)
+    tracking_method: str | None = Field(default=None)
+
+
+class SOShippingFeeAdd(BaseModel):
+    """A new shipping fee to attach to the SO."""
+
+    amount: str = Field(..., description="Fee amount (decimal string)")
+    description: str | None = Field(default=None)
+    tax_rate_id: int | None = Field(default=None)
+
+
+class SOShippingFeeUpdate(BaseModel):
+    """Patch to an existing SO shipping fee.
+
+    Note: Katana's API requires ``amount`` even on PATCH — it's a replace
+    semantic on the fee's amount, not a partial update. The other fields
+    are genuinely optional.
+    """
+
+    id: int = Field(..., description="Shipping fee ID to update")
+    amount: str = Field(..., description="Fee amount (required by API)")
+    description: str | None = Field(default=None)
+    tax_rate_id: int | None = Field(default=None)
+
+
+class ModifySalesOrderRequest(ConfirmableRequest):
+    """Unified modification request for a sales order.
+
+    Sub-payload slots span header + rows + addresses + fulfillments +
+    shipping fees. Multiple slots can be combined; actions execute in
+    canonical order. To remove the SO entirely, use ``delete_sales_order``.
+    """
+
+    id: int = Field(..., description="Sales order ID")
+    update_header: SOHeaderPatch | None = Field(default=None)
+    add_rows: list[SORowAdd] | None = Field(default=None)
+    update_rows: list[SORowUpdate] | None = Field(default=None)
+    delete_row_ids: list[int] | None = Field(default=None)
+    add_addresses: list[SOAddressAdd] | None = Field(default=None)
+    update_addresses: list[SOAddressUpdate] | None = Field(default=None)
+    delete_address_ids: list[int] | None = Field(default=None)
+    add_fulfillments: list[SOFulfillmentAdd] | None = Field(default=None)
+    update_fulfillments: list[SOFulfillmentUpdate] | None = Field(default=None)
+    delete_fulfillment_ids: list[int] | None = Field(default=None)
+    add_shipping_fees: list[SOShippingFeeAdd] | None = Field(default=None)
+    update_shipping_fees: list[SOShippingFeeUpdate] | None = Field(default=None)
+    delete_shipping_fee_ids: list[int] | None = Field(default=None)
+
+
+class DeleteSalesOrderRequest(ConfirmableRequest):
+    """Delete a sales order. Destructive — Katana cascades child rows /
+    addresses / fulfillments / shipping fees server-side.
+    """
+
+    id: int = Field(..., description="Sales order ID to delete")
+
+
+# ----------------------------------------------------------------------------
+# API request builders — pure data shaping per sub-payload kind.
+# ----------------------------------------------------------------------------
+
+
+def _build_update_header_request(patch: SOHeaderPatch) -> APIUpdateSalesOrderRequest:
+    return APIUpdateSalesOrderRequest(
+        **unset_dict(patch, transforms={"status": UpdateSalesOrderStatus})
+    )
+
+
+def _build_create_row_request(so_id: int, row: SORowAdd) -> APICreateSORowRequest:
+    return APICreateSORowRequest(sales_order_id=so_id, **unset_dict(row))
+
+
+def _build_update_row_request(patch: SORowUpdate) -> APIUpdateSORowRequest:
+    return APIUpdateSORowRequest(**unset_dict(patch, exclude=("id",)))
+
+
+def _build_create_address_request(
+    so_id: int, addr: SOAddressAdd
+) -> APICreateSOAddressRequest:
+    return APICreateSOAddressRequest(
+        sales_order_id=so_id,
+        **unset_dict(
+            addr,
+            field_map={"zip": "zip_"},
+            transforms={"entity_type": AddressEntityType},
+        ),
+    )
+
+
+def _build_update_address_request(
+    patch: SOAddressUpdate,
+) -> APIUpdateSOAddressRequest:
+    return APIUpdateSOAddressRequest(
+        **unset_dict(patch, exclude=("id",), field_map={"zip": "zip_"})
+    )
+
+
+def _build_create_fulfillment_request(
+    so_id: int, fulfillment: SOFulfillmentAdd
+) -> APICreateSOFulfillmentRequest:
+    rows = [
+        SalesOrderFulfillmentRowRequest(
+            sales_order_row_id=r.sales_order_row_id, quantity=r.quantity
+        )
+        for r in fulfillment.sales_order_fulfillment_rows
+    ]
+    return APICreateSOFulfillmentRequest(
+        sales_order_id=so_id,
+        sales_order_fulfillment_rows=rows,
+        **unset_dict(
+            fulfillment,
+            exclude=("sales_order_fulfillment_rows",),
+            transforms={"status": SalesOrderFulfillmentStatus},
+        ),
+    )
+
+
+def _build_update_fulfillment_request(
+    patch: SOFulfillmentUpdate,
+) -> APIUpdateSOFulfillmentRequest:
+    return APIUpdateSOFulfillmentRequest(
+        **unset_dict(
+            patch,
+            exclude=("id",),
+            transforms={"status": SalesOrderFulfillmentStatus},
+        )
+    )
+
+
+def _build_create_shipping_fee_request(
+    so_id: int, fee: SOShippingFeeAdd
+) -> APICreateSOShippingFeeRequest:
+    return APICreateSOShippingFeeRequest(sales_order_id=so_id, **unset_dict(fee))
+
+
+def _build_update_shipping_fee_request(
+    patch: SOShippingFeeUpdate,
+) -> APIUpdateSOShippingFeeRequest:
+    return APIUpdateSOShippingFeeRequest(**unset_dict(patch, exclude=("id",)))
+
+
+# ----------------------------------------------------------------------------
+# Implementations
+# ----------------------------------------------------------------------------
+
+
+async def _modify_sales_order_impl(
+    request: ModifySalesOrderRequest, context: Context
+) -> ModificationResponse:
+    """Build the action plan from the request's sub-payloads and either
+    preview or execute based on ``confirm``."""
+    services = get_services(context)
+
+    if not has_any_subpayload(request):
+        raise ValueError(
+            "At least one sub-payload must be set: update_header, "
+            "add/update/delete_rows, add/update/delete_addresses, "
+            "add/update/delete_fulfillments, or "
+            "add/update/delete_shipping_fees. To remove the SO entirely, "
+            "use delete_sales_order."
+        )
+
+    existing_so = await _fetch_sales_order_attrs(services, request.id)
+
+    plan: list[ActionSpec] = []
+
+    # Header — single optional patch.
+    if request.update_header is not None:
+        diff = compute_field_diff(
+            existing_so, request.update_header, unknown_prior=existing_so is None
+        )
+        plan.append(
+            ActionSpec(
+                operation=SOOperation.UPDATE_HEADER,
+                target_id=request.id,
+                diff=diff,
+                apply=make_patch_apply(
+                    api_update_sales_order,
+                    services,
+                    request.id,
+                    _build_update_header_request(request.update_header),
+                    return_type=SalesOrder,
+                ),
+                verify=make_response_verifier(diff),
+            )
+        )
+
+    # Rows.
+    plan.extend(
+        plan_creates(
+            request.add_rows,
+            SOOperation.ADD_ROW,
+            lambda row: _build_create_row_request(request.id, row),
+            lambda body: make_post_apply(
+                api_create_so_row, services, body, return_type=SalesOrderRow
+            ),
+        )
+    )
+    plan.extend(
+        await plan_updates(
+            request.update_rows,
+            SOOperation.UPDATE_ROW,
+            lambda rid: _fetch_so_row(services, rid),
+            _build_update_row_request,
+            lambda rid, body: make_patch_apply(
+                api_update_so_row, services, rid, body, return_type=SalesOrderRow
+            ),
+        )
+    )
+    plan.extend(
+        plan_deletes(
+            request.delete_row_ids,
+            SOOperation.DELETE_ROW,
+            lambda rid: make_delete_apply(api_delete_so_row, services, rid),
+        )
+    )
+
+    # Addresses. Updates have no get-by-id endpoint, so fetcher is None
+    # (every diff marks ``is_unknown_prior=True``).
+    plan.extend(
+        plan_creates(
+            request.add_addresses,
+            SOOperation.ADD_ADDRESS,
+            lambda addr: _build_create_address_request(request.id, addr),
+            lambda body: make_post_apply(
+                api_create_so_address, services, body, return_type=APISalesOrderAddress
+            ),
+        )
+    )
+    plan.extend(
+        await plan_updates(
+            request.update_addresses,
+            SOOperation.UPDATE_ADDRESS,
+            None,  # no get-by-id endpoint
+            _build_update_address_request,
+            lambda aid, body: make_patch_apply(
+                api_update_so_address,
+                services,
+                aid,
+                body,
+                return_type=APISalesOrderAddress,
+            ),
+        )
+    )
+    plan.extend(
+        plan_deletes(
+            request.delete_address_ids,
+            SOOperation.DELETE_ADDRESS,
+            lambda aid: make_delete_apply(api_delete_so_address, services, aid),
+        )
+    )
+
+    # Fulfillments.
+    plan.extend(
+        plan_creates(
+            request.add_fulfillments,
+            SOOperation.ADD_FULFILLMENT,
+            lambda fulfillment: _build_create_fulfillment_request(
+                request.id, fulfillment
+            ),
+            lambda body: make_post_apply(
+                api_create_so_fulfillment,
+                services,
+                body,
+                return_type=SalesOrderFulfillment,
+            ),
+        )
+    )
+    plan.extend(
+        await plan_updates(
+            request.update_fulfillments,
+            SOOperation.UPDATE_FULFILLMENT,
+            lambda fid: _fetch_so_fulfillment(services, fid),
+            _build_update_fulfillment_request,
+            lambda fid, body: make_patch_apply(
+                api_update_so_fulfillment,
+                services,
+                fid,
+                body,
+                return_type=SalesOrderFulfillment,
+            ),
+        )
+    )
+    plan.extend(
+        plan_deletes(
+            request.delete_fulfillment_ids,
+            SOOperation.DELETE_FULFILLMENT,
+            lambda fid: make_delete_apply(api_delete_so_fulfillment, services, fid),
+        )
+    )
+
+    # Shipping fees.
+    plan.extend(
+        plan_creates(
+            request.add_shipping_fees,
+            SOOperation.ADD_SHIPPING_FEE,
+            lambda fee: _build_create_shipping_fee_request(request.id, fee),
+            lambda body: make_post_apply(
+                api_create_so_shipping_fee,
+                services,
+                body,
+                return_type=SalesOrderShippingFee,
+            ),
+        )
+    )
+    plan.extend(
+        await plan_updates(
+            request.update_shipping_fees,
+            SOOperation.UPDATE_SHIPPING_FEE,
+            lambda fid: _fetch_so_shipping_fee(services, fid),
+            _build_update_shipping_fee_request,
+            lambda fid, body: make_patch_apply(
+                api_update_so_shipping_fee,
+                services,
+                fid,
+                body,
+                return_type=SalesOrderShippingFee,
+            ),
+        )
+    )
+    plan.extend(
+        plan_deletes(
+            request.delete_shipping_fee_ids,
+            SOOperation.DELETE_SHIPPING_FEE,
+            lambda fid: make_delete_apply(api_delete_so_shipping_fee, services, fid),
+        )
+    )
+
+    return await run_modify_plan(
+        request=request,
+        entity_type="sales_order",
+        entity_label=f"sales order {request.id}",
+        tool_name="modify_sales_order",
+        web_url_kind="sales_order",
+        existing=existing_so,
+        plan=plan,
+    )
+
+
+@observe_tool
+@unpack_pydantic_params
+async def modify_sales_order(
+    request: Annotated[ModifySalesOrderRequest, Unpack()], context: Context
+) -> ToolResult:
+    """Modify a sales order — unified surface across header, rows, addresses,
+    fulfillments, and shipping fees.
+
+    Sub-payloads (any subset, all optional):
+
+    - ``update_header`` — patch header fields (incl. status)
+    - ``add_rows`` / ``update_rows`` / ``delete_row_ids`` — line item CRUD
+    - ``add_addresses`` / ``update_addresses`` / ``delete_address_ids`` —
+      billing/shipping addresses
+    - ``add_fulfillments`` / ``update_fulfillments`` / ``delete_fulfillment_ids`` —
+      fulfillments (each carries its own status + tracking)
+    - ``add_shipping_fees`` / ``update_shipping_fees`` /
+      ``delete_shipping_fee_ids`` — shipping/freight charges
+
+    To remove an SO entirely, use the sibling ``delete_sales_order`` tool.
+
+    Two-step flow: ``confirm=false`` returns a per-action preview;
+    ``confirm=true`` executes the plan in canonical order. Fail-fast on
+    error; per-action ``verified`` reflects post-execution re-fetch
+    confirmation (when supported by the resource).
+
+    The response carries a ``prior_state`` snapshot of the pre-modification
+    SO. Note: address updates can't be diffed pre-execution because Katana
+    doesn't expose a per-address GET; their previews show every supplied
+    field as ``(prior unknown) → new``.
+    """
+    response = await _modify_sales_order_impl(request, context)
+    return to_tool_result(response)
+
+
+# ============================================================================
+# Tool: delete_sales_order
+# ============================================================================
+
+
+async def _delete_sales_order_impl(
+    request: DeleteSalesOrderRequest, context: Context
+) -> ModificationResponse:
+    """One-action plan that removes the SO. Katana cascades child rows,
+    addresses, fulfillments, and shipping fees server-side."""
+    return await run_delete_plan(
+        request=request,
+        services=get_services(context),
+        entity_type="sales_order",
+        entity_label=f"sales order {request.id}",
+        web_url_kind="sales_order",
+        fetcher=_fetch_sales_order_attrs,
+        delete_endpoint=api_delete_sales_order,
+        operation=SOOperation.DELETE,
+    )
+
+
+@observe_tool
+@unpack_pydantic_params
+async def delete_sales_order(
+    request: Annotated[DeleteSalesOrderRequest, Unpack()], context: Context
+) -> ToolResult:
+    """Delete a sales order. Destructive — Katana cascades the delete to
+    child rows / addresses / fulfillments / shipping fees server-side.
+
+    The response carries a ``prior_state`` snapshot for manual revert.
+    """
+    response = await _delete_sales_order_impl(request, context)
+    return to_tool_result(response)
+
+
 def register_tools(mcp: FastMCP) -> None:
     """Register all sales order tools with the FastMCP instance.
 
@@ -1316,18 +2008,29 @@ def register_tools(mcp: FastMCP) -> None:
         openWorldHint=True,
     )
 
+    _write = ToolAnnotations(
+        readOnlyHint=False, destructiveHint=False, openWorldHint=True
+    )
+    _update = ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=True,
+    )
+    _destructive = ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=True,
+        idempotentHint=True,
+        openWorldHint=True,
+    )
+
+    mcp.tool(tags={"orders", "sales", "write"}, annotations=_write, meta=UI_META)(
+        create_sales_order
+    )
+    mcp.tool(tags={"orders", "sales", "read"}, annotations=_read)(list_sales_orders)
+    mcp.tool(tags={"orders", "sales", "read"}, annotations=_read)(get_sales_order)
+    mcp.tool(tags={"orders", "sales", "write"}, annotations=_update)(modify_sales_order)
     mcp.tool(
-        tags={"orders", "sales", "write"},
-        annotations=ToolAnnotations(
-            readOnlyHint=False, destructiveHint=False, openWorldHint=True
-        ),
-        meta=UI_META,
-    )(create_sales_order)
-    mcp.tool(
-        tags={"orders", "sales", "read"},
-        annotations=_read,
-    )(list_sales_orders)
-    mcp.tool(
-        tags={"orders", "sales", "read"},
-        annotations=_read,
-    )(get_sales_order)
+        tags={"orders", "sales", "write", "destructive"},
+        annotations=_destructive,
+    )(delete_sales_order)

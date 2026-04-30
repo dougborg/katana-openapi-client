@@ -28,8 +28,6 @@ UI_TOOL_NAMES = {
     "search_items",
     "create_item",
     "get_item",
-    "update_item",
-    "delete_item",
     "get_variant_details",
     "create_product",
     "create_material",
@@ -40,7 +38,6 @@ UI_TOOL_NAMES = {
     "receive_purchase_order",
     "verify_order_document",
     "create_manufacturing_order",
-    "batch_update_manufacturing_order_recipes",
     "fulfill_order",
 }
 

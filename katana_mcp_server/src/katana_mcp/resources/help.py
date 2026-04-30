@@ -39,6 +39,7 @@ Manufacturing ERP tools for inventory, orders, and production management.
 
 ### Inventory & Catalog
 - **search_items** - Find products, materials, services by name/SKU
+- **get_item** / **modify_item** / **delete_item** - Full CRUD on items (products / materials / services). `modify_item` carries header + variant CRUD in one call via typed sub-payload slots.
 - **get_variant_details** - Get full details for a specific item
 - **check_inventory** - Check stock levels for one or more SKUs or variant IDs (pass a list for a summary table)
 - **list_low_stock_items** - Find items needing reorder
@@ -50,24 +51,26 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **receive_purchase_order** - Receive items and update inventory
 - **verify_order_document** - Verify supplier documents against POs (returns the full PO alongside match/discrepancy details)
 - **get_purchase_order** - Look up a PO by number or ID — exhaustive detail (every PO/row field, additional cost rows, accounting metadata)
-- **update_purchase_order** - Update header fields (incl. status, expected_arrival_date)
-- **delete_purchase_order** - Delete a PO (preview/confirm)
-- **add_purchase_order_row / update_purchase_order_row / delete_purchase_order_row** - Full row-level CRUD with per-field diff previews
-- **add_purchase_order_additional_cost / update_purchase_order_additional_cost / delete_purchase_order_additional_cost** - Manage freight/duty/handling cost rows
+- **modify_purchase_order** - Unified modify: header, rows, additional-cost rows in one call (typed sub-payload slots, multi-action, preview/confirm)
+- **delete_purchase_order** - Delete a PO (Katana cascades child rows)
 
 ### Manufacturing & Sales
 - **create_manufacturing_order** - Create production work orders
 - **list_manufacturing_orders** - List MOs with status/location/date filters
 - **get_manufacturing_order** - Look up an MO with full details
+- **modify_manufacturing_order** - Unified modify: header, recipe rows, operation rows, production records (multi-action, preview/confirm)
+- **delete_manufacturing_order** - Delete an MO (Katana cascades child rows)
 - **fulfill_order** - Complete manufacturing or sales orders
 - **create_sales_order** - Create sales orders with preview/confirm
 - **list_sales_orders** - List SOs with customer/status/date filters
+- **get_sales_order** - Look up an SO with full details
+- **modify_sales_order** - Unified modify: header, rows, addresses, fulfillments, shipping fees (multi-action, preview/confirm)
+- **delete_sales_order** - Delete an SO (Katana cascades child rows)
 
 ### Stock Transfers
 - **create_stock_transfer** - Move inventory between locations (preview/confirm)
 - **list_stock_transfers** - List transfers with status / location / date filters
-- **update_stock_transfer** - Update transfer body fields
-- **update_stock_transfer_status** - Transition status (DRAFT → IN_TRANSIT → RECEIVED)
+- **modify_stock_transfer** - Unified modify: header body fields and/or status transition in one call (preview/confirm). Hides Katana's two-endpoint split.
 - **delete_stock_transfer** - Delete a transfer
 
 ## Safety Pattern
@@ -79,6 +82,35 @@ All create/modify operations use a **two-step confirm pattern**:
 Destructive tools advertise this via the standard MCP `destructiveHint`
 tool annotation; hosts that respect the annotation prompt the user before
 invoking. The server does not gate further.
+
+## Unified-Modify Pattern
+
+Five entities (PO, SO, MO, stock transfer, item) expose a unified
+`modify_<entity>` tool that lets you do header / row / sub-resource CRUD
+in a single call via typed sub-payload slots. Every modify tool follows
+the same shape:
+
+- **Typed sub-payload slots** — one optional field per kind of action
+  the entity supports (e.g. `update_header`, `add_rows`, `update_rows`,
+  `delete_row_ids`). Set any subset; combinations are valid.
+- **Multi-action confirm** — actions execute in canonical order
+  (header → adds → updates → deletes → status). The Katana API is not
+  transactional across endpoints; the dispatcher fail-fasts on the
+  first error, leaving earlier successful actions applied.
+- **Prior-state snapshot** — on a confirmed call, the response carries
+  a `prior_state` snapshot of the pre-modification entity (best-effort:
+  `prior_state` is `null` when the entity has no GET-by-id endpoint,
+  e.g. stock transfer, or the diff-context fetch failed). Callers can
+  compose a follow-up modify call to manually revert if needed. We
+  don't auto-revert via inverse calls — those have their own failure
+  modes; visible partial application beats silent inconsistency.
+- **Post-action verification** — for actions where the API returns the
+  mutated entity, the dispatcher confirms the requested fields match
+  the response. Verification failures surface as
+  `verified=False` with `actual_after` snapshot — they don't raise.
+
+Destructive `delete_<entity>` tools are siblings of the modify tools —
+keeping them separate makes the destructiveHint annotation honest.
 
 ## Output Format
 
@@ -659,17 +691,57 @@ Create a new item (product, material, or service).
 
 ---
 
-### get_item / update_item / delete_item
-CRUD operations for items by ID and type.
-
-**get_item** is exhaustive — it surfaces every field Katana exposes on the
+### get_item
+Look up an item by ID and type — exhaustive detail across the
 polymorphic Product / Material / Service record, plus nested `variants`
 (summary), `configs`, and `supplier`. Type-specific fields
 (`is_producible` on products, etc.) stay `null` for the other types.
-Parameters: `id` (required), `type` (required — "product" | "material" |
-"service"), `format` (optional, "markdown" | "json"). For per-variant
-detail (barcodes, supplier codes, custom fields), follow up with
-`get_variant_details`.
+
+**Parameters:**
+- `id` (required): Item ID
+- `type` (required): "product" | "material" | "service"
+- `format` (optional, default "markdown"): "markdown" | "json"
+
+For per-variant detail (barcodes, supplier codes, custom fields), follow
+up with `get_variant_details`.
+
+---
+
+### modify_item
+Unified modification surface for an item — header + variant CRUD in one
+call. The required `type` discriminator routes header updates to the
+matching `/products/{id}` / `/materials/{id}` / `/services/{id}`
+endpoint; variant sub-payloads route to the shared `/variant` family.
+
+**Sub-payloads (all optional, any subset combinable):**
+- `update_header` — patch header fields. Field set is type-specific:
+  `is_producible` / `is_purchasable` / `is_auto_assembly` /
+  `serial_tracked` / `operations_in_sequence` are PRODUCT-only;
+  `default_supplier_id` / `batch_tracked` / `purchase_uom` /
+  `purchase_uom_conversion_rate` are PRODUCT/MATERIAL only;
+  `sales_price` / `default_cost` / `sku` are SERVICE-only. Misrouted
+  fields fail fast with a clear error.
+- `add_variants` — POST `/variant`. Parent `product_id` / `material_id`
+  is injected automatically from the request's `type`. Not supported
+  for SERVICE (services carry pricing on the header, not on variants).
+- `update_variants` / `delete_variant_ids` — variant CRUD. Not supported
+  for SERVICE.
+
+**Parameters:**
+- `id` (required): Item ID
+- `type` (required): "product" | "material" | "service"
+- Any subset of the sub-payloads above
+- `confirm` (optional, default false): false=preview, true=execute
+
+---
+
+### delete_item
+Delete an item. Destructive — Katana cascades child variants server-side.
+
+**Parameters:**
+- `id` (required): Item ID
+- `type` (required): "product" | "material" | "service"
+- `confirm` (optional, default false): false=preview, true=delete
 
 ---
 
@@ -795,112 +867,43 @@ detail is needed; use `list_purchase_orders` for discovery.
 
 ---
 
-### update_purchase_order
-Update header fields on an existing PO. Status transitions are folded in
-here as a regular field — there's no separate `update_purchase_order_status`
-tool because Katana's API treats it as a normal PATCH field.
+### modify_purchase_order
+Unified modification surface for a PO — header, line rows, and
+additional-cost rows in one call. Replaces the prior 8 separate
+`update_purchase_order` / `add_purchase_order_row` etc. tools.
+
+**Sub-payloads (all optional, any subset combinable):**
+- `update_header` — patch header fields (`order_no`, `supplier_id`,
+  `currency`, `location_id`, `tracking_location_id`,
+  `expected_arrival_date`, `order_created_date`, `additional_info`,
+  `status`). Status uses the PATCH endpoint; to flip to RECEIVED with
+  inventory updates use `receive_purchase_order` instead.
+- `add_rows` / `update_rows` / `delete_row_ids` — line item CRUD.
+  `update_rows` entries each carry their own row id + patch.
+- `add_additional_costs` / `update_additional_costs` /
+  `delete_additional_cost_ids` — freight / duty / handling cost rows.
+  The tool resolves the PO's `default_group_id` automatically.
 
 **Parameters:**
 - `id` (required): Purchase order ID
-- `order_no`, `supplier_id`, `currency`, `location_id`,
-  `tracking_location_id`, `expected_arrival_date`, `order_created_date`,
-  `additional_info` (optional): Header fields to overwrite
-- `status` (optional): DRAFT / NOT_RECEIVED / PARTIALLY_RECEIVED / RECEIVED.
-  To flip to RECEIVED with inventory updates use `receive_purchase_order`
-  instead.
-- `confirm` (optional, default false): false=preview with per-field diff,
-  true=apply
+- Any subset of the sub-payloads above
+- `confirm` (optional, default false): false=preview with per-action diff,
+  true=execute the action plan in canonical order (header → adds → updates
+  → deletes); fail-fast on first error
 
-**Returns:** A `ModificationResponse` with `is_preview`, the per-field
-`changes` list (old/new for every supplied field), `katana_url`, and
-`next_actions`.
+**Returns:** A `ModificationResponse` with `is_preview`, an `actions` list
+(one entry per planned API call with `operation`, `target_id`, `changes`,
+`succeeded`, `verified`, `actual_after`), `prior_state` snapshot, and
+`katana_url`.
 
 ---
 
 ### delete_purchase_order
-Delete a purchase order. Destructive — the order record is removed.
+Delete a purchase order. Destructive — Katana cascades child rows server-side.
 
 **Parameters:**
 - `id` (required): Purchase order ID
 - `confirm` (optional, default false): false=preview, true=delete
-
----
-
-### add_purchase_order_row
-Add a new line item to an existing PO.
-
-**Parameters:**
-- `purchase_order_id` (required): Parent PO ID
-- `variant_id`, `quantity`, `price_per_unit` (required): Core line item
-- `tax_rate_id`, `tax_name`, `tax_rate`, `currency`, `purchase_uom`,
-  `purchase_uom_conversion_rate`, `arrival_date` (optional)
-- `confirm` (optional, default false)
-
----
-
-### update_purchase_order_row
-Update fields on an existing PO row. Accepts any subset of `quantity`,
-`variant_id`, taxes, `price_per_unit`, UOM fields, `received_date`, and the
-row-level `arrival_date` (separate from the PO header's arrival date — Katana
-tracks per-row dates so different lines on the same PO can arrive on
-different days).
-
-**Parameters:**
-- `id` (required): Row ID
-- Any subset of: `quantity`, `variant_id`, `tax_rate_id`, `tax_name`,
-  `tax_rate`, `price_per_unit`, `purchase_uom`,
-  `purchase_uom_conversion_rate`, `received_date`, `arrival_date`
-- `confirm` (optional, default false): false=preview with per-field diff,
-  true=apply
-
----
-
-### delete_purchase_order_row
-Delete a PO row. Destructive.
-
-**Parameters:**
-- `id` (required): Row ID
-- `confirm` (optional, default false)
-
----
-
-### add_purchase_order_additional_cost
-Add an additional-cost row (freight, duties, handling fees) to a PO. Katana
-models additional-cost rows as members of a *cost group*; the PO carries a
-`default_group_id` that the rows attach to. The tool accepts the parent PO
-id (familiar) and resolves the group id internally — pass `group_id`
-directly only if the PO has multiple groups and you need a non-default one.
-
-**Parameters:**
-- `purchase_order_id` *or* `group_id` (one is required): Parent linkage.
-  Tool resolves `default_group_id` from the PO when only `purchase_order_id`
-  is given.
-- `additional_cost_id` (required): Catalog entry ID for the cost type
-- `tax_rate_id` (required): Tax rate ID
-- `price` (required): Cost amount
-- `distribution_method` (optional): BY_VALUE distributes proportionally
-  to row value; NON_DISTRIBUTED leaves it unallocated
-- `confirm` (optional, default false)
-
----
-
-### update_purchase_order_additional_cost
-Update a PO additional-cost row. Per-field diff against the existing row.
-
-**Parameters:**
-- `id` (required): Cost row ID
-- Any subset of: `additional_cost_id`, `tax_rate_id`, `price`,
-  `distribution_method`
-- `confirm` (optional, default false)
-
----
-
-### delete_purchase_order_additional_cost
-Delete a PO additional-cost row. Destructive.
-
-**Parameters:**
-- `id` (required): Cost row ID
-- `confirm` (optional, default false)
 
 ---
 
@@ -958,49 +961,46 @@ SKU. Markdown labels use canonical Pydantic field names.
 
 ---
 
-### add_manufacturing_order_recipe_row
-Add a new ingredient to a manufacturing order's recipe.
+### modify_manufacturing_order
+Unified modification surface for an MO — header, recipe rows
+(ingredients), operation rows (production steps), and production records
+(completion logs) in one call. Replaces the prior recipe-row CRUD tools.
+
+**Sub-payloads (all optional, any subset combinable):**
+- `update_header` — patch header fields (`order_no`, `variant_id`,
+  `location_id`, `status`, `planned_quantity`, `actual_quantity`, dates,
+  `additional_info`). Status uses the PATCH endpoint
+  (NOT_STARTED / IN_PROGRESS / DONE / BLOCKED / PARTIALLY_COMPLETED).
+- `add_recipe_rows` / `update_recipe_rows` / `delete_recipe_row_ids` —
+  ingredient CRUD. Each `add_recipe_rows` entry carries `variant_id` +
+  `planned_quantity_per_unit` + optional notes.
+- `add_operation_rows` / `update_operation_rows` /
+  `delete_operation_row_ids` — production step CRUD. Operation rows
+  carry status (NOT_STARTED / IN_PROGRESS / PAUSED / BLOCKED /
+  COMPLETED) and type (fixed / perUnit / process / setup).
+- `add_productions` / `update_productions` / `delete_production_ids` —
+  completion-log entries.
 
 **Parameters:**
-- `manufacturing_order_id` (required): MO ID
-- `sku` (optional): SKU of ingredient (resolved via cache)
-- `variant_id` (optional): Variant ID directly (use when SKU isn't in cache)
-- `planned_quantity_per_unit` (required): Qty needed per manufactured unit
-- `notes` (optional): Notes
-- `confirm` (optional, default false): false=preview, true=add
+- `id` (required): Manufacturing order ID
+- Any subset of the sub-payloads above
+- `confirm` (optional, default false): false=preview, true=execute the
+  action plan in canonical order; fail-fast on first error
 
-Provide either `sku` or `variant_id`.
+**Returns:** A `ModificationResponse` carrying per-action results and a
+`prior_state` snapshot. To swap a variant across many MOs at once, run
+multiple `modify_manufacturing_order` calls — there is no batch shape
+in the unified surface.
 
 ---
 
-### delete_manufacturing_order_recipe_row
-Remove an ingredient from a manufacturing order's recipe.
+### delete_manufacturing_order
+Delete a manufacturing order. Destructive — Katana cascades child recipe
+rows / operation rows / production records server-side.
 
 **Parameters:**
-- `recipe_row_id` (required): Recipe row ID (from get_manufacturing_order_recipe)
+- `id` (required): Manufacturing order ID
 - `confirm` (optional, default false): false=preview, true=delete
-
----
-
-### batch_update_manufacturing_order_recipes
-Batch-update recipe rows across one or more MOs with ONE confirmation.
-
-**Use modes (mixable):**
-- `replacements`: "replace variant X with [Y, Z] across these MOs" — ideal
-  for swapping a component across many MOs in one shot.
-- `changes`: explicit per-MO row deletes and additions (escape hatch).
-
-**Parameters:**
-- `replacements` (optional): list of `{manufacturing_order_ids, old_sku or
-  old_variant_id, new_components, strict}`
-- `changes` (optional): list of `{manufacturing_order_id, remove_row_ids,
-  add_variants}`
-- `continue_on_error` (optional, default true): run all ops even if some fail
-- `confirm` (optional, default false): false=preview, true=execute (single batch confirmation)
-
-**Returns:** All sub-operations with individual status (success/failed/skipped),
-grouped by replacement. Old rows are deleted first, then new rows added in
-reverse order so they appear adjacent in Katana's natural sort order.
 
 ---
 
@@ -1088,6 +1088,41 @@ discounts, tax, cogs, linked MO, batch/serial tracking, timestamps).
 
 ---
 
+### modify_sales_order
+Unified modification surface for an SO — header, rows, addresses,
+fulfillments, and shipping fees in one call.
+
+**Sub-payloads (all optional, any subset combinable):**
+- `update_header` — patch header fields (incl. status:
+  NOT_SHIPPED / PENDING / PACKED / DELIVERED).
+- `add_rows` / `update_rows` / `delete_row_ids` — line item CRUD.
+- `add_addresses` / `update_addresses` / `delete_address_ids` — billing
+  / shipping addresses. Note: Katana doesn't expose a per-address GET,
+  so address-update previews show every supplied field as
+  `(prior unknown) → new`.
+- `add_fulfillments` / `update_fulfillments` /
+  `delete_fulfillment_ids` — fulfillments (each carries its own status
+  + tracking).
+- `add_shipping_fees` / `update_shipping_fees` /
+  `delete_shipping_fee_ids` — shipping/freight charges.
+
+**Parameters:**
+- `id` (required): Sales order ID
+- Any subset of the sub-payloads above
+- `confirm` (optional, default false): false=preview, true=execute
+
+---
+
+### delete_sales_order
+Delete a sales order. Destructive — Katana cascades child rows /
+addresses / fulfillments / shipping fees server-side.
+
+**Parameters:**
+- `id` (required): Sales order ID
+- `confirm` (optional, default false): false=preview, true=delete
+
+---
+
 ### create_product / create_material
 Dedicated catalog tools for creating products or materials with a single variant.
 
@@ -1147,45 +1182,41 @@ expected_arrival). `pagination` metadata is populated when `page` is set.
 
 ---
 
-### update_stock_transfer
-Update body fields on an existing stock transfer.
+### modify_stock_transfer
+Unified modification surface for a stock transfer — header body fields
+and/or status transition in one call. Hides the fact that Katana exposes
+these as two separate PATCH endpoints
+(`/stock_transfers/{id}` and `/stock_transfers/{id}/status`).
+
+**Sub-payloads (all optional, any subset combinable):**
+- `update_header` — patch body fields (`stock_transfer_number`,
+  `transfer_date`, `expected_arrival_date`, `additional_info`).
+- `update_status` — `new_status: "DRAFT" | "IN_TRANSIT" | "RECEIVED"`
+  (mapped to the Katana wire values `draft` / `inTransit` / `received`).
+  Typical flow: DRAFT → IN_TRANSIT → RECEIVED. Katana rejects invalid
+  transitions (e.g. RECEIVED → IN_TRANSIT); the action's error surfaces
+  in the response.
 
 **Parameters:**
 - `id` (required): Stock transfer ID
-- `stock_transfer_number` (optional): New transfer number
-- `transfer_date` (optional): New transfer datetime (ISO-8601)
-- `expected_arrival_date` (optional): New expected arrival datetime (ISO-8601)
-- `additional_info` (optional): Updated notes
-- `confirm` (optional, default false): false=preview, true=apply
+- Any subset of the sub-payloads above
+- `confirm` (optional, default false): false=preview, true=execute the
+  action plan in canonical order (header first, then status); fail-fast
+  on first error
 
-At least one updatable field must be provided. Use `update_stock_transfer_status`
-to change the transfer's status — it's a separate endpoint.
-
----
-
-### update_stock_transfer_status
-Transition a stock transfer through the 3-state machine.
-
-**Parameters:**
-- `id` (required): Stock transfer ID
-- `new_status` (required): "DRAFT", "IN_TRANSIT", or "RECEIVED" (mapped to
-  the Katana wire values "draft" / "inTransit" / "received")
-- `confirm` (optional, default false): false=preview, true=apply
-
-**Typical flow:** DRAFT → IN_TRANSIT → RECEIVED. Katana rejects invalid
-transitions (e.g. RECEIVED → IN_TRANSIT); the tool surfaces the API error
-message as a ValueError.
+Stock-transfer rows are immutable post-creation — Katana doesn't expose
+row-CRUD endpoints. Note: Katana doesn't expose a GET-by-id endpoint for
+stock transfers either, so previews show every supplied field as
+`(prior unknown) → new`.
 
 ---
 
 ### delete_stock_transfer
-Delete a stock transfer.
+Delete a stock transfer. Destructive — the transfer record is removed.
 
 **Parameters:**
 - `id` (required): Stock transfer ID
 - `confirm` (optional, default false): false=preview, true=delete
-
-Destructive — removes the transfer record.
 
 ---
 

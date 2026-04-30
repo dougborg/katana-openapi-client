@@ -22,7 +22,8 @@ operating on the same response model.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+import json
+from collections.abc import Awaitable, Callable, Iterable
 from datetime import datetime
 from enum import Enum
 from typing import Any, ClassVar
@@ -33,6 +34,23 @@ from pydantic import BaseModel, Field
 from katana_mcp.tools.tool_result_utils import BLOCK_WARNING_PREFIX, make_simple_result
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.domain.converters import unwrap_unset
+
+
+class ConfirmableRequest(BaseModel):
+    """Base for top-level ``Modify<Entity>Request`` and ``Delete<Entity>Request``
+    Pydantic models. Carries the primary entity ``id`` and the ``confirm``
+    field used by every modification tool's preview/apply gate. Subclasses
+    add their entity-specific sub-payload slots and override ``id``'s
+    description with an entity-appropriate label."""
+
+    id: int = Field(..., description="Entity ID")
+    confirm: bool = Field(
+        default=False,
+        description=(
+            "If false, returns a preview with planned actions. "
+            "If true, executes the action plan."
+        ),
+    )
 
 
 class FieldChange(BaseModel):
@@ -67,20 +85,63 @@ class FieldChange(BaseModel):
     is_unknown_prior: bool = False
 
 
+class ActionResult(BaseModel):
+    """Per-action result block on a multi-action modification call.
+
+    Populated for each :class:`ActionSpec` in an action plan executed by
+    :func:`katana_mcp.tools._modification_dispatch.execute_plan`. Used by
+    the unified ``modify_<entity>`` tools to report on each sub-payload's
+    outcome independently.
+
+    Three states:
+
+    - **Preview** (``confirm=False`` on the parent request): ``succeeded``
+      and ``verified`` are both ``None`` — the action hasn't been executed,
+      only planned. ``changes`` carries the diff that *would* be applied.
+    - **Confirmed success**: ``succeeded=True``. ``verified`` may be
+      ``True`` (post-action re-fetch confirmed the change), ``False``
+      (re-fetch showed a different value — silent server-side rejection
+      or race), or ``None`` (no verification was registered for this
+      action).
+    - **Confirmed failure**: ``succeeded=False``, ``error`` populated.
+      Subsequent actions in the plan are not attempted (fail-fast).
+    """
+
+    operation: str
+    target_id: int | None = None
+    changes: list[FieldChange] = Field(default_factory=list)
+    succeeded: bool | None = None
+    error: str | None = None
+    verified: bool | None = None
+    actual_after: dict[str, Any] | None = None
+
+
 class ModificationResponse(BaseModel):
     """Uniform response for every modification tool.
 
-    The same shape covers update / delete / row-create / row-update /
-    row-delete operations. Tool-specific impls populate the fields that
-    apply; callers can rely on the common envelope.
+    Two shapes coexist:
+
+    - **Single-action** (legacy, kept for the few non-unified tools that
+      still return one operation per call): ``operation`` and ``changes``
+      are populated; ``actions`` is empty.
+    - **Multi-action** (the unified ``modify_<entity>`` tools): ``actions``
+      is a list of :class:`ActionResult` and ``operation``/``changes`` are
+      left at their defaults. ``prior_state`` is populated on the confirm
+      branch so the caller can manually revert if needed.
+
+    The renderer (:func:`render_modification_md`) checks which shape is in
+    use and emits markdown accordingly. New tools should always populate
+    ``actions``.
     """
 
     entity_type: str
     entity_id: int | None = None
     parent_entity_id: int | None = None
-    operation: str
     is_preview: bool
+    operation: str = ""
     changes: list[FieldChange] = Field(default_factory=list)
+    actions: list[ActionResult] = Field(default_factory=list)
+    prior_state: dict[str, Any] | None = None
     warnings: list[str] = Field(default_factory=list)
     next_actions: list[str] = Field(default_factory=list)
     katana_url: str | None = None
@@ -168,13 +229,98 @@ def compute_field_diff(
     return changes
 
 
-def render_modification_md(response: ModificationResponse) -> str:
-    """Render a :class:`ModificationResponse` as the markdown content body."""
-    op_title = response.operation.replace("_", " ").title()
-    entity_title = response.entity_type.replace("_", " ").title()
-    state_label = "PREVIEW" if response.is_preview else op_title.upper()
+def make_response_verifier(
+    diff: list[FieldChange], *, field_map: dict[str, str] | None = None
+) -> Callable[[Any], Awaitable[tuple[bool, dict[str, Any] | None]]]:
+    """Build a verify closure that checks the API response body against ``diff``.
 
-    lines = [f"## {entity_title} {op_title} ({state_label})"]
+    Most Katana mutation endpoints echo the post-state of the affected
+    entity in the response body — this verifier reads each requested
+    field off ``outcome`` and confirms it matches the requested ``new``
+    value. No extra fetch needed. ``field_map`` mirrors the
+    :func:`compute_field_diff` parameter for fields with names that
+    differ between request and response. Used by every
+    ``modify_<entity>`` update action's ``ActionSpec.verify``.
+    """
+    name_map = field_map or {}
+
+    async def verify(outcome: Any) -> tuple[bool, dict[str, Any] | None]:
+        if outcome is None:
+            return False, None
+        actual: dict[str, Any] = {}
+        verified = True
+        for change in diff:
+            attr = name_map.get(change.field, change.field)
+            raw = getattr(outcome, attr, None)
+            actual_val = _normalize(unwrap_unset(raw, None))
+            actual[change.field] = actual_val
+            if change.new is not None and actual_val != change.new:
+                verified = False
+        return verified, (actual if not verified else None)
+
+    return verify
+
+
+def _render_changes_block(changes: list[FieldChange]) -> list[str]:
+    """Render a flat list of field changes as markdown bullet lines."""
+    lines: list[str] = []
+    for change in changes:
+        if change.is_unchanged:
+            lines.append(f"- `{change.field}`: (unchanged) {change.new}")
+        elif change.is_unknown_prior:
+            lines.append(f"- `{change.field}`: (prior unknown) → {change.new}")
+        elif change.is_added:
+            lines.append(f"- `{change.field}`: (set) → {change.new}")
+        else:
+            lines.append(f"- `{change.field}`: {change.old} → {change.new}")
+    return lines
+
+
+def _render_action_block(idx: int, action: ActionResult) -> list[str]:
+    """Render one action's status + diff as a markdown sub-section."""
+    op_title = action.operation.replace("_", " ").title()
+    target = f" #{action.target_id}" if action.target_id is not None else ""
+    if action.succeeded is None:
+        status = "PLANNED"
+    elif action.succeeded is True:
+        if action.verified is False:
+            status = "APPLIED (verification mismatch)"
+        elif action.verified is None:
+            status = "APPLIED"
+        else:
+            status = "APPLIED (verified)"
+    else:
+        status = "FAILED"
+
+    lines = [f"#### {idx}. {op_title}{target} — {status}"]
+    if action.error:
+        lines.append(f"- **Error**: {action.error}")
+    if action.changes:
+        lines.extend(_render_changes_block(action.changes))
+    if action.actual_after is not None and action.verified is False:
+        # Surface the actual-vs-requested mismatch so the caller can act
+        lines.append(f"- **Actual after verification**: `{action.actual_after}`")
+    return lines
+
+
+def render_modification_md(response: ModificationResponse) -> str:
+    """Render a :class:`ModificationResponse` as the markdown content body.
+
+    Handles both the legacy single-action shape (``operation`` + ``changes``)
+    and the multi-action shape (``actions``). When ``actions`` is non-empty,
+    that takes precedence and each action gets its own sub-section.
+    """
+    entity_title = response.entity_type.replace("_", " ").title()
+
+    if response.actions:
+        state_label = "PREVIEW" if response.is_preview else "APPLIED"
+        n = len(response.actions)
+        plural = "action" if n == 1 else "actions"
+        lines = [f"## Modify {entity_title} ({state_label}) — {n} {plural}"]
+    else:
+        op_title = response.operation.replace("_", " ").title()
+        state_label = "PREVIEW" if response.is_preview else op_title.upper()
+        lines = [f"## {entity_title} {op_title} ({state_label})"]
 
     if response.entity_id is not None:
         lines.append(f"- **ID**: {response.entity_id}")
@@ -184,18 +330,43 @@ def render_modification_md(response: ModificationResponse) -> str:
     if response.katana_url:
         lines.append(f"- **Katana URL**: {response.katana_url}")
 
-    if response.changes:
+    # Multi-action: per-action sections
+    if response.actions:
+        lines.append("")
+        lines.append("### Actions")
+        for idx, action in enumerate(response.actions, start=1):
+            lines.append("")
+            lines.extend(_render_action_block(idx, action))
+    # Legacy single-action: top-level changes block
+    elif response.changes:
         lines.append("")
         lines.append("### Changes")
-        for change in response.changes:
-            if change.is_unchanged:
-                lines.append(f"- `{change.field}`: (unchanged) {change.new}")
-            elif change.is_unknown_prior:
-                lines.append(f"- `{change.field}`: (prior unknown) → {change.new}")
-            elif change.is_added:
-                lines.append(f"- `{change.field}`: (set) → {change.new}")
-            else:
-                lines.append(f"- `{change.field}`: {change.old} → {change.new}")
+        lines.extend(_render_changes_block(response.changes))
+
+    if response.prior_state is not None:
+        lines.append("")
+        if response.is_preview:
+            lines.append("### Current State (preview snapshot)")
+            lines.append(
+                "Snapshot of the entity in its current state — verify this is "
+                "the right target before setting `confirm=true`."
+            )
+        else:
+            lines.append("### Prior State (for manual revert)")
+            lines.append(
+                "Snapshot of pre-modification entity captured before applying. "
+                "Pass these values back through a follow-up modify call to revert "
+                "if needed — Katana's API is not transactional, so verify each "
+                "field manually."
+            )
+        lines.append("")
+        lines.append("```json")
+        # ``default=str`` collapses datetime / Enum / Decimal sentinels to
+        # strings so the snapshot serializes deterministically. The dict is
+        # already pre-serialized via ``serialize_for_prior_state``; this is
+        # a belt-and-suspenders for any remaining non-JSON-native values.
+        lines.append(json.dumps(response.prior_state, indent=2, default=str))
+        lines.append("```")
 
     if response.warnings:
         lines.append("")

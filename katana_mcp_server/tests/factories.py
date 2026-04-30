@@ -15,10 +15,13 @@ from __future__ import annotations
 from collections.abc import Iterable
 from datetime import datetime
 from typing import Any
+from unittest.mock import MagicMock
 
+import attrs
 from katana_mcp.tools.tool_result_utils import naive_utc
 from katana_mcp.typed_cache import TypedCacheEngine
 
+from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models_pydantic._generated import (
     CachedManufacturingOrder,
     CachedManufacturingOrderRecipeRow,
@@ -467,3 +470,45 @@ def make_stock_transfer_row(
         quantity=quantity,
         cost_per_unit=cost_per_unit,
     )
+
+
+# ============================================================================
+# Mock entity builders for ``modify_<entity>`` tests
+# ============================================================================
+#
+# The unified-modify tests need ``MagicMock(spec=EntityCls)`` instances
+# where every attrs field defaults to UNSET (so ``unwrap_unset → None``
+# inside diff computation). Each entity's test file used to maintain a
+# hand-curated list of UNSET-able fields; ``mock_entity_for_modify``
+# walks ``attrs.fields()`` and defaults all of them.
+
+
+def mock_entity_for_modify(spec_cls: type, **overrides: Any) -> MagicMock:
+    """Build a ``MagicMock(spec=spec_cls)`` with every attrs field defaulted.
+
+    For each declared field on ``spec_cls`` (via ``attrs.fields``), defaults
+    to UNSET unless overridden via ``**overrides``. ``MagicMock(spec=...)``
+    enforces the surface — accessing a non-spec attribute raises — but
+    field values aren't auto-populated. We default them to UNSET so
+    diff-computing code (which calls ``unwrap_unset(field, None)``) sees
+    ``None`` and treats the field as absent.
+
+    Example::
+
+        mock_po = mock_entity_for_modify(
+            RegularPurchaseOrder,
+            id=42,
+            order_no="PO-1",
+        )
+        # Every other field is now ``UNSET``.
+
+    Used by the ``modify_<entity>`` test suites; replaces the per-file
+    ``_mock_po`` / ``_mock_so`` / ``_mock_mo`` helpers.
+    """
+    mock = MagicMock(spec=spec_cls)
+    for field in attrs.fields(spec_cls):
+        if field.name in overrides:
+            setattr(mock, field.name, overrides[field.name])
+        else:
+            setattr(mock, field.name, UNSET)
+    return mock

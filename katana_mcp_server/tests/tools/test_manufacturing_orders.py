@@ -6,21 +6,18 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from katana_mcp.tools.foundation.manufacturing_orders import (
-    AddRecipeRowRequest,
-    BatchUpdateRecipesRequest,
     CreateManufacturingOrderRequest,
-    DeleteRecipeRowRequest,
-    ExplicitChange,
+    DeleteManufacturingOrderRequest,
     GetManufacturingOrderRecipeRequest,
-    SubOpStatus,
-    VariantReplacement,
-    VariantSpec,
-    _add_recipe_row_impl,
-    _batch_update_impl,
+    ModifyManufacturingOrderRequest,
+    MOHeaderPatch,
+    MOOperationRowAdd,
+    MOProductionAdd,
+    MORecipeRowAdd,
     _create_manufacturing_order_impl,
-    _delete_recipe_row_impl,
+    _delete_manufacturing_order_impl,
     _get_manufacturing_order_recipe_impl,
-    _plan_batch_update,
+    _modify_manufacturing_order_impl,
     get_manufacturing_order,
     get_manufacturing_order_recipe,
     list_manufacturing_orders,
@@ -33,7 +30,11 @@ from katana_public_api_client.models import (
 )
 from katana_public_api_client.utils import APIError
 from tests.conftest import create_mock_context, patch_typed_cache_sync
-from tests.factories import make_manufacturing_order, seed_cache
+from tests.factories import (
+    make_manufacturing_order,
+    mock_entity_for_modify,
+    seed_cache,
+)
 
 # ============================================================================
 # Unit Tests (with mocks)
@@ -680,330 +681,6 @@ async def test_get_manufacturing_order_recipe_empty():
 
     assert result.total_count == 0
     assert result.rows == []
-
-
-@pytest.mark.asyncio
-async def test_add_recipe_row_preview():
-    """Preview adding a recipe row returns without calling the API."""
-    context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
-        return_value={"id": 555, "sku": "FORK-NEW", "display_name": "New Fork"}
-    )
-
-    request = AddRecipeRowRequest(
-        manufacturing_order_id=9999,
-        sku="FORK-NEW",
-        planned_quantity_per_unit=1.0,
-        confirm=False,
-    )
-    result = await _add_recipe_row_impl(request, context)
-
-    assert result.is_preview is True
-    assert result.variant_id == 555
-    assert result.sku == "FORK-NEW"
-    assert "Preview" in result.message
-
-
-@pytest.mark.asyncio
-async def test_add_recipe_row_sku_not_found():
-    """Adding a recipe row with an unknown SKU raises."""
-    context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
-
-    request = AddRecipeRowRequest(
-        manufacturing_order_id=9999,
-        sku="UNKNOWN",
-        planned_quantity_per_unit=1.0,
-        confirm=False,
-    )
-    with pytest.raises(ValueError, match="SKU 'UNKNOWN' not found"):
-        await _add_recipe_row_impl(request, context)
-
-
-@pytest.mark.asyncio
-async def test_add_recipe_row_by_variant_id():
-    """Adding a recipe row by variant_id skips the cache lookup."""
-    context, lifespan_ctx = create_mock_context()
-    # Cache.get_by_sku should NOT be called
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
-        side_effect=AssertionError("should not be called")
-    )
-
-    request = AddRecipeRowRequest(
-        manufacturing_order_id=9999,
-        variant_id=40010545,
-        planned_quantity_per_unit=1.0,
-        confirm=False,
-    )
-    result = await _add_recipe_row_impl(request, context)
-
-    assert result.is_preview is True
-    assert result.variant_id == 40010545
-    assert result.sku is None
-
-
-@pytest.mark.asyncio
-async def test_add_recipe_row_requires_identifier():
-    """Must provide sku or variant_id."""
-    context, _ = create_mock_context()
-
-    request = AddRecipeRowRequest(
-        manufacturing_order_id=9999,
-        planned_quantity_per_unit=1.0,
-        confirm=False,
-    )
-    with pytest.raises(ValueError, match="sku or variant_id"):
-        await _add_recipe_row_impl(request, context)
-
-
-@pytest.mark.asyncio
-async def test_delete_recipe_row_preview():
-    """Preview deleting a recipe row returns without calling the API."""
-    context, _ = create_mock_context()
-
-    request = DeleteRecipeRowRequest(recipe_row_id=5001, confirm=False)
-    result = await _delete_recipe_row_impl(request, context)
-
-    assert result.is_preview is True
-    assert result.recipe_row_id == 5001
-    assert "Preview" in result.message
-
-
-# ============================================================================
-# batch_update_manufacturing_order_recipes
-# ============================================================================
-
-
-def _mock_recipe_rows(rows_data: list[dict]) -> list:
-    """Helper to build a list of mock RecipeRowInfo-like objects."""
-    mocks = []
-    for r in rows_data:
-        m = MagicMock()
-        for k, v in r.items():
-            setattr(m, k, v)
-        mocks.append(m)
-    return mocks
-
-
-@pytest.mark.asyncio
-async def test_batch_plan_replacement_basic():
-    """Plan a simple replacement across one MO."""
-    context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
-        side_effect=[
-            {"id": 100, "sku": "OLD-FORK", "display_name": "Old Fork"},
-            {"id": 200, "sku": "NEW-FORK", "display_name": "New Fork"},
-            {"id": 201, "sku": "AIR-SHAFT", "display_name": "Air Shaft"},
-        ]
-    )
-
-    # Mock the recipe fetch
-    from katana_mcp.tools.foundation.manufacturing_orders import RecipeRowInfo
-
-    async def fake_get_recipe(req, ctx):
-        from katana_mcp.tools.foundation.manufacturing_orders import (
-            GetManufacturingOrderRecipeResponse,
-        )
-
-        return GetManufacturingOrderRecipeResponse(
-            manufacturing_order_id=req.manufacturing_order_id,
-            rows=[
-                RecipeRowInfo(
-                    id=5001,
-                    variant_id=100,
-                    sku="OLD-FORK",
-                    planned_quantity_per_unit=1.0,
-                    total_actual_quantity=None,
-                    ingredient_availability="IN_STOCK",
-                    notes=None,
-                    cost=None,
-                ),
-            ],
-            total_count=1,
-        )
-
-    with patch(
-        "katana_mcp.tools.foundation.manufacturing_orders._get_manufacturing_order_recipe_impl",
-        side_effect=fake_get_recipe,
-    ):
-        request = BatchUpdateRecipesRequest(
-            replacements=[
-                VariantReplacement(
-                    manufacturing_order_ids=[9999],
-                    old_sku="OLD-FORK",
-                    new_components=[
-                        VariantSpec(sku="NEW-FORK", planned_quantity_per_unit=1.0),
-                        VariantSpec(sku="AIR-SHAFT", planned_quantity_per_unit=1.0),
-                    ],
-                )
-            ],
-        )
-        planned, warnings = await _plan_batch_update(request, context)
-
-    # Expect: 1 delete + 2 adds
-    assert len(planned) == 3
-    deletes = [p for p in planned if p.op_type == "delete"]
-    adds = [p for p in planned if p.op_type == "add"]
-    assert len(deletes) == 1
-    assert len(adds) == 2
-    assert deletes[0].recipe_row_id == 5001
-    assert adds[0].sku == "NEW-FORK"
-    assert adds[1].sku == "AIR-SHAFT"
-    # All grouped under the same label
-    assert all(p.group_label == "OLD-FORK → [NEW-FORK, AIR-SHAFT]" for p in planned)
-    assert warnings == []
-
-
-@pytest.mark.asyncio
-async def test_batch_plan_skips_mo_missing_old_variant():
-    """Non-strict mode: MOs without the old variant are skipped with a warning."""
-    context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
-        side_effect=[
-            {"id": 100, "sku": "OLD-FORK"},
-            {"id": 200, "sku": "NEW-FORK"},
-        ]
-    )
-
-    from katana_mcp.tools.foundation.manufacturing_orders import (
-        GetManufacturingOrderRecipeResponse,
-    )
-
-    async def fake_get_recipe(req, ctx):
-        return GetManufacturingOrderRecipeResponse(
-            manufacturing_order_id=req.manufacturing_order_id,
-            rows=[],  # empty — old variant not present
-            total_count=0,
-        )
-
-    with patch(
-        "katana_mcp.tools.foundation.manufacturing_orders._get_manufacturing_order_recipe_impl",
-        side_effect=fake_get_recipe,
-    ):
-        request = BatchUpdateRecipesRequest(
-            replacements=[
-                VariantReplacement(
-                    manufacturing_order_ids=[9999],
-                    old_sku="OLD-FORK",
-                    new_components=[
-                        VariantSpec(sku="NEW-FORK", planned_quantity_per_unit=1.0),
-                    ],
-                    strict=False,
-                )
-            ],
-        )
-        planned, warnings = await _plan_batch_update(request, context)
-
-    assert len(warnings) == 1
-    assert "not in recipe" in warnings[0]
-    # Skipped add placeholder emitted for visibility
-    assert len(planned) == 1
-    assert planned[0].status == SubOpStatus.SKIPPED
-
-
-@pytest.mark.asyncio
-async def test_batch_plan_strict_raises_on_missing():
-    """Strict mode: MOs without the old variant raise an error."""
-    context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
-        side_effect=[
-            {"id": 100, "sku": "OLD-FORK"},
-            {"id": 200, "sku": "NEW-FORK"},
-        ]
-    )
-
-    from katana_mcp.tools.foundation.manufacturing_orders import (
-        GetManufacturingOrderRecipeResponse,
-    )
-
-    async def fake_get_recipe(req, ctx):
-        return GetManufacturingOrderRecipeResponse(
-            manufacturing_order_id=req.manufacturing_order_id,
-            rows=[],
-            total_count=0,
-        )
-
-    with patch(
-        "katana_mcp.tools.foundation.manufacturing_orders._get_manufacturing_order_recipe_impl",
-        side_effect=fake_get_recipe,
-    ):
-        request = BatchUpdateRecipesRequest(
-            replacements=[
-                VariantReplacement(
-                    manufacturing_order_ids=[9999],
-                    old_sku="OLD-FORK",
-                    new_components=[
-                        VariantSpec(sku="NEW-FORK", planned_quantity_per_unit=1.0),
-                    ],
-                    strict=True,
-                )
-            ],
-        )
-        with pytest.raises(ValueError, match="not in recipe"):
-            await _plan_batch_update(request, context)
-
-
-@pytest.mark.asyncio
-async def test_batch_plan_empty_request_raises():
-    """Empty request should raise."""
-    context, _ = create_mock_context()
-    request = BatchUpdateRecipesRequest()
-    with pytest.raises(ValueError, match="at least one replacement or change"):
-        await _batch_update_impl(request, context)
-
-
-@pytest.mark.asyncio
-async def test_batch_impl_preview_mode():
-    """Preview mode returns the plan without calling the API."""
-    context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
-        return_value={"id": 200, "sku": "NEW-FORK"}
-    )
-
-    request = BatchUpdateRecipesRequest(
-        changes=[
-            ExplicitChange(
-                manufacturing_order_id=9999,
-                remove_row_ids=[5001],
-                add_variants=[
-                    VariantSpec(sku="NEW-FORK", planned_quantity_per_unit=1.0)
-                ],
-            )
-        ],
-        confirm=False,
-    )
-    response = await _batch_update_impl(request, context)
-
-    assert response.is_preview is True
-    assert response.total_ops == 2
-    assert response.success_count == 0
-    assert "Preview" in response.message
-
-
-@pytest.mark.asyncio
-async def test_batch_plan_explicit_change_with_variant_id():
-    """Explicit changes accept variant_id directly without SKU lookup."""
-    context, lifespan_ctx = create_mock_context()
-    # Should not be called — variant_id is direct
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
-        side_effect=AssertionError("should not be called")
-    )
-
-    request = BatchUpdateRecipesRequest(
-        changes=[
-            ExplicitChange(
-                manufacturing_order_id=9999,
-                remove_row_ids=[5001, 5002],
-                add_variants=[
-                    VariantSpec(variant_id=40010545, planned_quantity_per_unit=1.0),
-                ],
-            )
-        ],
-    )
-    planned, warnings = await _plan_batch_update(request, context)
-
-    assert len(planned) == 3  # 2 deletes + 1 add
-    assert warnings == []
 
 
 @pytest.mark.asyncio
@@ -2543,3 +2220,386 @@ async def test_list_blocking_ingredients_resolves_skus_only_for_kept_variants(
     assert cache_mock.await_count == 1
     awaited_vids = cache_mock.await_args.args[1]
     assert set(awaited_vids) == {500}
+
+
+# ============================================================================
+# modify_manufacturing_order — unified modification surface
+# ============================================================================
+
+
+_MODIFY_MO_UPDATE = (
+    "katana_public_api_client.api.manufacturing_order.update_manufacturing_order"
+)
+_MODIFY_MO_DELETE = (
+    "katana_public_api_client.api.manufacturing_order.delete_manufacturing_order"
+)
+_MODIFY_MO_RECIPE_CREATE = (
+    "katana_public_api_client.api.manufacturing_order_recipe."
+    "create_manufacturing_order_recipe_rows"
+)
+_MODIFY_MO_UNWRAP_AS = "katana_mcp.tools._modification_dispatch.unwrap_as"
+
+
+def _mock_mo(mo_id: int = 1, order_no: str = "MO-1"):
+    """Build a mock ManufacturingOrder with all fields defaulted to UNSET."""
+    return mock_entity_for_modify(ManufacturingOrder, id=mo_id, order_no=order_no)
+
+
+@pytest.mark.asyncio
+async def test_modify_mo_requires_at_least_one_subpayload():
+    context, _ = create_mock_context()
+    with pytest.raises(ValueError, match="At least one sub-payload"):
+        await _modify_manufacturing_order_impl(
+            ModifyManufacturingOrderRequest(id=42, confirm=False), context
+        )
+
+
+@pytest.mark.asyncio
+async def test_modify_mo_preview_emits_planned_actions():
+    context, _ = create_mock_context()
+    existing = _mock_mo(mo_id=42, order_no="MO-1")
+
+    with patch(
+        "katana_mcp.tools.foundation.manufacturing_orders._fetch_manufacturing_order_attrs",
+        new_callable=AsyncMock,
+        return_value=existing,
+    ):
+        request = ModifyManufacturingOrderRequest(
+            id=42,
+            update_header=MOHeaderPatch(status="IN_PROGRESS"),
+            add_recipe_rows=[
+                MORecipeRowAdd(variant_id=100, planned_quantity_per_unit=2.0)
+            ],
+            confirm=False,
+        )
+        response = await _modify_manufacturing_order_impl(request, context)
+
+    assert response.is_preview is True
+    assert response.entity_id == 42
+    assert len(response.actions) == 2
+    assert response.actions[0].operation == "update_header"
+    assert response.actions[1].operation == "add_recipe_row"
+    assert all(a.succeeded is None for a in response.actions)
+
+
+@pytest.mark.asyncio
+async def test_modify_mo_confirm_executes_in_canonical_order():
+    """Header → recipe adds → recipe updates → ..."""
+    context, _ = create_mock_context()
+    existing = _mock_mo(mo_id=42, order_no="MO-1")
+    updated = _mock_mo(mo_id=42, order_no="MO-1")
+    new_row = MagicMock()
+    new_row.id = 555
+
+    call_log: list[str] = []
+
+    async def fake_update_mo(*, id, client, body):
+        call_log.append("PATCH /manufacturing_orders/{id}")
+        resp = MagicMock()
+        resp.parsed = updated
+        return resp
+
+    async def fake_create_recipe(*, client, body):
+        call_log.append("POST /manufacturing_order_recipe_rows")
+        resp = MagicMock()
+        resp.parsed = new_row
+        return resp
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_manufacturing_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(f"{_MODIFY_MO_UPDATE}.asyncio_detailed", side_effect=fake_update_mo),
+        patch(
+            f"{_MODIFY_MO_RECIPE_CREATE}.asyncio_detailed",
+            side_effect=fake_create_recipe,
+        ),
+        patch(_MODIFY_MO_UNWRAP_AS, side_effect=[updated, new_row]),
+    ):
+        request = ModifyManufacturingOrderRequest(
+            id=42,
+            update_header=MOHeaderPatch(status="IN_PROGRESS"),
+            add_recipe_rows=[
+                MORecipeRowAdd(variant_id=100, planned_quantity_per_unit=2.0)
+            ],
+            confirm=True,
+        )
+        response = await _modify_manufacturing_order_impl(request, context)
+
+    assert response.is_preview is False
+    assert all(a.succeeded is True for a in response.actions)
+    assert call_log[0].startswith("PATCH")
+    assert call_log[1].startswith("POST")
+    assert response.prior_state is not None
+
+
+# ============================================================================
+# delete_manufacturing_order
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_delete_mo_preview_returns_planned_action():
+    context, _ = create_mock_context()
+    existing = _mock_mo(mo_id=42, order_no="MO-1")
+
+    with patch(
+        "katana_mcp.tools.foundation.manufacturing_orders._fetch_manufacturing_order_attrs",
+        new_callable=AsyncMock,
+        return_value=existing,
+    ):
+        response = await _delete_manufacturing_order_impl(
+            DeleteManufacturingOrderRequest(id=42, confirm=False), context
+        )
+
+    assert response.is_preview is True
+    assert response.entity_id == 42
+    assert len(response.actions) == 1
+    assert response.actions[0].operation == "delete"
+    assert response.actions[0].succeeded is None
+
+
+@pytest.mark.asyncio
+async def test_delete_mo_confirm_calls_api_and_records_prior_state():
+    context, _ = create_mock_context()
+    existing = _mock_mo(mo_id=42, order_no="MO-1")
+    api_response = MagicMock()
+    api_response.status_code = 204
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_manufacturing_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(
+            f"{_MODIFY_MO_DELETE}.asyncio_detailed", new_callable=AsyncMock
+        ) as mock_api,
+        patch(
+            "katana_mcp.tools._modification_dispatch.is_success",
+            return_value=True,
+        ),
+    ):
+        mock_api.return_value = api_response
+        response = await _delete_manufacturing_order_impl(
+            DeleteManufacturingOrderRequest(id=42, confirm=True), context
+        )
+
+    assert response.is_preview is False
+    assert response.actions[0].succeeded is True
+    assert response.prior_state is not None
+    assert response.katana_url is None
+    mock_api.assert_awaited_once()
+
+
+# ============================================================================
+# MO operation rows + production records — coverage gaps
+# ============================================================================
+
+
+_MODIFY_MO_OP_CREATE = (
+    "katana_public_api_client.api.manufacturing_order_operation."
+    "create_manufacturing_order_operation_row"
+)
+_MODIFY_MO_PROD_CREATE = (
+    "katana_public_api_client.api.manufacturing_order_production."
+    "create_manufacturing_order_production"
+)
+
+
+@pytest.mark.asyncio
+async def test_modify_mo_operation_row_add_translates_status_and_type_enums():
+    """Operation rows carry literal status + type that must convert to API enums.
+
+    Exercises the ``_build_create_operation_row_request`` enum-conversion path.
+    """
+    context, _ = create_mock_context()
+    existing = _mock_mo(mo_id=42, order_no="MO-1")
+    new_op = MagicMock()
+    new_op.id = 999
+
+    captured_body = []
+
+    async def fake_create_op(*, client, body):
+        captured_body.append(body)
+        resp = MagicMock()
+        resp.parsed = new_op
+        return resp
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_manufacturing_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(f"{_MODIFY_MO_OP_CREATE}.asyncio_detailed", side_effect=fake_create_op),
+        patch(_MODIFY_MO_UNWRAP_AS, return_value=new_op),
+    ):
+        request = ModifyManufacturingOrderRequest(
+            id=42,
+            add_operation_rows=[
+                MOOperationRowAdd(
+                    status="IN_PROGRESS",
+                    type="perUnit",
+                    operation_name="Cut to length",
+                    planned_time_per_unit=2.5,
+                ),
+            ],
+            confirm=True,
+        )
+        response = await _modify_manufacturing_order_impl(request, context)
+
+    assert response.is_preview is False
+    assert len(response.actions) == 1
+    assert response.actions[0].operation == "add_operation_row"
+    # Verify the API body has the actual API enum members, not strings
+    from katana_public_api_client.models import (
+        ManufacturingOperationStatus,
+        ManufacturingOperationType,
+    )
+
+    body = captured_body[0]
+    assert body.status == ManufacturingOperationStatus.IN_PROGRESS
+    assert body.type_ == ManufacturingOperationType.PERUNIT
+    assert body.operation_name == "Cut to length"
+    assert body.planned_time_per_unit == 2.5
+
+
+@pytest.mark.asyncio
+async def test_modify_mo_production_record_add_passes_through_to_api():
+    """Production records have a small-but-distinct shape; cover the
+    add path end-to-end."""
+    context, _ = create_mock_context()
+    existing = _mock_mo(mo_id=42, order_no="MO-1")
+    new_prod = MagicMock()
+    new_prod.id = 7777
+
+    captured_body = []
+
+    async def fake_create_prod(*, client, body):
+        captured_body.append(body)
+        resp = MagicMock()
+        resp.parsed = new_prod
+        return resp
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_manufacturing_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(
+            f"{_MODIFY_MO_PROD_CREATE}.asyncio_detailed",
+            side_effect=fake_create_prod,
+        ),
+        patch(_MODIFY_MO_UNWRAP_AS, return_value=new_prod),
+    ):
+        request = ModifyManufacturingOrderRequest(
+            id=42,
+            add_productions=[
+                MOProductionAdd(
+                    completed_quantity=10.0,
+                    is_final=True,
+                    serial_numbers=["SN-001", "SN-002"],
+                ),
+            ],
+            confirm=True,
+        )
+        response = await _modify_manufacturing_order_impl(request, context)
+
+    assert response.is_preview is False
+    assert response.actions[0].operation == "add_production"
+    body = captured_body[0]
+    assert body.manufacturing_order_id == 42
+    assert body.completed_quantity == 10.0
+    assert body.is_final is True
+    assert body.serial_numbers == ["SN-001", "SN-002"]
+
+
+@pytest.mark.asyncio
+async def test_modify_mo_canonical_order_across_all_three_sub_resources():
+    """Header + recipe row + operation row + production all in one call,
+    confirming canonical execution order across all three sub-resource kinds."""
+    context, _ = create_mock_context()
+    existing = _mock_mo(mo_id=42, order_no="MO-1")
+    updated = _mock_mo(mo_id=42, order_no="MO-1")
+    new_recipe = MagicMock()
+    new_recipe.id = 100
+    new_op = MagicMock()
+    new_op.id = 200
+    new_prod = MagicMock()
+    new_prod.id = 300
+
+    call_log: list[str] = []
+
+    async def fake_update_mo(*, id, client, body):
+        call_log.append("update_header")
+        resp = MagicMock()
+        resp.parsed = updated
+        return resp
+
+    async def fake_create_recipe(*, client, body):
+        call_log.append("add_recipe_row")
+        resp = MagicMock()
+        resp.parsed = new_recipe
+        return resp
+
+    async def fake_create_op(*, client, body):
+        call_log.append("add_operation_row")
+        resp = MagicMock()
+        resp.parsed = new_op
+        return resp
+
+    async def fake_create_prod(*, client, body):
+        call_log.append("add_production")
+        resp = MagicMock()
+        resp.parsed = new_prod
+        return resp
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_manufacturing_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(f"{_MODIFY_MO_UPDATE}.asyncio_detailed", side_effect=fake_update_mo),
+        patch(
+            f"{_MODIFY_MO_RECIPE_CREATE}.asyncio_detailed",
+            side_effect=fake_create_recipe,
+        ),
+        patch(f"{_MODIFY_MO_OP_CREATE}.asyncio_detailed", side_effect=fake_create_op),
+        patch(
+            f"{_MODIFY_MO_PROD_CREATE}.asyncio_detailed",
+            side_effect=fake_create_prod,
+        ),
+        patch(
+            _MODIFY_MO_UNWRAP_AS,
+            side_effect=[updated, new_recipe, new_op, new_prod],
+        ),
+    ):
+        request = ModifyManufacturingOrderRequest(
+            id=42,
+            update_header=MOHeaderPatch(status="IN_PROGRESS"),
+            add_recipe_rows=[
+                MORecipeRowAdd(variant_id=100, planned_quantity_per_unit=2.0)
+            ],
+            add_operation_rows=[
+                MOOperationRowAdd(status="NOT_STARTED", operation_name="Assembly")
+            ],
+            add_productions=[MOProductionAdd(completed_quantity=5.0)],
+            confirm=True,
+        )
+        response = await _modify_manufacturing_order_impl(request, context)
+
+    assert response.is_preview is False
+    assert len(response.actions) == 4
+    assert all(a.succeeded is True for a in response.actions)
+    # Canonical order: header → recipe → operation → production
+    assert call_log == [
+        "update_header",
+        "add_recipe_row",
+        "add_operation_row",
+        "add_production",
+    ]

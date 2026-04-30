@@ -550,3 +550,271 @@ def test_item_katana_url_returns_none_for_service_type(_no_web_base_url: None):
         _item_katana_url(ItemType.MATERIAL, 456)
         == "https://factory.katanamrp.com/products/456"
     )
+
+
+# ============================================================================
+# modify_item / delete_item — unified modification surface
+# ============================================================================
+
+_MODIFY_ITEM_UNWRAP_AS = "katana_mcp.tools._modification_dispatch.unwrap_as"
+_MODIFY_ITEM_IS_SUCCESS = "katana_mcp.tools._modification_dispatch.is_success"
+
+
+@pytest.mark.asyncio
+async def test_modify_item_requires_at_least_one_subpayload():
+    from katana_mcp.tools.foundation.items import (
+        ModifyItemRequest,
+        _modify_item_impl,
+    )
+
+    context, _ = create_mock_context()
+    with pytest.raises(ValueError, match="At least one sub-payload"):
+        await _modify_item_impl(
+            ModifyItemRequest(id=42, type=ItemType.PRODUCT, confirm=False), context
+        )
+
+
+@pytest.mark.asyncio
+async def test_modify_item_rejects_misrouted_header_field():
+    """Setting ``is_producible`` (PRODUCT-only) on a SERVICE raises before
+    any API call."""
+    from katana_mcp.tools.foundation.items import (
+        ItemHeaderPatch,
+        ModifyItemRequest,
+        _modify_item_impl,
+    )
+
+    context, _ = create_mock_context()
+    request = ModifyItemRequest(
+        id=42,
+        type=ItemType.SERVICE,
+        update_header=ItemHeaderPatch(name="Renamed", is_producible=True),
+        confirm=False,
+    )
+    with pytest.raises(ValueError, match="not valid for type=service"):
+        await _modify_item_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_modify_item_rejects_variant_crud_for_services():
+    from katana_mcp.tools.foundation.items import (
+        ModifyItemRequest,
+        VariantAdd,
+        _modify_item_impl,
+    )
+
+    context, _ = create_mock_context()
+    request = ModifyItemRequest(
+        id=42,
+        type=ItemType.SERVICE,
+        add_variants=[VariantAdd(sku="V-1")],
+        confirm=False,
+    )
+    with pytest.raises(ValueError, match="not supported for SERVICE"):
+        await _modify_item_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_modify_item_product_header_dispatches_to_products_endpoint():
+    """Confirms the type discriminator routes a PRODUCT header update to
+    ``/products/{id}`` (and not ``/materials/{id}``)."""
+    from katana_mcp.tools.foundation.items import (
+        ItemHeaderPatch,
+        ModifyItemRequest,
+        _modify_item_impl,
+    )
+
+    context, _ = create_mock_context()
+    mock_product = MagicMock(name="UpdatedProduct")
+    mock_product.id = 42
+    mock_product.name = "Renamed Product"
+    with (
+        patch(
+            "katana_public_api_client.api.product.update_product.asyncio_detailed",
+            new_callable=AsyncMock,
+        ) as mock_product_endpoint,
+        patch(
+            "katana_public_api_client.api.material.update_material.asyncio_detailed",
+            new_callable=AsyncMock,
+        ) as mock_material_endpoint,
+        patch(
+            "katana_public_api_client.api.product.get_product.asyncio_detailed",
+            new_callable=AsyncMock,
+        ),
+        patch(_MODIFY_ITEM_UNWRAP_AS, return_value=mock_product),
+    ):
+        request = ModifyItemRequest(
+            id=42,
+            type=ItemType.PRODUCT,
+            update_header=ItemHeaderPatch(name="Renamed Product", is_producible=True),
+            confirm=True,
+        )
+        response = await _modify_item_impl(request, context)
+
+    assert response.is_preview is False
+    assert response.entity_type == "product"
+    assert response.actions[0].operation == "update_header"
+    mock_product_endpoint.assert_awaited_once()
+    mock_material_endpoint.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_modify_item_material_header_dispatches_to_materials_endpoint():
+    """Same shape as the PRODUCT test — pins the material-side routing."""
+    from katana_mcp.tools.foundation.items import (
+        ItemHeaderPatch,
+        ModifyItemRequest,
+        _modify_item_impl,
+    )
+
+    context, _ = create_mock_context()
+    mock_material = MagicMock()
+    mock_material.id = 99
+    mock_material.name = "Renamed Material"
+    with (
+        patch(
+            "katana_public_api_client.api.material.update_material.asyncio_detailed",
+            new_callable=AsyncMock,
+        ) as mock_material_endpoint,
+        patch(
+            "katana_public_api_client.api.product.update_product.asyncio_detailed",
+            new_callable=AsyncMock,
+        ) as mock_product_endpoint,
+        patch(
+            "katana_public_api_client.api.material.get_material.asyncio_detailed",
+            new_callable=AsyncMock,
+        ),
+        patch(_MODIFY_ITEM_UNWRAP_AS, return_value=mock_material),
+    ):
+        request = ModifyItemRequest(
+            id=99,
+            type=ItemType.MATERIAL,
+            update_header=ItemHeaderPatch(name="Renamed Material"),
+            confirm=True,
+        )
+        response = await _modify_item_impl(request, context)
+
+    assert response.entity_type == "material"
+    mock_material_endpoint.assert_awaited_once()
+    mock_product_endpoint.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_modify_item_service_header_dispatches_to_services_endpoint():
+    """SERVICE routing must hit ``/services/{id}``, not products or materials.
+    Also pins ``katana_url=None`` for SERVICE (no Katana web page)."""
+    from katana_mcp.tools.foundation.items import (
+        ItemHeaderPatch,
+        ModifyItemRequest,
+        _modify_item_impl,
+    )
+
+    context, _ = create_mock_context()
+    mock_service = MagicMock()
+    mock_service.id = 7
+    mock_service.name = "Renamed Service"
+    with (
+        patch(
+            "katana_public_api_client.api.services.update_service.asyncio_detailed",
+            new_callable=AsyncMock,
+        ) as mock_service_endpoint,
+        patch(
+            "katana_public_api_client.api.product.update_product.asyncio_detailed",
+            new_callable=AsyncMock,
+        ) as mock_product_endpoint,
+        patch(
+            "katana_public_api_client.api.material.update_material.asyncio_detailed",
+            new_callable=AsyncMock,
+        ) as mock_material_endpoint,
+        patch(
+            "katana_public_api_client.api.services.get_service.asyncio_detailed",
+            new_callable=AsyncMock,
+        ),
+        patch(_MODIFY_ITEM_UNWRAP_AS, return_value=mock_service),
+    ):
+        request = ModifyItemRequest(
+            id=7,
+            type=ItemType.SERVICE,
+            update_header=ItemHeaderPatch(name="Renamed Service", sales_price=12.50),
+            confirm=True,
+        )
+        response = await _modify_item_impl(request, context)
+
+    assert response.entity_type == "service"
+    assert response.katana_url is None  # services have no Katana web page
+    mock_service_endpoint.assert_awaited_once()
+    mock_product_endpoint.assert_not_awaited()
+    mock_material_endpoint.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_modify_item_add_variant_injects_parent_id_for_product():
+    from katana_mcp.tools.foundation.items import (
+        ModifyItemRequest,
+        VariantAdd,
+        _modify_item_impl,
+    )
+
+    context, _ = create_mock_context()
+    mock_variant = MagicMock(id=500)
+    with (
+        patch(
+            "katana_public_api_client.api.variant.create_variant.asyncio_detailed",
+            new_callable=AsyncMock,
+        ) as mock_create,
+        patch(
+            "katana_public_api_client.api.product.get_product.asyncio_detailed",
+            new_callable=AsyncMock,
+        ),
+        patch(_MODIFY_ITEM_UNWRAP_AS, return_value=mock_variant),
+    ):
+        request = ModifyItemRequest(
+            id=42,
+            type=ItemType.PRODUCT,
+            add_variants=[VariantAdd(sku="NEW-SKU-1", sales_price=99.99)],
+            confirm=True,
+        )
+        response = await _modify_item_impl(request, context)
+
+    assert response.actions[0].operation == "add_variant"
+    mock_create.assert_awaited_once()
+    body = mock_create.await_args.kwargs["body"]
+    assert body.product_id == 42
+    # material_id should be UNSET, not 42 — it's a PRODUCT.
+    from katana_public_api_client.client_types import UNSET
+
+    assert body.material_id is UNSET
+
+
+@pytest.mark.asyncio
+async def test_delete_item_dispatches_to_typed_delete_endpoint():
+    from katana_mcp.tools.foundation.items import (
+        DeleteItemRequest,
+        _delete_item_impl,
+    )
+
+    context, _ = create_mock_context()
+    mock_response = MagicMock(status_code=204, parsed=None)
+    with (
+        patch(
+            "katana_public_api_client.api.material.delete_material.asyncio_detailed",
+            new_callable=AsyncMock,
+            return_value=mock_response,
+        ) as mock_delete,
+        patch(
+            "katana_public_api_client.api.product.delete_product.asyncio_detailed",
+            new_callable=AsyncMock,
+        ) as mock_product_delete,
+        patch(
+            "katana_public_api_client.api.material.get_material.asyncio_detailed",
+            new_callable=AsyncMock,
+        ),
+        patch(_MODIFY_ITEM_IS_SUCCESS, return_value=True),
+    ):
+        request = DeleteItemRequest(id=99, type=ItemType.MATERIAL, confirm=True)
+        response = await _delete_item_impl(request, context)
+
+    assert response.is_preview is False
+    assert response.actions[0].succeeded is True
+    mock_delete.assert_awaited_once()
+    mock_product_delete.assert_not_awaited()
