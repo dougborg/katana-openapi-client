@@ -2549,7 +2549,9 @@ _PO_ROW_UPDATE = (
 _PO_ROW_DELETE = (
     "katana_public_api_client.api.purchase_order_row.delete_purchase_order_row"
 )
-_PO_UNWRAP_AS = "katana_mcp.tools.foundation.purchase_orders.unwrap_as"
+# The modify/delete dispatcher pipes through ``_modification_dispatch.unwrap_as``
+# (apply factories + safe_fetch_for_diff use the dispatcher's binding).
+_PO_UNWRAP_AS = "katana_mcp.tools._modification_dispatch.unwrap_as"
 
 
 @pytest.fixture
@@ -2789,7 +2791,7 @@ async def test_delete_po_confirm_calls_api_and_records_prior_state():
         ),
         patch(f"{_PO_DELETE}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
         patch(
-            "katana_mcp.tools.foundation.purchase_orders.is_success",
+            "katana_mcp.tools._modification_dispatch.is_success",
             return_value=True,
         ),
     ):

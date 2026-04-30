@@ -1558,7 +1558,8 @@ _MODIFY_SO_DELETE = "katana_public_api_client.api.sales_order.delete_sales_order
 _MODIFY_SO_ROW_CREATE = (
     "katana_public_api_client.api.sales_order_row.create_sales_order_row"
 )
-_MODIFY_SO_UNWRAP_AS_LOCAL = "katana_mcp.tools.foundation.sales_orders.unwrap_as"
+# The modify/delete dispatcher pipes through ``_modification_dispatch.unwrap_as``.
+_MODIFY_SO_UNWRAP_AS_LOCAL = "katana_mcp.tools._modification_dispatch.unwrap_as"
 
 
 def _mock_so(order_id: int = 1, order_no: str = "SO-1"):
@@ -1780,7 +1781,7 @@ async def test_delete_so_confirm_calls_api_and_records_prior_state():
             f"{_MODIFY_SO_DELETE}.asyncio_detailed", new_callable=AsyncMock
         ) as mock_api,
         patch(
-            "katana_mcp.tools.foundation.sales_orders.is_success",
+            "katana_mcp.tools._modification_dispatch.is_success",
             return_value=True,
         ),
     ):

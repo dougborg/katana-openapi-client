@@ -35,6 +35,20 @@ from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.domain.converters import unwrap_unset
 
 
+class ConfirmableRequest(BaseModel):
+    """Base for top-level ``Modify<Entity>Request`` and ``Delete<Entity>Request``
+    Pydantic models. Carries the ``confirm`` field used by every modification
+    tool's preview/apply gate."""
+
+    confirm: bool = Field(
+        default=False,
+        description=(
+            "If false, returns a preview with planned actions. "
+            "If true, executes the action plan."
+        ),
+    )
+
+
 class FieldChange(BaseModel):
     """A single field-level change in a modification preview/result.
 

@@ -50,9 +50,10 @@ caller just needs to know the post-state diverged from the request.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel
 
@@ -63,6 +64,7 @@ from katana_mcp.tools._modification import (
     compute_field_diff,
     make_response_verifier,
 )
+from katana_public_api_client.utils import is_success, unwrap, unwrap_as
 
 logger = get_logger(__name__)
 
@@ -270,6 +272,257 @@ def make_delete_action(
         apply=apply,
         verify=None,
     )
+
+
+# ============================================================================
+# Generic API-call helpers shared by every ``modify_<entity>`` tool.
+#
+# Three layers stacked together cover ~80% of per-entity boilerplate:
+#
+# 1. ``safe_fetch_for_diff`` — best-effort GET that returns None on failure.
+# 2. ``make_post_apply`` / ``make_patch_apply`` / ``make_delete_apply`` —
+#    closure factories for ActionSpec.apply.
+# 3. ``plan_creates`` / ``plan_updates`` / ``plan_deletes`` — plan-builder
+#    factories that consume sub-payloads + a request-builder + an apply-builder
+#    and yield ``list[ActionSpec]``.
+# ============================================================================
+
+
+async def safe_fetch_for_diff[T](
+    endpoint: Any,
+    services: Any,
+    target_id: int,
+    *,
+    return_type: type[T],
+    label: str,
+) -> T | None:
+    """Best-effort GET for diff context. Returns None on any error.
+
+    Centralizes the try/except/log pattern every per-entity ``_fetch_<x>``
+    helper used to repeat. ``label`` is the human-readable noun for the
+    info-log on failure (e.g. ``"PO row"``, ``"SO fulfillment"``).
+    """
+    try:
+        response = await endpoint.asyncio_detailed(id=target_id, client=services.client)
+        return unwrap_as(response, return_type)
+    except Exception as exc:
+        logger.info(
+            f"Could not fetch {label} {target_id} for diff context: {exc} — "
+            "preview will report changes without prior values."
+        )
+        return None
+
+
+def make_post_apply[T](
+    endpoint: Any, services: Any, body: Any, *, return_type: type[T]
+) -> ApplyCallable:
+    """Build an ``apply`` closure for a POST endpoint that returns a model.
+
+    Used by every ``add_*`` action: the generated client's POST endpoints
+    take ``client=`` + ``body=`` and return a parsed entity. ``return_type``
+    is the attrs class the response is asserted against by ``unwrap_as``.
+    """
+
+    async def apply() -> T:
+        response = await endpoint.asyncio_detailed(client=services.client, body=body)
+        # ``unwrap_as`` raises on error by default; narrow ``T | None`` → ``T``.
+        return cast(T, unwrap_as(response, return_type))
+
+    return apply
+
+
+def make_patch_apply[T](
+    endpoint: Any,
+    services: Any,
+    target_id: int,
+    body: Any,
+    *,
+    return_type: type[T],
+) -> ApplyCallable:
+    """Build an ``apply`` closure for a PATCH endpoint that returns a model.
+
+    Used by every ``update_*`` action: PATCH endpoints take ``id=``,
+    ``client=``, ``body=`` and return the updated entity.
+    """
+
+    async def apply() -> T:
+        response = await endpoint.asyncio_detailed(
+            id=target_id, client=services.client, body=body
+        )
+        return cast(T, unwrap_as(response, return_type))
+
+    return apply
+
+
+def make_delete_apply(endpoint: Any, services: Any, target_id: int) -> ApplyCallable:
+    """Build an ``apply`` closure for a DELETE endpoint with no body.
+
+    Used by every ``delete_*`` action and the ``delete_<entity>`` tools.
+    DELETE endpoints return 204 No Content on success; ``is_success`` +
+    ``unwrap`` translates non-success into a typed error.
+    """
+
+    async def apply() -> None:
+        response = await endpoint.asyncio_detailed(id=target_id, client=services.client)
+        if not is_success(response):
+            unwrap(response)
+        return None
+
+    return apply
+
+
+# ============================================================================
+# Plan builders — consume sub-payloads and emit ``list[ActionSpec]``.
+# ============================================================================
+
+
+def plan_creates[Payload: BaseModel](
+    items: list[Payload] | None,
+    operation: str,
+    build_request: Callable[[Payload], Any],
+    build_apply: Callable[[Any], ApplyCallable],
+) -> list[ActionSpec]:
+    """Build ActionSpecs for an ``add_*`` sub-payload.
+
+    Args:
+        items: The sub-payload list (or None).
+        operation: Operation name (StrEnum value).
+        build_request: ``Payload -> attrs request body`` (per-entity).
+        build_apply: ``request_body -> ApplyCallable`` (per-entity).
+    """
+    if not items:
+        return []
+    return [
+        make_create_action(operation, item, build_apply(build_request(item)))
+        for item in items
+    ]
+
+
+async def plan_updates[Patch: BaseModel, Existing](
+    patches: list[Patch] | None,
+    operation: str,
+    fetcher: Callable[[int], Awaitable[Existing | None]] | None,
+    build_request: Callable[[Patch], Any],
+    build_apply: Callable[[int, Any], ApplyCallable],
+    *,
+    target_id_attr: str = "id",
+) -> list[ActionSpec]:
+    """Build ActionSpecs for an ``update_*`` sub-payload.
+
+    When ``fetcher`` is provided, prefetches the existing target for each
+    patch via ``asyncio.gather`` (parallel) and computes a real diff. When
+    ``fetcher`` is ``None``, every diff is marked ``is_unknown_prior=True``
+    — used for resources without a get-by-id endpoint.
+
+    Args:
+        patches: The sub-payload list (or None).
+        operation: Operation name (StrEnum value).
+        fetcher: ``target_id -> Awaitable[existing | None]`` or ``None``.
+        build_request: ``patch -> attrs request body``.
+        build_apply: ``(target_id, body) -> ApplyCallable``.
+        target_id_attr: Attribute on ``patch`` carrying the target id
+            (default ``"id"``).
+    """
+    if not patches:
+        return []
+
+    target_ids = [getattr(p, target_id_attr) for p in patches]
+    if fetcher is not None:
+        existing_list = await asyncio.gather(*[fetcher(tid) for tid in target_ids])
+    else:
+        existing_list = [None] * len(patches)
+
+    specs: list[ActionSpec] = []
+    for patch, target_id, existing in zip(
+        patches, target_ids, existing_list, strict=True
+    ):
+        diff = compute_field_diff(existing, patch, unknown_prior=existing is None)
+        specs.append(
+            ActionSpec(
+                operation=operation,
+                target_id=target_id,
+                diff=diff,
+                apply=build_apply(target_id, build_request(patch)),
+                verify=make_response_verifier(diff),
+            )
+        )
+    return specs
+
+
+def plan_deletes(
+    ids: list[int] | None,
+    operation: str,
+    build_apply: Callable[[int], ApplyCallable],
+) -> list[ActionSpec]:
+    """Build ActionSpecs for a ``delete_*_ids`` sub-payload."""
+    if not ids:
+        return []
+    return [
+        make_delete_action(operation, target_id, build_apply(target_id))
+        for target_id in ids
+    ]
+
+
+# ============================================================================
+# Response summary helpers — collapse the duplicated message + next_actions
+# blocks at the end of every ``_modify_*_impl`` and ``_delete_*_impl``.
+# ============================================================================
+
+
+def summarize_modify_outcome(
+    actions: list[ActionResult],
+    plan_len: int,
+    *,
+    entity_label: str,
+    tool_name: str,
+) -> tuple[str, list[str]]:
+    """Build (message, next_actions) for a multi-action modify result.
+
+    ``entity_label`` is the human-readable noun (e.g. ``"purchase order 42"``).
+    ``tool_name`` names the tool the caller would re-invoke for revert
+    (e.g. ``"modify_purchase_order"``).
+    """
+    succeeded_count = sum(1 for a in actions if a.succeeded is True)
+    failed_count = sum(1 for a in actions if a.succeeded is False)
+
+    if failed_count > 0:
+        message = (
+            f"Partial: {succeeded_count}/{plan_len} action(s) applied to "
+            f"{entity_label} before fail-fast halt; see actions for details "
+            "and prior_state for revert reference."
+        )
+        next_actions = [
+            f"{succeeded_count} action(s) succeeded; {failed_count} failed",
+            "Review the FAILED action's error and the prior_state snapshot",
+            f"Compose a follow-up {tool_name} call to revert if needed",
+        ]
+    else:
+        message = (
+            f"Successfully applied {succeeded_count}/{plan_len} action(s) "
+            f"to {entity_label}"
+        )
+        next_actions = [
+            f"{entity_label.capitalize()} modified — "
+            f"{succeeded_count} action(s) verified"
+        ]
+    return message, next_actions
+
+
+def summarize_delete_outcome(
+    actions: list[ActionResult], *, entity_label: str
+) -> tuple[str, list[str]]:
+    """Build (message, next_actions) for a single-action delete result."""
+    failed = any(a.succeeded is False for a in actions)
+    if failed:
+        message = f"Failed to delete {entity_label}"
+        next_actions = [
+            "Delete failed — see action error",
+            "prior_state carries the pre-delete snapshot",
+        ]
+    else:
+        message = f"Successfully deleted {entity_label}"
+        next_actions = [f"{entity_label.capitalize()} has been deleted"]
+    return message, next_actions
 
 
 def serialize_for_prior_state(value: Any) -> dict[str, Any] | None:

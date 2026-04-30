@@ -14,7 +14,6 @@ Tools:
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal
@@ -27,6 +26,7 @@ from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools._modification import (
+    ConfirmableRequest,
     ModificationResponse,
     compute_field_diff,
     make_response_verifier,
@@ -36,10 +36,17 @@ from katana_mcp.tools._modification_dispatch import (
     ActionSpec,
     execute_plan,
     has_any_subpayload,
-    make_create_action,
-    make_delete_action,
+    make_delete_apply,
+    make_patch_apply,
+    make_post_apply,
+    plan_creates,
+    plan_deletes,
     plan_to_preview_results,
+    plan_updates,
+    safe_fetch_for_diff,
     serialize_for_prior_state,
+    summarize_delete_outcome,
+    summarize_modify_outcome,
 )
 from katana_mcp.tools.list_coercion import CoercedIntListOpt
 from katana_mcp.tools.tool_result_utils import (
@@ -113,7 +120,7 @@ from katana_public_api_client.models import (
     UpdateSalesOrderShippingFeeRequest as APIUpdateSOShippingFeeRequest,
     UpdateSalesOrderStatus,
 )
-from katana_public_api_client.utils import is_success, unwrap, unwrap_as
+from katana_public_api_client.utils import unwrap_as
 
 logger = get_logger(__name__)
 
@@ -1426,67 +1433,39 @@ AddressEntityTypeLiteral = Literal["billing", "shipping"]
 
 
 async def _fetch_sales_order_attrs(services: Any, so_id: int) -> SalesOrder | None:
-    """Fetch the SO attrs object for diff context. Returns None on failure."""
-    try:
-        response = await api_get_sales_order.asyncio_detailed(
-            id=so_id, client=services.client
-        )
-        return unwrap_as(response, SalesOrder)
-    except Exception as exc:
-        logger.info(
-            f"Could not fetch SO {so_id} for diff context: {exc} — "
-            "preview will report changes without prior values."
-        )
-        return None
+    return await safe_fetch_for_diff(
+        api_get_sales_order, services, so_id, return_type=SalesOrder, label="SO"
+    )
 
 
 async def _fetch_so_row(services: Any, row_id: int) -> SalesOrderRow | None:
-    """Fetch an SO row for diff context. Returns None on failure."""
-    try:
-        response = await api_get_so_row.asyncio_detailed(
-            id=row_id, client=services.client
-        )
-        return unwrap_as(response, SalesOrderRow)
-    except Exception as exc:
-        logger.info(
-            f"Could not fetch SO row {row_id} for diff context: {exc} — "
-            "preview will report changes without prior values."
-        )
-        return None
+    return await safe_fetch_for_diff(
+        api_get_so_row, services, row_id, return_type=SalesOrderRow, label="SO row"
+    )
 
 
 async def _fetch_so_fulfillment(
     services: Any, fulfillment_id: int
 ) -> SalesOrderFulfillment | None:
-    """Fetch an SO fulfillment for diff context. Returns None on failure."""
-    try:
-        response = await api_get_so_fulfillment.asyncio_detailed(
-            id=fulfillment_id, client=services.client
-        )
-        return unwrap_as(response, SalesOrderFulfillment)
-    except Exception as exc:
-        logger.info(
-            f"Could not fetch SO fulfillment {fulfillment_id} for diff context: "
-            f"{exc} — preview will report changes without prior values."
-        )
-        return None
+    return await safe_fetch_for_diff(
+        api_get_so_fulfillment,
+        services,
+        fulfillment_id,
+        return_type=SalesOrderFulfillment,
+        label="SO fulfillment",
+    )
 
 
 async def _fetch_so_shipping_fee(
     services: Any, fee_id: int
 ) -> SalesOrderShippingFee | None:
-    """Fetch an SO shipping fee for diff context. Returns None on failure."""
-    try:
-        response = await api_get_so_shipping_fee.asyncio_detailed(
-            id=fee_id, client=services.client
-        )
-        return unwrap_as(response, SalesOrderShippingFee)
-    except Exception as exc:
-        logger.info(
-            f"Could not fetch SO shipping fee {fee_id} for diff context: "
-            f"{exc} — preview will report changes without prior values."
-        )
-        return None
+    return await safe_fetch_for_diff(
+        api_get_so_shipping_fee,
+        services,
+        fee_id,
+        return_type=SalesOrderShippingFee,
+        label="SO shipping fee",
+    )
 
 
 # Note: addresses do not have a get-by-id endpoint (only list-by-SO). Updates
@@ -1648,7 +1627,7 @@ class SOShippingFeeUpdate(BaseModel):
     tax_rate_id: int | None = Field(default=None)
 
 
-class ModifySalesOrderRequest(BaseModel):
+class ModifySalesOrderRequest(ConfirmableRequest):
     """Unified modification request for a sales order.
 
     Sub-payload slots span header + rows + addresses + fulfillments +
@@ -1657,41 +1636,27 @@ class ModifySalesOrderRequest(BaseModel):
     """
 
     id: int = Field(..., description="Sales order ID")
-
     update_header: SOHeaderPatch | None = Field(default=None)
-
     add_rows: list[SORowAdd] | None = Field(default=None)
     update_rows: list[SORowUpdate] | None = Field(default=None)
     delete_row_ids: list[int] | None = Field(default=None)
-
     add_addresses: list[SOAddressAdd] | None = Field(default=None)
     update_addresses: list[SOAddressUpdate] | None = Field(default=None)
     delete_address_ids: list[int] | None = Field(default=None)
-
     add_fulfillments: list[SOFulfillmentAdd] | None = Field(default=None)
     update_fulfillments: list[SOFulfillmentUpdate] | None = Field(default=None)
     delete_fulfillment_ids: list[int] | None = Field(default=None)
-
     add_shipping_fees: list[SOShippingFeeAdd] | None = Field(default=None)
     update_shipping_fees: list[SOShippingFeeUpdate] | None = Field(default=None)
     delete_shipping_fee_ids: list[int] | None = Field(default=None)
 
-    confirm: bool = Field(
-        default=False,
-        description="If false, returns preview. If true, executes the action plan.",
-    )
 
-
-class DeleteSalesOrderRequest(BaseModel):
-    """Delete a sales order. Destructive — the order is removed (Katana
-    cascades child rows / addresses / fulfillments / shipping fees server-side).
+class DeleteSalesOrderRequest(ConfirmableRequest):
+    """Delete a sales order. Destructive — Katana cascades child rows /
+    addresses / fulfillments / shipping fees server-side.
     """
 
     id: int = Field(..., description="Sales order ID to delete")
-    confirm: bool = Field(
-        default=False,
-        description="If false, returns preview. If true, deletes the SO.",
-    )
 
 
 # ----------------------------------------------------------------------------
@@ -1848,444 +1813,6 @@ def _build_update_shipping_fee_request(
 
 
 # ----------------------------------------------------------------------------
-# Apply-closure factories — bind per-call args without default-arg trickery.
-# ----------------------------------------------------------------------------
-
-
-def _make_apply_update_header(
-    services: Any, so_id: int, body: APIUpdateSalesOrderRequest
-) -> Callable[[], Awaitable[SalesOrder]]:
-    async def apply() -> SalesOrder:
-        response = await api_update_sales_order.asyncio_detailed(
-            id=so_id, client=services.client, body=body
-        )
-        return unwrap_as(response, SalesOrder)
-
-    return apply
-
-
-def _make_apply_create_row(
-    services: Any, body: APICreateSORowRequest
-) -> Callable[[], Awaitable[SalesOrderRow]]:
-    async def apply() -> SalesOrderRow:
-        response = await api_create_so_row.asyncio_detailed(
-            client=services.client, body=body
-        )
-        return unwrap_as(response, SalesOrderRow)
-
-    return apply
-
-
-def _make_apply_update_row(
-    services: Any, row_id: int, body: APIUpdateSORowRequest
-) -> Callable[[], Awaitable[SalesOrderRow]]:
-    async def apply() -> SalesOrderRow:
-        response = await api_update_so_row.asyncio_detailed(
-            id=row_id, client=services.client, body=body
-        )
-        return unwrap_as(response, SalesOrderRow)
-
-    return apply
-
-
-def _make_apply_delete_row(services: Any, row_id: int) -> Callable[[], Awaitable[None]]:
-    async def apply() -> None:
-        response = await api_delete_so_row.asyncio_detailed(
-            id=row_id, client=services.client
-        )
-        if not is_success(response):
-            unwrap(response)
-        return None
-
-    return apply
-
-
-def _make_apply_create_address(
-    services: Any, body: APICreateSOAddressRequest
-) -> Callable[[], Awaitable[APISalesOrderAddress]]:
-    async def apply() -> APISalesOrderAddress:
-        response = await api_create_so_address.asyncio_detailed(
-            client=services.client, body=body
-        )
-        return unwrap_as(response, APISalesOrderAddress)
-
-    return apply
-
-
-def _make_apply_update_address(
-    services: Any, addr_id: int, body: APIUpdateSOAddressRequest
-) -> Callable[[], Awaitable[APISalesOrderAddress]]:
-    async def apply() -> APISalesOrderAddress:
-        response = await api_update_so_address.asyncio_detailed(
-            id=addr_id, client=services.client, body=body
-        )
-        return unwrap_as(response, APISalesOrderAddress)
-
-    return apply
-
-
-def _make_apply_delete_address(
-    services: Any, addr_id: int
-) -> Callable[[], Awaitable[None]]:
-    async def apply() -> None:
-        response = await api_delete_so_address.asyncio_detailed(
-            id=addr_id, client=services.client
-        )
-        if not is_success(response):
-            unwrap(response)
-        return None
-
-    return apply
-
-
-def _make_apply_create_fulfillment(
-    services: Any, body: APICreateSOFulfillmentRequest
-) -> Callable[[], Awaitable[SalesOrderFulfillment]]:
-    async def apply() -> SalesOrderFulfillment:
-        response = await api_create_so_fulfillment.asyncio_detailed(
-            client=services.client, body=body
-        )
-        return unwrap_as(response, SalesOrderFulfillment)
-
-    return apply
-
-
-def _make_apply_update_fulfillment(
-    services: Any, fulfillment_id: int, body: APIUpdateSOFulfillmentRequest
-) -> Callable[[], Awaitable[SalesOrderFulfillment]]:
-    async def apply() -> SalesOrderFulfillment:
-        response = await api_update_so_fulfillment.asyncio_detailed(
-            id=fulfillment_id, client=services.client, body=body
-        )
-        return unwrap_as(response, SalesOrderFulfillment)
-
-    return apply
-
-
-def _make_apply_delete_fulfillment(
-    services: Any, fulfillment_id: int
-) -> Callable[[], Awaitable[None]]:
-    async def apply() -> None:
-        response = await api_delete_so_fulfillment.asyncio_detailed(
-            id=fulfillment_id, client=services.client
-        )
-        if not is_success(response):
-            unwrap(response)
-        return None
-
-    return apply
-
-
-def _make_apply_create_shipping_fee(
-    services: Any, body: APICreateSOShippingFeeRequest
-) -> Callable[[], Awaitable[SalesOrderShippingFee]]:
-    async def apply() -> SalesOrderShippingFee:
-        response = await api_create_so_shipping_fee.asyncio_detailed(
-            client=services.client, body=body
-        )
-        return unwrap_as(response, SalesOrderShippingFee)
-
-    return apply
-
-
-def _make_apply_update_shipping_fee(
-    services: Any, fee_id: int, body: APIUpdateSOShippingFeeRequest
-) -> Callable[[], Awaitable[SalesOrderShippingFee]]:
-    async def apply() -> SalesOrderShippingFee:
-        response = await api_update_so_shipping_fee.asyncio_detailed(
-            id=fee_id, client=services.client, body=body
-        )
-        return unwrap_as(response, SalesOrderShippingFee)
-
-    return apply
-
-
-def _make_apply_delete_shipping_fee(
-    services: Any, fee_id: int
-) -> Callable[[], Awaitable[None]]:
-    async def apply() -> None:
-        response = await api_delete_so_shipping_fee.asyncio_detailed(
-            id=fee_id, client=services.client
-        )
-        if not is_success(response):
-            unwrap(response)
-        return None
-
-    return apply
-
-
-def _make_apply_delete_so(services: Any, so_id: int) -> Callable[[], Awaitable[None]]:
-    async def apply() -> None:
-        response = await api_delete_sales_order.asyncio_detailed(
-            id=so_id, client=services.client
-        )
-        if not is_success(response):
-            unwrap(response)
-        return None
-
-    return apply
-
-
-# ----------------------------------------------------------------------------
-# Plan builders — translate sub-payloads into ActionSpec lists.
-# ----------------------------------------------------------------------------
-
-
-def _plan_so_header_update(
-    request: ModifySalesOrderRequest,
-    services: Any,
-    existing: SalesOrder | None,
-) -> ActionSpec | None:
-    if request.update_header is None:
-        return None
-    patch = request.update_header
-    diff = compute_field_diff(existing, patch, unknown_prior=existing is None)
-    return ActionSpec(
-        operation=SOOperation.UPDATE_HEADER,
-        target_id=request.id,
-        diff=diff,
-        apply=_make_apply_update_header(
-            services, request.id, _build_update_header_request(patch)
-        ),
-        verify=make_response_verifier(diff),
-    )
-
-
-def _plan_so_row_adds(
-    request: ModifySalesOrderRequest, services: Any
-) -> list[ActionSpec]:
-    if not request.add_rows:
-        return []
-    return [
-        make_create_action(
-            SOOperation.ADD_ROW,
-            row,
-            _make_apply_create_row(
-                services, _build_create_row_request(request.id, row)
-            ),
-        )
-        for row in request.add_rows
-    ]
-
-
-async def _plan_so_row_updates(
-    request: ModifySalesOrderRequest, services: Any
-) -> list[ActionSpec]:
-    if not request.update_rows:
-        return []
-    existing_rows = await asyncio.gather(
-        *[_fetch_so_row(services, p.id) for p in request.update_rows]
-    )
-    specs: list[ActionSpec] = []
-    for row_patch, existing_row in zip(request.update_rows, existing_rows, strict=True):
-        diff = compute_field_diff(
-            existing_row, row_patch, unknown_prior=existing_row is None
-        )
-        specs.append(
-            ActionSpec(
-                operation=SOOperation.UPDATE_ROW,
-                target_id=row_patch.id,
-                diff=diff,
-                apply=_make_apply_update_row(
-                    services, row_patch.id, _build_update_row_request(row_patch)
-                ),
-                verify=make_response_verifier(diff),
-            )
-        )
-    return specs
-
-
-def _plan_so_row_deletes(
-    request: ModifySalesOrderRequest, services: Any
-) -> list[ActionSpec]:
-    if not request.delete_row_ids:
-        return []
-    return [
-        make_delete_action(
-            SOOperation.DELETE_ROW, rid, _make_apply_delete_row(services, rid)
-        )
-        for rid in request.delete_row_ids
-    ]
-
-
-def _plan_so_address_adds(
-    request: ModifySalesOrderRequest, services: Any
-) -> list[ActionSpec]:
-    if not request.add_addresses:
-        return []
-    return [
-        make_create_action(
-            SOOperation.ADD_ADDRESS,
-            addr,
-            _make_apply_create_address(
-                services, _build_create_address_request(request.id, addr)
-            ),
-        )
-        for addr in request.add_addresses
-    ]
-
-
-def _plan_so_address_updates(
-    request: ModifySalesOrderRequest, services: Any
-) -> list[ActionSpec]:
-    """Address updates can't prefetch (no get-by-id), so every diff is
-    ``is_unknown_prior=True``. Verification still works against the PATCH
-    response body."""
-    if not request.update_addresses:
-        return []
-    specs: list[ActionSpec] = []
-    for patch in request.update_addresses:
-        diff = compute_field_diff(None, patch, unknown_prior=True)
-        specs.append(
-            ActionSpec(
-                operation=SOOperation.UPDATE_ADDRESS,
-                target_id=patch.id,
-                diff=diff,
-                apply=_make_apply_update_address(
-                    services, patch.id, _build_update_address_request(patch)
-                ),
-                verify=make_response_verifier(diff),
-            )
-        )
-    return specs
-
-
-def _plan_so_address_deletes(
-    request: ModifySalesOrderRequest, services: Any
-) -> list[ActionSpec]:
-    if not request.delete_address_ids:
-        return []
-    return [
-        make_delete_action(
-            SOOperation.DELETE_ADDRESS,
-            addr_id,
-            _make_apply_delete_address(services, addr_id),
-        )
-        for addr_id in request.delete_address_ids
-    ]
-
-
-def _plan_so_fulfillment_adds(
-    request: ModifySalesOrderRequest, services: Any
-) -> list[ActionSpec]:
-    if not request.add_fulfillments:
-        return []
-    return [
-        make_create_action(
-            SOOperation.ADD_FULFILLMENT,
-            fulfillment,
-            _make_apply_create_fulfillment(
-                services, _build_create_fulfillment_request(request.id, fulfillment)
-            ),
-        )
-        for fulfillment in request.add_fulfillments
-    ]
-
-
-async def _plan_so_fulfillment_updates(
-    request: ModifySalesOrderRequest, services: Any
-) -> list[ActionSpec]:
-    if not request.update_fulfillments:
-        return []
-    existing = await asyncio.gather(
-        *[_fetch_so_fulfillment(services, p.id) for p in request.update_fulfillments]
-    )
-    specs: list[ActionSpec] = []
-    for patch, existing_fulfillment in zip(
-        request.update_fulfillments, existing, strict=True
-    ):
-        diff = compute_field_diff(
-            existing_fulfillment, patch, unknown_prior=existing_fulfillment is None
-        )
-        specs.append(
-            ActionSpec(
-                operation=SOOperation.UPDATE_FULFILLMENT,
-                target_id=patch.id,
-                diff=diff,
-                apply=_make_apply_update_fulfillment(
-                    services, patch.id, _build_update_fulfillment_request(patch)
-                ),
-                verify=make_response_verifier(diff),
-            )
-        )
-    return specs
-
-
-def _plan_so_fulfillment_deletes(
-    request: ModifySalesOrderRequest, services: Any
-) -> list[ActionSpec]:
-    if not request.delete_fulfillment_ids:
-        return []
-    return [
-        make_delete_action(
-            SOOperation.DELETE_FULFILLMENT,
-            fid,
-            _make_apply_delete_fulfillment(services, fid),
-        )
-        for fid in request.delete_fulfillment_ids
-    ]
-
-
-def _plan_so_shipping_fee_adds(
-    request: ModifySalesOrderRequest, services: Any
-) -> list[ActionSpec]:
-    if not request.add_shipping_fees:
-        return []
-    return [
-        make_create_action(
-            SOOperation.ADD_SHIPPING_FEE,
-            fee,
-            _make_apply_create_shipping_fee(
-                services, _build_create_shipping_fee_request(request.id, fee)
-            ),
-        )
-        for fee in request.add_shipping_fees
-    ]
-
-
-async def _plan_so_shipping_fee_updates(
-    request: ModifySalesOrderRequest, services: Any
-) -> list[ActionSpec]:
-    if not request.update_shipping_fees:
-        return []
-    existing = await asyncio.gather(
-        *[_fetch_so_shipping_fee(services, p.id) for p in request.update_shipping_fees]
-    )
-    specs: list[ActionSpec] = []
-    for patch, existing_fee in zip(request.update_shipping_fees, existing, strict=True):
-        diff = compute_field_diff(
-            existing_fee, patch, unknown_prior=existing_fee is None
-        )
-        specs.append(
-            ActionSpec(
-                operation=SOOperation.UPDATE_SHIPPING_FEE,
-                target_id=patch.id,
-                diff=diff,
-                apply=_make_apply_update_shipping_fee(
-                    services, patch.id, _build_update_shipping_fee_request(patch)
-                ),
-                verify=make_response_verifier(diff),
-            )
-        )
-    return specs
-
-
-def _plan_so_shipping_fee_deletes(
-    request: ModifySalesOrderRequest, services: Any
-) -> list[ActionSpec]:
-    if not request.delete_shipping_fee_ids:
-        return []
-    return [
-        make_delete_action(
-            SOOperation.DELETE_SHIPPING_FEE,
-            fid,
-            _make_apply_delete_shipping_fee(services, fid),
-        )
-        for fid in request.delete_shipping_fee_ids
-    ]
-
-
-# ----------------------------------------------------------------------------
 # Implementations
 # ----------------------------------------------------------------------------
 
@@ -2293,8 +1820,8 @@ def _plan_so_shipping_fee_deletes(
 async def _modify_sales_order_impl(
     request: ModifySalesOrderRequest, context: Context
 ) -> ModificationResponse:
-    """Build the action plan from the request's sub-payloads and execute or
-    preview based on ``confirm``."""
+    """Build the action plan from the request's sub-payloads and either
+    preview or execute based on ``confirm``."""
     services = get_services(context)
 
     if not has_any_subpayload(request):
@@ -2309,29 +1836,178 @@ async def _modify_sales_order_impl(
     existing_so = await _fetch_sales_order_attrs(services, request.id)
 
     plan: list[ActionSpec] = []
-    header_spec = _plan_so_header_update(request, services, existing_so)
-    if header_spec is not None:
-        plan.append(header_spec)
-    plan.extend(_plan_so_row_adds(request, services))
-    plan.extend(await _plan_so_row_updates(request, services))
-    plan.extend(_plan_so_row_deletes(request, services))
-    plan.extend(_plan_so_address_adds(request, services))
-    plan.extend(_plan_so_address_updates(request, services))
-    plan.extend(_plan_so_address_deletes(request, services))
-    plan.extend(_plan_so_fulfillment_adds(request, services))
-    plan.extend(await _plan_so_fulfillment_updates(request, services))
-    plan.extend(_plan_so_fulfillment_deletes(request, services))
-    plan.extend(_plan_so_shipping_fee_adds(request, services))
-    plan.extend(await _plan_so_shipping_fee_updates(request, services))
-    plan.extend(_plan_so_shipping_fee_deletes(request, services))
+
+    # Header — single optional patch.
+    if request.update_header is not None:
+        diff = compute_field_diff(
+            existing_so, request.update_header, unknown_prior=existing_so is None
+        )
+        plan.append(
+            ActionSpec(
+                operation=SOOperation.UPDATE_HEADER,
+                target_id=request.id,
+                diff=diff,
+                apply=make_patch_apply(
+                    api_update_sales_order,
+                    services,
+                    request.id,
+                    _build_update_header_request(request.update_header),
+                    return_type=SalesOrder,
+                ),
+                verify=make_response_verifier(diff),
+            )
+        )
+
+    # Rows.
+    plan.extend(
+        plan_creates(
+            request.add_rows,
+            SOOperation.ADD_ROW,
+            lambda row: _build_create_row_request(request.id, row),
+            lambda body: make_post_apply(
+                api_create_so_row, services, body, return_type=SalesOrderRow
+            ),
+        )
+    )
+    plan.extend(
+        await plan_updates(
+            request.update_rows,
+            SOOperation.UPDATE_ROW,
+            lambda rid: _fetch_so_row(services, rid),
+            _build_update_row_request,
+            lambda rid, body: make_patch_apply(
+                api_update_so_row, services, rid, body, return_type=SalesOrderRow
+            ),
+        )
+    )
+    plan.extend(
+        plan_deletes(
+            request.delete_row_ids,
+            SOOperation.DELETE_ROW,
+            lambda rid: make_delete_apply(api_delete_so_row, services, rid),
+        )
+    )
+
+    # Addresses. Updates have no get-by-id endpoint, so fetcher is None
+    # (every diff marks ``is_unknown_prior=True``).
+    plan.extend(
+        plan_creates(
+            request.add_addresses,
+            SOOperation.ADD_ADDRESS,
+            lambda addr: _build_create_address_request(request.id, addr),
+            lambda body: make_post_apply(
+                api_create_so_address, services, body, return_type=APISalesOrderAddress
+            ),
+        )
+    )
+    plan.extend(
+        await plan_updates(
+            request.update_addresses,
+            SOOperation.UPDATE_ADDRESS,
+            None,  # no get-by-id endpoint
+            _build_update_address_request,
+            lambda aid, body: make_patch_apply(
+                api_update_so_address,
+                services,
+                aid,
+                body,
+                return_type=APISalesOrderAddress,
+            ),
+        )
+    )
+    plan.extend(
+        plan_deletes(
+            request.delete_address_ids,
+            SOOperation.DELETE_ADDRESS,
+            lambda aid: make_delete_apply(api_delete_so_address, services, aid),
+        )
+    )
+
+    # Fulfillments.
+    plan.extend(
+        plan_creates(
+            request.add_fulfillments,
+            SOOperation.ADD_FULFILLMENT,
+            lambda fulfillment: _build_create_fulfillment_request(
+                request.id, fulfillment
+            ),
+            lambda body: make_post_apply(
+                api_create_so_fulfillment,
+                services,
+                body,
+                return_type=SalesOrderFulfillment,
+            ),
+        )
+    )
+    plan.extend(
+        await plan_updates(
+            request.update_fulfillments,
+            SOOperation.UPDATE_FULFILLMENT,
+            lambda fid: _fetch_so_fulfillment(services, fid),
+            _build_update_fulfillment_request,
+            lambda fid, body: make_patch_apply(
+                api_update_so_fulfillment,
+                services,
+                fid,
+                body,
+                return_type=SalesOrderFulfillment,
+            ),
+        )
+    )
+    plan.extend(
+        plan_deletes(
+            request.delete_fulfillment_ids,
+            SOOperation.DELETE_FULFILLMENT,
+            lambda fid: make_delete_apply(api_delete_so_fulfillment, services, fid),
+        )
+    )
+
+    # Shipping fees.
+    plan.extend(
+        plan_creates(
+            request.add_shipping_fees,
+            SOOperation.ADD_SHIPPING_FEE,
+            lambda fee: _build_create_shipping_fee_request(request.id, fee),
+            lambda body: make_post_apply(
+                api_create_so_shipping_fee,
+                services,
+                body,
+                return_type=SalesOrderShippingFee,
+            ),
+        )
+    )
+    plan.extend(
+        await plan_updates(
+            request.update_shipping_fees,
+            SOOperation.UPDATE_SHIPPING_FEE,
+            lambda fid: _fetch_so_shipping_fee(services, fid),
+            _build_update_shipping_fee_request,
+            lambda fid, body: make_patch_apply(
+                api_update_so_shipping_fee,
+                services,
+                fid,
+                body,
+                return_type=SalesOrderShippingFee,
+            ),
+        )
+    )
+    plan.extend(
+        plan_deletes(
+            request.delete_shipping_fee_ids,
+            SOOperation.DELETE_SHIPPING_FEE,
+            lambda fid: make_delete_apply(api_delete_so_shipping_fee, services, fid),
+        )
+    )
 
     katana_url = katana_web_url("sales_order", request.id)
-    warnings: list[str] = []
-    if existing_so is None:
-        warnings.append(
+    warnings = (
+        [
             f"Could not fetch sales order {request.id} for diff context — "
             "preview shows requested values without prior state."
-        )
+        ]
+        if existing_so is None
+        else []
+    )
 
     if not request.confirm:
         return ModificationResponse(
@@ -2352,30 +2028,12 @@ async def _modify_sales_order_impl(
 
     prior_state = serialize_for_prior_state(existing_so)
     actions = await execute_plan(plan)
-
-    succeeded_count = sum(1 for a in actions if a.succeeded is True)
-    failed_count = sum(1 for a in actions if a.succeeded is False)
-    failed = failed_count > 0
-
-    if failed:
-        message = (
-            f"Partial: {succeeded_count}/{len(plan)} action(s) applied to "
-            f"sales order {request.id} before fail-fast halt; see actions "
-            "for details and prior_state for revert reference."
-        )
-        next_actions = [
-            f"{succeeded_count} action(s) succeeded; {failed_count} failed",
-            "Review the FAILED action's error and the prior_state snapshot",
-            "Compose a follow-up modify_sales_order call to revert if needed",
-        ]
-    else:
-        message = (
-            f"Successfully applied {succeeded_count}/{len(plan)} action(s) to "
-            f"sales order {request.id}"
-        )
-        next_actions = [
-            f"Sales order {request.id} modified — {succeeded_count} action(s) verified"
-        ]
+    message, next_actions = summarize_modify_outcome(
+        actions,
+        len(plan),
+        entity_label=f"sales order {request.id}",
+        tool_name="modify_sales_order",
+    )
 
     return ModificationResponse(
         entity_type="sales_order",
@@ -2438,11 +2096,11 @@ async def _delete_sales_order_impl(
     services = get_services(context)
 
     existing_so = await _fetch_sales_order_attrs(services, request.id)
-    plan = [
-        make_delete_action(
-            SOOperation.DELETE, request.id, _make_apply_delete_so(services, request.id)
-        )
-    ]
+    plan = plan_deletes(
+        [request.id],
+        SOOperation.DELETE,
+        lambda so_id: make_delete_apply(api_delete_sales_order, services, so_id),
+    )
     katana_url = katana_web_url("sales_order", request.id)
 
     if not request.confirm:
@@ -2461,7 +2119,9 @@ async def _delete_sales_order_impl(
 
     prior_state = serialize_for_prior_state(existing_so)
     actions = await execute_plan(plan)
-    failed = any(a.succeeded is False for a in actions)
+    message, next_actions = summarize_delete_outcome(
+        actions, entity_label=f"sales order {request.id}"
+    )
 
     return ModificationResponse(
         entity_type="sales_order",
@@ -2469,20 +2129,9 @@ async def _delete_sales_order_impl(
         is_preview=False,
         actions=actions,
         prior_state=prior_state,
-        next_actions=(
-            [f"Sales order {request.id} has been deleted"]
-            if not failed
-            else [
-                "Delete failed — see action error",
-                "prior_state carries the pre-delete snapshot",
-            ]
-        ),
-        katana_url=None if not failed else katana_url,
-        message=(
-            f"Successfully deleted sales order {request.id}"
-            if not failed
-            else f"Failed to delete sales order {request.id}"
-        ),
+        next_actions=next_actions,
+        katana_url=None if all(a.succeeded for a in actions) else katana_url,
+        message=message,
     )
 
 
