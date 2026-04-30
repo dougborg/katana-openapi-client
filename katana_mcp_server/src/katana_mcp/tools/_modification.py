@@ -37,9 +37,12 @@ from katana_public_api_client.domain.converters import unwrap_unset
 
 class ConfirmableRequest(BaseModel):
     """Base for top-level ``Modify<Entity>Request`` and ``Delete<Entity>Request``
-    Pydantic models. Carries the ``confirm`` field used by every modification
-    tool's preview/apply gate."""
+    Pydantic models. Carries the primary entity ``id`` and the ``confirm``
+    field used by every modification tool's preview/apply gate. Subclasses
+    add their entity-specific sub-payload slots and override ``id``'s
+    description with an entity-appropriate label."""
 
+    id: int = Field(..., description="Entity ID")
     confirm: bool = Field(
         default=False,
         description=(

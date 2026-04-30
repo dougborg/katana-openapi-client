@@ -60,6 +60,7 @@ from pydantic import BaseModel
 from katana_mcp.logging import get_logger
 from katana_mcp.tools._modification import (
     ActionResult,
+    ConfirmableRequest,
     FieldChange,
     ModificationResponse,
     compute_field_diff,
@@ -126,8 +127,6 @@ async def execute_plan(plan: list[ActionSpec]) -> list[ActionResult]:
 
     for spec in plan:
         if spec.apply is None:
-            # Should never happen — preview-only specs go through
-            # ``to_planned_result`` directly, not execute_plan. Fail loudly.
             raise RuntimeError(
                 f"ActionSpec for {spec.operation} (target {spec.target_id}) "
                 "has no apply callable; cannot execute."
@@ -149,7 +148,7 @@ async def execute_plan(plan: list[ActionSpec]) -> list[ActionResult]:
                     error=f"{type(exc).__name__}: {exc}",
                 )
             )
-            return results  # fail-fast — do not attempt later actions
+            return results
 
         verified: bool | None = None
         actual_after: dict[str, Any] | None = None
@@ -230,7 +229,9 @@ def unset_dict(
 
 
 def has_any_subpayload(
-    request: BaseModel, *, exclude: tuple[str, ...] = ("id", "confirm")
+    request: BaseModel,
+    *,
+    exclude: tuple[str, ...] = ModificationResponse.DEFAULT_EXCLUDED,
 ) -> bool:
     """True if the request has any sub-payload set (any field outside ``exclude``).
 
@@ -577,7 +578,7 @@ def summarize_delete_outcome(
 
 async def run_modify_plan(
     *,
-    request: Any,
+    request: ConfirmableRequest,
     entity_type: str,
     entity_label: str,
     tool_name: str,
@@ -659,12 +660,12 @@ async def run_modify_plan(
 
 async def run_delete_plan(
     *,
-    request: Any,
+    request: ConfirmableRequest,
     services: Any,
     entity_type: str,
     entity_label: str,
     web_url_kind: EntityKind | None,
-    fetcher: Callable[[Any, int], Awaitable[Any | None]],
+    fetcher: Callable[[Any, int], Awaitable[Any | None]] | None,
     delete_endpoint: Any,
     operation: str,
 ) -> ModificationResponse:
@@ -682,14 +683,15 @@ async def run_delete_plan(
         entity_label: Human-readable with id (e.g. ``"purchase order 42"``).
         web_url_kind: ``katana_web_url`` argument. Pass ``None`` for entities
             without a Katana web page (e.g. services).
-        fetcher: ``(services, id) -> Awaitable[entity | None]`` — for
-            prior_state capture.
+        fetcher: ``(services, id) -> Awaitable[entity | None]`` for
+            prior_state capture, or ``None`` for entities with no GET-by-id
+            endpoint (stock transfer) — ``prior_state`` will be ``None``.
         delete_endpoint: The generated client's DELETE module (e.g.
             ``api_delete_purchase_order``).
         operation: Operation name for the ActionSpec (typically the entity's
             ``Operation.DELETE`` enum value).
     """
-    existing = await fetcher(services, request.id)
+    existing = await fetcher(services, request.id) if fetcher is not None else None
     plan = plan_deletes(
         [request.id],
         operation,
@@ -741,11 +743,17 @@ def serialize_for_prior_state(value: Any) -> dict[str, Any] | None:
     if hasattr(value, "to_dict"):
         try:
             return dict(value.to_dict())
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.info(
+                f"prior_state to_dict serialization failed for {type(value).__name__}: "
+                f"{type(exc).__name__}: {exc} — falling back to model_dump"
+            )
     if hasattr(value, "model_dump"):
         try:
             return dict(value.model_dump())
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.info(
+                f"prior_state model_dump serialization failed for {type(value).__name__}: "
+                f"{type(exc).__name__}: {exc} — prior_state will be None"
+            )
     return None

@@ -874,13 +874,11 @@ def _build_update_header_request(patch: ItemHeaderPatch, item_type: ItemType) ->
     the actual fields the API accepts after we've validated routing.
     """
     request_cls = _TYPE_ENDPOINTS[item_type]["update_request"]
-    # Compute the type-specific allowed field set by excluding fields that
-    # don't apply.
     if item_type == ItemType.PRODUCT:
         exclude = _SERVICE_ONLY_FIELDS
     elif item_type == ItemType.MATERIAL:
         exclude = _PRODUCT_ONLY_FIELDS + _SERVICE_ONLY_FIELDS
-    else:  # SERVICE
+    else:
         exclude = _PRODUCT_ONLY_FIELDS + _PRODUCT_AND_MATERIAL_FIELDS
     return request_cls(**unset_dict(patch, exclude=exclude))
 

@@ -2384,8 +2384,6 @@ async def _modify_purchase_order_impl(
             )
         return _build_create_cost_request(cost, group_id)
 
-    # Canonical order: header → row adds → updates → deletes → cost
-    # adds → cost updates → cost deletes.
     plan: list[ActionSpec] = []
 
     if request.update_header is not None:

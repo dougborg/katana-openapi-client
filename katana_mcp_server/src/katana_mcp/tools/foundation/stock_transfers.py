@@ -941,24 +941,21 @@ async def modify_stock_transfer(
 # ============================================================================
 
 
-async def _fetch_stock_transfer_for_delete(_services: Any, _st_id: int) -> None:
-    """Stock transfers have no GET-by-id endpoint, so prior-state capture is
-    a no-op. ``run_delete_plan`` accepts ``None`` from the fetcher; the diff
-    flows through with ``unknown_prior=True``."""
-    return None
-
-
 async def _delete_stock_transfer_impl(
     request: DeleteStockTransferRequest, context: Context
 ) -> ModificationResponse:
-    """One-action plan that removes the stock transfer."""
+    """One-action plan that removes the stock transfer.
+
+    Stock transfers have no GET-by-id endpoint, so ``fetcher=None`` skips
+    prior-state capture; the response carries ``prior_state=None``.
+    """
     return await run_delete_plan(
         request=request,
         services=get_services(context),
         entity_type="stock_transfer",
         entity_label=f"stock transfer {request.id}",
         web_url_kind="stock_transfer",
-        fetcher=_fetch_stock_transfer_for_delete,
+        fetcher=None,
         delete_endpoint=api_delete_stock_transfer,
         operation=StockTransferOperation.DELETE,
     )
