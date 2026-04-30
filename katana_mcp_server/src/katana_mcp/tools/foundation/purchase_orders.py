@@ -23,6 +23,7 @@ from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.list_coercion import CoercedIntListOpt
 from katana_mcp.tools.tool_result_utils import (
+    BLOCK_WARNING_PREFIX,
     UI_META,
     PaginationMeta,
     apply_date_window_filters,
@@ -33,6 +34,7 @@ from katana_mcp.tools.tool_result_utils import (
     make_simple_result,
     make_tool_result,
     parse_request_dates,
+    resolve_entity_name,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
@@ -95,11 +97,14 @@ class PurchaseOrderResponse(BaseModel):
     id: int | None = None
     order_number: str
     supplier_id: int
+    supplier_name: str | None = None
     location_id: int
+    location_name: str | None = None
     status: str
     entity_type: str
     total_cost: float | None = None
     currency: str | None = None
+    item_count: int | None = None
     is_preview: bool
     warnings: list[str] = Field(default_factory=list)
     next_actions: list[str] = Field(default_factory=list)
@@ -163,20 +168,43 @@ async def _create_purchase_order_impl(
     # Calculate preview total
     total_cost = sum(item.price_per_unit * item.quantity for item in request.items)
 
-    # Preview mode - just return calculations without API call
     if not request.confirm:
         logger.info(
             f"Preview mode: PO {request.order_number} would have {len(request.items)} items"
         )
+
+        services = get_services(context)
+        from katana_mcp.cache import EntityType
+
+        (supplier_name, sup_warn), (location_name, loc_warn) = await asyncio.gather(
+            resolve_entity_name(
+                services.cache,
+                EntityType.SUPPLIER,
+                request.supplier_id,
+                entity_label="Supplier",
+            ),
+            resolve_entity_name(
+                services.cache,
+                EntityType.LOCATION,
+                request.location_id,
+                entity_label="Location",
+            ),
+        )
+        warnings: list[str] = [w for w in (sup_warn, loc_warn) if w]
+
         return PurchaseOrderResponse(
             order_number=request.order_number,
             supplier_id=request.supplier_id,
+            supplier_name=supplier_name,
             location_id=request.location_id,
+            location_name=location_name,
             status=request.status or "NOT_RECEIVED",
             entity_type="regular",
             total_cost=total_cost,
             currency=request.currency,
+            item_count=len(request.items),
             is_preview=True,
+            warnings=warnings,
             next_actions=[
                 "Review the order details",
                 "Set confirm=true to create the purchase order",
@@ -304,6 +332,11 @@ class ReceivePurchaseOrderResponse(BaseModel):
 
     order_id: int
     order_number: str
+    status: str | None = None
+    supplier_id: int | None = None
+    supplier_name: str | None = None
+    currency: str | None = None
+    total_cost: float | None = None
     items_received: int = 0
     is_preview: bool = True
     warnings: list[str] = Field(default_factory=list)
@@ -382,24 +415,79 @@ async def _receive_purchase_order_impl(
         # unwrap_as() raises typed exceptions on error, returns typed RegularPurchaseOrder
         po = unwrap_as(po_response, RegularPurchaseOrder)
 
-        # Extract order number safely using unwrap_unset
         order_no = unwrap_unset(po.order_no, f"PO-{request.order_id}")
+        po_status = enum_to_str(unwrap_unset(po.status, None))
+        supplier_id = unwrap_unset(po.supplier_id, None)
+        currency = unwrap_unset(po.currency, None)
+        total_cost = unwrap_unset(po.total, None)
 
-        # Preview mode - return summary without API call
         if not request.confirm:
             logger.info(
                 f"Preview mode: Would receive {len(request.items)} items for PO {order_no}"
             )
+
+            supplier_name: str | None = None
+            warnings: list[str] = []
+            if supplier_id is not None:
+                from katana_mcp.cache import EntityType
+
+                supplier_name, sup_warn = await resolve_entity_name(
+                    services.cache,
+                    EntityType.SUPPLIER,
+                    supplier_id,
+                    entity_label="Supplier",
+                )
+                if sup_warn:
+                    warnings.append(sup_warn)
+
+            next_actions = [
+                "Review the items to receive",
+                "Set confirm=true to receive the items and update inventory",
+            ]
+            if po_status == "RECEIVED":
+                warnings.append(
+                    f"{BLOCK_WARNING_PREFIX} Purchase order {order_no} is already "
+                    "RECEIVED. Receiving more items would create duplicate inventory."
+                )
+                next_actions = ["No action needed — order is already fully received."]
+
             return ReceivePurchaseOrderResponse(
                 order_id=request.order_id,
                 order_number=order_no,
+                status=po_status,
+                supplier_id=supplier_id,
+                supplier_name=supplier_name,
+                currency=currency,
+                total_cost=total_cost,
                 items_received=len(request.items),
                 is_preview=True,
-                next_actions=[
-                    "Review the items to receive",
-                    "Set confirm=true to receive the items and update inventory",
-                ],
+                warnings=warnings,
+                next_actions=next_actions,
                 message=f"Preview: Receive {len(request.items)} items for PO {order_no}",
+            )
+
+        # Confirm-path defense-in-depth: a direct caller skipping the preview
+        # would otherwise be able to receive items against an already-fully-
+        # received PO and create duplicate inventory.
+        if po_status == "RECEIVED":
+            return ReceivePurchaseOrderResponse(
+                order_id=request.order_id,
+                order_number=order_no,
+                status=po_status,
+                supplier_id=supplier_id,
+                currency=currency,
+                total_cost=total_cost,
+                items_received=0,
+                is_preview=False,
+                warnings=[
+                    f"{BLOCK_WARNING_PREFIX} Purchase order {order_no} is already "
+                    "RECEIVED. No items were received."
+                ],
+                next_actions=["No action needed — order is already fully received."],
+                message=(
+                    f"Refused: PO {order_no} is already RECEIVED; "
+                    "no duplicate inventory created."
+                ),
             )
 
         from katana_public_api_client.api.purchase_order import (
@@ -407,7 +495,6 @@ async def _receive_purchase_order_impl(
         )
         from katana_public_api_client.models import PurchaseOrderReceiveRow
 
-        # Build receive rows
         receive_rows = []
         for item in request.items:
             row = PurchaseOrderReceiveRow(
@@ -417,7 +504,6 @@ async def _receive_purchase_order_impl(
             )
             receive_rows.append(row)
 
-        # Call API
         response = await api_receive_purchase_order.asyncio_detailed(
             client=services.client, body=receive_rows
         )

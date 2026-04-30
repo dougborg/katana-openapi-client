@@ -22,6 +22,7 @@ from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.list_coercion import CoercedIntList, CoercedIntListOpt
 from katana_mcp.tools.tool_result_utils import (
+    BLOCK_WARNING_PREFIX,
     UI_META,
     PaginationMeta,
     apply_date_window_filters,
@@ -109,27 +110,12 @@ class CreateManufacturingOrderRequest(BaseModel):
 
 
 class ManufacturingOrderResponse(BaseModel):
-    """Response from creating a manufacturing order.
-
-    Attributes:
-        id: Manufacturing order ID (None in preview mode)
-        order_no: Manufacturing order number
-        variant_id: Variant ID to manufacture
-        planned_quantity: Planned quantity to produce
-        location_id: Production location ID
-        status: Order status (e.g., "NOT_STARTED")
-        order_created_date: Order creation timestamp
-        production_deadline_date: Production deadline
-        additional_info: Additional notes
-        is_preview: True if preview mode, False if order created
-        warnings: List of warnings (e.g., missing optional fields)
-        next_actions: Suggested next steps
-        message: Human-readable summary message
-    """
+    """Response from creating a manufacturing order."""
 
     id: int | None = None
     order_no: str | None = None
     variant_id: int | None = None
+    sku: str | None = None
     planned_quantity: float | None = None
     location_id: int | None = None
     status: str | None = None
@@ -174,30 +160,85 @@ async def _create_manufacturing_order_impl(
     action = "Previewing" if not request.confirm else "Starting"
     logger.info(f"{action} manufacturing order ({mode})")
 
-    # Preview mode — return the plan without calling the API
+    # Make-to-order: fetch the sales_order_row upfront so both preview and
+    # confirm see the same backing data. The duplicate-create guard runs
+    # in the confirm path too — programmatic callers skipping the preview
+    # UI get the same protection as the iframe (defense in depth).
+    sor_variant_id: int | None = None
+    sor_quantity: float | None = None
+    sor_location_id: int | None = None
+    linked_mo: int | None = None
+    if is_make_to_order:
+        assert request.sales_order_row_id is not None
+        services = get_services(context)
+        from katana_public_api_client.api.sales_order_row import (
+            get_sales_order_row as api_get_sor,
+        )
+        from katana_public_api_client.models import SalesOrderRow
+
+        sor_response = await api_get_sor.asyncio_detailed(
+            id=request.sales_order_row_id, client=services.client
+        )
+        sor = unwrap_as(sor_response, SalesOrderRow)
+        sor_variant_id = sor.variant_id
+        sor_quantity = sor.quantity
+        sor_location_id = unwrap_unset(sor.location_id, None)
+        # SalesOrderRow.sku isn't a typed field on the attrs model (spec
+        # drift — the live API returns it but the model doesn't list it),
+        # so the preview omits SKU. variant_id + quantity is enough for
+        # the user to recognize what's being made.
+        linked_mo = unwrap_unset(sor.linked_manufacturing_order_id, None)
+
     if not request.confirm:
+        warnings: list[str] = []
+        next_actions = [
+            "Review the order details",
+            "Set confirm=true to create the manufacturing order",
+        ]
+
         if is_make_to_order:
+            if linked_mo is not None:
+                warnings.append(
+                    f"{BLOCK_WARNING_PREFIX} sales_order_row "
+                    f"{request.sales_order_row_id} is already linked to "
+                    f"manufacturing order {linked_mo}. Creating another "
+                    "would duplicate production."
+                )
+                next_actions = [
+                    f"Use get_manufacturing_order with order_id={linked_mo} "
+                    "to inspect the existing order, or cancel."
+                ]
+
             preview_msg = (
                 f"Preview: Make-to-order MO from sales_order_row_id="
                 f"{request.sales_order_row_id}"
                 + (" (with subassemblies)" if request.create_subassemblies else "")
             )
-        else:
-            preview_msg = (
-                f"Preview: Manufacturing order for variant {request.variant_id}, "
-                f"quantity {request.planned_quantity}"
+
+            return ManufacturingOrderResponse(
+                variant_id=sor_variant_id,
+                planned_quantity=sor_quantity,
+                location_id=sor_location_id,
+                is_preview=True,
+                warnings=warnings,
+                next_actions=next_actions,
+                message=preview_msg,
             )
 
-        warnings = []
-        if not is_make_to_order:
-            if request.production_deadline_date is None:
-                warnings.append(
-                    "No production_deadline_date specified - order will have no deadline"
-                )
-            if request.additional_info is None:
-                warnings.append(
-                    "No additional_info specified - consider adding notes for context"
-                )
+        # Standalone preview — caller has already provided variant/quantity/location.
+        if request.production_deadline_date is None:
+            warnings.append(
+                "No production_deadline_date specified - order will have no deadline"
+            )
+        if request.additional_info is None:
+            warnings.append(
+                "No additional_info specified - consider adding notes for context"
+            )
+
+        preview_msg = (
+            f"Preview: Manufacturing order for variant {request.variant_id}, "
+            f"quantity {request.planned_quantity}"
+        )
 
         return ManufacturingOrderResponse(
             variant_id=request.variant_id,
@@ -208,11 +249,30 @@ async def _create_manufacturing_order_impl(
             additional_info=request.additional_info,
             is_preview=True,
             warnings=warnings,
-            next_actions=[
-                "Review the order details",
-                "Set confirm=true to create the manufacturing order",
-            ],
+            next_actions=next_actions,
             message=preview_msg,
+        )
+
+    # Confirm-path defense-in-depth: refuse if the SO row is already linked.
+    if is_make_to_order and linked_mo is not None:
+        return ManufacturingOrderResponse(
+            variant_id=sor_variant_id,
+            planned_quantity=sor_quantity,
+            location_id=sor_location_id,
+            is_preview=False,
+            warnings=[
+                f"{BLOCK_WARNING_PREFIX} sales_order_row "
+                f"{request.sales_order_row_id} is already linked to "
+                f"manufacturing order {linked_mo}. No new order was created."
+            ],
+            next_actions=[
+                f"Use get_manufacturing_order with order_id={linked_mo} "
+                "to inspect the existing order."
+            ],
+            message=(
+                f"Refused: sales_order_row {request.sales_order_row_id} is "
+                f"already linked to MO {linked_mo}; no duplicate created."
+            ),
         )
 
     try:

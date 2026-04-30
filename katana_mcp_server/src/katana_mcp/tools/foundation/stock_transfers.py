@@ -15,6 +15,7 @@ These tools provide:
 
 from __future__ import annotations
 
+import asyncio
 import datetime as _datetime
 from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
@@ -26,6 +27,7 @@ from pydantic import BaseModel, Field
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.tool_result_utils import (
+    BLOCK_WARNING_PREFIX,
     PaginationMeta,
     apply_date_window_filters,
     enum_to_str,
@@ -33,6 +35,7 @@ from katana_mcp.tools.tool_result_utils import (
     iso_or_none,
     make_simple_result,
     parse_request_dates,
+    resolve_entity_name,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
@@ -209,10 +212,14 @@ class StockTransferResponse(BaseModel):
     id: int | None = None
     stock_transfer_number: str | None = None
     source_location_id: int | None = None
+    source_location_name: str | None = None
     target_location_id: int | None = None
+    target_location_name: str | None = None
     status: str | None = None
     expected_arrival_date: str | None = None
+    item_count: int | None = None
     is_preview: bool
+    warnings: list[str] = Field(default_factory=list)
     next_actions: list[str] = Field(default_factory=list)
     message: str
 
@@ -278,20 +285,66 @@ async def _create_stock_transfer_impl(
         f"({request.source_location_id} -> {request.destination_location_id})"
     )
 
-    row_count = len(request.rows)
-    preview_message = (
-        f"Preview: Stock transfer with {row_count} row(s) from location "
-        f"{request.source_location_id} to {request.destination_location_id}"
+    item_count = len(request.rows)
+
+    # Resolve source/destination names + compute warnings up-front; both
+    # the preview and confirm paths use them. Source==destination is a
+    # hard BLOCK enforced on confirm too — defense in depth for callers
+    # that skip the preview UI.
+    from katana_mcp.cache import EntityType
+
+    services = get_services(context)
+    (src_name, src_warn), (dst_name, dst_warn) = await asyncio.gather(
+        resolve_entity_name(
+            services.cache,
+            EntityType.LOCATION,
+            request.source_location_id,
+            entity_label="Source location",
+        ),
+        resolve_entity_name(
+            services.cache,
+            EntityType.LOCATION,
+            request.destination_location_id,
+            entity_label="Destination location",
+        ),
+    )
+    warnings: list[str] = [w for w in (src_warn, dst_warn) if w]
+    same_location_block: str | None = None
+    if request.source_location_id == request.destination_location_id:
+        same_location_block = (
+            f"{BLOCK_WARNING_PREFIX} Source and destination are the same "
+            f"location (id={request.source_location_id}); transfer would be a no-op."
+        )
+        warnings.append(same_location_block)
+
+    src_label = (
+        f"{src_name} (id={request.source_location_id})"
+        if src_name
+        else f"location id={request.source_location_id}"
+    )
+    dst_label = (
+        f"{dst_name} (id={request.destination_location_id})"
+        if dst_name
+        else f"location id={request.destination_location_id}"
     )
 
     if not request.confirm:
+        preview_message = (
+            f"Preview: Stock transfer with {item_count} row(s) from "
+            f"{src_label} to {dst_label}"
+        )
+
         return StockTransferResponse(
             stock_transfer_number=request.order_no,
             source_location_id=request.source_location_id,
+            source_location_name=src_name,
             target_location_id=request.destination_location_id,
+            target_location_name=dst_name,
             status="DRAFT",
             expected_arrival_date=request.expected_arrival_date.isoformat(),
+            item_count=item_count,
             is_preview=True,
+            warnings=warnings,
             next_actions=[
                 "Review the transfer details",
                 "Set confirm=true to create the stock transfer",
@@ -299,7 +352,25 @@ async def _create_stock_transfer_impl(
             message=preview_message,
         )
 
-    services = get_services(context)
+    if same_location_block is not None:
+        return StockTransferResponse(
+            stock_transfer_number=request.order_no,
+            source_location_id=request.source_location_id,
+            source_location_name=src_name,
+            target_location_id=request.destination_location_id,
+            target_location_name=dst_name,
+            status="DRAFT",
+            expected_arrival_date=request.expected_arrival_date.isoformat(),
+            item_count=item_count,
+            is_preview=False,
+            warnings=warnings,
+            next_actions=["No action taken — see warnings"],
+            message=(
+                f"Refused: source and destination location are the same "
+                f"(id={request.source_location_id}); no transfer created."
+            ),
+        )
+
     api_rows = _build_row_requests(request.rows)
 
     api_request = APICreateStockTransferRequest(
@@ -354,13 +425,33 @@ async def create_stock_transfer(
     if response.stock_transfer_number:
         lines.append(f"- **Number**: {response.stock_transfer_number}")
     if response.source_location_id is not None:
-        lines.append(f"- **Source Location**: {response.source_location_id}")
+        src_label = (
+            f"{response.source_location_name} (ID: {response.source_location_id})"
+            if response.source_location_name
+            else str(response.source_location_id)
+        )
+        lines.append(f"- **Source Location**: {src_label}")
     if response.target_location_id is not None:
-        lines.append(f"- **Destination Location**: {response.target_location_id}")
+        dst_label = (
+            f"{response.target_location_name} (ID: {response.target_location_id})"
+            if response.target_location_name
+            else str(response.target_location_id)
+        )
+        lines.append(f"- **Destination Location**: {dst_label}")
+    if response.item_count is not None:
+        lines.append(f"- **Rows**: {response.item_count}")
     if response.expected_arrival_date:
         lines.append(f"- **Expected Arrival**: {response.expected_arrival_date}")
     if response.status:
         lines.append(f"- **Status**: {response.status}")
+    if response.warnings:
+        lines.append("")
+        lines.append("### Warnings")
+        for w in response.warnings:
+            is_block = w.startswith(BLOCK_WARNING_PREFIX)
+            display = w.removeprefix(BLOCK_WARNING_PREFIX).lstrip() if is_block else w
+            prefix = "**[BLOCKED]** " if is_block else ""
+            lines.append(f"- {prefix}{display}")
     if response.next_actions:
         lines.append("")
         lines.append("### Next Actions")

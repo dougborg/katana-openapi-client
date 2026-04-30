@@ -37,6 +37,44 @@ if TYPE_CHECKING:
 UI_META: dict[str, Any] = {"ui": True}
 
 
+# Marker prefix on a warning string that signals the preview should refuse to
+# expose a Confirm button — the target resource is already in a downstream/final
+# state (e.g. a sales-order row already linked to an MO, a PO already received).
+# Prefab UI builders strip the prefix before rendering, so the user sees clean
+# text; their presence tells the builder to omit the Confirm button.
+BLOCK_WARNING_PREFIX = "BLOCK:"
+
+
+async def resolve_entity_name(
+    cache: Any,
+    entity_type: Any,
+    entity_id: int,
+    *,
+    entity_label: str,
+) -> tuple[str | None, str | None]:
+    """Look up a cached entity by ID and return ``(name, advisory_warning)``.
+
+    On hit returns ``(name_or_None, None)``. On miss returns
+    ``(None, "<entity_label> with id=N was not found in the cache...")`` —
+    an advisory warning **without** the BLOCK prefix because cache lag
+    is legitimate (an entity created moments ago in Katana may not yet
+    be cached locally). The live API is the authority and will reject
+    a genuinely bad ID; this warning just lets the user know we couldn't
+    pretty-print the name. Hard duplicate-create gates (already linked,
+    already received, source==destination) are the caller's responsibility
+    and use ``BLOCK_WARNING_PREFIX`` explicitly.
+    """
+    d = await cache.get_by_id(entity_type, entity_id)
+    if d is None:
+        warning = (
+            f"{entity_label} with id={entity_id} was not found in the cache "
+            f"(possible cache lag); the {entity_label.lower()} will be "
+            "validated by the live API on confirm."
+        )
+        return None, warning
+    return d.get("name") or None, None
+
+
 def enum_to_str(value: Any) -> str | None:
     """Extract the string value from an enum, or return as-is.
 

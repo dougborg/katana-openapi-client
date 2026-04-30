@@ -16,7 +16,11 @@ from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
-from katana_mcp.tools.tool_result_utils import UI_META, make_tool_result
+from katana_mcp.tools.tool_result_utils import (
+    BLOCK_WARNING_PREFIX,
+    UI_META,
+    make_tool_result,
+)
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.domain.converters import unwrap_unset
 from katana_public_api_client.models import (
@@ -103,7 +107,10 @@ async def _fulfill_manufacturing_order(
 
     warnings: list[str] = []
     if current_status == "DONE":
-        warnings.append(f"Manufacturing order {order_number} is already completed")
+        warnings.append(
+            f"{BLOCK_WARNING_PREFIX} Manufacturing order {order_number} is already "
+            "completed. No further action will mark it DONE again."
+        )
     elif current_status == "BLOCKED":
         warnings.append(
             f"Manufacturing order {order_number} is blocked - review before completing"
@@ -181,7 +188,16 @@ async def _fulfill_manufacturing_order(
 async def _fulfill_sales_order(
     request: FulfillOrderRequest, context: Context
 ) -> FulfillOrderResponse:
-    """Fulfill a sales order by creating a fulfillment record."""
+    """Fulfill a sales order by creating a DELIVERED fulfillment record.
+
+    The Katana API ``POST /sales_order_fulfillments`` requires per-row
+    fulfillment input (``sales_order_fulfillment_rows``: each carrying a
+    ``sales_order_row_id`` and a ``quantity``). The tool fetches the sales
+    order's rows and ships the full quantity of each — the standard
+    "deliver everything ordered" case. For partial fulfillments the user
+    should use the Katana UI directly; the tool's MCP surface intentionally
+    keeps the simple case simple.
+    """
     from katana_public_api_client.api.sales_order import (
         get_sales_order as api_get_sales_order,
     )
@@ -193,27 +209,40 @@ async def _fulfill_sales_order(
     so = unwrap_as(so_response, SalesOrder)
     order_number = unwrap_unset(so.order_no, f"SO-{request.order_id}")
     current_status = so.status.value if so.status else "UNKNOWN"
+    so_rows = unwrap_unset(so.sales_order_rows, []) or []
 
-    inventory_updates = [
-        "Sales order fulfillment will reduce available inventory",
-        "Items will be marked as shipped/fulfilled",
-        "Stock levels will be updated accordingly",
-    ]
+    # SKU isn't resolved per row — that would cost an N-row variant fetch on
+    # every preview. variant_id + qty is enough to recognise the shipment.
+    inventory_updates: list[str] = []
+    for row in so_rows:
+        rid = row.id
+        vid = row.variant_id
+        qty = row.quantity
+        inventory_updates.append(
+            f"Row {rid}: ship {qty} of variant {vid} (full ordered quantity)"
+        )
+    if not inventory_updates:
+        inventory_updates.append("(no rows on this sales order)")
 
     warnings: list[str] = []
     if current_status in ("DELIVERED", "PARTIALLY_DELIVERED"):
-        warnings.append(f"Sales order {order_number} may already be delivered")
+        warnings.append(
+            f"{BLOCK_WARNING_PREFIX} Sales order {order_number} status is "
+            f"{current_status}. Creating another fulfillment may double-ship items."
+        )
+    if not so_rows:
+        warnings.append(
+            f"{BLOCK_WARNING_PREFIX} Sales order {order_number} has no rows to fulfill."
+        )
 
     if not request.confirm:
+        has_block = any(w.startswith(BLOCK_WARNING_PREFIX) for w in warnings)
         next_actions = (
-            [
-                "Order may already be delivered - verify before creating additional fulfillment"
-            ]
-            if current_status in ("DELIVERED", "PARTIALLY_DELIVERED")
+            ["Resolve the issue above (cancel and inspect via the Katana UI)"]
+            if has_block
             else [
-                "Review the sales order details",
-                "Verify items are ready to ship",
-                "Set confirm=true to create fulfillment",
+                "Review the row list above",
+                "Set confirm=true to create a DELIVERED fulfillment for the full order",
             ]
         )
         return FulfillOrderResponse(
@@ -225,26 +254,96 @@ async def _fulfill_sales_order(
             inventory_updates=inventory_updates,
             warnings=warnings,
             next_actions=next_actions,
-            message=f"Preview: Would fulfill sales order {order_number} (currently {current_status})",
+            message=(
+                f"Preview: Would fulfill sales order {order_number} "
+                f"({len(so_rows)} row(s), currently {current_status})"
+            ),
         )
 
-    # The live API requires ``sales_order_fulfillment_rows`` (the line
-    # items being fulfilled — variants, quantities, batch transactions).
-    # Our current ``FulfillOrderRequest`` tool surface doesn't model
-    # rows. Fail fast with a clear, actionable message rather than send
-    # an empty array (which would 422 against live Katana with a
-    # confusing validation error and consume an API call). The
-    # row-aware extension is tracked for follow-up.
-    raise NotImplementedError(
-        "fulfill_order(order_type='sales', confirm=true) is not yet "
-        "supported. The live Katana API requires per-row fulfillment "
-        "input on POST /sales_order_fulfillments "
-        "(``sales_order_fulfillment_rows``: variants, quantities, batch "
-        "transactions), which this tool's request shape does not yet "
-        "expose. Until the tool is extended (either to fetch the order's "
-        "rows automatically or to accept fulfillment rows as input), use "
-        "the Katana UI or a row-aware client to mark sales orders as "
-        "fulfilled."
+    # Refuse on confirm if the order is already in a delivered state — the
+    # preview's BLOCK warning would have suppressed the Confirm button in
+    # the iframe, but we re-check here so direct/programmatic callers
+    # (skipping the UI) get the same protection.
+    if current_status in ("DELIVERED", "PARTIALLY_DELIVERED"):
+        return FulfillOrderResponse(
+            order_id=request.order_id,
+            order_type="sales",
+            order_number=order_number,
+            status=current_status,
+            is_preview=False,
+            inventory_updates=[],
+            warnings=warnings,
+            next_actions=["No action taken — order already delivered"],
+            message=(
+                f"Sales order {order_number} is already {current_status}; refusing "
+                "to create a duplicate fulfillment"
+            ),
+        )
+    if not so_rows:
+        return FulfillOrderResponse(
+            order_id=request.order_id,
+            order_type="sales",
+            order_number=order_number,
+            status=current_status,
+            is_preview=False,
+            inventory_updates=[],
+            warnings=warnings,
+            next_actions=["No action taken — order has no rows to fulfill"],
+            message=(
+                f"Refused: Sales order {order_number} has no rows to fulfill; "
+                "no fulfillment created."
+            ),
+        )
+
+    from katana_public_api_client.api.sales_order_fulfillment import (
+        create_sales_order_fulfillment as api_create_fulfillment,
+    )
+    from katana_public_api_client.models import (
+        CreateSalesOrderFulfillmentRequest,
+        SalesOrderFulfillment,
+        SalesOrderFulfillmentRowRequest,
+        SalesOrderFulfillmentStatus,
+    )
+
+    fulfill_rows = [
+        SalesOrderFulfillmentRowRequest(
+            sales_order_row_id=row.id,
+            quantity=row.quantity,
+        )
+        for row in so_rows
+    ]
+    fulfill_request = CreateSalesOrderFulfillmentRequest(
+        sales_order_id=request.order_id,
+        status=SalesOrderFulfillmentStatus.DELIVERED,
+        sales_order_fulfillment_rows=fulfill_rows,
+    )
+    fulfill_response = await api_create_fulfillment.asyncio_detailed(
+        client=services.client, body=fulfill_request
+    )
+    fulfillment = unwrap_as(fulfill_response, SalesOrderFulfillment)
+
+    logger.info(
+        f"Created sales order fulfillment {fulfillment.id} for SO {order_number} "
+        f"({len(fulfill_rows)} row(s) DELIVERED)"
+    )
+    return FulfillOrderResponse(
+        order_id=request.order_id,
+        order_type="sales",
+        order_number=order_number,
+        status="DELIVERED",
+        is_preview=False,
+        inventory_updates=[
+            f"Created fulfillment {fulfillment.id} marking {len(fulfill_rows)} row(s) DELIVERED"
+        ],
+        warnings=warnings,
+        next_actions=[
+            f"Sales order {order_number} marked DELIVERED",
+            "Inventory has been adjusted for shipped items",
+        ],
+        message=(
+            f"Successfully fulfilled sales order {order_number} "
+            f"({len(fulfill_rows)} row(s), fulfillment id={fulfillment.id})"
+        ),
     )
 
 

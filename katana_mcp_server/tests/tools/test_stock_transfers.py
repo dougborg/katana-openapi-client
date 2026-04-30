@@ -187,6 +187,33 @@ async def test_create_stock_transfer_confirm_success():
 
 
 @pytest.mark.asyncio
+async def test_create_stock_transfer_confirm_refuses_when_source_equals_destination():
+    """confirm=True with source==destination must refuse — defense in depth.
+    The preview UI's BLOCK warning suppresses Confirm, but a programmatic
+    caller skipping the UI would otherwise create a no-op transfer.
+    """
+    context, _ = create_mock_context()
+
+    with patch(f"{_ST_CREATE}.asyncio_detailed", new_callable=AsyncMock) as mock_api:
+        request = CreateStockTransferRequest(
+            source_location_id=42,
+            destination_location_id=42,  # same!
+            expected_arrival_date=datetime(2026, 5, 1, 12, 0, tzinfo=UTC),
+            rows=[StockTransferRowInput(variant_id=100, quantity=5)],
+            confirm=True,
+        )
+        result = await _create_stock_transfer_impl(request, context)
+
+    assert result.is_preview is False
+    block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
+    assert len(block_warnings) == 1
+    assert "same" in block_warnings[0].lower()
+    assert "Refused" in result.message
+    # Critical: the create API must NOT have been called.
+    mock_api.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_create_stock_transfer_rejects_empty_rows():
     from pydantic import ValidationError
 

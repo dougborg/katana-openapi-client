@@ -130,6 +130,149 @@ async def test_create_manufacturing_order_confirm_success():
 
 
 @pytest.mark.asyncio
+async def test_create_manufacturing_order_make_to_order_preview_populates_fields():
+    """MTO preview must fetch the sales_order_row and populate variant_id /
+    planned_quantity / location_id from it. Before this fix, these fields
+    were left as None and the preview UI rendered empty.
+    """
+    from katana_public_api_client.models import SalesOrderRow
+
+    context, _ = create_mock_context()
+
+    # Sales order row that is NOT yet linked to an MO — happy path
+    sor = SalesOrderRow(
+        id=99001,
+        quantity=7.0,
+        variant_id=42424242,
+        location_id=160000,
+        sales_order_id=10000,
+        linked_manufacturing_order_id=None,
+    )
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = sor
+
+    import katana_public_api_client.api.sales_order_row.get_sales_order_row as get_sor_module
+
+    original = get_sor_module.asyncio_detailed
+    get_sor_module.asyncio_detailed = AsyncMock(return_value=mock_response)
+    try:
+        request = CreateManufacturingOrderRequest(
+            sales_order_row_id=99001,
+            confirm=False,
+        )
+        result = await _create_manufacturing_order_impl(request, context)
+
+        assert result.is_preview is True
+        # The whole point of the fix: these came from the fetched SO row,
+        # not from request input (the request didn't provide them).
+        assert result.variant_id == 42424242
+        assert result.planned_quantity == 7.0
+        assert result.location_id == 160000
+        # No BLOCK warnings on the happy path → Confirm button stays.
+        assert not any(w.startswith("BLOCK:") for w in result.warnings)
+    finally:
+        get_sor_module.asyncio_detailed = original
+
+
+@pytest.mark.asyncio
+async def test_create_manufacturing_order_make_to_order_confirm_refuses_when_already_linked():
+    """confirm=True against a sales_order_row that's already linked to an MO
+    must refuse — the preview UI's BLOCK warning suppresses the Confirm
+    button in the iframe, but a programmatic caller skipping the UI gets
+    the same defense-in-depth protection here.
+    """
+    from katana_public_api_client.models import SalesOrderRow
+
+    context, _ = create_mock_context()
+
+    sor = SalesOrderRow(
+        id=99003,
+        quantity=3.0,
+        variant_id=42424244,
+        location_id=160002,
+        sales_order_id=10002,
+        linked_manufacturing_order_id=77777,
+    )
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = sor
+
+    # Also patch the MTO endpoint so we can assert it's NOT called.
+    import katana_public_api_client.api.manufacturing_order.make_to_order_manufacturing_order as mto_module
+    import katana_public_api_client.api.sales_order_row.get_sales_order_row as get_sor_module
+
+    original_get = get_sor_module.asyncio_detailed
+    original_mto = getattr(mto_module, "asyncio_detailed", None)
+    get_sor_module.asyncio_detailed = AsyncMock(return_value=mock_response)
+    mto_mock = AsyncMock()
+    mto_module.asyncio_detailed = mto_mock
+    try:
+        request = CreateManufacturingOrderRequest(
+            sales_order_row_id=99003,
+            confirm=True,
+        )
+        result = await _create_manufacturing_order_impl(request, context)
+
+        assert result.is_preview is False
+        block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
+        assert len(block_warnings) == 1
+        assert "77777" in block_warnings[0]
+        assert "Refused" in result.message
+        # Critically: the MTO API must NOT have been called.
+        mto_mock.assert_not_called()
+    finally:
+        get_sor_module.asyncio_detailed = original_get
+        if original_mto is not None:
+            mto_module.asyncio_detailed = original_mto
+
+
+@pytest.mark.asyncio
+async def test_create_manufacturing_order_make_to_order_blocks_when_already_linked():
+    """When the sales_order_row already has a linked_manufacturing_order_id,
+    the preview must emit a BLOCK warning so the UI builder suppresses the
+    Confirm button — preventing duplicate MO creation.
+    """
+    from katana_public_api_client.models import SalesOrderRow
+
+    context, _ = create_mock_context()
+
+    sor = SalesOrderRow(
+        id=99002,
+        quantity=3.0,
+        variant_id=42424243,
+        location_id=160001,
+        sales_order_id=10001,
+        linked_manufacturing_order_id=88888,  # already linked!
+    )
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = sor
+
+    import katana_public_api_client.api.sales_order_row.get_sales_order_row as get_sor_module
+
+    original = get_sor_module.asyncio_detailed
+    get_sor_module.asyncio_detailed = AsyncMock(return_value=mock_response)
+    try:
+        request = CreateManufacturingOrderRequest(
+            sales_order_row_id=99002,
+            confirm=False,
+        )
+        result = await _create_manufacturing_order_impl(request, context)
+
+        assert result.is_preview is True
+        # Fields still populated so the user sees the existing context.
+        assert result.variant_id == 42424243
+        # And the BLOCK warning is present.
+        block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
+        assert len(block_warnings) == 1
+        assert "88888" in block_warnings[0]
+        assert "already linked" in block_warnings[0]
+    finally:
+        get_sor_module.asyncio_detailed = original
+
+
+@pytest.mark.asyncio
 async def test_create_manufacturing_order_missing_optional_fields():
     """Test create_manufacturing_order handles missing optional fields."""
     context, _ = create_mock_context()
@@ -866,17 +1009,31 @@ async def test_batch_plan_explicit_change_with_variant_id():
 @pytest.mark.asyncio
 async def test_create_manufacturing_order_make_to_order_preview():
     """Make-to-order preview mode: sales_order_row_id only, no other fields required."""
+    from katana_public_api_client.models import SalesOrderRow
+
     context, _ = create_mock_context()
 
-    request = CreateManufacturingOrderRequest(
-        sales_order_row_id=105664660,
-        confirm=False,
+    sor = SalesOrderRow(
+        id=105664660, quantity=2.0, variant_id=2101, location_id=1, sales_order_id=99
     )
-    result = await _create_manufacturing_order_impl(request, context)
+    mock_response = MagicMock(status_code=200, parsed=sor)
 
-    assert result.is_preview is True
-    assert "Make-to-order" in result.message or "make-to-order" in result.message
-    assert "105664660" in result.message
+    import katana_public_api_client.api.sales_order_row.get_sales_order_row as get_sor_module
+
+    original = get_sor_module.asyncio_detailed
+    get_sor_module.asyncio_detailed = AsyncMock(return_value=mock_response)
+    try:
+        request = CreateManufacturingOrderRequest(
+            sales_order_row_id=105664660,
+            confirm=False,
+        )
+        result = await _create_manufacturing_order_impl(request, context)
+
+        assert result.is_preview is True
+        assert "Make-to-order" in result.message or "make-to-order" in result.message
+        assert "105664660" in result.message
+    finally:
+        get_sor_module.asyncio_detailed = original
 
 
 @pytest.mark.asyncio
@@ -892,17 +1049,31 @@ async def test_create_manufacturing_order_standalone_requires_fields():
 @pytest.mark.asyncio
 async def test_create_manufacturing_order_make_to_order_with_subassemblies():
     """Make-to-order with create_subassemblies=true."""
+    from katana_public_api_client.models import SalesOrderRow
+
     context, _ = create_mock_context()
 
-    request = CreateManufacturingOrderRequest(
-        sales_order_row_id=105664660,
-        create_subassemblies=True,
-        confirm=False,
+    sor = SalesOrderRow(
+        id=105664660, quantity=2.0, variant_id=2101, location_id=1, sales_order_id=99
     )
-    result = await _create_manufacturing_order_impl(request, context)
+    mock_response = MagicMock(status_code=200, parsed=sor)
 
-    assert result.is_preview is True
-    assert "subassemblies" in result.message
+    import katana_public_api_client.api.sales_order_row.get_sales_order_row as get_sor_module
+
+    original = get_sor_module.asyncio_detailed
+    get_sor_module.asyncio_detailed = AsyncMock(return_value=mock_response)
+    try:
+        request = CreateManufacturingOrderRequest(
+            sales_order_row_id=105664660,
+            create_subassemblies=True,
+            confirm=False,
+        )
+        result = await _create_manufacturing_order_impl(request, context)
+
+        assert result.is_preview is True
+        assert "subassemblies" in result.message
+    finally:
+        get_sor_module.asyncio_detailed = original
 
 
 # ============================================================================

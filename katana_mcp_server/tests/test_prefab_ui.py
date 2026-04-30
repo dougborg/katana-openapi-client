@@ -194,7 +194,7 @@ class TestBuildOrderCreatedUI:
             "total": 1500.0,
             "currency": "USD",
         }
-        app = build_order_created_ui(order, "Purchase")
+        app = build_order_created_ui(order, "Purchase Order")
         _assert_valid_prefab(app)
 
 
@@ -531,4 +531,179 @@ class TestConfirmButtonsUseCallTool:
             f"Expected exactly one create_purchase_order toolCall with "
             f"confirm=True; found {len(matching)}. Total toolCall actions "
             f"in envelope: {len(actions)}."
+        )
+
+
+def _find_buttons_by_label(tree: object, label: str) -> list[dict]:
+    """Walk a Prefab envelope and return every Button node whose label
+    matches ``label`` exactly. Used by BLOCK-warning regression tests to
+    assert the Confirm button is/isn't rendered.
+    """
+    found: list[dict] = []
+    if isinstance(tree, dict):
+        if tree.get("type") == "Button" and tree.get("label") == label:
+            found.append(tree)
+        for v in tree.values():
+            found.extend(_find_buttons_by_label(v, label))
+    elif isinstance(tree, list):
+        for item in tree:
+            found.extend(_find_buttons_by_label(item, label))
+    return found
+
+
+class TestBlockWarningSuppressesConfirm:
+    """Tests asserting that a ``BLOCK:``-prefixed warning string in a
+    response causes the corresponding preview UI to render *without* the
+    Confirm button — preventing the user from clicking through on a state
+    the server has flagged as unsafe (e.g. duplicate-create, already-done).
+    """
+
+    @staticmethod
+    def _stub_action():
+        from prefab_ui.actions.mcp import SendMessage
+
+        return SendMessage("stub")
+
+    def test_order_preview_with_block_warning_omits_confirm_button(self):
+        order = {
+            "order_number": "MO-1",
+            "status": "PREVIEW",
+            "variant_id": 100,
+            "planned_quantity": 5,
+            "warnings": [
+                "BLOCK: sales_order_row 99 already linked to MO 88",
+            ],
+        }
+        app = build_order_preview_ui(
+            order,
+            "Manufacturing Order",
+            request={},
+            confirm_action=self._stub_action(),
+        )
+        envelope = app.to_json()
+
+        confirm_buttons = _find_buttons_by_label(envelope, "Confirm & Create")
+        cancel_buttons = _find_buttons_by_label(envelope, "Cancel")
+        assert len(confirm_buttons) == 0, (
+            "Confirm button must be suppressed when a BLOCK: warning is "
+            f"present; found {len(confirm_buttons)}."
+        )
+        assert len(cancel_buttons) == 1, (
+            "Cancel button must remain so the user can dismiss the preview."
+        )
+
+    def test_order_preview_without_block_warning_shows_confirm_button(self):
+        order = {
+            "order_number": "MO-1",
+            "status": "PREVIEW",
+            "variant_id": 100,
+            "planned_quantity": 5,
+            "warnings": ["No production_deadline_date specified"],  # not BLOCK:
+        }
+        app = build_order_preview_ui(
+            order,
+            "Manufacturing Order",
+            request={},
+            confirm_action=self._stub_action(),
+        )
+        envelope = app.to_json()
+
+        confirm_buttons = _find_buttons_by_label(envelope, "Confirm & Create")
+        assert len(confirm_buttons) == 1, (
+            "Confirm button must be present when no BLOCK: warning is set."
+        )
+
+    def test_fulfill_preview_with_block_warning_omits_confirm_button(self):
+        response = {
+            "order_type": "sales",
+            "order_number": "SO-1",
+            "order_id": 42,
+            "status": "DELIVERED",
+            "warnings": [
+                "BLOCK: Sales order SO-1 is already DELIVERED.",
+            ],
+        }
+        app = build_fulfill_preview_ui(response)
+        envelope = app.to_json()
+
+        confirm_buttons = _find_buttons_by_label(envelope, "Confirm Fulfillment")
+        assert len(confirm_buttons) == 0, (
+            "Confirm Fulfillment button must be suppressed on BLOCK warning."
+        )
+
+    def test_receipt_ui_with_block_warning_omits_confirm_button(self):
+        from katana_mcp.tools.foundation.purchase_orders import (
+            ReceivePurchaseOrderRequest,
+        )
+        from katana_mcp.tools.prefab_ui import call_tool_from_request
+
+        response = {
+            "order_number": "PO-1",
+            "order_id": 1,
+            "is_preview": True,
+            "items_received": 5,
+            "status": "RECEIVED",
+            "warnings": [
+                "BLOCK: Purchase order PO-1 is already RECEIVED.",
+            ],
+        }
+        confirm_action = call_tool_from_request(
+            "receive_purchase_order",
+            ReceivePurchaseOrderRequest,
+            overrides={"confirm": True},
+        )
+        app = build_receipt_ui(
+            response,
+            request={"order_id": 1, "items": [], "confirm": False},
+            confirm_action=confirm_action,
+        )
+        envelope = app.to_json()
+
+        confirm_buttons = _find_buttons_by_label(envelope, "Confirm Receipt")
+        assert len(confirm_buttons) == 0, (
+            "Confirm Receipt button must be suppressed on BLOCK warning."
+        )
+
+    def test_block_prefix_is_stripped_from_rendered_badge_labels(self):
+        """The literal ``BLOCK:`` prefix must not appear in any Badge label —
+        builders strip it so the warning reads naturally to the user.
+
+        (The full warning string still passes through the iframe ``state``
+        dict so client-side templates can read it; we only care about the
+        rendered Badge text.)
+        """
+        order = {
+            "order_number": "MO-1",
+            "warnings": ["BLOCK: this is the diagnostic message"],
+        }
+        app = build_order_preview_ui(
+            order,
+            "Manufacturing Order",
+            request={},
+            confirm_action=self._stub_action(),
+        )
+
+        def collect_badge_labels(tree: object, out: list[str]) -> None:
+            if isinstance(tree, dict):
+                if tree.get("type") == "Badge":
+                    label = tree.get("label")
+                    if isinstance(label, str):
+                        out.append(label)
+                for v in tree.values():
+                    collect_badge_labels(v, out)
+            elif isinstance(tree, list):
+                for item in tree:
+                    collect_badge_labels(item, out)
+
+        labels: list[str] = []
+        collect_badge_labels(app.to_json(), labels)
+
+        diagnostic_label = next(
+            (lbl for lbl in labels if "diagnostic message" in lbl), None
+        )
+        assert diagnostic_label is not None, (
+            "Diagnostic message must be rendered as a Badge label."
+        )
+        assert not diagnostic_label.startswith("BLOCK:"), (
+            f"Badge label still has literal BLOCK: prefix: {diagnostic_label!r}"
         )

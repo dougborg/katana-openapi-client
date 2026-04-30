@@ -31,6 +31,7 @@ from katana_mcp.tools.tool_result_utils import (
     make_tool_result,
     none_coro,
     parse_request_dates,
+    resolve_entity_name,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET, Unset
@@ -126,11 +127,13 @@ class SalesOrderResponse(BaseModel):
     id: int | None = None
     order_number: str
     customer_id: int
+    customer_name: str | None = None
     location_id: int | None = None
     status: str | None = None
     total: float | None = None
     currency: str | None = None
     delivery_date: str | None = None
+    item_count: int | None = None
     is_preview: bool
     warnings: list[str] = Field(default_factory=list)
     next_actions: list[str] = Field(default_factory=list)
@@ -163,14 +166,19 @@ async def _create_sales_order_impl(
         for item in request.items
     )
 
-    # Preview mode - just return calculations without API call
     if not request.confirm:
         logger.info(
             f"Preview mode: SO {request.order_number} would have {len(request.items)} items"
         )
 
-        # Generate warnings for missing optional fields
-        warnings = []
+        services = get_services(context)
+        customer_name, cust_warn = await resolve_entity_name(
+            services.cache,
+            EntityType.CUSTOMER,
+            request.customer_id,
+            entity_label="Customer",
+        )
+        warnings: list[str] = [cust_warn] if cust_warn else []
         if request.location_id is None:
             warnings.append(
                 "No location_id specified - order will use default location"
@@ -183,6 +191,7 @@ async def _create_sales_order_impl(
         return SalesOrderResponse(
             order_number=request.order_number,
             customer_id=request.customer_id,
+            customer_name=customer_name,
             location_id=request.location_id,
             status="PENDING",
             total=total_estimate if total_estimate > 0 else None,
@@ -190,6 +199,7 @@ async def _create_sales_order_impl(
             delivery_date=request.delivery_date.isoformat()
             if request.delivery_date
             else None,
+            item_count=len(request.items),
             is_preview=True,
             warnings=warnings,
             next_actions=[

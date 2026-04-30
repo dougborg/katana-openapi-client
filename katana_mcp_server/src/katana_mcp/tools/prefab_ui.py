@@ -49,6 +49,29 @@ from prefab_ui.components.slot import Slot
 from prefab_ui.rx import RESULT
 from pydantic import BaseModel
 
+from katana_mcp.tools.tool_result_utils import BLOCK_WARNING_PREFIX
+
+
+def _split_warnings(
+    warnings: list[str] | None,
+) -> tuple[list[str], list[str]]:
+    """Split a warnings list into (block_warnings, regular_warnings).
+
+    Block warnings have the ``BLOCK:`` prefix stripped so they render as plain
+    user-facing text. Their presence tells the caller to omit the Confirm
+    button. Regular warnings render as informational badges only.
+    """
+    if not warnings:
+        return [], []
+    blocks: list[str] = []
+    regulars: list[str] = []
+    for w in warnings:
+        if w.startswith(BLOCK_WARNING_PREFIX):
+            blocks.append(w[len(BLOCK_WARNING_PREFIX) :].lstrip())
+        else:
+            regulars.append(w)
+    return blocks, regulars
+
 
 def call_tool_from_request(
     tool_name: str,
@@ -366,15 +389,37 @@ def _extract_order_fields(order: dict[str, Any]) -> dict[str, Any]:
 
 
 def _render_order_fields(order: dict[str, Any], *, total: Any, currency: str) -> None:
-    """Render shared order content fields (supplier/customer/location + total)."""
+    """Render shared order content fields (supplier/customer/location + total).
+
+    Prefers human-readable names when present (``customer_name``,
+    ``supplier_name``, ``location_name``) and falls back to bare IDs.
+    """
     if total is not None:
         Metric(label="Total", value=f"${total:,.2f} {currency}")
+
     if order.get("supplier_id"):
-        Text(content=f"Supplier ID: {order['supplier_id']}")
+        name = order.get("supplier_name")
+        Text(
+            content=f"Supplier: {name} (ID: {order['supplier_id']})"
+            if name
+            else f"Supplier ID: {order['supplier_id']}"
+        )
     if order.get("customer_id"):
-        Text(content=f"Customer ID: {order['customer_id']}")
+        name = order.get("customer_name")
+        Text(
+            content=f"Customer: {name} (ID: {order['customer_id']})"
+            if name
+            else f"Customer ID: {order['customer_id']}"
+        )
     if order.get("location_id"):
-        Text(content=f"Location ID: {order['location_id']}")
+        name = order.get("location_name")
+        Text(
+            content=f"Location: {name} (ID: {order['location_id']})"
+            if name
+            else f"Location ID: {order['location_id']}"
+        )
+    if order.get("item_count") is not None:
+        Text(content=f"Items: {order['item_count']}")
 
 
 def build_order_preview_ui(
@@ -411,20 +456,29 @@ def build_order_preview_ui(
             if order.get("planned_quantity"):
                 Text(content=f"Planned Quantity: {order['planned_quantity']}")
 
-            if order.get("warnings"):
+            block_warnings, regular_warnings = _split_warnings(order.get("warnings"))
+            if block_warnings or regular_warnings:
                 Separator()
-                for warning in order["warnings"]:
+                for warning in block_warnings:
                     Badge(label=warning, variant="destructive")
+                for warning in regular_warnings:
+                    Badge(label=warning, variant="secondary")
 
         with CardFooter():
-            Muted(content="This is a preview. No changes have been made.")
+            if block_warnings:
+                Muted(
+                    content="Cannot proceed — see warnings above. No changes have been made."
+                )
+            else:
+                Muted(content="This is a preview. No changes have been made.")
 
             with Row(gap=2):
-                Button(
-                    label="Confirm & Create",
-                    variant="default",
-                    on_click=confirm_action,
-                )
+                if not block_warnings:
+                    Button(
+                        label="Confirm & Create",
+                        variant="default",
+                        on_click=confirm_action,
+                    )
                 Button(
                     label="Cancel",
                     variant="outline",
@@ -533,24 +587,28 @@ def build_fulfill_preview_ui(
         with CardContent(), Column(gap=2):
             _render_inventory_updates(response)
 
-            if response.get("warnings"):
+            block_warnings, regular_warnings = _split_warnings(response.get("warnings"))
+            if block_warnings or regular_warnings:
                 Separator()
-                for warning in response["warnings"]:
+                for warning in block_warnings:
                     Badge(label=warning, variant="destructive")
+                for warning in regular_warnings:
+                    Badge(label=warning, variant="secondary")
 
         with CardFooter(), Row(gap=2):
-            Button(
-                label="Confirm Fulfillment",
-                variant="default",
-                on_click=CallTool(
-                    "fulfill_order",
-                    arguments={
-                        "order_id": "{{ response.order_id }}",
-                        "order_type": "{{ response.order_type }}",
-                        "confirm": True,
-                    },
-                ),
-            )
+            if not block_warnings:
+                Button(
+                    label="Confirm Fulfillment",
+                    variant="default",
+                    on_click=CallTool(
+                        "fulfill_order",
+                        arguments={
+                            "order_id": "{{ response.order_id }}",
+                            "order_type": "{{ response.order_type }}",
+                            "confirm": True,
+                        },
+                    ),
+                )
             Button(
                 label="Cancel",
                 variant="outline",
@@ -750,15 +808,38 @@ def build_receipt_ui(
                 label="Items Received",
                 value=str(response.get("items_received", 0)),
             )
+            if response.get("status"):
+                Text(content=f"PO Status: {response['status']}")
+            if response.get("supplier_id"):
+                name = response.get("supplier_name")
+                Text(
+                    content=f"Supplier: {name} (ID: {response['supplier_id']})"
+                    if name
+                    else f"Supplier ID: {response['supplier_id']}"
+                )
+            if response.get("total_cost") is not None:
+                Metric(
+                    label="PO Total",
+                    value=f"${response['total_cost']:,.2f} {response.get('currency') or 'USD'}",
+                )
+
+            block_warnings, regular_warnings = _split_warnings(response.get("warnings"))
+            if block_warnings or regular_warnings:
+                Separator()
+                for warning in block_warnings:
+                    Badge(label=warning, variant="destructive")
+                for warning in regular_warnings:
+                    Badge(label=warning, variant="secondary")
 
         with CardFooter():
             if is_preview and confirm_action is not None:
                 with Row(gap=2):
-                    Button(
-                        label="Confirm Receipt",
-                        variant="default",
-                        on_click=confirm_action,
-                    )
+                    if not block_warnings:
+                        Button(
+                            label="Confirm Receipt",
+                            variant="default",
+                            on_click=confirm_action,
+                        )
                     Button(
                         label="Cancel",
                         variant="outline",
