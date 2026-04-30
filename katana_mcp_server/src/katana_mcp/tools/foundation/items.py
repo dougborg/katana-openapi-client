@@ -1015,7 +1015,15 @@ def _dict_to_variant_details(v: dict[str, Any]) -> VariantDetailsResponse:
     Surfaces every field the generated ``Variant`` attrs model exposes, so
     callers get the full shape in a single call.
     """
-    parent_id = v.get("product_id") or v.get("material_id")
+    product_id = v.get("product_id")
+    material_id = v.get("material_id")
+    # Variants don't have their own page in Katana; link to whichever
+    # parent (product or material) actually owns this variant. Picking
+    # by which field is non-null (vs `or`) keeps the kind correct if
+    # the URL paths ever diverge.
+    parent_url = katana_web_url("product", product_id) or katana_web_url(
+        "material", material_id
+    )
     return VariantDetailsResponse(
         id=v["id"],
         sku=v.get("sku") or "",
@@ -1023,10 +1031,10 @@ def _dict_to_variant_details(v: dict[str, Any]) -> VariantDetailsResponse:
         sales_price=v.get("sales_price"),
         purchase_price=v.get("purchase_price"),
         type=v.get("type") or v.get("type_"),
-        product_id=v.get("product_id"),
-        material_id=v.get("material_id"),
+        product_id=product_id,
+        material_id=material_id,
         product_or_material_name=v.get("parent_name"),
-        katana_url=katana_web_url("product", parent_id),
+        katana_url=parent_url,
         internal_barcode=v.get("internal_barcode"),
         registered_barcode=v.get("registered_barcode"),
         supplier_item_codes=v.get("supplier_item_codes") or [],

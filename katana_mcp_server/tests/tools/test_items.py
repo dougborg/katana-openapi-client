@@ -484,3 +484,69 @@ def test_variant_to_summary_falls_back_to_default_cost_when_purchase_price_absen
 
     assert summary is not None
     assert summary.purchase_price == 50.0
+
+
+# ============================================================================
+# katana_url deep-link wiring (#442)
+# ============================================================================
+
+
+@pytest.fixture
+def _no_web_base_url(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pin tests to the default `factory.katanamrp.com` base, regardless of
+    whatever the developer/CI happened to export in ``KATANA_WEB_BASE_URL``.
+    Without this, the URL-equality assertions below fail in environments that
+    point at a non-default Katana domain.
+    """
+    monkeypatch.delenv("KATANA_WEB_BASE_URL", raising=False)
+
+
+def test_dict_to_variant_details_uses_product_id_for_product_variants(
+    _no_web_base_url: None,
+):
+    from katana_mcp.tools.foundation.items import _dict_to_variant_details
+
+    response = _dict_to_variant_details(
+        {"id": 1, "sku": "P-1", "product_id": 42, "material_id": None}
+    )
+    assert response.katana_url == "https://factory.katanamrp.com/products/42"
+
+
+def test_dict_to_variant_details_falls_back_to_material_id_for_material_variants(
+    _no_web_base_url: None,
+):
+    """Material-owned variants must link to the parent material — the previous
+    `katana_web_url("product", parent_id)` form produced the right URL only
+    because both kinds happen to map to /products/{id}. If those paths ever
+    diverge, this test pins the correct kind selection.
+    """
+    from katana_mcp.tools.foundation.items import _dict_to_variant_details
+
+    response = _dict_to_variant_details(
+        {"id": 2, "sku": "M-1", "product_id": None, "material_id": 99}
+    )
+    assert response.katana_url == "https://factory.katanamrp.com/products/99"
+
+
+def test_dict_to_variant_details_no_parent_returns_none_url():
+    from katana_mcp.tools.foundation.items import _dict_to_variant_details
+
+    response = _dict_to_variant_details(
+        {"id": 3, "sku": "ORPHAN", "product_id": None, "material_id": None}
+    )
+    assert response.katana_url is None
+
+
+def test_item_katana_url_returns_none_for_service_type(_no_web_base_url: None):
+    """Services have no /products/{id}-style page in Katana's web app."""
+    from katana_mcp.tools.foundation.items import _item_katana_url
+
+    assert _item_katana_url(ItemType.SERVICE, 123) is None
+    assert (
+        _item_katana_url(ItemType.PRODUCT, 123)
+        == "https://factory.katanamrp.com/products/123"
+    )
+    assert (
+        _item_katana_url(ItemType.MATERIAL, 456)
+        == "https://factory.katanamrp.com/products/456"
+    )

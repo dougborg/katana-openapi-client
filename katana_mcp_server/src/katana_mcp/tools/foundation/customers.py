@@ -60,15 +60,15 @@ class SearchCustomersResponse(BaseModel):
 
 
 def _customer_from_dict(d: dict) -> CustomerInfo:
-    customer_id = d.get("id", 0)
+    customer_id = d.get("id")
     return CustomerInfo(
-        id=customer_id,
+        id=customer_id or 0,
         name=d.get("name") or "",
         email=d.get("email"),
         phone=d.get("phone"),
         currency=d.get("currency"),
         company=d.get("company"),
-        katana_url=katana_web_url("customer", customer_id) if customer_id else None,
+        katana_url=katana_web_url("customer", customer_id),
     )
 
 
