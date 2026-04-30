@@ -542,14 +542,18 @@ def summarize_modify_outcome(
             f"Compose a follow-up {tool_name} call to revert if needed",
         ]
     else:
+        verified_count = sum(1 for a in actions if a.verified is True)
         message = (
             f"Successfully applied {succeeded_count}/{plan_len} action(s) "
             f"to {entity_label}"
         )
-        next_actions = [
-            f"{entity_label.capitalize()} modified — "
-            f"{succeeded_count} action(s) verified"
-        ]
+        next_action = f"{entity_label.capitalize()} modified — {succeeded_count} action(s) applied"
+        if verified_count != succeeded_count:
+            # Some actions either skipped verify (verifier=None) or post-action
+            # re-fetch reported a mismatch (verified=False). Surface the gap so
+            # callers know not every applied action was confirmed end-to-end.
+            next_action += f" ({verified_count} verified)"
+        next_actions = [next_action]
     return message, next_actions
 
 

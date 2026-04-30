@@ -98,9 +98,11 @@ the same shape:
   transactional across endpoints; the dispatcher fail-fasts on the
   first error, leaving earlier successful actions applied.
 - **Prior-state snapshot** — on a confirmed call, the response carries
-  a `prior_state` snapshot of the pre-modification entity so callers
-  can compose a follow-up modify call to manually revert if needed.
-  We don't auto-revert via inverse calls — those have their own failure
+  a `prior_state` snapshot of the pre-modification entity (best-effort:
+  `prior_state` is `null` when the entity has no GET-by-id endpoint,
+  e.g. stock transfer, or the diff-context fetch failed). Callers can
+  compose a follow-up modify call to manually revert if needed. We
+  don't auto-revert via inverse calls — those have their own failure
   modes; visible partial application beats silent inconsistency.
 - **Post-action verification** — for actions where the API returns the
   mutated entity, the dispatcher confirms the requested fields match

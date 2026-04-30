@@ -968,8 +968,9 @@ async def delete_stock_transfer(
 ) -> ToolResult:
     """Delete a stock transfer. Destructive — the transfer record is removed.
 
-    The response carries a ``prior_state`` snapshot for manual revert (empty
-    for stock transfers, since Katana doesn't expose GET-by-id).
+    The response's ``prior_state`` is ``None`` for stock transfers since
+    Katana exposes no GET-by-id endpoint (other entities populate it
+    with a snapshot for manual revert).
     """
     response = await _delete_stock_transfer_impl(request, context)
     return to_tool_result(response)
