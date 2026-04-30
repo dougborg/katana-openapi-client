@@ -61,9 +61,11 @@ from katana_mcp.logging import get_logger
 from katana_mcp.tools._modification import (
     ActionResult,
     FieldChange,
+    ModificationResponse,
     compute_field_diff,
     make_response_verifier,
 )
+from katana_mcp.web_urls import EntityKind, katana_web_url
 from katana_public_api_client.utils import is_success, unwrap, unwrap_as
 
 logger = get_logger(__name__)
@@ -523,6 +525,159 @@ def summarize_delete_outcome(
         message = f"Successfully deleted {entity_label}"
         next_actions = [f"{entity_label.capitalize()} has been deleted"]
     return message, next_actions
+
+
+# ============================================================================
+# Drivers — wrap the preview/confirm scaffolding so per-entity impls are
+# left with just ``build the plan`` plus a couple of identifying strings.
+# ============================================================================
+
+
+async def run_modify_plan(
+    *,
+    request: Any,
+    entity_type: str,
+    entity_label: str,
+    tool_name: str,
+    web_url_kind: EntityKind,
+    existing: Any | None,
+    plan: list[ActionSpec],
+) -> ModificationResponse:
+    """Wrap a built plan in a preview-or-execute :class:`ModificationResponse`.
+
+    The per-entity impl is responsible for the entity-specific bits:
+    validating sub-payloads with a domain-friendly error message, fetching
+    the existing entity, and assembling the plan list. Everything from
+    "compute katana_url and warnings" through "summarize the outcome" lives
+    here, identically across PO/SO/MO/etc.
+
+    Args:
+        request: The Pydantic request — must have ``id`` and ``confirm`` fields.
+        entity_type: Stable machine-readable type tag (e.g. ``"purchase_order"``).
+        entity_label: Human-readable label including the id (e.g. ``"purchase
+            order 42"``). Used in messages and warnings.
+        tool_name: Tool name for the manual-revert hint in the failure path
+            (e.g. ``"modify_purchase_order"``).
+        web_url_kind: Argument to :func:`katana_web_url` (typically same as
+            ``entity_type``).
+        existing: The pre-fetched entity, or ``None`` on fetch failure.
+            Drives ``prior_state`` capture and the diff-context warning.
+        plan: Built ActionSpec list, in canonical order.
+    """
+    katana_url = katana_web_url(web_url_kind, request.id)
+    warnings = (
+        [
+            f"Could not fetch {entity_label} for diff context — "
+            "preview shows requested values without prior state."
+        ]
+        if existing is None
+        else []
+    )
+
+    if not request.confirm:
+        return ModificationResponse(
+            entity_type=entity_type,
+            entity_id=request.id,
+            is_preview=True,
+            actions=plan_to_preview_results(plan),
+            warnings=warnings,
+            next_actions=[
+                f"Review {len(plan)} planned action(s)",
+                "Set confirm=true to execute the plan",
+            ],
+            katana_url=katana_url,
+            message=f"Preview: {len(plan)} action(s) planned for {entity_label}",
+        )
+
+    prior_state = serialize_for_prior_state(existing)
+    actions = await execute_plan(plan)
+    message, next_actions = summarize_modify_outcome(
+        actions, len(plan), entity_label=entity_label, tool_name=tool_name
+    )
+
+    return ModificationResponse(
+        entity_type=entity_type,
+        entity_id=request.id,
+        is_preview=False,
+        actions=actions,
+        prior_state=prior_state,
+        warnings=warnings,
+        next_actions=next_actions,
+        katana_url=katana_url,
+        message=message,
+    )
+
+
+async def run_delete_plan(
+    *,
+    request: Any,
+    services: Any,
+    entity_type: str,
+    entity_label: str,
+    web_url_kind: EntityKind,
+    fetcher: Callable[[Any, int], Awaitable[Any | None]],
+    delete_endpoint: Any,
+    operation: str,
+) -> ModificationResponse:
+    """Single-action delete driver — used by every ``delete_<entity>`` tool.
+
+    Captures prior_state, runs a one-action plan, and returns the
+    ModificationResponse. Katana cascades child deletes server-side.
+
+    Args:
+        request: The Pydantic request — needs ``id`` and ``confirm``.
+        services: Result of ``get_services(context)``.
+        entity_type: Machine tag (e.g. ``"purchase_order"``). The
+            human-readable noun ("purchase order") is derived by replacing
+            ``_`` with `` `` for the preview message.
+        entity_label: Human-readable with id (e.g. ``"purchase order 42"``).
+        web_url_kind: ``katana_web_url`` argument.
+        fetcher: ``(services, id) -> Awaitable[entity | None]`` — for
+            prior_state capture.
+        delete_endpoint: The generated client's DELETE module (e.g.
+            ``api_delete_purchase_order``).
+        operation: Operation name for the ActionSpec (typically the entity's
+            ``Operation.DELETE`` enum value).
+    """
+    from katana_mcp.web_urls import katana_web_url
+
+    existing = await fetcher(services, request.id)
+    plan = plan_deletes(
+        [request.id],
+        operation,
+        lambda eid: make_delete_apply(delete_endpoint, services, eid),
+    )
+    katana_url = katana_web_url(web_url_kind, request.id)
+
+    if not request.confirm:
+        return ModificationResponse(
+            entity_type=entity_type,
+            entity_id=request.id,
+            is_preview=True,
+            actions=plan_to_preview_results(plan),
+            next_actions=[
+                "Review the deletion",
+                f"Set confirm=true to delete the {entity_type.replace('_', ' ')}",
+            ],
+            katana_url=katana_url,
+            message=f"Preview: delete {entity_label}",
+        )
+
+    prior_state = serialize_for_prior_state(existing)
+    actions = await execute_plan(plan)
+    message, next_actions = summarize_delete_outcome(actions, entity_label=entity_label)
+
+    return ModificationResponse(
+        entity_type=entity_type,
+        entity_id=request.id,
+        is_preview=False,
+        actions=actions,
+        prior_state=prior_state,
+        next_actions=next_actions,
+        # On successful delete the entity URL no longer resolves.
+        katana_url=None if all(a.succeeded for a in actions) else katana_url,
+        message=message,
+    )
 
 
 def serialize_for_prior_state(value: Any) -> dict[str, Any] | None:

@@ -34,19 +34,16 @@ from katana_mcp.tools._modification import (
 )
 from katana_mcp.tools._modification_dispatch import (
     ActionSpec,
-    execute_plan,
     has_any_subpayload,
     make_delete_apply,
     make_patch_apply,
     make_post_apply,
     plan_creates,
     plan_deletes,
-    plan_to_preview_results,
     plan_updates,
+    run_delete_plan,
+    run_modify_plan,
     safe_fetch_for_diff,
-    serialize_for_prior_state,
-    summarize_delete_outcome,
-    summarize_modify_outcome,
 )
 from katana_mcp.tools.list_coercion import (
     CoercedIntListOpt,
@@ -122,7 +119,7 @@ logger = get_logger(__name__)
 
 
 # ============================================================================
-# Tool 1: create_manufacturing_order
+# Tool: create_manufacturing_order
 # ============================================================================
 
 
@@ -486,7 +483,7 @@ async def create_manufacturing_order(
 
 
 # ============================================================================
-# Tool 2: get_manufacturing_order
+# Tool: get_manufacturing_order
 # ============================================================================
 
 # Recipe-row metadata fields stripped from the compact response. These have
@@ -1463,7 +1460,7 @@ async def get_manufacturing_order(
 
 
 # ============================================================================
-# Tool 3: get_manufacturing_order_recipe
+# Tool: get_manufacturing_order_recipe
 # ============================================================================
 
 
@@ -2379,26 +2376,14 @@ class MOOperation(StrEnum):
     DELETE_PRODUCTION = "delete_production"
 
 
-# Tool-facing status literal — mirrors ManufacturingOrderStatus enum values.
+# Tool-facing literals — values match the API StrEnum's ``.value`` directly,
+# so ``EnumClass(literal)`` resolves the enum without a lookup table.
 ManufacturingOrderStatusLiteral = Literal[
     "NOT_STARTED", "IN_PROGRESS", "DONE", "BLOCKED", "PARTIALLY_COMPLETED"
 ]
-
-_MO_STATUS_API_VALUE: dict[
-    ManufacturingOrderStatusLiteral, ManufacturingOrderStatus
-] = {
-    "NOT_STARTED": ManufacturingOrderStatus.NOT_STARTED,
-    "IN_PROGRESS": ManufacturingOrderStatus.IN_PROGRESS,
-    "DONE": ManufacturingOrderStatus.DONE,
-    "BLOCKED": ManufacturingOrderStatus.BLOCKED,
-    "PARTIALLY_COMPLETED": ManufacturingOrderStatus.PARTIALLY_COMPLETED,
-}
-
-# Operation-row status + type literals.
 ManufacturingOperationStatusLiteral = Literal[
     "NOT_STARTED", "IN_PROGRESS", "BLOCKED", "COMPLETED"
 ]
-
 ManufacturingOperationTypeLiteral = Literal["LINKED", "STANDARD"]
 
 
@@ -2599,7 +2584,7 @@ def _build_update_header_request(
     patch: MOHeaderPatch,
 ) -> APIUpdateManufacturingOrderRequest:
     api_status = (
-        _MO_STATUS_API_VALUE[patch.status] if patch.status is not None else None
+        ManufacturingOrderStatus(patch.status) if patch.status is not None else None
     )
     return APIUpdateManufacturingOrderRequest(
         order_no=to_unset(patch.order_no),
@@ -2641,12 +2626,10 @@ def _build_update_recipe_row_request(
 def _build_create_operation_row_request(
     mo_id: int, row: MOOperationRowAdd
 ) -> APICreateMOOperationRowRequest:
-    api_status_class = ManufacturingOperationStatus  # alias to keep line short
-    api_status = api_status_class(row.status)
     api_type = ManufacturingOperationType(row.type) if row.type is not None else None
     return APICreateMOOperationRowRequest(
         manufacturing_order_id=mo_id,
-        status=api_status,
+        status=ManufacturingOperationStatus(row.status),
         operation_id=to_unset(row.operation_id),
         type_=to_unset(api_type),
         operation_name=to_unset(row.operation_name),
@@ -2858,53 +2841,14 @@ async def _modify_manufacturing_order_impl(
         )
     )
 
-    katana_url = katana_web_url("manufacturing_order", request.id)
-    warnings = (
-        [
-            f"Could not fetch manufacturing order {request.id} for diff context — "
-            "preview shows requested values without prior state."
-        ]
-        if existing_mo is None
-        else []
-    )
-
-    if not request.confirm:
-        return ModificationResponse(
-            entity_type="manufacturing_order",
-            entity_id=request.id,
-            is_preview=True,
-            actions=plan_to_preview_results(plan),
-            warnings=warnings,
-            next_actions=[
-                f"Review {len(plan)} planned action(s)",
-                "Set confirm=true to execute the plan",
-            ],
-            katana_url=katana_url,
-            message=(
-                f"Preview: {len(plan)} action(s) planned for manufacturing order "
-                f"{request.id}"
-            ),
-        )
-
-    prior_state = serialize_for_prior_state(existing_mo)
-    actions = await execute_plan(plan)
-    message, next_actions = summarize_modify_outcome(
-        actions,
-        len(plan),
+    return await run_modify_plan(
+        request=request,
+        entity_type="manufacturing_order",
         entity_label=f"manufacturing order {request.id}",
         tool_name="modify_manufacturing_order",
-    )
-
-    return ModificationResponse(
-        entity_type="manufacturing_order",
-        entity_id=request.id,
-        is_preview=False,
-        actions=actions,
-        prior_state=prior_state,
-        warnings=warnings,
-        next_actions=next_actions,
-        katana_url=katana_url,
-        message=message,
+        web_url_kind="manufacturing_order",
+        existing=existing_mo,
+        plan=plan,
     )
 
 
@@ -2949,47 +2893,15 @@ async def _delete_manufacturing_order_impl(
 ) -> ModificationResponse:
     """One-action plan that removes the MO. Katana cascades child rows
     server-side."""
-    services = get_services(context)
-
-    existing_mo = await _fetch_manufacturing_order_attrs(services, request.id)
-    plan = plan_deletes(
-        [request.id],
-        MOOperation.DELETE,
-        lambda mo_id: make_delete_apply(
-            api_delete_manufacturing_order, services, mo_id
-        ),
-    )
-    katana_url = katana_web_url("manufacturing_order", request.id)
-
-    if not request.confirm:
-        return ModificationResponse(
-            entity_type="manufacturing_order",
-            entity_id=request.id,
-            is_preview=True,
-            actions=plan_to_preview_results(plan),
-            next_actions=[
-                "Review the deletion",
-                "Set confirm=true to delete the manufacturing order",
-            ],
-            katana_url=katana_url,
-            message=f"Preview: delete manufacturing order {request.id}",
-        )
-
-    prior_state = serialize_for_prior_state(existing_mo)
-    actions = await execute_plan(plan)
-    message, next_actions = summarize_delete_outcome(
-        actions, entity_label=f"manufacturing order {request.id}"
-    )
-
-    return ModificationResponse(
+    return await run_delete_plan(
+        request=request,
+        services=get_services(context),
         entity_type="manufacturing_order",
-        entity_id=request.id,
-        is_preview=False,
-        actions=actions,
-        prior_state=prior_state,
-        next_actions=next_actions,
-        katana_url=None if all(a.succeeded for a in actions) else katana_url,
-        message=message,
+        entity_label=f"manufacturing order {request.id}",
+        web_url_kind="manufacturing_order",
+        fetcher=_fetch_manufacturing_order_attrs,
+        delete_endpoint=api_delete_manufacturing_order,
+        operation=MOOperation.DELETE,
     )
 
 

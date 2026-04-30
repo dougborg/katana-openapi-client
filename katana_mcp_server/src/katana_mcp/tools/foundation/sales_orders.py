@@ -34,19 +34,16 @@ from katana_mcp.tools._modification import (
 )
 from katana_mcp.tools._modification_dispatch import (
     ActionSpec,
-    execute_plan,
     has_any_subpayload,
     make_delete_apply,
     make_patch_apply,
     make_post_apply,
     plan_creates,
     plan_deletes,
-    plan_to_preview_results,
     plan_updates,
+    run_delete_plan,
+    run_modify_plan,
     safe_fetch_for_diff,
-    serialize_for_prior_state,
-    summarize_delete_outcome,
-    summarize_modify_outcome,
 )
 from katana_mcp.tools.list_coercion import CoercedIntListOpt
 from katana_mcp.tools.tool_result_utils import (
@@ -1403,27 +1400,10 @@ class SOOperation(StrEnum):
     DELETE_SHIPPING_FEE = "delete_shipping_fee"
 
 
-# Tool-facing status literal — mirrors UpdateSalesOrderStatus enum values.
+# Tool-facing literals — values match the API StrEnum's ``.value`` directly,
+# so ``EnumClass(literal)`` resolves the enum without a lookup table.
 SalesOrderStatusLiteral = Literal["NOT_SHIPPED", "PENDING", "PACKED", "DELIVERED"]
-
-_SO_STATUS_API_VALUE: dict[SalesOrderStatusLiteral, UpdateSalesOrderStatus] = {
-    "NOT_SHIPPED": UpdateSalesOrderStatus.NOT_SHIPPED,
-    "PENDING": UpdateSalesOrderStatus.PENDING,
-    "PACKED": UpdateSalesOrderStatus.PACKED,
-    "DELIVERED": UpdateSalesOrderStatus.DELIVERED,
-}
-
-# Fulfillment status literal — mirrors SalesOrderFulfillmentStatus.
 FulfillmentStatusLiteral = Literal["DELIVERED", "PACKED"]
-
-_FULFILLMENT_STATUS_API_VALUE: dict[
-    FulfillmentStatusLiteral, SalesOrderFulfillmentStatus
-] = {
-    "DELIVERED": SalesOrderFulfillmentStatus.DELIVERED,
-    "PACKED": SalesOrderFulfillmentStatus.PACKED,
-}
-
-# Address entity-type literal — mirrors AddressEntityType.
 AddressEntityTypeLiteral = Literal["billing", "shipping"]
 
 
@@ -1666,7 +1646,7 @@ class DeleteSalesOrderRequest(ConfirmableRequest):
 
 def _build_update_header_request(patch: SOHeaderPatch) -> APIUpdateSalesOrderRequest:
     api_status = (
-        _SO_STATUS_API_VALUE[patch.status] if patch.status is not None else None
+        UpdateSalesOrderStatus(patch.status) if patch.status is not None else None
     )
     return APIUpdateSalesOrderRequest(
         order_no=to_unset(patch.order_no),
@@ -1749,7 +1729,7 @@ def _build_update_address_request(
 def _build_create_fulfillment_request(
     so_id: int, fulfillment: SOFulfillmentAdd
 ) -> APICreateSOFulfillmentRequest:
-    api_status = _FULFILLMENT_STATUS_API_VALUE[fulfillment.status]
+    api_status = SalesOrderFulfillmentStatus(fulfillment.status)
     rows = [
         SalesOrderFulfillmentRowRequest(
             sales_order_row_id=r.sales_order_row_id, quantity=r.quantity
@@ -1774,9 +1754,7 @@ def _build_update_fulfillment_request(
     patch: SOFulfillmentUpdate,
 ) -> APIUpdateSOFulfillmentRequest:
     api_status = (
-        _FULFILLMENT_STATUS_API_VALUE[patch.status]
-        if patch.status is not None
-        else None
+        SalesOrderFulfillmentStatus(patch.status) if patch.status is not None else None
     )
     return APIUpdateSOFulfillmentRequest(
         status=to_unset(api_status),
@@ -1999,52 +1977,14 @@ async def _modify_sales_order_impl(
         )
     )
 
-    katana_url = katana_web_url("sales_order", request.id)
-    warnings = (
-        [
-            f"Could not fetch sales order {request.id} for diff context — "
-            "preview shows requested values without prior state."
-        ]
-        if existing_so is None
-        else []
-    )
-
-    if not request.confirm:
-        return ModificationResponse(
-            entity_type="sales_order",
-            entity_id=request.id,
-            is_preview=True,
-            actions=plan_to_preview_results(plan),
-            warnings=warnings,
-            next_actions=[
-                f"Review {len(plan)} planned action(s)",
-                "Set confirm=true to execute the plan",
-            ],
-            katana_url=katana_url,
-            message=(
-                f"Preview: {len(plan)} action(s) planned for sales order {request.id}"
-            ),
-        )
-
-    prior_state = serialize_for_prior_state(existing_so)
-    actions = await execute_plan(plan)
-    message, next_actions = summarize_modify_outcome(
-        actions,
-        len(plan),
+    return await run_modify_plan(
+        request=request,
+        entity_type="sales_order",
         entity_label=f"sales order {request.id}",
         tool_name="modify_sales_order",
-    )
-
-    return ModificationResponse(
-        entity_type="sales_order",
-        entity_id=request.id,
-        is_preview=False,
-        actions=actions,
-        prior_state=prior_state,
-        warnings=warnings,
-        next_actions=next_actions,
-        katana_url=katana_url,
-        message=message,
+        web_url_kind="sales_order",
+        existing=existing_so,
+        plan=plan,
     )
 
 
@@ -2093,45 +2033,15 @@ async def _delete_sales_order_impl(
 ) -> ModificationResponse:
     """One-action plan that removes the SO. Katana cascades child rows,
     addresses, fulfillments, and shipping fees server-side."""
-    services = get_services(context)
-
-    existing_so = await _fetch_sales_order_attrs(services, request.id)
-    plan = plan_deletes(
-        [request.id],
-        SOOperation.DELETE,
-        lambda so_id: make_delete_apply(api_delete_sales_order, services, so_id),
-    )
-    katana_url = katana_web_url("sales_order", request.id)
-
-    if not request.confirm:
-        return ModificationResponse(
-            entity_type="sales_order",
-            entity_id=request.id,
-            is_preview=True,
-            actions=plan_to_preview_results(plan),
-            next_actions=[
-                "Review the deletion",
-                "Set confirm=true to delete the sales order",
-            ],
-            katana_url=katana_url,
-            message=f"Preview: delete sales order {request.id}",
-        )
-
-    prior_state = serialize_for_prior_state(existing_so)
-    actions = await execute_plan(plan)
-    message, next_actions = summarize_delete_outcome(
-        actions, entity_label=f"sales order {request.id}"
-    )
-
-    return ModificationResponse(
+    return await run_delete_plan(
+        request=request,
+        services=get_services(context),
         entity_type="sales_order",
-        entity_id=request.id,
-        is_preview=False,
-        actions=actions,
-        prior_state=prior_state,
-        next_actions=next_actions,
-        katana_url=None if all(a.succeeded for a in actions) else katana_url,
-        message=message,
+        entity_label=f"sales order {request.id}",
+        web_url_kind="sales_order",
+        fetcher=_fetch_sales_order_attrs,
+        delete_endpoint=api_delete_sales_order,
+        operation=SOOperation.DELETE,
     )
 
 

@@ -30,19 +30,16 @@ from katana_mcp.tools._modification import (
 )
 from katana_mcp.tools._modification_dispatch import (
     ActionSpec,
-    execute_plan,
     has_any_subpayload,
     make_delete_apply,
     make_patch_apply,
     make_post_apply,
     plan_creates,
     plan_deletes,
-    plan_to_preview_results,
     plan_updates,
+    run_delete_plan,
+    run_modify_plan,
     safe_fetch_for_diff,
-    serialize_for_prior_state,
-    summarize_delete_outcome,
-    summarize_modify_outcome,
 )
 from katana_mcp.tools.list_coercion import CoercedIntListOpt
 from katana_mcp.tools.tool_result_utils import (
@@ -2105,26 +2102,13 @@ class POOperation(StrEnum):
     DELETE_ADDITIONAL_COST = "delete_additional_cost"
 
 
-# Tool-facing uppercase status literal — accepts every value Katana defines.
+# Tool-facing uppercase status literal — values match the API StrEnum's
+# ``.value`` directly, so ``PurchaseOrderStatus(literal)`` resolves the
+# enum without a lookup table.
 PurchaseOrderStatusLiteral = Literal[
     "DRAFT", "NOT_RECEIVED", "PARTIALLY_RECEIVED", "RECEIVED"
 ]
-
-_PO_STATUS_API_VALUE: dict[PurchaseOrderStatusLiteral, PurchaseOrderStatus] = {
-    "DRAFT": PurchaseOrderStatus.DRAFT,
-    "NOT_RECEIVED": PurchaseOrderStatus.NOT_RECEIVED,
-    "PARTIALLY_RECEIVED": PurchaseOrderStatus.PARTIALLY_RECEIVED,
-    "RECEIVED": PurchaseOrderStatus.RECEIVED,
-}
-
 CostDistributionMethodLiteral = Literal["BY_VALUE", "NON_DISTRIBUTED"]
-
-_DISTRIBUTION_METHOD_API_VALUE: dict[
-    CostDistributionMethodLiteral, CostDistributionMethod
-] = {
-    "BY_VALUE": CostDistributionMethod.BY_VALUE,
-    "NON_DISTRIBUTED": CostDistributionMethod.NON_DISTRIBUTED,
-}
 
 
 async def _fetch_purchase_order_attrs(
@@ -2319,9 +2303,7 @@ class DeletePurchaseOrderRequest(ConfirmableRequest):
 def _build_update_header_request(
     patch: POHeaderPatch,
 ) -> APIUpdatePurchaseOrderRequest:
-    api_status = (
-        _PO_STATUS_API_VALUE[patch.status] if patch.status is not None else None
-    )
+    api_status = PurchaseOrderStatus(patch.status) if patch.status is not None else None
     return APIUpdatePurchaseOrderRequest(
         order_no=to_unset(patch.order_no),
         supplier_id=to_unset(patch.supplier_id),
@@ -2374,7 +2356,7 @@ def _build_create_cost_request(
     cost: POAdditionalCostAdd, group_id: int
 ) -> APICreatePOAdditionalCostRowRequest:
     api_distribution = (
-        _DISTRIBUTION_METHOD_API_VALUE[cost.distribution_method]
+        CostDistributionMethod(cost.distribution_method)
         if cost.distribution_method is not None
         else None
     )
@@ -2391,7 +2373,7 @@ def _build_update_cost_request(
     patch: POAdditionalCostUpdate,
 ) -> APIUpdatePOAdditionalCostRowRequest:
     api_distribution = (
-        _DISTRIBUTION_METHOD_API_VALUE[patch.distribution_method]
+        CostDistributionMethod(patch.distribution_method)
         if patch.distribution_method is not None
         else None
     )
@@ -2534,53 +2516,14 @@ async def _modify_purchase_order_impl(
         )
     )
 
-    katana_url = katana_web_url("purchase_order", request.id)
-    warnings = (
-        [
-            f"Could not fetch purchase order {request.id} for diff context — "
-            "preview shows requested values without prior state."
-        ]
-        if existing_po is None
-        else []
-    )
-
-    if not request.confirm:
-        return ModificationResponse(
-            entity_type="purchase_order",
-            entity_id=request.id,
-            is_preview=True,
-            actions=plan_to_preview_results(plan),
-            warnings=warnings,
-            next_actions=[
-                f"Review {len(plan)} planned action(s)",
-                "Set confirm=true to execute the plan",
-            ],
-            katana_url=katana_url,
-            message=(
-                f"Preview: {len(plan)} action(s) planned for purchase order "
-                f"{request.id}"
-            ),
-        )
-
-    prior_state = serialize_for_prior_state(existing_po)
-    actions = await execute_plan(plan)
-    message, next_actions = summarize_modify_outcome(
-        actions,
-        len(plan),
+    return await run_modify_plan(
+        request=request,
+        entity_type="purchase_order",
         entity_label=f"purchase order {request.id}",
         tool_name="modify_purchase_order",
-    )
-
-    return ModificationResponse(
-        entity_type="purchase_order",
-        entity_id=request.id,
-        is_preview=False,
-        actions=actions,
-        prior_state=prior_state,
-        warnings=warnings,
-        next_actions=next_actions,
-        katana_url=katana_url,
-        message=message,
+        web_url_kind="purchase_order",
+        existing=existing_po,
+        plan=plan,
     )
 
 
@@ -2628,46 +2571,15 @@ async def _delete_purchase_order_impl(
 ) -> ModificationResponse:
     """One-action plan that removes the PO. Katana cascades child rows +
     additional cost rows server-side."""
-    services = get_services(context)
-
-    existing_po = await _fetch_purchase_order_attrs(services, request.id)
-    plan = plan_deletes(
-        [request.id],
-        POOperation.DELETE,
-        lambda po_id: make_delete_apply(api_delete_purchase_order, services, po_id),
-    )
-    katana_url = katana_web_url("purchase_order", request.id)
-
-    if not request.confirm:
-        return ModificationResponse(
-            entity_type="purchase_order",
-            entity_id=request.id,
-            is_preview=True,
-            actions=plan_to_preview_results(plan),
-            next_actions=[
-                "Review the deletion",
-                "Set confirm=true to delete the purchase order",
-            ],
-            katana_url=katana_url,
-            message=f"Preview: delete purchase order {request.id}",
-        )
-
-    prior_state = serialize_for_prior_state(existing_po)
-    actions = await execute_plan(plan)
-    message, next_actions = summarize_delete_outcome(
-        actions, entity_label=f"purchase order {request.id}"
-    )
-
-    return ModificationResponse(
+    return await run_delete_plan(
+        request=request,
+        services=get_services(context),
         entity_type="purchase_order",
-        entity_id=request.id,
-        is_preview=False,
-        actions=actions,
-        prior_state=prior_state,
-        next_actions=next_actions,
-        # On successful delete the entity URL no longer resolves.
-        katana_url=None if all(a.succeeded for a in actions) else katana_url,
-        message=message,
+        entity_label=f"purchase order {request.id}",
+        web_url_kind="purchase_order",
+        fetcher=_fetch_purchase_order_attrs,
+        delete_endpoint=api_delete_purchase_order,
+        operation=POOperation.DELETE,
     )
 
 
