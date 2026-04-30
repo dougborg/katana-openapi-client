@@ -264,6 +264,42 @@ class TestDirectLookups:
         assert result is None
 
     @pytest.mark.asyncio
+    async def test_get_many_by_ids_returns_dict_keyed_by_id(self, cache):
+        await cache.sync(
+            "variant",
+            [
+                _variant(2, "SKU-002", "Item 2"),
+                _variant(3, "SKU-003", "Item 3"),
+            ],
+            VARIANT_INDEX,
+        )
+        result = await cache.get_many_by_ids("variant", [1, 2, 3])
+        assert set(result.keys()) == {1, 2, 3}
+        assert result[1]["sku"] == "FOX-FORK-160"
+        assert result[2]["sku"] == "SKU-002"
+        assert result[3]["sku"] == "SKU-003"
+
+    @pytest.mark.asyncio
+    async def test_get_many_by_ids_omits_missing(self, cache):
+        # Cache has only id=1 from the autouse fixture; 999 is absent.
+        result = await cache.get_many_by_ids("variant", [1, 999])
+        assert set(result.keys()) == {1}
+
+    @pytest.mark.asyncio
+    async def test_get_many_by_ids_empty_input_no_query(self, cache):
+        # Empty input must short-circuit — calling with [] would otherwise
+        # build an `IN ()` clause that's a SQLite syntax error.
+        result = await cache.get_many_by_ids("variant", [])
+        assert result == {}
+
+    @pytest.mark.asyncio
+    async def test_get_many_by_ids_dedups_input(self, cache):
+        # Caller may pass duplicates (e.g., when one variant blocks several
+        # MOs); dedup-then-query keeps the IN-clause minimal.
+        result = await cache.get_many_by_ids("variant", [1, 1, 1])
+        assert set(result.keys()) == {1}
+
+    @pytest.mark.asyncio
     async def test_get_by_sku(self, cache):
         result = await cache.get_by_sku("FOX-FORK-160")
         assert result is not None

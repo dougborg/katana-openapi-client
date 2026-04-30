@@ -615,11 +615,11 @@ _UNWRAP_DATA = "katana_public_api_client.utils.unwrap_data"
 async def test_get_manufacturing_order_recipe():
     """Test listing recipe rows for an MO."""
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_id = AsyncMock(
-        side_effect=[
-            {"id": 101, "sku": "FORK-001"},
-            {"id": 102, "sku": "BOLT-004"},
-        ]
+    lifespan_ctx.cache.get_many_by_ids = AsyncMock(
+        return_value={
+            101: {"id": 101, "sku": "FORK-001"},
+            102: {"id": 102, "sku": "BOLT-004"},
+        }
     )
 
     def _mk_row(row_id: int, variant_id: int, qpu: float, cost: float) -> MagicMock:
@@ -2109,13 +2109,12 @@ def no_sync_recipe_rows():
 
 
 def _stub_variant_cache(context, sku_by_id: dict[int, str]) -> None:
-    """Stub services.cache.get_by_id(VARIANT, ...) to return SKUs for tests."""
+    """Stub services.cache.get_many_by_ids(VARIANT, ...) to return SKUs for tests."""
 
-    async def _lookup(_entity_type, vid):
-        sku = sku_by_id.get(vid)
-        return {"sku": sku} if sku else None
+    async def _lookup(_entity_type, vids):
+        return {vid: {"sku": sku_by_id[vid]} for vid in vids if vid in sku_by_id}
 
-    context.request_context.lifespan_context.cache.get_by_id = AsyncMock(
+    context.request_context.lifespan_context.cache.get_many_by_ids = AsyncMock(
         side_effect=_lookup
     )
 
@@ -2537,9 +2536,10 @@ async def test_list_blocking_ingredients_resolves_skus_only_for_kept_variants(
     assert result.by_variant is not None and len(result.by_variant) == 1
     assert result.by_variant[0].variant_id == 500
     assert result.by_variant[0].sku == "WHEEL"
-    # Legacy cache hit only once — for the kept variant. The dropped
-    # variant 600 never makes it to the catalog cache.
-    cache_mock = context.request_context.lifespan_context.cache.get_by_id
+    # Legacy cache batch helper called exactly once with only the kept
+    # variant ID — the dropped variant 600 never makes it to the catalog
+    # cache, validating slice-then-resolve over fetch-then-trim.
+    cache_mock = context.request_context.lifespan_context.cache.get_many_by_ids
     assert cache_mock.await_count == 1
-    awaited_vid = cache_mock.await_args.args[1]
-    assert awaited_vid == 500
+    awaited_vids = cache_mock.await_args.args[1]
+    assert set(awaited_vids) == {500}

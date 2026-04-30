@@ -866,18 +866,22 @@ async def _fetch_mo_recipe_rows(
     )
     raw_rows = unwrap_data(response, default=[])
 
-    variant_ids = [unwrap_unset(row.variant_id, None) for row in raw_rows]
-    variants = await asyncio.gather(
-        *(
-            services.cache.get_by_id(EntityType.VARIANT, v_id)
-            if v_id is not None
-            else none_coro()
-            for v_id in variant_ids
-        )
-    )
+    # One batched IN-clause SQLite read instead of one read per recipe row —
+    # a full-bike Mayhem MO has ~30 rows, all looked up by variant_id.
+    variant_ids = {
+        v_id
+        for v_id in (unwrap_unset(row.variant_id, None) for row in raw_rows)
+        if v_id is not None
+    }
+    variants = await services.cache.get_many_by_ids(EntityType.VARIANT, variant_ids)
     return [
-        _recipe_row_info_from_attrs(row, variant.get("sku") if variant else None)
-        for row, variant in zip(raw_rows, variants, strict=True)
+        _recipe_row_info_from_attrs(
+            row,
+            (variants.get(v_id) or {}).get("sku")
+            if (v_id := unwrap_unset(row.variant_id, None)) is not None
+            else None,
+        )
+        for row in raw_rows
     ]
 
 
@@ -2890,20 +2894,14 @@ async def _resolve_variant_skus(
     """Resolve SKUs for the given variant IDs via the legacy catalog cache.
 
     Returns ``{variant_id: sku_or_None}``. Empty input → empty dict (no
-    catalog reads). Hitting the cache is cheap per-call but proportional to
-    ``len(variant_ids)``; callers should aggregate/sort/slice first so this
-    only fires for the variants surfaced in the response.
+    catalog reads). Issues one batched SQL ``IN``-clause read; missing
+    variants map to ``None``. Callers should aggregate/sort/slice first
+    so this only fires for the variants surfaced in the response.
     """
     if not variant_ids:
         return {}
-    ids = sorted(variant_ids)
-    lookups = await asyncio.gather(
-        *(services.cache.get_by_id(EntityType.VARIANT, vid) for vid in ids)
-    )
-    return {
-        vid: (variant.get("sku") if variant else None)
-        for vid, variant in zip(ids, lookups, strict=True)
-    }
+    variants = await services.cache.get_many_by_ids(EntityType.VARIANT, variant_ids)
+    return {vid: (variants.get(vid) or {}).get("sku") for vid in variant_ids}
 
 
 @observe_tool
