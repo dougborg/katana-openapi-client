@@ -204,8 +204,9 @@ def make_stock_adjustment_row(
 def make_manufacturing_order(
     *,
     id: int = 1,
-    order_no: str = "MO-TEST",
+    order_no: str | None = "MO-TEST",
     status: ManufacturingOrderStatus | str | None = None,
+    ingredient_availability: str | None = None,
     variant_id: int | None = 100,
     location_id: int | None = 1,
     planned_quantity: float | None = 10.0,
@@ -235,10 +236,21 @@ def make_manufacturing_order(
         else (status if status is not None else ManufacturingOrderStatus.not_started)
     )
 
+    from katana_public_api_client.models_pydantic._generated import (
+        OutsourcedPurchaseOrderIngredientAvailability,
+    )
+
+    resolved_ingredient_availability = (
+        OutsourcedPurchaseOrderIngredientAvailability(ingredient_availability)
+        if ingredient_availability is not None
+        else None
+    )
+
     return CachedManufacturingOrder(
         id=id,
         order_no=order_no,
         status=resolved_status,
+        ingredient_availability=resolved_ingredient_availability,
         variant_id=variant_id,
         location_id=location_id,
         planned_quantity=planned_quantity,
@@ -265,6 +277,9 @@ def make_manufacturing_order_recipe_row(
     total_consumed_quantity: float | None = None,
     total_remaining_quantity: float | None = None,
     cost: float | None = None,
+    ingredient_availability: str | None = None,
+    ingredient_expected_date: datetime | None = None,
+    deleted_at: datetime | None = None,
 ) -> CachedManufacturingOrderRecipeRow:
     """Build a ``CachedManufacturingOrderRecipeRow`` for direct cache insertion.
 
@@ -272,8 +287,19 @@ def make_manufacturing_order_recipe_row(
     FK back to its parent ``CachedManufacturingOrder.id`` via
     ``manufacturing_order_id``. Use alongside :func:`make_manufacturing_order`
     to build parent-child fixtures for tools that join MOs to recipe rows
-    (e.g., ``inventory_velocity``'s MO-consumption path).
+    (e.g., ``inventory_velocity``'s MO-consumption path,
+    ``list_blocking_ingredients``'s availability rollup).
     """
+    from katana_public_api_client.models_pydantic._generated import (
+        OutsourcedPurchaseOrderIngredientAvailability,
+    )
+
+    resolved_availability = (
+        OutsourcedPurchaseOrderIngredientAvailability(ingredient_availability)
+        if ingredient_availability is not None
+        else None
+    )
+
     return CachedManufacturingOrderRecipeRow(
         id=id,
         manufacturing_order_id=manufacturing_order_id,
@@ -283,6 +309,9 @@ def make_manufacturing_order_recipe_row(
         total_consumed_quantity=total_consumed_quantity,
         total_remaining_quantity=total_remaining_quantity,
         cost=cost,
+        ingredient_availability=resolved_availability,
+        ingredient_expected_date=naive_utc(ingredient_expected_date),
+        deleted_at=naive_utc(deleted_at),
     )
 
 

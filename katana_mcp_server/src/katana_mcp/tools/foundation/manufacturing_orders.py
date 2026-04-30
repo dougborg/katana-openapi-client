@@ -9,6 +9,7 @@ These tools provide:
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal
@@ -20,7 +21,11 @@ from pydantic import BaseModel, Field
 from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
-from katana_mcp.tools.list_coercion import CoercedIntList, CoercedIntListOpt
+from katana_mcp.tools.list_coercion import (
+    CoercedIntList,
+    CoercedIntListOpt,
+    CoercedStrListOpt,
+)
 from katana_mcp.tools.tool_result_utils import (
     BLOCK_WARNING_PREFIX,
     UI_META,
@@ -41,6 +46,9 @@ from katana_public_api_client.models import (
     CreateManufacturingOrderRequest as APICreateManufacturingOrderRequest,
     GetAllManufacturingOrdersStatus,
     ManufacturingOrder,
+)
+from katana_public_api_client.models_pydantic._generated import (
+    OutsourcedPurchaseOrderIngredientAvailability,
 )
 from katana_public_api_client.utils import unwrap_as
 
@@ -413,6 +421,28 @@ async def create_manufacturing_order(
 # Tool 2: get_manufacturing_order
 # ============================================================================
 
+# Recipe-row metadata fields stripped from the compact response. These have
+# no value for triage workflows (they're fetched per-MO so reading them adds
+# no provenance information that wasn't already on the parent MO).
+_ROW_METADATA_FIELDS = frozenset({"created_at", "updated_at", "deleted_at"})
+
+# Recipe rows in these availability states are considered "blocking" for the
+# procurement triage view. IN_STOCK / PROCESSED / NOT_APPLICABLE / NO_RECIPE
+# are deliberately excluded:
+#   - IN_STOCK: material on hand, not blocking.
+#   - PROCESSED: already consumed by a production run.
+#   - NOT_APPLICABLE: not an inventory-tracked item (e.g., a service line).
+#   - NO_RECIPE: BOM metadata problem, not a procurement problem.
+# Stored as the enum's string values so it works for both Python comparison
+# (against ``RecipeRowInfo.ingredient_availability: str``) and the SQL ``IN``
+# clause against the cached ``ingredient_availability`` column.
+_BLOCKING_AVAILABILITY: frozenset[str] = frozenset(
+    {
+        OutsourcedPurchaseOrderIngredientAvailability.not_available.value,
+        OutsourcedPurchaseOrderIngredientAvailability.expected.value,
+    }
+)
+
 
 class GetManufacturingOrderRequest(BaseModel):
     """Request to look up a manufacturing order."""
@@ -426,6 +456,39 @@ class GetManufacturingOrderRequest(BaseModel):
         description=(
             "Output format: 'markdown' (default) for human-readable tables; "
             "'json' for structured data consumable by downstream tools/aggregations."
+        ),
+    )
+    include_rows: Literal["all", "blocking", "none"] = Field(
+        default="blocking",
+        description=(
+            "Recipe-row projection. 'blocking' (default) returns only rows whose "
+            "ingredient_availability is NOT_AVAILABLE or EXPECTED — the procurement "
+            "triage view. 'all' returns every recipe row. 'none' omits the array "
+            "and skips the recipe-row API call entirely."
+        ),
+    )
+    include_operation_rows: bool = Field(
+        default=False,
+        description=(
+            "When true, fetch and include operation_rows. Off by default to keep "
+            "the response under inline tool-result limits — operation rows are bulky "
+            "and irrelevant to procurement triage."
+        ),
+    )
+    include_productions: bool = Field(
+        default=False,
+        description=(
+            "When true, fetch and include production records. Off by default — "
+            "production history is the largest contributor to MO payload size."
+        ),
+    )
+    verbose: bool = Field(
+        default=False,
+        description=(
+            "When true, restore metadata fields stripped from the compact view: "
+            "created_at, updated_at, deleted_at, and empty batch_transactions on "
+            "every nested row. Use with include_rows='all', include_operation_rows=True, "
+            "and include_productions=True to reproduce the legacy exhaustive payload."
         ),
     )
 
@@ -918,10 +981,14 @@ def _build_mo_response(
 async def _get_manufacturing_order_impl(
     request: GetManufacturingOrderRequest, context: Context
 ) -> GetManufacturingOrderResponse:
-    """Look up a manufacturing order by order number or ID with exhaustive detail.
+    """Look up a manufacturing order by order number or ID.
 
-    Fetches the MO record plus its recipe rows, operation rows, and production
-    records — each via its own API call (cache-first migration tracked in #342).
+    Compact-by-default: ``include_rows='blocking'`` filters recipe rows to
+    procurement-actionable rows; operation rows and production records are
+    omitted unless explicitly requested. Each related-resource fetch is a
+    separate HTTP call (cache-first migration tracked in #342) — gating on
+    the ``include_*`` flags also skips the upstream call when the data
+    isn't needed.
     """
     from katana_public_api_client.api.manufacturing_order import (
         get_all_manufacturing_orders,
@@ -949,24 +1016,43 @@ async def _get_manufacturing_order_impl(
             raise ValueError(f"Manufacturing order '{request.order_no}' not found")
         mo = orders[0]
 
-    # Related resources — fetched in parallel. Each is a separate HTTP call
-    # today; the cache epic (#342) will move these to cache-first.
-    recipe_rows, operation_rows, productions = await asyncio.gather(
-        _fetch_mo_recipe_rows(services, mo.id),
-        _fetch_mo_operation_rows(services, mo.id),
-        _fetch_mo_productions(services, mo.id),
-    )
+    # Gate each related-resource fetch on its include flag. asyncio.gather
+    # over the requested subset keeps the parallel-fetch advantage while
+    # avoiding wasted HTTP calls when the caller doesn't want the data.
+    fetch_recipe = request.include_rows != "none"
+    fetchers: list[Any] = [
+        _fetch_mo_recipe_rows(services, mo.id) if fetch_recipe else none_coro(),
+        _fetch_mo_operation_rows(services, mo.id)
+        if request.include_operation_rows
+        else none_coro(),
+        _fetch_mo_productions(services, mo.id)
+        if request.include_productions
+        else none_coro(),
+    ]
+    recipe_rows, operation_rows, productions = await asyncio.gather(*fetchers)
+    recipe_rows = recipe_rows or []
+    operation_rows = operation_rows or []
+    productions = productions or []
+
+    if request.include_rows == "blocking":
+        recipe_rows = [
+            r
+            for r in recipe_rows
+            if r.ingredient_availability in _BLOCKING_AVAILABILITY
+        ]
 
     return _build_mo_response(mo, recipe_rows, operation_rows, productions)
 
 
-def _render_mo_scalar_lines(response: GetManufacturingOrderResponse) -> list[str]:
+def _render_mo_scalar_lines(
+    response: GetManufacturingOrderResponse, *, verbose: bool = True
+) -> list[str]:
     """Render every scalar MO field as ``**field_name**: value`` lines.
 
     Uses canonical Pydantic field names so LLM consumers can't confuse a
     prettified label with a different field name (see #346 follow-on).
     """
-    scalar_fields = (
+    scalar_fields: tuple[str, ...] = (
         "id",
         "order_no",
         "status",
@@ -992,10 +1078,9 @@ def _render_mo_scalar_lines(response: GetManufacturingOrderResponse) -> list[str
         "material_cost",
         "subassemblies_cost",
         "operations_cost",
-        "created_at",
-        "updated_at",
-        "deleted_at",
     )
+    if verbose:
+        scalar_fields += ("created_at", "updated_at", "deleted_at")
     lines: list[str] = []
     for fname in scalar_fields:
         val = getattr(response, fname)
@@ -1019,10 +1104,10 @@ def _render_list_field(label: str, items: list[Any], renderer: Any) -> list[str]
     return lines
 
 
-def _render_recipe_row_md(row: RecipeRowInfo) -> str:
+def _render_recipe_row_md(row: RecipeRowInfo, *, verbose: bool = True) -> str:
     """Render a single recipe row as a compact multi-line block."""
     lines = [f"  - **id**: {row.id}"]
-    scalar_fields = (
+    scalar_fields: tuple[str, ...] = (
         "manufacturing_order_id",
         "variant_id",
         "sku",
@@ -1034,10 +1119,9 @@ def _render_recipe_row_md(row: RecipeRowInfo) -> str:
         "ingredient_availability",
         "ingredient_expected_date",
         "cost",
-        "created_at",
-        "updated_at",
-        "deleted_at",
     )
+    if verbose:
+        scalar_fields += ("created_at", "updated_at", "deleted_at")
     for fname in scalar_fields:
         val = getattr(row, fname)
         if val is None or val == "":
@@ -1047,15 +1131,15 @@ def _render_recipe_row_md(row: RecipeRowInfo) -> str:
         lines.append(f"    **batch_transactions** ({len(row.batch_transactions)}):")
         for bt in row.batch_transactions:
             lines.append(f"      - batch_id={bt.batch_id}, quantity={bt.quantity}")
-    else:
+    elif verbose:
         lines.append("    **batch_transactions**: []")
     return "\n".join(lines)
 
 
-def _render_operation_row_md(row: OperationRowInfo) -> str:
+def _render_operation_row_md(row: OperationRowInfo, *, verbose: bool = True) -> str:
     """Render a single operation row as a compact multi-line block."""
     lines = [f"  - **id**: {row.id}"]
-    scalar_fields = (
+    scalar_fields: tuple[str, ...] = (
         "manufacturing_order_id",
         "status",
         "type_",
@@ -1077,10 +1161,9 @@ def _render_operation_row_md(row: OperationRowInfo) -> str:
         "group_boundary",
         "is_status_actionable",
         "completed_at",
-        "created_at",
-        "updated_at",
-        "deleted_at",
     )
+    if verbose:
+        scalar_fields += ("created_at", "updated_at", "deleted_at")
     for fname in scalar_fields:
         val = getattr(row, fname)
         if val is None or val == "":
@@ -1089,7 +1172,8 @@ def _render_operation_row_md(row: OperationRowInfo) -> str:
     for list_name in ("assigned_operators", "completed_by_operators"):
         items = getattr(row, list_name)
         if not items:
-            lines.append(f"    **{list_name}**: []")
+            if verbose:
+                lines.append(f"    **{list_name}**: []")
             continue
         lines.append(f"    **{list_name}** ({len(items)}):")
         for op in items:
@@ -1097,18 +1181,17 @@ def _render_operation_row_md(row: OperationRowInfo) -> str:
     return "\n".join(lines)
 
 
-def _render_production_md(prod: ProductionInfo) -> str:
+def _render_production_md(prod: ProductionInfo, *, verbose: bool = True) -> str:
     """Render a single production record as a compact multi-line block."""
     lines = [f"  - **id**: {prod.id}"]
-    scalar_fields = (
+    scalar_fields: tuple[str, ...] = (
         "manufacturing_order_id",
         "factory_id",
         "quantity",
         "production_date",
-        "created_at",
-        "updated_at",
-        "deleted_at",
     )
+    if verbose:
+        scalar_fields += ("created_at", "updated_at", "deleted_at")
     for fname in scalar_fields:
         val = getattr(prod, fname)
         if val is None or val == "":
@@ -1146,11 +1229,19 @@ def _render_production_md(prod: ProductionInfo) -> str:
 
 def _render_mo_list_fields_md(
     response: GetManufacturingOrderResponse,
+    *,
+    verbose: bool = True,
+    include_rows: Literal["all", "blocking", "none"] = "all",
+    include_operation_rows: bool = True,
+    include_productions: bool = True,
 ) -> list[str]:
     """Render every list-shaped field with canonical names + explicit list syntax.
 
     Empty lists render as ``**field**: []`` (motivation: #346 follow-on —
-    no bare section headers that could be misread as scalar values).
+    no bare section headers that could be misread as scalar values) when
+    ``verbose=True``. In compact mode, empty/omitted collections are
+    suppressed entirely so the response stays under inline tool-result
+    limits.
     """
     lines: list[str] = []
     # MO-level batch_transactions
@@ -1159,7 +1250,7 @@ def _render_mo_list_fields_md(
         lines.append(f"**batch_transactions** ({len(response.batch_transactions)}):")
         for bt in response.batch_transactions:
             lines.append(f"  - batch_id={bt.batch_id}, quantity={bt.quantity}")
-    else:
+    elif verbose:
         lines.append("**batch_transactions**: []")
     # MO-level serial_numbers
     if response.serial_numbers:
@@ -1170,19 +1261,42 @@ def _render_mo_list_fields_md(
                 f"  - id={sn.id}, serial_number={sn.serial_number}, "
                 f"transaction_date={sn.transaction_date}"
             )
-    else:
+    elif verbose:
         lines.append("**serial_numbers**: []")
-    lines.extend(
-        _render_list_field("recipe_rows", response.recipe_rows, _render_recipe_row_md)
-    )
-    lines.extend(
-        _render_list_field(
-            "operation_rows", response.operation_rows, _render_operation_row_md
+
+    # Render each collection with the canonical field-name label. In
+    # compact mode, an empty/omitted collection is suppressed entirely
+    # (no ``**field**: []`` placeholder) so the response stays small. The
+    # blocking-filter is surfaced as a sibling annotation rather than
+    # decorating the field name, so consumers parsing the markdown still
+    # see the canonical ``recipe_rows`` header.
+    if include_rows != "none" and (verbose or response.recipe_rows):
+        if include_rows == "blocking":
+            lines.append("")
+            lines.append("_recipe_rows filtered to blocking rows only_")
+        lines.extend(
+            _render_list_field(
+                "recipe_rows",
+                response.recipe_rows,
+                lambda r: _render_recipe_row_md(r, verbose=verbose),
+            )
         )
-    )
-    lines.extend(
-        _render_list_field("productions", response.productions, _render_production_md)
-    )
+    if include_operation_rows and (verbose or response.operation_rows):
+        lines.extend(
+            _render_list_field(
+                "operation_rows",
+                response.operation_rows,
+                lambda r: _render_operation_row_md(r, verbose=verbose),
+            )
+        )
+    if include_productions and (verbose or response.productions):
+        lines.extend(
+            _render_list_field(
+                "productions",
+                response.productions,
+                lambda p: _render_production_md(p, verbose=verbose),
+            )
+        )
     return lines
 
 
@@ -1191,38 +1305,86 @@ def _render_mo_list_fields_md(
 async def get_manufacturing_order(
     request: Annotated[GetManufacturingOrderRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """Look up a manufacturing order by number or ID with exhaustive detail.
+    """Look up a manufacturing order by number or ID, compact-by-default.
 
-    For multiple manufacturing orders at once, use ``list_manufacturing_orders(ids=[...])`` —
-    it returns a summary table and supports all the same filters.
+    The default response shape is built for procurement triage: every scalar
+    MO field, plus only the *blocking* recipe rows (those with
+    ``ingredient_availability`` of NOT_AVAILABLE / EXPECTED), with per-row
+    metadata stripped. Operation rows and production records are omitted
+    unless ``include_operation_rows`` / ``include_productions`` are set.
 
-    Returns every field Katana exposes on the manufacturing order (status,
-    quantities, costs, timings, timestamps, linked sales order, batch and
-    serial transactions) plus the full recipe rows, operation rows, and
-    production records. Use with ``list_manufacturing_orders`` for discovery
-    workflows; this tool is the single-call path to the rest.
+    Toggle the projection with the request flags:
+      * ``include_rows`` — ``"blocking"`` (default), ``"all"``, or ``"none"``.
+      * ``include_operation_rows`` / ``include_productions`` — bring the
+        respective collections back; each triggers its own upstream fetch.
+      * ``verbose`` — restore stripped metadata (created_at/updated_at/deleted_at)
+        and explicit empty-list placeholders. Combined with all three
+        ``include_*`` flags this reproduces the legacy exhaustive payload
+        byte-for-byte.
 
-    Provide either order_no (e.g., '#WEB20082 / 1') or order_id.
+    For multiple manufacturing orders at once, use
+    ``list_manufacturing_orders(ids=[...])`` — it returns a summary table
+    that already exposes ``ingredient_availability`` so you can pick which
+    MOs to drill into. To roll up blocking SKUs across many MOs, use
+    ``list_blocking_ingredients``.
+
+    Provide either ``order_no`` (e.g., '#WEB20082 / 1') or ``order_id``.
     """
     response = await _get_manufacturing_order_impl(request, context)
 
+    # In compact mode, prune null fields and per-row metadata from the JSON
+    # output so the response fits under inline tool-result limits. The
+    # production-record shape mixes scalar metadata to drop with nested
+    # collections to descend into; pydantic accepts that as a dict that
+    # mixes ``True`` (exclude leaf) with nested ``{"__all__": ...}`` dicts.
+    # Collections the caller explicitly opted out of are dropped entirely
+    # (rather than serialized as ``[]``) so the documented "omit" contract
+    # actually holds in the JSON payload.
+    dump_kwargs: dict[str, Any] = {}
+    exclude: dict[str, Any] = {}
+    if request.include_rows == "none":
+        exclude["recipe_rows"] = True
+    elif not request.verbose:
+        exclude["recipe_rows"] = {"__all__": set(_ROW_METADATA_FIELDS)}
+    if not request.include_operation_rows:
+        exclude["operation_rows"] = True
+    elif not request.verbose:
+        exclude["operation_rows"] = {"__all__": set(_ROW_METADATA_FIELDS)}
+    if not request.include_productions:
+        exclude["productions"] = True
+    elif not request.verbose:
+        production_exclude: dict[str, Any] = dict.fromkeys(_ROW_METADATA_FIELDS, True)
+        production_exclude["ingredients"] = {"__all__": set(_ROW_METADATA_FIELDS)}
+        production_exclude["operations"] = {"__all__": set(_ROW_METADATA_FIELDS)}
+        exclude["productions"] = {"__all__": production_exclude}
+    if not request.verbose:
+        dump_kwargs["exclude_none"] = True
+    if exclude:
+        dump_kwargs["exclude"] = exclude
+
     if request.format == "json":
         return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
+            content=response.model_dump_json(indent=2, **dump_kwargs),
+            structured_content=response.model_dump(**dump_kwargs),
         )
 
     # Labels use the canonical Pydantic field names so LLM consumers can't
     # confuse a section header with the field name (see #346 follow-on).
     md_lines = [f"## MO {response.order_no or response.id}"]
-    md_lines.extend(_render_mo_scalar_lines(response))
-    md_lines.extend(_render_mo_list_fields_md(response))
-
-    from katana_mcp.tools.tool_result_utils import make_simple_result
+    md_lines.extend(_render_mo_scalar_lines(response, verbose=request.verbose))
+    md_lines.extend(
+        _render_mo_list_fields_md(
+            response,
+            verbose=request.verbose,
+            include_rows=request.include_rows,
+            include_operation_rows=request.include_operation_rows,
+            include_productions=request.include_productions,
+        )
+    )
 
     return make_simple_result(
         "\n".join(md_lines),
-        structured_data=response.model_dump(),
+        structured_data=response.model_dump(**dump_kwargs),
     )
 
 
@@ -2134,6 +2296,7 @@ class ManufacturingOrderSummary(BaseModel):
     id: int
     order_no: str | None
     status: str | None
+    ingredient_availability: str | None
     variant_id: int | None
     planned_quantity: float | None
     actual_quantity: float | None
@@ -2280,6 +2443,7 @@ async def _list_manufacturing_orders_impl(
                 id=mo.id,
                 order_no=mo.order_no,
                 status=enum_to_str(mo.status),
+                ingredient_availability=enum_to_str(mo.ingredient_availability),
                 variant_id=mo.variant_id,
                 planned_quantity=mo.planned_quantity,
                 actual_quantity=mo.actual_quantity,
@@ -2345,6 +2509,7 @@ async def list_manufacturing_orders(
             headers=[
                 "Order #",
                 "Status",
+                "Ingredients",
                 "Variant",
                 "Planned",
                 "Actual",
@@ -2355,6 +2520,7 @@ async def list_manufacturing_orders(
                 [
                     o.order_no or o.id,
                     o.status or "—",
+                    o.ingredient_availability or "—",
                     o.variant_id if o.variant_id is not None else "—",
                     o.planned_quantity if o.planned_quantity is not None else "—",
                     o.actual_quantity if o.actual_quantity is not None else "—",
@@ -2375,6 +2541,482 @@ async def list_manufacturing_orders(
             md += summary
 
     return make_simple_result(md, structured_data=response.model_dump())
+
+
+# ============================================================================
+# Tool: list_blocking_ingredients
+# ============================================================================
+
+
+class ListBlockingIngredientsRequest(BaseModel):
+    """Request to roll up blocking-ingredient rows across manufacturing orders."""
+
+    mo_status: CoercedStrListOpt = Field(
+        default=None,
+        description=(
+            "MO statuses to scope the rollup. JSON array (or CSV string) of "
+            'GetAllManufacturingOrdersStatus values, e.g. ["NOT_STARTED", "IN_PROGRESS"]. '
+            "Defaults to NOT_STARTED + IN_PROGRESS — the active queue procurement "
+            "actually cares about."
+        ),
+    )
+    mo_ids: CoercedIntListOpt = Field(
+        default=None,
+        description=(
+            "Restrict the rollup to a specific list of MO IDs. JSON array of "
+            "integers, e.g. [101, 202, 303]."
+        ),
+    )
+    mo_order_nos: CoercedStrListOpt = Field(
+        default=None,
+        description=(
+            "Restrict the rollup to MOs with these order_no values. JSON array "
+            'of strings, e.g. ["#WEB20402 / 1", "#WEB20462 / 2"].'
+        ),
+    )
+    location_id: int | None = Field(
+        default=None,
+        description="Restrict the rollup to MOs at this production location.",
+    )
+    production_deadline_after: str | None = Field(
+        default=None,
+        description="ISO-8601 datetime lower bound on production_deadline_date.",
+    )
+    production_deadline_before: str | None = Field(
+        default=None,
+        description="ISO-8601 datetime upper bound on production_deadline_date.",
+    )
+    group_by: Literal["variant", "mo"] = Field(
+        default="variant",
+        description=(
+            "Aggregation axis. 'variant' (default) returns one row per blocking "
+            "SKU with the count of affected MOs and total quantity needed — the "
+            "procurement-priority view. 'mo' returns one block per MO with its "
+            "blocking rows, preserving per-row detail."
+        ),
+    )
+    limit: int = Field(
+        default=100,
+        ge=1,
+        le=500,
+        description="Max aggregate rows to return (default 100, max 500).",
+    )
+    format: Literal["markdown", "json"] = Field(
+        default="markdown",
+        description=(
+            "Output format: 'markdown' (default) for human-readable tables; "
+            "'json' for structured data."
+        ),
+    )
+
+
+class BlockingRow(BaseModel):
+    """One blocking recipe-row entry within a per-MO grouping."""
+
+    recipe_row_id: int
+    variant_id: int | None
+    sku: str | None
+    planned_quantity_per_unit: float | None
+    total_remaining_quantity: float | None
+    ingredient_availability: str | None
+    ingredient_expected_date: str | None
+
+
+class BlockingIngredientByMO(BaseModel):
+    """A manufacturing order with at least one blocking recipe row."""
+
+    manufacturing_order_id: int
+    order_no: str | None
+    status: str | None
+    production_deadline_date: str | None
+    blocking_rows: list[BlockingRow]
+
+
+class BlockingIngredientByVariant(BaseModel):
+    """A SKU rolled up across the MOs it's blocking."""
+
+    variant_id: int
+    sku: str | None
+    affected_mo_count: int
+    affected_mo_order_nos: list[str]
+    total_planned_quantity: float
+    total_remaining_quantity: float
+    earliest_expected_date: str | None
+
+
+class ListBlockingIngredientsResponse(BaseModel):
+    """Aggregate response for ``list_blocking_ingredients``.
+
+    Exactly one of ``by_variant`` / ``by_mo`` is populated based on the
+    request's ``group_by`` setting.
+    """
+
+    by_variant: list[BlockingIngredientByVariant] | None = None
+    by_mo: list[BlockingIngredientByMO] | None = None
+    total_blocking_rows: int
+    total_affected_mos: int
+
+
+@dataclass
+class _VariantAggregate:
+    """In-loop accumulator for the variant-rollup branch of ``list_blocking_ingredients``.
+
+    ``mo_ids`` and ``order_nos`` are tracked separately because the
+    affected-MO count must reflect every blocked MO regardless of whether
+    Katana populated its ``order_no`` (rare but possible — e.g., MOs created
+    via API before an order_no was assigned). Display lists only show the
+    populated order numbers.
+    """
+
+    mo_ids: set[int] = field(default_factory=set)
+    order_nos: set[str] = field(default_factory=set)
+    planned: float = 0.0
+    remaining: float = 0.0
+    earliest: datetime | None = None
+
+
+def _coerce_status_filter(
+    statuses: list[str] | None,
+) -> list[Any]:
+    """Translate request-side status strings to the cached enum used in queries.
+
+    Default to the active-procurement scope (NOT_STARTED + IN_PROGRESS) when
+    the caller doesn't pin one. ``coerce_enum`` raises ``ValueError`` if a
+    string isn't a valid ``ManufacturingOrderStatus`` member, so an LLM that
+    sends, say, ``["IN-PROGRESS"]`` (hyphen) gets a clear schema-boundary error.
+    """
+    from katana_public_api_client.models_pydantic._generated import (
+        ManufacturingOrderStatus,
+    )
+
+    if statuses is None:
+        return [
+            ManufacturingOrderStatus.not_started,
+            ManufacturingOrderStatus.in_progress,
+        ]
+    return [coerce_enum(s, ManufacturingOrderStatus, "mo_status") for s in statuses]
+
+
+async def _list_blocking_ingredients_impl(
+    request: ListBlockingIngredientsRequest, context: Context
+) -> ListBlockingIngredientsResponse:
+    """Aggregate blocking recipe rows across MOs from the typed cache.
+
+    The cache holds both ``CachedManufacturingOrder`` and
+    ``CachedManufacturingOrderRecipeRow`` already (synced by the velocity
+    report and by sibling tools); the rollup is a single SQL join + filter.
+    Variant SKUs come from the legacy in-memory ``CatalogCache`` since
+    variants don't have a typed-cache table yet.
+    """
+    from sqlmodel import select
+
+    from katana_mcp.typed_cache import (
+        ensure_manufacturing_order_recipe_rows_synced,
+        ensure_manufacturing_orders_synced,
+    )
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedManufacturingOrder,
+        CachedManufacturingOrderRecipeRow,
+    )
+
+    services = get_services(context)
+
+    # The two sync helpers acquire disjoint per-entity locks, so gather is
+    # safe here (same pattern as `_fetch_completed_mo_recipe_rows_in_window`).
+    await asyncio.gather(
+        ensure_manufacturing_orders_synced(services.client, services.typed_cache),
+        ensure_manufacturing_order_recipe_rows_synced(
+            services.client, services.typed_cache
+        ),
+    )
+
+    parsed_dates = parse_request_dates(
+        request, ("production_deadline_after", "production_deadline_before")
+    )
+
+    statuses = _coerce_status_filter(request.mo_status)
+
+    # Fetch (recipe_row, mo) pairs for any MO/row in scope. Filtering happens
+    # at the SQL layer to keep the wire-payload off the Python heap.
+    stmt = (
+        select(CachedManufacturingOrderRecipeRow, CachedManufacturingOrder)
+        .join(
+            CachedManufacturingOrder,
+            CachedManufacturingOrder.id
+            == CachedManufacturingOrderRecipeRow.manufacturing_order_id,
+        )
+        .where(CachedManufacturingOrder.deleted_at.is_(None))
+        .where(CachedManufacturingOrderRecipeRow.deleted_at.is_(None))
+        .where(CachedManufacturingOrder.status.in_(statuses))
+        .where(
+            CachedManufacturingOrderRecipeRow.ingredient_availability.in_(
+                list(_BLOCKING_AVAILABILITY)
+            )
+        )
+    )
+    if request.mo_ids is not None:
+        stmt = stmt.where(CachedManufacturingOrder.id.in_(request.mo_ids))
+    if request.mo_order_nos is not None:
+        stmt = stmt.where(CachedManufacturingOrder.order_no.in_(request.mo_order_nos))
+    if request.location_id is not None:
+        stmt = stmt.where(CachedManufacturingOrder.location_id == request.location_id)
+    stmt = apply_date_window_filters(
+        stmt,
+        parsed_dates,
+        ge_pairs={
+            "production_deadline_after": CachedManufacturingOrder.production_deadline_date,
+        },
+        le_pairs={
+            "production_deadline_before": CachedManufacturingOrder.production_deadline_date,
+        },
+    )
+
+    async with services.typed_cache.session() as session:
+        result = await session.exec(stmt)
+        pairs: list[tuple[Any, Any]] = list(result.all())
+
+    total_blocking_rows = len(pairs)
+    total_affected_mos = len({mo.id for _row, mo in pairs})
+
+    # Aggregate first, slice to ``limit`` second, resolve SKUs third — only
+    # the variants that survived the limit hit the legacy catalog cache.
+    # Avoids an N-row SQLite read when the caller wants the top-N rollup
+    # but the join produced thousands of recipe rows.
+    if request.group_by == "mo":
+        by_mo_map: dict[int, BlockingIngredientByMO] = {}
+        for row, mo in pairs:
+            entry = by_mo_map.get(mo.id)
+            if entry is None:
+                entry = BlockingIngredientByMO(
+                    manufacturing_order_id=mo.id,
+                    order_no=mo.order_no,
+                    status=enum_to_str(mo.status),
+                    production_deadline_date=iso_or_none(mo.production_deadline_date),
+                    blocking_rows=[],
+                )
+                by_mo_map[mo.id] = entry
+            entry.blocking_rows.append(
+                BlockingRow(
+                    recipe_row_id=row.id,
+                    variant_id=row.variant_id,
+                    sku=None,  # filled in below after slicing
+                    planned_quantity_per_unit=row.planned_quantity_per_unit,
+                    total_remaining_quantity=row.total_remaining_quantity,
+                    # WHERE clause guarantees ingredient_availability is set
+                    # to one of the blocking enum values; enum_to_str returns
+                    # the canonical string for those.
+                    ingredient_availability=enum_to_str(row.ingredient_availability),
+                    ingredient_expected_date=iso_or_none(row.ingredient_expected_date),
+                )
+            )
+        # Earliest deadline first — that's the procurement priority order.
+        by_mo = sorted(
+            by_mo_map.values(),
+            key=lambda e: e.production_deadline_date or "9999-12-31",
+        )[: request.limit]
+        kept_variant_ids = {
+            br.variant_id
+            for entry in by_mo
+            for br in entry.blocking_rows
+            if br.variant_id is not None
+        }
+        sku_by_variant = await _resolve_variant_skus(services, kept_variant_ids)
+        for entry in by_mo:
+            for br in entry.blocking_rows:
+                if br.variant_id is not None:
+                    br.sku = sku_by_variant.get(br.variant_id)
+        return ListBlockingIngredientsResponse(
+            by_mo=by_mo,
+            total_blocking_rows=total_blocking_rows,
+            total_affected_mos=total_affected_mos,
+        )
+
+    # group_by == "variant"
+    agg: dict[int, _VariantAggregate] = {}
+    for row, mo in pairs:
+        if row.variant_id is None:
+            continue
+        bucket = agg.setdefault(row.variant_id, _VariantAggregate())
+        bucket.mo_ids.add(mo.id)
+        if mo.order_no:
+            bucket.order_nos.add(mo.order_no)
+        per_unit = row.planned_quantity_per_unit or 0.0
+        mo_qty = mo.planned_quantity or 0.0
+        bucket.planned += float(per_unit) * float(mo_qty)
+        bucket.remaining += float(row.total_remaining_quantity or 0.0)
+        if row.ingredient_expected_date is not None and (
+            bucket.earliest is None or row.ingredient_expected_date < bucket.earliest
+        ):
+            bucket.earliest = row.ingredient_expected_date
+
+    by_variant: list[BlockingIngredientByVariant] = [
+        BlockingIngredientByVariant(
+            variant_id=vid,
+            sku=None,  # filled in below after slicing
+            affected_mo_count=len(bucket.mo_ids),
+            affected_mo_order_nos=sorted(bucket.order_nos),
+            total_planned_quantity=bucket.planned,
+            total_remaining_quantity=bucket.remaining,
+            earliest_expected_date=iso_or_none(bucket.earliest),
+        )
+        for vid, bucket in agg.items()
+    ]
+    # Most-affected SKUs first; ties broken by total remaining quantity.
+    by_variant.sort(key=lambda v: (-v.affected_mo_count, -v.total_remaining_quantity))
+    by_variant = by_variant[: request.limit]
+    sku_by_variant = await _resolve_variant_skus(
+        services, {v.variant_id for v in by_variant}
+    )
+    for v in by_variant:
+        v.sku = sku_by_variant.get(v.variant_id)
+
+    return ListBlockingIngredientsResponse(
+        by_variant=by_variant,
+        total_blocking_rows=total_blocking_rows,
+        total_affected_mos=total_affected_mos,
+    )
+
+
+async def _resolve_variant_skus(
+    services: Any, variant_ids: set[int] | frozenset[int]
+) -> dict[int, str | None]:
+    """Resolve SKUs for the given variant IDs via the legacy catalog cache.
+
+    Returns ``{variant_id: sku_or_None}``. Empty input → empty dict (no
+    catalog reads). Hitting the cache is cheap per-call but proportional to
+    ``len(variant_ids)``; callers should aggregate/sort/slice first so this
+    only fires for the variants surfaced in the response.
+    """
+    if not variant_ids:
+        return {}
+    ids = sorted(variant_ids)
+    lookups = await asyncio.gather(
+        *(services.cache.get_by_id(EntityType.VARIANT, vid) for vid in ids)
+    )
+    return {
+        vid: (variant.get("sku") if variant else None)
+        for vid, variant in zip(ids, lookups, strict=True)
+    }
+
+
+@observe_tool
+@unpack_pydantic_params
+async def list_blocking_ingredients(
+    request: Annotated[ListBlockingIngredientsRequest, Unpack()], context: Context
+) -> ToolResult:
+    """Roll up blocking-ingredient recipe rows across manufacturing orders.
+
+    Answers "what should procurement order first?" by aggregating recipe
+    rows whose ``ingredient_availability`` is NOT_AVAILABLE or EXPECTED
+    across active MOs. Cache-backed: a single typed-cache join, no per-MO
+    fan-out.
+
+    **Default scope:** NOT_STARTED + IN_PROGRESS MOs. Override via ``mo_status``.
+
+    **group_by="variant"** (default) — one row per SKU, sorted by impact:
+
+    | SKU | Variant ID | Affected MOs | Total Planned | Total Remaining | Earliest Expected |
+
+    **group_by="mo"** — one block per MO, sorted by deadline. Useful when
+    you need per-row detail (notes, exact remaining qty per row).
+    """
+    response = await _list_blocking_ingredients_impl(request, context)
+
+    if request.format == "json":
+        return ToolResult(
+            content=response.model_dump_json(indent=2, exclude_none=True),
+            structured_content=response.model_dump(exclude_none=True),
+        )
+
+    if request.group_by == "variant":
+        rows = response.by_variant or []
+        if not rows:
+            md = (
+                f"## Blocking Ingredients\n\nNo blocking recipe rows in scope "
+                f"(scanned {response.total_blocking_rows} blocking row(s) across "
+                f"{response.total_affected_mos} MO(s))."
+            )
+        else:
+            table = format_md_table(
+                headers=[
+                    "SKU",
+                    "Variant ID",
+                    "Affected MOs",
+                    "Total Planned",
+                    "Total Remaining",
+                    "Earliest Expected",
+                    "Order #s",
+                ],
+                rows=[
+                    [
+                        v.sku or "—",
+                        v.variant_id,
+                        v.affected_mo_count,
+                        f"{v.total_planned_quantity:g}",
+                        f"{v.total_remaining_quantity:g}",
+                        v.earliest_expected_date or "—",
+                        ", ".join(v.affected_mo_order_nos[:5])
+                        + (
+                            f" (+{len(v.affected_mo_order_nos) - 5} more)"
+                            if len(v.affected_mo_order_nos) > 5
+                            else ""
+                        ),
+                    ]
+                    for v in rows
+                ],
+            )
+            md = (
+                f"## Blocking Ingredients by Variant ({len(rows)} variant(s) "
+                f"across {response.total_affected_mos} affected MO(s), "
+                f"{response.total_blocking_rows} blocking row(s))\n\n{table}"
+            )
+    else:
+        mos = response.by_mo or []
+        if not mos:
+            md = "## Blocking Ingredients\n\nNo blocking recipe rows in scope."
+        else:
+            sections: list[str] = [
+                f"## Blocking Ingredients by MO ({len(mos)} MO(s), "
+                f"{response.total_blocking_rows} blocking row(s))"
+            ]
+            for entry in mos:
+                deadline = entry.production_deadline_date or "—"
+                sections.append(
+                    f"\n### {entry.order_no or entry.manufacturing_order_id} "
+                    f"(status: {entry.status or '—'}, deadline: {deadline})"
+                )
+                sections.append(
+                    format_md_table(
+                        headers=[
+                            "SKU",
+                            "Variant ID",
+                            "Per-Unit",
+                            "Remaining",
+                            "Availability",
+                            "Expected",
+                        ],
+                        rows=[
+                            [
+                                r.sku or "—",
+                                r.variant_id if r.variant_id is not None else "—",
+                                r.planned_quantity_per_unit
+                                if r.planned_quantity_per_unit is not None
+                                else "—",
+                                r.total_remaining_quantity
+                                if r.total_remaining_quantity is not None
+                                else "—",
+                                r.ingredient_availability or "—",
+                                r.ingredient_expected_date or "—",
+                            ]
+                            for r in entry.blocking_rows
+                        ],
+                    )
+                )
+            md = "\n".join(sections)
+
+    return make_simple_result(
+        md, structured_data=response.model_dump(exclude_none=True)
+    )
 
 
 def register_tools(mcp: FastMCP) -> None:
@@ -2411,6 +3053,10 @@ def register_tools(mcp: FastMCP) -> None:
         tags={"orders", "manufacturing", "read"},
         annotations=_read,
     )(get_manufacturing_order)
+    mcp.tool(
+        tags={"orders", "manufacturing", "read", "procurement"},
+        annotations=_read,
+    )(list_blocking_ingredients)
     mcp.tool(
         tags={"orders", "manufacturing", "read"},
         annotations=_read,
