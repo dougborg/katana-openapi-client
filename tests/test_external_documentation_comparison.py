@@ -29,13 +29,13 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from scripts.audit_spec_drift import AuditReport, audit  # noqa: E402
 
-LOCAL_SPEC_PATH = PROJECT_ROOT / "docs" / "katana-openapi.yaml"
 LIVE_SPEC_PATH = PROJECT_ROOT / "docs" / "upstream-specs" / "live-gateway.yaml"
 
 
 @pytest.fixture(scope="module")
-def local_spec() -> dict[str, Any]:
-    return yaml.safe_load(LOCAL_SPEC_PATH.read_text(encoding="utf-8"))
+def local_spec(openapi_spec: dict[str, Any]) -> dict[str, Any]:
+    """Re-export the session-scoped OpenAPI spec under this module's name."""
+    return openapi_spec
 
 
 @pytest.fixture(scope="module")

@@ -229,43 +229,51 @@ async def test_inventory_sync_with_mock():
 
 @pytest.mark.asyncio
 async def test_retry_with_backoff():
-    """Test the retry_with_backoff function logic."""
+    """Test the retry_with_backoff function logic.
+
+    The example's retry helper hard-codes ``delay = 1.0`` for the initial
+    backoff. With two retry sleeps in this test (fail-then-succeed +
+    always-fails) that's ~2s of real wait — about 9% of the entire suite's
+    wall time. Mock ``asyncio.sleep`` in the example module's namespace so
+    the test exercises the retry *logic* (loop, exception capture, attempt
+    counting, re-raise) without the actual wait.
+    """
     example_file = EXAMPLES_DIR / "error_handling.py"
     if not example_file.exists():
         pytest.skip("error_handling.py not found")
 
     module = load_module_from_file(example_file)
 
-    # Test successful operation
-    async def successful_op():
-        return "success"
+    with patch.object(module.asyncio, "sleep", new_callable=AsyncMock):
+        # Successful operation: no retries, no sleep.
+        async def successful_op():
+            return "success"
 
-    result = await module.retry_with_backoff(successful_op, max_attempts=3)
-    assert result == "success"
+        result = await module.retry_with_backoff(successful_op, max_attempts=3)
+        assert result == "success"
 
-    # Test operation that fails then succeeds
-    call_count = 0
+        # Operation that fails then succeeds — one retry, would have slept 1s.
+        call_count = 0
 
-    async def fail_then_succeed():
-        nonlocal call_count
-        call_count += 1
-        if call_count < 2:
-            raise ValueError("Temporary failure")
-        return "success"
+        async def fail_then_succeed():
+            nonlocal call_count
+            call_count += 1
+            if call_count < 2:
+                raise ValueError("Temporary failure")
+            return "success"
 
-    call_count = 0
-    result = await module.retry_with_backoff(
-        fail_then_succeed, max_attempts=3, backoff_factor=0.1
-    )
-    assert result == "success"
-    assert call_count == 2
+        result = await module.retry_with_backoff(
+            fail_then_succeed, max_attempts=3, backoff_factor=0.1
+        )
+        assert result == "success"
+        assert call_count == 2
 
-    # Test operation that always fails
-    async def always_fails():
-        raise ValueError("Permanent failure")
+        # Operation that always fails — re-raises the last exception.
+        async def always_fails():
+            raise ValueError("Permanent failure")
 
-    with pytest.raises(ValueError, match="Permanent failure"):
-        await module.retry_with_backoff(always_fails, max_attempts=2)
+        with pytest.raises(ValueError, match="Permanent failure"):
+            await module.retry_with_backoff(always_fails, max_attempts=2)
 
 
 def test_examples_import_from_correct_modules():

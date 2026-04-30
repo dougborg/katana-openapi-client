@@ -17,6 +17,7 @@ because they cause pytest-xdist collection issues (dynamically generated paramet
 Run explicitly with: pytest -m schema_validation
 """
 
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -27,12 +28,25 @@ import yaml
 pytestmark = pytest.mark.schema_validation
 
 
-def pytest_generate_tests(metafunc):
-    """Generate parameterized tests for schemas."""
-    # Load OpenAPI spec
+@lru_cache(maxsize=1)
+def _load_spec_for_collection() -> dict[str, Any]:
+    """Module-level cached spec loader for ``pytest_generate_tests``.
+
+    The hook fires once per parametrizable test function in this module
+    (~5+ tests parametrize on schema_name / referenced_schema_name).
+    Without caching, the (large) OpenAPI YAML is re-parsed on every hook
+    call. The session-scoped ``openapi_spec`` fixture in ``conftest.py``
+    isn't reachable here because fixtures aren't accessible from
+    collection-time hooks.
+    """
     spec_path = Path(__file__).parent.parent / "docs" / "katana-openapi.yaml"
     with open(spec_path, encoding="utf-8") as f:
-        spec = yaml.safe_load(f)
+        return yaml.safe_load(f)
+
+
+def pytest_generate_tests(metafunc):
+    """Generate parameterized tests for schemas."""
+    spec = _load_spec_for_collection()
 
     if "schema_name" in metafunc.fixturenames:
         schemas = spec.get("components", {}).get("schemas", {})
@@ -76,11 +90,9 @@ class TestSchemaComprehensive:
     """Comprehensive parameterized testing for all schemas."""
 
     @pytest.fixture(scope="class")
-    def spec(self) -> dict[str, Any]:
-        """Load OpenAPI specification."""
-        spec_path = Path(__file__).parent.parent / "docs" / "katana-openapi.yaml"
-        with open(spec_path, encoding="utf-8") as f:
-            return yaml.safe_load(f)
+    def spec(self, openapi_spec: dict[str, Any]) -> dict[str, Any]:
+        """Re-export the session-scoped OpenAPI spec under this class's name."""
+        return openapi_spec
 
     def test_schema_has_description(self, schema_name: str, spec: dict[str, Any]):
         """Test that every schema has a description."""
@@ -253,11 +265,9 @@ class TestSchemaCoverageMetrics:
     """Test overall schema coverage and quality metrics."""
 
     @pytest.fixture(scope="class")
-    def spec(self) -> dict[str, Any]:
-        """Load OpenAPI specification."""
-        spec_path = Path(__file__).parent.parent / "docs" / "katana-openapi.yaml"
-        with open(spec_path, encoding="utf-8") as f:
-            return yaml.safe_load(f)
+    def spec(self, openapi_spec: dict[str, Any]) -> dict[str, Any]:
+        """Re-export the session-scoped OpenAPI spec under this class's name."""
+        return openapi_spec
 
     def test_schema_coverage_metrics(self, spec: dict[str, Any]):
         """Test overall schema coverage and quality metrics."""

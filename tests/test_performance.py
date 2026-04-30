@@ -73,44 +73,38 @@ class TestPerformance:
             )
 
     @pytest.mark.asyncio
-    async def test_concurrent_requests(self, katana_client):
-        """Test that multiple concurrent requests work correctly."""
+    async def test_concurrent_requests(self):
+        """``asyncio.gather`` runs all three calls concurrently, not sequentially.
 
-        # Create different mock methods for concurrent calls
-        async def mock_method_1():
-            await asyncio.sleep(0.01)  # Simulate network delay
-            response = MagicMock()
-            response.status_code = 200
-            response.parsed = {"id": 1, "name": "Result 1"}
-            return response
+        Asserts the property *structurally* (track max concurrent in-flight
+        count) rather than with a wall-clock bound. Wall-clock comparisons
+        against tight thresholds flake on slow CI runners — see #446 where a
+        sibling timing test failed at 235.7ms < 100ms on Python 3.14.
+        """
+        in_flight = 0
+        max_in_flight = 0
 
-        async def mock_method_2():
-            await asyncio.sleep(0.01)  # Simulate network delay
-            response = MagicMock()
-            response.status_code = 200
-            response.parsed = {"id": 2, "name": "Result 2"}
-            return response
+        async def make_mock(result_id: int):
+            nonlocal in_flight, max_in_flight
+            in_flight += 1
+            max_in_flight = max(max_in_flight, in_flight)
+            try:
+                # Yield to the scheduler so peers get a chance to enter before
+                # we exit — without this, the counter would only ever see 1.
+                await asyncio.sleep(0)
+                response = MagicMock()
+                response.status_code = 200
+                response.parsed = {"id": result_id, "name": f"Result {result_id}"}
+                return response
+            finally:
+                in_flight -= 1
 
-        async def mock_method_3():
-            await asyncio.sleep(0.01)  # Simulate network delay
-            response = MagicMock()
-            response.status_code = 200
-            response.parsed = {"id": 3, "name": "Result 3"}
-            return response
+        results = await asyncio.gather(make_mock(1), make_mock(2), make_mock(3))
 
-        # Enhance the methods using the transport layer (no decorators needed)
-        # The transport layer automatically handles retries
-        enhanced_1 = mock_method_1
-        enhanced_2 = mock_method_2
-        enhanced_3 = mock_method_3
-
-        # Run concurrently
-        start_time = time.time()
-        results = await asyncio.gather(enhanced_1(), enhanced_2(), enhanced_3())
-        end_time = time.time()
-
-        # Should complete in roughly the time of one request (concurrent)
-        assert end_time - start_time < 0.1  # Much less than 3 * 0.01
+        assert max_in_flight == 3, (
+            f"All three coroutines should have been in flight simultaneously "
+            f"(saw max={max_in_flight}); gather() ran them sequentially."
+        )
         assert len(results) == 3
         assert all(r.status_code == 200 for r in results)
 

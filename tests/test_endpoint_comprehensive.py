@@ -14,6 +14,7 @@ Consolidates:
 All endpoint testing is now parameterized for complete equality and automatic scaling.
 """
 
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -21,12 +22,24 @@ import pytest
 import yaml
 
 
-def pytest_generate_tests(metafunc):
-    """Generate parameterized tests for endpoints."""
-    # Load OpenAPI spec
+@lru_cache(maxsize=1)
+def _load_spec_for_collection() -> dict[str, Any]:
+    """Module-level cached spec loader for ``pytest_generate_tests``.
+
+    The hook can fire multiple times during collection (once per
+    parametrizable test function in this module). Without caching, each
+    call re-reads + re-parses the (large) OpenAPI YAML. The session-scoped
+    ``openapi_spec`` fixture in ``conftest.py`` doesn't help here because
+    fixtures aren't accessible from collection-time hooks.
+    """
     spec_path = Path(__file__).parent.parent / "docs" / "katana-openapi.yaml"
     with open(spec_path, encoding="utf-8") as f:
-        spec = yaml.safe_load(f)
+        return yaml.safe_load(f)
+
+
+def pytest_generate_tests(metafunc):
+    """Generate parameterized tests for endpoints."""
+    spec = _load_spec_for_collection()
 
     if "endpoint_info" in metafunc.fixturenames:
         # Generate endpoint tuples (path, method, operation_spec)
@@ -116,11 +129,9 @@ class TestEndpointComprehensive:
     """Comprehensive parameterized testing for all endpoints."""
 
     @pytest.fixture(scope="class")
-    def spec(self) -> dict[str, Any]:
-        """Load OpenAPI specification."""
-        spec_path = Path(__file__).parent.parent / "docs" / "katana-openapi.yaml"
-        with open(spec_path, encoding="utf-8") as f:
-            return yaml.safe_load(f)
+    def spec(self, openapi_spec: dict[str, Any]) -> dict[str, Any]:
+        """Re-export the session-scoped OpenAPI spec under this class's name."""
+        return openapi_spec
 
     def _resolve_response_description(
         self, response_spec: dict[str, Any], spec: dict[str, Any]
@@ -372,11 +383,9 @@ class TestEndpointCoverageMetrics:
     """Test overall endpoint coverage and quality metrics."""
 
     @pytest.fixture(scope="class")
-    def spec(self) -> dict[str, Any]:
-        """Load OpenAPI specification."""
-        spec_path = Path(__file__).parent.parent / "docs" / "katana-openapi.yaml"
-        with open(spec_path, encoding="utf-8") as f:
-            return yaml.safe_load(f)
+    def spec(self, openapi_spec: dict[str, Any]) -> dict[str, Any]:
+        """Re-export the session-scoped OpenAPI spec under this class's name."""
+        return openapi_spec
 
     def test_endpoint_coverage_metrics(self, spec: dict[str, Any]):
         """Test overall endpoint coverage and quality metrics."""
