@@ -54,8 +54,15 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any
 
+from pydantic import BaseModel
+
 from katana_mcp.logging import get_logger
-from katana_mcp.tools._modification import ActionResult, FieldChange
+from katana_mcp.tools._modification import (
+    ActionResult,
+    FieldChange,
+    compute_field_diff,
+    make_response_verifier,
+)
 
 logger = get_logger(__name__)
 
@@ -174,6 +181,95 @@ def plan_to_preview_results(plan: list[ActionSpec]) -> list[ActionResult]:
     ``succeeded=None`` to signal "planned, not yet executed".
     """
     return [spec.to_planned_result() for spec in plan]
+
+
+def has_any_subpayload(
+    request: BaseModel, *, exclude: tuple[str, ...] = ("id", "confirm")
+) -> bool:
+    """True if the request has any sub-payload set (any field outside ``exclude``).
+
+    Generic across every ``modify_<entity>`` tool — each has a top-level
+    request with a primary id, ``confirm``, and a set of optional
+    sub-payload slots. This checks whether the caller asked for at least
+    one action.
+    """
+    for name, value in request.model_dump(exclude_none=True).items():
+        if name in exclude:
+            continue
+        if value is False or value == [] or value == {}:
+            continue
+        return True
+    return False
+
+
+def make_create_action(
+    operation: str,
+    payload: BaseModel,
+    apply: ApplyCallable,
+    *,
+    exclude: tuple[str, ...] = ("confirm",),
+) -> ActionSpec:
+    """Build an ActionSpec for a create-style operation (POST).
+
+    Diff is every field on ``payload`` reported as added (no prior state).
+    No verify — ``unwrap_as`` raises on parse failure and creation
+    succeeds iff the response carries an id, which is implicit in the
+    apply outcome.
+    """
+    return ActionSpec(
+        operation=operation,
+        target_id=None,
+        diff=compute_field_diff(None, payload, exclude=exclude),
+        apply=apply,
+        verify=None,
+    )
+
+
+async def make_update_action(
+    operation: str,
+    target_id: int,
+    payload: BaseModel,
+    fetcher: Callable[[int], Awaitable[Any | None]],
+    apply: ApplyCallable,
+    *,
+    exclude: tuple[str, ...] = ("id", "confirm"),
+) -> ActionSpec:
+    """Build an ActionSpec for an update-style operation (PATCH).
+
+    Pre-fetches the existing entity for diff context. When the fetch
+    fails, fields are marked ``is_unknown_prior=True`` so previews
+    distinguish "field was empty" from "we couldn't read prior state".
+    Verify reads back the API response and confirms the requested
+    fields landed.
+    """
+    existing = await fetcher(target_id)
+    diff = compute_field_diff(
+        existing, payload, unknown_prior=existing is None, exclude=exclude
+    )
+    return ActionSpec(
+        operation=operation,
+        target_id=target_id,
+        diff=diff,
+        apply=apply,
+        verify=make_response_verifier(diff),
+    )
+
+
+def make_delete_action(
+    operation: str,
+    target_id: int,
+    apply: ApplyCallable,
+) -> ActionSpec:
+    """Build an ActionSpec for a delete-style operation (DELETE).
+
+    No verify — the entity is gone, can't fetch.
+    """
+    return ActionSpec(
+        operation=operation,
+        target_id=target_id,
+        apply=apply,
+        verify=None,
+    )
 
 
 def serialize_for_prior_state(value: Any) -> dict[str, Any] | None:

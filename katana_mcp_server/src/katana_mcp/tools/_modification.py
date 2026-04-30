@@ -22,7 +22,7 @@ operating on the same response model.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Awaitable, Callable, Iterable
 from datetime import datetime
 from enum import Enum
 from typing import Any, ClassVar
@@ -209,6 +209,38 @@ def compute_field_diff(
         else:
             changes.append(FieldChange(field=name, old=old, new=new))
     return changes
+
+
+def make_response_verifier(
+    diff: list[FieldChange], *, field_map: dict[str, str] | None = None
+) -> Callable[[Any], Awaitable[tuple[bool, dict[str, Any] | None]]]:
+    """Build a verify closure that checks the API response body against ``diff``.
+
+    Most Katana mutation endpoints echo the post-state of the affected
+    entity in the response body — this verifier reads each requested
+    field off ``outcome`` and confirms it matches the requested ``new``
+    value. No extra fetch needed. ``field_map`` mirrors the
+    :func:`compute_field_diff` parameter for fields with names that
+    differ between request and response. Used by every
+    ``modify_<entity>`` update action's ``ActionSpec.verify``.
+    """
+    name_map = field_map or {}
+
+    async def verify(outcome: Any) -> tuple[bool, dict[str, Any] | None]:
+        if outcome is None:
+            return False, None
+        actual: dict[str, Any] = {}
+        verified = True
+        for change in diff:
+            attr = name_map.get(change.field, change.field)
+            raw = getattr(outcome, attr, None)
+            actual_val = _normalize(unwrap_unset(raw, None))
+            actual[change.field] = actual_val
+            if change.new is not None and actual_val != change.new:
+                verified = False
+        return verified, (actual if not verified else None)
+
+    return verify
 
 
 def _render_changes_block(changes: list[FieldChange]) -> list[str]:
