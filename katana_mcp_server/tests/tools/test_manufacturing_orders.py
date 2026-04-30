@@ -1426,10 +1426,12 @@ async def test_get_manufacturing_order_format_json_returns_json():
     assert data["id"] == 3001
     assert data["order_no"] == "MO-2024-001"
     assert data["status"] == "IN_PROGRESS"
-    # Exhaustive response always has list-shaped fields present (may be empty)
+    # Default include_rows="blocking" returns an empty list (zero blocking
+    # rows on this stub); operation_rows + productions are off by default,
+    # so they're omitted entirely from the JSON.
     assert data["recipe_rows"] == []
-    assert data["operation_rows"] == []
-    assert data["productions"] == []
+    assert "operation_rows" not in data
+    assert "productions" not in data
 
 
 @pytest.mark.asyncio
@@ -1547,7 +1549,15 @@ async def test_get_manufacturing_order_full_field_coverage():
         patch(_FETCH_OPS, new_callable=AsyncMock, return_value=[]),
         patch(_FETCH_PRODS, new_callable=AsyncMock, return_value=[]),
     ):
-        request = GetManufacturingOrderRequest(order_id=3001)
+        # Legacy shape: opt back into every collection to preserve the
+        # exhaustive-field contract this test pins.
+        request = GetManufacturingOrderRequest(
+            order_id=3001,
+            include_rows="all",
+            include_operation_rows=True,
+            include_productions=True,
+            verbose=True,
+        )
         result = await _get_manufacturing_order_impl(request, context)
 
     # Every scalar field on ManufacturingOrder must reach the response:
@@ -1647,7 +1657,15 @@ async def test_get_manufacturing_order_fetches_related_resources():
             _FETCH_PRODS, new_callable=AsyncMock, return_value=[production]
         ) as mock_fetch_prods,
     ):
-        request = GetManufacturingOrderRequest(order_id=3001)
+        # Legacy shape: opt back into every collection so all three fetch
+        # helpers are awaited and the recipe row (IN_STOCK) survives the
+        # default "blocking" filter.
+        request = GetManufacturingOrderRequest(
+            order_id=3001,
+            include_rows="all",
+            include_operation_rows=True,
+            include_productions=True,
+        )
         result = await _get_manufacturing_order_impl(request, context)
 
     # Each helper called exactly once with the MO id:
@@ -1694,7 +1712,18 @@ async def test_get_manufacturing_order_markdown_uses_canonical_field_names():
             subassemblies_cost=2250.0,
             sales_order_row_id=2501,
         )
-        result = await get_manufacturing_order(order_id=3001, context=context)
+        # Verbose-mode rendering pins the explicit-empty-list contract.
+        # Compact mode (the default) suppresses ``**field**: []`` placeholders
+        # to keep the response small — that surface is exercised by separate
+        # compact-mode tests below.
+        result = await get_manufacturing_order(
+            order_id=3001,
+            include_rows="all",
+            include_operation_rows=True,
+            include_productions=True,
+            verbose=True,
+            context=context,
+        )
 
     text = result.content[0].text
     # Canonical scalar labels — the prettified versions the old impl used
@@ -1776,3 +1805,741 @@ async def test_get_manufacturing_order_recipe_full_field_coverage():
     assert info.total_actual_quantity == 125.0
     assert info.ingredient_availability == "IN_STOCK"
     assert info.cost == 437.5
+
+
+# ============================================================================
+# Compact-by-default get_manufacturing_order
+# ============================================================================
+
+
+def _mk_recipe_row(
+    *,
+    id: int,
+    availability: str,
+    variant_id: int = 200,
+    sku: str | None = None,
+):
+    """Build a minimal RecipeRowInfo for compact-mode tests."""
+    from katana_mcp.tools.foundation.manufacturing_orders import RecipeRowInfo
+
+    return RecipeRowInfo(
+        id=id,
+        manufacturing_order_id=3001,
+        variant_id=variant_id,
+        sku=sku,
+        ingredient_availability=availability,
+        created_at="2024-01-15T08:00:00+00:00",
+        updated_at="2024-01-20T14:30:00+00:00",
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_manufacturing_order_default_filters_to_blocking_rows():
+    """Default include_rows='blocking' drops IN_STOCK and other non-blocking rows.
+
+    Procurement triage view: a Mayhem-140 build has dozens of IN_STOCK rows,
+    a few NOT_AVAILABLE/EXPECTED rows. Only the blocking ones survive.
+    """
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        GetManufacturingOrderRequest,
+        _get_manufacturing_order_impl,
+    )
+
+    context, _ = create_mock_context()
+    mo = _full_mo_attrs()
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = mo
+
+    rows = [
+        _mk_recipe_row(id=1, availability="IN_STOCK"),
+        _mk_recipe_row(id=2, availability="NOT_AVAILABLE"),
+        _mk_recipe_row(id=3, availability="EXPECTED"),
+        _mk_recipe_row(id=4, availability="PROCESSED"),
+        _mk_recipe_row(id=5, availability="NOT_APPLICABLE"),
+    ]
+
+    with (
+        patch(
+            f"{_MO_API}.get_manufacturing_order.asyncio_detailed",
+            new_callable=AsyncMock,
+            return_value=mock_response,
+        ),
+        patch(_FETCH_RECIPE, new_callable=AsyncMock, return_value=rows),
+        patch(_FETCH_OPS, new_callable=AsyncMock, return_value=[]) as mock_ops,
+        patch(_FETCH_PRODS, new_callable=AsyncMock, return_value=[]) as mock_prods,
+    ):
+        result = await _get_manufacturing_order_impl(
+            GetManufacturingOrderRequest(order_id=3001), context
+        )
+
+    assert {r.id for r in result.recipe_rows} == {2, 3}
+    # Operation rows / productions are off by default → no upstream calls.
+    mock_ops.assert_not_awaited()
+    mock_prods.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_get_manufacturing_order_include_rows_none_skips_recipe_fetch():
+    """include_rows='none' skips the recipe fetch entirely."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        GetManufacturingOrderRequest,
+        _get_manufacturing_order_impl,
+    )
+
+    context, _ = create_mock_context()
+    mo = _full_mo_attrs()
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = mo
+
+    with (
+        patch(
+            f"{_MO_API}.get_manufacturing_order.asyncio_detailed",
+            new_callable=AsyncMock,
+            return_value=mock_response,
+        ),
+        patch(_FETCH_RECIPE, new_callable=AsyncMock) as mock_recipe,
+        patch(_FETCH_OPS, new_callable=AsyncMock) as mock_ops,
+        patch(_FETCH_PRODS, new_callable=AsyncMock) as mock_prods,
+    ):
+        result = await _get_manufacturing_order_impl(
+            GetManufacturingOrderRequest(order_id=3001, include_rows="none"), context
+        )
+
+    mock_recipe.assert_not_awaited()
+    mock_ops.assert_not_awaited()
+    mock_prods.assert_not_awaited()
+    assert result.recipe_rows == []
+    assert result.operation_rows == []
+    assert result.productions == []
+
+
+@pytest.mark.asyncio
+async def test_get_manufacturing_order_include_rows_all_keeps_in_stock():
+    """include_rows='all' returns every recipe row regardless of availability."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        GetManufacturingOrderRequest,
+        _get_manufacturing_order_impl,
+    )
+
+    context, _ = create_mock_context()
+    mo = _full_mo_attrs()
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = mo
+
+    rows = [
+        _mk_recipe_row(id=1, availability="IN_STOCK"),
+        _mk_recipe_row(id=2, availability="NOT_AVAILABLE"),
+    ]
+
+    with (
+        patch(
+            f"{_MO_API}.get_manufacturing_order.asyncio_detailed",
+            new_callable=AsyncMock,
+            return_value=mock_response,
+        ),
+        patch(_FETCH_RECIPE, new_callable=AsyncMock, return_value=rows),
+        patch(_FETCH_OPS, new_callable=AsyncMock, return_value=[]),
+        patch(_FETCH_PRODS, new_callable=AsyncMock, return_value=[]),
+    ):
+        result = await _get_manufacturing_order_impl(
+            GetManufacturingOrderRequest(order_id=3001, include_rows="all"),
+            context,
+        )
+
+    assert {r.id for r in result.recipe_rows} == {1, 2}
+
+
+@pytest.mark.asyncio
+async def test_get_manufacturing_order_compact_json_strips_row_metadata():
+    """Compact mode JSON drops created_at/updated_at/deleted_at on recipe rows."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        GetManufacturingOrderResponse,
+    )
+
+    context, _ = create_mock_context()
+
+    with patch(
+        "katana_mcp.tools.foundation.manufacturing_orders._get_manufacturing_order_impl",
+        new_callable=AsyncMock,
+    ) as mock_impl:
+        mock_impl.return_value = GetManufacturingOrderResponse(
+            id=3001,
+            order_no="MO-X",
+            recipe_rows=[
+                _mk_recipe_row(id=1, availability="NOT_AVAILABLE"),
+            ],
+        )
+        result = await get_manufacturing_order(
+            order_id=3001, format="json", context=context
+        )
+
+    data = json.loads(_content_text(result))
+    row = data["recipe_rows"][0]
+    assert "created_at" not in row
+    assert "updated_at" not in row
+    assert "deleted_at" not in row
+    # Substantive fields survive:
+    assert row["id"] == 1
+    assert row["ingredient_availability"] == "NOT_AVAILABLE"
+
+
+@pytest.mark.asyncio
+async def test_get_manufacturing_order_verbose_json_keeps_row_metadata():
+    """verbose=True restores the metadata fields on every row."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        GetManufacturingOrderResponse,
+    )
+
+    context, _ = create_mock_context()
+
+    with patch(
+        "katana_mcp.tools.foundation.manufacturing_orders._get_manufacturing_order_impl",
+        new_callable=AsyncMock,
+    ) as mock_impl:
+        mock_impl.return_value = GetManufacturingOrderResponse(
+            id=3001,
+            order_no="MO-X",
+            recipe_rows=[
+                _mk_recipe_row(id=1, availability="NOT_AVAILABLE"),
+            ],
+        )
+        result = await get_manufacturing_order(
+            order_id=3001, format="json", verbose=True, context=context
+        )
+
+    data = json.loads(_content_text(result))
+    row = data["recipe_rows"][0]
+    assert row["created_at"] == "2024-01-15T08:00:00+00:00"
+    assert row["updated_at"] == "2024-01-20T14:30:00+00:00"
+
+
+@pytest.mark.asyncio
+async def test_get_manufacturing_order_compact_markdown_omits_empty_lists():
+    """Compact markdown does not emit ``**field**: []`` placeholders for
+    suppressed/empty collections."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        GetManufacturingOrderResponse,
+    )
+
+    context, _ = create_mock_context()
+
+    with patch(
+        "katana_mcp.tools.foundation.manufacturing_orders._get_manufacturing_order_impl",
+        new_callable=AsyncMock,
+    ) as mock_impl:
+        mock_impl.return_value = GetManufacturingOrderResponse(
+            id=3001,
+            order_no="MO-X",
+            status="IN_PROGRESS",
+        )
+        result = await get_manufacturing_order(order_id=3001, context=context)
+
+    text = result.content[0].text
+    # No bracketed-empty placeholders in compact mode.
+    assert "**recipe_rows**: []" not in text
+    assert "**operation_rows**: []" not in text
+    assert "**productions**: []" not in text
+    assert "**batch_transactions**: []" not in text
+    assert "**serial_numbers**: []" not in text
+    # Suppressed collections do not appear at all (no canonical-name header,
+    # no decorated label, no annotation note).
+    assert "**recipe_rows**" not in text
+    assert "**operation_rows**" not in text
+    assert "**productions**" not in text
+    assert "filtered to blocking rows only" not in text
+    # Scalar header is still rendered.
+    assert "**status**: IN_PROGRESS" in text
+
+
+# ============================================================================
+# list_manufacturing_orders ingredient_availability column
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_list_manufacturing_orders_includes_ingredient_availability(
+    context_with_typed_cache, no_sync
+):
+    """The list summary surfaces the rolled-up MO-level availability."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        ListManufacturingOrdersRequest,
+        _list_manufacturing_orders_impl,
+    )
+
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_manufacturing_order(
+                id=1, order_no="MO-1", ingredient_availability="IN_STOCK"
+            ),
+            make_manufacturing_order(
+                id=2, order_no="MO-2", ingredient_availability="NOT_AVAILABLE"
+            ),
+            make_manufacturing_order(
+                id=3, order_no="MO-3", ingredient_availability=None
+            ),
+        ],
+    )
+
+    result = await _list_manufacturing_orders_impl(
+        ListManufacturingOrdersRequest(), context
+    )
+
+    by_id = {o.id: o.ingredient_availability for o in result.orders}
+    assert by_id == {1: "IN_STOCK", 2: "NOT_AVAILABLE", 3: None}
+
+
+# ============================================================================
+# list_blocking_ingredients
+# ============================================================================
+
+
+@pytest.fixture
+def no_sync_recipe_rows():
+    """Patch typed-cache sync for both MOs and recipe rows (used by the rollup)."""
+    with (
+        patch_typed_cache_sync("manufacturing_orders"),
+        patch_typed_cache_sync("manufacturing_order_recipe_rows"),
+    ):
+        yield
+
+
+def _stub_variant_cache(context, sku_by_id: dict[int, str]) -> None:
+    """Stub services.cache.get_by_id(VARIANT, ...) to return SKUs for tests."""
+
+    async def _lookup(_entity_type, vid):
+        sku = sku_by_id.get(vid)
+        return {"sku": sku} if sku else None
+
+    context.request_context.lifespan_context.cache.get_by_id = AsyncMock(
+        side_effect=_lookup
+    )
+
+
+@pytest.mark.asyncio
+async def test_list_blocking_ingredients_aggregates_by_variant(
+    context_with_typed_cache, no_sync_recipe_rows
+):
+    """Three MOs blocked on the same variant → one rollup row, count=3."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        ListBlockingIngredientsRequest,
+        _list_blocking_ingredients_impl,
+    )
+
+    from tests.factories import make_manufacturing_order_recipe_row
+
+    context, _, typed_cache = context_with_typed_cache
+    _stub_variant_cache(context, {500: "WHEEL-29"})
+
+    await seed_cache(
+        typed_cache,
+        [
+            make_manufacturing_order(id=1, order_no="MO-1", status="IN_PROGRESS"),
+            make_manufacturing_order(id=2, order_no="MO-2", status="NOT_STARTED"),
+            make_manufacturing_order(id=3, order_no="MO-3", status="IN_PROGRESS"),
+            make_manufacturing_order_recipe_row(
+                id=11,
+                manufacturing_order_id=1,
+                variant_id=500,
+                planned_quantity_per_unit=2.0,
+                total_remaining_quantity=4.0,
+                ingredient_availability="NOT_AVAILABLE",
+            ),
+            make_manufacturing_order_recipe_row(
+                id=12,
+                manufacturing_order_id=2,
+                variant_id=500,
+                planned_quantity_per_unit=2.0,
+                total_remaining_quantity=4.0,
+                ingredient_availability="EXPECTED",
+            ),
+            make_manufacturing_order_recipe_row(
+                id=13,
+                manufacturing_order_id=3,
+                variant_id=500,
+                planned_quantity_per_unit=2.0,
+                total_remaining_quantity=4.0,
+                ingredient_availability="NOT_AVAILABLE",
+            ),
+        ],
+    )
+
+    result = await _list_blocking_ingredients_impl(
+        ListBlockingIngredientsRequest(), context
+    )
+
+    assert result.total_blocking_rows == 3
+    assert result.total_affected_mos == 3
+    assert result.by_mo is None
+    assert result.by_variant is not None and len(result.by_variant) == 1
+    rollup = result.by_variant[0]
+    assert rollup.variant_id == 500
+    assert rollup.sku == "WHEEL-29"
+    assert rollup.affected_mo_count == 3
+    assert sorted(rollup.affected_mo_order_nos) == ["MO-1", "MO-2", "MO-3"]
+    assert rollup.total_remaining_quantity == 12.0
+
+
+@pytest.mark.asyncio
+async def test_list_blocking_ingredients_excludes_in_stock_rows(
+    context_with_typed_cache, no_sync_recipe_rows
+):
+    """IN_STOCK and other non-blocking rows must not enter the rollup."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        ListBlockingIngredientsRequest,
+        _list_blocking_ingredients_impl,
+    )
+
+    from tests.factories import make_manufacturing_order_recipe_row
+
+    context, _, typed_cache = context_with_typed_cache
+    _stub_variant_cache(context, {500: "WHEEL", 600: "FORK"})
+
+    await seed_cache(
+        typed_cache,
+        [
+            make_manufacturing_order(id=1, order_no="MO-1", status="IN_PROGRESS"),
+            make_manufacturing_order_recipe_row(
+                id=11,
+                manufacturing_order_id=1,
+                variant_id=500,
+                ingredient_availability="IN_STOCK",
+            ),
+            make_manufacturing_order_recipe_row(
+                id=12,
+                manufacturing_order_id=1,
+                variant_id=600,
+                ingredient_availability="NOT_AVAILABLE",
+                total_remaining_quantity=2.0,
+            ),
+        ],
+    )
+
+    result = await _list_blocking_ingredients_impl(
+        ListBlockingIngredientsRequest(), context
+    )
+
+    assert result.total_blocking_rows == 1
+    assert result.by_variant is not None and len(result.by_variant) == 1
+    assert result.by_variant[0].variant_id == 600
+
+
+@pytest.mark.asyncio
+async def test_list_blocking_ingredients_filters_by_status(
+    context_with_typed_cache, no_sync_recipe_rows
+):
+    """Default scope is NOT_STARTED + IN_PROGRESS — DONE MOs are excluded."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        ListBlockingIngredientsRequest,
+        _list_blocking_ingredients_impl,
+    )
+
+    from tests.factories import make_manufacturing_order_recipe_row
+
+    context, _, typed_cache = context_with_typed_cache
+    _stub_variant_cache(context, {500: "WHEEL"})
+
+    await seed_cache(
+        typed_cache,
+        [
+            make_manufacturing_order(id=1, order_no="MO-1", status="DONE"),
+            make_manufacturing_order(id=2, order_no="MO-2", status="IN_PROGRESS"),
+            make_manufacturing_order_recipe_row(
+                id=11,
+                manufacturing_order_id=1,
+                variant_id=500,
+                ingredient_availability="NOT_AVAILABLE",
+            ),
+            make_manufacturing_order_recipe_row(
+                id=12,
+                manufacturing_order_id=2,
+                variant_id=500,
+                ingredient_availability="NOT_AVAILABLE",
+            ),
+        ],
+    )
+
+    result = await _list_blocking_ingredients_impl(
+        ListBlockingIngredientsRequest(), context
+    )
+
+    assert result.total_blocking_rows == 1
+    assert result.total_affected_mos == 1
+
+
+@pytest.mark.asyncio
+async def test_list_blocking_ingredients_excludes_deleted(
+    context_with_typed_cache, no_sync_recipe_rows
+):
+    """Soft-deleted MOs and soft-deleted recipe rows are filtered out."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        ListBlockingIngredientsRequest,
+        _list_blocking_ingredients_impl,
+    )
+
+    from tests.factories import make_manufacturing_order_recipe_row
+
+    context, _, typed_cache = context_with_typed_cache
+    _stub_variant_cache(context, {500: "WHEEL"})
+
+    await seed_cache(
+        typed_cache,
+        [
+            make_manufacturing_order(
+                id=1,
+                order_no="MO-DEL",
+                status="IN_PROGRESS",
+                deleted_at=datetime(2025, 1, 1, tzinfo=UTC),
+            ),
+            make_manufacturing_order(id=2, order_no="MO-LIVE", status="IN_PROGRESS"),
+            make_manufacturing_order_recipe_row(
+                id=11,
+                manufacturing_order_id=1,
+                variant_id=500,
+                ingredient_availability="NOT_AVAILABLE",
+            ),
+            make_manufacturing_order_recipe_row(
+                id=12,
+                manufacturing_order_id=2,
+                variant_id=500,
+                ingredient_availability="NOT_AVAILABLE",
+                deleted_at=datetime(2025, 1, 1, tzinfo=UTC),
+            ),
+        ],
+    )
+
+    result = await _list_blocking_ingredients_impl(
+        ListBlockingIngredientsRequest(), context
+    )
+
+    assert result.total_blocking_rows == 0
+
+
+@pytest.mark.asyncio
+async def test_list_blocking_ingredients_groups_by_mo(
+    context_with_typed_cache, no_sync_recipe_rows
+):
+    """group_by='mo' returns one block per affected MO with per-row detail."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        ListBlockingIngredientsRequest,
+        _list_blocking_ingredients_impl,
+    )
+
+    from tests.factories import make_manufacturing_order_recipe_row
+
+    context, _, typed_cache = context_with_typed_cache
+    _stub_variant_cache(context, {500: "WHEEL", 600: "FORK"})
+
+    await seed_cache(
+        typed_cache,
+        [
+            make_manufacturing_order(id=1, order_no="MO-A", status="IN_PROGRESS"),
+            make_manufacturing_order(id=2, order_no="MO-B", status="IN_PROGRESS"),
+            make_manufacturing_order_recipe_row(
+                id=11,
+                manufacturing_order_id=1,
+                variant_id=500,
+                ingredient_availability="NOT_AVAILABLE",
+            ),
+            make_manufacturing_order_recipe_row(
+                id=12,
+                manufacturing_order_id=1,
+                variant_id=600,
+                ingredient_availability="EXPECTED",
+            ),
+            make_manufacturing_order_recipe_row(
+                id=13,
+                manufacturing_order_id=2,
+                variant_id=500,
+                ingredient_availability="NOT_AVAILABLE",
+            ),
+        ],
+    )
+
+    result = await _list_blocking_ingredients_impl(
+        ListBlockingIngredientsRequest(group_by="mo"), context
+    )
+
+    assert result.by_variant is None
+    assert result.by_mo is not None and len(result.by_mo) == 2
+    by_id = {entry.manufacturing_order_id: entry for entry in result.by_mo}
+    assert sorted(by_id.keys()) == [1, 2]
+    assert len(by_id[1].blocking_rows) == 2
+    assert len(by_id[2].blocking_rows) == 1
+
+
+@pytest.mark.asyncio
+async def test_list_blocking_ingredients_counts_mos_without_order_no(
+    context_with_typed_cache, no_sync_recipe_rows
+):
+    """``affected_mo_count`` reflects every blocked MO even when ``order_no``
+    is None — display lists only show populated order numbers, but the count
+    must not be undercounted by missing display labels.
+    """
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        ListBlockingIngredientsRequest,
+        _list_blocking_ingredients_impl,
+    )
+
+    from tests.factories import make_manufacturing_order_recipe_row
+
+    context, _, typed_cache = context_with_typed_cache
+    _stub_variant_cache(context, {500: "WHEEL"})
+
+    mo_with_order_no = make_manufacturing_order(
+        id=1, order_no="MO-NUMBERED", status="IN_PROGRESS"
+    )
+    mo_no_order_no = make_manufacturing_order(id=2, order_no=None, status="IN_PROGRESS")
+    await seed_cache(
+        typed_cache,
+        [
+            mo_with_order_no,
+            mo_no_order_no,
+            make_manufacturing_order_recipe_row(
+                id=11,
+                manufacturing_order_id=1,
+                variant_id=500,
+                ingredient_availability="NOT_AVAILABLE",
+            ),
+            make_manufacturing_order_recipe_row(
+                id=12,
+                manufacturing_order_id=2,
+                variant_id=500,
+                ingredient_availability="NOT_AVAILABLE",
+            ),
+        ],
+    )
+
+    result = await _list_blocking_ingredients_impl(
+        ListBlockingIngredientsRequest(), context
+    )
+
+    assert result.total_affected_mos == 2
+    assert result.by_variant is not None and len(result.by_variant) == 1
+    rollup = result.by_variant[0]
+    assert rollup.affected_mo_count == 2
+    assert rollup.affected_mo_order_nos == ["MO-NUMBERED"]
+
+
+@pytest.mark.asyncio
+async def test_list_blocking_ingredients_omits_recipe_rows_in_compact_json():
+    """``include_rows='none'`` must drop the recipe_rows key from JSON."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        GetManufacturingOrderResponse,
+    )
+
+    context, _ = create_mock_context()
+
+    with patch(
+        "katana_mcp.tools.foundation.manufacturing_orders._get_manufacturing_order_impl",
+        new_callable=AsyncMock,
+    ) as mock_impl:
+        mock_impl.return_value = GetManufacturingOrderResponse(
+            id=3001, order_no="MO-X", status="IN_PROGRESS"
+        )
+        result = await get_manufacturing_order(
+            order_id=3001, format="json", include_rows="none", context=context
+        )
+
+    data = json.loads(_content_text(result))
+    assert "recipe_rows" not in data
+    assert "operation_rows" not in data
+    assert "productions" not in data
+
+
+@pytest.mark.asyncio
+async def test_list_blocking_ingredients_accepts_csv_order_nos():
+    """``mo_order_nos`` accepts a CSV string via CoercedStrListOpt for LLM ergonomics."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        ListBlockingIngredientsRequest,
+    )
+
+    # CoercedStrListOpt's BeforeValidator accepts CSV/JSON strings as well as
+    # bare lists; ``model_validate`` is the schema-boundary entry point that
+    # exercises that coercion (the constructor is statically typed to list[str]).
+    request = ListBlockingIngredientsRequest.model_validate(
+        {"mo_order_nos": "MO-1,MO-2"}
+    )
+    assert request.mo_order_nos == ["MO-1", "MO-2"]
+
+
+@pytest.mark.asyncio
+async def test_list_blocking_ingredients_accepts_csv_status():
+    """``mo_status`` accepts a CSV string the same way ``mo_order_nos`` does."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        ListBlockingIngredientsRequest,
+    )
+
+    request = ListBlockingIngredientsRequest.model_validate(
+        {"mo_status": "NOT_STARTED,IN_PROGRESS"}
+    )
+    assert request.mo_status == ["NOT_STARTED", "IN_PROGRESS"]
+
+
+@pytest.mark.asyncio
+async def test_list_blocking_ingredients_resolves_skus_only_for_kept_variants(
+    context_with_typed_cache, no_sync_recipe_rows
+):
+    """SKU lookups must happen *after* aggregation+slice so the legacy
+    catalog cache only handles variants that actually appear in the response.
+
+    Seeds two blocking variants (impact 1 and 2 MOs respectively); with
+    ``limit=1`` only the higher-impact variant survives. Asserts that
+    ``services.cache.get_by_id`` was awaited exactly once — for that variant.
+    """
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        ListBlockingIngredientsRequest,
+        _list_blocking_ingredients_impl,
+    )
+
+    from tests.factories import make_manufacturing_order_recipe_row
+
+    context, _, typed_cache = context_with_typed_cache
+    _stub_variant_cache(context, {500: "WHEEL", 600: "FORK"})
+
+    await seed_cache(
+        typed_cache,
+        [
+            make_manufacturing_order(id=1, order_no="MO-1", status="IN_PROGRESS"),
+            make_manufacturing_order(id=2, order_no="MO-2", status="IN_PROGRESS"),
+            # variant 500: blocked across both MOs (higher impact, kept)
+            make_manufacturing_order_recipe_row(
+                id=11,
+                manufacturing_order_id=1,
+                variant_id=500,
+                ingredient_availability="NOT_AVAILABLE",
+            ),
+            make_manufacturing_order_recipe_row(
+                id=12,
+                manufacturing_order_id=2,
+                variant_id=500,
+                ingredient_availability="NOT_AVAILABLE",
+            ),
+            # variant 600: blocked on MO-1 only (lower impact, dropped by limit=1)
+            make_manufacturing_order_recipe_row(
+                id=13,
+                manufacturing_order_id=1,
+                variant_id=600,
+                ingredient_availability="NOT_AVAILABLE",
+            ),
+        ],
+    )
+
+    result = await _list_blocking_ingredients_impl(
+        ListBlockingIngredientsRequest(limit=1), context
+    )
+
+    # Only the higher-impact variant survives.
+    assert result.by_variant is not None and len(result.by_variant) == 1
+    assert result.by_variant[0].variant_id == 500
+    assert result.by_variant[0].sku == "WHEEL"
+    # Legacy cache hit only once — for the kept variant. The dropped
+    # variant 600 never makes it to the catalog cache.
+    cache_mock = context.request_context.lifespan_context.cache.get_by_id
+    assert cache_mock.await_count == 1
+    awaited_vid = cache_mock.await_args.args[1]
+    assert awaited_vid == 500

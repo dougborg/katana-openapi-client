@@ -535,32 +535,84 @@ run as indexed SQL against the typed cache.
 
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
-**Returns:** Summary rows with id, order_no, status, variant_id, planned/
-actual qty, location_id, order_created_date, production_deadline_date,
-done_date, is_linked_to_sales_order, sales_order_id, total_cost. When `page`
-is set, also returns `pagination` with total_records/total_pages/etc. To
-inspect recipe ingredients, call `get_manufacturing_order_recipe` for a
-specific MO — the list endpoint doesn't bundle them.
+**Returns:** Summary rows with id, order_no, status, ingredient_availability,
+variant_id, planned/actual qty, location_id, order_created_date,
+production_deadline_date, done_date, is_linked_to_sales_order, sales_order_id,
+total_cost. The `ingredient_availability` column is the rolled-up MO-level
+state (IN_STOCK / NOT_AVAILABLE / EXPECTED / …) — use it to pick which MOs
+to drill into without fanning out to `get_manufacturing_order` for each. When
+`page` is set, also returns `pagination` with total_records/total_pages/etc.
+For per-row recipe detail on a specific MO, call `get_manufacturing_order_recipe`
+or `get_manufacturing_order` (which now bundles blocking rows by default).
 
 ---
 
 ### get_manufacturing_order
-Look up a manufacturing order by order number or ID with exhaustive detail.
-For multiple manufacturing orders at once, use
-`list_manufacturing_orders(ids=[...])` — it returns a summary table and
-supports all the same filters in a single call.
+Look up a manufacturing order by order number or ID. **Compact-by-default**
+for procurement triage: returns the MO header + only blocking recipe rows,
+metadata stripped, operation rows and production records omitted.
 
 **Parameters:**
 - `order_no` (optional): Order number (e.g., '#WEB20082 / 1')
 - `order_id` (optional): Manufacturing order ID
-- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
+- `format` (optional, default "markdown"): "markdown" | "json"
+- `include_rows` (optional, default `"blocking"`): Recipe-row projection.
+  - `"blocking"` — only rows with `ingredient_availability` in {NOT_AVAILABLE, EXPECTED}.
+  - `"all"` — every recipe row.
+  - `"none"` — omit `recipe_rows` entirely; skips the upstream API call.
+- `include_operation_rows` (optional, default `false`): When `true`, fetch
+  and include the operation-row collection.
+- `include_productions` (optional, default `false`): When `true`, fetch and
+  include the production-record collection.
+- `verbose` (optional, default `false`): When `true`, restore stripped metadata
+  (`created_at`/`updated_at`/`deleted_at` on every nested row) and empty
+  `batch_transactions: []` placeholders. Use with `include_rows="all"`,
+  `include_operation_rows=true`, `include_productions=true` to reproduce the
+  legacy exhaustive payload.
 
-**Returns:** Single-object response with every field Katana exposes on the MO
-(status, quantities, costs, timings, timestamps, linked sales order fields,
-batch and serial transactions) plus the full `recipe_rows`, `operation_rows`,
-and `productions` lists fetched from their respective endpoints. Markdown
-labels use canonical Pydantic field names (e.g. `**production_deadline_date**:`)
-so downstream consumers can't confuse section headers with field names.
+**Returns:** Single-object response with every scalar MO field (status,
+quantities, costs, timings, linked sales order fields). Recipe rows / operation
+rows / production records are populated according to the include flags above.
+Markdown labels use canonical Pydantic field names (e.g.
+`**production_deadline_date**:`) so downstream consumers can't confuse section
+headers with field names.
+
+---
+
+### list_blocking_ingredients
+Roll up blocking-ingredient recipe rows across manufacturing orders.
+Cache-backed: a single typed-cache join, no per-MO fan-out. Answers
+"which SKUs is procurement blocked on, across the active queue?"
+
+**Default scope:** NOT_STARTED + IN_PROGRESS MOs.
+**Blocking definition:** recipe rows with `ingredient_availability` in
+{NOT_AVAILABLE, EXPECTED}. IN_STOCK / PROCESSED / NOT_APPLICABLE / NO_RECIPE
+are excluded by design — they don't represent actionable procurement work.
+
+**Parameters:**
+- `mo_status` (optional): MO statuses to scope to (defaults to active).
+- `mo_ids` (optional): Restrict to specific MO IDs.
+- `mo_order_nos` (optional): Restrict to specific order_no values.
+- `location_id` (optional): Restrict to MOs at one production location.
+- `production_deadline_after` / `production_deadline_before` (optional):
+  ISO-8601 bounds on `production_deadline_date`.
+- `group_by` (optional, default `"variant"`):
+  - `"variant"` — one row per blocking SKU, sorted by affected_mo_count
+    desc, then total_remaining_quantity desc. The procurement-priority view.
+  - `"mo"` — one block per MO, sorted by deadline. Preserves per-row detail.
+- `limit` (optional, default 100, max 500): Max aggregate rows.
+- `format` (optional, default "markdown").
+
+**Returns:** When `group_by="variant"`: rows with variant_id, sku,
+affected_mo_count, affected_mo_order_nos (truncated to 5 in markdown),
+total_planned_quantity (per-unit times MO planned_quantity, summed),
+total_remaining_quantity, earliest_expected_date. When `group_by="mo"`: per-MO
+sections with id, order_no, status, deadline, and the blocking recipe rows
+nested. Top-level `total_blocking_rows` and `total_affected_mos` are always
+populated.
+
+**Cache freshness:** typed-cache sync is debounced to 5 minutes — the rollup
+may lag the live API by up to that window.
 
 ---
 
