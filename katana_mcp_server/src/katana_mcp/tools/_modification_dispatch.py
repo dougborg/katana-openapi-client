@@ -584,6 +584,7 @@ async def run_modify_plan(
     web_url_kind: EntityKind,
     existing: Any | None,
     plan: list[ActionSpec],
+    has_get_endpoint: bool = True,
 ) -> ModificationResponse:
     """Wrap a built plan in a preview-or-execute :class:`ModificationResponse`.
 
@@ -605,6 +606,11 @@ async def run_modify_plan(
         existing: The pre-fetched entity, or ``None`` on fetch failure.
             Drives ``prior_state`` capture and the diff-context warning.
         plan: Built ActionSpec list, in canonical order.
+        has_get_endpoint: ``True`` when the entity exposes a GET-by-id endpoint
+            and ``existing=None`` therefore signals a *fetch failure* worth
+            warning about. ``False`` when the entity has no GET-by-id (e.g.
+            stock transfer) and ``existing=None`` is the expected steady
+            state — suppresses the spurious "could not fetch" warning.
     """
     katana_url = katana_web_url(web_url_kind, request.id)
     warnings = (
@@ -612,7 +618,7 @@ async def run_modify_plan(
             f"Could not fetch {entity_label} for diff context — "
             "preview shows requested values without prior state."
         ]
-        if existing is None
+        if existing is None and has_get_endpoint
         else []
     )
 
@@ -681,8 +687,6 @@ async def run_delete_plan(
         operation: Operation name for the ActionSpec (typically the entity's
             ``Operation.DELETE`` enum value).
     """
-    from katana_mcp.web_urls import katana_web_url
-
     existing = await fetcher(services, request.id)
     plan = plan_deletes(
         [request.id],

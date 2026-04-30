@@ -126,52 +126,6 @@ class StockTransferSummary(BaseModel):
     katana_url: str | None = None
 
 
-def _build_row_info(row: Any) -> StockTransferRowInfo:
-    """Extract a StockTransferRowInfo from an attrs StockTransferRow."""
-    raw_batches = unwrap_unset(row.batch_transactions, None)
-    batches: list[dict[str, Any]] | None = None
-    if raw_batches:
-        batches = [
-            {"batch_id": b.batch_id, "quantity": b.quantity} for b in raw_batches
-        ]
-    return StockTransferRowInfo(
-        id=unwrap_unset(row.id, None),
-        variant_id=unwrap_unset(row.variant_id, None),
-        quantity=unwrap_unset(row.quantity, None),
-        cost_per_unit=unwrap_unset(row.cost_per_unit, None),
-        batch_transactions=batches,
-    )
-
-
-def _build_summary(transfer: Any, *, include_rows: bool) -> StockTransferSummary:
-    """Convert an attrs StockTransfer into a StockTransferSummary."""
-    raw_rows = unwrap_unset(transfer.stock_transfer_rows, []) or []
-    row_infos = [_build_row_info(r) for r in raw_rows] if include_rows else None
-    transfer_date = unwrap_unset(transfer.transfer_date, None)
-    expected = unwrap_unset(transfer.expected_arrival_date, None)
-    created = unwrap_unset(transfer.created_at, None)
-    status = unwrap_unset(transfer.status, None)
-    return StockTransferSummary(
-        id=transfer.id,
-        stock_transfer_number=unwrap_unset(transfer.stock_transfer_number, None),
-        source_location_id=unwrap_unset(transfer.source_location_id, None),
-        target_location_id=unwrap_unset(transfer.target_location_id, None),
-        status=enum_to_str(status),
-        transfer_date=iso_or_none(transfer_date)
-        if isinstance(transfer_date, _datetime.datetime)
-        else None,
-        expected_arrival_date=iso_or_none(expected)
-        if isinstance(expected, _datetime.datetime)
-        else None,
-        created_at=iso_or_none(created)
-        if isinstance(created, _datetime.datetime)
-        else None,
-        row_count=len(raw_rows),
-        rows=row_infos,
-        katana_url=katana_web_url("stock_transfer", transfer.id),
-    )
-
-
 # ============================================================================
 # Tool 1: create_stock_transfer
 # ============================================================================
@@ -426,7 +380,10 @@ async def _create_stock_transfer_impl(
     )
     result.next_actions = [
         f"Stock transfer created with ID {transfer.id}",
-        "Use update_stock_transfer_status to transition it through IN_TRANSIT → RECEIVED",
+        (
+            "Use modify_stock_transfer with update_status to transition it "
+            "through IN_TRANSIT → RECEIVED"
+        ),
     ]
     return result
 
@@ -942,6 +899,9 @@ async def _modify_stock_transfer_impl(
         web_url_kind="stock_transfer",
         existing=None,
         plan=plan,
+        # Katana exposes no GET /stock_transfers/{id}; ``existing=None`` is
+        # the steady state, not a fetch failure — suppress the warning.
+        has_get_endpoint=False,
     )
 
 
@@ -981,7 +941,7 @@ async def modify_stock_transfer(
 # ============================================================================
 
 
-async def _fetch_stock_transfer_for_delete(services: Any, st_id: int) -> None:
+async def _fetch_stock_transfer_for_delete(_services: Any, _st_id: int) -> None:
     """Stock transfers have no GET-by-id endpoint, so prior-state capture is
     a no-op. ``run_delete_plan`` accepts ``None`` from the fetcher; the diff
     flows through with ``unknown_prior=True``."""

@@ -90,25 +90,6 @@ def _make_mock_transfer(
     return t
 
 
-def _make_mock_row(
-    *,
-    id: int = 1,
-    variant_id: int = 100,
-    quantity: float = 5,
-    cost_per_unit: float | None = None,
-    batch_transactions: list | None = None,
-) -> MagicMock:
-    r = MagicMock()
-    r.id = id
-    r.variant_id = variant_id
-    r.quantity = quantity
-    r.cost_per_unit = cost_per_unit if cost_per_unit is not None else UNSET
-    r.batch_transactions = (
-        batch_transactions if batch_transactions is not None else UNSET
-    )
-    return r
-
-
 # ============================================================================
 # create_stock_transfer
 # ============================================================================
