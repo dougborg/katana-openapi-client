@@ -21,9 +21,10 @@ need to change.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
-from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from katana_public_api_client.api.manufacturing_order import (
@@ -33,7 +34,11 @@ from katana_public_api_client.api.manufacturing_order_recipe import (
     get_all_manufacturing_order_recipe_rows,
 )
 from katana_public_api_client.api.purchase_order import find_purchase_orders
+from katana_public_api_client.api.purchase_order_row import (
+    get_all_purchase_order_rows,
+)
 from katana_public_api_client.api.sales_order import get_all_sales_orders
+from katana_public_api_client.api.sales_order_row import get_all_sales_order_rows
 from katana_public_api_client.api.stock_adjustment import get_all_stock_adjustments
 from katana_public_api_client.api.stock_transfer import get_all_stock_transfers
 from katana_public_api_client.models_pydantic._generated import (
@@ -50,7 +55,9 @@ from katana_public_api_client.models_pydantic._generated import (
     ManufacturingOrder as PydanticManufacturingOrder,
     ManufacturingOrderRecipeRow as PydanticManufacturingOrderRecipeRow,
     PurchaseOrderBase as PydanticPurchaseOrderBase,
+    PurchaseOrderRow as PydanticPurchaseOrderRow,
     SalesOrder as PydanticSalesOrder,
+    SalesOrderRow as PydanticSalesOrderRow,
     StockAdjustment as PydanticStockAdjustment,
     StockTransfer as PydanticStockTransfer,
 )
@@ -58,19 +65,6 @@ from katana_public_api_client.models_pydantic._registry import get_pydantic_clas
 from katana_public_api_client.utils import unwrap_data
 
 from .sync_state import SyncState
-
-# Skip the API call when the cache was synced this recently. Mirrors the
-# legacy ``cache_sync._NO_INCREMENTAL_DEBOUNCE`` so back-to-back tool
-# calls don't each kick off an HTTP RTT for an empty delta.
-_SYNC_DEBOUNCE = timedelta(seconds=300)
-
-
-def _is_fresh(last_synced: datetime | None) -> bool:
-    """True when the cache was synced within ``_SYNC_DEBOUNCE``."""
-    if last_synced is None:
-        return False
-    return (datetime.now(tz=UTC).replace(tzinfo=None) - last_synced) < _SYNC_DEBOUNCE
-
 
 if TYPE_CHECKING:
     from katana_public_api_client import KatanaClient
@@ -95,6 +89,15 @@ class EntitySpec:
     ``pydantic_resolver`` overrides ``pydantic_cls`` per-row by dispatching
     on the attrs subclass — used by purchase orders, where the
     discriminated-union root would otherwise lose subclass-only fields.
+
+    ``related_specs`` is for entities whose rows live at a *separate* API
+    endpoint with their own watermark (manufacturing orders + recipe
+    rows: rows aren't nested in the MO response, so the nested-rows
+    triple above doesn't apply). Listing them here means
+    ``_ensure_synced`` fans out to sync them in parallel, so consumers
+    that join parent ↔ child in cache can call a single
+    ``ensure_<parent>_synced`` and trust that both sides are fresh —
+    no caller-side ``asyncio.gather`` to forget.
     """
 
     entity_key: str
@@ -105,6 +108,7 @@ class EntitySpec:
     rows_field: str | None = None
     fk_field: str | None = None
     pydantic_resolver: Callable[[Any], type] | None = None
+    related_specs: tuple[EntitySpec, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
         # Children are configured by a ``(child_cls, rows_field, fk_field)``
@@ -193,29 +197,67 @@ async def _ensure_synced(
 ) -> None:
     """Pull updated rows for one entity from Katana and upsert into the cache.
 
-    Cold-start fetches the full history (cost scales with row count);
-    subsequent calls pass ``updated_at_min=<last_synced>`` and typically
-    return zero rows. The per-entity lock guarantees only one sync runs
-    at a time even if multiple tool calls land concurrently. The
-    ``_SYNC_DEBOUNCE`` short-circuit avoids an HTTP RTT for back-to-back
-    tool calls.
+    Every call hits the API. Cold-start fetches the full history (cost
+    scales with row count); subsequent calls pass
+    ``updated_at_min=<last_synced>`` so the API returns only the delta
+    since the previous sync — typically zero rows, ~100-200ms RTT for
+    the empty response. The per-entity lock guarantees only one sync
+    runs at a time even when multiple tool calls land concurrently
+    (the second waits, then issues its own — also typically empty —
+    delta fetch). We deliberately do not debounce: an explicit TTL
+    layer hides MCP-driven mutations and out-of-band UI edits behind
+    a stale window for no real saving, since the delta fetch is
+    already cheap.
+
+    Soft-deletes are folded in by passing ``include_deleted=True``: when
+    a row is deleted in the Katana UI, the next incremental fetch returns
+    it with ``deleted_at`` populated, and the upsert path naturally
+    propagates that timestamp into the cache row. The cache classes all
+    extend ``DeletableEntity`` (a ``deleted_at`` column ships natively),
+    and every ``list_*`` query already filters ``deleted_at IS NULL``, so
+    no ghost rows leak to callers and the historical record survives in
+    the cache for any future audit/reporting need. We mirror Katana's own
+    soft-delete model rather than hard-deleting locally.
+
+    ``spec.related_specs`` triggers parallel sync of sibling entities
+    (e.g. manufacturing-order recipe rows when MOs are synced) so a
+    consumer joining parent ↔ child in cache only needs to call one
+    ``ensure_<parent>_synced``.
+    """
+    if spec.related_specs:
+        await asyncio.gather(
+            _sync_one(client, cache, spec),
+            *(_ensure_synced(client, cache, related) for related in spec.related_specs),
+        )
+        return
+    await _sync_one(client, cache, spec)
+
+
+async def _sync_one(
+    client: KatanaClient, cache: TypedCacheEngine, spec: EntitySpec
+) -> None:
+    """Sync exactly one entity (no related-spec fan-out).
+
+    Split out from ``_ensure_synced`` so the related-spec gather doesn't
+    re-enter the parent's lock recursively when a future child carries
+    its own ``related_specs`` chain — each entity's sync runs under its
+    own per-entity lock, no nesting.
     """
     async with cache.lock_for(spec.entity_key):
         async with cache.session() as session:
             state = await session.get(SyncState, spec.entity_key)
             last_synced = state.last_synced if state is not None else None
 
-        if _is_fresh(last_synced):
-            return
-
         # ``last_synced`` is persisted as naive UTC (SQLite's default
         # DateTime column strips tzinfo). Re-attach UTC before sending to
         # the API so the generated client serializes an explicit offset.
-        kwargs = (
-            {"updated_at_min": last_synced.replace(tzinfo=UTC)}
-            if last_synced is not None
-            else {}
-        )
+        # ``include_deleted=True`` is always sent so soft-deletes after
+        # the watermark surface in the response (Katana bumps
+        # ``updated_at`` when ``deleted_at`` is set), letting the upsert
+        # propagate the tombstone into the cache row.
+        kwargs: dict[str, Any] = {"include_deleted": True}
+        if last_synced is not None:
+            kwargs["updated_at_min"] = last_synced.replace(tzinfo=UTC)
         response = await spec.api_fn.asyncio_detailed(client=client, **kwargs)
         attrs_objs = unwrap_data(response, default=[])
 
@@ -253,6 +295,23 @@ async def _ensure_synced(
 # ---------------------------------------------------------------------------
 
 
+# Sales-order rows: nested under their parent in the ``find_sales_orders``
+# response, but the response *hides* soft-deleted rows even with
+# ``include_deleted=True`` (that flag controls top-level inclusion only).
+# Without an independent row sync, a row deleted via ``delete_sales_order_row``
+# on a still-live parent stays in the cache as a ghost. The dedicated
+# ``/sales_order_rows`` endpoint exposes ``include_deleted`` + the same
+# ``updated_at_min`` watermark mechanism, so we can pick up tombstones the
+# parent response omits. Defined before ``_SALES_ORDER_SPEC`` so the parent's
+# ``related_specs`` can reference it (frozen dataclasses can't forward-ref).
+_SALES_ORDER_ROW_SPEC = EntitySpec(
+    entity_key="sales_order_row",
+    api_fn=get_all_sales_order_rows,
+    cache_cls=CachedSalesOrderRow,
+    pydantic_cls=PydanticSalesOrderRow,
+)
+
+
 _SALES_ORDER_SPEC = EntitySpec(
     entity_key="sales_order",
     api_fn=get_all_sales_orders,
@@ -261,6 +320,7 @@ _SALES_ORDER_SPEC = EntitySpec(
     child_cls=CachedSalesOrderRow,
     rows_field="sales_order_rows",
     fk_field="sales_order_id",
+    related_specs=(_SALES_ORDER_ROW_SPEC,),
 )
 
 
@@ -275,28 +335,49 @@ _STOCK_ADJUSTMENT_SPEC = EntitySpec(
 )
 
 
-# Manufacturing orders: the list endpoint returns summary objects with no
-# nested rows. Recipe rows live at ``/manufacturing_order_recipe_rows`` and
-# aren't cached by this entity's sync — leave the child fields unset.
-_MANUFACTURING_ORDER_SPEC = EntitySpec(
-    entity_key="manufacturing_order",
-    api_fn=get_all_manufacturing_orders,
-    cache_cls=CachedManufacturingOrder,
-    pydantic_cls=PydanticManufacturingOrder,
-)
-
-
 # Manufacturing-order recipe rows: fetched from the separate
 # ``/manufacturing_order_recipe_rows`` endpoint, not nested under the MO
 # parent — so they have their own ``updated_at_min`` watermark and sync
 # lock. Direct conversion via the pydantic intermediary; ``batch_transactions``
 # survives ``model_dump`` as a plain dict list and lands in the cache class's
-# JSON column unchanged.
+# JSON column unchanged. Defined before the MO spec because the MO spec
+# references it via ``related_specs`` (frozen dataclasses can't forward-
+# reference each other).
 _MANUFACTURING_ORDER_RECIPE_ROW_SPEC = EntitySpec(
     entity_key="manufacturing_order_recipe_row",
     api_fn=get_all_manufacturing_order_recipe_rows,
     cache_cls=CachedManufacturingOrderRecipeRow,
     pydantic_cls=PydanticManufacturingOrderRecipeRow,
+)
+
+
+# Manufacturing orders: the list endpoint returns summary objects with no
+# nested rows. Recipe rows live at the sibling endpoint above and are
+# pulled in via ``related_specs`` so any cache consumer that joins MO ↔
+# recipe row (e.g. ``list_blocking_ingredients``) only needs to call
+# ``ensure_manufacturing_orders_synced`` and trusts both watermarks have
+# been advanced.
+_MANUFACTURING_ORDER_SPEC = EntitySpec(
+    entity_key="manufacturing_order",
+    api_fn=get_all_manufacturing_orders,
+    cache_cls=CachedManufacturingOrder,
+    pydantic_cls=PydanticManufacturingOrder,
+    related_specs=(_MANUFACTURING_ORDER_RECIPE_ROW_SPEC,),
+)
+
+
+# Purchase-order rows: like sales-order rows, ``find_purchase_orders``
+# hides soft-deleted nested rows even with ``include_deleted=True`` set
+# at the parent level. The ``/purchase_order_rows`` sibling endpoint
+# (added to MCP via ``delete_purchase_order_row`` /
+# ``update_purchase_order_row`` in #461) exposes ``include_deleted`` and
+# its own watermark, so we sync rows independently to catch tombstones
+# the parent response omits.
+_PURCHASE_ORDER_ROW_SPEC = EntitySpec(
+    entity_key="purchase_order_row",
+    api_fn=get_all_purchase_order_rows,
+    cache_cls=CachedPurchaseOrderRow,
+    pydantic_cls=PydanticPurchaseOrderRow,
 )
 
 
@@ -316,6 +397,7 @@ _PURCHASE_ORDER_SPEC = EntitySpec(
     rows_field="purchase_order_rows",
     fk_field="purchase_order_id",
     pydantic_resolver=_resolve_purchase_order_class,
+    related_specs=(_PURCHASE_ORDER_ROW_SPEC,),
 )
 
 
@@ -376,8 +458,11 @@ async def ensure_manufacturing_order_recipe_rows_synced(
     """Pull updated MO recipe rows from Katana and upsert into the cache.
 
     Recipe rows are fetched from the separate
-    ``/manufacturing_order_recipe_rows`` endpoint (not nested under the MO
-    parent), so they have their own ``updated_at_min`` watermark and sync
-    lock — distinct from the manufacturing-orders sync.
+    ``/manufacturing_order_recipe_rows`` endpoint (not nested under the
+    MO parent), so they have their own ``updated_at_min`` watermark and
+    sync lock. ``ensure_manufacturing_orders_synced`` already fans out to
+    this spec via ``related_specs``, so most callers don't need to call
+    this helper directly — it's exposed for tools that specifically want
+    only the recipe-row watermark advanced.
     """
     await _ensure_synced(client, cache, _MANUFACTURING_ORDER_RECIPE_ROW_SPEC)

@@ -639,8 +639,11 @@ sections with id, order_no, status, deadline, and the blocking recipe rows
 nested. Top-level `total_blocking_rows` and `total_affected_mos` are always
 populated.
 
-**Cache freshness:** typed-cache sync is debounced to 5 minutes — the rollup
-may lag the live API by up to that window.
+**Cache freshness:** every list/rollup tool re-syncs from Katana via an
+incremental `updated_at_min` delta on each invocation, so the rollup reflects
+the API state at the moment of the call (including UI-driven edits and
+soft-deletes). The cache is a read-shape optimization for filtering/joining,
+not a freshness barrier.
 
 ---
 
