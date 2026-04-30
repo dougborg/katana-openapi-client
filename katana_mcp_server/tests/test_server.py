@@ -1,6 +1,8 @@
 """Unit tests for Katana MCP Server and authentication."""
 
 import os
+from collections.abc import Iterator
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -10,6 +12,56 @@ from katana_mcp.server import _build_auth, lifespan, main, mcp
 from katana_mcp.services import Services
 
 from katana_public_api_client import KatanaClient
+
+
+@pytest.fixture
+def isolated_caches(tmp_path: Path) -> Iterator[None]:
+    """Redirect ``lifespan()``'s cache constructors to per-test temp paths.
+
+    ``server.lifespan()`` instantiates ``CatalogCache()`` and
+    ``TypedCacheEngine()`` with no args, which both default to fixed
+    locations under ``platformdirs.user_cache_dir("katana-mcp")``. Under
+    pytest-xdist (``-n 4`` per the project's ``poe test``), parallel
+    workers race on those shared SQLite files and one of them sees
+    ``table sync_state already exists`` (#455).
+
+    Patch each constructor at the namespace ``lifespan()``'s deferred
+    imports resolve through. ``CatalogCache`` is at the module level
+    (``katana_mcp.cache``), but ``TypedCacheEngine`` is re-exported by the
+    ``katana_mcp.typed_cache`` package's ``__init__.py`` — patching the
+    inner ``engine`` module wouldn't reach the alias the package binds at
+    import time, so we patch the package alias directly.
+    """
+    from katana_mcp import (
+        cache as cache_module,
+        typed_cache as typed_cache_pkg,
+    )
+
+    real_catalog_cache = cache_module.CatalogCache
+    real_typed_engine = typed_cache_pkg.TypedCacheEngine
+
+    def make_isolated_catalog_cache(*args, **kwargs):
+        kwargs.setdefault("db_path", tmp_path / "catalog.db")
+        return real_catalog_cache(*args, **kwargs)
+
+    def make_isolated_typed_engine(*args, **kwargs):
+        # Avoid stomping explicit ``in_memory=True`` (it's incompatible
+        # with ``db_path``); only inject the path for file-backed mode.
+        if not kwargs.get("in_memory", False):
+            kwargs.setdefault("db_path", tmp_path / "typed_cache.db")
+        return real_typed_engine(*args, **kwargs)
+
+    with (
+        patch.object(
+            cache_module, "CatalogCache", side_effect=make_isolated_catalog_cache
+        ),
+        patch.object(
+            typed_cache_pkg,
+            "TypedCacheEngine",
+            side_effect=make_isolated_typed_engine,
+        ),
+    ):
+        yield
 
 
 class TestServices:
@@ -41,6 +93,7 @@ class TestServices:
         assert context.cache is mock_cache
 
 
+@pytest.mark.usefixtures("isolated_caches")
 class TestLifespan:
     """Tests for server lifespan management."""
 
@@ -337,6 +390,7 @@ class TestBuildAuth:
             assert isinstance(result, StaticTokenVerifier)
 
 
+@pytest.mark.usefixtures("isolated_caches")
 class TestEnvironmentConfiguration:
     """Tests for environment-based configuration."""
 
