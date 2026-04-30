@@ -29,7 +29,6 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from scripts.audit_spec_drift import AuditReport, audit  # noqa: E402
 
-LOCAL_SPEC_PATH = PROJECT_ROOT / "docs" / "katana-openapi.yaml"
 LIVE_SPEC_PATH = PROJECT_ROOT / "docs" / "upstream-specs" / "live-gateway.yaml"
 
 
