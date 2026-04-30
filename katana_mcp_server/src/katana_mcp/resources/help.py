@@ -50,6 +50,10 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **receive_purchase_order** - Receive items and update inventory
 - **verify_order_document** - Verify supplier documents against POs (returns the full PO alongside match/discrepancy details)
 - **get_purchase_order** - Look up a PO by number or ID — exhaustive detail (every PO/row field, additional cost rows, accounting metadata)
+- **update_purchase_order** - Update header fields (incl. status, expected_arrival_date)
+- **delete_purchase_order** - Delete a PO (preview/confirm)
+- **add_purchase_order_row / update_purchase_order_row / delete_purchase_order_row** - Full row-level CRUD with per-field diff previews
+- **add_purchase_order_additional_cost / update_purchase_order_additional_cost / delete_purchase_order_additional_cost** - Manage freight/duty/handling cost rows
 
 ### Manufacturing & Sales
 - **create_manufacturing_order** - Create production work orders
@@ -785,6 +789,115 @@ Pydantic field names as labels (`**status**`, `**purchase_order_rows** (N):`,
 `**additional_cost_rows**: []`) so LLM consumers can't misread a section
 header as a different field (#346 follow-on). Use this whenever full
 detail is needed; use `list_purchase_orders` for discovery.
+
+---
+
+### update_purchase_order
+Update header fields on an existing PO. Status transitions are folded in
+here as a regular field — there's no separate `update_purchase_order_status`
+tool because Katana's API treats it as a normal PATCH field.
+
+**Parameters:**
+- `id` (required): Purchase order ID
+- `order_no`, `supplier_id`, `currency`, `location_id`,
+  `tracking_location_id`, `expected_arrival_date`, `order_created_date`,
+  `additional_info` (optional): Header fields to overwrite
+- `status` (optional): DRAFT / NOT_RECEIVED / PARTIALLY_RECEIVED / RECEIVED.
+  To flip to RECEIVED with inventory updates use `receive_purchase_order`
+  instead.
+- `confirm` (optional, default false): false=preview with per-field diff,
+  true=apply
+
+**Returns:** A `ModificationResponse` with `is_preview`, the per-field
+`changes` list (old/new for every supplied field), `katana_url`, and
+`next_actions`.
+
+---
+
+### delete_purchase_order
+Delete a purchase order. Destructive — the order record is removed.
+
+**Parameters:**
+- `id` (required): Purchase order ID
+- `confirm` (optional, default false): false=preview, true=delete
+
+---
+
+### add_purchase_order_row
+Add a new line item to an existing PO.
+
+**Parameters:**
+- `purchase_order_id` (required): Parent PO ID
+- `variant_id`, `quantity`, `price_per_unit` (required): Core line item
+- `tax_rate_id`, `tax_name`, `tax_rate`, `currency`, `purchase_uom`,
+  `purchase_uom_conversion_rate`, `arrival_date` (optional)
+- `confirm` (optional, default false)
+
+---
+
+### update_purchase_order_row
+Update fields on an existing PO row. Accepts any subset of `quantity`,
+`variant_id`, taxes, `price_per_unit`, UOM fields, `received_date`, and the
+row-level `arrival_date` (separate from the PO header's arrival date — Katana
+tracks per-row dates so different lines on the same PO can arrive on
+different days).
+
+**Parameters:**
+- `id` (required): Row ID
+- Any subset of: `quantity`, `variant_id`, `tax_rate_id`, `tax_name`,
+  `tax_rate`, `price_per_unit`, `purchase_uom`,
+  `purchase_uom_conversion_rate`, `received_date`, `arrival_date`
+- `confirm` (optional, default false): false=preview with per-field diff,
+  true=apply
+
+---
+
+### delete_purchase_order_row
+Delete a PO row. Destructive.
+
+**Parameters:**
+- `id` (required): Row ID
+- `confirm` (optional, default false)
+
+---
+
+### add_purchase_order_additional_cost
+Add an additional-cost row (freight, duties, handling fees) to a PO. Katana
+models additional-cost rows as members of a *cost group*; the PO carries a
+`default_group_id` that the rows attach to. The tool accepts the parent PO
+id (familiar) and resolves the group id internally — pass `group_id`
+directly only if the PO has multiple groups and you need a non-default one.
+
+**Parameters:**
+- `purchase_order_id` *or* `group_id` (one is required): Parent linkage.
+  Tool resolves `default_group_id` from the PO when only `purchase_order_id`
+  is given.
+- `additional_cost_id` (required): Catalog entry ID for the cost type
+- `tax_rate_id` (required): Tax rate ID
+- `price` (required): Cost amount
+- `distribution_method` (optional): BY_VALUE distributes proportionally
+  to row value; NON_DISTRIBUTED leaves it unallocated
+- `confirm` (optional, default false)
+
+---
+
+### update_purchase_order_additional_cost
+Update a PO additional-cost row. Per-field diff against the existing row.
+
+**Parameters:**
+- `id` (required): Cost row ID
+- Any subset of: `additional_cost_id`, `tax_rate_id`, `price`,
+  `distribution_method`
+- `confirm` (optional, default false)
+
+---
+
+### delete_purchase_order_additional_cost
+Delete a PO additional-cost row. Destructive.
+
+**Parameters:**
+- `id` (required): Cost row ID
+- `confirm` (optional, default false)
 
 ---
 
