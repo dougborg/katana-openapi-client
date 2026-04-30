@@ -187,6 +187,91 @@ async def test_create_stock_transfer_confirm_success():
 
 
 @pytest.mark.asyncio
+async def test_create_stock_transfer_auto_generates_number_when_order_no_omitted():
+    """When ``order_no`` is omitted, the impl auto-generates a timestamped
+    ``stock_transfer_number`` rather than sending UNSET — the OpenAPI spec
+    marks the field required, so UNSET would 422 at the live API and breaks
+    pyright at the construction site (it's typed ``str``, not ``str | Unset``).
+    Pins #444.
+    """
+    import re
+
+    context, _ = create_mock_context()
+    mock_transfer = _make_mock_transfer(
+        id=99, stock_transfer_number="auto", source_location_id=1, target_location_id=2
+    )
+
+    with (
+        patch(f"{_ST_CREATE}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
+        patch(_ST_UNWRAP_AS, return_value=mock_transfer),
+    ):
+        request = CreateStockTransferRequest(
+            source_location_id=1,
+            destination_location_id=2,
+            expected_arrival_date=datetime(2026, 5, 1, 12, 0, tzinfo=UTC),
+            rows=[
+                StockTransferRowInput(
+                    variant_id=100,
+                    quantity=5,
+                    batch_transactions=[
+                        StockTransferBatchTransactionInput(batch_id=77, quantity=5)
+                    ],
+                )
+            ],
+            # order_no intentionally omitted
+            confirm=True,
+        )
+        await _create_stock_transfer_impl(request, context)
+
+    call_body = mock_api.await_args.kwargs["body"]
+    # Auto-generated number is a real string in ``ST-<unix_timestamp>`` form
+    # (not UNSET, not empty, not None).
+    assert isinstance(call_body.stock_transfer_number, str)
+    assert re.fullmatch(r"ST-\d+", call_body.stock_transfer_number), (
+        f"expected auto-generated ST-<timestamp> number, got "
+        f"{call_body.stock_transfer_number!r}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_create_stock_transfer_passes_through_provided_order_no():
+    """When ``order_no`` is provided, it flows through verbatim — the
+    auto-generation only kicks in when omitted."""
+    context, _ = create_mock_context()
+    mock_transfer = _make_mock_transfer(
+        id=100,
+        stock_transfer_number="MY-CUSTOM-99",
+        source_location_id=1,
+        target_location_id=2,
+    )
+
+    with (
+        patch(f"{_ST_CREATE}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
+        patch(_ST_UNWRAP_AS, return_value=mock_transfer),
+    ):
+        request = CreateStockTransferRequest(
+            source_location_id=1,
+            destination_location_id=2,
+            expected_arrival_date=datetime(2026, 5, 1, 12, 0, tzinfo=UTC),
+            order_no="MY-CUSTOM-99",
+            rows=[
+                StockTransferRowInput(
+                    variant_id=100,
+                    quantity=5,
+                    batch_transactions=[
+                        StockTransferBatchTransactionInput(batch_id=77, quantity=5)
+                    ],
+                )
+            ],
+            confirm=True,
+        )
+        await _create_stock_transfer_impl(request, context)
+
+    call_body = mock_api.await_args.kwargs["body"]
+    assert call_body.stock_transfer_number == "MY-CUSTOM-99"
+
+
+@pytest.mark.asyncio
 async def test_create_stock_transfer_confirm_refuses_when_source_equals_destination():
     """confirm=True with source==destination must refuse — defense in depth.
     The preview UI's BLOCK warning suppresses Confirm, but a programmatic
