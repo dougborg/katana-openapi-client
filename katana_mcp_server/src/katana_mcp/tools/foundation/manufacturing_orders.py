@@ -1,9 +1,13 @@
 """Manufacturing order management tools for Katana MCP Server.
 
-Foundation tools for creating manufacturing orders to initiate production.
-
-These tools provide:
-- create_manufacturing_order: Create manufacturing orders with preview/confirm pattern
+Tools:
+- create_manufacturing_order / get_manufacturing_order /
+  list_manufacturing_orders / list_blocking_ingredients /
+  get_manufacturing_order_recipe — read-mostly + create.
+- modify_manufacturing_order: header + recipe rows + operation rows +
+  production records via typed sub-payload slots.
+- delete_manufacturing_order: destructive sibling of
+  modify_manufacturing_order.
 """
 
 from __future__ import annotations
@@ -21,8 +25,30 @@ from pydantic import BaseModel, Field
 from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.tools._modification import (
+    ConfirmableRequest,
+    ModificationResponse,
+    compute_field_diff,
+    make_response_verifier,
+    to_tool_result,
+)
+from katana_mcp.tools._modification_dispatch import (
+    ActionSpec,
+    execute_plan,
+    has_any_subpayload,
+    make_delete_apply,
+    make_patch_apply,
+    make_post_apply,
+    plan_creates,
+    plan_deletes,
+    plan_to_preview_results,
+    plan_updates,
+    safe_fetch_for_diff,
+    serialize_for_prior_state,
+    summarize_delete_outcome,
+    summarize_modify_outcome,
+)
 from katana_mcp.tools.list_coercion import (
-    CoercedIntList,
     CoercedIntListOpt,
     CoercedStrListOpt,
 )
@@ -42,11 +68,50 @@ from katana_mcp.tools.tool_result_utils import (
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_mcp.web_urls import katana_web_url
+
+# Modify/delete API endpoints used by ``modify_manufacturing_order`` /
+# ``delete_manufacturing_order``. Hoisted to module scope.
+from katana_public_api_client.api.manufacturing_order import (
+    delete_manufacturing_order as api_delete_manufacturing_order,
+    get_manufacturing_order as api_get_manufacturing_order,
+    update_manufacturing_order as api_update_manufacturing_order,
+)
+from katana_public_api_client.api.manufacturing_order_operation import (
+    create_manufacturing_order_operation_row as api_create_mo_operation_row,
+    delete_manufacturing_order_operation_row as api_delete_mo_operation_row,
+    get_manufacturing_order_operation_row as api_get_mo_operation_row,
+    update_manufacturing_order_operation_row as api_update_mo_operation_row,
+)
+from katana_public_api_client.api.manufacturing_order_production import (
+    create_manufacturing_order_production as api_create_mo_production,
+    delete_manufacturing_order_production as api_delete_mo_production,
+    get_manufacturing_order_production as api_get_mo_production,
+    update_manufacturing_order_production as api_update_mo_production,
+)
+from katana_public_api_client.api.manufacturing_order_recipe import (
+    create_manufacturing_order_recipe_rows as api_create_mo_recipe_row,
+    delete_manufacturing_order_recipe_row as api_delete_mo_recipe_row,
+    get_manufacturing_order_recipe_row as api_get_mo_recipe_row,
+    update_manufacturing_order_recipe_rows as api_update_mo_recipe_row,
+)
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
+    CreateManufacturingOrderOperationRowRequest as APICreateMOOperationRowRequest,
+    CreateManufacturingOrderProductionRequest as APICreateMOProductionRequest,
+    CreateManufacturingOrderRecipeRowRequest as APICreateMORecipeRowRequest,
     CreateManufacturingOrderRequest as APICreateManufacturingOrderRequest,
     GetAllManufacturingOrdersStatus,
+    ManufacturingOperationStatus,
+    ManufacturingOperationType,
     ManufacturingOrder,
+    ManufacturingOrderOperationRow,
+    ManufacturingOrderProduction,
+    ManufacturingOrderRecipeRow,
+    ManufacturingOrderStatus,
+    UpdateManufacturingOrderOperationRowRequest as APIUpdateMOOperationRowRequest,
+    UpdateManufacturingOrderProductionRequest as APIUpdateMOProductionRequest,
+    UpdateManufacturingOrderRecipeRowRequest as APIUpdateMORecipeRowRequest,
+    UpdateManufacturingOrderRequest as APIUpdateManufacturingOrderRequest,
 )
 from katana_public_api_client.models_pydantic._generated import (
     OutsourcedPurchaseOrderIngredientAvailability,
@@ -1484,729 +1549,6 @@ async def get_manufacturing_order_recipe(
 
 
 # ============================================================================
-# Tool 4: add_manufacturing_order_recipe_row
-# ============================================================================
-
-
-class AddRecipeRowRequest(BaseModel):
-    """Request to add an ingredient row to a manufacturing order."""
-
-    manufacturing_order_id: int = Field(..., description="Manufacturing order ID")
-    sku: str | None = Field(
-        default=None,
-        description="SKU of the variant to add (resolved via cache). Use this OR variant_id.",
-    )
-    variant_id: int | None = Field(
-        default=None,
-        description="Variant ID to add directly. Use when the SKU isn't in the cache.",
-    )
-    planned_quantity_per_unit: float = Field(
-        ..., description="Planned quantity needed per manufactured unit", gt=0
-    )
-    notes: str | None = Field(default=None, description="Optional notes")
-    confirm: bool = Field(
-        default=False,
-        description="Set false to preview, true to add",
-    )
-
-
-class AddRecipeRowResponse(BaseModel):
-    """Response from adding a recipe row."""
-
-    id: int | None
-    manufacturing_order_id: int
-    variant_id: int
-    sku: str | None
-    planned_quantity_per_unit: float
-    is_preview: bool
-    message: str
-
-
-# ----- Low-level API helpers (shared by single-row and batch tools) -----
-
-
-async def _api_create_recipe_row(
-    services: Any,
-    *,
-    manufacturing_order_id: int,
-    variant_id: int,
-    planned_quantity_per_unit: float,
-    notes: str | None,
-) -> Any:
-    """Raw API call to create a recipe row. Raises ValueError on API failure."""
-    from katana_public_api_client.api.manufacturing_order_recipe import (
-        create_manufacturing_order_recipe_rows,
-    )
-    from katana_public_api_client.models.create_manufacturing_order_recipe_row_request import (
-        CreateManufacturingOrderRecipeRowRequest,
-    )
-    from katana_public_api_client.utils import APIError, unwrap
-
-    api_request = CreateManufacturingOrderRecipeRowRequest(
-        manufacturing_order_id=manufacturing_order_id,
-        variant_id=variant_id,
-        planned_quantity_per_unit=planned_quantity_per_unit,
-        notes=to_unset(notes),
-    )
-
-    response = await create_manufacturing_order_recipe_rows.asyncio_detailed(
-        client=services.client, body=api_request
-    )
-    try:
-        return unwrap(response)
-    except APIError as e:
-        raise ValueError(str(e)) from e
-
-
-async def _api_delete_recipe_row(services: Any, recipe_row_id: int) -> None:
-    """Raw API call to delete a recipe row. Raises ValueError on API failure."""
-    from katana_public_api_client.api.manufacturing_order_recipe import (
-        delete_manufacturing_order_recipe_row as api_delete,
-    )
-    from katana_public_api_client.utils import APIError, is_success, unwrap
-
-    response = await api_delete.asyncio_detailed(
-        client=services.client, id=recipe_row_id
-    )
-    if is_success(response):
-        return
-    try:
-        unwrap(response)
-    except APIError as e:
-        raise ValueError(str(e)) from e
-    raise ValueError(f"Failed to delete recipe row {recipe_row_id}")
-
-
-async def _resolve_variant_ref(
-    services: Any, *, sku: str | None, variant_id: int | None
-) -> tuple[int, str | None, str]:
-    """Resolve ``(sku, variant_id)`` inputs to ``(variant_id, sku, display_name)``.
-
-    At least one of ``sku`` or ``variant_id`` must be provided. If both are
-    provided, ``variant_id`` takes precedence and ``sku`` is returned as given
-    without re-validating that it matches the variant. Raises ``ValueError``
-    if neither is provided or if a provided SKU is not found in the cache.
-    """
-    if variant_id is not None:
-        return variant_id, sku, sku or f"variant {variant_id}"
-    if not sku:
-        raise ValueError("At least one of sku or variant_id must be provided")
-    variant = await services.cache.get_by_sku(sku=sku)
-    if not variant:
-        raise ValueError(f"SKU '{sku}' not found")
-    return variant["id"], sku, variant.get("display_name") or sku
-
-
-async def _add_recipe_row_impl(
-    request: AddRecipeRowRequest, context: Context
-) -> AddRecipeRowResponse:
-    """Add a new ingredient row to a manufacturing order."""
-    if not request.sku and not request.variant_id:
-        raise ValueError("Either sku or variant_id must be provided")
-
-    services = get_services(context)
-    variant_id, sku, display_name = await _resolve_variant_ref(
-        services, sku=request.sku, variant_id=request.variant_id
-    )
-
-    if not request.confirm:
-        return AddRecipeRowResponse(
-            id=None,
-            manufacturing_order_id=request.manufacturing_order_id,
-            variant_id=variant_id,
-            sku=sku,
-            planned_quantity_per_unit=request.planned_quantity_per_unit,
-            is_preview=True,
-            message=(
-                f"Preview: Would add {request.planned_quantity_per_unit}x "
-                f"{display_name} to MO {request.manufacturing_order_id}"
-            ),
-        )
-
-    result = await _api_create_recipe_row(
-        services,
-        manufacturing_order_id=request.manufacturing_order_id,
-        variant_id=variant_id,
-        planned_quantity_per_unit=request.planned_quantity_per_unit,
-        notes=request.notes,
-    )
-    new_id = getattr(result, "id", None) if result else None
-    return AddRecipeRowResponse(
-        id=new_id,
-        manufacturing_order_id=request.manufacturing_order_id,
-        variant_id=variant_id,
-        sku=sku,
-        planned_quantity_per_unit=request.planned_quantity_per_unit,
-        is_preview=False,
-        message=f"Added recipe row (ID {new_id}) to MO {request.manufacturing_order_id}",
-    )
-
-
-@observe_tool
-@unpack_pydantic_params
-async def add_manufacturing_order_recipe_row(
-    request: Annotated[AddRecipeRowRequest, Unpack()], context: Context
-) -> ToolResult:
-    """Add a new ingredient row to a manufacturing order's recipe.
-
-    Two-step flow: confirm=false to preview, confirm=true to add (prompts
-    for confirmation). Provide either `sku` (resolved to variant_id via the
-    cache) or `variant_id` directly.
-
-    Use this to add missing ingredients to an MO or build up a custom recipe.
-    To remove an ingredient, use delete_manufacturing_order_recipe_row.
-    """
-    from katana_mcp.tools.tool_result_utils import make_simple_result
-
-    response = await _add_recipe_row_impl(request, context)
-    status = "PREVIEW" if response.is_preview else "ADDED"
-    md = f"## Recipe Row ({status})\n\n{response.message}"
-    return make_simple_result(md, structured_data=response.model_dump())
-
-
-# ============================================================================
-# Tool 5: delete_manufacturing_order_recipe_row
-# ============================================================================
-
-
-class DeleteRecipeRowRequest(BaseModel):
-    """Request to delete an ingredient row from a manufacturing order."""
-
-    recipe_row_id: int = Field(..., description="Recipe row ID to delete")
-    confirm: bool = Field(
-        default=False,
-        description="Set false to preview, true to delete",
-    )
-
-
-class DeleteRecipeRowResponse(BaseModel):
-    """Response from deleting a recipe row."""
-
-    recipe_row_id: int
-    is_preview: bool
-    message: str
-
-
-async def _delete_recipe_row_impl(
-    request: DeleteRecipeRowRequest, context: Context
-) -> DeleteRecipeRowResponse:
-    """Delete an ingredient row from a manufacturing order."""
-    services = get_services(context)
-
-    if not request.confirm:
-        return DeleteRecipeRowResponse(
-            recipe_row_id=request.recipe_row_id,
-            is_preview=True,
-            message=f"Preview: Would delete recipe row {request.recipe_row_id}",
-        )
-
-    await _api_delete_recipe_row(services, request.recipe_row_id)
-
-    return DeleteRecipeRowResponse(
-        recipe_row_id=request.recipe_row_id,
-        is_preview=False,
-        message=f"Removed recipe row {request.recipe_row_id}",
-    )
-
-
-@observe_tool
-@unpack_pydantic_params
-async def delete_manufacturing_order_recipe_row(
-    request: Annotated[DeleteRecipeRowRequest, Unpack()], context: Context
-) -> ToolResult:
-    """Delete an ingredient row from a manufacturing order's recipe.
-
-    Two-step flow: confirm=false to preview, confirm=true to delete (prompts
-    for confirmation). Find the recipe_row_id with get_manufacturing_order_recipe.
-
-    Use with add_manufacturing_order_recipe_row to replace an ingredient.
-    """
-    from katana_mcp.tools.tool_result_utils import make_simple_result
-
-    response = await _delete_recipe_row_impl(request, context)
-    status = "PREVIEW" if response.is_preview else "DELETED"
-    md = f"## Recipe Row ({status})\n\n{response.message}"
-    return make_simple_result(md, structured_data=response.model_dump())
-
-
-# ============================================================================
-# Tool 6: batch_update_manufacturing_order_recipes
-# ============================================================================
-
-
-MAX_BATCH_OPS = 100
-
-
-class VariantSpec(BaseModel):
-    """A variant reference plus the planned quantity per manufactured unit."""
-
-    sku: str | None = Field(default=None, description="SKU of the variant")
-    variant_id: int | None = Field(
-        default=None, description="Variant ID (used directly if set)"
-    )
-    planned_quantity_per_unit: float = Field(
-        ..., gt=0, description="Qty per manufactured unit"
-    )
-    notes: str | None = Field(default=None, description="Optional recipe row notes")
-
-
-class VariantReplacement(BaseModel):
-    """Replace a variant across multiple MOs with one or more new components."""
-
-    manufacturing_order_ids: CoercedIntList = Field(
-        ...,
-        min_length=1,
-        description=(
-            "JSON array of manufacturing order IDs to apply this replacement to, "
-            "e.g. [101, 202, 303]."
-        ),
-    )
-    old_sku: str | None = Field(
-        default=None, description="SKU of the variant to remove"
-    )
-    old_variant_id: int | None = Field(
-        default=None, description="Variant ID to remove (alternative to old_sku)"
-    )
-    new_components: list[VariantSpec] = Field(
-        default_factory=list,
-        description="Replacement components to add. Empty list = pure removal.",
-    )
-    strict: bool = Field(
-        default=False,
-        description="If true, missing old variant in any MO is an error. "
-        "If false (default), missing is a skipped warning.",
-    )
-
-
-class ExplicitChange(BaseModel):
-    """Explicit per-MO list of row deletions and additions."""
-
-    manufacturing_order_id: int
-    remove_row_ids: CoercedIntList = Field(
-        default_factory=list,
-        description="JSON array of recipe row IDs to delete, e.g. [42, 87].",
-    )
-    add_variants: list[VariantSpec] = Field(default_factory=list)
-
-
-class BatchUpdateRecipesRequest(BaseModel):
-    """Batch update recipe rows across one or more manufacturing orders."""
-
-    replacements: list[VariantReplacement] = Field(default_factory=list)
-    changes: list[ExplicitChange] = Field(default_factory=list)
-    continue_on_error: bool = Field(
-        default=True,
-        description="If true, log and continue past failed sub-operations. "
-        "If false, abort on the first failure.",
-    )
-    confirm: bool = Field(
-        default=False,
-        description="Set false to preview, true to execute (single confirmation for batch)",
-    )
-
-
-class SubOpStatus(StrEnum):
-    PENDING = "pending"
-    SUCCESS = "success"
-    FAILED = "failed"
-    SKIPPED = "skipped"
-
-
-class OpType(StrEnum):
-    """Sub-operation type within a batch recipe update."""
-
-    DELETE = "delete"
-    ADD = "add"
-
-
-class SubOpResult(BaseModel):
-    """Result of a single delete or add within the batch."""
-
-    op_type: OpType
-    manufacturing_order_id: int
-    recipe_row_id: int | None = None  # existing row (delete) or new row (add result)
-    variant_id: int | None = None
-    sku: str | None = None
-    planned_quantity_per_unit: float | None = None
-    notes: str | None = None
-    status: SubOpStatus = SubOpStatus.PENDING
-    error: str | None = None
-    group_label: str | None = None
-
-
-class BatchUpdateRecipesResponse(BaseModel):
-    is_preview: bool
-    total_ops: int
-    success_count: int
-    failed_count: int
-    skipped_count: int
-    results: list[SubOpResult]
-    warnings: list[str] = Field(default_factory=list)
-    message: str
-
-
-def _format_group_label(
-    old_sku: str | None, old_variant_id: int, new_components: list[VariantSpec]
-) -> str:
-    """Build a human-readable label for a replacement group."""
-    old_label = old_sku or f"variant {old_variant_id}"
-    new_labels = [c.sku or f"variant {c.variant_id}" for c in new_components]
-    if not new_labels:
-        return f"Remove {old_label}"
-    return f"{old_label} → [{', '.join(new_labels)}]"
-
-
-async def _plan_batch_update(
-    request: BatchUpdateRecipesRequest, context: Context
-) -> tuple[list[SubOpResult], list[str]]:
-    """Resolve intent into a concrete, ordered sub-operation plan."""
-    services = get_services(context)
-    planned: list[SubOpResult] = []
-    warnings: list[str] = []
-
-    # Cache recipe fetches within this plan phase — if multiple replacements
-    # target the same MO, we only fetch its recipe once.
-    recipe_cache: dict[int, GetManufacturingOrderRecipeResponse] = {}
-
-    async def _get_cached_recipe(mo_id: int) -> GetManufacturingOrderRecipeResponse:
-        if mo_id not in recipe_cache:
-            recipe_cache[mo_id] = await _get_manufacturing_order_recipe_impl(
-                GetManufacturingOrderRecipeRequest(manufacturing_order_id=mo_id),
-                context,
-            )
-        return recipe_cache[mo_id]
-
-    # Phase A: expand replacements into per-MO delete+add ops
-    for rep in request.replacements:
-        # Resolve old variant
-        if rep.old_variant_id is not None:
-            old_variant_id = rep.old_variant_id
-        elif rep.old_sku:
-            variant = await services.cache.get_by_sku(sku=rep.old_sku)
-            if not variant:
-                raise ValueError(f"Old SKU '{rep.old_sku}' not found in cache")
-            old_variant_id = variant["id"]
-        else:
-            raise ValueError("Replacement requires old_sku or old_variant_id")
-
-        # Pre-resolve new components (eager validation)
-        resolved_new: list[tuple[int, str | None, float, str | None]] = []
-        for spec in rep.new_components:
-            v_id, sku, _ = await _resolve_variant_ref(
-                services, sku=spec.sku, variant_id=spec.variant_id
-            )
-            resolved_new.append((v_id, sku, spec.planned_quantity_per_unit, spec.notes))
-
-        group_label = _format_group_label(
-            rep.old_sku, old_variant_id, rep.new_components
-        )
-
-        for mo_id in rep.manufacturing_order_ids:
-            # Fetch the MO's recipe (cached per-MO to avoid duplicates)
-            try:
-                recipe = await _get_cached_recipe(mo_id)
-            except Exception as e:
-                msg = f"MO {mo_id}: failed to fetch recipe: {e}"
-                if rep.strict:
-                    raise ValueError(msg) from e
-                warnings.append(msg)
-                continue
-
-            matching_rows = [r for r in recipe.rows if r.variant_id == old_variant_id]
-
-            if not matching_rows:
-                msg = f"MO {mo_id}: old variant {old_variant_id} not in recipe"
-                if rep.strict:
-                    raise ValueError(msg)
-                warnings.append(msg + " — skipping")
-                for v_id, sku, qty, notes in resolved_new:
-                    planned.append(
-                        SubOpResult(
-                            op_type=OpType.ADD,
-                            manufacturing_order_id=mo_id,
-                            variant_id=v_id,
-                            sku=sku,
-                            planned_quantity_per_unit=qty,
-                            notes=notes,
-                            status=SubOpStatus.SKIPPED,
-                            group_label=group_label,
-                            error="Old variant not present in this MO",
-                        )
-                    )
-                continue
-
-            for row in matching_rows:
-                planned.append(
-                    SubOpResult(
-                        op_type=OpType.DELETE,
-                        manufacturing_order_id=mo_id,
-                        recipe_row_id=row.id,
-                        variant_id=row.variant_id,
-                        sku=row.sku,
-                        group_label=group_label,
-                    )
-                )
-            for v_id, sku, qty, notes in resolved_new:
-                planned.append(
-                    SubOpResult(
-                        op_type=OpType.ADD,
-                        manufacturing_order_id=mo_id,
-                        variant_id=v_id,
-                        sku=sku,
-                        planned_quantity_per_unit=qty,
-                        notes=notes,
-                        group_label=group_label,
-                    )
-                )
-
-    # Phase B: explicit changes (escape hatch)
-    for ch in request.changes:
-        group_label = f"MO {ch.manufacturing_order_id} explicit"
-        for row_id in ch.remove_row_ids:
-            planned.append(
-                SubOpResult(
-                    op_type=OpType.DELETE,
-                    manufacturing_order_id=ch.manufacturing_order_id,
-                    recipe_row_id=row_id,
-                    group_label=group_label,
-                )
-            )
-        for spec in ch.add_variants:
-            v_id, sku, _ = await _resolve_variant_ref(
-                services, sku=spec.sku, variant_id=spec.variant_id
-            )
-            planned.append(
-                SubOpResult(
-                    op_type=OpType.ADD,
-                    manufacturing_order_id=ch.manufacturing_order_id,
-                    variant_id=v_id,
-                    sku=sku,
-                    planned_quantity_per_unit=spec.planned_quantity_per_unit,
-                    notes=spec.notes,
-                    group_label=group_label,
-                )
-            )
-
-    return planned, warnings
-
-
-async def _execute_batch_update(
-    planned: list[SubOpResult],
-    request: BatchUpdateRecipesRequest,
-    context: Context,
-) -> list[SubOpResult]:
-    """Execute the planned sub-ops, grouped by (mo_id, group_label).
-
-    Deletes first, then adds in REVERSE order so the final created_at DESC
-    ordering matches the user's intended sequence.
-    """
-    services = get_services(context)
-
-    # Bucket by (mo_id, group_label) preserving insertion order
-    buckets: dict[tuple[int, str], list[SubOpResult]] = {}
-    for op in planned:
-        if op.status == SubOpStatus.SKIPPED:
-            continue
-        key = (op.manufacturing_order_id, op.group_label or "")
-        buckets.setdefault(key, []).append(op)
-
-    aborted = False
-    for (mo_id, _group_label), ops in buckets.items():
-        if aborted:
-            for op in ops:
-                if op.status == SubOpStatus.PENDING:
-                    op.status = SubOpStatus.SKIPPED
-                    op.error = "Aborted after earlier failure"
-            continue
-
-        deletes = [o for o in ops if o.op_type == OpType.DELETE]
-        adds = [o for o in ops if o.op_type == OpType.ADD]
-
-        # Deletes first
-        for op in deletes:
-            try:
-                if op.recipe_row_id is None:
-                    raise ValueError("DELETE op requires recipe_row_id")
-                await _api_delete_recipe_row(services, op.recipe_row_id)
-                op.status = SubOpStatus.SUCCESS
-            except Exception as e:
-                op.status = SubOpStatus.FAILED
-                op.error = str(e)
-                logger.error(
-                    "batch_delete_failed",
-                    row_id=op.recipe_row_id,
-                    mo_id=mo_id,
-                    error=str(e),
-                )
-                if not request.continue_on_error:
-                    aborted = True
-                    break
-
-        if aborted:
-            for op in adds:
-                if op.status == SubOpStatus.PENDING:
-                    op.status = SubOpStatus.SKIPPED
-                    op.error = "Aborted after earlier failure"
-            continue
-
-        # Adds in REVERSE order — because GET returns by created_at DESC,
-        # the last-created row appears first, matching the user's intended order.
-        for op in reversed(adds):
-            try:
-                if op.variant_id is None:
-                    raise ValueError("ADD op requires variant_id")
-                if op.planned_quantity_per_unit is None:
-                    raise ValueError("ADD op requires planned_quantity_per_unit")
-                result = await _api_create_recipe_row(
-                    services,
-                    manufacturing_order_id=mo_id,
-                    variant_id=op.variant_id,
-                    planned_quantity_per_unit=op.planned_quantity_per_unit,
-                    notes=op.notes,
-                )
-                op.recipe_row_id = getattr(result, "id", None) if result else None
-                op.status = SubOpStatus.SUCCESS
-            except Exception as e:
-                op.status = SubOpStatus.FAILED
-                op.error = str(e)
-                logger.error(
-                    "batch_add_failed",
-                    variant_id=op.variant_id,
-                    mo_id=mo_id,
-                    error=str(e),
-                )
-                if not request.continue_on_error:
-                    aborted = True
-
-    return planned
-
-
-async def _batch_update_impl(
-    request: BatchUpdateRecipesRequest, context: Context
-) -> BatchUpdateRecipesResponse:
-    """Implementation of batch_update_manufacturing_order_recipes."""
-    if not request.replacements and not request.changes:
-        raise ValueError("Must provide at least one replacement or change")
-
-    # 0. Upfront estimate — reject oversized batches BEFORE planning fetches
-    # recipes for every MO. Each replacement generates (num_components + 1)
-    # ops per MO, doubled for delete+add pairing. The threshold is 4x
-    # MAX_BATCH_OPS because this estimate deliberately over-counts (the real
-    # plan may be smaller once duplicate rows are merged).
-    estimate = sum(
-        len(rep.manufacturing_order_ids) * (len(rep.new_components) + 1) * 2
-        for rep in request.replacements
-    ) + sum(len(ch.remove_row_ids) + len(ch.add_variants) for ch in request.changes)
-    if estimate > MAX_BATCH_OPS * 4:
-        raise ValueError(
-            f"Batch estimate is {estimate} operations, which exceeds "
-            f"{MAX_BATCH_OPS * 4} before planning. Split into smaller batches "
-            "so we don't fetch recipes for hundreds of MOs up front."
-        )
-
-    # 1. Plan
-    planned, warnings = await _plan_batch_update(request, context)
-    total = len(planned)
-
-    if total > MAX_BATCH_OPS:
-        raise ValueError(
-            f"Batch has {total} operations, exceeding MAX_BATCH_OPS={MAX_BATCH_OPS}. "
-            "Split into smaller batches."
-        )
-
-    # 2. Preview mode
-    if not request.confirm:
-        skipped = sum(1 for o in planned if o.status == SubOpStatus.SKIPPED)
-        return BatchUpdateRecipesResponse(
-            is_preview=True,
-            total_ops=total,
-            success_count=0,
-            failed_count=0,
-            skipped_count=skipped,
-            results=planned,
-            warnings=warnings,
-            message=f"Preview: {total} sub-operations planned. Set confirm=true to execute.",
-        )
-
-    results = await _execute_batch_update(planned, request, context)
-
-    # 5. Tally
-    success = sum(1 for r in results if r.status == SubOpStatus.SUCCESS)
-    failed = sum(1 for r in results if r.status == SubOpStatus.FAILED)
-    skipped = sum(1 for r in results if r.status == SubOpStatus.SKIPPED)
-    return BatchUpdateRecipesResponse(
-        is_preview=False,
-        total_ops=total,
-        success_count=success,
-        failed_count=failed,
-        skipped_count=skipped,
-        results=results,
-        warnings=warnings,
-        message=(
-            f"Batch update completed: {success} succeeded, "
-            f"{failed} failed, {skipped} skipped"
-        ),
-    )
-
-
-@observe_tool
-@unpack_pydantic_params
-async def batch_update_manufacturing_order_recipes(
-    request: Annotated[BatchUpdateRecipesRequest, Unpack()], context: Context
-) -> ToolResult:
-    """Batch update recipe rows across one or more manufacturing orders.
-
-    Two expression modes (mixable in one request):
-
-    - **replacements**: "replace variant X with [Y, Z] across these MOs" — ideal
-      for swapping a component across many MOs in one shot. Accepts old_sku or
-      old_variant_id, with a list of new_components (each with sku/variant_id
-      and planned_quantity_per_unit).
-    - **changes**: explicit per-MO row deletes and additions — escape hatch
-      for arbitrary edits.
-
-    Two-step flow: confirm=false to preview (resolves row IDs, shows full plan),
-    confirm=true to execute (single batch operation).
-
-    Semantics:
-    - Within a replacement group, old rows are deleted first, then new rows are
-      added in reverse order so they appear before the replaced row in Katana's
-      natural created_at DESC sort.
-    - Old variant appearing multiple times in an MO → all matches are deleted.
-    - Old variant not in an MO → skipped with warning (unless strict=true).
-    - No rollback. Every sub-op's final status is reported.
-    - continue_on_error=true (default): run all sub-ops, mixed results ok.
-    - continue_on_error=false: stop at first failure; remaining ops become SKIPPED.
-    """
-    from fastmcp.tools import ToolResult
-
-    from katana_mcp.tools.prefab_ui import (
-        build_batch_recipe_update_ui,
-        call_tool_from_request,
-    )
-
-    response = await _batch_update_impl(request, context)
-    ui = build_batch_recipe_update_ui(
-        response.model_dump(),
-        request=request.model_dump() if response.is_preview else None,
-        confirm_action=(
-            call_tool_from_request(
-                "batch_update_manufacturing_order_recipes",
-                BatchUpdateRecipesRequest,
-                overrides={"confirm": True},
-            )
-            if response.is_preview
-            else None
-        ),
-    )
-
-    return ToolResult(
-        content=response.model_dump_json(),
-        structured_content=ui,
-    )
-
-
-# ============================================================================
 # Tool: list_manufacturing_orders (list-tool pattern v2)
 # ============================================================================
 
@@ -3015,6 +2357,657 @@ async def list_blocking_ingredients(
     )
 
 
+# ============================================================================
+# Tool: modify_manufacturing_order — unified modification surface
+# ============================================================================
+
+
+class MOOperation(StrEnum):
+    """Operation names emitted on ActionSpecs by ``modify_manufacturing_order``
+    / ``delete_manufacturing_order`` plan builders."""
+
+    UPDATE_HEADER = "update_header"
+    DELETE = "delete"
+    ADD_RECIPE_ROW = "add_recipe_row"
+    UPDATE_RECIPE_ROW = "update_recipe_row"
+    DELETE_RECIPE_ROW = "delete_recipe_row"
+    ADD_OPERATION_ROW = "add_operation_row"
+    UPDATE_OPERATION_ROW = "update_operation_row"
+    DELETE_OPERATION_ROW = "delete_operation_row"
+    ADD_PRODUCTION = "add_production"
+    UPDATE_PRODUCTION = "update_production"
+    DELETE_PRODUCTION = "delete_production"
+
+
+# Tool-facing status literal — mirrors ManufacturingOrderStatus enum values.
+ManufacturingOrderStatusLiteral = Literal[
+    "NOT_STARTED", "IN_PROGRESS", "DONE", "BLOCKED", "PARTIALLY_COMPLETED"
+]
+
+_MO_STATUS_API_VALUE: dict[
+    ManufacturingOrderStatusLiteral, ManufacturingOrderStatus
+] = {
+    "NOT_STARTED": ManufacturingOrderStatus.NOT_STARTED,
+    "IN_PROGRESS": ManufacturingOrderStatus.IN_PROGRESS,
+    "DONE": ManufacturingOrderStatus.DONE,
+    "BLOCKED": ManufacturingOrderStatus.BLOCKED,
+    "PARTIALLY_COMPLETED": ManufacturingOrderStatus.PARTIALLY_COMPLETED,
+}
+
+# Operation-row status + type literals.
+ManufacturingOperationStatusLiteral = Literal[
+    "NOT_STARTED", "IN_PROGRESS", "BLOCKED", "COMPLETED"
+]
+
+ManufacturingOperationTypeLiteral = Literal["LINKED", "STANDARD"]
+
+
+# ----------------------------------------------------------------------------
+# Diff-context fetchers
+# ----------------------------------------------------------------------------
+
+
+async def _fetch_manufacturing_order_attrs(
+    services: Any, mo_id: int
+) -> ManufacturingOrder | None:
+    return await safe_fetch_for_diff(
+        api_get_manufacturing_order,
+        services,
+        mo_id,
+        return_type=ManufacturingOrder,
+        label="manufacturing order",
+    )
+
+
+async def _fetch_mo_recipe_row(
+    services: Any, row_id: int
+) -> ManufacturingOrderRecipeRow | None:
+    return await safe_fetch_for_diff(
+        api_get_mo_recipe_row,
+        services,
+        row_id,
+        return_type=ManufacturingOrderRecipeRow,
+        label="MO recipe row",
+    )
+
+
+async def _fetch_mo_operation_row(
+    services: Any, row_id: int
+) -> ManufacturingOrderOperationRow | None:
+    return await safe_fetch_for_diff(
+        api_get_mo_operation_row,
+        services,
+        row_id,
+        return_type=ManufacturingOrderOperationRow,
+        label="MO operation row",
+    )
+
+
+async def _fetch_mo_production(
+    services: Any, prod_id: int
+) -> ManufacturingOrderProduction | None:
+    return await safe_fetch_for_diff(
+        api_get_mo_production,
+        services,
+        prod_id,
+        return_type=ManufacturingOrderProduction,
+        label="MO production",
+    )
+
+
+# ----------------------------------------------------------------------------
+# Sub-payload models
+# ----------------------------------------------------------------------------
+
+
+class MOHeaderPatch(BaseModel):
+    """Header fields to patch on an MO. Status is included here — Katana's
+    PATCH /manufacturing_orders/{id} accepts it as a regular field."""
+
+    order_no: str | None = Field(default=None)
+    variant_id: int | None = Field(default=None)
+    location_id: int | None = Field(default=None)
+    status: ManufacturingOrderStatusLiteral | None = Field(
+        default=None,
+        description=(
+            "New status — NOT_STARTED / IN_PROGRESS / DONE / BLOCKED / "
+            "PARTIALLY_COMPLETED. Katana validates transitions server-side."
+        ),
+    )
+    planned_quantity: float | None = Field(default=None, gt=0)
+    actual_quantity: float | None = Field(default=None, ge=0)
+    order_created_date: datetime | None = Field(default=None)
+    production_deadline_date: datetime | None = Field(default=None)
+    done_date: datetime | None = Field(default=None)
+    additional_info: str | None = Field(default=None)
+
+
+class MORecipeRowAdd(BaseModel):
+    """A new recipe row (ingredient) on the MO."""
+
+    variant_id: int = Field(..., description="Variant ID of the ingredient")
+    planned_quantity_per_unit: float = Field(..., description="Quantity per unit", gt=0)
+    notes: str | None = Field(default=None)
+    total_actual_quantity: float | None = Field(default=None, ge=0)
+
+
+class MORecipeRowUpdate(BaseModel):
+    """Patch to an existing MO recipe row."""
+
+    id: int = Field(..., description="Recipe row ID")
+    variant_id: int | None = Field(default=None)
+    planned_quantity_per_unit: float | None = Field(default=None, gt=0)
+    notes: str | None = Field(default=None)
+    total_actual_quantity: float | None = Field(default=None, ge=0)
+
+
+class MOOperationRowAdd(BaseModel):
+    """A new operation row (production step) on the MO."""
+
+    status: ManufacturingOperationStatusLiteral = Field(
+        ..., description="Initial operation status"
+    )
+    operation_id: int | None = Field(default=None)
+    type: ManufacturingOperationTypeLiteral | None = Field(
+        default=None, description="LINKED (template) or STANDARD"
+    )
+    operation_name: str | None = Field(default=None)
+    resource_id: int | None = Field(default=None)
+    resource_name: str | None = Field(default=None)
+    planned_time_parameter: float | None = Field(default=None)
+    planned_time_per_unit: float | None = Field(default=None)
+    cost_parameter: float | None = Field(default=None)
+    cost_per_hour: float | None = Field(default=None)
+
+
+class MOOperationRowUpdate(BaseModel):
+    """Patch to an existing MO operation row."""
+
+    id: int = Field(..., description="Operation row ID")
+    status: ManufacturingOperationStatusLiteral | None = Field(default=None)
+    operation_id: int | None = Field(default=None)
+    type: ManufacturingOperationTypeLiteral | None = Field(default=None)
+    operation_name: str | None = Field(default=None)
+    resource_id: int | None = Field(default=None)
+    resource_name: str | None = Field(default=None)
+    planned_time_parameter: float | None = Field(default=None)
+    planned_time_per_unit: float | None = Field(default=None)
+    total_actual_time: float | None = Field(default=None)
+    cost_parameter: float | None = Field(default=None)
+    cost_per_hour: float | None = Field(default=None)
+
+
+class MOProductionAdd(BaseModel):
+    """A new production record on the MO (output completed quantity)."""
+
+    completed_quantity: float = Field(
+        ..., description="Quantity produced in this production record", gt=0
+    )
+    completed_date: datetime | None = Field(default=None)
+    is_final: bool | None = Field(
+        default=None,
+        description="When true, marks this as the final production record",
+    )
+    serial_numbers: list[str] | None = Field(
+        default=None, description="Serial numbers for serial-tracked variants"
+    )
+
+
+class MOProductionUpdate(BaseModel):
+    """Patch to an existing MO production record."""
+
+    id: int = Field(..., description="Production record ID")
+    production_date: datetime | None = Field(default=None)
+
+
+class ModifyManufacturingOrderRequest(ConfirmableRequest):
+    """Unified modification request for a manufacturing order.
+
+    Sub-payload slots span header + recipe rows (ingredients) + operation
+    rows (production steps) + production records (completion logs).
+    Multiple slots can be combined; actions execute in canonical order. To
+    remove the MO entirely, use ``delete_manufacturing_order``.
+    """
+
+    id: int = Field(..., description="Manufacturing order ID")
+    update_header: MOHeaderPatch | None = Field(default=None)
+    add_recipe_rows: list[MORecipeRowAdd] | None = Field(default=None)
+    update_recipe_rows: list[MORecipeRowUpdate] | None = Field(default=None)
+    delete_recipe_row_ids: list[int] | None = Field(default=None)
+    add_operation_rows: list[MOOperationRowAdd] | None = Field(default=None)
+    update_operation_rows: list[MOOperationRowUpdate] | None = Field(default=None)
+    delete_operation_row_ids: list[int] | None = Field(default=None)
+    add_productions: list[MOProductionAdd] | None = Field(default=None)
+    update_productions: list[MOProductionUpdate] | None = Field(default=None)
+    delete_production_ids: list[int] | None = Field(default=None)
+
+
+class DeleteManufacturingOrderRequest(ConfirmableRequest):
+    """Delete a manufacturing order. Destructive — Katana cascades child
+    recipe rows / operation rows / production records server-side.
+    """
+
+    id: int = Field(..., description="Manufacturing order ID to delete")
+
+
+# ----------------------------------------------------------------------------
+# API request builders
+# ----------------------------------------------------------------------------
+
+
+def _build_update_header_request(
+    patch: MOHeaderPatch,
+) -> APIUpdateManufacturingOrderRequest:
+    api_status = (
+        _MO_STATUS_API_VALUE[patch.status] if patch.status is not None else None
+    )
+    return APIUpdateManufacturingOrderRequest(
+        order_no=to_unset(patch.order_no),
+        variant_id=to_unset(patch.variant_id),
+        location_id=to_unset(patch.location_id),
+        status=to_unset(api_status),
+        planned_quantity=to_unset(patch.planned_quantity),
+        actual_quantity=to_unset(patch.actual_quantity),
+        order_created_date=to_unset(patch.order_created_date),
+        production_deadline_date=to_unset(patch.production_deadline_date),
+        done_date=to_unset(patch.done_date),
+        additional_info=to_unset(patch.additional_info),
+    )
+
+
+def _build_create_recipe_row_request(
+    mo_id: int, row: MORecipeRowAdd
+) -> APICreateMORecipeRowRequest:
+    return APICreateMORecipeRowRequest(
+        manufacturing_order_id=mo_id,
+        variant_id=row.variant_id,
+        planned_quantity_per_unit=row.planned_quantity_per_unit,
+        notes=to_unset(row.notes),
+        total_actual_quantity=to_unset(row.total_actual_quantity),
+    )
+
+
+def _build_update_recipe_row_request(
+    patch: MORecipeRowUpdate,
+) -> APIUpdateMORecipeRowRequest:
+    return APIUpdateMORecipeRowRequest(
+        variant_id=to_unset(patch.variant_id),
+        notes=to_unset(patch.notes),
+        planned_quantity_per_unit=to_unset(patch.planned_quantity_per_unit),
+        total_actual_quantity=to_unset(patch.total_actual_quantity),
+    )
+
+
+def _build_create_operation_row_request(
+    mo_id: int, row: MOOperationRowAdd
+) -> APICreateMOOperationRowRequest:
+    api_status_class = ManufacturingOperationStatus  # alias to keep line short
+    api_status = api_status_class(row.status)
+    api_type = ManufacturingOperationType(row.type) if row.type is not None else None
+    return APICreateMOOperationRowRequest(
+        manufacturing_order_id=mo_id,
+        status=api_status,
+        operation_id=to_unset(row.operation_id),
+        type_=to_unset(api_type),
+        operation_name=to_unset(row.operation_name),
+        resource_id=to_unset(row.resource_id),
+        resource_name=to_unset(row.resource_name),
+        planned_time_parameter=to_unset(row.planned_time_parameter),
+        planned_time_per_unit=to_unset(row.planned_time_per_unit),
+        cost_parameter=to_unset(row.cost_parameter),
+        cost_per_hour=to_unset(row.cost_per_hour),
+    )
+
+
+def _build_update_operation_row_request(
+    patch: MOOperationRowUpdate,
+) -> APIUpdateMOOperationRowRequest:
+    api_status = (
+        ManufacturingOperationStatus(patch.status) if patch.status is not None else None
+    )
+    api_type = (
+        ManufacturingOperationType(patch.type) if patch.type is not None else None
+    )
+    return APIUpdateMOOperationRowRequest(
+        operation_id=to_unset(patch.operation_id),
+        type_=to_unset(api_type),
+        operation_name=to_unset(patch.operation_name),
+        resource_id=to_unset(patch.resource_id),
+        resource_name=to_unset(patch.resource_name),
+        planned_time_parameter=to_unset(patch.planned_time_parameter),
+        planned_time_per_unit=to_unset(patch.planned_time_per_unit),
+        total_actual_time=to_unset(patch.total_actual_time),
+        cost_parameter=to_unset(patch.cost_parameter),
+        cost_per_hour=to_unset(patch.cost_per_hour),
+        status=to_unset(api_status),
+    )
+
+
+def _build_create_production_request(
+    mo_id: int, prod: MOProductionAdd
+) -> APICreateMOProductionRequest:
+    return APICreateMOProductionRequest(
+        manufacturing_order_id=mo_id,
+        completed_quantity=prod.completed_quantity,
+        completed_date=to_unset(prod.completed_date),
+        is_final=to_unset(prod.is_final),
+        serial_numbers=to_unset(prod.serial_numbers),
+    )
+
+
+def _build_update_production_request(
+    patch: MOProductionUpdate,
+) -> APIUpdateMOProductionRequest:
+    return APIUpdateMOProductionRequest(
+        production_date=to_unset(patch.production_date),
+    )
+
+
+# ----------------------------------------------------------------------------
+# Implementation
+# ----------------------------------------------------------------------------
+
+
+async def _modify_manufacturing_order_impl(
+    request: ModifyManufacturingOrderRequest, context: Context
+) -> ModificationResponse:
+    """Build the action plan from sub-payloads and either preview or execute."""
+    services = get_services(context)
+
+    if not has_any_subpayload(request):
+        raise ValueError(
+            "At least one sub-payload must be set: update_header, "
+            "add/update/delete_recipe_rows, "
+            "add/update/delete_operation_rows, or "
+            "add/update/delete_productions. To remove the MO entirely, use "
+            "delete_manufacturing_order."
+        )
+
+    existing_mo = await _fetch_manufacturing_order_attrs(services, request.id)
+
+    plan: list[ActionSpec] = []
+
+    if request.update_header is not None:
+        diff = compute_field_diff(
+            existing_mo, request.update_header, unknown_prior=existing_mo is None
+        )
+        plan.append(
+            ActionSpec(
+                operation=MOOperation.UPDATE_HEADER,
+                target_id=request.id,
+                diff=diff,
+                apply=make_patch_apply(
+                    api_update_manufacturing_order,
+                    services,
+                    request.id,
+                    _build_update_header_request(request.update_header),
+                    return_type=ManufacturingOrder,
+                ),
+                verify=make_response_verifier(diff),
+            )
+        )
+
+    # Recipe rows.
+    plan.extend(
+        plan_creates(
+            request.add_recipe_rows,
+            MOOperation.ADD_RECIPE_ROW,
+            lambda row: _build_create_recipe_row_request(request.id, row),
+            lambda body: make_post_apply(
+                api_create_mo_recipe_row,
+                services,
+                body,
+                return_type=ManufacturingOrderRecipeRow,
+            ),
+        )
+    )
+    plan.extend(
+        await plan_updates(
+            request.update_recipe_rows,
+            MOOperation.UPDATE_RECIPE_ROW,
+            lambda rid: _fetch_mo_recipe_row(services, rid),
+            _build_update_recipe_row_request,
+            lambda rid, body: make_patch_apply(
+                api_update_mo_recipe_row,
+                services,
+                rid,
+                body,
+                return_type=ManufacturingOrderRecipeRow,
+            ),
+        )
+    )
+    plan.extend(
+        plan_deletes(
+            request.delete_recipe_row_ids,
+            MOOperation.DELETE_RECIPE_ROW,
+            lambda rid: make_delete_apply(api_delete_mo_recipe_row, services, rid),
+        )
+    )
+
+    # Operation rows.
+    plan.extend(
+        plan_creates(
+            request.add_operation_rows,
+            MOOperation.ADD_OPERATION_ROW,
+            lambda row: _build_create_operation_row_request(request.id, row),
+            lambda body: make_post_apply(
+                api_create_mo_operation_row,
+                services,
+                body,
+                return_type=ManufacturingOrderOperationRow,
+            ),
+        )
+    )
+    plan.extend(
+        await plan_updates(
+            request.update_operation_rows,
+            MOOperation.UPDATE_OPERATION_ROW,
+            lambda rid: _fetch_mo_operation_row(services, rid),
+            _build_update_operation_row_request,
+            lambda rid, body: make_patch_apply(
+                api_update_mo_operation_row,
+                services,
+                rid,
+                body,
+                return_type=ManufacturingOrderOperationRow,
+            ),
+        )
+    )
+    plan.extend(
+        plan_deletes(
+            request.delete_operation_row_ids,
+            MOOperation.DELETE_OPERATION_ROW,
+            lambda rid: make_delete_apply(api_delete_mo_operation_row, services, rid),
+        )
+    )
+
+    # Production records.
+    plan.extend(
+        plan_creates(
+            request.add_productions,
+            MOOperation.ADD_PRODUCTION,
+            lambda prod: _build_create_production_request(request.id, prod),
+            lambda body: make_post_apply(
+                api_create_mo_production,
+                services,
+                body,
+                return_type=ManufacturingOrderProduction,
+            ),
+        )
+    )
+    plan.extend(
+        await plan_updates(
+            request.update_productions,
+            MOOperation.UPDATE_PRODUCTION,
+            lambda pid: _fetch_mo_production(services, pid),
+            _build_update_production_request,
+            lambda pid, body: make_patch_apply(
+                api_update_mo_production,
+                services,
+                pid,
+                body,
+                return_type=ManufacturingOrderProduction,
+            ),
+        )
+    )
+    plan.extend(
+        plan_deletes(
+            request.delete_production_ids,
+            MOOperation.DELETE_PRODUCTION,
+            lambda pid: make_delete_apply(api_delete_mo_production, services, pid),
+        )
+    )
+
+    katana_url = katana_web_url("manufacturing_order", request.id)
+    warnings = (
+        [
+            f"Could not fetch manufacturing order {request.id} for diff context — "
+            "preview shows requested values without prior state."
+        ]
+        if existing_mo is None
+        else []
+    )
+
+    if not request.confirm:
+        return ModificationResponse(
+            entity_type="manufacturing_order",
+            entity_id=request.id,
+            is_preview=True,
+            actions=plan_to_preview_results(plan),
+            warnings=warnings,
+            next_actions=[
+                f"Review {len(plan)} planned action(s)",
+                "Set confirm=true to execute the plan",
+            ],
+            katana_url=katana_url,
+            message=(
+                f"Preview: {len(plan)} action(s) planned for manufacturing order "
+                f"{request.id}"
+            ),
+        )
+
+    prior_state = serialize_for_prior_state(existing_mo)
+    actions = await execute_plan(plan)
+    message, next_actions = summarize_modify_outcome(
+        actions,
+        len(plan),
+        entity_label=f"manufacturing order {request.id}",
+        tool_name="modify_manufacturing_order",
+    )
+
+    return ModificationResponse(
+        entity_type="manufacturing_order",
+        entity_id=request.id,
+        is_preview=False,
+        actions=actions,
+        prior_state=prior_state,
+        warnings=warnings,
+        next_actions=next_actions,
+        katana_url=katana_url,
+        message=message,
+    )
+
+
+@observe_tool
+@unpack_pydantic_params
+async def modify_manufacturing_order(
+    request: Annotated[ModifyManufacturingOrderRequest, Unpack()], context: Context
+) -> ToolResult:
+    """Modify a manufacturing order — unified surface across header, recipe
+    rows (ingredients), operation rows (production steps), and production
+    records (completion logs).
+
+    Sub-payloads (any subset, all optional):
+
+    - ``update_header`` — patch header fields (incl. status)
+    - ``add_recipe_rows`` / ``update_recipe_rows`` /
+      ``delete_recipe_row_ids`` — ingredients
+    - ``add_operation_rows`` / ``update_operation_rows`` /
+      ``delete_operation_row_ids`` — production steps
+    - ``add_productions`` / ``update_productions`` /
+      ``delete_production_ids`` — completion logs (output records)
+
+    To remove an MO entirely, use the sibling ``delete_manufacturing_order``
+    tool.
+
+    Two-step flow: ``confirm=false`` returns a per-action preview;
+    ``confirm=true`` executes the plan in canonical order. Fail-fast on
+    error; the response carries a ``prior_state`` snapshot for manual
+    revert.
+    """
+    response = await _modify_manufacturing_order_impl(request, context)
+    return to_tool_result(response)
+
+
+# ============================================================================
+# Tool: delete_manufacturing_order
+# ============================================================================
+
+
+async def _delete_manufacturing_order_impl(
+    request: DeleteManufacturingOrderRequest, context: Context
+) -> ModificationResponse:
+    """One-action plan that removes the MO. Katana cascades child rows
+    server-side."""
+    services = get_services(context)
+
+    existing_mo = await _fetch_manufacturing_order_attrs(services, request.id)
+    plan = plan_deletes(
+        [request.id],
+        MOOperation.DELETE,
+        lambda mo_id: make_delete_apply(
+            api_delete_manufacturing_order, services, mo_id
+        ),
+    )
+    katana_url = katana_web_url("manufacturing_order", request.id)
+
+    if not request.confirm:
+        return ModificationResponse(
+            entity_type="manufacturing_order",
+            entity_id=request.id,
+            is_preview=True,
+            actions=plan_to_preview_results(plan),
+            next_actions=[
+                "Review the deletion",
+                "Set confirm=true to delete the manufacturing order",
+            ],
+            katana_url=katana_url,
+            message=f"Preview: delete manufacturing order {request.id}",
+        )
+
+    prior_state = serialize_for_prior_state(existing_mo)
+    actions = await execute_plan(plan)
+    message, next_actions = summarize_delete_outcome(
+        actions, entity_label=f"manufacturing order {request.id}"
+    )
+
+    return ModificationResponse(
+        entity_type="manufacturing_order",
+        entity_id=request.id,
+        is_preview=False,
+        actions=actions,
+        prior_state=prior_state,
+        next_actions=next_actions,
+        katana_url=None if all(a.succeeded for a in actions) else katana_url,
+        message=message,
+    )
+
+
+@observe_tool
+@unpack_pydantic_params
+async def delete_manufacturing_order(
+    request: Annotated[DeleteManufacturingOrderRequest, Unpack()], context: Context
+) -> ToolResult:
+    """Delete a manufacturing order. Destructive — Katana cascades the
+    delete to child recipe rows / operation rows / production records
+    server-side.
+
+    The response carries a ``prior_state`` snapshot for manual revert.
+    """
+    response = await _delete_manufacturing_order_impl(request, context)
+    return to_tool_result(response)
+
+
 def register_tools(mcp: FastMCP) -> None:
     """Register all manufacturing order tools with the FastMCP instance.
 
@@ -3057,16 +3050,17 @@ def register_tools(mcp: FastMCP) -> None:
         tags={"orders", "manufacturing", "read"},
         annotations=_read,
     )(get_manufacturing_order_recipe)
+
+    _update = ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=True,
+    )
+    mcp.tool(tags={"orders", "manufacturing", "write"}, annotations=_update)(
+        modify_manufacturing_order
+    )
     mcp.tool(
-        tags={"orders", "manufacturing", "write"},
-        annotations=_write,
-    )(add_manufacturing_order_recipe_row)
-    mcp.tool(
-        tags={"orders", "manufacturing", "write"},
+        tags={"orders", "manufacturing", "write", "destructive"},
         annotations=_destructive_write,
-    )(delete_manufacturing_order_recipe_row)
-    mcp.tool(
-        tags={"orders", "manufacturing", "write", "batch"},
-        annotations=_destructive_write,
-        meta=UI_META,
-    )(batch_update_manufacturing_order_recipes)
+    )(delete_manufacturing_order)

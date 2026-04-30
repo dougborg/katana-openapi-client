@@ -40,7 +40,6 @@ UI_TOOL_NAMES = {
     "receive_purchase_order",
     "verify_order_document",
     "create_manufacturing_order",
-    "batch_update_manufacturing_order_recipes",
     "fulfill_order",
 }
 
