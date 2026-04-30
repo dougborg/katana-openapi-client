@@ -14,6 +14,7 @@ Consolidates:
 All endpoint testing is now parameterized for complete equality and automatic scaling.
 """
 
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -21,12 +22,24 @@ import pytest
 import yaml
 
 
-def pytest_generate_tests(metafunc):
-    """Generate parameterized tests for endpoints."""
-    # Load OpenAPI spec
+@lru_cache(maxsize=1)
+def _load_spec_for_collection() -> dict[str, Any]:
+    """Module-level cached spec loader for ``pytest_generate_tests``.
+
+    The hook can fire multiple times during collection (once per
+    parametrizable test function in this module). Without caching, each
+    call re-reads + re-parses the (large) OpenAPI YAML. The session-scoped
+    ``openapi_spec`` fixture in ``conftest.py`` doesn't help here because
+    fixtures aren't accessible from collection-time hooks.
+    """
     spec_path = Path(__file__).parent.parent / "docs" / "katana-openapi.yaml"
     with open(spec_path, encoding="utf-8") as f:
-        spec = yaml.safe_load(f)
+        return yaml.safe_load(f)
+
+
+def pytest_generate_tests(metafunc):
+    """Generate parameterized tests for endpoints."""
+    spec = _load_spec_for_collection()
 
     if "endpoint_info" in metafunc.fixturenames:
         # Generate endpoint tuples (path, method, operation_spec)

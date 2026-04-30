@@ -18,11 +18,13 @@ _SPEC_PATH = Path(__file__).parent.parent / "docs" / "katana-openapi.yaml"
 def openapi_spec() -> dict[str, Any]:
     """Parsed contents of ``docs/katana-openapi.yaml``.
 
-    Session-scoped so the (large) spec file is read and YAML-parsed exactly
-    once per pytest run, then shared across the ~7 test modules that
-    inspect it. Without this fixture each module loaded the spec
-    independently — ~0.5s per load times 7 modules dominated the slow-test
-    list (~3-4s of repeated work per ``poe test`` run).
+    Session-scoped so the (large) spec file is read and YAML-parsed once
+    per worker process (or once total in single-process mode — pytest-xdist
+    runs session fixtures once per worker, not once per ``pytest`` invocation),
+    then shared across the ~7 test modules that inspect it. Without this
+    fixture each module loaded the spec independently — ~0.5s per load
+    times 7 modules dominated the slow-test list (~3-4s of repeated work
+    per ``poe test`` run).
     """
     with open(_SPEC_PATH, encoding="utf-8") as f:
         return yaml.safe_load(f)
