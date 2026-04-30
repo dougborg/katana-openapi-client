@@ -500,7 +500,7 @@ class TestServerRegistration:
             "search_items",
             "create_item",
             "get_item",
-            "update_item",
+            "modify_item",
             "delete_item",
             "get_variant_details",
             "check_inventory",

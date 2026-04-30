@@ -17,6 +17,27 @@ from pydantic import BaseModel, Field
 from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.tools._modification import (
+    ConfirmableRequest,
+    ModificationResponse,
+    compute_field_diff,
+    make_response_verifier,
+    to_tool_result,
+)
+from katana_mcp.tools._modification_dispatch import (
+    ActionSpec,
+    has_any_subpayload,
+    make_delete_apply,
+    make_patch_apply,
+    make_post_apply,
+    plan_creates,
+    plan_deletes,
+    plan_updates,
+    run_delete_plan,
+    run_modify_plan,
+    safe_fetch_for_diff,
+    unset_dict,
+)
 from katana_mcp.tools.decorators import cache_read
 from katana_mcp.tools.list_coercion import CoercedIntListOpt, CoercedStrListOpt
 from katana_mcp.tools.tool_result_utils import (
@@ -27,29 +48,45 @@ from katana_mcp.tools.tool_result_utils import (
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_mcp.web_urls import EntityKind, katana_web_url
+from katana_public_api_client.api.material import (
+    delete_material as api_delete_material,
+    get_material as api_get_material,
+    update_material as api_update_material,
+)
+from katana_public_api_client.api.product import (
+    delete_product as api_delete_product,
+    get_product as api_get_product,
+    update_product as api_update_product,
+)
+from katana_public_api_client.api.services import (
+    delete_service as api_delete_service,
+    get_service as api_get_service,
+    update_service as api_update_service,
+)
+from katana_public_api_client.api.variant import (
+    create_variant as api_create_variant,
+    delete_variant as api_delete_variant,
+    get_variant as api_get_variant,
+    update_variant as api_update_variant,
+)
 from katana_public_api_client.domain.converters import to_unset
 from katana_public_api_client.models import (
     CreateMaterialRequest,
     CreateProductRequest,
     CreateServiceRequest,
     CreateServiceVariantRequest,
-    CreateVariantRequest,
+    CreateVariantRequest as APICreateVariantRequest,
+    Material,
+    Product,
+    Service,
+    UpdateMaterialRequest as APIUpdateMaterialRequest,
+    UpdateProductRequest as APIUpdateProductRequest,
+    UpdateServiceRequest as APIUpdateServiceRequest,
+    UpdateVariantRequest as APIUpdateVariantRequest,
+    Variant,
 )
 
 logger = get_logger(__name__)
-
-
-def _get_type_helper(client: Any, item_type: ItemType) -> Any:
-    """Get the client helper for an item type (products, materials, or services)."""
-    helpers = {
-        ItemType.PRODUCT: "products",
-        ItemType.MATERIAL: "materials",
-        ItemType.SERVICE: "services",
-    }
-    attr = helpers.get(item_type)
-    if not attr:
-        raise ValueError(f"Invalid item type: {item_type}")
-    return getattr(client, attr)
 
 
 # ============================================================================
@@ -255,7 +292,7 @@ async def _create_item_impl(
         )
         result = await services.client.services.create(api_request)
     else:
-        variant = CreateVariantRequest(
+        variant = APICreateVariantRequest(
             sku=request.sku,
             sales_price=to_unset(request.sales_price),
             purchase_price=to_unset(request.purchase_price),
@@ -625,260 +662,451 @@ async def get_item(
 
 
 # ============================================================================
-# Tool 4: update_item
+# Tool: modify_item — unified modification surface
 # ============================================================================
 
 
-class UpdateItemRequest(BaseModel):
-    """Request to update an item."""
+class ItemOperation(StrEnum):
+    """Operation names emitted on ActionSpecs by ``modify_item`` /
+    ``delete_item`` plan builders."""
 
-    id: int = Field(..., description="Item ID")
-    type: ItemType = Field(..., description="Type of item")
-    name: str | None = Field(None, description="New item name")
-    uom: str | None = Field(None, description="New unit of measure")
-    category_name: str | None = Field(None, description="New category")
-    is_sellable: bool | None = Field(None, description="Whether item can be sold")
-    is_producible: bool | None = Field(
-        None, description="Can be manufactured (products only)"
-    )
-    is_purchasable: bool | None = Field(None, description="Can be purchased")
-    default_supplier_id: int | None = Field(None, description="Default supplier ID")
-    additional_info: str | None = Field(None, description="Additional notes")
-    # Variant-level fields — resolved automatically via SKU or first variant
+    UPDATE_HEADER = "update_header"
+    DELETE = "delete"
+    ADD_VARIANT = "add_variant"
+    UPDATE_VARIANT = "update_variant"
+    DELETE_VARIANT = "delete_variant"
+
+
+# Per-type endpoint routing for header update / get / delete. The variant
+# endpoints (``/variant`` family) are shared across types, so they're not
+# part of this table.
+_TYPE_ENDPOINTS: dict[ItemType, dict[str, Any]] = {
+    ItemType.PRODUCT: {
+        "get": api_get_product,
+        "update": api_update_product,
+        "delete": api_delete_product,
+        "return_type": Product,
+        "update_request": APIUpdateProductRequest,
+        "label": "product",
+        "web_url_kind": "product",
+    },
+    ItemType.MATERIAL: {
+        "get": api_get_material,
+        "update": api_update_material,
+        "delete": api_delete_material,
+        "return_type": Material,
+        "update_request": APIUpdateMaterialRequest,
+        "label": "material",
+        "web_url_kind": "material",
+    },
+    ItemType.SERVICE: {
+        "get": api_get_service,
+        "update": api_update_service,
+        "delete": api_delete_service,
+        "return_type": Service,
+        "update_request": APIUpdateServiceRequest,
+        "label": "service",
+        # Services have no Katana web page; downstream callers handle a
+        # ``None`` web_url_kind by emitting ``katana_url=None``.
+        "web_url_kind": None,
+    },
+}
+
+
+# Header-patch fields that are valid only for specific types. Used by
+# ``ItemHeaderPatch.validate_for_type`` to reject obviously-misrouted
+# fields (e.g. ``is_producible`` on a SERVICE) before they reach the API.
+_PRODUCT_ONLY_FIELDS = (
+    "is_producible",
+    "is_purchasable",
+    "is_auto_assembly",
+    "serial_tracked",
+    "operations_in_sequence",
+)
+_PRODUCT_AND_MATERIAL_FIELDS = (
+    "default_supplier_id",
+    "batch_tracked",
+    "purchase_uom",
+    "purchase_uom_conversion_rate",
+)
+_SERVICE_ONLY_FIELDS = ("sales_price", "default_cost", "sku")
+
+
+class ItemHeaderPatch(BaseModel):
+    """Header fields to patch on an item.
+
+    The schema is a super-set across all three item types (product / material /
+    service); ``ModifyItemRequest`` validates that the supplied fields match
+    the chosen ``type`` at runtime. The split is in
+    ``_PRODUCT_ONLY_FIELDS`` / ``_PRODUCT_AND_MATERIAL_FIELDS`` /
+    ``_SERVICE_ONLY_FIELDS``.
+    """
+
+    name: str | None = Field(default=None, description="New item name")
+    uom: str | None = Field(default=None, description="New unit of measure")
+    category_name: str | None = Field(default=None, description="New category")
+    is_sellable: bool | None = Field(default=None)
+    is_archived: bool | None = Field(default=None)
+    additional_info: str | None = Field(default=None)
+    custom_field_collection_id: int | None = Field(default=None)
+
+    # Product + Material only:
+    default_supplier_id: int | None = Field(default=None)
+    batch_tracked: bool | None = Field(default=None)
+    purchase_uom: str | None = Field(default=None)
+    purchase_uom_conversion_rate: float | None = Field(default=None)
+
+    # Product only:
+    is_producible: bool | None = Field(default=None)
+    is_purchasable: bool | None = Field(default=None)
+    is_auto_assembly: bool | None = Field(default=None)
+    serial_tracked: bool | None = Field(default=None)
+    operations_in_sequence: bool | None = Field(default=None)
+
+    # Service only:
+    sales_price: float | None = Field(default=None)
+    default_cost: float | None = Field(default=None)
     sku: str | None = Field(
-        None,
-        description="SKU to identify which variant to update (uses first variant if omitted)",
-    )
-    supplier_item_codes: CoercedStrListOpt = Field(
         default=None,
-        description=(
-            'JSON array of supplier item codes, e.g. ["10654627", "10654628"]. '
-            "Replaces all existing codes for the variant."
-        ),
+        description="(SERVICE only) — services carry SKU on the header itself.",
     )
-    registered_barcode: str | None = Field(None, description="UPC / registered barcode")
-    internal_barcode: str | None = Field(None, description="Internal barcode")
-    sales_price: float | None = Field(None, description="Sales price")
-    purchase_price: float | None = Field(None, description="Purchase price")
-    lead_time: int | None = Field(None, description="Lead time in days")
 
-    @property
-    def has_variant_fields(self) -> bool:
-        """Check if any variant-level fields are set."""
-        return any(
-            v is not None
-            for v in [
-                self.supplier_item_codes,
-                self.registered_barcode,
-                self.internal_barcode,
-                self.sales_price,
-                self.purchase_price,
-                self.lead_time,
-            ]
+
+class VariantAdd(BaseModel):
+    """A new variant to attach to a product or material.
+
+    Variants are not supported on services — services carry their pricing
+    on the item header itself. The dispatcher injects ``product_id`` /
+    ``material_id`` based on the parent item type.
+    """
+
+    sku: str = Field(..., description="Variant SKU")
+    sales_price: float | None = Field(default=None)
+    purchase_price: float | None = Field(default=None)
+    supplier_item_codes: list[str] | None = Field(default=None)
+    internal_barcode: str | None = Field(default=None)
+    registered_barcode: str | None = Field(default=None)
+    lead_time: int | None = Field(default=None)
+    minimum_order_quantity: float | None = Field(default=None)
+
+
+class VariantUpdate(BaseModel):
+    """Patch to an existing variant."""
+
+    id: int = Field(..., description="Variant ID")
+    sku: str | None = Field(default=None)
+    sales_price: float | None = Field(default=None)
+    purchase_price: float | None = Field(default=None)
+    supplier_item_codes: list[str] | None = Field(default=None)
+    internal_barcode: str | None = Field(default=None)
+    registered_barcode: str | None = Field(default=None)
+    lead_time: int | None = Field(default=None)
+    minimum_order_quantity: float | None = Field(default=None)
+
+
+class ModifyItemRequest(ConfirmableRequest):
+    """Unified modification request for an item (product / material / service).
+
+    The ``type`` discriminator routes header updates to the matching
+    ``products`` / ``materials`` / ``services`` endpoint family. Variant
+    sub-payloads route to the shared ``/variant`` family — but only for
+    PRODUCT and MATERIAL (services don't expose variant CRUD via that
+    endpoint; their pricing lives on the header itself).
+
+    To remove an item entirely, use ``delete_item``.
+    """
+
+    id: int = Field(..., description="Item ID (parent product / material / service)")
+    type: ItemType = Field(..., description="Item type — drives endpoint routing")
+    update_header: ItemHeaderPatch | None = Field(default=None)
+    add_variants: list[VariantAdd] | None = Field(default=None)
+    update_variants: list[VariantUpdate] | None = Field(default=None)
+    delete_variant_ids: list[int] | None = Field(default=None)
+
+
+class DeleteItemRequest(ConfirmableRequest):
+    """Delete an item. Destructive — Katana cascades child variants."""
+
+    id: int = Field(..., description="Item ID to delete")
+    type: ItemType = Field(..., description="Item type — drives endpoint routing")
+
+
+def _validate_header_for_type(patch: ItemHeaderPatch, item_type: ItemType) -> None:
+    """Reject obviously-misrouted header fields before they reach the API.
+
+    The API will return a 422 for an invalid field anyway, but a ValueError
+    raised in the impl gives the caller a clearer message ("X is not valid
+    for SERVICE") and keeps the dispatcher's fail-fast log cleaner.
+    """
+    set_fields = {k for k, v in patch.model_dump().items() if v is not None}
+    invalid: list[tuple[str, str]] = []
+    if item_type == ItemType.SERVICE:
+        for field in _PRODUCT_ONLY_FIELDS + _PRODUCT_AND_MATERIAL_FIELDS:
+            if field in set_fields:
+                invalid.append((field, "PRODUCT/MATERIAL only"))
+    elif item_type == ItemType.MATERIAL:
+        for field in _PRODUCT_ONLY_FIELDS + _SERVICE_ONLY_FIELDS:
+            if field in set_fields:
+                invalid.append(
+                    (
+                        field,
+                        "PRODUCT-only"
+                        if field in _PRODUCT_ONLY_FIELDS
+                        else "SERVICE-only",
+                    )
+                )
+    elif item_type == ItemType.PRODUCT:
+        for field in _SERVICE_ONLY_FIELDS:
+            if field in set_fields:
+                invalid.append((field, "SERVICE-only"))
+
+    if invalid:
+        details = ", ".join(f"{f} ({reason})" for f, reason in invalid)
+        raise ValueError(
+            f"Header field(s) not valid for type={item_type.value}: {details}"
         )
 
 
-class UpdateItemResponse(BaseModel):
-    """Response from updating an item."""
+def _build_update_header_request(patch: ItemHeaderPatch, item_type: ItemType) -> Any:
+    """Map an ItemHeaderPatch to the right Update*Request attrs class.
 
-    id: int
-    name: str
-    type: ItemType
-    success: bool = True
-    message: str = "Item updated successfully"
-    katana_url: str | None = None
+    Each type has a different field set; ``unset_dict`` filters down to
+    the actual fields the API accepts after we've validated routing.
+    """
+    request_cls = _TYPE_ENDPOINTS[item_type]["update_request"]
+    # Compute the type-specific allowed field set by excluding fields that
+    # don't apply.
+    if item_type == ItemType.PRODUCT:
+        exclude = _SERVICE_ONLY_FIELDS
+    elif item_type == ItemType.MATERIAL:
+        exclude = _PRODUCT_ONLY_FIELDS + _SERVICE_ONLY_FIELDS
+    else:  # SERVICE
+        exclude = _PRODUCT_ONLY_FIELDS + _PRODUCT_AND_MATERIAL_FIELDS
+    return request_cls(**unset_dict(patch, exclude=exclude))
 
 
-async def _update_item_impl(
-    request: UpdateItemRequest, context: Context
-) -> UpdateItemResponse:
-    """Update an item's properties."""
-    from katana_public_api_client.models import (
-        UpdateMaterialRequest,
-        UpdateProductRequest,
-        UpdateServiceRequest,
+def _build_create_variant_request(
+    parent_id: int, item_type: ItemType, variant: VariantAdd
+) -> APICreateVariantRequest:
+    """Build a CreateVariantRequest with parent_id wired into the right slot.
+
+    The Katana ``/variant`` POST takes ``product_id`` *or* ``material_id``
+    on the request body to identify the parent. ``modify_item`` infers
+    that from the item ``type`` so the caller doesn't have to.
+    """
+    extra: dict[str, Any] = {}
+    if item_type == ItemType.PRODUCT:
+        extra["product_id"] = parent_id
+    elif item_type == ItemType.MATERIAL:
+        extra["material_id"] = parent_id
+    return APICreateVariantRequest(**unset_dict(variant), **extra)
+
+
+def _build_update_variant_request(patch: VariantUpdate) -> APIUpdateVariantRequest:
+    return APIUpdateVariantRequest(**unset_dict(patch, exclude=("id",)))
+
+
+async def _fetch_item_for_diff(services: Any, item_id: int, item_type: ItemType) -> Any:
+    """Best-effort fetch of the parent item for diff context."""
+    cfg = _TYPE_ENDPOINTS[item_type]
+    return await safe_fetch_for_diff(
+        cfg["get"],
+        services,
+        item_id,
+        return_type=cfg["return_type"],
+        label=cfg["label"],
     )
 
+
+async def _fetch_variant_for_diff(services: Any, variant_id: int) -> Variant | None:
+    return await safe_fetch_for_diff(
+        api_get_variant,
+        services,
+        variant_id,
+        return_type=Variant,
+        label="variant",
+    )
+
+
+async def _modify_item_impl(
+    request: ModifyItemRequest, context: Context
+) -> ModificationResponse:
+    """Build the action plan for an item modify and either preview or execute.
+
+    Type discriminator routes header endpoints; variant sub-payloads route
+    to the shared ``/variant`` family. SERVICE rejects variant CRUD up
+    front (Katana doesn't expose ``/variant`` POST/PATCH/DELETE for
+    services).
+    """
     services = get_services(context)
-    helper = _get_type_helper(services.client, request.type)
 
-    # Build type-specific update request (each type has different fields)
-    common = {
-        "name": to_unset(request.name),
-        "uom": to_unset(request.uom),
-        "category_name": to_unset(request.category_name),
-        "is_sellable": to_unset(request.is_sellable),
-    }
-
-    if request.type == ItemType.PRODUCT:
-        update_data = UpdateProductRequest(
-            **common,
-            is_producible=to_unset(request.is_producible),
-            is_purchasable=to_unset(request.is_purchasable),
-            default_supplier_id=to_unset(request.default_supplier_id),
-            additional_info=to_unset(request.additional_info),
+    if not has_any_subpayload(request, exclude=("id", "type", "confirm")):
+        raise ValueError(
+            "At least one sub-payload must be set: update_header, "
+            "add_variants, update_variants, or delete_variant_ids. "
+            "To remove the item entirely, use delete_item."
         )
-    elif request.type == ItemType.MATERIAL:
-        update_data = UpdateMaterialRequest(
-            **common,
-            default_supplier_id=to_unset(request.default_supplier_id),
-            additional_info=to_unset(request.additional_info),
+
+    if request.type == ItemType.SERVICE and (
+        request.add_variants or request.update_variants or request.delete_variant_ids
+    ):
+        raise ValueError(
+            "Variant CRUD is not supported for SERVICE items — services "
+            "carry pricing on the header itself (sales_price, default_cost, sku)."
         )
-    else:
-        update_data = UpdateServiceRequest(**common)
 
-    # Check if any item-level fields are set
-    has_item_fields = any(
-        v is not None
-        for v in [
-            request.name,
-            request.uom,
-            request.category_name,
-            request.is_sellable,
-            request.is_producible,
-            request.is_purchasable,
-            request.default_supplier_id,
-            request.additional_info,
-        ]
-    )
+    if request.update_header is not None:
+        _validate_header_for_type(request.update_header, request.type)
 
-    item_name = ""
-    if has_item_fields:
-        result = await helper.update(request.id, update_data)
-        item_name = result.name or ""
+    cfg = _TYPE_ENDPOINTS[request.type]
+    existing_item = await _fetch_item_for_diff(services, request.id, request.type)
 
-    # Update variant-level fields if any are provided
-    if request.has_variant_fields:
-        from katana_public_api_client.api.variant import update_variant
-        from katana_public_api_client.models.update_variant_request import (
-            UpdateVariantRequest,
+    plan: list[ActionSpec] = []
+
+    if request.update_header is not None:
+        diff = compute_field_diff(
+            existing_item, request.update_header, unknown_prior=existing_item is None
         )
-        from katana_public_api_client.utils import unwrap
-
-        # Variant-level fields require SKU to identify which variant to update.
-        # request.id is the parent item ID, not a variant ID.
-        if not request.sku:
-            raise ValueError(
-                "Variant-level updates (barcodes, supplier codes, prices) "
-                "require 'sku' to identify the variant."
+        plan.append(
+            ActionSpec(
+                operation=ItemOperation.UPDATE_HEADER,
+                target_id=request.id,
+                diff=diff,
+                apply=make_patch_apply(
+                    cfg["update"],
+                    services,
+                    request.id,
+                    _build_update_header_request(request.update_header, request.type),
+                    return_type=cfg["return_type"],
+                ),
+                verify=make_response_verifier(diff),
             )
-        variant = await services.cache.get_by_sku(sku=request.sku)
-        if not variant:
-            raise ValueError(f"SKU '{request.sku}' not found")
-        variant_id = variant["id"]
-
-        variant_update = UpdateVariantRequest(
-            supplier_item_codes=to_unset(request.supplier_item_codes),
-            registered_barcode=to_unset(request.registered_barcode),
-            internal_barcode=to_unset(request.internal_barcode),
-            sales_price=to_unset(request.sales_price),
-            purchase_price=to_unset(request.purchase_price),
-            lead_time=to_unset(request.lead_time),
         )
 
-        resp = await update_variant.asyncio_detailed(
-            id=variant_id, client=services.client, body=variant_update
+    plan.extend(
+        plan_creates(
+            request.add_variants,
+            ItemOperation.ADD_VARIANT,
+            lambda variant: _build_create_variant_request(
+                request.id, request.type, variant
+            ),
+            lambda body: make_post_apply(
+                api_create_variant, services, body, return_type=Variant
+            ),
         )
-        variant_result = unwrap(resp)
-        if not item_name and variant_result:
-            item_name = getattr(variant_result, "sku", "") or ""
-
-    # Invalidate only the affected type + variants
-    cache = getattr(services, "cache", None)
-    if cache:
-        await cache.mark_dirty(request.type.value)
-        await cache.mark_dirty(EntityType.VARIANT)
-
-    return UpdateItemResponse(
-        id=request.id,
-        name=item_name or "Unknown",
-        type=request.type,
-        message=f"{request.type.value.title()} (ID {request.id}) updated successfully",
-        katana_url=_item_katana_url(request.type, request.id),
     )
+    plan.extend(
+        await plan_updates(
+            request.update_variants,
+            ItemOperation.UPDATE_VARIANT,
+            lambda vid: _fetch_variant_for_diff(services, vid),
+            _build_update_variant_request,
+            lambda vid, body: make_patch_apply(
+                api_update_variant, services, vid, body, return_type=Variant
+            ),
+        )
+    )
+    plan.extend(
+        plan_deletes(
+            request.delete_variant_ids,
+            ItemOperation.DELETE_VARIANT,
+            lambda vid: make_delete_apply(api_delete_variant, services, vid),
+        )
+    )
+
+    response = await run_modify_plan(
+        request=request,
+        entity_type=request.type.value,
+        entity_label=f"{cfg['label']} {request.id}",
+        tool_name="modify_item",
+        web_url_kind=cfg["web_url_kind"] or "product",  # fallback for SERVICE
+        existing=existing_item,
+        plan=plan,
+    )
+    # Services have no Katana web page; clear the URL the dispatcher synthesized
+    # via the fallback above so callers don't see a broken link.
+    if request.type == ItemType.SERVICE:
+        response.katana_url = None
+
+    # Cache invalidation — the typed cache stores variants and per-type
+    # entities separately. After a confirmed modify, mark both dirty so the
+    # next read sees fresh data.
+    if request.confirm:
+        cache = getattr(services, "cache", None)
+        if cache:
+            await cache.mark_dirty(request.type.value)
+            await cache.mark_dirty(EntityType.VARIANT)
+
+    return response
 
 
 @observe_tool
 @unpack_pydantic_params
-async def update_item(
-    request: Annotated[UpdateItemRequest, Unpack()], context: Context
+async def modify_item(
+    request: Annotated[ModifyItemRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """Update an existing item's properties (product, material, or service).
+    """Modify an item — unified surface across header + variant CRUD.
 
-    Only provided fields are updated; omitted fields remain unchanged.
-    Requires the item ID and type. Use search_items first if you need to find the item.
+    The required ``type`` discriminator (PRODUCT / MATERIAL / SERVICE)
+    routes header updates to the matching API endpoint family. Variant
+    sub-payloads (``add_variants`` / ``update_variants`` /
+    ``delete_variant_ids``) route to the shared ``/variant`` family —
+    available for PRODUCT and MATERIAL only; services carry pricing on
+    the header itself (``sales_price``, ``default_cost``, ``sku``).
+
+    Sub-payloads (any subset, all optional):
+
+    - ``update_header`` — patch header fields. Field set is type-specific:
+      ``is_producible`` etc. are PRODUCT-only, ``default_supplier_id``
+      etc. are PRODUCT/MATERIAL, ``sales_price`` etc. are SERVICE-only.
+      Misrouted fields fail fast with a clear error.
+    - ``add_variants`` — POST /variant. Parent ``product_id`` /
+      ``material_id`` is injected from the request's ``type``.
+    - ``update_variants`` — PATCH /variant/{id}.
+    - ``delete_variant_ids`` — DELETE /variant/{id}.
+
+    To remove an item entirely, use the sibling ``delete_item`` tool.
+
+    Two-step flow: ``confirm=false`` returns a per-action preview;
+    ``confirm=true`` executes the plan in canonical order. Fail-fast on
+    error.
     """
-    from katana_mcp.tools.prefab_ui import build_item_mutation_ui
-
-    response = await _update_item_impl(request, context)
-    ui = build_item_mutation_ui(response.model_dump(), "Updated")
-
-    return make_tool_result(response, ui=ui)
+    response = await _modify_item_impl(request, context)
+    return to_tool_result(response)
 
 
 # ============================================================================
-# Tool 5: delete_item
+# Tool: delete_item
 # ============================================================================
-
-
-class DeleteItemRequest(BaseModel):
-    """Request to delete an item."""
-
-    id: int = Field(..., description="Item ID")
-    type: ItemType = Field(..., description="Type of item")
-    confirm: bool = Field(
-        False, description="If false, returns preview. If true, deletes item."
-    )
-
-
-class DeleteItemResponse(BaseModel):
-    """Response from deleting an item."""
-
-    id: int
-    type: ItemType
-    name: str | None = None
-    is_preview: bool = False
-    success: bool = True
-    message: str = "Item deleted successfully"
 
 
 async def _delete_item_impl(
     request: DeleteItemRequest, context: Context
-) -> DeleteItemResponse:
-    """Delete an item with two-step confirmation (preview/execute)."""
+) -> ModificationResponse:
+    """One-action plan that removes the item. Katana cascades child variants."""
+    cfg = _TYPE_ENDPOINTS[request.type]
     services = get_services(context)
-    helper = _get_type_helper(services.client, request.type)
 
-    # Fetch item name for preview/confirmation message
-    item_name = f"{request.type.value} ID {request.id}"
-    try:
-        item = await helper.get(request.id)
-        item_name = f"{request.type.value} '{item.name}' (ID {request.id})"
-    except Exception:
-        pass  # Use default name if fetch fails
-
-    # Preview mode
-    if not request.confirm:
-        return DeleteItemResponse(
-            id=request.id,
-            type=request.type,
-            is_preview=True,
-            message=f"Preview: Would permanently delete {item_name}. Set confirm=true to proceed.",
-        )
-
-    await helper.delete(request.id)
-
-    # Invalidate only the affected type + variants
-    cache = getattr(services, "cache", None)
-    if cache:
-        await cache.mark_dirty(request.type.value)
-        await cache.mark_dirty(EntityType.VARIANT)
-
-    return DeleteItemResponse(
-        id=request.id,
-        type=request.type,
-        message=f"{request.type.value.title()} ID {request.id} deleted successfully",
+    response = await run_delete_plan(
+        request=request,
+        services=services,
+        entity_type=request.type.value,
+        entity_label=f"{cfg['label']} {request.id}",
+        web_url_kind=cfg["web_url_kind"] or "product",
+        fetcher=lambda svc, eid: _fetch_item_for_diff(svc, eid, request.type),
+        delete_endpoint=cfg["delete"],
+        operation=ItemOperation.DELETE,
     )
+    if request.type == ItemType.SERVICE:
+        response.katana_url = None
+
+    if request.confirm:
+        cache = getattr(services, "cache", None)
+        if cache:
+            await cache.mark_dirty(request.type.value)
+            await cache.mark_dirty(EntityType.VARIANT)
+
+    return response
 
 
 @observe_tool
@@ -888,16 +1116,13 @@ async def delete_item(
 ) -> ToolResult:
     """Permanently delete an item (product, material, or service) from Katana.
 
-    This is a destructive operation. Set confirm=false to preview what would be
-    deleted, or confirm=true to execute (will prompt for confirmation).
-    Requires the item ID and type.
+    The required ``type`` discriminator routes the delete to the matching
+    endpoint family. Destructive — Katana cascades the delete to child
+    variants server-side. The response carries a ``prior_state`` snapshot
+    for manual revert.
     """
-    from katana_mcp.tools.prefab_ui import build_item_mutation_ui
-
     response = await _delete_item_impl(request, context)
-    ui = build_item_mutation_ui(response.model_dump(), "Deleted")
-
-    return make_tool_result(response, ui=ui)
+    return to_tool_result(response)
 
 
 # ============================================================================
@@ -1222,11 +1447,10 @@ def register_tools(mcp: FastMCP) -> None:
     mcp.tool(tags={"catalog", "read"}, annotations=_read, meta=UI_META)(search_items)
     mcp.tool(tags={"catalog", "write"}, annotations=_write, meta=UI_META)(create_item)
     mcp.tool(tags={"catalog", "read"}, annotations=_read, meta=UI_META)(get_item)
-    mcp.tool(tags={"catalog", "write"}, annotations=_update, meta=UI_META)(update_item)
+    mcp.tool(tags={"catalog", "write"}, annotations=_update)(modify_item)
     mcp.tool(
         tags={"catalog", "write", "destructive"},
         annotations=_destructive,
-        meta=UI_META,
     )(delete_item)
     mcp.tool(tags={"catalog", "read"}, annotations=_read, meta=UI_META)(
         get_variant_details
