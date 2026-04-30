@@ -22,6 +22,7 @@ operating on the same response model.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Awaitable, Callable, Iterable
 from datetime import datetime
 from enum import Enum
@@ -298,7 +299,7 @@ def _render_action_block(idx: int, action: ActionResult) -> list[str]:
         lines.extend(_render_changes_block(action.changes))
     if action.actual_after is not None and action.verified is False:
         # Surface the actual-vs-requested mismatch so the caller can act
-        lines.append(f"- **Actual after re-fetch**: `{action.actual_after}`")
+        lines.append(f"- **Actual after verification**: `{action.actual_after}`")
     return lines
 
 
@@ -344,13 +345,28 @@ def render_modification_md(response: ModificationResponse) -> str:
 
     if response.prior_state is not None:
         lines.append("")
-        lines.append("### Prior State (for manual revert)")
-        lines.append(
-            "- Snapshot of pre-modification entity captured before applying. "
-            "Pass these values back through a follow-up modify call to revert "
-            "if needed — Katana's API is not transactional, so verify each "
-            "field manually."
-        )
+        if response.is_preview:
+            lines.append("### Current State (preview snapshot)")
+            lines.append(
+                "Snapshot of the entity in its current state — verify this is "
+                "the right target before setting `confirm=true`."
+            )
+        else:
+            lines.append("### Prior State (for manual revert)")
+            lines.append(
+                "Snapshot of pre-modification entity captured before applying. "
+                "Pass these values back through a follow-up modify call to revert "
+                "if needed — Katana's API is not transactional, so verify each "
+                "field manually."
+            )
+        lines.append("")
+        lines.append("```json")
+        # ``default=str`` collapses datetime / Enum / Decimal sentinels to
+        # strings so the snapshot serializes deterministically. The dict is
+        # already pre-serialized via ``serialize_for_prior_state``; this is
+        # a belt-and-suspenders for any remaining non-JSON-native values.
+        lines.append(json.dumps(response.prior_state, indent=2, default=str))
+        lines.append("```")
 
     if response.warnings:
         lines.append("")

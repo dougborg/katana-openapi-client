@@ -696,6 +696,7 @@ async def run_delete_plan(
             ``Operation.DELETE`` enum value).
     """
     existing = await fetcher(services, request.id) if fetcher is not None else None
+    prior_state = serialize_for_prior_state(existing)
     plan = plan_deletes(
         [request.id],
         operation,
@@ -704,11 +705,19 @@ async def run_delete_plan(
     katana_url = katana_web_url(web_url_kind, request.id) if web_url_kind else None
 
     if not request.confirm:
+        # Populate prior_state on the preview path so the rendered markdown
+        # shows callers a snapshot of what they're about to delete — gives
+        # them a chance to verify they targeted the right entity before
+        # confirming. The fetch is already best-effort: per-entity fetchers
+        # wrap ``safe_fetch_for_diff`` which swallows errors to ``None``,
+        # so a failed fetch leaves prior_state=None and the preview still
+        # renders without raising.
         return ModificationResponse(
             entity_type=entity_type,
             entity_id=request.id,
             is_preview=True,
             actions=plan_to_preview_results(plan),
+            prior_state=prior_state,
             next_actions=[
                 "Review the deletion",
                 f"Set confirm=true to delete the {entity_type.replace('_', ' ')}",
@@ -717,7 +726,6 @@ async def run_delete_plan(
             message=f"Preview: delete {entity_label}",
         )
 
-    prior_state = serialize_for_prior_state(existing)
     actions = await execute_plan(plan)
     message, next_actions = summarize_delete_outcome(actions, entity_label=entity_label)
 
