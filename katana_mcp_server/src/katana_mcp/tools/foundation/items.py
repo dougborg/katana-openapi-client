@@ -928,6 +928,20 @@ async def _fetch_variant_for_diff(services: Any, variant_id: int) -> Variant | N
     )
 
 
+async def _invalidate_item_cache(services: Any, item_type: ItemType) -> None:
+    """Mark the per-type entity row and the variants table dirty.
+
+    The typed cache stores variants and per-type entities (products /
+    materials / services) separately. After a confirmed modify or delete
+    we invalidate both so the next read sees fresh data. Other modify_*
+    tools don't need this because their entity types aren't cache-backed.
+    """
+    cache = getattr(services, "cache", None)
+    if cache:
+        await cache.mark_dirty(item_type.value)
+        await cache.mark_dirty(EntityType.VARIANT)
+
+
 async def _modify_item_impl(
     request: ModifyItemRequest, context: Context
 ) -> ModificationResponse:
@@ -940,6 +954,9 @@ async def _modify_item_impl(
     """
     services = get_services(context)
 
+    # ``type`` is a routing discriminator, not a sub-payload — exclude it from
+    # the "is anything set?" check so a request with only ``type`` set is
+    # still rejected.
     if not has_any_subpayload(request, exclude=("id", "type", "confirm")):
         raise ValueError(
             "At least one sub-payload must be set: update_header, "
@@ -1019,23 +1036,13 @@ async def _modify_item_impl(
         entity_type=request.type.value,
         entity_label=f"{cfg['label']} {request.id}",
         tool_name="modify_item",
-        web_url_kind=cfg["web_url_kind"] or "product",  # fallback for SERVICE
+        web_url_kind=cfg["web_url_kind"],
         existing=existing_item,
         plan=plan,
     )
-    # Services have no Katana web page; clear the URL the dispatcher synthesized
-    # via the fallback above so callers don't see a broken link.
-    if request.type == ItemType.SERVICE:
-        response.katana_url = None
 
-    # Cache invalidation — the typed cache stores variants and per-type
-    # entities separately. After a confirmed modify, mark both dirty so the
-    # next read sees fresh data.
     if request.confirm:
-        cache = getattr(services, "cache", None)
-        if cache:
-            await cache.mark_dirty(request.type.value)
-            await cache.mark_dirty(EntityType.VARIANT)
+        await _invalidate_item_cache(services, request.type)
 
     return response
 
@@ -1092,19 +1099,14 @@ async def _delete_item_impl(
         services=services,
         entity_type=request.type.value,
         entity_label=f"{cfg['label']} {request.id}",
-        web_url_kind=cfg["web_url_kind"] or "product",
+        web_url_kind=cfg["web_url_kind"],
         fetcher=lambda svc, eid: _fetch_item_for_diff(svc, eid, request.type),
         delete_endpoint=cfg["delete"],
         operation=ItemOperation.DELETE,
     )
-    if request.type == ItemType.SERVICE:
-        response.katana_url = None
 
     if request.confirm:
-        cache = getattr(services, "cache", None)
-        if cache:
-            await cache.mark_dirty(request.type.value)
-            await cache.mark_dirty(EntityType.VARIANT)
+        await _invalidate_item_cache(services, request.type)
 
     return response
 

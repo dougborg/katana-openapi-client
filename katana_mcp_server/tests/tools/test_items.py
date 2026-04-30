@@ -700,6 +700,54 @@ async def test_modify_item_material_header_dispatches_to_materials_endpoint():
 
 
 @pytest.mark.asyncio
+async def test_modify_item_service_header_dispatches_to_services_endpoint():
+    """SERVICE routing must hit ``/services/{id}``, not products or materials.
+    Also pins ``katana_url=None`` for SERVICE (no Katana web page)."""
+    from katana_mcp.tools.foundation.items import (
+        ItemHeaderPatch,
+        ModifyItemRequest,
+        _modify_item_impl,
+    )
+
+    context, _ = create_mock_context()
+    mock_service = MagicMock()
+    mock_service.id = 7
+    mock_service.name = "Renamed Service"
+    with (
+        patch(
+            "katana_public_api_client.api.services.update_service.asyncio_detailed",
+            new_callable=AsyncMock,
+        ) as mock_service_endpoint,
+        patch(
+            "katana_public_api_client.api.product.update_product.asyncio_detailed",
+            new_callable=AsyncMock,
+        ) as mock_product_endpoint,
+        patch(
+            "katana_public_api_client.api.material.update_material.asyncio_detailed",
+            new_callable=AsyncMock,
+        ) as mock_material_endpoint,
+        patch(
+            "katana_public_api_client.api.services.get_service.asyncio_detailed",
+            new_callable=AsyncMock,
+        ),
+        patch(_MODIFY_ITEM_UNWRAP_AS, return_value=mock_service),
+    ):
+        request = ModifyItemRequest(
+            id=7,
+            type=ItemType.SERVICE,
+            update_header=ItemHeaderPatch(name="Renamed Service", sales_price=12.50),
+            confirm=True,
+        )
+        response = await _modify_item_impl(request, context)
+
+    assert response.entity_type == "service"
+    assert response.katana_url is None  # services have no Katana web page
+    mock_service_endpoint.assert_awaited_once()
+    mock_product_endpoint.assert_not_awaited()
+    mock_material_endpoint.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_modify_item_add_variant_injects_parent_id_for_product():
     from katana_mcp.tools.foundation.items import (
         ModifyItemRequest,

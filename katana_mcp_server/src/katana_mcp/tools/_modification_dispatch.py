@@ -581,7 +581,7 @@ async def run_modify_plan(
     entity_type: str,
     entity_label: str,
     tool_name: str,
-    web_url_kind: EntityKind,
+    web_url_kind: EntityKind | None,
     existing: Any | None,
     plan: list[ActionSpec],
     has_get_endpoint: bool = True,
@@ -601,8 +601,9 @@ async def run_modify_plan(
             order 42"``). Used in messages and warnings.
         tool_name: Tool name for the manual-revert hint in the failure path
             (e.g. ``"modify_purchase_order"``).
-        web_url_kind: Argument to :func:`katana_web_url` (typically same as
-            ``entity_type``).
+        web_url_kind: Argument to :func:`katana_web_url`. Pass ``None`` for
+            entities without a Katana web page (e.g. services); the response's
+            ``katana_url`` will be ``None``.
         existing: The pre-fetched entity, or ``None`` on fetch failure.
             Drives ``prior_state`` capture and the diff-context warning.
         plan: Built ActionSpec list, in canonical order.
@@ -612,7 +613,7 @@ async def run_modify_plan(
             stock transfer) and ``existing=None`` is the expected steady
             state — suppresses the spurious "could not fetch" warning.
     """
-    katana_url = katana_web_url(web_url_kind, request.id)
+    katana_url = katana_web_url(web_url_kind, request.id) if web_url_kind else None
     warnings = (
         [
             f"Could not fetch {entity_label} for diff context — "
@@ -662,7 +663,7 @@ async def run_delete_plan(
     services: Any,
     entity_type: str,
     entity_label: str,
-    web_url_kind: EntityKind,
+    web_url_kind: EntityKind | None,
     fetcher: Callable[[Any, int], Awaitable[Any | None]],
     delete_endpoint: Any,
     operation: str,
@@ -679,7 +680,8 @@ async def run_delete_plan(
             human-readable noun ("purchase order") is derived by replacing
             ``_`` with `` `` for the preview message.
         entity_label: Human-readable with id (e.g. ``"purchase order 42"``).
-        web_url_kind: ``katana_web_url`` argument.
+        web_url_kind: ``katana_web_url`` argument. Pass ``None`` for entities
+            without a Katana web page (e.g. services).
         fetcher: ``(services, id) -> Awaitable[entity | None]`` — for
             prior_state capture.
         delete_endpoint: The generated client's DELETE module (e.g.
@@ -693,7 +695,7 @@ async def run_delete_plan(
         operation,
         lambda eid: make_delete_apply(delete_endpoint, services, eid),
     )
-    katana_url = katana_web_url(web_url_kind, request.id)
+    katana_url = katana_web_url(web_url_kind, request.id) if web_url_kind else None
 
     if not request.confirm:
         return ModificationResponse(
