@@ -32,6 +32,7 @@ from key_value.aio.stores.memory import MemoryStore
 from katana_mcp import __version__
 from katana_mcp._fastmcp_patches import apply_fastmcp_patches as _apply_patches
 from katana_mcp.logging import get_logger, setup_logging
+from katana_mcp.middleware import JsonStringCoercionMiddleware
 from katana_mcp.services import Services
 from katana_public_api_client import KatanaClient
 
@@ -279,6 +280,15 @@ Browse cached reference data:
 For transactional data (orders, stock movements), use the corresponding tools.
 """,
 )
+
+# Pre-decode JSON-stringified tool args before pydantic validation. Some
+# harnesses (and some smaller LLMs) JSON-stringify nested args before
+# sending tools/call; FastMCP's strict pydantic validation rejects them.
+# This middleware is schema-aware and only decodes strings on fields whose
+# schema declares array/object types and never accepts string. Registered
+# before ResponseCachingMiddleware so cache keys reflect normalized args.
+mcp.add_middleware(JsonStringCoercionMiddleware())
+logger.info("middleware_added", middleware="JsonStringCoercionMiddleware")
 
 # Add response caching middleware with TTLs for read-only tools
 _READ_ONLY_TOOLS = [
