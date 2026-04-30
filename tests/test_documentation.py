@@ -2,6 +2,7 @@
 Test documentation generation to ensure it works in CI/CD.
 """
 
+import json
 import os
 import subprocess
 from pathlib import Path
@@ -116,22 +117,19 @@ if __name__ == "__main__":
 
 
 @pytest.mark.docs
-@pytest.mark.skip(
-    reason=(
-        "Asserts Sphinx-style search.html / searchindex.js artifacts that "
-        "MkDocs Material doesn't generate (search is JS-based via "
-        "search/search_index.json). Broken since the MkDocs migration in "
-        "commit e6dfff89; previously masked by a missing pytest-marker that "
-        "made the test time out before reaching the assertion. Re-enable "
-        "after rewriting the asserts against the MkDocs Material output."
-    )
-)
 def test_documentation_search_functionality():
-    """Test that documentation search index is generated."""
+    """Test that documentation search index is generated.
+
+    MkDocs Material's search plugin emits a JSON index at
+    ``site/search/search_index.json`` (no standalone search.html — the
+    search UI is JS-driven). Earlier Sphinx-era assertions for
+    ``search.html`` / ``searchindex.js`` were stale post-migration; this
+    test now validates the MkDocs Material output.
+    """
     if os.getenv("CI_DOCS_BUILD", "false").lower() != "true":
         pytest.skip("Documentation tests only run when CI_DOCS_BUILD=true")
 
-    build_dir = Path(__file__).parent.parent / "docs" / "_build" / "html"
+    build_dir = Path(__file__).parent.parent / "site"
 
     # Run docs build first if needed
     if not build_dir.exists():
@@ -142,16 +140,26 @@ def test_documentation_search_functionality():
             timeout=300,  # 5 minutes for docs build
         )
 
-    # Check that search files exist
-    assert (build_dir / "search.html").exists(), "Search page not generated"
-    assert (build_dir / "searchindex.js").exists(), "Search index not generated"
+    search_index_path = build_dir / "search" / "search_index.json"
+    assert search_index_path.exists(), "MkDocs Material search index not generated"
 
-    # Check that searchindex.js contains references to our classes
-    searchindex_content = (build_dir / "searchindex.js").read_text()
-    assert "katanaclient" in searchindex_content.lower(), "KatanaClient not indexed"
-    assert "resilientasynctransport" in searchindex_content.lower(), (
-        "ResilientAsyncTransport not indexed"
+    # The index is a JSON document with a ``docs`` array; each entry has
+    # ``location``, ``title``, ``text``. Validate the shape before iterating
+    # so a malformed index produces a clear assertion error rather than an
+    # AttributeError downstream. ``encoding="utf-8"`` defends against hosts
+    # whose locale doesn't default to UTF-8.
+    payload = json.loads(search_index_path.read_text(encoding="utf-8"))
+    assert isinstance(payload, dict), "search_index.json must contain a JSON object"
+    docs = payload.get("docs")
+    assert isinstance(docs, list), "search_index.json missing 'docs' array"
+    assert all(isinstance(doc, dict) for doc in docs), (
+        "search_index.json 'docs' entries must be JSON objects"
     )
+    haystack = " ".join(
+        f"{doc.get('title', '')} {doc.get('text', '')}" for doc in docs
+    ).lower()
+    assert "katanaclient" in haystack, "KatanaClient not indexed"
+    assert "resilientasynctransport" in haystack, "ResilientAsyncTransport not indexed"
 
     print("✅ Documentation search functionality working!")
 
