@@ -11,6 +11,8 @@ from katana_mcp.tools.foundation.manufacturing_orders import (
     GetManufacturingOrderRecipeRequest,
     ModifyManufacturingOrderRequest,
     MOHeaderPatch,
+    MOOperationRowAdd,
+    MOProductionAdd,
     MORecipeRowAdd,
     _create_manufacturing_order_impl,
     _delete_manufacturing_order_impl,
@@ -28,7 +30,11 @@ from katana_public_api_client.models import (
 )
 from katana_public_api_client.utils import APIError
 from tests.conftest import create_mock_context, patch_typed_cache_sync
-from tests.factories import make_manufacturing_order, seed_cache
+from tests.factories import (
+    make_manufacturing_order,
+    mock_entity_for_modify,
+    seed_cache,
+)
 
 # ============================================================================
 # Unit Tests (with mocks)
@@ -2235,27 +2241,8 @@ _MODIFY_MO_UNWRAP_AS = "katana_mcp.tools._modification_dispatch.unwrap_as"
 
 
 def _mock_mo(mo_id: int = 1, order_no: str = "MO-1"):
-    """Build a mock ManufacturingOrder with UNSET-able fields default to UNSET."""
-    mo = MagicMock(spec=ManufacturingOrder)
-    mo.id = mo_id
-    mo.order_no = order_no
-    for field in (
-        "variant_id",
-        "location_id",
-        "status",
-        "planned_quantity",
-        "actual_quantity",
-        "order_created_date",
-        "production_deadline_date",
-        "done_date",
-        "additional_info",
-        "batch_transactions",
-        "created_at",
-        "updated_at",
-        "deleted_at",
-    ):
-        setattr(mo, field, UNSET)
-    return mo
+    """Build a mock ManufacturingOrder with all fields defaulted to UNSET."""
+    return mock_entity_for_modify(ManufacturingOrder, id=mo_id, order_no=order_no)
 
 
 @pytest.mark.asyncio
@@ -2405,3 +2392,214 @@ async def test_delete_mo_confirm_calls_api_and_records_prior_state():
     assert response.prior_state is not None
     assert response.katana_url is None
     mock_api.assert_awaited_once()
+
+
+# ============================================================================
+# MO operation rows + production records — coverage gaps
+# ============================================================================
+
+
+_MODIFY_MO_OP_CREATE = (
+    "katana_public_api_client.api.manufacturing_order_operation."
+    "create_manufacturing_order_operation_row"
+)
+_MODIFY_MO_PROD_CREATE = (
+    "katana_public_api_client.api.manufacturing_order_production."
+    "create_manufacturing_order_production"
+)
+
+
+@pytest.mark.asyncio
+async def test_modify_mo_operation_row_add_translates_status_and_type_enums():
+    """Operation rows carry literal status + type that must convert to API enums.
+
+    Exercises the ``_build_create_operation_row_request`` enum-conversion path.
+    """
+    context, _ = create_mock_context()
+    existing = _mock_mo(mo_id=42, order_no="MO-1")
+    new_op = MagicMock()
+    new_op.id = 999
+
+    captured_body = []
+
+    async def fake_create_op(*, client, body):
+        captured_body.append(body)
+        resp = MagicMock()
+        resp.parsed = new_op
+        return resp
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_manufacturing_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(f"{_MODIFY_MO_OP_CREATE}.asyncio_detailed", side_effect=fake_create_op),
+        patch(_MODIFY_MO_UNWRAP_AS, return_value=new_op),
+    ):
+        request = ModifyManufacturingOrderRequest(
+            id=42,
+            add_operation_rows=[
+                MOOperationRowAdd(
+                    status="IN_PROGRESS",
+                    type="perUnit",
+                    operation_name="Cut to length",
+                    planned_time_per_unit=2.5,
+                ),
+            ],
+            confirm=True,
+        )
+        response = await _modify_manufacturing_order_impl(request, context)
+
+    assert response.is_preview is False
+    assert len(response.actions) == 1
+    assert response.actions[0].operation == "add_operation_row"
+    # Verify the API body has the actual API enum members, not strings
+    from katana_public_api_client.models import (
+        ManufacturingOperationStatus,
+        ManufacturingOperationType,
+    )
+
+    body = captured_body[0]
+    assert body.status == ManufacturingOperationStatus.IN_PROGRESS
+    assert body.type_ == ManufacturingOperationType.PERUNIT
+    assert body.operation_name == "Cut to length"
+    assert body.planned_time_per_unit == 2.5
+
+
+@pytest.mark.asyncio
+async def test_modify_mo_production_record_add_passes_through_to_api():
+    """Production records have a small-but-distinct shape; cover the
+    add path end-to-end."""
+    context, _ = create_mock_context()
+    existing = _mock_mo(mo_id=42, order_no="MO-1")
+    new_prod = MagicMock()
+    new_prod.id = 7777
+
+    captured_body = []
+
+    async def fake_create_prod(*, client, body):
+        captured_body.append(body)
+        resp = MagicMock()
+        resp.parsed = new_prod
+        return resp
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_manufacturing_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(
+            f"{_MODIFY_MO_PROD_CREATE}.asyncio_detailed",
+            side_effect=fake_create_prod,
+        ),
+        patch(_MODIFY_MO_UNWRAP_AS, return_value=new_prod),
+    ):
+        request = ModifyManufacturingOrderRequest(
+            id=42,
+            add_productions=[
+                MOProductionAdd(
+                    completed_quantity=10.0,
+                    is_final=True,
+                    serial_numbers=["SN-001", "SN-002"],
+                ),
+            ],
+            confirm=True,
+        )
+        response = await _modify_manufacturing_order_impl(request, context)
+
+    assert response.is_preview is False
+    assert response.actions[0].operation == "add_production"
+    body = captured_body[0]
+    assert body.manufacturing_order_id == 42
+    assert body.completed_quantity == 10.0
+    assert body.is_final is True
+    assert body.serial_numbers == ["SN-001", "SN-002"]
+
+
+@pytest.mark.asyncio
+async def test_modify_mo_canonical_order_across_all_three_sub_resources():
+    """Header + recipe row + operation row + production all in one call,
+    confirming canonical execution order across all three sub-resource kinds."""
+    context, _ = create_mock_context()
+    existing = _mock_mo(mo_id=42, order_no="MO-1")
+    updated = _mock_mo(mo_id=42, order_no="MO-1")
+    new_recipe = MagicMock()
+    new_recipe.id = 100
+    new_op = MagicMock()
+    new_op.id = 200
+    new_prod = MagicMock()
+    new_prod.id = 300
+
+    call_log: list[str] = []
+
+    async def fake_update_mo(*, id, client, body):
+        call_log.append("update_header")
+        resp = MagicMock()
+        resp.parsed = updated
+        return resp
+
+    async def fake_create_recipe(*, client, body):
+        call_log.append("add_recipe_row")
+        resp = MagicMock()
+        resp.parsed = new_recipe
+        return resp
+
+    async def fake_create_op(*, client, body):
+        call_log.append("add_operation_row")
+        resp = MagicMock()
+        resp.parsed = new_op
+        return resp
+
+    async def fake_create_prod(*, client, body):
+        call_log.append("add_production")
+        resp = MagicMock()
+        resp.parsed = new_prod
+        return resp
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_manufacturing_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(f"{_MODIFY_MO_UPDATE}.asyncio_detailed", side_effect=fake_update_mo),
+        patch(
+            f"{_MODIFY_MO_RECIPE_CREATE}.asyncio_detailed",
+            side_effect=fake_create_recipe,
+        ),
+        patch(f"{_MODIFY_MO_OP_CREATE}.asyncio_detailed", side_effect=fake_create_op),
+        patch(
+            f"{_MODIFY_MO_PROD_CREATE}.asyncio_detailed",
+            side_effect=fake_create_prod,
+        ),
+        patch(
+            _MODIFY_MO_UNWRAP_AS,
+            side_effect=[updated, new_recipe, new_op, new_prod],
+        ),
+    ):
+        request = ModifyManufacturingOrderRequest(
+            id=42,
+            update_header=MOHeaderPatch(status="IN_PROGRESS"),
+            add_recipe_rows=[
+                MORecipeRowAdd(variant_id=100, planned_quantity_per_unit=2.0)
+            ],
+            add_operation_rows=[
+                MOOperationRowAdd(status="NOT_STARTED", operation_name="Assembly")
+            ],
+            add_productions=[MOProductionAdd(completed_quantity=5.0)],
+            confirm=True,
+        )
+        response = await _modify_manufacturing_order_impl(request, context)
+
+    assert response.is_preview is False
+    assert len(response.actions) == 4
+    assert all(a.succeeded is True for a in response.actions)
+    # Canonical order: header → recipe → operation → production
+    assert call_log == [
+        "update_header",
+        "add_recipe_row",
+        "add_operation_row",
+        "add_production",
+    ]

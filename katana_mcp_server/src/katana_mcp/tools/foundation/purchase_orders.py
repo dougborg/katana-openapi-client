@@ -40,6 +40,7 @@ from katana_mcp.tools._modification_dispatch import (
     run_delete_plan,
     run_modify_plan,
     safe_fetch_for_diff,
+    unset_dict,
 )
 from katana_mcp.tools.list_coercion import CoercedIntListOpt
 from katana_mcp.tools.tool_result_utils import (
@@ -2303,85 +2304,47 @@ class DeletePurchaseOrderRequest(ConfirmableRequest):
 def _build_update_header_request(
     patch: POHeaderPatch,
 ) -> APIUpdatePurchaseOrderRequest:
-    api_status = PurchaseOrderStatus(patch.status) if patch.status is not None else None
     return APIUpdatePurchaseOrderRequest(
-        order_no=to_unset(patch.order_no),
-        supplier_id=to_unset(patch.supplier_id),
-        currency=to_unset(patch.currency),
-        location_id=to_unset(patch.location_id),
-        tracking_location_id=to_unset(patch.tracking_location_id),
-        status=to_unset(api_status),
-        expected_arrival_date=to_unset(patch.expected_arrival_date),
-        order_created_date=to_unset(patch.order_created_date),
-        additional_info=to_unset(patch.additional_info),
+        **unset_dict(patch, transforms={"status": PurchaseOrderStatus})
     )
 
 
 def _build_create_row_request(
     po_id: int, row: PORowAdd
 ) -> APICreatePurchaseOrderRowRequest:
-    return APICreatePurchaseOrderRowRequest(
-        purchase_order_id=po_id,
-        quantity=row.quantity,
-        variant_id=row.variant_id,
-        price_per_unit=row.price_per_unit,
-        tax_rate_id=to_unset(row.tax_rate_id),
-        tax_name=to_unset(row.tax_name),
-        tax_rate=to_unset(row.tax_rate),
-        currency=to_unset(row.currency),
-        purchase_uom=to_unset(row.purchase_uom),
-        purchase_uom_conversion_rate=to_unset(row.purchase_uom_conversion_rate),
-        arrival_date=to_unset(row.arrival_date),
-    )
+    return APICreatePurchaseOrderRowRequest(purchase_order_id=po_id, **unset_dict(row))
 
 
 def _build_update_row_request(
     patch: PORowUpdate,
 ) -> APIUpdatePurchaseOrderRowRequest:
-    return APIUpdatePurchaseOrderRowRequest(
-        quantity=to_unset(patch.quantity),
-        variant_id=to_unset(patch.variant_id),
-        tax_rate_id=to_unset(patch.tax_rate_id),
-        tax_name=to_unset(patch.tax_name),
-        tax_rate=to_unset(patch.tax_rate),
-        price_per_unit=to_unset(patch.price_per_unit),
-        purchase_uom_conversion_rate=to_unset(patch.purchase_uom_conversion_rate),
-        purchase_uom=to_unset(patch.purchase_uom),
-        received_date=to_unset(patch.received_date),
-        arrival_date=to_unset(patch.arrival_date),
-    )
+    return APIUpdatePurchaseOrderRowRequest(**unset_dict(patch, exclude=("id",)))
 
 
 def _build_create_cost_request(
     cost: POAdditionalCostAdd, group_id: int
 ) -> APICreatePOAdditionalCostRowRequest:
-    api_distribution = (
-        CostDistributionMethod(cost.distribution_method)
-        if cost.distribution_method is not None
-        else None
-    )
+    # ``cost.group_id`` is dropped — the resolved ``group_id`` parameter
+    # (from PO ``default_group_id`` or the user's row-level override) wins.
     return APICreatePOAdditionalCostRowRequest(
-        additional_cost_id=cost.additional_cost_id,
         group_id=group_id,
-        tax_rate_id=cost.tax_rate_id,
-        price=cost.price,
-        distribution_method=to_unset(api_distribution),
+        **unset_dict(
+            cost,
+            exclude=("group_id",),
+            transforms={"distribution_method": CostDistributionMethod},
+        ),
     )
 
 
 def _build_update_cost_request(
     patch: POAdditionalCostUpdate,
 ) -> APIUpdatePOAdditionalCostRowRequest:
-    api_distribution = (
-        CostDistributionMethod(patch.distribution_method)
-        if patch.distribution_method is not None
-        else None
-    )
     return APIUpdatePOAdditionalCostRowRequest(
-        additional_cost_id=to_unset(patch.additional_cost_id),
-        tax_rate_id=to_unset(patch.tax_rate_id),
-        price=to_unset(patch.price),
-        distribution_method=to_unset(api_distribution),
+        **unset_dict(
+            patch,
+            exclude=("id",),
+            transforms={"distribution_method": CostDistributionMethod},
+        )
     )
 
 

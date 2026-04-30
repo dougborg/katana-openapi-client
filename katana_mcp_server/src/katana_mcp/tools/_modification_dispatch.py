@@ -66,6 +66,7 @@ from katana_mcp.tools._modification import (
     make_response_verifier,
 )
 from katana_mcp.web_urls import EntityKind, katana_web_url
+from katana_public_api_client.domain.converters import to_unset
 from katana_public_api_client.utils import is_success, unwrap, unwrap_as
 
 logger = get_logger(__name__)
@@ -185,6 +186,47 @@ def plan_to_preview_results(plan: list[ActionSpec]) -> list[ActionResult]:
     ``succeeded=None`` to signal "planned, not yet executed".
     """
     return [spec.to_planned_result() for spec in plan]
+
+
+def unset_dict(
+    model: BaseModel,
+    *,
+    field_map: dict[str, str] | None = None,
+    transforms: dict[str, Callable[[Any], Any]] | None = None,
+    exclude: tuple[str, ...] = (),
+) -> dict[str, Any]:
+    """Convert a Pydantic patch model into kwargs for an attrs request constructor.
+
+    For every field on ``model``: ``None`` becomes ``UNSET`` (so PATCH bodies
+    omit unset fields), and concrete values pass through unchanged. Used to
+    collapse the ``field=to_unset(patch.field)`` per-field repetition in
+    every ``_build_*_request`` helper to a single ``**unset_dict(patch)``.
+
+    Args:
+        model: A Pydantic patch/payload model.
+        field_map: Optional ``pydantic_name -> attrs_name`` rename map for
+            fields that don't share names across the layers (e.g.
+            ``{"zip": "zip_"}`` for the address ``zip`` field, since
+            ``zip`` is a Python builtin and the attrs field is ``zip_``).
+        transforms: Optional ``pydantic_name -> callable`` map for value
+            conversions applied **before** UNSET-wrapping. Typical use:
+            ``{"status": PurchaseOrderStatus}`` to coerce a status literal
+            into the API enum. Transforms only fire when the field is
+            non-None — None falls straight through to UNSET.
+        exclude: Field names on the model to skip entirely (typically
+            ``("id",)`` to drop the patch's id when the API request body
+            doesn't carry it as a field).
+    """
+    field_map = field_map or {}
+    transforms = transforms or {}
+    out: dict[str, Any] = {}
+    for k, v in model.model_dump(exclude_none=False).items():
+        if k in exclude:
+            continue
+        value = transforms[k](v) if v is not None and k in transforms else v
+        attr_name = field_map.get(k, k)
+        out[attr_name] = to_unset(value)
+    return out
 
 
 def has_any_subpayload(

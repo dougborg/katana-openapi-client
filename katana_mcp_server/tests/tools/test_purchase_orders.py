@@ -35,6 +35,7 @@ from katana_public_api_client.api.purchase_order import (
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models import (
     PurchaseOrderReceiveRow,
+    PurchaseOrderRow,
     RegularPurchaseOrder,
 )
 from katana_public_api_client.utils import APIError
@@ -42,6 +43,7 @@ from tests.conftest import create_mock_context, patch_typed_cache_sync
 from tests.factories import (
     make_purchase_order,
     make_purchase_order_row,
+    mock_entity_for_modify,
     seed_cache,
 )
 
@@ -76,44 +78,15 @@ def _auto_mock_po_side_data_fetches():
         yield
 
 
-def create_mock_po_row(variant_id: int, quantity: float, price: float):
-    """Create a mock PO row.
-
-    Exhaustive response model (#346) reads many more row fields than the
-    old shape. Default them all to UNSET so Pydantic validation sees
-    ``None`` rather than a stray ``MagicMock`` instance.
-    """
-    row = MagicMock()
-    row.variant_id = variant_id
-    row.quantity = quantity
-    row.price_per_unit = price
-    # id is required on PurchaseOrderRowInfo — give it a stable default that
-    # callers can ignore.
-    row.id = 1
-    # Fields touched by _po_row_info() but not set by callers — UNSET so
-    # unwrap_unset() collapses them to None.
-    for field in (
-        "created_at",
-        "updated_at",
-        "deleted_at",
-        "tax_rate_id",
-        "price_per_unit_in_base_currency",
-        "purchase_uom_conversion_rate",
-        "purchase_uom",
-        "currency",
-        "conversion_rate",
-        "total",
-        "total_in_base_currency",
-        "conversion_date",
-        "received_date",
-        "arrival_date",
-        "purchase_order_id",
-        "landed_cost",
-        "group_id",
-        "batch_transactions",
-    ):
-        setattr(row, field, UNSET)
-    return row
+def create_mock_po_row(variant_id, quantity, price):
+    """Create a mock PurchaseOrderRow with all fields defaulted to UNSET."""
+    return mock_entity_for_modify(
+        PurchaseOrderRow,
+        id=1,
+        variant_id=variant_id,
+        quantity=quantity,
+        price_per_unit=price,
+    )
 
 
 def create_mock_variant(variant_id: int, sku: str):
@@ -125,38 +98,13 @@ def create_mock_variant(variant_id: int, sku: str):
 
 
 def create_mock_po(order_id: int, order_no: str, rows: list):
-    """Create a mock RegularPurchaseOrder.
-
-    Exhaustive get_purchase_order (#346) reads every PurchaseOrder field.
-    Default optional ones to UNSET so Pydantic sees ``None`` rather than a
-    stray ``MagicMock`` when the response is built during verification.
-    """
-    po = MagicMock(spec=RegularPurchaseOrder)
-    po.id = order_id
-    po.order_no = order_no
-    po.purchase_order_rows = rows
-    for field in (
-        "created_at",
-        "updated_at",
-        "deleted_at",
-        "status",
-        "entity_type",
-        "default_group_id",
-        "supplier_id",
-        "currency",
-        "expected_arrival_date",
-        "order_created_date",
-        "additional_info",
-        "location_id",
-        "total",
-        "total_in_base_currency",
-        "billing_status",
-        "last_document_status",
-        "tracking_location_id",
-        "supplier",
-    ):
-        setattr(po, field, UNSET)
-    return po
+    """Create a mock RegularPurchaseOrder with all fields defaulted to UNSET."""
+    return mock_entity_for_modify(
+        RegularPurchaseOrder,
+        id=order_id,
+        order_no=order_no,
+        purchase_order_rows=rows,
+    )
 
 
 # ============================================================================

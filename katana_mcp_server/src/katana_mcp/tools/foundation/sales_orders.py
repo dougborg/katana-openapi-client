@@ -44,6 +44,7 @@ from katana_mcp.tools._modification_dispatch import (
     run_delete_plan,
     run_modify_plan,
     safe_fetch_for_diff,
+    unset_dict,
 )
 from katana_mcp.tools.list_coercion import CoercedIntListOpt
 from katana_mcp.tools.tool_result_utils import (
@@ -1645,69 +1646,29 @@ class DeleteSalesOrderRequest(ConfirmableRequest):
 
 
 def _build_update_header_request(patch: SOHeaderPatch) -> APIUpdateSalesOrderRequest:
-    api_status = (
-        UpdateSalesOrderStatus(patch.status) if patch.status is not None else None
-    )
     return APIUpdateSalesOrderRequest(
-        order_no=to_unset(patch.order_no),
-        customer_id=to_unset(patch.customer_id),
-        location_id=to_unset(patch.location_id),
-        status=to_unset(api_status),
-        currency=to_unset(patch.currency),
-        conversion_rate=to_unset(patch.conversion_rate),
-        conversion_date=to_unset(patch.conversion_date),
-        order_created_date=to_unset(patch.order_created_date),
-        delivery_date=to_unset(patch.delivery_date),
-        picked_date=to_unset(patch.picked_date),
-        additional_info=to_unset(patch.additional_info),
-        customer_ref=to_unset(patch.customer_ref),
-        tracking_number=to_unset(patch.tracking_number),
-        tracking_number_url=to_unset(patch.tracking_number_url),
+        **unset_dict(patch, transforms={"status": UpdateSalesOrderStatus})
     )
 
 
 def _build_create_row_request(so_id: int, row: SORowAdd) -> APICreateSORowRequest:
-    return APICreateSORowRequest(
-        sales_order_id=so_id,
-        variant_id=row.variant_id,
-        quantity=row.quantity,
-        price_per_unit=to_unset(row.price_per_unit),
-        tax_rate_id=to_unset(row.tax_rate_id),
-        location_id=to_unset(row.location_id),
-        total_discount=to_unset(row.total_discount),
-    )
+    return APICreateSORowRequest(sales_order_id=so_id, **unset_dict(row))
 
 
 def _build_update_row_request(patch: SORowUpdate) -> APIUpdateSORowRequest:
-    return APIUpdateSORowRequest(
-        variant_id=to_unset(patch.variant_id),
-        quantity=to_unset(patch.quantity),
-        price_per_unit=to_unset(patch.price_per_unit),
-        tax_rate_id=to_unset(patch.tax_rate_id),
-        location_id=to_unset(patch.location_id),
-        total_discount=to_unset(patch.total_discount),
-    )
+    return APIUpdateSORowRequest(**unset_dict(patch, exclude=("id",)))
 
 
 def _build_create_address_request(
     so_id: int, addr: SOAddressAdd
 ) -> APICreateSOAddressRequest:
-    api_entity_type = (
-        AddressEntityType.BILLING
-        if addr.entity_type == "billing"
-        else AddressEntityType.SHIPPING
-    )
     return APICreateSOAddressRequest(
         sales_order_id=so_id,
-        entity_type=api_entity_type,
-        first_name=to_unset(addr.first_name),
-        last_name=to_unset(addr.last_name),
-        company=to_unset(addr.company),
-        city=to_unset(addr.city),
-        state=to_unset(addr.state),
-        zip_=to_unset(addr.zip),
-        country=to_unset(addr.country),
-        phone=to_unset(addr.phone),
+        **unset_dict(
+            addr,
+            field_map={"zip": "zip_"},
+            transforms={"entity_type": AddressEntityType},
+        ),
     )
 
 
@@ -1715,21 +1676,13 @@ def _build_update_address_request(
     patch: SOAddressUpdate,
 ) -> APIUpdateSOAddressRequest:
     return APIUpdateSOAddressRequest(
-        first_name=to_unset(patch.first_name),
-        last_name=to_unset(patch.last_name),
-        company=to_unset(patch.company),
-        city=to_unset(patch.city),
-        state=to_unset(patch.state),
-        zip_=to_unset(patch.zip),
-        country=to_unset(patch.country),
-        phone=to_unset(patch.phone),
+        **unset_dict(patch, exclude=("id",), field_map={"zip": "zip_"})
     )
 
 
 def _build_create_fulfillment_request(
     so_id: int, fulfillment: SOFulfillmentAdd
 ) -> APICreateSOFulfillmentRequest:
-    api_status = SalesOrderFulfillmentStatus(fulfillment.status)
     rows = [
         SalesOrderFulfillmentRowRequest(
             sales_order_row_id=r.sales_order_row_id, quantity=r.quantity
@@ -1738,56 +1691,37 @@ def _build_create_fulfillment_request(
     ]
     return APICreateSOFulfillmentRequest(
         sales_order_id=so_id,
-        status=api_status,
         sales_order_fulfillment_rows=rows,
-        picked_date=to_unset(fulfillment.picked_date),
-        conversion_rate=to_unset(fulfillment.conversion_rate),
-        conversion_date=to_unset(fulfillment.conversion_date),
-        tracking_number=to_unset(fulfillment.tracking_number),
-        tracking_url=to_unset(fulfillment.tracking_url),
-        tracking_carrier=to_unset(fulfillment.tracking_carrier),
-        tracking_method=to_unset(fulfillment.tracking_method),
+        **unset_dict(
+            fulfillment,
+            exclude=("sales_order_fulfillment_rows",),
+            transforms={"status": SalesOrderFulfillmentStatus},
+        ),
     )
 
 
 def _build_update_fulfillment_request(
     patch: SOFulfillmentUpdate,
 ) -> APIUpdateSOFulfillmentRequest:
-    api_status = (
-        SalesOrderFulfillmentStatus(patch.status) if patch.status is not None else None
-    )
     return APIUpdateSOFulfillmentRequest(
-        status=to_unset(api_status),
-        picked_date=to_unset(patch.picked_date),
-        packer_id=to_unset(patch.packer_id),
-        conversion_rate=to_unset(patch.conversion_rate),
-        conversion_date=to_unset(patch.conversion_date),
-        tracking_number=to_unset(patch.tracking_number),
-        tracking_url=to_unset(patch.tracking_url),
-        tracking_carrier=to_unset(patch.tracking_carrier),
-        tracking_method=to_unset(patch.tracking_method),
+        **unset_dict(
+            patch,
+            exclude=("id",),
+            transforms={"status": SalesOrderFulfillmentStatus},
+        )
     )
 
 
 def _build_create_shipping_fee_request(
     so_id: int, fee: SOShippingFeeAdd
 ) -> APICreateSOShippingFeeRequest:
-    return APICreateSOShippingFeeRequest(
-        sales_order_id=so_id,
-        amount=fee.amount,
-        description=to_unset(fee.description),
-        tax_rate_id=to_unset(fee.tax_rate_id),
-    )
+    return APICreateSOShippingFeeRequest(sales_order_id=so_id, **unset_dict(fee))
 
 
 def _build_update_shipping_fee_request(
     patch: SOShippingFeeUpdate,
 ) -> APIUpdateSOShippingFeeRequest:
-    return APIUpdateSOShippingFeeRequest(
-        amount=patch.amount,
-        description=to_unset(patch.description),
-        tax_rate_id=to_unset(patch.tax_rate_id),
-    )
+    return APIUpdateSOShippingFeeRequest(**unset_dict(patch, exclude=("id",)))
 
 
 # ----------------------------------------------------------------------------

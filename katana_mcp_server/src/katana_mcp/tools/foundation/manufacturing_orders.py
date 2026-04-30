@@ -44,6 +44,7 @@ from katana_mcp.tools._modification_dispatch import (
     run_delete_plan,
     run_modify_plan,
     safe_fetch_for_diff,
+    unset_dict,
 )
 from katana_mcp.tools.list_coercion import (
     CoercedIntListOpt,
@@ -2382,9 +2383,11 @@ ManufacturingOrderStatusLiteral = Literal[
     "NOT_STARTED", "IN_PROGRESS", "DONE", "BLOCKED", "PARTIALLY_COMPLETED"
 ]
 ManufacturingOperationStatusLiteral = Literal[
-    "NOT_STARTED", "IN_PROGRESS", "BLOCKED", "COMPLETED"
+    "NOT_STARTED", "IN_PROGRESS", "PAUSED", "BLOCKED", "COMPLETED"
 ]
-ManufacturingOperationTypeLiteral = Literal["LINKED", "STANDARD"]
+# Operation row type mirrors Katana's API enum exactly: ``fixed``,
+# ``perUnit``, ``process``, ``setup`` (lowercase + camelCase mix).
+ManufacturingOperationTypeLiteral = Literal["fixed", "perUnit", "process", "setup"]
 
 
 # ----------------------------------------------------------------------------
@@ -2583,86 +2586,52 @@ class DeleteManufacturingOrderRequest(ConfirmableRequest):
 def _build_update_header_request(
     patch: MOHeaderPatch,
 ) -> APIUpdateManufacturingOrderRequest:
-    api_status = (
-        ManufacturingOrderStatus(patch.status) if patch.status is not None else None
-    )
     return APIUpdateManufacturingOrderRequest(
-        order_no=to_unset(patch.order_no),
-        variant_id=to_unset(patch.variant_id),
-        location_id=to_unset(patch.location_id),
-        status=to_unset(api_status),
-        planned_quantity=to_unset(patch.planned_quantity),
-        actual_quantity=to_unset(patch.actual_quantity),
-        order_created_date=to_unset(patch.order_created_date),
-        production_deadline_date=to_unset(patch.production_deadline_date),
-        done_date=to_unset(patch.done_date),
-        additional_info=to_unset(patch.additional_info),
+        **unset_dict(patch, transforms={"status": ManufacturingOrderStatus})
     )
 
 
 def _build_create_recipe_row_request(
     mo_id: int, row: MORecipeRowAdd
 ) -> APICreateMORecipeRowRequest:
-    return APICreateMORecipeRowRequest(
-        manufacturing_order_id=mo_id,
-        variant_id=row.variant_id,
-        planned_quantity_per_unit=row.planned_quantity_per_unit,
-        notes=to_unset(row.notes),
-        total_actual_quantity=to_unset(row.total_actual_quantity),
-    )
+    return APICreateMORecipeRowRequest(manufacturing_order_id=mo_id, **unset_dict(row))
 
 
 def _build_update_recipe_row_request(
     patch: MORecipeRowUpdate,
 ) -> APIUpdateMORecipeRowRequest:
-    return APIUpdateMORecipeRowRequest(
-        variant_id=to_unset(patch.variant_id),
-        notes=to_unset(patch.notes),
-        planned_quantity_per_unit=to_unset(patch.planned_quantity_per_unit),
-        total_actual_quantity=to_unset(patch.total_actual_quantity),
-    )
+    return APIUpdateMORecipeRowRequest(**unset_dict(patch, exclude=("id",)))
 
 
 def _build_create_operation_row_request(
     mo_id: int, row: MOOperationRowAdd
 ) -> APICreateMOOperationRowRequest:
-    api_type = ManufacturingOperationType(row.type) if row.type is not None else None
     return APICreateMOOperationRowRequest(
         manufacturing_order_id=mo_id,
-        status=ManufacturingOperationStatus(row.status),
-        operation_id=to_unset(row.operation_id),
-        type_=to_unset(api_type),
-        operation_name=to_unset(row.operation_name),
-        resource_id=to_unset(row.resource_id),
-        resource_name=to_unset(row.resource_name),
-        planned_time_parameter=to_unset(row.planned_time_parameter),
-        planned_time_per_unit=to_unset(row.planned_time_per_unit),
-        cost_parameter=to_unset(row.cost_parameter),
-        cost_per_hour=to_unset(row.cost_per_hour),
+        **unset_dict(
+            row,
+            field_map={"type": "type_"},
+            transforms={
+                "status": ManufacturingOperationStatus,
+                "type": ManufacturingOperationType,
+            },
+        ),
     )
 
 
 def _build_update_operation_row_request(
     patch: MOOperationRowUpdate,
 ) -> APIUpdateMOOperationRowRequest:
-    api_status = (
-        ManufacturingOperationStatus(patch.status) if patch.status is not None else None
-    )
-    api_type = (
-        ManufacturingOperationType(patch.type) if patch.type is not None else None
-    )
     return APIUpdateMOOperationRowRequest(
-        operation_id=to_unset(patch.operation_id),
-        type_=to_unset(api_type),
-        operation_name=to_unset(patch.operation_name),
-        resource_id=to_unset(patch.resource_id),
-        resource_name=to_unset(patch.resource_name),
-        planned_time_parameter=to_unset(patch.planned_time_parameter),
-        planned_time_per_unit=to_unset(patch.planned_time_per_unit),
-        total_actual_time=to_unset(patch.total_actual_time),
-        cost_parameter=to_unset(patch.cost_parameter),
-        cost_per_hour=to_unset(patch.cost_per_hour),
-        status=to_unset(api_status),
+        **unset_dict(
+            patch,
+            exclude=("id",),
+            field_map={"type": "type_"},
+            transforms={
+                "status": ManufacturingOperationStatus,
+                "type": ManufacturingOperationType,
+            },
+        )
     )
 
 
@@ -2670,20 +2639,14 @@ def _build_create_production_request(
     mo_id: int, prod: MOProductionAdd
 ) -> APICreateMOProductionRequest:
     return APICreateMOProductionRequest(
-        manufacturing_order_id=mo_id,
-        completed_quantity=prod.completed_quantity,
-        completed_date=to_unset(prod.completed_date),
-        is_final=to_unset(prod.is_final),
-        serial_numbers=to_unset(prod.serial_numbers),
+        manufacturing_order_id=mo_id, **unset_dict(prod)
     )
 
 
 def _build_update_production_request(
     patch: MOProductionUpdate,
 ) -> APIUpdateMOProductionRequest:
-    return APIUpdateMOProductionRequest(
-        production_date=to_unset(patch.production_date),
-    )
+    return APIUpdateMOProductionRequest(**unset_dict(patch, exclude=("id",)))
 
 
 # ----------------------------------------------------------------------------

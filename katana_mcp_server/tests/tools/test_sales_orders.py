@@ -31,7 +31,12 @@ from katana_public_api_client.models import (
 )
 from katana_public_api_client.utils import APIError
 from tests.conftest import create_mock_context, patch_typed_cache_sync
-from tests.factories import make_sales_order, make_sales_order_row, seed_cache
+from tests.factories import (
+    make_sales_order,
+    make_sales_order_row,
+    mock_entity_for_modify,
+    seed_cache,
+)
 
 # ============================================================================
 # Unit Tests (with mocks)
@@ -1563,31 +1568,8 @@ _MODIFY_SO_UNWRAP_AS_LOCAL = "katana_mcp.tools._modification_dispatch.unwrap_as"
 
 
 def _mock_so(order_id: int = 1, order_no: str = "SO-1"):
-    """Build a mock SalesOrder attrs object — every UNSET-able field defaults
-    to UNSET so unwrap_unset → None during diff computation."""
-    so = MagicMock(spec=SalesOrder)
-    so.id = order_id
-    so.order_no = order_no
-    for field in (
-        "customer_id",
-        "location_id",
-        "status",
-        "currency",
-        "conversion_rate",
-        "conversion_date",
-        "order_created_date",
-        "delivery_date",
-        "picked_date",
-        "additional_info",
-        "customer_ref",
-        "tracking_number",
-        "tracking_number_url",
-        "created_at",
-        "updated_at",
-        "deleted_at",
-    ):
-        setattr(so, field, UNSET)
-    return so
+    """Build a mock SalesOrder attrs object with all fields defaulted to UNSET."""
+    return mock_entity_for_modify(SalesOrder, id=order_id, order_no=order_no)
 
 
 @pytest.mark.asyncio
