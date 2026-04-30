@@ -12,6 +12,7 @@ Katana's own soft-delete model).
 
 from __future__ import annotations
 
+import contextlib
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -19,6 +20,33 @@ from katana_mcp.typed_cache.sync import ensure_purchase_orders_synced
 
 from katana_public_api_client.models import PurchaseOrderBase as AttrsPurchaseOrder
 from katana_public_api_client.models_pydantic._generated import CachedPurchaseOrder
+
+
+def _empty_response() -> MagicMock:
+    """Build a stock 200/empty-data API response for stubbing related-spec fetches."""
+    parsed = MagicMock()
+    parsed.data = []
+    response = MagicMock()
+    response.status_code = 200
+    response.parsed = parsed
+    return response
+
+
+@contextlib.contextmanager
+def _stub_po_row_sync():
+    """Stub the ``/purchase_order_rows`` fetch so PO-spec tests don't need to model it.
+
+    The PO sync fans out to the row sync via ``related_specs`` (added to
+    catch tombstones the parent response omits). Tests focused on the
+    parent path patch only ``find_purchase_orders``; without this stub,
+    the related row sync would attempt a real HTTP call against a
+    ``MagicMock`` client.
+    """
+    with patch(
+        "katana_mcp.typed_cache.sync.get_all_purchase_order_rows.asyncio_detailed",
+        new=AsyncMock(return_value=_empty_response()),
+    ):
+        yield
 
 
 class TestSoftDeleteSync:
@@ -59,9 +87,12 @@ class TestSoftDeleteSync:
         mock_response.status_code = 200
         mock_response.parsed = mock_parsed
 
-        with patch(
-            "katana_mcp.typed_cache.sync.find_purchase_orders.asyncio_detailed",
-            new=AsyncMock(return_value=mock_response),
+        with (
+            patch(
+                "katana_mcp.typed_cache.sync.find_purchase_orders.asyncio_detailed",
+                new=AsyncMock(return_value=mock_response),
+            ),
+            _stub_po_row_sync(),
         ):
             await ensure_purchase_orders_synced(MagicMock(), typed_cache_engine)
 
@@ -81,9 +112,12 @@ class TestSoftDeleteSync:
         mock_response.parsed = mock_parsed
 
         mock_api = AsyncMock(return_value=mock_response)
-        with patch(
-            "katana_mcp.typed_cache.sync.find_purchase_orders.asyncio_detailed",
-            new=mock_api,
+        with (
+            patch(
+                "katana_mcp.typed_cache.sync.find_purchase_orders.asyncio_detailed",
+                new=mock_api,
+            ),
+            _stub_po_row_sync(),
         ):
             await ensure_purchase_orders_synced(MagicMock(), typed_cache_engine)
 
@@ -129,9 +163,12 @@ class TestSoftDeleteSync:
         mock_response.status_code = 200
         mock_response.parsed = mock_parsed
 
-        with patch(
-            "katana_mcp.typed_cache.sync.find_purchase_orders.asyncio_detailed",
-            new=AsyncMock(return_value=mock_response),
+        with (
+            patch(
+                "katana_mcp.typed_cache.sync.find_purchase_orders.asyncio_detailed",
+                new=AsyncMock(return_value=mock_response),
+            ),
+            _stub_po_row_sync(),
         ):
             await ensure_purchase_orders_synced(MagicMock(), typed_cache_engine)
 
@@ -161,15 +198,106 @@ class TestSoftDeleteSync:
         mock_response.parsed = mock_parsed
 
         mock_api = AsyncMock(return_value=mock_response)
-        with patch(
-            "katana_mcp.typed_cache.sync.find_purchase_orders.asyncio_detailed",
-            new=mock_api,
+        with (
+            patch(
+                "katana_mcp.typed_cache.sync.find_purchase_orders.asyncio_detailed",
+                new=mock_api,
+            ),
+            _stub_po_row_sync(),
         ):
             await ensure_purchase_orders_synced(MagicMock(), typed_cache_engine)
             await ensure_purchase_orders_synced(MagicMock(), typed_cache_engine)
             await ensure_purchase_orders_synced(MagicMock(), typed_cache_engine)
 
         assert mock_api.call_count == 3
+
+
+class TestRowLevelTombstoneSync:
+    """PR #461 added row-level mutations (delete_purchase_order_row etc.).
+
+    The parent ``find_purchase_orders`` response *hides* soft-deleted nested
+    rows (top-level ``include_deleted=true`` doesn't propagate to nested),
+    so a row deleted via ``delete_purchase_order_row`` would otherwise stay
+    in the cache as a ghost. The dedicated row endpoint surfaces the
+    tombstone via its own ``include_deleted`` + watermark, and our
+    ``related_specs`` wiring fans out the sync.
+    """
+
+    @pytest.mark.asyncio
+    async def test_po_row_tombstone_lands_via_separate_endpoint(
+        self, typed_cache_engine
+    ):
+        """A row reported deleted by ``/purchase_order_rows`` lands in cache with deleted_at set."""
+        from katana_public_api_client.models import PurchaseOrderRow as AttrsPORow
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedPurchaseOrderRow,
+        )
+
+        # Seed the cache with a "live" row that the row endpoint is about
+        # to report deleted.
+        async with typed_cache_engine.session() as session:
+            session.add(
+                CachedPurchaseOrderRow(id=99, purchase_order_id=42, variant_id=7)
+            )
+            await session.commit()
+
+        deleted_row = AttrsPORow.from_dict(
+            {
+                "id": 99,
+                "purchase_order_id": 42,
+                "variant_id": 7,
+                "quantity": 1,
+                "deleted_at": "2026-01-15T10:00:00.000Z",
+            }
+        )
+        mock_parsed = MagicMock()
+        mock_parsed.data = [deleted_row]
+        rows_response = MagicMock()
+        rows_response.status_code = 200
+        rows_response.parsed = mock_parsed
+
+        # Parent endpoint returns nothing (no PO updates); rows endpoint
+        # returns the tombstone — this is the wire shape we expect when
+        # only a row was deleted.
+        with (
+            patch(
+                "katana_mcp.typed_cache.sync.find_purchase_orders.asyncio_detailed",
+                new=AsyncMock(return_value=_empty_response()),
+            ),
+            patch(
+                "katana_mcp.typed_cache.sync.get_all_purchase_order_rows.asyncio_detailed",
+                new=AsyncMock(return_value=rows_response),
+            ),
+        ):
+            await ensure_purchase_orders_synced(MagicMock(), typed_cache_engine)
+
+        async with typed_cache_engine.session() as session:
+            cached_row = await session.get(CachedPurchaseOrderRow, 99)
+            assert cached_row is not None
+            assert cached_row.deleted_at is not None
+
+    @pytest.mark.asyncio
+    async def test_po_sync_calls_both_parent_and_row_endpoints(
+        self, typed_cache_engine
+    ):
+        """Pin the fan-out: one ``ensure_purchase_orders_synced`` → one fetch each."""
+        po_api = AsyncMock(return_value=_empty_response())
+        rows_api = AsyncMock(return_value=_empty_response())
+
+        with (
+            patch(
+                "katana_mcp.typed_cache.sync.find_purchase_orders.asyncio_detailed",
+                new=po_api,
+            ),
+            patch(
+                "katana_mcp.typed_cache.sync.get_all_purchase_order_rows.asyncio_detailed",
+                new=rows_api,
+            ),
+        ):
+            await ensure_purchase_orders_synced(MagicMock(), typed_cache_engine)
+
+        assert po_api.call_count == 1
+        assert rows_api.call_count == 1
 
 
 class TestRelatedSpecsFanOut:

@@ -34,7 +34,11 @@ from katana_public_api_client.api.manufacturing_order_recipe import (
     get_all_manufacturing_order_recipe_rows,
 )
 from katana_public_api_client.api.purchase_order import find_purchase_orders
+from katana_public_api_client.api.purchase_order_row import (
+    get_all_purchase_order_rows,
+)
 from katana_public_api_client.api.sales_order import get_all_sales_orders
+from katana_public_api_client.api.sales_order_row import get_all_sales_order_rows
 from katana_public_api_client.api.stock_adjustment import get_all_stock_adjustments
 from katana_public_api_client.api.stock_transfer import get_all_stock_transfers
 from katana_public_api_client.models_pydantic._generated import (
@@ -51,7 +55,9 @@ from katana_public_api_client.models_pydantic._generated import (
     ManufacturingOrder as PydanticManufacturingOrder,
     ManufacturingOrderRecipeRow as PydanticManufacturingOrderRecipeRow,
     PurchaseOrderBase as PydanticPurchaseOrderBase,
+    PurchaseOrderRow as PydanticPurchaseOrderRow,
     SalesOrder as PydanticSalesOrder,
+    SalesOrderRow as PydanticSalesOrderRow,
     StockAdjustment as PydanticStockAdjustment,
     StockTransfer as PydanticStockTransfer,
 )
@@ -289,6 +295,23 @@ async def _sync_one(
 # ---------------------------------------------------------------------------
 
 
+# Sales-order rows: nested under their parent in the ``find_sales_orders``
+# response, but the response *hides* soft-deleted rows even with
+# ``include_deleted=True`` (that flag controls top-level inclusion only).
+# Without an independent row sync, a row deleted via ``delete_sales_order_row``
+# on a still-live parent stays in the cache as a ghost. The dedicated
+# ``/sales_order_rows`` endpoint exposes ``include_deleted`` + the same
+# ``updated_at_min`` watermark mechanism, so we can pick up tombstones the
+# parent response omits. Defined before ``_SALES_ORDER_SPEC`` so the parent's
+# ``related_specs`` can reference it (frozen dataclasses can't forward-ref).
+_SALES_ORDER_ROW_SPEC = EntitySpec(
+    entity_key="sales_order_row",
+    api_fn=get_all_sales_order_rows,
+    cache_cls=CachedSalesOrderRow,
+    pydantic_cls=PydanticSalesOrderRow,
+)
+
+
 _SALES_ORDER_SPEC = EntitySpec(
     entity_key="sales_order",
     api_fn=get_all_sales_orders,
@@ -297,6 +320,7 @@ _SALES_ORDER_SPEC = EntitySpec(
     child_cls=CachedSalesOrderRow,
     rows_field="sales_order_rows",
     fk_field="sales_order_id",
+    related_specs=(_SALES_ORDER_ROW_SPEC,),
 )
 
 
@@ -342,6 +366,21 @@ _MANUFACTURING_ORDER_SPEC = EntitySpec(
 )
 
 
+# Purchase-order rows: like sales-order rows, ``find_purchase_orders``
+# hides soft-deleted nested rows even with ``include_deleted=True`` set
+# at the parent level. The ``/purchase_order_rows`` sibling endpoint
+# (added to MCP via ``delete_purchase_order_row`` /
+# ``update_purchase_order_row`` in #461) exposes ``include_deleted`` and
+# its own watermark, so we sync rows independently to catch tombstones
+# the parent response omits.
+_PURCHASE_ORDER_ROW_SPEC = EntitySpec(
+    entity_key="purchase_order_row",
+    api_fn=get_all_purchase_order_rows,
+    cache_cls=CachedPurchaseOrderRow,
+    pydantic_cls=PydanticPurchaseOrderRow,
+)
+
+
 # Purchase orders: discriminated-union entity. The cache class shadows
 # ``PurchaseOrderBase`` (renamed via ``CACHE_TABLE_RENAMES``) and carries
 # an extra ``tracking_location_id`` column hoisted from the outsourced
@@ -358,6 +397,7 @@ _PURCHASE_ORDER_SPEC = EntitySpec(
     rows_field="purchase_order_rows",
     fk_field="purchase_order_id",
     pydantic_resolver=_resolve_purchase_order_class,
+    related_specs=(_PURCHASE_ORDER_ROW_SPEC,),
 )
 
 

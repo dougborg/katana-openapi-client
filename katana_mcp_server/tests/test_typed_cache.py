@@ -306,9 +306,24 @@ class TestSyncShippingFeeEmpty:
 
         mock_client = MagicMock()
 
-        with patch(
-            "katana_mcp.typed_cache.sync.get_all_sales_orders.asyncio_detailed",
-            new=AsyncMock(return_value=mock_response),
+        # SO sync fans out to ``/sales_order_rows`` via ``related_specs``,
+        # so stub that endpoint with an empty response — this test pins
+        # the parent's shipping_fee handling, not row sync.
+        empty_rows_parsed = MagicMock()
+        empty_rows_parsed.data = []
+        empty_rows_response = MagicMock()
+        empty_rows_response.status_code = 200
+        empty_rows_response.parsed = empty_rows_parsed
+
+        with (
+            patch(
+                "katana_mcp.typed_cache.sync.get_all_sales_orders.asyncio_detailed",
+                new=AsyncMock(return_value=mock_response),
+            ),
+            patch(
+                "katana_mcp.typed_cache.sync.get_all_sales_order_rows.asyncio_detailed",
+                new=AsyncMock(return_value=empty_rows_response),
+            ),
         ):
             # Should complete without raising.
             await ensure_sales_orders_synced(
