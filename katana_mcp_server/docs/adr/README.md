@@ -36,6 +36,10 @@ We use the format proposed by Michael Nygard in his article
 - [ADR-0018: SQLModel-backed Typed Cache for Transactional List Tools](0018-sqlmodel-typed-cache.md)
 - [ADR-0019: MCP Tool Description and Batch-Field Conventions](0019-tool-description-batch-conventions.md)
 
+### Proposed Architecture Decisions
+
+- [ADR-0020: Consistent Tool Surface Across Entity Types + Cache Unification](0020-consistent-tool-surface-and-cache-unification.md)
+
 ## Creating a New ADR
 
 1. Copy the template from the shared ADR directory:
@@ -44,15 +48,19 @@ We use the format proposed by Michael Nygard in his article
    cp docs/adr/template.md katana_mcp_server/docs/adr/NNNN-your-title.md
    ```
 
-1. Use the **next number across all three ADR directories** — the sequence is
-   shared between `katana_public_api_client/docs/adr/` (client package),
-   `docs/adr/` (monorepo-level), and this directory (MCP-server-specific), not
-   per-package. Check the highest existing number across all three.
+1. Use the **next number across all three ADR directories** — the sequence is shared
+   between `katana_public_api_client/docs/adr/` (client package), `docs/adr/`
+   (monorepo-level), and this directory (MCP-server-specific), not per-package. Check
+   the highest existing number across all three.
+
 1. Decide which directory the ADR belongs in: client package decision →
-   `katana_public_api_client/docs/adr/`; monorepo / build / process →
-   `docs/adr/`; MCP-server-specific architecture → here.
+   `katana_public_api_client/docs/adr/`; monorepo / build / process → `docs/adr/`;
+   MCP-server-specific architecture → here.
+
 1. Fill in the sections
+
 1. Create a PR for discussion
+
 1. After acceptance, update status to "Accepted"
 
 ## Related Documentation
