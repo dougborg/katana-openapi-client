@@ -878,18 +878,45 @@ additional-cost rows in one call. Replaces the prior 8 separate
   `expected_arrival_date`, `order_created_date`, `additional_info`,
   `status`). Status uses the PATCH endpoint; to flip to RECEIVED with
   inventory updates use `receive_purchase_order` instead.
-- `add_rows` / `update_rows` / `delete_row_ids` — line item CRUD.
-  `update_rows` entries each carry their own row id + patch.
-- `add_additional_costs` / `update_additional_costs` /
-  `delete_additional_cost_ids` — freight / duty / handling cost rows.
-  The tool resolves the PO's `default_group_id` automatically.
+- `add_rows` — list of new line items. Each row:
+  `variant_id` (int, required), `quantity` (float, required, >0),
+  `price_per_unit` (float, required), `tax_rate_id` (int — see
+  `katana://tax-rates`), `tax_name`, `tax_rate`, `currency`,
+  `purchase_uom`, `purchase_uom_conversion_rate`, `arrival_date`.
+- `update_rows` — list of patches. Each entry: `id` (int, required) +
+  any subset of `quantity`, `variant_id`, `tax_rate_id`, `tax_name`,
+  `tax_rate`, `price_per_unit`, `purchase_uom`,
+  `purchase_uom_conversion_rate`, `received_date`, `arrival_date`.
+- `delete_row_ids` — list of row IDs to delete.
+- `add_additional_costs` — list of new freight / duty / handling rows.
+  Each row: `additional_cost_id` (int, required — see
+  `katana://additional-costs` for catalog IDs), `tax_rate_id` (int,
+  required — see `katana://tax-rates`), `price` (float, required),
+  `distribution_method` (`BY_VALUE` | `NON_DISTRIBUTED` — controls how
+  the cost spreads across line items; `BY_VALUE` is what produces
+  `landed_cost` on each row), `group_id` (int, optional — defaults to
+  the PO's `default_group_id`).
+- `update_additional_costs` — list of patches to existing cost rows.
+  Each entry: `id` (int, required) + any subset of `additional_cost_id`,
+  `tax_rate_id`, `price`, `distribution_method`.
+- `delete_additional_cost_ids` — list of cost row IDs to delete.
+
+**Derived fields (rejected on update):** `landed_cost`,
+`total_in_base_currency`, `total`, `conversion_rate`, and
+`conversion_date` on PO rows are computed by Katana from supplier price,
+exchange rates, and distributed additional costs. Trying to set them via
+`update_rows` returns "At least 1 field is required" because every other
+patched field is also derived. To distribute landed cost across rows,
+use `add_additional_costs` with `distribution_method=BY_VALUE` — Katana
+recomputes per-row `landed_cost` automatically.
 
 **Parameters:**
 - `id` (required): Purchase order ID
 - Any subset of the sub-payloads above
 - `confirm` (optional, default false): false=preview with per-action diff,
-  true=execute the action plan in canonical order (header → adds → updates
-  → deletes); fail-fast on first error
+  true=execute the action plan in canonical order (header → row adds →
+  row updates → row deletes → cost adds → cost updates → cost deletes);
+  fail-fast on first error
 
 **Returns:** A `ModificationResponse` with `is_preview`, an `actions` list
 (one entry per planned API call with `operation`, `target_id`, `changes`,
@@ -1344,6 +1371,20 @@ All manufacturing operators.
 - Summary count
 
 **Use when:** Assigning operators to manufacturing order operations.
+
+---
+
+### katana://additional-costs
+Configured additional-cost catalog (freight, duties, handling fees) for
+purchase orders.
+
+**Contains:**
+- id, name
+- Summary count
+
+**Use when:** Looking up `additional_cost_id` for
+`modify_purchase_order(add_additional_costs=[...])`. Pair with
+`katana://tax-rates` for the matching `tax_rate_id`.
 
 ---
 

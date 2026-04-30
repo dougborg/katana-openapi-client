@@ -2277,17 +2277,75 @@ class ModifyPurchaseOrderRequest(ConfirmableRequest):
     Fail-fast on first error; the response carries per-action result blocks
     plus a ``prior_state`` snapshot for manual revert.
 
+    Some fields on PO rows are derived (e.g. ``landed_cost``,
+    ``total_in_base_currency``) — Katana computes them server-side and
+    rejects them on update. Set those values indirectly via
+    ``add_additional_costs`` (group-level distribution with ``BY_VALUE``).
+    See ``katana://help/tools`` for the full list of derived fields.
+
     To remove a PO entirely, use the sibling ``delete_purchase_order`` tool.
     """
 
     id: int = Field(..., description="Purchase order ID")
-    update_header: POHeaderPatch | None = Field(default=None)
-    add_rows: list[PORowAdd] | None = Field(default=None)
-    update_rows: list[PORowUpdate] | None = Field(default=None)
-    delete_row_ids: list[int] | None = Field(default=None)
-    add_additional_costs: list[POAdditionalCostAdd] | None = Field(default=None)
-    update_additional_costs: list[POAdditionalCostUpdate] | None = Field(default=None)
-    delete_additional_cost_ids: list[int] | None = Field(default=None)
+    update_header: POHeaderPatch | None = Field(
+        default=None,
+        description=(
+            "Header-level patch. Fields: order_no, supplier_id, currency, "
+            "location_id, tracking_location_id, status (DRAFT/NOT_RECEIVED/"
+            "PARTIALLY_RECEIVED/RECEIVED), expected_arrival_date, "
+            "order_created_date, additional_info. To flip status to RECEIVED "
+            "with inventory updates, use the receive_purchase_order tool."
+        ),
+    )
+    add_rows: list[PORowAdd] | None = Field(
+        default=None,
+        description=(
+            "New line items. Each row: variant_id (int, required), quantity "
+            "(float, required, >0), price_per_unit (float, required), "
+            "tax_rate_id (int — see katana://tax-rates), tax_name, tax_rate, "
+            "currency, purchase_uom, purchase_uom_conversion_rate, "
+            "arrival_date."
+        ),
+    )
+    update_rows: list[PORowUpdate] | None = Field(
+        default=None,
+        description=(
+            "Patches to existing line items. Each entry: id (int, required) + "
+            "any subset of quantity, variant_id, tax_rate_id, tax_name, "
+            "tax_rate, price_per_unit, purchase_uom, "
+            "purchase_uom_conversion_rate, received_date, arrival_date. "
+            "Derived fields (landed_cost, total_in_base_currency, etc.) are "
+            "rejected — distribute landed cost via add_additional_costs."
+        ),
+    )
+    delete_row_ids: list[int] | None = Field(
+        default=None,
+        description="Row IDs to delete from the PO.",
+    )
+    add_additional_costs: list[POAdditionalCostAdd] | None = Field(
+        default=None,
+        description=(
+            "New additional-cost rows (freight, duties, handling). Each row: "
+            "additional_cost_id (int, required — see katana://additional-costs), "
+            "tax_rate_id (int, required — see katana://tax-rates), price "
+            "(float, required), distribution_method (BY_VALUE | "
+            "NON_DISTRIBUTED — controls how the cost spreads across line "
+            "items), group_id (int, optional — defaults to the PO's "
+            "default_group_id)."
+        ),
+    )
+    update_additional_costs: list[POAdditionalCostUpdate] | None = Field(
+        default=None,
+        description=(
+            "Patches to existing additional-cost rows. Each entry: id (int, "
+            "required) + any subset of additional_cost_id, tax_rate_id, "
+            "price, distribution_method."
+        ),
+    )
+    delete_additional_cost_ids: list[int] | None = Field(
+        default=None,
+        description="Additional-cost row IDs to delete from the PO.",
+    )
 
 
 class DeletePurchaseOrderRequest(ConfirmableRequest):

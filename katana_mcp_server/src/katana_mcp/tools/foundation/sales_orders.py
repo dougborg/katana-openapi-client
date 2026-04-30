@@ -1617,19 +1617,99 @@ class ModifySalesOrderRequest(ConfirmableRequest):
     """
 
     id: int = Field(..., description="Sales order ID")
-    update_header: SOHeaderPatch | None = Field(default=None)
-    add_rows: list[SORowAdd] | None = Field(default=None)
-    update_rows: list[SORowUpdate] | None = Field(default=None)
-    delete_row_ids: list[int] | None = Field(default=None)
-    add_addresses: list[SOAddressAdd] | None = Field(default=None)
-    update_addresses: list[SOAddressUpdate] | None = Field(default=None)
-    delete_address_ids: list[int] | None = Field(default=None)
-    add_fulfillments: list[SOFulfillmentAdd] | None = Field(default=None)
-    update_fulfillments: list[SOFulfillmentUpdate] | None = Field(default=None)
-    delete_fulfillment_ids: list[int] | None = Field(default=None)
-    add_shipping_fees: list[SOShippingFeeAdd] | None = Field(default=None)
-    update_shipping_fees: list[SOShippingFeeUpdate] | None = Field(default=None)
-    delete_shipping_fee_ids: list[int] | None = Field(default=None)
+    update_header: SOHeaderPatch | None = Field(
+        default=None,
+        description=(
+            "Header-level patch. Fields: order_no, customer_id, location_id, "
+            "status (NOT_SHIPPED/PENDING/PACKED/DELIVERED), currency, "
+            "conversion_rate, conversion_date, order_created_date, "
+            "delivery_date, picked_date, additional_info, customer_ref, "
+            "tracking_number, tracking_number_url."
+        ),
+    )
+    add_rows: list[SORowAdd] | None = Field(
+        default=None,
+        description=(
+            "New line items. Each row: variant_id (int, required), quantity "
+            "(float, required, >0), price_per_unit, tax_rate_id (see "
+            "katana://tax-rates), location_id, total_discount."
+        ),
+    )
+    update_rows: list[SORowUpdate] | None = Field(
+        default=None,
+        description=(
+            "Patches to existing line items. Each entry: id (int, required) + "
+            "any subset of variant_id, quantity, price_per_unit, tax_rate_id, "
+            "location_id, total_discount."
+        ),
+    )
+    delete_row_ids: list[int] | None = Field(
+        default=None,
+        description="Row IDs to delete from the SO.",
+    )
+    add_addresses: list[SOAddressAdd] | None = Field(
+        default=None,
+        description=(
+            "New addresses. Each: entity_type (billing | shipping, required), "
+            "first_name, last_name, company, city, state, zip, country, phone."
+        ),
+    )
+    update_addresses: list[SOAddressUpdate] | None = Field(
+        default=None,
+        description=(
+            "Patches to existing addresses. Each entry: id (int, required) + "
+            "any subset of first_name, last_name, company, city, state, zip, "
+            "country, phone. Katana doesn't expose address get-by-id, so "
+            "previews mark every supplied field as is_unknown_prior=True."
+        ),
+    )
+    delete_address_ids: list[int] | None = Field(
+        default=None,
+        description="Address IDs to delete from the SO.",
+    )
+    add_fulfillments: list[SOFulfillmentAdd] | None = Field(
+        default=None,
+        description=(
+            "New fulfillments. Each: status (DELIVERED | PACKED, required), "
+            "sales_order_fulfillment_rows (list of {sales_order_row_id, "
+            "quantity}, required, min_length=1), picked_date, "
+            "conversion_rate, conversion_date, tracking_number, tracking_url, "
+            "tracking_carrier, tracking_method."
+        ),
+    )
+    update_fulfillments: list[SOFulfillmentUpdate] | None = Field(
+        default=None,
+        description=(
+            "Patches to existing fulfillments. Each entry: id (int, "
+            "required) + any subset of status, picked_date, packer_id "
+            "(operator — see katana://operators), conversion_rate, "
+            "conversion_date, tracking_number, tracking_url, "
+            "tracking_carrier, tracking_method."
+        ),
+    )
+    delete_fulfillment_ids: list[int] | None = Field(
+        default=None,
+        description="Fulfillment IDs to delete from the SO.",
+    )
+    add_shipping_fees: list[SOShippingFeeAdd] | None = Field(
+        default=None,
+        description=(
+            "New shipping fees. Each: amount (decimal string, required), "
+            "description, tax_rate_id (see katana://tax-rates)."
+        ),
+    )
+    update_shipping_fees: list[SOShippingFeeUpdate] | None = Field(
+        default=None,
+        description=(
+            "Patches to existing shipping fees. Each entry: id (int, "
+            "required), amount (decimal string, required — Katana semantics "
+            "are replace, not partial), description, tax_rate_id."
+        ),
+    )
+    delete_shipping_fee_ids: list[int] | None = Field(
+        default=None,
+        description="Shipping fee IDs to delete from the SO.",
+    )
 
 
 class DeleteSalesOrderRequest(ConfirmableRequest):

@@ -17,6 +17,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from katana_mcp.cache import (
+    ADDITIONAL_COST_INDEX,
     CUSTOMER_INDEX,
     LOCATION_INDEX,
     MATERIAL_INDEX,
@@ -28,6 +29,7 @@ from katana_mcp.cache import (
     VARIANT_INDEX,
     IndexFields,
 )
+from katana_public_api_client.api.additional_costs import get_additional_costs
 from katana_public_api_client.api.customer import get_all_customers
 from katana_public_api_client.api.factory import get_factory
 from katana_public_api_client.api.location import get_all_locations
@@ -194,6 +196,17 @@ async def ensure_operators_synced(services: Services) -> None:
     )
 
 
+async def ensure_additional_costs_synced(services: Services) -> None:
+    """Ensure the additional-cost catalog cache is fresh."""
+    await _ensure_synced(
+        services=services,
+        entity_type="additional_cost",
+        index_fields=ADDITIONAL_COST_INDEX,
+        fetch_fn=_fetch_additional_costs,
+        supports_incremental=True,
+    )
+
+
 async def ensure_factory_synced(services: Services) -> None:
     """Ensure the factory cache is fresh."""
     await _ensure_synced(
@@ -332,6 +345,12 @@ async def _fetch_operators(
     return await _fetch_generic(
         get_all_operators, client, updated_at_min, supports_incremental=False
     )
+
+
+async def _fetch_additional_costs(
+    client: Any, updated_at_min: datetime | None = None
+) -> list[dict]:
+    return await _fetch_generic(get_additional_costs, client, updated_at_min)
 
 
 async def _fetch_factory(

@@ -58,6 +58,10 @@ from typing import Any, cast
 from pydantic import BaseModel
 
 from katana_mcp.logging import get_logger
+from katana_mcp.tools._derived_fields import (
+    DERIVED_FIELDS,
+    check_derived_fields,
+)
 from katana_mcp.tools._modification import (
     ActionResult,
     ConfirmableRequest,
@@ -627,6 +631,47 @@ async def run_modify_plan(
         if existing is None and has_get_endpoint
         else []
     )
+
+    # Reject server-computed (derived) fields before plan execution. Fires
+    # for both preview and confirm paths so the caller sees the error
+    # immediately, not after a partial plan applies. See
+    # ``katana_mcp.tools._derived_fields`` for registry semantics.
+    for spec in plan:
+        check_derived_fields(
+            entity_type=entity_type,
+            operation=spec.operation,
+            target_id=spec.target_id,
+            diff=spec.diff,
+        )
+
+    # Reject update-style ActionSpecs with empty diffs. This catches the
+    # case where a caller supplied only unknown or derived field names on
+    # the patch payload — pydantic's ``extra="ignore"`` silently dropped
+    # them, leaving the diff (and the resulting PATCH body) empty. Without
+    # this guard, Katana returns a generic "At least 1 field is required"
+    # 422 that's hard to map back to the original input. Adds and deletes
+    # are exempt: adds carry a non-empty diff by construction (required
+    # fields), and deletes have empty diffs by design.
+    for spec in plan:
+        if not spec.operation.startswith("update_"):
+            continue
+        if spec.diff:
+            continue
+        derived_for_op = DERIVED_FIELDS.get(entity_type, {}).get(spec.operation, {})
+        target = f" (target {spec.target_id})" if spec.target_id is not None else ""
+        msg = (
+            f"No fields to update for {entity_type} {spec.operation}{target} — "
+            f"the patch payload would be empty. This typically means the "
+            f"caller supplied only field names that aren't on the patch "
+            f"model (pydantic silently drops unknown fields)."
+        )
+        if derived_for_op:
+            derived_names = ", ".join(sorted(derived_for_op))
+            msg = (
+                f"{msg} Derived fields registered on this operation "
+                f"(rejected by the API on update): {derived_names}."
+            )
+        raise ValueError(msg)
 
     if not request.confirm:
         return ModificationResponse(

@@ -2558,16 +2558,79 @@ class ModifyManufacturingOrderRequest(ConfirmableRequest):
     """
 
     id: int = Field(..., description="Manufacturing order ID")
-    update_header: MOHeaderPatch | None = Field(default=None)
-    add_recipe_rows: list[MORecipeRowAdd] | None = Field(default=None)
-    update_recipe_rows: list[MORecipeRowUpdate] | None = Field(default=None)
-    delete_recipe_row_ids: list[int] | None = Field(default=None)
-    add_operation_rows: list[MOOperationRowAdd] | None = Field(default=None)
-    update_operation_rows: list[MOOperationRowUpdate] | None = Field(default=None)
-    delete_operation_row_ids: list[int] | None = Field(default=None)
-    add_productions: list[MOProductionAdd] | None = Field(default=None)
-    update_productions: list[MOProductionUpdate] | None = Field(default=None)
-    delete_production_ids: list[int] | None = Field(default=None)
+    update_header: MOHeaderPatch | None = Field(
+        default=None,
+        description=(
+            "Header-level patch. Fields: order_no, variant_id, location_id, "
+            "status (NOT_STARTED/IN_PROGRESS/DONE/BLOCKED/PARTIALLY_COMPLETED "
+            "— transitions validated server-side), planned_quantity (>0), "
+            "actual_quantity (>=0), order_created_date, "
+            "production_deadline_date, done_date, additional_info."
+        ),
+    )
+    add_recipe_rows: list[MORecipeRowAdd] | None = Field(
+        default=None,
+        description=(
+            "New recipe rows (ingredients). Each: variant_id (int, required), "
+            "planned_quantity_per_unit (float, required, >0), notes, "
+            "total_actual_quantity (>=0)."
+        ),
+    )
+    update_recipe_rows: list[MORecipeRowUpdate] | None = Field(
+        default=None,
+        description=(
+            "Patches to existing recipe rows. Each entry: id (int, required) "
+            "+ any subset of variant_id, planned_quantity_per_unit, notes, "
+            "total_actual_quantity."
+        ),
+    )
+    delete_recipe_row_ids: list[int] | None = Field(
+        default=None,
+        description="Recipe row IDs to delete from the MO.",
+    )
+    add_operation_rows: list[MOOperationRowAdd] | None = Field(
+        default=None,
+        description=(
+            "New operation rows (production steps). Each: status (required), "
+            "operation_id, type (LINKED template | STANDARD), operation_name, "
+            "resource_id, resource_name, planned_time_parameter, "
+            "planned_time_per_unit, cost_parameter, cost_per_hour."
+        ),
+    )
+    update_operation_rows: list[MOOperationRowUpdate] | None = Field(
+        default=None,
+        description=(
+            "Patches to existing operation rows. Each entry: id (int, "
+            "required) + any subset of status, operation_id, type, "
+            "operation_name, resource_id, resource_name, "
+            "planned_time_parameter, planned_time_per_unit, "
+            "total_actual_time, cost_parameter, cost_per_hour."
+        ),
+    )
+    delete_operation_row_ids: list[int] | None = Field(
+        default=None,
+        description="Operation row IDs to delete from the MO.",
+    )
+    add_productions: list[MOProductionAdd] | None = Field(
+        default=None,
+        description=(
+            "New production records (completion logs). Each: "
+            "completed_quantity (float, required, >0), completed_date, "
+            "is_final (bool — marks as final production record), "
+            "serial_numbers (list[str] — for serial-tracked variants)."
+        ),
+    )
+    update_productions: list[MOProductionUpdate] | None = Field(
+        default=None,
+        description=(
+            "Patches to existing production records. Each entry: id (int, "
+            "required), production_date."
+        ),
+    )
+    delete_production_ids: list[int] | None = Field(
+        default=None,
+        description="Production record IDs to delete from the MO.",
+    )
 
 
 class DeleteManufacturingOrderRequest(ConfirmableRequest):
