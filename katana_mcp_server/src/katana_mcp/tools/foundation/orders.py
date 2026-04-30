@@ -280,7 +280,20 @@ async def _fulfill_sales_order(
             ),
         )
     if not so_rows:
-        raise ValueError(f"Sales order {order_number} has no rows to fulfill")
+        return FulfillOrderResponse(
+            order_id=request.order_id,
+            order_type="sales",
+            order_number=order_number,
+            status=current_status,
+            is_preview=False,
+            inventory_updates=[],
+            warnings=warnings,
+            next_actions=["No action taken — order has no rows to fulfill"],
+            message=(
+                f"Refused: Sales order {order_number} has no rows to fulfill; "
+                "no fulfillment created."
+            ),
+        )
 
     from katana_public_api_client.api.sales_order_fulfillment import (
         create_sales_order_fulfillment as api_create_fulfillment,

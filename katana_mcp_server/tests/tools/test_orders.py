@@ -291,6 +291,42 @@ async def test_fulfill_sales_order_confirm_creates_fulfillment():
 
 
 @pytest.mark.asyncio
+async def test_fulfill_sales_order_confirm_refuses_when_no_rows():
+    """confirm=True against a sales order with no rows must refuse cleanly
+    (no-op response with BLOCK warning + Refused message), not raise. Matches
+    the defense-in-depth pattern of the other BLOCK guards.
+    """
+    context, _lifespan_ctx = create_mock_context()
+
+    mock_so = MagicMock(spec=SalesOrder)
+    mock_so.order_no = "SO-EMPTY"
+    mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.sales_order_rows = []  # no rows!
+
+    mock_response = MagicMock(status_code=200, parsed=mock_so)
+
+    from katana_public_api_client.api.sales_order import get_sales_order
+    from katana_public_api_client.api.sales_order_fulfillment import (
+        create_sales_order_fulfillment,
+    )
+
+    get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+    create_mock = AsyncMock()
+    create_sales_order_fulfillment.asyncio_detailed = create_mock
+
+    request = FulfillOrderRequest(order_id=5678, order_type="sales", confirm=True)
+    result = await _fulfill_order_impl(request, context)
+
+    assert result.is_preview is False
+    block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
+    assert len(block_warnings) == 1
+    assert "no rows" in block_warnings[0].lower()
+    assert "Refused" in result.message
+    # The fulfillment-create endpoint must NOT have been called.
+    create_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_fulfill_sales_order_blocks_when_already_delivered():
     """Already-DELIVERED SO should emit a BLOCK warning + refuse confirm."""
     context, _lifespan_ctx = create_mock_context()
