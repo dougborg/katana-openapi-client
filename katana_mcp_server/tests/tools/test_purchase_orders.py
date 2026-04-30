@@ -1393,16 +1393,72 @@ async def test_receive_purchase_order_builds_correct_api_payload():
 
 
 @pytest.mark.asyncio
+async def test_receive_purchase_order_confirm_refuses_when_already_received():
+    """confirm=True against a PO already at status=RECEIVED must refuse —
+    defense-in-depth: the preview UI suppresses Confirm via BLOCK warning,
+    but programmatic callers skipping the UI need the same protection so
+    they can't create duplicate inventory.
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    mock_po = MagicMock(spec=RegularPurchaseOrder)
+    mock_po.id = 8888
+    mock_po.order_no = "PO-ALREADY-RECEIVED"
+    mock_po.status = MagicMock()
+    mock_po.status.value = "RECEIVED"
+    mock_po.supplier_id = UNSET
+    mock_po.currency = UNSET
+    mock_po.total = UNSET
+
+    mock_get_response = MagicMock()
+    mock_get_response.status_code = 200
+    mock_get_response.parsed = mock_po
+
+    lifespan_ctx.client = MagicMock()
+
+    from katana_public_api_client.api.purchase_order import (
+        get_purchase_order as api_get_purchase_order,
+        receive_purchase_order as api_receive_purchase_order,
+    )
+
+    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
+    receive_mock = AsyncMock()
+    api_receive_purchase_order.asyncio_detailed = receive_mock
+
+    request = ReceivePurchaseOrderRequest(
+        order_id=8888,
+        items=[ReceiveItemRequest(purchase_order_row_id=999, quantity=10.0)],
+        confirm=True,
+    )
+
+    result = await _receive_purchase_order_impl(request, context)
+
+    assert result.is_preview is False
+    assert result.items_received == 0
+    block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
+    assert len(block_warnings) == 1
+    assert "RECEIVED" in block_warnings[0]
+    assert "Refused" in result.message
+    # The receive API must NOT have been called.
+    receive_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_receive_purchase_order_response_structure():
     """Test that response contains all expected fields."""
     context, lifespan_ctx = create_mock_context()
 
-    # Mock successful response
+    # Mock successful response. Use PARTIALLY_RECEIVED so the confirm path
+    # proceeds — status=RECEIVED would (correctly) trigger the duplicate-
+    # inventory guard and return a refusal instead.
     mock_po = MagicMock(spec=RegularPurchaseOrder)
     mock_po.id = 9999
     mock_po.order_no = "PO-RESPONSE-TEST"
     mock_po.status = MagicMock()
-    mock_po.status.value = "RECEIVED"
+    mock_po.status.value = "PARTIALLY_RECEIVED"
+    mock_po.supplier_id = UNSET
+    mock_po.currency = UNSET
+    mock_po.total = UNSET
 
     mock_get_response = MagicMock()
     mock_get_response.status_code = 200
@@ -1431,7 +1487,6 @@ async def test_receive_purchase_order_response_structure():
 
     result = await _receive_purchase_order_impl(request, context)
 
-    # Verify all response fields are populated correctly
     assert result.order_id == 9999
     assert result.order_number == "PO-RESPONSE-TEST"
     assert result.items_received == 1

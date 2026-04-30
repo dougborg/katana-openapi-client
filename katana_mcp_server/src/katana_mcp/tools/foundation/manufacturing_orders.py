@@ -160,9 +160,35 @@ async def _create_manufacturing_order_impl(
     action = "Previewing" if not request.confirm else "Starting"
     logger.info(f"{action} manufacturing order ({mode})")
 
-    # Preview mode — return the plan without creating the order. For make-to-order
-    # we still fetch the sales_order_row so the preview UI has real data to render
-    # and can warn if an MO is already linked to that row (duplicate guard).
+    # Make-to-order: fetch the sales_order_row upfront so both preview and
+    # confirm see the same backing data. The duplicate-create guard runs
+    # in the confirm path too — programmatic callers skipping the preview
+    # UI get the same protection as the iframe (defense in depth).
+    sor_variant_id: int | None = None
+    sor_quantity: float | None = None
+    sor_location_id: int | None = None
+    linked_mo: int | None = None
+    if is_make_to_order:
+        assert request.sales_order_row_id is not None
+        services = get_services(context)
+        from katana_public_api_client.api.sales_order_row import (
+            get_sales_order_row as api_get_sor,
+        )
+        from katana_public_api_client.models import SalesOrderRow
+
+        sor_response = await api_get_sor.asyncio_detailed(
+            id=request.sales_order_row_id, client=services.client
+        )
+        sor = unwrap_as(sor_response, SalesOrderRow)
+        sor_variant_id = sor.variant_id
+        sor_quantity = sor.quantity
+        sor_location_id = unwrap_unset(sor.location_id, None)
+        # SalesOrderRow.sku isn't a typed field on the attrs model (spec
+        # drift — the live API returns it but the model doesn't list it),
+        # so the preview omits SKU. variant_id + quantity is enough for
+        # the user to recognize what's being made.
+        linked_mo = unwrap_unset(sor.linked_manufacturing_order_id, None)
+
     if not request.confirm:
         warnings: list[str] = []
         next_actions = [
@@ -171,26 +197,6 @@ async def _create_manufacturing_order_impl(
         ]
 
         if is_make_to_order:
-            assert request.sales_order_row_id is not None
-            services = get_services(context)
-            from katana_public_api_client.api.sales_order_row import (
-                get_sales_order_row as api_get_sor,
-            )
-            from katana_public_api_client.models import SalesOrderRow
-
-            sor_response = await api_get_sor.asyncio_detailed(
-                id=request.sales_order_row_id, client=services.client
-            )
-            sor = unwrap_as(sor_response, SalesOrderRow)
-            sor_variant_id = sor.variant_id
-            sor_quantity = sor.quantity
-            sor_location_id = unwrap_unset(sor.location_id, None)
-            # SalesOrderRow.sku isn't a typed field on the attrs model (spec
-            # drift — the live API returns it but the model doesn't list it),
-            # so the preview omits SKU. variant_id + quantity is enough for
-            # the user to recognize what's being made.
-            linked_mo = unwrap_unset(sor.linked_manufacturing_order_id, None)
-
             if linked_mo is not None:
                 warnings.append(
                     f"{BLOCK_WARNING_PREFIX} sales_order_row "
@@ -245,6 +251,28 @@ async def _create_manufacturing_order_impl(
             warnings=warnings,
             next_actions=next_actions,
             message=preview_msg,
+        )
+
+    # Confirm-path defense-in-depth: refuse if the SO row is already linked.
+    if is_make_to_order and linked_mo is not None:
+        return ManufacturingOrderResponse(
+            variant_id=sor_variant_id,
+            planned_quantity=sor_quantity,
+            location_id=sor_location_id,
+            is_preview=False,
+            warnings=[
+                f"{BLOCK_WARNING_PREFIX} sales_order_row "
+                f"{request.sales_order_row_id} is already linked to "
+                f"manufacturing order {linked_mo}. No new order was created."
+            ],
+            next_actions=[
+                f"Use get_manufacturing_order with order_id={linked_mo} "
+                "to inspect the existing order."
+            ],
+            message=(
+                f"Refused: sales_order_row {request.sales_order_row_id} is "
+                f"already linked to MO {linked_mo}; no duplicate created."
+            ),
         )
 
     try:

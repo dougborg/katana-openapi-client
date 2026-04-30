@@ -34,7 +34,7 @@ from katana_mcp.tools.tool_result_utils import (
     make_simple_result,
     make_tool_result,
     parse_request_dates,
-    resolve_entity_name_or_block,
+    resolve_entity_name,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET
@@ -177,13 +177,13 @@ async def _create_purchase_order_impl(
         from katana_mcp.cache import EntityType
 
         (supplier_name, sup_warn), (location_name, loc_warn) = await asyncio.gather(
-            resolve_entity_name_or_block(
+            resolve_entity_name(
                 services.cache,
                 EntityType.SUPPLIER,
                 request.supplier_id,
                 entity_label="Supplier",
             ),
-            resolve_entity_name_or_block(
+            resolve_entity_name(
                 services.cache,
                 EntityType.LOCATION,
                 request.location_id,
@@ -431,7 +431,7 @@ async def _receive_purchase_order_impl(
             if supplier_id is not None:
                 from katana_mcp.cache import EntityType
 
-                supplier_name, sup_warn = await resolve_entity_name_or_block(
+                supplier_name, sup_warn = await resolve_entity_name(
                     services.cache,
                     EntityType.SUPPLIER,
                     supplier_id,
@@ -466,12 +466,35 @@ async def _receive_purchase_order_impl(
                 message=f"Preview: Receive {len(request.items)} items for PO {order_no}",
             )
 
+        # Confirm-path defense-in-depth: a direct caller skipping the preview
+        # would otherwise be able to receive items against an already-fully-
+        # received PO and create duplicate inventory.
+        if po_status == "RECEIVED":
+            return ReceivePurchaseOrderResponse(
+                order_id=request.order_id,
+                order_number=order_no,
+                status=po_status,
+                supplier_id=supplier_id,
+                currency=currency,
+                total_cost=total_cost,
+                items_received=0,
+                is_preview=False,
+                warnings=[
+                    f"{BLOCK_WARNING_PREFIX} Purchase order {order_no} is already "
+                    "RECEIVED. No items were received."
+                ],
+                next_actions=["No action needed — order is already fully received."],
+                message=(
+                    f"Refused: PO {order_no} is already RECEIVED; "
+                    "no duplicate inventory created."
+                ),
+            )
+
         from katana_public_api_client.api.purchase_order import (
             receive_purchase_order as api_receive_purchase_order,
         )
         from katana_public_api_client.models import PurchaseOrderReceiveRow
 
-        # Build receive rows
         receive_rows = []
         for item in request.items:
             row = PurchaseOrderReceiveRow(
@@ -481,7 +504,6 @@ async def _receive_purchase_order_impl(
             )
             receive_rows.append(row)
 
-        # Call API
         response = await api_receive_purchase_order.asyncio_detailed(
             client=services.client, body=receive_rows
         )

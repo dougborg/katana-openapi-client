@@ -45,27 +45,31 @@ UI_META: dict[str, Any] = {"ui": True}
 BLOCK_WARNING_PREFIX = "BLOCK:"
 
 
-async def resolve_entity_name_or_block(
+async def resolve_entity_name(
     cache: Any,
     entity_type: Any,
     entity_id: int,
     *,
     entity_label: str,
 ) -> tuple[str | None, str | None]:
-    """Look up a cached entity by ID and return ``(name, block_warning)``.
+    """Look up a cached entity by ID and return ``(name, advisory_warning)``.
 
     On hit returns ``(name_or_None, None)``. On miss returns
-    ``(None, "BLOCK: <entity_label> with id=N not found...")`` — a ready-to-
-    append warning carrying the BLOCK prefix so the caller can drop it
-    directly into a response's ``warnings`` list. Centralises the cache
-    lookup + diagnostic phrasing used by every preview branch that
-    resolves an ID to a human-readable name.
+    ``(None, "<entity_label> with id=N was not found in the cache...")`` —
+    an advisory warning **without** the BLOCK prefix because cache lag
+    is legitimate (an entity created moments ago in Katana may not yet
+    be cached locally). The live API is the authority and will reject
+    a genuinely bad ID; this warning just lets the user know we couldn't
+    pretty-print the name. Hard duplicate-create gates (already linked,
+    already received, source==destination) are the caller's responsibility
+    and use ``BLOCK_WARNING_PREFIX`` explicitly.
     """
     d = await cache.get_by_id(entity_type, entity_id)
     if d is None:
         warning = (
-            f"{BLOCK_WARNING_PREFIX} {entity_label} with id={entity_id} was "
-            f"not found in the cache. Verify the {entity_label.lower()} exists."
+            f"{entity_label} with id={entity_id} was not found in the cache "
+            f"(possible cache lag); the {entity_label.lower()} will be "
+            "validated by the live API on confirm."
         )
         return None, warning
     return d.get("name") or None, None

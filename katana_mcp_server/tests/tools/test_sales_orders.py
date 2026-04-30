@@ -101,11 +101,17 @@ async def test_create_sales_order_preview_minimal_fields():
 
 
 @pytest.mark.asyncio
-async def test_create_sales_order_preview_blocks_when_customer_not_found():
-    """Customer cache miss should emit a BLOCK warning so the preview UI's
-    Confirm button is suppressed — preventing creation against a stale ID."""
+async def test_create_sales_order_preview_warns_advisorily_on_customer_cache_miss():
+    """Customer cache miss should emit an advisory (non-BLOCK) warning.
+
+    Cache lag is legitimate — a customer created moments ago in Katana may
+    not yet be cached locally — so the live API is the authority on whether
+    the customer exists. The preview surfaces the cache miss so the user
+    knows we couldn't pretty-print the name, but the Confirm button stays
+    available; the live API will reject the call if the customer is
+    genuinely bad.
+    """
     context, lifespan_ctx = create_mock_context()
-    # Default mock behaviour: cache.get_by_id returns None.
     lifespan_ctx.cache.get_by_id = AsyncMock(return_value=None)
 
     request = CreateSalesOrderRequest(
@@ -120,9 +126,13 @@ async def test_create_sales_order_preview_blocks_when_customer_not_found():
 
     assert result.is_preview is True
     assert result.customer_name is None
+    # Cache miss yields an advisory warning, NOT a BLOCK.
     block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
-    assert len(block_warnings) == 1
-    assert "99999" in block_warnings[0]
+    assert len(block_warnings) == 0, (
+        "Cache miss must not BLOCK — cache lag is legitimate"
+    )
+    advisory = [w for w in result.warnings if "99999" in w and "cache" in w.lower()]
+    assert len(advisory) == 1
 
 
 @pytest.mark.asyncio

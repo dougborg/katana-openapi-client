@@ -31,7 +31,7 @@ from katana_mcp.tools.tool_result_utils import (
     make_tool_result,
     none_coro,
     parse_request_dates,
-    resolve_entity_name_or_block,
+    resolve_entity_name,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.client_types import UNSET, Unset
@@ -172,7 +172,7 @@ async def _create_sales_order_impl(
         )
 
         services = get_services(context)
-        customer_name, cust_warn = await resolve_entity_name_or_block(
+        customer_name, cust_warn = await resolve_entity_name(
             services.cache,
             EntityType.CUSTOMER,
             request.customer_id,

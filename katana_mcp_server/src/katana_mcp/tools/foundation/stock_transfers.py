@@ -35,7 +35,7 @@ from katana_mcp.tools.tool_result_utils import (
     iso_or_none,
     make_simple_result,
     parse_request_dates,
-    resolve_entity_name_or_block,
+    resolve_entity_name,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
@@ -287,41 +287,48 @@ async def _create_stock_transfer_impl(
 
     item_count = len(request.rows)
 
+    # Resolve source/destination names + compute warnings up-front; both
+    # the preview and confirm paths use them. Source==destination is a
+    # hard BLOCK enforced on confirm too — defense in depth for callers
+    # that skip the preview UI.
+    from katana_mcp.cache import EntityType
+
+    services = get_services(context)
+    (src_name, src_warn), (dst_name, dst_warn) = await asyncio.gather(
+        resolve_entity_name(
+            services.cache,
+            EntityType.LOCATION,
+            request.source_location_id,
+            entity_label="Source location",
+        ),
+        resolve_entity_name(
+            services.cache,
+            EntityType.LOCATION,
+            request.destination_location_id,
+            entity_label="Destination location",
+        ),
+    )
+    warnings: list[str] = [w for w in (src_warn, dst_warn) if w]
+    same_location_block: str | None = None
+    if request.source_location_id == request.destination_location_id:
+        same_location_block = (
+            f"{BLOCK_WARNING_PREFIX} Source and destination are the same "
+            f"location (id={request.source_location_id}); transfer would be a no-op."
+        )
+        warnings.append(same_location_block)
+
+    src_label = (
+        f"{src_name} (id={request.source_location_id})"
+        if src_name
+        else f"location id={request.source_location_id}"
+    )
+    dst_label = (
+        f"{dst_name} (id={request.destination_location_id})"
+        if dst_name
+        else f"location id={request.destination_location_id}"
+    )
+
     if not request.confirm:
-        from katana_mcp.cache import EntityType
-
-        services = get_services(context)
-        (src_name, src_warn), (dst_name, dst_warn) = await asyncio.gather(
-            resolve_entity_name_or_block(
-                services.cache,
-                EntityType.LOCATION,
-                request.source_location_id,
-                entity_label="Source location",
-            ),
-            resolve_entity_name_or_block(
-                services.cache,
-                EntityType.LOCATION,
-                request.destination_location_id,
-                entity_label="Destination location",
-            ),
-        )
-        warnings: list[str] = [w for w in (src_warn, dst_warn) if w]
-        if request.source_location_id == request.destination_location_id:
-            warnings.append(
-                f"{BLOCK_WARNING_PREFIX} Source and destination are the same "
-                f"location (id={request.source_location_id}); transfer would be a no-op."
-            )
-
-        src_label = (
-            f"{src_name} (id={request.source_location_id})"
-            if src_name
-            else f"location id={request.source_location_id}"
-        )
-        dst_label = (
-            f"{dst_name} (id={request.destination_location_id})"
-            if dst_name
-            else f"location id={request.destination_location_id}"
-        )
         preview_message = (
             f"Preview: Stock transfer with {item_count} row(s) from "
             f"{src_label} to {dst_label}"
@@ -345,7 +352,25 @@ async def _create_stock_transfer_impl(
             message=preview_message,
         )
 
-    services = get_services(context)
+    if same_location_block is not None:
+        return StockTransferResponse(
+            stock_transfer_number=request.order_no,
+            source_location_id=request.source_location_id,
+            source_location_name=src_name,
+            target_location_id=request.destination_location_id,
+            target_location_name=dst_name,
+            status="DRAFT",
+            expected_arrival_date=request.expected_arrival_date.isoformat(),
+            item_count=item_count,
+            is_preview=False,
+            warnings=warnings,
+            next_actions=["No action taken — see warnings"],
+            message=(
+                f"Refused: source and destination location are the same "
+                f"(id={request.source_location_id}); no transfer created."
+            ),
+        )
+
     api_rows = _build_row_requests(request.rows)
 
     api_request = APICreateStockTransferRequest(

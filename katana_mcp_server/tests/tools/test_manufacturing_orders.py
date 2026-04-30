@@ -176,6 +176,58 @@ async def test_create_manufacturing_order_make_to_order_preview_populates_fields
 
 
 @pytest.mark.asyncio
+async def test_create_manufacturing_order_make_to_order_confirm_refuses_when_already_linked():
+    """confirm=True against a sales_order_row that's already linked to an MO
+    must refuse — the preview UI's BLOCK warning suppresses the Confirm
+    button in the iframe, but a programmatic caller skipping the UI gets
+    the same defense-in-depth protection here.
+    """
+    from katana_public_api_client.models import SalesOrderRow
+
+    context, _ = create_mock_context()
+
+    sor = SalesOrderRow(
+        id=99003,
+        quantity=3.0,
+        variant_id=42424244,
+        location_id=160002,
+        sales_order_id=10002,
+        linked_manufacturing_order_id=77777,
+    )
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = sor
+
+    # Also patch the MTO endpoint so we can assert it's NOT called.
+    import katana_public_api_client.api.manufacturing_order.make_to_order_manufacturing_order as mto_module
+    import katana_public_api_client.api.sales_order_row.get_sales_order_row as get_sor_module
+
+    original_get = get_sor_module.asyncio_detailed
+    original_mto = getattr(mto_module, "asyncio_detailed", None)
+    get_sor_module.asyncio_detailed = AsyncMock(return_value=mock_response)
+    mto_mock = AsyncMock()
+    mto_module.asyncio_detailed = mto_mock
+    try:
+        request = CreateManufacturingOrderRequest(
+            sales_order_row_id=99003,
+            confirm=True,
+        )
+        result = await _create_manufacturing_order_impl(request, context)
+
+        assert result.is_preview is False
+        block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
+        assert len(block_warnings) == 1
+        assert "77777" in block_warnings[0]
+        assert "Refused" in result.message
+        # Critically: the MTO API must NOT have been called.
+        mto_mock.assert_not_called()
+    finally:
+        get_sor_module.asyncio_detailed = original_get
+        if original_mto is not None:
+            mto_module.asyncio_detailed = original_mto
+
+
+@pytest.mark.asyncio
 async def test_create_manufacturing_order_make_to_order_blocks_when_already_linked():
     """When the sales_order_row already has a linked_manufacturing_order_id,
     the preview must emit a BLOCK warning so the UI builder suppresses the
