@@ -47,16 +47,18 @@ filterable tools.
 **A two-cache architecture.** The MCP server has two caches today, and most of the
 asymmetry above lives at the seam between them:
 
-1. **Legacy `CatalogCache`** (`katana_mcp/cache.py`) — single SQLite file with a generic
+1. **Legacy `CatalogCache`** (`katana_mcp.cache`,
+   `katana_mcp_server/src/katana_mcp/cache.py`) — single SQLite file with a generic
    JSON-blob `entities` table, a 3-column `entity_index` (sku/name/name2), and FTS5 over
    those three columns. Holds: variants, products, materials, services, customers,
    suppliers, locations, tax rates, operators. This is what `search_items` and
    `search_customers` use.
-1. **Typed cache** (`katana_mcp/typed_cache/`) — SQLModel-based, per-entity `Cached*`
-   tables with proper foreign keys and relationships, incremental watermark-driven sync
-   with soft-delete handling, no FTS5. Holds: purchase orders, sales orders,
-   manufacturing orders, stock transfers, stock adjustments. This is what every
-   `list_<order>` tool queries (ADR-0018).
+1. **Typed cache** (`katana_mcp.typed_cache`,
+   `katana_mcp_server/src/katana_mcp/typed_cache/`) — SQLModel-based, per-entity
+   `Cached*` tables with proper foreign keys and relationships, incremental
+   watermark-driven sync with soft-delete handling, no FTS5. Holds: purchase orders,
+   sales orders, manufacturing orders, stock transfers, stock adjustments. This is what
+   every `list_<order>` tool queries (ADR-0018).
 
 The two caches diverge on every dimension: sync mechanics, query patterns (JSON parsing
 vs. SQL with FK joins), schema migration (`_SCHEMA_VERSION` rebuild vs. SQLModel
@@ -66,7 +68,9 @@ legacy cache, or build a third path — none of which is obviously right.
 
 ## Decision
 
-We adopt three coupled commitments:
+We adopt three coupled commitments. The fourth section below ("Workstream organization")
+is the implementation map for delivering them — it indexes the GitHub umbrella issues
+but isn't itself a commitment.
 
 ### 1. The per-entity tool-surface target
 
@@ -112,15 +116,26 @@ SQLModel class (`_fts_columns: tuple[str, ...]`).
 Reference data (suppliers, locations, tax rates, operators) is deferred — low value to
 migrate, low query volume against it.
 
-**Legacy cache retirement criterion (revising ADR-0018).** ADR-0018 stated the legacy
-generic cache retires "once every reference type has migrated." This ADR partially
-supersedes that: legacy retires once the **catalog entities** (variants, products,
-materials, services, customers) complete migration. Reference data (suppliers,
-locations, tax rates, operators) is acceptable to leave in a long-lived
-reduced-footprint legacy cache, OR to migrate later when concrete demand surfaces (see
-WS-G below). The retirement gate is "catalog migration complete," not "all entity types
-migrated." This change is intentional: gating the legacy retirement on low-value
-reference-data migration would delay the cleanup indefinitely without practical benefit.
+**Legacy cache retirement (revising ADR-0018).** ADR-0018 stated the legacy generic
+cache retires "once every reference type has migrated." This ADR partially supersedes
+that with a two-step retirement:
+
+1. **Catalog-read retirement** (when WS-0 catalog migration completes). Once the catalog
+   entities (variants, products, materials, services, customers) live in the typed
+   cache, all production read tools migrate off the legacy cache. The legacy cache no
+   longer serves any catalog reads/searches.
+
+1. **Full retirement** (later — gated on a follow-up decision). The legacy cache
+   continues to hold reference data (suppliers, locations, tax rates, operators) in a
+   long-lived reduced-footprint state until either (a) reference-data tools surface
+   concrete demand and migrate via WS-G, or (b) reference data is moved behind a
+   non-legacy path (e.g. direct API calls, a thin in-memory cache). Only after one of
+   those resolves can the legacy cache be deleted entirely.
+
+The intentional change vs. ADR-0018: ADR-0018's all-or-nothing retirement gate would
+have blocked catalog-read migration on low-value reference-data migration. The two-step
+form lets us realize the catalog-side benefit (single cache for hot queries) without
+gating on the long tail.
 
 ### 3. Short-term: don't gate the search bug on the migration
 
