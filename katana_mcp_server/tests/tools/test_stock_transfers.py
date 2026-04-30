@@ -1,10 +1,9 @@
-"""Tests for stock transfer MCP tools (issue #338).
+"""Tests for stock transfer MCP tools.
 
-Covers the full five-tool surface:
+Covers the unified four-tool surface:
 - create_stock_transfer (preview + confirm)
 - list_stock_transfers (list-tool pattern v2 — limit, page, dates, filters)
-- update_stock_transfer (preview + confirm)
-- update_stock_transfer_status (preview + confirm + invalid-transition error)
+- modify_stock_transfer (header + status, preview + confirm + multi-action)
 - delete_stock_transfer (preview + confirm)
 """
 
@@ -19,15 +18,15 @@ from katana_mcp.tools.foundation.stock_transfers import (
     CreateStockTransferRequest,
     DeleteStockTransferRequest,
     ListStockTransfersRequest,
+    ModifyStockTransferRequest,
     StockTransferBatchTransactionInput,
+    StockTransferHeaderPatch,
     StockTransferRowInput,
-    UpdateStockTransferRequest,
-    UpdateStockTransferStatusRequest,
+    StockTransferStatusPatch,
     _create_stock_transfer_impl,
     _delete_stock_transfer_impl,
     _list_stock_transfers_impl,
-    _update_stock_transfer_impl,
-    _update_stock_transfer_status_impl,
+    _modify_stock_transfer_impl,
     list_stock_transfers,
 )
 
@@ -50,7 +49,11 @@ _ST_DELETE = "katana_public_api_client.api.stock_transfer.delete_stock_transfer"
 
 _ST_UNWRAP_AS = "katana_mcp.tools.foundation.stock_transfers.unwrap_as"
 _ST_UNWRAP_DATA = "katana_public_api_client.utils.unwrap_data"
-_ST_IS_SUCCESS = "katana_mcp.tools.foundation.stock_transfers.is_success"
+
+# The modify/delete dispatcher pipes through ``_modification_dispatch.unwrap_as``
+# and ``is_success`` — modify tests patch those instead of the local re-import.
+_MODIFY_ST_UNWRAP_AS = "katana_mcp.tools._modification_dispatch.unwrap_as"
+_MODIFY_ST_IS_SUCCESS = "katana_mcp.tools._modification_dispatch.is_success"
 
 
 # ============================================================================
@@ -517,127 +520,163 @@ async def test_list_stock_transfers_no_pagination_when_page_not_set(
 
 
 # ============================================================================
-# update_stock_transfer
+# modify_stock_transfer — unified header + status surface
 # ============================================================================
 
 
 @pytest.mark.asyncio
-async def test_update_stock_transfer_preview():
+async def test_modify_st_requires_at_least_one_subpayload():
     context, _ = create_mock_context()
+    with pytest.raises(ValueError, match="At least one sub-payload"):
+        await _modify_stock_transfer_impl(
+            ModifyStockTransferRequest(id=42, confirm=False), context
+        )
 
-    request = UpdateStockTransferRequest(
+
+@pytest.mark.asyncio
+async def test_modify_st_header_preview_emits_planned_action():
+    context, _ = create_mock_context()
+    request = ModifyStockTransferRequest(
         id=42,
-        stock_transfer_number="ST-42-revised",
-        additional_info="Updated notes",
+        update_header=StockTransferHeaderPatch(
+            stock_transfer_number="ST-42-revised",
+            additional_info="Updated notes",
+        ),
         confirm=False,
     )
-    result = await _update_stock_transfer_impl(request, context)
+    response = await _modify_stock_transfer_impl(request, context)
 
-    assert result.is_preview is True
-    assert result.id == 42
-    assert "Preview" in result.message
-    assert "stock_transfer_number" in result.message
-
-
-@pytest.mark.asyncio
-async def test_update_stock_transfer_requires_at_least_one_field():
-    context, _ = create_mock_context()
-
-    request = UpdateStockTransferRequest(id=42, confirm=False)
-    with pytest.raises(ValueError, match="At least one field"):
-        await _update_stock_transfer_impl(request, context)
+    assert response.is_preview is True
+    assert response.entity_id == 42
+    assert len(response.actions) == 1
+    action = response.actions[0]
+    assert action.operation == "update_header"
+    # No GET-by-id endpoint — every change is unknown_prior=True.
+    assert all(c.is_unknown_prior for c in action.changes)
 
 
 @pytest.mark.asyncio
-async def test_update_stock_transfer_confirm_success():
+async def test_modify_st_header_confirm_dispatches_to_update_endpoint():
     context, _ = create_mock_context()
-
     mock_transfer = _make_mock_transfer(
         id=42, stock_transfer_number="ST-42-revised", status="draft"
     )
-
     with (
-        patch(f"{_ST_UPDATE}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
-        patch(_ST_UNWRAP_AS, return_value=mock_transfer),
+        patch(f"{_ST_UPDATE}.asyncio_detailed", new_callable=AsyncMock) as mock_update,
+        patch(_MODIFY_ST_UNWRAP_AS, return_value=mock_transfer),
     ):
-        request = UpdateStockTransferRequest(
-            id=42, stock_transfer_number="ST-42-revised", confirm=True
+        request = ModifyStockTransferRequest(
+            id=42,
+            update_header=StockTransferHeaderPatch(
+                stock_transfer_number="ST-42-revised"
+            ),
+            confirm=True,
         )
-        result = await _update_stock_transfer_impl(request, context)
+        response = await _modify_stock_transfer_impl(request, context)
 
-    assert result.is_preview is False
-    assert result.id == 42
-    assert result.stock_transfer_number == "ST-42-revised"
-    mock_api.assert_awaited_once()
-    kwargs = mock_api.await_args.kwargs
+    assert response.is_preview is False
+    assert response.entity_id == 42
+    assert len(response.actions) == 1
+    assert response.actions[0].operation == "update_header"
+    assert response.actions[0].succeeded is True
+    mock_update.assert_awaited_once()
+    kwargs = mock_update.await_args.kwargs
     assert kwargs["id"] == 42
     assert kwargs["body"].stock_transfer_number == "ST-42-revised"
 
 
-# ============================================================================
-# update_stock_transfer_status
-# ============================================================================
-
-
 @pytest.mark.asyncio
-async def test_update_stock_transfer_status_preview():
+async def test_modify_st_status_confirm_dispatches_to_status_endpoint():
     context, _ = create_mock_context()
-
-    request = UpdateStockTransferStatusRequest(
-        id=42, new_status="IN_TRANSIT", confirm=False
-    )
-    result = await _update_stock_transfer_status_impl(request, context)
-
-    assert result.is_preview is True
-    assert result.id == 42
-    assert result.status == "IN_TRANSIT"
-    assert "Preview" in result.message
-
-
-@pytest.mark.asyncio
-async def test_update_stock_transfer_status_confirm_success():
-    context, _ = create_mock_context()
-
     mock_transfer = _make_mock_transfer(id=42, status="inTransit")
-
     with (
         patch(
             f"{_ST_UPDATE_STATUS}.asyncio_detailed", new_callable=AsyncMock
-        ) as mock_api,
-        patch(_ST_UNWRAP_AS, return_value=mock_transfer),
+        ) as mock_status,
+        patch(_MODIFY_ST_UNWRAP_AS, return_value=mock_transfer),
     ):
-        request = UpdateStockTransferStatusRequest(
-            id=42, new_status="IN_TRANSIT", confirm=True
+        request = ModifyStockTransferRequest(
+            id=42,
+            update_status=StockTransferStatusPatch(new_status="IN_TRANSIT"),
+            confirm=True,
         )
-        result = await _update_stock_transfer_status_impl(request, context)
+        response = await _modify_stock_transfer_impl(request, context)
 
-    assert result.is_preview is False
-    assert result.id == 42
-    assert result.status == "inTransit"
-    mock_api.assert_awaited_once()
-    kwargs = mock_api.await_args.kwargs
+    assert response.is_preview is False
+    assert len(response.actions) == 1
+    assert response.actions[0].operation == "update_status"
+    assert response.actions[0].succeeded is True
+    mock_status.assert_awaited_once()
+    kwargs = mock_status.await_args.kwargs
     assert kwargs["id"] == 42
-    # Verify the API status enum was set to camelCase ``inTransit`` (the
-    # actual wire value Katana validates against).
+    # The API status enum should be the camelCase wire value ``inTransit``.
     assert kwargs["body"].status.value == "inTransit"
 
 
 @pytest.mark.asyncio
-async def test_update_stock_transfer_status_invalid_transition_surfaces_error():
-    """APIError from invalid transition is surfaced as ValueError with message."""
+async def test_modify_st_canonical_order_header_then_status():
+    """Both sub-payloads in one call — header runs first, status runs last."""
     context, _ = create_mock_context()
-
-    api_error = APIError("Cannot transition from RECEIVED to IN_TRANSIT", 400)
-
+    mock_after_header = _make_mock_transfer(
+        id=42, stock_transfer_number="ST-42-revised", status="draft"
+    )
+    mock_after_status = _make_mock_transfer(
+        id=42, stock_transfer_number="ST-42-revised", status="inTransit"
+    )
     with (
-        patch(f"{_ST_UPDATE_STATUS}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_ST_UNWRAP_AS, side_effect=api_error),
+        patch(f"{_ST_UPDATE}.asyncio_detailed", new_callable=AsyncMock) as mock_update,
+        patch(
+            f"{_ST_UPDATE_STATUS}.asyncio_detailed", new_callable=AsyncMock
+        ) as mock_status,
+        patch(_MODIFY_ST_UNWRAP_AS, side_effect=[mock_after_header, mock_after_status]),
     ):
-        request = UpdateStockTransferStatusRequest(
-            id=42, new_status="IN_TRANSIT", confirm=True
+        request = ModifyStockTransferRequest(
+            id=42,
+            update_header=StockTransferHeaderPatch(
+                stock_transfer_number="ST-42-revised"
+            ),
+            update_status=StockTransferStatusPatch(new_status="IN_TRANSIT"),
+            confirm=True,
         )
-        with pytest.raises(ValueError, match="Cannot transition"):
-            await _update_stock_transfer_status_impl(request, context)
+        response = await _modify_stock_transfer_impl(request, context)
+
+    assert response.is_preview is False
+    assert [a.operation for a in response.actions] == ["update_header", "update_status"]
+    assert all(a.succeeded is True for a in response.actions)
+    mock_update.assert_awaited_once()
+    mock_status.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_modify_st_status_failfast_halts_remaining_actions():
+    """Header fails — status call must not be attempted."""
+    context, _ = create_mock_context()
+    api_error = APIError("update_stock_transfer rejected", 422)
+    with (
+        patch(f"{_ST_UPDATE}.asyncio_detailed", new_callable=AsyncMock),
+        patch(
+            f"{_ST_UPDATE_STATUS}.asyncio_detailed", new_callable=AsyncMock
+        ) as mock_status,
+        patch(_MODIFY_ST_UNWRAP_AS, side_effect=api_error),
+    ):
+        request = ModifyStockTransferRequest(
+            id=42,
+            update_header=StockTransferHeaderPatch(
+                stock_transfer_number="ST-42-revised"
+            ),
+            update_status=StockTransferStatusPatch(new_status="IN_TRANSIT"),
+            confirm=True,
+        )
+        response = await _modify_stock_transfer_impl(request, context)
+
+    assert response.is_preview is False
+    # The dispatcher's fail-fast contract: response.actions reflects what was
+    # attempted. Header failed (recorded), status was never attempted (omitted).
+    assert len(response.actions) == 1
+    assert response.actions[0].operation == "update_header"
+    assert response.actions[0].succeeded is False
+    assert response.actions[0].error is not None
+    mock_status.assert_not_awaited()
 
 
 # ============================================================================
@@ -648,39 +687,34 @@ async def test_update_stock_transfer_status_invalid_transition_surfaces_error():
 @pytest.mark.asyncio
 async def test_delete_stock_transfer_preview():
     context, _ = create_mock_context()
-
     request = DeleteStockTransferRequest(id=42, confirm=False)
-    result = await _delete_stock_transfer_impl(request, context)
+    response = await _delete_stock_transfer_impl(request, context)
 
-    assert result.is_preview is True
-    assert result.id == 42
-    assert "Preview" in result.message
+    assert response.is_preview is True
+    assert response.entity_id == 42
+    assert len(response.actions) == 1
+    assert response.actions[0].operation == "delete"
 
 
 @pytest.mark.asyncio
 async def test_delete_stock_transfer_confirm_success():
     context, _ = create_mock_context()
-
-    mock_response = MagicMock()
-    mock_response.status_code = 204
-    mock_response.parsed = None
-
+    mock_response = MagicMock(status_code=204, parsed=None)
     with (
         patch(
             f"{_ST_DELETE}.asyncio_detailed",
             new_callable=AsyncMock,
             return_value=mock_response,
-        ) as mock_api,
-        patch(_ST_IS_SUCCESS, return_value=True),
+        ) as mock_delete,
+        patch(_MODIFY_ST_IS_SUCCESS, return_value=True),
     ):
         request = DeleteStockTransferRequest(id=42, confirm=True)
-        result = await _delete_stock_transfer_impl(request, context)
+        response = await _delete_stock_transfer_impl(request, context)
 
-    assert result.is_preview is False
-    assert result.id == 42
-    assert "deleted" in result.message.lower()
-    mock_api.assert_awaited_once()
-    kwargs = mock_api.await_args.kwargs
+    assert response.is_preview is False
+    assert response.actions[0].succeeded is True
+    mock_delete.assert_awaited_once()
+    kwargs = mock_delete.await_args.kwargs
     assert kwargs["id"] == 42
 
 

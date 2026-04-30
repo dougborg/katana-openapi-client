@@ -1,16 +1,13 @@
 """Stock transfer management tools for Katana MCP Server.
 
-Foundation tools covering the full stock-transfer lifecycle: create a transfer
-between locations, list transfers with filters, update transfer body fields,
-transition status through the three-state machine
-(DRAFT / IN_TRANSIT / RECEIVED), and delete.
+Foundation tools covering the full stock-transfer lifecycle:
 
-These tools provide:
 - create_stock_transfer: Create a transfer with preview/confirm pattern
 - list_stock_transfers: List transfers with paging, date, status filters
-- update_stock_transfer: Update body fields with preview/confirm pattern
-- update_stock_transfer_status: Transition state with preview/confirm pattern
-- delete_stock_transfer: Delete transfer with preview/confirm pattern
+- modify_stock_transfer: Unified modification — header (body fields) and/or
+  status transition in a single call. Hides the fact that Katana exposes
+  these as two separate PATCH endpoints.
+- delete_stock_transfer: Destructive sibling of modify_stock_transfer.
 """
 
 from __future__ import annotations
@@ -18,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import datetime as _datetime
 from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
@@ -26,6 +24,21 @@ from pydantic import BaseModel, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.tools._modification import (
+    ConfirmableRequest,
+    ModificationResponse,
+    compute_field_diff,
+    make_response_verifier,
+    to_tool_result,
+)
+from katana_mcp.tools._modification_dispatch import (
+    ActionSpec,
+    has_any_subpayload,
+    make_patch_apply,
+    run_delete_plan,
+    run_modify_plan,
+    unset_dict,
+)
 from katana_mcp.tools.tool_result_utils import (
     BLOCK_WARNING_PREFIX,
     PaginationMeta,
@@ -39,6 +52,11 @@ from katana_mcp.tools.tool_result_utils import (
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_mcp.web_urls import katana_web_url
+from katana_public_api_client.api.stock_transfer import (
+    delete_stock_transfer as api_delete_stock_transfer,
+    update_stock_transfer as api_update_stock_transfer,
+    update_stock_transfer_status as api_update_stock_transfer_status,
+)
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
     CreateStockTransferRequest as APICreateStockTransferRequest,
@@ -49,7 +67,7 @@ from katana_public_api_client.models import (
     UpdateStockTransferRequest as APIUpdateStockTransferRequest,
     UpdateStockTransferStatusRequest as APIUpdateStockTransferStatusRequest,
 )
-from katana_public_api_client.utils import APIError, is_success, unwrap, unwrap_as
+from katana_public_api_client.utils import unwrap_as
 
 logger = get_logger(__name__)
 
@@ -770,14 +788,27 @@ async def list_stock_transfers(
 
 
 # ============================================================================
-# Tool 3: update_stock_transfer
+# Tool: modify_stock_transfer — unified modification surface
 # ============================================================================
 
 
-class UpdateStockTransferRequest(BaseModel):
-    """Request to update body fields on a stock transfer."""
+class StockTransferOperation(StrEnum):
+    """Operation names emitted on ActionSpecs by ``modify_stock_transfer`` /
+    ``delete_stock_transfer`` plan builders."""
 
-    id: int = Field(..., description="Stock transfer ID")
+    UPDATE_HEADER = "update_header"
+    UPDATE_STATUS = "update_status"
+    DELETE = "delete"
+
+
+class StockTransferHeaderPatch(BaseModel):
+    """Body fields to patch on a stock transfer.
+
+    Status is excluded — Katana exposes it via a separate
+    ``PATCH /stock_transfers/{id}/status`` endpoint, surfaced as the
+    ``update_status`` sub-payload.
+    """
+
     stock_transfer_number: str | None = Field(
         default=None, description="New stock transfer number"
     )
@@ -790,277 +821,186 @@ class UpdateStockTransferRequest(BaseModel):
     additional_info: str | None = Field(
         default=None, description="New additional info/notes"
     )
-    confirm: bool = Field(
-        default=False,
-        description="If false, returns preview. If true, applies the update.",
-    )
 
 
-async def _update_stock_transfer_impl(
-    request: UpdateStockTransferRequest, context: Context
-) -> StockTransferResponse:
-    """Implementation of update_stock_transfer tool."""
-    updates = {
-        "stock_transfer_number": request.stock_transfer_number,
-        "transfer_date": (
-            request.transfer_date.isoformat() if request.transfer_date else None
-        ),
-        "expected_arrival_date": (
-            request.expected_arrival_date.isoformat()
-            if request.expected_arrival_date
-            else None
-        ),
-        "additional_info": request.additional_info,
-    }
-    set_fields = {k: v for k, v in updates.items() if v is not None}
+class StockTransferStatusPatch(BaseModel):
+    """Status-transition sub-payload — maps to the dedicated status endpoint.
 
-    if not set_fields:
-        raise ValueError(
-            "At least one field must be provided to update (stock_transfer_number, "
-            "transfer_date, expected_arrival_date, additional_info)"
-        )
-
-    preview_message = (
-        f"Preview: Update stock transfer {request.id} — fields: "
-        + ", ".join(f"{k}={v}" for k, v in set_fields.items())
-    )
-
-    if not request.confirm:
-        return StockTransferResponse(
-            id=request.id,
-            is_preview=True,
-            next_actions=[
-                "Review the update details",
-                "Set confirm=true to apply the update",
-            ],
-            message=preview_message,
-        )
-
-    services = get_services(context)
-    api_request = APIUpdateStockTransferRequest(
-        stock_transfer_number=to_unset(request.stock_transfer_number),
-        transfer_date=to_unset(request.transfer_date),
-        expected_arrival_date=to_unset(request.expected_arrival_date),
-        additional_info=to_unset(request.additional_info),
-    )
-
-    from katana_public_api_client.api.stock_transfer import update_stock_transfer
-
-    response = await update_stock_transfer.asyncio_detailed(
-        id=request.id, client=services.client, body=api_request
-    )
-    transfer = unwrap_as(response, StockTransfer)
-    logger.info(f"Updated stock transfer ID {transfer.id}")
-
-    result = _transfer_to_response(
-        transfer,
-        message=f"Successfully updated stock transfer {transfer.id}",
-    )
-    result.next_actions = [f"Stock transfer {transfer.id} updated"]
-    return result
-
-
-@observe_tool
-@unpack_pydantic_params
-async def update_stock_transfer(
-    request: Annotated[UpdateStockTransferRequest, Unpack()], context: Context
-) -> ToolResult:
-    """Update body fields on an existing stock transfer.
-
-    Two-step flow: confirm=false to preview, confirm=true to apply. Accepts
-    `stock_transfer_number`, `transfer_date`, `expected_arrival_date`, and
-    `additional_info`. Use `update_stock_transfer_status` to change status.
+    Carrying it as its own typed slot (rather than a header field) makes the
+    two-endpoint reality discoverable in the schema while still letting one
+    ``modify_stock_transfer`` call mutate both header and status.
     """
-    response = await _update_stock_transfer_impl(request, context)
 
-    lines = [
-        f"## Update Stock Transfer ({'PREVIEW' if response.is_preview else 'UPDATED'})",
-        f"- **ID**: {response.id}",
-        f"- **Message**: {response.message}",
-    ]
-    if response.stock_transfer_number:
-        lines.append(f"- **Number**: {response.stock_transfer_number}")
-    if response.status:
-        lines.append(f"- **Status**: {response.status}")
-    if response.expected_arrival_date:
-        lines.append(f"- **Expected Arrival**: {response.expected_arrival_date}")
-    if response.next_actions:
-        lines.append("")
-        lines.append("### Next Actions")
-        lines.extend(f"- {action}" for action in response.next_actions)
-
-    return make_simple_result("\n".join(lines), structured_data=response.model_dump())
-
-
-# ============================================================================
-# Tool 4: update_stock_transfer_status
-# ============================================================================
-
-
-class UpdateStockTransferStatusRequest(BaseModel):
-    """Request to transition a stock transfer through the 3-state machine."""
-
-    id: int = Field(..., description="Stock transfer ID")
     new_status: StatusLiteral = Field(
         ...,
         description=(
-            "Target status. Valid transitions are governed by Katana — typical flow "
-            "is DRAFT → IN_TRANSIT → RECEIVED."
+            "Target status. Valid transitions are governed by Katana — typical "
+            "flow is DRAFT → IN_TRANSIT → RECEIVED."
         ),
     )
-    confirm: bool = Field(
-        default=False,
-        description="If false, returns preview. If true, applies the transition.",
+
+
+class ModifyStockTransferRequest(ConfirmableRequest):
+    """Unified modification request for a stock transfer.
+
+    Sub-payload slots cover header body fields and status transition.
+    Multiple slots can be combined; actions execute in canonical order
+    (header first, then status). Stock transfer rows are immutable post-
+    creation — Katana doesn't expose row-CRUD endpoints. To remove a
+    transfer entirely, use ``delete_stock_transfer``.
+    """
+
+    id: int = Field(..., description="Stock transfer ID")
+    update_header: StockTransferHeaderPatch | None = Field(default=None)
+    update_status: StockTransferStatusPatch | None = Field(default=None)
+
+
+class DeleteStockTransferRequest(ConfirmableRequest):
+    """Delete a stock transfer. Destructive — removes the transfer record."""
+
+    id: int = Field(..., description="Stock transfer ID to delete")
+
+
+def _build_update_header_request(
+    patch: StockTransferHeaderPatch,
+) -> APIUpdateStockTransferRequest:
+    return APIUpdateStockTransferRequest(**unset_dict(patch))
+
+
+def _build_update_status_request(
+    patch: StockTransferStatusPatch,
+) -> APIUpdateStockTransferStatusRequest:
+    return APIUpdateStockTransferStatusRequest(
+        status=_status_literal_to_enum(patch.new_status)
     )
 
 
-async def _update_stock_transfer_status_impl(
-    request: UpdateStockTransferStatusRequest, context: Context
-) -> StockTransferResponse:
-    """Implementation of update_stock_transfer_status tool."""
-    preview_message = (
-        f"Preview: Transition stock transfer {request.id} to status "
-        f"{request.new_status}"
-    )
+async def _modify_stock_transfer_impl(
+    request: ModifyStockTransferRequest, context: Context
+) -> ModificationResponse:
+    """Build the action plan from sub-payloads and either preview or execute.
 
-    if not request.confirm:
-        return StockTransferResponse(
-            id=request.id,
-            status=request.new_status,
-            is_preview=True,
-            next_actions=[
-                "Review the transition",
-                "Set confirm=true to apply the status change",
-            ],
-            message=preview_message,
-        )
-
+    The Katana stock-transfer API has no GET-by-id endpoint, so prior-state
+    capture flows through ``unknown_prior=True`` — diff entries show
+    ``(prior unknown) → new`` for every field.
+    """
     services = get_services(context)
-    api_request = APIUpdateStockTransferStatusRequest(
-        status=_status_literal_to_enum(request.new_status),
-    )
 
-    from katana_public_api_client.api.stock_transfer import update_stock_transfer_status
-
-    try:
-        response = await update_stock_transfer_status.asyncio_detailed(
-            id=request.id, client=services.client, body=api_request
-        )
-        transfer = unwrap_as(response, StockTransfer)
-    except APIError as e:
-        # Katana rejects invalid state transitions (e.g. RECEIVED → IN_TRANSIT)
-        # with a typed error. Re-raise as ValueError so the tool surfaces a
-        # clean, caller-actionable message.
-        logger.warning(
-            f"Invalid stock transfer status transition for ID {request.id}: {e}"
-        )
+    if not has_any_subpayload(request):
         raise ValueError(
-            f"Failed to transition stock transfer {request.id} to "
-            f"{request.new_status}: {e}"
-        ) from e
+            "At least one sub-payload must be set: update_header or update_status. "
+            "To remove the stock transfer entirely, use delete_stock_transfer."
+        )
 
-    logger.info(
-        f"Transitioned stock transfer {transfer.id} to status "
-        f"{enum_to_str(unwrap_unset(transfer.status, None))}"
-    )
+    plan: list[ActionSpec] = []
 
-    result = _transfer_to_response(
-        transfer,
-        message=(
-            f"Successfully transitioned stock transfer {transfer.id} to "
-            f"{request.new_status}"
-        ),
+    if request.update_header is not None:
+        diff = compute_field_diff(None, request.update_header, unknown_prior=True)
+        plan.append(
+            ActionSpec(
+                operation=StockTransferOperation.UPDATE_HEADER,
+                target_id=request.id,
+                diff=diff,
+                apply=make_patch_apply(
+                    api_update_stock_transfer,
+                    services,
+                    request.id,
+                    _build_update_header_request(request.update_header),
+                    return_type=StockTransfer,
+                ),
+                verify=make_response_verifier(diff),
+            )
+        )
+
+    if request.update_status is not None:
+        diff = compute_field_diff(None, request.update_status, unknown_prior=True)
+        plan.append(
+            ActionSpec(
+                operation=StockTransferOperation.UPDATE_STATUS,
+                target_id=request.id,
+                diff=diff,
+                apply=make_patch_apply(
+                    api_update_stock_transfer_status,
+                    services,
+                    request.id,
+                    _build_update_status_request(request.update_status),
+                    return_type=StockTransfer,
+                ),
+                # No verify — status returned by the API uses Katana's wire
+                # value (``inTransit``) while the request carries the tool-
+                # facing literal (``IN_TRANSIT``); the response-verifier would
+                # report a spurious mismatch. The action's success/error is
+                # still reflected in ``ActionResult.succeeded``.
+            )
+        )
+
+    return await run_modify_plan(
+        request=request,
+        entity_type="stock_transfer",
+        entity_label=f"stock transfer {request.id}",
+        tool_name="modify_stock_transfer",
+        web_url_kind="stock_transfer",
+        existing=None,
+        plan=plan,
     )
-    result.next_actions = [
-        f"Stock transfer {transfer.id} now in status {request.new_status}"
-    ]
-    return result
 
 
 @observe_tool
 @unpack_pydantic_params
-async def update_stock_transfer_status(
-    request: Annotated[UpdateStockTransferStatusRequest, Unpack()], context: Context
+async def modify_stock_transfer(
+    request: Annotated[ModifyStockTransferRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """Transition a stock transfer through the 3-state machine.
+    """Modify a stock transfer — unified surface across header body fields
+    and status transition.
 
-    Two-step flow: confirm=false to preview, confirm=true to apply. The
-    three valid states are DRAFT, IN_TRANSIT, RECEIVED. Katana rejects
-    invalid transitions (e.g. RECEIVED → IN_TRANSIT); the tool surfaces
-    the API error message as a ValueError.
+    Sub-payloads (any subset, all optional):
+
+    - ``update_header`` — patch body fields (stock_transfer_number,
+      transfer_date, expected_arrival_date, additional_info)
+    - ``update_status`` — transition through the 3-state machine
+      (DRAFT / IN_TRANSIT / RECEIVED). Katana rejects invalid transitions
+      with a 400; the action surfaces the API error in the response.
+
+    Stock-transfer rows are immutable after creation — the Katana API does
+    not expose row-CRUD endpoints. To remove a transfer entirely, use the
+    sibling ``delete_stock_transfer`` tool.
+
+    Two-step flow: ``confirm=false`` returns a per-action preview;
+    ``confirm=true`` executes the plan in canonical order (header before
+    status). Fail-fast on error.
+
+    Note: Katana doesn't expose a GET-by-id endpoint for stock transfers,
+    so previews show every supplied field as ``(prior unknown) → new``.
     """
-    response = await _update_stock_transfer_status_impl(request, context)
-
-    lines = [
-        f"## Stock Transfer Status ({'PREVIEW' if response.is_preview else 'UPDATED'})",
-        f"- **ID**: {response.id}",
-        f"- **Status**: {response.status}",
-        f"- **Message**: {response.message}",
-    ]
-    if response.next_actions:
-        lines.append("")
-        lines.append("### Next Actions")
-        lines.extend(f"- {action}" for action in response.next_actions)
-
-    return make_simple_result("\n".join(lines), structured_data=response.model_dump())
+    response = await _modify_stock_transfer_impl(request, context)
+    return to_tool_result(response)
 
 
 # ============================================================================
-# Tool 5: delete_stock_transfer
+# Tool: delete_stock_transfer
 # ============================================================================
 
 
-class DeleteStockTransferRequest(BaseModel):
-    """Request to delete a stock transfer."""
-
-    id: int = Field(..., description="Stock transfer ID to delete")
-    confirm: bool = Field(
-        default=False,
-        description="If false, returns preview. If true, deletes the transfer.",
-    )
-
-
-class DeleteStockTransferResponse(BaseModel):
-    """Response from a stock transfer delete operation."""
-
-    id: int
-    is_preview: bool
-    next_actions: list[str] = Field(default_factory=list)
-    message: str
+async def _fetch_stock_transfer_for_delete(services: Any, st_id: int) -> None:
+    """Stock transfers have no GET-by-id endpoint, so prior-state capture is
+    a no-op. ``run_delete_plan`` accepts ``None`` from the fetcher; the diff
+    flows through with ``unknown_prior=True``."""
+    return None
 
 
 async def _delete_stock_transfer_impl(
     request: DeleteStockTransferRequest, context: Context
-) -> DeleteStockTransferResponse:
-    """Implementation of delete_stock_transfer tool."""
-    preview_message = f"Preview: Delete stock transfer {request.id}"
-
-    if not request.confirm:
-        return DeleteStockTransferResponse(
-            id=request.id,
-            is_preview=True,
-            next_actions=[
-                "Review the deletion",
-                "Set confirm=true to delete the stock transfer",
-            ],
-            message=preview_message,
-        )
-
-    services = get_services(context)
-    from katana_public_api_client.api.stock_transfer import delete_stock_transfer
-
-    response = await delete_stock_transfer.asyncio_detailed(
-        id=request.id, client=services.client
-    )
-    if not is_success(response):
-        unwrap(response)
-
-    logger.info(f"Deleted stock transfer ID {request.id}")
-    return DeleteStockTransferResponse(
-        id=request.id,
-        is_preview=False,
-        message=f"Successfully deleted stock transfer {request.id}",
-        next_actions=[f"Stock transfer {request.id} has been deleted"],
+) -> ModificationResponse:
+    """One-action plan that removes the stock transfer."""
+    return await run_delete_plan(
+        request=request,
+        services=get_services(context),
+        entity_type="stock_transfer",
+        entity_label=f"stock transfer {request.id}",
+        web_url_kind="stock_transfer",
+        fetcher=_fetch_stock_transfer_for_delete,
+        delete_endpoint=api_delete_stock_transfer,
+        operation=StockTransferOperation.DELETE,
     )
 
 
@@ -1069,24 +1009,13 @@ async def _delete_stock_transfer_impl(
 async def delete_stock_transfer(
     request: Annotated[DeleteStockTransferRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """Delete a stock transfer.
+    """Delete a stock transfer. Destructive — the transfer record is removed.
 
-    Two-step flow: confirm=false to preview, confirm=true to delete (prompts
-    for confirmation). Destructive — the transfer record is removed.
+    The response carries a ``prior_state`` snapshot for manual revert (empty
+    for stock transfers, since Katana doesn't expose GET-by-id).
     """
     response = await _delete_stock_transfer_impl(request, context)
-
-    lines = [
-        f"## Delete Stock Transfer ({'PREVIEW' if response.is_preview else 'DELETED'})",
-        f"- **ID**: {response.id}",
-        f"- **Message**: {response.message}",
-    ]
-    if response.next_actions:
-        lines.append("")
-        lines.append("### Next Actions")
-        lines.extend(f"- {action}" for action in response.next_actions)
-
-    return make_simple_result("\n".join(lines), structured_data=response.model_dump())
+    return to_tool_result(response)
 
 
 # ============================================================================
@@ -1111,6 +1040,12 @@ def register_tools(mcp: FastMCP) -> None:
     _write = ToolAnnotations(
         readOnlyHint=False, destructiveHint=False, openWorldHint=True
     )
+    _update = ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=True,
+    )
     _destructive = ToolAnnotations(
         readOnlyHint=False, destructiveHint=True, openWorldHint=True
     )
@@ -1121,12 +1056,10 @@ def register_tools(mcp: FastMCP) -> None:
     mcp.tool(tags={"inventory", "stock_transfer", "read"}, annotations=_read)(
         list_stock_transfers
     )
-    mcp.tool(tags={"inventory", "stock_transfer", "write"}, annotations=_write)(
-        update_stock_transfer
+    mcp.tool(tags={"inventory", "stock_transfer", "write"}, annotations=_update)(
+        modify_stock_transfer
     )
-    mcp.tool(tags={"inventory", "stock_transfer", "write"}, annotations=_write)(
-        update_stock_transfer_status
-    )
-    mcp.tool(tags={"inventory", "stock_transfer", "write"}, annotations=_destructive)(
-        delete_stock_transfer
-    )
+    mcp.tool(
+        tags={"inventory", "stock_transfer", "write", "destructive"},
+        annotations=_destructive,
+    )(delete_stock_transfer)
