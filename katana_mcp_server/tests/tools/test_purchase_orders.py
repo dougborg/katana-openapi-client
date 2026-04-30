@@ -12,9 +12,9 @@ from katana_mcp.tools.foundation.purchase_orders import (
     DocumentItem,
     GetPurchaseOrderRequest,
     ModifyPurchaseOrderRequest,
-    NewPORow,
+    POHeaderPatch,
+    PORowAdd,
     PORowUpdate,
-    PurchaseOrderHeaderPatch,
     ReceiveItemRequest,
     ReceivePurchaseOrderRequest,
     ReceivePurchaseOrderResponse,
@@ -2589,10 +2589,10 @@ async def test_modify_po_preview_emits_planned_actions(patch_fetch_po):
         # Use distinct row ids per update so prefetch helpers see real ids
         request = ModifyPurchaseOrderRequest(
             id=42,
-            update_header=PurchaseOrderHeaderPatch(
+            update_header=POHeaderPatch(
                 expected_arrival_date=datetime(2026, 2, 15, tzinfo=UTC)
             ),
-            add_rows=[NewPORow(variant_id=100, quantity=10, price_per_unit=5.0)],
+            add_rows=[PORowAdd(variant_id=100, quantity=10, price_per_unit=5.0)],
             confirm=False,
         )
         # Stub the row prefetch so update_rows doesn't error here (no update_rows in this case)
@@ -2640,10 +2640,10 @@ async def test_modify_po_confirm_executes_plan_in_canonical_order(patch_fetch_po
     ):
         request = ModifyPurchaseOrderRequest(
             id=42,
-            update_header=PurchaseOrderHeaderPatch(
+            update_header=POHeaderPatch(
                 expected_arrival_date=datetime(2026, 2, 15, tzinfo=UTC)
             ),
-            add_rows=[NewPORow(variant_id=100, quantity=10, price_per_unit=5.0)],
+            add_rows=[PORowAdd(variant_id=100, quantity=10, price_per_unit=5.0)],
             confirm=True,
         )
         response = await _modify_purchase_order_impl(request, context)
@@ -2678,8 +2678,8 @@ async def test_modify_po_fail_fast_halts_on_first_error(patch_fetch_po):
     ):
         request = ModifyPurchaseOrderRequest(
             id=42,
-            update_header=PurchaseOrderHeaderPatch(order_no="PO-NEW"),
-            add_rows=[NewPORow(variant_id=100, quantity=10, price_per_unit=5.0)],
+            update_header=POHeaderPatch(order_no="PO-NEW"),
+            add_rows=[PORowAdd(variant_id=100, quantity=10, price_per_unit=5.0)],
             confirm=True,
         )
         response = await _modify_purchase_order_impl(request, context)
@@ -2703,7 +2703,7 @@ async def test_modify_po_preview_when_fetch_fails_marks_unknown_prior():
     ):
         request = ModifyPurchaseOrderRequest(
             id=42,
-            update_header=PurchaseOrderHeaderPatch(order_no="PO-NEW"),
+            update_header=POHeaderPatch(order_no="PO-NEW"),
             confirm=False,
         )
         response = await _modify_purchase_order_impl(request, context)

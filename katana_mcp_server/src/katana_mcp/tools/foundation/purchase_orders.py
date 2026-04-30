@@ -11,6 +11,7 @@ These tools provide:
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal
@@ -53,6 +54,28 @@ from katana_mcp.tools.tool_result_utils import (
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_mcp.web_urls import katana_web_url
+
+# Modify/delete API endpoints used by the unified ``modify_purchase_order`` +
+# ``delete_purchase_order`` tools. Hoisted out of per-action closures both for
+# clarity (declarative dependency list) and consistency with the rest of the
+# codebase. These resolve once at import time instead of on every action.
+from katana_public_api_client.api.purchase_order import (
+    delete_purchase_order as api_delete_purchase_order,
+    get_purchase_order as api_get_purchase_order,
+    update_purchase_order as api_update_purchase_order,
+)
+from katana_public_api_client.api.purchase_order_additional_cost_row import (
+    create_po_additional_cost_row as api_create_po_additional_cost_row,
+    delete_po_additional_cost as api_delete_po_additional_cost,
+    get_po_additional_cost_row as api_get_po_additional_cost_row,
+    update_additional_cost_row as api_update_additional_cost_row,
+)
+from katana_public_api_client.api.purchase_order_row import (
+    create_purchase_order_row as api_create_purchase_order_row,
+    delete_purchase_order_row as api_delete_purchase_order_row,
+    get_purchase_order_row as api_get_purchase_order_row,
+    update_purchase_order_row as api_update_purchase_order_row,
+)
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
@@ -2056,6 +2079,25 @@ async def list_purchase_orders(
 # ============================================================================
 
 
+class POOperation(StrEnum):
+    """Operation names that ``modify_purchase_order`` /
+    ``delete_purchase_order`` plan builders emit on their ActionSpecs.
+
+    Used as the ``operation`` field on each :class:`ActionResult` in the
+    response — values are the canonical strings the rendering layer and
+    LLM consumers see.
+    """
+
+    UPDATE_HEADER = "update_header"
+    DELETE = "delete"
+    ADD_ROW = "add_row"
+    UPDATE_ROW = "update_row"
+    DELETE_ROW = "delete_row"
+    ADD_ADDITIONAL_COST = "add_additional_cost"
+    UPDATE_ADDITIONAL_COST = "update_additional_cost"
+    DELETE_ADDITIONAL_COST = "delete_additional_cost"
+
+
 # Tool-facing uppercase status literal — accepts every value Katana defines.
 PurchaseOrderStatusLiteral = Literal[
     "DRAFT", "NOT_RECEIVED", "PARTIALLY_RECEIVED", "RECEIVED"
@@ -2082,10 +2124,10 @@ async def _fetch_purchase_order_attrs(
     services: Any, po_id: int
 ) -> RegularPurchaseOrder | None:
     """Fetch the PO attrs object for diff context. Returns None on failure."""
-    from katana_public_api_client.api.purchase_order import get_purchase_order as _get
-
     try:
-        response = await _get.asyncio_detailed(id=po_id, client=services.client)
+        response = await api_get_purchase_order.asyncio_detailed(
+            id=po_id, client=services.client
+        )
         return unwrap_as(response, RegularPurchaseOrder)
     except Exception as exc:
         logger.info(
@@ -2099,12 +2141,10 @@ async def _fetch_purchase_order_row(
     services: Any, row_id: int
 ) -> PurchaseOrderRow | None:
     """Fetch a PO row attrs object for diff context. Returns None on failure."""
-    from katana_public_api_client.api.purchase_order_row import (
-        get_purchase_order_row as _get,
-    )
-
     try:
-        response = await _get.asyncio_detailed(id=row_id, client=services.client)
+        response = await api_get_purchase_order_row.asyncio_detailed(
+            id=row_id, client=services.client
+        )
         return unwrap_as(response, PurchaseOrderRow)
     except Exception as exc:
         logger.info(
@@ -2118,12 +2158,10 @@ async def _fetch_po_additional_cost_row(
     services: Any, row_id: int
 ) -> PurchaseOrderAdditionalCostRow | None:
     """Fetch a PO additional-cost row for diff context. Returns None on failure."""
-    from katana_public_api_client.api.purchase_order_additional_cost_row import (
-        get_po_additional_cost_row as _get,
-    )
-
     try:
-        response = await _get.asyncio_detailed(id=row_id, client=services.client)
+        response = await api_get_po_additional_cost_row.asyncio_detailed(
+            id=row_id, client=services.client
+        )
         return unwrap_as(response, PurchaseOrderAdditionalCostRow)
     except Exception as exc:
         logger.info(
@@ -2138,7 +2176,7 @@ async def _fetch_po_additional_cost_row(
 # ----------------------------------------------------------------------------
 
 
-class PurchaseOrderHeaderPatch(BaseModel):
+class POHeaderPatch(BaseModel):
     """Optional fields to patch on the PO header. Status is included here —
     Katana's PATCH /purchase_orders/{id} accepts it as a regular field, so
     no separate status sub-payload is needed."""
@@ -2170,7 +2208,7 @@ class PurchaseOrderHeaderPatch(BaseModel):
     )
 
 
-class NewPORow(BaseModel):
+class PORowAdd(BaseModel):
     """A new line item to add to the PO."""
 
     variant_id: int = Field(..., description="Variant ID")
@@ -2211,7 +2249,7 @@ class PORowUpdate(BaseModel):
     )
 
 
-class NewAdditionalCost(BaseModel):
+class POAdditionalCostAdd(BaseModel):
     """A new additional-cost row (freight, duties, handling fees).
 
     Either ``group_id`` or ``purchase_order_id`` (carried at the top-level
@@ -2235,7 +2273,7 @@ class NewAdditionalCost(BaseModel):
     )
 
 
-class AdditionalCostUpdate(BaseModel):
+class POAdditionalCostUpdate(BaseModel):
     """Patch to an existing additional-cost row."""
 
     id: int = Field(..., description="Cost row ID to update")
@@ -2266,12 +2304,12 @@ class ModifyPurchaseOrderRequest(BaseModel):
 
     id: int = Field(..., description="Purchase order ID")
 
-    update_header: PurchaseOrderHeaderPatch | None = Field(
+    update_header: POHeaderPatch | None = Field(
         default=None,
         description="Header fields to patch (PATCH /purchase_orders/{id})",
     )
 
-    add_rows: list[NewPORow] | None = Field(
+    add_rows: list[PORowAdd] | None = Field(
         default=None, description="New line items to POST"
     )
     update_rows: list[PORowUpdate] | None = Field(
@@ -2281,10 +2319,10 @@ class ModifyPurchaseOrderRequest(BaseModel):
         default=None, description="Row IDs to DELETE"
     )
 
-    add_additional_costs: list[NewAdditionalCost] | None = Field(
+    add_additional_costs: list[POAdditionalCostAdd] | None = Field(
         default=None, description="New additional-cost rows to POST"
     )
-    update_additional_costs: list[AdditionalCostUpdate] | None = Field(
+    update_additional_costs: list[POAdditionalCostUpdate] | None = Field(
         default=None, description="Additional-cost row patches"
     )
     delete_additional_cost_ids: list[int] | None = Field(
@@ -2313,7 +2351,7 @@ class DeletePurchaseOrderRequest(BaseModel):
 
 
 def _build_update_header_request(
-    patch: PurchaseOrderHeaderPatch,
+    patch: POHeaderPatch,
 ) -> APIUpdatePurchaseOrderRequest:
     api_status = (
         _PO_STATUS_API_VALUE[patch.status] if patch.status is not None else None
@@ -2332,7 +2370,7 @@ def _build_update_header_request(
 
 
 def _build_create_row_request(
-    po_id: int, row: NewPORow
+    po_id: int, row: PORowAdd
 ) -> APICreatePurchaseOrderRowRequest:
     return APICreatePurchaseOrderRowRequest(
         purchase_order_id=po_id,
@@ -2367,7 +2405,7 @@ def _build_update_row_request(
 
 
 def _build_create_cost_request(
-    cost: NewAdditionalCost, group_id: int
+    cost: POAdditionalCostAdd, group_id: int
 ) -> APICreatePOAdditionalCostRowRequest:
     api_distribution = (
         _DISTRIBUTION_METHOD_API_VALUE[cost.distribution_method]
@@ -2384,7 +2422,7 @@ def _build_create_cost_request(
 
 
 def _build_update_cost_request(
-    patch: AdditionalCostUpdate,
+    patch: POAdditionalCostUpdate,
 ) -> APIUpdatePOAdditionalCostRowRequest:
     api_distribution = (
         _DISTRIBUTION_METHOD_API_VALUE[patch.distribution_method]
@@ -2399,6 +2437,114 @@ def _build_update_cost_request(
     )
 
 
+# Apply-closure factories — each builds a fresh closure binding the per-call
+# arguments. Factory functions instead of in-loop ``async def apply(arg=value):``
+# default-arg trricks, which look like real parameters and are easy to misread.
+
+
+def _make_apply_update_header(
+    services: Any, po_id: int, body: APIUpdatePurchaseOrderRequest
+) -> Callable[[], Awaitable[RegularPurchaseOrder]]:
+    async def apply() -> RegularPurchaseOrder:
+        response = await api_update_purchase_order.asyncio_detailed(
+            id=po_id, client=services.client, body=body
+        )
+        return unwrap_as(response, RegularPurchaseOrder)
+
+    return apply
+
+
+def _make_apply_create_row(
+    services: Any, body: APICreatePurchaseOrderRowRequest
+) -> Callable[[], Awaitable[PurchaseOrderRow]]:
+    async def apply() -> PurchaseOrderRow:
+        response = await api_create_purchase_order_row.asyncio_detailed(
+            client=services.client, body=body
+        )
+        return unwrap_as(response, PurchaseOrderRow)
+
+    return apply
+
+
+def _make_apply_update_row(
+    services: Any, row_id: int, body: APIUpdatePurchaseOrderRowRequest
+) -> Callable[[], Awaitable[PurchaseOrderRow]]:
+    async def apply() -> PurchaseOrderRow:
+        response = await api_update_purchase_order_row.asyncio_detailed(
+            id=row_id, client=services.client, body=body
+        )
+        return unwrap_as(response, PurchaseOrderRow)
+
+    return apply
+
+
+def _make_apply_delete_row(services: Any, row_id: int) -> Callable[[], Awaitable[None]]:
+    async def apply() -> None:
+        response = await api_delete_purchase_order_row.asyncio_detailed(
+            id=row_id, client=services.client
+        )
+        if not is_success(response):
+            unwrap(response)
+        return None
+
+    return apply
+
+
+def _make_apply_create_cost(
+    services: Any, body: APICreatePOAdditionalCostRowRequest
+) -> Callable[[], Awaitable[PurchaseOrderAdditionalCostRow]]:
+    async def apply() -> PurchaseOrderAdditionalCostRow:
+        response = await api_create_po_additional_cost_row.asyncio_detailed(
+            client=services.client, body=body
+        )
+        return unwrap_as(response, PurchaseOrderAdditionalCostRow)
+
+    return apply
+
+
+def _make_apply_update_cost(
+    services: Any, row_id: int, body: APIUpdatePOAdditionalCostRowRequest
+) -> Callable[[], Awaitable[PurchaseOrderAdditionalCostRow]]:
+    async def apply() -> PurchaseOrderAdditionalCostRow:
+        response = await api_update_additional_cost_row.asyncio_detailed(
+            id=row_id, client=services.client, body=body
+        )
+        return unwrap_as(response, PurchaseOrderAdditionalCostRow)
+
+    return apply
+
+
+def _make_apply_delete_cost(
+    services: Any, row_id: int
+) -> Callable[[], Awaitable[None]]:
+    async def apply() -> None:
+        response = await api_delete_po_additional_cost.asyncio_detailed(
+            id=row_id, client=services.client
+        )
+        if not is_success(response):
+            unwrap(response)
+        return None
+
+    return apply
+
+
+def _make_apply_delete_po(services: Any, po_id: int) -> Callable[[], Awaitable[None]]:
+    async def apply() -> None:
+        response = await api_delete_purchase_order.asyncio_detailed(
+            id=po_id, client=services.client
+        )
+        if not is_success(response):
+            unwrap(response)
+        return None
+
+    return apply
+
+
+# ----------------------------------------------------------------------------
+# Plan builders — translate sub-payloads into ActionSpec lists.
+# ----------------------------------------------------------------------------
+
+
 def _plan_header_update(
     request: ModifyPurchaseOrderRequest,
     services: Any,
@@ -2406,24 +2552,15 @@ def _plan_header_update(
 ) -> ActionSpec | None:
     if request.update_header is None:
         return None
-
     patch = request.update_header
     diff = compute_field_diff(existing, patch, unknown_prior=existing is None)
-    api_request = _build_update_header_request(patch)
-
-    async def apply() -> RegularPurchaseOrder:
-        from katana_public_api_client.api.purchase_order import update_purchase_order
-
-        response = await update_purchase_order.asyncio_detailed(
-            id=request.id, client=services.client, body=api_request
-        )
-        return unwrap_as(response, RegularPurchaseOrder)
-
     return ActionSpec(
-        operation="update_header",
+        operation=POOperation.UPDATE_HEADER,
         target_id=request.id,
         diff=diff,
-        apply=apply,
+        apply=_make_apply_update_header(
+            services, request.id, _build_update_header_request(patch)
+        ),
         verify=make_response_verifier(diff),
     )
 
@@ -2433,22 +2570,16 @@ def _plan_row_adds(
 ) -> list[ActionSpec]:
     if not request.add_rows:
         return []
-    specs: list[ActionSpec] = []
-    for row in request.add_rows:
-        api_request = _build_create_row_request(request.id, row)
-
-        async def apply(req=api_request) -> PurchaseOrderRow:
-            from katana_public_api_client.api.purchase_order_row import (
-                create_purchase_order_row,
-            )
-
-            response = await create_purchase_order_row.asyncio_detailed(
-                client=services.client, body=req
-            )
-            return unwrap_as(response, PurchaseOrderRow)
-
-        specs.append(make_create_action("add_row", row, apply))
-    return specs
+    return [
+        make_create_action(
+            POOperation.ADD_ROW,
+            row,
+            _make_apply_create_row(
+                services, _build_create_row_request(request.id, row)
+            ),
+        )
+        for row in request.add_rows
+    ]
 
 
 async def _plan_row_updates(
@@ -2456,33 +2587,23 @@ async def _plan_row_updates(
 ) -> list[ActionSpec]:
     if not request.update_rows:
         return []
-    # Parallel prefetch: independent GETs, ordering doesn't matter at plan-build time.
+    # Parallel prefetch: independent GETs, plan-build is pre-execute.
     existing_rows = await asyncio.gather(
         *[_fetch_purchase_order_row(services, p.id) for p in request.update_rows]
     )
     specs: list[ActionSpec] = []
     for row_patch, existing_row in zip(request.update_rows, existing_rows, strict=True):
-        api_request = _build_update_row_request(row_patch)
-
-        async def apply(rid=row_patch.id, req=api_request) -> PurchaseOrderRow:
-            from katana_public_api_client.api.purchase_order_row import (
-                update_purchase_order_row,
-            )
-
-            response = await update_purchase_order_row.asyncio_detailed(
-                id=rid, client=services.client, body=req
-            )
-            return unwrap_as(response, PurchaseOrderRow)
-
         diff = compute_field_diff(
             existing_row, row_patch, unknown_prior=existing_row is None
         )
         specs.append(
             ActionSpec(
-                operation="update_row",
+                operation=POOperation.UPDATE_ROW,
                 target_id=row_patch.id,
                 diff=diff,
-                apply=apply,
+                apply=_make_apply_update_row(
+                    services, row_patch.id, _build_update_row_request(row_patch)
+                ),
                 verify=make_response_verifier(diff),
             )
         )
@@ -2494,23 +2615,12 @@ def _plan_row_deletes(
 ) -> list[ActionSpec]:
     if not request.delete_row_ids:
         return []
-    specs: list[ActionSpec] = []
-    for rid in request.delete_row_ids:
-
-        async def apply(target=rid) -> None:
-            from katana_public_api_client.api.purchase_order_row import (
-                delete_purchase_order_row,
-            )
-
-            response = await delete_purchase_order_row.asyncio_detailed(
-                id=target, client=services.client
-            )
-            if not is_success(response):
-                unwrap(response)
-            return None
-
-        specs.append(make_delete_action("delete_row", rid, apply))
-    return specs
+    return [
+        make_delete_action(
+            POOperation.DELETE_ROW, rid, _make_apply_delete_row(services, rid)
+        )
+        for rid in request.delete_row_ids
+    ]
 
 
 def _plan_additional_cost_adds(
@@ -2520,9 +2630,9 @@ def _plan_additional_cost_adds(
 ) -> list[ActionSpec]:
     if not request.add_additional_costs:
         return []
-    # Cost rows attach to a group_id. When omitted on the row, fall back to
-    # the parent PO's default_group_id — read off the already-fetched ``existing_po``
-    # so we don't re-issue a GET per call.
+    # Cost rows attach to a ``group_id``; fall back to the parent PO's
+    # ``default_group_id`` when the row didn't supply one. Reads off the
+    # already-fetched ``existing_po`` to avoid a redundant GET.
     default_group_id = (
         unwrap_unset(existing_po.default_group_id, None)
         if existing_po is not None
@@ -2537,19 +2647,15 @@ def _plan_additional_cost_adds(
                 f"(additional_cost_id={cost.additional_cost_id}): no "
                 f"default_group_id on PO {request.id} and none provided."
             )
-        api_request = _build_create_cost_request(cost, group_id)
-
-        async def apply(req=api_request) -> PurchaseOrderAdditionalCostRow:
-            from katana_public_api_client.api.purchase_order_additional_cost_row import (
-                create_po_additional_cost_row,
+        specs.append(
+            make_create_action(
+                POOperation.ADD_ADDITIONAL_COST,
+                cost,
+                _make_apply_create_cost(
+                    services, _build_create_cost_request(cost, group_id)
+                ),
             )
-
-            response = await create_po_additional_cost_row.asyncio_detailed(
-                client=services.client, body=req
-            )
-            return unwrap_as(response, PurchaseOrderAdditionalCostRow)
-
-        specs.append(make_create_action("add_additional_cost", cost, apply))
+        )
     return specs
 
 
@@ -2568,29 +2674,17 @@ async def _plan_additional_cost_updates(
     for cost_patch, existing_cost in zip(
         request.update_additional_costs, existing_costs, strict=True
     ):
-        api_request = _build_update_cost_request(cost_patch)
-
-        async def apply(
-            target=cost_patch.id, req=api_request
-        ) -> PurchaseOrderAdditionalCostRow:
-            from katana_public_api_client.api.purchase_order_additional_cost_row import (
-                update_additional_cost_row,
-            )
-
-            response = await update_additional_cost_row.asyncio_detailed(
-                id=target, client=services.client, body=req
-            )
-            return unwrap_as(response, PurchaseOrderAdditionalCostRow)
-
         diff = compute_field_diff(
             existing_cost, cost_patch, unknown_prior=existing_cost is None
         )
         specs.append(
             ActionSpec(
-                operation="update_additional_cost",
+                operation=POOperation.UPDATE_ADDITIONAL_COST,
                 target_id=cost_patch.id,
                 diff=diff,
-                apply=apply,
+                apply=_make_apply_update_cost(
+                    services, cost_patch.id, _build_update_cost_request(cost_patch)
+                ),
                 verify=make_response_verifier(diff),
             )
         )
@@ -2602,23 +2696,14 @@ def _plan_additional_cost_deletes(
 ) -> list[ActionSpec]:
     if not request.delete_additional_cost_ids:
         return []
-    specs: list[ActionSpec] = []
-    for rid in request.delete_additional_cost_ids:
-
-        async def apply(target=rid) -> None:
-            from katana_public_api_client.api.purchase_order_additional_cost_row import (
-                delete_po_additional_cost,
-            )
-
-            response = await delete_po_additional_cost.asyncio_detailed(
-                id=target, client=services.client
-            )
-            if not is_success(response):
-                unwrap(response)
-            return None
-
-        specs.append(make_delete_action("delete_additional_cost", rid, apply))
-    return specs
+    return [
+        make_delete_action(
+            POOperation.DELETE_ADDITIONAL_COST,
+            rid,
+            _make_apply_delete_cost(services, rid),
+        )
+        for rid in request.delete_additional_cost_ids
+    ]
 
 
 # ----------------------------------------------------------------------------
@@ -2780,17 +2865,11 @@ async def _delete_purchase_order_impl(
 
     existing_po = await _fetch_purchase_order_attrs(services, request.id)
 
-    async def apply() -> None:
-        from katana_public_api_client.api.purchase_order import delete_purchase_order
-
-        response = await delete_purchase_order.asyncio_detailed(
-            id=request.id, client=services.client
+    plan = [
+        make_delete_action(
+            POOperation.DELETE, request.id, _make_apply_delete_po(services, request.id)
         )
-        if not is_success(response):
-            unwrap(response)
-        return None
-
-    plan = [ActionSpec(operation="delete", target_id=request.id, apply=apply)]
+    ]
     katana_url = katana_web_url("purchase_order", request.id)
 
     if not request.confirm:
