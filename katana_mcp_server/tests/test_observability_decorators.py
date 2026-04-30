@@ -223,56 +223,65 @@ async def test_observe_service_preserves_function_metadata(setup_test_logging):
 
 @pytest.mark.asyncio
 async def test_observe_tool_timing_accuracy(setup_test_logging):
-    """Test that @observe_tool decorator measures time accurately."""
-    import asyncio
+    """``@observe_tool`` must compute ``duration_ms = (end - start) * 1000``.
+
+    Same approach as ``test_observe_service_timing_accuracy``: mock
+    ``time.perf_counter`` so timing is deterministic. Hand back
+    ``[200.0, 200.1]`` so the computed duration is exactly 100ms.
+    """
 
     @observe_tool
     async def slow_tool(param: str) -> str:
-        """Tool that takes time to execute."""
-        await asyncio.sleep(0.1)  # Sleep for 100ms
         return param
 
-    # Mock logger to capture calls
-    with patch("katana_mcp.logging.get_logger") as mock_get_logger:
+    with (
+        patch("katana_mcp.logging.get_logger") as mock_get_logger,
+        patch(
+            "katana_mcp.logging.time.perf_counter",
+            side_effect=[200.0, 200.1],
+        ),
+    ):
         mock_logger = MagicMock()
         mock_get_logger.return_value = mock_logger
 
-        # Execute tool
         await slow_tool(param="test")
 
-        # Check that duration is roughly 100ms or more
         completed_call = mock_logger.info.call_args_list[1]
         duration_ms = completed_call[1]["duration_ms"]
-        assert duration_ms >= 100  # Should be at least 100ms
-        assert duration_ms < 200  # But not too much more (with some tolerance)
+        assert duration_ms == 100.0
 
 
 @pytest.mark.asyncio
 async def test_observe_service_timing_accuracy(setup_test_logging):
-    """Test that @observe_service decorator measures time accurately."""
-    import asyncio
+    """``@observe_service`` must compute ``duration_ms = (end - start) * 1000``.
+
+    Mocks ``time.perf_counter`` so timing is deterministic — no real sleep,
+    no asyncio scheduler variance, no CI-runner-load flakiness. The decorator
+    calls ``perf_counter()`` twice (start + end); we hand back ``[100.0,
+    100.05]`` so the computed duration is exactly 50ms.
+    """
 
     class TestService:
         @observe_service("slow_operation")
         async def slow_method(self) -> str:
-            """Method that takes time to execute."""
-            await asyncio.sleep(0.05)  # Sleep for 50ms
             return "done"
 
-    # Mock logger to capture calls
-    with patch("katana_mcp.logging.get_logger") as mock_get_logger:
+    with (
+        patch("katana_mcp.logging.get_logger") as mock_get_logger,
+        patch(
+            "katana_mcp.logging.time.perf_counter",
+            side_effect=[100.0, 100.05],
+        ),
+    ):
         mock_logger = MagicMock()
         mock_get_logger.return_value = mock_logger
 
-        # Execute service method
         service = TestService()
         await service.slow_method()
 
-        # Check that duration is roughly 50ms or more
         completed_call = mock_logger.debug.call_args_list[1]
         duration_ms = completed_call[1]["duration_ms"]
-        assert duration_ms >= 50  # Should be at least 50ms
-        assert duration_ms < 100  # But not too much more (with some tolerance)
+        assert duration_ms == 50.0
 
 
 @pytest.mark.asyncio
