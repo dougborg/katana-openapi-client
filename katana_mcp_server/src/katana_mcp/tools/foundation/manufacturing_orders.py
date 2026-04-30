@@ -2721,10 +2721,7 @@ async def _list_blocking_ingredients_impl(
     """
     from sqlmodel import select
 
-    from katana_mcp.typed_cache import (
-        ensure_manufacturing_order_recipe_rows_synced,
-        ensure_manufacturing_orders_synced,
-    )
+    from katana_mcp.typed_cache import ensure_manufacturing_orders_synced
     from katana_public_api_client.models_pydantic._generated import (
         CachedManufacturingOrder,
         CachedManufacturingOrderRecipeRow,
@@ -2732,14 +2729,8 @@ async def _list_blocking_ingredients_impl(
 
     services = get_services(context)
 
-    # The two sync helpers acquire disjoint per-entity locks, so gather is
-    # safe here (same pattern as `_fetch_completed_mo_recipe_rows_in_window`).
-    await asyncio.gather(
-        ensure_manufacturing_orders_synced(services.client, services.typed_cache),
-        ensure_manufacturing_order_recipe_rows_synced(
-            services.client, services.typed_cache
-        ),
-    )
+    # MO sync fans out to recipe rows via ``EntitySpec.related_specs``.
+    await ensure_manufacturing_orders_synced(services.client, services.typed_cache)
 
     parsed_dates = parse_request_dates(
         request, ("production_deadline_after", "production_deadline_before")

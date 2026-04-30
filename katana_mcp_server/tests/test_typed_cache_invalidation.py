@@ -170,3 +170,45 @@ class TestSoftDeleteSync:
             await ensure_purchase_orders_synced(MagicMock(), typed_cache_engine)
 
         assert mock_api.call_count == 3
+
+
+class TestRelatedSpecsFanOut:
+    """``EntitySpec.related_specs`` syncs sibling entities in parallel."""
+
+    @pytest.mark.asyncio
+    async def test_mo_sync_fans_out_to_recipe_rows(self, typed_cache_engine):
+        """``ensure_manufacturing_orders_synced`` must also advance the recipe-row watermark.
+
+        Recipe rows live at a separate endpoint with their own watermark
+        but are conceptually nested under MO; consumers that join MO ↔
+        recipe rows in cache (e.g. ``list_blocking_ingredients``) should
+        not need to remember a second sync call. This test pins that
+        contract so a future "let's split the syncs" change doesn't
+        silently break joins.
+        """
+        from katana_mcp.typed_cache.sync import ensure_manufacturing_orders_synced
+
+        mock_parsed = MagicMock()
+        mock_parsed.data = []
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.parsed = mock_parsed
+
+        mo_api = AsyncMock(return_value=mock_response)
+        rows_api = AsyncMock(return_value=mock_response)
+
+        with (
+            patch(
+                "katana_mcp.typed_cache.sync.get_all_manufacturing_orders.asyncio_detailed",
+                new=mo_api,
+            ),
+            patch(
+                "katana_mcp.typed_cache.sync.get_all_manufacturing_order_recipe_rows.asyncio_detailed",
+                new=rows_api,
+            ),
+        ):
+            await ensure_manufacturing_orders_synced(MagicMock(), typed_cache_engine)
+
+        # Both endpoints called exactly once during one ensure_*_synced call.
+        assert mo_api.call_count == 1
+        assert rows_api.call_count == 1

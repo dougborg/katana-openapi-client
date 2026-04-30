@@ -791,25 +791,16 @@ async def _fetch_completed_mo_recipe_rows_in_window(
     """
     from sqlmodel import select
 
-    from katana_mcp.typed_cache import (
-        ensure_manufacturing_order_recipe_rows_synced,
-        ensure_manufacturing_orders_synced,
-    )
+    from katana_mcp.typed_cache import ensure_manufacturing_orders_synced
     from katana_public_api_client.models_pydantic._generated import (
         CachedManufacturingOrder,
         CachedManufacturingOrderRecipeRow,
         ManufacturingOrderStatus,
     )
 
-    # Parallel-safe: the two sync helpers acquire disjoint per-entity locks
-    # (``manufacturing_order`` vs ``manufacturing_order_recipe_row``), so
-    # ``asyncio.gather`` won't deadlock or interleave writes within a table.
-    await asyncio.gather(
-        ensure_manufacturing_orders_synced(services.client, services.typed_cache),
-        ensure_manufacturing_order_recipe_rows_synced(
-            services.client, services.typed_cache
-        ),
-    )
+    # MO sync fans out to recipe rows via ``EntitySpec.related_specs`` —
+    # both watermarks advance in parallel under disjoint per-entity locks.
+    await ensure_manufacturing_orders_synced(services.client, services.typed_cache)
 
     async with services.typed_cache.session() as session:
         # Filter both sides of the join for soft-delete: a recipe row could

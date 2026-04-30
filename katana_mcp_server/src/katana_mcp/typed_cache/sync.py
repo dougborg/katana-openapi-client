@@ -21,8 +21,9 @@ need to change.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
@@ -82,6 +83,15 @@ class EntitySpec:
     ``pydantic_resolver`` overrides ``pydantic_cls`` per-row by dispatching
     on the attrs subclass — used by purchase orders, where the
     discriminated-union root would otherwise lose subclass-only fields.
+
+    ``related_specs`` is for entities whose rows live at a *separate* API
+    endpoint with their own watermark (manufacturing orders + recipe
+    rows: rows aren't nested in the MO response, so the nested-rows
+    triple above doesn't apply). Listing them here means
+    ``_ensure_synced`` fans out to sync them in parallel, so consumers
+    that join parent ↔ child in cache can call a single
+    ``ensure_<parent>_synced`` and trust that both sides are fresh —
+    no caller-side ``asyncio.gather`` to forget.
     """
 
     entity_key: str
@@ -92,6 +102,7 @@ class EntitySpec:
     rows_field: str | None = None
     fk_field: str | None = None
     pydantic_resolver: Callable[[Any], type] | None = None
+    related_specs: tuple[EntitySpec, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
         # Children are configured by a ``(child_cls, rows_field, fk_field)``
@@ -201,6 +212,30 @@ async def _ensure_synced(
     no ghost rows leak to callers and the historical record survives in
     the cache for any future audit/reporting need. We mirror Katana's own
     soft-delete model rather than hard-deleting locally.
+
+    ``spec.related_specs`` triggers parallel sync of sibling entities
+    (e.g. manufacturing-order recipe rows when MOs are synced) so a
+    consumer joining parent ↔ child in cache only needs to call one
+    ``ensure_<parent>_synced``.
+    """
+    if spec.related_specs:
+        await asyncio.gather(
+            _sync_one(client, cache, spec),
+            *(_ensure_synced(client, cache, related) for related in spec.related_specs),
+        )
+        return
+    await _sync_one(client, cache, spec)
+
+
+async def _sync_one(
+    client: KatanaClient, cache: TypedCacheEngine, spec: EntitySpec
+) -> None:
+    """Sync exactly one entity (no related-spec fan-out).
+
+    Split out from ``_ensure_synced`` so the related-spec gather doesn't
+    re-enter the parent's lock recursively when a future child carries
+    its own ``related_specs`` chain — each entity's sync runs under its
+    own per-entity lock, no nesting.
     """
     async with cache.lock_for(spec.entity_key):
         async with cache.session() as session:
@@ -276,28 +311,34 @@ _STOCK_ADJUSTMENT_SPEC = EntitySpec(
 )
 
 
-# Manufacturing orders: the list endpoint returns summary objects with no
-# nested rows. Recipe rows live at ``/manufacturing_order_recipe_rows`` and
-# aren't cached by this entity's sync — leave the child fields unset.
-_MANUFACTURING_ORDER_SPEC = EntitySpec(
-    entity_key="manufacturing_order",
-    api_fn=get_all_manufacturing_orders,
-    cache_cls=CachedManufacturingOrder,
-    pydantic_cls=PydanticManufacturingOrder,
-)
-
-
 # Manufacturing-order recipe rows: fetched from the separate
 # ``/manufacturing_order_recipe_rows`` endpoint, not nested under the MO
 # parent — so they have their own ``updated_at_min`` watermark and sync
 # lock. Direct conversion via the pydantic intermediary; ``batch_transactions``
 # survives ``model_dump`` as a plain dict list and lands in the cache class's
-# JSON column unchanged.
+# JSON column unchanged. Defined before the MO spec because the MO spec
+# references it via ``related_specs`` (frozen dataclasses can't forward-
+# reference each other).
 _MANUFACTURING_ORDER_RECIPE_ROW_SPEC = EntitySpec(
     entity_key="manufacturing_order_recipe_row",
     api_fn=get_all_manufacturing_order_recipe_rows,
     cache_cls=CachedManufacturingOrderRecipeRow,
     pydantic_cls=PydanticManufacturingOrderRecipeRow,
+)
+
+
+# Manufacturing orders: the list endpoint returns summary objects with no
+# nested rows. Recipe rows live at the sibling endpoint above and are
+# pulled in via ``related_specs`` so any cache consumer that joins MO ↔
+# recipe row (e.g. ``list_blocking_ingredients``) only needs to call
+# ``ensure_manufacturing_orders_synced`` and trusts both watermarks have
+# been advanced.
+_MANUFACTURING_ORDER_SPEC = EntitySpec(
+    entity_key="manufacturing_order",
+    api_fn=get_all_manufacturing_orders,
+    cache_cls=CachedManufacturingOrder,
+    pydantic_cls=PydanticManufacturingOrder,
+    related_specs=(_MANUFACTURING_ORDER_RECIPE_ROW_SPEC,),
 )
 
 
@@ -377,8 +418,11 @@ async def ensure_manufacturing_order_recipe_rows_synced(
     """Pull updated MO recipe rows from Katana and upsert into the cache.
 
     Recipe rows are fetched from the separate
-    ``/manufacturing_order_recipe_rows`` endpoint (not nested under the MO
-    parent), so they have their own ``updated_at_min`` watermark and sync
-    lock — distinct from the manufacturing-orders sync.
+    ``/manufacturing_order_recipe_rows`` endpoint (not nested under the
+    MO parent), so they have their own ``updated_at_min`` watermark and
+    sync lock. ``ensure_manufacturing_orders_synced`` already fans out to
+    this spec via ``related_specs``, so most callers don't need to call
+    this helper directly — it's exposed for tools that specifically want
+    only the recipe-row watermark advanced.
     """
     await _ensure_synced(client, cache, _MANUFACTURING_ORDER_RECIPE_ROW_SPEC)
