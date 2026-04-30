@@ -249,6 +249,23 @@ Destructive tools advertise this via the standard MCP ``destructiveHint``
 tool annotation, which the host uses to confirm with the user before
 invocation. The server itself does not gate further.
 
+## Resource URLs
+
+Tool responses include a `katana_url` field where applicable — prefer it
+over composing URLs yourself. Patterns (base: factory.katanamrp.com,
+overridable via `KATANA_WEB_BASE_URL`):
+
+  /salesorder/{id}              — sales orders
+  /manufacturingorder/{id}      — manufacturing orders
+  /purchaseorder/{id}           — purchase orders
+  /products/{id}                — products and materials (variants link
+                                  to the parent item)
+  /contacts/customers/{id}      — customers
+  /stocktransfer/{id}           — stock transfers
+  /stockadjustment/{id}         — stock adjustments
+
+Top-level pages: /inventory, /sales, /purchases, /manufacturingorders.
+
 ## Resources
 
 Browse cached reference data:

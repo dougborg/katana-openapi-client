@@ -19,6 +19,7 @@ from katana_mcp.services import get_services
 from katana_mcp.tools.decorators import cache_read
 from katana_mcp.tools.tool_result_utils import make_simple_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
+from katana_mcp.web_urls import katana_web_url
 
 # ============================================================================
 # Tool 1: search_customers
@@ -48,6 +49,7 @@ class CustomerInfo(BaseModel):
     phone: str | None = None
     currency: str | None = None
     company: str | None = None
+    katana_url: str | None = None
 
 
 class SearchCustomersResponse(BaseModel):
@@ -58,13 +60,15 @@ class SearchCustomersResponse(BaseModel):
 
 
 def _customer_from_dict(d: dict) -> CustomerInfo:
+    customer_id = d.get("id")
     return CustomerInfo(
-        id=d.get("id", 0),
+        id=customer_id or 0,
         name=d.get("name") or "",
         email=d.get("email"),
         phone=d.get("phone"),
         currency=d.get("currency"),
         company=d.get("company"),
+        katana_url=katana_web_url("customer", customer_id),
     )
 
 
@@ -180,6 +184,7 @@ class GetCustomerResponse(BaseModel):
     """
 
     id: int
+    katana_url: str | None = None
     name: str
     first_name: str | None = None
     last_name: str | None = None
@@ -279,8 +284,10 @@ async def _get_customer_impl(
     # (tracked in #342). Fetch-on-demand — one extra HTTP call per get_customer.
     addresses = await _fetch_customer_addresses(services, request.customer_id)
 
+    customer_id = d.get("id", request.customer_id)
     return GetCustomerResponse(
-        id=d.get("id", request.customer_id),
+        id=customer_id,
+        katana_url=katana_web_url("customer", customer_id),
         name=d.get("name") or "",
         first_name=d.get("first_name"),
         last_name=d.get("last_name"),

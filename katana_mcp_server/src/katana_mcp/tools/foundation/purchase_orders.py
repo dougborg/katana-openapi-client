@@ -37,6 +37,7 @@ from katana_mcp.tools.tool_result_utils import (
     resolve_entity_name,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
+from katana_mcp.web_urls import katana_web_url
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
@@ -109,6 +110,7 @@ class PurchaseOrderResponse(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     next_actions: list[str] = Field(default_factory=list)
     message: str
+    katana_url: str | None = None
 
 
 def _po_response_to_tool_result(
@@ -275,6 +277,7 @@ async def _create_purchase_order_impl(
             total_cost=total_cost,
             currency=currency,
             is_preview=False,
+            katana_url=katana_web_url("purchase_order", po.id),
             next_actions=[
                 f"Purchase order created with ID {po.id}",
                 "Use receive_purchase_order to receive items when they arrive",
@@ -664,6 +667,7 @@ class GetPurchaseOrderResponse(BaseModel):
     """
 
     id: int
+    katana_url: str | None = None
     created_at: str | None = None
     updated_at: str | None = None
     deleted_at: str | None = None
@@ -900,6 +904,7 @@ def _build_get_purchase_order_response(
 
     return GetPurchaseOrderResponse(
         id=po.id,
+        katana_url=katana_web_url("purchase_order", po.id),
         created_at=_iso_optional(unwrap_unset(po.created_at, None)),
         updated_at=_iso_optional(unwrap_unset(po.updated_at, None)),
         deleted_at=_iso_optional(unwrap_unset(po.deleted_at, None)),
@@ -1733,6 +1738,7 @@ class PurchaseOrderSummary(BaseModel):
     total: float | None
     row_count: int
     rows: list[PurchaseOrderRowSummary] | None = None
+    katana_url: str | None = None
 
 
 class ListPurchaseOrdersResponse(BaseModel):
@@ -1931,6 +1937,7 @@ async def _list_purchase_orders_impl(
                 total=po.total,
                 row_count=row_count,
                 rows=rows,
+                katana_url=katana_web_url("purchase_order", po.id),
             )
         )
 

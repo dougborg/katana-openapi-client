@@ -38,6 +38,7 @@ from katana_mcp.tools.tool_result_utils import (
     resolve_entity_name,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
+from katana_mcp.web_urls import katana_web_url
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
     CreateStockTransferRequest as APICreateStockTransferRequest,
@@ -104,6 +105,7 @@ class StockTransferSummary(BaseModel):
     created_at: str | None
     row_count: int
     rows: list[StockTransferRowInfo] | None = None
+    katana_url: str | None = None
 
 
 def _build_row_info(row: Any) -> StockTransferRowInfo:
@@ -148,6 +150,7 @@ def _build_summary(transfer: Any, *, include_rows: bool) -> StockTransferSummary
         else None,
         row_count=len(raw_rows),
         rows=row_infos,
+        katana_url=katana_web_url("stock_transfer", transfer.id),
     )
 
 
@@ -193,8 +196,9 @@ class CreateStockTransferRequest(BaseModel):
     order_no: str | None = Field(
         default=None,
         description=(
-            "Optional transfer number (stock_transfer_number). Katana auto-assigns "
-            "one when omitted."
+            "Optional transfer number (stock_transfer_number). When omitted, "
+            "the MCP tool generates a timestamp-based default (``ST-<unix-ts>``) "
+            "before the request is sent — Katana's API requires the field."
         ),
     )
     additional_info: str | None = Field(
@@ -222,6 +226,7 @@ class StockTransferResponse(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     next_actions: list[str] = Field(default_factory=list)
     message: str
+    katana_url: str | None = None
 
 
 def _transfer_to_response(
@@ -241,6 +246,7 @@ def _transfer_to_response(
         else None,
         is_preview=is_preview,
         message=message,
+        katana_url=katana_web_url("stock_transfer", transfer.id),
     )
 
 
@@ -373,12 +379,17 @@ async def _create_stock_transfer_impl(
 
     api_rows = _build_row_requests(request.rows)
 
+    # ``stock_transfer_number`` is required by the live API. Auto-generate a
+    # timestamp-based default if the caller didn't provide one — matches the
+    # pattern in ``_create_manufacturing_order_impl``.
+    transfer_number = request.order_no or f"ST-{int(datetime.now(UTC).timestamp())}"
+
     api_request = APICreateStockTransferRequest(
         source_location_id=request.source_location_id,
         target_location_id=request.destination_location_id,
         expected_arrival_date=request.expected_arrival_date,
         order_created_date=datetime.now(UTC),
-        stock_transfer_number=to_unset(request.order_no),
+        stock_transfer_number=transfer_number,
         additional_info=to_unset(request.additional_info),
         stock_transfer_rows=api_rows,
     )
@@ -444,6 +455,8 @@ async def create_stock_transfer(
         lines.append(f"- **Expected Arrival**: {response.expected_arrival_date}")
     if response.status:
         lines.append(f"- **Status**: {response.status}")
+    if response.katana_url:
+        lines.append(f"- **Katana URL**: {response.katana_url}")
     if response.warnings:
         lines.append("")
         lines.append("### Warnings")

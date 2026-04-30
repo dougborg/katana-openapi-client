@@ -41,6 +41,7 @@ from katana_mcp.tools.tool_result_utils import (
     parse_request_dates,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
+from katana_mcp.web_urls import katana_web_url
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
     CreateManufacturingOrderRequest as APICreateManufacturingOrderRequest,
@@ -134,6 +135,7 @@ class ManufacturingOrderResponse(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     next_actions: list[str] = Field(default_factory=list)
     message: str
+    katana_url: str | None = None
 
 
 async def _create_manufacturing_order_impl(
@@ -361,6 +363,7 @@ async def _create_manufacturing_order_impl(
             production_deadline_date=production_deadline_date,
             additional_info=additional_info,
             is_preview=False,
+            katana_url=katana_web_url("manufacturing_order", mo.id),
             next_actions=next_actions,
             message=f"Successfully created manufacturing order {order_no or mo.id} (ID: {mo.id})",
         )
@@ -660,6 +663,7 @@ class GetManufacturingOrderResponse(BaseModel):
     """
 
     id: int
+    katana_url: str | None = None
     order_no: str | None = None
     status: str | None = None
     variant_id: int | None = None
@@ -935,6 +939,7 @@ def _build_mo_response(
     ]
     return GetManufacturingOrderResponse(
         id=mo.id,
+        katana_url=katana_web_url("manufacturing_order", mo.id),
         order_no=unwrap_unset(mo.order_no, None),
         status=enum_to_str(unwrap_unset(mo.status, None)),
         variant_id=unwrap_unset(mo.variant_id, None),
@@ -2307,6 +2312,7 @@ class ManufacturingOrderSummary(BaseModel):
     is_linked_to_sales_order: bool | None
     sales_order_id: int | None
     total_cost: float | None
+    katana_url: str | None = None
 
 
 class ListManufacturingOrdersResponse(BaseModel):
@@ -2454,6 +2460,7 @@ async def _list_manufacturing_orders_impl(
                 is_linked_to_sales_order=mo.is_linked_to_sales_order,
                 sales_order_id=mo.sales_order_id,
                 total_cost=mo.total_cost,
+                katana_url=katana_web_url("manufacturing_order", mo.id),
             )
         )
 

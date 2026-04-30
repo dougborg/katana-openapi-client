@@ -87,6 +87,30 @@ Every list/get/search and reporting tool accepts a shared `format` parameter:
 Default behavior is unchanged. Pass `format="json"` when chaining tool calls
 or feeding output into downstream aggregation / filtering.
 
+## Linking to Katana
+
+`get_*` and `create_*` tools (and the rows on their `list_*` siblings)
+return a `katana_url` field for the entity. Prefer that over composing
+URLs by hand — Katana's path conventions are inconsistent
+(`/salesorder/{id}` is singular, `/products/{id}` is plural) and easy to
+get wrong silently.
+
+Patterns (base: `factory.katanamrp.com`, override via `KATANA_WEB_BASE_URL`):
+
+| Entity | Path |
+|--------|------|
+| Sales orders | `/salesorder/{id}` |
+| Manufacturing orders | `/manufacturingorder/{id}` |
+| Purchase orders | `/purchaseorder/{id}` |
+| Products / materials | `/products/{id}` (variants link to parent item) |
+| Customers | `/contacts/customers/{id}` |
+| Stock transfers | `/stocktransfer/{id}` |
+| Stock adjustments | `/stockadjustment/{id}` |
+
+`katana_url` is `None` when the entity id isn't available — typically
+create-tool previews (no id assigned until confirm=true). Update-tool
+previews already know the id and return a populated `katana_url`.
+
 ## Common Workflows
 
 1. **Reorder low stock**: check_inventory → create_purchase_order
@@ -974,7 +998,7 @@ Create a stock transfer moving inventory between two locations.
 - `expected_arrival_date` (required): Expected arrival datetime (ISO-8601)
 - `rows` (required): Line items `[{variant_id, quantity, batch_transactions?}]` —
   `batch_transactions` is `[{batch_id, quantity}]` for batch-tracked variants
-- `order_no` (optional): Stock transfer number (auto-assigned when omitted)
+- `order_no` (optional): Stock transfer number. When omitted, the tool generates a `ST-<unix-ts>` default before sending — Katana's API requires the field.
 - `additional_info` (optional): Notes
 - `confirm` (optional, default false): false=preview, true=create
 
