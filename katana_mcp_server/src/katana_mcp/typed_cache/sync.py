@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from katana_public_api_client.api.manufacturing_order import (
@@ -58,19 +58,6 @@ from katana_public_api_client.models_pydantic._registry import get_pydantic_clas
 from katana_public_api_client.utils import unwrap_data
 
 from .sync_state import SyncState
-
-# Skip the API call when the cache was synced this recently. Mirrors the
-# legacy ``cache_sync._NO_INCREMENTAL_DEBOUNCE`` so back-to-back tool
-# calls don't each kick off an HTTP RTT for an empty delta.
-_SYNC_DEBOUNCE = timedelta(seconds=300)
-
-
-def _is_fresh(last_synced: datetime | None) -> bool:
-    """True when the cache was synced within ``_SYNC_DEBOUNCE``."""
-    if last_synced is None:
-        return False
-    return (datetime.now(tz=UTC).replace(tzinfo=None) - last_synced) < _SYNC_DEBOUNCE
-
 
 if TYPE_CHECKING:
     from katana_public_api_client import KatanaClient
@@ -193,29 +180,43 @@ async def _ensure_synced(
 ) -> None:
     """Pull updated rows for one entity from Katana and upsert into the cache.
 
-    Cold-start fetches the full history (cost scales with row count);
-    subsequent calls pass ``updated_at_min=<last_synced>`` and typically
-    return zero rows. The per-entity lock guarantees only one sync runs
-    at a time even if multiple tool calls land concurrently. The
-    ``_SYNC_DEBOUNCE`` short-circuit avoids an HTTP RTT for back-to-back
-    tool calls.
+    Every call hits the API. Cold-start fetches the full history (cost
+    scales with row count); subsequent calls pass
+    ``updated_at_min=<last_synced>`` so the API returns only the delta
+    since the previous sync — typically zero rows, ~100-200ms RTT for
+    the empty response. The per-entity lock guarantees only one sync
+    runs at a time even when multiple tool calls land concurrently
+    (the second waits, then issues its own — also typically empty —
+    delta fetch). We deliberately do not debounce: an explicit TTL
+    layer hides MCP-driven mutations and out-of-band UI edits behind
+    a stale window for no real saving, since the delta fetch is
+    already cheap.
+
+    Soft-deletes are folded in by passing ``include_deleted=True``: when
+    a row is deleted in the Katana UI, the next incremental fetch returns
+    it with ``deleted_at`` populated, and the upsert path naturally
+    propagates that timestamp into the cache row. The cache classes all
+    extend ``DeletableEntity`` (a ``deleted_at`` column ships natively),
+    and every ``list_*`` query already filters ``deleted_at IS NULL``, so
+    no ghost rows leak to callers and the historical record survives in
+    the cache for any future audit/reporting need. We mirror Katana's own
+    soft-delete model rather than hard-deleting locally.
     """
     async with cache.lock_for(spec.entity_key):
         async with cache.session() as session:
             state = await session.get(SyncState, spec.entity_key)
             last_synced = state.last_synced if state is not None else None
 
-        if _is_fresh(last_synced):
-            return
-
         # ``last_synced`` is persisted as naive UTC (SQLite's default
         # DateTime column strips tzinfo). Re-attach UTC before sending to
         # the API so the generated client serializes an explicit offset.
-        kwargs = (
-            {"updated_at_min": last_synced.replace(tzinfo=UTC)}
-            if last_synced is not None
-            else {}
-        )
+        # ``include_deleted=True`` is always sent so soft-deletes after
+        # the watermark surface in the response (Katana bumps
+        # ``updated_at`` when ``deleted_at`` is set), letting the upsert
+        # propagate the tombstone into the cache row.
+        kwargs: dict[str, Any] = {"include_deleted": True}
+        if last_synced is not None:
+            kwargs["updated_at_min"] = last_synced.replace(tzinfo=UTC)
         response = await spec.api_fn.asyncio_detailed(client=client, **kwargs)
         attrs_objs = unwrap_data(response, default=[])
 
