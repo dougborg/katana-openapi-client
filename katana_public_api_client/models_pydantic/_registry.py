@@ -150,14 +150,6 @@ def is_registered(model_class: type) -> bool:
     return model_class in _attrs_to_pydantic or model_class in _pydantic_to_attrs
 
 
-def clear_registry() -> None:
-    """Clear all registrations. Mainly for testing purposes."""
-    _attrs_to_pydantic.clear()
-    _pydantic_to_attrs.clear()
-    _attrs_name_to_class.clear()
-    _pydantic_name_to_class.clear()
-
-
 def get_registration_stats() -> dict[str, Any]:
     """Get statistics about the current registry state.
 

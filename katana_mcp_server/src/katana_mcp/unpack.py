@@ -30,11 +30,14 @@ from __future__ import annotations
 
 import functools
 import inspect
+import logging
 from collections.abc import Callable
 from typing import Annotated, Any, get_args, get_origin, get_type_hints
 
 from pydantic import BaseModel, ValidationError
 from pydantic_core import PydanticUndefined
+
+logger = logging.getLogger(__name__)
 
 
 class Unpack:
@@ -85,11 +88,19 @@ def unpack_pydantic_params(func: Callable) -> Callable:
     new_params = []
     unpack_mapping: dict[str, tuple[type[BaseModel], list[str]]] = {}
 
-    # Get type hints to resolve string annotations (from __future__ import annotations)
+    # Get type hints to resolve string annotations (from __future__ import
+    # annotations). NameError is the typical failure when a forward ref can't
+    # be resolved at decoration time; TypeError surfaces from malformed
+    # annotations. Both fall back to raw annotations cleanly, but log so the
+    # silent-fallback behavior is observable.
     try:
         type_hints = get_type_hints(func, include_extras=True)
-    except Exception:
-        # If get_type_hints() fails, fall back to raw annotations
+    except (NameError, TypeError) as exc:
+        logger.debug(
+            "get_type_hints failed for %r — falling back to empty hint dict: %s",
+            func,
+            exc,
+        )
         type_hints = {}
 
     # Track if we've added any KEYWORD_ONLY params

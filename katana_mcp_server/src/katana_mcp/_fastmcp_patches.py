@@ -19,12 +19,15 @@ so only the get_cached_typeadapter patch is needed now.
 from __future__ import annotations
 
 import inspect
+import logging
 import types
 from collections.abc import Callable
 from functools import lru_cache
 from typing import Annotated, Any, get_args, get_origin, get_type_hints
 
 from pydantic import Field, TypeAdapter
+
+logger = logging.getLogger(__name__)
 
 # Track whether patches have been applied (mutable container avoids global statement)
 _state: dict[str, bool] = {"patched": False}
@@ -86,9 +89,18 @@ def _patched_get_cached_typeadapter[T](cls: T) -> TypeAdapter[T]:
         and hasattr(cls, "__annotations__")
         and cls.__annotations__
     ):
+        # ``get_type_hints`` raises NameError on unresolvable forward
+        # refs and TypeError on malformed annotations; both are recoverable
+        # by falling back to the raw annotation dict, but we log so the
+        # silent-fallback behavior is observable.
         try:
             resolved_hints = get_type_hints(cls, include_extras=True)
-        except Exception:
+        except (NameError, TypeError) as exc:
+            logger.debug(
+                "get_type_hints failed for %r — falling back to __annotations__: %s",
+                cls,
+                exc,
+            )
             resolved_hints = cls.__annotations__
 
         # Process annotations to convert string descriptions to Fields
