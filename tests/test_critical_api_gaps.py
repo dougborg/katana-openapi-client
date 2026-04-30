@@ -19,22 +19,18 @@ The tests here focus on absolute requirements that would make the API unusable
 if missing (e.g., core customer endpoints, basic documentation, operation IDs).
 """
 
-from pathlib import Path
 from typing import Any
 
 import pytest
-import yaml
 
 
 class TestCriticalAPIGaps:
     """Test critical API gaps that should be addressed immediately."""
 
     @pytest.fixture(scope="class")
-    def current_spec(self) -> dict[str, Any]:
-        """Load current OpenAPI specification."""
-        spec_path = Path(__file__).parent.parent / "docs" / "katana-openapi.yaml"
-        with open(spec_path, encoding="utf-8") as f:
-            return yaml.safe_load(f)
+    def current_spec(self, openapi_spec: dict[str, Any]) -> dict[str, Any]:
+        """Re-export the session-scoped OpenAPI spec under this class's name."""
+        return openapi_spec
 
     def test_critical_customer_endpoints_present(self, current_spec: dict[str, Any]):
         """Test that critical customer endpoints are present."""
@@ -204,35 +200,21 @@ class TestCriticalAPIGaps:
     # - test_individual_schema_validation.py for granular validation
     # Tests should not depend on generated analysis files.
 
-    def test_api_specification_completeness(self):
+    def test_api_specification_completeness(self, openapi_spec: dict[str, Any]):
         """Test that the API specification itself is structurally complete."""
-        # Test the actual OpenAPI spec instead of looking for validation files
-        spec_file = Path(__file__).parent.parent / "docs" / "katana-openapi.yaml"
-
-        assert spec_file.exists(), "OpenAPI specification file should exist"
-
-        # Verify it's valid YAML
-        import yaml
-
-        with open(spec_file, encoding="utf-8") as f:
-            spec_data = yaml.safe_load(f)
-
-        # Basic structure validation
-        assert "openapi" in spec_data, "OpenAPI spec must have version"
-        assert "info" in spec_data, "OpenAPI spec must have info section"
-        assert "paths" in spec_data, "OpenAPI spec must have paths section"
-        assert "components" in spec_data, "OpenAPI spec must have components section"
+        assert "openapi" in openapi_spec, "OpenAPI spec must have version"
+        assert "info" in openapi_spec, "OpenAPI spec must have info section"
+        assert "paths" in openapi_spec, "OpenAPI spec must have paths section"
+        assert "components" in openapi_spec, "OpenAPI spec must have components section"
 
 
 class TestDocumentationCompliance:
     """Test compliance with documentation standards."""
 
     @pytest.fixture(scope="class")
-    def current_spec(self) -> dict[str, Any]:
-        """Load current OpenAPI specification."""
-        spec_path = Path(__file__).parent.parent / "docs" / "katana-openapi.yaml"
-        with open(spec_path, encoding="utf-8") as f:
-            return yaml.safe_load(f)
+    def current_spec(self, openapi_spec: dict[str, Any]) -> dict[str, Any]:
+        """Re-export the session-scoped OpenAPI spec under this class's name."""
+        return openapi_spec
 
     def test_openapi_info_section_complete(self, current_spec: dict[str, Any]):
         """Test that OpenAPI info section is complete and descriptive."""

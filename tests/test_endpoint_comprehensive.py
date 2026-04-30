@@ -116,11 +116,9 @@ class TestEndpointComprehensive:
     """Comprehensive parameterized testing for all endpoints."""
 
     @pytest.fixture(scope="class")
-    def spec(self) -> dict[str, Any]:
-        """Load OpenAPI specification."""
-        spec_path = Path(__file__).parent.parent / "docs" / "katana-openapi.yaml"
-        with open(spec_path, encoding="utf-8") as f:
-            return yaml.safe_load(f)
+    def spec(self, openapi_spec: dict[str, Any]) -> dict[str, Any]:
+        """Re-export the session-scoped OpenAPI spec under this class's name."""
+        return openapi_spec
 
     def _resolve_response_description(
         self, response_spec: dict[str, Any], spec: dict[str, Any]
@@ -372,11 +370,9 @@ class TestEndpointCoverageMetrics:
     """Test overall endpoint coverage and quality metrics."""
 
     @pytest.fixture(scope="class")
-    def spec(self) -> dict[str, Any]:
-        """Load OpenAPI specification."""
-        spec_path = Path(__file__).parent.parent / "docs" / "katana-openapi.yaml"
-        with open(spec_path, encoding="utf-8") as f:
-            return yaml.safe_load(f)
+    def spec(self, openapi_spec: dict[str, Any]) -> dict[str, Any]:
+        """Re-export the session-scoped OpenAPI spec under this class's name."""
+        return openapi_spec
 
     def test_endpoint_coverage_metrics(self, spec: dict[str, Any]):
         """Test overall endpoint coverage and quality metrics."""

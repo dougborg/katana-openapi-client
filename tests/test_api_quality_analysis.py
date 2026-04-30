@@ -5,22 +5,18 @@ consistency across endpoints, extractable parameters worth promoting to
 shared definitions, etc. Direct yaml inspection — no external scripts.
 """
 
-from pathlib import Path
 from typing import Any
 
 import pytest
-import yaml
 
 
 class TestAPIQualityAnalysis:
     """Test API quality metrics and design recommendations."""
 
     @pytest.fixture(scope="class")
-    def api_spec(self) -> dict[str, Any]:
-        """Load the OpenAPI specification."""
-        spec_path = Path(__file__).parent.parent / "docs" / "katana-openapi.yaml"
-        with open(spec_path, encoding="utf-8") as f:
-            return yaml.safe_load(f)
+    def api_spec(self, openapi_spec: dict[str, Any]) -> dict[str, Any]:
+        """Re-export the session-scoped OpenAPI spec under this class's name."""
+        return openapi_spec
 
     def test_no_orphaned_component_parameters(self, api_spec: dict[str, Any]) -> None:
         """
