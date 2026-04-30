@@ -78,10 +78,12 @@ jobs:
         id: check
         run: |
           # Check if there are any commits with (client) scope or no scope since last
-          # client release
+          # client release. The optional ``!`` between ``(scope)`` and ``:`` matches
+          # the Conventional Commits breaking-change form (e.g. ``feat(client)!:``)
+          # so a major-version bump isn't silently skipped — see #451.
           if git log $(git describe --tags --abbrev=0 --match="client-v*" 2>/dev/null || \
             echo "HEAD~10")..HEAD --pretty=format:"%s" | \
-            grep -qE '^(feat|fix|perf)(\(client\))?:'; then
+            grep -qE '^(feat|fix|perf)(\(client\))?!?:'; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
           else
             echo "has_changes=false" >> $GITHUB_OUTPUT
@@ -144,10 +146,13 @@ jobs:
       - name: Check for MCP changes
         id: check
         run: |
-          # Check if there are any commits with (mcp) scope since last mcp release
+          # Check if there are any commits with (mcp) scope since last mcp release.
+          # The optional ``!`` between ``(mcp)`` and ``:`` matches the Conventional
+          # Commits breaking-change form (e.g. ``feat(mcp)!:``) so a major-version
+          # bump isn't silently skipped — see #451.
           if git log $(git describe --tags --abbrev=0 --match="mcp-v*" 2>/dev/null || \
             echo "HEAD~10")..HEAD --pretty=format:"%s" | \
-            grep -qE '^(feat|fix|perf)\(mcp\):'; then
+            grep -qE '^(feat|fix|perf)\(mcp\)!?:'; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
           else
             echo "has_changes=false" >> $GITHUB_OUTPUT
