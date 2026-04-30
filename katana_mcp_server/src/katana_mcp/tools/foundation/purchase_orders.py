@@ -11,8 +11,9 @@ These tools provide:
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
-from enum import StrEnum
+from enum import Enum, StrEnum
 from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
@@ -22,9 +23,16 @@ from pydantic import BaseModel, Field
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools._modification import (
+    FieldChange,
     ModificationResponse,
     compute_field_diff,
     to_tool_result,
+)
+from katana_mcp.tools._modification_dispatch import (
+    ActionSpec,
+    execute_plan,
+    plan_to_preview_results,
+    serialize_for_prior_state,
 )
 from katana_mcp.tools.list_coercion import CoercedIntListOpt
 from katana_mcp.tools.tool_result_utils import (
@@ -2042,18 +2050,18 @@ async def list_purchase_orders(
 
 
 # ============================================================================
-# Tool: update_purchase_order (header fields, including status)
+# Tool: modify_purchase_order — unified modification surface
 # ============================================================================
+#
+# Replaces the 8 separate PO modification tools shipped in PR #461. One tool
+# per entity, dispatching internally to the right API endpoints. See
+# ``katana_mcp.tools._modification_dispatch`` for the shared infrastructure.
 
 
 # Tool-facing uppercase status literal — accepts every value Katana defines.
-# Folded into ``update_purchase_order`` rather than a separate status tool to
-# keep the surface uniform with the canonical entity-modification pattern in
-# ``katana_mcp.tools._modification``.
 PurchaseOrderStatusLiteral = Literal[
     "DRAFT", "NOT_RECEIVED", "PARTIALLY_RECEIVED", "RECEIVED"
 ]
-
 
 _PO_STATUS_API_VALUE: dict[PurchaseOrderStatusLiteral, PurchaseOrderStatus] = {
     "DRAFT": PurchaseOrderStatus.DRAFT,
@@ -2062,21 +2070,94 @@ _PO_STATUS_API_VALUE: dict[PurchaseOrderStatusLiteral, PurchaseOrderStatus] = {
     "RECEIVED": PurchaseOrderStatus.RECEIVED,
 }
 
+CostDistributionMethodLiteral = Literal["BY_VALUE", "NON_DISTRIBUTED"]
 
-class UpdatePurchaseOrderRequest(BaseModel):
-    """Request to update header fields on an existing purchase order.
+_DISTRIBUTION_METHOD_API_VALUE: dict[
+    CostDistributionMethodLiteral, CostDistributionMethod
+] = {
+    "BY_VALUE": CostDistributionMethod.BY_VALUE,
+    "NON_DISTRIBUTED": CostDistributionMethod.NON_DISTRIBUTED,
+}
 
-    Status transitions are folded in here as a regular field — Katana's API
-    accepts ``status`` as part of the same PATCH body, so a separate
-    ``update_purchase_order_status`` tool would only duplicate surface area.
-    """
 
-    id: int = Field(..., description="Purchase order ID")
+async def _fetch_purchase_order_attrs(
+    services: Any, po_id: int
+) -> RegularPurchaseOrder | None:
+    """Fetch the PO attrs object for diff context. Returns None on failure."""
+    from katana_public_api_client.api.purchase_order import get_purchase_order as _get
+
+    try:
+        response = await _get.asyncio_detailed(id=po_id, client=services.client)
+        return unwrap_as(response, RegularPurchaseOrder)
+    except Exception as exc:
+        logger.info(
+            f"Could not fetch PO {po_id} for diff context: {exc} — "
+            "preview will report changes without prior values."
+        )
+        return None
+
+
+async def _fetch_purchase_order_row(
+    services: Any, row_id: int
+) -> PurchaseOrderRow | None:
+    """Fetch a PO row attrs object for diff context. Returns None on failure."""
+    from katana_public_api_client.api.purchase_order_row import (
+        get_purchase_order_row as _get,
+    )
+
+    try:
+        response = await _get.asyncio_detailed(id=row_id, client=services.client)
+        return unwrap_as(response, PurchaseOrderRow)
+    except Exception as exc:
+        logger.info(
+            f"Could not fetch PO row {row_id} for diff context: {exc} — "
+            "preview will report changes without prior values."
+        )
+        return None
+
+
+async def _fetch_po_additional_cost_row(
+    services: Any, row_id: int
+) -> PurchaseOrderAdditionalCostRow | None:
+    """Fetch a PO additional-cost row for diff context. Returns None on failure."""
+    from katana_public_api_client.api.purchase_order_additional_cost_row import (
+        get_po_additional_cost_row as _get,
+    )
+
+    try:
+        response = await _get.asyncio_detailed(id=row_id, client=services.client)
+        return unwrap_as(response, PurchaseOrderAdditionalCostRow)
+    except Exception as exc:
+        logger.info(
+            f"Could not fetch additional-cost row {row_id} for diff context: "
+            f"{exc} — preview will report changes without prior values."
+        )
+        return None
+
+
+async def _resolve_default_group_id(
+    services: Any, purchase_order_id: int
+) -> int | None:
+    """Look up a PO's ``default_group_id`` for additional-cost rows."""
+    existing = await _fetch_purchase_order_attrs(services, purchase_order_id)
+    if existing is None:
+        return None
+    return unwrap_unset(existing.default_group_id, None)
+
+
+# ----------------------------------------------------------------------------
+# Sub-payload models
+# ----------------------------------------------------------------------------
+
+
+class PurchaseOrderHeaderPatch(BaseModel):
+    """Optional fields to patch on the PO header. Status is included here —
+    Katana's PATCH /purchase_orders/{id} accepts it as a regular field, so
+    no separate status sub-payload is needed."""
+
     order_no: str | None = Field(default=None, description="New PO number")
     supplier_id: int | None = Field(default=None, description="New supplier ID")
-    currency: str | None = Field(
-        default=None, description="New currency code (e.g., USD)"
-    )
+    currency: str | None = Field(default=None, description="New currency code")
     location_id: int | None = Field(
         default=None, description="New receiving location ID"
     )
@@ -2099,346 +2180,31 @@ class UpdatePurchaseOrderRequest(BaseModel):
     additional_info: str | None = Field(
         default=None, description="New notes / additional info"
     )
-    confirm: bool = Field(
-        default=False,
-        description="If false, returns preview. If true, applies the update.",
-    )
 
 
-async def _fetch_purchase_order_attrs(
-    services: Any, po_id: int
-) -> RegularPurchaseOrder | None:
-    """Fetch the existing PO attrs object for diff context.
+class NewPORow(BaseModel):
+    """A new line item to add to the PO."""
 
-    Returns ``None`` on failure rather than raising — the diff is best-effort
-    UX and the caller still surfaces the change set the user requested.
-    """
-    from katana_public_api_client.api.purchase_order import get_purchase_order as _get
-
-    try:
-        response = await _get.asyncio_detailed(id=po_id, client=services.client)
-        existing = unwrap_as(response, RegularPurchaseOrder)
-        return existing
-    except Exception as exc:
-        logger.info(
-            f"Could not fetch PO {po_id} for diff context: {exc} — "
-            "preview will report changes without prior values."
-        )
-        return None
-
-
-async def _update_purchase_order_impl(
-    request: UpdatePurchaseOrderRequest, context: Context
-) -> ModificationResponse:
-    """Implementation of update_purchase_order tool."""
-    services = get_services(context)
-
-    has_any_field = any(
-        v is not None
-        for v in (
-            request.order_no,
-            request.supplier_id,
-            request.currency,
-            request.location_id,
-            request.tracking_location_id,
-            request.status,
-            request.expected_arrival_date,
-            request.order_created_date,
-            request.additional_info,
-        )
-    )
-    if not has_any_field:
-        raise ValueError(
-            "At least one field must be provided to update — supply order_no, "
-            "supplier_id, currency, location_id, tracking_location_id, status, "
-            "expected_arrival_date, order_created_date, or additional_info."
-        )
-
-    existing = await _fetch_purchase_order_attrs(services, request.id)
-    fetch_failed = existing is None
-    # An update target is assumed to exist — when the best-effort fetch fails,
-    # the diff renders "(prior unknown) → new" rather than implying the field
-    # was empty. The warning surfaces the same context to the LLM/UI.
-    changes = compute_field_diff(existing, request, unknown_prior=fetch_failed)
-    warnings = (
-        [
-            f"Could not fetch purchase order {request.id} for diff context — "
-            "preview shows requested values without prior state."
-        ]
-        if fetch_failed
-        else []
-    )
-    katana_url = katana_web_url("purchase_order", request.id)
-
-    if not request.confirm:
-        return ModificationResponse(
-            entity_type="purchase_order",
-            entity_id=request.id,
-            operation="update",
-            is_preview=True,
-            changes=changes,
-            warnings=warnings,
-            next_actions=[
-                "Review the proposed changes",
-                "Set confirm=true to apply the update",
-            ],
-            katana_url=katana_url,
-            message=(
-                f"Preview: update purchase order {request.id} ({len(changes)} field(s))"
-            ),
-        )
-
-    api_status = (
-        _PO_STATUS_API_VALUE[request.status] if request.status is not None else None
-    )
-    api_request = APIUpdatePurchaseOrderRequest(
-        order_no=to_unset(request.order_no),
-        supplier_id=to_unset(request.supplier_id),
-        currency=to_unset(request.currency),
-        location_id=to_unset(request.location_id),
-        tracking_location_id=to_unset(request.tracking_location_id),
-        status=to_unset(api_status),
-        expected_arrival_date=to_unset(request.expected_arrival_date),
-        order_created_date=to_unset(request.order_created_date),
-        additional_info=to_unset(request.additional_info),
-    )
-
-    from katana_public_api_client.api.purchase_order import update_purchase_order
-
-    api_response = await update_purchase_order.asyncio_detailed(
-        id=request.id, client=services.client, body=api_request
-    )
-    updated = unwrap_as(api_response, RegularPurchaseOrder)
-    logger.info(f"Updated purchase order {updated.id}")
-
-    return ModificationResponse(
-        entity_type="purchase_order",
-        entity_id=updated.id,
-        operation="update",
-        is_preview=False,
-        changes=changes,
-        next_actions=[f"Purchase order {updated.id} updated"],
-        katana_url=katana_url,
-        message=f"Successfully updated purchase order {updated.id}",
-    )
-
-
-@observe_tool
-@unpack_pydantic_params
-async def update_purchase_order(
-    request: Annotated[UpdatePurchaseOrderRequest, Unpack()], context: Context
-) -> ToolResult:
-    """Update header fields on an existing purchase order.
-
-    Two-step flow: ``confirm=false`` returns a preview with a per-field diff
-    against the current PO; ``confirm=true`` applies the PATCH. Accepts any
-    subset of ``order_no``, ``supplier_id``, ``currency``, ``location_id``,
-    ``tracking_location_id``, ``status``, ``expected_arrival_date``,
-    ``order_created_date``, and ``additional_info``. Status transitions are
-    handled via this same tool — there's no separate status endpoint.
-    """
-    response = await _update_purchase_order_impl(request, context)
-    return to_tool_result(response)
-
-
-# ============================================================================
-# Tool: delete_purchase_order
-# ============================================================================
-
-
-class DeletePurchaseOrderRequest(BaseModel):
-    """Request to delete a purchase order."""
-
-    id: int = Field(..., description="Purchase order ID to delete")
-    confirm: bool = Field(
-        default=False,
-        description="If false, returns preview. If true, deletes the PO.",
-    )
-
-
-async def _delete_purchase_order_impl(
-    request: DeletePurchaseOrderRequest, context: Context
-) -> ModificationResponse:
-    """Implementation of delete_purchase_order tool."""
-    katana_url = katana_web_url("purchase_order", request.id)
-
-    if not request.confirm:
-        return ModificationResponse(
-            entity_type="purchase_order",
-            entity_id=request.id,
-            operation="delete",
-            is_preview=True,
-            next_actions=[
-                "Review the deletion",
-                "Set confirm=true to delete the purchase order",
-            ],
-            katana_url=katana_url,
-            message=f"Preview: delete purchase order {request.id}",
-        )
-
-    services = get_services(context)
-    from katana_public_api_client.api.purchase_order import delete_purchase_order
-
-    response = await delete_purchase_order.asyncio_detailed(
-        id=request.id, client=services.client
-    )
-    if not is_success(response):
-        unwrap(response)
-
-    logger.info(f"Deleted purchase order {request.id}")
-    return ModificationResponse(
-        entity_type="purchase_order",
-        entity_id=request.id,
-        operation="delete",
-        is_preview=False,
-        next_actions=[f"Purchase order {request.id} has been deleted"],
-        katana_url=None,
-        message=f"Successfully deleted purchase order {request.id}",
-    )
-
-
-@observe_tool
-@unpack_pydantic_params
-async def delete_purchase_order(
-    request: Annotated[DeletePurchaseOrderRequest, Unpack()], context: Context
-) -> ToolResult:
-    """Delete a purchase order.
-
-    Two-step flow: ``confirm=false`` returns a preview, ``confirm=true``
-    deletes the PO. Destructive — the order record is removed.
-    """
-    response = await _delete_purchase_order_impl(request, context)
-    return to_tool_result(response)
-
-
-# ============================================================================
-# Tool: add_purchase_order_row
-# ============================================================================
-
-
-class AddPurchaseOrderRowRequest(BaseModel):
-    """Request to add a new line item to an existing purchase order."""
-
-    purchase_order_id: int = Field(..., description="Parent purchase order ID")
-    variant_id: int = Field(..., description="Variant ID to order")
-    quantity: float = Field(..., description="Quantity to order", gt=0)
+    variant_id: int = Field(..., description="Variant ID")
+    quantity: float = Field(..., description="Quantity", gt=0)
     price_per_unit: float = Field(..., description="Unit price")
     tax_rate_id: int | None = Field(default=None, description="Tax rate ID")
     tax_name: str | None = Field(default=None, description="Tax name")
     tax_rate: str | None = Field(default=None, description="Tax rate value")
     currency: str | None = Field(default=None, description="Currency code")
-    purchase_uom: str | None = Field(
-        default=None, description="Purchase unit of measure"
-    )
+    purchase_uom: str | None = Field(default=None, description="Purchase UOM")
     purchase_uom_conversion_rate: float | None = Field(
         default=None, description="UOM conversion rate"
     )
     arrival_date: datetime | None = Field(
         default=None, description="Expected arrival date for this row"
     )
-    confirm: bool = Field(
-        default=False,
-        description="If false, returns preview. If true, adds the row.",
-    )
 
 
-async def _add_purchase_order_row_impl(
-    request: AddPurchaseOrderRowRequest, context: Context
-) -> ModificationResponse:
-    """Implementation of add_purchase_order_row tool."""
-    parent_url = katana_web_url("purchase_order", request.purchase_order_id)
-    # New row — every supplied field is reported as added (no existing entity).
-    changes = compute_field_diff(
-        None, request, exclude=("confirm", "purchase_order_id")
-    )
+class PORowUpdate(BaseModel):
+    """Patch to an existing PO row. Carries the row id plus optional fields."""
 
-    if not request.confirm:
-        return ModificationResponse(
-            entity_type="purchase_order_row",
-            entity_id=None,
-            parent_entity_id=request.purchase_order_id,
-            operation="create_row",
-            is_preview=True,
-            changes=changes,
-            next_actions=[
-                "Review the new row",
-                "Set confirm=true to add the row",
-            ],
-            katana_url=parent_url,
-            message=(
-                f"Preview: add row to purchase order {request.purchase_order_id} "
-                f"(variant {request.variant_id}, qty {request.quantity})"
-            ),
-        )
-
-    services = get_services(context)
-    api_request = APICreatePurchaseOrderRowRequest(
-        purchase_order_id=request.purchase_order_id,
-        quantity=request.quantity,
-        variant_id=request.variant_id,
-        price_per_unit=request.price_per_unit,
-        tax_rate_id=to_unset(request.tax_rate_id),
-        tax_name=to_unset(request.tax_name),
-        tax_rate=to_unset(request.tax_rate),
-        currency=to_unset(request.currency),
-        purchase_uom_conversion_rate=to_unset(request.purchase_uom_conversion_rate),
-        purchase_uom=to_unset(request.purchase_uom),
-        arrival_date=to_unset(request.arrival_date),
-    )
-
-    from katana_public_api_client.api.purchase_order_row import (
-        create_purchase_order_row,
-    )
-
-    api_response = await create_purchase_order_row.asyncio_detailed(
-        client=services.client, body=api_request
-    )
-    new_row = unwrap_as(api_response, PurchaseOrderRow)
-    logger.info(f"Added row {new_row.id} to purchase order {request.purchase_order_id}")
-
-    return ModificationResponse(
-        entity_type="purchase_order_row",
-        entity_id=new_row.id,
-        parent_entity_id=request.purchase_order_id,
-        operation="create_row",
-        is_preview=False,
-        changes=changes,
-        next_actions=[
-            f"Row {new_row.id} added to purchase order {request.purchase_order_id}"
-        ],
-        katana_url=parent_url,
-        message=(
-            f"Successfully added row {new_row.id} to purchase order "
-            f"{request.purchase_order_id}"
-        ),
-    )
-
-
-@observe_tool
-@unpack_pydantic_params
-async def add_purchase_order_row(
-    request: Annotated[AddPurchaseOrderRowRequest, Unpack()], context: Context
-) -> ToolResult:
-    """Add a new line item to an existing purchase order.
-
-    Two-step flow: ``confirm=false`` returns a preview, ``confirm=true``
-    POSTs the new row. Required: ``purchase_order_id``, ``variant_id``,
-    ``quantity``, ``price_per_unit``. Optional fields cover taxes, UOM,
-    and per-row arrival date.
-    """
-    response = await _add_purchase_order_row_impl(request, context)
-    return to_tool_result(response)
-
-
-# ============================================================================
-# Tool: update_purchase_order_row
-# ============================================================================
-
-
-class UpdatePurchaseOrderRowRequest(BaseModel):
-    """Request to update fields on an existing purchase order row."""
-
-    id: int = Field(..., description="Purchase order row ID")
+    id: int = Field(..., description="Row ID to update")
     quantity: float | None = Field(default=None, description="New quantity", gt=0)
     variant_id: int | None = Field(default=None, description="New variant ID")
     tax_rate_id: int | None = Field(default=None, description="New tax rate ID")
@@ -2448,639 +2214,727 @@ class UpdatePurchaseOrderRowRequest(BaseModel):
     purchase_uom_conversion_rate: float | None = Field(
         default=None, description="New UOM conversion rate"
     )
-    purchase_uom: str | None = Field(
-        default=None, description="New purchase unit of measure"
-    )
+    purchase_uom: str | None = Field(default=None, description="New purchase UOM")
     received_date: datetime | None = Field(
         default=None, description="New received date"
     )
     arrival_date: datetime | None = Field(
-        default=None, description="New expected arrival date for this row"
-    )
-    confirm: bool = Field(
-        default=False,
-        description="If false, returns preview. If true, applies the update.",
+        default=None, description="New row-level arrival date"
     )
 
 
-async def _fetch_purchase_order_row(
-    services: Any, row_id: int
-) -> PurchaseOrderRow | None:
-    """Fetch the existing PO row for diff context. Returns ``None`` on failure."""
-    from katana_public_api_client.api.purchase_order_row import (
-        get_purchase_order_row as _get,
-    )
+class NewAdditionalCost(BaseModel):
+    """A new additional-cost row (freight, duties, handling fees).
 
-    try:
-        response = await _get.asyncio_detailed(id=row_id, client=services.client)
-        return unwrap_as(response, PurchaseOrderRow)
-    except Exception as exc:
-        logger.info(
-            f"Could not fetch PO row {row_id} for diff context: {exc} — "
-            "preview will report changes without prior values."
-        )
-        return None
-
-
-async def _update_purchase_order_row_impl(
-    request: UpdatePurchaseOrderRowRequest, context: Context
-) -> ModificationResponse:
-    """Implementation of update_purchase_order_row tool."""
-    services = get_services(context)
-
-    has_any_field = any(
-        v is not None
-        for v in (
-            request.quantity,
-            request.variant_id,
-            request.tax_rate_id,
-            request.tax_name,
-            request.tax_rate,
-            request.price_per_unit,
-            request.purchase_uom_conversion_rate,
-            request.purchase_uom,
-            request.received_date,
-            request.arrival_date,
-        )
-    )
-    if not has_any_field:
-        raise ValueError(
-            "At least one field must be provided to update — supply quantity, "
-            "variant_id, tax_rate_id, tax_name, tax_rate, price_per_unit, "
-            "purchase_uom_conversion_rate, purchase_uom, received_date, or "
-            "arrival_date."
-        )
-
-    existing = await _fetch_purchase_order_row(services, request.id)
-    fetch_failed = existing is None
-    changes = compute_field_diff(existing, request, unknown_prior=fetch_failed)
-    parent_id = (
-        unwrap_unset(existing.purchase_order_id, None) if existing is not None else None
-    )
-    parent_url = (
-        katana_web_url("purchase_order", parent_id) if parent_id is not None else None
-    )
-    warnings = (
-        [
-            f"Could not fetch purchase order row {request.id} for diff context — "
-            "preview shows requested values without prior state."
-        ]
-        if fetch_failed
-        else []
-    )
-
-    if not request.confirm:
-        return ModificationResponse(
-            entity_type="purchase_order_row",
-            entity_id=request.id,
-            parent_entity_id=parent_id,
-            operation="update_row",
-            is_preview=True,
-            changes=changes,
-            warnings=warnings,
-            next_actions=[
-                "Review the proposed changes",
-                "Set confirm=true to apply the update",
-            ],
-            katana_url=parent_url,
-            message=(
-                f"Preview: update purchase order row {request.id} "
-                f"({len(changes)} field(s))"
-            ),
-        )
-
-    api_request = APIUpdatePurchaseOrderRowRequest(
-        quantity=to_unset(request.quantity),
-        variant_id=to_unset(request.variant_id),
-        tax_rate_id=to_unset(request.tax_rate_id),
-        tax_name=to_unset(request.tax_name),
-        tax_rate=to_unset(request.tax_rate),
-        price_per_unit=to_unset(request.price_per_unit),
-        purchase_uom_conversion_rate=to_unset(request.purchase_uom_conversion_rate),
-        purchase_uom=to_unset(request.purchase_uom),
-        received_date=to_unset(request.received_date),
-        arrival_date=to_unset(request.arrival_date),
-    )
-
-    from katana_public_api_client.api.purchase_order_row import (
-        update_purchase_order_row,
-    )
-
-    api_response = await update_purchase_order_row.asyncio_detailed(
-        id=request.id, client=services.client, body=api_request
-    )
-    updated = unwrap_as(api_response, PurchaseOrderRow)
-    logger.info(f"Updated purchase order row {updated.id}")
-
-    # When the pre-update fetch failed, parent_id/url are still None — but the
-    # PATCH response echoes purchase_order_id, so we can recover the parent
-    # context from it. This keeps the confirm-path response well-formed even
-    # when the preview-context fetch was best-effort and lossy.
-    final_parent_id = parent_id or unwrap_unset(updated.purchase_order_id, None)
-    final_parent_url = parent_url or (
-        katana_web_url("purchase_order", final_parent_id)
-        if final_parent_id is not None
-        else None
-    )
-
-    return ModificationResponse(
-        entity_type="purchase_order_row",
-        entity_id=updated.id,
-        parent_entity_id=final_parent_id,
-        operation="update_row",
-        is_preview=False,
-        changes=changes,
-        next_actions=[f"Row {updated.id} updated"],
-        katana_url=final_parent_url,
-        message=f"Successfully updated purchase order row {updated.id}",
-    )
-
-
-@observe_tool
-@unpack_pydantic_params
-async def update_purchase_order_row(
-    request: Annotated[UpdatePurchaseOrderRowRequest, Unpack()], context: Context
-) -> ToolResult:
-    """Update fields on an existing purchase order row.
-
-    Two-step flow: ``confirm=false`` returns a preview with per-field diff,
-    ``confirm=true`` applies the PATCH. Accepts any subset of quantity,
-    variant_id, taxes, price_per_unit, UOM fields, received_date, and the
-    row-level arrival_date (separate from the PO header's arrival date).
-    """
-    response = await _update_purchase_order_row_impl(request, context)
-    return to_tool_result(response)
-
-
-# ============================================================================
-# Tool: delete_purchase_order_row
-# ============================================================================
-
-
-class DeletePurchaseOrderRowRequest(BaseModel):
-    """Request to delete a purchase order row."""
-
-    id: int = Field(..., description="Purchase order row ID to delete")
-    confirm: bool = Field(
-        default=False,
-        description="If false, returns preview. If true, deletes the row.",
-    )
-
-
-async def _delete_purchase_order_row_impl(
-    request: DeletePurchaseOrderRowRequest, context: Context
-) -> ModificationResponse:
-    """Implementation of delete_purchase_order_row tool."""
-    services = get_services(context)
-    existing = await _fetch_purchase_order_row(services, request.id)
-    parent_id = (
-        unwrap_unset(existing.purchase_order_id, None) if existing is not None else None
-    )
-    parent_url = (
-        katana_web_url("purchase_order", parent_id) if parent_id is not None else None
-    )
-
-    if not request.confirm:
-        return ModificationResponse(
-            entity_type="purchase_order_row",
-            entity_id=request.id,
-            parent_entity_id=parent_id,
-            operation="delete_row",
-            is_preview=True,
-            next_actions=[
-                "Review the deletion",
-                "Set confirm=true to delete the row",
-            ],
-            katana_url=parent_url,
-            message=f"Preview: delete purchase order row {request.id}",
-        )
-
-    from katana_public_api_client.api.purchase_order_row import (
-        delete_purchase_order_row,
-    )
-
-    response = await delete_purchase_order_row.asyncio_detailed(
-        id=request.id, client=services.client
-    )
-    if not is_success(response):
-        unwrap(response)
-
-    logger.info(f"Deleted purchase order row {request.id}")
-    return ModificationResponse(
-        entity_type="purchase_order_row",
-        entity_id=request.id,
-        parent_entity_id=parent_id,
-        operation="delete_row",
-        is_preview=False,
-        next_actions=[f"Row {request.id} has been deleted"],
-        katana_url=parent_url,
-        message=f"Successfully deleted purchase order row {request.id}",
-    )
-
-
-@observe_tool
-@unpack_pydantic_params
-async def delete_purchase_order_row(
-    request: Annotated[DeletePurchaseOrderRowRequest, Unpack()], context: Context
-) -> ToolResult:
-    """Delete a purchase order row.
-
-    Two-step flow: ``confirm=false`` returns a preview, ``confirm=true``
-    deletes the row. Destructive.
-    """
-    response = await _delete_purchase_order_row_impl(request, context)
-    return to_tool_result(response)
-
-
-# ============================================================================
-# Tool: add_purchase_order_additional_cost
-# ============================================================================
-
-
-CostDistributionMethodLiteral = Literal["BY_VALUE", "NON_DISTRIBUTED"]
-
-_DISTRIBUTION_METHOD_API_VALUE: dict[
-    CostDistributionMethodLiteral, CostDistributionMethod
-] = {
-    "BY_VALUE": CostDistributionMethod.BY_VALUE,
-    "NON_DISTRIBUTED": CostDistributionMethod.NON_DISTRIBUTED,
-}
-
-
-class AddPurchaseOrderAdditionalCostRequest(BaseModel):
-    """Request to add a new additional-cost row (freight, duties, etc.) to a PO.
-
-    Katana models additional-cost rows as members of a *cost group* — the PO
-    carries a ``default_group_id`` that the rows attach to. We accept the
-    parent PO id (familiar to users) and resolve the group id internally.
-    Use ``group_id`` instead if the PO has multiple groups and you need to
-    target a specific one.
+    Either ``group_id`` or ``purchase_order_id`` (carried at the top-level
+    request) is needed; if neither is set on the row, the dispatcher
+    resolves the parent PO's ``default_group_id`` automatically.
     """
 
-    purchase_order_id: int | None = Field(
-        default=None,
-        description=(
-            "Parent purchase order ID. The tool resolves the PO's "
-            "``default_group_id`` automatically. Either this or ``group_id`` "
-            "must be provided."
-        ),
-    )
-    group_id: int | None = Field(
-        default=None,
-        description=(
-            "Cost group ID to attach the row to. Pass directly when the PO "
-            "has multiple groups and you need to target a non-default one. "
-            "Either this or ``purchase_order_id`` must be provided."
-        ),
-    )
     additional_cost_id: int = Field(..., description="Additional-cost catalog entry ID")
     tax_rate_id: int = Field(..., description="Tax rate ID")
     price: float = Field(..., description="Cost amount")
     distribution_method: CostDistributionMethodLiteral | None = Field(
         default=None,
+        description="Cost allocation method (BY_VALUE / NON_DISTRIBUTED)",
+    )
+    group_id: int | None = Field(
+        default=None,
         description=(
-            "How the cost is allocated across rows: BY_VALUE distributes "
-            "proportionally to row value, NON_DISTRIBUTED leaves it unallocated. "
-            "Defaults to Katana's server-side default when omitted."
+            "Cost group ID. When omitted, the dispatcher resolves the parent "
+            "PO's ``default_group_id``."
         ),
     )
-    confirm: bool = Field(
-        default=False,
-        description="If false, returns preview. If true, adds the cost row.",
-    )
 
 
-async def _resolve_default_group_id(
-    services: Any, purchase_order_id: int
-) -> int | None:
-    """Look up a PO's ``default_group_id`` to attach additional-cost rows to."""
-    existing = await _fetch_purchase_order_attrs(services, purchase_order_id)
-    if existing is None:
-        return None
-    return unwrap_unset(existing.default_group_id, None)
+class AdditionalCostUpdate(BaseModel):
+    """Patch to an existing additional-cost row."""
 
-
-async def _add_purchase_order_additional_cost_impl(
-    request: AddPurchaseOrderAdditionalCostRequest, context: Context
-) -> ModificationResponse:
-    """Implementation of add_purchase_order_additional_cost tool."""
-    if request.purchase_order_id is None and request.group_id is None:
-        raise ValueError("Either purchase_order_id or group_id must be provided.")
-
-    services = get_services(context)
-    group_id: int | None = request.group_id
-    if group_id is None and request.purchase_order_id is not None:
-        group_id = await _resolve_default_group_id(services, request.purchase_order_id)
-        if group_id is None:
-            raise ValueError(
-                f"Could not resolve default_group_id for purchase order "
-                f"{request.purchase_order_id} — supply ``group_id`` directly."
-            )
-    # The earlier guard guarantees at least one of (purchase_order_id, group_id)
-    # is set, and the resolve branch raises if it can't fill in group_id — so by
-    # this point group_id is non-None. The narrow keeps the type checker honest.
-    assert group_id is not None
-
-    parent_url = (
-        katana_web_url("purchase_order", request.purchase_order_id)
-        if request.purchase_order_id is not None
-        else None
-    )
-    changes = compute_field_diff(
-        None,
-        request,
-        exclude=("confirm", "purchase_order_id"),
-    )
-
-    if not request.confirm:
-        return ModificationResponse(
-            entity_type="purchase_order_additional_cost",
-            entity_id=None,
-            parent_entity_id=request.purchase_order_id,
-            operation="create_additional_cost",
-            is_preview=True,
-            changes=changes,
-            next_actions=[
-                "Review the cost row",
-                "Set confirm=true to add the row",
-            ],
-            katana_url=parent_url,
-            message=(
-                f"Preview: add additional cost (group {group_id}, "
-                f"price {request.price})"
-            ),
-        )
-
-    api_distribution = (
-        _DISTRIBUTION_METHOD_API_VALUE[request.distribution_method]
-        if request.distribution_method is not None
-        else None
-    )
-    api_request = APICreatePOAdditionalCostRowRequest(
-        additional_cost_id=request.additional_cost_id,
-        group_id=group_id,
-        tax_rate_id=request.tax_rate_id,
-        price=request.price,
-        distribution_method=to_unset(api_distribution),
-    )
-
-    from katana_public_api_client.api.purchase_order_additional_cost_row import (
-        create_po_additional_cost_row,
-    )
-
-    api_response = await create_po_additional_cost_row.asyncio_detailed(
-        client=services.client, body=api_request
-    )
-    new_row = unwrap_as(api_response, PurchaseOrderAdditionalCostRow)
-    logger.info(f"Added additional-cost row {new_row.id} to group {group_id}")
-
-    return ModificationResponse(
-        entity_type="purchase_order_additional_cost",
-        entity_id=new_row.id,
-        parent_entity_id=request.purchase_order_id,
-        operation="create_additional_cost",
-        is_preview=False,
-        changes=changes,
-        next_actions=[f"Additional-cost row {new_row.id} added to group {group_id}"],
-        katana_url=parent_url,
-        message=f"Successfully added additional-cost row {new_row.id}",
-    )
-
-
-@observe_tool
-@unpack_pydantic_params
-async def add_purchase_order_additional_cost(
-    request: Annotated[AddPurchaseOrderAdditionalCostRequest, Unpack()],
-    context: Context,
-) -> ToolResult:
-    """Add an additional-cost row (freight, duties, handling fees) to a PO.
-
-    Two-step flow: ``confirm=false`` returns a preview, ``confirm=true``
-    POSTs the new row. Required: ``additional_cost_id``, ``tax_rate_id``,
-    ``price``, and **either** ``purchase_order_id`` **or** ``group_id``.
-    When only ``purchase_order_id`` is provided, the tool resolves the PO's
-    ``default_group_id`` automatically. Optional ``distribution_method``
-    chooses how the cost is allocated across line items.
-    """
-    response = await _add_purchase_order_additional_cost_impl(request, context)
-    return to_tool_result(response)
-
-
-# ============================================================================
-# Tool: update_purchase_order_additional_cost
-# ============================================================================
-
-
-class UpdatePurchaseOrderAdditionalCostRequest(BaseModel):
-    """Request to update an existing PO additional-cost row."""
-
-    id: int = Field(..., description="Additional-cost row ID")
+    id: int = Field(..., description="Cost row ID to update")
     additional_cost_id: int | None = Field(
-        default=None, description="New additional-cost catalog entry ID"
+        default=None, description="New catalog entry ID"
     )
     tax_rate_id: int | None = Field(default=None, description="New tax rate ID")
-    price: float | None = Field(default=None, description="New cost amount")
+    price: float | None = Field(default=None, description="New price")
     distribution_method: CostDistributionMethodLiteral | None = Field(
-        default=None,
-        description="New distribution method (BY_VALUE / NON_DISTRIBUTED)",
+        default=None, description="New distribution method"
     )
+
+
+class ModifyPurchaseOrderRequest(BaseModel):
+    """Unified modification request for a purchase order (non-destructive).
+
+    Each sub-payload slot maps to one or more API operations on the PO or
+    its sub-resources. Multiple slots can be combined in a single call —
+    actions execute sequentially in canonical order (header → row adds →
+    row updates → row deletes → cost adds → cost updates → cost deletes).
+    Fail-fast on first error; the response carries per-action result blocks
+    plus a ``prior_state`` snapshot for manual revert.
+
+    To remove a PO entirely, use the sibling ``delete_purchase_order`` tool —
+    delete is split off so the destructive-hint annotation tracks the
+    destructive-vs-non-destructive boundary cleanly.
+    """
+
+    id: int = Field(..., description="Purchase order ID")
+
+    update_header: PurchaseOrderHeaderPatch | None = Field(
+        default=None,
+        description="Header fields to patch (PATCH /purchase_orders/{id})",
+    )
+
+    add_rows: list[NewPORow] | None = Field(
+        default=None, description="New line items to POST"
+    )
+    update_rows: list[PORowUpdate] | None = Field(
+        default=None, description="Row patches (each carries id + fields to update)"
+    )
+    delete_row_ids: list[int] | None = Field(
+        default=None, description="Row IDs to DELETE"
+    )
+
+    add_additional_costs: list[NewAdditionalCost] | None = Field(
+        default=None, description="New additional-cost rows to POST"
+    )
+    update_additional_costs: list[AdditionalCostUpdate] | None = Field(
+        default=None, description="Additional-cost row patches"
+    )
+    delete_additional_cost_ids: list[int] | None = Field(
+        default=None, description="Additional-cost row IDs to DELETE"
+    )
+
     confirm: bool = Field(
         default=False,
-        description="If false, returns preview. If true, applies the update.",
+        description="If false, returns preview. If true, executes the action plan.",
     )
 
 
-async def _update_purchase_order_additional_cost_impl(
-    request: UpdatePurchaseOrderAdditionalCostRequest, context: Context
+class DeletePurchaseOrderRequest(BaseModel):
+    """Delete an entire purchase order. Destructive — the order is removed."""
+
+    id: int = Field(..., description="Purchase order ID to delete")
+    confirm: bool = Field(
+        default=False,
+        description="If false, returns preview. If true, deletes the PO.",
+    )
+
+
+# ----------------------------------------------------------------------------
+# Verification helper
+# ----------------------------------------------------------------------------
+
+
+def _make_response_verifier(
+    diff: list[FieldChange], field_map: dict[str, str] | None = None
+) -> Callable[[Any], Awaitable[tuple[bool, dict[str, Any] | None]]]:
+    """Build a verify closure that compares the API response body to ``diff``.
+
+    Most Katana mutation endpoints echo the post-state of the affected
+    entity in the response body — this verifier reads each requested
+    field off ``outcome`` and confirms it matches the requested ``new``
+    value. No extra fetch needed. ``field_map`` mirrors the
+    :func:`compute_field_diff` parameter for fields with names that
+    differ between request and response.
+    """
+    name_map = field_map or {}
+
+    async def verify(outcome: Any) -> tuple[bool, dict[str, Any] | None]:
+        if outcome is None:
+            return False, None
+        actual: dict[str, Any] = {}
+        verified = True
+        for change in diff:
+            attr = name_map.get(change.field, change.field)
+            raw = getattr(outcome, attr, None)
+            actual_val = unwrap_unset(raw, None)
+            if isinstance(actual_val, datetime):
+                actual_val = actual_val.isoformat()
+            elif isinstance(actual_val, Enum):
+                actual_val = actual_val.value
+            actual[change.field] = actual_val
+            if change.new is not None and actual_val != change.new:
+                verified = False
+        return verified, (actual if not verified else None)
+
+    return verify
+
+
+# ----------------------------------------------------------------------------
+# Plan builders — one per sub-payload kind
+# ----------------------------------------------------------------------------
+
+
+def _plan_header_update(
+    request: ModifyPurchaseOrderRequest,
+    services: Any,
+    existing: RegularPurchaseOrder | None,
+    fetch_failed: bool,
+) -> ActionSpec | None:
+    if request.update_header is None:
+        return None
+
+    patch = request.update_header
+    diff = compute_field_diff(existing, patch, unknown_prior=fetch_failed)
+
+    api_status = (
+        _PO_STATUS_API_VALUE[patch.status] if patch.status is not None else None
+    )
+    api_request = APIUpdatePurchaseOrderRequest(
+        order_no=to_unset(patch.order_no),
+        supplier_id=to_unset(patch.supplier_id),
+        currency=to_unset(patch.currency),
+        location_id=to_unset(patch.location_id),
+        tracking_location_id=to_unset(patch.tracking_location_id),
+        status=to_unset(api_status),
+        expected_arrival_date=to_unset(patch.expected_arrival_date),
+        order_created_date=to_unset(patch.order_created_date),
+        additional_info=to_unset(patch.additional_info),
+    )
+
+    async def apply() -> RegularPurchaseOrder:
+        from katana_public_api_client.api.purchase_order import update_purchase_order
+
+        response = await update_purchase_order.asyncio_detailed(
+            id=request.id, client=services.client, body=api_request
+        )
+        return unwrap_as(response, RegularPurchaseOrder)
+
+    # Verifier compares the request payload against the response body — but
+    # PurchaseOrderHeaderPatch's ``status`` is the uppercase literal and the
+    # response carries the API enum value. The Enum normalization in
+    # ``_make_response_verifier`` handles the comparison correctly only when
+    # we project the request side through the same _normalize logic.
+    # ``compute_field_diff`` already normalized the ``new`` side, so the
+    # comparison works as-is.
+    verify = _make_response_verifier(diff)
+
+    return ActionSpec(
+        operation="update_header",
+        target_id=request.id,
+        diff=diff,
+        apply=apply,
+        verify=verify,
+    )
+
+
+def _plan_row_adds(
+    request: ModifyPurchaseOrderRequest,
+    services: Any,
+) -> list[ActionSpec]:
+    if not request.add_rows:
+        return []
+    specs: list[ActionSpec] = []
+    for row in request.add_rows:
+        diff = compute_field_diff(None, row, exclude=("confirm",))
+        api_request = APICreatePurchaseOrderRowRequest(
+            purchase_order_id=request.id,
+            quantity=row.quantity,
+            variant_id=row.variant_id,
+            price_per_unit=row.price_per_unit,
+            tax_rate_id=to_unset(row.tax_rate_id),
+            tax_name=to_unset(row.tax_name),
+            tax_rate=to_unset(row.tax_rate),
+            currency=to_unset(row.currency),
+            purchase_uom=to_unset(row.purchase_uom),
+            purchase_uom_conversion_rate=to_unset(row.purchase_uom_conversion_rate),
+            arrival_date=to_unset(row.arrival_date),
+        )
+
+        async def apply(req=api_request) -> PurchaseOrderRow:
+            from katana_public_api_client.api.purchase_order_row import (
+                create_purchase_order_row,
+            )
+
+            response = await create_purchase_order_row.asyncio_detailed(
+                client=services.client, body=req
+            )
+            return unwrap_as(response, PurchaseOrderRow)
+
+        # Verify creates only that the response carries an id (creation succeeded).
+        async def verify(outcome: PurchaseOrderRow) -> tuple[bool, dict | None]:
+            verified = outcome is not None and getattr(outcome, "id", None) is not None
+            return verified, None if verified else {"id": None}
+
+        specs.append(
+            ActionSpec(
+                operation="add_row",
+                target_id=None,
+                diff=diff,
+                apply=apply,
+                verify=verify,
+            )
+        )
+    return specs
+
+
+async def _plan_row_updates(
+    request: ModifyPurchaseOrderRequest,
+    services: Any,
+) -> list[ActionSpec]:
+    if not request.update_rows:
+        return []
+    specs: list[ActionSpec] = []
+    for row_patch in request.update_rows:
+        existing_row = await _fetch_purchase_order_row(services, row_patch.id)
+        fetch_failed = existing_row is None
+        diff = compute_field_diff(existing_row, row_patch, unknown_prior=fetch_failed)
+        api_request = APIUpdatePurchaseOrderRowRequest(
+            quantity=to_unset(row_patch.quantity),
+            variant_id=to_unset(row_patch.variant_id),
+            tax_rate_id=to_unset(row_patch.tax_rate_id),
+            tax_name=to_unset(row_patch.tax_name),
+            tax_rate=to_unset(row_patch.tax_rate),
+            price_per_unit=to_unset(row_patch.price_per_unit),
+            purchase_uom_conversion_rate=to_unset(
+                row_patch.purchase_uom_conversion_rate
+            ),
+            purchase_uom=to_unset(row_patch.purchase_uom),
+            received_date=to_unset(row_patch.received_date),
+            arrival_date=to_unset(row_patch.arrival_date),
+        )
+
+        async def apply(rid=row_patch.id, req=api_request) -> PurchaseOrderRow:
+            from katana_public_api_client.api.purchase_order_row import (
+                update_purchase_order_row,
+            )
+
+            response = await update_purchase_order_row.asyncio_detailed(
+                id=rid, client=services.client, body=req
+            )
+            return unwrap_as(response, PurchaseOrderRow)
+
+        verify = _make_response_verifier(diff)
+
+        specs.append(
+            ActionSpec(
+                operation="update_row",
+                target_id=row_patch.id,
+                diff=diff,
+                apply=apply,
+                verify=verify,
+            )
+        )
+    return specs
+
+
+def _plan_row_deletes(
+    request: ModifyPurchaseOrderRequest,
+    services: Any,
+) -> list[ActionSpec]:
+    if not request.delete_row_ids:
+        return []
+    specs: list[ActionSpec] = []
+    for rid in request.delete_row_ids:
+
+        async def apply(target=rid) -> None:
+            from katana_public_api_client.api.purchase_order_row import (
+                delete_purchase_order_row,
+            )
+
+            response = await delete_purchase_order_row.asyncio_detailed(
+                id=target, client=services.client
+            )
+            if not is_success(response):
+                unwrap(response)
+            return None
+
+        # No verify on delete — entity is gone, can't fetch.
+        specs.append(
+            ActionSpec(
+                operation="delete_row",
+                target_id=rid,
+                apply=apply,
+            )
+        )
+    return specs
+
+
+async def _plan_additional_cost_adds(
+    request: ModifyPurchaseOrderRequest,
+    services: Any,
+) -> list[ActionSpec]:
+    if not request.add_additional_costs:
+        return []
+    specs: list[ActionSpec] = []
+    # Resolve default_group_id once if any cost row needs it
+    default_group_id: int | None = None
+    needs_default = any(c.group_id is None for c in request.add_additional_costs)
+    if needs_default:
+        default_group_id = await _resolve_default_group_id(services, request.id)
+
+    for cost in request.add_additional_costs:
+        group_id = cost.group_id or default_group_id
+        if group_id is None:
+            raise ValueError(
+                f"Cannot resolve group_id for additional-cost row "
+                f"(additional_cost_id={cost.additional_cost_id}): no "
+                f"default_group_id on PO {request.id} and none provided."
+            )
+        diff = compute_field_diff(None, cost, exclude=("confirm",))
+        api_distribution = (
+            _DISTRIBUTION_METHOD_API_VALUE[cost.distribution_method]
+            if cost.distribution_method is not None
+            else None
+        )
+        api_request = APICreatePOAdditionalCostRowRequest(
+            additional_cost_id=cost.additional_cost_id,
+            group_id=group_id,
+            tax_rate_id=cost.tax_rate_id,
+            price=cost.price,
+            distribution_method=to_unset(api_distribution),
+        )
+
+        async def apply(req=api_request) -> PurchaseOrderAdditionalCostRow:
+            from katana_public_api_client.api.purchase_order_additional_cost_row import (
+                create_po_additional_cost_row,
+            )
+
+            response = await create_po_additional_cost_row.asyncio_detailed(
+                client=services.client, body=req
+            )
+            return unwrap_as(response, PurchaseOrderAdditionalCostRow)
+
+        async def verify(
+            outcome: PurchaseOrderAdditionalCostRow,
+        ) -> tuple[bool, dict | None]:
+            verified = outcome is not None and getattr(outcome, "id", None) is not None
+            return verified, None if verified else {"id": None}
+
+        specs.append(
+            ActionSpec(
+                operation="add_additional_cost",
+                target_id=None,
+                diff=diff,
+                apply=apply,
+                verify=verify,
+            )
+        )
+    return specs
+
+
+async def _plan_additional_cost_updates(
+    request: ModifyPurchaseOrderRequest,
+    services: Any,
+) -> list[ActionSpec]:
+    if not request.update_additional_costs:
+        return []
+    specs: list[ActionSpec] = []
+    for cost_patch in request.update_additional_costs:
+        existing_cost = await _fetch_po_additional_cost_row(services, cost_patch.id)
+        fetch_failed = existing_cost is None
+        diff = compute_field_diff(existing_cost, cost_patch, unknown_prior=fetch_failed)
+        api_distribution = (
+            _DISTRIBUTION_METHOD_API_VALUE[cost_patch.distribution_method]
+            if cost_patch.distribution_method is not None
+            else None
+        )
+        api_request = APIUpdatePOAdditionalCostRowRequest(
+            additional_cost_id=to_unset(cost_patch.additional_cost_id),
+            tax_rate_id=to_unset(cost_patch.tax_rate_id),
+            price=to_unset(cost_patch.price),
+            distribution_method=to_unset(api_distribution),
+        )
+
+        async def apply(
+            target=cost_patch.id, req=api_request
+        ) -> PurchaseOrderAdditionalCostRow:
+            from katana_public_api_client.api.purchase_order_additional_cost_row import (
+                update_additional_cost_row,
+            )
+
+            response = await update_additional_cost_row.asyncio_detailed(
+                id=target, client=services.client, body=req
+            )
+            return unwrap_as(response, PurchaseOrderAdditionalCostRow)
+
+        verify = _make_response_verifier(diff)
+
+        specs.append(
+            ActionSpec(
+                operation="update_additional_cost",
+                target_id=cost_patch.id,
+                diff=diff,
+                apply=apply,
+                verify=verify,
+            )
+        )
+    return specs
+
+
+def _plan_additional_cost_deletes(
+    request: ModifyPurchaseOrderRequest,
+    services: Any,
+) -> list[ActionSpec]:
+    if not request.delete_additional_cost_ids:
+        return []
+    specs: list[ActionSpec] = []
+    for rid in request.delete_additional_cost_ids:
+
+        async def apply(target=rid) -> None:
+            from katana_public_api_client.api.purchase_order_additional_cost_row import (
+                delete_po_additional_cost,
+            )
+
+            response = await delete_po_additional_cost.asyncio_detailed(
+                id=target, client=services.client
+            )
+            if not is_success(response):
+                unwrap(response)
+            return None
+
+        specs.append(
+            ActionSpec(
+                operation="delete_additional_cost",
+                target_id=rid,
+                apply=apply,
+            )
+        )
+    return specs
+
+
+def _has_any_subpayload(request: ModifyPurchaseOrderRequest) -> bool:
+    """True if any modify sub-payload is set (caller asked for at least one action)."""
+    return any(
+        v is not None and v != []
+        for v in (
+            request.update_header,
+            request.add_rows,
+            request.update_rows,
+            request.delete_row_ids,
+            request.add_additional_costs,
+            request.update_additional_costs,
+            request.delete_additional_cost_ids,
+        )
+    )
+
+
+# ----------------------------------------------------------------------------
+# Implementation
+# ----------------------------------------------------------------------------
+
+
+async def _modify_purchase_order_impl(
+    request: ModifyPurchaseOrderRequest, context: Context
 ) -> ModificationResponse:
-    """Implementation of update_purchase_order_additional_cost tool."""
+    """Implementation of modify_purchase_order tool.
+
+    Builds an action plan from the request's sub-payloads in canonical
+    order, returns a preview for ``confirm=False``, and executes the plan
+    via ``execute_plan`` for ``confirm=True``.
+    """
     services = get_services(context)
 
-    has_any_field = any(
-        v is not None
-        for v in (
-            request.additional_cost_id,
-            request.tax_rate_id,
-            request.price,
-            request.distribution_method,
-        )
-    )
-    if not has_any_field:
+    if not _has_any_subpayload(request):
         raise ValueError(
-            "At least one field must be provided to update — supply "
-            "additional_cost_id, tax_rate_id, price, or distribution_method."
+            "At least one sub-payload must be set: update_header, add_rows, "
+            "update_rows, delete_row_ids, add_additional_costs, "
+            "update_additional_costs, or delete_additional_cost_ids. "
+            "To remove the PO entirely, use delete_purchase_order."
         )
 
-    # No diff context — there's no get-by-id endpoint dedicated to a single
-    # additional-cost row in the generated client (the existing
-    # `get_po_additional_cost_row` endpoint takes the row id, but the
-    # response shape is the row itself, so we can fetch it). Try and fall
-    # back gracefully.
-    existing: PurchaseOrderAdditionalCostRow | None = None
-    try:
-        from katana_public_api_client.api.purchase_order_additional_cost_row import (
-            get_po_additional_cost_row,
-        )
+    # Fetch existing PO once for diff context + prior_state snapshot
+    existing_po = await _fetch_purchase_order_attrs(services, request.id)
+    fetch_failed = existing_po is None
 
-        get_response = await get_po_additional_cost_row.asyncio_detailed(
-            id=request.id, client=services.client
-        )
-        existing = unwrap_as(get_response, PurchaseOrderAdditionalCostRow)
-    except Exception as exc:
-        logger.info(
-            f"Could not fetch additional-cost row {request.id} for diff "
-            f"context: {exc} — preview will report changes without prior values."
-        )
+    # Build the plan in canonical order
+    plan: list[ActionSpec] = []
+    header_spec = _plan_header_update(request, services, existing_po, fetch_failed)
+    if header_spec is not None:
+        plan.append(header_spec)
+    plan.extend(_plan_row_adds(request, services))
+    plan.extend(await _plan_row_updates(request, services))
+    plan.extend(_plan_row_deletes(request, services))
+    plan.extend(await _plan_additional_cost_adds(request, services))
+    plan.extend(await _plan_additional_cost_updates(request, services))
+    plan.extend(_plan_additional_cost_deletes(request, services))
 
-    fetch_failed = existing is None
-    changes = compute_field_diff(existing, request, unknown_prior=fetch_failed)
-    warnings = (
-        [
-            f"Could not fetch additional-cost row {request.id} for diff context — "
+    katana_url = katana_web_url("purchase_order", request.id)
+    warnings: list[str] = []
+    if fetch_failed:
+        warnings.append(
+            f"Could not fetch purchase order {request.id} for diff context — "
             "preview shows requested values without prior state."
-        ]
-        if fetch_failed
-        else []
-    )
-
-    # Additional-cost rows are scoped by ``group_id``, not ``purchase_order_id`` —
-    # the row schema doesn't expose a back-reference to its parent PO and there's
-    # no list filter to derive it cheaply. Leave parent_entity_id unset.
+        )
 
     if not request.confirm:
         return ModificationResponse(
-            entity_type="purchase_order_additional_cost",
+            entity_type="purchase_order",
             entity_id=request.id,
-            operation="update_additional_cost",
             is_preview=True,
-            changes=changes,
+            actions=plan_to_preview_results(plan),
             warnings=warnings,
             next_actions=[
-                "Review the proposed changes",
-                "Set confirm=true to apply the update",
+                f"Review {len(plan)} planned action(s)",
+                "Set confirm=true to execute the plan",
             ],
+            katana_url=katana_url,
             message=(
-                f"Preview: update additional-cost row {request.id} "
-                f"({len(changes)} field(s))"
+                f"Preview: {len(plan)} action(s) planned for purchase order "
+                f"{request.id}"
             ),
         )
 
-    api_distribution = (
-        _DISTRIBUTION_METHOD_API_VALUE[request.distribution_method]
-        if request.distribution_method is not None
-        else None
-    )
-    api_request = APIUpdatePOAdditionalCostRowRequest(
-        additional_cost_id=to_unset(request.additional_cost_id),
-        tax_rate_id=to_unset(request.tax_rate_id),
-        price=to_unset(request.price),
-        distribution_method=to_unset(api_distribution),
-    )
+    # Confirm branch — capture prior_state, then execute
+    prior_state = serialize_for_prior_state(existing_po)
+    actions = await execute_plan(plan)
 
-    from katana_public_api_client.api.purchase_order_additional_cost_row import (
-        update_additional_cost_row,
-    )
+    succeeded_count = sum(1 for a in actions if a.succeeded is True)
+    failed_count = sum(1 for a in actions if a.succeeded is False)
+    failed = failed_count > 0
 
-    api_response = await update_additional_cost_row.asyncio_detailed(
-        id=request.id, client=services.client, body=api_request
-    )
-    updated = unwrap_as(api_response, PurchaseOrderAdditionalCostRow)
-    logger.info(f"Updated additional-cost row {updated.id}")
+    if failed:
+        message = (
+            f"Partial: {succeeded_count}/{len(plan)} action(s) applied to "
+            f"purchase order {request.id} before fail-fast halt; see actions "
+            "for details and prior_state for revert reference."
+        )
+        next_actions = [
+            f"{succeeded_count} action(s) succeeded; {failed_count} failed",
+            "Review the FAILED action's error and the prior_state snapshot",
+            "Compose a follow-up modify_purchase_order call to revert if needed",
+        ]
+    else:
+        message = (
+            f"Successfully applied {succeeded_count}/{len(plan)} action(s) to "
+            f"purchase order {request.id}"
+        )
+        next_actions = [
+            f"Purchase order {request.id} modified — "
+            f"{succeeded_count} action(s) verified"
+        ]
 
     return ModificationResponse(
-        entity_type="purchase_order_additional_cost",
-        entity_id=updated.id,
-        operation="update_additional_cost",
+        entity_type="purchase_order",
+        entity_id=request.id,
         is_preview=False,
-        changes=changes,
-        next_actions=[f"Additional-cost row {updated.id} updated"],
-        message=f"Successfully updated additional-cost row {updated.id}",
+        actions=actions,
+        prior_state=prior_state,
+        warnings=warnings,
+        next_actions=next_actions,
+        katana_url=katana_url,
+        message=message,
     )
 
 
 @observe_tool
 @unpack_pydantic_params
-async def update_purchase_order_additional_cost(
-    request: Annotated[UpdatePurchaseOrderAdditionalCostRequest, Unpack()],
-    context: Context,
+async def modify_purchase_order(
+    request: Annotated[ModifyPurchaseOrderRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """Update an additional-cost row on a purchase order.
+    """Modify a purchase order — unified surface across header, rows, and additional costs.
 
-    Two-step flow: ``confirm=false`` returns a preview with per-field diff,
-    ``confirm=true`` applies the PATCH. Accepts any subset of
-    ``additional_cost_id``, ``tax_rate_id``, ``price``, and
-    ``distribution_method``.
+    Sub-payloads (any subset, all optional):
+
+    - ``update_header`` — patch header fields (incl. status)
+    - ``add_rows`` / ``update_rows`` / ``delete_row_ids`` — line item CRUD
+    - ``add_additional_costs`` / ``update_additional_costs`` /
+      ``delete_additional_cost_ids`` — freight/duty/handling cost rows
+
+    To remove a PO entirely, use the sibling ``delete_purchase_order`` tool.
+
+    Two-step flow: ``confirm=false`` returns a per-action preview with diffs;
+    ``confirm=true`` executes the plan in canonical order (header → row adds
+    → row updates → row deletes → cost adds → cost updates → cost deletes).
+
+    **Caveats** (Katana's API is not transactional):
+
+    - Actions apply sequentially. The first failure halts execution
+      (fail-fast); earlier actions stay applied server-side.
+    - Each action is verified post-execution by reading the API response
+      body. Verification mismatch surfaces as ``verified=False`` on the
+      action result without raising.
+    - The response carries a ``prior_state`` snapshot of the
+      pre-modification PO so callers can compose a revert call manually.
     """
-    response = await _update_purchase_order_additional_cost_impl(request, context)
+    response = await _modify_purchase_order_impl(request, context)
     return to_tool_result(response)
 
 
 # ============================================================================
-# Tool: delete_purchase_order_additional_cost
+# Tool: delete_purchase_order
 # ============================================================================
 
 
-class DeletePurchaseOrderAdditionalCostRequest(BaseModel):
-    """Request to delete a PO additional-cost row."""
-
-    id: int = Field(..., description="Additional-cost row ID to delete")
-    confirm: bool = Field(
-        default=False,
-        description="If false, returns preview. If true, deletes the row.",
-    )
-
-
-async def _delete_purchase_order_additional_cost_impl(
-    request: DeletePurchaseOrderAdditionalCostRequest, context: Context
+async def _delete_purchase_order_impl(
+    request: DeletePurchaseOrderRequest, context: Context
 ) -> ModificationResponse:
-    """Implementation of delete_purchase_order_additional_cost tool."""
+    """Implementation of delete_purchase_order tool.
+
+    Captures prior_state and runs a one-action plan via the same dispatcher
+    so the response shape matches modify_purchase_order. Destructive — the
+    PO record is removed.
+    """
+    services = get_services(context)
+
+    existing_po = await _fetch_purchase_order_attrs(services, request.id)
+
+    async def apply() -> None:
+        from katana_public_api_client.api.purchase_order import delete_purchase_order
+
+        response = await delete_purchase_order.asyncio_detailed(
+            id=request.id, client=services.client
+        )
+        if not is_success(response):
+            unwrap(response)
+        return None
+
+    plan = [ActionSpec(operation="delete", target_id=request.id, apply=apply)]
+    katana_url = katana_web_url("purchase_order", request.id)
+
     if not request.confirm:
         return ModificationResponse(
-            entity_type="purchase_order_additional_cost",
+            entity_type="purchase_order",
             entity_id=request.id,
-            operation="delete_additional_cost",
             is_preview=True,
+            actions=plan_to_preview_results(plan),
             next_actions=[
                 "Review the deletion",
-                "Set confirm=true to delete the row",
+                "Set confirm=true to delete the purchase order",
             ],
-            message=f"Preview: delete additional-cost row {request.id}",
+            katana_url=katana_url,
+            message=f"Preview: delete purchase order {request.id}",
         )
 
-    services = get_services(context)
-    from katana_public_api_client.api.purchase_order_additional_cost_row import (
-        delete_po_additional_cost,
-    )
+    prior_state = serialize_for_prior_state(existing_po)
+    actions = await execute_plan(plan)
+    failed = any(a.succeeded is False for a in actions)
 
-    response = await delete_po_additional_cost.asyncio_detailed(
-        id=request.id, client=services.client
-    )
-    if not is_success(response):
-        unwrap(response)
-
-    logger.info(f"Deleted additional-cost row {request.id}")
     return ModificationResponse(
-        entity_type="purchase_order_additional_cost",
+        entity_type="purchase_order",
         entity_id=request.id,
-        operation="delete_additional_cost",
         is_preview=False,
-        next_actions=[f"Additional-cost row {request.id} has been deleted"],
-        message=f"Successfully deleted additional-cost row {request.id}",
+        actions=actions,
+        prior_state=prior_state,
+        next_actions=(
+            [f"Purchase order {request.id} has been deleted"]
+            if not failed
+            else [
+                "Delete failed — see action error",
+                "prior_state carries the pre-delete snapshot",
+            ]
+        ),
+        # On successful delete the entity URL no longer resolves.
+        katana_url=None if not failed else katana_url,
+        message=(
+            f"Successfully deleted purchase order {request.id}"
+            if not failed
+            else f"Failed to delete purchase order {request.id}"
+        ),
     )
 
 
 @observe_tool
 @unpack_pydantic_params
-async def delete_purchase_order_additional_cost(
-    request: Annotated[DeletePurchaseOrderAdditionalCostRequest, Unpack()],
-    context: Context,
+async def delete_purchase_order(
+    request: Annotated[DeletePurchaseOrderRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """Delete an additional-cost row from a purchase order.
+    """Delete a purchase order. Destructive — the order record is removed.
 
     Two-step flow: ``confirm=false`` returns a preview, ``confirm=true``
-    deletes the row. Destructive.
+    deletes the PO. The response carries a ``prior_state`` snapshot of the
+    pre-delete PO so callers can recreate it manually if needed.
     """
-    response = await _delete_purchase_order_additional_cost_impl(request, context)
+    response = await _delete_purchase_order_impl(request, context)
     return to_tool_result(response)
 
 
@@ -3101,12 +2955,9 @@ def register_tools(mcp: FastMCP) -> None:
         idempotentHint=True,
         openWorldHint=True,
     )
-    _update = ToolAnnotations(
-        readOnlyHint=False,
-        destructiveHint=False,
-        idempotentHint=True,
-        openWorldHint=True,
-    )
+    # ``modify_purchase_order`` can also delete (via ``delete=True``), so its
+    # destructive-hint annotation is the right pick — MCP hosts that respect
+    # the hint will prompt the user before running it.
     _destructive = ToolAnnotations(
         readOnlyHint=False,
         destructiveHint=True,
@@ -3135,30 +2986,18 @@ def register_tools(mcp: FastMCP) -> None:
     mcp.tool(tags={"orders", "purchasing", "read"}, annotations=_read)(
         get_purchase_order
     )
+    # ``modify_purchase_order`` is non-destructive — it modifies but never
+    # deletes the entity. Hence the ``write`` tag and update-style annotation.
+    _update = ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=True,
+    )
     mcp.tool(tags={"orders", "purchasing", "write"}, annotations=_update)(
-        update_purchase_order
+        modify_purchase_order
     )
     mcp.tool(
         tags={"orders", "purchasing", "write", "destructive"},
         annotations=_destructive,
     )(delete_purchase_order)
-    mcp.tool(tags={"orders", "purchasing", "write"}, annotations=_write)(
-        add_purchase_order_row
-    )
-    mcp.tool(tags={"orders", "purchasing", "write"}, annotations=_update)(
-        update_purchase_order_row
-    )
-    mcp.tool(
-        tags={"orders", "purchasing", "write", "destructive"},
-        annotations=_destructive,
-    )(delete_purchase_order_row)
-    mcp.tool(tags={"orders", "purchasing", "write"}, annotations=_write)(
-        add_purchase_order_additional_cost
-    )
-    mcp.tool(tags={"orders", "purchasing", "write"}, annotations=_update)(
-        update_purchase_order_additional_cost
-    )
-    mcp.tool(
-        tags={"orders", "purchasing", "write", "destructive"},
-        annotations=_destructive,
-    )(delete_purchase_order_additional_cost)

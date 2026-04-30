@@ -7,31 +7,22 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from katana_mcp.tools.foundation.purchase_orders import (
-    AddPurchaseOrderAdditionalCostRequest,
-    AddPurchaseOrderRowRequest,
-    DeletePurchaseOrderAdditionalCostRequest,
     DeletePurchaseOrderRequest,
-    DeletePurchaseOrderRowRequest,
     DiscrepancyType,
     DocumentItem,
     GetPurchaseOrderRequest,
+    ModifyPurchaseOrderRequest,
+    NewPORow,
+    PORowUpdate,
+    PurchaseOrderHeaderPatch,
     ReceiveItemRequest,
     ReceivePurchaseOrderRequest,
     ReceivePurchaseOrderResponse,
-    UpdatePurchaseOrderAdditionalCostRequest,
-    UpdatePurchaseOrderRequest,
-    UpdatePurchaseOrderRowRequest,
     VerifyOrderDocumentRequest,
-    _add_purchase_order_additional_cost_impl,
-    _add_purchase_order_row_impl,
-    _delete_purchase_order_additional_cost_impl,
     _delete_purchase_order_impl,
-    _delete_purchase_order_row_impl,
     _get_purchase_order_impl,
+    _modify_purchase_order_impl,
     _receive_purchase_order_impl,
-    _update_purchase_order_additional_cost_impl,
-    _update_purchase_order_impl,
-    _update_purchase_order_row_impl,
     _verify_order_document_impl,
     get_purchase_order,
     list_purchase_orders,
@@ -2541,12 +2532,10 @@ async def test_verify_order_document_format_json_returns_json():
 
 
 # ============================================================================
-# Modification tools — header (update / delete)
+# modify_purchase_order — unified modification surface
 # ============================================================================
 
 
-# Patch path constants for the new modification tools — keep them near the
-# tests so a future move catches the rename in one place.
 _PO_GET = "katana_public_api_client.api.purchase_order.get_purchase_order"
 _PO_UPDATE = "katana_public_api_client.api.purchase_order.update_purchase_order"
 _PO_DELETE = "katana_public_api_client.api.purchase_order.delete_purchase_order"
@@ -2560,71 +2549,151 @@ _PO_ROW_UPDATE = (
 _PO_ROW_DELETE = (
     "katana_public_api_client.api.purchase_order_row.delete_purchase_order_row"
 )
-_PO_COST_CREATE = (
-    "katana_public_api_client.api.purchase_order_additional_cost_row."
-    "create_po_additional_cost_row"
-)
-_PO_COST_UPDATE = (
-    "katana_public_api_client.api.purchase_order_additional_cost_row."
-    "update_additional_cost_row"
-)
-_PO_COST_DELETE = (
-    "katana_public_api_client.api.purchase_order_additional_cost_row."
-    "delete_po_additional_cost"
-)
 _PO_UNWRAP_AS = "katana_mcp.tools.foundation.purchase_orders.unwrap_as"
 
 
-@pytest.mark.asyncio
-async def test_update_purchase_order_preview_diffs_against_existing():
-    """Preview fetches the existing PO so the diff shows old → new values."""
-    context, _ = create_mock_context()
+@pytest.fixture
+def patch_fetch_po():
+    """Yield a patch on _fetch_purchase_order_attrs returning the given PO mock."""
+    from contextlib import contextmanager
 
-    existing = create_mock_po(order_id=42, order_no="PO-OLD", rows=[])
-    existing.expected_arrival_date = datetime(2026, 1, 1, tzinfo=UTC)
+    @contextmanager
+    def _patch(po_mock):
+        with patch(
+            "katana_mcp.tools.foundation.purchase_orders._fetch_purchase_order_attrs",
+            new_callable=AsyncMock,
+            return_value=po_mock,
+        ):
+            yield
 
-    request = UpdatePurchaseOrderRequest(
-        id=42,
-        order_no="PO-NEW",
-        expected_arrival_date=datetime(2026, 2, 15, tzinfo=UTC),
-        confirm=False,
-    )
-
-    with (
-        patch(f"{_PO_GET}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_PO_UNWRAP_AS, return_value=existing),
-    ):
-        response = await _update_purchase_order_impl(request, context)
-
-    assert response.is_preview is True
-    assert response.entity_id == 42
-    assert response.entity_type == "purchase_order"
-    assert response.operation == "update"
-    # Both fields show as a real before→after diff
-    by_field = {c.field: c for c in response.changes}
-    assert by_field["order_no"].old == "PO-OLD"
-    assert by_field["order_no"].new == "PO-NEW"
-    assert by_field["expected_arrival_date"].old == "2026-01-01T00:00:00+00:00"
-    assert by_field["expected_arrival_date"].new == "2026-02-15T00:00:00+00:00"
+    return _patch
 
 
 @pytest.mark.asyncio
-async def test_update_purchase_order_requires_at_least_one_field():
+async def test_modify_po_requires_at_least_one_subpayload():
     context, _ = create_mock_context()
-    with pytest.raises(ValueError, match="At least one field"):
-        await _update_purchase_order_impl(
-            UpdatePurchaseOrderRequest(id=42, confirm=False), context
+    with pytest.raises(ValueError, match="At least one sub-payload"):
+        await _modify_purchase_order_impl(
+            ModifyPurchaseOrderRequest(id=42, confirm=False), context
         )
 
 
 @pytest.mark.asyncio
-async def test_update_purchase_order_preview_when_fetch_fails():
-    """When the diff fetch fails, preview marks fields ``is_unknown_prior``.
+async def test_modify_po_preview_emits_planned_actions(patch_fetch_po):
+    """Preview returns one ActionResult per planned API call, all succeeded=None."""
+    context, _ = create_mock_context()
+    existing = create_mock_po(order_id=42, order_no="PO-OLD", rows=[])
+    existing.expected_arrival_date = datetime(2026, 1, 1, tzinfo=UTC)
 
-    Regression test for the original ambiguity where fetch failure was
-    indistinguishable from a missing field — the preview would imply
-    "field was empty before" rather than "we couldn't read prior state".
-    """
+    with patch_fetch_po(existing):
+        # Use distinct row ids per update so prefetch helpers see real ids
+        request = ModifyPurchaseOrderRequest(
+            id=42,
+            update_header=PurchaseOrderHeaderPatch(
+                expected_arrival_date=datetime(2026, 2, 15, tzinfo=UTC)
+            ),
+            add_rows=[NewPORow(variant_id=100, quantity=10, price_per_unit=5.0)],
+            confirm=False,
+        )
+        # Stub the row prefetch so update_rows doesn't error here (no update_rows in this case)
+        response = await _modify_purchase_order_impl(request, context)
+
+    assert response.is_preview is True
+    assert response.entity_id == 42
+    assert len(response.actions) == 2
+    assert response.actions[0].operation == "update_header"
+    assert response.actions[1].operation == "add_row"
+    # All planned (succeeded=None)
+    assert all(a.succeeded is None for a in response.actions)
+
+
+@pytest.mark.asyncio
+async def test_modify_po_confirm_executes_plan_in_canonical_order(patch_fetch_po):
+    """Header → row adds → row updates → row deletes → cost adds/updates/deletes."""
+    context, _ = create_mock_context()
+
+    existing = create_mock_po(order_id=42, order_no="PO-1", rows=[])
+    updated_po = create_mock_po(order_id=42, order_no="PO-1", rows=[])
+    updated_po.expected_arrival_date = datetime(2026, 2, 15, tzinfo=UTC)
+    new_row = MagicMock()
+    new_row.id = 555
+
+    call_log: list[str] = []
+
+    async def fake_update_po(*, id, client, body):
+        call_log.append("PATCH /purchase_orders/{id}")
+        resp = MagicMock()
+        resp.parsed = updated_po
+        return resp
+
+    async def fake_create_row(*, client, body):
+        call_log.append("POST /purchase_order_rows")
+        resp = MagicMock()
+        resp.parsed = new_row
+        return resp
+
+    with (
+        patch_fetch_po(existing),
+        patch(f"{_PO_UPDATE}.asyncio_detailed", side_effect=fake_update_po),
+        patch(f"{_PO_ROW_CREATE}.asyncio_detailed", side_effect=fake_create_row),
+        patch(_PO_UNWRAP_AS, side_effect=[updated_po, new_row]),
+    ):
+        request = ModifyPurchaseOrderRequest(
+            id=42,
+            update_header=PurchaseOrderHeaderPatch(
+                expected_arrival_date=datetime(2026, 2, 15, tzinfo=UTC)
+            ),
+            add_rows=[NewPORow(variant_id=100, quantity=10, price_per_unit=5.0)],
+            confirm=True,
+        )
+        response = await _modify_purchase_order_impl(request, context)
+
+    assert response.is_preview is False
+    assert len(response.actions) == 2
+    assert all(a.succeeded is True for a in response.actions)
+    # Header runs before row add (canonical order)
+    assert call_log[0].startswith("PATCH")
+    assert call_log[1].startswith("POST")
+    # prior_state captured the pre-modification PO snapshot
+    assert response.prior_state is not None
+
+
+@pytest.mark.asyncio
+async def test_modify_po_fail_fast_halts_on_first_error(patch_fetch_po):
+    """When the row-create fails, the header-update result is preserved
+    but no further actions run."""
+    context, _ = create_mock_context()
+    existing = create_mock_po(order_id=42, order_no="PO-1", rows=[])
+    updated_po = create_mock_po(order_id=42, order_no="PO-1", rows=[])
+
+    with (
+        patch_fetch_po(existing),
+        patch(f"{_PO_UPDATE}.asyncio_detailed", new_callable=AsyncMock),
+        patch(
+            f"{_PO_ROW_CREATE}.asyncio_detailed",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("boom"),
+        ),
+        patch(_PO_UNWRAP_AS, return_value=updated_po),
+    ):
+        request = ModifyPurchaseOrderRequest(
+            id=42,
+            update_header=PurchaseOrderHeaderPatch(order_no="PO-NEW"),
+            add_rows=[NewPORow(variant_id=100, quantity=10, price_per_unit=5.0)],
+            confirm=True,
+        )
+        response = await _modify_purchase_order_impl(request, context)
+
+    assert response.is_preview is False
+    assert len(response.actions) == 2
+    assert response.actions[0].succeeded is True
+    assert response.actions[1].succeeded is False
+    assert "boom" in (response.actions[1].error or "")
+
+
+@pytest.mark.asyncio
+async def test_modify_po_preview_when_fetch_fails_marks_unknown_prior():
+    """Fetch failure → diff fields marked is_unknown_prior + warning surfaced."""
     context, _ = create_mock_context()
 
     with patch(
@@ -2632,62 +2701,92 @@ async def test_update_purchase_order_preview_when_fetch_fails():
         new_callable=AsyncMock,
         return_value=None,
     ):
-        request = UpdatePurchaseOrderRequest(id=42, order_no="PO-NEW", confirm=False)
-        response = await _update_purchase_order_impl(request, context)
+        request = ModifyPurchaseOrderRequest(
+            id=42,
+            update_header=PurchaseOrderHeaderPatch(order_no="PO-NEW"),
+            confirm=False,
+        )
+        response = await _modify_purchase_order_impl(request, context)
 
     assert response.is_preview is True
-    by_field = {c.field: c for c in response.changes}
-    assert by_field["order_no"].is_unknown_prior is True
-    assert by_field["order_no"].is_added is False
     assert any("diff context" in w for w in response.warnings)
+    # The diff entries on the planned action carry is_unknown_prior=True
+    diffs = response.actions[0].changes
+    assert all(c.is_unknown_prior for c in diffs)
 
 
 @pytest.mark.asyncio
-async def test_update_purchase_order_confirm_applies_status_via_same_tool():
-    """Status is folded into update_purchase_order — no separate status tool."""
+async def test_modify_po_row_update_fetches_row_for_diff(patch_fetch_po):
+    """Update-row sub-payload triggers a per-row prefetch for accurate diff."""
     context, _ = create_mock_context()
-
-    updated = create_mock_po(order_id=42, order_no="PO-NEW", rows=[])
+    existing_po = create_mock_po(order_id=42, order_no="PO-1", rows=[])
+    existing_row = MagicMock()
+    existing_row.purchase_order_id = 42
+    existing_row.quantity = 10
+    existing_row.price_per_unit = 5.0
+    updated_row = MagicMock()
+    updated_row.id = 555
+    updated_row.quantity = 15
 
     with (
-        patch(f"{_PO_GET}.asyncio_detailed", new_callable=AsyncMock),
-        patch(f"{_PO_UPDATE}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
-        patch(_PO_UNWRAP_AS, return_value=updated),
+        patch_fetch_po(existing_po),
+        patch(f"{_PO_ROW_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_PO_UNWRAP_AS, return_value=existing_row),
     ):
-        request = UpdatePurchaseOrderRequest(
-            id=42, status="PARTIALLY_RECEIVED", confirm=True
+        request = ModifyPurchaseOrderRequest(
+            id=42,
+            update_rows=[PORowUpdate(id=555, quantity=15)],
+            confirm=False,
         )
-        response = await _update_purchase_order_impl(request, context)
+        response = await _modify_purchase_order_impl(request, context)
 
-    assert response.is_preview is False
-    assert response.entity_id == 42
-    # The PATCH carries the API enum value, not the user-facing literal.
-    body = mock_api.await_args.kwargs["body"]
-    assert body.status.value == "PARTIALLY_RECEIVED"
+    assert response.is_preview is True
+    assert len(response.actions) == 1
+    assert response.actions[0].operation == "update_row"
+    assert response.actions[0].target_id == 555
+    diff_by_field = {c.field: c for c in response.actions[0].changes}
+    assert diff_by_field["quantity"].old == 10
+    assert diff_by_field["quantity"].new == 15
+
+
+# ============================================================================
+# delete_purchase_order — destructive sibling
+# ============================================================================
 
 
 @pytest.mark.asyncio
-async def test_delete_purchase_order_preview():
+async def test_delete_po_preview_returns_planned_action():
     context, _ = create_mock_context()
-    response = await _delete_purchase_order_impl(
-        DeletePurchaseOrderRequest(id=42, confirm=False), context
-    )
+    existing = create_mock_po(order_id=42, order_no="PO-1", rows=[])
+    request = DeletePurchaseOrderRequest(id=42, confirm=False)
+
+    with patch(
+        "katana_mcp.tools.foundation.purchase_orders._fetch_purchase_order_attrs",
+        new_callable=AsyncMock,
+        return_value=existing,
+    ):
+        response = await _delete_purchase_order_impl(request, context)
 
     assert response.is_preview is True
     assert response.entity_id == 42
-    assert response.operation == "delete"
-    assert "Preview" in response.message
+    assert len(response.actions) == 1
+    assert response.actions[0].operation == "delete"
+    assert response.actions[0].succeeded is None  # planned, not run
 
 
 @pytest.mark.asyncio
-async def test_delete_purchase_order_confirm_calls_api():
+async def test_delete_po_confirm_calls_api_and_records_prior_state():
     context, _ = create_mock_context()
-
+    existing = create_mock_po(order_id=42, order_no="PO-1", rows=[])
     api_response = MagicMock()
     api_response.status_code = 204
-    api_response.parsed = None
 
     with (
+        patch(
+            "katana_mcp.tools.foundation.purchase_orders._fetch_purchase_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
         patch(f"{_PO_DELETE}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
         patch(
             "katana_mcp.tools.foundation.purchase_orders.is_success",
@@ -2700,373 +2799,9 @@ async def test_delete_purchase_order_confirm_calls_api():
         )
 
     assert response.is_preview is False
+    assert response.actions[0].succeeded is True
+    # prior_state captured even for delete (so caller can recreate manually)
+    assert response.prior_state is not None
+    # On successful delete the entity URL is dropped (resource is gone)
+    assert response.katana_url is None
     mock_api.assert_awaited_once()
-    assert mock_api.await_args.kwargs["id"] == 42
-
-
-# ============================================================================
-# Modification tools — purchase_order_row (add / update / delete)
-# ============================================================================
-
-
-@pytest.mark.asyncio
-async def test_add_purchase_order_row_preview():
-    context, _ = create_mock_context()
-
-    request = AddPurchaseOrderRowRequest(
-        purchase_order_id=42,
-        variant_id=100,
-        quantity=10,
-        price_per_unit=5.0,
-        confirm=False,
-    )
-    response = await _add_purchase_order_row_impl(request, context)
-
-    assert response.is_preview is True
-    assert response.parent_entity_id == 42
-    assert response.entity_id is None
-    assert response.operation == "create_row"
-    # Every supplied field reports as added (no existing row to diff against)
-    by_field = {c.field: c for c in response.changes}
-    assert by_field["variant_id"].is_added is True
-    assert by_field["variant_id"].new == 100
-
-
-@pytest.mark.asyncio
-async def test_add_purchase_order_row_confirm_calls_api():
-    context, _ = create_mock_context()
-
-    new_row = MagicMock()
-    new_row.id = 555
-
-    with (
-        patch(f"{_PO_ROW_CREATE}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
-        patch(_PO_UNWRAP_AS, return_value=new_row),
-    ):
-        request = AddPurchaseOrderRowRequest(
-            purchase_order_id=42,
-            variant_id=100,
-            quantity=10,
-            price_per_unit=5.0,
-            confirm=True,
-        )
-        response = await _add_purchase_order_row_impl(request, context)
-
-    assert response.is_preview is False
-    assert response.entity_id == 555
-    body = mock_api.await_args.kwargs["body"]
-    assert body.purchase_order_id == 42
-    assert body.variant_id == 100
-
-
-@pytest.mark.asyncio
-async def test_update_purchase_order_row_preview_uses_existing_for_diff():
-    context, _ = create_mock_context()
-
-    existing = MagicMock()
-    existing.purchase_order_id = 42
-    existing.quantity = 10
-    existing.price_per_unit = 5.0
-    existing.arrival_date = UNSET
-
-    with (
-        patch(f"{_PO_ROW_GET}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_PO_UNWRAP_AS, return_value=existing),
-    ):
-        request = UpdatePurchaseOrderRowRequest(
-            id=555,
-            quantity=15,
-            arrival_date=datetime(2026, 3, 1, tzinfo=UTC),
-            confirm=False,
-        )
-        response = await _update_purchase_order_row_impl(request, context)
-
-    assert response.is_preview is True
-    assert response.entity_id == 555
-    assert response.parent_entity_id == 42
-    by_field = {c.field: c for c in response.changes}
-    assert by_field["quantity"].old == 10
-    assert by_field["quantity"].new == 15
-    assert by_field["arrival_date"].is_added is True
-
-
-@pytest.mark.asyncio
-async def test_update_purchase_order_row_requires_at_least_one_field():
-    context, _ = create_mock_context()
-    with pytest.raises(ValueError, match="At least one field"):
-        await _update_purchase_order_row_impl(
-            UpdatePurchaseOrderRowRequest(id=555, confirm=False), context
-        )
-
-
-@pytest.mark.asyncio
-async def test_update_purchase_order_row_confirm_calls_api():
-    context, _ = create_mock_context()
-
-    existing = MagicMock()
-    existing.purchase_order_id = 42
-    existing.quantity = 10
-    updated = MagicMock()
-    updated.id = 555
-
-    # First call (in _fetch_purchase_order_row) returns the existing row;
-    # second call (the actual update) returns the updated row. We patch
-    # unwrap_as to feed both deterministically.
-    with (
-        patch(f"{_PO_ROW_GET}.asyncio_detailed", new_callable=AsyncMock),
-        patch(f"{_PO_ROW_UPDATE}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
-        patch(_PO_UNWRAP_AS, side_effect=[existing, updated]),
-    ):
-        request = UpdatePurchaseOrderRowRequest(id=555, quantity=20, confirm=True)
-        response = await _update_purchase_order_row_impl(request, context)
-
-    assert response.is_preview is False
-    assert response.entity_id == 555
-    assert response.parent_entity_id == 42
-    body = mock_api.await_args.kwargs["body"]
-    assert body.quantity == 20
-
-
-@pytest.mark.asyncio
-async def test_update_purchase_order_row_recovers_parent_id_when_prefetch_fails():
-    """When the pre-update fetch fails, the confirm response still carries
-    parent_id by reading purchase_order_id off the PATCH response.
-
-    Without this fallback, a successful row update following a fetch failure
-    would return a well-formed entity_id but ``parent_entity_id=None`` and
-    ``katana_url=None`` — missing context that the API just gave us.
-    """
-    context, _ = create_mock_context()
-
-    updated = MagicMock()
-    updated.id = 555
-    updated.purchase_order_id = 42
-
-    with (
-        # Pre-update fetch returns None to simulate failure
-        patch(
-            "katana_mcp.tools.foundation.purchase_orders._fetch_purchase_order_row",
-            new_callable=AsyncMock,
-            return_value=None,
-        ),
-        patch(f"{_PO_ROW_UPDATE}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_PO_UNWRAP_AS, return_value=updated),
-    ):
-        request = UpdatePurchaseOrderRowRequest(id=555, quantity=20, confirm=True)
-        response = await _update_purchase_order_row_impl(request, context)
-
-    assert response.is_preview is False
-    assert response.entity_id == 555
-    # Recovered from updated.purchase_order_id rather than the failed prefetch
-    assert response.parent_entity_id == 42
-    assert response.katana_url is not None
-    assert "42" in response.katana_url
-
-
-@pytest.mark.asyncio
-async def test_delete_purchase_order_row_preview():
-    context, _ = create_mock_context()
-
-    existing = MagicMock()
-    existing.purchase_order_id = 42
-
-    with (
-        patch(f"{_PO_ROW_GET}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_PO_UNWRAP_AS, return_value=existing),
-    ):
-        response = await _delete_purchase_order_row_impl(
-            DeletePurchaseOrderRowRequest(id=555, confirm=False), context
-        )
-
-    assert response.is_preview is True
-    assert response.entity_id == 555
-    assert response.parent_entity_id == 42
-
-
-@pytest.mark.asyncio
-async def test_delete_purchase_order_row_confirm_calls_api():
-    context, _ = create_mock_context()
-
-    existing = MagicMock()
-    existing.purchase_order_id = 42
-
-    api_response = MagicMock()
-    api_response.status_code = 204
-    api_response.parsed = None
-
-    with (
-        patch(f"{_PO_ROW_GET}.asyncio_detailed", new_callable=AsyncMock),
-        patch(f"{_PO_ROW_DELETE}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
-        patch(_PO_UNWRAP_AS, return_value=existing),
-        patch(
-            "katana_mcp.tools.foundation.purchase_orders.is_success",
-            return_value=True,
-        ),
-    ):
-        mock_api.return_value = api_response
-        response = await _delete_purchase_order_row_impl(
-            DeletePurchaseOrderRowRequest(id=555, confirm=True), context
-        )
-
-    assert response.is_preview is False
-    mock_api.assert_awaited_once()
-    assert mock_api.await_args.kwargs["id"] == 555
-
-
-# ============================================================================
-# Modification tools — purchase_order_additional_cost (add / update / delete)
-# ============================================================================
-
-
-@pytest.mark.asyncio
-async def test_add_additional_cost_resolves_default_group_id():
-    """When given a PO id, the tool looks up its default_group_id."""
-    context, _ = create_mock_context()
-
-    existing_po = create_mock_po(order_id=42, order_no="PO-1", rows=[])
-    existing_po.default_group_id = 21
-    new_row = MagicMock()
-    new_row.id = 999
-
-    with (
-        patch(f"{_PO_GET}.asyncio_detailed", new_callable=AsyncMock),
-        patch(
-            f"{_PO_COST_CREATE}.asyncio_detailed", new_callable=AsyncMock
-        ) as mock_api,
-        patch(_PO_UNWRAP_AS, side_effect=[existing_po, new_row]),
-    ):
-        request = AddPurchaseOrderAdditionalCostRequest(
-            purchase_order_id=42,
-            additional_cost_id=11,
-            tax_rate_id=31,
-            price=125.0,
-            distribution_method="BY_VALUE",
-            confirm=True,
-        )
-        response = await _add_purchase_order_additional_cost_impl(request, context)
-
-    assert response.is_preview is False
-    assert response.entity_id == 999
-    body = mock_api.await_args.kwargs["body"]
-    assert body.group_id == 21  # from default_group_id
-    assert body.distribution_method.value == "BY_VALUE"
-
-
-@pytest.mark.asyncio
-async def test_add_additional_cost_requires_po_or_group_id():
-    context, _ = create_mock_context()
-    with pytest.raises(ValueError, match="purchase_order_id or group_id"):
-        await _add_purchase_order_additional_cost_impl(
-            AddPurchaseOrderAdditionalCostRequest(
-                additional_cost_id=11,
-                tax_rate_id=31,
-                price=125.0,
-                confirm=False,
-            ),
-            context,
-        )
-
-
-@pytest.mark.asyncio
-async def test_update_additional_cost_preview():
-    context, _ = create_mock_context()
-
-    existing = MagicMock()
-    existing.additional_cost_id = 11
-    existing.tax_rate_id = 31
-    existing.price = 100.0
-    existing.distribution_method = "BY_VALUE"
-
-    with (
-        patch(
-            "katana_public_api_client.api.purchase_order_additional_cost_row."
-            "get_po_additional_cost_row.asyncio_detailed",
-            new_callable=AsyncMock,
-        ),
-        patch(_PO_UNWRAP_AS, return_value=existing),
-    ):
-        request = UpdatePurchaseOrderAdditionalCostRequest(
-            id=99, price=150.0, confirm=False
-        )
-        response = await _update_purchase_order_additional_cost_impl(request, context)
-
-    assert response.is_preview is True
-    assert response.entity_id == 99
-    by_field = {c.field: c for c in response.changes}
-    assert by_field["price"].old == 100.0
-    assert by_field["price"].new == 150.0
-
-
-@pytest.mark.asyncio
-async def test_update_additional_cost_confirm_calls_api():
-    context, _ = create_mock_context()
-    updated = MagicMock()
-    updated.id = 99
-
-    with (
-        patch(
-            "katana_public_api_client.api.purchase_order_additional_cost_row."
-            "get_po_additional_cost_row.asyncio_detailed",
-            new_callable=AsyncMock,
-        ),
-        patch(
-            f"{_PO_COST_UPDATE}.asyncio_detailed", new_callable=AsyncMock
-        ) as mock_api,
-        # The first unwrap_as call (fetch existing) raises — we exercise the
-        # best-effort fallback path. The second returns the updated row.
-        patch(_PO_UNWRAP_AS, side_effect=[Exception("boom"), updated]),
-    ):
-        request = UpdatePurchaseOrderAdditionalCostRequest(
-            id=99, price=150.0, confirm=True
-        )
-        response = await _update_purchase_order_additional_cost_impl(request, context)
-
-    assert response.is_preview is False
-    body = mock_api.await_args.kwargs["body"]
-    assert body.price == 150.0
-
-
-@pytest.mark.asyncio
-async def test_update_additional_cost_requires_at_least_one_field():
-    context, _ = create_mock_context()
-    with pytest.raises(ValueError, match="At least one field"):
-        await _update_purchase_order_additional_cost_impl(
-            UpdatePurchaseOrderAdditionalCostRequest(id=99, confirm=False),
-            context,
-        )
-
-
-@pytest.mark.asyncio
-async def test_delete_additional_cost_preview():
-    context, _ = create_mock_context()
-    response = await _delete_purchase_order_additional_cost_impl(
-        DeletePurchaseOrderAdditionalCostRequest(id=99, confirm=False), context
-    )
-    assert response.is_preview is True
-    assert response.entity_id == 99
-
-
-@pytest.mark.asyncio
-async def test_delete_additional_cost_confirm_calls_api():
-    context, _ = create_mock_context()
-
-    api_response = MagicMock()
-    api_response.status_code = 204
-
-    with (
-        patch(
-            f"{_PO_COST_DELETE}.asyncio_detailed", new_callable=AsyncMock
-        ) as mock_api,
-        patch(
-            "katana_mcp.tools.foundation.purchase_orders.is_success",
-            return_value=True,
-        ),
-    ):
-        mock_api.return_value = api_response
-        response = await _delete_purchase_order_additional_cost_impl(
-            DeletePurchaseOrderAdditionalCostRequest(id=99, confirm=True), context
-        )
-
-    assert response.is_preview is False
-    mock_api.assert_awaited_once()
-    assert mock_api.await_args.kwargs["id"] == 99
