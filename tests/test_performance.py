@@ -73,7 +73,7 @@ class TestPerformance:
             )
 
     @pytest.mark.asyncio
-    async def test_concurrent_requests(self, katana_client):
+    async def test_concurrent_requests(self):
         """``asyncio.gather`` runs all three calls concurrently, not sequentially.
 
         Asserts the property *structurally* (track max concurrent in-flight
@@ -88,14 +88,16 @@ class TestPerformance:
             nonlocal in_flight, max_in_flight
             in_flight += 1
             max_in_flight = max(max_in_flight, in_flight)
-            # Yield to the scheduler so peers get a chance to enter before
-            # we exit — without this, the counter would only ever see 1.
-            await asyncio.sleep(0)
-            response = MagicMock()
-            response.status_code = 200
-            response.parsed = {"id": result_id, "name": f"Result {result_id}"}
-            in_flight -= 1
-            return response
+            try:
+                # Yield to the scheduler so peers get a chance to enter before
+                # we exit — without this, the counter would only ever see 1.
+                await asyncio.sleep(0)
+                response = MagicMock()
+                response.status_code = 200
+                response.parsed = {"id": result_id, "name": f"Result {result_id}"}
+                return response
+            finally:
+                in_flight -= 1
 
         results = await asyncio.gather(make_mock(1), make_mock(2), make_mock(3))
 
