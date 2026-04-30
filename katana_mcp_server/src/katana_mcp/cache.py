@@ -27,6 +27,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -456,6 +457,32 @@ class CatalogCache:
         ) as cursor:
             row = await cursor.fetchone()
             return json.loads(row[0]) if row else None
+
+    async def get_many_by_ids(
+        self, entity_type: str, entity_ids: Iterable[int]
+    ) -> dict[int, dict[str, Any]]:
+        """Look up many entities by type and IDs in one query.
+
+        Returns ``{id: data}`` for IDs that hit the cache; missing IDs are
+        absent from the result. Empty input → empty dict (no DB read). Use
+        instead of ``asyncio.gather(get_by_id(...) ...)`` when enriching a
+        batch of rows with cached lookups — one query replaces N reads.
+
+        IDs are passed as a JSON array parameter and expanded via
+        ``json_each``, so the SQL text is constant (no string interpolation)
+        and the IDs go through SQLite's regular parameter binding.
+        """
+        ids = list({int(i) for i in entity_ids})
+        if not ids:
+            return {}
+        db = self._conn()
+        async with db.execute(
+            "SELECT id, data FROM entities "
+            "WHERE entity_type = ? "
+            "AND id IN (SELECT value FROM json_each(?))",
+            (entity_type, json.dumps(ids)),
+        ) as cursor:
+            return {int(row[0]): json.loads(row[1]) for row in await cursor.fetchall()}
 
     async def get_by_sku(self, sku: str) -> dict[str, Any] | None:
         """Look up a variant by SKU (case-insensitive)."""

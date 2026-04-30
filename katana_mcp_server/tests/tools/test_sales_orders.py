@@ -1177,13 +1177,14 @@ async def test_get_sales_order_enriches_row_sku_from_cache():
     """Row-level variant cache hits populate SalesOrderRowDetail.sku."""
     context, lifespan_ctx = create_mock_context()
 
-    # Cache returns a variant dict for variant_id 500
-    async def fake_get_by_id(_entity_type, variant_id):
-        if variant_id == 500:
-            return {"id": 500, "sku": "BIKE-A", "display_name": "Bike A"}
-        return None
+    # Cache returns a variant dict for variant_id 500; missing IDs are
+    # absent from the result (per get_many_by_ids contract).
+    catalog = {500: {"id": 500, "sku": "BIKE-A", "display_name": "Bike A"}}
 
-    lifespan_ctx.cache.get_by_id = AsyncMock(side_effect=fake_get_by_id)
+    async def fake_get_many_by_ids(_entity_type, variant_ids):
+        return {vid: catalog[vid] for vid in variant_ids if vid in catalog}
+
+    lifespan_ctx.cache.get_many_by_ids = AsyncMock(side_effect=fake_get_many_by_ids)
 
     mock_so = _make_mock_so(
         id=9,

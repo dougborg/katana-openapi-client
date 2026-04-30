@@ -85,6 +85,7 @@ def create_mock_context():
     mock_cache.smart_search = AsyncMock(return_value=[])
     mock_cache.get_by_sku = AsyncMock(return_value=None)
     mock_cache.get_by_id = AsyncMock(return_value=None)
+    mock_cache.get_many_by_ids = AsyncMock(return_value={})
     mock_cache.mark_dirty = AsyncMock()
     mock_lifespan_context.cache = mock_cache
 

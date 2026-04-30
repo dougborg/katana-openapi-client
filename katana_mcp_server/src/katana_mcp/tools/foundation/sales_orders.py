@@ -29,7 +29,6 @@ from katana_mcp.tools.tool_result_utils import (
     format_md_table,
     iso_or_none,
     make_tool_result,
-    none_coro,
     parse_request_dates,
     resolve_entity_name,
 )
@@ -1020,27 +1019,26 @@ async def _get_sales_order_impl(
 
     raw_rows = unwrap_unset(so.sales_order_rows, [])
 
-    # Parallelize variant lookups across all rows (N+1 fix) AND the address
-    # fetch — both depend only on the SO we just loaded.
-    variant_ids = [unwrap_unset(r.variant_id, None) for r in raw_rows]
+    # One batched IN-clause SQLite read for all row variants, in parallel
+    # with the address fetch — both depend only on the SO we just loaded.
+    variant_ids = {
+        v_id
+        for v_id in (unwrap_unset(r.variant_id, None) for r in raw_rows)
+        if v_id is not None
+    }
     variants, addresses = await asyncio.gather(
-        asyncio.gather(
-            *(
-                services.cache.get_by_id(EntityType.VARIANT, v_id)
-                if v_id is not None
-                else none_coro()
-                for v_id in variant_ids
-            )
-        ),
+        services.cache.get_many_by_ids(EntityType.VARIANT, variant_ids),
         _fetch_sales_order_addresses(services, so.id),
     )
 
     row_details: list[SalesOrderRowDetail] = []
-    for r, variant in zip(raw_rows, variants, strict=True):
+    for r in raw_rows:
+        v_id = unwrap_unset(r.variant_id, None)
+        variant = variants.get(v_id) if v_id is not None else None
         row_details.append(
             SalesOrderRowDetail(
                 id=r.id,
-                variant_id=unwrap_unset(r.variant_id, None),
+                variant_id=v_id,
                 sku=variant.get("sku") if variant else None,
                 quantity=unwrap_unset(r.quantity, None),
                 sales_order_id=unwrap_unset(r.sales_order_id, None),
