@@ -819,7 +819,9 @@ async def test_list_manufacturing_orders_filters_by_status(
         _list_manufacturing_orders_impl,
     )
 
-    from katana_public_api_client.models import GetAllManufacturingOrdersStatus
+    from katana_public_api_client.models_pydantic._generated import (
+        ManufacturingOrderStatus,
+    )
 
     context, _, typed_cache = context_with_typed_cache
     await seed_cache(
@@ -832,9 +834,7 @@ async def test_list_manufacturing_orders_filters_by_status(
     )
 
     result = await _list_manufacturing_orders_impl(
-        ListManufacturingOrdersRequest(
-            status=GetAllManufacturingOrdersStatus.IN_PROGRESS
-        ),
+        ListManufacturingOrdersRequest(status=ManufacturingOrderStatus.in_progress),
         context,
     )
 
@@ -876,6 +876,100 @@ async def test_list_manufacturing_orders_filters_by_location_and_so_link(
         ListManufacturingOrdersRequest(is_linked_to_sales_order=True), context
     )
     assert {o.id for o in linked.orders} == {1, 3}
+
+
+@pytest.mark.asyncio
+async def test_list_manufacturing_orders_filters_by_variant_ids(
+    context_with_typed_cache, no_sync
+):
+    """`variant_ids` restricts to MOs producing any listed variant."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        ListManufacturingOrdersRequest,
+        _list_manufacturing_orders_impl,
+    )
+
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_manufacturing_order(id=1, variant_id=2101),
+            make_manufacturing_order(id=2, variant_id=2102),
+            make_manufacturing_order(id=3, variant_id=2103),
+        ],
+    )
+
+    result = await _list_manufacturing_orders_impl(
+        ListManufacturingOrdersRequest(variant_ids=[2101, 2103]), context
+    )
+
+    assert {o.id for o in result.orders} == {1, 3}
+
+
+@pytest.mark.asyncio
+async def test_list_manufacturing_orders_filters_by_sales_order_ids(
+    context_with_typed_cache, no_sync
+):
+    """`sales_order_ids` restricts to MOs linked to any listed SO."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        ListManufacturingOrdersRequest,
+        _list_manufacturing_orders_impl,
+    )
+
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_manufacturing_order(
+                id=1, is_linked_to_sales_order=True, sales_order_id=10000
+            ),
+            make_manufacturing_order(
+                id=2, is_linked_to_sales_order=True, sales_order_id=10001
+            ),
+            make_manufacturing_order(
+                id=3, is_linked_to_sales_order=True, sales_order_id=10002
+            ),
+        ],
+    )
+
+    result = await _list_manufacturing_orders_impl(
+        ListManufacturingOrdersRequest(sales_order_ids=[10000, 10002]), context
+    )
+
+    assert {o.id for o in result.orders} == {1, 3}
+
+
+@pytest.mark.asyncio
+async def test_list_manufacturing_orders_filters_by_ingredient_availability(
+    context_with_typed_cache, no_sync
+):
+    """`ingredient_availability` matches the cache's enum column exactly."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        ListManufacturingOrdersRequest,
+        _list_manufacturing_orders_impl,
+    )
+
+    from katana_public_api_client.models_pydantic._generated import (
+        OutsourcedPurchaseOrderIngredientAvailability,
+    )
+
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_manufacturing_order(id=1, ingredient_availability="NOT_AVAILABLE"),
+            make_manufacturing_order(id=2, ingredient_availability="EXPECTED"),
+            make_manufacturing_order(id=3, ingredient_availability="IN_STOCK"),
+        ],
+    )
+
+    result = await _list_manufacturing_orders_impl(
+        ListManufacturingOrdersRequest(
+            ingredient_availability=OutsourcedPurchaseOrderIngredientAvailability.not_available
+        ),
+        context,
+    )
+
+    assert {o.id for o in result.orders} == {1}
 
 
 @pytest.mark.asyncio

@@ -98,7 +98,6 @@ from katana_public_api_client.models import (
     CreateManufacturingOrderProductionRequest as APICreateMOProductionRequest,
     CreateManufacturingOrderRecipeRowRequest as APICreateMORecipeRowRequest,
     CreateManufacturingOrderRequest as APICreateManufacturingOrderRequest,
-    GetAllManufacturingOrdersStatus,
     ManufacturingOperationStatus,
     ManufacturingOperationType,
     ManufacturingOrder,
@@ -1583,14 +1582,44 @@ class ListManufacturingOrdersRequest(BaseModel):
         ),
     )
     order_no: str | None = Field(default=None, description="Filter by exact order_no")
-    status: GetAllManufacturingOrdersStatus | None = Field(
+    status: ManufacturingOrderStatus | None = Field(
         default=None,
         description=(
-            "Filter by MO status: NOT_STARTED, IN_PROGRESS, BLOCKED, PAUSED, COMPLETED."
+            "Filter by MO status: NOT_STARTED, BLOCKED, IN_PROGRESS, "
+            "PARTIALLY_COMPLETED, DONE."
         ),
     )
     location_id: int | None = Field(
         default=None, description="Filter by production location ID"
+    )
+    variant_ids: CoercedIntListOpt = Field(
+        default=None,
+        description=(
+            "Filter to MOs producing any of the given variant IDs. "
+            "JSON array of integers, e.g. [2101, 2102]. Resolve a SKU to "
+            "its variant_id via `search_items` or `get_variant_details` "
+            "first, then pass the IDs here."
+        ),
+    )
+    sales_order_ids: CoercedIntListOpt = Field(
+        default=None,
+        description=(
+            "Filter to MOs linked to any of the given sales order IDs. "
+            "JSON array of integers, e.g. [10000, 10001]. More precise "
+            "than `is_linked_to_sales_order=true` when you already know "
+            "the SO IDs."
+        ),
+    )
+    ingredient_availability: OutsourcedPurchaseOrderIngredientAvailability | None = (
+        Field(
+            default=None,
+            description=(
+                "Filter by rolled-up MO ingredient availability: "
+                "PROCESSED, IN_STOCK, NOT_AVAILABLE, EXPECTED, NO_RECIPE, "
+                "NOT_APPLICABLE. Use NOT_AVAILABLE / EXPECTED to find MOs "
+                "blocked on materials."
+            ),
+        )
     )
     is_linked_to_sales_order: bool | None = Field(
         default=None,
@@ -1690,7 +1719,6 @@ def _apply_manufacturing_order_filters(
     """
     from katana_public_api_client.models_pydantic._generated import (
         CachedManufacturingOrder,
-        ManufacturingOrderStatus,
     )
 
     if request.ids is not None:
@@ -1698,15 +1726,24 @@ def _apply_manufacturing_order_filters(
     if request.order_no is not None:
         stmt = stmt.where(CachedManufacturingOrder.order_no == request.order_no)
     if request.status is not None:
-        # ``GetAllManufacturingOrdersStatus`` (caller) and
-        # ``ManufacturingOrderStatus`` (cache column) share string values
-        # but are distinct types — coerce_enum round-trips through .value.
-        stmt = stmt.where(
-            CachedManufacturingOrder.status
-            == coerce_enum(request.status, ManufacturingOrderStatus, "status")
-        )
+        stmt = stmt.where(CachedManufacturingOrder.status == request.status)
     if request.location_id is not None:
         stmt = stmt.where(CachedManufacturingOrder.location_id == request.location_id)
+    if request.variant_ids is not None:
+        stmt = stmt.where(CachedManufacturingOrder.variant_id.in_(request.variant_ids))
+    if request.sales_order_ids is not None:
+        stmt = stmt.where(
+            CachedManufacturingOrder.sales_order_id.in_(request.sales_order_ids)
+        )
+    if request.ingredient_availability is not None:
+        stmt = stmt.where(
+            CachedManufacturingOrder.ingredient_availability
+            == coerce_enum(
+                request.ingredient_availability,
+                OutsourcedPurchaseOrderIngredientAvailability,
+                "ingredient_availability",
+            )
+        )
     if request.is_linked_to_sales_order is not None:
         stmt = stmt.where(
             CachedManufacturingOrder.is_linked_to_sales_order
@@ -1826,6 +1863,11 @@ async def list_manufacturing_orders(
 
     **Common filters:**
     - `status="IN_PROGRESS"` — MOs currently being produced
+    - `variant_ids=[2101, 2102]` — MOs producing specific variants. To
+      filter by SKU, resolve the SKU to its `variant_id` first via
+      `search_items` or `get_variant_details`, then pass the IDs here.
+    - `sales_order_ids=[10000, 10001]` — MOs linked to specific SOs
+    - `ingredient_availability="NOT_AVAILABLE"` — MOs blocked on materials
     - `is_linked_to_sales_order=true` — MOs tied to a customer order
     - `location_id=N` — MOs at a specific production location
 
@@ -1906,7 +1948,8 @@ class ListBlockingIngredientsRequest(BaseModel):
         default=None,
         description=(
             "MO statuses to scope the rollup. JSON array (or CSV string) of "
-            'GetAllManufacturingOrdersStatus values, e.g. ["NOT_STARTED", "IN_PROGRESS"]. '
+            "ManufacturingOrderStatus values: NOT_STARTED, BLOCKED, IN_PROGRESS, "
+            'PARTIALLY_COMPLETED, DONE. Example: ["NOT_STARTED", "IN_PROGRESS"]. '
             "Defaults to NOT_STARTED + IN_PROGRESS — the active queue procurement "
             "actually cares about."
         ),

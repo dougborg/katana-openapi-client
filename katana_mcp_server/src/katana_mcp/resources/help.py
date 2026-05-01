@@ -582,8 +582,17 @@ run as indexed SQL against the typed cache.
 **Domain filters:**
 - `ids` (optional): Explicit list of MO IDs
 - `order_no` (optional): Exact order_no
-- `status` (optional): NOT_STARTED, IN_PROGRESS, BLOCKED, DONE
+- `status` (optional): NOT_STARTED, BLOCKED, IN_PROGRESS, PARTIALLY_COMPLETED, DONE
 - `location_id` (optional): Production location ID
+- `variant_ids` (optional): List of variant IDs — MOs producing any of these
+  variants. Resolve a SKU to its `variant_id` via `search_items` or
+  `get_variant_details` first.
+- `sales_order_ids` (optional): List of sales order IDs — MOs linked to any
+  of these SOs (more precise than `is_linked_to_sales_order=true` when you
+  already know the SO IDs)
+- `ingredient_availability` (optional): PROCESSED, IN_STOCK, NOT_AVAILABLE,
+  EXPECTED, NO_RECIPE, NOT_APPLICABLE — use NOT_AVAILABLE / EXPECTED to find
+  MOs blocked on materials
 - `is_linked_to_sales_order` (optional): True/False filter on SO linkage
 - `include_deleted` (optional): Include soft-deleted MOs
 
