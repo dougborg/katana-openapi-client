@@ -12,6 +12,7 @@ from katana_mcp.tools.foundation.purchase_orders import (
     DocumentItem,
     GetPurchaseOrderRequest,
     ModifyPurchaseOrderRequest,
+    POAdditionalCostAdd,
     POHeaderPatch,
     PORowAdd,
     PORowUpdate,
@@ -2497,6 +2498,10 @@ _PO_ROW_UPDATE = (
 _PO_ROW_DELETE = (
     "katana_public_api_client.api.purchase_order_row.delete_purchase_order_row"
 )
+_PO_COST_CREATE = (
+    "katana_public_api_client.api.purchase_order_additional_cost_row"
+    ".create_po_additional_cost_row"
+)
 # The modify/delete dispatcher pipes through ``_modification_dispatch.unwrap_as``
 # (apply factories + safe_fetch_for_diff use the dispatcher's binding).
 _PO_UNWRAP_AS = "katana_mcp.tools._modification_dispatch.unwrap_as"
@@ -2697,6 +2702,166 @@ async def test_modify_po_row_update_fetches_row_for_diff(patch_fetch_po):
     diff_by_field = {c.field: c for c in response.actions[0].changes}
     assert diff_by_field["quantity"].old == 10
     assert diff_by_field["quantity"].new == 15
+
+
+@pytest.mark.asyncio
+async def test_modify_po_add_additional_costs_preview_lists_each_cost_row(
+    patch_fetch_po,
+):
+    """Each POAdditionalCostAdd produces its own planned ``add_additional_cost``
+    action with field-level diff entries. Verifies the row schema documented
+    on ``ModifyPurchaseOrderRequest.add_additional_costs`` round-trips through
+    the dispatcher without per-call boilerplate.
+    """
+    context, _ = create_mock_context()
+    existing = create_mock_po(order_id=880, order_no="PO-880", rows=[])
+    existing.default_group_id = 7
+
+    with patch_fetch_po(existing):
+        request = ModifyPurchaseOrderRequest(
+            id=880,
+            add_additional_costs=[
+                POAdditionalCostAdd(
+                    additional_cost_id=1,
+                    tax_rate_id=2,
+                    price=125.0,
+                    distribution_method="BY_VALUE",
+                ),
+                POAdditionalCostAdd(
+                    additional_cost_id=3,
+                    tax_rate_id=2,
+                    price=85.0,
+                    distribution_method="BY_VALUE",
+                    group_id=99,
+                ),
+            ],
+            confirm=False,
+        )
+        response = await _modify_purchase_order_impl(request, context)
+
+    assert response.is_preview is True
+    assert len(response.actions) == 2
+    assert {a.operation for a in response.actions} == {"add_additional_cost"}
+    # Diffs reflect user-supplied fields. Row 0 omitted group_id (resolved from
+    # the PO's default_group_id at dispatch time, not part of the user's input
+    # diff); row 1 supplied group_id=99 explicitly.
+    fields_action_0 = {c.field for c in response.actions[0].changes}
+    assert {
+        "additional_cost_id",
+        "tax_rate_id",
+        "price",
+        "distribution_method",
+    }.issubset(fields_action_0)
+    assert "group_id" not in fields_action_0
+    diff1 = {c.field: c.new for c in response.actions[1].changes}
+    assert diff1["group_id"] == 99
+
+
+@pytest.mark.asyncio
+async def test_modify_po_add_additional_costs_confirm_calls_create_endpoint(
+    patch_fetch_po,
+):
+    """Confirm path POSTs each row to /po_additional_cost_rows."""
+    context, _ = create_mock_context()
+    existing = create_mock_po(order_id=880, order_no="PO-880", rows=[])
+    existing.default_group_id = 7
+    new_cost = MagicMock()
+    new_cost.id = 201
+
+    call_count = 0
+
+    async def fake_create_cost(*, client, body):
+        nonlocal call_count
+        call_count += 1
+        resp = MagicMock()
+        resp.parsed = new_cost
+        return resp
+
+    with (
+        patch_fetch_po(existing),
+        patch(
+            f"{_PO_COST_CREATE}.asyncio_detailed",
+            side_effect=fake_create_cost,
+        ),
+        patch(_PO_UNWRAP_AS, return_value=new_cost),
+    ):
+        request = ModifyPurchaseOrderRequest(
+            id=880,
+            add_additional_costs=[
+                POAdditionalCostAdd(
+                    additional_cost_id=1,
+                    tax_rate_id=2,
+                    price=125.0,
+                    distribution_method="BY_VALUE",
+                )
+            ],
+            confirm=True,
+        )
+        response = await _modify_purchase_order_impl(request, context)
+
+    assert response.is_preview is False
+    assert call_count == 1
+    assert len(response.actions) == 1
+    assert response.actions[0].succeeded is True
+    assert response.actions[0].operation == "add_additional_cost"
+
+
+@pytest.mark.asyncio
+async def test_modify_po_add_additional_costs_without_default_group_id_errors(
+    patch_fetch_po,
+):
+    """When PO has no default_group_id and the row omits group_id, the
+    pre-flight enrichment surfaces a ``ValueError`` (rather than letting the
+    API reject a malformed request).
+    """
+    context, _ = create_mock_context()
+    existing = create_mock_po(order_id=880, order_no="PO-880", rows=[])
+    existing.default_group_id = UNSET
+
+    with patch_fetch_po(existing):
+        request = ModifyPurchaseOrderRequest(
+            id=880,
+            add_additional_costs=[
+                POAdditionalCostAdd(additional_cost_id=1, tax_rate_id=2, price=10.0)
+            ],
+            confirm=False,
+        )
+        with pytest.raises(ValueError, match="group_id"):
+            await _modify_purchase_order_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_modify_po_empty_update_row_payload_raises(patch_fetch_po):
+    """A ``PORowUpdate`` carrying only ``id`` (no patch fields) produces an
+    empty diff — the resulting PATCH body would be empty and Katana would
+    return a generic 422. The empty-diff guard surfaces the issue at
+    plan-build time with a named error.
+    """
+    context, _ = create_mock_context()
+    existing_po = create_mock_po(order_id=42, order_no="PO-1", rows=[])
+    existing_row = MagicMock()
+    existing_row.purchase_order_id = 42
+    existing_row.quantity = 10
+
+    with (
+        patch_fetch_po(existing_po),
+        patch(f"{_PO_ROW_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_PO_UNWRAP_AS, return_value=existing_row),
+    ):
+        request = ModifyPurchaseOrderRequest(
+            id=42,
+            update_rows=[PORowUpdate(id=555)],
+            confirm=False,
+        )
+        with pytest.raises(
+            ValueError,
+            match=r"No fields to update.*update_row.*target 555",
+        ) as exc_info:
+            await _modify_purchase_order_impl(request, context)
+
+    # Registered derived fields are mentioned so the caller sees the
+    # likely cause (e.g. tried to set ``landed_cost`` and pydantic dropped it).
+    assert "landed_cost" in str(exc_info.value)
 
 
 # ============================================================================

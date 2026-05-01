@@ -121,6 +121,7 @@ class EntityType(StrEnum):
     TAX_RATE = "tax_rate"
     OPERATOR = "operator"
     FACTORY = "factory"
+    ADDITIONAL_COST = "additional_cost"
 
 
 @dataclass(frozen=True)
@@ -151,6 +152,7 @@ CUSTOMER_INDEX = IndexFields(name_key="name", name2_key="email")
 LOCATION_INDEX = IndexFields(name_key="name")
 TAX_RATE_INDEX = IndexFields(name_key="name")
 OPERATOR_INDEX = IndexFields(name_key="name")
+ADDITIONAL_COST_INDEX = IndexFields(name_key="name")
 
 
 class CatalogCache:

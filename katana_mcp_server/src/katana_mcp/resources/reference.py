@@ -20,6 +20,7 @@ from fastmcp import Context, FastMCP
 
 from katana_mcp.cache import EntityType
 from katana_mcp.cache_sync import (
+    ensure_additional_costs_synced,
     ensure_locations_synced,
     ensure_operators_synced,
     ensure_suppliers_synced,
@@ -175,6 +176,52 @@ async def get_tax_rates(context: Context) -> str:
 
 
 # ============================================================================
+# Resource: katana://additional-costs
+# ============================================================================
+
+
+async def get_additional_costs(context: Context) -> str:
+    """Browse all configured additional-cost types (freight, duties,
+    handling fees) for purchase orders.
+
+    **Resource URI:** `katana://additional-costs`
+
+    **Purpose:** Reference data for additional-cost catalog lookup — use
+    to find ``additional_cost_id`` when calling
+    ``modify_purchase_order(add_additional_costs=[...])``. Pair with
+    ``katana://tax-rates`` for the matching ``tax_rate_id``.
+    """
+    start = time.monotonic()
+    services = get_services(context)
+    await ensure_additional_costs_synced(services)
+    raw = await services.cache.get_all(EntityType.ADDITIONAL_COST)
+    additional_costs = _filter_deleted(raw)
+
+    items = [
+        {
+            "id": ac.get("id"),
+            "name": ac.get("name"),
+        }
+        for ac in additional_costs
+    ]
+
+    duration_ms = round((time.monotonic() - start) * 1000, 2)
+    logger.info("additional_costs_resource", count=len(items), duration_ms=duration_ms)
+
+    return json.dumps(
+        {
+            "generated_at": datetime.now(UTC).isoformat(),
+            "summary": {"total_additional_costs": len(items)},
+            "additional_costs": items,
+            "next_actions": [
+                "Reference additional_cost_id when calling "
+                "modify_purchase_order(add_additional_costs=[...])",
+            ],
+        }
+    )
+
+
+# ============================================================================
 # Resource: katana://operators
 # ============================================================================
 
@@ -250,6 +297,16 @@ def register_resources(mcp: FastMCP) -> None:
         description="Manufacturing operators — for operation assignments",
         mime_type="application/json",
     )(get_operators)
+
+    mcp.resource(
+        uri="katana://additional-costs",
+        name="Additional Costs",
+        description=(
+            "Configured additional-cost catalog (freight, duties, handling) "
+            "— for modify_purchase_order(add_additional_costs=...)"
+        ),
+        mime_type="application/json",
+    )(get_additional_costs)
 
 
 __all__ = ["register_resources"]

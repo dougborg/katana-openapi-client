@@ -275,6 +275,8 @@ Browse cached reference data:
 - katana://locations — warehouses/facilities for orders and inventory
 - katana://tax-rates — configured tax rates for sales orders
 - katana://operators — manufacturing operators for operation assignments
+- katana://additional-costs — additional-cost catalog (freight, duties,
+  handling) for modify_purchase_order add_additional_costs
 - katana://help — detailed workflow guides and tool reference
 
 For transactional data (orders, stock movements), use the corresponding tools.

@@ -1,10 +1,12 @@
-"""Tests for reference data resources (suppliers, locations, tax-rates, operators)."""
+"""Tests for reference data resources (suppliers, locations, tax-rates,
+operators, additional-costs)."""
 
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from katana_mcp.resources.reference import (
+    get_additional_costs,
     get_locations,
     get_operators,
     get_suppliers,
@@ -205,25 +207,85 @@ class TestOperatorsResource:
 
 
 # ============================================================================
+# Additional Costs resource
+# ============================================================================
+
+
+class TestAdditionalCostsResource:
+    @pytest.mark.asyncio
+    async def test_returns_expected_shape(self):
+        context = _make_context_with_cache(
+            [
+                {"id": 1, "name": "Shipping Cost"},
+                {"id": 2, "name": "Import Duty"},
+            ]
+        )
+        with patch(
+            "katana_mcp.resources.reference.ensure_additional_costs_synced",
+            new_callable=AsyncMock,
+        ):
+            result = await _call_and_parse(get_additional_costs, context)
+
+        assert result["summary"]["total_additional_costs"] == 2
+        assert {ac["name"] for ac in result["additional_costs"]} == {
+            "Shipping Cost",
+            "Import Duty",
+        }
+        # next_actions points callers at the consuming tool/parameter
+        assert any(
+            "additional_cost_id" in action and "modify_purchase_order" in action
+            for action in result["next_actions"]
+        )
+
+    @pytest.mark.asyncio
+    async def test_filters_deleted(self):
+        context = _make_context_with_cache(
+            [
+                {"id": 1, "name": "Active"},
+                {"id": 2, "name": "Retired", "deleted_at": "2026-01-01T00:00:00Z"},
+            ]
+        )
+        with patch(
+            "katana_mcp.resources.reference.ensure_additional_costs_synced",
+            new_callable=AsyncMock,
+        ):
+            result = await _call_and_parse(get_additional_costs, context)
+
+        assert result["summary"]["total_additional_costs"] == 1
+        assert result["additional_costs"][0]["name"] == "Active"
+
+    @pytest.mark.asyncio
+    async def test_calls_ensure_synced_before_get_all(self):
+        context = _make_context_with_cache([])
+        with patch(
+            "katana_mcp.resources.reference.ensure_additional_costs_synced",
+            new_callable=AsyncMock,
+        ) as mock_sync:
+            await get_additional_costs(context)
+            mock_sync.assert_awaited_once()
+
+
+# ============================================================================
 # Registration
 # ============================================================================
 
 
 class TestRegistration:
-    def test_registers_four_resources(self):
+    def test_registers_five_resources(self):
         mcp = MagicMock()
         resource_decorator = MagicMock(return_value=lambda fn: fn)
         mcp.resource = MagicMock(return_value=resource_decorator)
 
         register_resources(mcp)
 
-        # Four resource decorators should have been created
-        assert mcp.resource.call_count == 4
+        # Five resource decorators should have been created
+        assert mcp.resource.call_count == 5
         uris = [call.kwargs["uri"] for call in mcp.resource.call_args_list]
         assert "katana://suppliers" in uris
         assert "katana://locations" in uris
         assert "katana://tax-rates" in uris
         assert "katana://operators" in uris
+        assert "katana://additional-costs" in uris
 
     def test_order_resources_not_registered(self):
         """Verify no order resources are registered by the reference module."""
