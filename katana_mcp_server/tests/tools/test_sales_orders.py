@@ -20,6 +20,7 @@ from katana_mcp.tools.foundation.sales_orders import (
     _get_sales_order_impl,
     _list_sales_orders_impl,
     _modify_sales_order_impl,
+    _shipping_fee_from_attrs,
     get_sales_order,
     list_sales_orders,
 )
@@ -1549,6 +1550,113 @@ async def test_get_sales_order_format_json_returns_json():
     data = json.loads(_content_text(result))
     assert data["id"] == 9
     assert data["order_no"] == "SO-9"
+
+
+# ============================================================================
+# Regression: #501 — get_sales_order raises "'dict' object has no attribute 'id'"
+# ============================================================================
+#
+# Root cause: the generated SalesOrder._parse_shipping_fee swallows
+# TypeError/ValueError/AttributeError/KeyError from
+# SalesOrderShippingFee.from_dict() and silently returns the raw dict
+# typed as the union — so what the type system says is a SalesOrderShippingFee
+# attrs object is at runtime a dict for any payload that doesn't match the
+# expected schema. The downstream consumer (_shipping_fee_from_attrs) then
+# accesses .id and crashes.
+
+
+def test_shipping_fee_from_attrs_handles_typed_input():
+    """Sanity: typed SalesOrderShippingFee input still works after the fix."""
+    from katana_public_api_client.models import SalesOrderShippingFee
+
+    fee = SalesOrderShippingFee(
+        id=901, sales_order_id=44372778, amount="12.99", tax_rate_id=7
+    )
+    result = _shipping_fee_from_attrs(fee)
+    assert result is not None
+    assert result.id == 901
+    assert result.sales_order_id == 44372778
+    assert result.amount == "12.99"
+    assert result.tax_rate_id == 7
+
+
+def test_shipping_fee_from_attrs_handles_dict_input_from_silent_fallthrough():
+    """Regression for #501: when SalesOrder._parse_shipping_fee falls
+    through to the raw dict cast, the consumer must accept dict input
+    instead of AttributeError on `.id`."""
+    fee_dict = {
+        "id": 901,
+        "sales_order_id": 44372778,
+        "amount": "12.99",
+        "tax_rate_id": 7,
+    }
+    result = _shipping_fee_from_attrs(fee_dict)
+    assert result is not None
+    assert result.id == 901
+    assert result.sales_order_id == 44372778
+    assert result.amount == "12.99"
+    assert result.tax_rate_id == 7
+
+
+def test_shipping_fee_from_attrs_degrades_malformed_dict_to_none():
+    """Regression for #501: a dict missing required fields is the symptom
+    of a spec/wire mismatch upstream. Degrade to None so the SO assembly
+    completes — surfacing the rest of the SO is more useful than crashing
+    the entire lookup with an opaque AttributeError."""
+    assert _shipping_fee_from_attrs({}) is None
+    assert _shipping_fee_from_attrs({"sales_order_id": 100}) is None
+    assert _shipping_fee_from_attrs({"id": 1}) is None  # missing amount
+
+
+@pytest.mark.asyncio
+async def test_get_sales_order_handles_shipping_fee_returned_as_dict():
+    """Regression for #501: end-to-end repro — `so.shipping_fee` arrives as
+    a dict (silent fallthrough from the generated parser) and the SO
+    assembly must complete without raising 'dict has no attribute id'."""
+    context, _ = create_mock_context()
+    mock_so = _make_mock_so(id=44372778, order_no="#WEB20495")
+    # Simulate the silent-fallthrough output: type system says
+    # SalesOrderShippingFee, runtime says raw dict.
+    mock_so.shipping_fee = {
+        "id": 901,
+        "sales_order_id": 44372778,
+        "amount": "12.99",
+    }
+
+    with (
+        patch(f"{_SO_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_AS, return_value=mock_so),
+        patch(_FETCH_ADDR_PATH, AsyncMock(return_value=[])),
+    ):
+        request = GetSalesOrderRequest(order_id=44372778)
+        result = await _get_sales_order_impl(request, context)
+
+    assert result.id == 44372778
+    assert result.shipping_fee is not None
+    assert result.shipping_fee.id == 901
+    assert result.shipping_fee.amount == "12.99"
+
+
+@pytest.mark.asyncio
+async def test_get_sales_order_handles_malformed_shipping_fee_dict():
+    """Regression for #501: even a malformed shipping_fee dict (the worst
+    case of the silent fallthrough — the dict is missing the required
+    fields that caused from_dict to bail in the first place) shouldn't
+    crash the SO lookup."""
+    context, _ = create_mock_context()
+    mock_so = _make_mock_so(id=44372778)
+    mock_so.shipping_fee = {}  # malformed — would have made from_dict raise
+
+    with (
+        patch(f"{_SO_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_AS, return_value=mock_so),
+        patch(_FETCH_ADDR_PATH, AsyncMock(return_value=[])),
+    ):
+        request = GetSalesOrderRequest(order_id=44372778)
+        result = await _get_sales_order_impl(request, context)
+
+    assert result.id == 44372778
+    assert result.shipping_fee is None
 
 
 # ============================================================================
