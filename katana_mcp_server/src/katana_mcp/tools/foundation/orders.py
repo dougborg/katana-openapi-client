@@ -44,8 +44,9 @@ class FulfillOrderRequest(BaseModel):
     order_type: Literal["manufacturing", "sales"] = Field(
         ..., description="Type of order (manufacturing or sales)"
     )
-    confirm: bool = Field(
-        False, description="If false, returns preview. If true, fulfills order."
+    preview: bool = Field(
+        True,
+        description="If true (default), returns preview. If false, fulfills order.",
     )
 
 
@@ -116,14 +117,14 @@ async def _fulfill_manufacturing_order(
             f"Manufacturing order {order_number} is blocked - review before completing"
         )
 
-    if not request.confirm:
+    if request.preview:
         next_actions = (
             ["Order is already completed - no action needed"]
             if current_status == "DONE"
             else [
                 "Review the manufacturing order details",
                 "Verify all production steps are complete",
-                "Set confirm=true to mark order as DONE",
+                "Set preview=false to mark order as DONE",
             ]
         )
         return FulfillOrderResponse(
@@ -235,14 +236,14 @@ async def _fulfill_sales_order(
             f"{BLOCK_WARNING_PREFIX} Sales order {order_number} has no rows to fulfill."
         )
 
-    if not request.confirm:
+    if request.preview:
         has_block = any(w.startswith(BLOCK_WARNING_PREFIX) for w in warnings)
         next_actions = (
             ["Resolve the issue above (cancel and inspect via the Katana UI)"]
             if has_block
             else [
                 "Review the row list above",
-                "Set confirm=true to create a DELIVERED fulfillment for the full order",
+                "Set preview=false to create a DELIVERED fulfillment for the full order",
             ]
         )
         return FulfillOrderResponse(
@@ -260,7 +261,7 @@ async def _fulfill_sales_order(
             ),
         )
 
-    # Refuse on confirm if the order is already in a delivered state — the
+    # Refuse on apply if the order is already in a delivered state — the
     # preview's BLOCK warning would have suppressed the Confirm button in
     # the iframe, but we re-check here so direct/programmatic callers
     # (skipping the UI) get the same protection.
@@ -352,7 +353,7 @@ async def _fulfill_order_impl(
 ) -> FulfillOrderResponse:
     """Dispatch to the appropriate fulfillment handler."""
     logger.info(
-        f"{'Previewing' if not request.confirm else 'Fulfilling'} {request.order_type} order {request.order_id}"
+        f"{'Previewing' if request.preview else 'Fulfilling'} {request.order_type} order {request.order_id}"
     )
     try:
         if request.order_type == "manufacturing":
@@ -370,8 +371,8 @@ async def fulfill_order(
 ) -> ToolResult:
     """Complete a manufacturing order (mark DONE) or fulfill a sales order (ship items).
 
-    Destructive operation that updates inventory. Two-step flow: confirm=false to
-    preview what would happen, confirm=true to execute.
+    Destructive operation that updates inventory. Two-step flow: preview=true
+    (default) to preview what would happen, preview=false to execute.
 
     Manufacturing: marks order DONE, adds finished goods, consumes raw materials.
     Sales: creates a fulfillment record, reduces available inventory.

@@ -1,17 +1,17 @@
 """Shared infrastructure for entity-modification MCP tools.
 
 Provides a uniform Pydantic response model + helpers for consistent
-preview/confirm UX across modification tools (PO, SO, MO, ...).
+preview/apply UX across modification tools (PO, SO, MO, ...).
 
 A modification tool follows this shape:
 
-1. Build a request Pydantic model with ``confirm: bool = False`` and the
+1. Build a request Pydantic model with ``preview: bool = True`` and the
    fields to modify (all ``Optional`` for PATCH-style operations).
 2. In the impl, optionally fetch the existing entity for diff context, then
    compute a list of :class:`FieldChange` via :func:`compute_field_diff`.
-3. If ``confirm=False`` return :class:`ModificationResponse` with
+3. If ``preview=True`` return :class:`ModificationResponse` with
    ``is_preview=True``.
-4. If ``confirm=True`` call the API, then return
+4. If ``preview=False`` call the API, then return
    :class:`ModificationResponse` with ``is_preview=False``.
 
 Use :func:`render_modification_md` (or :func:`to_tool_result`) to produce the
@@ -38,17 +38,17 @@ from katana_public_api_client.domain.converters import unwrap_unset
 
 class ConfirmableRequest(BaseModel):
     """Base for top-level ``Modify<Entity>Request`` and ``Delete<Entity>Request``
-    Pydantic models. Carries the primary entity ``id`` and the ``confirm``
+    Pydantic models. Carries the primary entity ``id`` and the ``preview``
     field used by every modification tool's preview/apply gate. Subclasses
     add their entity-specific sub-payload slots and override ``id``'s
     description with an entity-appropriate label."""
 
     id: int = Field(..., description="Entity ID")
-    confirm: bool = Field(
-        default=False,
+    preview: bool = Field(
+        default=True,
         description=(
-            "If false, returns a preview with planned actions. "
-            "If true, executes the action plan."
+            "If true (default), returns a preview with planned actions. "
+            "If false, executes the action plan."
         ),
     )
 
@@ -95,7 +95,7 @@ class ActionResult(BaseModel):
 
     Three states:
 
-    - **Preview** (``confirm=False`` on the parent request): ``succeeded``
+    - **Preview** (``preview=True`` on the parent request): ``succeeded``
       and ``verified`` are both ``None`` — the action hasn't been executed,
       only planned. ``changes`` carries the diff that *would* be applied.
     - **Confirmed success**: ``succeeded=True``. ``verified`` may be
@@ -126,7 +126,7 @@ class ModificationResponse(BaseModel):
       are populated; ``actions`` is empty.
     - **Multi-action** (the unified ``modify_<entity>`` tools): ``actions``
       is a list of :class:`ActionResult` and ``operation``/``changes`` are
-      left at their defaults. ``prior_state`` is populated on the confirm
+      left at their defaults. ``prior_state`` is populated on the apply
       branch so the caller can manually revert if needed.
 
     The renderer (:func:`render_modification_md`) checks which shape is in
@@ -147,7 +147,7 @@ class ModificationResponse(BaseModel):
     katana_url: str | None = None
     message: str
 
-    DEFAULT_EXCLUDED: ClassVar[tuple[str, ...]] = ("id", "confirm")
+    DEFAULT_EXCLUDED: ClassVar[tuple[str, ...]] = ("id", "preview")
 
 
 def _normalize(value: Any) -> Any:
@@ -190,7 +190,7 @@ def compute_field_diff(
         field_map: Optional ``request_field -> entity_attr`` rename map for
             fields that don't share names across the layers.
         exclude: Field names on the request to skip (defaults to ``id`` and
-            ``confirm``).
+            ``preview``).
         unknown_prior: When True, ``existing`` being ``None`` represents a
             failed best-effort fetch (the entity exists, we just couldn't
             read it). Each change is then marked ``is_unknown_prior`` so
@@ -349,7 +349,7 @@ def render_modification_md(response: ModificationResponse) -> str:
             lines.append("### Current State (preview snapshot)")
             lines.append(
                 "Snapshot of the entity in its current state — verify this is "
-                "the right target before setting `confirm=true`."
+                "the right target before setting `preview=false` to apply."
             )
         else:
             lines.append("### Prior State (for manual revert)")

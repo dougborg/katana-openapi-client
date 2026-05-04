@@ -2,7 +2,7 @@
 
 Foundation tools covering the full stock-transfer lifecycle:
 
-- create_stock_transfer: Create a transfer with preview/confirm pattern
+- create_stock_transfer: Create a transfer with preview/apply pattern
 - list_stock_transfers: List transfers with paging, date, status filters
 - modify_stock_transfer: Unified modification — header (body fields) and/or
   status transition in a single call. Hides the fact that Katana exposes
@@ -176,9 +176,9 @@ class CreateStockTransferRequest(BaseModel):
     additional_info: str | None = Field(
         default=None, description="Additional notes (optional)"
     )
-    confirm: bool = Field(
-        default=False,
-        description="If false, returns preview. If true, creates the transfer.",
+    preview: bool = Field(
+        default=True,
+        description="If true (default), returns preview. If false, creates the transfer.",
     )
 
 
@@ -258,7 +258,7 @@ async def _create_stock_transfer_impl(
 ) -> StockTransferResponse:
     """Implementation of create_stock_transfer tool."""
     logger.info(
-        f"{'Previewing' if not request.confirm else 'Creating'} stock transfer "
+        f"{'Previewing' if request.preview else 'Creating'} stock transfer "
         f"{request.order_no or '(auto)'} "
         f"({request.source_location_id} -> {request.destination_location_id})"
     )
@@ -266,9 +266,9 @@ async def _create_stock_transfer_impl(
     item_count = len(request.rows)
 
     # Resolve source/destination names + compute warnings up-front; both
-    # the preview and confirm paths use them. Source==destination is a
-    # hard BLOCK enforced on confirm too — defense in depth for callers
-    # that skip the preview UI.
+    # the preview and apply paths use them. Source==destination is a
+    # hard BLOCK enforced on the apply path too — defense in depth for
+    # callers that skip the preview UI.
     from katana_mcp.cache import EntityType
 
     services = get_services(context)
@@ -306,7 +306,7 @@ async def _create_stock_transfer_impl(
         else f"location id={request.destination_location_id}"
     )
 
-    if not request.confirm:
+    if request.preview:
         preview_message = (
             f"Preview: Stock transfer with {item_count} row(s) from "
             f"{src_label} to {dst_label}"
@@ -325,7 +325,7 @@ async def _create_stock_transfer_impl(
             warnings=warnings,
             next_actions=[
                 "Review the transfer details",
-                "Set confirm=true to create the stock transfer",
+                "Set preview=false to create the stock transfer",
             ],
             message=preview_message,
         )
@@ -395,10 +395,11 @@ async def create_stock_transfer(
 ) -> ToolResult:
     """Create a stock transfer moving inventory between two locations.
 
-    Two-step flow: confirm=false to preview, confirm=true to create (prompts for
-    confirmation). Requires source_location_id, destination_location_id,
-    expected_arrival_date, and at least one row with variant_id + quantity.
-    For batch-tracked variants, supply `batch_transactions` on the row.
+    Two-step flow: preview=true (default) to preview, preview=false to create
+    (prompts for confirmation). Requires source_location_id,
+    destination_location_id, expected_arrival_date, and at least one row with
+    variant_id + quantity. For batch-tracked variants, supply
+    `batch_transactions` on the row.
     """
     response = await _create_stock_transfer_impl(request, context)
 
@@ -925,8 +926,8 @@ async def modify_stock_transfer(
     not expose row-CRUD endpoints. To remove a transfer entirely, use the
     sibling ``delete_stock_transfer`` tool.
 
-    Two-step flow: ``confirm=false`` returns a per-action preview;
-    ``confirm=true`` executes the plan in canonical order (header before
+    Two-step flow: ``preview=true`` (default) returns a per-action preview;
+    ``preview=false`` executes the plan in canonical order (header before
     status). Fail-fast on error.
 
     Note: Katana doesn't expose a GET-by-id endpoint for stock transfers,

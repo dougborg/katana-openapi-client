@@ -738,7 +738,7 @@ async def test_verify_order_document_no_match():
 
 @pytest.mark.asyncio
 async def test_receive_purchase_order_preview():
-    """Test receive_purchase_order in preview mode (confirm=false)."""
+    """Test receive_purchase_order in preview mode (preview=true)."""
     context, lifespan_ctx = create_mock_context()
 
     # Mock the get_purchase_order API response
@@ -767,14 +767,14 @@ async def test_receive_purchase_order_preview():
 
     api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
 
-    # Create request with confirm=false (preview mode)
+    # Create request with preview=true (preview mode)
     request = ReceivePurchaseOrderRequest(
         order_id=1234,
         items=[
             ReceiveItemRequest(purchase_order_row_id=501, quantity=100.0),
             ReceiveItemRequest(purchase_order_row_id=502, quantity=50.0),
         ],
-        confirm=False,
+        preview=True,
     )
 
     result = await _receive_purchase_order_impl(request, context)
@@ -786,7 +786,7 @@ async def test_receive_purchase_order_preview():
     assert result.items_received == 2
     assert result.is_preview is True
     assert "Review the items to receive" in result.next_actions
-    assert "confirm=true" in result.next_actions[1]
+    assert "preview=false" in result.next_actions[1]
     assert "Preview" in result.message
 
 
@@ -823,14 +823,14 @@ async def test_receive_purchase_order_confirm_success():
         return_value=mock_receive_response
     )
 
-    # Create request with confirm=true
+    # Create request with preview=false
     request = ReceivePurchaseOrderRequest(
         order_id=1234,
         items=[
             ReceiveItemRequest(purchase_order_row_id=501, quantity=100.0),
             ReceiveItemRequest(purchase_order_row_id=502, quantity=50.0),
         ],
-        confirm=True,
+        preview=False,
     )
 
     result = await _receive_purchase_order_impl(request, context)
@@ -894,7 +894,7 @@ async def test_receive_purchase_order_single_item():
     request = ReceivePurchaseOrderRequest(
         order_id=5678,
         items=[ReceiveItemRequest(purchase_order_row_id=601, quantity=25.5)],
-        confirm=True,
+        preview=False,
     )
 
     result = await _receive_purchase_order_impl(request, context)
@@ -925,7 +925,7 @@ async def test_receive_purchase_order_get_po_fails():
     request = ReceivePurchaseOrderRequest(
         order_id=9999,
         items=[ReceiveItemRequest(purchase_order_row_id=701, quantity=10.0)],
-        confirm=False,
+        preview=True,
     )
 
     # Should raise an APIError (404 with parsed=None)
@@ -975,7 +975,7 @@ async def test_receive_purchase_order_receive_api_fails():
     request = ReceivePurchaseOrderRequest(
         order_id=1234,
         items=[ReceiveItemRequest(purchase_order_row_id=501, quantity=100.0)],
-        confirm=True,
+        preview=False,
     )
 
     # Should raise a ValidationError (422 is validation error)
@@ -1015,7 +1015,7 @@ async def test_receive_purchase_order_order_no_unset():
     request = ReceivePurchaseOrderRequest(
         order_id=1234,
         items=[ReceiveItemRequest(purchase_order_row_id=501, quantity=100.0)],
-        confirm=False,
+        preview=True,
     )
 
     result = await _receive_purchase_order_impl(request, context)
@@ -1065,7 +1065,7 @@ async def test_receive_purchase_order_received_date_set():
     request = ReceivePurchaseOrderRequest(
         order_id=1234,
         items=[ReceiveItemRequest(purchase_order_row_id=501, quantity=100.0)],
-        confirm=True,
+        preview=False,
     )
 
     # Record time before call
@@ -1106,7 +1106,7 @@ async def test_receive_purchase_order_integration_preview(katana_context):
     request = ReceivePurchaseOrderRequest(
         order_id=int(test_po_id),
         items=[ReceiveItemRequest(purchase_order_row_id=1, quantity=1.0)],
-        confirm=False,
+        preview=True,
     )
 
     # This should not fail even if the row ID doesn't exist
@@ -1157,7 +1157,7 @@ async def test_receive_purchase_order_wrapper():
     request = ReceivePurchaseOrderRequest(
         order_id=1234,
         items=[ReceiveItemRequest(purchase_order_row_id=501, quantity=100.0)],
-        confirm=False,
+        preview=True,
     )
 
     # Call the implementation function directly (wrapper expects unpacked args from FastMCP)
@@ -1209,7 +1209,7 @@ async def test_receive_purchase_order_multiple_items_various_quantities():
             ReceiveItemRequest(purchase_order_row_id=503, quantity=0.75),
             ReceiveItemRequest(purchase_order_row_id=504, quantity=1000.0),
         ],
-        confirm=True,
+        preview=False,
     )
 
     result = await _receive_purchase_order_impl(request, context)
@@ -1247,7 +1247,7 @@ async def test_receive_purchase_order_validates_min_items():
     from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
-        ReceivePurchaseOrderRequest(order_id=1234, items=[], confirm=False)
+        ReceivePurchaseOrderRequest(order_id=1234, items=[], preview=True)
 
 
 @pytest.mark.asyncio
@@ -1269,7 +1269,7 @@ async def test_receive_purchase_order_exception_handling():
     request = ReceivePurchaseOrderRequest(
         order_id=1234,
         items=[ReceiveItemRequest(purchase_order_row_id=501, quantity=100.0)],
-        confirm=False,
+        preview=True,
     )
 
     # Should raise and propagate the exception
@@ -1317,7 +1317,7 @@ async def test_receive_purchase_order_builds_correct_api_payload():
             ReceiveItemRequest(purchase_order_row_id=501, quantity=100.0),
             ReceiveItemRequest(purchase_order_row_id=502, quantity=50.5),
         ],
-        confirm=True,
+        preview=False,
     )
 
     await _receive_purchase_order_impl(request, context)
@@ -1350,7 +1350,7 @@ async def test_receive_purchase_order_builds_correct_api_payload():
 
 @pytest.mark.asyncio
 async def test_receive_purchase_order_confirm_refuses_when_already_received():
-    """confirm=True against a PO already at status=RECEIVED must refuse —
+    """preview=False against a PO already at status=RECEIVED must refuse —
     defense-in-depth: the preview UI suppresses Confirm via BLOCK warning,
     but programmatic callers skipping the UI need the same protection so
     they can't create duplicate inventory.
@@ -1384,7 +1384,7 @@ async def test_receive_purchase_order_confirm_refuses_when_already_received():
     request = ReceivePurchaseOrderRequest(
         order_id=8888,
         items=[ReceiveItemRequest(purchase_order_row_id=999, quantity=10.0)],
-        confirm=True,
+        preview=False,
     )
 
     result = await _receive_purchase_order_impl(request, context)
@@ -1438,7 +1438,7 @@ async def test_receive_purchase_order_response_structure():
     request = ReceivePurchaseOrderRequest(
         order_id=9999,
         items=[ReceiveItemRequest(purchase_order_row_id=701, quantity=25.0)],
-        confirm=True,
+        preview=False,
     )
 
     result = await _receive_purchase_order_impl(request, context)
@@ -2529,7 +2529,7 @@ async def test_modify_po_requires_at_least_one_subpayload():
     context, _ = create_mock_context()
     with pytest.raises(ValueError, match="At least one sub-payload"):
         await _modify_purchase_order_impl(
-            ModifyPurchaseOrderRequest(id=42, confirm=False), context
+            ModifyPurchaseOrderRequest(id=42, preview=True), context
         )
 
 
@@ -2548,7 +2548,7 @@ async def test_modify_po_preview_emits_planned_actions(patch_fetch_po):
                 expected_arrival_date=datetime(2026, 2, 15, tzinfo=UTC)
             ),
             add_rows=[PORowAdd(variant_id=100, quantity=10, price_per_unit=5.0)],
-            confirm=False,
+            preview=True,
         )
         # Stub the row prefetch so update_rows doesn't error here (no update_rows in this case)
         response = await _modify_purchase_order_impl(request, context)
@@ -2599,7 +2599,7 @@ async def test_modify_po_confirm_executes_plan_in_canonical_order(patch_fetch_po
                 expected_arrival_date=datetime(2026, 2, 15, tzinfo=UTC)
             ),
             add_rows=[PORowAdd(variant_id=100, quantity=10, price_per_unit=5.0)],
-            confirm=True,
+            preview=False,
         )
         response = await _modify_purchase_order_impl(request, context)
 
@@ -2635,7 +2635,7 @@ async def test_modify_po_fail_fast_halts_on_first_error(patch_fetch_po):
             id=42,
             update_header=POHeaderPatch(order_no="PO-NEW"),
             add_rows=[PORowAdd(variant_id=100, quantity=10, price_per_unit=5.0)],
-            confirm=True,
+            preview=False,
         )
         response = await _modify_purchase_order_impl(request, context)
 
@@ -2659,7 +2659,7 @@ async def test_modify_po_preview_when_fetch_fails_marks_unknown_prior():
         request = ModifyPurchaseOrderRequest(
             id=42,
             update_header=POHeaderPatch(order_no="PO-NEW"),
-            confirm=False,
+            preview=True,
         )
         response = await _modify_purchase_order_impl(request, context)
 
@@ -2691,7 +2691,7 @@ async def test_modify_po_row_update_fetches_row_for_diff(patch_fetch_po):
         request = ModifyPurchaseOrderRequest(
             id=42,
             update_rows=[PORowUpdate(id=555, quantity=15)],
-            confirm=False,
+            preview=True,
         )
         response = await _modify_purchase_order_impl(request, context)
 
@@ -2735,7 +2735,7 @@ async def test_modify_po_add_additional_costs_preview_lists_each_cost_row(
                     group_id=99,
                 ),
             ],
-            confirm=False,
+            preview=True,
         )
         response = await _modify_purchase_order_impl(request, context)
 
@@ -2795,7 +2795,7 @@ async def test_modify_po_add_additional_costs_confirm_calls_create_endpoint(
                     distribution_method="BY_VALUE",
                 )
             ],
-            confirm=True,
+            preview=False,
         )
         response = await _modify_purchase_order_impl(request, context)
 
@@ -2824,7 +2824,7 @@ async def test_modify_po_add_additional_costs_without_default_group_id_errors(
             add_additional_costs=[
                 POAdditionalCostAdd(additional_cost_id=1, tax_rate_id=2, price=10.0)
             ],
-            confirm=False,
+            preview=True,
         )
         with pytest.raises(ValueError, match="group_id"):
             await _modify_purchase_order_impl(request, context)
@@ -2851,7 +2851,7 @@ async def test_modify_po_empty_update_row_payload_raises(patch_fetch_po):
         request = ModifyPurchaseOrderRequest(
             id=42,
             update_rows=[PORowUpdate(id=555)],
-            confirm=False,
+            preview=True,
         )
         with pytest.raises(
             ValueError,
@@ -2873,7 +2873,7 @@ async def test_modify_po_empty_update_row_payload_raises(patch_fetch_po):
 async def test_delete_po_preview_returns_planned_action():
     context, _ = create_mock_context()
     existing = create_mock_po(order_id=42, order_no="PO-1", rows=[])
-    request = DeletePurchaseOrderRequest(id=42, confirm=False)
+    request = DeletePurchaseOrderRequest(id=42, preview=True)
 
     with patch(
         "katana_mcp.tools.foundation.purchase_orders._fetch_purchase_order_attrs",
@@ -2910,7 +2910,7 @@ async def test_delete_po_confirm_calls_api_and_records_prior_state():
     ):
         mock_api.return_value = api_response
         response = await _delete_purchase_order_impl(
-            DeletePurchaseOrderRequest(id=42, confirm=True), context
+            DeletePurchaseOrderRequest(id=42, preview=False), context
         )
 
     assert response.is_preview is False

@@ -15,10 +15,10 @@ Every ``modify_<entity>`` tool follows this shape:
 3. Build a ``list[ActionSpec]`` translating sub-payloads into planned API
    calls — each ActionSpec carries the operation name, target id, diff
    metadata, and async closures for ``apply`` and (optional) ``verify``.
-4. **Preview branch** (``confirm=False``): wrap the plan in
+4. **Preview branch** (``preview=True``): wrap the plan in
    :class:`ActionResult` entries with ``succeeded=None`` (planned, not run)
    and return the :class:`ModificationResponse`.
-5. **Confirm branch** (``confirm=True``): call :func:`execute_plan` to run
+5. **Apply branch** (``preview=False``): call :func:`execute_plan` to run
    the actions in order, fail-fast on the first error. Capture
    ``prior_state`` before invoking. Return the same response shape with
    ``actions`` populated.
@@ -184,7 +184,7 @@ async def execute_plan(plan: list[ActionSpec]) -> list[ActionResult]:
 def plan_to_preview_results(plan: list[ActionSpec]) -> list[ActionResult]:
     """Convert a plan to preview-shaped :class:`ActionResult` entries.
 
-    Used by the preview branch (``confirm=False``) where no API calls run.
+    Used by the preview branch (``preview=True``) where no API calls run.
     Each ActionResult carries the operation/target/diff but
     ``succeeded=None`` to signal "planned, not yet executed".
     """
@@ -240,7 +240,7 @@ def has_any_subpayload(
     """True if the request has any sub-payload set (any field outside ``exclude``).
 
     Generic across every ``modify_<entity>`` tool — each has a top-level
-    request with a primary id, ``confirm``, and a set of optional
+    request with a primary id, ``preview``, and a set of optional
     sub-payload slots. This checks whether the caller asked for at least
     one action.
     """
@@ -258,7 +258,7 @@ def make_create_action(
     payload: BaseModel,
     apply: ApplyCallable,
     *,
-    exclude: tuple[str, ...] = ("confirm",),
+    exclude: tuple[str, ...] = ("preview",),
 ) -> ActionSpec:
     """Build an ActionSpec for a create-style operation (POST).
 
@@ -283,7 +283,7 @@ async def make_update_action(
     fetcher: Callable[[int], Awaitable[Any | None]],
     apply: ApplyCallable,
     *,
-    exclude: tuple[str, ...] = ("id", "confirm"),
+    exclude: tuple[str, ...] = ("id", "preview"),
 ) -> ActionSpec:
     """Build an ActionSpec for an update-style operation (PATCH).
 
@@ -579,7 +579,7 @@ def summarize_delete_outcome(
 
 
 # ============================================================================
-# Drivers — wrap the preview/confirm scaffolding so per-entity impls are
+# Drivers — wrap the preview/apply scaffolding so per-entity impls are
 # left with just ``build the plan`` plus a couple of identifying strings.
 # ============================================================================
 
@@ -604,7 +604,7 @@ async def run_modify_plan(
     here, identically across PO/SO/MO/etc.
 
     Args:
-        request: The Pydantic request — must have ``id`` and ``confirm`` fields.
+        request: The Pydantic request — must have ``id`` and ``preview`` fields.
         entity_type: Stable machine-readable type tag (e.g. ``"purchase_order"``).
         entity_label: Human-readable label including the id (e.g. ``"purchase
             order 42"``). Used in messages and warnings.
@@ -633,7 +633,7 @@ async def run_modify_plan(
     )
 
     # Reject server-computed (derived) fields before plan execution. Fires
-    # for both preview and confirm paths so the caller sees the error
+    # for both preview and apply paths so the caller sees the error
     # immediately, not after a partial plan applies. See
     # ``katana_mcp.tools._derived_fields`` for registry semantics.
     for spec in plan:
@@ -673,7 +673,7 @@ async def run_modify_plan(
             )
         raise ValueError(msg)
 
-    if not request.confirm:
+    if request.preview:
         return ModificationResponse(
             entity_type=entity_type,
             entity_id=request.id,
@@ -682,7 +682,7 @@ async def run_modify_plan(
             warnings=warnings,
             next_actions=[
                 f"Review {len(plan)} planned action(s)",
-                "Set confirm=true to execute the plan",
+                "Set preview=false to execute the plan",
             ],
             katana_url=katana_url,
             message=f"Preview: {len(plan)} action(s) planned for {entity_label}",
@@ -724,7 +724,7 @@ async def run_delete_plan(
     ModificationResponse. Katana cascades child deletes server-side.
 
     Args:
-        request: The Pydantic request — needs ``id`` and ``confirm``.
+        request: The Pydantic request — needs ``id`` and ``preview``.
         services: Result of ``get_services(context)``.
         entity_type: Machine tag (e.g. ``"purchase_order"``). The
             human-readable noun ("purchase order") is derived by replacing
@@ -749,11 +749,11 @@ async def run_delete_plan(
     )
     katana_url = katana_web_url(web_url_kind, request.id) if web_url_kind else None
 
-    if not request.confirm:
+    if request.preview:
         # Populate prior_state on the preview path so the rendered markdown
         # shows callers a snapshot of what they're about to delete — gives
         # them a chance to verify they targeted the right entity before
-        # confirming. The fetch is already best-effort: per-entity fetchers
+        # applying. The fetch is already best-effort: per-entity fetchers
         # wrap ``safe_fetch_for_diff`` which swallows errors to ``None``,
         # so a failed fetch leaves prior_state=None and the preview still
         # renders without raising.
@@ -765,7 +765,7 @@ async def run_delete_plan(
             prior_state=prior_state,
             next_actions=[
                 "Review the deletion",
-                f"Set confirm=true to delete the {entity_type.replace('_', ' ')}",
+                f"Set preview=false to delete the {entity_type.replace('_', ' ')}",
             ],
             katana_url=katana_url,
             message=f"Preview: delete {entity_label}",

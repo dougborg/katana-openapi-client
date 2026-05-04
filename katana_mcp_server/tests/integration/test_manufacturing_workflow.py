@@ -40,7 +40,7 @@ class TestManufacturingOrderPreviewWorkflow:
             planned_quantity=50,
             location_id=1,  # Test location ID
             additional_info="Integration test - preview only",
-            confirm=False,  # Preview mode
+            preview=True,  # Preview mode
         )
 
         result = await _create_manufacturing_order_impl(request, integration_context)
@@ -69,7 +69,7 @@ class TestManufacturingOrderPreviewWorkflow:
             order_created_date=datetime.now(UTC),
             production_deadline_date=deadline,
             additional_info="Full fields test",
-            confirm=False,
+            preview=True,
         )
 
         result = await _create_manufacturing_order_impl(request, integration_context)
@@ -112,7 +112,7 @@ class TestManufacturingOrderPreviewWorkflow:
             planned_quantity=25,
             location_id=1,
             additional_info=f"Test MO for {first_item.sku}",
-            confirm=False,
+            preview=True,
         )
 
         result = await _create_manufacturing_order_impl(mo_request, integration_context)
@@ -138,7 +138,7 @@ class TestManufacturingOrderValidation:
                 variant_id=1,
                 planned_quantity=0,  # Zero should fail
                 location_id=1,
-                confirm=False,
+                preview=True,
             )
 
         with pytest.raises(ValueError):
@@ -146,7 +146,7 @@ class TestManufacturingOrderValidation:
                 variant_id=1,
                 planned_quantity=-10,  # Negative should fail
                 location_id=1,
-                confirm=False,
+                preview=True,
             )
 
     async def test_mo_preview_vs_confirm_behavior(self, integration_context):
@@ -160,7 +160,7 @@ class TestManufacturingOrderValidation:
         # Preview mode - should not create
         preview_request = CreateManufacturingOrderRequest(
             **base_request_data,
-            confirm=False,
+            preview=True,
         )
         preview_result = await _create_manufacturing_order_impl(
             preview_request, integration_context
@@ -169,7 +169,7 @@ class TestManufacturingOrderValidation:
         assert preview_result.is_preview is True
         assert preview_result.id is None  # No ID in preview
 
-        # Note: We don't test confirm=True here as it would create real data
+        # Note: We don't test preview=False here as it would create real data
 
 
 @pytest.mark.integration
@@ -184,7 +184,7 @@ class TestManufacturingWorkflowEdgeCases:
             planned_quantity=100000,
             location_id=1,
             additional_info="Large batch test",
-            confirm=False,
+            preview=True,
         )
 
         result = await _create_manufacturing_order_impl(request, integration_context)
@@ -198,7 +198,7 @@ class TestManufacturingWorkflowEdgeCases:
             variant_id=1,
             planned_quantity=12.5,
             location_id=1,
-            confirm=False,
+            preview=True,
         )
 
         result = await _create_manufacturing_order_impl(request, integration_context)
@@ -215,7 +215,7 @@ class TestManufacturingWorkflowEdgeCases:
             planned_quantity=10,
             location_id=1,
             production_deadline_date=past_deadline,
-            confirm=False,
+            preview=True,
         )
 
         result = await _create_manufacturing_order_impl(request, integration_context)
@@ -232,7 +232,7 @@ class TestManufacturingWorkflowEdgeCases:
             planned_quantity=10,
             location_id=1,
             additional_info=long_info,
-            confirm=False,
+            preview=True,
         )
 
         result = await _create_manufacturing_order_impl(request, integration_context)
@@ -276,7 +276,7 @@ class TestManufacturingSearchIntegration:
                 planned_quantity=10,
                 location_id=1,
                 additional_info=f"Batch test for {item.sku}",
-                confirm=False,
+                preview=True,
             )
 
             result = await _create_manufacturing_order_impl(
