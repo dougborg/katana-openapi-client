@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from katana_public_api_client.api.product import get_all_products
-from katana_public_api_client.domain.converters import unwrap_unset
 from katana_public_api_client.helpers.base import Base
 from katana_public_api_client.models.product import Product
 from katana_public_api_client.utils import unwrap_data
@@ -12,54 +11,28 @@ from katana_public_api_client.utils import unwrap_data
 class Inventory(Base):
     """Inventory and stock operations.
 
-    Provides methods for checking stock levels (used by MCP tools).
-    For product catalog CRUD, use client.products instead.
+    For per-SKU stock lookups, call
+    ``katana_public_api_client.api.inventory.get_inventory.asyncio_detailed``
+    directly with a ``sku`` filter — the inventory endpoint provides the
+    canonical stock view (on-hand, allocations, incoming) without the
+    per-page pagination guess that the legacy ``check_stock`` helper
+    had to make.
+
+    For product catalog CRUD, use ``client.products`` instead.
+
+    .. warning::
+       ``list_low_stock`` reads ``product.stock_information`` which is
+       not a typed field on the generated ``Product`` attrs model. The
+       helper currently returns ``[]`` against live API data regardless
+       of inventory state. Migration to the inventory endpoint is
+       tracked in #510; until then prefer that endpoint directly.
 
     Example:
         >>> async with KatanaClient() as client:
-        ...     stock = await client.inventory.check_stock("WIDGET-001")
         ...     low_stock = await client.inventory.list_low_stock(threshold=10)
     """
 
     # === MCP Tool Support Methods ===
-
-    async def check_stock(self, sku: str) -> Product | None:
-        """Check stock levels for a specific SKU.
-
-        Used by: MCP tool check_inventory
-
-        Args:
-            sku: The SKU to check stock for.
-
-        Returns:
-            Product model with stock information, or None if SKU not found.
-
-        Example:
-            >>> product = await client.inventory.check_stock("WIDGET-001")
-            >>> if product:
-            ...     stock = product.stock_information
-            ...     print(f"Available: {stock.available}, In Stock: {stock.in_stock}")
-        """
-        # Note: The API doesn't support direct SKU filtering yet
-        # We need to fetch products and filter client-side
-        # TODO: When API adds SKU parameter, use that instead
-        response = await get_all_products.asyncio_detailed(
-            client=self._client,
-            limit=100,
-        )
-        products = unwrap_data(response)
-
-        # Find product by SKU - check variants for matching SKU
-        # Note: Product attrs model doesn't have 'sku' directly - SKU is on Variant
-        for product in products:
-            # Check variants for matching SKU (variants is an attrs field that may be UNSET)
-            variants = unwrap_unset(product.variants, [])
-            for variant in variants or []:
-                # Variant.sku is a required field, always present
-                if variant.sku == sku:
-                    return product
-
-        return None
 
     async def list_low_stock(self, threshold: int | None = None) -> list[Product]:
         """Find products below their reorder point.

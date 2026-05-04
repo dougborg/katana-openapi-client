@@ -185,27 +185,26 @@ uv run mcp-hmr katana_mcp.server:mcp
 Hot reload makes debugging much faster:
 
 ```python
-# Before (in src/katana_mcp/tools/inventory.py)
-async def _check_inventory_impl(request: CheckInventoryRequest, context: Context) -> StockInfo:
-    server_context = context.request_context.lifespan_context
-    client = server_context.client
-    product = await client.inventory.check_stock(request.sku)
-    # ... rest of function
+# Before (in src/katana_mcp/tools/foundation/inventory.py)
+async def _check_inventory_impl(
+    request: CheckInventoryRequest, context: Context
+) -> list[StockInfo]:
+    services = get_services(context)
+    # ... fetch variants from cache, look up stock per variant ...
 
 # After (add logging - save file - test immediately!)
-import logging
-logger = logging.getLogger(__name__)
+from katana_mcp.logging import get_logger
+logger = get_logger(__name__)
 
-async def _check_inventory_impl(request: CheckInventoryRequest, context: Context) -> StockInfo:
-    logger.debug(f"Context structure: {dir(context)}")  # See what's available
-    logger.debug(f"Request context: {dir(context.request_context)}")  # Debug paths
-
-    server_context = context.request_context.lifespan_context
-    client = server_context.client
-
-    logger.info(f"Checking stock for SKU: {request.sku}")  # Track calls
-    product = await client.inventory.check_stock(request.sku)
-    logger.info(f"Found product: {product.name if product else 'Not found'}")
+async def _check_inventory_impl(
+    request: CheckInventoryRequest, context: Context
+) -> list[StockInfo]:
+    logger.info(
+        "inventory_check_started",
+        sku_count=sum(1 for x in request.skus_or_variant_ids if isinstance(x, str)),
+        variant_id_count=sum(1 for x in request.skus_or_variant_ids if isinstance(x, int)),
+    )
+    services = get_services(context)
     # ... rest of function
 ```
 
