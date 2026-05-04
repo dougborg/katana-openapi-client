@@ -12,10 +12,12 @@ Organization:
 - catalog.py: Create products and materials (dedicated catalog management)
 - manufacturing_orders.py: Create manufacturing orders
 - orders.py: Fulfill manufacturing orders and sales orders
+- cache_admin.py: Cache administration (rebuild_cache for typed cache)
 """
 
 from fastmcp import FastMCP
 
+from .cache_admin import register_tools as register_cache_admin_tools
 from .catalog import register_tools as register_catalog_tools
 from .customers import register_tools as register_customers_tools
 from .inventory import register_tools as register_inventory_tools
@@ -44,6 +46,7 @@ def register_all_foundation_tools(mcp: FastMCP) -> None:
     register_order_tools(mcp)
     register_stock_transfer_tools(mcp)
     register_reporting_tools(mcp)
+    register_cache_admin_tools(mcp)
 
 
 __all__ = [

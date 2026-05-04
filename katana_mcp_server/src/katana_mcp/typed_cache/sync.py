@@ -23,9 +23,12 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
+from contextlib import AsyncExitStack
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
+
+from sqlmodel import delete
 
 from katana_public_api_client.api.manufacturing_order import (
     get_all_manufacturing_orders,
@@ -244,50 +247,66 @@ async def _sync_one(
     own per-entity lock, no nesting.
     """
     async with cache.lock_for(spec.entity_key):
-        async with cache.session() as session:
-            state = await session.get(SyncState, spec.entity_key)
-            last_synced = state.last_synced if state is not None else None
+        await _sync_one_locked(client, cache, spec)
 
-        # ``last_synced`` is persisted as naive UTC (SQLite's default
-        # DateTime column strips tzinfo). Re-attach UTC before sending to
-        # the API so the generated client serializes an explicit offset.
-        # ``include_deleted=True`` is always sent so soft-deletes after
-        # the watermark surface in the response (Katana bumps
-        # ``updated_at`` when ``deleted_at`` is set), letting the upsert
-        # propagate the tombstone into the cache row.
-        kwargs: dict[str, Any] = {"include_deleted": True}
-        if last_synced is not None:
-            kwargs["updated_at_min"] = last_synced.replace(tzinfo=UTC)
-        response = await spec.api_fn.asyncio_detailed(client=client, **kwargs)
-        attrs_objs = unwrap_data(response, default=[])
 
-        cached_parents: list[Any] = []
-        cached_children: list[Any] = []
-        for attrs_obj in attrs_objs:
-            parent, children = _convert(spec, attrs_obj)
-            cached_parents.append(parent)
-            cached_children.extend(children)
+async def _sync_one_locked(
+    client: KatanaClient, cache: TypedCacheEngine, spec: EntitySpec
+) -> None:
+    """Same sync work as ``_sync_one``, but assumes the caller already holds
+    ``cache.lock_for(spec.entity_key)``.
 
-        async with cache.session() as session:
-            # Parents first so child FK constraints resolve on insert.
-            for parent in cached_parents:
-                await session.merge(parent)
-            for child in cached_children:
-                await session.merge(child)
-            # SQLite's DateTime column doesn't preserve tzinfo, so naive
-            # UTC on the write side. ``row_count`` is the last-fetch size
-            # (not a cumulative total, which would drift since a re-sync
-            # that finds zero changed rows would otherwise reset the
-            # count); consumers needing a true total run ``SELECT COUNT(*)``
-            # on the entity table itself.
-            await session.merge(
-                SyncState(
-                    entity_type=spec.entity_key,
-                    last_synced=datetime.now(tz=UTC).replace(tzinfo=None),
-                    row_count=len(cached_parents),
-                )
+    Used by :func:`force_resync` so the truncate and the cold-start re-pull
+    happen under one continuous lock acquisition — concurrent ``list_*``
+    tools block on the same lock until both phases finish and never observe
+    an empty cache. ``_sync_one`` itself is the lock-acquiring wrapper for
+    the normal incremental-sync path; calling it from ``force_resync`` while
+    the lock is held would deadlock (asyncio.Lock isn't reentrant).
+    """
+    async with cache.session() as session:
+        state = await session.get(SyncState, spec.entity_key)
+        last_synced = state.last_synced if state is not None else None
+
+    # ``last_synced`` is persisted as naive UTC (SQLite's default
+    # DateTime column strips tzinfo). Re-attach UTC before sending to
+    # the API so the generated client serializes an explicit offset.
+    # ``include_deleted=True`` is always sent so soft-deletes after
+    # the watermark surface in the response (Katana bumps
+    # ``updated_at`` when ``deleted_at`` is set), letting the upsert
+    # propagate the tombstone into the cache row.
+    kwargs: dict[str, Any] = {"include_deleted": True}
+    if last_synced is not None:
+        kwargs["updated_at_min"] = last_synced.replace(tzinfo=UTC)
+    response = await spec.api_fn.asyncio_detailed(client=client, **kwargs)
+    attrs_objs = unwrap_data(response, default=[])
+
+    cached_parents: list[Any] = []
+    cached_children: list[Any] = []
+    for attrs_obj in attrs_objs:
+        parent, children = _convert(spec, attrs_obj)
+        cached_parents.append(parent)
+        cached_children.extend(children)
+
+    async with cache.session() as session:
+        # Parents first so child FK constraints resolve on insert.
+        for parent in cached_parents:
+            await session.merge(parent)
+        for child in cached_children:
+            await session.merge(child)
+        # SQLite's DateTime column doesn't preserve tzinfo, so naive
+        # UTC on the write side. ``row_count`` is the last-fetch size
+        # (not a cumulative total, which would drift since a re-sync
+        # that finds zero changed rows would otherwise reset the
+        # count); consumers needing a true total run ``SELECT COUNT(*)``
+        # on the entity table itself.
+        await session.merge(
+            SyncState(
+                entity_type=spec.entity_key,
+                last_synced=datetime.now(tz=UTC).replace(tzinfo=None),
+                row_count=len(cached_parents),
             )
-            await session.commit()
+        )
+        await session.commit()
 
 
 # ---------------------------------------------------------------------------
@@ -466,3 +485,76 @@ async def ensure_manufacturing_order_recipe_rows_synced(
     only the recipe-row watermark advanced.
     """
     await _ensure_synced(client, cache, _MANUFACTURING_ORDER_RECIPE_ROW_SPEC)
+
+
+# ---------------------------------------------------------------------------
+# Force-resync (truncate + cold-start re-pull, atomically)
+# ---------------------------------------------------------------------------
+
+
+ENTITY_SPECS: dict[str, EntitySpec] = {
+    "sales_order": _SALES_ORDER_SPEC,
+    "stock_adjustment": _STOCK_ADJUSTMENT_SPEC,
+    "manufacturing_order": _MANUFACTURING_ORDER_SPEC,
+    "purchase_order": _PURCHASE_ORDER_SPEC,
+    "stock_transfer": _STOCK_TRANSFER_SPEC,
+}
+"""Public registry of top-level entity specs by user-facing key.
+
+Used by the ``rebuild_cache`` MCP tool (``cache_admin``) to look up the
+cache classes and watermark keys for any cached entity type. Sibling
+row specs (PO rows, MO recipe rows) aren't keyed at the top level —
+they're reachable via each spec's ``related_specs`` instead.
+"""
+
+
+async def force_resync(
+    client: KatanaClient, cache: TypedCacheEngine, entity_key: str
+) -> None:
+    """Atomically truncate cache tables for one entity and re-fetch from Katana.
+
+    Holds the entity's sync lock(s) — parent plus every related spec's lock
+    — across both the truncate and the cold-start re-fetch. The normal
+    ``ensure_<entity>_synced`` path acquires and releases its lock once per
+    sync; this helper does not, so a concurrent ``list_<entity>`` blocks on
+    the same locks until the re-fetch completes and never observes the
+    intermediate empty state.
+
+    Use case: the ``rebuild_cache`` MCP tool, when phantom rows have
+    accumulated in the cache (entities present locally that no longer exist
+    upstream because a hard-delete or partial sync left no tombstone for
+    the incremental delta to pick up).
+    """
+    if entity_key not in ENTITY_SPECS:
+        msg = (
+            f"Unknown entity_key {entity_key!r}; expected one of {sorted(ENTITY_SPECS)}"
+        )
+        raise ValueError(msg)
+    spec = ENTITY_SPECS[entity_key]
+    all_specs: tuple[EntitySpec, ...] = (spec, *spec.related_specs)
+
+    async with AsyncExitStack() as stack:
+        for s in all_specs:
+            await stack.enter_async_context(cache.lock_for(s.entity_key))
+        # All locks held. Truncate child tables first to satisfy FK
+        # constraints, then the parent. PO/SO row-spec ``cache_cls`` is the
+        # same SQLModel as ``spec.child_cls``; the set dedupes.
+        children_to_delete: set[type] = set()
+        if spec.child_cls is not None:
+            children_to_delete.add(spec.child_cls)
+        for related in spec.related_specs:
+            children_to_delete.add(related.cache_cls)
+        async with cache.session() as session:
+            for child_cls in children_to_delete:
+                await session.exec(delete(child_cls))
+            await session.exec(delete(spec.cache_cls))
+            for s in all_specs:
+                state_row = await session.get(SyncState, s.entity_key)
+                if state_row is not None:
+                    await session.delete(state_row)
+            await session.commit()
+        # Re-fetch under the still-held locks. Parent first so its inline
+        # rows (PO/SO) land before the row spec's separate fetch picks up
+        # row-level tombstones the parent payload omits.
+        for s in all_specs:
+            await _sync_one_locked(client, cache, s)

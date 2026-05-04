@@ -73,6 +73,9 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **modify_stock_transfer** - Unified modify: header body fields and/or status transition in one call (preview/apply). Hides Katana's two-endpoint split.
 - **delete_stock_transfer** - Delete a transfer
 
+### Cache Administration
+- **rebuild_cache** - Force-rebuild the local typed cache for one or more transactional entity types (PO, SO, MO, stock adjustment, stock transfer). Truncates the cache table(s), clears the sync watermark, and re-fetches from Katana. Use when the cache has phantom rows (entities present locally but missing from Katana). Destructive; preview/apply.
+
 ## Safety Pattern
 
 All create/modify operations use a **two-step preview/apply pattern**:
@@ -1254,6 +1257,50 @@ Delete a stock transfer. Destructive — the transfer record is removed.
 **Parameters:**
 - `id` (required): Stock transfer ID
 - `preview` (optional, default true): true=preview, false=delete
+
+---
+
+## Cache Administration Tools
+
+### rebuild_cache
+Force-rebuild the local typed cache for one or more transactional entity types.
+The steady-state sync path upserts via `session.merge` and never deletes — soft-
+deletes from Katana are folded in correctly because the tombstone surfaces in
+the next `updated_at_min` delta, but rows that left Katana without a tombstone
+in our watermarked window (hard deletes, partial syncs, state predating cache
+initialization) persist locally as phantoms. Rebuild is the manual escape hatch.
+
+For each requested entity type, the rebuild:
+1. Acquires the per-entity sync locks (parent + every related spec).
+2. Deletes every row in the cache table(s).
+3. Deletes the matching `sync_state` watermark row(s).
+4. Re-fetches everything from Katana under the still-held locks. Concurrent
+   `list_*` calls block on the same locks until the re-pull completes and
+   never observe the empty intermediate state.
+
+**Parameters:**
+- `entity_types` (required, min length 1): list of entity types to rebuild.
+  Allowed values: `purchase_order`, `sales_order`, `manufacturing_order`,
+  `stock_adjustment`, `stock_transfer`.
+- `preview` (optional, default true): true = report current row counts and
+  last-synced timestamps without modifying anything; false = perform the
+  destructive rebuild.
+- `format` (optional, default "markdown"): "markdown" | "json".
+
+**Returns:** `RebuildCacheResponse` with `is_preview` and a `results` list
+carrying per-entity `parent_rows_before/after`, `child_rows_before/after`,
+`last_synced_before` (ISO-8601 or `null` if never synced), and the list of
+`sync_state_keys_cleared` (empty list in preview mode).
+
+**Caveats:**
+- Destructive: cache rows are gone between truncate and re-pull, but
+  concurrent `list_*` calls block on the sync lock until the re-pull
+  completes — they observe the rebuilt cache, not the empty intermediate.
+- Not transactional across entity types: each entity is rebuilt sequentially.
+  If the resync for entity B fails after entity A succeeded, A is
+  already rebuilt.
+- Bandwidth cost equals one full cold-start sync per entity type
+  (paginated via the auto-pagination transport).
 
 ---
 
