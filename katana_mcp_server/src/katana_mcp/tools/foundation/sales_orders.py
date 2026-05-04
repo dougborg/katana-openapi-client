@@ -4,7 +4,7 @@ Foundation tools covering the sales-order lifecycle: create, list, get
 (read-mostly tools), plus the unified modify/delete pair.
 
 Tools:
-- create_sales_order: Create sales orders with preview/confirm pattern
+- create_sales_order: Create sales orders with preview/apply pattern
 - list_sales_orders / get_sales_order: discovery + exhaustive read
 - modify_sales_order: header + row CRUD + addresses + fulfillments +
   shipping-fee CRUD via typed sub-payload slots
@@ -189,9 +189,9 @@ class CreateSalesOrderRequest(BaseModel):
     customer_ref: str | None = Field(
         default=None, description="Customer's reference number (optional)"
     )
-    confirm: bool = Field(
-        default=False,
-        description="If false, returns preview. If true, creates order.",
+    preview: bool = Field(
+        default=True,
+        description="If true (default), returns preview. If false, creates order.",
     )
 
 
@@ -232,7 +232,7 @@ async def _create_sales_order_impl(
         Exception: If API call fails
     """
     logger.info(
-        f"{'Previewing' if not request.confirm else 'Creating'} sales order {request.order_number}"
+        f"{'Previewing' if request.preview else 'Creating'} sales order {request.order_number}"
     )
 
     # Calculate preview total (estimate based on items with prices)
@@ -241,7 +241,7 @@ async def _create_sales_order_impl(
         for item in request.items
     )
 
-    if not request.confirm:
+    if request.preview:
         logger.info(
             f"Preview mode: SO {request.order_number} would have {len(request.items)} items"
         )
@@ -279,7 +279,7 @@ async def _create_sales_order_impl(
             warnings=warnings,
             next_actions=[
                 "Review the order details",
-                "Set confirm=true to create the sales order",
+                "Set preview=false to create the sales order",
             ],
             message=f"Preview: Sales order {request.order_number} with {len(request.items)} items"
             + (f" totaling {total_estimate:.2f}" if total_estimate > 0 else ""),
@@ -384,7 +384,7 @@ async def create_sales_order(
 ) -> ToolResult:
     """Create a sales order for a customer purchase.
 
-    Two-step flow: confirm=false to preview totals, confirm=true to create.
+    Two-step flow: preview=true (default) to preview totals, preview=false to create.
     Requires customer_id, order_number, and at least one line item with
     variant_id and quantity. Supports optional pricing overrides, discounts,
     delivery dates, and billing/shipping addresses.
@@ -1808,7 +1808,7 @@ async def _modify_sales_order_impl(
     request: ModifySalesOrderRequest, context: Context
 ) -> ModificationResponse:
     """Build the action plan from the request's sub-payloads and either
-    preview or execute based on ``confirm``."""
+    preview or execute based on ``preview``."""
     services = get_services(context)
 
     if not has_any_subpayload(request):
@@ -2018,8 +2018,8 @@ async def modify_sales_order(
 
     To remove an SO entirely, use the sibling ``delete_sales_order`` tool.
 
-    Two-step flow: ``confirm=false`` returns a per-action preview;
-    ``confirm=true`` executes the plan in canonical order. Fail-fast on
+    Two-step flow: ``preview=true`` (default) returns a per-action preview;
+    ``preview=false`` executes the plan in canonical order. Fail-fast on
     error; per-action ``verified`` reflects post-execution re-fetch
     confirmation (when supported by the resource).
 

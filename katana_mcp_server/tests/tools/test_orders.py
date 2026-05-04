@@ -44,7 +44,7 @@ async def test_fulfill_manufacturing_order_preview():
     get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_response)
 
     request = FulfillOrderRequest(
-        order_id=1234, order_type="manufacturing", confirm=False
+        order_id=1234, order_type="manufacturing", preview=True
     )
     result = await _fulfill_order_impl(request, context)
 
@@ -55,7 +55,7 @@ async def test_fulfill_manufacturing_order_preview():
     assert result.is_preview is True
     assert len(result.inventory_updates) > 0
     assert any("finished goods" in msg.lower() for msg in result.inventory_updates)
-    assert "Set confirm=true" in result.next_actions[2]
+    assert "Set preview=false" in result.next_actions[2]
 
 
 @pytest.mark.asyncio
@@ -93,7 +93,7 @@ async def test_fulfill_manufacturing_order_confirm():
     )
 
     request = FulfillOrderRequest(
-        order_id=1234, order_type="manufacturing", confirm=True
+        order_id=1234, order_type="manufacturing", preview=False
     )
     result = await _fulfill_order_impl(request, context)
 
@@ -131,7 +131,7 @@ async def test_fulfill_manufacturing_order_already_done():
 
     # Preview mode
     request = FulfillOrderRequest(
-        order_id=1234, order_type="manufacturing", confirm=False
+        order_id=1234, order_type="manufacturing", preview=True
     )
     result = await _fulfill_order_impl(request, context)
 
@@ -141,7 +141,7 @@ async def test_fulfill_manufacturing_order_already_done():
 
     # Confirm mode - should not try to update
     request = FulfillOrderRequest(
-        order_id=1234, order_type="manufacturing", confirm=True
+        order_id=1234, order_type="manufacturing", preview=False
     )
     result = await _fulfill_order_impl(request, context)
 
@@ -171,7 +171,7 @@ async def test_fulfill_manufacturing_order_blocked():
     get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_response)
 
     request = FulfillOrderRequest(
-        order_id=1234, order_type="manufacturing", confirm=False
+        order_id=1234, order_type="manufacturing", preview=True
     )
     result = await _fulfill_order_impl(request, context)
 
@@ -196,7 +196,7 @@ async def test_fulfill_manufacturing_order_not_found():
     get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_response)
 
     request = FulfillOrderRequest(
-        order_id=9999, order_type="manufacturing", confirm=False
+        order_id=9999, order_type="manufacturing", preview=True
     )
 
     with pytest.raises(APIError):
@@ -238,7 +238,7 @@ async def test_fulfill_sales_order_preview():
 
     get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_response)
 
-    request = FulfillOrderRequest(order_id=5678, order_type="sales", confirm=False)
+    request = FulfillOrderRequest(order_id=5678, order_type="sales", preview=True)
     result = await _fulfill_order_impl(request, context)
 
     assert result.order_id == 5678
@@ -250,8 +250,8 @@ async def test_fulfill_sales_order_preview():
     assert len(result.inventory_updates) == 2
     assert any("variant 100" in u for u in result.inventory_updates)
     assert any("variant 200" in u for u in result.inventory_updates)
-    # Last next_action should mention confirm=true.
-    assert any("confirm=true" in a for a in result.next_actions)
+    # Last next_action should mention preview=false.
+    assert any("preview=false" in a for a in result.next_actions)
 
 
 @pytest.mark.asyncio
@@ -281,7 +281,7 @@ async def test_fulfill_sales_order_confirm_creates_fulfillment():
     create_mock = AsyncMock(return_value=mock_create_response)
     create_sales_order_fulfillment.asyncio_detailed = create_mock
 
-    request = FulfillOrderRequest(order_id=5678, order_type="sales", confirm=True)
+    request = FulfillOrderRequest(order_id=5678, order_type="sales", preview=False)
     result = await _fulfill_order_impl(request, context)
 
     assert result.is_preview is False
@@ -292,7 +292,7 @@ async def test_fulfill_sales_order_confirm_creates_fulfillment():
 
 @pytest.mark.asyncio
 async def test_fulfill_sales_order_confirm_refuses_when_no_rows():
-    """confirm=True against a sales order with no rows must refuse cleanly
+    """preview=False against a sales order with no rows must refuse cleanly
     (no-op response with BLOCK warning + Refused message), not raise. Matches
     the defense-in-depth pattern of the other BLOCK guards.
     """
@@ -314,7 +314,7 @@ async def test_fulfill_sales_order_confirm_refuses_when_no_rows():
     create_mock = AsyncMock()
     create_sales_order_fulfillment.asyncio_detailed = create_mock
 
-    request = FulfillOrderRequest(order_id=5678, order_type="sales", confirm=True)
+    request = FulfillOrderRequest(order_id=5678, order_type="sales", preview=False)
     result = await _fulfill_order_impl(request, context)
 
     assert result.is_preview is False
@@ -343,7 +343,7 @@ async def test_fulfill_sales_order_blocks_when_already_delivered():
     get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_response)
 
     # Preview path: BLOCK warning present.
-    request = FulfillOrderRequest(order_id=5678, order_type="sales", confirm=False)
+    request = FulfillOrderRequest(order_id=5678, order_type="sales", preview=True)
     result = await _fulfill_order_impl(request, context)
     assert result.is_preview is True
     block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
@@ -351,7 +351,7 @@ async def test_fulfill_sales_order_blocks_when_already_delivered():
     assert "DELIVERED" in block_warnings[0]
 
     # Confirm path: refuses without raising — returns a no-op response.
-    request = FulfillOrderRequest(order_id=5678, order_type="sales", confirm=True)
+    request = FulfillOrderRequest(order_id=5678, order_type="sales", preview=False)
     result = await _fulfill_order_impl(request, context)
     assert result.is_preview is False
     assert result.status == "DELIVERED"
@@ -372,7 +372,7 @@ async def test_fulfill_sales_order_not_found():
 
     get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_response)
 
-    request = FulfillOrderRequest(order_id=9999, order_type="sales", confirm=False)
+    request = FulfillOrderRequest(order_id=9999, order_type="sales", preview=True)
 
     with pytest.raises(APIError):
         await _fulfill_order_impl(request, context)
@@ -390,7 +390,7 @@ async def test_fulfill_order_invalid_type():
     from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
-        FulfillOrderRequest(order_id=1234, order_type="invalid", confirm=False)  # type: ignore
+        FulfillOrderRequest(order_id=1234, order_type="invalid", preview=True)  # type: ignore
 
 
 # ============================================================================
@@ -428,7 +428,7 @@ async def test_fulfill_manufacturing_order_api_error():
     )
 
     request = FulfillOrderRequest(
-        order_id=1234, order_type="manufacturing", confirm=True
+        order_id=1234, order_type="manufacturing", preview=False
     )
 
     with pytest.raises(APIError):

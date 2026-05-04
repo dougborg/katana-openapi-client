@@ -46,38 +46,38 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **create_stock_adjustment / list_stock_adjustments / update_stock_adjustment / delete_stock_adjustment** - Full CRUD for manual inventory adjustments
 
 ### Purchase Orders
-- **create_purchase_order** - Create PO with preview/confirm pattern
+- **create_purchase_order** - Create PO with preview/apply pattern
 - **list_purchase_orders** - List POs with supplier/status/date filters
 - **receive_purchase_order** - Receive items and update inventory
 - **verify_order_document** - Verify supplier documents against POs (returns the full PO alongside match/discrepancy details)
 - **get_purchase_order** - Look up a PO by number or ID — exhaustive detail (every PO/row field, additional cost rows, accounting metadata)
-- **modify_purchase_order** - Unified modify: header, rows, additional-cost rows in one call (typed sub-payload slots, multi-action, preview/confirm)
+- **modify_purchase_order** - Unified modify: header, rows, additional-cost rows in one call (typed sub-payload slots, multi-action, preview/apply)
 - **delete_purchase_order** - Delete a PO (Katana cascades child rows)
 
 ### Manufacturing & Sales
 - **create_manufacturing_order** - Create production work orders
 - **list_manufacturing_orders** - List MOs with status/location/date filters
 - **get_manufacturing_order** - Look up an MO with full details
-- **modify_manufacturing_order** - Unified modify: header, recipe rows, operation rows, production records (multi-action, preview/confirm)
+- **modify_manufacturing_order** - Unified modify: header, recipe rows, operation rows, production records (multi-action, preview/apply)
 - **delete_manufacturing_order** - Delete an MO (Katana cascades child rows)
 - **fulfill_order** - Complete manufacturing or sales orders
-- **create_sales_order** - Create sales orders with preview/confirm
+- **create_sales_order** - Create sales orders with preview/apply
 - **list_sales_orders** - List SOs with customer/status/date filters
 - **get_sales_order** - Look up an SO with full details
-- **modify_sales_order** - Unified modify: header, rows, addresses, fulfillments, shipping fees (multi-action, preview/confirm)
+- **modify_sales_order** - Unified modify: header, rows, addresses, fulfillments, shipping fees (multi-action, preview/apply)
 - **delete_sales_order** - Delete an SO (Katana cascades child rows)
 
 ### Stock Transfers
-- **create_stock_transfer** - Move inventory between locations (preview/confirm)
+- **create_stock_transfer** - Move inventory between locations (preview/apply)
 - **list_stock_transfers** - List transfers with status / location / date filters
-- **modify_stock_transfer** - Unified modify: header body fields and/or status transition in one call (preview/confirm). Hides Katana's two-endpoint split.
+- **modify_stock_transfer** - Unified modify: header body fields and/or status transition in one call (preview/apply). Hides Katana's two-endpoint split.
 - **delete_stock_transfer** - Delete a transfer
 
 ## Safety Pattern
 
-All create/modify operations use a **two-step confirm pattern**:
-1. Call with `confirm=false` to preview (no changes made)
-2. Call with `confirm=true` to execute
+All create/modify operations use a **two-step preview/apply pattern**:
+1. Call with `preview=true` (default) to preview (no changes made)
+2. Call with `preview=false` to execute
 
 Destructive tools advertise this via the standard MCP `destructiveHint`
 tool annotation; hosts that respect the annotation prompt the user before
@@ -93,11 +93,11 @@ the same shape:
 - **Typed sub-payload slots** — one optional field per kind of action
   the entity supports (e.g. `update_header`, `add_rows`, `update_rows`,
   `delete_row_ids`). Set any subset; combinations are valid.
-- **Multi-action confirm** — actions execute in canonical order
+- **Multi-action apply** — actions execute in canonical order
   (header → adds → updates → deletes → status). The Katana API is not
   transactional across endpoints; the dispatcher fail-fasts on the
   first error, leaving earlier successful actions applied.
-- **Prior-state snapshot** — on a confirmed call, the response carries
+- **Prior-state snapshot** — on an applied call, the response carries
   a `prior_state` snapshot of the pre-modification entity (best-effort:
   `prior_state` is `null` when the entity has no GET-by-id endpoint,
   e.g. stock transfer, or the diff-context fetch failed). Callers can
@@ -145,7 +145,7 @@ Patterns (base: `factory.katanamrp.com`, override via `KATANA_WEB_BASE_URL`):
 | Stock adjustments | `/stockadjustment/{id}` |
 
 `katana_url` is `None` when the entity id isn't available — typically
-create-tool previews (no id assigned until confirm=true). Update-tool
+create-tool previews (no id assigned until preview=false). Update-tool
 previews already know the id and return a populated `katana_url`.
 
 ## Common Workflows
@@ -160,7 +160,7 @@ Use `katana://help/workflows` for detailed step-by-step guides.
 ## Reporting & Analytics
 
 Aggregation tools compute rollups in one MCP call instead of paginating
-through hundreds of sales orders client-side. All read-only, no `confirm`.
+through hundreds of sales orders client-side. All read-only, no `preview` flag.
 
 - **top_selling_variants** — top-N variants by units or revenue over a
   date window. Filters: category, location.
@@ -206,7 +206,7 @@ Detailed step-by-step guides for common manufacturing ERP workflows.
      "location_id": 1,
      "order_number": "PO-2025-001",
      "items": [{"variant_id": 501, "quantity": 100, "price_per_unit": 0.15}],
-     "confirm": false
+     "preview": true
    }
    ```
    Returns preview with total cost - no order created yet.
@@ -214,9 +214,9 @@ Detailed step-by-step guides for common manufacturing ERP workflows.
 4. **Confirm and create order**
    ```json
    Tool: create_purchase_order
-   Request: {...same as above..., "confirm": true}
+   Request: {...same as above..., "preview": false}
    ```
-   Creates actual PO once invoked with confirm=true.
+   Creates actual PO once invoked with preview=false.
 
 ---
 
@@ -244,7 +244,7 @@ Detailed step-by-step guides for common manufacturing ERP workflows.
    Request: {
      "order_id": 1234,
      "items": [{"purchase_order_row_id": 501, "quantity": 100}],
-     "confirm": false
+     "preview": true
    }
    ```
    Shows what will be received.
@@ -252,9 +252,9 @@ Detailed step-by-step guides for common manufacturing ERP workflows.
 3. **Confirm receipt**
    ```json
    Tool: receive_purchase_order
-   Request: {...same as above..., "confirm": true}
+   Request: {...same as above..., "preview": false}
    ```
-   Updates inventory once invoked with confirm=true.
+   Updates inventory once invoked with preview=false.
 
 ---
 
@@ -279,7 +279,7 @@ Detailed step-by-step guides for common manufacturing ERP workflows.
    Request: {
      "order_id": 345,
      "order_type": "manufacturing",
-     "confirm": true
+     "preview": false
    }
    ```
    Marks order complete and updates finished goods inventory.
@@ -307,7 +307,7 @@ Detailed step-by-step guides for common manufacturing ERP workflows.
    Request: {
      "order_id": 789,
      "order_type": "sales",
-     "confirm": true
+     "preview": false
    }
    ```
    Updates inventory and marks order as shipped.
@@ -507,7 +507,7 @@ Create a stock adjustment to correct inventory levels.
 - `location_id` (required): Location ID for the adjustment
 - `rows` (required): List of `{sku, quantity, cost_per_unit?}` — positive to add, negative to remove
 - `reason` (optional): Reason for adjustment
-- `confirm` (optional, default false): Set false to preview, true to create
+- `preview` (optional, default true): Set true to preview, false to create
 
 **Returns:** Adjustment ID and summary of changes.
 
@@ -548,7 +548,7 @@ Update header fields on an existing stock adjustment.
 - `location_id` (optional): New location
 - `reason` (optional): New reason
 - `additional_info` (optional): New additional_info
-- `confirm` (optional, default false): false = preview, true = apply (prompts)
+- `preview` (optional, default true): true = preview, false = apply (prompts)
 
 **Safety:** At least one updatable field is required. Row-level edits are not supported
 via this tool — create a new adjustment for that.
@@ -562,11 +562,11 @@ Delete an existing stock adjustment by ID.
 
 **Parameters:**
 - `id` (required): Stock adjustment ID
-- `confirm` (optional, default false): false = preview, true = delete (prompts)
+- `preview` (optional, default true): true = preview, false = delete (prompts)
 
 **Safety:** Deletion reverses the associated inventory movements; the preview returns
 the adjustment number, location, and row count so the change is inspectable before
-confirming.
+applying.
 
 ---
 
@@ -741,7 +741,7 @@ endpoint; variant sub-payloads route to the shared `/variant` family.
 - `id` (required): Item ID
 - `type` (required): "product" | "material" | "service"
 - Any subset of the sub-payloads above
-- `confirm` (optional, default false): false=preview, true=execute
+- `preview` (optional, default true): true=preview, false=execute
 
 ---
 
@@ -751,23 +751,23 @@ Delete an item. Destructive — Katana cascades child variants server-side.
 **Parameters:**
 - `id` (required): Item ID
 - `type` (required): "product" | "material" | "service"
-- `confirm` (optional, default false): false=preview, true=delete
+- `preview` (optional, default true): true=preview, false=delete
 
 ---
 
 ## Purchase Order Tools
 
 ### create_purchase_order
-Create a purchase order with preview/confirm pattern.
+Create a purchase order with preview/apply pattern.
 
 **Parameters:**
 - `supplier_id` (required): Supplier ID
 - `location_id` (required): Warehouse location for receipt
 - `order_number` (required): PO number (e.g., "PO-2025-001")
 - `items` (required): Array of line items with variant_id, quantity, price_per_unit
-- `confirm` (optional, default false): false=preview, true=create
+- `preview` (optional, default true): true=preview, false=create
 
-**Safety:** When confirm=true, prompts user for confirmation before creating.
+**Safety:** When preview=false, prompts user for confirmation before creating.
 
 ---
 
@@ -777,9 +777,9 @@ Receive items from a purchase order.
 **Parameters:**
 - `order_id` (required): Purchase order ID
 - `items` (required): Array of items with purchase_order_row_id and quantity
-- `confirm` (optional, default false): false=preview, true=receive
+- `preview` (optional, default true): true=preview, false=receive
 
-**Safety:** When confirm=true, prompts user for confirmation.
+**Safety:** When preview=false, prompts user for confirmation.
 
 ---
 
@@ -923,8 +923,8 @@ recomputes per-row `landed_cost` automatically.
 **Parameters:**
 - `id` (required): Purchase order ID
 - Any subset of the sub-payloads above
-- `confirm` (optional, default false): false=preview with per-action diff,
-  true=execute the action plan in canonical order (header → row adds →
+- `preview` (optional, default true): true=preview with per-action diff,
+  false=execute the action plan in canonical order (header → row adds →
   row updates → row deletes → cost adds → cost updates → cost deletes);
   fail-fast on first error
 
@@ -940,7 +940,7 @@ Delete a purchase order. Destructive — Katana cascades child rows server-side.
 
 **Parameters:**
 - `id` (required): Purchase order ID
-- `confirm` (optional, default false): false=preview, true=delete
+- `preview` (optional, default true): true=preview, false=delete
 
 ---
 
@@ -955,7 +955,7 @@ Create a manufacturing work order.
 - `location_id` (required): Production location ID
 - `production_deadline_date` (optional): Production deadline
 - `additional_info` (optional): Notes
-- `confirm` (optional, default false): false=preview, true=create
+- `preview` (optional, default true): true=preview, false=create
 
 ---
 
@@ -1021,7 +1021,7 @@ Unified modification surface for an MO — header, recipe rows
 **Parameters:**
 - `id` (required): Manufacturing order ID
 - Any subset of the sub-payloads above
-- `confirm` (optional, default false): false=preview, true=execute the
+- `preview` (optional, default true): true=preview, false=execute the
   action plan in canonical order; fail-fast on first error
 
 **Returns:** A `ModificationResponse` carrying per-action results and a
@@ -1037,7 +1037,7 @@ rows / operation rows / production records server-side.
 
 **Parameters:**
 - `id` (required): Manufacturing order ID
-- `confirm` (optional, default false): false=preview, true=delete
+- `preview` (optional, default true): true=preview, false=delete
 
 ---
 
@@ -1048,7 +1048,7 @@ Create a sales order.
 - `customer_id` (required): Customer ID (use `search_customers` to find)
 - `order_number` (required): Unique sales order number
 - `items` (required): Array of items with variant_id, quantity, and optional price_per_unit
-- `confirm` (optional, default false): false=preview, true=create
+- `preview` (optional, default true): true=preview, false=create
 
 ---
 
@@ -1146,7 +1146,7 @@ fulfillments, and shipping fees in one call.
 **Parameters:**
 - `id` (required): Sales order ID
 - Any subset of the sub-payloads above
-- `confirm` (optional, default false): false=preview, true=execute
+- `preview` (optional, default true): true=preview, false=execute
 
 ---
 
@@ -1156,7 +1156,7 @@ addresses / fulfillments / shipping fees server-side.
 
 **Parameters:**
 - `id` (required): Sales order ID
-- `confirm` (optional, default false): false=preview, true=delete
+- `preview` (optional, default true): true=preview, false=delete
 
 ---
 
@@ -1171,7 +1171,7 @@ Complete a manufacturing or sales order.
 **Parameters:**
 - `order_id` (required): Order ID to fulfill
 - `order_type` (required): "manufacturing" or "sales"
-- `confirm` (optional, default false): false=preview, true=fulfill
+- `preview` (optional, default true): true=preview, false=fulfill
 
 ---
 
@@ -1188,9 +1188,9 @@ Create a stock transfer moving inventory between two locations.
   `batch_transactions` is `[{batch_id, quantity}]` for batch-tracked variants
 - `order_no` (optional): Stock transfer number. When omitted, the tool generates a `ST-<unix-ts>` default before sending — Katana's API requires the field.
 - `additional_info` (optional): Notes
-- `confirm` (optional, default false): false=preview, true=create
+- `preview` (optional, default true): true=preview, false=create
 
-**Safety:** When confirm=true, prompts user for confirmation before creating.
+**Safety:** When preview=false, prompts user for confirmation before creating.
 
 ---
 
@@ -1237,7 +1237,7 @@ these as two separate PATCH endpoints
 **Parameters:**
 - `id` (required): Stock transfer ID
 - Any subset of the sub-payloads above
-- `confirm` (optional, default false): false=preview, true=execute the
+- `preview` (optional, default true): true=preview, false=execute the
   action plan in canonical order (header first, then status); fail-fast
   on first error
 
@@ -1253,7 +1253,7 @@ Delete a stock transfer. Destructive — the transfer record is removed.
 
 **Parameters:**
 - `id` (required): Stock transfer ID
-- `confirm` (optional, default false): false=preview, true=delete
+- `preview` (optional, default true): true=preview, false=delete
 
 ---
 

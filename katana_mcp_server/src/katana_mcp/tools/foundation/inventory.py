@@ -683,9 +683,9 @@ class CreateStockAdjustmentRequest(BaseModel):
         default=None, description="Reason for adjustment (e.g., 'Sample received')"
     )
     additional_info: str | None = Field(default=None, description="Additional notes")
-    confirm: bool = Field(
-        default=False,
-        description="Set false to preview, true to create",
+    preview: bool = Field(
+        default=True,
+        description="Set true (default) to preview, false to create",
     )
 
 
@@ -739,11 +739,11 @@ async def _create_stock_adjustment_impl(
     rows_summary = "\n".join(rows_summary_parts)
 
     # Preview mode
-    if not request.confirm:
+    if request.preview:
         return StockAdjustmentResponse(
             id=None,
             is_preview=True,
-            message="Preview — call again with confirm=true to create",
+            message="Preview — call again with preview=false to create",
             rows_summary=rows_summary,
         )
 
@@ -795,8 +795,8 @@ async def create_stock_adjustment(
 ) -> ToolResult:
     """Create a stock adjustment to correct inventory levels.
 
-    Two-step flow: confirm=false to preview, confirm=true to create (prompts
-    for confirmation). Resolves SKUs to variant IDs automatically.
+    Two-step flow: preview=true (default) to preview, preview=false to create
+    (prompts for confirmation). Resolves SKUs to variant IDs automatically.
 
     Use positive quantities to add stock, negative to remove.
     """
@@ -1215,9 +1215,9 @@ class UpdateStockAdjustmentParams(BaseModel):
     additional_info: str | None = Field(
         default=None, description="New additional_info (optional)"
     )
-    confirm: bool = Field(
-        default=False,
-        description="If false, returns a preview. If true, applies the update.",
+    preview: bool = Field(
+        default=True,
+        description="If true (default), returns a preview. If false, applies the update.",
     )
 
 
@@ -1259,7 +1259,7 @@ def _format_changes_summary(request: UpdateStockAdjustmentParams) -> str:
 async def _update_stock_adjustment_impl(
     request: UpdateStockAdjustmentParams, context: Context
 ) -> UpdateStockAdjustmentResponse:
-    """Update a stock adjustment with preview/confirm safety pattern."""
+    """Update a stock adjustment with preview/apply safety pattern."""
     from katana_public_api_client.api.stock_adjustment import (
         update_stock_adjustment as api_update_stock_adjustment,
     )
@@ -1289,7 +1289,7 @@ async def _update_stock_adjustment_impl(
         )
 
     # Preview mode — no API call.
-    if not request.confirm:
+    if request.preview:
         logger.info(
             "stock_adjustment_update_preview",
             id=request.id,
@@ -1306,7 +1306,7 @@ async def _update_stock_adjustment_impl(
             additional_info=request.additional_info,
             changes_summary=changes_summary,
             message=(
-                f"Preview — call again with confirm=true to update stock "
+                f"Preview — call again with preview=false to update stock "
                 f"adjustment {request.id}"
             ),
             katana_url=katana_web_url("stock_adjustment", request.id),
@@ -1366,11 +1366,12 @@ async def update_stock_adjustment(
 ) -> ToolResult:
     """Update an existing stock adjustment's header fields.
 
-    Two-step flow: `confirm=false` returns a preview of the changes, `confirm=true`
-    prompts the user for confirmation and applies the update via PATCH. At least
-    one updatable field must be supplied (stock_adjustment_number,
-    stock_adjustment_date, location_id, reason, additional_info). Row-level
-    changes are not supported — create a new adjustment for that.
+    Two-step flow: `preview=true` (default) returns a preview of the changes,
+    `preview=false` prompts the user for confirmation and applies the update
+    via PATCH. At least one updatable field must be supplied
+    (stock_adjustment_number, stock_adjustment_date, location_id, reason,
+    additional_info). Row-level changes are not supported — create a new
+    adjustment for that.
     """
     response = await _update_stock_adjustment_impl(request, context)
     status = "PREVIEW" if response.is_preview else "UPDATED"
@@ -1391,9 +1392,9 @@ class DeleteStockAdjustmentRequest(BaseModel):
     """Request to delete an existing stock adjustment."""
 
     id: int = Field(..., description="Stock adjustment ID to delete")
-    confirm: bool = Field(
-        default=False,
-        description="If false, returns a preview. If true, deletes the adjustment.",
+    preview: bool = Field(
+        default=True,
+        description="If true (default), returns a preview. If false, deletes the adjustment.",
     )
 
 
@@ -1411,11 +1412,11 @@ class DeleteStockAdjustmentResponse(BaseModel):
 async def _delete_stock_adjustment_impl(
     request: DeleteStockAdjustmentRequest, context: Context
 ) -> DeleteStockAdjustmentResponse:
-    """Delete a stock adjustment with preview/confirm safety pattern.
+    """Delete a stock adjustment with preview/apply safety pattern.
 
     Preview mode fetches the adjustment (via the list endpoint filter) so the
-    caller can see what will be removed before confirming. Confirm mode calls
-    the API's DELETE endpoint, which reverses the associated inventory changes.
+    caller can see what will be removed before applying. Apply mode calls the
+    API's DELETE endpoint, which reverses the associated inventory changes.
     """
     from katana_public_api_client.api.stock_adjustment import (
         delete_stock_adjustment as api_delete_stock_adjustment,
@@ -1445,7 +1446,7 @@ async def _delete_stock_adjustment_impl(
     stock_adjustment_number = existing.stock_adjustment_number
     location_id = existing.location_id
 
-    if not request.confirm:
+    if request.preview:
         logger.info(
             "stock_adjustment_delete_preview",
             id=request.id,
@@ -1458,7 +1459,7 @@ async def _delete_stock_adjustment_impl(
             location_id=location_id,
             row_count=row_count,
             message=(
-                f"Preview — call again with confirm=true to delete stock "
+                f"Preview — call again with preview=false to delete stock "
                 f"adjustment {stock_adjustment_number} "
                 f"({row_count} row{'s' if row_count != 1 else ''})"
             ),
@@ -1498,10 +1499,10 @@ async def delete_stock_adjustment(
 ) -> ToolResult:
     """Delete a stock adjustment by ID.
 
-    Two-step flow: `confirm=false` returns a preview (including the adjustment
-    number, location, and row count that would be affected); `confirm=true`
-    prompts the user for confirmation, then calls DELETE. Deleting a stock
-    adjustment reverses the associated inventory movements.
+    Two-step flow: `preview=true` (default) returns a preview (including the
+    adjustment number, location, and row count that would be affected);
+    `preview=false` prompts the user for confirmation, then calls DELETE.
+    Deleting a stock adjustment reverses the associated inventory movements.
     """
     response = await _delete_stock_adjustment_impl(request, context)
     status = "PREVIEW" if response.is_preview else "DELETED"

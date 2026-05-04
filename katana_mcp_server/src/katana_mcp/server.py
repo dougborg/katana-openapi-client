@@ -242,9 +242,9 @@ Katana MCP Server — Manufacturing ERP tools for inventory, orders, and product
 
 ## Safety Pattern
 
-All create/modify/delete operations use a two-step confirm pattern:
-1. Call with confirm=false — returns a preview (no changes made)
-2. Call with confirm=true — executes the operation
+All create/modify/delete operations use a two-step preview/apply pattern:
+1. Call with preview=true (default) — returns a preview (no changes made)
+2. Call with preview=false — executes the operation
 
 Destructive tools advertise this via the standard MCP ``destructiveHint``
 tool annotation, which the host uses to confirm with the user before

@@ -59,7 +59,7 @@ class TestPurchaseOrderPreviewWorkflow:
                 ),
             ],
             notes="Integration test order - preview only",
-            confirm=False,  # Preview mode
+            preview=True,  # Preview mode
         )
 
         result = await _create_purchase_order_impl(request, integration_context)
@@ -120,7 +120,7 @@ class TestPurchaseOrderPreviewWorkflow:
             order_number=order_number,
             items=po_items,
             notes="Test PO created from search results",
-            confirm=False,  # Preview only
+            preview=True,  # Preview only
         )
 
         result = await _create_purchase_order_impl(po_request, integration_context)
@@ -152,7 +152,7 @@ class TestPurchaseOrderPreviewWorkflow:
             notes="Full options test",
             currency="USD",
             status="NOT_RECEIVED",
-            confirm=False,
+            preview=True,
         )
 
         result = await _create_purchase_order_impl(request, integration_context)
@@ -180,7 +180,7 @@ class TestPurchaseOrderValidation:
                 location_id=1,
                 order_number="TEST-EMPTY",
                 items=[],  # Empty items should fail
-                confirm=False,
+                preview=True,
             )
 
     async def test_po_item_requires_positive_quantity(self):
@@ -223,7 +223,7 @@ class TestPurchaseOrderValidation:
         # Preview mode
         preview_request = CreatePurchaseOrderRequest(
             **base_request_data,
-            confirm=False,
+            preview=True,
         )
         preview_result = await _create_purchase_order_impl(
             preview_request, integration_context
@@ -232,7 +232,7 @@ class TestPurchaseOrderValidation:
         assert preview_result.is_preview is True
         assert preview_result.id is None  # No ID in preview
 
-        # Note: We don't test confirm=True here as it would create real data
+        # Note: We don't test preview=False here as it would create real data
         # That's tested in a separate test marked with @pytest.mark.creates_data
 
 
@@ -256,7 +256,7 @@ class TestPurchaseOrderWorkflowEdgeCases:
                     price_per_unit=0.01,  # Small unit price
                 ),
             ],
-            confirm=False,
+            preview=True,
         )
 
         result = await _create_purchase_order_impl(request, integration_context)
@@ -282,7 +282,7 @@ class TestPurchaseOrderWorkflowEdgeCases:
             location_id=1,
             order_number=unique_order_number,
             items=items,
-            confirm=False,
+            preview=True,
         )
 
         result = await _create_purchase_order_impl(request, integration_context)
@@ -311,7 +311,7 @@ class TestPurchaseOrderWorkflowEdgeCases:
                     price_per_unit=100.00,
                 ),
             ],
-            confirm=False,
+            preview=True,
         )
 
         result = await _create_purchase_order_impl(request, integration_context)

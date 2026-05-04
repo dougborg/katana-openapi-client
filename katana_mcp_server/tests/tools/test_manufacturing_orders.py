@@ -52,7 +52,7 @@ async def test_create_manufacturing_order_preview():
         location_id=1,
         production_deadline_date=datetime(2024, 1, 25, 17, 0, 0, tzinfo=UTC),
         additional_info="Priority order",
-        confirm=False,
+        preview=True,
     )
     result = await _create_manufacturing_order_impl(request, context)
 
@@ -72,7 +72,7 @@ async def test_create_manufacturing_order_preview():
 
 @pytest.mark.asyncio
 async def test_create_manufacturing_order_confirm_success():
-    """Test create_manufacturing_order with confirm=True succeeds."""
+    """Test create_manufacturing_order with preview=False succeeds."""
     context, _lifespan_ctx = create_mock_context()
 
     # Mock successful API response
@@ -108,7 +108,7 @@ async def test_create_manufacturing_order_confirm_success():
             location_id=1,
             production_deadline_date=datetime(2024, 1, 25, 17, 0, 0, tzinfo=UTC),
             additional_info="Priority order",
-            confirm=True,
+            preview=False,
         )
         result = await _create_manufacturing_order_impl(request, context)
 
@@ -160,7 +160,7 @@ async def test_create_manufacturing_order_make_to_order_preview_populates_fields
     try:
         request = CreateManufacturingOrderRequest(
             sales_order_row_id=99001,
-            confirm=False,
+            preview=True,
         )
         result = await _create_manufacturing_order_impl(request, context)
 
@@ -178,7 +178,7 @@ async def test_create_manufacturing_order_make_to_order_preview_populates_fields
 
 @pytest.mark.asyncio
 async def test_create_manufacturing_order_make_to_order_confirm_refuses_when_already_linked():
-    """confirm=True against a sales_order_row that's already linked to an MO
+    """preview=False against a sales_order_row that's already linked to an MO
     must refuse — the preview UI's BLOCK warning suppresses the Confirm
     button in the iframe, but a programmatic caller skipping the UI gets
     the same defense-in-depth protection here.
@@ -211,7 +211,7 @@ async def test_create_manufacturing_order_make_to_order_confirm_refuses_when_alr
     try:
         request = CreateManufacturingOrderRequest(
             sales_order_row_id=99003,
-            confirm=True,
+            preview=False,
         )
         result = await _create_manufacturing_order_impl(request, context)
 
@@ -257,7 +257,7 @@ async def test_create_manufacturing_order_make_to_order_blocks_when_already_link
     try:
         request = CreateManufacturingOrderRequest(
             sales_order_row_id=99002,
-            confirm=False,
+            preview=True,
         )
         result = await _create_manufacturing_order_impl(request, context)
 
@@ -282,7 +282,7 @@ async def test_create_manufacturing_order_missing_optional_fields():
         variant_id=2101,
         planned_quantity=50.0,
         location_id=1,
-        confirm=False,
+        preview=True,
     )
     result = await _create_manufacturing_order_impl(request, context)
 
@@ -335,7 +335,7 @@ async def test_create_manufacturing_order_confirm_with_minimal_fields():
             variant_id=2102,
             planned_quantity=25.0,
             location_id=2,
-            confirm=True,
+            preview=False,
         )
         result = await _create_manufacturing_order_impl(request, context)
 
@@ -376,7 +376,7 @@ async def test_create_manufacturing_order_api_error():
             variant_id=2101,
             planned_quantity=50.0,
             location_id=1,
-            confirm=True,
+            preview=False,
         )
 
         with pytest.raises(APIError):
@@ -405,7 +405,7 @@ async def test_create_manufacturing_order_api_exception():
             variant_id=2101,
             planned_quantity=50.0,
             location_id=1,
-            confirm=True,
+            preview=False,
         )
 
         with pytest.raises(Exception, match="Network error"):
@@ -426,7 +426,7 @@ async def test_create_manufacturing_order_with_order_created_date():
         planned_quantity=50.0,
         location_id=1,
         order_created_date=order_date,
-        confirm=False,
+        preview=True,
     )
     result = await _create_manufacturing_order_impl(request, context)
 
@@ -450,7 +450,7 @@ async def test_create_manufacturing_order_invalid_quantity():
             variant_id=2101,
             planned_quantity=0.0,  # Invalid: must be > 0
             location_id=1,
-            confirm=False,
+            preview=True,
         )
 
 
@@ -465,7 +465,7 @@ async def test_create_manufacturing_order_negative_quantity():
             variant_id=2101,
             planned_quantity=-10.0,  # Invalid: must be > 0
             location_id=1,
-            confirm=False,
+            preview=True,
         )
 
 
@@ -488,7 +488,7 @@ async def test_create_manufacturing_order_preview_integration(katana_context):
         location_id=1,
         production_deadline_date=datetime(2024, 12, 31, 17, 0, 0, tzinfo=UTC),
         additional_info="Integration test preview",
-        confirm=False,
+        preview=True,
     )
 
     try:
@@ -527,7 +527,7 @@ async def test_create_manufacturing_order_confirm_integration(katana_context):
         location_id=1,
         production_deadline_date=datetime(2024, 12, 31, 17, 0, 0, tzinfo=UTC),
         additional_info="Integration test - can be deleted",
-        confirm=True,
+        preview=False,
     )
 
     try:
@@ -574,7 +574,7 @@ async def test_create_manufacturing_order_minimal_fields_integration(katana_cont
         variant_id=2101,
         planned_quantity=1.0,
         location_id=1,
-        confirm=True,
+        preview=False,
     )
 
     try:
@@ -702,7 +702,7 @@ async def test_create_manufacturing_order_make_to_order_preview():
     try:
         request = CreateManufacturingOrderRequest(
             sales_order_row_id=105664660,
-            confirm=False,
+            preview=True,
         )
         result = await _create_manufacturing_order_impl(request, context)
 
@@ -718,7 +718,7 @@ async def test_create_manufacturing_order_standalone_requires_fields():
     """Standalone mode without required fields raises ValueError."""
     context, _ = create_mock_context()
 
-    request = CreateManufacturingOrderRequest(confirm=False)
+    request = CreateManufacturingOrderRequest(preview=True)
     with pytest.raises(ValueError, match="variant_id"):
         await _create_manufacturing_order_impl(request, context)
 
@@ -743,7 +743,7 @@ async def test_create_manufacturing_order_make_to_order_with_subassemblies():
         request = CreateManufacturingOrderRequest(
             sales_order_row_id=105664660,
             create_subassemblies=True,
-            confirm=False,
+            preview=True,
         )
         result = await _create_manufacturing_order_impl(request, context)
 
@@ -2344,7 +2344,7 @@ async def test_modify_mo_requires_at_least_one_subpayload():
     context, _ = create_mock_context()
     with pytest.raises(ValueError, match="At least one sub-payload"):
         await _modify_manufacturing_order_impl(
-            ModifyManufacturingOrderRequest(id=42, confirm=False), context
+            ModifyManufacturingOrderRequest(id=42, preview=True), context
         )
 
 
@@ -2364,7 +2364,7 @@ async def test_modify_mo_preview_emits_planned_actions():
             add_recipe_rows=[
                 MORecipeRowAdd(variant_id=100, planned_quantity_per_unit=2.0)
             ],
-            confirm=False,
+            preview=True,
         )
         response = await _modify_manufacturing_order_impl(request, context)
 
@@ -2418,7 +2418,7 @@ async def test_modify_mo_confirm_executes_in_canonical_order():
             add_recipe_rows=[
                 MORecipeRowAdd(variant_id=100, planned_quantity_per_unit=2.0)
             ],
-            confirm=True,
+            preview=False,
         )
         response = await _modify_manufacturing_order_impl(request, context)
 
@@ -2445,7 +2445,7 @@ async def test_delete_mo_preview_returns_planned_action():
         return_value=existing,
     ):
         response = await _delete_manufacturing_order_impl(
-            DeleteManufacturingOrderRequest(id=42, confirm=False), context
+            DeleteManufacturingOrderRequest(id=42, preview=True), context
         )
 
     assert response.is_preview is True
@@ -2478,7 +2478,7 @@ async def test_delete_mo_confirm_calls_api_and_records_prior_state():
     ):
         mock_api.return_value = api_response
         response = await _delete_manufacturing_order_impl(
-            DeleteManufacturingOrderRequest(id=42, confirm=True), context
+            DeleteManufacturingOrderRequest(id=42, preview=False), context
         )
 
     assert response.is_preview is False
@@ -2541,7 +2541,7 @@ async def test_modify_mo_operation_row_add_translates_status_and_type_enums():
                     planned_time_per_unit=2.5,
                 ),
             ],
-            confirm=True,
+            preview=False,
         )
         response = await _modify_manufacturing_order_impl(request, context)
 
@@ -2599,7 +2599,7 @@ async def test_modify_mo_production_record_add_passes_through_to_api():
                     serial_numbers=["SN-001", "SN-002"],
                 ),
             ],
-            confirm=True,
+            preview=False,
         )
         response = await _modify_manufacturing_order_impl(request, context)
 
@@ -2683,7 +2683,7 @@ async def test_modify_mo_canonical_order_across_all_three_sub_resources():
                 MOOperationRowAdd(status="NOT_STARTED", operation_name="Assembly")
             ],
             add_productions=[MOProductionAdd(completed_quantity=5.0)],
-            confirm=True,
+            preview=False,
         )
         response = await _modify_manufacturing_order_impl(request, context)
 

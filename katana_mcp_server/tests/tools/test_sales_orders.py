@@ -62,7 +62,7 @@ async def test_create_sales_order_preview():
         currency="USD",
         notes="Test order",
         customer_ref="CUST-REF-001",
-        confirm=False,
+        preview=True,
     )
     result = await _create_sales_order_impl(request, context)
 
@@ -93,7 +93,7 @@ async def test_create_sales_order_preview_minimal_fields():
         items=[
             SalesOrderItem(variant_id=2101, quantity=1),
         ],
-        confirm=False,
+        preview=True,
     )
     result = await _create_sales_order_impl(request, context)
 
@@ -131,7 +131,7 @@ async def test_create_sales_order_preview_warns_advisorily_on_customer_cache_mis
         items=[SalesOrderItem(variant_id=1, quantity=1)],
         location_id=1,
         delivery_date=datetime(2024, 1, 22, 14, 0, 0, tzinfo=UTC),
-        confirm=False,
+        preview=True,
     )
     result = await _create_sales_order_impl(request, context)
 
@@ -148,7 +148,7 @@ async def test_create_sales_order_preview_warns_advisorily_on_customer_cache_mis
 
 @pytest.mark.asyncio
 async def test_create_sales_order_confirm_success():
-    """Test create_sales_order with confirm=True succeeds."""
+    """Test create_sales_order with preview=False succeeds."""
     context, _lifespan_ctx = create_mock_context()
 
     # Mock successful API response
@@ -185,7 +185,7 @@ async def test_create_sales_order_confirm_success():
             ],
             location_id=1,
             currency="USD",
-            confirm=True,
+            preview=False,
         )
         result = await _create_sales_order_impl(request, context)
 
@@ -263,7 +263,7 @@ async def test_create_sales_order_with_addresses():
                     country="US",
                 ),
             ],
-            confirm=True,
+            preview=False,
         )
         result = await _create_sales_order_impl(request, context)
 
@@ -296,7 +296,7 @@ async def test_create_sales_order_with_discount():
                 total_discount=50.0,
             ),
         ],
-        confirm=False,
+        preview=True,
     )
     result = await _create_sales_order_impl(request, context)
 
@@ -329,7 +329,7 @@ async def test_create_sales_order_api_error():
             items=[
                 SalesOrderItem(variant_id=2101, quantity=1),
             ],
-            confirm=True,
+            preview=False,
         )
 
         with pytest.raises(APIError):
@@ -358,7 +358,7 @@ async def test_create_sales_order_api_exception():
             items=[
                 SalesOrderItem(variant_id=2101, quantity=1),
             ],
-            confirm=True,
+            preview=False,
         )
 
         with pytest.raises(Exception, match="Network error"):
@@ -401,7 +401,7 @@ async def test_create_sales_order_confirm_with_minimal_fields():
             items=[
                 SalesOrderItem(variant_id=2101, quantity=1),
             ],
-            confirm=True,
+            preview=False,
         )
         result = await _create_sales_order_impl(request, context)
 
@@ -432,7 +432,7 @@ async def test_create_sales_order_invalid_quantity():
             items=[
                 SalesOrderItem(variant_id=2101, quantity=0.0),  # Invalid: must be > 0
             ],
-            confirm=False,
+            preview=True,
         )
 
 
@@ -448,7 +448,7 @@ async def test_create_sales_order_negative_quantity():
             items=[
                 SalesOrderItem(variant_id=2101, quantity=-5.0),  # Invalid: must be > 0
             ],
-            confirm=False,
+            preview=True,
         )
 
 
@@ -462,7 +462,7 @@ async def test_create_sales_order_empty_items():
             customer_id=1501,
             order_number="SO-2024-010",
             items=[],  # Invalid: min_length=1
-            confirm=False,
+            preview=True,
         )
 
 
@@ -488,7 +488,7 @@ async def test_create_sales_order_preview_integration(katana_context):
         location_id=1,
         delivery_date=datetime(2024, 12, 31, 17, 0, 0, tzinfo=UTC),
         notes="Integration test preview",
-        confirm=False,
+        preview=True,
     )
 
     try:
@@ -529,7 +529,7 @@ async def test_create_sales_order_confirm_integration(katana_context):
         ],
         location_id=1,
         notes="Integration test - can be deleted",
-        confirm=True,
+        preview=False,
     )
 
     try:
@@ -1577,7 +1577,7 @@ async def test_modify_so_requires_at_least_one_subpayload():
     context, _ = create_mock_context()
     with pytest.raises(ValueError, match="At least one sub-payload"):
         await _modify_sales_order_impl(
-            ModifySalesOrderRequest(id=42, confirm=False), context
+            ModifySalesOrderRequest(id=42, preview=True), context
         )
 
 
@@ -1596,7 +1596,7 @@ async def test_modify_so_preview_emits_planned_actions():
             id=42,
             update_header=SOHeaderPatch(status="PACKED"),
             add_rows=[SORowAdd(variant_id=100, quantity=2)],
-            confirm=False,
+            preview=True,
         )
         response = await _modify_sales_order_impl(request, context)
 
@@ -1645,7 +1645,7 @@ async def test_modify_so_confirm_executes_in_canonical_order():
             id=42,
             update_header=SOHeaderPatch(status="PACKED"),
             add_rows=[SORowAdd(variant_id=100, quantity=2)],
-            confirm=True,
+            preview=False,
         )
         response = await _modify_sales_order_impl(request, context)
 
@@ -1675,7 +1675,7 @@ async def test_modify_so_address_update_marks_unknown_prior():
             update_addresses=[
                 SOAddressUpdate(id=99, city="Springfield", zip="12345"),
             ],
-            confirm=False,
+            preview=True,
         )
         response = await _modify_sales_order_impl(request, context)
 
@@ -1710,7 +1710,7 @@ async def test_modify_so_fail_fast_halts_on_first_error():
             id=42,
             update_header=SOHeaderPatch(status="PACKED"),
             add_rows=[SORowAdd(variant_id=100, quantity=2)],
-            confirm=True,
+            preview=False,
         )
         response = await _modify_sales_order_impl(request, context)
 
@@ -1736,7 +1736,7 @@ async def test_delete_so_preview_returns_planned_action():
         return_value=existing,
     ):
         response = await _delete_sales_order_impl(
-            DeleteSalesOrderRequest(id=42, confirm=False), context
+            DeleteSalesOrderRequest(id=42, preview=True), context
         )
 
     assert response.is_preview is True
@@ -1769,7 +1769,7 @@ async def test_delete_so_confirm_calls_api_and_records_prior_state():
     ):
         mock_api.return_value = api_response
         response = await _delete_sales_order_impl(
-            DeleteSalesOrderRequest(id=42, confirm=True), context
+            DeleteSalesOrderRequest(id=42, preview=False), context
         )
 
     assert response.is_preview is False

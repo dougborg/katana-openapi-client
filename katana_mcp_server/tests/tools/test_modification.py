@@ -43,11 +43,11 @@ class _SampleRequest(BaseModel):
     qty: int | None = None
     when: datetime | None = None
     state: _SampleEnum | None = None
-    confirm: bool = False
+    preview: bool = True
 
 
-def test_compute_field_diff_skips_id_and_confirm_by_default():
-    request = _SampleRequest(id=1, name="x", confirm=True)
+def test_compute_field_diff_skips_id_and_preview_by_default():
+    request = _SampleRequest(id=1, name="x", preview=False)
     diff = compute_field_diff(None, request)
     assert {c.field for c in diff} == {"name"}
 
@@ -158,13 +158,13 @@ def test_render_modification_md_preview_label():
         is_preview=True,
         message="Preview: update",
         changes=[FieldChange(field="qty", old=1, new=2)],
-        next_actions=["Set confirm=true"],
+        next_actions=["Set preview=false"],
     )
     md = render_modification_md(response)
     assert "## Purchase Order Update (PREVIEW)" in md
     assert "**ID**: 42" in md
     assert "`qty`: 1 → 2" in md
-    assert "Set confirm=true" in md
+    assert "Set preview=false" in md
 
 
 def test_render_modification_md_confirmed_label_uses_operation():

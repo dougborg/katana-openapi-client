@@ -174,9 +174,9 @@ class CreateManufacturingOrderRequest(BaseModel):
             "(``MO-<unix-ts>``) is generated client-side."
         ),
     )
-    confirm: bool = Field(
-        default=False,
-        description="If false, returns preview. If true, creates order.",
+    preview: bool = Field(
+        default=True,
+        description="If true (default), returns preview. If false, creates order.",
     )
 
 
@@ -229,12 +229,12 @@ async def _create_manufacturing_order_impl(
             )
 
     mode = "make-to-order" if is_make_to_order else "standalone"
-    action = "Previewing" if not request.confirm else "Starting"
+    action = "Previewing" if request.preview else "Starting"
     logger.info(f"{action} manufacturing order ({mode})")
 
     # Make-to-order: fetch the sales_order_row upfront so both preview and
-    # confirm see the same backing data. The duplicate-create guard runs
-    # in the confirm path too — programmatic callers skipping the preview
+    # apply paths see the same backing data. The duplicate-create guard runs
+    # on the apply path too — programmatic callers skipping the preview
     # UI get the same protection as the iframe (defense in depth).
     sor_variant_id: int | None = None
     sor_quantity: float | None = None
@@ -261,11 +261,11 @@ async def _create_manufacturing_order_impl(
         # the user to recognize what's being made.
         linked_mo = unwrap_unset(sor.linked_manufacturing_order_id, None)
 
-    if not request.confirm:
+    if request.preview:
         warnings: list[str] = []
         next_actions = [
             "Review the order details",
-            "Set confirm=true to create the manufacturing order",
+            "Set preview=false to create the manufacturing order",
         ]
 
         if is_make_to_order:
@@ -454,7 +454,7 @@ async def create_manufacturing_order(
     to also create MOs for subassemblies. This is what you want when processing
     a new sales order that needs production.
 
-    Two-step flow: confirm=false to preview, confirm=true to create.
+    Two-step flow: preview=true (default) to preview, preview=false to create.
     """
     from katana_mcp.tools.prefab_ui import (
         build_order_created_ui,
@@ -2938,8 +2938,8 @@ async def modify_manufacturing_order(
     To remove an MO entirely, use the sibling ``delete_manufacturing_order``
     tool.
 
-    Two-step flow: ``confirm=false`` returns a per-action preview;
-    ``confirm=true`` executes the plan in canonical order. Fail-fast on
+    Two-step flow: ``preview=true`` (default) returns a per-action preview;
+    ``preview=false`` executes the plan in canonical order. Fail-fast on
     error; the response carries a ``prior_state`` snapshot for manual
     revert.
     """

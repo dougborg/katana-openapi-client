@@ -1,10 +1,10 @@
 """Tests for stock transfer MCP tools.
 
 Covers the unified four-tool surface:
-- create_stock_transfer (preview + confirm)
+- create_stock_transfer (preview + apply)
 - list_stock_transfers (list-tool pattern v2 — limit, page, dates, filters)
-- modify_stock_transfer (header + status, preview + confirm + multi-action)
-- delete_stock_transfer (preview + confirm)
+- modify_stock_transfer (header + status, preview + apply + multi-action)
+- delete_stock_transfer (preview + apply)
 """
 
 from __future__ import annotations
@@ -106,7 +106,7 @@ async def test_create_stock_transfer_preview():
         expected_arrival_date=datetime(2026, 5, 1, 12, 0, tzinfo=UTC),
         rows=[StockTransferRowInput(variant_id=100, quantity=5)],
         order_no="ST-PREVIEW-1",
-        confirm=False,
+        preview=True,
     )
     result = await _create_stock_transfer_impl(request, context)
 
@@ -121,7 +121,7 @@ async def test_create_stock_transfer_preview():
 
 @pytest.mark.asyncio
 async def test_create_stock_transfer_confirm_success():
-    """confirm=True builds the request and returns the created transfer."""
+    """preview=False builds the request and returns the created transfer."""
     context, _ = create_mock_context()
 
     mock_transfer = _make_mock_transfer(
@@ -150,7 +150,7 @@ async def test_create_stock_transfer_confirm_success():
                     ],
                 )
             ],
-            confirm=True,
+            preview=False,
         )
         result = await _create_stock_transfer_impl(request, context)
 
@@ -203,7 +203,7 @@ async def test_create_stock_transfer_auto_generates_number_when_order_no_omitted
                 )
             ],
             # order_no intentionally omitted
-            confirm=True,
+            preview=False,
         )
         await _create_stock_transfer_impl(request, context)
 
@@ -247,7 +247,7 @@ async def test_create_stock_transfer_passes_through_provided_order_no():
                     ],
                 )
             ],
-            confirm=True,
+            preview=False,
         )
         await _create_stock_transfer_impl(request, context)
 
@@ -257,7 +257,7 @@ async def test_create_stock_transfer_passes_through_provided_order_no():
 
 @pytest.mark.asyncio
 async def test_create_stock_transfer_confirm_refuses_when_source_equals_destination():
-    """confirm=True with source==destination must refuse — defense in depth.
+    """preview=False with source==destination must refuse — defense in depth.
     The preview UI's BLOCK warning suppresses Confirm, but a programmatic
     caller skipping the UI would otherwise create a no-op transfer.
     """
@@ -269,7 +269,7 @@ async def test_create_stock_transfer_confirm_refuses_when_source_equals_destinat
             destination_location_id=42,  # same!
             expected_arrival_date=datetime(2026, 5, 1, 12, 0, tzinfo=UTC),
             rows=[StockTransferRowInput(variant_id=100, quantity=5)],
-            confirm=True,
+            preview=False,
         )
         result = await _create_stock_transfer_impl(request, context)
 
@@ -292,7 +292,7 @@ async def test_create_stock_transfer_rejects_empty_rows():
             destination_location_id=2,
             expected_arrival_date=datetime(2026, 5, 1, tzinfo=UTC),
             rows=[],
-            confirm=False,
+            preview=True,
         )
 
 
@@ -510,7 +510,7 @@ async def test_modify_st_requires_at_least_one_subpayload():
     context, _ = create_mock_context()
     with pytest.raises(ValueError, match="At least one sub-payload"):
         await _modify_stock_transfer_impl(
-            ModifyStockTransferRequest(id=42, confirm=False), context
+            ModifyStockTransferRequest(id=42, preview=True), context
         )
 
 
@@ -523,7 +523,7 @@ async def test_modify_st_header_preview_emits_planned_action():
             stock_transfer_number="ST-42-revised",
             additional_info="Updated notes",
         ),
-        confirm=False,
+        preview=True,
     )
     response = await _modify_stock_transfer_impl(request, context)
 
@@ -551,7 +551,7 @@ async def test_modify_st_header_confirm_dispatches_to_update_endpoint():
             update_header=StockTransferHeaderPatch(
                 stock_transfer_number="ST-42-revised"
             ),
-            confirm=True,
+            preview=False,
         )
         response = await _modify_stock_transfer_impl(request, context)
 
@@ -579,7 +579,7 @@ async def test_modify_st_status_confirm_dispatches_to_status_endpoint():
         request = ModifyStockTransferRequest(
             id=42,
             update_status=StockTransferStatusPatch(new_status="IN_TRANSIT"),
-            confirm=True,
+            preview=False,
         )
         response = await _modify_stock_transfer_impl(request, context)
 
@@ -617,7 +617,7 @@ async def test_modify_st_canonical_order_header_then_status():
                 stock_transfer_number="ST-42-revised"
             ),
             update_status=StockTransferStatusPatch(new_status="IN_TRANSIT"),
-            confirm=True,
+            preview=False,
         )
         response = await _modify_stock_transfer_impl(request, context)
 
@@ -646,7 +646,7 @@ async def test_modify_st_status_failfast_halts_remaining_actions():
                 stock_transfer_number="ST-42-revised"
             ),
             update_status=StockTransferStatusPatch(new_status="IN_TRANSIT"),
-            confirm=True,
+            preview=False,
         )
         response = await _modify_stock_transfer_impl(request, context)
 
@@ -668,7 +668,7 @@ async def test_modify_st_status_failfast_halts_remaining_actions():
 @pytest.mark.asyncio
 async def test_delete_stock_transfer_preview():
     context, _ = create_mock_context()
-    request = DeleteStockTransferRequest(id=42, confirm=False)
+    request = DeleteStockTransferRequest(id=42, preview=True)
     response = await _delete_stock_transfer_impl(request, context)
 
     assert response.is_preview is True
@@ -689,7 +689,7 @@ async def test_delete_stock_transfer_confirm_success():
         ) as mock_delete,
         patch(_MODIFY_ST_IS_SUCCESS, return_value=True),
     ):
-        request = DeleteStockTransferRequest(id=42, confirm=True)
+        request = DeleteStockTransferRequest(id=42, preview=False)
         response = await _delete_stock_transfer_impl(request, context)
 
     assert response.is_preview is False

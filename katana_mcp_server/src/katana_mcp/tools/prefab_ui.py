@@ -84,7 +84,7 @@ def call_tool_from_request(
     of ``request_model`` templated from iframe state.
 
     Each field on the Pydantic request model maps to a ``{{ <state_key>.field }}``
-    template string. ``overrides`` (e.g. ``{"confirm": True}``) take precedence
+    template string. ``overrides`` (e.g. ``{"preview": False}``) take precedence
     over the templated values — use them to flip a flag or substitute a literal.
 
     The caller must seed the iframe state with the original request under
@@ -435,14 +435,14 @@ def build_order_preview_ui(
     Pass ``confirm_request`` (the original Pydantic input) and
     ``confirm_tool`` (the matching tool name); the builder seeds iframe
     state at ``state.request`` and constructs the ``CallTool`` action with
-    ``confirm=True`` internally so the Confirm button re-invokes the tool
+    ``preview=False`` internally so the Confirm button re-invokes the tool
     directly without an LLM round-trip.
     """
     fields = _extract_order_fields(order)
     confirm_action = call_tool_from_request(
         confirm_tool,
         type(confirm_request),
-        overrides={"confirm": True},
+        overrides={"preview": False},
     )
     state: dict[str, Any] = {"order": order, "request": confirm_request.model_dump()}
 
@@ -578,7 +578,7 @@ def build_fulfill_preview_ui(
     """Build a fulfillment preview card.
 
     The "Confirm Fulfillment" button invokes ``fulfill_order`` directly via
-    ``CallTool`` with ``confirm=True`` and the original order_id/order_type
+    ``CallTool`` with ``preview=False`` and the original order_id/order_type
     sourced from the response (where they're echoed). No LLM round-trip.
     """
     order_type, order_number, status = _extract_fulfill_fields(response)
@@ -610,7 +610,7 @@ def build_fulfill_preview_ui(
                         arguments={
                             "order_id": "{{ response.order_id }}",
                             "order_type": "{{ response.order_type }}",
-                            "confirm": True,
+                            "preview": False,
                         },
                     ),
                 )
@@ -786,7 +786,7 @@ def build_receipt_ui(
 
     On the preview branch, pass ``confirm_request`` (the original Pydantic
     input) and ``confirm_tool`` (the matching tool name) so the "Confirm
-    Receipt" button can re-invoke the tool directly with ``confirm=True``.
+    Receipt" button can re-invoke the tool directly with ``preview=False``.
     Both kwargs are optional because the same builder is reused for the
     non-preview render where no confirm button is shown — but they must be
     set together.
@@ -805,7 +805,7 @@ def build_receipt_ui(
         confirm_action = call_tool_from_request(
             confirm_tool,
             type(confirm_request),
-            overrides={"confirm": True},
+            overrides={"preview": False},
         )
 
     with PrefabApp(state=state, css_class="p-4") as app, Card():
@@ -890,7 +890,7 @@ def build_batch_recipe_update_ui(
 
     On the preview branch, pass ``confirm_request`` (the original Pydantic
     input) and ``confirm_tool`` (the matching tool name) so the "Execute
-    batch" button can re-invoke the tool directly with ``confirm=True``.
+    batch" button can re-invoke the tool directly with ``preview=False``.
     Both kwargs are optional because the same builder is reused for the
     non-preview render — but they must be set together.
     """
@@ -957,7 +957,7 @@ def build_batch_recipe_update_ui(
         confirm_action = call_tool_from_request(
             confirm_tool,
             type(confirm_request),
-            overrides={"confirm": True},
+            overrides={"preview": False},
         )
 
     with (

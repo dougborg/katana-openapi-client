@@ -21,11 +21,11 @@ Check inventory for items below {threshold} units and create purchase orders to 
    - The variant_id (needed for purchase order line items)
    - Supplier item codes and pricing info
 3. Group items by supplier
-4. For each supplier group, call **create_purchase_order** with confirm=false to preview:
+4. For each supplier group, call **create_purchase_order** with preview=true (default) to preview:
    - Set supplier_id, location_id, order_number
    - Include line items with variant_id, quantity, price_per_unit
 5. Review the preview totals with the user
-6. Call **create_purchase_order** with confirm=true to create each order
+6. Call **create_purchase_order** with preview=false to create each order
 """
 
 
@@ -44,9 +44,9 @@ Verify and receive delivery for purchase order {order_id}:
    - If "match": all items verified, safe to receive
    - If "partial_match": review discrepancies with user before proceeding
    - If "no_match": investigate before receiving
-3. Call **receive_purchase_order** with confirm=false to preview the receipt
+3. Call **receive_purchase_order** with preview=true (default) to preview the receipt
 4. Review the preview with the user
-5. Call **receive_purchase_order** with confirm=true to receive items and update inventory
+5. Call **receive_purchase_order** with preview=false to receive items and update inventory
 """
 
 
@@ -59,12 +59,12 @@ async def fulfill_sales_order(order_id: int) -> str:
     return f"""\
 Fulfill sales order {order_id}:
 
-1. Call **fulfill_order** with order_id={order_id}, order_type="sales", confirm=false
-   to preview the fulfillment and check current order status
+1. Call **fulfill_order** with order_id={order_id}, order_type="sales", preview=true
+   (default) to preview the fulfillment and check current order status
 2. If the order has items that need stock verification, call **check_inventory**
    for each SKU to confirm availability
 3. Review the fulfillment preview and stock levels with the user
-4. Call **fulfill_order** with order_id={order_id}, order_type="sales", confirm=true
+4. Call **fulfill_order** with order_id={order_id}, order_type="sales", preview=false
    to create the fulfillment, reduce inventory, and mark items as shipped
 """
 

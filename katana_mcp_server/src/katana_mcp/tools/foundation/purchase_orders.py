@@ -3,7 +3,7 @@
 Foundation tools for creating, receiving, and verifying purchase orders.
 
 These tools provide:
-- create_purchase_order: Create regular purchase orders with preview/confirm pattern
+- create_purchase_order: Create regular purchase orders with preview/apply pattern
 - receive_purchase_order: Receive items from purchase orders with inventory updates
 - verify_order_document: Verify supplier documents against POs
 """
@@ -139,8 +139,9 @@ class CreatePurchaseOrderRequest(BaseModel):
         None,
         description="Initial status — 'DRAFT' or 'NOT_RECEIVED' (default: NOT_RECEIVED)",
     )
-    confirm: bool = Field(
-        False, description="If false, returns preview. If true, creates order."
+    preview: bool = Field(
+        True,
+        description="If true (default), returns preview. If false, creates order.",
     )
 
 
@@ -173,7 +174,7 @@ def _po_response_to_tool_result(
 
     On the preview branch, the rendered UI's "Confirm & Create" button
     invokes ``create_purchase_order`` directly via ``CallTool`` with the
-    original args + ``confirm=True``.
+    original args + ``preview=False``.
     """
     from katana_mcp.tools.prefab_ui import (
         build_order_created_ui,
@@ -211,13 +212,13 @@ async def _create_purchase_order_impl(
         Exception: If API call fails
     """
     logger.info(
-        f"{'Previewing' if not request.confirm else 'Creating'} purchase order {request.order_number}"
+        f"{'Previewing' if request.preview else 'Creating'} purchase order {request.order_number}"
     )
 
     # Calculate preview total
     total_cost = sum(item.price_per_unit * item.quantity for item in request.items)
 
-    if not request.confirm:
+    if request.preview:
         logger.info(
             f"Preview mode: PO {request.order_number} would have {len(request.items)} items"
         )
@@ -256,7 +257,7 @@ async def _create_purchase_order_impl(
             warnings=warnings,
             next_actions=[
                 "Review the order details",
-                "Set confirm=true to create the purchase order",
+                "Set preview=false to create the purchase order",
             ],
             message=f"Preview: Purchase order {request.order_number} with {len(request.items)} items totaling {total_cost:.2f}",
         )
@@ -344,8 +345,8 @@ async def create_purchase_order(
 ) -> ToolResult:
     """Create a purchase order to buy items from a supplier.
 
-    Two-step flow: set confirm=false to preview totals without creating, then
-    confirm=true to create. Requires supplier_id,
+    Two-step flow: preview=true (default) to preview totals without creating,
+    then preview=false to create. Requires supplier_id,
     location_id, order_number, and at least one line item with variant_id,
     quantity, and price_per_unit. Use get_variant_details to look up variant IDs.
     """
@@ -372,8 +373,9 @@ class ReceivePurchaseOrderRequest(BaseModel):
     items: list[ReceiveItemRequest] = Field(
         ..., description="Items to receive", min_length=1
     )
-    confirm: bool = Field(
-        False, description="If false, returns preview. If true, receives items."
+    preview: bool = Field(
+        True,
+        description="If true (default), returns preview. If false, receives items.",
     )
 
 
@@ -402,7 +404,7 @@ def _receive_response_to_tool_result(
 
     On the preview branch, ``request`` is plumbed into the UI so the
     "Confirm Receipt" button can re-invoke ``receive_purchase_order``
-    directly with ``confirm=True`` and the original items[].
+    directly with ``preview=False`` and the original items[].
     """
     from katana_mcp.tools.prefab_ui import build_receipt_ui
 
@@ -437,7 +439,7 @@ async def _receive_purchase_order_impl(
         Exception: If API call fails
     """
     logger.info(
-        f"{'Previewing' if not request.confirm else 'Receiving'} items for PO {request.order_id}"
+        f"{'Previewing' if request.preview else 'Receiving'} items for PO {request.order_id}"
     )
 
     try:
@@ -461,7 +463,7 @@ async def _receive_purchase_order_impl(
         currency = unwrap_unset(po.currency, None)
         total_cost = unwrap_unset(po.total, None)
 
-        if not request.confirm:
+        if request.preview:
             logger.info(
                 f"Preview mode: Would receive {len(request.items)} items for PO {order_no}"
             )
@@ -482,7 +484,7 @@ async def _receive_purchase_order_impl(
 
             next_actions = [
                 "Review the items to receive",
-                "Set confirm=true to receive the items and update inventory",
+                "Set preview=false to receive the items and update inventory",
             ]
             if po_status == "RECEIVED":
                 warnings.append(
@@ -580,8 +582,8 @@ async def receive_purchase_order(
 ) -> ToolResult:
     """Receive delivered items from a purchase order and update inventory.
 
-    Two-step flow: confirm=false to preview, confirm=true to receive. Use
-    verify_order_document first to validate a supplier document against the
+    Two-step flow: preview=true (default) to preview, preview=false to receive.
+    Use verify_order_document first to validate a supplier document against the
     PO before receiving. Requires the PO ID and row IDs.
     """
     response = await _receive_purchase_order_impl(request, context)
@@ -2395,7 +2397,7 @@ async def _modify_purchase_order_impl(
     request: ModifyPurchaseOrderRequest, context: Context
 ) -> ModificationResponse:
     """Build the action plan from the request's sub-payloads and either
-    preview or execute based on ``confirm``."""
+    preview or execute based on ``preview``."""
     services = get_services(context)
 
     if not has_any_subpayload(request):
@@ -2547,9 +2549,9 @@ async def modify_purchase_order(
 
     To remove a PO entirely, use the sibling ``delete_purchase_order`` tool.
 
-    Two-step flow: ``confirm=false`` returns a per-action preview with diffs;
-    ``confirm=true`` executes the plan in canonical order (header → row adds
-    → row updates → row deletes → cost adds → cost updates → cost deletes).
+    Two-step flow: ``preview=true`` (default) returns a per-action preview with
+    diffs; ``preview=false`` executes the plan in canonical order (header → row
+    adds → row updates → row deletes → cost adds → cost updates → cost deletes).
 
     **Caveats** (Katana's API is not transactional):
 
@@ -2594,9 +2596,9 @@ async def delete_purchase_order(
 ) -> ToolResult:
     """Delete a purchase order. Destructive — the order record is removed.
 
-    Two-step flow: ``confirm=false`` returns a preview, ``confirm=true``
-    deletes the PO. The response carries a ``prior_state`` snapshot of the
-    pre-delete PO so callers can recreate it manually if needed.
+    Two-step flow: ``preview=true`` (default) returns a preview,
+    ``preview=false`` deletes the PO. The response carries a ``prior_state``
+    snapshot of the pre-delete PO so callers can recreate it manually if needed.
     """
     response = await _delete_purchase_order_impl(request, context)
     return to_tool_result(response)

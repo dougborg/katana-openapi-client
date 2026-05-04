@@ -567,7 +567,7 @@ async def test_create_stock_adjustment_preview():
         location_id=1,
         rows=[StockAdjustmentRow(sku="WIDGET-001", quantity=5)],
         reason="Test adjustment",
-        confirm=False,
+        preview=True,
     )
     result = await _create_stock_adjustment_impl(request, context)
 
@@ -585,7 +585,7 @@ async def test_create_stock_adjustment_sku_not_found():
     request = CreateStockAdjustmentRequest(
         location_id=1,
         rows=[StockAdjustmentRow(sku="BAD-SKU", quantity=1)],
-        confirm=False,
+        preview=True,
     )
     with pytest.raises(ValueError, match="SKU 'BAD-SKU' not found"):
         await _create_stock_adjustment_impl(request, context)
@@ -599,7 +599,7 @@ async def test_create_stock_adjustment_empty_rows():
     request = CreateStockAdjustmentRequest(
         location_id=1,
         rows=[],
-        confirm=False,
+        preview=True,
     )
     with pytest.raises(ValueError, match="At least one adjustment row"):
         await _create_stock_adjustment_impl(request, context)
@@ -1281,10 +1281,10 @@ async def test_list_stock_adjustments_pagination_meta_none_without_page(
 
 @pytest.mark.asyncio
 async def test_update_stock_adjustment_preview_returns_is_preview_true():
-    """confirm=False returns preview without calling the API."""
+    """preview=True returns preview without calling the API."""
     context, _ = create_mock_context()
 
-    request = UpdateStockAdjustmentParams(id=42, reason="Updated reason", confirm=False)
+    request = UpdateStockAdjustmentParams(id=42, reason="Updated reason", preview=True)
 
     with patch(f"{_SA_UPDATE}.asyncio_detailed", new=AsyncMock()) as mock_api:
         result = await _update_stock_adjustment_impl(request, context)
@@ -1297,7 +1297,7 @@ async def test_update_stock_adjustment_preview_returns_is_preview_true():
 
 @pytest.mark.asyncio
 async def test_update_stock_adjustment_confirm_calls_api():
-    """confirm=True calls the PATCH endpoint directly (host already confirmed)."""
+    """preview=False calls the PATCH endpoint directly (host already confirmed)."""
     context, _ = create_mock_context()
 
     # The API returns an updated StockAdjustment. `_update_stock_adjustment_impl`
@@ -1311,7 +1311,7 @@ async def test_update_stock_adjustment_confirm_calls_api():
         id=42,
         reason="Updated reason",
         stock_adjustment_number="SA-UPDATED",
-        confirm=True,
+        preview=False,
     )
 
     with (
@@ -1334,7 +1334,7 @@ async def test_update_stock_adjustment_rejects_empty_change_set():
     """Missing all updatable fields raises ValueError."""
     context, _ = create_mock_context()
 
-    request = UpdateStockAdjustmentParams(id=42, confirm=False)
+    request = UpdateStockAdjustmentParams(id=42, preview=True)
 
     with pytest.raises(ValueError, match="At least one updatable field"):
         await _update_stock_adjustment_impl(request, context)
@@ -1347,7 +1347,7 @@ async def test_update_stock_adjustment_rejects_empty_change_set():
 
 @pytest.mark.asyncio
 async def test_delete_stock_adjustment_preview_returns_what_would_be_deleted():
-    """confirm=False fetches the adjustment and returns it in preview.
+    """preview=True fetches the adjustment and returns it in preview.
 
     Also asserts the lookup passes page=1 so auto-pagination doesn't chase
     extra pages for a single-record fetch.
@@ -1370,7 +1370,7 @@ async def test_delete_stock_adjustment_preview_returns_what_would_be_deleted():
         patch(f"{_SA_DELETE}.asyncio_detailed", new=AsyncMock()) as mock_delete,
     ):
         result = await _delete_stock_adjustment_impl(
-            DeleteStockAdjustmentRequest(id=99, confirm=False), context
+            DeleteStockAdjustmentRequest(id=99, preview=True), context
         )
 
     assert result.is_preview is True
@@ -1385,7 +1385,7 @@ async def test_delete_stock_adjustment_preview_returns_what_would_be_deleted():
 
 @pytest.mark.asyncio
 async def test_delete_stock_adjustment_confirm_calls_api():
-    """confirm=True calls DELETE directly (host already confirmed)."""
+    """preview=False calls DELETE directly (host already confirmed)."""
     context, _ = create_mock_context()
 
     adj = _make_mock_adjustment(
@@ -1407,7 +1407,7 @@ async def test_delete_stock_adjustment_confirm_calls_api():
         ) as mock_delete,
     ):
         result = await _delete_stock_adjustment_impl(
-            DeleteStockAdjustmentRequest(id=99, confirm=True), context
+            DeleteStockAdjustmentRequest(id=99, preview=False), context
         )
 
     assert result.is_preview is False
@@ -1427,7 +1427,7 @@ async def test_delete_stock_adjustment_not_found_raises():
         pytest.raises(ValueError, match="not found"),
     ):
         await _delete_stock_adjustment_impl(
-            DeleteStockAdjustmentRequest(id=12345, confirm=False), context
+            DeleteStockAdjustmentRequest(id=12345, preview=True), context
         )
 
 

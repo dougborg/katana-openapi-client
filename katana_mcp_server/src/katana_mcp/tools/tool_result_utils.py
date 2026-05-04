@@ -69,7 +69,7 @@ async def resolve_entity_name(
         warning = (
             f"{entity_label} with id={entity_id} was not found in the cache "
             f"(possible cache lag); the {entity_label.lower()} will be "
-            "validated by the live API on confirm."
+            "validated by the live API on apply."
         )
         return None, warning
     return d.get("name") or None, None

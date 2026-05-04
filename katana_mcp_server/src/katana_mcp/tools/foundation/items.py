@@ -930,7 +930,7 @@ async def _invalidate_item_cache(services: Any, item_type: ItemType) -> None:
     """Mark the per-type entity row and the variants table dirty.
 
     The typed cache stores variants and per-type entities (products /
-    materials / services) separately. After a confirmed modify or delete
+    materials / services) separately. After an applied modify or delete
     we invalidate both so the next read sees fresh data. Other modify_*
     tools don't need this because their entity types aren't cache-backed.
     """
@@ -955,7 +955,7 @@ async def _modify_item_impl(
     # ``type`` is a routing discriminator, not a sub-payload — exclude it from
     # the "is anything set?" check so a request with only ``type`` set is
     # still rejected.
-    if not has_any_subpayload(request, exclude=("id", "type", "confirm")):
+    if not has_any_subpayload(request, exclude=("id", "type", "preview")):
         raise ValueError(
             "At least one sub-payload must be set: update_header, "
             "add_variants, update_variants, or delete_variant_ids. "
@@ -1039,7 +1039,7 @@ async def _modify_item_impl(
         plan=plan,
     )
 
-    if request.confirm:
+    if not request.preview:
         await _invalidate_item_cache(services, request.type)
 
     return response
@@ -1072,8 +1072,8 @@ async def modify_item(
 
     To remove an item entirely, use the sibling ``delete_item`` tool.
 
-    Two-step flow: ``confirm=false`` returns a per-action preview;
-    ``confirm=true`` executes the plan in canonical order. Fail-fast on
+    Two-step flow: ``preview=true`` (default) returns a per-action preview;
+    ``preview=false`` executes the plan in canonical order. Fail-fast on
     error.
     """
     response = await _modify_item_impl(request, context)
@@ -1103,7 +1103,7 @@ async def _delete_item_impl(
         operation=ItemOperation.DELETE,
     )
 
-    if request.confirm:
+    if not request.preview:
         await _invalidate_item_cache(services, request.type)
 
     return response

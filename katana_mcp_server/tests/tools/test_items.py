@@ -570,7 +570,7 @@ async def test_modify_item_requires_at_least_one_subpayload():
     context, _ = create_mock_context()
     with pytest.raises(ValueError, match="At least one sub-payload"):
         await _modify_item_impl(
-            ModifyItemRequest(id=42, type=ItemType.PRODUCT, confirm=False), context
+            ModifyItemRequest(id=42, type=ItemType.PRODUCT, preview=True), context
         )
 
 
@@ -589,7 +589,7 @@ async def test_modify_item_rejects_misrouted_header_field():
         id=42,
         type=ItemType.SERVICE,
         update_header=ItemHeaderPatch(name="Renamed", is_producible=True),
-        confirm=False,
+        preview=True,
     )
     with pytest.raises(ValueError, match="not valid for type=service"):
         await _modify_item_impl(request, context)
@@ -608,7 +608,7 @@ async def test_modify_item_rejects_variant_crud_for_services():
         id=42,
         type=ItemType.SERVICE,
         add_variants=[VariantAdd(sku="V-1")],
-        confirm=False,
+        preview=True,
     )
     with pytest.raises(ValueError, match="not supported for SERVICE"):
         await _modify_item_impl(request, context)
@@ -651,7 +651,7 @@ async def test_modify_item_product_header_dispatches_to_products_endpoint():
             id=42,
             type=ItemType.PRODUCT,
             update_header=ItemHeaderPatch(name="Renamed Product", is_producible=True),
-            confirm=True,
+            preview=False,
         )
         response = await _modify_item_impl(request, context)
 
@@ -694,7 +694,7 @@ async def test_modify_item_material_header_dispatches_to_materials_endpoint():
             id=99,
             type=ItemType.MATERIAL,
             update_header=ItemHeaderPatch(name="Renamed Material"),
-            confirm=True,
+            preview=False,
         )
         response = await _modify_item_impl(request, context)
 
@@ -740,7 +740,7 @@ async def test_modify_item_service_header_dispatches_to_services_endpoint():
             id=7,
             type=ItemType.SERVICE,
             update_header=ItemHeaderPatch(name="Renamed Service", sales_price=12.50),
-            confirm=True,
+            preview=False,
         )
         response = await _modify_item_impl(request, context)
 
@@ -776,7 +776,7 @@ async def test_modify_item_add_variant_injects_parent_id_for_product():
             id=42,
             type=ItemType.PRODUCT,
             add_variants=[VariantAdd(sku="NEW-SKU-1", sales_price=99.99)],
-            confirm=True,
+            preview=False,
         )
         response = await _modify_item_impl(request, context)
 
@@ -815,7 +815,7 @@ async def test_delete_item_dispatches_to_typed_delete_endpoint():
         ),
         patch(_MODIFY_ITEM_IS_SUCCESS, return_value=True),
     ):
-        request = DeleteItemRequest(id=99, type=ItemType.MATERIAL, confirm=True)
+        request = DeleteItemRequest(id=99, type=ItemType.MATERIAL, preview=False)
         response = await _delete_item_impl(request, context)
 
     assert response.is_preview is False
