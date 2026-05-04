@@ -127,9 +127,9 @@ or feeding output into downstream aggregation / filtering.
 
 `get_*` and `create_*` tools (and the rows on their `list_*` siblings)
 return a `katana_url` field for the entity. Prefer that over composing
-URLs by hand — Katana's path conventions are inconsistent
-(`/salesorder/{id}` is singular, `/products/{id}` is plural) and easy to
-get wrong silently.
+URLs by hand — Katana's path conventions have one nested + plural
+exception (`/contacts/customers/{id}`) on top of an otherwise-uniform
+singular-noun pattern, and getting it wrong fails silently.
 
 Patterns (base: `factory.katanamrp.com`, override via `KATANA_WEB_BASE_URL`):
 
@@ -138,7 +138,8 @@ Patterns (base: `factory.katanamrp.com`, override via `KATANA_WEB_BASE_URL`):
 | Sales orders | `/salesorder/{id}` |
 | Manufacturing orders | `/manufacturingorder/{id}` |
 | Purchase orders | `/purchaseorder/{id}` |
-| Products / materials | `/products/{id}` (variants link to parent item) |
+| Products | `/product/{id}` (variants link to parent item) |
+| Materials | `/material/{id}` (variants link to parent item) |
 | Customers | `/contacts/customers/{id}` |
 | Stock transfers | `/stocktransfer/{id}` |
 | Stock adjustments | `/stockadjustment/{id}` |
