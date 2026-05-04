@@ -594,7 +594,143 @@ def fix_specific_generated_issues(workspace_path: Path) -> bool:
     # Fix pagination defaults for auto-pagination
     fix_pagination_defaults(workspace_path)
 
+    # Normalize empty-dict-as-null in typed-object _parse_* helpers (#509)
+    normalize_parse_helpers_empty_dict(workspace_path)
+
     return True
+
+
+def normalize_parse_helpers_empty_dict(workspace_path: Path) -> None:
+    """Insert empty-dict-as-null normalization in generated _parse_* helpers.
+
+    Katana sometimes returns ``{}`` instead of ``null`` for absent optional
+    nested objects (known wire quirk; see #509). Without normalization, the
+    generator's silent-fallthrough ``oneOf`` parser returns the raw ``{}``
+    dict cast as the typed union — and downstream consumers crash with
+    ``AttributeError`` on attribute access.
+
+    The cache-sync path already handles this in ``_base.py::from_attrs:132-138``;
+    this post-processor brings the direct-attrs path to parity by inserting
+    the same normalization in every generated typed-object ``_parse_*``
+    helper (those whose return type is ``None | <Class> | Unset`` and which
+    call ``<Class>.from_dict()``).
+
+    Idempotent — detects the marker and skips already-patched helpers.
+    Skips multi-variant ``oneOf`` parsers where ``None`` is not a valid
+    return type.
+    """
+    print("🔧 Normalizing empty-dict to None in typed-object _parse_* helpers...")
+
+    models_dir = workspace_path / "katana_public_api_client" / "models"
+    if not models_dir.exists():
+        print(f"   ⚠️  Models directory not found: {models_dir}")
+        return
+
+    # Match a ``_parse_*`` header through the standard ``None`` + ``Unset``
+    # checks. Only helpers with both checks are eligible — that signals
+    # ``None`` is a valid return value, so empty-dict-as-null is semantically
+    # correct.
+    parse_header_re = re.compile(
+        r"        def _parse_\w+\(data: object\) -> [^\n]+\n"
+        r"            if data is None:\n"
+        r"                return data\n"
+        r"            if isinstance\(data, Unset\):\n"
+        r"                return data\n",
+    )
+    marker_comment = "# Empty dict → None (Katana wire quirk; see #509)."
+    early_return_block = (
+        f"            {marker_comment}\n"
+        "            if isinstance(data, dict) and not data:\n"
+        "                return None\n"
+    )
+
+    file_count = 0
+    helper_count = 0
+    for model_file in sorted(models_dir.glob("*.py")):
+        try:
+            content = model_file.read_text(encoding="utf-8")
+        except OSError as e:
+            print(f"   ⚠️  Could not read {model_file.name}: {e}")
+            continue
+
+        # Cheap pre-filter: skip files with no typed nested-object parsers.
+        if ".from_dict(" not in content:
+            continue
+
+        new_content, count = _insert_empty_dict_normalization(
+            content, parse_header_re, early_return_block, marker_comment
+        )
+        if count > 0:
+            model_file.write_text(new_content, encoding="utf-8")
+            file_count += 1
+            helper_count += count
+
+    if helper_count:
+        print(f"   ✓ Patched {helper_count} helpers across {file_count} files")
+    else:
+        print("   (no eligible helpers found — already patched or none exist)")
+
+
+def _insert_empty_dict_normalization(
+    content: str,
+    parse_header_re: "re.Pattern[str]",
+    early_return_block: str,
+    marker_comment: str,
+) -> tuple[str, int]:
+    """Insert ``early_return_block`` after each eligible ``_parse_*`` header.
+
+    Eligibility:
+    - Header matches ``parse_header_re`` (typical ``None``+``Unset`` preamble)
+    - Function body contains ``.from_dict(`` (typed-object alternative)
+    - Function body does NOT already contain ``marker_comment`` (idempotency)
+
+    Returns ``(new_content, num_helpers_patched)``. Walks matches in
+    reverse so insertion offsets stay valid.
+    """
+    matches = list(parse_header_re.finditer(content))
+    if not matches:
+        return content, 0
+
+    new_content = content
+    patched = 0
+    for m in reversed(matches):
+        body_start = m.end()
+        body_end = _function_body_end(new_content, body_start)
+        body = new_content[body_start:body_end]
+
+        if ".from_dict(" not in body:
+            continue
+        if marker_comment in body:
+            continue
+
+        new_content = (
+            new_content[:body_start] + early_return_block + new_content[body_start:]
+        )
+        patched += 1
+
+    return new_content, patched
+
+
+def _function_body_end(content: str, body_start: int) -> int:
+    """End offset of a ``_parse_*`` function body, by indentation.
+
+    The header lives at 8-space indent (inside a classmethod at 4-space
+    indent), so the body is at >=12-space indent. Walk forward; the body
+    ends at the first non-blank line indented less than 12 spaces.
+    """
+    pos = body_start
+    n = len(content)
+    while pos < n:
+        line_end = content.find("\n", pos)
+        if line_end == -1:
+            line_end = n
+        line = content[pos:line_end]
+        if line.strip():
+            indent = len(line) - len(line.lstrip(" "))
+            if indent < 12:
+                return pos
+        pos = line_end + 1
+    return n
 
 
 def fix_pagination_defaults(workspace_path: Path) -> None:

@@ -245,15 +245,19 @@ class TestSyncShippingFeeEmpty:
     """
 
     def test_attrs_sales_order_with_empty_shipping_fee_converts(self):
-        """``from_attrs`` must not raise when attrs shipping_fee is ``{}``."""
+        """``from_attrs`` must produce ``shipping_fee=None`` when attrs
+        shipping_fee originated as ``{}`` on the wire."""
         from katana_public_api_client.models import SalesOrder as AttrsSalesOrder
         from katana_public_api_client.models_pydantic._generated import (
             SalesOrder as PydanticSalesOrder,
         )
 
-        # Simulate the wire shape Katana sends for a no-fee order. The attrs
-        # parser can't populate required inner fields from {}, catches the
-        # KeyError, and falls back to storing the raw {} dict.
+        # Simulate the wire shape Katana sends for a no-fee order. As of #509,
+        # the generated ``_parse_shipping_fee`` short-circuits on empty dict
+        # and returns None directly — so the attrs object already has
+        # ``shipping_fee is None`` before from_attrs runs. (The empty-dict
+        # normalization in ``from_attrs._base.py:132-138`` remains as
+        # defense in depth — see #509 for the full story.)
         attrs_so = AttrsSalesOrder.from_dict(
             {
                 "id": 9001,
@@ -264,8 +268,11 @@ class TestSyncShippingFeeEmpty:
                 "shipping_fee": {},
             }
         )
+        # Direct guarantee from the post-processor: attrs side is None,
+        # not a raw dict.
+        assert attrs_so.shipping_fee is None
 
-        # This must not raise pydantic ValidationError.
+        # And the cache-sync path agrees.
         pydantic_so = PydanticSalesOrder.from_attrs(attrs_so)
         assert pydantic_so.shipping_fee is None
 
