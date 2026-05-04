@@ -11,7 +11,6 @@ Example:
     ...     results = await client.products.search("widget")
     ...
     ...     # Inventory and stock operations
-    ...     stock = await client.inventory.check_stock("WIDGET-001")
     ...     low_stock = await client.inventory.list_low_stock(threshold=10)
 """
 

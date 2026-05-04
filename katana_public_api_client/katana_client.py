@@ -1437,15 +1437,16 @@ class KatanaClient(AuthenticatedClient):
 
     @property
     def inventory(self) -> Inventory:
-        """Access inventory and stock operations.
+        """Access inventory helpers.
 
         Returns:
-            Inventory instance for stock levels, movements, and adjustments.
+            Inventory instance providing low-stock reporting. For per-SKU
+            stock lookups, stock movements, and stock adjustments, call
+            the corresponding endpoint via ``client.api.*`` directly —
+            those are not exposed on this helper class.
 
         Example:
             >>> async with KatanaClient() as client:
-            ...     # Check stock levels
-            ...     stock = await client.inventory.check_stock("WIDGET-001")
             ...     low_stock = await client.inventory.list_low_stock(threshold=10)
         """
         if self._inventory is None:
