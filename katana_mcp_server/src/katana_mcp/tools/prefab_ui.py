@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from prefab_ui.actions import SetState, ShowToast
+from prefab_ui.actions import Action, SetState, ShowToast
 from prefab_ui.actions.mcp import CallTool, SendMessage
 from prefab_ui.app import PrefabApp
 from prefab_ui.components import (
@@ -78,6 +78,8 @@ def call_tool_from_request(
     request: BaseModel,
     *,
     overrides: dict[str, Any] | None = None,
+    on_success: Action | list[Action] | None = None,
+    on_error: Action | list[Action] | None = None,
 ) -> CallTool:
     """Build a CallTool action that re-invokes ``tool_name`` with the
     request's fields **inlined as literal values** (not template strings).
@@ -90,6 +92,11 @@ def call_tool_from_request(
     ``overrides`` (e.g. ``{"preview": False}``) take precedence over the
     inlined values — use them to flip a flag or substitute a literal at
     re-invocation time (typically to switch from preview to apply).
+
+    ``on_success`` and ``on_error`` are passed through to the underlying
+    ``CallTool`` so callers can chain feedback handlers (toast, state
+    update, message) onto the apply call. Without these, the click fires
+    invisibly — see #495 for why every Confirm button needs them.
 
     History: this helper used to emit Mustache-style ``{{ request.<field> }}``
     template strings and rely on the iframe host to substitute them from
@@ -111,7 +118,52 @@ def call_tool_from_request(
                 f"{', '.join(bad)}"
             )
         args.update(overrides)
-    return CallTool(tool_name, arguments=args)
+    return CallTool(
+        tool_name,
+        arguments=args,
+        on_success=on_success,
+        on_error=on_error,
+    )
+
+
+def _build_confirm_action(
+    confirm_tool: str,
+    confirm_request: BaseModel,
+    *,
+    success_message: str,
+    success_chat: str,
+    error_message: str,
+    error_chat: str,
+) -> CallTool:
+    """Construct the standard Confirm-button apply action with feedback
+    handlers attached.
+
+    Centralizes the visible-feedback contract for all preview UIs (#495):
+    every Confirm button must surface a toast on success/error AND push a
+    SendMessage so the apply call shows up in chat history. Without these
+    handlers the click fires invisibly — the tool runs at the API but the
+    user sees nothing. Result data is also captured into iframe state at
+    ``state.result`` so a follow-up iteration can swap the preview content
+    for a submitted/result card without another round-trip.
+
+    All four message strings are baked in at preview-build time (no
+    ``{{ ... }}`` template substitution required); this avoids the host
+    substitution failure mode documented in #491.
+    """
+    return call_tool_from_request(
+        confirm_tool,
+        confirm_request,
+        overrides={"preview": False},
+        on_success=[
+            SetState("result", RESULT),
+            ShowToast(message=success_message, variant="success"),
+            SendMessage(success_chat),
+        ],
+        on_error=[
+            ShowToast(message=error_message, variant="error"),
+            SendMessage(error_chat),
+        ],
+    )
 
 
 # ============================================================================
@@ -454,12 +506,19 @@ def build_order_preview_ui(
     inlined rather than templated from iframe state.
     """
     fields = _extract_order_fields(order)
-    confirm_action = call_tool_from_request(
+    order_number = fields["order_number"]
+    confirm_action = _build_confirm_action(
         confirm_tool,
         confirm_request,
-        overrides={"preview": False},
+        success_message=f"{order_type} {order_number} created",
+        success_chat=f"{order_type} {order_number} was created successfully.",
+        error_message=f"{order_type} creation failed",
+        error_chat=(
+            f"{order_type} {order_number} creation failed — please review "
+            "the error and try again."
+        ),
     )
-    state: dict[str, Any] = {"order": order}
+    state: dict[str, Any] = {"order": order, "result": None}
 
     with PrefabApp(state=state, css_class="p-4") as app, Card():
         with CardHeader(), Row(gap=2):
@@ -607,7 +666,10 @@ def build_fulfill_preview_ui(
     order_id = response["order_id"]
     raw_order_type = response["order_type"]
 
-    with PrefabApp(state={"response": response}, css_class="p-4") as app, Card():
+    with (
+        PrefabApp(state={"response": response, "result": None}, css_class="p-4") as app,
+        Card(),
+    ):
         with CardHeader(), Row(gap=2):
             CardTitle(content=f"Fulfill {order_type} Order")
             Badge(label=order_number, variant="outline")
@@ -626,6 +688,12 @@ def build_fulfill_preview_ui(
 
         with CardFooter(), Row(gap=2):
             if not block_warnings:
+                # Same feedback contract as the helper-built confirm
+                # actions (#495): toast + state capture + chat-side
+                # SendMessage so the click produces visible signal
+                # everywhere a user might be looking. Hand-built here
+                # because the args aren't a Pydantic request — they're
+                # echoed from the response dict.
                 Button(
                     label="Confirm Fulfillment",
                     variant="default",
@@ -636,6 +704,27 @@ def build_fulfill_preview_ui(
                             "order_type": raw_order_type,
                             "preview": False,
                         },
+                        on_success=[
+                            SetState("result", RESULT),
+                            ShowToast(
+                                message=f"{order_type} order {order_number} fulfilled",
+                                variant="success",
+                            ),
+                            SendMessage(
+                                f"{order_type} order {order_number} was fulfilled "
+                                "successfully; inventory has been updated."
+                            ),
+                        ],
+                        on_error=[
+                            ShowToast(
+                                message=f"Fulfillment for {order_number} failed",
+                                variant="error",
+                            ),
+                            SendMessage(
+                                f"Fulfilling {order_type.lower()} order {order_number} "
+                                "failed — please review the error and try again."
+                            ),
+                        ],
                     ),
                 )
             Button(
@@ -822,13 +911,21 @@ def build_receipt_ui(
 
     order_number = response.get("order_number", "N/A")
     is_preview = response.get("is_preview", True)
-    state: dict[str, Any] = {"response": response}
+    state: dict[str, Any] = {"response": response, "result": None}
     confirm_action: CallTool | None = None
     if confirm_request is not None and confirm_tool is not None:
-        confirm_action = call_tool_from_request(
+        confirm_action = _build_confirm_action(
             confirm_tool,
             confirm_request,
-            overrides={"preview": False},
+            success_message=f"Receipt for {order_number} recorded",
+            success_chat=(
+                f"Items received for {order_number}; inventory has been updated."
+            ),
+            error_message=f"Receipt for {order_number} failed",
+            error_chat=(
+                f"Receiving items for {order_number} failed — please review "
+                "the error and try again."
+            ),
         )
 
     with PrefabApp(state=state, css_class="p-4") as app, Card():
@@ -974,13 +1071,24 @@ def build_batch_recipe_update_ui(
         "is_preview": is_preview,
         "warnings": warnings,
         "groups": list(groups.keys()),
+        "result": None,
     }
     confirm_action: CallTool | None = None
     if confirm_request is not None and confirm_tool is not None:
-        confirm_action = call_tool_from_request(
+        confirm_action = _build_confirm_action(
             confirm_tool,
             confirm_request,
-            overrides={"preview": False},
+            success_message=f"Batch executed: {total} ops",
+            success_chat=(
+                f"Batch recipe update executed: {total} planned operation(s) "
+                "submitted. Review the results card for per-op success / "
+                "failure / skip status."
+            ),
+            error_message="Batch execution failed",
+            error_chat=(
+                "Batch recipe update failed before completing — please "
+                "review the error and re-run."
+            ),
         )
 
     with (

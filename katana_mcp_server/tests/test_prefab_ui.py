@@ -766,6 +766,127 @@ class TestConfirmButtonsUseCallTool:
         assert _find_template_strings(args) == []
 
 
+class TestConfirmButtonsHaveFeedbackHandlers:
+    """Regression tests for #495: every Confirm button on every preview
+    builder must wire ``on_success`` and ``on_error`` handlers, otherwise
+    the click fires invisibly. Without these the user has no chat-side
+    or in-iframe signal that the apply tool ran.
+    """
+
+    @staticmethod
+    def _assert_calltool_has_handlers(action: dict, label: str) -> None:
+        """Assert a serialized toolCall action has both lifecycle hooks set.
+
+        We don't pin the *shape* of the hooks (caller wording / variant /
+        component types may evolve) — just that they exist. The point is
+        to make missing handlers fail loudly the moment a future builder
+        forgets to wire them.
+        """
+        on_success = action.get("on_success") or action.get("onSuccess")
+        on_error = action.get("on_error") or action.get("onError")
+        assert on_success, (
+            f"{label}: Confirm button's CallTool has no on_success handler — "
+            f"click would fire invisibly (#495). Action keys: {list(action)}"
+        )
+        assert on_error, (
+            f"{label}: Confirm button's CallTool has no on_error handler — "
+            f"failures would be silent (#495). Action keys: {list(action)}"
+        )
+
+    def test_order_preview_confirm_button_has_feedback_handlers(self):
+        from katana_mcp.tools.foundation.purchase_orders import (
+            CreatePurchaseOrderRequest,
+            PurchaseOrderItem,
+        )
+
+        request = CreatePurchaseOrderRequest(
+            supplier_id=2,
+            location_id=3,
+            order_number="PO-FB-1",
+            items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.0)],
+        )
+        app = build_order_preview_ui(
+            {"order_number": "PO-FB-1", "warnings": []},
+            "Purchase Order",
+            confirm_request=request,
+            confirm_tool="create_purchase_order",
+        )
+        envelope = app.to_json()
+        actions = _find_tool_call_actions(envelope)
+        confirm = next(a for a in actions if a.get("tool") == "create_purchase_order")
+        self._assert_calltool_has_handlers(confirm, "build_order_preview_ui")
+
+    def test_receipt_preview_confirm_button_has_feedback_handlers(self):
+        from katana_mcp.tools.foundation.purchase_orders import (
+            ReceiveItemRequest,
+            ReceivePurchaseOrderRequest,
+        )
+
+        request = ReceivePurchaseOrderRequest(
+            order_id=1234,
+            items=[ReceiveItemRequest(purchase_order_row_id=10, quantity=5.0)],
+        )
+        app = build_receipt_ui(
+            {
+                "order_id": 1234,
+                "order_number": "PO-FB-2",
+                "is_preview": True,
+                "items_received": 5,
+                "status": "NOT_RECEIVED",
+                "warnings": [],
+            },
+            confirm_request=request,
+            confirm_tool="receive_purchase_order",
+        )
+        envelope = app.to_json()
+        actions = _find_tool_call_actions(envelope)
+        confirm = next(a for a in actions if a.get("tool") == "receive_purchase_order")
+        self._assert_calltool_has_handlers(confirm, "build_receipt_ui")
+
+    def test_batch_recipe_preview_confirm_button_has_feedback_handlers(self):
+        request = _StubRequest()
+        app = build_batch_recipe_update_ui(
+            {
+                "is_preview": True,
+                "total_ops": 1,
+                "success_count": 0,
+                "failed_count": 0,
+                "skipped_count": 0,
+                "results": [
+                    {
+                        "op_type": "delete",
+                        "manufacturing_order_id": 9999,
+                        "recipe_row_id": 5001,
+                        "status": "pending",
+                    }
+                ],
+                "warnings": [],
+                "message": "Preview",
+            },
+            confirm_request=request,
+            confirm_tool="batch_update_recipes",
+        )
+        envelope = app.to_json()
+        actions = _find_tool_call_actions(envelope)
+        confirm = next(a for a in actions if a.get("tool") == "batch_update_recipes")
+        self._assert_calltool_has_handlers(confirm, "build_batch_recipe_update_ui")
+
+    def test_fulfill_preview_confirm_button_has_feedback_handlers(self):
+        app = build_fulfill_preview_ui(
+            {
+                "order_id": 9999,
+                "order_type": "sales",
+                "order_number": "SO-FB-1",
+                "status": "IN_PROGRESS",
+                "warnings": [],
+            }
+        )
+        envelope = app.to_json()
+        actions = _find_tool_call_actions(envelope)
+        confirm = next(a for a in actions if a.get("tool") == "fulfill_order")
+        self._assert_calltool_has_handlers(confirm, "build_fulfill_preview_ui")
+
+
 def _find_buttons_by_label(tree: object, label: str) -> list[dict]:
     """Walk a Prefab envelope and return every Button node whose label
     matches ``label`` exactly. Used by BLOCK-warning regression tests to
