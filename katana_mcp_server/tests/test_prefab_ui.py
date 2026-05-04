@@ -624,12 +624,6 @@ class TestConfirmButtonsUseCallTool:
             f"preview=False; found {len(matching)}. Total toolCall actions "
             f"in envelope: {len(actions)}."
         )
-        # Regression for #491: the toolCall args must carry the request's
-        # actual values (inlined), not Mustache template strings. Host-side
-        # template substitution silently drops args, causing data loss.
-        # Compared against ``request.model_dump(mode='json')`` so the
-        # assertion is self-healing if PurchaseOrderItem gains new optional
-        # fields — failing only for the actual regression.
         confirm_args = matching[0]["arguments"]
         expected = request.model_dump(mode="json")
         assert confirm_args["supplier_id"] == expected["supplier_id"]
@@ -885,6 +879,48 @@ class TestConfirmButtonsHaveFeedbackHandlers:
         actions = _find_tool_call_actions(envelope)
         confirm = next(a for a in actions if a.get("tool") == "fulfill_order")
         self._assert_calltool_has_handlers(confirm, "build_fulfill_preview_ui")
+
+
+class TestBuildConfirmActionXorInvariant:
+    """``_build_confirm_action`` collapses the optional confirm-button
+    plumbing previously duplicated in ``build_receipt_ui`` and
+    ``build_batch_recipe_update_ui``. Both inputs (``confirm_tool``,
+    ``confirm_request``) must be set together or both ``None``; passing
+    one but not the other is a programmer error.
+    """
+
+    @pytest.mark.parametrize(
+        "tool, request_obj",
+        [
+            ("create_purchase_order", None),
+            (None, _StubRequest()),
+        ],
+    )
+    def test_partial_inputs_raise_value_error(self, tool, request_obj):
+        from katana_mcp.tools.prefab_ui import _build_confirm_action
+
+        with pytest.raises(ValueError, match="must be set together"):
+            _build_confirm_action(
+                tool,
+                request_obj,
+                success_message="ok",
+                success_chat="ok",
+                error_message="fail",
+                error_chat="fail",
+            )
+
+    def test_both_none_returns_none(self):
+        from katana_mcp.tools.prefab_ui import _build_confirm_action
+
+        result = _build_confirm_action(
+            None,
+            None,
+            success_message="ok",
+            success_chat="ok",
+            error_message="fail",
+            error_chat="fail",
+        )
+        assert result is None
 
 
 def _find_buttons_by_label(tree: object, label: str) -> list[dict]:
