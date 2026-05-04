@@ -509,23 +509,21 @@ def test_dict_to_variant_details_uses_product_id_for_product_variants(
     response = _dict_to_variant_details(
         {"id": 1, "sku": "P-1", "product_id": 42, "material_id": None}
     )
-    assert response.katana_url == "https://factory.katanamrp.com/products/42"
+    assert response.katana_url == "https://factory.katanamrp.com/product/42"
 
 
 def test_dict_to_variant_details_falls_back_to_material_id_for_material_variants(
     _no_web_base_url: None,
 ):
-    """Material-owned variants must link to the parent material — the previous
-    `katana_web_url("product", parent_id)` form produced the right URL only
-    because both kinds happen to map to /products/{id}. If those paths ever
-    diverge, this test pins the correct kind selection.
-    """
+    """Material-owned variants must link to the parent material via the
+    distinct ``/material/{id}`` route (split from ``/product/{id}`` in #454
+    once the live UI confirmed they're separate paths)."""
     from katana_mcp.tools.foundation.items import _dict_to_variant_details
 
     response = _dict_to_variant_details(
         {"id": 2, "sku": "M-1", "product_id": None, "material_id": 99}
     )
-    assert response.katana_url == "https://factory.katanamrp.com/products/99"
+    assert response.katana_url == "https://factory.katanamrp.com/material/99"
 
 
 def test_dict_to_variant_details_no_parent_returns_none_url():
@@ -538,17 +536,19 @@ def test_dict_to_variant_details_no_parent_returns_none_url():
 
 
 def test_item_katana_url_returns_none_for_service_type(_no_web_base_url: None):
-    """Services have no /products/{id}-style page in Katana's web app."""
+    """Services have no per-item page in Katana's web app. Products and
+    materials route to distinct singular paths (``/product/{id}`` and
+    ``/material/{id}`` respectively)."""
     from katana_mcp.tools.foundation.items import _item_katana_url
 
     assert _item_katana_url(ItemType.SERVICE, 123) is None
     assert (
         _item_katana_url(ItemType.PRODUCT, 123)
-        == "https://factory.katanamrp.com/products/123"
+        == "https://factory.katanamrp.com/product/123"
     )
     assert (
         _item_katana_url(ItemType.MATERIAL, 456)
-        == "https://factory.katanamrp.com/products/456"
+        == "https://factory.katanamrp.com/material/456"
     )
 
 
@@ -617,7 +617,11 @@ async def test_modify_item_rejects_variant_crud_for_services():
 @pytest.mark.asyncio
 async def test_modify_item_product_header_dispatches_to_products_endpoint():
     """Confirms the type discriminator routes a PRODUCT header update to
-    ``/products/{id}`` (and not ``/materials/{id}``)."""
+    the API ``/products/{id}`` endpoint (and not ``/materials/{id}``).
+
+    Note: this is the API path (still plural per Katana's REST conventions),
+    not the web-app deep-link path (which is ``/product/{id}`` singular,
+    see #454)."""
     from katana_mcp.tools.foundation.items import (
         ItemHeaderPatch,
         ModifyItemRequest,

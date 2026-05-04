@@ -12,8 +12,10 @@ from katana_mcp.web_urls import DEFAULT_WEB_BASE_URL, EntityKind, katana_web_url
         ("sales_order", 12345, "/salesorder/12345"),
         ("manufacturing_order", 67890, "/manufacturingorder/67890"),
         ("purchase_order", 1, "/purchaseorder/1"),
-        ("product", 42, "/products/42"),
-        ("material", 99, "/products/99"),
+        # Katana's web app uses singular nouns for entity routes; products
+        # and materials each have their own route (verified live, #454).
+        ("product", 42, "/product/42"),
+        ("material", 99, "/material/99"),
         ("customer", 7, "/contacts/customers/7"),
         ("stock_transfer", 555, "/stocktransfer/555"),
         ("stock_adjustment", 222, "/stockadjustment/222"),

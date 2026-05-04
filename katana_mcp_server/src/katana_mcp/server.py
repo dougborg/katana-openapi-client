@@ -259,8 +259,8 @@ overridable via `KATANA_WEB_BASE_URL`):
   /salesorder/{id}              — sales orders
   /manufacturingorder/{id}      — manufacturing orders
   /purchaseorder/{id}           — purchase orders
-  /products/{id}                — products and materials (variants link
-                                  to the parent item)
+  /product/{id}                 — products (variants link to the parent)
+  /material/{id}                — materials (variants link to the parent)
   /contacts/customers/{id}      — customers
   /stocktransfer/{id}           — stock transfers
   /stockadjustment/{id}         — stock adjustments
