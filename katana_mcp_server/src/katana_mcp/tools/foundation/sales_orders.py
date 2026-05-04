@@ -985,9 +985,24 @@ def _shipping_fee_from_attrs(fee: Any) -> SalesOrderShippingFeeInfo | None:
     Callers must pre-unwrap the attrs field (via ``unwrap_unset(obj.shipping_fee,
     None)``) so this helper only receives ``None`` or a populated object —
     passing the raw UNSET sentinel would AttributeError on ``.id``.
+
+    Accepts both attrs ``SalesOrderShippingFee`` and a raw dict: the
+    generated ``SalesOrder._parse_shipping_fee`` silently falls through to
+    a raw dict cast as the union type when ``SalesOrderShippingFee.from_dict``
+    raises (a quirk of openapi-python-client's oneOf codegen). When that
+    happens, parse the dict via ``from_dict`` here; if even that fails
+    (malformed payload), return ``None`` so the SO assembly completes
+    rather than crashing with an opaque ``AttributeError`` (#501).
     """
     if fee is None:
         return None
+    if isinstance(fee, dict):
+        from katana_public_api_client.models import SalesOrderShippingFee
+
+        try:
+            fee = SalesOrderShippingFee.from_dict(fee)
+        except (TypeError, ValueError, KeyError, AttributeError):
+            return None
     return SalesOrderShippingFeeInfo(
         id=fee.id,
         sales_order_id=fee.sales_order_id,
