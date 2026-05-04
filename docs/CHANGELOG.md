@@ -2,6 +2,475 @@
 
 <!-- version list -->
 
+## v0.56.0 (2026-05-04)
+
+### Bug Fixes
+
+- **ci**: Match breaking-change marker in release pre-check
+  ([#453](https://github.com/dougborg/katana-openapi-client/pull/453),
+  [`bee7604`](https://github.com/dougborg/katana-openapi-client/commit/bee7604e91a4a3f75dd67562168d7632c2316374))
+
+- **client**: Align spec examples + correct SalesReturnRefundStatus enum
+  ([#420](https://github.com/dougborg/katana-openapi-client/pull/420),
+  [`0fb173f`](https://github.com/dougborg/katana-openapi-client/commit/0fb173f14ac7803377b8dab7e4f10b82d51234cd))
+
+- **client**: Align spec with live Katana API — required fields, enums, missing fields
+  ([#420](https://github.com/dougborg/katana-openapi-client/pull/420),
+  [`0fb173f`](https://github.com/dougborg/katana-openapi-client/commit/0fb173f14ac7803377b8dab7e4f10b82d51234cd))
+
+- **client**: Response-schema drift surfaced by validate_response_examples
+  ([#421](https://github.com/dougborg/katana-openapi-client/pull/421),
+  [`3b835e5`](https://github.com/dougborg/katana-openapi-client/commit/3b835e58ba5d35013081d09738ea321678431dd8))
+
+- **mcp**: Auto-generate stock_transfer_number when caller omits it
+  ([#448](https://github.com/dougborg/katana-openapi-client/pull/448),
+  [`f35389a`](https://github.com/dougborg/katana-openapi-client/commit/f35389aacf7c3f7bd62e0e272d637f63334f2a2f))
+
+- **mcp**: Canonical confirmation flow — drop elicitation gate, use CallTool for prefab
+  buttons ([#436](https://github.com/dougborg/katana-openapi-client/pull/436),
+  [`300018d`](https://github.com/dougborg/katana-openapi-client/commit/300018dbf239a3ef4883f20503b5992df7ffb667))
+
+- **mcp**: Coerce LLM-mistyped list inputs back into Python lists
+  ([`30f3fd8`](https://github.com/dougborg/katana-openapi-client/commit/30f3fd866ff40d7b7f3fa9364a3c360f65100a96))
+
+- **mcp**: Conform Prefab UI emission to MCP Apps spec (closes #422)
+  ([#435](https://github.com/dougborg/katana-openapi-client/pull/435),
+  [`cdbe23a`](https://github.com/dougborg/katana-openapi-client/commit/cdbe23aaf67c192399078ef2593a0e99634b7bf8))
+
+- **mcp**: Convert no-rows ValueError in fulfill_sales_order confirm to refusal response
+  ([#446](https://github.com/dougborg/katana-openapi-client/pull/446),
+  [`407d678`](https://github.com/dougborg/katana-openapi-client/commit/407d67810ad2d91265cfc1d8a7fcdf279b7caf6c))
+
+- **mcp**: Correct katana_url paths for products and materials
+  ([#490](https://github.com/dougborg/katana-openapi-client/pull/490),
+  [`3ec36b9`](https://github.com/dougborg/katana-openapi-client/commit/3ec36b9d5a844666e5904cbd994af74a180df0f3))
+
+- **mcp**: Drop server-side require_confirmation elicitation gate
+  ([#436](https://github.com/dougborg/katana-openapi-client/pull/436),
+  [`300018d`](https://github.com/dougborg/katana-openapi-client/commit/300018dbf239a3ef4883f20503b5992df7ffb667))
+
+- **mcp**: Enforce BLOCK gates on confirm path; demote cache-miss to advisory
+  ([#446](https://github.com/dougborg/katana-openapi-client/pull/446),
+  [`407d678`](https://github.com/dougborg/katana-openapi-client/commit/407d67810ad2d91265cfc1d8a7fcdf279b7caf6c))
+
+- **mcp**: Fan out parent sync to related entity specs
+  ([#462](https://github.com/dougborg/katana-openapi-client/pull/462),
+  [`fc47b66`](https://github.com/dougborg/katana-openapi-client/commit/fc47b66f8b464b4870ae2d83dffdbaf9c0a9319a))
+
+- **mcp**: Inline preview→apply args instead of templating from iframe state
+  ([#493](https://github.com/dougborg/katana-openapi-client/pull/493),
+  [`c265bc8`](https://github.com/dougborg/katana-openapi-client/commit/c265bc87bba54b27f20d24ca9bbf1f5bef37e44b))
+
+- **mcp**: Mirror Katana soft-delete semantics in typed cache
+  ([#462](https://github.com/dougborg/katana-openapi-client/pull/462),
+  [`fc47b66`](https://github.com/dougborg/katana-openapi-client/commit/fc47b66f8b464b4870ae2d83dffdbaf9c0a9319a))
+
+- **mcp**: Populate preview UIs with fetched data; add BLOCK warning marker (closes
+  #443) ([#446](https://github.com/dougborg/katana-openapi-client/pull/446),
+  [`407d678`](https://github.com/dougborg/katana-openapi-client/commit/407d67810ad2d91265cfc1d8a7fcdf279b7caf6c))
+
+- **mcp**: Preview branches must fetch backing data; add BLOCK warning marker
+  ([#446](https://github.com/dougborg/katana-openapi-client/pull/446),
+  [`407d678`](https://github.com/dougborg/katana-openapi-client/commit/407d67810ad2d91265cfc1d8a7fcdf279b7caf6c))
+
+- **mcp**: Render prior_state in markdown, fix verify label, snapshot on delete preview
+  ([#464](https://github.com/dougborg/katana-openapi-client/pull/464),
+  [`1c56800`](https://github.com/dougborg/katana-openapi-client/commit/1c56800858a080f32305a52342ad29aa6f4b4cd4))
+
+- **mcp**: Strip Prefab wire envelope from structured_content (mitigation for #422)
+  ([#423](https://github.com/dougborg/katana-openapi-client/pull/423),
+  [`d1234ef`](https://github.com/dougborg/katana-openapi-client/commit/d1234efeff7a6e54f1160aeaefe9c7577e6468ed))
+
+- **mcp**: Sync row-level entities for PO and SO to catch tombstones
+  ([#462](https://github.com/dougborg/katana-openapi-client/pull/462),
+  [`fc47b66`](https://github.com/dougborg/katana-openapi-client/commit/fc47b66f8b464b4870ae2d83dffdbaf9c0a9319a))
+
+- **mcp**: Typed-cache freshness — soft-delete semantics + parent/child sync coupling
+  ([#462](https://github.com/dougborg/katana-openapi-client/pull/462),
+  [`fc47b66`](https://github.com/dougborg/katana-openapi-client/commit/fc47b66f8b464b4870ae2d83dffdbaf9c0a9319a))
+
+- **mcp**: Wire feedback handlers on every Confirm-button click (#495)
+  ([#496](https://github.com/dougborg/katana-openapi-client/pull/496),
+  [`786576c`](https://github.com/dougborg/katana-openapi-client/commit/786576cdc12fa65ced7f4e4f057dfacc362ec36d))
+
+- **scripts**: Handle non-branch local refs in pre-push-guard
+  ([#434](https://github.com/dougborg/katana-openapi-client/pull/434),
+  [`b3d727b`](https://github.com/dougborg/katana-openapi-client/commit/b3d727b1f66b988cd70735084f862cfd371906ca))
+
+- **test**: Mark test_documentation_search_functionality as docs
+  ([#436](https://github.com/dougborg/katana-openapi-client/pull/436),
+  [`300018d`](https://github.com/dougborg/katana-openapi-client/commit/300018dbf239a3ef4883f20503b5992df7ffb667))
+
+### Build System
+
+- **scripts**: Add audit_spec_drift + validate_spec_examples + poe tasks
+  ([#420](https://github.com/dougborg/katana-openapi-client/pull/420),
+  [`0fb173f`](https://github.com/dougborg/katana-openapi-client/commit/0fb173f14ac7803377b8dab7e4f10b82d51234cd))
+
+- **scripts**: Add validate_response_examples.py + capture findings
+  ([#421](https://github.com/dougborg/katana-openapi-client/pull/421),
+  [`3b835e5`](https://github.com/dougborg/katana-openapi-client/commit/3b835e58ba5d35013081d09738ea321678431dd8))
+
+- **scripts**: Pull canonical OpenAPI spec from the live API gateway
+  ([#420](https://github.com/dougborg/katana-openapi-client/pull/420),
+  [`0fb173f`](https://github.com/dougborg/katana-openapi-client/commit/0fb173f14ac7803377b8dab7e4f10b82d51234cd))
+
+- **scripts**: Replace HTML-scrape with two-spec ssr-props pull, retire legacy
+  ([#421](https://github.com/dougborg/katana-openapi-client/pull/421),
+  [`3b835e5`](https://github.com/dougborg/katana-openapi-client/commit/3b835e58ba5d35013081d09738ea321678431dd8))
+
+### Chores
+
+- Add pre-push hook blocking direct pushes to main from non-main branches
+  ([#434](https://github.com/dougborg/katana-openapi-client/pull/434),
+  [`b3d727b`](https://github.com/dougborg/katana-openapi-client/commit/b3d727b1f66b988cd70735084f862cfd371906ca))
+
+- Delete obsolete agent docs (AGENT_WORKFLOW.md + 3 guides), add dual-sequence ADR note
+  ([#418](https://github.com/dougborg/katana-openapi-client/pull/418),
+  [`d436088`](https://github.com/dougborg/katana-openapi-client/commit/d436088f8c0284b8d3ee2828c40f474025997898))
+
+- Mechanical docs cleanup — delete one-shot scripts, archive v0.1.0 plan, fix
+  typed-cache docstring
+  ([#417](https://github.com/dougborg/katana-openapi-client/pull/417),
+  [`8382cf4`](https://github.com/dougborg/katana-openapi-client/commit/8382cf4ecbca5ac75c8f050d4691f12d2ddd22a8))
+
+- Sync uv.lock with released package versions
+  ([#420](https://github.com/dougborg/katana-openapi-client/pull/420),
+  [`0fb173f`](https://github.com/dougborg/katana-openapi-client/commit/0fb173f14ac7803377b8dab7e4f10b82d51234cd))
+
+- Tech-debt sweep — narrow bare excepts, drop dead clear_registry
+  ([#460](https://github.com/dougborg/katana-openapi-client/pull/460),
+  [`c07005a`](https://github.com/dougborg/katana-openapi-client/commit/c07005ad750ed103cd34e327251bd23747b6a451))
+
+- **deps)(deps**: Bump the python-minor-patch group with 5 updates
+  ([#489](https://github.com/dougborg/katana-openapi-client/pull/489),
+  [`f1ec431`](https://github.com/dougborg/katana-openapi-client/commit/f1ec431657e14ce3d131804e7bcc4bbae72af821))
+
+- **mcp**: Post-#342 review nits — fixture renames + factories TYPE_CHECKING cleanup
+  ([#415](https://github.com/dougborg/katana-openapi-client/pull/415),
+  [`cf7c98a`](https://github.com/dougborg/katana-openapi-client/commit/cf7c98a73cf2dee7614ff1f3c492eae941074901))
+
+- **mcp**: Tighten katana_url helpers per simplify-pass review
+  ([#448](https://github.com/dougborg/katana-openapi-client/pull/448),
+  [`f35389a`](https://github.com/dougborg/katana-openapi-client/commit/f35389aacf7c3f7bd62e0e272d637f63334f2a2f))
+
+- **mcp**: Use ShowToast for Cancel buttons (drop SendMessage round-trip)
+  ([#440](https://github.com/dougborg/katana-openapi-client/pull/440),
+  [`0905bcd`](https://github.com/dougborg/katana-openapi-client/commit/0905bcda739b8f6d6a9b6cc51f7402a5a73c5b7c))
+
+- **release**: Mcp v0.44.0
+  ([`c01385a`](https://github.com/dougborg/katana-openapi-client/commit/c01385ae18461a53237ede93870ffe9d80fd87c7))
+
+- **release**: Mcp v0.44.1
+  ([`dfc75f0`](https://github.com/dougborg/katana-openapi-client/commit/dfc75f09ee278d32f063b9c88cba9c28c05e357d))
+
+- **release**: Mcp v0.45.0
+  ([`9a1d394`](https://github.com/dougborg/katana-openapi-client/commit/9a1d394bc2bf64f9b19d4e43c870a453b34ea3f1))
+
+- **release**: Mcp v0.45.1
+  ([`4f6015e`](https://github.com/dougborg/katana-openapi-client/commit/4f6015e0eac4637885539464298bebdc57ea7507))
+
+- **release**: Mcp v0.46.0
+  ([`3d8c0a1`](https://github.com/dougborg/katana-openapi-client/commit/3d8c0a18d1186529115c10fd7d7f8abefcb3c8fb))
+
+- **release**: Mcp v0.46.1
+  ([`47d3d49`](https://github.com/dougborg/katana-openapi-client/commit/47d3d49c2a72696ad7269f6f6fdab1f3b27df8e0))
+
+- **release**: Mcp v0.47.0
+  ([`a235f12`](https://github.com/dougborg/katana-openapi-client/commit/a235f122d233119070021880a62847156957bd97))
+
+- **release**: Mcp v0.47.1
+  ([`4993383`](https://github.com/dougborg/katana-openapi-client/commit/4993383b9c553044c4250bce3d7cc3e38f10959d))
+
+- **release**: Mcp v0.48.0
+  ([`971781b`](https://github.com/dougborg/katana-openapi-client/commit/971781b81dcc12b870a1fe87277aef26ce1a31cf))
+
+- **release**: Mcp v0.49.0
+  ([`14fec17`](https://github.com/dougborg/katana-openapi-client/commit/14fec17347ed088f8018461698d886ac31981b7f))
+
+- **release**: Mcp v0.50.0
+  ([`ae0ba31`](https://github.com/dougborg/katana-openapi-client/commit/ae0ba3142674956f6d277587d2ebfe5454c45a66))
+
+- **release**: Mcp v0.51.0
+  ([`45337ed`](https://github.com/dougborg/katana-openapi-client/commit/45337ed0b4ffd4664cfffe73be931064c4a27c3f))
+
+- **release**: Mcp v0.51.1
+  ([`cd08f6e`](https://github.com/dougborg/katana-openapi-client/commit/cd08f6e6e036c97af219c37867c751f3d585fa3b))
+
+- **release**: Mcp v0.52.0
+  ([`66f893f`](https://github.com/dougborg/katana-openapi-client/commit/66f893f13fa48c26df118ce0a3eb04b6910b4c3b))
+
+- **release**: Mcp v0.52.1
+  ([`1ee37c6`](https://github.com/dougborg/katana-openapi-client/commit/1ee37c69778e5057c1daf1d7a5e2eab94a4c7f98))
+
+- **release**: Mcp v0.53.0
+  ([`dd4143e`](https://github.com/dougborg/katana-openapi-client/commit/dd4143e83e16c7118291de4ffa1ec2d483c62820))
+
+### Continuous Integration
+
+- **docs**: Also set NO_MKDOCS_2_WARNING (silences Material's banner)
+  ([#424](https://github.com/dougborg/katana-openapi-client/pull/424),
+  [`770ef4d`](https://github.com/dougborg/katana-openapi-client/commit/770ef4def081de661cff545b512aa44764eec2ee))
+
+### Documentation
+
+- Realign spec-maintenance docs + spec-auditor agent with #420/#421 tooling
+  ([#424](https://github.com/dougborg/katana-openapi-client/pull/424),
+  [`770ef4d`](https://github.com/dougborg/katana-openapi-client/commit/770ef4def081de661cff545b512aa44764eec2ee))
+
+- Realign spec-maintenance docs and spec-auditor agent with #420/#421 tooling
+  ([#424](https://github.com/dougborg/katana-openapi-client/pull/424),
+  [`770ef4d`](https://github.com/dougborg/katana-openapi-client/commit/770ef4def081de661cff545b512aa44764eec2ee))
+
+- **audit**: Refresh upstream spec from live API + add live-spec audit
+  ([#420](https://github.com/dougborg/katana-openapi-client/pull/420),
+  [`0fb173f`](https://github.com/dougborg/katana-openapi-client/commit/0fb173f14ac7803377b8dab7e4f10b82d51234cd))
+
+- **claude.md**: Add uv.lock drift / pre-commit pitfall
+  ([#433](https://github.com/dougborg/katana-openapi-client/pull/433),
+  [`50cd212`](https://github.com/dougborg/katana-openapi-client/commit/50cd212290623d50c0f630339ca642cc4d76127a))
+
+- **harness**: Capture /open-pr push-refspec safety in CLAUDE.md + skill
+  ([#441](https://github.com/dougborg/katana-openapi-client/pull/441),
+  [`b6b020e`](https://github.com/dougborg/katana-openapi-client/commit/b6b020e5ab46e92804420c6fedc3ec7e5998548d))
+
+- **harness**: Codify OpenAPI 3.1 + spec/generator workflow rules in CLAUDE.md
+  ([#413](https://github.com/dougborg/katana-openapi-client/pull/413),
+  [`bff2bb2`](https://github.com/dougborg/katana-openapi-client/commit/bff2bb2e28e7900c918c4f0eaf6c2aca3957bd39))
+
+- **harness**: Require breaking-change marker for spec/generator changes that drop or
+  narrow public surface
+  ([#416](https://github.com/dougborg/katana-openapi-client/pull/416),
+  [`e09c045`](https://github.com/dougborg/katana-openapi-client/commit/e09c045121e06e25d0d6e42320542ff2574a0675))
+
+- **mcp**: ADR-0020 — consistent tool surface across entity types + cache unification
+  ([#477](https://github.com/dougborg/katana-openapi-client/pull/477),
+  [`d0a5d81`](https://github.com/dougborg/katana-openapi-client/commit/d0a5d8145b0d157aed345ed943fe1f51657dbeb0))
+
+- **mcp**: Clarify prior_state nullability and applied-vs-verified counts
+  ([#464](https://github.com/dougborg/katana-openapi-client/pull/464),
+  [`1c56800`](https://github.com/dougborg/katana-openapi-client/commit/1c56800858a080f32305a52342ad29aa6f4b4cd4))
+
+- **mcp**: Rewrite architecture.md for post-typed-cache / EntitySpec architecture
+  ([#419](https://github.com/dougborg/katana-openapi-client/pull/419),
+  [`813cf6f`](https://github.com/dougborg/katana-openapi-client/commit/813cf6fc1bc87e63082de03c282d84d138c60df4))
+
+- **mcp**: Update help resource for unified modify\_/delete\_ tool surface
+  ([#464](https://github.com/dougborg/katana-openapi-client/pull/464),
+  [`1c56800`](https://github.com/dougborg/katana-openapi-client/commit/1c56800858a080f32305a52342ad29aa6f4b4cd4))
+
+### Features
+
+- **client**: Add missing endpoints — custom_field_definitions CRUD +
+  sales_orders/search + DELETE /serial_numbers body
+  ([#420](https://github.com/dougborg/katana-openapi-client/pull/420),
+  [`0fb173f`](https://github.com/dougborg/katana-openapi-client/commit/0fb173f14ac7803377b8dab7e4f10b82d51234cd))
+
+- **client**: Remove broken Inventory.check_stock helper
+  ([#507](https://github.com/dougborg/katana-openapi-client/pull/507),
+  [`43f438b`](https://github.com/dougborg/katana-openapi-client/commit/43f438bef85e796d2a9d4fb90ddb2c6fa9e97eb0))
+
+- **mcp**: Add 8 purchase order modification tools
+  ([#461](https://github.com/dougborg/katana-openapi-client/pull/461),
+  [`ce61534`](https://github.com/dougborg/katana-openapi-client/commit/ce615342c554a03e6a8abc1bd6791f4859d8426d))
+
+- **mcp**: Add full PO modification tools + canonical pattern
+  ([#461](https://github.com/dougborg/katana-openapi-client/pull/461),
+  [`ce61534`](https://github.com/dougborg/katana-openapi-client/commit/ce615342c554a03e6a8abc1bd6791f4859d8426d))
+
+- **mcp**: Add modify_sales_order + delete_sales_order
+  ([#464](https://github.com/dougborg/katana-openapi-client/pull/464),
+  [`1c56800`](https://github.com/dougborg/katana-openapi-client/commit/1c56800858a080f32305a52342ad29aa6f4b4cd4))
+
+- **mcp**: Add rebuild_cache tool to force-resync typed cache entities
+  ([#497](https://github.com/dougborg/katana-openapi-client/pull/497),
+  [`e9268cf`](https://github.com/dougborg/katana-openapi-client/commit/e9268cffe7da37fdc941aeb606a15064cc9cdef4))
+
+- **mcp**: Add shared entity-modification helper
+  ([#461](https://github.com/dougborg/katana-openapi-client/pull/461),
+  [`ce61534`](https://github.com/dougborg/katana-openapi-client/commit/ce615342c554a03e6a8abc1bd6791f4859d8426d))
+
+- **mcp**: Add variant_ids / sales_order_ids / ingredient_availability filters to
+  list_manufacturing_orders
+  ([#481](https://github.com/dougborg/katana-openapi-client/pull/481),
+  [`0ecc8b6`](https://github.com/dougborg/katana-openapi-client/commit/0ecc8b6bc6d683a5fe756285d05a370d1e5139de))
+
+- **mcp**: Compact MO triage + cross-MO blocking-ingredient rollup
+  ([#449](https://github.com/dougborg/katana-openapi-client/pull/449),
+  [`8b936d5`](https://github.com/dougborg/katana-openapi-client/commit/8b936d586f58bd9f4b14e1e3e3c0372d3e38cab7))
+
+- **mcp**: Embed katana_url deep-links in tool responses
+  ([#448](https://github.com/dougborg/katana-openapi-client/pull/448),
+  [`f35389a`](https://github.com/dougborg/katana-openapi-client/commit/f35389aacf7c3f7bd62e0e272d637f63334f2a2f))
+
+- **mcp**: Refactor item modification surface, retire update_item + delete_item
+  ([#464](https://github.com/dougborg/katana-openapi-client/pull/464),
+  [`1c56800`](https://github.com/dougborg/katana-openapi-client/commit/1c56800858a080f32305a52342ad29aa6f4b4cd4))
+
+- **mcp**: Refactor MO modification surface, retire recipe-row tools
+  ([#464](https://github.com/dougborg/katana-openapi-client/pull/464),
+  [`1c56800`](https://github.com/dougborg/katana-openapi-client/commit/1c56800858a080f32305a52342ad29aa6f4b4cd4))
+
+- **mcp**: Refactor stock-transfer modification surface, retire 3 tools
+  ([#464](https://github.com/dougborg/katana-openapi-client/pull/464),
+  [`1c56800`](https://github.com/dougborg/katana-openapi-client/commit/1c56800858a080f32305a52342ad29aa6f4b4cd4))
+
+- **mcp**: Rename confirm parameter to preview across write tools
+  ([#492](https://github.com/dougborg/katana-openapi-client/pull/492),
+  [`6cfc030`](https://github.com/dougborg/katana-openapi-client/commit/6cfc03040ac428dc8136cd279e6eea72caf2b6e2))
+
+- **mcp**: Surface PO additional-cost row shape, expose cost catalog, reject derived
+  fields ([#479](https://github.com/dougborg/katana-openapi-client/pull/479),
+  [`724ecba`](https://github.com/dougborg/katana-openapi-client/commit/724ecbac16dbb5216087268487db597ff6ed7154))
+
+- **mcp**: Tolerate JSON-stringified tool args via boundary middleware
+  ([#478](https://github.com/dougborg/katana-openapi-client/pull/478),
+  [`a865d0c`](https://github.com/dougborg/katana-openapi-client/commit/a865d0c9c7953c7619f811a69bbce47774a62486))
+
+- **mcp**: Unified modification dispatcher + multi-action response shape
+  ([#464](https://github.com/dougborg/katana-openapi-client/pull/464),
+  [`1c56800`](https://github.com/dougborg/katana-openapi-client/commit/1c56800858a080f32305a52342ad29aa6f4b4cd4))
+
+- **mcp**: Unified modify\_<entity> + delete\_<entity> tool surface (PR 2)
+  ([#464](https://github.com/dougborg/katana-openapi-client/pull/464),
+  [`1c56800`](https://github.com/dougborg/katana-openapi-client/commit/1c56800858a080f32305a52342ad29aa6f4b4cd4))
+
+- **mcp**: Unify PO modification surface into modify_purchase_order +
+  delete_purchase_order
+  ([#464](https://github.com/dougborg/katana-openapi-client/pull/464),
+  [`1c56800`](https://github.com/dougborg/katana-openapi-client/commit/1c56800858a080f32305a52342ad29aa6f4b4cd4))
+
+- **mcp**: Use CallTool for prefab confirm buttons (drop SendMessage round-trip)
+  ([#436](https://github.com/dougborg/katana-openapi-client/pull/436),
+  [`300018d`](https://github.com/dougborg/katana-openapi-client/commit/300018dbf239a3ef4883f20503b5992df7ffb667))
+
+### Performance Improvements
+
+- **mcp**: Batch catalog-cache SKU lookups via get_many_by_ids
+  ([#456](https://github.com/dougborg/katana-openapi-client/pull/456),
+  [`84526cc`](https://github.com/dougborg/katana-openapi-client/commit/84526ccfa6fc68d7a312460421f81a1c5e99c8bc))
+
+### Refactoring
+
+- **client**: Apply mechanical CLAUDE.md anti-pattern fixes from /techdebt
+  ([#433](https://github.com/dougborg/katana-openapi-client/pull/433),
+  [`50cd212`](https://github.com/dougborg/katana-openapi-client/commit/50cd212290623d50c0f630339ca642cc4d76127a))
+
+- **client**: Mechanical /techdebt fixes — HTTPStatus, broken hasattr in
+  get_variant_display_name, dead InventoryHelpers stubs
+  ([#433](https://github.com/dougborg/katana-openapi-client/pull/433),
+  [`50cd212`](https://github.com/dougborg/katana-openapi-client/commit/50cd212290623d50c0f630339ca642cc4d76127a))
+
+- **mcp**: /simplify after full PR — typed dispatcher, optional fetcher, log fallthrough
+  ([#464](https://github.com/dougborg/katana-openapi-client/pull/464),
+  [`1c56800`](https://github.com/dougborg/katana-openapi-client/commit/1c56800858a080f32305a52342ad29aa6f4b4cd4))
+
+- **mcp**: /simplify after item — None-safe web_url_kind, extract cache helper
+  ([#464](https://github.com/dougborg/katana-openapi-client/pull/464),
+  [`1c56800`](https://github.com/dougborg/katana-openapi-client/commit/1c56800858a080f32305a52342ad29aa6f4b4cd4))
+
+- **mcp**: /simplify after stock-transfer — drop dead code, suppress spurious warning
+  ([#464](https://github.com/dougborg/katana-openapi-client/pull/464),
+  [`1c56800`](https://github.com/dougborg/katana-openapi-client/commit/1c56800858a080f32305a52342ad29aa6f4b4cd4))
+
+- **mcp**: Apply remaining /simplify findings before cloning
+  ([#464](https://github.com/dougborg/katana-openapi-client/pull/464),
+  [`1c56800`](https://github.com/dougborg/katana-openapi-client/commit/1c56800858a080f32305a52342ad29aa6f4b4cd4))
+
+- **mcp**: Collapse coerce-list field annotations behind type aliases
+  ([#428](https://github.com/dougborg/katana-openapi-client/pull/428),
+  [`ed73169`](https://github.com/dougborg/katana-openapi-client/commit/ed7316966d6cb169c8162c8f24f1e2df6418438c))
+
+- **mcp**: Collapse confirm builder kwargs and rename confirm → preview
+  ([#492](https://github.com/dougborg/katana-openapi-client/pull/492),
+  [`6cfc030`](https://github.com/dougborg/katana-openapi-client/commit/6cfc03040ac428dc8136cd279e6eea72caf2b6e2))
+
+- **mcp**: Collapse prefab builder confirm kwargs into single confirm_request
+  ([#492](https://github.com/dougborg/katana-openapi-client/pull/492),
+  [`6cfc030`](https://github.com/dougborg/katana-openapi-client/commit/6cfc03040ac428dc8136cd279e6eea72caf2b6e2))
+
+- **mcp**: Consolidate cache-name resolution + BLOCK marker per /simplify review
+  ([#446](https://github.com/dougborg/katana-openapi-client/pull/446),
+  [`407d678`](https://github.com/dougborg/katana-openapi-client/commit/407d67810ad2d91265cfc1d8a7fcdf279b7caf6c))
+
+- **mcp**: Consolidate confirm-button helpers and drop dead state
+  ([#498](https://github.com/dougborg/katana-openapi-client/pull/498),
+  [`5b23868`](https://github.com/dougborg/katana-openapi-client/commit/5b23868b019b2a16da090f46dd1a49cc4c242425))
+
+- **mcp**: Drop dead Prefab UI builder calls at all tool sites
+  ([#423](https://github.com/dougborg/katana-openapi-client/pull/423),
+  [`d1234ef`](https://github.com/dougborg/katana-openapi-client/commit/d1234efeff7a6e54f1160aeaefe9c7577e6468ed))
+
+- **mcp**: Extract dispatch primitives — apply factories, plan builders, summary helpers
+  ([#464](https://github.com/dougborg/katana-openapi-client/pull/464),
+  [`1c56800`](https://github.com/dougborg/katana-openapi-client/commit/1c56800858a080f32305a52342ad29aa6f4b4cd4))
+
+- **mcp**: Extract run_modify_plan + run_delete_plan drivers, drop dead lookup tables
+  ([#464](https://github.com/dougborg/katana-openapi-client/pull/464),
+  [`1c56800`](https://github.com/dougborg/katana-openapi-client/commit/1c56800858a080f32305a52342ad29aa6f4b4cd4))
+
+- **mcp**: Tighten Prefab confirm-button API; drop redundant comments
+  ([#436](https://github.com/dougborg/katana-openapi-client/pull/436),
+  [`300018d`](https://github.com/dougborg/katana-openapi-client/commit/300018dbf239a3ef4883f20503b5992df7ffb667))
+
+- **mcp**: Tighten unified-modify foundation before cloning to other entities
+  ([#464](https://github.com/dougborg/katana-openapi-client/pull/464),
+  [`1c56800`](https://github.com/dougborg/katana-openapi-client/commit/1c56800858a080f32305a52342ad29aa6f4b4cd4))
+
+- **mcp**: Unset_dict helper + shared mock_entity_for_modify factory
+  ([#464](https://github.com/dougborg/katana-openapi-client/pull/464),
+  [`1c56800`](https://github.com/dougborg/katana-openapi-client/commit/1c56800858a080f32305a52342ad29aa6f4b4cd4))
+
+### Testing
+
+- Cache collection-time spec parses + clarify session-fixture docstring per Copilot
+  review ([#450](https://github.com/dougborg/katana-openapi-client/pull/450),
+  [`80238d8`](https://github.com/dougborg/katana-openapi-client/commit/80238d8e3cfaf8e1242ed98d715b47f27fc88ca9))
+
+- Hoist OpenAPI spec parsing to a session-scoped fixture (was 7 loads, now 1)
+  ([#450](https://github.com/dougborg/katana-openapi-client/pull/450),
+  [`80238d8`](https://github.com/dougborg/katana-openapi-client/commit/80238d8e3cfaf8e1242ed98d715b47f27fc88ca9))
+
+- Mock asyncio.sleep in test_retry_with_backoff (was 2s, now 0.02s)
+  ([#450](https://github.com/dougborg/katana-openapi-client/pull/450),
+  [`80238d8`](https://github.com/dougborg/katana-openapi-client/commit/80238d8e3cfaf8e1242ed98d715b47f27fc88ca9))
+
+- Replace wall-clock timing assertion in test_concurrent_requests with structural
+  concurrency check ([#450](https://github.com/dougborg/katana-openapi-client/pull/450),
+  [`80238d8`](https://github.com/dougborg/katana-openapi-client/commit/80238d8e3cfaf8e1242ed98d715b47f27fc88ca9))
+
+- Tighten test_concurrent_requests per Copilot review
+  ([#450](https://github.com/dougborg/katana-openapi-client/pull/450),
+  [`80238d8`](https://github.com/dougborg/katana-openapi-client/commit/80238d8e3cfaf8e1242ed98d715b47f27fc88ca9))
+
+- Timing-test flake + speed sweep (saves ~9s = 40% off poe test)
+  ([#450](https://github.com/dougborg/katana-openapi-client/pull/450),
+  [`80238d8`](https://github.com/dougborg/katana-openapi-client/commit/80238d8e3cfaf8e1242ed98d715b47f27fc88ca9))
+
+- **docs**: Rewrite search test for MkDocs Material output
+  ([#457](https://github.com/dougborg/katana-openapi-client/pull/457),
+  [`d98e42c`](https://github.com/dougborg/katana-openapi-client/commit/d98e42c7118d255bbf3584f7c611854ea1c8dbac))
+
+- **mcp**: Add unit tests for resource handlers (#206)
+  ([#506](https://github.com/dougborg/katana-openapi-client/pull/506),
+  [`f5fa57a`](https://github.com/dougborg/katana-openapi-client/commit/f5fa57a0bc47d24a6b21a28e9fe46b66d0d42ff5))
+
+- **mcp**: Isolate cache DB paths in lifespan tests to fix xdist race
+  ([#459](https://github.com/dougborg/katana-openapi-client/pull/459),
+  [`9090662`](https://github.com/dougborg/katana-openapi-client/commit/9090662078aac6e0ef78927a2b3c812821779a51))
+
+- **mcp**: Pin auto-generation contract for stock_transfer_number
+  ([#458](https://github.com/dougborg/katana-openapi-client/pull/458),
+  [`62c1540`](https://github.com/dougborg/katana-openapi-client/commit/62c1540ea3c30ac9c99af85623939c5bdbaa1cd5))
+
+### Breaking Changes
+
+- **client**: `katana_public_api_client.helpers.Inventory.check_stock` is removed.
+  Third-party callers using `client.inventory.check_stock(sku)` will get an
+  AttributeError. Migrate to the inventory API endpoint directly (see migration above) —
+  the helper was unreliable because of unfixed pagination + variant-fetch issues; using
+  the inventory endpoint is now the supported path.
+
 ## v0.55.1 (2026-04-28)
 
 ### Bug Fixes
