@@ -178,7 +178,6 @@ def _po_response_to_tool_result(
     from katana_mcp.tools.prefab_ui import (
         build_order_created_ui,
         build_order_preview_ui,
-        call_tool_from_request,
     )
 
     order_dict = response.model_dump()
@@ -186,12 +185,8 @@ def _po_response_to_tool_result(
         ui = build_order_preview_ui(
             order_dict,
             "Purchase Order",
-            request=request.model_dump(),
-            confirm_action=call_tool_from_request(
-                "create_purchase_order",
-                CreatePurchaseOrderRequest,
-                overrides={"confirm": True},
-            ),
+            confirm_request=request,
+            confirm_tool="create_purchase_order",
         )
     else:
         ui = build_order_created_ui(order_dict, "Purchase Order")
@@ -409,29 +404,19 @@ def _receive_response_to_tool_result(
     "Confirm Receipt" button can re-invoke ``receive_purchase_order``
     directly with ``confirm=True`` and the original items[].
     """
-    from katana_mcp.tools.prefab_ui import build_receipt_ui, call_tool_from_request
+    from katana_mcp.tools.prefab_ui import build_receipt_ui
 
-    # request and confirm_action are only used by the preview-mode Confirm
-    # Receipt button. Skip seeding them on the non-preview render to keep
+    # confirm_request/confirm_tool are only used by the preview-mode
+    # Confirm Receipt button. Skip them on the non-preview render to keep
     # the structured UI payload trim.
-    seed_request = response.is_preview and request is not None
-    ui = build_receipt_ui(
-        response.model_dump(),
-        request=(
-            request.model_dump()
-            if response.is_preview and request is not None
-            else None
-        ),
-        confirm_action=(
-            call_tool_from_request(
-                "receive_purchase_order",
-                ReceivePurchaseOrderRequest,
-                overrides={"confirm": True},
-            )
-            if seed_request
-            else None
-        ),
-    )
+    if response.is_preview and request is not None:
+        ui = build_receipt_ui(
+            response.model_dump(),
+            confirm_request=request,
+            confirm_tool="receive_purchase_order",
+        )
+    else:
+        ui = build_receipt_ui(response.model_dump())
     return make_tool_result(response, ui=ui)
 
 

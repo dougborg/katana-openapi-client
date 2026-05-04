@@ -459,7 +459,6 @@ async def create_manufacturing_order(
     from katana_mcp.tools.prefab_ui import (
         build_order_created_ui,
         build_order_preview_ui,
-        call_tool_from_request,
     )
 
     response = await _create_manufacturing_order_impl(request, context)
@@ -469,12 +468,8 @@ async def create_manufacturing_order(
         ui = build_order_preview_ui(
             order_dict,
             "Manufacturing Order",
-            request=request.model_dump(),
-            confirm_action=call_tool_from_request(
-                "create_manufacturing_order",
-                CreateManufacturingOrderRequest,
-                overrides={"confirm": True},
-            ),
+            confirm_request=request,
+            confirm_tool="create_manufacturing_order",
         )
     else:
         ui = build_order_created_ui(order_dict, "Manufacturing Order")

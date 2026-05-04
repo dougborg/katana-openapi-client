@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from prefab_ui.actions import Action, SetState, ShowToast
+from prefab_ui.actions import SetState, ShowToast
 from prefab_ui.actions.mcp import CallTool, SendMessage
 from prefab_ui.app import PrefabApp
 from prefab_ui.components import (
@@ -88,9 +88,10 @@ def call_tool_from_request(
     over the templated values — use them to flip a flag or substitute a literal.
 
     The caller must seed the iframe state with the original request under
-    ``state_key`` (default ``"request"``); the matching builder
-    (``build_order_preview_ui`` and friends) accepts a ``request=`` kwarg
-    that does this.
+    ``state_key`` (default ``"request"``). Most callers don't invoke this
+    helper directly — the order/receipt/batch builders accept a
+    ``confirm_request`` Pydantic model and handle both the seeding and the
+    ``CallTool`` construction internally.
     """
     valid_fields = set(request_model.model_fields)
     args: dict[str, Any] = {
@@ -426,20 +427,24 @@ def build_order_preview_ui(
     order: dict[str, Any],
     order_type: OrderType,
     *,
-    confirm_action: Action,
-    request: dict[str, Any],
+    confirm_request: BaseModel,
+    confirm_tool: str,
 ) -> PrefabApp:
     """Build an order preview card with confirm/cancel buttons.
 
-    Caller supplies ``confirm_action`` (typically a ``CallTool`` built via
-    ``call_tool_from_request``) so each tool (sales/PO/MO) wires its own
-    direct re-invocation with ``confirm=True``. ``request`` is the original
-    input dict (``request.model_dump()``); it's seeded into iframe state at
-    ``state.request`` so ``CallTool``'s ``{{ request.* }}`` templates
-    resolve.
+    Pass ``confirm_request`` (the original Pydantic input) and
+    ``confirm_tool`` (the matching tool name); the builder seeds iframe
+    state at ``state.request`` and constructs the ``CallTool`` action with
+    ``confirm=True`` internally so the Confirm button re-invokes the tool
+    directly without an LLM round-trip.
     """
     fields = _extract_order_fields(order)
-    state: dict[str, Any] = {"order": order, "request": request}
+    confirm_action = call_tool_from_request(
+        confirm_tool,
+        type(confirm_request),
+        overrides={"confirm": True},
+    )
+    state: dict[str, Any] = {"order": order, "request": confirm_request.model_dump()}
 
     with PrefabApp(state=state, css_class="p-4") as app, Card():
         with CardHeader(), Row(gap=2):
@@ -774,23 +779,34 @@ def build_item_mutation_ui(
 def build_receipt_ui(
     response: dict[str, Any],
     *,
-    request: dict[str, Any] | None = None,
-    confirm_action: Action | None = None,
+    confirm_request: BaseModel | None = None,
+    confirm_tool: str | None = None,
 ) -> PrefabApp:
     """Build a receipt card for received purchase order items.
 
-    On the preview branch the caller must supply both ``request`` (seeded
-    into iframe state at ``state.request``) and ``confirm_action`` (a
-    ``CallTool`` built via ``call_tool_from_request``) so the "Confirm
-    Receipt" button can re-invoke ``receive_purchase_order`` directly with
-    ``confirm=True``. Both kwargs are optional because the same builder is
-    reused for the non-preview render where no confirm button is shown.
+    On the preview branch, pass ``confirm_request`` (the original Pydantic
+    input) and ``confirm_tool`` (the matching tool name) so the "Confirm
+    Receipt" button can re-invoke the tool directly with ``confirm=True``.
+    Both kwargs are optional because the same builder is reused for the
+    non-preview render where no confirm button is shown — but they must be
+    set together.
     """
+    if (confirm_request is None) != (confirm_tool is None):
+        raise ValueError(
+            "confirm_request and confirm_tool must be set together (or both None)"
+        )
+
     order_number = response.get("order_number", "N/A")
     is_preview = response.get("is_preview", True)
     state: dict[str, Any] = {"response": response}
-    if request is not None:
-        state["request"] = request
+    confirm_action: CallTool | None = None
+    if confirm_request is not None and confirm_tool is not None:
+        state["request"] = confirm_request.model_dump()
+        confirm_action = call_tool_from_request(
+            confirm_tool,
+            type(confirm_request),
+            overrides={"confirm": True},
+        )
 
     with PrefabApp(state=state, css_class="p-4") as app, Card():
         with CardHeader(), Row(gap=2):
@@ -864,20 +880,24 @@ def build_receipt_ui(
 def build_batch_recipe_update_ui(
     response: dict[str, Any],
     *,
-    request: dict[str, Any] | None = None,
-    confirm_action: Action | None = None,
+    confirm_request: BaseModel | None = None,
+    confirm_tool: str | None = None,
 ) -> PrefabApp:
     """Build a batch recipe update card with per-group tables and summary metrics.
 
     Shows one row per planned sub-op grouped by replacement group_label.
     Preview mode shows all ops as PENDING; executed mode shows SUCCESS/FAILED/SKIPPED.
 
-    On the preview branch, the "Execute batch" button uses ``confirm_action``
-    (typically a ``CallTool`` built from the original request via
-    ``call_tool_from_request``) for direct re-invocation with ``confirm=True``.
-    Pass ``request=request.model_dump()`` from the caller so the iframe state
-    has the original input under ``state.request``.
+    On the preview branch, pass ``confirm_request`` (the original Pydantic
+    input) and ``confirm_tool`` (the matching tool name) so the "Execute
+    batch" button can re-invoke the tool directly with ``confirm=True``.
+    Both kwargs are optional because the same builder is reused for the
+    non-preview render — but they must be set together.
     """
+    if (confirm_request is None) != (confirm_tool is None):
+        raise ValueError(
+            "confirm_request and confirm_tool must be set together (or both None)"
+        )
     is_preview = response.get("is_preview", True)
     results = response.get("results", [])
     warnings = response.get("warnings", [])
@@ -931,8 +951,14 @@ def build_batch_recipe_update_ui(
         "warnings": warnings,
         "groups": list(groups.keys()),
     }
-    if request is not None:
-        state["request"] = request
+    confirm_action: CallTool | None = None
+    if confirm_request is not None and confirm_tool is not None:
+        state["request"] = confirm_request.model_dump()
+        confirm_action = call_tool_from_request(
+            confirm_tool,
+            type(confirm_request),
+            overrides={"confirm": True},
+        )
 
     with (
         PrefabApp(

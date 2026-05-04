@@ -24,6 +24,16 @@ from katana_mcp.tools.prefab_ui import (
     build_verification_ui,
 )
 from prefab_ui.app import PrefabApp
+from pydantic import BaseModel
+
+
+class _StubRequest(BaseModel):
+    """Minimal Pydantic stub used by builder tests that don't care about the
+    real request shape — only that the builder accepts a BaseModel and emits
+    a valid envelope.
+    """
+
+    confirm: bool = False
 
 
 def _assert_valid_prefab(app: PrefabApp) -> None:
@@ -146,11 +156,6 @@ class TestBuildLowStockUI:
 
 
 class TestBuildOrderPreviewUI:
-    def _stub_action(self):
-        from prefab_ui.actions.mcp import SendMessage
-
-        return SendMessage("stub")
-
     def test_purchase_order(self):
         order = {
             "order_number": "PO-001",
@@ -163,8 +168,8 @@ class TestBuildOrderPreviewUI:
         app = build_order_preview_ui(
             order,
             "Purchase Order",
-            request={},
-            confirm_action=self._stub_action(),
+            confirm_request=_StubRequest(),
+            confirm_tool="create_purchase_order",
         )
         _assert_valid_prefab(app)
 
@@ -179,8 +184,8 @@ class TestBuildOrderPreviewUI:
         app = build_order_preview_ui(
             order,
             "Sales Order",
-            request={},
-            confirm_action=self._stub_action(),
+            confirm_request=_StubRequest(),
+            confirm_tool="create_sales_order",
         )
         _assert_valid_prefab(app)
 
@@ -478,8 +483,8 @@ class TestConfirmButtonsUseCallTool:
     def test_order_preview_confirm_action_emits_calltool(self):
         from katana_mcp.tools.foundation.purchase_orders import (
             CreatePurchaseOrderRequest,
+            PurchaseOrderItem,
         )
-        from katana_mcp.tools.prefab_ui import call_tool_from_request
 
         order_dict = {
             "id": 1,
@@ -493,27 +498,17 @@ class TestConfirmButtonsUseCallTool:
             "next_actions": [],
             "message": "Preview",
         }
-        request_dict = {
-            "supplier_id": 2,
-            "location_id": 3,
-            "order_number": "PO-1",
-            "items": [],
-            "currency": "USD",
-            "expected_arrival_date": None,
-            "additional_info": None,
-            "status": "NOT_RECEIVED",
-            "confirm": False,
-        }
-        confirm_action = call_tool_from_request(
-            "create_purchase_order",
-            CreatePurchaseOrderRequest,
-            overrides={"confirm": True},
+        request = CreatePurchaseOrderRequest(
+            supplier_id=2,
+            location_id=3,
+            order_number="PO-1",
+            items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.0)],
         )
         app = build_order_preview_ui(
             order_dict,
             "Purchase Order",
-            request=request_dict,
-            confirm_action=confirm_action,
+            confirm_request=request,
+            confirm_tool="create_purchase_order",
         )
         envelope = app.to_json()
 
@@ -558,12 +553,6 @@ class TestBlockWarningSuppressesConfirm:
     the server has flagged as unsafe (e.g. duplicate-create, already-done).
     """
 
-    @staticmethod
-    def _stub_action():
-        from prefab_ui.actions.mcp import SendMessage
-
-        return SendMessage("stub")
-
     def test_order_preview_with_block_warning_omits_confirm_button(self):
         order = {
             "order_number": "MO-1",
@@ -577,8 +566,8 @@ class TestBlockWarningSuppressesConfirm:
         app = build_order_preview_ui(
             order,
             "Manufacturing Order",
-            request={},
-            confirm_action=self._stub_action(),
+            confirm_request=_StubRequest(),
+            confirm_tool="create_manufacturing_order",
         )
         envelope = app.to_json()
 
@@ -603,8 +592,8 @@ class TestBlockWarningSuppressesConfirm:
         app = build_order_preview_ui(
             order,
             "Manufacturing Order",
-            request={},
-            confirm_action=self._stub_action(),
+            confirm_request=_StubRequest(),
+            confirm_tool="create_manufacturing_order",
         )
         envelope = app.to_json()
 
@@ -633,9 +622,9 @@ class TestBlockWarningSuppressesConfirm:
 
     def test_receipt_ui_with_block_warning_omits_confirm_button(self):
         from katana_mcp.tools.foundation.purchase_orders import (
+            ReceiveItemRequest,
             ReceivePurchaseOrderRequest,
         )
-        from katana_mcp.tools.prefab_ui import call_tool_from_request
 
         response = {
             "order_number": "PO-1",
@@ -647,15 +636,14 @@ class TestBlockWarningSuppressesConfirm:
                 "BLOCK: Purchase order PO-1 is already RECEIVED.",
             ],
         }
-        confirm_action = call_tool_from_request(
-            "receive_purchase_order",
-            ReceivePurchaseOrderRequest,
-            overrides={"confirm": True},
+        request = ReceivePurchaseOrderRequest(
+            order_id=1,
+            items=[ReceiveItemRequest(purchase_order_row_id=10, quantity=1.0)],
         )
         app = build_receipt_ui(
             response,
-            request={"order_id": 1, "items": [], "confirm": False},
-            confirm_action=confirm_action,
+            confirm_request=request,
+            confirm_tool="receive_purchase_order",
         )
         envelope = app.to_json()
 
@@ -679,8 +667,8 @@ class TestBlockWarningSuppressesConfirm:
         app = build_order_preview_ui(
             order,
             "Manufacturing Order",
-            request={},
-            confirm_action=self._stub_action(),
+            confirm_request=_StubRequest(),
+            confirm_tool="create_manufacturing_order",
         )
 
         def collect_badge_labels(tree: object, out: list[str]) -> None:
