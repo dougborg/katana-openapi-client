@@ -75,33 +75,39 @@ def _split_warnings(
 
 def call_tool_from_request(
     tool_name: str,
-    request_model: type[BaseModel],
+    request: BaseModel,
     *,
-    state_key: str = "request",
     overrides: dict[str, Any] | None = None,
 ) -> CallTool:
-    """Build a CallTool action that re-invokes ``tool_name`` with every field
-    of ``request_model`` templated from iframe state.
+    """Build a CallTool action that re-invokes ``tool_name`` with the
+    request's fields **inlined as literal values** (not template strings).
 
-    Each field on the Pydantic request model maps to a ``{{ <state_key>.field }}``
-    template string. ``overrides`` (e.g. ``{"preview": False}``) take precedence
-    over the templated values — use them to flip a flag or substitute a literal.
+    The action's ``arguments`` dict is built from ``request.model_dump(mode="json")``
+    so the values are baked in at preview-render time. When the user clicks
+    the rendered button, the host invokes the tool with the exact values
+    the preview was based on — no host-side template substitution required.
 
-    The caller must seed the iframe state with the original request under
-    ``state_key`` (default ``"request"``). Most callers don't invoke this
-    helper directly — the order/receipt/batch builders accept a
-    ``confirm_request`` Pydantic model and handle both the seeding and the
-    ``CallTool`` construction internally.
+    ``overrides`` (e.g. ``{"preview": False}``) take precedence over the
+    inlined values — use them to flip a flag or substitute a literal at
+    re-invocation time (typically to switch from preview to apply).
+
+    History: this helper used to emit Mustache-style ``{{ request.<field> }}``
+    template strings and rely on the iframe host to substitute them from
+    seeded state at click time. That host-side substitution silently failed
+    in production (#491), arriving at the server with templated args
+    dropped to null/empty — silent data corruption. Inlining values at
+    build time bypasses the host-templating path entirely.
     """
-    valid_fields = set(request_model.model_fields)
-    args: dict[str, Any] = {
-        name: f"{{{{ {state_key}.{name} }}}}" for name in valid_fields
-    }
+    args: dict[str, Any] = request.model_dump(mode="json")
     if overrides:
-        bad = sorted(set(overrides) - valid_fields)
+        # Validate overrides against the keys actually being emitted, so a
+        # caller can't silently smuggle an unknown field into the tool's
+        # arguments. This stays in lockstep with model_dump's output even
+        # if a future model adds computed fields or model_post_init magic.
+        bad = sorted(set(overrides) - set(args))
         if bad:
             raise ValueError(
-                f"Invalid override field(s) for {request_model.__name__}: "
+                f"Invalid override field(s) for {type(request).__name__}: "
                 f"{', '.join(bad)}"
             )
         args.update(overrides)
@@ -151,6 +157,14 @@ def build_search_results_ui(
             search=True,
             paginated=True,
             pageSize=20,
+            # NOTE: ``{{ sku }}`` and ``{{ $error }}`` here are *per-row /
+            # event-context* bindings provided by the DataTable component
+            # itself, NOT the iframe-state substitution that broke in #491.
+            # The DataTable renderer expands these client-side from the
+            # clicked row's data and the action's error payload, so they
+            # do not depend on the host-side Mustache-from-state mechanism
+            # that silently dropped args. Reliability is owned by the
+            # DataTable component; verification is tracked in #494.
             onRowClick=CallTool(
                 "get_variant_details",
                 arguments={"sku": "{{ sku }}"},
@@ -433,18 +447,19 @@ def build_order_preview_ui(
     """Build an order preview card with confirm/cancel buttons.
 
     Pass ``confirm_request`` (the original Pydantic input) and
-    ``confirm_tool`` (the matching tool name); the builder seeds iframe
-    state at ``state.request`` and constructs the ``CallTool`` action with
-    ``preview=False`` internally so the Confirm button re-invokes the tool
-    directly without an LLM round-trip.
+    ``confirm_tool`` (the matching tool name); the builder constructs the
+    ``CallTool`` action with the request's fields inlined as literal
+    values plus ``preview=False`` so the Confirm button re-invokes the
+    tool directly without an LLM round-trip. See #491 for why values are
+    inlined rather than templated from iframe state.
     """
     fields = _extract_order_fields(order)
     confirm_action = call_tool_from_request(
         confirm_tool,
-        type(confirm_request),
+        confirm_request,
         overrides={"preview": False},
     )
-    state: dict[str, Any] = {"order": order, "request": confirm_request.model_dump()}
+    state: dict[str, Any] = {"order": order}
 
     with PrefabApp(state=state, css_class="p-4") as app, Card():
         with CardHeader(), Row(gap=2):
@@ -579,9 +594,18 @@ def build_fulfill_preview_ui(
 
     The "Confirm Fulfillment" button invokes ``fulfill_order`` directly via
     ``CallTool`` with ``preview=False`` and the original order_id/order_type
-    sourced from the response (where they're echoed). No LLM round-trip.
+    inlined as literal values from the response (see #491 — host-side
+    template substitution silently drops args, so values are baked in at
+    build time instead). No LLM round-trip.
     """
     order_type, order_number, status = _extract_fulfill_fields(response)
+    # Use direct lookup, not .get() — FulfillOrderResponse declares both
+    # fields required, so a missing key here means a malformed response
+    # dict reached the builder. Fail at preview-build time rather than
+    # generating a Confirm button that would invoke the tool with
+    # ``order_id=None``.
+    order_id = response["order_id"]
+    raw_order_type = response["order_type"]
 
     with PrefabApp(state={"response": response}, css_class="p-4") as app, Card():
         with CardHeader(), Row(gap=2):
@@ -608,8 +632,8 @@ def build_fulfill_preview_ui(
                     on_click=CallTool(
                         "fulfill_order",
                         arguments={
-                            "order_id": "{{ response.order_id }}",
-                            "order_type": "{{ response.order_type }}",
+                            "order_id": order_id,
+                            "order_type": raw_order_type,
                             "preview": False,
                         },
                     ),
@@ -786,10 +810,10 @@ def build_receipt_ui(
 
     On the preview branch, pass ``confirm_request`` (the original Pydantic
     input) and ``confirm_tool`` (the matching tool name) so the "Confirm
-    Receipt" button can re-invoke the tool directly with ``preview=False``.
-    Both kwargs are optional because the same builder is reused for the
-    non-preview render where no confirm button is shown — but they must be
-    set together.
+    Receipt" button can re-invoke the tool directly with ``preview=False``
+    and the request's values inlined (see #491). Both kwargs are optional
+    because the same builder is reused for the non-preview render where
+    no confirm button is shown — but they must be set together.
     """
     if (confirm_request is None) != (confirm_tool is None):
         raise ValueError(
@@ -801,10 +825,9 @@ def build_receipt_ui(
     state: dict[str, Any] = {"response": response}
     confirm_action: CallTool | None = None
     if confirm_request is not None and confirm_tool is not None:
-        state["request"] = confirm_request.model_dump()
         confirm_action = call_tool_from_request(
             confirm_tool,
-            type(confirm_request),
+            confirm_request,
             overrides={"preview": False},
         )
 
@@ -890,9 +913,10 @@ def build_batch_recipe_update_ui(
 
     On the preview branch, pass ``confirm_request`` (the original Pydantic
     input) and ``confirm_tool`` (the matching tool name) so the "Execute
-    batch" button can re-invoke the tool directly with ``preview=False``.
-    Both kwargs are optional because the same builder is reused for the
-    non-preview render — but they must be set together.
+    batch" button can re-invoke the tool directly with ``preview=False``
+    and the request's values inlined (see #491). Both kwargs are optional
+    because the same builder is reused for the non-preview render — but
+    they must be set together.
     """
     if (confirm_request is None) != (confirm_tool is None):
         raise ValueError(
@@ -953,10 +977,9 @@ def build_batch_recipe_update_ui(
     }
     confirm_action: CallTool | None = None
     if confirm_request is not None and confirm_tool is not None:
-        state["request"] = confirm_request.model_dump()
         confirm_action = call_tool_from_request(
             confirm_tool,
-            type(confirm_request),
+            confirm_request,
             overrides={"preview": False},
         )
 
