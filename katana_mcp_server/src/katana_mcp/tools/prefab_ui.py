@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from prefab_ui.actions import SetState, ShowToast
+from prefab_ui.actions import Action, SetState, ShowToast
 from prefab_ui.actions.mcp import CallTool, SendMessage
 from prefab_ui.app import PrefabApp
 from prefab_ui.components import (
@@ -75,37 +75,83 @@ def _split_warnings(
 
 def call_tool_from_request(
     tool_name: str,
-    request_model: type[BaseModel],
+    request: BaseModel,
     *,
-    state_key: str = "request",
     overrides: dict[str, Any] | None = None,
+    on_success: Action | list[Action] | None = None,
+    on_error: Action | list[Action] | None = None,
 ) -> CallTool:
-    """Build a CallTool action that re-invokes ``tool_name`` with every field
-    of ``request_model`` templated from iframe state.
+    """Build a CallTool action that re-invokes ``tool_name`` with the
+    request's fields **inlined as literal values** (not template strings).
 
-    Each field on the Pydantic request model maps to a ``{{ <state_key>.field }}``
-    template string. ``overrides`` (e.g. ``{"preview": False}``) take precedence
-    over the templated values — use them to flip a flag or substitute a literal.
+    Values are baked in via ``request.model_dump(mode="json")`` to bypass
+    the host-side ``{{ ... }}`` substitution path that silently dropped
+    args in production (#491). ``mode="json"`` ensures all field values
+    (datetime, Decimal, enums, nested models) are JSON-serializable
+    primitives so the host can transmit the action without a second
+    serialization pass that could re-introduce type coercion bugs.
 
-    The caller must seed the iframe state with the original request under
-    ``state_key`` (default ``"request"``). Most callers don't invoke this
-    helper directly — the order/receipt/batch builders accept a
-    ``confirm_request`` Pydantic model and handle both the seeding and the
-    ``CallTool`` construction internally.
+    ``overrides`` (e.g. ``{"preview": False}``) take precedence over the
+    inlined values, validated against the dumped keys so a caller can't
+    smuggle an unknown field into ``arguments``.
     """
-    valid_fields = set(request_model.model_fields)
-    args: dict[str, Any] = {
-        name: f"{{{{ {state_key}.{name} }}}}" for name in valid_fields
-    }
+    args: dict[str, Any] = request.model_dump(mode="json")
     if overrides:
-        bad = sorted(set(overrides) - valid_fields)
+        bad = sorted(set(overrides) - set(args))
         if bad:
             raise ValueError(
-                f"Invalid override field(s) for {request_model.__name__}: "
+                f"Invalid override field(s) for {type(request).__name__}: "
                 f"{', '.join(bad)}"
             )
         args.update(overrides)
-    return CallTool(tool_name, arguments=args)
+    return CallTool(
+        tool_name,
+        arguments=args,
+        on_success=on_success,
+        on_error=on_error,
+    )
+
+
+def _build_confirm_action(
+    confirm_tool: str | None,
+    confirm_request: BaseModel | None,
+    *,
+    success_message: str,
+    success_chat: str,
+    error_message: str,
+    error_chat: str,
+) -> CallTool | None:
+    """Construct the standard Confirm-button apply action with feedback
+    handlers attached, or ``None`` when both inputs are ``None``.
+
+    Centralizes the visible-feedback contract for every preview UI (#495):
+    a click must produce a toast AND a SendMessage so the apply call is
+    visible both immediately and in chat history. Without these handlers
+    the click fires invisibly.
+
+    ``confirm_tool`` and ``confirm_request`` must be both set or both
+    ``None`` (the latter for builders that render their non-preview
+    branch — no Confirm button to wire).
+    """
+    if confirm_tool is None and confirm_request is None:
+        return None
+    if confirm_tool is None or confirm_request is None:
+        raise ValueError(
+            "confirm_tool and confirm_request must be set together (or both None)"
+        )
+    return call_tool_from_request(
+        confirm_tool,
+        confirm_request,
+        overrides={"preview": False},
+        on_success=[
+            ShowToast(message=success_message, variant="success"),
+            SendMessage(success_chat),
+        ],
+        on_error=[
+            ShowToast(message=error_message, variant="error"),
+            SendMessage(error_chat),
+        ],
+    )
 
 
 # ============================================================================
@@ -151,6 +197,14 @@ def build_search_results_ui(
             search=True,
             paginated=True,
             pageSize=20,
+            # NOTE: ``{{ sku }}`` and ``{{ $error }}`` here are *per-row /
+            # event-context* bindings provided by the DataTable component
+            # itself, NOT the iframe-state substitution that broke in #491.
+            # The DataTable renderer expands these client-side from the
+            # clicked row's data and the action's error payload, so they
+            # do not depend on the host-side Mustache-from-state mechanism
+            # that silently dropped args. Reliability is owned by the
+            # DataTable component; verification is tracked in #494.
             onRowClick=CallTool(
                 "get_variant_details",
                 arguments={"sku": "{{ sku }}"},
@@ -432,19 +486,24 @@ def build_order_preview_ui(
 ) -> PrefabApp:
     """Build an order preview card with confirm/cancel buttons.
 
-    Pass ``confirm_request`` (the original Pydantic input) and
-    ``confirm_tool`` (the matching tool name); the builder seeds iframe
-    state at ``state.request`` and constructs the ``CallTool`` action with
-    ``preview=False`` internally so the Confirm button re-invokes the tool
-    directly without an LLM round-trip.
+    Pass the original Pydantic ``confirm_request`` and matching
+    ``confirm_tool`` name; the Confirm button is wired via
+    :func:`_build_confirm_action`.
     """
     fields = _extract_order_fields(order)
-    confirm_action = call_tool_from_request(
+    order_number = fields["order_number"]
+    confirm_action = _build_confirm_action(
         confirm_tool,
-        type(confirm_request),
-        overrides={"preview": False},
+        confirm_request,
+        success_message=f"{order_type} {order_number} created",
+        success_chat=f"{order_type} {order_number} was created successfully.",
+        error_message=f"{order_type} creation failed",
+        error_chat=(
+            f"{order_type} {order_number} creation failed — please review "
+            "the error and try again."
+        ),
     )
-    state: dict[str, Any] = {"order": order, "request": confirm_request.model_dump()}
+    state: dict[str, Any] = {"order": order}
 
     with PrefabApp(state=state, css_class="p-4") as app, Card():
         with CardHeader(), Row(gap=2):
@@ -577,22 +636,51 @@ def build_fulfill_preview_ui(
 ) -> PrefabApp:
     """Build a fulfillment preview card.
 
-    The "Confirm Fulfillment" button invokes ``fulfill_order`` directly via
-    ``CallTool`` with ``preview=False`` and the original order_id/order_type
-    sourced from the response (where they're echoed). No LLM round-trip.
+    The "Confirm Fulfillment" button re-invokes ``fulfill_order`` with
+    ``preview=False`` and the original ``order_id`` / ``order_type``
+    inlined from the response. No LLM round-trip.
     """
-    order_type, order_number, status = _extract_fulfill_fields(response)
+    from katana_mcp.tools.foundation.orders import FulfillOrderRequest
+
+    # `order_type_display` is .title()-cased ("Sales" / "Manufacturing") for
+    # use in user-facing strings; `raw_order_type` is the lowercase enum
+    # value ("sales" / "manufacturing") that FulfillOrderRequest expects.
+    # Keep them named distinctly so a future edit can't quietly substitute
+    # the display value into the request constructor.
+    order_type_display, order_number, status = _extract_fulfill_fields(response)
+    raw_order_type = response["order_type"]
+    # Direct lookup, not .get() — FulfillOrderResponse declares both fields
+    # required; a missing key signals a malformed response dict and we
+    # want to fail at preview-build time, not at click time.
+    confirm_request = FulfillOrderRequest(
+        order_id=response["order_id"],
+        order_type=raw_order_type,
+    )
+    block_warnings, regular_warnings = _split_warnings(response.get("warnings"))
+    confirm_action = _build_confirm_action(
+        "fulfill_order",
+        confirm_request,
+        success_message=f"{order_type_display} order {order_number} fulfilled",
+        success_chat=(
+            f"{order_type_display} order {order_number} was fulfilled "
+            "successfully; inventory has been updated."
+        ),
+        error_message=f"Fulfillment for {order_number} failed",
+        error_chat=(
+            f"Fulfilling {raw_order_type} order {order_number} failed — "
+            "please review the error and try again."
+        ),
+    )
 
     with PrefabApp(state={"response": response}, css_class="p-4") as app, Card():
         with CardHeader(), Row(gap=2):
-            CardTitle(content=f"Fulfill {order_type} Order")
+            CardTitle(content=f"Fulfill {order_type_display} Order")
             Badge(label=order_number, variant="outline")
             Badge(label=status, variant="secondary")
 
         with CardContent(), Column(gap=2):
             _render_inventory_updates(response)
 
-            block_warnings, regular_warnings = _split_warnings(response.get("warnings"))
             if block_warnings or regular_warnings:
                 Separator()
                 for warning in block_warnings:
@@ -605,14 +693,7 @@ def build_fulfill_preview_ui(
                 Button(
                     label="Confirm Fulfillment",
                     variant="default",
-                    on_click=CallTool(
-                        "fulfill_order",
-                        arguments={
-                            "order_id": "{{ response.order_id }}",
-                            "order_type": "{{ response.order_type }}",
-                            "preview": False,
-                        },
-                    ),
+                    on_click=confirm_action,
                 )
             Button(
                 label="Cancel",
@@ -785,28 +866,27 @@ def build_receipt_ui(
     """Build a receipt card for received purchase order items.
 
     On the preview branch, pass ``confirm_request`` (the original Pydantic
-    input) and ``confirm_tool`` (the matching tool name) so the "Confirm
-    Receipt" button can re-invoke the tool directly with ``preview=False``.
-    Both kwargs are optional because the same builder is reused for the
-    non-preview render where no confirm button is shown — but they must be
-    set together.
+    input) and ``confirm_tool`` (the matching tool name) to wire the
+    "Confirm Receipt" button. Both kwargs are optional because the same
+    builder is reused for the non-preview render where no confirm button
+    is shown — must be set together (enforced by ``_build_confirm_action``).
     """
-    if (confirm_request is None) != (confirm_tool is None):
-        raise ValueError(
-            "confirm_request and confirm_tool must be set together (or both None)"
-        )
-
     order_number = response.get("order_number", "N/A")
     is_preview = response.get("is_preview", True)
     state: dict[str, Any] = {"response": response}
-    confirm_action: CallTool | None = None
-    if confirm_request is not None and confirm_tool is not None:
-        state["request"] = confirm_request.model_dump()
-        confirm_action = call_tool_from_request(
-            confirm_tool,
-            type(confirm_request),
-            overrides={"preview": False},
-        )
+    confirm_action = _build_confirm_action(
+        confirm_tool,
+        confirm_request,
+        success_message=f"Receipt for {order_number} recorded",
+        success_chat=(
+            f"Items received for {order_number}; inventory has been updated."
+        ),
+        error_message=f"Receipt for {order_number} failed",
+        error_chat=(
+            f"Receiving items for {order_number} failed — please review "
+            "the error and try again."
+        ),
+    )
 
     with PrefabApp(state=state, css_class="p-4") as app, Card():
         with CardHeader(), Row(gap=2):
@@ -889,15 +969,11 @@ def build_batch_recipe_update_ui(
     Preview mode shows all ops as PENDING; executed mode shows SUCCESS/FAILED/SKIPPED.
 
     On the preview branch, pass ``confirm_request`` (the original Pydantic
-    input) and ``confirm_tool`` (the matching tool name) so the "Execute
-    batch" button can re-invoke the tool directly with ``preview=False``.
-    Both kwargs are optional because the same builder is reused for the
-    non-preview render — but they must be set together.
+    input) and ``confirm_tool`` (the matching tool name) to wire the
+    "Execute batch" button. Both kwargs are optional because the same
+    builder is reused for the non-preview render — must be set together
+    (enforced by ``_build_confirm_action``).
     """
-    if (confirm_request is None) != (confirm_tool is None):
-        raise ValueError(
-            "confirm_request and confirm_tool must be set together (or both None)"
-        )
     is_preview = response.get("is_preview", True)
     results = response.get("results", [])
     warnings = response.get("warnings", [])
@@ -951,14 +1027,21 @@ def build_batch_recipe_update_ui(
         "warnings": warnings,
         "groups": list(groups.keys()),
     }
-    confirm_action: CallTool | None = None
-    if confirm_request is not None and confirm_tool is not None:
-        state["request"] = confirm_request.model_dump()
-        confirm_action = call_tool_from_request(
-            confirm_tool,
-            type(confirm_request),
-            overrides={"preview": False},
-        )
+    confirm_action = _build_confirm_action(
+        confirm_tool,
+        confirm_request,
+        success_message=f"Batch executed: {total} ops",
+        success_chat=(
+            f"Batch recipe update executed: {total} planned operation(s) "
+            "submitted. Review the results card for per-op success / "
+            "failure / skip status."
+        ),
+        error_message="Batch execution failed",
+        error_chat=(
+            "Batch recipe update failed before completing — please "
+            "review the error and re-run."
+        ),
+    )
 
     with (
         PrefabApp(

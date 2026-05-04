@@ -418,41 +418,138 @@ class TestBuildBatchRecipeUpdateUI:
 class TestCallToolFromRequest:
     """Tests for the call_tool_from_request helper.
 
-    The helper introspects a Pydantic request model and emits a CallTool
-    action whose ``arguments`` template every field from iframe state.
-    Used to wire the Confirm buttons in preview UIs back to their tool with
+    The helper takes a Pydantic request instance and emits a CallTool
+    action whose ``arguments`` are the request's fields **inlined as
+    literal values** (not template strings — see #491). Used to wire the
+    Confirm buttons in preview UIs back to their tool with
     ``preview=False``, without an LLM round-trip.
     """
 
-    def test_args_template_each_field(self):
+    def test_args_inline_each_field(self):
         from katana_mcp.tools.foundation.purchase_orders import (
             CreatePurchaseOrderRequest,
+            PurchaseOrderItem,
         )
         from katana_mcp.tools.prefab_ui import call_tool_from_request
 
+        request = CreatePurchaseOrderRequest(
+            supplier_id=42,
+            location_id=7,
+            order_number="PO-001",
+            items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.5)],
+            notes="some note",
+        )
         action = call_tool_from_request(
             "create_purchase_order",
-            CreatePurchaseOrderRequest,
+            request,
             overrides={"preview": False},
         )
         # Tool name is set
         assert action.tool == "create_purchase_order"
-        # Every non-overridden field is templated from state.request
+        # Each non-overridden field carries the request's actual value, not
+        # a template string. Iterating model_fields catches any future
+        # field added to the model that isn't propagated.
+        expected_dump = request.model_dump(mode="json")
         for fname in CreatePurchaseOrderRequest.model_fields:
             if fname == "preview":
                 continue  # overridden — verified separately
-            assert action.arguments[fname] == f"{{{{ request.{fname} }}}}"
-        # Override wins over the templated value
+            assert action.arguments[fname] == expected_dump[fname]
+        # Override wins over the inlined value
         assert action.arguments["preview"] is False
 
-    def test_state_key_override(self):
-        from katana_mcp.tools.foundation.orders import FulfillOrderRequest
+    def test_no_template_strings_appear_in_arguments(self):
+        """Regression for #491: the helper must never emit ``{{ ... }}``
+        template strings in the ``arguments`` dict. Host-side template
+        substitution silently drops args, causing data corruption — values
+        must be inlined at build time so no substitution is required.
+        """
+        from katana_mcp.tools.foundation.purchase_orders import (
+            CreatePurchaseOrderRequest,
+            PurchaseOrderItem,
+        )
         from katana_mcp.tools.prefab_ui import call_tool_from_request
 
-        action = call_tool_from_request(
-            "fulfill_order", FulfillOrderRequest, state_key="response"
+        request = CreatePurchaseOrderRequest(
+            supplier_id=42,
+            location_id=7,
+            order_number="PO-001",
+            items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.5)],
         )
-        assert action.arguments["order_id"] == "{{ response.order_id }}"
+        action = call_tool_from_request(
+            "create_purchase_order",
+            request,
+            overrides={"preview": False},
+        )
+
+        templates = _find_template_strings(action.arguments)
+        assert templates == [], (
+            f"call_tool_from_request emitted template strings — these silently "
+            f"corrupt data when the host fails to substitute them (#491). "
+            f"Found: {templates!r}"
+        )
+
+    def test_datetime_field_serializes_to_iso_string(self):
+        """Pin the ``model_dump(mode="json")`` round-trip: datetime fields
+        must come out as ISO strings, and the dumped args must validate
+        cleanly when fed back through the same model. This guards against
+        a future field with a non-trivial type (Decimal, date, complex
+        nested model) silently producing values the MCP tool validator
+        rejects on the re-invocation path.
+        """
+        from datetime import UTC, datetime
+
+        from katana_mcp.tools.foundation.purchase_orders import (
+            CreatePurchaseOrderRequest,
+            PurchaseOrderItem,
+        )
+        from katana_mcp.tools.prefab_ui import call_tool_from_request
+
+        request = CreatePurchaseOrderRequest(
+            supplier_id=42,
+            location_id=7,
+            order_number="PO-001",
+            items=[
+                PurchaseOrderItem(
+                    variant_id=10,
+                    quantity=1.0,
+                    price_per_unit=2.5,
+                    arrival_date=datetime(2026, 6, 1, 12, 0, tzinfo=UTC),
+                )
+            ],
+        )
+        action = call_tool_from_request("create_purchase_order", request)
+
+        # mode="json" produced an ISO string, not a datetime object. The
+        # iframe will JSON-encode the action when sending back to the
+        # server, so we want strings up front to avoid round-trip surprises.
+        item_arrival = action.arguments["items"][0]["arrival_date"]
+        assert isinstance(item_arrival, str), (
+            f"arrival_date should be an ISO string (mode='json'); "
+            f"got {type(item_arrival).__name__}: {item_arrival!r}"
+        )
+        # And the round-trip works: re-validating from the dumped args
+        # rebuilds an equivalent request without raising.
+        rebuilt = CreatePurchaseOrderRequest.model_validate(action.arguments)
+        assert rebuilt.items[0].arrival_date == request.items[0].arrival_date
+
+
+def _find_template_strings(value: object) -> list[str]:
+    """Recursively walk a JSON-serializable value (typically a CallTool
+    ``arguments`` dict) and return every string containing a Mustache-style
+    ``{{ ... }}`` template. The fix for #491 inlines literal values into
+    actions at build time; this helper is the regression sentinel — any
+    builder that emits a template string in its action args fails loudly.
+    """
+    found: list[str] = []
+    if isinstance(value, str) and "{{" in value and "}}" in value:
+        found.append(value)
+    elif isinstance(value, dict):
+        for v in value.values():
+            found.extend(_find_template_strings(v))
+    elif isinstance(value, list):
+        for v in value:
+            found.extend(_find_template_strings(v))
+    return found
 
 
 def _find_tool_call_actions(tree: object) -> list[dict]:
@@ -527,6 +624,303 @@ class TestConfirmButtonsUseCallTool:
             f"preview=False; found {len(matching)}. Total toolCall actions "
             f"in envelope: {len(actions)}."
         )
+        confirm_args = matching[0]["arguments"]
+        expected = request.model_dump(mode="json")
+        assert confirm_args["supplier_id"] == expected["supplier_id"]
+        assert confirm_args["location_id"] == expected["location_id"]
+        assert confirm_args["order_number"] == expected["order_number"]
+        assert confirm_args["items"] == expected["items"]
+        # And no template literal slipped through anywhere in the args tree.
+        assert _find_template_strings(confirm_args) == []
+
+    def test_receipt_preview_confirm_action_inlines_request(self):
+        """Regression for #491 covering ``build_receipt_ui`` — the second
+        builder that delegates to ``call_tool_from_request``. If someone
+        reintroduces templating here (or seeds a state-key reference back
+        in), this will fail loudly."""
+        from katana_mcp.tools.foundation.purchase_orders import (
+            ReceiveItemRequest,
+            ReceivePurchaseOrderRequest,
+        )
+
+        response = {
+            "order_id": 1234,
+            "order_number": "PO-1",
+            "is_preview": True,
+            "items_received": 5,
+            "status": "NOT_RECEIVED",
+            "warnings": [],
+        }
+        request = ReceivePurchaseOrderRequest(
+            order_id=1234,
+            items=[ReceiveItemRequest(purchase_order_row_id=10, quantity=5.0)],
+        )
+        app = build_receipt_ui(
+            response,
+            confirm_request=request,
+            confirm_tool="receive_purchase_order",
+        )
+        envelope = app.to_json()
+
+        actions = _find_tool_call_actions(envelope)
+        matching = [
+            a
+            for a in actions
+            if a.get("tool") == "receive_purchase_order"
+            and a.get("arguments", {}).get("preview") is False
+        ]
+        assert len(matching) == 1, (
+            f"Expected exactly one receive_purchase_order toolCall with "
+            f"preview=False; found {len(matching)}."
+        )
+        confirm_args = matching[0]["arguments"]
+        expected = request.model_dump(mode="json")
+        assert confirm_args["order_id"] == expected["order_id"]
+        assert confirm_args["items"] == expected["items"]
+        assert _find_template_strings(confirm_args) == []
+
+    def test_batch_recipe_preview_confirm_action_inlines_request(self):
+        """Regression for #491 covering ``build_batch_recipe_update_ui`` —
+        the third builder that delegates to ``call_tool_from_request``.
+        Uses a stub BaseModel because the batch tool's request shape
+        isn't easily constructible standalone, and the bug class is
+        builder-mechanism-level, not request-shape-specific."""
+        from pydantic import BaseModel as _BaseModel
+
+        class _StubBatchRequest(_BaseModel):
+            mo_ids: list[int] = [9999]
+            replacements: list[str] = ["OLD-FORK -> NEW-FORK"]
+            preview: bool = True
+
+        response = {
+            "is_preview": True,
+            "total_ops": 1,
+            "success_count": 0,
+            "failed_count": 0,
+            "skipped_count": 0,
+            "results": [
+                {
+                    "op_type": "delete",
+                    "manufacturing_order_id": 9999,
+                    "recipe_row_id": 5001,
+                    "status": "pending",
+                    "group_label": "OLD-FORK -> NEW-FORK",
+                }
+            ],
+            "warnings": [],
+            "message": "Preview",
+        }
+        request = _StubBatchRequest()
+        app = build_batch_recipe_update_ui(
+            response,
+            confirm_request=request,
+            confirm_tool="batch_update_recipes",
+        )
+        envelope = app.to_json()
+
+        actions = _find_tool_call_actions(envelope)
+        matching = [
+            a
+            for a in actions
+            if a.get("tool") == "batch_update_recipes"
+            and a.get("arguments", {}).get("preview") is False
+        ]
+        assert len(matching) == 1
+        confirm_args = matching[0]["arguments"]
+        expected = request.model_dump(mode="json")
+        assert confirm_args["mo_ids"] == expected["mo_ids"]
+        assert confirm_args["replacements"] == expected["replacements"]
+        assert _find_template_strings(confirm_args) == []
+
+    def test_fulfill_preview_confirm_action_inlines_response_fields(self):
+        """Regression for #491: ``build_fulfill_preview_ui``'s Confirm button
+        previously templated ``order_id``/``order_type`` from iframe state via
+        ``{{ response.<field> }}``. Host-side substitution silently drops
+        these — must inline literal values from the response dict at build
+        time instead.
+        """
+        response = {
+            "order_id": 9999,
+            "order_type": "sales",
+            "order_number": "SO-1",
+            "status": "PARTIALLY_DELIVERED",
+            "warnings": [],
+        }
+        app = build_fulfill_preview_ui(response)
+        envelope = app.to_json()
+
+        actions = _find_tool_call_actions(envelope)
+        matching = [a for a in actions if a.get("tool") == "fulfill_order"]
+        assert len(matching) == 1, "Confirm Fulfillment button missing or duplicated"
+        args = matching[0]["arguments"]
+        assert args["order_id"] == 9999
+        assert args["order_type"] == "sales"
+        assert args["preview"] is False
+        # Belt-and-suspenders: no template strings anywhere in the args.
+        assert _find_template_strings(args) == []
+
+
+class TestConfirmButtonsHaveFeedbackHandlers:
+    """Regression tests for #495: every Confirm button on every preview
+    builder must wire ``on_success`` and ``on_error`` handlers, otherwise
+    the click fires invisibly. Without these the user has no chat-side
+    or in-iframe signal that the apply tool ran.
+    """
+
+    @staticmethod
+    def _assert_calltool_has_handlers(action: dict, label: str) -> None:
+        """Assert a serialized toolCall action has both lifecycle hooks set.
+
+        We don't pin the *shape* of the hooks (caller wording / variant /
+        component types may evolve) — just that they exist. The point is
+        to make missing handlers fail loudly the moment a future builder
+        forgets to wire them.
+        """
+        on_success = action.get("on_success") or action.get("onSuccess")
+        on_error = action.get("on_error") or action.get("onError")
+        assert on_success, (
+            f"{label}: Confirm button's CallTool has no on_success handler — "
+            f"click would fire invisibly (#495). Action keys: {list(action)}"
+        )
+        assert on_error, (
+            f"{label}: Confirm button's CallTool has no on_error handler — "
+            f"failures would be silent (#495). Action keys: {list(action)}"
+        )
+
+    def test_order_preview_confirm_button_has_feedback_handlers(self):
+        from katana_mcp.tools.foundation.purchase_orders import (
+            CreatePurchaseOrderRequest,
+            PurchaseOrderItem,
+        )
+
+        request = CreatePurchaseOrderRequest(
+            supplier_id=2,
+            location_id=3,
+            order_number="PO-FB-1",
+            items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.0)],
+        )
+        app = build_order_preview_ui(
+            {"order_number": "PO-FB-1", "warnings": []},
+            "Purchase Order",
+            confirm_request=request,
+            confirm_tool="create_purchase_order",
+        )
+        envelope = app.to_json()
+        actions = _find_tool_call_actions(envelope)
+        confirm = next(a for a in actions if a.get("tool") == "create_purchase_order")
+        self._assert_calltool_has_handlers(confirm, "build_order_preview_ui")
+
+    def test_receipt_preview_confirm_button_has_feedback_handlers(self):
+        from katana_mcp.tools.foundation.purchase_orders import (
+            ReceiveItemRequest,
+            ReceivePurchaseOrderRequest,
+        )
+
+        request = ReceivePurchaseOrderRequest(
+            order_id=1234,
+            items=[ReceiveItemRequest(purchase_order_row_id=10, quantity=5.0)],
+        )
+        app = build_receipt_ui(
+            {
+                "order_id": 1234,
+                "order_number": "PO-FB-2",
+                "is_preview": True,
+                "items_received": 5,
+                "status": "NOT_RECEIVED",
+                "warnings": [],
+            },
+            confirm_request=request,
+            confirm_tool="receive_purchase_order",
+        )
+        envelope = app.to_json()
+        actions = _find_tool_call_actions(envelope)
+        confirm = next(a for a in actions if a.get("tool") == "receive_purchase_order")
+        self._assert_calltool_has_handlers(confirm, "build_receipt_ui")
+
+    def test_batch_recipe_preview_confirm_button_has_feedback_handlers(self):
+        request = _StubRequest()
+        app = build_batch_recipe_update_ui(
+            {
+                "is_preview": True,
+                "total_ops": 1,
+                "success_count": 0,
+                "failed_count": 0,
+                "skipped_count": 0,
+                "results": [
+                    {
+                        "op_type": "delete",
+                        "manufacturing_order_id": 9999,
+                        "recipe_row_id": 5001,
+                        "status": "pending",
+                    }
+                ],
+                "warnings": [],
+                "message": "Preview",
+            },
+            confirm_request=request,
+            confirm_tool="batch_update_recipes",
+        )
+        envelope = app.to_json()
+        actions = _find_tool_call_actions(envelope)
+        confirm = next(a for a in actions if a.get("tool") == "batch_update_recipes")
+        self._assert_calltool_has_handlers(confirm, "build_batch_recipe_update_ui")
+
+    def test_fulfill_preview_confirm_button_has_feedback_handlers(self):
+        app = build_fulfill_preview_ui(
+            {
+                "order_id": 9999,
+                "order_type": "sales",
+                "order_number": "SO-FB-1",
+                "status": "IN_PROGRESS",
+                "warnings": [],
+            }
+        )
+        envelope = app.to_json()
+        actions = _find_tool_call_actions(envelope)
+        confirm = next(a for a in actions if a.get("tool") == "fulfill_order")
+        self._assert_calltool_has_handlers(confirm, "build_fulfill_preview_ui")
+
+
+class TestBuildConfirmActionXorInvariant:
+    """``_build_confirm_action`` collapses the optional confirm-button
+    plumbing previously duplicated in ``build_receipt_ui`` and
+    ``build_batch_recipe_update_ui``. Both inputs (``confirm_tool``,
+    ``confirm_request``) must be set together or both ``None``; passing
+    one but not the other is a programmer error.
+    """
+
+    @pytest.mark.parametrize(
+        "tool, request_obj",
+        [
+            ("create_purchase_order", None),
+            (None, _StubRequest()),
+        ],
+    )
+    def test_partial_inputs_raise_value_error(self, tool, request_obj):
+        from katana_mcp.tools.prefab_ui import _build_confirm_action
+
+        with pytest.raises(ValueError, match="must be set together"):
+            _build_confirm_action(
+                tool,
+                request_obj,
+                success_message="ok",
+                success_chat="ok",
+                error_message="fail",
+                error_chat="fail",
+            )
+
+    def test_both_none_returns_none(self):
+        from katana_mcp.tools.prefab_ui import _build_confirm_action
+
+        result = _build_confirm_action(
+            None,
+            None,
+            success_message="ok",
+            success_chat="ok",
+            error_message="fail",
+            error_chat="fail",
+        )
+        assert result is None
 
 
 def _find_buttons_by_label(tree: object, label: str) -> list[dict]:
