@@ -212,6 +212,55 @@ class TestFTS5Search:
         assert len(product_results) == 1
 
 
+class TestArchivedFiltering:
+    """Search must hide archived items by default and surface them on opt-in."""
+
+    @pytest_asyncio.fixture(autouse=True)
+    async def _populate(self, cache):
+        # Mix of active and archived variants under the same parent name so
+        # FTS5 returns multiple hits and we can verify the filter actually
+        # narrows the set rather than coincidentally matching one.
+        active = {
+            "id": 1,
+            "sku": "ACTIVE-001",
+            "display_name": "Active Widget",
+            "parent_name": "Widget Parent",
+            "parent_archived_at": None,
+            "updated_at": time.time(),
+        }
+        archived = {
+            "id": 2,
+            "sku": "ARCHIVED-001",
+            "display_name": "Archived Widget",
+            "parent_name": "Widget Parent",
+            "parent_archived_at": "2024-01-01T00:00:00+00:00",
+            "updated_at": time.time(),
+        }
+        await cache.sync("variant", [active, archived], VARIANT_INDEX)
+
+    @pytest.mark.asyncio
+    async def test_search_excludes_archived_by_default(self, cache):
+        results = await cache.search("variant", "widget")
+        assert {r["sku"] for r in results} == {"ACTIVE-001"}
+
+    @pytest.mark.asyncio
+    async def test_search_includes_archived_when_opted_in(self, cache):
+        results = await cache.search("variant", "widget", include_archived=True)
+        assert {r["sku"] for r in results} == {"ACTIVE-001", "ARCHIVED-001"}
+
+    @pytest.mark.asyncio
+    async def test_fuzzy_excludes_archived_by_default(self, cache):
+        # "widgt" is a deletion typo — FTS5 prefix won't catch it, so this
+        # exercises search_fuzzy specifically.
+        results = await cache.search_fuzzy("variant", "widgt")
+        assert {r["sku"] for r in results} == {"ACTIVE-001"}
+
+    @pytest.mark.asyncio
+    async def test_fuzzy_includes_archived_when_opted_in(self, cache):
+        results = await cache.search_fuzzy("variant", "widgt", include_archived=True)
+        assert {r["sku"] for r in results} == {"ACTIVE-001", "ARCHIVED-001"}
+
+
 class TestFuzzySearch:
     """Tests for the difflib fuzzy fallback."""
 

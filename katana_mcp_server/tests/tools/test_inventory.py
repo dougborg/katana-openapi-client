@@ -413,7 +413,48 @@ async def test_search_items_default_limit():
     await _search_items_impl(request, context)
 
     assert request.limit == 20  # Default
-    lifespan_ctx.cache.smart_search.assert_called_once_with("variant", "test", limit=20)
+    lifespan_ctx.cache.smart_search.assert_called_once_with(
+        "variant", "test", limit=20, include_archived=False
+    )
+
+
+@pytest.mark.asyncio
+async def test_search_items_surfaces_archived_state_from_parent():
+    """Variants inherit archived state from their parent — assert it surfaces."""
+    context, lifespan_ctx = create_mock_context()
+
+    # Two variants: one with an archived parent, one without. The
+    # ``parent_archived_at`` field is synthesized in cache_sync from the
+    # extended ``product_or_material`` payload, so the dict shape here
+    # mirrors what _variant_to_cache_dict actually writes.
+    cached_variants = [
+        {
+            "id": 1,
+            "sku": "ACTIVE-1",
+            "type": "product",
+            "display_name": "Active Item",
+            "parent_archived_at": None,
+        },
+        {
+            "id": 2,
+            "sku": "ARCHIVED-1",
+            "type": "material",
+            "display_name": "Archived Item",
+            "parent_archived_at": "2024-01-01T00:00:00+00:00",
+        },
+    ]
+    lifespan_ctx.cache.smart_search = AsyncMock(return_value=cached_variants)
+
+    request = SearchItemsRequest(query="item", include_archived=True)
+    result = await _search_items_impl(request, context)
+
+    by_sku = {item.sku: item for item in result.items}
+    assert by_sku["ACTIVE-1"].is_archived is False
+    assert by_sku["ARCHIVED-1"].is_archived is True
+    # Cache call must thread the flag through, otherwise the filter is moot.
+    lifespan_ctx.cache.smart_search.assert_called_once_with(
+        "variant", "item", limit=20, include_archived=True
+    )
 
 
 @pytest.mark.asyncio

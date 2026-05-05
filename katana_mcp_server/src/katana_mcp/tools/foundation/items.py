@@ -116,6 +116,15 @@ class SearchItemsRequest(BaseModel):
 
     query: str = Field(..., description="Search query (name, SKU, etc.)")
     limit: int = Field(default=20, description="Maximum results to return")
+    include_archived: bool = Field(
+        default=False,
+        description=(
+            "Include archived items in results. Defaults to false so normal "
+            "searches only see active items. Pass true to find an archived "
+            "item — typically as a precursor to unarchiving it via modify_item "
+            'with {"update_header": {"is_archived": false}}.'
+        ),
+    )
     format: Literal["markdown", "json"] = Field(
         default="markdown",
         description=(
@@ -134,6 +143,7 @@ class ItemInfo(BaseModel):
     item_type: str = "unknown"
     is_sellable: bool
     stock_level: int | None = None
+    is_archived: bool = False
 
 
 class SearchItemsResponse(BaseModel):
@@ -175,9 +185,14 @@ async def _search_items_impl(
 
     services = get_services(context)
     variant_dicts = await services.cache.smart_search(
-        "variant", request.query, limit=request.limit
+        "variant",
+        request.query,
+        limit=request.limit,
+        include_archived=request.include_archived,
     )
 
+    # Variants inherit archived state from their parent product/material;
+    # ``parent_archived_at`` is set during sync (see cache_sync._variant_to_cache_dict).
     items_info = [
         ItemInfo(
             id=v["id"],
@@ -186,6 +201,7 @@ async def _search_items_impl(
             item_type=v.get("type") or "unknown",
             is_sellable=v.get("type") == "product",
             stock_level=None,
+            is_archived=v.get("parent_archived_at") is not None,
         )
         for v in variant_dicts
     ]
@@ -203,6 +219,11 @@ async def search_items(
     Use this as the starting point when you need to find items. Returns item IDs
     and SKUs needed by other tools like create_purchase_order or check_inventory.
     For full details on a specific item, follow up with get_variant_details.
+
+    By default, archived items are excluded. Pass ``include_archived=true`` to
+    surface them (each row carries an ``is_archived`` flag). To unarchive an
+    item once you've found it, call ``modify_item`` with the request body
+    ``{"update_header": {"is_archived": false}}``.
 
     Query must not be empty. Default limit is 20 results.
     """
@@ -450,6 +471,12 @@ class ItemDetailsResponse(BaseModel):
     archived_at: str | None = None
     deleted_at: str | None = None
 
+    # Convenience boolean derived from ``archived_at`` — saves callers from
+    # having to know the timestamp/null convention. Pair with
+    # ``modify_item`` and ``{"update_header": {"is_archived": ...}}`` to
+    # toggle the state.
+    is_archived: bool = False
+
     # Product / Material only
     default_supplier_id: int | None = None
     batch_tracked: bool | None = None
@@ -592,6 +619,11 @@ async def _get_item_impl(
     supplier = _supplier_to_info(d.get("supplier"))
 
     item_id = d.get("id", request.id)
+    # Katana represents archive state as ``archived_at: timestamp | null`` on
+    # read; non-null = archived. The boolean ``is_archived`` is a convenience
+    # field that mirrors Katana's own update-request convention so callers
+    # can pair it with ``modify_item`` and
+    # ``{"update_header": {"is_archived": ...}}``.
     return ItemDetailsResponse(
         id=item_id,
         name=d.get("name") or "",
@@ -606,6 +638,7 @@ async def _get_item_impl(
         updated_at=_iso_or_none(d.get("updated_at")),
         archived_at=_iso_or_none(d.get("archived_at")),
         deleted_at=_iso_or_none(d.get("deleted_at")),
+        is_archived=d.get("archived_at") is not None,
         # Product / Material only (remain None on Service)
         default_supplier_id=d.get("default_supplier_id"),
         batch_tracked=d.get("batch_tracked"),
@@ -1090,11 +1123,18 @@ async def modify_item(
     - ``update_header`` — patch header fields. Field set is type-specific:
       ``is_producible`` etc. are PRODUCT-only, ``default_supplier_id``
       etc. are PRODUCT/MATERIAL, ``sales_price`` etc. are SERVICE-only.
+      ``is_archived`` is shared across all three types and is the
+      archive/unarchive lever (Katana has no dedicated archive endpoint).
       Misrouted fields fail fast with a clear error.
     - ``add_variants`` — POST /variant. Parent ``product_id`` /
       ``material_id`` is injected from the request's ``type``.
     - ``update_variants`` — PATCH /variant/{id}.
     - ``delete_variant_ids`` — DELETE /variant/{id}.
+
+    Archive / unarchive: send ``{"update_header": {"is_archived": true}}`` to
+    archive, ``{"update_header": {"is_archived": false}}`` to unarchive.
+    Archived items are hidden from ``search_items`` by default; pass
+    ``include_archived=true`` on that call to find them.
 
     To remove an item entirely, use the sibling ``delete_item`` tool.
 

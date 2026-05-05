@@ -43,7 +43,7 @@ _DEFAULT_CACHE_DIR = Path(user_cache_dir("katana-mcp"))
 _DEFAULT_DB_PATH = _DEFAULT_CACHE_DIR / "cache.db"
 
 # Schema version — bump to force a rebuild
-_SCHEMA_VERSION = 1
+_SCHEMA_VERSION = 2
 
 _SCHEMA_SQL = """\
 -- Schema version tracking
@@ -60,7 +60,9 @@ CREATE TABLE IF NOT EXISTS entities (
     PRIMARY KEY (entity_type, id)
 );
 
--- Searchable index fields extracted from entities
+-- Searchable index fields extracted from entities. ``is_archived`` is
+-- denormalized so search can filter without decoding the JSON ``data``
+-- column. For variants it mirrors the parent product/material's state.
 CREATE TABLE IF NOT EXISTS entity_index (
     rowid       INTEGER PRIMARY KEY AUTOINCREMENT,
     entity_type TEXT NOT NULL,
@@ -68,6 +70,7 @@ CREATE TABLE IF NOT EXISTS entity_index (
     sku         TEXT,
     name        TEXT,
     name2       TEXT,
+    is_archived INTEGER NOT NULL DEFAULT 0,
     UNIQUE (entity_type, id)
 );
 
@@ -132,20 +135,37 @@ class IndexFields:
         sku_key: Dict key for SKU field (variants only), or None.
         name_key: Dict key for the primary name field.
         name2_key: Dict key for the secondary name field (category, parent name, code).
+        archived_key: Dict key whose value, if not ``None``, marks the entity
+            as archived (``is_archived = 1``). Most types use ``"archived_at"``
+            (a timestamp; any non-``None`` value = archived). Variants use
+            ``"parent_archived_at"`` (synthesized in ``_variant_to_cache_dict``
+            from the extended ``product_or_material`` payload). When this
+            field itself is ``None`` (the default), the entity has no archive
+            concept and the index column stays 0.
     """
 
     sku_key: str | None = None
     name_key: str | None = None
     name2_key: str | None = None
+    archived_key: str | None = None
 
 
-# Pre-defined index field mappings for each entity type
+# Pre-defined index field mappings for each entity type.
 VARIANT_INDEX = IndexFields(
-    sku_key="sku", name_key="display_name", name2_key="parent_name"
+    sku_key="sku",
+    name_key="display_name",
+    name2_key="parent_name",
+    archived_key="parent_archived_at",
 )
-PRODUCT_INDEX = IndexFields(name_key="name", name2_key="category_name")
-MATERIAL_INDEX = IndexFields(name_key="name", name2_key="category_name")
-SERVICE_INDEX = IndexFields(name_key="name", name2_key="category_name")
+PRODUCT_INDEX = IndexFields(
+    name_key="name", name2_key="category_name", archived_key="archived_at"
+)
+MATERIAL_INDEX = IndexFields(
+    name_key="name", name2_key="category_name", archived_key="archived_at"
+)
+SERVICE_INDEX = IndexFields(
+    name_key="name", name2_key="category_name", archived_key="archived_at"
+)
 SUPPLIER_INDEX = IndexFields(name_key="name", name2_key="code")
 CUSTOMER_INDEX = IndexFields(name_key="name", name2_key="email")
 # No FTS for small/stable entity types
@@ -285,6 +305,12 @@ class CatalogCache:
                     e.get(index_fields.sku_key) if index_fields.sku_key else None,
                     e.get(index_fields.name_key) if index_fields.name_key else None,
                     e.get(index_fields.name2_key) if index_fields.name2_key else None,
+                    1
+                    if (
+                        index_fields.archived_key
+                        and e.get(index_fields.archived_key) is not None
+                    )
+                    else 0,
                 )
                 for e in entities
             ]
@@ -295,8 +321,9 @@ class CatalogCache:
                 index_ids,
             )
             await db.executemany(
-                "INSERT INTO entity_index (entity_type, id, sku, name, name2) "
-                "VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO entity_index "
+                "(entity_type, id, sku, name, name2, is_archived) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
                 index_rows,
             )
 
@@ -348,6 +375,7 @@ class CatalogCache:
         entity_type: str,
         query: str,
         limit: int = 50,
+        include_archived: bool = False,
     ) -> list[dict[str, Any]]:
         """Search entities using FTS5 with BM25 ranking.
 
@@ -357,6 +385,10 @@ class CatalogCache:
             entity_type: Entity type to search within.
             query: Search query string.
             limit: Maximum results to return.
+            include_archived: When False (default), archived rows are filtered
+                out via ``entity_index.is_archived``. Pass True to surface them
+                — primarily so callers can find an archived item to unarchive
+                via ``modify_item``.
 
         Returns:
             List of entity dicts, ranked by relevance.
@@ -374,14 +406,15 @@ class CatalogCache:
         # FTS5 query: each token as a prefix match, ANDed together
         fts_query = " AND ".join(f'"{t}"*' for t in escaped_tokens)
 
+        archived_clause = "" if include_archived else " AND idx.is_archived = 0"
         try:
             async with db.execute(
-                """
+                f"""
                 SELECT e.data
                 FROM entity_fts fts
                 JOIN entity_index idx ON fts.rowid = idx.rowid
                 JOIN entities e ON e.entity_type = idx.entity_type AND e.id = idx.id
-                WHERE entity_fts MATCH ? AND idx.entity_type = ?
+                WHERE entity_fts MATCH ? AND idx.entity_type = ?{archived_clause}
                 ORDER BY bm25(entity_fts)
                 LIMIT ?
                 """,
@@ -399,6 +432,7 @@ class CatalogCache:
         entity_type: str,
         query: str,
         limit: int = 50,
+        include_archived: bool = False,
     ) -> list[dict[str, Any]]:
         """Fuzzy search fallback using difflib on cached entity index fields.
 
@@ -408,6 +442,8 @@ class CatalogCache:
             entity_type: Entity type to search within.
             query: Search query string.
             limit: Maximum results to return.
+            include_archived: When False (default), archived rows are filtered
+                out before scoring. See :meth:`search` for the rationale.
 
         Returns:
             List of entity dicts, ranked by fuzzy relevance.
@@ -421,11 +457,12 @@ class CatalogCache:
         db = self._conn()
 
         # Load all index entries for this entity type
+        archived_clause = "" if include_archived else " AND idx.is_archived = 0"
         async with db.execute(
-            "SELECT idx.id, idx.sku, idx.name, idx.name2, e.data "
-            "FROM entity_index idx "
-            "JOIN entities e ON e.entity_type = idx.entity_type AND e.id = idx.id "
-            "WHERE idx.entity_type = ?",
+            f"SELECT idx.id, idx.sku, idx.name, idx.name2, e.data "
+            f"FROM entity_index idx "
+            f"JOIN entities e ON e.entity_type = idx.entity_type AND e.id = idx.id "
+            f"WHERE idx.entity_type = ?{archived_clause}",
             (entity_type,),
         ) as cursor:
             rows = await cursor.fetchall()
@@ -580,6 +617,7 @@ class CatalogCache:
         entity_type: str,
         query: str,
         limit: int = 50,
+        include_archived: bool = False,
     ) -> list[dict[str, Any]]:
         """Search with FTS5 primary and difflib fuzzy fallback.
 
@@ -590,17 +628,23 @@ class CatalogCache:
             entity_type: Entity type to search within.
             query: Search query string.
             limit: Maximum results to return.
+            include_archived: When False (default), archived rows are filtered
+                out. Threaded through to both FTS5 and fuzzy paths.
 
         Returns:
             List of entity dicts, ranked by relevance.
         """
         # Try FTS5 first
-        results = await self.search(entity_type, query, limit=limit)
+        results = await self.search(
+            entity_type, query, limit=limit, include_archived=include_archived
+        )
         if results:
             return results
 
         # Fuzzy fallback for typos
-        return await self.search_fuzzy(entity_type, query, limit=limit)
+        return await self.search_fuzzy(
+            entity_type, query, limit=limit, include_archived=include_archived
+        )
 
     # ── Internal ─────────────────────────────────────────────────────
 

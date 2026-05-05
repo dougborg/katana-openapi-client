@@ -192,6 +192,11 @@ def build_search_results_ui(
                     header="Sellable",
                     sortable=True,
                 ),
+                DataTableColumn(
+                    key="is_archived",
+                    header="Archived",
+                    sortable=True,
+                ),
             ],
             rows="items",
             search=True,
@@ -319,6 +324,8 @@ def build_item_detail_ui(
                         else "Not Producible",
                         variant="default" if item["is_producible"] else "secondary",
                     )
+                if item.get("is_archived"):
+                    Badge(label="Archived", variant="secondary")
 
         with CardFooter(), Row(gap=2):
             if item.get("sku"):
