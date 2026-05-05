@@ -94,6 +94,8 @@ from katana_public_api_client.models import (
     FindPurchaseOrdersStatus,
     PurchaseOrderAdditionalCostRow,
     PurchaseOrderEntityType,
+    PurchaseOrderReceiveRow,
+    PurchaseOrderReceiveRowBatchTransactionsItem,
     PurchaseOrderRow,
     PurchaseOrderRowRequest,
     PurchaseOrderStatus,
@@ -405,6 +407,24 @@ class ReceiveItemRequest(BaseModel):
     )
 
 
+def _convert_receive_batch_transactions(
+    items: list[ReceiveBatchTransaction] | None,
+) -> list[PurchaseOrderReceiveRowBatchTransactionsItem] | Unset:
+    """Map MCP ``ReceiveBatchTransaction`` payloads to the attrs API model.
+
+    Returns ``UNSET`` when the caller didn't supply any transactions, so
+    the wire body skips the key (Katana treats absent as 'no batch
+    tracking required for this row')."""
+    if not items:
+        return UNSET
+    return [
+        PurchaseOrderReceiveRowBatchTransactionsItem(
+            batch_id=bt.batch_id, quantity=bt.quantity
+        )
+        for bt in items
+    ]
+
+
 class ReceivePurchaseOrderRequest(BaseModel):
     """Request to receive items from a purchase order."""
 
@@ -576,35 +596,23 @@ async def _receive_purchase_order_impl(
         from katana_public_api_client.api.purchase_order import (
             receive_purchase_order as api_receive_purchase_order,
         )
-        from katana_public_api_client.models import (
-            PurchaseOrderReceiveRow,
-            PurchaseOrderReceiveRowBatchTransactionsItem,
-        )
 
         # Caller-supplied received_date wins; fall back to "now" so callers
         # who don't care still get a sensible timestamp. Without this branch
         # back-dated re-receives (variant fixes, late paperwork) silently
         # land on the call time — see #505.
         default_received_date = datetime.now(UTC)
-        receive_rows = []
-        for item in request.items:
-            api_batch_transactions: (
-                list[PurchaseOrderReceiveRowBatchTransactionsItem] | Unset
-            ) = UNSET
-            if item.batch_transactions:
-                api_batch_transactions = [
-                    PurchaseOrderReceiveRowBatchTransactionsItem(
-                        batch_id=bt.batch_id, quantity=bt.quantity
-                    )
-                    for bt in item.batch_transactions
-                ]
-            row = PurchaseOrderReceiveRow(
+        receive_rows = [
+            PurchaseOrderReceiveRow(
                 purchase_order_row_id=item.purchase_order_row_id,
                 quantity=item.quantity,
                 received_date=item.received_date or default_received_date,
-                batch_transactions=api_batch_transactions,
+                batch_transactions=_convert_receive_batch_transactions(
+                    item.batch_transactions
+                ),
             )
-            receive_rows.append(row)
+            for item in request.items
+        ]
 
         response = await api_receive_purchase_order.asyncio_detailed(
             client=services.client, body=receive_rows
