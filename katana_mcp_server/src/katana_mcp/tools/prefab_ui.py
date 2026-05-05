@@ -437,16 +437,46 @@ def build_inventory_check_ui(
     stock: dict[str, Any],
 ) -> PrefabApp:
     """Build an inventory check card."""
+    by_location = stock.get("by_location") or []
     with PrefabApp(state={"stock": stock}, css_class="p-4") as app, Card():
         with CardHeader(), Row(gap=2):
             CardTitle(content=stock.get("product_name", "Unknown"))
             Badge(label=stock.get("sku", ""), variant="outline")
+            # When stock is split across multiple warehouses, surface the
+            # count up front so the agent knows to look at the breakdown
+            # below — the headline number alone hides where the stock is.
+            if len(by_location) > 1:
+                Badge(
+                    label=f"{len(by_location)} locations",
+                    variant="secondary",
+                )
 
-        with CardContent(), Row(gap=4):
-            Metric(label="In Stock", value=str(stock.get("in_stock", 0)))
-            Metric(label="Available", value=str(stock.get("available_stock", 0)))
-            Metric(label="Committed", value=str(stock.get("committed", 0)))
-            Metric(label="Expected", value=str(stock.get("expected", 0)))
+        with CardContent(), Column(gap=3):
+            with Row(gap=4):
+                Metric(label="In Stock", value=str(stock.get("in_stock", 0)))
+                Metric(label="Available", value=str(stock.get("available_stock", 0)))
+                Metric(label="Committed", value=str(stock.get("committed", 0)))
+                Metric(label="Expected", value=str(stock.get("expected", 0)))
+
+            # Per-location breakdown — only when stock is actually split
+            # across more than one warehouse (single-location case stays
+            # quiet). Resolves #529's headline workflow ("where IS the
+            # demo bike?") in the single-SKU card path that
+            # check_inventory's most-common usage hits.
+            if len(by_location) > 1:
+                Separator()
+                Muted(content="By location:")
+                DataTable(
+                    columns=[
+                        DataTableColumn(key="location_name", header="Location"),
+                        DataTableColumn(key="location_id", header="ID"),
+                        DataTableColumn(key="in_stock", header="In Stock"),
+                        DataTableColumn(key="committed", header="Committed"),
+                        DataTableColumn(key="available", header="Available"),
+                        DataTableColumn(key="expected", header="Expected"),
+                    ],
+                    rows="stock.by_location",
+                )
 
         with CardFooter(), Row(gap=2):
             Button(
