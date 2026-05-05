@@ -2,6 +2,52 @@
 
 <!-- version list -->
 
+## v0.57.0 (2026-05-05)
+
+### Bug Fixes
+
+- **mcp**: Address Copilot review feedback on #514
+  ([#514](https://github.com/dougborg/katana-openapi-client/pull/514),
+  [`605d923`](https://github.com/dougborg/katana-openapi-client/commit/605d9239f7d2dc7cfcc18bad2f47bfebe7f0d4b4))
+
+- **mcp**: Expose received_date and batch_transactions on receive_purchase_order
+  ([#505](https://github.com/dougborg/katana-openapi-client/pull/505),
+  [`09a4ce9`](https://github.com/dougborg/katana-openapi-client/commit/09a4ce92effda9474bab3810df40d0715a5809c1))
+
+- **mcp**: Extra="forbid" on every input model — surface silent field drops
+  ([#514](https://github.com/dougborg/katana-openapi-client/pull/514),
+  [`605d923`](https://github.com/dougborg/katana-openapi-client/commit/605d9239f7d2dc7cfcc18bad2f47bfebe7f0d4b4))
+
+- **mcp**: Extra="forbid" on every input model — surface silent field drops (#487)
+  ([#514](https://github.com/dougborg/katana-openapi-client/pull/514),
+  [`605d923`](https://github.com/dougborg/katana-openapi-client/commit/605d9239f7d2dc7cfcc18bad2f47bfebe7f0d4b4))
+
+- **mcp**: Preserve additional_info across modify_purchase_order PATCH
+  ([`0ca4640`](https://github.com/dougborg/katana-openapi-client/commit/0ca46405df73575fd602e21a89d73ad081fb5693))
+
+### Chores
+
+- **mcp**: Update client dependency to v0.56.1
+  ([`ee5a69d`](https://github.com/dougborg/katana-openapi-client/commit/ee5a69d3b8667ae8b4032842bb98d93a8644281f))
+
+- **release**: Mcp v0.55.0
+  ([`d41098e`](https://github.com/dougborg/katana-openapi-client/commit/d41098e0f0a4739c03919b058796570163ae5d11))
+
+### Features
+
+- **client**: Remove Inventory helper and rewrite list_low_stock_items
+  ([#510](https://github.com/dougborg/katana-openapi-client/pull/510),
+  [`2cfccb3`](https://github.com/dougborg/katana-openapi-client/commit/2cfccb38ee551beeb2fba444aa23e79f937ec879))
+
+### Breaking Changes
+
+- **client**: `KatanaClient.inventory` and the `Inventory` helper class are removed. For
+  per-SKU stock lookups, call
+  `katana_public_api_client.api.inventory.get_all_inventory_point.asyncio_detailed`
+  directly with a `sku` filter — the inventory endpoint provides the canonical stock
+  view (on-hand, allocations, incoming) without the per-page pagination guess the legacy
+  helpers had to make.
+
 ## v0.56.1 (2026-05-05)
 
 ### Bug Fixes
