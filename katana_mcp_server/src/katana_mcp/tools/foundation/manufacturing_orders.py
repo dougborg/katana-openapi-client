@@ -106,6 +106,7 @@ from katana_public_api_client.models import (
     ManufacturingOrderOperationRow,
     ManufacturingOrderProduction,
     ManufacturingOrderRecipeRow,
+    ManufacturingOrderRecipeRowBatchTransactionsItem,
     ManufacturingOrderStatus,
     UpdateManufacturingOrderOperationRowRequest as APIUpdateMOOperationRowRequest,
     UpdateManufacturingOrderProductionRequest as APIUpdateMOProductionRequest,
@@ -2522,6 +2523,21 @@ class MOHeaderPatch(BaseModel):
     additional_info: str | None = Field(default=None)
 
 
+class RecipeRowBatchTransaction(BaseModel):
+    """Allocate a portion of a recipe row's quantity to a specific batch.
+
+    Required for batch-tracked materials so the MO consumes from the right
+    batch record. The summed ``quantity`` across an item's
+    ``batch_transactions`` should equal the row-level quantity being
+    consumed (Katana validates this server-side).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    batch_id: int = Field(..., description="Batch ID to allocate quantity to")
+    quantity: float = Field(..., description="Quantity to allocate to this batch", gt=0)
+
+
 class MORecipeRowAdd(BaseModel):
     """A new recipe row (ingredient) on the MO."""
 
@@ -2531,6 +2547,15 @@ class MORecipeRowAdd(BaseModel):
     planned_quantity_per_unit: float = Field(..., description="Quantity per unit", gt=0)
     notes: str | None = Field(default=None)
     total_actual_quantity: float | None = Field(default=None, ge=0)
+    batch_transactions: list[RecipeRowBatchTransaction] | None = Field(
+        default=None,
+        description=(
+            "Optional batch allocations for this recipe row. Required when "
+            "the underlying ingredient is batch-tracked — without it the row "
+            "either fails to land or assigns to a default batch. Each entry "
+            "pairs a batch_id with the quantity to draw from that batch."
+        ),
+    )
 
 
 class MORecipeRowUpdate(BaseModel):
@@ -2543,6 +2568,15 @@ class MORecipeRowUpdate(BaseModel):
     planned_quantity_per_unit: float | None = Field(default=None, gt=0)
     notes: str | None = Field(default=None)
     total_actual_quantity: float | None = Field(default=None, ge=0)
+    batch_transactions: list[RecipeRowBatchTransaction] | None = Field(
+        default=None,
+        description=(
+            "Replace the row's batch allocations. Required when the "
+            "underlying ingredient is batch-tracked. Each entry pairs a "
+            "batch_id with the quantity to draw from that batch; Katana "
+            "replaces the existing allocations with this list."
+        ),
+    )
 
 
 class MOOperationRowAdd(BaseModel):
@@ -2728,16 +2762,42 @@ def _build_update_header_request(
     return APIUpdateManufacturingOrderRequest(**kwargs)
 
 
+def _convert_recipe_batch_transactions(
+    items: list[dict[str, Any]],
+) -> list[ManufacturingOrderRecipeRowBatchTransactionsItem]:
+    """Convert Pydantic ``RecipeRowBatchTransaction`` payloads (already
+    serialized to dicts via ``unset_dict``'s ``model_dump``) into the
+    attrs API model. Used as a transform for ``unset_dict`` so the field
+    flows through the standard plumbing."""
+    return [
+        ManufacturingOrderRecipeRowBatchTransactionsItem(
+            batch_id=bt["batch_id"], quantity=bt["quantity"]
+        )
+        for bt in items
+    ]
+
+
 def _build_create_recipe_row_request(
     mo_id: int, row: MORecipeRowAdd
 ) -> APICreateMORecipeRowRequest:
-    return APICreateMORecipeRowRequest(manufacturing_order_id=mo_id, **unset_dict(row))
+    return APICreateMORecipeRowRequest(
+        manufacturing_order_id=mo_id,
+        **unset_dict(
+            row, transforms={"batch_transactions": _convert_recipe_batch_transactions}
+        ),
+    )
 
 
 def _build_update_recipe_row_request(
     patch: MORecipeRowUpdate,
 ) -> APIUpdateMORecipeRowRequest:
-    return APIUpdateMORecipeRowRequest(**unset_dict(patch, exclude=("id",)))
+    return APIUpdateMORecipeRowRequest(
+        **unset_dict(
+            patch,
+            exclude=("id",),
+            transforms={"batch_transactions": _convert_recipe_batch_transactions},
+        )
+    )
 
 
 def _build_create_operation_row_request(
