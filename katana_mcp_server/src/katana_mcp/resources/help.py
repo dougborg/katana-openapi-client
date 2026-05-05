@@ -898,7 +898,14 @@ additional-cost rows in one call. Replaces the prior 8 separate
   `currency`, `location_id`, `tracking_location_id`,
   `expected_arrival_date`, `order_created_date`, `additional_info`,
   `status`). Status uses the PATCH endpoint; to flip to RECEIVED with
-  inventory updates use `receive_purchase_order` instead.
+  inventory updates use `receive_purchase_order` instead. When the
+  caller doesn't change `additional_info` and a snapshot is available,
+  the wrapper echoes the existing value in the PATCH body — Katana's
+  PATCH endpoint asymmetrically wipes that field when it's omitted,
+  so the echo compensates so notes survive header edits (best-effort:
+  skipped if the pre-edit GET fails, the existing value is empty, or
+  the caller supplied an explicit override). See
+  `docs/KATANA_API_QUESTIONS.md` section 6.1.
 - `add_rows` — list of new line items. Each row:
   `variant_id` (int, required), `quantity` (float, required, >0),
   `price_per_unit` (float, required), `tax_rate_id` (int — see

@@ -2852,6 +2852,83 @@ async def test_modify_po_preview_when_fetch_fails_marks_unknown_prior():
     assert all(c.is_unknown_prior for c in diffs)
 
 
+# ----------------------------------------------------------------------------
+# Wire-shape regression tests for the additional_info echo (#505 follow-on).
+#
+# Katana's PATCH /purchase_orders/{id} asymmetrically wipes ``additional_info``
+# when the field is omitted from the request body, even though every other
+# omitted field is correctly preserved. ``_build_update_header_request``
+# compensates by echoing the existing PO's ``additional_info`` whenever the
+# caller didn't set it. These tests assert the wire shape directly so a
+# future generator change or refactor can't silently re-introduce the wipe.
+# ----------------------------------------------------------------------------
+
+
+def test_build_update_header_echoes_additional_info_when_unchanged():
+    """Caller patches order_no only → wire body carries existing additional_info."""
+    from katana_mcp.tools.foundation.purchase_orders import _build_update_header_request
+
+    existing = MagicMock(spec=RegularPurchaseOrder)
+    existing.additional_info = "tracking link + customer ref"
+
+    req = _build_update_header_request(POHeaderPatch(order_no="PO-RENAMED"), existing)
+
+    assert req.to_dict() == {
+        "order_no": "PO-RENAMED",
+        "additional_info": "tracking link + customer ref",
+    }
+
+
+def test_build_update_header_does_not_echo_when_existing_is_empty():
+    """No notes to preserve → wire body stays minimal (no additional_info key)."""
+    from katana_mcp.tools.foundation.purchase_orders import _build_update_header_request
+
+    existing = MagicMock(spec=RegularPurchaseOrder)
+    existing.additional_info = ""
+
+    req = _build_update_header_request(POHeaderPatch(order_no="PO-RENAMED"), existing)
+
+    assert req.to_dict() == {"order_no": "PO-RENAMED"}
+
+
+def test_build_update_header_does_not_echo_when_existing_is_unset():
+    """No notes to preserve (UNSET) → wire body stays minimal."""
+    from katana_mcp.tools.foundation.purchase_orders import _build_update_header_request
+
+    existing = MagicMock(spec=RegularPurchaseOrder)
+    existing.additional_info = UNSET
+
+    req = _build_update_header_request(POHeaderPatch(order_no="PO-RENAMED"), existing)
+
+    assert req.to_dict() == {"order_no": "PO-RENAMED"}
+
+
+def test_build_update_header_caller_explicit_additional_info_wins():
+    """Caller-supplied additional_info wins over the echo, even if existing differs."""
+    from katana_mcp.tools.foundation.purchase_orders import _build_update_header_request
+
+    existing = MagicMock(spec=RegularPurchaseOrder)
+    existing.additional_info = "old notes"
+
+    req = _build_update_header_request(
+        POHeaderPatch(order_no="PO-RENAMED", additional_info="new notes"), existing
+    )
+
+    assert req.to_dict() == {
+        "order_no": "PO-RENAMED",
+        "additional_info": "new notes",
+    }
+
+
+def test_build_update_header_no_existing_skips_echo():
+    """Without an existing PO snapshot, echo is skipped (best-effort)."""
+    from katana_mcp.tools.foundation.purchase_orders import _build_update_header_request
+
+    req = _build_update_header_request(POHeaderPatch(order_no="PO-RENAMED"), None)
+
+    assert req.to_dict() == {"order_no": "PO-RENAMED"}
+
+
 @pytest.mark.asyncio
 async def test_modify_po_row_update_fetches_row_for_diff(patch_fetch_po):
     """Update-row sub-payload triggers a per-row prefetch for accurate diff."""
