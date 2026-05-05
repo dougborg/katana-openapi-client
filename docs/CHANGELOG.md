@@ -2,6 +2,36 @@
 
 <!-- version list -->
 
+## v0.56.1 (2026-05-05)
+
+### Bug Fixes
+
+- **client**: Generated _parse_\* helpers normalize empty dict to None
+  ([#511](https://github.com/dougborg/katana-openapi-client/pull/511),
+  [`64a9561`](https://github.com/dougborg/katana-openapi-client/commit/64a956134005e21c3b6e01ca7ab74156884c7010))
+
+- **client**: Generated _parse_\* helpers normalize empty dict to None (#509)
+  ([#511](https://github.com/dougborg/katana-openapi-client/pull/511),
+  [`64a9561`](https://github.com/dougborg/katana-openapi-client/commit/64a956134005e21c3b6e01ca7ab74156884c7010))
+
+- **mcp**: Handle dict shipping_fee from oneOf parser fallthrough in get_sales_order
+  ([#508](https://github.com/dougborg/katana-openapi-client/pull/508),
+  [`8eec35b`](https://github.com/dougborg/katana-openapi-client/commit/8eec35b6d3b203c1f9ba192fdca46e3bb3f79f87))
+
+### Chores
+
+- **mcp**: Update client dependency to v0.56.0
+  ([`c58ebf6`](https://github.com/dougborg/katana-openapi-client/commit/c58ebf677dbcf9f41b4672b6d1ce9d0edfe47d13))
+
+- **release**: Mcp v0.54.0
+  ([`20a13b9`](https://github.com/dougborg/katana-openapi-client/commit/20a13b95f43ac7871302064fbc4fa01752188d5b))
+
+### Refactoring
+
+- **client**: Simplify parse-helper post-processor per /simplify review
+  ([#511](https://github.com/dougborg/katana-openapi-client/pull/511),
+  [`64a9561`](https://github.com/dougborg/katana-openapi-client/commit/64a956134005e21c3b6e01ca7ab74156884c7010))
+
 ## v0.56.0 (2026-05-04)
 
 ### Bug Fixes
