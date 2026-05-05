@@ -2427,10 +2427,25 @@ class DeletePurchaseOrderRequest(ConfirmableRequest):
 
 def _build_update_header_request(
     patch: POHeaderPatch,
+    existing_po: RegularPurchaseOrder | None = None,
 ) -> APIUpdatePurchaseOrderRequest:
-    return APIUpdatePurchaseOrderRequest(
-        **unset_dict(patch, transforms={"status": PurchaseOrderStatus})
-    )
+    """Build the PATCH body for ``PATCH /purchase_orders/{id}``.
+
+    Echoes ``additional_info`` from ``existing_po`` when the caller didn't
+    set it, working around an asymmetric Katana platform behavior: the PATCH
+    endpoint clears ``additional_info`` to ``""`` when the field is omitted
+    from the body, even though every other omitted field is correctly
+    preserved (verified at the wire level — see ``docs/KATANA_API_QUESTIONS.md``
+    section 6.1 for the wire-level reproduction). Without this echo, agents
+    calling ``modify_purchase_order(update_header={'order_no': 'X'})``
+    silently lose any populated PO notes.
+    """
+    kwargs = unset_dict(patch, transforms={"status": PurchaseOrderStatus})
+    if patch.additional_info is None and existing_po is not None:
+        existing_info = unwrap_unset(existing_po.additional_info, None)
+        if existing_info:
+            kwargs["additional_info"] = existing_info
+    return APIUpdatePurchaseOrderRequest(**kwargs)
 
 
 def _build_create_row_request(
@@ -2523,7 +2538,7 @@ async def _modify_purchase_order_impl(
                     api_update_purchase_order,
                     services,
                     request.id,
-                    _build_update_header_request(request.update_header),
+                    _build_update_header_request(request.update_header, existing_po),
                     return_type=RegularPurchaseOrder,
                 ),
                 verify=make_response_verifier(diff),

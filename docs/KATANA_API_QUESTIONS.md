@@ -204,6 +204,112 @@ documenting the different mental model.
 
 ______________________________________________________________________
 
+## 6. PATCH Asymmetric Field-Wipe Behavior
+
+### 6.1 `PATCH /purchase_orders/{id}` clears `additional_info` when omitted
+
+**Status: CONFIRMED via wire-level reproduction on 2026-05-05**
+
+`PATCH /purchase_orders/{id}` clears the PO's `additional_info` field to `""` whenever
+the request body omits that field, while every other omitted field is correctly
+preserved. This is asymmetric: the endpoint treats omitted `additional_info` as a
+null-write but treats every other omitted field as a no-op.
+
+**Reproduction (live API, account `factory.katanamrp.com`):**
+
+1. Create PO 2708970 with `additional_info` populated. Confirmed via
+   `GET /purchase_orders/2708970`:
+
+   ```json
+   {
+     "id": 2708970,
+     "additional_info": "CANARY-PATCH-ECHO: Test if explicitly echoing additional_info in PATCH body preserves it.",
+     "order_no": "TEST-505-PATCH-ECHO-2026-05-05",
+     "supplier_id": 1302070,
+     "currency": "USD",
+     "expected_arrival_date": "2026-05-19T15:24:10.163Z",
+     "status": "NOT_RECEIVED"
+   }
+   ```
+
+1. Send a minimal PATCH (single-field rename) with no `additional_info` key:
+
+   ```http
+   PATCH /purchase_orders/2708970
+   Content-Type: application/json
+
+   {"order_no": "TEST-505-MODIFY-NONSTATUS-2026-05-05-RENAMED"}
+   ```
+
+   Response: 200 OK.
+
+1. Re-fetch immediately. Result:
+
+   ```json
+   {
+     "id": 2708970,
+     "additional_info": "",
+     "order_no": "TEST-505-MODIFY-NONSTATUS-2026-05-05-RENAMED",
+     "supplier_id": 1302070,
+     "currency": "USD",
+     "expected_arrival_date": "2026-05-19T15:24:10.163Z",
+     "status": "NOT_RECEIVED"
+   }
+   ```
+
+   `additional_info` is wiped to empty. Every other omitted field is preserved. The
+   PATCH body verifiably did not include `additional_info`. (We separately verified the
+   wire shape for a similar single-field rename PATCH by intercepting the httpx request
+   — the body was exactly `{"order_no":"TEST-RENAMED"}` (27 bytes), no `additional_info`
+   key in any form. The example above uses the longer
+   `TEST-505-MODIFY-NONSTATUS-2026-05-05-RENAMED` value but the wire shape is the same —
+   only the changed field is present in the body.)
+
+1. Conversely, sending the same PATCH with `additional_info` echoed in the body
+   preserves the value:
+
+   ```http
+   PATCH /purchase_orders/2708970
+   Content-Type: application/json
+
+   {
+     "order_no": "TEST-505-MODIFY-NONSTATUS-2026-05-05-RENAMED",
+     "additional_info": "<the existing value>"
+   }
+   ```
+
+   Result: `additional_info` retained.
+
+**Expected behavior:** Per RFC 7396 (JSON Merge Patch) and standard PATCH semantics,
+omitted fields should be left unchanged. The asymmetry — every other omitted field is
+left alone, only `additional_info` is treated as a null-write — strongly suggests an
+unintended platform-side normalization rather than a deliberate API contract.
+
+**Impact on integrators:** Any client that PATCHes a PO without echoing
+`additional_info` will silently destroy user-entered notes (UPS tracking links, customer
+references, supplier remarks, etc.). Several of our agent-driven workflows have hit this
+in production — including the common case of correcting a single header field after the
+fact.
+
+**Workaround in our MCP wrapper (this repo):** Always include the existing
+`additional_info` value in the PATCH body when the caller didn't change it. See
+`_build_update_header_request` in
+`katana_mcp_server/src/katana_mcp/tools/foundation/purchase_orders.py` (introduced in PR
+#515).
+
+**Asks:**
+
+1. Confirm whether the wipe is intentional. If yes, document it on the PATCH endpoint
+   (we'd update our spec accordingly).
+1. If unintentional, fix the asymmetry so omitted `additional_info` is treated as a
+   no-op like every other omitted field.
+1. If other entity types (`PATCH /sales_orders/{id}`,
+   `PATCH /manufacturing_orders/{id}`, etc.) have the same behavior on their notes /
+   free-text fields, please flag them — we haven't audited those yet and would prefer to
+   fix all of them in one pass rather than discovering each one in production.
+
+______________________________________________________________________
+
 ## Resolved Issues (FYI)
 
 Issues discovered and fixed during P1-P4 alignment, documented here for reference:
