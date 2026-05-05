@@ -10,7 +10,7 @@ Generate complete test coverage for a component following pytest and project sta
 
 1. **Identify the component** to test:
 
-   - Module path (e.g., `katana_public_api_client/helpers/inventory.py`)
+   - Module path (e.g., `katana_public_api_client/helpers/products.py`)
    - Functions/classes to test
    - Dependencies to mock
 
@@ -112,44 +112,46 @@ from unittest.mock import Mock, AsyncMock
 import responses
 
 # Import code under test
-from katana_public_api_client.helpers.inventory import check_inventory
+from katana_public_api_client.helpers.products import Products
 
 
-class TestCheckInventory:
-    """Tests for check_inventory function."""
+class TestProductsList:
+    """Tests for Products.list method."""
 
     @pytest.mark.asyncio
-    async def test_success_with_valid_sku(self):
-        """Test successful inventory check with valid SKU."""
+    async def test_success_with_filter(self):
+        """Test successful product list with filter."""
         # Arrange
-        sku = "VALID-SKU"
-        expected_stock = 10
+        client = Mock()
+        products = Products(client)
 
         # Act
-        result = await check_inventory(sku)
+        result = await products.list(is_sellable=True)
 
         # Assert
-        assert result.stock_level == expected_stock
+        assert isinstance(result, list)
 
     @pytest.mark.asyncio
-    async def test_not_found_with_invalid_sku(self):
-        """Test inventory check with non-existent SKU."""
+    async def test_get_not_found(self):
+        """Test get with non-existent product ID."""
         # Arrange
-        sku = "INVALID-SKU"
+        client = Mock()
+        products = Products(client)
 
         # Act & Assert
-        with pytest.raises(ProductNotFoundError):
-            await check_inventory(sku)
+        with pytest.raises(APIError):
+            await products.get(99999)
 
-    @pytest.mark.parametrize("sku,expected", [
-        ("VALID-1", True),
-        ("VALID-2", True),
-        ("INVALID", False),
+    @pytest.mark.parametrize("query,expected_min", [
+        ("widget", 1),
+        ("nonexistent-xyz", 0),
     ])
-    async def test_validation_with_multiple_skus(self, sku, expected):
-        """Test SKU validation with various inputs."""
-        result = validate_sku(sku)
-        assert result == expected
+    async def test_search_with_queries(self, query, expected_min):
+        """Test search with various queries."""
+        client = Mock()
+        products = Products(client)
+        result = await products.search(query)
+        assert len(result) >= expected_min
 ```
 
 ## Success Criteria
