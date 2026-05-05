@@ -315,6 +315,8 @@ async def test_get_item_product_surfaces_every_field():
     assert result.updated_at == "2024-08-20T14:45:00+00:00"
     assert result.archived_at is None
     assert result.deleted_at is None
+    # Convenience boolean derived from archived_at
+    assert result.is_archived is False
     # Tracking & purchase
     assert result.batch_tracked is True
     assert result.serial_tracked is False
@@ -401,6 +403,8 @@ async def test_get_item_service_surfaces_every_field():
     assert result.updated_at == "2024-04-15T14:30:00+00:00"
     assert result.archived_at == "2024-06-15T00:00:00+00:00"
     assert result.deleted_at is None
+    # Convenience boolean — non-null archived_at means archived
+    assert result.is_archived is True
     # Product/Material-only fields are None on Service
     assert result.batch_tracked is None
     assert result.default_supplier_id is None

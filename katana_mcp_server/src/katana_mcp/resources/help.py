@@ -403,17 +403,47 @@ Detailed guide for all available MCP tools.
 ### search_items
 Find products, materials, and services by name or SKU.
 
+By default, archived items are filtered out. To find an archived item (so
+you can unarchive it via `modify_item`), pass `include_archived=true`.
+
 **Parameters:**
 - `query` (required): Search term to match against name or SKU
 - `limit` (optional): Maximum results (default: 20)
+- `include_archived` (optional, default false): When true, archived items
+  are included in results. Each row carries an `is_archived` flag so the
+  UI / caller can distinguish active vs archived rows.
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
-**Example:**
+**Examples:**
+
+Active-only search:
 ```json
 {"query": "bolt", "limit": 10}
 ```
 
-**Returns:** List of matching items with ID, SKU, name, and sellable status.
+Include archived rows:
+```json
+{"query": "old style", "include_archived": true}
+```
+
+**Returns:** List of matching items with ID, SKU, name, sellable status,
+and archived state.
+
+**Archive workflow:** Katana doesn't expose dedicated archive/unarchive
+endpoints. Instead, archive state is a writable boolean on the item header
+that you toggle via `modify_item`. Send this body to archive:
+
+```json
+{"update_header": {"is_archived": true}}
+```
+
+Or to unarchive:
+
+```json
+{"update_header": {"is_archived": false}}
+```
+
+See `modify_item` below for the full request shape.
 
 ---
 
@@ -732,8 +762,9 @@ endpoint; variant sub-payloads route to the shared `/variant` family.
   `serial_tracked` / `operations_in_sequence` are PRODUCT-only;
   `default_supplier_id` / `batch_tracked` / `purchase_uom` /
   `purchase_uom_conversion_rate` are PRODUCT/MATERIAL only;
-  `sales_price` / `default_cost` / `sku` are SERVICE-only. Misrouted
-  fields fail fast with a clear error.
+  `sales_price` / `default_cost` / `sku` are SERVICE-only.
+  `is_archived` is shared across all three types — set true to archive,
+  false to unarchive. Misrouted fields fail fast with a clear error.
 - `add_variants` — POST `/variant`. Parent `product_id` / `material_id`
   is injected automatically from the request's `type`. Not supported
   for SERVICE (services carry pricing on the header, not on variants).
@@ -745,6 +776,26 @@ endpoint; variant sub-payloads route to the shared `/variant` family.
 - `type` (required): "product" | "material" | "service"
 - Any subset of the sub-payloads above
 - `preview` (optional, default true): true=preview, false=execute
+
+**Archive / unarchive examples:**
+
+Archive a product (preview):
+```json
+{"id": 12345, "type": "product", "update_header": {"is_archived": true}}
+```
+
+Unarchive a material (apply):
+```json
+{
+  "id": 67890,
+  "type": "material",
+  "update_header": {"is_archived": false},
+  "preview": false
+}
+```
+
+To find an archived item before unarchiving it, call `search_items` with
+`include_archived=true`.
 
 ---
 

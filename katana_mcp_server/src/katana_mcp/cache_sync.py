@@ -67,22 +67,33 @@ def _attrs_to_dicts(attrs_list: list[Any]) -> list[dict[str, Any]]:
 
 
 def _variant_to_cache_dict(attrs_obj: Any) -> dict[str, Any]:
-    """Convert a variant attrs model to a cache-friendly dict with display fields."""
+    """Convert a variant attrs model to a cache-friendly dict with display fields.
+
+    Variants don't carry their own archived state — Katana archives at the
+    parent (Product/Material) level and cascades. We pull
+    ``parent_archived_at`` off the extended ``product_or_material`` payload so
+    ``cache.sync`` can populate ``entity_index.is_archived`` for variants;
+    without it, archived variants would always look "active" in search.
+    """
     d = attrs_obj.to_dict() if hasattr(attrs_obj, "to_dict") else vars(attrs_obj)
 
     # Extract product_or_material info for indexing
     pom = d.get("product_or_material")
     parent_name = ""
     variant_type = ""
+    parent_archived_at: Any = None
     if isinstance(pom, dict):
         parent_name = pom.get("name", "")
         variant_type = pom.get("type", "")
+        parent_archived_at = pom.get("archived_at")
     elif pom and hasattr(pom, "name"):
         parent_name = getattr(pom, "name", "")
         variant_type = getattr(pom, "type_", "")
+        parent_archived_at = getattr(pom, "archived_at", None)
 
     d["parent_name"] = parent_name
     d["type"] = variant_type
+    d["parent_archived_at"] = parent_archived_at
 
     # Build display name for FTS indexing
     sku = d.get("sku", "")
@@ -266,9 +277,13 @@ async def _ensure_synced(
 async def _fetch_variants(
     client: Any, updated_at_min: datetime | None = None
 ) -> list[dict]:
+    # ``include_archived=True`` so the cache mirrors Katana's full catalog,
+    # not just active rows. Search filters archived out by default via the
+    # ``is_archived`` index column; callers opt in to surface them.
     kwargs: dict[str, Any] = {
         "client": client,
         "extend": [GetAllVariantsExtendItem.PRODUCT_OR_MATERIAL],
+        "include_archived": True,
     }
     if updated_at_min:
         kwargs["updated_at_min"] = updated_at_min
@@ -283,10 +298,13 @@ async def _fetch_generic(
     client: Any,
     updated_at_min: datetime | None = None,
     supports_incremental: bool = True,
+    include_archived: bool = False,
     extra_kwargs: dict[str, Any] | None = None,
 ) -> list[dict]:
     """Generic fetch: build kwargs, call asyncio_detailed, convert to dicts."""
     kwargs: dict[str, Any] = {"client": client}
+    if include_archived:
+        kwargs["include_archived"] = True
     if extra_kwargs:
         kwargs.update(extra_kwargs)
     if updated_at_min and supports_incremental:
@@ -298,19 +316,25 @@ async def _fetch_generic(
 async def _fetch_products(
     client: Any, updated_at_min: datetime | None = None
 ) -> list[dict]:
-    return await _fetch_generic(get_all_products, client, updated_at_min)
+    return await _fetch_generic(
+        get_all_products, client, updated_at_min, include_archived=True
+    )
 
 
 async def _fetch_materials(
     client: Any, updated_at_min: datetime | None = None
 ) -> list[dict]:
-    return await _fetch_generic(get_all_materials, client, updated_at_min)
+    return await _fetch_generic(
+        get_all_materials, client, updated_at_min, include_archived=True
+    )
 
 
 async def _fetch_services(
     client: Any, updated_at_min: datetime | None = None
 ) -> list[dict]:
-    return await _fetch_generic(get_all_services, client, updated_at_min)
+    return await _fetch_generic(
+        get_all_services, client, updated_at_min, include_archived=True
+    )
 
 
 async def _fetch_suppliers(

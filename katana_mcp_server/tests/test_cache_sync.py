@@ -86,6 +86,44 @@ class TestVariantToCacheDict:
         }
         result = _variant_to_cache_dict(attrs_obj)
         assert result["display_name"] == "SKU-003"
+        # No parent → no archived state to inherit.
+        assert result["parent_archived_at"] is None
+
+    def test_parent_archived_at_propagates_from_dict_parent(self):
+        """Variants don't carry archived state directly — the cache reads it
+        off the extended ``product_or_material`` payload so the search index
+        can filter archived variants."""
+        attrs_obj = MagicMock()
+        attrs_obj.to_dict.return_value = {
+            "id": 4,
+            "sku": "SKU-004",
+            "product_or_material": {
+                "name": "Old Widget",
+                "type": "product",
+                "archived_at": "2024-01-01T00:00:00+00:00",
+            },
+            "config_attributes": [],
+        }
+        result = _variant_to_cache_dict(attrs_obj)
+        assert result["parent_archived_at"] == "2024-01-01T00:00:00+00:00"
+
+    def test_parent_archived_at_propagates_from_attrs_parent(self):
+        # When the upstream client returns nested attrs (not a dict), the
+        # helper must use getattr — same data, different shape.
+        parent_obj = MagicMock(spec=["name", "type_", "archived_at"])
+        parent_obj.name = "Old Widget"
+        parent_obj.type_ = "product"
+        parent_obj.archived_at = "2024-01-01T00:00:00+00:00"
+
+        attrs_obj = MagicMock()
+        attrs_obj.to_dict.return_value = {
+            "id": 5,
+            "sku": "SKU-005",
+            "product_or_material": parent_obj,
+            "config_attributes": [],
+        }
+        result = _variant_to_cache_dict(attrs_obj)
+        assert result["parent_archived_at"] == "2024-01-01T00:00:00+00:00"
 
     def test_supplier_item_codes_preserved_verbatim(self):
         """supplier_item_codes flow through cache-sync unchanged.
