@@ -1356,12 +1356,36 @@ async def _update_stock_adjustment_impl(
         )
 
     services = get_services(context)
+
+    # Echo existing additional_info when the caller didn't change it. Same
+    # Katana platform asymmetry as ``PATCH /purchase_orders/{id}`` (#505 /
+    # docs/KATANA_API_QUESTIONS.md section 6.1) — the wipe reproduces on
+    # ``PATCH /stock_adjustments/{id}`` too. Verified against stock
+    # adjustment 2394711 on 2026-05-05. Pre-fetch only when the echo
+    # might be needed (caller didn't supply additional_info) so the
+    # common-case PATCH stays a single round trip.
+    additional_info_for_body = to_unset(request.additional_info)
+    if request.additional_info is None:
+        from katana_public_api_client.api.stock_adjustment import (
+            get_all_stock_adjustments,
+        )
+        from katana_public_api_client.utils import unwrap_data
+
+        existing_response = await get_all_stock_adjustments.asyncio_detailed(
+            client=services.client, ids=[request.id]
+        )
+        existing_rows = unwrap_data(existing_response, default=[])
+        if existing_rows:
+            existing_info = unwrap_unset(existing_rows[0].additional_info, None)
+            if existing_info:
+                additional_info_for_body = existing_info
+
     api_request = APIUpdateStockAdjustmentRequest(
         stock_adjustment_number=to_unset(request.stock_adjustment_number),
         stock_adjustment_date=to_unset(request.stock_adjustment_date),
         location_id=to_unset(request.location_id),
         reason=to_unset(request.reason),
-        additional_info=to_unset(request.additional_info),
+        additional_info=additional_info_for_body,
     )
 
     response = await api_update_stock_adjustment.asyncio_detailed(

@@ -69,7 +69,7 @@ from katana_public_api_client.api.variant import (
     get_variant as api_get_variant,
     update_variant as api_update_variant,
 )
-from katana_public_api_client.domain.converters import to_unset
+from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
     CreateMaterialRequest,
     CreateProductRequest,
@@ -879,11 +879,20 @@ def _validate_header_for_type(patch: ItemHeaderPatch, item_type: ItemType) -> No
         )
 
 
-def _build_update_header_request(patch: ItemHeaderPatch, item_type: ItemType) -> Any:
+def _build_update_header_request(
+    patch: ItemHeaderPatch, item_type: ItemType, existing_item: Any | None = None
+) -> Any:
     """Map an ItemHeaderPatch to the right Update*Request attrs class.
 
     Each type has a different field set; ``unset_dict`` filters down to
     the actual fields the API accepts after we've validated routing.
+
+    Echoes ``additional_info`` from ``existing_item`` when the caller didn't
+    set it, working around the same Katana platform asymmetry that affects
+    ``PATCH /purchase_orders/{id}`` (see #505 / docs/KATANA_API_QUESTIONS.md
+    section 6.1). The wipe reproduces on PATCH for all item types
+    (product / material / service); without the echo, any header rename
+    silently destroys notes.
     """
     request_cls = _TYPE_ENDPOINTS[item_type]["update_request"]
     if item_type == ItemType.PRODUCT:
@@ -892,7 +901,12 @@ def _build_update_header_request(patch: ItemHeaderPatch, item_type: ItemType) ->
         exclude = _PRODUCT_ONLY_FIELDS + _SERVICE_ONLY_FIELDS
     else:
         exclude = _PRODUCT_ONLY_FIELDS + _PRODUCT_AND_MATERIAL_FIELDS
-    return request_cls(**unset_dict(patch, exclude=exclude))
+    kwargs = unset_dict(patch, exclude=exclude)
+    if patch.additional_info is None and existing_item is not None:
+        existing_info = unwrap_unset(existing_item.additional_info, None)
+        if existing_info:
+            kwargs["additional_info"] = existing_info
+    return request_cls(**kwargs)
 
 
 def _build_create_variant_request(
@@ -1003,7 +1017,9 @@ async def _modify_item_impl(
                     cfg["update"],
                     services,
                     request.id,
-                    _build_update_header_request(request.update_header, request.type),
+                    _build_update_header_request(
+                        request.update_header, request.type, existing_item
+                    ),
                     return_type=cfg["return_type"],
                 ),
                 verify=make_response_verifier(diff),

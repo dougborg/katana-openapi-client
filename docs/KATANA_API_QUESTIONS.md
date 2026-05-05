@@ -297,12 +297,67 @@ fact.
 `katana_mcp_server/src/katana_mcp/tools/foundation/purchase_orders.py` (introduced in PR
 #515).
 
+### 6.2 Same wipe-on-PATCH affects every entity with `additional_info`
+
+**Status: CONFIRMED platform-wide via live-API reproduction on 2026-05-05**
+
+We followed up on §6.1 by testing every other Katana entity that exposes
+`additional_info`. The same asymmetric wipe reproduces on every one we could test:
+
+| Entity                 | PATCH endpoint                     | `additional_info` after omitted PATCH |
+| ---------------------- | ---------------------------------- | ------------------------------------- |
+| PurchaseOrder (§6.1)   | `PATCH /purchase_orders/{id}`      | wiped to `""`                         |
+| **Material**           | `PATCH /materials/{id}`            | **wiped to `""`**                     |
+| **Product**            | `PATCH /products/{id}`             | **wiped to `""`**                     |
+| **ManufacturingOrder** | `PATCH /manufacturing_orders/{id}` | **wiped to `""`**                     |
+| **StockAdjustment**    | `PATCH /stock_adjustments/{id}`    | **wiped to `""`**                     |
+
+Each was verified by:
+
+1. Creating a test record with `additional_info` populated.
+1. Issuing a single-field PATCH on a different header field (rename / status change).
+1. Re-fetching and observing `additional_info: ""` post-PATCH.
+1. Cleaning up the test record.
+
+Test records used (all deleted post-verification): Material 17042013, Product 17042018,
+MO 16647058, StockAdjustment 2394711.
+
+Two other candidates couldn't be tested in this round and remain unverified:
+
+- **SalesOrder** — blocked by a separate spec bug (`SalesOrderStatus` enum is missing
+  `PENDING`); newly-created SOs can't be ingested through our cache. Test SO created on
+  Katana but ID unobservable; needs manual cleanup. (Filed as a separate spec issue.)
+- **StockTransfer** — blocked by `create_stock_transfer` returning an opaque 422 on the
+  execute path (preview accepts the same payload). Same shape as `create_purchase_order`
+  requires `status` (#499). Filed as a separate issue.
+
+**Conclusion:** This is a platform-wide PATCH-merge bug, not a one-off on PurchaseOrder.
+Whatever is treating omitted `additional_info` as a null-write is doing so consistently
+across at least 5 distinct PATCH endpoints, strongly suggesting a shared serialization
+or normalization layer at Katana's side.
+
+**Workaround in our MCP wrapper:** Same pattern as §6.1, applied to each affected
+entity:
+
+- `_build_update_header_request` in `katana_mcp_server/.../tools/foundation/items.py`
+  (covers material/product/service)
+- `_build_update_header_request` in
+  `katana_mcp_server/.../tools/foundation/manufacturing_orders.py`
+- `_update_stock_adjustment_impl` in
+  `katana_mcp_server/.../tools/foundation/inventory.py` (pre-fetches the adjustment via
+  `get_all_stock_adjustments(ids=[id])` only when the caller didn't supply
+  `additional_info`)
+
+All four echo the existing value when the caller doesn't change it. Idempotent — if
+Katana fixes the asymmetry, the echo becomes a no-op write.
+
 **Asks:**
 
-1. Confirm whether the wipe is intentional. If yes, document it on the PATCH endpoint
-   (we'd update our spec accordingly).
-1. If unintentional, fix the asymmetry so omitted `additional_info` is treated as a
-   no-op like every other omitted field.
+1. Confirm whether the wipe is intentional across all five entities. If yes, document it
+   on each PATCH endpoint (we'd update our spec accordingly).
+1. If unintentional, fix the asymmetry at the shared layer (we suspect a single
+   normalization step given how uniformly it reproduces) so omitted `additional_info` is
+   treated as a no-op like every other omitted field.
 1. If other entity types (`PATCH /sales_orders/{id}`,
    `PATCH /manufacturing_orders/{id}`, etc.) have the same behavior on their notes /
    free-text fields, please flag them — we haven't audited those yet and would prefer to

@@ -822,3 +822,104 @@ async def test_delete_item_dispatches_to_typed_delete_endpoint():
     assert response.actions[0].succeeded is True
     mock_delete.assert_awaited_once()
     mock_product_delete.assert_not_awaited()
+
+
+# ============================================================================
+# #505 follow-on: PATCH-wipe `additional_info` workaround on items
+# ============================================================================
+#
+# The Katana platform clears `additional_info` to `""` on PATCH whenever the
+# field is omitted from the body — verified across PO/Material/Product/MO/
+# StockAdjustment (see docs/KATANA_API_QUESTIONS.md §6.2). To work around it,
+# `_build_update_header_request` echoes the existing value when the caller
+# didn't change it.
+
+
+def test_build_update_header_echoes_additional_info_when_unchanged():
+    """Caller-supplied other field + populated existing notes → notes echoed
+    in the PATCH body so Katana's wipe-on-omit doesn't fire."""
+    from katana_mcp.tools.foundation.items import (
+        ItemHeaderPatch,
+        _build_update_header_request,
+    )
+
+    existing = MagicMock()
+    existing.additional_info = "important supplier notes"
+
+    req = _build_update_header_request(
+        ItemHeaderPatch(name="RENAMED"), ItemType.MATERIAL, existing
+    )
+
+    assert req.to_dict() == {
+        "name": "RENAMED",
+        "additional_info": "important supplier notes",
+    }
+
+
+def test_build_update_header_does_not_echo_when_existing_is_empty():
+    """No notes to preserve (empty string) → wire body stays minimal."""
+    from katana_mcp.tools.foundation.items import (
+        ItemHeaderPatch,
+        _build_update_header_request,
+    )
+
+    existing = MagicMock()
+    existing.additional_info = ""
+
+    req = _build_update_header_request(
+        ItemHeaderPatch(name="RENAMED"), ItemType.PRODUCT, existing
+    )
+
+    assert req.to_dict() == {"name": "RENAMED"}
+
+
+def test_build_update_header_does_not_echo_when_existing_is_unset():
+    """No notes to preserve (UNSET sentinel) → wire body stays minimal."""
+    from katana_mcp.tools.foundation.items import (
+        ItemHeaderPatch,
+        _build_update_header_request,
+    )
+
+    from katana_public_api_client.client_types import UNSET
+
+    existing = MagicMock()
+    existing.additional_info = UNSET
+
+    req = _build_update_header_request(
+        ItemHeaderPatch(name="RENAMED"), ItemType.MATERIAL, existing
+    )
+
+    assert req.to_dict() == {"name": "RENAMED"}
+
+
+def test_build_update_header_caller_explicit_additional_info_wins():
+    """Caller-supplied additional_info beats the echo even if existing differs."""
+    from katana_mcp.tools.foundation.items import (
+        ItemHeaderPatch,
+        _build_update_header_request,
+    )
+
+    existing = MagicMock()
+    existing.additional_info = "old notes"
+
+    req = _build_update_header_request(
+        ItemHeaderPatch(name="RENAMED", additional_info="new notes"),
+        ItemType.MATERIAL,
+        existing,
+    )
+
+    assert req.to_dict() == {"name": "RENAMED", "additional_info": "new notes"}
+
+
+def test_build_update_header_no_existing_skips_echo():
+    """Without an existing-item snapshot, echo is skipped (best-effort)."""
+    from katana_mcp.tools.foundation.items import (
+        ItemHeaderPatch,
+        _build_update_header_request,
+    )
+
+    req = _build_update_header_request(
+        ItemHeaderPatch(name="RENAMED"), ItemType.MATERIAL, None
+    )
+
+    assert req.to_dict() == {"name": "RENAMED"}

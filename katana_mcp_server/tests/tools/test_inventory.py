@@ -1423,12 +1423,26 @@ async def test_update_stock_adjustment_confirm_calls_api():
         preview=False,
     )
 
+    # The impl pre-fetches via get_all_stock_adjustments when caller didn't
+    # supply additional_info (echo workaround for the Katana PATCH-wipe bug;
+    # see #505 / KATANA_API_QUESTIONS.md §6.2). Mock it so the test doesn't
+    # try to hit the live API.
+    existing = _make_mock_adjustment(id=42, additional_info=None)
+    list_response = MagicMock()
+    list_response.parsed = MagicMock()
+    list_response.parsed.data = [existing]
+
     with (
+        patch(
+            f"{_SA_GET_ALL}.asyncio_detailed",
+            new=AsyncMock(return_value=list_response),
+        ),
         patch(
             f"{_SA_UPDATE}.asyncio_detailed",
             new=AsyncMock(return_value=MagicMock()),
         ) as mock_api,
         patch(_SA_UNWRAP_AS, return_value=updated),
+        patch("katana_public_api_client.utils.unwrap_data", return_value=[existing]),
     ):
         result = await _update_stock_adjustment_impl(request, context)
 
@@ -2086,3 +2100,121 @@ async def test_list_stock_adjustments_format_json_returns_json():
 
     data = json.loads(_content_text(result))
     assert data["total_count"] == 0
+
+
+# ============================================================================
+# #505 follow-on: PATCH-wipe `additional_info` workaround on StockAdjustment
+# ============================================================================
+#
+# The Katana platform clears `additional_info` to `""` on PATCH whenever the
+# field is omitted from the body. Verified against stock adjustment 2394711
+# on 2026-05-05 (see docs/KATANA_API_QUESTIONS.md §6.2). The impl pre-fetches
+# the adjustment via `get_all_stock_adjustments(ids=[id])` only when the
+# caller didn't supply `additional_info`, then echoes the existing value
+# in the PATCH body so the wipe doesn't fire.
+
+
+@pytest.mark.asyncio
+async def test_update_stock_adjustment_echoes_additional_info_when_unchanged():
+    """Caller updates only `reason`; existing `additional_info` is echoed in
+    the PATCH body so Katana doesn't wipe it. Verified the body includes
+    the echoed value via the captured request kwargs."""
+    context, _ = create_mock_context()
+
+    existing = _make_mock_adjustment(
+        id=42,
+        reason="Cycle count",
+        additional_info="UPS tracking 1Z123 — preserve me",
+    )
+    list_response = MagicMock()
+    list_response.parsed = MagicMock()
+    list_response.parsed.data = [existing]
+
+    updated = _make_mock_adjustment(
+        id=42,
+        reason="Updated reason",
+        additional_info="UPS tracking 1Z123 — preserve me",
+    )
+
+    request = UpdateStockAdjustmentParams(id=42, reason="Updated reason", preview=False)
+
+    update_mock = AsyncMock(return_value=MagicMock())
+    with (
+        patch(
+            f"{_SA_GET_ALL}.asyncio_detailed",
+            new=AsyncMock(return_value=list_response),
+        ),
+        patch(f"{_SA_UPDATE}.asyncio_detailed", new=update_mock),
+        patch(_SA_UNWRAP_AS, return_value=updated),
+        patch(
+            "katana_public_api_client.utils.unwrap_data",
+            return_value=[existing],
+        ),
+    ):
+        result = await _update_stock_adjustment_impl(request, context)
+
+    assert result.is_preview is False
+    body = update_mock.call_args.kwargs["body"]
+    assert body.additional_info == "UPS tracking 1Z123 — preserve me"
+    assert body.reason == "Updated reason"
+
+
+@pytest.mark.asyncio
+async def test_update_stock_adjustment_skips_echo_when_existing_is_empty():
+    """No notes to preserve → wire body keeps `additional_info` as UNSET
+    (no echo, since echoing an empty string would be a wasted write)."""
+    from katana_public_api_client.client_types import UNSET
+
+    context, _ = create_mock_context()
+
+    existing = _make_mock_adjustment(id=42, reason="Cycle count", additional_info=None)
+    list_response = MagicMock()
+    list_response.parsed = MagicMock()
+    list_response.parsed.data = [existing]
+
+    updated = _make_mock_adjustment(id=42, reason="Updated reason")
+
+    request = UpdateStockAdjustmentParams(id=42, reason="Updated reason", preview=False)
+
+    update_mock = AsyncMock(return_value=MagicMock())
+    with (
+        patch(
+            f"{_SA_GET_ALL}.asyncio_detailed",
+            new=AsyncMock(return_value=list_response),
+        ),
+        patch(f"{_SA_UPDATE}.asyncio_detailed", new=update_mock),
+        patch(_SA_UNWRAP_AS, return_value=updated),
+        patch(
+            "katana_public_api_client.utils.unwrap_data",
+            return_value=[existing],
+        ),
+    ):
+        await _update_stock_adjustment_impl(request, context)
+
+    body = update_mock.call_args.kwargs["body"]
+    assert body.additional_info is UNSET
+
+
+@pytest.mark.asyncio
+async def test_update_stock_adjustment_caller_explicit_additional_info_wins():
+    """Caller-supplied additional_info wins; no pre-fetch needed (saves a round trip)."""
+    context, _ = create_mock_context()
+
+    updated = _make_mock_adjustment(id=42, additional_info="new notes")
+
+    request = UpdateStockAdjustmentParams(
+        id=42, additional_info="new notes", preview=False
+    )
+
+    update_mock = AsyncMock(return_value=MagicMock())
+    fetch_mock = AsyncMock()
+    with (
+        patch(f"{_SA_GET_ALL}.asyncio_detailed", new=fetch_mock),
+        patch(f"{_SA_UPDATE}.asyncio_detailed", new=update_mock),
+        patch(_SA_UNWRAP_AS, return_value=updated),
+    ):
+        await _update_stock_adjustment_impl(request, context)
+
+    body = update_mock.call_args.kwargs["body"]
+    assert body.additional_info == "new notes"
+    fetch_mock.assert_not_awaited()  # No pre-fetch when caller supplied the field
