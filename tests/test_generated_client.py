@@ -214,3 +214,52 @@ class TestConfigurationCompatibility:
         client = KatanaClient(**mock_api_credentials, logger=custom_logger)
 
         assert client.logger is custom_logger
+
+
+class TestSalesOrderStatusEnum:
+    """Regression guards for #516.
+
+    The live Katana API returns ``status: "PENDING"`` for newly-created
+    sales orders before they progress to ``NOT_SHIPPED``. Without
+    ``PENDING`` in the read-side enum, every cache-backed SO list/get
+    tool fails with ``'PENDING' is not a valid SalesOrderStatus``
+    until the SO transitions out. These tests assert PENDING is present
+    in both the attrs and pydantic enums and that a SalesOrder with
+    ``status="PENDING"`` parses successfully — so a future regen drift
+    that loses the value (or a spec edit that omits it) breaks the
+    test instead of breaking production.
+    """
+
+    def test_attrs_sales_order_status_includes_pending(self) -> None:
+        from katana_public_api_client.models.sales_order_status import (
+            SalesOrderStatus,
+        )
+
+        assert "PENDING" in {member.value for member in SalesOrderStatus}
+
+    def test_pydantic_sales_order_status_includes_pending(self) -> None:
+        from katana_public_api_client.models_pydantic._generated.sales_orders import (
+            SalesOrderStatus,
+        )
+
+        assert "PENDING" in {member.value for member in SalesOrderStatus}
+
+    def test_attrs_sales_order_parses_pending_status(self) -> None:
+        """Construct a SalesOrder.from_dict with status='PENDING' and assert
+        it parses cleanly. Mirrors the wire shape that broke cache ingest
+        before #516."""
+        from katana_public_api_client.models.sales_order import SalesOrder
+        from katana_public_api_client.models.sales_order_status import (
+            SalesOrderStatus,
+        )
+
+        so = SalesOrder.from_dict(
+            {
+                "id": 9001,
+                "customer_id": 42,
+                "order_no": "TEST-PENDING-PARSE",
+                "location_id": 1,
+                "status": "PENDING",
+            }
+        )
+        assert so.status == SalesOrderStatus.PENDING
