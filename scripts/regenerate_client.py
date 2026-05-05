@@ -600,24 +600,36 @@ def fix_specific_generated_issues(workspace_path: Path) -> bool:
     return True
 
 
+# Eligibility for the empty-dict-as-null post-processor (#509). A ``_parse_*``
+# helper is patched only when both ``None`` and ``Unset`` checks are present —
+# that signals ``None`` is a valid return value, so empty-dict-as-null is
+# semantically correct. Multi-variant oneOf parsers (e.g. Material | Product |
+# Unset) lack the ``None`` check and are correctly skipped.
+_PARSE_HEADER_RE = re.compile(
+    r"        def _parse_\w+\(data: object\) -> [^\n]+\n"
+    r"            if data is None:\n"
+    r"                return data\n"
+    r"            if isinstance\(data, Unset\):\n"
+    r"                return data\n",
+)
+_EMPTY_DICT_MARKER = "# Empty dict -> None (Katana wire quirk; see #509)."
+_EMPTY_DICT_EARLY_RETURN = (
+    f"            {_EMPTY_DICT_MARKER}\n"
+    "            if isinstance(data, dict) and not data:\n"
+    "                return None\n"
+)
+
+
 def normalize_parse_helpers_empty_dict(workspace_path: Path) -> None:
     """Insert empty-dict-as-null normalization in generated _parse_* helpers.
 
     Katana sometimes returns ``{}`` instead of ``null`` for absent optional
-    nested objects (known wire quirk; see #509). Without normalization, the
-    generator's silent-fallthrough ``oneOf`` parser returns the raw ``{}``
-    dict cast as the typed union — and downstream consumers crash with
-    ``AttributeError`` on attribute access.
-
-    The cache-sync path already handles this in ``_base.py::from_attrs:132-138``;
-    this post-processor brings the direct-attrs path to parity by inserting
-    the same normalization in every generated typed-object ``_parse_*``
-    helper (those whose return type is ``None | <Class> | Unset`` and which
-    call ``<Class>.from_dict()``).
-
-    Idempotent — detects the marker and skips already-patched helpers.
-    Skips multi-variant ``oneOf`` parsers where ``None`` is not a valid
-    return type.
+    nested objects (#509). Without normalization, the generator's
+    silent-fallthrough ``oneOf`` parser returns the raw ``{}`` dict cast as
+    the typed union — and downstream consumers crash with ``AttributeError``
+    on attribute access. The cache-sync path already handles this in
+    ``_base.py::from_attrs:132-138``; this post-processor brings the
+    direct-attrs path to parity. Idempotent.
     """
     print("🔧 Normalizing empty-dict to None in typed-object _parse_* helpers...")
 
@@ -625,24 +637,6 @@ def normalize_parse_helpers_empty_dict(workspace_path: Path) -> None:
     if not models_dir.exists():
         print(f"   ⚠️  Models directory not found: {models_dir}")
         return
-
-    # Match a ``_parse_*`` header through the standard ``None`` + ``Unset``
-    # checks. Only helpers with both checks are eligible — that signals
-    # ``None`` is a valid return value, so empty-dict-as-null is semantically
-    # correct.
-    parse_header_re = re.compile(
-        r"        def _parse_\w+\(data: object\) -> [^\n]+\n"
-        r"            if data is None:\n"
-        r"                return data\n"
-        r"            if isinstance\(data, Unset\):\n"
-        r"                return data\n",
-    )
-    marker_comment = "# Empty dict → None (Katana wire quirk; see #509)."
-    early_return_block = (
-        f"            {marker_comment}\n"
-        "            if isinstance(data, dict) and not data:\n"
-        "                return None\n"
-    )
 
     file_count = 0
     helper_count = 0
@@ -653,13 +647,10 @@ def normalize_parse_helpers_empty_dict(workspace_path: Path) -> None:
             print(f"   ⚠️  Could not read {model_file.name}: {e}")
             continue
 
-        # Cheap pre-filter: skip files with no typed nested-object parsers.
         if ".from_dict(" not in content:
             continue
 
-        new_content, count = _insert_empty_dict_normalization(
-            content, parse_header_re, early_return_block, marker_comment
-        )
+        new_content, count = _insert_empty_dict_normalization(content)
         if count > 0:
             model_file.write_text(new_content, encoding="utf-8")
             file_count += 1
@@ -671,23 +662,15 @@ def normalize_parse_helpers_empty_dict(workspace_path: Path) -> None:
         print("   (no eligible helpers found — already patched or none exist)")
 
 
-def _insert_empty_dict_normalization(
-    content: str,
-    parse_header_re: "re.Pattern[str]",
-    early_return_block: str,
-    marker_comment: str,
-) -> tuple[str, int]:
-    """Insert ``early_return_block`` after each eligible ``_parse_*`` header.
+def _insert_empty_dict_normalization(content: str) -> tuple[str, int]:
+    """Insert ``_EMPTY_DICT_EARLY_RETURN`` after each eligible ``_parse_*`` header.
 
     Eligibility:
-    - Header matches ``parse_header_re`` (typical ``None``+``Unset`` preamble)
+    - Header matches ``_PARSE_HEADER_RE``
     - Function body contains ``.from_dict(`` (typed-object alternative)
-    - Function body does NOT already contain ``marker_comment`` (idempotency)
-
-    Returns ``(new_content, num_helpers_patched)``. Walks matches in
-    reverse so insertion offsets stay valid.
+    - Function body does not already contain ``_EMPTY_DICT_MARKER`` (idempotency)
     """
-    matches = list(parse_header_re.finditer(content))
+    matches = list(_PARSE_HEADER_RE.finditer(content))
     if not matches:
         return content, 0
 
@@ -700,11 +683,13 @@ def _insert_empty_dict_normalization(
 
         if ".from_dict(" not in body:
             continue
-        if marker_comment in body:
+        if _EMPTY_DICT_MARKER in body:
             continue
 
         new_content = (
-            new_content[:body_start] + early_return_block + new_content[body_start:]
+            new_content[:body_start]
+            + _EMPTY_DICT_EARLY_RETURN
+            + new_content[body_start:]
         )
         patched += 1
 
@@ -714,9 +699,8 @@ def _insert_empty_dict_normalization(
 def _function_body_end(content: str, body_start: int) -> int:
     """End offset of a ``_parse_*`` function body, by indentation.
 
-    The header lives at 8-space indent (inside a classmethod at 4-space
-    indent), so the body is at >=12-space indent. Walk forward; the body
-    ends at the first non-blank line indented less than 12 spaces.
+    Header lives at 8-space indent, so the body is at >=12-space indent.
+    Body ends at the first non-blank line indented less than 12 spaces.
     """
     pos = body_start
     n = len(content)

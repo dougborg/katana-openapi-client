@@ -40,14 +40,21 @@ def regen() -> ModuleType:
     return _load_regenerate_client()
 
 
-# A representative typed-object _parse_* helper as openapi-python-client
-# emits it. Used as the input fixture for several tests below.
-_TYPED_PARSER_INPUT = """\
-class SalesOrder:
-    @classmethod
-    def from_dict(cls, src_dict):
-        d = dict(src_dict)
+def _wrap_in_class(parser_body: str) -> str:
+    """Wrap a ``_parse_*`` helper body in the surrounding class scaffolding
+    that the openapi-python-client generator emits."""
+    return (
+        "class SalesOrder:\n"
+        "    @classmethod\n"
+        "    def from_dict(cls, src_dict):\n"
+        "        d = dict(src_dict)\n"
+        "\n"
+        f"{parser_body}"
+    )
 
+
+_TYPED_PARSER = _wrap_in_class(
+    """\
         def _parse_shipping_fee(data: object) -> None | SalesOrderShippingFee | Unset:
             if data is None:
                 return data
@@ -67,15 +74,10 @@ class SalesOrder:
 
         shipping_fee = _parse_shipping_fee(d.pop("shipping_fee", UNSET))
 """
+)
 
-# A nullable-string parser (no nested-object alternative). Should NOT be
-# patched — empty-dict-as-null is meaningless for ``str``.
-_NULLABLE_STRING_PARSER_INPUT = """\
-class SalesOrder:
-    @classmethod
-    def from_dict(cls, src_dict):
-        d = dict(src_dict)
-
+_NULLABLE_STRING_PARSER = _wrap_in_class(
+    """\
         def _parse_customer_ref(data: object) -> None | str | Unset:
             if data is None:
                 return data
@@ -85,15 +87,10 @@ class SalesOrder:
 
         customer_ref = _parse_customer_ref(d.pop("customer_ref", UNSET))
 """
+)
 
-# Multi-variant oneOf where ``None`` is NOT a valid return type. Should
-# NOT be patched — returning ``None`` would violate the declared union.
-_MULTI_VARIANT_ONEOF_INPUT = """\
-class VariantResponse:
-    @classmethod
-    def from_dict(cls, src_dict):
-        d = dict(src_dict)
-
+_MULTI_VARIANT_ONEOF_PARSER = _wrap_in_class(
+    """\
         def _parse_product_or_material(data: object) -> Material | Product | Unset:
             if isinstance(data, Unset):
                 return data
@@ -117,86 +114,58 @@ class VariantResponse:
             d.pop("product_or_material", UNSET)
         )
 """
+)
 
 
-def _patch(regen: Any, content: str) -> tuple[str, int]:
-    """Run the post-processor's core text rewrite on ``content``."""
-    return regen._insert_empty_dict_normalization(
-        content,
-        regen.re.compile(
-            r"        def _parse_\w+\(data: object\) -> [^\n]+\n"
-            r"            if data is None:\n"
-            r"                return data\n"
-            r"            if isinstance\(data, Unset\):\n"
-            r"                return data\n",
-        ),
-        early_return_block=(
-            "            # Empty dict → None (Katana wire quirk; see #509).\n"
-            "            if isinstance(data, dict) and not data:\n"
-            "                return None\n"
-        ),
-        marker_comment="# Empty dict → None (Katana wire quirk; see #509).",
-    )
+@pytest.mark.parametrize(
+    ("label", "source", "expected_count"),
+    [
+        ("typed_object_parser", _TYPED_PARSER, 1),
+        ("nullable_string_parser", _NULLABLE_STRING_PARSER, 0),
+        ("multi_variant_oneof_without_none", _MULTI_VARIANT_ONEOF_PARSER, 0),
+    ],
+)
+def test_eligibility(regen: Any, label: str, source: str, expected_count: int) -> None:
+    """Only typed-object parsers with ``None`` allowed get patched."""
+    output, count = regen._insert_empty_dict_normalization(source)
+    assert count == expected_count, label
+    if expected_count == 0:
+        assert output == source, f"{label} should be unmodified"
+    else:
+        assert regen._EMPTY_DICT_MARKER in output, label
 
 
-def test_inserts_normalization_into_typed_object_parser(regen: Any) -> None:
-    """Header-matching typed-object helper gets the early-return inserted."""
-    output, count = _patch(regen, _TYPED_PARSER_INPUT)
-    assert count == 1
-    assert "# Empty dict → None (Katana wire quirk; see #509)." in output
-    # The early-return must appear after the Unset check and before the try.
+def test_inserts_at_correct_position(regen: Any) -> None:
+    """Early-return lands after the Unset check and before the try block."""
+    output, _ = regen._insert_empty_dict_normalization(_TYPED_PARSER)
     unset_idx = output.index("if isinstance(data, Unset):")
     early_idx = output.index("if isinstance(data, dict) and not data:")
     try_idx = output.index("try:")
     assert unset_idx < early_idx < try_idx
 
 
-def test_does_not_patch_nullable_string_parser(regen: Any) -> None:
-    """Helpers without ``<Class>.from_dict()`` shouldn't be patched —
-    empty-dict-as-null is meaningless for ``str``."""
-    output, count = _patch(regen, _NULLABLE_STRING_PARSER_INPUT)
-    assert count == 0
-    assert output == _NULLABLE_STRING_PARSER_INPUT
-
-
-def test_does_not_patch_multi_variant_oneof_without_none(regen: Any) -> None:
-    """Helpers whose return type doesn't include ``None`` shouldn't be
-    patched — returning ``None`` would violate the union (e.g.
-    ``Material | Product | Unset``). The header-match requires a
-    ``if data is None`` check, which these helpers don't have."""
-    output, count = _patch(regen, _MULTI_VARIANT_ONEOF_INPUT)
-    assert count == 0
-    assert output == _MULTI_VARIANT_ONEOF_INPUT
-
-
 def test_idempotent_on_already_patched_input(regen: Any) -> None:
-    """Re-running the post-processor on its own output is a no-op."""
-    once, first_count = _patch(regen, _TYPED_PARSER_INPUT)
-    twice, second_count = _patch(regen, once)
+    once, first_count = regen._insert_empty_dict_normalization(_TYPED_PARSER)
+    twice, second_count = regen._insert_empty_dict_normalization(once)
     assert first_count == 1
     assert second_count == 0
     assert twice == once
 
 
 def test_function_body_end_uses_indentation(regen: Any) -> None:
-    """Body-end detection must respect the function's indentation, not
-    look ahead to the next ``def`` keyword anywhere — otherwise it
-    would mistakenly include sibling code at the parent classmethod
-    indent (where ``<Class>.from_dict()`` calls live for list parsers)
-    and produce false-positive matches."""
+    # If the body-end walker looked for the next ``def`` keyword anywhere
+    # rather than detecting the parent classmethod's indent, it would
+    # reach into sibling code (``SalesOrderRow.from_dict`` here) and
+    # produce false-positive eligibility matches on nullable-string parsers.
     sample = (
         "            return cast(None | str | Unset, data)\n"
         "\n"
         "        customer_ref = _parse_customer_ref(d.pop('customer_ref', UNSET))\n"
         "\n"
-        "        # Sibling code that calls SalesOrderRow.from_dict — must NOT\n"
-        "        # be considered part of the previous _parse_* body.\n"
         "        for r in rows:\n"
         "            row = SalesOrderRow.from_dict(r)\n"
     )
     end = regen._function_body_end(sample, 0)
     body = sample[:end]
-    # Body should stop before the ``customer_ref = ...`` line at 8-space
-    # indent, well before the SalesOrderRow.from_dict call.
     assert "from_dict" not in body
-    assert "_parse_customer_ref" not in body  # the assignment
+    assert "_parse_customer_ref" not in body
