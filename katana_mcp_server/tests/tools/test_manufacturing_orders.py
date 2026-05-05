@@ -2697,3 +2697,86 @@ async def test_modify_mo_canonical_order_across_all_three_sub_resources():
         "add_operation_row",
         "add_production",
     ]
+
+
+# ============================================================================
+# #505 follow-on: PATCH-wipe `additional_info` workaround on MOs
+# ============================================================================
+#
+# Same Katana platform asymmetry as PO/Material/Product/StockAdjustment
+# (docs/KATANA_API_QUESTIONS.md §6.2). `_build_update_header_request` echoes
+# the existing value when the caller didn't change it.
+
+
+def test_build_update_header_echoes_additional_info_when_unchanged():
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        MOHeaderPatch,
+        _build_update_header_request,
+    )
+
+    existing = MagicMock(spec=ManufacturingOrder)
+    existing.additional_info = "WIP notes"
+
+    req = _build_update_header_request(MOHeaderPatch(order_no="MO-RENAMED"), existing)
+
+    assert req.to_dict() == {
+        "order_no": "MO-RENAMED",
+        "additional_info": "WIP notes",
+    }
+
+
+def test_build_update_header_does_not_echo_when_existing_is_empty():
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        MOHeaderPatch,
+        _build_update_header_request,
+    )
+
+    existing = MagicMock(spec=ManufacturingOrder)
+    existing.additional_info = ""
+
+    req = _build_update_header_request(MOHeaderPatch(order_no="MO-RENAMED"), existing)
+
+    assert req.to_dict() == {"order_no": "MO-RENAMED"}
+
+
+def test_build_update_header_does_not_echo_when_existing_is_unset():
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        MOHeaderPatch,
+        _build_update_header_request,
+    )
+
+    from katana_public_api_client.client_types import UNSET
+
+    existing = MagicMock(spec=ManufacturingOrder)
+    existing.additional_info = UNSET
+
+    req = _build_update_header_request(MOHeaderPatch(order_no="MO-RENAMED"), existing)
+
+    assert req.to_dict() == {"order_no": "MO-RENAMED"}
+
+
+def test_build_update_header_caller_explicit_additional_info_wins():
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        MOHeaderPatch,
+        _build_update_header_request,
+    )
+
+    existing = MagicMock(spec=ManufacturingOrder)
+    existing.additional_info = "old"
+
+    req = _build_update_header_request(
+        MOHeaderPatch(order_no="MO-RENAMED", additional_info="new"), existing
+    )
+
+    assert req.to_dict() == {"order_no": "MO-RENAMED", "additional_info": "new"}
+
+
+def test_build_update_header_no_existing_skips_echo():
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        MOHeaderPatch,
+        _build_update_header_request,
+    )
+
+    req = _build_update_header_request(MOHeaderPatch(order_no="MO-RENAMED"), None)
+
+    assert req.to_dict() == {"order_no": "MO-RENAMED"}

@@ -2710,10 +2710,22 @@ class DeleteManufacturingOrderRequest(ConfirmableRequest):
 
 def _build_update_header_request(
     patch: MOHeaderPatch,
+    existing_mo: ManufacturingOrder | None = None,
 ) -> APIUpdateManufacturingOrderRequest:
-    return APIUpdateManufacturingOrderRequest(
-        **unset_dict(patch, transforms={"status": ManufacturingOrderStatus})
-    )
+    """Build the PATCH body for ``PATCH /manufacturing_orders/{id}``.
+
+    Echoes ``additional_info`` from ``existing_mo`` when the caller didn't
+    set it, working around the same Katana platform asymmetry that affects
+    ``PATCH /purchase_orders/{id}`` (see #505 / docs/KATANA_API_QUESTIONS.md
+    section 6.1). The wipe reproduces on PATCH for MOs too — verified
+    against PO 16647058 on 2026-05-05.
+    """
+    kwargs = unset_dict(patch, transforms={"status": ManufacturingOrderStatus})
+    if patch.additional_info is None and existing_mo is not None:
+        existing_info = unwrap_unset(existing_mo.additional_info, None)
+        if existing_info:
+            kwargs["additional_info"] = existing_info
+    return APIUpdateManufacturingOrderRequest(**kwargs)
 
 
 def _build_create_recipe_row_request(
@@ -2811,7 +2823,7 @@ async def _modify_manufacturing_order_impl(
                     api_update_manufacturing_order,
                     services,
                     request.id,
-                    _build_update_header_request(request.update_header),
+                    _build_update_header_request(request.update_header, existing_mo),
                     return_type=ManufacturingOrder,
                 ),
                 verify=make_response_verifier(diff),
