@@ -1363,13 +1363,18 @@ async def _update_stock_adjustment_impl(
 
     # Pre-fetch only when echo might be needed (caller didn't supply
     # additional_info) so the common-case PATCH stays a single round trip.
-    # See :func:`patch_additional_info` for the workaround story.
+    # ``raise_on_error=False`` keeps the workaround best-effort: if the
+    # pre-fetch fails (transient 5xx, permission gap, etc.) we treat it
+    # as "no existing snapshot" rather than aborting the user's actual
+    # update. Worst case the wipe still fires; the caller's intended
+    # write still lands. See :func:`patch_additional_info` for the
+    # workaround story.
     existing_info_field: str | None | Unset = UNSET
     if request.additional_info is None:
         existing_response = await get_all_stock_adjustments.asyncio_detailed(
             client=services.client, ids=[request.id]
         )
-        existing_rows = unwrap_data(existing_response, default=[])
+        existing_rows = unwrap_data(existing_response, raise_on_error=False, default=[])
         if existing_rows:
             existing_info_field = existing_rows[0].additional_info
 
