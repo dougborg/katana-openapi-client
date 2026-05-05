@@ -26,6 +26,7 @@ from katana_mcp.tools._modification import (
     ModificationResponse,
     compute_field_diff,
     make_response_verifier,
+    patch_additional_info,
     to_tool_result,
 )
 from katana_mcp.tools._modification_dispatch import (
@@ -2431,20 +2432,15 @@ def _build_update_header_request(
 ) -> APIUpdatePurchaseOrderRequest:
     """Build the PATCH body for ``PATCH /purchase_orders/{id}``.
 
-    Echoes ``additional_info`` from ``existing_po`` when the caller didn't
-    set it, working around an asymmetric Katana platform behavior: the PATCH
-    endpoint clears ``additional_info`` to ``""`` when the field is omitted
-    from the body, even though every other omitted field is correctly
-    preserved (verified at the wire level — see ``docs/KATANA_API_QUESTIONS.md``
-    section 6.1 for the wire-level reproduction). Without this echo, agents
-    calling ``modify_purchase_order(update_header={'order_no': 'X'})``
-    silently lose any populated PO notes.
+    ``additional_info`` is echoed via :func:`patch_additional_info` so
+    Katana's wipe-on-omit doesn't destroy PO notes during a header
+    rename (see its docstring for the full workaround story).
     """
     kwargs = unset_dict(patch, transforms={"status": PurchaseOrderStatus})
-    if patch.additional_info is None and existing_po is not None:
-        existing_info = unwrap_unset(existing_po.additional_info, None)
-        if existing_info:
-            kwargs["additional_info"] = existing_info
+    kwargs["additional_info"] = patch_additional_info(
+        patch.additional_info,
+        existing_po.additional_info if existing_po is not None else UNSET,
+    )
     return APIUpdatePurchaseOrderRequest(**kwargs)
 
 
