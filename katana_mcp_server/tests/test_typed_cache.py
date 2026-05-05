@@ -245,15 +245,13 @@ class TestSyncShippingFeeEmpty:
     """
 
     def test_attrs_sales_order_with_empty_shipping_fee_converts(self):
-        """``from_attrs`` must not raise when attrs shipping_fee is ``{}``."""
+        """``from_attrs`` must produce ``shipping_fee=None`` when attrs
+        shipping_fee originated as ``{}`` on the wire (#509)."""
         from katana_public_api_client.models import SalesOrder as AttrsSalesOrder
         from katana_public_api_client.models_pydantic._generated import (
             SalesOrder as PydanticSalesOrder,
         )
 
-        # Simulate the wire shape Katana sends for a no-fee order. The attrs
-        # parser can't populate required inner fields from {}, catches the
-        # KeyError, and falls back to storing the raw {} dict.
         attrs_so = AttrsSalesOrder.from_dict(
             {
                 "id": 9001,
@@ -264,8 +262,7 @@ class TestSyncShippingFeeEmpty:
                 "shipping_fee": {},
             }
         )
-
-        # This must not raise pydantic ValidationError.
+        assert attrs_so.shipping_fee is None
         pydantic_so = PydanticSalesOrder.from_attrs(attrs_so)
         assert pydantic_so.shipping_fee is None
 

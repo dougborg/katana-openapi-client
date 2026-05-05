@@ -594,7 +594,127 @@ def fix_specific_generated_issues(workspace_path: Path) -> bool:
     # Fix pagination defaults for auto-pagination
     fix_pagination_defaults(workspace_path)
 
+    # Normalize empty-dict-as-null in typed-object _parse_* helpers (#509)
+    normalize_parse_helpers_empty_dict(workspace_path)
+
     return True
+
+
+# Eligibility for the empty-dict-as-null post-processor (#509). A ``_parse_*``
+# helper is patched only when both ``None`` and ``Unset`` checks are present —
+# that signals ``None`` is a valid return value, so empty-dict-as-null is
+# semantically correct. Multi-variant oneOf parsers (e.g. Material | Product |
+# Unset) lack the ``None`` check and are correctly skipped.
+_PARSE_HEADER_RE = re.compile(
+    r"        def _parse_\w+\(data: object\) -> [^\n]+\n"
+    r"            if data is None:\n"
+    r"                return data\n"
+    r"            if isinstance\(data, Unset\):\n"
+    r"                return data\n",
+)
+_EMPTY_DICT_MARKER = "# Empty dict -> None (Katana wire quirk; see #509)."
+_EMPTY_DICT_EARLY_RETURN = (
+    f"            {_EMPTY_DICT_MARKER}\n"
+    "            if isinstance(data, dict) and not data:\n"
+    "                return None\n"
+)
+
+
+def normalize_parse_helpers_empty_dict(workspace_path: Path) -> None:
+    """Insert empty-dict-as-null normalization in generated _parse_* helpers.
+
+    Katana sometimes returns ``{}`` instead of ``null`` for absent optional
+    nested objects (#509). Without normalization, the generator's
+    silent-fallthrough ``oneOf`` parser returns the raw ``{}`` dict cast as
+    the typed union — and downstream consumers crash with ``AttributeError``
+    on attribute access. The cache-sync path already handles this in
+    ``_base.py::from_attrs:132-138``; this post-processor brings the
+    direct-attrs path to parity. Idempotent.
+    """
+    print("🔧 Normalizing empty-dict to None in typed-object _parse_* helpers...")
+
+    models_dir = workspace_path / "katana_public_api_client" / "models"
+    if not models_dir.exists():
+        print(f"   ⚠️  Models directory not found: {models_dir}")
+        return
+
+    file_count = 0
+    helper_count = 0
+    for model_file in sorted(models_dir.glob("*.py")):
+        try:
+            content = model_file.read_text(encoding="utf-8")
+        except OSError as e:
+            print(f"   ⚠️  Could not read {model_file.name}: {e}")
+            continue
+
+        if ".from_dict(" not in content:
+            continue
+
+        new_content, count = _insert_empty_dict_normalization(content)
+        if count > 0:
+            model_file.write_text(new_content, encoding="utf-8")
+            file_count += 1
+            helper_count += count
+
+    if helper_count:
+        print(f"   ✓ Patched {helper_count} helpers across {file_count} files")
+    else:
+        print("   (no eligible helpers found — already patched or none exist)")
+
+
+def _insert_empty_dict_normalization(content: str) -> tuple[str, int]:
+    """Insert ``_EMPTY_DICT_EARLY_RETURN`` after each eligible ``_parse_*`` header.
+
+    Eligibility:
+    - Header matches ``_PARSE_HEADER_RE``
+    - Function body contains ``.from_dict(`` (typed-object alternative)
+    - Function body does not already contain ``_EMPTY_DICT_MARKER`` (idempotency)
+    """
+    matches = list(_PARSE_HEADER_RE.finditer(content))
+    if not matches:
+        return content, 0
+
+    new_content = content
+    patched = 0
+    for m in reversed(matches):
+        body_start = m.end()
+        body_end = _function_body_end(new_content, body_start)
+        body = new_content[body_start:body_end]
+
+        if ".from_dict(" not in body:
+            continue
+        if _EMPTY_DICT_MARKER in body:
+            continue
+
+        new_content = (
+            new_content[:body_start]
+            + _EMPTY_DICT_EARLY_RETURN
+            + new_content[body_start:]
+        )
+        patched += 1
+
+    return new_content, patched
+
+
+def _function_body_end(content: str, body_start: int) -> int:
+    """End offset of a ``_parse_*`` function body, by indentation.
+
+    Header lives at 8-space indent, so the body is at >=12-space indent.
+    Body ends at the first non-blank line indented less than 12 spaces.
+    """
+    pos = body_start
+    n = len(content)
+    while pos < n:
+        line_end = content.find("\n", pos)
+        if line_end == -1:
+            line_end = n
+        line = content[pos:line_end]
+        if line.strip():
+            indent = len(line) - len(line.lstrip(" "))
+            if indent < 12:
+                return pos
+        pos = line_end + 1
+    return n
 
 
 def fix_pagination_defaults(workspace_path: Path) -> None:
