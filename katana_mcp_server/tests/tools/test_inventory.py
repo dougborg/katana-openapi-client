@@ -2218,3 +2218,35 @@ async def test_update_stock_adjustment_caller_explicit_additional_info_wins():
     body = update_mock.call_args.kwargs["body"]
     assert body.additional_info == "new notes"
     fetch_mock.assert_not_awaited()  # No pre-fetch when caller supplied the field
+
+
+@pytest.mark.asyncio
+async def test_update_stock_adjustment_pre_fetch_failure_is_best_effort():
+    """Pre-fetch errors must not abort the user's actual update — the echo
+    is a best-effort workaround. Without ``raise_on_error=False``, a
+    transient 5xx on the pre-fetch would turn this entire PATCH into a
+    hard failure even though the workaround is purely opportunistic."""
+    context, _ = create_mock_context()
+
+    failed_response = MagicMock()
+    failed_response.status_code = 502  # transient gateway error
+    failed_response.parsed = None
+
+    updated = _make_mock_adjustment(id=42, reason="Updated reason")
+
+    request = UpdateStockAdjustmentParams(id=42, reason="Updated reason", preview=False)
+
+    update_mock = AsyncMock(return_value=MagicMock())
+    with (
+        patch(
+            f"{_SA_GET_ALL}.asyncio_detailed",
+            new=AsyncMock(return_value=failed_response),
+        ),
+        patch(f"{_SA_UPDATE}.asyncio_detailed", new=update_mock),
+        patch(_SA_UNWRAP_AS, return_value=updated),
+    ):
+        result = await _update_stock_adjustment_impl(request, context)
+
+    # The user's update lands even though the pre-fetch failed.
+    assert result.is_preview is False
+    update_mock.assert_called_once()
