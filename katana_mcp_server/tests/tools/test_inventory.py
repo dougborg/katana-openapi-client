@@ -156,99 +156,208 @@ async def test_check_inventory_not_found():
     assert result.in_stock == 0
 
 
+def _mock_inventory_row(variant_id: int, quantity_in_stock: str) -> MagicMock:
+    """Build an attrs-shaped Inventory mock for one variant/location row."""
+    inv = MagicMock()
+    inv.variant_id = variant_id
+    inv.quantity_in_stock = quantity_in_stock
+    inv.quantity_committed = "0"
+    inv.quantity_expected = "0"
+    return inv
+
+
 @pytest.mark.asyncio
 async def test_list_low_stock_items():
-    """Test list_low_stock_items tool with mocked client."""
+    """list_low_stock_items returns variants with summed in_stock below threshold."""
     context, lifespan_ctx = create_mock_context()
 
-    # Mock Product objects with stock_information
-    mock_products = []
-    for sku, name, stock in [
-        ("ITEM-001", "Item 1", 5),
-        ("ITEM-002", "Item 2", 3),
-        ("ITEM-003", "Item 3", 8),
-    ]:
-        product = MagicMock()
-        product.sku = sku
-        product.name = name
-        stock_info = MagicMock()
-        stock_info.in_stock = stock
-        product.stock_information = stock_info
-        mock_products.append(product)
+    inventory_rows = [
+        _mock_inventory_row(1001, "5"),
+        _mock_inventory_row(1002, "3"),
+        _mock_inventory_row(1003, "8"),
+    ]
+    lifespan_ctx.cache.get_many_by_ids = AsyncMock(
+        return_value={
+            1001: {"id": 1001, "sku": "ITEM-001", "display_name": "Item 1"},
+            1002: {"id": 1002, "sku": "ITEM-002", "display_name": "Item 2"},
+            1003: {"id": 1003, "sku": "ITEM-003", "display_name": "Item 3"},
+        }
+    )
 
-    lifespan_ctx.client.inventory.list_low_stock = AsyncMock(return_value=mock_products)
-
-    request = LowStockRequest(threshold=10, limit=50)
-    result = await _list_low_stock_items_impl(request, context)
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=inventory_rows),
+    ):
+        request = LowStockRequest(threshold=10, limit=50)
+        result = await _list_low_stock_items_impl(request, context)
 
     assert result.total_count == 3
     assert len(result.items) == 3
-    assert result.items[0].sku == "ITEM-001"
-    assert result.items[0].current_stock == 5
+    # Sorted ascending by current_stock — most-depleted first.
+    assert [item.sku for item in result.items] == ["ITEM-002", "ITEM-001", "ITEM-003"]
+    assert result.items[0].current_stock == 3
+    assert result.items[0].product_name == "Item 2"
     assert result.items[0].threshold == 10
-    lifespan_ctx.client.inventory.list_low_stock.assert_called_once_with(threshold=10)
 
 
 @pytest.mark.asyncio
 async def test_list_low_stock_items_with_limit():
-    """Test list_low_stock_items respects limit parameter."""
+    """list_low_stock_items truncates items but keeps total_count of all matches."""
     context, lifespan_ctx = create_mock_context()
 
-    # Mock 100 Product objects
-    mock_products = []
-    for i in range(100):
-        product = MagicMock()
-        product.sku = f"ITEM-{i:03d}"
-        product.name = f"Item {i}"
-        stock_info = MagicMock()
-        stock_info.in_stock = i
-        product.stock_information = stock_info
-        mock_products.append(product)
+    inventory_rows = [_mock_inventory_row(2000 + i, str(i)) for i in range(100)]
+    lifespan_ctx.cache.get_many_by_ids = AsyncMock(
+        return_value={
+            2000 + i: {
+                "id": 2000 + i,
+                "sku": f"ITEM-{i:03d}",
+                "display_name": f"Item {i}",
+            }
+            for i in range(100)
+        }
+    )
 
-    lifespan_ctx.client.inventory.list_low_stock = AsyncMock(return_value=mock_products)
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=inventory_rows),
+    ):
+        request = LowStockRequest(threshold=10000, limit=20)
+        result = await _list_low_stock_items_impl(request, context)
 
-    request = LowStockRequest(threshold=10, limit=20)
-    result = await _list_low_stock_items_impl(request, context)
-
-    assert result.total_count == 100  # Total available
-    assert len(result.items) == 20  # But only 20 returned
+    assert result.total_count == 100
+    assert len(result.items) == 20
 
 
 @pytest.mark.asyncio
-async def test_list_low_stock_items_handles_none_values():
-    """Test list_low_stock_items handles None SKU and name."""
+async def test_list_low_stock_items_handles_missing_variant_fields():
+    """list_low_stock_items falls back to empty strings when variant lacks SKU/name."""
     context, lifespan_ctx = create_mock_context()
 
-    # Mock Product with None values
-    product = MagicMock()
-    product.sku = None
-    product.name = None
-    stock_info = MagicMock()
-    stock_info.in_stock = 5
-    product.stock_information = stock_info
+    inventory_rows = [_mock_inventory_row(3001, "5")]
+    lifespan_ctx.cache.get_many_by_ids = AsyncMock(
+        return_value={3001: {"id": 3001}}  # No sku, no display_name, no name.
+    )
 
-    lifespan_ctx.client.inventory.list_low_stock = AsyncMock(return_value=[product])
-
-    request = LowStockRequest(threshold=10)
-    result = await _list_low_stock_items_impl(request, context)
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=inventory_rows),
+    ):
+        request = LowStockRequest(threshold=10)
+        result = await _list_low_stock_items_impl(request, context)
 
     assert len(result.items) == 1
-    assert result.items[0].sku == ""  # Converts None to empty string
-    assert result.items[0].product_name == ""  # Converts None to empty string
+    assert result.items[0].sku == ""
+    assert result.items[0].product_name == ""
+    assert result.items[0].current_stock == 5
 
 
 @pytest.mark.asyncio
 async def test_list_low_stock_default_parameters():
-    """Test list_low_stock_items uses default threshold and limit."""
+    """LowStockRequest defaults threshold=10, limit=50; impl handles empty inventory."""
+    context, _lifespan_ctx = create_mock_context()
+
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[]),
+    ):
+        request = LowStockRequest()  # Use defaults
+        result = await _list_low_stock_items_impl(request, context)
+
+    assert request.threshold == 10
+    assert request.limit == 50
+    assert result.total_count == 0
+    assert result.items == []
+
+
+@pytest.mark.asyncio
+async def test_list_low_stock_sums_across_locations():
+    """Regression: variant stock at multiple locations must be summed.
+
+    Mirrors test_check_inventory_multiple_locations — guards the bug class
+    that #510 fixed (the legacy helper had no concept of summing).
+    """
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.client.inventory.list_low_stock = AsyncMock(return_value=[])
 
-    request = LowStockRequest()  # Use defaults
-    await _list_low_stock_items_impl(request, context)
+    # Variant 4001: 5 at location A + 3 at location B = 8 total (below 10).
+    # Variant 4002: 30 at single location (above threshold, must be excluded).
+    inventory_rows = [
+        _mock_inventory_row(4001, "5"),
+        _mock_inventory_row(4001, "3"),
+        _mock_inventory_row(4002, "30"),
+    ]
+    lifespan_ctx.cache.get_many_by_ids = AsyncMock(
+        return_value={
+            4001: {"id": 4001, "sku": "MULTI-LOC", "display_name": "Multi-loc Widget"},
+        }
+    )
 
-    assert request.threshold == 10  # Default
-    assert request.limit == 50  # Default
-    lifespan_ctx.client.inventory.list_low_stock.assert_called_once_with(threshold=10)
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=inventory_rows),
+    ):
+        request = LowStockRequest(threshold=10)
+        result = await _list_low_stock_items_impl(request, context)
+
+    assert result.total_count == 1
+    assert len(result.items) == 1
+    assert result.items[0].sku == "MULTI-LOC"
+    assert result.items[0].current_stock == 8
+
+
+@pytest.mark.asyncio
+async def test_list_low_stock_excludes_above_threshold():
+    """Variants with summed totals at or above the threshold are filtered out."""
+    context, lifespan_ctx = create_mock_context()
+
+    inventory_rows = [
+        _mock_inventory_row(5001, "10"),  # exactly at threshold — excluded
+        _mock_inventory_row(5002, "100"),  # above threshold — excluded
+        _mock_inventory_row(5003, "2"),  # below threshold — included
+    ]
+    lifespan_ctx.cache.get_many_by_ids = AsyncMock(
+        return_value={
+            5003: {"id": 5003, "sku": "LOW", "display_name": "Low item"},
+        }
+    )
+
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=inventory_rows),
+    ):
+        request = LowStockRequest(threshold=10)
+        result = await _list_low_stock_items_impl(request, context)
+
+    assert [item.sku for item in result.items] == ["LOW"]
+
+
+@pytest.mark.asyncio
+async def test_list_low_stock_cache_miss_fallback():
+    """Cache miss for a low-stock variant_id falls back to the API via _fetch_variant_by_id."""
+    context, lifespan_ctx = create_mock_context()
+
+    inventory_rows = [_mock_inventory_row(6001, "4")]
+    # get_many_by_ids returns empty dict (cache miss) — default from create_mock_context().
+    # _fetch_variant_by_id then calls cache.get_by_id (also miss) and falls through to
+    # the API. Mock the API path directly.
+    fetched_variant = {"id": 6001, "sku": "FETCHED", "display_name": "Fetched item"}
+
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=inventory_rows),
+        patch(
+            "katana_mcp.tools.foundation.items._fetch_variant_by_id",
+            new_callable=AsyncMock,
+            return_value=fetched_variant,
+        ) as mock_fetch,
+    ):
+        request = LowStockRequest(threshold=10)
+        result = await _list_low_stock_items_impl(request, context)
+
+    assert len(result.items) == 1
+    assert result.items[0].sku == "FETCHED"
+    assert result.items[0].product_name == "Fetched item"
+    assert result.items[0].current_stock == 4
+    mock_fetch.assert_awaited_once_with(lifespan_ctx, 6001)
 
 
 @pytest.mark.asyncio
@@ -1495,7 +1604,7 @@ async def test_list_low_stock_items_integration(katana_context):
         for item in result.items:
             assert isinstance(item.sku, str)
             assert isinstance(item.product_name, str)
-            assert isinstance(item.current_stock, int)
+            assert isinstance(item.current_stock, float)
             assert item.current_stock >= 0
             assert item.threshold == 100
 

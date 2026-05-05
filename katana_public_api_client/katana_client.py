@@ -26,7 +26,6 @@ from ._logging import Logger
 from .api_wrapper import ApiNamespace
 from .client import AuthenticatedClient
 from .client_types import Unset
-from .helpers.inventory import Inventory
 from .helpers.materials import Materials
 from .helpers.products import Products
 from .helpers.services import Services
@@ -1298,7 +1297,6 @@ class KatanaClient(AuthenticatedClient):
         self._materials: Materials | None = None
         self._variants: Variants | None = None
         self._services: Services | None = None
-        self._inventory: Inventory | None = None
         self._api_namespace: ApiNamespace | None = None
 
         # Extract client-level parameters that shouldn't go to the transport
@@ -1434,24 +1432,6 @@ class KatanaClient(AuthenticatedClient):
         if self._services is None:
             self._services = Services(self)
         return self._services
-
-    @property
-    def inventory(self) -> Inventory:
-        """Access inventory helpers.
-
-        Returns:
-            Inventory instance providing low-stock reporting. For per-SKU
-            stock lookups, stock movements, and stock adjustments, call
-            the corresponding endpoint via ``client.api.*`` directly —
-            those are not exposed on this helper class.
-
-        Example:
-            >>> async with KatanaClient() as client:
-            ...     low_stock = await client.inventory.list_low_stock(threshold=10)
-        """
-        if self._inventory is None:
-            self._inventory = Inventory(self)
-        return self._inventory
 
     @property
     def api(self) -> ApiNamespace:

@@ -51,7 +51,7 @@ def get_services(context: Context) -> Services:
         ```python
         services = get_services(context)
 
-        # Use existing helpers (variants, products, materials, services, inventory)
+        # Use existing helpers (variants, products, materials, services)
         products = await services.client.products.list()
 
         # For other endpoints (purchase_orders, sales_orders, etc), use generated API:
@@ -70,11 +70,10 @@ def get_services(context: Context) -> Services:
         - products
         - materials
         - services
-        - inventory
 
-        For other endpoints (purchase_orders, manufacturing_orders, sales_orders),
-        you must use the generated API modules directly from katana_public_api_client.api.*
-        or implement your own helper methods.
+        For inventory and all other endpoints (purchase_orders, manufacturing_orders,
+        sales_orders), use the generated API modules directly from
+        katana_public_api_client.api.* or implement your own helper methods.
 
     Args:
         context: FastMCP context containing lifespan_context with Services

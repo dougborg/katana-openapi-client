@@ -16,8 +16,10 @@ from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
 from pydantic import BaseModel, ConfigDict, Field
 
+from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.tools.decorators import cache_read
 from katana_mcp.tools.list_coercion import CoercedIntListOpt, CoercedStrIntList
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
@@ -287,7 +289,7 @@ class LowStockItem(BaseModel):
 
     sku: str
     product_name: str
-    current_stock: int
+    current_stock: float
     threshold: int
 
 
@@ -298,17 +300,23 @@ class LowStockResponse(BaseModel):
     total_count: int
 
 
+@cache_read(EntityType.VARIANT)
 async def _list_low_stock_items_impl(
     request: LowStockRequest, context: Context
 ) -> LowStockResponse:
     """Implementation of list_low_stock_items tool.
+
+    Fetches every variant/location row from ``/inventory``, sums
+    ``quantity_in_stock`` per variant across locations, filters to the
+    variants below ``request.threshold``, then resolves SKU and product
+    name from the cached variant index (with API fallback on cache miss).
 
     Args:
         request: Request with threshold and limit
         context: Server context with KatanaClient
 
     Returns:
-        List of products below threshold with current levels
+        Low-stock items sorted ascending by current stock.
 
     Raises:
         ValueError: If threshold or limit are invalid
@@ -327,46 +335,67 @@ async def _list_low_stock_items_impl(
     )
 
     try:
-        # Access services using helper
+        from katana_mcp.tools.foundation.items import _fetch_variant_by_id
+        from katana_public_api_client.api.inventory import get_all_inventory_point
+        from katana_public_api_client.utils import unwrap_data
+
         services = get_services(context)
-        products = await services.client.inventory.list_low_stock(
-            threshold=request.threshold
+
+        response = await get_all_inventory_point.asyncio_detailed(
+            client=services.client
+        )
+        inventory_rows = unwrap_data(response)
+
+        totals: dict[int, float] = {}
+        for inv in inventory_rows:
+            qty = float(unwrap_unset(inv.quantity_in_stock, "0"))
+            totals[inv.variant_id] = totals.get(inv.variant_id, 0.0) + qty
+
+        low_stock = sorted(
+            (
+                (variant_id, total)
+                for variant_id, total in totals.items()
+                if total < request.threshold
+            ),
+            key=lambda pair: pair[1],
         )
 
-        # Limit results
-        limited_products = products[: request.limit]
+        limited = low_stock[: request.limit]
+        variant_ids = [variant_id for variant_id, _ in limited]
 
-        response = LowStockResponse(
-            items=[
+        cached_variants = await services.cache.get_many_by_ids(
+            EntityType.VARIANT, variant_ids
+        )
+
+        items: list[LowStockItem] = []
+        for variant_id, total in limited:
+            variant = cached_variants.get(variant_id)
+            if not variant:
+                variant = await _fetch_variant_by_id(services, variant_id)
+            sku = (variant or {}).get("sku") or ""
+            product_name = (
+                (variant or {}).get("display_name") or (variant or {}).get("name") or ""
+            )
+            items.append(
                 LowStockItem(
-                    # attrs Product model has no top-level sku; SKU lives on variants
-                    sku=getattr(product, "sku", "") or "",
-                    product_name=product.name or "",
-                    current_stock=(
-                        getattr(
-                            getattr(product, "stock_information", None),
-                            "in_stock",
-                            0,
-                        )
-                        if getattr(product, "stock_information", None)
-                        else 0
-                    ),
+                    sku=sku,
+                    product_name=product_name,
+                    current_stock=total,
                     threshold=request.threshold,
                 )
-                for product in limited_products
-            ],
-            total_count=len(products),
-        )
+            )
+
+        result = LowStockResponse(items=items, total_count=len(low_stock))
 
         duration_ms = round((time.monotonic() - start_time) * 1000, 2)
         logger.info(
             "low_stock_search_completed",
             threshold=request.threshold,
-            total_count=response.total_count,
-            returned_count=len(response.items),
+            total_count=result.total_count,
+            returned_count=len(result.items),
             duration_ms=duration_ms,
         )
-        return response
+        return result
 
     except Exception as e:
         duration_ms = round((time.monotonic() - start_time) * 1000, 2)
