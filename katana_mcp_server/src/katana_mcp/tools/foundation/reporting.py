@@ -262,8 +262,6 @@ class TopSellingVariantsRequest(BaseModel):
 class VariantSalesRow(BaseModel):
     """Per-variant sales aggregate row."""
 
-    model_config = ConfigDict(extra="forbid")
-
     sku: str | None
     variant_id: int
     name: str | None
@@ -453,8 +451,6 @@ class SalesSummaryRequest(BaseModel):
 
 class SummaryRow(BaseModel):
     """Grouped sales aggregate row."""
-
-    model_config = ConfigDict(extra="forbid")
 
     group: str
     units: float

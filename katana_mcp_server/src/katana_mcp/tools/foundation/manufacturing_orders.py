@@ -2012,8 +2012,6 @@ class ListBlockingIngredientsRequest(BaseModel):
 class BlockingRow(BaseModel):
     """One blocking recipe-row entry within a per-MO grouping."""
 
-    model_config = ConfigDict(extra="forbid")
-
     recipe_row_id: int
     variant_id: int | None
     sku: str | None

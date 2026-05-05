@@ -285,8 +285,6 @@ class LowStockRequest(BaseModel):
 class LowStockItem(BaseModel):
     """Low stock item information."""
 
-    model_config = ConfigDict(extra="forbid")
-
     sku: str
     product_name: str
     current_stock: int

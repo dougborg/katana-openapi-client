@@ -47,8 +47,19 @@ _INPUT_SUFFIXES = (
 _OUTPUT_SUFFIXES = ("Response", "Info", "Summary", "Detail", "Stats")
 
 # Class names exempt from the ``extra="forbid"`` requirement. Add with a
-# brief justification — the goal is to keep this list tiny.
-_EXEMPT_CLASSES: frozenset[str] = frozenset()
+# brief justification — the goal is to keep this list tiny. The four below
+# share the ``*Row``/``*Item`` suffix with input shapes (line items in
+# create requests) but are actually nested rows inside ``*Response`` models
+# — constructed by our impl with controlled kwargs from API data, never
+# from untrusted caller input. ``extra="forbid"`` would just add noise.
+_EXEMPT_CLASSES: frozenset[str] = frozenset(
+    {
+        "LowStockItem",  # nested in LowStockResponse
+        "BlockingRow",  # nested in BlockingIngredientByMO/Variant
+        "VariantSalesRow",  # nested in TopSellingVariantsResponse / InventoryVelocityResponse
+        "SummaryRow",  # nested in SalesSummaryResponse
+    }
+)
 
 
 def _is_input_class_name(name: str) -> bool:
@@ -85,11 +96,11 @@ def test_every_foundation_input_model_forbids_extra() -> None:
     classes = _all_foundation_input_classes()
     assert classes, "discovered zero input classes — exploration logic broke"
 
-    missing: list[str] = []
-    for cls in classes:
-        if cls.model_config.get("extra") != "forbid":
-            missing.append(f"{cls.__module__}.{cls.__name__}")
-
+    missing = sorted(
+        f"{cls.__module__}.{cls.__name__}"
+        for cls in classes
+        if cls.model_config.get("extra") != "forbid"
+    )
     assert not missing, (
         f"{len(missing)} input model(s) missing extra='forbid' — add "
         f"`model_config = ConfigDict(extra='forbid')` to each:\n  "
@@ -114,13 +125,22 @@ def test_confirmable_request_forbids_extra() -> None:
 def _assert_forbids(
     model_cls: type[BaseModel], known_kwargs: dict[str, Any], unknown_field: str
 ) -> None:
-    """Construct the model with one extra field; assert ValidationError
-    mentions the extra field name."""
+    """Construct the model with one extra field; assert pydantic emits a
+    structured ``extra_forbidden`` error whose ``loc`` ends with the
+    unknown field name. Reads the structured error rather than the
+    formatted string so the assertion survives pydantic message tweaks."""
     with pytest.raises(ValidationError) as exc:
         model_cls(**known_kwargs, **{unknown_field: 1})
-    assert unknown_field in str(exc.value), (
-        f"ValidationError for {model_cls.__name__} should mention "
-        f"unknown field {unknown_field!r}; got: {exc.value!s}"
+    matching = [
+        err
+        for err in exc.value.errors()
+        if err["type"] == "extra_forbidden"
+        and err["loc"]
+        and err["loc"][-1] == unknown_field
+    ]
+    assert matching, (
+        f"{model_cls.__name__}: expected an `extra_forbidden` error for "
+        f"{unknown_field!r}; got errors: {exc.value.errors()!r}"
     )
 
 
