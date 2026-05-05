@@ -779,7 +779,15 @@ Receive items from a purchase order.
 
 **Parameters:**
 - `order_id` (required): Purchase order ID
-- `items` (required): Array of items with purchase_order_row_id and quantity
+- `items` (required): Array of items. Each item:
+  - `purchase_order_row_id` (int, required)
+  - `quantity` (float, required, >0)
+  - `received_date` (ISO 8601 string, optional) — when the items were
+    actually received. Defaults to call time, which is wrong for back-dated
+    receives (e.g., re-receiving an old shipment after a variant correction).
+  - `batch_transactions` (array, optional) — required for batch-tracked
+    materials. Each entry: `batch_id` (int) + `quantity` (float). Summed
+    quantity across batch_transactions should equal the row-level quantity.
 - `preview` (optional, default true): true=preview, false=receive
 
 **Safety:** When preview=false, prompts user for confirmation.

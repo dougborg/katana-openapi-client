@@ -180,16 +180,20 @@ def test_stock_transfer_header_patch_rejects_unknown_field() -> None:
     )
 
 
-def test_receive_item_request_rejects_received_date_505() -> None:
-    """#505: the original bug — ``received_date`` silently dropped on
-    ``ReceiveItemRequest``. Now surfaces loudly so the caller knows the
-    field isn't supported and to use ``modify_purchase_order`` for back-dating."""
+def test_receive_item_request_rejects_unknown_field() -> None:
+    """``extra="forbid"`` rejects unknown fields on ``ReceiveItemRequest``.
+
+    #505 originally surfaced via ``received_date`` being silently dropped.
+    That field is now a first-class part of ``ReceiveItemRequest`` (along
+    with ``batch_transactions``), so this test guards the strict-input
+    pattern against any *other* typo or stale field — e.g., callers writing
+    ``recieved_date`` (missing 'e') or ``batch_id`` directly on the row."""
     from katana_mcp.tools.foundation.purchase_orders import ReceiveItemRequest
 
     _assert_forbids(
         ReceiveItemRequest,
         known_kwargs={"purchase_order_row_id": 1, "quantity": 1},
-        unknown_field="received_date",
+        unknown_field="recieved_date",  # common typo
     )
 
 

@@ -81,7 +81,7 @@ from katana_public_api_client.api.purchase_order_row import (
     get_purchase_order_row as api_get_purchase_order_row,
     update_purchase_order_row as api_update_purchase_order_row,
 )
-from katana_public_api_client.client_types import UNSET
+from katana_public_api_client.client_types import UNSET, Unset
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
     CostDistributionMethod,
@@ -363,6 +363,20 @@ async def create_purchase_order(
 # ============================================================================
 
 
+class ReceiveBatchTransaction(BaseModel):
+    """Allocate a portion of a received row's quantity to a specific batch.
+
+    Required for batch-tracked materials so receipts land on the right batch
+    record. The summed ``quantity`` across an item's batch_transactions
+    should equal the row-level ``quantity`` being received.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    batch_id: int = Field(..., description="Batch ID to allocate received quantity to")
+    quantity: float = Field(..., description="Quantity to allocate to this batch", gt=0)
+
+
 class ReceiveItemRequest(BaseModel):
     """Item to receive from purchase order."""
 
@@ -370,6 +384,24 @@ class ReceiveItemRequest(BaseModel):
 
     purchase_order_row_id: int = Field(..., description="Purchase order row ID")
     quantity: float = Field(..., description="Quantity to receive", gt=0)
+    received_date: datetime | None = Field(
+        None,
+        description=(
+            "Optional ISO 8601 timestamp for when the items were actually "
+            "received. Defaults to the time of the call, which is wrong for "
+            "back-dated receives (e.g., re-receiving an old shipment after a "
+            "variant correction)."
+        ),
+    )
+    batch_transactions: list[ReceiveBatchTransaction] | None = Field(
+        None,
+        description=(
+            "Optional batch allocations for this row. Required when the "
+            "underlying material is batch-tracked — without it the receive "
+            "either fails or assigns to a default batch. Each entry pairs a "
+            "batch_id with the quantity to land on that batch."
+        ),
+    )
 
 
 class ReceivePurchaseOrderRequest(BaseModel):
@@ -543,14 +575,33 @@ async def _receive_purchase_order_impl(
         from katana_public_api_client.api.purchase_order import (
             receive_purchase_order as api_receive_purchase_order,
         )
-        from katana_public_api_client.models import PurchaseOrderReceiveRow
+        from katana_public_api_client.models import (
+            PurchaseOrderReceiveRow,
+            PurchaseOrderReceiveRowBatchTransactionsItem,
+        )
 
+        # Caller-supplied received_date wins; fall back to "now" so callers
+        # who don't care still get a sensible timestamp. Without this branch
+        # back-dated re-receives (variant fixes, late paperwork) silently
+        # land on the call time — see #505.
+        default_received_date = datetime.now(UTC)
         receive_rows = []
         for item in request.items:
+            api_batch_transactions: (
+                list[PurchaseOrderReceiveRowBatchTransactionsItem] | Unset
+            ) = UNSET
+            if item.batch_transactions:
+                api_batch_transactions = [
+                    PurchaseOrderReceiveRowBatchTransactionsItem(
+                        batch_id=bt.batch_id, quantity=bt.quantity
+                    )
+                    for bt in item.batch_transactions
+                ]
             row = PurchaseOrderReceiveRow(
                 purchase_order_row_id=item.purchase_order_row_id,
                 quantity=item.quantity,
-                received_date=datetime.now(UTC),
+                received_date=item.received_date or default_received_date,
+                batch_transactions=api_batch_transactions,
             )
             receive_rows.append(row)
 
@@ -592,7 +643,9 @@ async def receive_purchase_order(
 
     Two-step flow: preview=true (default) to preview, preview=false to receive.
     Use verify_order_document first to validate a supplier document against the
-    PO before receiving. Requires the PO ID and row IDs.
+    PO before receiving. Requires the PO ID and row IDs. Each item may include
+    an optional ISO 8601 ``received_date`` for back-dated receives — without it,
+    rows land on the call time.
     """
     response = await _receive_purchase_order_impl(request, context)
     return _receive_response_to_tool_result(response, request=request)
