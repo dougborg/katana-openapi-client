@@ -30,6 +30,7 @@ from katana_mcp.tools._modification import (
     ModificationResponse,
     compute_field_diff,
     make_response_verifier,
+    patch_additional_info,
     to_tool_result,
 )
 from katana_mcp.tools._modification_dispatch import (
@@ -92,6 +93,7 @@ from katana_public_api_client.api.manufacturing_order_recipe import (
     get_manufacturing_order_recipe_row as api_get_mo_recipe_row,
     update_manufacturing_order_recipe_rows as api_update_mo_recipe_row,
 )
+from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
     CreateManufacturingOrderOperationRowRequest as APICreateMOOperationRowRequest,
@@ -2714,17 +2716,15 @@ def _build_update_header_request(
 ) -> APIUpdateManufacturingOrderRequest:
     """Build the PATCH body for ``PATCH /manufacturing_orders/{id}``.
 
-    Echoes ``additional_info`` from ``existing_mo`` when the caller didn't
-    set it, working around the same Katana platform asymmetry that affects
-    ``PATCH /purchase_orders/{id}`` (see #505 / docs/KATANA_API_QUESTIONS.md
-    section 6.1). The wipe reproduces on PATCH for MOs too — verified
-    against PO 16647058 on 2026-05-05.
+    ``additional_info`` is echoed via :func:`patch_additional_info` so
+    Katana's wipe-on-omit doesn't destroy MO notes during a header
+    rename (see its docstring for the full workaround story).
     """
     kwargs = unset_dict(patch, transforms={"status": ManufacturingOrderStatus})
-    if patch.additional_info is None and existing_mo is not None:
-        existing_info = unwrap_unset(existing_mo.additional_info, None)
-        if existing_info:
-            kwargs["additional_info"] = existing_info
+    kwargs["additional_info"] = patch_additional_info(
+        patch.additional_info,
+        existing_mo.additional_info if existing_mo is not None else UNSET,
+    )
     return APIUpdateManufacturingOrderRequest(**kwargs)
 
 

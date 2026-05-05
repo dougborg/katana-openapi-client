@@ -19,6 +19,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.tools._modification import patch_additional_info
 from katana_mcp.tools.decorators import cache_read
 from katana_mcp.tools.list_coercion import CoercedIntListOpt, CoercedStrIntList
 from katana_mcp.tools.tool_result_utils import (
@@ -33,7 +34,10 @@ from katana_mcp.tools.tool_result_utils import (
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_mcp.web_urls import katana_web_url
+from katana_public_api_client.api.stock_adjustment import get_all_stock_adjustments
+from katana_public_api_client.client_types import UNSET, Unset
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
+from katana_public_api_client.utils import unwrap_data
 
 logger = get_logger(__name__)
 
@@ -1357,35 +1361,26 @@ async def _update_stock_adjustment_impl(
 
     services = get_services(context)
 
-    # Echo existing additional_info when the caller didn't change it. Same
-    # Katana platform asymmetry as ``PATCH /purchase_orders/{id}`` (#505 /
-    # docs/KATANA_API_QUESTIONS.md section 6.1) — the wipe reproduces on
-    # ``PATCH /stock_adjustments/{id}`` too. Verified against stock
-    # adjustment 2394711 on 2026-05-05. Pre-fetch only when the echo
-    # might be needed (caller didn't supply additional_info) so the
-    # common-case PATCH stays a single round trip.
-    additional_info_for_body = to_unset(request.additional_info)
+    # Pre-fetch only when echo might be needed (caller didn't supply
+    # additional_info) so the common-case PATCH stays a single round trip.
+    # See :func:`patch_additional_info` for the workaround story.
+    existing_info_field: str | None | Unset = UNSET
     if request.additional_info is None:
-        from katana_public_api_client.api.stock_adjustment import (
-            get_all_stock_adjustments,
-        )
-        from katana_public_api_client.utils import unwrap_data
-
         existing_response = await get_all_stock_adjustments.asyncio_detailed(
             client=services.client, ids=[request.id]
         )
         existing_rows = unwrap_data(existing_response, default=[])
         if existing_rows:
-            existing_info = unwrap_unset(existing_rows[0].additional_info, None)
-            if existing_info:
-                additional_info_for_body = existing_info
+            existing_info_field = existing_rows[0].additional_info
 
     api_request = APIUpdateStockAdjustmentRequest(
         stock_adjustment_number=to_unset(request.stock_adjustment_number),
         stock_adjustment_date=to_unset(request.stock_adjustment_date),
         location_id=to_unset(request.location_id),
         reason=to_unset(request.reason),
-        additional_info=additional_info_for_body,
+        additional_info=patch_additional_info(
+            request.additional_info, existing_info_field
+        ),
     )
 
     response = await api_update_stock_adjustment.asyncio_detailed(

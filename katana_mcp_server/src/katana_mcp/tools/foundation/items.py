@@ -22,6 +22,7 @@ from katana_mcp.tools._modification import (
     ModificationResponse,
     compute_field_diff,
     make_response_verifier,
+    patch_additional_info,
     to_tool_result,
 )
 from katana_mcp.tools._modification_dispatch import (
@@ -69,7 +70,8 @@ from katana_public_api_client.api.variant import (
     get_variant as api_get_variant,
     update_variant as api_update_variant,
 )
-from katana_public_api_client.domain.converters import to_unset, unwrap_unset
+from katana_public_api_client.client_types import UNSET
+from katana_public_api_client.domain.converters import to_unset
 from katana_public_api_client.models import (
     CreateMaterialRequest,
     CreateProductRequest,
@@ -886,13 +888,9 @@ def _build_update_header_request(
 
     Each type has a different field set; ``unset_dict`` filters down to
     the actual fields the API accepts after we've validated routing.
-
-    Echoes ``additional_info`` from ``existing_item`` when the caller didn't
-    set it, working around the same Katana platform asymmetry that affects
-    ``PATCH /purchase_orders/{id}`` (see #505 / docs/KATANA_API_QUESTIONS.md
-    section 6.1). The wipe reproduces on PATCH for all item types
-    (product / material / service); without the echo, any header rename
-    silently destroys notes.
+    ``additional_info`` is echoed via :func:`patch_additional_info` so
+    Katana's wipe-on-omit doesn't destroy item notes during a header
+    rename (see its docstring for the full workaround story).
     """
     request_cls = _TYPE_ENDPOINTS[item_type]["update_request"]
     if item_type == ItemType.PRODUCT:
@@ -902,10 +900,10 @@ def _build_update_header_request(
     else:
         exclude = _PRODUCT_ONLY_FIELDS + _PRODUCT_AND_MATERIAL_FIELDS
     kwargs = unset_dict(patch, exclude=exclude)
-    if patch.additional_info is None and existing_item is not None:
-        existing_info = unwrap_unset(existing_item.additional_info, None)
-        if existing_info:
-            kwargs["additional_info"] = existing_info
+    kwargs["additional_info"] = patch_additional_info(
+        patch.additional_info,
+        existing_item.additional_info if existing_item is not None else UNSET,
+    )
     return request_cls(**kwargs)
 
 

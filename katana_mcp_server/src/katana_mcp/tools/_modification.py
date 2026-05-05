@@ -32,8 +32,36 @@ from fastmcp.tools import ToolResult
 from pydantic import BaseModel, ConfigDict, Field
 
 from katana_mcp.tools.tool_result_utils import BLOCK_WARNING_PREFIX, make_simple_result
-from katana_public_api_client.client_types import UNSET
+from katana_public_api_client.client_types import UNSET, Unset
 from katana_public_api_client.domain.converters import unwrap_unset
+
+
+def patch_additional_info(
+    caller_value: str | None,
+    existing_value: str | None | Unset,
+) -> str | Unset:
+    """Decide ``additional_info`` for a Katana PATCH body.
+
+    Workaround for the platform's wipe-on-omit asymmetry: Katana clears
+    ``additional_info`` to ``""`` whenever the field is omitted from the
+    PATCH body, while every other omitted field is preserved. Confirmed
+    across PO/Material/Product/MO/StockAdjustment — see #505 and
+    ``docs/KATANA_API_QUESTIONS.md`` §6.2.
+
+    Returns:
+        - ``caller_value`` when the caller supplied one (their write wins)
+        - ``existing_value`` (unwrapped) when caller didn't and existing
+          is non-empty (echo to defeat the wipe)
+        - ``UNSET`` otherwise (no echo needed; nothing to preserve)
+
+    The ``UNSET`` return is the same as not setting the field on the
+    attrs request, so callers can unconditionally pass the result via
+    ``additional_info=patch_additional_info(...)``.
+    """
+    if caller_value is not None:
+        return caller_value
+    existing = unwrap_unset(existing_value, None)
+    return existing if existing else UNSET
 
 
 class ConfirmableRequest(BaseModel):
