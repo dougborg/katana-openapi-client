@@ -20,7 +20,7 @@ from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
@@ -134,12 +134,16 @@ class StockTransferSummary(BaseModel):
 class StockTransferBatchTransactionInput(BaseModel):
     """Batch transaction for a batch-tracked variant on a stock transfer row."""
 
+    model_config = ConfigDict(extra="forbid")
+
     batch_id: int = Field(..., description="Batch ID being transferred")
     quantity: float = Field(..., description="Quantity drawn from this batch", gt=0)
 
 
 class StockTransferRowInput(BaseModel):
     """Line item for a stock transfer."""
+
+    model_config = ConfigDict(extra="forbid")
 
     variant_id: int = Field(..., description="Variant ID to transfer")
     quantity: float = Field(..., description="Quantity to transfer", gt=0)
@@ -154,6 +158,8 @@ class StockTransferRowInput(BaseModel):
 
 class CreateStockTransferRequest(BaseModel):
     """Request to create a stock transfer between two locations."""
+
+    model_config = ConfigDict(extra="forbid")
 
     source_location_id: int = Field(..., description="Source location ID")
     destination_location_id: int = Field(
@@ -456,6 +462,8 @@ async def create_stock_transfer(
 
 class ListStockTransfersRequest(BaseModel):
     """Request to list/filter stock transfers (list-tool pattern v2)."""
+
+    model_config = ConfigDict(extra="forbid")
 
     # Paging
     limit: int = Field(
@@ -767,6 +775,8 @@ class StockTransferHeaderPatch(BaseModel):
     ``update_status`` sub-payload.
     """
 
+    model_config = ConfigDict(extra="forbid")
+
     stock_transfer_number: str | None = Field(
         default=None, description="New stock transfer number"
     )
@@ -788,6 +798,8 @@ class StockTransferStatusPatch(BaseModel):
     two-endpoint reality discoverable in the schema while still letting one
     ``modify_stock_transfer`` call mutate both header and status.
     """
+
+    model_config = ConfigDict(extra="forbid")
 
     new_status: StatusLiteral = Field(
         ...,

@@ -12,7 +12,7 @@ from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
@@ -109,6 +109,8 @@ class ItemType(StrEnum):
 
 class SearchItemsRequest(BaseModel):
     """Request model for searching items."""
+
+    model_config = ConfigDict(extra="forbid")
 
     query: str = Field(..., description="Search query (name, SKU, etc.)")
     limit: int = Field(default=20, description="Maximum results to return")
@@ -223,6 +225,8 @@ class CreateItemRequest(BaseModel):
     For complex items with multiple variants and configurations, use the
     native API models directly.
     """
+
+    model_config = ConfigDict(extra="forbid")
 
     type: ItemType = Field(..., description="Type of item to create")
     name: str = Field(..., description="Item name")
@@ -367,6 +371,8 @@ async def create_item(
 
 class GetItemRequest(BaseModel):
     """Request to get an item by ID."""
+
+    model_config = ConfigDict(extra="forbid")
 
     id: int = Field(..., description="Item ID")
     type: ItemType = Field(..., description="Type of item (product, material, service)")
@@ -742,6 +748,8 @@ class ItemHeaderPatch(BaseModel):
     ``_SERVICE_ONLY_FIELDS``.
     """
 
+    model_config = ConfigDict(extra="forbid")
+
     name: str | None = Field(default=None, description="New item name")
     uom: str | None = Field(default=None, description="New unit of measure")
     category_name: str | None = Field(default=None, description="New category")
@@ -780,6 +788,8 @@ class VariantAdd(BaseModel):
     ``material_id`` based on the parent item type.
     """
 
+    model_config = ConfigDict(extra="forbid")
+
     sku: str = Field(..., description="Variant SKU")
     sales_price: float | None = Field(default=None)
     purchase_price: float | None = Field(default=None)
@@ -792,6 +802,8 @@ class VariantAdd(BaseModel):
 
 class VariantUpdate(BaseModel):
     """Patch to an existing variant."""
+
+    model_config = ConfigDict(extra="forbid")
 
     id: int = Field(..., description="Variant ID")
     sku: str | None = Field(default=None)
@@ -1135,6 +1147,8 @@ class GetVariantDetailsRequest(BaseModel):
 
     Accepts a single sku/variant_id OR a list (skus/variant_ids) for batch lookups.
     """
+
+    model_config = ConfigDict(extra="forbid")
 
     sku: str | None = Field(
         default=None,

@@ -14,7 +14,7 @@ from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
@@ -42,6 +42,8 @@ logger = get_logger(__name__)
 
 class CheckInventoryRequest(BaseModel):
     """Request model for checking inventory."""
+
+    model_config = ConfigDict(extra="forbid")
 
     skus_or_variant_ids: CoercedStrIntList = Field(
         ...,
@@ -267,6 +269,8 @@ async def check_inventory(
 class LowStockRequest(BaseModel):
     """Request model for listing low stock items."""
 
+    model_config = ConfigDict(extra="forbid")
+
     threshold: int = Field(default=10, description="Stock threshold level")
     limit: int = Field(default=50, description="Maximum items to return")
     format: Literal["markdown", "json"] = Field(
@@ -280,6 +284,8 @@ class LowStockRequest(BaseModel):
 
 class LowStockItem(BaseModel):
     """Low stock item information."""
+
+    model_config = ConfigDict(extra="forbid")
 
     sku: str
     product_name: str
@@ -412,6 +418,8 @@ async def list_low_stock_items(
 
 class GetInventoryMovementsRequest(BaseModel):
     """Request model for querying inventory movements."""
+
+    model_config = ConfigDict(extra="forbid")
 
     sku: str = Field(..., description="SKU to get movements for")
     limit: int = Field(default=50, description="Maximum movements to return")
@@ -665,6 +673,8 @@ async def get_inventory_movements(
 class StockAdjustmentRow(BaseModel):
     """A single line item in a stock adjustment."""
 
+    model_config = ConfigDict(extra="forbid")
+
     sku: str = Field(..., description="SKU to adjust")
     quantity: float = Field(
         ..., description="Quantity change (positive to add, negative to remove)"
@@ -676,6 +686,8 @@ class StockAdjustmentRow(BaseModel):
 
 class CreateStockAdjustmentRequest(BaseModel):
     """Request to create a stock adjustment."""
+
+    model_config = ConfigDict(extra="forbid")
 
     location_id: int = Field(..., description="Location ID for the adjustment")
     rows: list[StockAdjustmentRow] = Field(..., description="Line items to adjust")
@@ -828,6 +840,8 @@ async def create_stock_adjustment(
 
 class ListStockAdjustmentsRequest(BaseModel):
     """Request to list/filter stock adjustments."""
+
+    model_config = ConfigDict(extra="forbid")
 
     limit: int = Field(
         default=50,
@@ -1201,6 +1215,8 @@ async def list_stock_adjustments(
 class UpdateStockAdjustmentParams(BaseModel):
     """Request to update an existing stock adjustment."""
 
+    model_config = ConfigDict(extra="forbid")
+
     id: int = Field(..., description="Stock adjustment ID to update")
     stock_adjustment_number: str | None = Field(
         default=None, description="New adjustment number (optional)"
@@ -1390,6 +1406,8 @@ async def update_stock_adjustment(
 
 class DeleteStockAdjustmentRequest(BaseModel):
     """Request to delete an existing stock adjustment."""
+
+    model_config = ConfigDict(extra="forbid")
 
     id: int = Field(..., description="Stock adjustment ID to delete")
     preview: bool = Field(

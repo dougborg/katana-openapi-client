@@ -11,7 +11,7 @@ from typing import Annotated
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
@@ -35,6 +35,8 @@ logger = get_logger(__name__)
 
 class CreateProductRequest(BaseModel):
     """Request model for creating a product."""
+
+    model_config = ConfigDict(extra="forbid")
 
     name: str = Field(..., description="Product name")
     sku: str = Field(..., description="SKU for the product variant")
@@ -168,6 +170,8 @@ async def create_product(
 
 class CreateMaterialRequest(BaseModel):
     """Request model for creating a material."""
+
+    model_config = ConfigDict(extra="forbid")
 
     name: str = Field(..., description="Material name")
     sku: str = Field(..., description="SKU for the material variant")

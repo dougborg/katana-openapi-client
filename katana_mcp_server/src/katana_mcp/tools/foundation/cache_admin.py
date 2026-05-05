@@ -25,7 +25,7 @@ from typing import Annotated, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlmodel import SQLModel, func, select
 
 from katana_mcp.logging import get_logger, observe_tool
@@ -64,6 +64,8 @@ CacheEntityType = Literal[
 
 class RebuildCacheRequest(BaseModel):
     """Request model for ``rebuild_cache``."""
+
+    model_config = ConfigDict(extra="forbid")
 
     entity_types: list[CacheEntityType] = Field(
         ...,

@@ -644,14 +644,16 @@ async def run_modify_plan(
             diff=spec.diff,
         )
 
-    # Reject update-style ActionSpecs with empty diffs. This catches the
-    # case where a caller supplied only unknown or derived field names on
-    # the patch payload — pydantic's ``extra="ignore"`` silently dropped
-    # them, leaving the diff (and the resulting PATCH body) empty. Without
-    # this guard, Katana returns a generic "At least 1 field is required"
-    # 422 that's hard to map back to the original input. Adds and deletes
-    # are exempt: adds carry a non-empty diff by construction (required
-    # fields), and deletes have empty diffs by design.
+    # Reject update-style ActionSpecs with empty diffs. With ``extra="forbid"``
+    # on patch models (#487), unknown fields raise ``ValidationError`` at
+    # construction and never reach this point. The remaining cause for an
+    # empty diff is: the caller supplied only the target ``id`` (and possibly
+    # only derived fields, which the prior ``check_derived_fields`` step
+    # rejects with a clearer error). Without this guard, Katana returns a
+    # generic "At least 1 field is required" 422 that's hard to map back to
+    # the original input. Adds and deletes are exempt: adds carry a non-empty
+    # diff by construction (required fields), and deletes have empty diffs
+    # by design.
     for spec in plan:
         if not spec.operation.startswith("update_"):
             continue
@@ -661,9 +663,8 @@ async def run_modify_plan(
         target = f" (target {spec.target_id})" if spec.target_id is not None else ""
         msg = (
             f"No fields to update for {entity_type} {spec.operation}{target} — "
-            f"the patch payload would be empty. This typically means the "
-            f"caller supplied only field names that aren't on the patch "
-            f"model (pydantic silently drops unknown fields)."
+            f"the patch payload would be empty. Provide at least one patchable "
+            f"field on the sub-payload, or omit this operation."
         )
         if derived_for_op:
             derived_names = ", ".join(sorted(derived_for_op))

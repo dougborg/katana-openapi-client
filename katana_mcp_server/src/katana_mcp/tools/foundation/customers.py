@@ -11,7 +11,7 @@ from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools.tool import ToolResult
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from katana_mcp.cache import EntityType
 from katana_mcp.logging import observe_tool
@@ -28,6 +28,8 @@ from katana_mcp.web_urls import katana_web_url
 
 class SearchCustomersRequest(BaseModel):
     """Request model for searching customers."""
+
+    model_config = ConfigDict(extra="forbid")
 
     query: str = Field(..., description="Search query (name or email)")
     limit: int = Field(default=20, description="Maximum results to return")
@@ -136,6 +138,8 @@ async def search_customers(
 
 class GetCustomerRequest(BaseModel):
     """Request model for fetching a customer by ID."""
+
+    model_config = ConfigDict(extra="forbid")
 
     customer_id: int = Field(..., description="Customer ID to look up")
     format: Literal["markdown", "json"] = Field(

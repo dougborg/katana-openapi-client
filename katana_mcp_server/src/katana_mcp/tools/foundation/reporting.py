@@ -44,7 +44,7 @@ from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
@@ -226,6 +226,8 @@ def _row_revenue(row: Any) -> float:
 class TopSellingVariantsRequest(BaseModel):
     """Request for top-selling variants over a date window."""
 
+    model_config = ConfigDict(extra="forbid")
+
     start_date: date = Field(
         ..., description="Start of the window (inclusive, ISO-8601 date)"
     )
@@ -259,6 +261,8 @@ class TopSellingVariantsRequest(BaseModel):
 
 class VariantSalesRow(BaseModel):
     """Per-variant sales aggregate row."""
+
+    model_config = ConfigDict(extra="forbid")
 
     sku: str | None
     variant_id: int
@@ -430,6 +434,8 @@ SalesGroupBy = Literal["day", "week", "month", "variant", "customer", "category"
 class SalesSummaryRequest(BaseModel):
     """Request for grouped sales summary."""
 
+    model_config = ConfigDict(extra="forbid")
+
     start_date: date = Field(..., description="Start of window (inclusive)")
     end_date: date = Field(..., description="End of window (inclusive)")
     group_by: SalesGroupBy = Field(
@@ -447,6 +453,8 @@ class SalesSummaryRequest(BaseModel):
 
 class SummaryRow(BaseModel):
     """Grouped sales aggregate row."""
+
+    model_config = ConfigDict(extra="forbid")
 
     group: str
     units: float
@@ -640,6 +648,8 @@ class InventoryVelocityRequest(BaseModel):
     Exactly one of ``sku_or_variant_id`` (single-item shape) or
     ``sku_or_variant_ids`` (batch shape) must be provided.
     """
+
+    model_config = ConfigDict(extra="forbid")
 
     sku_or_variant_id: str | int | None = Field(
         default=None,
