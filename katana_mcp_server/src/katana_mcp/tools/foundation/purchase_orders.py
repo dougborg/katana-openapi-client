@@ -17,7 +17,7 @@ from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
@@ -113,6 +113,8 @@ logger = get_logger(__name__)
 class PurchaseOrderItem(BaseModel):
     """Line item for a purchase order."""
 
+    model_config = ConfigDict(extra="forbid")
+
     variant_id: int = Field(..., description="Variant ID to purchase")
     quantity: float = Field(..., description="Quantity to order", gt=0)
     price_per_unit: float = Field(..., description="Unit price")
@@ -126,6 +128,8 @@ class PurchaseOrderItem(BaseModel):
 
 class CreatePurchaseOrderRequest(BaseModel):
     """Request to create a purchase order."""
+
+    model_config = ConfigDict(extra="forbid")
 
     supplier_id: int = Field(..., description="Supplier ID")
     location_id: int = Field(
@@ -362,12 +366,16 @@ async def create_purchase_order(
 class ReceiveItemRequest(BaseModel):
     """Item to receive from purchase order."""
 
+    model_config = ConfigDict(extra="forbid")
+
     purchase_order_row_id: int = Field(..., description="Purchase order row ID")
     quantity: float = Field(..., description="Quantity to receive", gt=0)
 
 
 class ReceivePurchaseOrderRequest(BaseModel):
     """Request to receive items from a purchase order."""
+
+    model_config = ConfigDict(extra="forbid")
 
     order_id: int = Field(..., description="Purchase order ID")
     items: list[ReceiveItemRequest] = Field(
@@ -601,6 +609,8 @@ async def receive_purchase_order(
 
 class GetPurchaseOrderRequest(BaseModel):
     """Request to look up a purchase order by number or ID."""
+
+    model_config = ConfigDict(extra="forbid")
 
     order_no: str | None = Field(
         default=None, description="Purchase order number (e.g., 'PO-1022')"
@@ -1308,6 +1318,8 @@ async def get_purchase_order(
 class DocumentItem(BaseModel):
     """Item from a supplier document to verify."""
 
+    model_config = ConfigDict(extra="forbid")
+
     sku: str = Field(..., description="Item SKU from document")
     quantity: float = Field(..., description="Quantity from document")
     unit_price: float | None = Field(None, description="Price from document")
@@ -1345,6 +1357,8 @@ class Discrepancy(BaseModel):
 
 class VerifyOrderDocumentRequest(BaseModel):
     """Request to verify a document against a purchase order."""
+
+    model_config = ConfigDict(extra="forbid")
 
     order_id: int = Field(..., description="Purchase order ID")
     document_items: list[DocumentItem] = Field(
@@ -1635,6 +1649,8 @@ async def verify_order_document(
 
 class ListPurchaseOrdersRequest(BaseModel):
     """Request to list/filter purchase orders (list-tool pattern v2)."""
+
+    model_config = ConfigDict(extra="forbid")
 
     # Paging
     limit: int = Field(
@@ -2148,6 +2164,8 @@ class POHeaderPatch(BaseModel):
     Katana's PATCH /purchase_orders/{id} accepts it as a regular field, so
     no separate status sub-payload is needed."""
 
+    model_config = ConfigDict(extra="forbid")
+
     order_no: str | None = Field(default=None, description="New PO number")
     supplier_id: int | None = Field(default=None, description="New supplier ID")
     currency: str | None = Field(default=None, description="New currency code")
@@ -2178,6 +2196,8 @@ class POHeaderPatch(BaseModel):
 class PORowAdd(BaseModel):
     """A new line item to add to the PO."""
 
+    model_config = ConfigDict(extra="forbid")
+
     variant_id: int = Field(..., description="Variant ID")
     quantity: float = Field(..., description="Quantity", gt=0)
     price_per_unit: float = Field(..., description="Unit price")
@@ -2196,6 +2216,8 @@ class PORowAdd(BaseModel):
 
 class PORowUpdate(BaseModel):
     """Patch to an existing PO row. Carries the row id plus optional fields."""
+
+    model_config = ConfigDict(extra="forbid")
 
     id: int = Field(..., description="Row ID to update")
     quantity: float | None = Field(default=None, description="New quantity", gt=0)
@@ -2224,6 +2246,8 @@ class POAdditionalCostAdd(BaseModel):
     resolves the parent PO's ``default_group_id`` automatically.
     """
 
+    model_config = ConfigDict(extra="forbid")
+
     additional_cost_id: int = Field(..., description="Additional-cost catalog entry ID")
     tax_rate_id: int = Field(..., description="Tax rate ID")
     price: float = Field(..., description="Cost amount")
@@ -2242,6 +2266,8 @@ class POAdditionalCostAdd(BaseModel):
 
 class POAdditionalCostUpdate(BaseModel):
     """Patch to an existing additional-cost row."""
+
+    model_config = ConfigDict(extra="forbid")
 
     id: int = Field(..., description="Cost row ID to update")
     additional_cost_id: int | None = Field(

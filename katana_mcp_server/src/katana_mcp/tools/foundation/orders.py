@@ -12,7 +12,7 @@ from typing import Annotated, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
@@ -39,6 +39,8 @@ logger = get_logger(__name__)
 
 class FulfillOrderRequest(BaseModel):
     """Request to fulfill an order."""
+
+    model_config = ConfigDict(extra="forbid")
 
     order_id: int = Field(..., description="Order ID to fulfill")
     order_type: Literal["manufacturing", "sales"] = Field(

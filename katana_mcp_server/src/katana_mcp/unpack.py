@@ -199,7 +199,15 @@ def unpack_pydantic_params(func: Callable) -> Callable:
         reconstructed_kwargs = kwargs.copy()
 
         for original_param_name, (model_class, field_names) in unpack_mapping.items():
-            # Collect fields for this model
+            # Only declared fields make it to ``model_data`` — unknown
+            # top-level kwargs are stripped here, before construction. As a
+            # consequence, ``extra="forbid"`` on the dispatcher request model
+            # does NOT fire on MCP-protocol traffic (FastMCP's TypeAdapter
+            # against the function signature catches top-level typos earlier).
+            # The dispatcher-level ``extra="forbid"`` is defense in depth for
+            # direct Python callers (tests, internal ``_impl`` calls). The
+            # load-bearing ``extra="forbid"`` for catching wire-level silent
+            # drops lives on the nested sub-payload models — see #487.
             model_data = {}
             for field_name in field_names:
                 if field_name in kwargs:
@@ -226,7 +234,15 @@ def unpack_pydantic_params(func: Callable) -> Callable:
         reconstructed_kwargs = kwargs.copy()
 
         for original_param_name, (model_class, field_names) in unpack_mapping.items():
-            # Collect fields for this model
+            # Only declared fields make it to ``model_data`` — unknown
+            # top-level kwargs are stripped here, before construction. As a
+            # consequence, ``extra="forbid"`` on the dispatcher request model
+            # does NOT fire on MCP-protocol traffic (FastMCP's TypeAdapter
+            # against the function signature catches top-level typos earlier).
+            # The dispatcher-level ``extra="forbid"`` is defense in depth for
+            # direct Python callers (tests, internal ``_impl`` calls). The
+            # load-bearing ``extra="forbid"`` for catching wire-level silent
+            # drops lives on the nested sub-payload models — see #487.
             model_data = {}
             for field_name in field_names:
                 if field_name in kwargs:

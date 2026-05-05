@@ -20,7 +20,7 @@ from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
@@ -131,6 +131,8 @@ logger = get_logger(__name__)
 class SalesOrderItem(BaseModel):
     """Line item for a sales order."""
 
+    model_config = ConfigDict(extra="forbid")
+
     variant_id: int = Field(..., description="Variant ID to sell")
     quantity: float = Field(..., description="Quantity to sell", gt=0)
     price_per_unit: float | None = Field(
@@ -148,6 +150,8 @@ class SalesOrderItem(BaseModel):
 
 class SalesOrderAddress(BaseModel):
     """Billing or shipping address for a sales order."""
+
+    model_config = ConfigDict(extra="forbid")
 
     entity_type: Literal["billing", "shipping"] = Field(
         ..., description="Type of address - billing or shipping"
@@ -168,6 +172,8 @@ class SalesOrderAddress(BaseModel):
 
 class CreateSalesOrderRequest(BaseModel):
     """Request to create a sales order."""
+
+    model_config = ConfigDict(extra="forbid")
 
     customer_id: int = Field(..., description="Customer ID placing the order")
     order_number: str = Field(..., description="Unique sales order number")
@@ -417,6 +423,8 @@ async def create_sales_order(
 
 class ListSalesOrdersRequest(BaseModel):
     """Request to list/filter sales orders (list-tool pattern v2)."""
+
+    model_config = ConfigDict(extra="forbid")
 
     # Paging
     limit: int = Field(
@@ -832,6 +840,8 @@ async def list_sales_orders(
 
 class GetSalesOrderRequest(BaseModel):
     """Request to look up a single sales order with line items."""
+
+    model_config = ConfigDict(extra="forbid")
 
     order_no: str | None = Field(default=None, description="Sales order number")
     order_id: int | None = Field(default=None, description="Sales order ID")
@@ -1472,6 +1482,8 @@ class SOHeaderPatch(BaseModel):
     """Header fields to patch on an SO. Status is included here — the Katana
     PATCH endpoint accepts it as a regular field."""
 
+    model_config = ConfigDict(extra="forbid")
+
     order_no: str | None = Field(default=None, description="New SO number")
     customer_id: int | None = Field(default=None, description="New customer ID")
     location_id: int | None = Field(default=None, description="New location ID")
@@ -1504,6 +1516,8 @@ class SOHeaderPatch(BaseModel):
 class SORowAdd(BaseModel):
     """A new line item to add to the SO."""
 
+    model_config = ConfigDict(extra="forbid")
+
     variant_id: int = Field(..., description="Variant ID")
     quantity: float = Field(..., description="Quantity", gt=0)
     price_per_unit: float | None = Field(default=None, description="Unit price")
@@ -1514,6 +1528,8 @@ class SORowAdd(BaseModel):
 
 class SORowUpdate(BaseModel):
     """Patch to an existing SO row."""
+
+    model_config = ConfigDict(extra="forbid")
 
     id: int = Field(..., description="Row ID to update")
     variant_id: int | None = Field(default=None, description="New variant ID")
@@ -1526,6 +1542,8 @@ class SORowUpdate(BaseModel):
 
 class SOAddressAdd(BaseModel):
     """A new address to attach to the SO."""
+
+    model_config = ConfigDict(extra="forbid")
 
     entity_type: AddressEntityTypeLiteral = Field(
         ..., description="Address kind — billing or shipping"
@@ -1545,6 +1563,8 @@ class SOAddressUpdate(BaseModel):
     the Katana API, so previews show every supplied field as
     ``is_unknown_prior=True`` — we can't read the prior values cheaply."""
 
+    model_config = ConfigDict(extra="forbid")
+
     id: int = Field(..., description="Address ID to update")
     first_name: str | None = Field(default=None)
     last_name: str | None = Field(default=None)
@@ -1559,12 +1579,16 @@ class SOAddressUpdate(BaseModel):
 class SOFulfillmentRowInput(BaseModel):
     """A row inside a fulfillment — references an SO row + a quantity to fulfill."""
 
+    model_config = ConfigDict(extra="forbid")
+
     sales_order_row_id: int = Field(..., description="SO row being fulfilled")
     quantity: float = Field(..., description="Quantity fulfilled", gt=0)
 
 
 class SOFulfillmentAdd(BaseModel):
     """A new fulfillment for the SO."""
+
+    model_config = ConfigDict(extra="forbid")
 
     status: FulfillmentStatusLiteral = Field(
         ..., description="Fulfillment status — DELIVERED or PACKED"
@@ -1584,6 +1608,8 @@ class SOFulfillmentAdd(BaseModel):
 class SOFulfillmentUpdate(BaseModel):
     """Patch to an existing SO fulfillment."""
 
+    model_config = ConfigDict(extra="forbid")
+
     id: int = Field(..., description="Fulfillment ID to update")
     status: FulfillmentStatusLiteral | None = Field(default=None)
     picked_date: datetime | None = Field(default=None)
@@ -1599,6 +1625,8 @@ class SOFulfillmentUpdate(BaseModel):
 class SOShippingFeeAdd(BaseModel):
     """A new shipping fee to attach to the SO."""
 
+    model_config = ConfigDict(extra="forbid")
+
     amount: str = Field(..., description="Fee amount (decimal string)")
     description: str | None = Field(default=None)
     tax_rate_id: int | None = Field(default=None)
@@ -1611,6 +1639,8 @@ class SOShippingFeeUpdate(BaseModel):
     semantic on the fee's amount, not a partial update. The other fields
     are genuinely optional.
     """
+
+    model_config = ConfigDict(extra="forbid")
 
     id: int = Field(..., description="Shipping fee ID to update")
     amount: str = Field(..., description="Fee amount (required by API)")

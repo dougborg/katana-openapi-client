@@ -29,7 +29,7 @@ from enum import Enum
 from typing import Any, ClassVar
 
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from katana_mcp.tools.tool_result_utils import BLOCK_WARNING_PREFIX, make_simple_result
 from katana_public_api_client.client_types import UNSET
@@ -41,7 +41,19 @@ class ConfirmableRequest(BaseModel):
     Pydantic models. Carries the primary entity ``id`` and the ``preview``
     field used by every modification tool's preview/apply gate. Subclasses
     add their entity-specific sub-payload slots and override ``id``'s
-    description with an entity-appropriate label."""
+    description with an entity-appropriate label.
+
+    ``extra="forbid"`` is set here so direct Python construction (tests,
+    internal ``_impl`` callers) catches typos like ``previw=False``. MCP
+    protocol traffic is already protected by FastMCP's TypeAdapter against
+    the function signature — this config does not fire there because
+    ``unpack_pydantic_params`` strips unknown top-level kwargs before
+    construction (see ``katana_mcp/unpack.py``). The load-bearing
+    ``extra="forbid"`` for catching wire-level silent drops lives on the
+    nested sub-payload models (``*Patch``, ``*Add``, ``*Update``, ``*Input``).
+    """
+
+    model_config = ConfigDict(extra="forbid")
 
     id: int = Field(..., description="Entity ID")
     preview: bool = Field(

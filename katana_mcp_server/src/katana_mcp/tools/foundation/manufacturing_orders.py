@@ -20,7 +20,7 @@ from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
@@ -134,6 +134,8 @@ class CreateManufacturingOrderRequest(BaseModel):
       location_id are inferred from the sales order row; passing them explicitly
       is optional and will be ignored by the API.
     """
+
+    model_config = ConfigDict(extra="forbid")
 
     variant_id: int | None = Field(
         default=None,
@@ -506,6 +508,8 @@ _BLOCKING_AVAILABILITY: frozenset[str] = frozenset(
 
 class GetManufacturingOrderRequest(BaseModel):
     """Request to look up a manufacturing order."""
+
+    model_config = ConfigDict(extra="forbid")
 
     order_no: str | None = Field(
         default=None, description="Order number to look up (e.g., '#WEB20082 / 1')"
@@ -1462,6 +1466,8 @@ async def get_manufacturing_order(
 class GetManufacturingOrderRecipeRequest(BaseModel):
     """Request to list ingredient rows for a manufacturing order."""
 
+    model_config = ConfigDict(extra="forbid")
+
     manufacturing_order_id: int = Field(..., description="Manufacturing order ID")
     format: Literal["markdown", "json"] = Field(
         default="markdown",
@@ -1547,6 +1553,8 @@ async def get_manufacturing_order_recipe(
 
 class ListManufacturingOrdersRequest(BaseModel):
     """Request to list/filter manufacturing orders (cache-backed)."""
+
+    model_config = ConfigDict(extra="forbid")
 
     # Paging
     limit: int = Field(
@@ -1938,6 +1946,8 @@ async def list_manufacturing_orders(
 
 class ListBlockingIngredientsRequest(BaseModel):
     """Request to roll up blocking-ingredient rows across manufacturing orders."""
+
+    model_config = ConfigDict(extra="forbid")
 
     mo_status: CoercedStrListOpt = Field(
         default=None,
@@ -2490,6 +2500,8 @@ class MOHeaderPatch(BaseModel):
     """Header fields to patch on an MO. Status is included here — Katana's
     PATCH /manufacturing_orders/{id} accepts it as a regular field."""
 
+    model_config = ConfigDict(extra="forbid")
+
     order_no: str | None = Field(default=None)
     variant_id: int | None = Field(default=None)
     location_id: int | None = Field(default=None)
@@ -2511,6 +2523,8 @@ class MOHeaderPatch(BaseModel):
 class MORecipeRowAdd(BaseModel):
     """A new recipe row (ingredient) on the MO."""
 
+    model_config = ConfigDict(extra="forbid")
+
     variant_id: int = Field(..., description="Variant ID of the ingredient")
     planned_quantity_per_unit: float = Field(..., description="Quantity per unit", gt=0)
     notes: str | None = Field(default=None)
@@ -2519,6 +2533,8 @@ class MORecipeRowAdd(BaseModel):
 
 class MORecipeRowUpdate(BaseModel):
     """Patch to an existing MO recipe row."""
+
+    model_config = ConfigDict(extra="forbid")
 
     id: int = Field(..., description="Recipe row ID")
     variant_id: int | None = Field(default=None)
@@ -2529,6 +2545,8 @@ class MORecipeRowUpdate(BaseModel):
 
 class MOOperationRowAdd(BaseModel):
     """A new operation row (production step) on the MO."""
+
+    model_config = ConfigDict(extra="forbid")
 
     status: ManufacturingOperationStatusLiteral = Field(
         ..., description="Initial operation status"
@@ -2549,6 +2567,8 @@ class MOOperationRowAdd(BaseModel):
 class MOOperationRowUpdate(BaseModel):
     """Patch to an existing MO operation row."""
 
+    model_config = ConfigDict(extra="forbid")
+
     id: int = Field(..., description="Operation row ID")
     status: ManufacturingOperationStatusLiteral | None = Field(default=None)
     operation_id: int | None = Field(default=None)
@@ -2566,6 +2586,8 @@ class MOOperationRowUpdate(BaseModel):
 class MOProductionAdd(BaseModel):
     """A new production record on the MO (output completed quantity)."""
 
+    model_config = ConfigDict(extra="forbid")
+
     completed_quantity: float = Field(
         ..., description="Quantity produced in this production record", gt=0
     )
@@ -2581,6 +2603,8 @@ class MOProductionAdd(BaseModel):
 
 class MOProductionUpdate(BaseModel):
     """Patch to an existing MO production record."""
+
+    model_config = ConfigDict(extra="forbid")
 
     id: int = Field(..., description="Production record ID")
     production_date: datetime | None = Field(default=None)
