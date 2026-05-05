@@ -19,6 +19,7 @@ from fastmcp import FastMCP
 
 from .cache_admin import register_tools as register_cache_admin_tools
 from .catalog import register_tools as register_catalog_tools
+from .corrections import register_tools as register_corrections_tools
 from .customers import register_tools as register_customers_tools
 from .inventory import register_tools as register_inventory_tools
 from .items import register_tools as register_items_tools
@@ -47,6 +48,7 @@ def register_all_foundation_tools(mcp: FastMCP) -> None:
     register_stock_transfer_tools(mcp)
     register_reporting_tools(mcp)
     register_cache_admin_tools(mcp)
+    register_corrections_tools(mcp)
 
 
 __all__ = [

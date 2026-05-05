@@ -60,12 +60,14 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **get_manufacturing_order** - Look up an MO with full details
 - **modify_manufacturing_order** - Unified modify: header, recipe rows, operation rows, production records (multi-action, preview/apply)
 - **delete_manufacturing_order** - Delete an MO (Katana cascades child rows)
+- **correct_manufacturing_order** - Edit a closed (DONE / PARTIALLY_COMPLETED) MO without losing its `done_date` / per-production timestamps. Reopens, swaps ingredients keyed by current variant, then re-closes preserving close-state. See "Closed-Record Corrections" below.
 - **fulfill_order** - Complete manufacturing or sales orders
 - **create_sales_order** - Create sales orders with preview/apply
 - **list_sales_orders** - List SOs with customer/status/date filters
 - **get_sales_order** - Look up an SO with full details
 - **modify_sales_order** - Unified modify: header, rows, addresses, fulfillments, shipping fees (multi-action, preview/apply)
 - **delete_sales_order** - Delete an SO (Katana cascades child rows)
+- **correct_sales_order** - Edit a closed (DELIVERED) SO without losing its `picked_date` / fulfillment metadata. Reopens, edits lines keyed by current variant, then re-closes preserving close-state. See "Closed-Record Corrections" below.
 
 ### Stock Transfers
 - **create_stock_transfer** - Move inventory between locations (preview/apply)
@@ -114,6 +116,40 @@ the same shape:
 
 Destructive `delete_<entity>` tools are siblings of the modify tools —
 keeping them separate makes the destructiveHint annotation honest.
+
+## Closed-Record Corrections
+
+Two specialized tools — `correct_manufacturing_order` and
+`correct_sales_order` — exist for the case where you need to edit a record
+that has *already* reached a terminal status (DONE for an MO, DELIVERED for
+an SO) without losing the original close-state metadata.
+
+The standard `modify_<entity>` tool can technically do this, but the
+operator has to discover and sequence several mechanical quirks each time:
+
+- `done_date` can only be set once an MO is `DONE`; combined `status:
+  DONE + done_date` PATCH calls fail because validation runs *before* the
+  status change applies.
+- Reverting a DONE MO auto-reverses its productions, so the original
+  per-production `quantity`, `production_date`, and serial numbers must be
+  re-played on the way back.
+- Re-fulfilling a DELIVERED SO requires deleting fulfillments first
+  (the delete returns an empty 200 body — `unwrap()` correctly flags it
+  as `APIError`; callers should use `is_success`), then patching the
+  status, editing lines, and re-creating fulfillments with the original
+  `picked_date` / tracking metadata.
+
+The correction tools encode the proven sequence once. Each takes the edits
+keyed by the *current* variant on the row (not the row ID), so the operator
+expresses intent at the level they think about it ("swap SP73000 for
+SP73001 on this MO"). Both follow the standard preview/apply pattern.
+
+Use the regular `modify_<entity>` tool when:
+- The record is still open (no close-state to preserve).
+- The edits don't fit the variant-keyed shape — e.g. you need to add a row,
+  delete a row, or change something other than variant/quantity.
+- The same variant appears on multiple rows and you want to disambiguate
+  with the explicit row ID.
 
 ## Output Format
 
@@ -1062,6 +1098,47 @@ rows / operation rows / production records server-side.
 
 ---
 
+### correct_manufacturing_order
+Edit a closed MO (status DONE or PARTIALLY_COMPLETED) without losing its
+original close-state. Reopens the MO, swaps recipe-row ingredients keyed
+by current variant, then re-closes preserving the original status,
+`done_date`, and per-production `quantity` / `production_date` / serial
+numbers.
+
+For an MO that hasn't shipped yet, use `modify_manufacturing_order`
+directly — there's no close-state to preserve.
+
+**Parameters:**
+- `id` (required): Manufacturing order ID
+- `ingredient_changes` (required, min_length=1): list of recipe-row edits.
+  Each entry: `old_variant_id` (variant currently on the row, required),
+  `new_variant_id` (optional — None to keep variant), and/or
+  `planned_quantity_per_unit` (optional, >0 — None to keep quantity). At
+  least one of `new_variant_id` / `planned_quantity_per_unit` must be set.
+- `preview` (optional, default true): true=preview, false=execute
+
+**Sequence executed (in order):**
+1. PATCH MO status → IN_PROGRESS (Katana auto-reverses productions)
+2. PATCH each recipe row per `ingredient_changes`
+3. POST one production per snapshot (replays `completed_quantity` and
+   `serial_numbers`)
+4. PATCH each new production's `production_date` to its snapshot value
+5. PATCH MO status → DONE
+
+**Errors when:**
+- The MO isn't in DONE / PARTIALLY_COMPLETED status (use `modify_manufacturing_order`).
+- An `old_variant_id` doesn't match any current recipe row, or matches
+  multiple rows (use `modify_manufacturing_order` with the explicit row ID).
+- An `ingredient_changes` entry has neither `new_variant_id` nor
+  `planned_quantity_per_unit` set.
+
+**Returns:** A `ModificationResponse` with one `ActionResult` per phase
+step. Fail-fast halt at any phase boundary leaves the MO in an
+intermediate (open) state with the captured close-state in `prior_state`
+for manual recovery.
+
+---
+
 ### create_sales_order
 Create a sales order.
 
@@ -1178,6 +1255,52 @@ addresses / fulfillments / shipping fees server-side.
 **Parameters:**
 - `id` (required): Sales order ID
 - `preview` (optional, default true): true=preview, false=delete
+
+---
+
+### correct_sales_order
+Edit a closed SO (status DELIVERED) without losing its original
+close-state. Reopens the SO, edits line items keyed by current variant,
+then re-closes preserving the original status, `picked_date`, and per-
+fulfillment metadata (status / `picked_date` / tracking_*).
+
+For an SO that hasn't shipped yet, use `modify_sales_order` directly —
+there's no close-state to preserve.
+
+**Parameters:**
+- `id` (required): Sales order ID
+- `line_changes` (required, min_length=1): list of line-item edits. Each
+  entry: `old_variant_id` (variant currently on the row, required),
+  `new_variant_id` (optional), `quantity` (optional, >0), `price_per_unit`
+  (optional). At least one of the latter three must be set.
+- `preview` (optional, default true): true=preview, false=execute
+
+**Sequence executed (in order):**
+1. DELETE each existing fulfillment (Katana returns empty 200 — handled)
+2. PATCH SO status → PENDING
+3. PATCH each row per `line_changes`
+4. POST one fulfillment per snapshot (replays status + `picked_date` +
+   tracking_* + row references)
+5. PATCH SO status → DELIVERED
+
+**Errors when:**
+- The SO isn't in DELIVERED status.
+- An `old_variant_id` doesn't match any current row, or matches multiple
+  rows on this SO.
+- A `line_changes` entry sets none of `new_variant_id` / `quantity` /
+  `price_per_unit`.
+
+**Constraints:**
+- Only updates rows in place; doesn't add or delete rows. Row IDs must stay
+  stable so the re-created fulfillments can reference them by the original
+  `sales_order_row_id`. If you need to add or remove a line, use
+  `modify_sales_order`.
+- A new `quantity` must be >= the original fulfillment quantity for that
+  row, or Katana will reject the re-fulfillment step.
+
+**Returns:** A `ModificationResponse` with one `ActionResult` per phase
+step. Fail-fast halt leaves the SO in an intermediate (open) state with
+the captured close-state in `prior_state`.
 
 ---
 
