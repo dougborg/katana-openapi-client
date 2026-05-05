@@ -130,10 +130,11 @@ async def _fetch_stock_for_variant(
     response = await get_all_inventory_point.asyncio_detailed(**api_kwargs)
     inventory_items = unwrap_data(response)
 
+    # First pass: extract numbers + collect unique location IDs.
+    rows: list[tuple[int, float, float, float]] = []
     total_in_stock = 0.0
     total_committed = 0.0
     total_expected = 0.0
-    by_location: list[LocationStock] = []
     for inv in inventory_items:
         loc_id = unwrap_unset(inv.location_id, None)
         if loc_id is None:
@@ -144,21 +145,32 @@ async def _fetch_stock_for_variant(
         total_in_stock += in_stock
         total_committed += committed
         total_expected += expected
-        # Resolve location name from the cache; falls back to None on miss
-        # (cache lag is non-fatal — the caller still gets the location_id).
-        loc_dict = await services.cache.get_by_id(EntityType.LOCATION, loc_id)
-        loc_name = loc_dict.get("name") if loc_dict else None
-        by_location.append(
-            LocationStock(
-                location_id=loc_id,
-                location_name=loc_name,
-                in_stock=in_stock,
-                committed=committed,
-                expected=expected,
-                available=in_stock - committed,
-            )
-        )
+        rows.append((loc_id, in_stock, committed, expected))
 
+    # Batch the location-name lookups via the cache's bulk helper —
+    # one query for N IDs instead of N round trips. Cache misses are
+    # non-fatal (location_id alone is still useful to the caller).
+    loc_names: dict[int, str | None] = {}
+    if rows:
+        unique_loc_ids = {loc_id for loc_id, _, _, _ in rows}
+        loc_lookups = await services.cache.get_many_by_ids(
+            EntityType.LOCATION, unique_loc_ids
+        )
+        loc_names = {
+            lid: (loc_lookups.get(lid) or {}).get("name") for lid in unique_loc_ids
+        }
+
+    by_location = [
+        LocationStock(
+            location_id=loc_id,
+            location_name=loc_names.get(loc_id),
+            in_stock=in_stock,
+            committed=committed,
+            expected=expected,
+            available=in_stock - committed,
+        )
+        for loc_id, in_stock, committed, expected in rows
+    ]
     by_location.sort(key=lambda ls: ls.in_stock, reverse=True)
     return StockInfo(
         variant_id=variant_id,
@@ -338,7 +350,14 @@ async def check_inventory(
         md_parts.append("\n## By Location")
         for r in multi_location_results:
             loc_table = format_md_table(
-                headers=["Location", "ID", "In Stock", "Committed", "Available"],
+                headers=[
+                    "Location",
+                    "ID",
+                    "In Stock",
+                    "Committed",
+                    "Available",
+                    "Expected",
+                ],
                 rows=[
                     [
                         ls.location_name or "(unknown)",
@@ -346,6 +365,7 @@ async def check_inventory(
                         ls.in_stock,
                         ls.committed,
                         ls.available,
+                        ls.expected,
                     ]
                     for ls in r.by_location
                 ],
