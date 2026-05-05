@@ -1028,7 +1028,10 @@ Unified modification surface for an MO — header, recipe rows
   (NOT_STARTED / IN_PROGRESS / DONE / BLOCKED / PARTIALLY_COMPLETED).
 - `add_recipe_rows` / `update_recipe_rows` / `delete_recipe_row_ids` —
   ingredient CRUD. Each `add_recipe_rows` entry carries `variant_id` +
-  `planned_quantity_per_unit` + optional notes.
+  `planned_quantity_per_unit` + optional notes. Both add and update
+  accept `batch_transactions` (list of `{batch_id, quantity}`) for
+  batch-tracked ingredients — required so the MO consumes from the
+  right batch records.
 - `add_operation_rows` / `update_operation_rows` /
   `delete_operation_row_ids` — production step CRUD. Operation rows
   carry status (NOT_STARTED / IN_PROGRESS / PAUSED / BLOCKED /

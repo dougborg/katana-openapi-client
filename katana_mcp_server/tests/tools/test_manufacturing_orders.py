@@ -2780,3 +2780,89 @@ def test_build_update_header_no_existing_skips_echo():
     req = _build_update_header_request(MOHeaderPatch(order_no="MO-RENAMED"), None)
 
     assert req.to_dict() == {"order_no": "MO-RENAMED"}
+
+
+# ============================================================================
+# #518: batch_transactions on MORecipeRowAdd / MORecipeRowUpdate
+# ============================================================================
+#
+# Same under-modeled-MCP-request bug class as #505 (receive_purchase_order)
+# and #503 (modify_item.configs). Caller-supplied batch_transactions are
+# now first-class on both add and update; without them, batch-tracked
+# materials on MOs can't be allocated to specific batches via MCP.
+
+
+def test_build_create_recipe_row_request_passes_batch_transactions():
+    """Caller-supplied batch_transactions on add are converted to the
+    attrs API model and forwarded verbatim."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        MORecipeRowAdd,
+        RecipeRowBatchTransaction,
+        _build_create_recipe_row_request,
+    )
+
+    row = MORecipeRowAdd(
+        variant_id=100,
+        planned_quantity_per_unit=2.0,
+        batch_transactions=[
+            RecipeRowBatchTransaction(batch_id=501, quantity=1.0),
+            RecipeRowBatchTransaction(batch_id=502, quantity=1.0),
+        ],
+    )
+    req = _build_create_recipe_row_request(42, row)
+    body = req.to_dict()
+    assert body["batch_transactions"] == [
+        {"batch_id": 501, "quantity": 1.0},
+        {"batch_id": 502, "quantity": 1.0},
+    ]
+    assert body["variant_id"] == 100
+    assert body["manufacturing_order_id"] == 42
+
+
+def test_build_create_recipe_row_request_omits_batch_transactions_when_unset():
+    """Omitted batch_transactions doesn't appear in the wire body — Katana
+    treats absent as 'no batch tracking required for this row'."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        MORecipeRowAdd,
+        _build_create_recipe_row_request,
+    )
+
+    row = MORecipeRowAdd(variant_id=100, planned_quantity_per_unit=2.0)
+    body = _build_create_recipe_row_request(42, row).to_dict()
+    assert "batch_transactions" not in body
+
+
+def test_build_update_recipe_row_request_passes_batch_transactions():
+    """Caller-supplied batch_transactions on update are converted to the
+    attrs API model and forwarded verbatim. Katana replaces the row's
+    existing allocations with this list."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        MORecipeRowUpdate,
+        RecipeRowBatchTransaction,
+        _build_update_recipe_row_request,
+    )
+
+    patch = MORecipeRowUpdate(
+        id=999,
+        batch_transactions=[
+            RecipeRowBatchTransaction(batch_id=503, quantity=3.5),
+        ],
+    )
+    body = _build_update_recipe_row_request(patch).to_dict()
+    assert body["batch_transactions"] == [{"batch_id": 503, "quantity": 3.5}]
+    # ``id`` is excluded — it's the URL path param, not a body field.
+    assert "id" not in body
+
+
+def test_build_update_recipe_row_request_omits_batch_transactions_when_unset():
+    """Update without batch_transactions doesn't replace the row's existing
+    allocations — Katana keeps them."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        MORecipeRowUpdate,
+        _build_update_recipe_row_request,
+    )
+
+    patch = MORecipeRowUpdate(id=999, planned_quantity_per_unit=5.0)
+    body = _build_update_recipe_row_request(patch).to_dict()
+    assert "batch_transactions" not in body
+    assert body["planned_quantity_per_unit"] == 5.0
