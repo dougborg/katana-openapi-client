@@ -16,6 +16,7 @@ from katana_mcp.tools.foundation.purchase_orders import (
     POHeaderPatch,
     PORowAdd,
     PORowUpdate,
+    ReceiveBatchTransaction,
     ReceiveItemRequest,
     ReceivePurchaseOrderRequest,
     ReceivePurchaseOrderResponse,
@@ -1026,8 +1027,8 @@ async def test_receive_purchase_order_order_no_unset():
 
 
 @pytest.mark.asyncio
-async def test_receive_purchase_order_received_date_set():
-    """Test that received_date is set correctly when receiving items."""
+async def test_receive_purchase_order_received_date_falls_back_to_now():
+    """Without a caller-supplied received_date, rows land on the call time."""
     context, lifespan_ctx = create_mock_context()
 
     # Mock successful get and receive
@@ -1085,6 +1086,187 @@ async def test_receive_purchase_order_received_date_set():
     assert isinstance(received_date, datetime)
     assert received_date.tzinfo == UTC
     assert before_time <= received_date <= after_time
+
+
+@pytest.mark.asyncio
+async def test_receive_purchase_order_received_date_passthrough():
+    """Caller-supplied received_date is forwarded verbatim to the receive API.
+
+    Regression: see #505 — the prior impl hardcoded ``datetime.now(UTC)`` and
+    silently dropped any caller-supplied timestamp, breaking back-dated
+    re-receives (e.g., variant fixes for shipments delivered days earlier).
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    mock_po = MagicMock(spec=RegularPurchaseOrder)
+    mock_po.id = 2707171
+    mock_po.order_no = "SRAM-B2B-251824539"
+    mock_po.status = MagicMock()
+    mock_po.status.value = "PARTIALLY_RECEIVED"
+    mock_po.supplier_id = UNSET
+    mock_po.currency = UNSET
+    mock_po.total = UNSET
+
+    mock_get_response = MagicMock()
+    mock_get_response.status_code = 200
+    mock_get_response.parsed = mock_po
+
+    mock_receive_response = MagicMock()
+    mock_receive_response.status_code = 204
+
+    lifespan_ctx.client = MagicMock()
+
+    from katana_public_api_client.api.purchase_order import (
+        get_purchase_order as api_get_purchase_order,
+        receive_purchase_order as api_receive_purchase_order,
+    )
+
+    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
+    api_receive_purchase_order.asyncio_detailed = AsyncMock(
+        return_value=mock_receive_response
+    )
+
+    actual_delivery = datetime(2026, 5, 1, 17, 48, 0, tzinfo=UTC)
+
+    request = ReceivePurchaseOrderRequest(
+        order_id=2707171,
+        items=[
+            ReceiveItemRequest(
+                purchase_order_row_id=7809320,
+                quantity=1.0,
+                received_date=actual_delivery,
+            ),
+            ReceiveItemRequest(
+                purchase_order_row_id=7809321,
+                quantity=2.0,
+                received_date=actual_delivery,
+            ),
+        ],
+        preview=False,
+    )
+
+    await _receive_purchase_order_impl(request, context)
+
+    body = api_receive_purchase_order.asyncio_detailed.call_args.kwargs["body"]
+    assert body[0].received_date == actual_delivery
+    assert body[1].received_date == actual_delivery
+
+
+@pytest.mark.asyncio
+async def test_receive_purchase_order_batch_transactions_passthrough():
+    """Caller-supplied batch_transactions are forwarded to the receive API.
+
+    Required for batch-tracked materials — without this passthrough the
+    receive either fails server-side or lands stock on a default batch.
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    mock_po = MagicMock(spec=RegularPurchaseOrder)
+    mock_po.id = 1234
+    mock_po.order_no = "PO-BATCH-1234"
+    mock_po.status = MagicMock()
+    mock_po.status.value = "NOT_RECEIVED"
+    mock_po.supplier_id = UNSET
+    mock_po.currency = UNSET
+    mock_po.total = UNSET
+
+    mock_get_response = MagicMock()
+    mock_get_response.status_code = 200
+    mock_get_response.parsed = mock_po
+
+    mock_receive_response = MagicMock()
+    mock_receive_response.status_code = 204
+
+    lifespan_ctx.client = MagicMock()
+
+    from katana_public_api_client.api.purchase_order import (
+        get_purchase_order as api_get_purchase_order,
+        receive_purchase_order as api_receive_purchase_order,
+    )
+
+    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
+    api_receive_purchase_order.asyncio_detailed = AsyncMock(
+        return_value=mock_receive_response
+    )
+
+    request = ReceivePurchaseOrderRequest(
+        order_id=1234,
+        items=[
+            ReceiveItemRequest(
+                purchase_order_row_id=501,
+                quantity=10.0,
+                batch_transactions=[
+                    ReceiveBatchTransaction(batch_id=9001, quantity=7.0),
+                    ReceiveBatchTransaction(batch_id=9002, quantity=3.0),
+                ],
+            ),
+        ],
+        preview=False,
+    )
+
+    await _receive_purchase_order_impl(request, context)
+
+    body = api_receive_purchase_order.asyncio_detailed.call_args.kwargs["body"]
+    sent_batches = body[0].batch_transactions
+    assert len(sent_batches) == 2
+    assert sent_batches[0].batch_id == 9001
+    assert sent_batches[0].quantity == 7.0
+    assert sent_batches[1].batch_id == 9002
+    assert sent_batches[1].quantity == 3.0
+    # Wire shape: each item serializes to the API's expected dict.
+    assert body[0].to_dict()["batch_transactions"] == [
+        {"batch_id": 9001, "quantity": 7.0},
+        {"batch_id": 9002, "quantity": 3.0},
+    ]
+
+
+@pytest.mark.asyncio
+async def test_receive_purchase_order_omits_batch_transactions_when_unset():
+    """When the caller doesn't supply batch_transactions, the wire body omits the key.
+
+    UNSET → ``to_dict()`` skips the field, so non-batch-tracked receives don't
+    carry an empty list that the API might choke on.
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    mock_po = MagicMock(spec=RegularPurchaseOrder)
+    mock_po.id = 1234
+    mock_po.order_no = "PO-NOBATCH-1234"
+    mock_po.status = MagicMock()
+    mock_po.status.value = "NOT_RECEIVED"
+    mock_po.supplier_id = UNSET
+    mock_po.currency = UNSET
+    mock_po.total = UNSET
+
+    mock_get_response = MagicMock()
+    mock_get_response.status_code = 200
+    mock_get_response.parsed = mock_po
+
+    mock_receive_response = MagicMock()
+    mock_receive_response.status_code = 204
+
+    lifespan_ctx.client = MagicMock()
+
+    from katana_public_api_client.api.purchase_order import (
+        get_purchase_order as api_get_purchase_order,
+        receive_purchase_order as api_receive_purchase_order,
+    )
+
+    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
+    api_receive_purchase_order.asyncio_detailed = AsyncMock(
+        return_value=mock_receive_response
+    )
+
+    request = ReceivePurchaseOrderRequest(
+        order_id=1234,
+        items=[ReceiveItemRequest(purchase_order_row_id=501, quantity=5.0)],
+        preview=False,
+    )
+
+    await _receive_purchase_order_impl(request, context)
+
+    body = api_receive_purchase_order.asyncio_detailed.call_args.kwargs["body"]
+    assert "batch_transactions" not in body[0].to_dict()
 
 
 # ============================================================================
