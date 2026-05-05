@@ -55,6 +55,7 @@ class SalesReturnRefundStatus(StrEnum):
 
 class SalesOrderStatus(StrEnum):
     not_shipped = "NOT_SHIPPED"
+    pending = "PENDING"
     partially_packed = "PARTIALLY_PACKED"
     partially_delivered = "PARTIALLY_DELIVERED"
     packed = "PACKED"

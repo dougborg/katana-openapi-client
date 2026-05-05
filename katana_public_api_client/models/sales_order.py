@@ -53,7 +53,12 @@ class SalesOrder:
         customer_id (int): Unique identifier of the customer placing the order
         order_no (str): Unique order number for tracking and reference purposes
         location_id (int): Unique identifier of the fulfillment location for this order
-        status (SalesOrderStatus): Fulfillment status of a sales order
+        status (SalesOrderStatus): Fulfillment status of a sales order. ``PENDING`` is the initial
+            status Katana assigns to newly-created sales orders before they
+            progress to ``NOT_SHIPPED`` (per the live API behavior — see
+            also the ``UpdateSalesOrderStatus`` enum which already lists it
+            as a settable value). The ``PARTIALLY_*`` states are
+            server-computed; clients should not attempt to set them.
         created_at (datetime.datetime | Unset): Timestamp when the entity was first created
         updated_at (datetime.datetime | Unset): Timestamp when the entity was last updated
         deleted_at (datetime.datetime | None | Unset): Nullable deletion timestamp

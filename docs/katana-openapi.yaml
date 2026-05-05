@@ -1515,11 +1515,18 @@ components:
       type: string
       enum:
         - NOT_SHIPPED
+        - PENDING
         - PARTIALLY_PACKED
         - PARTIALLY_DELIVERED
         - PACKED
         - DELIVERED
-      description: Fulfillment status of a sales order
+      description: |
+        Fulfillment status of a sales order. ``PENDING`` is the initial
+        status Katana assigns to newly-created sales orders before they
+        progress to ``NOT_SHIPPED`` (per the live API behavior — see
+        also the ``UpdateSalesOrderStatus`` enum which already lists it
+        as a settable value). The ``PARTIALLY_*`` states are
+        server-computed; clients should not attempt to set them.
 
     SalesOrderProductionStatus:
       type: string
