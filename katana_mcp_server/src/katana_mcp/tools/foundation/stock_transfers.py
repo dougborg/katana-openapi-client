@@ -228,17 +228,28 @@ def _transfer_to_response(
     )
 
 
+def _convert_stock_transfer_batch_transactions(
+    items: list[StockTransferBatchTransactionInput],
+) -> list[dict[str, Any]]:
+    """Map MCP ``StockTransferBatchTransactionInput`` payloads to the wire
+    shape Katana expects on a transfer row's ``batch_transactions``.
+
+    Returns dicts (not attrs models) because ``StockTransferRowRequest``
+    doesn't expose ``batch_transactions`` as a declared attrs field —
+    we stash them through ``additional_properties`` so they flow into the
+    serialized JSON body."""
+    return [
+        StockTransferRowBatchTransactionsItem(
+            batch_id=bt.batch_id, quantity=bt.quantity
+        ).to_dict()
+        for bt in items
+    ]
+
+
 def _build_row_requests(
     rows: list[StockTransferRowInput],
 ) -> list[StockTransferRowRequest]:
-    """Convert pydantic row inputs to attrs request rows.
-
-    The generated `StockTransferRowRequest` model exposes only `variant_id` and
-    `quantity` as declared attrs fields, but Katana's API accepts
-    `batch_transactions` on transfer rows (see `StockTransferRow` response).
-    We stash batch transactions through the row's `additional_properties` bag
-    so they flow into the serialized JSON body.
-    """
+    """Convert pydantic row inputs to attrs request rows."""
     out: list[StockTransferRowRequest] = []
     for row in rows:
         api_row = StockTransferRowRequest(
@@ -246,14 +257,10 @@ def _build_row_requests(
             quantity=row.quantity,
         )
         if row.batch_transactions:
-            batch_items = [
-                StockTransferRowBatchTransactionsItem(
-                    batch_id=bt.batch_id, quantity=bt.quantity
-                )
-                for bt in row.batch_transactions
-            ]
             api_row.additional_properties = {
-                "batch_transactions": [bi.to_dict() for bi in batch_items]
+                "batch_transactions": _convert_stock_transfer_batch_transactions(
+                    row.batch_transactions
+                )
             }
         out.append(api_row)
     return out
