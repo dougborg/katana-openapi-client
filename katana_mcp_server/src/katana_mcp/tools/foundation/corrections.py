@@ -1173,18 +1173,24 @@ def register_tools(mcp: FastMCP) -> None:
     """Register correction tools with the FastMCP instance."""
     from mcp.types import ToolAnnotations
 
-    _update = ToolAnnotations(
+    from katana_mcp.tools.prefab_ui import register_preview_tool
+
+    _correct = ToolAnnotations(
         readOnlyHint=False,
-        destructiveHint=False,
+        destructiveHint=True,
         idempotentHint=True,
         openWorldHint=True,
     )
 
-    mcp.tool(
+    register_preview_tool(
+        mcp,
+        correct_manufacturing_order,
         tags={"orders", "manufacturing", "write", "correction"},
-        annotations=_update,
-    )(correct_manufacturing_order)
-    mcp.tool(
+        annotations=_correct,
+    )
+    register_preview_tool(
+        mcp,
+        correct_sales_order,
         tags={"orders", "sales", "write", "correction"},
-        annotations=_update,
-    )(correct_sales_order)
+        annotations=_correct,
+    )

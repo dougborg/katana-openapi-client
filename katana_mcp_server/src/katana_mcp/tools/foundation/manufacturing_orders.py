@@ -3088,24 +3088,34 @@ def register_tools(mcp: FastMCP) -> None:
     """
     from mcp.types import ToolAnnotations
 
+    from katana_mcp.tools.prefab_ui import register_preview_tool
+
     _read = ToolAnnotations(
         readOnlyHint=True,
         destructiveHint=False,
         idempotentHint=True,
         openWorldHint=True,
     )
-    _write = ToolAnnotations(
+    _create = ToolAnnotations(
         readOnlyHint=False, destructiveHint=False, openWorldHint=True
     )
     _destructive_write = ToolAnnotations(
         readOnlyHint=False, destructiveHint=True, openWorldHint=True
     )
+    _modify = ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=True,
+        idempotentHint=True,
+        openWorldHint=True,
+    )
 
-    mcp.tool(
+    register_preview_tool(
+        mcp,
+        create_manufacturing_order,
         tags={"orders", "manufacturing", "write"},
-        annotations=_write,
+        annotations=_create,
         meta=UI_META,
-    )(create_manufacturing_order)
+    )
     mcp.tool(
         tags={"orders", "manufacturing", "read"},
         annotations=_read,
@@ -3122,17 +3132,15 @@ def register_tools(mcp: FastMCP) -> None:
         tags={"orders", "manufacturing", "read"},
         annotations=_read,
     )(get_manufacturing_order_recipe)
-
-    _update = ToolAnnotations(
-        readOnlyHint=False,
-        destructiveHint=False,
-        idempotentHint=True,
-        openWorldHint=True,
+    register_preview_tool(
+        mcp,
+        modify_manufacturing_order,
+        tags={"orders", "manufacturing", "write"},
+        annotations=_modify,
     )
-    mcp.tool(tags={"orders", "manufacturing", "write"}, annotations=_update)(
-        modify_manufacturing_order
-    )
-    mcp.tool(
+    register_preview_tool(
+        mcp,
+        delete_manufacturing_order,
         tags={"orders", "manufacturing", "write", "destructive"},
         annotations=_destructive_write,
-    )(delete_manufacturing_order)
+    )

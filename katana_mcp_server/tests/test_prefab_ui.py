@@ -502,186 +502,67 @@ class TestBuildBatchRecipeUpdateUI:
         _assert_valid_prefab(app)
 
 
-class TestCallToolFromRequest:
-    """Tests for the call_tool_from_request helper.
+def _confirm_button_on_click(envelope: dict, label: str) -> list[dict]:
+    """Return the on_click action list for the Confirm button matching ``label``.
 
-    The helper takes a Pydantic request instance and emits a CallTool
-    action whose ``arguments`` are the request's fields **inlined as
-    literal values** (not template strings — see #491). Used to wire the
-    Confirm buttons in preview UIs back to their tool with
-    ``preview=False``, without an LLM round-trip.
+    All Confirm buttons in the new (post-#316) confirmation pattern fire
+    a list of two actions: ``setState("pending", True)`` and
+    ``sendMessage("Apply: call <tool>(<args>, preview=False)")``. The
+    Cancel button mirrors this with ``cancelled`` and a ``"Cancel: ..."``
+    SendMessage.
+    """
+    buttons = _find_buttons_by_label(envelope, label)
+    assert len(buttons) == 1, (
+        f"Expected exactly one Button with label {label!r}; found {len(buttons)}."
+    )
+    on_click = buttons[0].get("onClick") or buttons[0].get("on_click")
+    assert isinstance(on_click, list), (
+        f"Button {label!r}'s onClick should be a list of actions; got {on_click!r}"
+    )
+    return on_click
+
+
+class TestConfirmButtonEmitsApplyMessage:
+    """The Confirm button on every preview card must fire two actions:
+
+    1. ``setState("pending", True)`` — flips the card to a "Pending…"
+       pill and grays out the buttons (no double-fire footgun).
+    2. ``sendMessage("Apply: call <tool>(<inlined args>, preview=False)")``
+       — prompts the agent to re-issue the apply call.
+
+    The button does **not** fire ``CallTool`` directly. Per ADR-0015 and
+    the spec finding behind #316, an iframe-initiated ``tools/call``
+    returns its result to the iframe, not to the agent — so the only way
+    for the agent to see the apply response is to make the call itself.
     """
 
-    def test_args_inline_each_field(self):
-        from katana_mcp.tools.foundation.purchase_orders import (
-            CreatePurchaseOrderRequest,
-            PurchaseOrderItem,
+    @staticmethod
+    def _assert_apply_actions(on_click: list[dict], tool_name: str) -> dict:
+        """Validate that on_click is exactly [SetState(pending, True),
+        SendMessage(Apply: call <tool>(...))] and return the SendMessage."""
+        set_states = [a for a in on_click if a.get("action") == "setState"]
+        send_messages = [a for a in on_click if a.get("action") == "sendMessage"]
+        assert any(
+            a.get("key") == "pending" and a.get("value") is True for a in set_states
+        ), f"Expected setState('pending', True) in on_click; got {on_click!r}"
+        apply_msgs = [
+            m
+            for m in send_messages
+            if isinstance(m.get("content"), str)
+            and m["content"].startswith(f"Apply: call {tool_name}(")
+        ]
+        assert len(apply_msgs) == 1, (
+            f"Expected exactly one SendMessage with 'Apply: call {tool_name}('; "
+            f"got {[m.get('content') for m in send_messages]!r}"
         )
-        from katana_mcp.tools.prefab_ui import call_tool_from_request
+        return apply_msgs[0]
 
-        request = CreatePurchaseOrderRequest(
-            supplier_id=42,
-            location_id=7,
-            order_number="PO-001",
-            items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.5)],
-            notes="some note",
-        )
-        action = call_tool_from_request(
-            "create_purchase_order",
-            request,
-            overrides={"preview": False},
-        )
-        # Tool name is set
-        assert action.tool == "create_purchase_order"
-        # Each non-overridden field carries the request's actual value, not
-        # a template string. Iterating model_fields catches any future
-        # field added to the model that isn't propagated.
-        expected_dump = request.model_dump(mode="json")
-        for fname in CreatePurchaseOrderRequest.model_fields:
-            if fname == "preview":
-                continue  # overridden — verified separately
-            assert action.arguments[fname] == expected_dump[fname]
-        # Override wins over the inlined value
-        assert action.arguments["preview"] is False
-
-    def test_no_template_strings_appear_in_arguments(self):
-        """Regression for #491: the helper must never emit ``{{ ... }}``
-        template strings in the ``arguments`` dict. Host-side template
-        substitution silently drops args, causing data corruption — values
-        must be inlined at build time so no substitution is required.
-        """
-        from katana_mcp.tools.foundation.purchase_orders import (
-            CreatePurchaseOrderRequest,
-            PurchaseOrderItem,
-        )
-        from katana_mcp.tools.prefab_ui import call_tool_from_request
-
-        request = CreatePurchaseOrderRequest(
-            supplier_id=42,
-            location_id=7,
-            order_number="PO-001",
-            items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.5)],
-        )
-        action = call_tool_from_request(
-            "create_purchase_order",
-            request,
-            overrides={"preview": False},
-        )
-
-        templates = _find_template_strings(action.arguments)
-        assert templates == [], (
-            f"call_tool_from_request emitted template strings — these silently "
-            f"corrupt data when the host fails to substitute them (#491). "
-            f"Found: {templates!r}"
-        )
-
-    def test_datetime_field_serializes_to_iso_string(self):
-        """Pin the ``model_dump(mode="json")`` round-trip: datetime fields
-        must come out as ISO strings, and the dumped args must validate
-        cleanly when fed back through the same model. This guards against
-        a future field with a non-trivial type (Decimal, date, complex
-        nested model) silently producing values the MCP tool validator
-        rejects on the re-invocation path.
-        """
-        from datetime import UTC, datetime
-
-        from katana_mcp.tools.foundation.purchase_orders import (
-            CreatePurchaseOrderRequest,
-            PurchaseOrderItem,
-        )
-        from katana_mcp.tools.prefab_ui import call_tool_from_request
-
-        request = CreatePurchaseOrderRequest(
-            supplier_id=42,
-            location_id=7,
-            order_number="PO-001",
-            items=[
-                PurchaseOrderItem(
-                    variant_id=10,
-                    quantity=1.0,
-                    price_per_unit=2.5,
-                    arrival_date=datetime(2026, 6, 1, 12, 0, tzinfo=UTC),
-                )
-            ],
-        )
-        action = call_tool_from_request("create_purchase_order", request)
-
-        # mode="json" produced an ISO string, not a datetime object. The
-        # iframe will JSON-encode the action when sending back to the
-        # server, so we want strings up front to avoid round-trip surprises.
-        item_arrival = action.arguments["items"][0]["arrival_date"]
-        assert isinstance(item_arrival, str), (
-            f"arrival_date should be an ISO string (mode='json'); "
-            f"got {type(item_arrival).__name__}: {item_arrival!r}"
-        )
-        # And the round-trip works: re-validating from the dumped args
-        # rebuilds an equivalent request without raising.
-        rebuilt = CreatePurchaseOrderRequest.model_validate(action.arguments)
-        assert rebuilt.items[0].arrival_date == request.items[0].arrival_date
-
-
-def _find_template_strings(value: object) -> list[str]:
-    """Recursively walk a JSON-serializable value (typically a CallTool
-    ``arguments`` dict) and return every string containing a Mustache-style
-    ``{{ ... }}`` template. The fix for #491 inlines literal values into
-    actions at build time; this helper is the regression sentinel — any
-    builder that emits a template string in its action args fails loudly.
-    """
-    found: list[str] = []
-    if isinstance(value, str) and "{{" in value and "}}" in value:
-        found.append(value)
-    elif isinstance(value, dict):
-        for v in value.values():
-            found.extend(_find_template_strings(v))
-    elif isinstance(value, list):
-        for v in value:
-            found.extend(_find_template_strings(v))
-    return found
-
-
-def _find_tool_call_actions(tree: object) -> list[dict]:
-    """Walk a Prefab envelope dict/list recursively and return every node
-    that looks like a ``toolCall`` action (i.e. a dict with ``action ==
-    "toolCall"``). Used by the confirm-button regression tests so they can
-    assert on the action's actual ``tool``/``arguments`` fields rather than
-    on the stringified envelope (which is brittle to ordering/quoting).
-    """
-    found: list[dict] = []
-    if isinstance(tree, dict):
-        if tree.get("action") == "toolCall":
-            found.append(tree)
-        for v in tree.values():
-            found.extend(_find_tool_call_actions(v))
-    elif isinstance(tree, list):
-        for item in tree:
-            found.extend(_find_tool_call_actions(item))
-    return found
-
-
-class TestConfirmButtonsUseCallTool:
-    """Tests asserting the Prefab confirm buttons emit CallTool actions
-    (not SendMessage) so the iframe re-invokes the tool directly with
-    ``preview=False``, instead of round-tripping through the LLM.
-    """
-
-    def test_order_preview_confirm_action_emits_calltool(self):
+    def test_order_preview_confirm_emits_apply_send_message(self):
         from katana_mcp.tools.foundation.purchase_orders import (
             CreatePurchaseOrderRequest,
             PurchaseOrderItem,
         )
 
-        order_dict = {
-            "id": 1,
-            "order_number": "PO-1",
-            "supplier_id": 2,
-            "location_id": 3,
-            "status": "NOT_RECEIVED",
-            "entity_type": "regular",
-            "is_preview": True,
-            "warnings": [],
-            "next_actions": [],
-            "message": "Preview",
-        }
         request = CreatePurchaseOrderRequest(
             supplier_id=2,
             location_id=3,
@@ -689,215 +570,47 @@ class TestConfirmButtonsUseCallTool:
             items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.0)],
         )
         app = build_order_preview_ui(
-            order_dict,
+            {
+                "id": 1,
+                "order_number": "PO-1",
+                "supplier_id": 2,
+                "location_id": 3,
+                "status": "NOT_RECEIVED",
+                "warnings": [],
+            },
             "Purchase Order",
             confirm_request=request,
             confirm_tool="create_purchase_order",
         )
         envelope = app.to_json()
 
-        # Walk the envelope's view tree looking for a toolCall action that
-        # invokes create_purchase_order with preview=False. If absent, the
-        # migration regressed — the button reverted to SendMessage.
-        actions = _find_tool_call_actions(envelope)
-        matching = [
-            a
-            for a in actions
-            if a.get("tool") == "create_purchase_order"
-            and a.get("arguments", {}).get("preview") is False
-        ]
-        assert len(matching) == 1, (
-            f"Expected exactly one create_purchase_order toolCall with "
-            f"preview=False; found {len(matching)}. Total toolCall actions "
-            f"in envelope: {len(actions)}."
-        )
-        confirm_args = matching[0]["arguments"]
-        expected = request.model_dump(mode="json")
-        assert confirm_args["supplier_id"] == expected["supplier_id"]
-        assert confirm_args["location_id"] == expected["location_id"]
-        assert confirm_args["order_number"] == expected["order_number"]
-        assert confirm_args["items"] == expected["items"]
-        # And no template literal slipped through anywhere in the args tree.
-        assert _find_template_strings(confirm_args) == []
+        on_click = _confirm_button_on_click(envelope, "Confirm & Create Purchase Order")
+        msg = self._assert_apply_actions(on_click, "create_purchase_order")
+        # Args inlined into the SendMessage text so the agent re-issues
+        # with the exact preview values; preview=False is overridden last
+        # so the apply path is selected.
+        assert "supplier_id=2" in msg["content"]
+        assert "location_id=3" in msg["content"]
+        assert "preview=False" in msg["content"]
 
-    def test_receipt_preview_confirm_action_inlines_request(self):
-        """Regression for #491 covering ``build_receipt_ui`` — the second
-        builder that delegates to ``call_tool_from_request``. If someone
-        reintroduces templating here (or seeds a state-key reference back
-        in), this will fail loudly."""
-        from katana_mcp.tools.foundation.purchase_orders import (
-            ReceiveItemRequest,
-            ReceivePurchaseOrderRequest,
-        )
-
-        response = {
-            "order_id": 1234,
-            "order_number": "PO-1",
-            "is_preview": True,
-            "items_received": 5,
-            "status": "NOT_RECEIVED",
-            "warnings": [],
-        }
-        request = ReceivePurchaseOrderRequest(
-            order_id=1234,
-            items=[ReceiveItemRequest(purchase_order_row_id=10, quantity=5.0)],
-        )
-        app = build_receipt_ui(
-            response,
-            confirm_request=request,
-            confirm_tool="receive_purchase_order",
+    def test_fulfill_preview_confirm_emits_apply_send_message(self):
+        app = build_fulfill_preview_ui(
+            {
+                "order_id": 9999,
+                "order_type": "sales",
+                "order_number": "SO-1",
+                "status": "PARTIALLY_DELIVERED",
+                "warnings": [],
+            }
         )
         envelope = app.to_json()
+        on_click = _confirm_button_on_click(envelope, "Confirm Fulfillment")
+        msg = self._assert_apply_actions(on_click, "fulfill_order")
+        assert "order_id=9999" in msg["content"]
+        assert "order_type='sales'" in msg["content"]
+        assert "preview=False" in msg["content"]
 
-        actions = _find_tool_call_actions(envelope)
-        matching = [
-            a
-            for a in actions
-            if a.get("tool") == "receive_purchase_order"
-            and a.get("arguments", {}).get("preview") is False
-        ]
-        assert len(matching) == 1, (
-            f"Expected exactly one receive_purchase_order toolCall with "
-            f"preview=False; found {len(matching)}."
-        )
-        confirm_args = matching[0]["arguments"]
-        expected = request.model_dump(mode="json")
-        assert confirm_args["order_id"] == expected["order_id"]
-        assert confirm_args["items"] == expected["items"]
-        assert _find_template_strings(confirm_args) == []
-
-    def test_batch_recipe_preview_confirm_action_inlines_request(self):
-        """Regression for #491 covering ``build_batch_recipe_update_ui`` —
-        the third builder that delegates to ``call_tool_from_request``.
-        Uses a stub BaseModel because the batch tool's request shape
-        isn't easily constructible standalone, and the bug class is
-        builder-mechanism-level, not request-shape-specific."""
-        from pydantic import BaseModel as _BaseModel
-
-        class _StubBatchRequest(_BaseModel):
-            mo_ids: list[int] = [9999]
-            replacements: list[str] = ["OLD-FORK -> NEW-FORK"]
-            preview: bool = True
-
-        response = {
-            "is_preview": True,
-            "total_ops": 1,
-            "success_count": 0,
-            "failed_count": 0,
-            "skipped_count": 0,
-            "results": [
-                {
-                    "op_type": "delete",
-                    "manufacturing_order_id": 9999,
-                    "recipe_row_id": 5001,
-                    "status": "pending",
-                    "group_label": "OLD-FORK -> NEW-FORK",
-                }
-            ],
-            "warnings": [],
-            "message": "Preview",
-        }
-        request = _StubBatchRequest()
-        app = build_batch_recipe_update_ui(
-            response,
-            confirm_request=request,
-            confirm_tool="batch_update_recipes",
-        )
-        envelope = app.to_json()
-
-        actions = _find_tool_call_actions(envelope)
-        matching = [
-            a
-            for a in actions
-            if a.get("tool") == "batch_update_recipes"
-            and a.get("arguments", {}).get("preview") is False
-        ]
-        assert len(matching) == 1
-        confirm_args = matching[0]["arguments"]
-        expected = request.model_dump(mode="json")
-        assert confirm_args["mo_ids"] == expected["mo_ids"]
-        assert confirm_args["replacements"] == expected["replacements"]
-        assert _find_template_strings(confirm_args) == []
-
-    def test_fulfill_preview_confirm_action_inlines_response_fields(self):
-        """Regression for #491: ``build_fulfill_preview_ui``'s Confirm button
-        previously templated ``order_id``/``order_type`` from iframe state via
-        ``{{ response.<field> }}``. Host-side substitution silently drops
-        these — must inline literal values from the response dict at build
-        time instead.
-        """
-        response = {
-            "order_id": 9999,
-            "order_type": "sales",
-            "order_number": "SO-1",
-            "status": "PARTIALLY_DELIVERED",
-            "warnings": [],
-        }
-        app = build_fulfill_preview_ui(response)
-        envelope = app.to_json()
-
-        actions = _find_tool_call_actions(envelope)
-        matching = [a for a in actions if a.get("tool") == "fulfill_order"]
-        assert len(matching) == 1, "Confirm Fulfillment button missing or duplicated"
-        args = matching[0]["arguments"]
-        assert args["order_id"] == 9999
-        assert args["order_type"] == "sales"
-        assert args["preview"] is False
-        # Belt-and-suspenders: no template strings anywhere in the args.
-        assert _find_template_strings(args) == []
-
-
-class TestConfirmButtonsHaveFeedbackHandlers:
-    """Regression tests for #495: every Confirm button on every preview
-    builder must wire ``on_success`` and ``on_error`` handlers, otherwise
-    the click fires invisibly. Without these the user has no chat-side
-    or in-iframe signal that the apply tool ran.
-    """
-
-    @staticmethod
-    def _assert_calltool_has_handlers(action: dict, label: str) -> None:
-        """Assert a serialized toolCall action has both lifecycle hooks set.
-
-        We don't pin the *shape* of the hooks (caller wording / variant /
-        component types may evolve) — just that they exist. The point is
-        to make missing handlers fail loudly the moment a future builder
-        forgets to wire them.
-        """
-        on_success = action.get("on_success") or action.get("onSuccess")
-        on_error = action.get("on_error") or action.get("onError")
-        assert on_success, (
-            f"{label}: Confirm button's CallTool has no on_success handler — "
-            f"click would fire invisibly (#495). Action keys: {list(action)}"
-        )
-        assert on_error, (
-            f"{label}: Confirm button's CallTool has no on_error handler — "
-            f"failures would be silent (#495). Action keys: {list(action)}"
-        )
-
-    def test_order_preview_confirm_button_has_feedback_handlers(self):
-        from katana_mcp.tools.foundation.purchase_orders import (
-            CreatePurchaseOrderRequest,
-            PurchaseOrderItem,
-        )
-
-        request = CreatePurchaseOrderRequest(
-            supplier_id=2,
-            location_id=3,
-            order_number="PO-FB-1",
-            items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.0)],
-        )
-        app = build_order_preview_ui(
-            {"order_number": "PO-FB-1", "warnings": []},
-            "Purchase Order",
-            confirm_request=request,
-            confirm_tool="create_purchase_order",
-        )
-        envelope = app.to_json()
-        actions = _find_tool_call_actions(envelope)
-        confirm = next(a for a in actions if a.get("tool") == "create_purchase_order")
-        self._assert_calltool_has_handlers(confirm, "build_order_preview_ui")
-
-    def test_receipt_preview_confirm_button_has_feedback_handlers(self):
+    def test_receipt_preview_confirm_emits_apply_send_message(self):
         from katana_mcp.tools.foundation.purchase_orders import (
             ReceiveItemRequest,
             ReceivePurchaseOrderRequest,
@@ -910,7 +623,7 @@ class TestConfirmButtonsHaveFeedbackHandlers:
         app = build_receipt_ui(
             {
                 "order_id": 1234,
-                "order_number": "PO-FB-2",
+                "order_number": "PO-1",
                 "is_preview": True,
                 "items_received": 5,
                 "status": "NOT_RECEIVED",
@@ -920,11 +633,12 @@ class TestConfirmButtonsHaveFeedbackHandlers:
             confirm_tool="receive_purchase_order",
         )
         envelope = app.to_json()
-        actions = _find_tool_call_actions(envelope)
-        confirm = next(a for a in actions if a.get("tool") == "receive_purchase_order")
-        self._assert_calltool_has_handlers(confirm, "build_receipt_ui")
+        on_click = _confirm_button_on_click(envelope, "Confirm Receipt")
+        msg = self._assert_apply_actions(on_click, "receive_purchase_order")
+        assert "order_id=1234" in msg["content"]
+        assert "preview=False" in msg["content"]
 
-    def test_batch_recipe_preview_confirm_button_has_feedback_handlers(self):
+    def test_batch_recipe_preview_confirm_emits_apply_send_message(self):
         request = _StubRequest()
         app = build_batch_recipe_update_ui(
             {
@@ -948,32 +662,172 @@ class TestConfirmButtonsHaveFeedbackHandlers:
             confirm_tool="batch_update_recipes",
         )
         envelope = app.to_json()
-        actions = _find_tool_call_actions(envelope)
-        confirm = next(a for a in actions if a.get("tool") == "batch_update_recipes")
-        self._assert_calltool_has_handlers(confirm, "build_batch_recipe_update_ui")
+        on_click = _confirm_button_on_click(envelope, "Execute batch")
+        msg = self._assert_apply_actions(on_click, "batch_update_recipes")
+        assert "preview=False" in msg["content"]
 
-    def test_fulfill_preview_confirm_button_has_feedback_handlers(self):
+
+class TestCancelButtonEmitsCancelMessage:
+    """The Cancel button must fire ``setState("cancelled", True)`` plus a
+    ``sendMessage("Cancel: do not apply ...")`` so the agent recognizes the
+    user's opt-out and moves on. Mirrors the Confirm-button contract above.
+    """
+
+    def _assert_cancel_actions(self, on_click: list[dict]) -> None:
+        set_states = [a for a in on_click if a.get("action") == "setState"]
+        send_messages = [a for a in on_click if a.get("action") == "sendMessage"]
+        assert any(
+            a.get("key") == "cancelled" and a.get("value") is True for a in set_states
+        ), f"Expected setState('cancelled', True) in on_click; got {on_click!r}"
+        cancel_msgs = [
+            m
+            for m in send_messages
+            if isinstance(m.get("content"), str)
+            and m["content"].startswith("Cancel: do not apply ")
+        ]
+        assert len(cancel_msgs) == 1, (
+            f"Expected exactly one Cancel SendMessage; "
+            f"got {[m.get('content') for m in send_messages]!r}"
+        )
+
+    def test_order_preview_cancel(self):
+        from katana_mcp.tools.foundation.purchase_orders import (
+            CreatePurchaseOrderRequest,
+            PurchaseOrderItem,
+        )
+
+        request = CreatePurchaseOrderRequest(
+            supplier_id=2,
+            location_id=3,
+            order_number="PO-CANCEL-1",
+            items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.0)],
+        )
+        app = build_order_preview_ui(
+            {"order_number": "PO-CANCEL-1", "warnings": []},
+            "Purchase Order",
+            confirm_request=request,
+            confirm_tool="create_purchase_order",
+        )
+        on_click = _confirm_button_on_click(app.to_json(), "Cancel")
+        self._assert_cancel_actions(on_click)
+
+    def test_fulfill_preview_cancel(self):
         app = build_fulfill_preview_ui(
             {
                 "order_id": 9999,
                 "order_type": "sales",
-                "order_number": "SO-FB-1",
+                "order_number": "SO-CANCEL-1",
                 "status": "IN_PROGRESS",
                 "warnings": [],
             }
         )
-        envelope = app.to_json()
-        actions = _find_tool_call_actions(envelope)
-        confirm = next(a for a in actions if a.get("tool") == "fulfill_order")
-        self._assert_calltool_has_handlers(confirm, "build_fulfill_preview_ui")
+        on_click = _confirm_button_on_click(app.to_json(), "Cancel")
+        self._assert_cancel_actions(on_click)
 
 
-class TestBuildConfirmActionXorInvariant:
-    """``_build_confirm_action`` collapses the optional confirm-button
-    plumbing previously duplicated in ``build_receipt_ui`` and
-    ``build_batch_recipe_update_ui``. Both inputs (``confirm_tool``,
-    ``confirm_request``) must be set together or both ``None``; passing
-    one but not the other is a programmer error.
+class TestPreviewCardSeedsPendingState:
+    """Every preview card must seed ``pending=False`` and ``cancelled=False``
+    in iframe state so the conditional rendering for the "Pending…" /
+    "Cancelled" pills (and the buttons' ``disabled="pending or cancelled"``)
+    starts in the un-pressed default.
+    """
+
+    @staticmethod
+    def _assert_seeds_state(envelope: dict, builder: str) -> None:
+        state = envelope.get("state") or envelope.get("$prefab", {}).get("state") or {}
+        assert state.get("pending") is False, (
+            f"{builder}: state.pending must seed to False; got {state!r}"
+        )
+        assert state.get("cancelled") is False, (
+            f"{builder}: state.cancelled must seed to False; got {state!r}"
+        )
+
+    def test_order_preview(self):
+        from katana_mcp.tools.foundation.purchase_orders import (
+            CreatePurchaseOrderRequest,
+            PurchaseOrderItem,
+        )
+
+        request = CreatePurchaseOrderRequest(
+            supplier_id=2,
+            location_id=3,
+            order_number="PO-STATE-1",
+            items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.0)],
+        )
+        app = build_order_preview_ui(
+            {"order_number": "PO-STATE-1", "warnings": []},
+            "Purchase Order",
+            confirm_request=request,
+            confirm_tool="create_purchase_order",
+        )
+        self._assert_seeds_state(app.to_json(), "build_order_preview_ui")
+
+    def test_fulfill_preview(self):
+        app = build_fulfill_preview_ui(
+            {
+                "order_id": 9999,
+                "order_type": "sales",
+                "order_number": "SO-STATE-1",
+                "status": "IN_PROGRESS",
+                "warnings": [],
+            }
+        )
+        self._assert_seeds_state(app.to_json(), "build_fulfill_preview_ui")
+
+    def test_receipt_preview(self):
+        from katana_mcp.tools.foundation.purchase_orders import (
+            ReceiveItemRequest,
+            ReceivePurchaseOrderRequest,
+        )
+
+        request = ReceivePurchaseOrderRequest(
+            order_id=1234,
+            items=[ReceiveItemRequest(purchase_order_row_id=10, quantity=1.0)],
+        )
+        app = build_receipt_ui(
+            {
+                "order_id": 1234,
+                "order_number": "PO-STATE-2",
+                "is_preview": True,
+                "items_received": 1,
+                "status": "NOT_RECEIVED",
+                "warnings": [],
+            },
+            confirm_request=request,
+            confirm_tool="receive_purchase_order",
+        )
+        self._assert_seeds_state(app.to_json(), "build_receipt_ui")
+
+    def test_batch_recipe_preview(self):
+        request = _StubRequest()
+        app = build_batch_recipe_update_ui(
+            {
+                "is_preview": True,
+                "total_ops": 1,
+                "success_count": 0,
+                "failed_count": 0,
+                "skipped_count": 0,
+                "results": [
+                    {
+                        "op_type": "delete",
+                        "manufacturing_order_id": 1,
+                        "recipe_row_id": 1,
+                        "status": "pending",
+                    }
+                ],
+                "warnings": [],
+                "message": "preview",
+            },
+            confirm_request=request,
+            confirm_tool="batch_update_recipes",
+        )
+        self._assert_seeds_state(app.to_json(), "build_batch_recipe_update_ui")
+
+
+class TestBuildApplyActionXorInvariant:
+    """``_build_apply_action`` requires both ``confirm_tool`` and
+    ``confirm_request`` to be set together (or both ``None``); a
+    single-arg call is a programmer error.
     """
 
     @pytest.mark.parametrize(
@@ -984,30 +838,125 @@ class TestBuildConfirmActionXorInvariant:
         ],
     )
     def test_partial_inputs_raise_value_error(self, tool, request_obj):
-        from katana_mcp.tools.prefab_ui import _build_confirm_action
+        from katana_mcp.tools.prefab_ui import _build_apply_action
 
         with pytest.raises(ValueError, match="must be set together"):
-            _build_confirm_action(
-                tool,
-                request_obj,
-                success_message="ok",
-                success_chat="ok",
-                error_message="fail",
-                error_chat="fail",
-            )
+            _build_apply_action(tool, request_obj)
 
     def test_both_none_returns_none(self):
-        from katana_mcp.tools.prefab_ui import _build_confirm_action
+        from katana_mcp.tools.prefab_ui import _build_apply_action
 
-        result = _build_confirm_action(
-            None,
-            None,
-            success_message="ok",
-            success_chat="ok",
-            error_message="fail",
-            error_chat="fail",
+        assert _build_apply_action(None, None) is None
+
+    def test_apply_message_inlines_args_and_overrides_preview(self):
+        """The ``Apply: call ...`` SendMessage must inline every request
+        field as a literal value and force ``preview=False`` regardless
+        of the request's preview value (the user already saw the preview).
+        """
+        from katana_mcp.tools.foundation.orders import FulfillOrderRequest
+        from katana_mcp.tools.prefab_ui import _build_apply_action
+
+        request = FulfillOrderRequest(order_id=42, order_type="sales", preview=True)
+        actions = _build_apply_action("fulfill_order", request)
+        assert actions is not None
+        send_messages = [a for a in actions if hasattr(a, "content")]
+        assert len(send_messages) == 1
+        text = send_messages[0].content
+        assert text.startswith("Apply: call fulfill_order(")
+        assert "order_id=42" in text
+        assert "order_type='sales'" in text
+        # preview is forced to False even though request.preview was True
+        assert "preview=False" in text
+        assert "preview=True" not in text
+        # And ``preview=False`` is the trailing arg regardless of where the
+        # field appears in args.items() iteration order — agents read a
+        # stable suffix.
+        assert text.rstrip(")").endswith(", preview=False"), (
+            f"`preview=False` must be the trailing arg; got: {text!r}"
         )
-        assert result is None
+
+    def test_preview_field_required_in_request(self):
+        """A request model without a ``preview`` field is a programmer
+        error — the SendMessage would prompt the agent to call the tool
+        with an unrecognized argument that fails validation downstream.
+        Fail loudly at UI-build time instead.
+        """
+        from katana_mcp.tools.prefab_ui import _build_apply_action
+        from pydantic import BaseModel as _BaseModel
+
+        class _NoPreview(_BaseModel):
+            order_id: int = 1
+
+        with pytest.raises(ValueError, match="requires a request model with a"):
+            _build_apply_action("some_tool", _NoPreview())
+
+
+class TestBuildApplyResultUIs:
+    """Tests for the generic apply-result builders introduced alongside
+    the ADR-0015 rail change. These supplement (not replace) the existing
+    per-entity success cards."""
+
+    def test_apply_success_renders_summary_lines(self):
+        from katana_mcp.tools.prefab_ui import build_apply_success_ui
+
+        app = build_apply_success_ui(
+            title="Sales order #WEB20387 fulfilled",
+            summary_lines=[
+                "Item: Carbon Rocker v2 (RGRD24LG5AXSTBK) qty 1",
+                "Inventory: -1 of variant 33331882",
+            ],
+            katana_url="https://factory.katanamrp.com/salesorder/43264353",
+        )
+        envelope = app.to_json()
+        # Title appears verbatim somewhere in the rendered card
+        text_nodes: list[str] = []
+
+        def collect(o: object) -> None:
+            if isinstance(o, dict):
+                if isinstance(o.get("content"), str):
+                    text_nodes.append(o["content"])
+                for v in o.values():
+                    collect(v)
+            elif isinstance(o, list):
+                for v in o:
+                    collect(v)
+
+        collect(envelope)
+        joined = "\n".join(text_nodes)
+        assert "Sales order #WEB20387 fulfilled" in joined
+        assert "Carbon Rocker v2" in joined
+        assert "Inventory: -1 of variant 33331882" in joined
+
+    def test_apply_error_surfaces_actual_error_message(self):
+        """Closes #545 — the actual error string is not swallowed."""
+        from katana_mcp.tools.prefab_ui import build_apply_error_ui
+
+        app = build_apply_error_ui(
+            operation="Fulfilling sales order #WEB20387",
+            error_message="Katana API 422: row 108462734 already shipped",
+            hint="Check the SO's current production_status before retrying.",
+        )
+        envelope = app.to_json()
+        text_nodes: list[str] = []
+
+        def collect(o: object) -> None:
+            if isinstance(o, dict):
+                if isinstance(o.get("content"), str):
+                    text_nodes.append(o["content"])
+                for v in o.values():
+                    collect(v)
+            elif isinstance(o, list):
+                for v in o:
+                    collect(v)
+
+        collect(envelope)
+        joined = "\n".join(text_nodes)
+        assert "Fulfilling sales order #WEB20387 failed" in joined
+        # The actual error string must be visible — the whole point of
+        # this builder vs. the static-string toast/SendMessage from the
+        # old preview→apply codepath.
+        assert "Katana API 422: row 108462734 already shipped" in joined
+        assert "Check the SO's current production_status" in joined
 
 
 def _find_buttons_by_label(tree: object, label: str) -> list[dict]:
@@ -1052,7 +1001,9 @@ class TestBlockWarningSuppressesConfirm:
         )
         envelope = app.to_json()
 
-        confirm_buttons = _find_buttons_by_label(envelope, "Confirm & Create")
+        confirm_buttons = _find_buttons_by_label(
+            envelope, "Confirm & Create Manufacturing Order"
+        )
         cancel_buttons = _find_buttons_by_label(envelope, "Cancel")
         assert len(confirm_buttons) == 0, (
             "Confirm button must be suppressed when a BLOCK: warning is "
@@ -1078,7 +1029,9 @@ class TestBlockWarningSuppressesConfirm:
         )
         envelope = app.to_json()
 
-        confirm_buttons = _find_buttons_by_label(envelope, "Confirm & Create")
+        confirm_buttons = _find_buttons_by_label(
+            envelope, "Confirm & Create Manufacturing Order"
+        )
         assert len(confirm_buttons) == 1, (
             "Confirm button must be present when no BLOCK: warning is set."
         )

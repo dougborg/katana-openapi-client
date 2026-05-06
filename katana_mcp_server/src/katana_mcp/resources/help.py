@@ -81,12 +81,39 @@ Manufacturing ERP tools for inventory, orders, and production management.
 ## Safety Pattern
 
 All create/modify operations use a **two-step preview/apply pattern**:
-1. Call with `preview=true` (default) to preview (no changes made)
-2. Call with `preview=false` to execute
+1. Call with `preview=true` (default) — returns a Prefab preview card with
+   Confirm and Cancel buttons. **No changes made.**
+2. Call with `preview=false` — executes the operation. Triggered either by
+   the user clicking Confirm on the preview card, or by the agent
+   re-issuing the call after a chat-based confirmation.
 
 Destructive tools advertise this via the standard MCP `destructiveHint`
 tool annotation; hosts that respect the annotation prompt the user before
 invoking. The server does not gate further.
+
+### Agent guidance for preview→apply
+
+After returning a preview, **do not re-narrate the card or ask for
+confirmation in chat** — the buttons handle that. End your turn and wait
+for the user.
+
+When the user clicks Confirm on a preview card, the iframe sends a chat
+message of the form:
+
+    Apply: call <tool_name>(<arg>=<value>, ..., preview=False)
+
+Recognize the `Apply:` prefix and re-issue the tool call **exactly as
+written**, with all inlined arguments preserved. The agent's tool-calling
+loop is the only path that lets the agent see the structured apply
+response — the iframe-initiated call (which the spec routes back to the
+iframe, not to the agent) was the wrong rail; see ADR-0015.
+
+When the user clicks Cancel, the iframe sends:
+
+    Cancel: do not apply <description>.
+
+Acknowledge briefly without re-issuing. The user can ask again later if
+they want to retry.
 
 ## Unified-Modify Pattern
 

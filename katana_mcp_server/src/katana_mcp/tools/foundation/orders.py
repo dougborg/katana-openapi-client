@@ -47,7 +47,7 @@ class FulfillOrderRequest(BaseModel):
         ..., description="Type of order (manufacturing or sales)"
     )
     preview: bool = Field(
-        True,
+        default=True,
         description="If true (default), returns preview. If false, fulfills order.",
     )
 
@@ -391,10 +391,14 @@ def register_tools(mcp: FastMCP) -> None:
     """
     from mcp.types import ToolAnnotations
 
-    mcp.tool(
+    from katana_mcp.tools.prefab_ui import register_preview_tool
+
+    register_preview_tool(
+        mcp,
+        fulfill_order,
         tags={"orders", "write", "destructive"},
         annotations=ToolAnnotations(
             readOnlyHint=False, destructiveHint=True, openWorldHint=True
         ),
         meta=UI_META,
-    )(fulfill_order)
+    )

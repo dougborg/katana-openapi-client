@@ -1704,6 +1704,8 @@ def register_tools(mcp: FastMCP) -> None:
     """
     from mcp.types import ToolAnnotations
 
+    from katana_mcp.tools.prefab_ui import register_preview_tool
+
     _read = ToolAnnotations(
         readOnlyHint=True,
         destructiveHint=False,
@@ -1711,7 +1713,7 @@ def register_tools(mcp: FastMCP) -> None:
         openWorldHint=True,
     )
 
-    _write = ToolAnnotations(
+    _create = ToolAnnotations(
         readOnlyHint=False,
         destructiveHint=False,
         openWorldHint=True,
@@ -1731,8 +1733,21 @@ def register_tools(mcp: FastMCP) -> None:
     )
     mcp.tool(tags={"inventory", "read"}, annotations=_read)(get_inventory_movements)
     mcp.tool(tags={"inventory", "read"}, annotations=_read)(list_stock_adjustments)
-    mcp.tool(tags={"inventory", "write"}, annotations=_write)(create_stock_adjustment)
-    mcp.tool(tags={"inventory", "write"}, annotations=_write)(update_stock_adjustment)
-    mcp.tool(tags={"inventory", "write"}, annotations=_destructive_write)(
-        delete_stock_adjustment
+    register_preview_tool(
+        mcp,
+        create_stock_adjustment,
+        tags={"inventory", "write"},
+        annotations=_create,
+    )
+    register_preview_tool(
+        mcp,
+        update_stock_adjustment,
+        tags={"inventory", "write"},
+        annotations=_destructive_write,
+    )
+    register_preview_tool(
+        mcp,
+        delete_stock_adjustment,
+        tags={"inventory", "write"},
+        annotations=_destructive_write,
     )

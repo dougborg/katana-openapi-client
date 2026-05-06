@@ -2710,7 +2710,9 @@ def register_tools(mcp: FastMCP) -> None:
     """
     from mcp.types import ToolAnnotations
 
-    _write = ToolAnnotations(
+    from katana_mcp.tools.prefab_ui import register_preview_tool
+
+    _create = ToolAnnotations(
         readOnlyHint=False, destructiveHint=False, openWorldHint=True
     )
     _read = ToolAnnotations(
@@ -2725,17 +2727,28 @@ def register_tools(mcp: FastMCP) -> None:
         idempotentHint=True,
         openWorldHint=True,
     )
+    _receive = _destructive
+    _modify = ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=True,
+        idempotentHint=True,
+        openWorldHint=True,
+    )
 
-    mcp.tool(
+    register_preview_tool(
+        mcp,
+        create_purchase_order,
         tags={"orders", "purchasing", "write"},
-        annotations=_write,
+        annotations=_create,
         meta=UI_META,
-    )(create_purchase_order)
-    mcp.tool(
+    )
+    register_preview_tool(
+        mcp,
+        receive_purchase_order,
         tags={"orders", "purchasing", "write"},
-        annotations=_write,
+        annotations=_receive,
         meta=UI_META,
-    )(receive_purchase_order)
+    )
     mcp.tool(
         tags={"orders", "purchasing", "read"},
         annotations=_read,
@@ -2747,18 +2760,15 @@ def register_tools(mcp: FastMCP) -> None:
     mcp.tool(tags={"orders", "purchasing", "read"}, annotations=_read)(
         get_purchase_order
     )
-    # ``modify_purchase_order`` is non-destructive — it modifies but never
-    # deletes the entity. Hence the ``write`` tag and update-style annotation.
-    _update = ToolAnnotations(
-        readOnlyHint=False,
-        destructiveHint=False,
-        idempotentHint=True,
-        openWorldHint=True,
+    register_preview_tool(
+        mcp,
+        modify_purchase_order,
+        tags={"orders", "purchasing", "write"},
+        annotations=_modify,
     )
-    mcp.tool(tags={"orders", "purchasing", "write"}, annotations=_update)(
-        modify_purchase_order
-    )
-    mcp.tool(
+    register_preview_tool(
+        mcp,
+        delete_purchase_order,
         tags={"orders", "purchasing", "write", "destructive"},
         annotations=_destructive,
-    )(delete_purchase_order)
+    )
