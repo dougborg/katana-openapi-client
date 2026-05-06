@@ -44,6 +44,10 @@
       "source": "local",
       "note": "Migrated from .claude/commands/pre-commit.md"
     },
+    ".claude/skills/correct-shipped-build/SKILL.md": {
+      "source": "local",
+      "note": "Orchestrates correct_manufacturing_order + correct_sales_order + split_via_bom for shipped-order discrepancies; tracked under #534. Migrate to plugin distribution when #525 lands."
+    },
     ".claude/skills/review/SKILL.md": {
       "source": "local",
       "note": "Migrated from .claude/commands/review.md; delegates to code-reviewer agent"

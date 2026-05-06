@@ -151,6 +151,27 @@ Use the regular `modify_<entity>` tool when:
 - The same variant appears on multiple rows and you want to disambiguate
   with the explicit row ID.
 
+**No `correct_purchase_order` or `correct_stock_transfer`** — those entity
+types don't fit the pattern:
+
+- **Purchase orders** — Katana's receipt records are append-only at the row
+  level. `modify_purchase_order` can patch a row's `received_date` (when
+  already set), but it **cannot zero out a row's `received_quantity`** —
+  there's no unreceive endpoint, and `quantity` / `variant_id` on a row are
+  only updatable when `received_date` is null. So a clean reopen path
+  doesn't exist (tracked in #532). For inventory-level recovery today:
+  `create_stock_adjustment` at the original cost basis to undo the
+  receipt's stock effect — this fixes inventory, but the PO record's
+  received quantities remain historically incorrect until Katana exposes an
+  unreceive / reset mechanism. Plan for the audit trail to show the
+  original receipt + the compensating adjustment, not a corrected receipt.
+- **Stock transfers** — no completion timestamp on the model and rows are
+  immutable, so the close-state pattern adds no value. For corrections:
+  `create_stock_adjustment` at the destination location for quantity
+  discrepancies; `delete_stock_transfer` + `create_stock_transfer` for wrong
+  variants; `modify_stock_transfer` for header metadata (works on RECEIVED
+  transfers as-is).
+
 ## Output Format
 
 Every list/get/search and reporting tool accepts a shared `format` parameter:
