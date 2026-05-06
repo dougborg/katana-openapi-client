@@ -62,6 +62,14 @@ class CheckInventoryRequest(BaseModel):
             "Output order matches input order."
         ),
     )
+    location_id: int | None = Field(
+        default=None,
+        description=(
+            "Filter to a single warehouse/facility. When set, the response "
+            "totals and `by_location` only include this location. Look up "
+            "location IDs via the `katana://locations` resource."
+        ),
+    )
     format: Literal["markdown", "json"] = Field(
         default="markdown",
         description=(
@@ -71,8 +79,22 @@ class CheckInventoryRequest(BaseModel):
     )
 
 
+class LocationStock(BaseModel):
+    """Per-location stock breakdown for a single variant."""
+
+    location_id: int
+    location_name: str | None = None
+    in_stock: float
+    committed: float
+    expected: float
+    available: float
+
+
 class StockInfo(BaseModel):
-    """Stock information for a variant."""
+    """Stock information for a variant. Totals are sums across locations
+    (or a single location when ``location_id`` was supplied on the
+    request); ``by_location`` carries the per-warehouse breakdown so
+    callers can see where stock actually is without a follow-up query."""
 
     variant_id: int | None = None
     sku: str
@@ -81,29 +103,75 @@ class StockInfo(BaseModel):
     committed: float
     expected: float
     in_stock: float
+    by_location: list[LocationStock] = Field(default_factory=list)
 
 
 async def _fetch_stock_for_variant(
-    services: Any, variant_id: int, sku: str, product_name: str
+    services: Any,
+    variant_id: int,
+    sku: str,
+    product_name: str,
+    location_id: int | None = None,
 ) -> StockInfo:
-    """Query the inventory endpoint and sum stock across all locations."""
+    """Query the inventory endpoint and return totals + per-location breakdown.
+
+    When ``location_id`` is supplied, the API call is scoped to that
+    location (so totals and ``by_location`` only cover one warehouse).
+    Without the filter, totals are the sum across every location the
+    variant has stock at, and ``by_location`` is sorted by ``in_stock``
+    descending so the largest holding shows first."""
     from katana_public_api_client.api.inventory import get_all_inventory_point
     from katana_public_api_client.domain.converters import unwrap_unset
     from katana_public_api_client.utils import unwrap_data
 
-    response = await get_all_inventory_point.asyncio_detailed(
-        client=services.client, variant_id=variant_id
-    )
+    api_kwargs: dict[str, Any] = {"client": services.client, "variant_id": variant_id}
+    if location_id is not None:
+        api_kwargs["location_id"] = location_id
+    response = await get_all_inventory_point.asyncio_detailed(**api_kwargs)
     inventory_items = unwrap_data(response)
 
+    # First pass: extract numbers + collect unique location IDs.
+    rows: list[tuple[int, float, float, float]] = []
     total_in_stock = 0.0
     total_committed = 0.0
     total_expected = 0.0
     for inv in inventory_items:
-        total_in_stock += float(unwrap_unset(inv.quantity_in_stock, "0"))
-        total_committed += float(unwrap_unset(inv.quantity_committed, "0"))
-        total_expected += float(unwrap_unset(inv.quantity_expected, "0"))
+        loc_id = unwrap_unset(inv.location_id, None)
+        if loc_id is None:
+            continue
+        in_stock = float(unwrap_unset(inv.quantity_in_stock, "0"))
+        committed = float(unwrap_unset(inv.quantity_committed, "0"))
+        expected = float(unwrap_unset(inv.quantity_expected, "0"))
+        total_in_stock += in_stock
+        total_committed += committed
+        total_expected += expected
+        rows.append((loc_id, in_stock, committed, expected))
 
+    # Batch the location-name lookups via the cache's bulk helper —
+    # one query for N IDs instead of N round trips. Cache misses are
+    # non-fatal (location_id alone is still useful to the caller).
+    loc_names: dict[int, str | None] = {}
+    if rows:
+        unique_loc_ids = {loc_id for loc_id, _, _, _ in rows}
+        loc_lookups = await services.cache.get_many_by_ids(
+            EntityType.LOCATION, unique_loc_ids
+        )
+        loc_names = {
+            lid: (loc_lookups.get(lid) or {}).get("name") for lid in unique_loc_ids
+        }
+
+    by_location = [
+        LocationStock(
+            location_id=loc_id,
+            location_name=loc_names.get(loc_id),
+            in_stock=in_stock,
+            committed=committed,
+            expected=expected,
+            available=in_stock - committed,
+        )
+        for loc_id, in_stock, committed, expected in rows
+    ]
+    by_location.sort(key=lambda ls: ls.in_stock, reverse=True)
     return StockInfo(
         variant_id=variant_id,
         sku=sku,
@@ -112,6 +180,7 @@ async def _fetch_stock_for_variant(
         committed=total_committed,
         expected=total_expected,
         in_stock=total_in_stock,
+        by_location=by_location,
     )
 
 
@@ -167,6 +236,7 @@ async def _check_inventory_impl(
                     variant["id"],
                     item,
                     variant.get("display_name") or variant.get("sku") or "",
+                    location_id=request.location_id,
                 )
 
             variant = await _fetch_variant_by_id(services, item)
@@ -183,7 +253,11 @@ async def _check_inventory_impl(
                 )
             sku = variant.get("sku", "")
             return await _fetch_stock_for_variant(
-                services, item, sku, variant.get("display_name") or sku or ""
+                services,
+                item,
+                sku,
+                variant.get("display_name") or sku or "",
+                location_id=request.location_id,
             )
 
         results = list(await asyncio.gather(*(_fetch(item) for item in items)))
@@ -220,10 +294,16 @@ async def check_inventory(
     items return a summary table. Batching N checks in one call is faster than
     N separate invocations.
 
-    Returns available, committed, expected, and in_stock quantities summed
-    across all locations. Use before creating orders to verify stock
-    availability, or with a batch list to check multiple ingredients at once
-    (e.g. all EXPECTED items in an MO recipe).
+    By default returns totals summed across every location the variant has
+    stock at, plus a per-location ``by_location`` breakdown so callers can
+    see where stock actually is without a follow-up query. Pass
+    ``location_id`` to filter to a single warehouse — totals and
+    ``by_location`` then only cover that one location. Look up location
+    IDs via the ``katana://locations`` resource.
+
+    Use before creating orders to verify stock availability, or with a
+    batch list to check multiple ingredients at once (e.g. all EXPECTED
+    items in an MO recipe).
     """
     from katana_mcp.tools.prefab_ui import build_inventory_check_ui
 
@@ -236,14 +316,16 @@ async def check_inventory(
             structured_content=payload,
         )
 
-    # Single-variant request: preserve the rich Prefab card output
+    # Single-variant request: preserve the rich Prefab card output, plus
+    # append a per-location breakdown table whenever stock is split across
+    # more than one warehouse (single-location → no extra noise).
     is_single = len(results) == 1 and len(request.skus_or_variant_ids) == 1
     if is_single:
         response = results[0]
         ui = build_inventory_check_ui(response.model_dump())
         return make_tool_result(response, ui=ui)
 
-    # Batch response: summary table
+    # Batch response: summary table + optional per-location breakdown
     from katana_mcp.tools.tool_result_utils import format_md_table, make_simple_result
 
     table = format_md_table(
@@ -260,7 +342,36 @@ async def check_inventory(
             for r in results
         ],
     )
-    md = f"## Inventory Check ({len(results)} items)\n\n{table}"
+    md_parts = [f"## Inventory Check ({len(results)} items)\n\n{table}"]
+    # Surface per-location breakdown for any item that has stock at >1 location.
+    # Single-location items don't get a redundant breakdown table.
+    multi_location_results = [r for r in results if len(r.by_location) > 1]
+    if multi_location_results:
+        md_parts.append("\n## By Location")
+        for r in multi_location_results:
+            loc_table = format_md_table(
+                headers=[
+                    "Location",
+                    "ID",
+                    "In Stock",
+                    "Committed",
+                    "Available",
+                    "Expected",
+                ],
+                rows=[
+                    [
+                        ls.location_name or "(unknown)",
+                        ls.location_id,
+                        ls.in_stock,
+                        ls.committed,
+                        ls.available,
+                        ls.expected,
+                    ]
+                    for ls in r.by_location
+                ],
+            )
+            md_parts.append(f"\n### {r.sku}\n\n{loc_table}")
+    md = "\n".join(md_parts)
     return make_simple_result(
         md,
         structured_data={"items": [r.model_dump() for r in results]},

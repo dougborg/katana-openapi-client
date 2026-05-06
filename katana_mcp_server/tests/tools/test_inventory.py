@@ -1926,7 +1926,9 @@ async def test_check_inventory_mixed_sku_and_variant_id():
         ),
     }
 
-    async def _fake_fetch_stock(_services, variant_id, _sku, _product_name):
+    async def _fake_fetch_stock(
+        _services, variant_id, _sku, _product_name, location_id=None
+    ):
         return stock_by_id[variant_id]
 
     with (
@@ -2291,3 +2293,270 @@ async def test_update_stock_adjustment_pre_fetch_failure_is_best_effort():
     # The user's update lands even though the pre-fetch failed.
     assert result.is_preview is False
     update_mock.assert_called_once()
+
+
+# ============================================================================
+# #529: per-location breakdown on check_inventory
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_per_location_breakdown_populated():
+    """A variant with stock at multiple locations gets a populated
+    `by_location` list. Sorted by `in_stock` desc so the largest holding
+    shows first. Location names resolved from cache."""
+    context, lifespan_ctx = create_mock_context()
+
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
+    )
+
+    # Cache returns location names for both warehouses (one bulk call —
+    # impl uses get_many_by_ids to avoid an N+1 against the cache).
+    lifespan_ctx.cache.get_many_by_ids = AsyncMock(
+        return_value={161114: {"name": "Demo"}, 160411: {"name": "Spot HQ"}}
+    )
+
+    inv_demo = MagicMock()
+    inv_demo.location_id = 161114
+    inv_demo.quantity_in_stock = "1.0"
+    inv_demo.quantity_committed = "0.0"
+    inv_demo.quantity_expected = "0.0"
+
+    inv_main = MagicMock()
+    inv_main.location_id = 160411
+    inv_main.quantity_in_stock = "10.0"
+    inv_main.quantity_committed = "2.0"
+    inv_main.quantity_expected = "5.0"
+
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[inv_demo, inv_main]),
+    ):
+        request = CheckInventoryRequest(skus_or_variant_ids=["WIDGET-001"])
+        results = await _check_inventory_impl(request, context)
+
+    result = results[0]
+    # Totals match the existing aggregation behavior
+    assert result.in_stock == 11.0
+    assert result.committed == 2.0
+    assert result.expected == 5.0
+    # Per-location breakdown is populated, sorted desc by in_stock
+    assert len(result.by_location) == 2
+    assert result.by_location[0].location_id == 160411  # Spot HQ has more stock
+    assert result.by_location[0].location_name == "Spot HQ"
+    assert result.by_location[0].in_stock == 10.0
+    assert result.by_location[0].available == 8.0  # 10 - 2
+    assert result.by_location[1].location_id == 161114
+    assert result.by_location[1].location_name == "Demo"
+    assert result.by_location[1].in_stock == 1.0
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_location_filter_threads_to_api():
+    """Passing location_id on the request is forwarded to
+    get_all_inventory_point as `location_id=`. Verified by capturing the
+    mocked call kwargs."""
+    context, lifespan_ctx = create_mock_context()
+
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
+    )
+    lifespan_ctx.cache.get_many_by_ids = AsyncMock(
+        return_value={161114: {"name": "Demo"}}
+    )
+
+    inv_demo = MagicMock()
+    inv_demo.location_id = 161114
+    inv_demo.quantity_in_stock = "1.0"
+    inv_demo.quantity_committed = "0.0"
+    inv_demo.quantity_expected = "0.0"
+
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
+        patch(_UNWRAP_DATA, return_value=[inv_demo]),
+    ):
+        request = CheckInventoryRequest(
+            skus_or_variant_ids=["WIDGET-001"], location_id=161114
+        )
+        await _check_inventory_impl(request, context)
+
+    # The API was called with location_id=161114 forwarded
+    assert mock_api.call_args.kwargs["location_id"] == 161114
+    assert mock_api.call_args.kwargs["variant_id"] == 3001
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_zero_stock_returns_empty_by_location():
+    """A variant with no stock anywhere returns an empty by_location list
+    (not None)."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
+    )
+
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[]),
+    ):
+        request = CheckInventoryRequest(skus_or_variant_ids=["WIDGET-001"])
+        results = await _check_inventory_impl(request, context)
+
+    assert results[0].in_stock == 0.0
+    assert results[0].by_location == []
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_location_name_falls_back_to_none_on_cache_miss():
+    """If the cache doesn't have the location (cold cache, lag, etc.),
+    `location_name` is None — the location_id alone is still useful and
+    cache lag shouldn't block the inventory lookup."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
+    )
+    # Cache miss — get_many_by_ids returns an empty dict (the requested
+    # location ID isn't in the cache yet, so it's absent from the result).
+    lifespan_ctx.cache.get_many_by_ids = AsyncMock(return_value={})
+
+    inv = MagicMock()
+    inv.location_id = 999999
+    inv.quantity_in_stock = "5.0"
+    inv.quantity_committed = "0.0"
+    inv.quantity_expected = "0.0"
+
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[inv]),
+    ):
+        request = CheckInventoryRequest(skus_or_variant_ids=["WIDGET-001"])
+        results = await _check_inventory_impl(request, context)
+
+    assert len(results[0].by_location) == 1
+    assert results[0].by_location[0].location_id == 999999
+    assert results[0].by_location[0].location_name is None
+    assert results[0].by_location[0].in_stock == 5.0
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_uses_bulk_cache_lookup_not_n_plus_one():
+    """Cache enrichment for location names goes through `get_many_by_ids`
+    (one query for N IDs), not N round-trips of `get_by_id`.
+
+    Regression for the N+1 pattern that PR #535 review caught — a batch
+    request touching many variants across multiple locations would otherwise
+    fan out a flood of single-row cache calls."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
+    )
+
+    bulk_mock = AsyncMock(
+        return_value={
+            161114: {"name": "Demo"},
+            160411: {"name": "Spot HQ"},
+            161115: {"name": "R&D"},
+        }
+    )
+    lifespan_ctx.cache.get_many_by_ids = bulk_mock
+    # If the impl falls back to per-row lookups, this would be called instead.
+    per_row_mock = AsyncMock()
+    lifespan_ctx.cache.get_by_id = per_row_mock
+
+    rows = []
+    for loc_id, qty in [(161114, "1.0"), (160411, "10.0"), (161115, "5.0")]:
+        inv = MagicMock()
+        inv.location_id = loc_id
+        inv.quantity_in_stock = qty
+        inv.quantity_committed = "0.0"
+        inv.quantity_expected = "0.0"
+        rows.append(inv)
+
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=rows),
+    ):
+        request = CheckInventoryRequest(skus_or_variant_ids=["WIDGET-001"])
+        results = await _check_inventory_impl(request, context)
+
+    # Bulk lookup called once for all 3 location IDs; per-row helper untouched.
+    bulk_mock.assert_awaited_once()
+    per_row_mock.assert_not_awaited()
+    # All 3 names resolved via the bulk dict.
+    names = {ls.location_name for ls in results[0].by_location}
+    assert names == {"Demo", "Spot HQ", "R&D"}
+
+
+def test_inventory_check_card_renders_by_location_table_when_split():
+    """Single-item Prefab card renders a per-location table when stock is
+    split across multiple warehouses. This is the load-bearing path
+    (single-SKU lookup is the most common check_inventory call). Without
+    this, the per-location data on `StockInfo` is invisible to the
+    primary user-facing render path."""
+    from katana_mcp.tools.prefab_ui import build_inventory_check_ui
+
+    stock = {
+        "sku": "WIDGET-001",
+        "product_name": "Test Widget",
+        "in_stock": 11.0,
+        "available_stock": 9.0,
+        "committed": 2.0,
+        "expected": 5.0,
+        "by_location": [
+            {
+                "location_id": 160411,
+                "location_name": "Spot HQ",
+                "in_stock": 10.0,
+                "committed": 2.0,
+                "expected": 5.0,
+                "available": 8.0,
+            },
+            {
+                "location_id": 161114,
+                "location_name": "Demo",
+                "in_stock": 1.0,
+                "committed": 0.0,
+                "expected": 0.0,
+                "available": 1.0,
+            },
+        ],
+    }
+    import json as _json
+
+    rendered = _json.dumps(build_inventory_check_ui(stock).to_json())
+    # The DataTable is in the tree
+    assert "DataTable" in rendered
+    # The per-location stock data is wired through state for the renderer
+    assert '"by_location"' in rendered
+    # The "N locations" badge is set
+    assert "2 locations" in rendered
+
+
+def test_inventory_check_card_omits_by_location_table_when_single_location():
+    """When stock is at one location only, no breakdown table — keeps the
+    common case quiet. The headline metrics already tell the story."""
+    from katana_mcp.tools.prefab_ui import build_inventory_check_ui
+
+    stock = {
+        "sku": "WIDGET-001",
+        "product_name": "Test Widget",
+        "in_stock": 10.0,
+        "available_stock": 8.0,
+        "committed": 2.0,
+        "expected": 5.0,
+        "by_location": [
+            {
+                "location_id": 160411,
+                "location_name": "Spot HQ",
+                "in_stock": 10.0,
+                "committed": 2.0,
+                "expected": 5.0,
+                "available": 8.0,
+            },
+        ],
+    }
+    import json as _json
+
+    rendered = _json.dumps(build_inventory_check_ui(stock).to_json())
+    assert "DataTable" not in rendered
+    assert "locations" not in rendered  # No "N locations" badge either

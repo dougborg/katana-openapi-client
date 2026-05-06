@@ -103,12 +103,17 @@ class TestMCPParameterPassing:
 
         assert params2 == [
             "skus_or_variant_ids",
+            "location_id",
             "format",
             "context",
-        ], "check_inventory has flattened params: skus_or_variant_ids, format, context"
+        ], (
+            "check_inventory has flattened params: "
+            "skus_or_variant_ids, location_id, format, context"
+        )
         # skus_or_variant_ids is required (no default) so the MCP schema marks
         # it required; the min_length=1 Pydantic constraint also rejects [].
         assert sig2.parameters["skus_or_variant_ids"].default is inspect.Parameter.empty
+        assert sig2.parameters["location_id"].default is None
         assert sig2.parameters["format"].default == "markdown"
         from katana_mcp.tools.foundation.inventory import CheckInventoryRequest
         from pydantic import ValidationError as PydanticValidationError
