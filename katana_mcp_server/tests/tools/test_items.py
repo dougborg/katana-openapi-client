@@ -539,6 +539,58 @@ def test_dict_to_variant_details_no_parent_returns_none_url():
     assert response.katana_url is None
 
 
+def test_dict_to_variant_details_supplier_lifted_from_supplier_dict():
+    """``default_supplier_name`` comes from the *supplier* dict, while
+    ``default_supplier_id`` and ``uom`` come from the *parent* dict — pinning
+    the source-of-truth contract so a future refactor can't quietly swap them.
+    """
+    from katana_mcp.tools.foundation.items import _dict_to_variant_details
+
+    response = _dict_to_variant_details(
+        {"id": 1, "sku": "P-1", "product_id": 42},
+        parent={"uom": "ml", "default_supplier_id": 7, "batch_tracked": True},
+        supplier={"name": "Acme Industrial"},
+    )
+    assert response.uom == "ml"
+    assert response.default_supplier_id == 7
+    assert response.default_supplier_name == "Acme Industrial"
+    assert response.is_batch_tracked is True
+
+
+@pytest.mark.asyncio
+async def test_enrich_variants_keeps_product_and_material_maps_separate():
+    """Product IDs and material IDs are NOT guaranteed disjoint (the cache
+    keys rows by ``(entity_type, id)``). A previous version merged them into
+    one ``parent_by_id`` keyed on numeric ID, which would mis-attach a
+    material parent to a product variant when IDs collided. This test
+    constructs a colliding-ID scenario and pins the per-type lookup so the
+    bug can't regress (Copilot review on #542).
+    """
+    from katana_mcp.cache import EntityType
+    from katana_mcp.tools.foundation.items import _enrich_variants_with_parent
+
+    services = MagicMock()
+    services.cache = MagicMock()
+    services.cache.get_many_by_ids = AsyncMock(
+        side_effect=lambda entity_type, _ids: {
+            EntityType.PRODUCT: {42: {"id": 42, "uom": "pcs", "name": "Widget"}},
+            EntityType.MATERIAL: {42: {"id": 42, "uom": "ml", "name": "Sealant"}},
+            EntityType.SUPPLIER: {},
+        }[entity_type]
+    )
+
+    variants = [
+        {"id": 1, "sku": "P-COL", "product_id": 42},
+        {"id": 2, "sku": "M-COL", "material_id": 42},
+    ]
+    products, materials, _ = await _enrich_variants_with_parent(services, variants)
+
+    assert products[42]["uom"] == "pcs"
+    assert products[42]["name"] == "Widget"
+    assert materials[42]["uom"] == "ml"
+    assert materials[42]["name"] == "Sealant"
+
+
 def test_item_katana_url_returns_none_for_service_type(_no_web_base_url: None):
     """Services have no per-item page in Katana's web app. Products and
     materials route to distinct singular paths (``/product/{id}`` and

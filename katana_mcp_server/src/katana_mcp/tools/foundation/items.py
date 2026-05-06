@@ -1236,6 +1236,12 @@ class VariantDetailsResponse(BaseModel):
     """Full variant details. Exhaustive — every field Katana exposes on the
     ``Variant`` attrs model is surfaced, including nested configuration
     attributes and custom fields, so callers don't need follow-up lookups.
+
+    A handful of fields (``uom``, ``default_supplier_*``, ``is_batch_tracked``)
+    live on the parent product/material rather than on the variant attrs
+    model. The impl resolves the parent from the cache and lifts these
+    fields onto the variant response so a single ``get_variant_details``
+    call surfaces every fact a caller typically needs to act on.
     """
 
     # Core fields
@@ -1252,6 +1258,13 @@ class VariantDetailsResponse(BaseModel):
     product_id: int | None = None
     material_id: int | None = None
     product_or_material_name: str | None = None
+
+    # Parent-item context (lifted from the parent product/material —
+    # variants don't carry these on the attrs model directly)
+    uom: str | None = None
+    default_supplier_id: int | None = None
+    default_supplier_name: str | None = None
+    is_batch_tracked: bool | None = None
 
     # Deep-link to the parent product or material — variants don't have
     # their own page in Katana's web app, so callers click through to the
@@ -1302,11 +1315,19 @@ def _iso_or_none(value: Any) -> str | None:
     return str(value)
 
 
-def _dict_to_variant_details(v: dict[str, Any]) -> VariantDetailsResponse:
+def _dict_to_variant_details(
+    v: dict[str, Any],
+    *,
+    parent: dict[str, Any] | None = None,
+    supplier: dict[str, Any] | None = None,
+) -> VariantDetailsResponse:
     """Build a VariantDetailsResponse from a cache/API variant dict.
 
-    Surfaces every field the generated ``Variant`` attrs model exposes, so
-    callers get the full shape in a single call.
+    Surfaces every field the generated ``Variant`` attrs model exposes
+    plus the parent-derived context (``uom``, ``default_supplier_*``,
+    ``is_batch_tracked``) when ``parent`` and/or ``supplier`` dicts are
+    supplied. Both are optional; missing parents/suppliers (cold cache,
+    miss) gracefully degrade to ``None`` for those fields.
     """
     product_id = v.get("product_id")
     material_id = v.get("material_id")
@@ -1317,6 +1338,7 @@ def _dict_to_variant_details(v: dict[str, Any]) -> VariantDetailsResponse:
     parent_url = katana_web_url("product", product_id) or katana_web_url(
         "material", material_id
     )
+    parent_dict = parent or {}
     return VariantDetailsResponse(
         id=v["id"],
         sku=v.get("sku") or "",
@@ -1327,6 +1349,10 @@ def _dict_to_variant_details(v: dict[str, Any]) -> VariantDetailsResponse:
         product_id=product_id,
         material_id=material_id,
         product_or_material_name=v.get("parent_name"),
+        uom=parent_dict.get("uom"),
+        default_supplier_id=parent_dict.get("default_supplier_id"),
+        default_supplier_name=(supplier or {}).get("name"),
+        is_batch_tracked=parent_dict.get("batch_tracked"),
         katana_url=parent_url,
         internal_barcode=v.get("internal_barcode"),
         registered_barcode=v.get("registered_barcode"),
@@ -1339,6 +1365,47 @@ def _dict_to_variant_details(v: dict[str, Any]) -> VariantDetailsResponse:
         updated_at=_iso_or_none(v.get("updated_at")),
         deleted_at=_iso_or_none(v.get("deleted_at")),
     )
+
+
+async def _enrich_variants_with_parent(
+    services: Any, variants: list[dict[str, Any]]
+) -> tuple[
+    dict[int, dict[str, Any]],
+    dict[int, dict[str, Any]],
+    dict[int, dict[str, Any]],
+]:
+    """Bulk-fetch parent products/materials and default suppliers for a
+    set of variants. Returns ``(products_by_id, materials_by_id,
+    supplier_by_id)`` — separate maps per entity type so callers can
+    select the correct parent based on whether the variant carries
+    ``product_id`` or ``material_id``.
+
+    Product and material IDs are NOT guaranteed disjoint (the cache
+    keys rows by ``(entity_type, id)``), so merging into a single map
+    keyed only by numeric ID would mis-associate parents on collision.
+
+    Splits parent IDs by entity type and uses ``get_many_by_ids`` per
+    type so we make at most three cache queries total
+    (parents-product, parents-material, suppliers) regardless of how
+    many variants are in the input.
+    """
+    product_ids = {v.get("product_id") for v in variants if v.get("product_id")}
+    material_ids = {v.get("material_id") for v in variants if v.get("material_id")}
+    products, materials = await asyncio.gather(
+        services.cache.get_many_by_ids(EntityType.PRODUCT, product_ids),
+        services.cache.get_many_by_ids(EntityType.MATERIAL, material_ids),
+    )
+    # Pull supplier IDs from both parent dicts, then bulk-resolve
+    # supplier names — usually a small unique set even for big variant lists.
+    supplier_ids = {
+        p.get("default_supplier_id")
+        for p in (*products.values(), *materials.values())
+        if p.get("default_supplier_id")
+    }
+    supplier_by_id = await services.cache.get_many_by_ids(
+        EntityType.SUPPLIER, supplier_ids
+    )
+    return products, materials, supplier_by_id
 
 
 async def _fetch_variant_by_id(services: Any, variant_id: int) -> dict[str, Any] | None:
@@ -1404,15 +1471,35 @@ async def _get_variant_details_impl(
         asyncio.gather(*(_fetch_variant_by_id(services, v) for v in variant_ids)),
     )
 
-    results: list[VariantDetailsResponse] = []
+    found: list[dict[str, Any]] = []
     for sku, v in zip(sku_cleaned, sku_variants, strict=True):
         if not v:
             raise ValueError(f"Variant with SKU '{sku}' not found")
-        results.append(_dict_to_variant_details(v))
+        found.append(v)
     for variant_id, v in zip(variant_ids, id_variants, strict=True):
         if v is None:
             raise ValueError(f"Variant ID {variant_id} not found")
-        results.append(_dict_to_variant_details(v))
+        found.append(v)
+
+    # Bulk-fetch parents + suppliers once for the whole batch so the
+    # response includes UoM, default supplier name, and batch-tracked
+    # status without a per-variant follow-up call (#538).
+    products, materials, supplier_by_id = await _enrich_variants_with_parent(
+        services, found
+    )
+    results: list[VariantDetailsResponse] = []
+    for v in found:
+        # Pick the parent map by which ID the variant carries — product
+        # and material IDs may collide, so a merged map would mis-attach.
+        if v.get("product_id"):
+            parent = products.get(v["product_id"])
+        elif v.get("material_id"):
+            parent = materials.get(v["material_id"])
+        else:
+            parent = None
+        sup_id = (parent or {}).get("default_supplier_id")
+        supplier = supplier_by_id.get(sup_id) if sup_id else None
+        results.append(_dict_to_variant_details(v, parent=parent, supplier=supplier))
 
     return results
 

@@ -91,6 +91,93 @@ class TestBuildVariantDetailsUI:
         app = build_variant_details_ui(variant)
         _assert_valid_prefab(app)
 
+    def test_includes_uom_when_set(self):
+        """UoM should render in the reference section when the parent supplied it."""
+        variant = {
+            "id": 100,
+            "sku": "SEAL-250",
+            "name": "Tubeless Sealant",
+            "uom": "ml",
+            "sales_price": 12.99,
+        }
+        app = build_variant_details_ui(variant)
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "UoM: ml" in rendered
+        # Price should use uom suffix when uom isn't pcs/ea.
+        assert "$12.99 / ml" in rendered
+
+    def test_omits_uom_when_unset(self):
+        """No UoM line and no /uom price suffix when parent didn't supply uom."""
+        variant = {
+            "id": 100,
+            "sku": "SKU-001",
+            "name": "Widget",
+            "sales_price": 10.0,
+        }
+        app = build_variant_details_ui(variant)
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "UoM:" not in rendered
+        assert "$10.00" in rendered
+        # No `/ <uom>` suffix on the bare price.
+        assert "$10.00 /" not in rendered
+
+    def test_includes_config_attributes_as_badges(self):
+        """Config attributes should appear inline so the variant axes are visible."""
+        variant = {
+            "id": 100,
+            "sku": "SHIRT-RED-L",
+            "name": "T-Shirt",
+            "config_attributes": [
+                {"config_name": "Color", "config_value": "Red"},
+                {"config_name": "Size", "config_value": "Large"},
+            ],
+        }
+        app = build_variant_details_ui(variant)
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "Color: Red" in rendered
+        assert "Size: Large" in rendered
+
+    def test_includes_default_supplier_name(self):
+        """Supplier name (with id in parens) should appear in the reference section."""
+        variant = {
+            "id": 100,
+            "sku": "SKU-001",
+            "name": "Widget",
+            "default_supplier_id": 42,
+            "default_supplier_name": "Acme Industrial",
+        }
+        app = build_variant_details_ui(variant)
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "Default Supplier: Acme Industrial (42)" in rendered
+
+    def test_renders_when_parent_lookup_returns_nothing(self):
+        """When parent enrichment finds nothing (uom/supplier/batch all None),
+        the card still renders without crashing and skips the parent-derived rows.
+        """
+        variant = {
+            "id": 100,
+            "sku": "SKU-001",
+            "name": "Orphan Variant",
+            "sales_price": 5.0,
+            "uom": None,
+            "default_supplier_id": None,
+            "default_supplier_name": None,
+            "is_batch_tracked": None,
+        }
+        app = build_variant_details_ui(variant)
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "UoM:" not in rendered
+        assert "Default Supplier" not in rendered
+        assert "Batch tracked" not in rendered
+        # Identity still renders.
+        assert "Orphan Variant" in rendered
+        assert "SKU-001" in rendered
+
 
 class TestBuildItemDetailUI:
     def test_product(self):
