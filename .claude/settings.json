@@ -1,0 +1,5 @@
+{
+  "enabledPlugins": {
+    "harness-kit@harness-kit": true
+  }
+}
