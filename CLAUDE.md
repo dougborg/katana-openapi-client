@@ -240,6 +240,21 @@ Common mistakes to avoid:
   **exclude the path in tool config** — never `rm -rf` the directory. Treat
   `.claude/worktrees/` as off-limits for destructive operations.
 
+- **Cache IDs are not globally unique — never merge cross-entity maps by numeric ID
+  alone** - The legacy `CatalogCache` (`katana_mcp/cache.py`) — and `services.cache` by
+  extension — keys rows by `(entity_type, id)`, so a product with `id=42` and a material
+  with `id=42` are both legal. When enriching a list of variants with parent context (or
+  any other cross-entity batch fetch), keep separate per-type maps (`products`,
+  `materials`) and select based on which ID the variant carries (`v.product_id` vs
+  `v.material_id`). Merging into a single dict via `{**products, **materials}`
+  mis-attaches parents on collision — Python dict-unpack iterates left-to-right and
+  later keys win, so the material entry silently overwrites the product entry on shared
+  IDs. The bug is symmetric in practice: every product variant whose ID also exists as a
+  material ID looks up the material's data instead (and vice versa if you reorder the
+  unpack). Caught in #542 (variant card redesign) by Copilot review; regression test
+  pins the case in
+  `test_items.py::test_enrich_variants_keeps_product_and_material_maps_separate`.
+
 - **First push of a feature branch — use `HEAD:refs/heads/<name>`, not bare branch
   name** - When a local branch was created via `git checkout -b <name> origin/main`, its
   upstream is set to `origin/main`. A subsequent `git push -u origin <name>` then
@@ -395,10 +410,39 @@ status = unwrap_unset(order.status, None)
 ## Claude Code Harness
 
 The harness lives in `.claude/skills/` (workflows) and `.claude/agents/` (delegated
-sub-agents). Provenance is tracked in `.harness-lock.json`. The
-[harness-kit plugin](https://github.com/dougborg/harness-kit) is loaded — its skills
-appear under the `harness-kit:` prefix and its meta-skill `/harness-kit:harness` runs
-audits and updates.
+sub-agents). Provenance is tracked in `.harness-lock.json`. The project's upstream is
+configured in `.claude/harness-upstream`
+([dougborg/harness-kit](https://github.com/dougborg/harness-kit)) — used by
+`/harness-issue` (when the plugin is installed) to file Issues / PRs against the right
+repo.
+
+**Plugin baseline:** the project tracks harness-kit at the version recorded in
+`.harness-lock.json` (`sources.harness-kit.version`). The `.claude/` files were
+originally seeded via `/harness bootstrap` and the two upstream-sourced agents
+(`code-reviewer`, `verifier`) are intentionally locally modified with Katana-specific
+content — `/harness update` knows to leave them alone.
+
+**To enable the plugin (one-time per developer):**
+
+```bash
+/plugin marketplace add dougborg/harness-kit
+/plugin install harness-kit@harness-kit
+```
+
+`.claude/settings.json` already lists `harness-kit@harness-kit` under `enabledPlugins`,
+so once installed locally the plugin auto-enables for this repo. The install itself
+isn't auto-bootstrapped from a clone (Claude Code doesn't install plugins on clone) —
+but the enable step is shared, so contributors only need to run the two `/plugin`
+commands above once.
+
+After install, the namespaced skills (`/harness-kit:harness`,
+`/harness-kit:harness-issue`, `/harness-kit:standup`, `/harness-kit:feature-spec`,
+`/harness-kit:skill-writer`, etc.) become available. To pull a newer baseline into
+`.claude/` after upgrading the plugin, run `/harness update`.
+
+Project-local skills below shadow / extend the plugin's generic versions where they
+exist; both are valid (use the project-local `/open-pr` for the Katana flavor; use
+`harness-kit:open-pr` for a generic fallback).
 
 ### Skills (slash commands)
 
@@ -436,7 +480,8 @@ Configured in `.claude/settings.local.json` (gitignored):
 - **PostToolUse / Edit|Write|MultiEdit** — runs `uv run poe fix` silently after any
   Python file is edited. Fixes lint/format issues before Claude reads the result.
 - **Stop** — when the session touched more than 3 files, prints a reminder to run
-  `/harness-kit:harness retro` to capture learnings.
+  `/harness retro` to capture learnings. (When the harness-kit plugin is installed, also
+  consider `/session-retro` — see harness-kit#30 — for project-side learnings.)
 
 ## Detailed Documentation
 
