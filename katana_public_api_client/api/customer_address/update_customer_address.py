@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, cast
+from typing import Any
 from urllib.parse import quote
 
 import httpx
@@ -7,6 +7,7 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import Response
+from ...models.customer_address import CustomerAddress
 from ...models.error_response import ErrorResponse
 from ...models.update_customer_address_request import UpdateCustomerAddressRequest
 
@@ -35,9 +36,10 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Any | ErrorResponse | None:
+) -> CustomerAddress | ErrorResponse | None:
     if response.status_code == 200:
-        response_200 = cast(Any, None)
+        response_200 = CustomerAddress.from_dict(response.json())
+
         return response_200
 
     if response.status_code == 401:
@@ -68,7 +70,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[Any | ErrorResponse]:
+) -> Response[CustomerAddress | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -82,7 +84,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateCustomerAddressRequest,
-) -> Response[Any | ErrorResponse]:
+) -> Response[CustomerAddress | ErrorResponse]:
     """Update a customer address
 
      Updates a customer address.
@@ -98,7 +100,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Any | ErrorResponse]
+        Response[CustomerAddress | ErrorResponse]
     """
 
     kwargs = _get_kwargs(
@@ -118,7 +120,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateCustomerAddressRequest,
-) -> Any | ErrorResponse | None:
+) -> CustomerAddress | ErrorResponse | None:
     """Update a customer address
 
      Updates a customer address.
@@ -134,7 +136,7 @@ def sync(
 
 
     Returns:
-        Any | ErrorResponse
+        CustomerAddress | ErrorResponse
     """
 
     return sync_detailed(
@@ -149,7 +151,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateCustomerAddressRequest,
-) -> Response[Any | ErrorResponse]:
+) -> Response[CustomerAddress | ErrorResponse]:
     """Update a customer address
 
      Updates a customer address.
@@ -165,7 +167,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Any | ErrorResponse]
+        Response[CustomerAddress | ErrorResponse]
     """
 
     kwargs = _get_kwargs(
@@ -183,7 +185,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateCustomerAddressRequest,
-) -> Any | ErrorResponse | None:
+) -> CustomerAddress | ErrorResponse | None:
     """Update a customer address
 
      Updates a customer address.
@@ -199,7 +201,7 @@ async def asyncio(
 
 
     Returns:
-        Any | ErrorResponse
+        CustomerAddress | ErrorResponse
     """
 
     return (
