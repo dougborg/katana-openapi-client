@@ -2,20 +2,23 @@
   "$comment": "Tracks provenance of files in .claude/. 'source: harness-kit' files came from the upstream plugin baseline; 'source: local' are project-specific. Run /harness-kit:harness update to sync upstream changes.",
   "sources": {
     "harness-kit": {
-      "version": "0.4.0",
-      "installed": "2026-04-27"
+      "version": "0.5.1",
+      "installed": "2026-04-27",
+      "lastReviewed": "2026-05-05",
+      "repo": "dougborg/harness-kit",
+      "note": "Reviewed 0.4.0 → 0.5.1 baseline 2026-05-05. Both modified files (code-reviewer, verifier) intentionally diverge from upstream — see per-file notes. New v0.5.0+ skills (harness-issue, standup, feature-spec, etc.) accessible via the harness-kit: plugin namespace; not copied locally."
     }
   },
   "files": {
     ".claude/agents/code-reviewer.md": {
       "source": "harness-kit",
       "modified": true,
-      "note": "Project-tuned with Katana conventions (UNSET, unwrap_*, generated-file boundaries, list data envelope, help-resource sync)"
+      "note": "Project-tuned with Katana conventions (UNSET, unwrap_*, generated-file boundaries, list data envelope, help-resource sync). Reviewed against v0.5.1 upstream 2026-05-05 — kept local; upstream's generic structure would lose the Katana-specific checks."
     },
     ".claude/agents/verifier.md": {
       "source": "harness-kit",
       "modified": true,
-      "note": "Project-tuned with hardcoded uv run poe check verification command"
+      "note": "Project-tuned with hardcoded uv run poe check verification command + Katana-specific generated-file checks (api/, models/, client.py) and scopes (client, mcp). Reviewed against v0.5.1 upstream 2026-05-05 — kept local; the v0.5.0 discovery script would simplify the allowed-tools but the Katana checks in the body are load-bearing."
     },
     ".claude/agents/domain-advisor.md": {
       "source": "local"
