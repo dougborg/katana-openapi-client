@@ -152,6 +152,39 @@ Common mistakes to avoid:
   fields, use `to_unset(value)` from `katana_public_api_client.domain.converters`
   instead of `value if value is not None else UNSET`.
 
+- **Archive / deleted state — opt-in flags + derived booleans** - Katana represents
+  soft-state as nullable timestamps on the wire: `archived_at` (the user-toggleable
+  archive lifecycle — exposed on catalog items, inventory rows, and a few other
+  archivable entities) and `deleted_at` (soft-delete, exposed on most entities including
+  catalog items *and* transactional entities like POs, SOs, MOs, stock transfers, stock
+  adjustments). The two are independent — an entity can be both archived and
+  soft-deleted. Two MCP-side conventions surface this; keep them symmetric:
+
+  - **Query-param flags** for opting into surfacing soft-state rows. **Default
+    `False`.** Items use `include_archived` (`search_items`, catalog cache); the
+    canonical wiring (landed in #526) is `cache.py`'s denormalized
+    `entity_index.is_archived` column populated during sync, plus the
+    `idx.is_archived = 0` predicate in `cache.search` / `search_fuzzy`. Transactional
+    entities use `include_deleted` on `list_purchase_orders` / `list_sales_orders` /
+    `list_manufacturing_orders` / `list_stock_adjustments`, filtering at the typed-cache
+    query layer.
+  - **Response-side derived booleans**: every response model that exposes `archived_at`
+    / `deleted_at` should also expose a convenience `is_archived` / `is_deleted` bool
+    derived from `<timestamp> is not None`, saving callers from the timestamp/null
+    inspection. **Note the asymmetry**: `is_archived` mirrors Katana's *write*
+    convention (`update_<entity>` request bodies accept `is_archived: bool`, so
+    round-tripping through `modify_<entity>` with
+    `{"update_header": {"is_archived": false}}` works). `is_deleted`, by contrast, is
+    *read-side only* — Katana exposes deletion through DELETE endpoints, not as a
+    writable boolean on update bodies. Items expose `is_archived` on `ItemInfo` and
+    `ItemDetailsResponse` as of #526.
+
+  Don't add a new opt-in flag without the matching derived bool, and vice versa. **Known
+  gaps** (filed for follow-up): `list_stock_transfers` lacks `include_deleted` parity
+  (#484); `check_inventory` and the inventory reporting tools lack `include_archived`
+  and the `is_archived` row field (#539); transactional response models lack the
+  `is_deleted` derived bool (#540).
+
 - **Polluting the API spec/models with cache-only fields** - The OpenAPI spec at
   `docs/katana-openapi.yaml` and the generated pydantic models in
   `katana_public_api_client/models_pydantic/_generated/*.py` reflect Katana's actual
