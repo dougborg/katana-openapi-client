@@ -2,6 +2,61 @@
 
 <!-- version list -->
 
+## v0.58.0 (2026-05-06)
+
+### Bug Fixes
+
+- **client**: Add PENDING to SalesOrderStatus enum
+  ([#516](https://github.com/dougborg/katana-openapi-client/pull/516),
+  [`d7d666c`](https://github.com/dougborg/katana-openapi-client/commit/d7d666c579600fce2dd23ff1f6bbd255ab780183))
+
+- **mcp**: Expose batch_transactions on MORecipeRowAdd/Update
+  ([#518](https://github.com/dougborg/katana-openapi-client/pull/518),
+  [`1fa9d20`](https://github.com/dougborg/katana-openapi-client/commit/1fa9d207255d577c365c52794352076360d8e3a2))
+
+- **mcp**: Extend additional_info echo workaround to
+  material/product/MO/stock_adjustment
+  ([`f73bc0c`](https://github.com/dougborg/katana-openapi-client/commit/f73bc0c2337eb005c64e79caa4263f79edd94bff))
+
+- **mcp**: Make additional_info pre-fetch best-effort to avoid hard-failing on transient
+  errors
+  ([`cfd4f73`](https://github.com/dougborg/katana-openapi-client/commit/cfd4f73f45b8205863c8a930af8247bbdc713509))
+
+### Chores
+
+- **release**: Mcp v0.56.0
+  ([`6c95b31`](https://github.com/dougborg/katana-openapi-client/commit/6c95b315cb4c4394f36e245d85398f46058cf6f5))
+
+- **release**: Mcp v0.56.1
+  ([`7b0185d`](https://github.com/dougborg/katana-openapi-client/commit/7b0185d2591b71db37604f959dccdacdb49c0821))
+
+- **release**: Mcp v0.56.2
+  ([`1532128`](https://github.com/dougborg/katana-openapi-client/commit/15321283b65e398cc68815088ad943a40eb96fab))
+
+- **release**: Mcp v0.57.0
+  ([`01dfda9`](https://github.com/dougborg/katana-openapi-client/commit/01dfda9aa514a8c39b47494b03feda271e7f5f91))
+
+### Features
+
+- **mcp**: Add correct_manufacturing_order and correct_sales_order for closed-record
+  edits
+  ([`1e24c97`](https://github.com/dougborg/katana-openapi-client/commit/1e24c970e2c1b53b4ddcdd0a551e53e29fdb952f))
+
+### Refactoring
+
+- **mcp**: Extract batch-transactions conversion helpers across receive/stock_transfer
+  for consistency with #521
+  ([`79b6d82`](https://github.com/dougborg/katana-openapi-client/commit/79b6d82086a7cac269900cb3353e8cc1f415a698))
+
+- **mcp**: Extract patch_additional_info helper for the wipe-on-omit workaround
+  ([`217d732`](https://github.com/dougborg/katana-openapi-client/commit/217d7322d26e3e201ab0995222e92a36ecb5a7e1))
+
+### Testing
+
+- **client**: Regression guard for SalesOrderStatus PENDING
+  ([#516](https://github.com/dougborg/katana-openapi-client/pull/516),
+  [`b4c0a68`](https://github.com/dougborg/katana-openapi-client/commit/b4c0a68293b9f0e8f7ec09f26f15a65d60b60854))
+
 ## v0.57.0 (2026-05-05)
 
 ### Bug Fixes
