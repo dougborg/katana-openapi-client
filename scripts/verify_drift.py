@@ -7,19 +7,20 @@ upstream YAML / README.io examples, this script makes **live API calls** and
 reports what Katana actually puts on the wire — the ultimate source of truth.
 
 Each finding is keyed by an ID matching ``docs/audit-2026-05-06.md``
-(F1, F2, …). Run a single finding with ``verify F1`` or the full suite with
-``verify --all``. Output is structured JSON / Markdown so it can land directly
-in the audit doc or in issue comments.
+(F1, F2, …). Run a single finding by passing its ID, or ``--all`` for the
+full suite. Output is Markdown by default (paste-friendly for the audit doc
+and issue comments) or JSON via ``--json``; both write to stdout.
 
 Bypasses the typed client deliberately for findings that question the typed
 client's signature (e.g. F1 — `variant_id: int` vs `array[int]`). Loads
-credentials from the primary worktree's ``.env`` if ``KATANA_API_KEY`` is not
-already set in the environment.
+``.env`` from the working tree (or its parents) when ``KATANA_API_KEY`` is
+not already set in the environment.
 
-Usage:
+Usage::
 
     uv run python scripts/verify_drift.py F1
-    uv run python scripts/verify_drift.py --all --output docs/audit-2026-05-06.md
+    uv run python scripts/verify_drift.py --all
+    uv run python scripts/verify_drift.py --all --json > findings.json
 """
 
 from __future__ import annotations
@@ -29,14 +30,11 @@ import json
 import os
 import sys
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
 
 import httpx
 from dotenv import load_dotenv
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-PRIMARY_WORKTREE_ENV = Path("/Users/dougborg/Projects/katana-openapi-client/.env")
 DEFAULT_BASE_URL = "https://api.katanamrp.com/v1"
 
 
@@ -53,7 +51,7 @@ class CallResult:
     response_keys: list[str] | None = None
     response_count: int | None = None
     sample_record: dict[str, Any] | None = None
-    raw_excerpt: str = ""
+    data_rows: list[dict[str, Any]] | None = None
 
 
 @dataclass
@@ -74,16 +72,12 @@ class FindingResult:
 def make_client() -> httpx.Client:
     """Create an httpx client with live-API credentials.
 
-    Loads ``.env`` from the primary worktree if ``KATANA_API_KEY`` isn't
-    already set. Raises if no key is found.
+    Loads ``.env`` if present (walks up parent dirs); honors existing env vars.
     """
-    if "KATANA_API_KEY" not in os.environ and PRIMARY_WORKTREE_ENV.exists():
-        load_dotenv(PRIMARY_WORKTREE_ENV)
+    load_dotenv()
     api_key = os.environ.get("KATANA_API_KEY")
     if not api_key:
-        raise SystemExit(
-            f"KATANA_API_KEY required (set env var or populate {PRIMARY_WORKTREE_ENV})"
-        )
+        raise SystemExit("KATANA_API_KEY required (set env var or populate .env)")
     base_url = os.environ.get("KATANA_BASE_URL", DEFAULT_BASE_URL)
     return httpx.Client(
         base_url=base_url,
@@ -100,41 +94,40 @@ def _capture(
 ) -> CallResult:
     """Make one HTTP call and capture a structured summary of the response.
 
-    Records top-level keys, count of `data` array if present, the first
-    record (if list response), and a short raw excerpt. Doesn't raise on
-    non-2xx — captures the status and what the server said.
+    Records top-level keys, count of the `data` array if present, the full
+    list of dict rows, and a sample record. Doesn't raise on non-2xx —
+    captures the status and what the server said.
     """
     request_params = params or {}
     response = client.request(method, path, params=request_params)
-    raw_excerpt = response.text[:500] if response.text else ""
-
     result = CallResult(
         method=method,
         url=str(response.request.url),
         params=request_params,
         status_code=response.status_code,
-        raw_excerpt=raw_excerpt,
     )
 
-    if response.headers.get("content-type", "").startswith("application/json"):
-        try:
-            payload = response.json()
-        except json.JSONDecodeError:
-            return result
-        if isinstance(payload, dict):
-            result.response_keys = list(payload.keys())
-            data = payload.get("data")
-            if isinstance(data, list):
-                result.response_count = len(data)
-                if data:
-                    result.sample_record = (
-                        data[0] if isinstance(data[0], dict) else None
-                    )
-        elif isinstance(payload, list):
-            result.response_keys = ["<bare-array>"]
-            result.response_count = len(payload)
-            if payload and isinstance(payload[0], dict):
-                result.sample_record = payload[0]
+    if not response.headers.get("content-type", "").startswith("application/json"):
+        return result
+    try:
+        payload = response.json()
+    except json.JSONDecodeError:
+        return result
+
+    if isinstance(payload, dict):
+        result.response_keys = list(payload.keys())
+        data = payload.get("data")
+    elif isinstance(payload, list):
+        result.response_keys = ["<bare-array>"]
+        data = payload
+    else:
+        return result
+
+    if isinstance(data, list):
+        result.response_count = len(data)
+        result.data_rows = [r for r in data if isinstance(r, dict)]
+        if result.data_rows:
+            result.sample_record = result.data_rows[0]
 
     return result
 
@@ -154,24 +147,10 @@ def verify_F1(client: httpx.Client) -> FindingResult:
         ),
     )
 
-    # First, find a couple of variant IDs that have inventory rows we can use
-    # for the multi-value test.
-    seed = _capture(client, "GET", "/inventory", {"limit": 5})
+    seed = _capture(client, "GET", "/inventory", {"limit": 10})
     finding.calls.append(seed)
+    rows = seed.data_rows or []
 
-    if seed.status_code != 200 or not seed.sample_record:
-        finding.conclusion = (
-            "Couldn't seed test — /inventory returned no rows or non-200."
-        )
-        return finding
-
-    # Pull two variant_ids from the seeded response
-    if not isinstance(seed.sample_record, dict):
-        finding.conclusion = "Seed sample_record not a dict; aborting."
-        return finding
-
-    payload = client.get("/inventory", params={"limit": 10}).json()
-    rows = payload.get("data", []) if isinstance(payload, dict) else []
     variant_ids: list[int] = []
     for row in rows:
         v = row.get("variant_id")
@@ -182,16 +161,13 @@ def verify_F1(client: httpx.Client) -> FindingResult:
 
     if len(variant_ids) < 2:
         finding.conclusion = (
-            "Couldn't find 2 distinct variant_ids in /inventory to test "
-            "multi-value filtering."
+            "Couldn't seed test — /inventory returned fewer than 2 distinct "
+            "variant_ids in the first 10 rows."
         )
         return finding
 
-    # Now try multi-value ?variant_id=<a>&variant_id=<b>
     multi = _capture(client, "GET", "/inventory", {"variant_id": variant_ids})
     finding.calls.append(multi)
-
-    # Compare to single-value control
     single = _capture(client, "GET", "/inventory", {"variant_id": variant_ids[0]})
     finding.calls.append(single)
 
@@ -203,7 +179,7 @@ def verify_F1(client: httpx.Client) -> FindingResult:
             f"Multi-value call returned {multi.status_code}; wire "
             "doesn't accept array form."
         )
-        finding.triage_category = "intentional_local_divergence?"
+        finding.triage_category = "needs_more_investigation"
         finding.suggested_action = "Investigate further — upstream spec may be wrong."
     elif multi_count > single_count:
         finding.conclusion = (
@@ -238,20 +214,18 @@ def verify_F2(client: httpx.Client) -> FindingResult:
     )
 
     base = _capture(client, "GET", "/products", {"limit": 5})
-    finding.calls.append(base)
+    lower_true = _capture(
+        client, "GET", "/products", {"limit": 5, "batch_tracked": "true"}
+    )
+    lower_false = _capture(
+        client, "GET", "/products", {"limit": 5, "batch_tracked": "false"}
+    )
+    upper_true = _capture(
+        client, "GET", "/products", {"limit": 5, "batch_tracked": "True"}
+    )
+    finding.calls.extend([base, lower_true, lower_false, upper_true])
 
-    finding.calls.append(
-        _capture(client, "GET", "/products", {"limit": 5, "batch_tracked": "true"})
-    )
-    finding.calls.append(
-        _capture(client, "GET", "/products", {"limit": 5, "batch_tracked": "false"})
-    )
-    finding.calls.append(
-        _capture(client, "GET", "/products", {"limit": 5, "batch_tracked": "True"})
-    )
-
-    statuses = [c.status_code for c in finding.calls[1:]]
-    if all(s == 200 for s in statuses):
+    if all(c.status_code == 200 for c in (lower_true, lower_false, upper_true)):
         finding.conclusion = (
             "All forms returned 200. Likely: Katana accepts any case-folded "
             "truthy/falsy string. boolean→string typing both work in "
@@ -263,7 +237,7 @@ def verify_F2(client: httpx.Client) -> FindingResult:
             "Low priority. Could change local to string for upstream "
             "consistency, but not a runtime bug."
         )
-    elif statuses[2] == 200 and statuses[3] != 200:
+    elif lower_true.status_code == 200 and upper_true.status_code != 200:
         finding.conclusion = (
             "lowercase 'true' works; capital-T 'True' doesn't. Local "
             "boolean typing must serialize lowercase — confirm openapi-"
@@ -271,7 +245,11 @@ def verify_F2(client: httpx.Client) -> FindingResult:
         )
         finding.triage_category = "stylistic_mismatch_no_runtime_impact"
     else:
-        finding.conclusion = f"Mixed results: {statuses}. Investigate further."
+        statuses = [c.status_code for c in (lower_true, lower_false, upper_true)]
+        finding.conclusion = (
+            f"Mixed results (true={statuses[0]}, false={statuses[1]}, "
+            f"True={statuses[2]}). Investigate further."
+        )
         finding.triage_category = "needs_more_investigation"
 
     return finding
@@ -415,18 +393,9 @@ def verify_F22(client: httpx.Client) -> FindingResult:
         ),
     )
     finding.calls.append(_capture(client, "GET", "/stock_transfers", {"limit": 50}))
-    payload_call = finding.calls[0]
-    rows = []
-    if payload_call.status_code == 200:
-        # Re-fetch to get all rows (sample_record only has first row)
-        full = client.get("/stock_transfers", params={"limit": 50}).json()
-        rows = full.get("data", []) if isinstance(full, dict) else []
+    rows = finding.calls[0].data_rows or []
     distinct_statuses = sorted(
-        {
-            str(r["status"])
-            for r in rows
-            if isinstance(r, dict) and r.get("status") is not None
-        }
+        {str(r["status"]) for r in rows if r.get("status") is not None}
     )
     finding.conclusion = (
         f"Distinct status values across {len(rows)} rows: {distinct_statuses}"
@@ -445,17 +414,9 @@ def verify_F23(client: httpx.Client) -> FindingResult:
     finding.calls.append(
         _capture(client, "GET", "/inventory_movements", {"limit": 200})
     )
-    if finding.calls[0].status_code == 200:
-        full = client.get("/inventory_movements", params={"limit": 200}).json()
-        rows = full.get("data", []) if isinstance(full, dict) else []
-    else:
-        rows = []
+    rows = finding.calls[0].data_rows or []
     distinct = sorted(
-        {
-            str(r["resource_type"])
-            for r in rows
-            if isinstance(r, dict) and r.get("resource_type") is not None
-        }
+        {str(r["resource_type"]) for r in rows if r.get("resource_type") is not None}
     )
     finding.conclusion = (
         f"Distinct resource_type values across {len(rows)} rows: {distinct}"
@@ -529,7 +490,6 @@ def verify_F20b(client: httpx.Client) -> FindingResult:
             "to confirm the shape isn't an empty-result artifact."
         ),
     )
-    # Try without filters — if any factory has bin_locations they should show
     finding.calls.append(_capture(client, "GET", "/bin_locations"))
     keys = finding.calls[0].response_keys or []
     count = finding.calls[0].response_count or 0
@@ -609,7 +569,9 @@ def render_finding_markdown(result: FindingResult) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description="Verify suspected spec-drift findings against the live Katana API.",
+    )
     parser.add_argument(
         "finding",
         nargs="?",
