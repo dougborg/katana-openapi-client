@@ -232,66 +232,152 @@ def build_search_results_ui(
     return app
 
 
+def _variant_header_section(variant: dict[str, Any]) -> None:
+    """Render variant card header: title, badges, parent, config-attribute pills."""
+    with Row(gap=2):
+        CardTitle(content=variant.get("name", "Unknown"))
+        Badge(label=variant.get("sku", ""), variant="outline")
+        if variant.get("type"):
+            Badge(label=variant["type"], variant="secondary")
+        if variant.get("is_batch_tracked"):
+            Badge(label="Batch tracked", variant="secondary")
+    parent_name = variant.get("product_or_material_name")
+    if parent_name:
+        Muted(content=f"Part of: {parent_name}")
+    # Config-attribute pills (size / color / volume) inline so the
+    # variant's distinguishing axes are visible without scrolling.
+    config_attrs = variant.get("config_attributes") or []
+    if config_attrs:
+        with Row(gap=2):
+            for attr in config_attrs:
+                if not isinstance(attr, dict):
+                    continue
+                label = attr.get("config_name") or ""
+                value = attr.get("config_value") or ""
+                if label and value:
+                    Badge(label=f"{label}: {value}", variant="outline")
+
+
+def _variant_supplier_line(variant: dict[str, Any]) -> None:
+    """Render the default-supplier text row when name and/or id is set."""
+    name = variant.get("default_supplier_name")
+    sid = variant.get("default_supplier_id")
+    if name and sid:
+        Text(content=f"Default Supplier: {name} ({sid})")
+    elif name:
+        Text(content=f"Default Supplier: {name}")
+    elif sid:
+        Text(content=f"Default Supplier ID: {sid}")
+
+
+def _variant_barcode_line(variant: dict[str, Any]) -> None:
+    """Render the barcode text row when at least one barcode is set."""
+    parts = []
+    if variant.get("internal_barcode"):
+        parts.append(f"internal={variant['internal_barcode']}")
+    if variant.get("registered_barcode"):
+        parts.append(f"registered={variant['registered_barcode']}")
+    if parts:
+        Text(content=f"Barcodes: {', '.join(parts)}")
+
+
+def _variant_id_line(variant: dict[str, Any]) -> None:
+    """IDs deprioritized to a single Muted row at the bottom — they're
+    useful for follow-up tool calls but not the primary signal a human
+    reader needs.
+    """
+    id_parts = [f"variant_id={variant.get('id', 'N/A')}"]
+    if variant.get("product_id"):
+        id_parts.append(f"product_id={variant['product_id']}")
+    if variant.get("material_id"):
+        id_parts.append(f"material_id={variant['material_id']}")
+    Muted(content=" · ".join(id_parts))
+
+
+def _variant_reference_section(variant: dict[str, Any]) -> None:
+    """Render the reference data block (UoM, supplier, lead time, codes, IDs)."""
+    if variant.get("uom"):
+        Text(content=f"UoM: {variant['uom']}")
+    _variant_supplier_line(variant)
+    if variant.get("lead_time") is not None:
+        Text(content=f"Lead Time: {variant['lead_time']} days")
+    if variant.get("minimum_order_quantity") is not None:
+        Text(content=f"Min Order Qty: {variant['minimum_order_quantity']}")
+    _variant_barcode_line(variant)
+    if variant.get("supplier_item_codes"):
+        Muted(content="Supplier Codes:")
+        with ForEach("variant.supplier_item_codes"):
+            Text(content="{{ $item }}")
+    _variant_id_line(variant)
+
+
+def _variant_footer_section(variant: dict[str, Any]) -> None:
+    """Render footer action buttons."""
+    sku = variant.get("sku", "")
+    if variant.get("katana_url"):
+        Button(
+            label="View in Katana",
+            variant="outline",
+            on_click=SendMessage(f"Open the Katana URL: {variant['katana_url']}"),
+        )
+    Button(
+        label="Check Inventory",
+        variant="outline",
+        on_click=SendMessage(f"Check inventory for SKU {sku}"),
+    )
+    Button(
+        label="Create Purchase Order",
+        variant="outline",
+        on_click=SendMessage(f"Draft a purchase order for SKU {sku}"),
+    )
+    if variant.get("type") == "material" and variant.get("id"):
+        Button(
+            label="List MOs Using This",
+            variant="outline",
+            on_click=SendMessage(
+                f"List manufacturing orders that use variant_id {variant['id']}"
+            ),
+        )
+
+
 def build_variant_details_ui(
     variant: dict[str, Any],
 ) -> PrefabApp:
-    """Build a detail card for a variant."""
+    """Build a detail card for a variant.
+
+    Designed for the "should I order more / where is this used / how is
+    it tracked" decisions. Surfaces the facts an inventory-aware agent
+    needs first (UoM, default supplier, batch tracking, config
+    attributes), with raw IDs deprioritized to a footer-style row. See
+    #538 for the design rationale.
+    """
+    uom = variant.get("uom")
+
+    def _price_display(p: float | None) -> str:
+        if p is None:
+            return "N/A"
+        suffix = f" / {uom}" if uom and uom not in ("pcs", "ea") else ""
+        return f"${p:,.2f}{suffix}"
+
     with PrefabApp(state={"variant": variant}, css_class="p-4") as app, Card():
-        with CardHeader(), Row(gap=2):
-            CardTitle(content=variant.get("name", "Unknown"))
-            Badge(label=variant.get("sku", ""), variant="outline")
-            if variant.get("type"):
-                Badge(
-                    label=variant["type"],
-                    variant="secondary",
-                )
+        with CardHeader(), Column(gap=1):
+            _variant_header_section(variant)
 
         with CardContent(), Column(gap=3):
             with Row(gap=4):
                 Metric(
                     label="Sales Price",
-                    value=f"${variant.get('sales_price', 0):,.2f}"
-                    if variant.get("sales_price") is not None
-                    else "N/A",
+                    value=_price_display(variant.get("sales_price")),
                 )
                 Metric(
                     label="Purchase Price",
-                    value=f"${variant.get('purchase_price', 0):,.2f}"
-                    if variant.get("purchase_price") is not None
-                    else "N/A",
+                    value=_price_display(variant.get("purchase_price")),
                 )
-
             Separator()
-
-            with Row(gap=4):
-                Text(content=f"ID: {variant.get('id', 'N/A')}")
-                if variant.get("product_id"):
-                    Text(content=f"Product ID: {variant['product_id']}")
-                if variant.get("material_id"):
-                    Text(content=f"Material ID: {variant['material_id']}")
-                if variant.get("lead_time") is not None:
-                    Text(content=f"Lead Time: {variant['lead_time']} days")
-
-            if variant.get("supplier_item_codes"):
-                Muted(content="Supplier Codes:")
-                with ForEach("variant.supplier_item_codes"):
-                    Text(content="{{ $item }}")
+            _variant_reference_section(variant)
 
         with CardFooter(), Row(gap=2):
-            Button(
-                label="Check Inventory",
-                variant="outline",
-                on_click=SendMessage(
-                    f"Check inventory for SKU {variant.get('sku', '')}"
-                ),
-            )
-            Button(
-                label="Create Purchase Order",
-                variant="outline",
-                on_click=SendMessage(
-                    f"Draft a purchase order for SKU {variant.get('sku', '')}"
-                ),
-            )
+            _variant_footer_section(variant)
     return app
 
 
