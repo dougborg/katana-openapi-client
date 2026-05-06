@@ -44,9 +44,9 @@ from prefab_ui.components import (
     Separator,
     Text,
 )
-from prefab_ui.components.control_flow import ForEach
+from prefab_ui.components.control_flow import Elif, ForEach, If
 from prefab_ui.components.slot import Slot
-from prefab_ui.rx import RESULT
+from prefab_ui.rx import RESULT, Rx
 from pydantic import BaseModel
 
 from katana_mcp.tools.tool_result_utils import BLOCK_WARNING_PREFIX
@@ -73,61 +73,118 @@ def _split_warnings(
     return blocks, regulars
 
 
-def call_tool_from_request(
-    tool_name: str,
-    request: BaseModel,
-    *,
-    overrides: dict[str, Any] | None = None,
-    on_success: Action | list[Action] | None = None,
-    on_error: Action | list[Action] | None = None,
-) -> CallTool:
-    """Build a CallTool action that re-invokes ``tool_name`` with the
-    request's fields **inlined as literal values** (not template strings).
+# Coaching text appended to every preview-mode write tool's description so
+# the agent (1) does not re-narrate or ask for chat-confirmation after a
+# preview returns (closes #544), and (2) knows to re-issue the call when it
+# sees an ``Apply: call ...`` SendMessage from a Confirm-button click. The
+# rationale lives in ADR-0015.
+PREVIEW_APPLY_COACHING = (
+    "Preview→apply: when ``preview=True`` (default), returns a Prefab card "
+    "with Confirm/Cancel buttons. Do NOT re-narrate the card or ask for "
+    "confirmation in chat — the buttons handle that. End your turn after "
+    "the preview response.\n\n"
+    "If you receive a chat message starting with ``Apply: call <tool>(...)`` "
+    "or ``Cancel: do not apply ...``, that is a button click from a previous "
+    "preview. For Apply, re-issue the tool call exactly as written. For "
+    "Cancel, acknowledge briefly without re-issuing."
+)
 
-    Values are baked in via ``request.model_dump(mode="json")`` to bypass
-    the host-side ``{{ ... }}`` substitution path that silently dropped
-    args in production (#491). ``mode="json"`` ensures all field values
-    (datetime, Decimal, enums, nested models) are JSON-serializable
-    primitives so the host can transmit the action without a second
-    serialization pass that could re-introduce type coercion bugs.
 
-    ``overrides`` (e.g. ``{"preview": False}``) take precedence over the
-    inlined values, validated against the dumped keys so a caller can't
-    smuggle an unknown field into ``arguments``.
+def with_preview_coaching(fn: Any) -> str:
+    """Build a FastMCP tool description by appending preview→apply coaching
+    to the function's docstring.
+
+    The constant ``PREVIEW_APPLY_COACHING`` is the single source of truth
+    for this text — update there to update every tool's description at
+    once. Tools without a ``preview`` parameter do not receive the
+    coaching (their tool description should not lie about the flow they
+    actually expose).
+
+    Most callers should use :func:`register_preview_tool` rather than
+    calling this directly.
     """
-    args: dict[str, Any] = request.model_dump(mode="json")
-    if overrides:
-        bad = sorted(set(overrides) - set(args))
-        if bad:
-            raise ValueError(
-                f"Invalid override field(s) for {type(request).__name__}: "
-                f"{', '.join(bad)}"
-            )
-        args.update(overrides)
-    return CallTool(
-        tool_name,
-        arguments=args,
-        on_success=on_success,
-        on_error=on_error,
+    base = (fn.__doc__ or "").strip()
+    return f"{base}\n\n{PREVIEW_APPLY_COACHING}" if base else PREVIEW_APPLY_COACHING
+
+
+def register_preview_tool(
+    mcp: Any,
+    fn: Any,
+    *,
+    tags: set[str],
+    annotations: Any,
+    meta: Any = None,
+) -> None:
+    """Register a preview-mode write tool with standard coaching applied.
+
+    Equivalent to::
+
+        mcp.tool(
+            description=with_preview_coaching(fn),
+            tags=tags,
+            annotations=annotations,
+            meta=meta,
+        )(fn)
+
+    Every tool whose request model has a ``preview`` field and emits a
+    Prefab preview card with Confirm/Cancel buttons should register via
+    this helper — that's how the audit test in
+    ``tests/test_tool_descriptions_and_annotations.py`` knows the agent
+    contract is wired up.
+    """
+    mcp.tool(
+        description=with_preview_coaching(fn),
+        tags=tags,
+        annotations=annotations,
+        meta=meta,
+    )(fn)
+
+
+def _build_apply_message(tool_name: str, args: dict[str, Any]) -> str:
+    """Format the SendMessage text the Confirm button emits to prompt the
+    agent to re-issue the apply tool call.
+
+    Shape (uniform across all preview-mode write tools)::
+
+        Apply: call <tool_name>(<key>=<value>, ..., preview=False)
+
+    The message is human-readable and machine-parseable: the agent's tool
+    description coaches it to recognize the ``Apply:`` prefix and re-invoke
+    ``<tool_name>`` with the inlined args verbatim. ``preview=False`` is
+    placed last regardless of where ``preview`` appears in ``args.items()``
+    iteration order — for ``ConfirmableRequest`` subclasses the base-class
+    ``preview`` field can appear in the middle, but the agent should read
+    a stable trailing ``, preview=False)``.
+
+    ``args`` comes from ``request.model_dump(mode="json")``, so values are
+    already JSON primitives (str, None, bool, int/float, list, dict) — we
+    can use built-in ``repr`` for byte-identical Python-source rendering.
+    """
+    body = ", ".join(
+        f"{key}={value!r}" for key, value in args.items() if key != "preview"
     )
+    suffix = "preview=False"
+    inner = f"{body}, {suffix}" if body else suffix
+    return f"Apply: call {tool_name}({inner})"
 
 
-def _build_confirm_action(
+def _build_apply_action(
     confirm_tool: str | None,
     confirm_request: BaseModel | None,
-    *,
-    success_message: str,
-    success_chat: str,
-    error_message: str,
-    error_chat: str,
-) -> CallTool | None:
-    """Construct the standard Confirm-button apply action with feedback
-    handlers attached, or ``None`` when both inputs are ``None``.
+) -> list[Action] | None:
+    """Construct the Confirm-button click action, or ``None`` when both
+    inputs are ``None``.
 
-    Centralizes the visible-feedback contract for every preview UI (#495):
-    a click must produce a toast AND a SendMessage so the apply call is
-    visible both immediately and in chat history. Without these handlers
-    the click fires invisibly.
+    The action does **not** call the apply tool directly. By MCP spec, an
+    iframe-initiated ``tools/call`` returns its result to the iframe, not to
+    the agent's context — so the agent would never see the structured apply
+    response. Instead, the click marks the preview card as ``pending`` and
+    sends a ``SendMessage`` instructing the agent to re-issue the call. The
+    agent then makes the real tool call through its own tool-calling loop
+    and gets the full structured response back.
+
+    See ``docs/adr/0015-confirmation-pattern-for-write-tools.md`` for the
+    architectural rationale.
 
     ``confirm_tool`` and ``confirm_request`` must be both set or both
     ``None`` (the latter for builders that render their non-preview
@@ -139,19 +196,92 @@ def _build_confirm_action(
         raise ValueError(
             "confirm_tool and confirm_request must be set together (or both None)"
         )
-    return call_tool_from_request(
-        confirm_tool,
-        confirm_request,
-        overrides={"preview": False},
-        on_success=[
-            ShowToast(message=success_message, variant="success"),
-            SendMessage(success_chat),
-        ],
-        on_error=[
-            ShowToast(message=error_message, variant="error"),
-            SendMessage(error_chat),
-        ],
-    )
+    args = confirm_request.model_dump(mode="json")
+    if "preview" not in args:
+        raise ValueError(
+            f"_build_apply_action requires a request model with a "
+            f"`preview` field; {type(confirm_request).__name__} has none. "
+            f"Without that field the SendMessage would tell the agent to "
+            f"re-issue {confirm_tool} with an unrecognized preview=False "
+            f"argument, failing validation downstream."
+        )
+    args["preview"] = False
+    return [
+        SetState("pending", True),
+        SendMessage(_build_apply_message(confirm_tool, args)),
+    ]
+
+
+def _build_cancel_action(operation_label: str) -> list[Action]:
+    """Construct the Cancel-button click action.
+
+    Marks the preview card as ``cancelled`` (so the buttons gray out + a
+    "Cancelled" pill appears) and sends a ``SendMessage`` so the agent
+    knows the user opted out. The agent's tool description coaches it to
+    acknowledge briefly and move on without re-issuing.
+
+    ``operation_label`` is a human-readable phrase like ``"the fulfillment"``
+    or ``"that preview"`` — embedded in the SendMessage text so the agent
+    has enough context to acknowledge specifically.
+    """
+    return [
+        SetState("cancelled", True),
+        SendMessage(f"Cancel: do not apply {operation_label}."),
+    ]
+
+
+def _render_apply_button_row(
+    *,
+    confirm_label: str,
+    apply_action: list[Action] | None,
+    cancel_action: list[Action],
+    disabled: bool = False,
+) -> None:
+    """Render the preview-card button row with state-aware visuals.
+
+    Three visual states, all driven by iframe state (`pending`, `cancelled`):
+
+    - **Default** — Confirm + Cancel buttons enabled.
+    - **Pending…** — pill rendered, both buttons disabled, after Confirm
+      click. The agent is now expected to re-issue the apply tool call.
+    - **Cancelled** — pill rendered, both buttons disabled, after Cancel
+      click.
+
+    ``disabled=True`` is the block-warning fallback: only the Cancel button
+    is offered (no Confirm). The Cancel button still binds
+    ``disabled=Rx("cancelled")`` and renders a "Cancelled" pill on click,
+    matching the spam-protection contract of the non-block-warning rail.
+    """
+    if disabled or apply_action is None:
+        with Row(gap=2):
+            with If("cancelled"):
+                Badge(label="Cancelled", variant="secondary")
+            Button(
+                label="Cancel",
+                variant="outline",
+                on_click=cancel_action,
+                disabled=Rx("cancelled"),
+            )
+        return
+
+    locked = Rx("pending") | Rx("cancelled")
+    with Row(gap=2):
+        with If("pending"):
+            Badge(label="Pending…", variant="secondary")
+        with Elif("cancelled"):
+            Badge(label="Cancelled", variant="secondary")
+        Button(
+            label=confirm_label,
+            variant="default",
+            on_click=apply_action,
+            disabled=locked,
+        )
+        Button(
+            label="Cancel",
+            variant="outline",
+            on_click=cancel_action,
+            disabled=locked,
+        )
 
 
 # ============================================================================
@@ -611,22 +741,12 @@ def build_order_preview_ui(
 
     Pass the original Pydantic ``confirm_request`` and matching
     ``confirm_tool`` name; the Confirm button is wired via
-    :func:`_build_confirm_action`.
+    :func:`_build_apply_action`.
     """
     fields = _extract_order_fields(order)
-    order_number = fields["order_number"]
-    confirm_action = _build_confirm_action(
-        confirm_tool,
-        confirm_request,
-        success_message=f"{order_type} {order_number} created",
-        success_chat=f"{order_type} {order_number} was created successfully.",
-        error_message=f"{order_type} creation failed",
-        error_chat=(
-            f"{order_type} {order_number} creation failed — please review "
-            "the error and try again."
-        ),
-    )
-    state: dict[str, Any] = {"order": order}
+    apply_action = _build_apply_action(confirm_tool, confirm_request)
+    cancel_action = _build_cancel_action(f"that {order_type.lower()}")
+    state: dict[str, Any] = {"order": order, "pending": False, "cancelled": False}
 
     with PrefabApp(state=state, css_class="p-4") as app, Card():
         with CardHeader(), Row(gap=2):
@@ -659,21 +779,12 @@ def build_order_preview_ui(
             else:
                 Muted(content="This is a preview. No changes have been made.")
 
-            with Row(gap=2):
-                if not block_warnings:
-                    Button(
-                        label="Confirm & Create",
-                        variant="default",
-                        on_click=confirm_action,
-                    )
-                Button(
-                    label="Cancel",
-                    variant="outline",
-                    on_click=ShowToast(
-                        message=f"{order_type} creation cancelled",
-                        variant="info",
-                    ),
-                )
+            _render_apply_button_row(
+                confirm_label=f"Confirm & Create {order_type}",
+                apply_action=apply_action,
+                cancel_action=cancel_action,
+                disabled=bool(block_warnings),
+            )
     return app
 
 
@@ -778,24 +889,16 @@ def build_fulfill_preview_ui(
     confirm_request = FulfillOrderRequest(
         order_id=response["order_id"],
         order_type=raw_order_type,
+        preview=True,
     )
     block_warnings, regular_warnings = _split_warnings(response.get("warnings"))
-    confirm_action = _build_confirm_action(
-        "fulfill_order",
-        confirm_request,
-        success_message=f"{order_type_display} order {order_number} fulfilled",
-        success_chat=(
-            f"{order_type_display} order {order_number} was fulfilled "
-            "successfully; inventory has been updated."
-        ),
-        error_message=f"Fulfillment for {order_number} failed",
-        error_chat=(
-            f"Fulfilling {raw_order_type} order {order_number} failed — "
-            "please review the error and try again."
-        ),
+    apply_action = _build_apply_action("fulfill_order", confirm_request)
+    cancel_action = _build_cancel_action(
+        f"the {raw_order_type} order {order_number} fulfillment"
     )
+    state = {"response": response, "pending": False, "cancelled": False}
 
-    with PrefabApp(state={"response": response}, css_class="p-4") as app, Card():
+    with PrefabApp(state=state, css_class="p-4") as app, Card():
         with CardHeader(), Row(gap=2):
             CardTitle(content=f"Fulfill {order_type_display} Order")
             Badge(label=order_number, variant="outline")
@@ -811,17 +914,12 @@ def build_fulfill_preview_ui(
                 for warning in regular_warnings:
                     Badge(label=warning, variant="secondary")
 
-        with CardFooter(), Row(gap=2):
-            if not block_warnings:
-                Button(
-                    label="Confirm Fulfillment",
-                    variant="default",
-                    on_click=confirm_action,
-                )
-            Button(
-                label="Cancel",
-                variant="outline",
-                on_click=ShowToast(message="Fulfillment cancelled", variant="info"),
+        with CardFooter():
+            _render_apply_button_row(
+                confirm_label="Confirm Fulfillment",
+                apply_action=apply_action,
+                cancel_action=cancel_action,
+                disabled=bool(block_warnings),
             )
     return app
 
@@ -992,24 +1090,17 @@ def build_receipt_ui(
     input) and ``confirm_tool`` (the matching tool name) to wire the
     "Confirm Receipt" button. Both kwargs are optional because the same
     builder is reused for the non-preview render where no confirm button
-    is shown — must be set together (enforced by ``_build_confirm_action``).
+    is shown — must be set together (enforced by ``_build_apply_action``).
     """
     order_number = response.get("order_number", "N/A")
     is_preview = response.get("is_preview", True)
-    state: dict[str, Any] = {"response": response}
-    confirm_action = _build_confirm_action(
-        confirm_tool,
-        confirm_request,
-        success_message=f"Receipt for {order_number} recorded",
-        success_chat=(
-            f"Items received for {order_number}; inventory has been updated."
-        ),
-        error_message=f"Receipt for {order_number} failed",
-        error_chat=(
-            f"Receiving items for {order_number} failed — please review "
-            "the error and try again."
-        ),
-    )
+    apply_action = _build_apply_action(confirm_tool, confirm_request)
+    cancel_action = _build_cancel_action(f"the receipt for {order_number}")
+    state: dict[str, Any] = {
+        "response": response,
+        "pending": False,
+        "cancelled": False,
+    }
 
     with PrefabApp(state=state, css_class="p-4") as app, Card():
         with CardHeader(), Row(gap=2):
@@ -1051,19 +1142,13 @@ def build_receipt_ui(
                     Badge(label=warning, variant="secondary")
 
         with CardFooter():
-            if is_preview and confirm_action is not None:
-                with Row(gap=2):
-                    if not block_warnings:
-                        Button(
-                            label="Confirm Receipt",
-                            variant="default",
-                            on_click=confirm_action,
-                        )
-                    Button(
-                        label="Cancel",
-                        variant="outline",
-                        on_click=ShowToast(message="Receipt cancelled", variant="info"),
-                    )
+            if is_preview and apply_action is not None:
+                _render_apply_button_row(
+                    confirm_label="Confirm Receipt",
+                    apply_action=apply_action,
+                    cancel_action=cancel_action,
+                    disabled=bool(block_warnings),
+                )
             else:
                 Button(
                     label="Check Inventory",
@@ -1095,7 +1180,7 @@ def build_batch_recipe_update_ui(
     input) and ``confirm_tool`` (the matching tool name) to wire the
     "Execute batch" button. Both kwargs are optional because the same
     builder is reused for the non-preview render — must be set together
-    (enforced by ``_build_confirm_action``).
+    (enforced by ``_build_apply_action``).
     """
     is_preview = response.get("is_preview", True)
     results = response.get("results", [])
@@ -1149,21 +1234,12 @@ def build_batch_recipe_update_ui(
         "is_preview": is_preview,
         "warnings": warnings,
         "groups": list(groups.keys()),
+        "pending": False,
+        "cancelled": False,
     }
-    confirm_action = _build_confirm_action(
-        confirm_tool,
-        confirm_request,
-        success_message=f"Batch executed: {total} ops",
-        success_chat=(
-            f"Batch recipe update executed: {total} planned operation(s) "
-            "submitted. Review the results card for per-op success / "
-            "failure / skip status."
-        ),
-        error_message="Batch execution failed",
-        error_chat=(
-            "Batch recipe update failed before completing — please "
-            "review the error and re-run."
-        ),
+    apply_action = _build_apply_action(confirm_tool, confirm_request)
+    cancel_action = _build_cancel_action(
+        f"the batch recipe update ({total} planned operation(s))"
     )
 
     with (
@@ -1211,14 +1287,15 @@ def build_batch_recipe_update_ui(
         Text(content=message)
 
         # Action buttons
-        with Row(gap=2):
-            if is_preview and confirm_action is not None:
-                Button(
-                    label="Execute batch",
-                    variant="default",
-                    on_click=confirm_action,
-                )
-            elif failed > 0:
+        if is_preview and apply_action is not None:
+            _render_apply_button_row(
+                confirm_label="Execute batch",
+                apply_action=apply_action,
+                cancel_action=cancel_action,
+                disabled=False,
+            )
+        elif failed > 0:
+            with Row(gap=2):
                 Button(
                     label="Review failed ops",
                     variant="outline",
@@ -1227,7 +1304,8 @@ def build_batch_recipe_update_ui(
                         "and suggest recovery steps"
                     ),
                 )
-            else:
+        else:
+            with Row(gap=2):
                 Button(
                     label="Verify recipes",
                     variant="outline",
@@ -1236,4 +1314,68 @@ def build_batch_recipe_update_ui(
                     ),
                 )
 
+    return app
+
+
+# ============================================================================
+# Generic Apply-Result UIs
+# ============================================================================
+
+
+def build_apply_success_ui(
+    *,
+    title: str,
+    summary_lines: list[str],
+    katana_url: str | None = None,
+) -> PrefabApp:
+    """Generic success card for an applied (non-preview) write operation.
+
+    ``title`` is the card title (e.g. ``"Sales order #WEB20387 fulfilled"``).
+    ``summary_lines`` are rendered verbatim as ``Text`` rows in the card
+    body. ``katana_url``, when set, surfaces a "View in Katana" link button
+    in the footer.
+    """
+    with PrefabApp(state={}, css_class="p-4") as app, Card():
+        with CardHeader(), Row(gap=2):
+            CardTitle(content=title)
+            Badge(label="APPLIED", variant="default")
+
+        with CardContent(), Column(gap=2):
+            for line in summary_lines:
+                Text(content=line)
+
+        if katana_url:
+            with CardFooter(), Row(gap=2):
+                Button(
+                    label="View in Katana",
+                    variant="outline",
+                    on_click=SendMessage(f"Open {katana_url} in the Katana web UI"),
+                )
+    return app
+
+
+def build_apply_error_ui(
+    *,
+    operation: str,
+    error_message: str,
+    hint: str | None = None,
+) -> PrefabApp:
+    """Generic error card for a failed (non-preview) write operation.
+
+    Surfaces the actual error reason verbatim — closes #545 by ensuring
+    the apply error is never swallowed by a static "failed" string.
+    ``operation`` is a human-readable phrase like
+    ``"Fulfilling sales order #WEB20387"``. ``hint``, when set, renders
+    a remediation suggestion (e.g. ``"Check the supplier ID"``).
+    """
+    with PrefabApp(state={}, css_class="p-4") as app, Card():
+        with CardHeader(), Row(gap=2):
+            CardTitle(content=f"{operation} failed")
+            Badge(label="ERROR", variant="destructive")
+
+        with CardContent(), Column(gap=2):
+            Text(content=error_message)
+            if hint:
+                Separator()
+                Muted(content=hint)
     return app

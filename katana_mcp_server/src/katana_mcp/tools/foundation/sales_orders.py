@@ -2121,6 +2121,8 @@ def register_tools(mcp: FastMCP) -> None:
     """
     from mcp.types import ToolAnnotations
 
+    from katana_mcp.tools.prefab_ui import register_preview_tool
+
     _read = ToolAnnotations(
         readOnlyHint=True,
         destructiveHint=False,
@@ -2128,12 +2130,12 @@ def register_tools(mcp: FastMCP) -> None:
         openWorldHint=True,
     )
 
-    _write = ToolAnnotations(
+    _create = ToolAnnotations(
         readOnlyHint=False, destructiveHint=False, openWorldHint=True
     )
-    _update = ToolAnnotations(
+    _modify = ToolAnnotations(
         readOnlyHint=False,
-        destructiveHint=False,
+        destructiveHint=True,
         idempotentHint=True,
         openWorldHint=True,
     )
@@ -2144,13 +2146,24 @@ def register_tools(mcp: FastMCP) -> None:
         openWorldHint=True,
     )
 
-    mcp.tool(tags={"orders", "sales", "write"}, annotations=_write, meta=UI_META)(
-        create_sales_order
+    register_preview_tool(
+        mcp,
+        create_sales_order,
+        tags={"orders", "sales", "write"},
+        annotations=_create,
+        meta=UI_META,
     )
     mcp.tool(tags={"orders", "sales", "read"}, annotations=_read)(list_sales_orders)
     mcp.tool(tags={"orders", "sales", "read"}, annotations=_read)(get_sales_order)
-    mcp.tool(tags={"orders", "sales", "write"}, annotations=_update)(modify_sales_order)
-    mcp.tool(
+    register_preview_tool(
+        mcp,
+        modify_sales_order,
+        tags={"orders", "sales", "write"},
+        annotations=_modify,
+    )
+    register_preview_tool(
+        mcp,
+        delete_sales_order,
         tags={"orders", "sales", "write", "destructive"},
         annotations=_destructive,
-    )(delete_sales_order)
+    )

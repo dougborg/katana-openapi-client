@@ -1577,18 +1577,20 @@ def register_tools(mcp: FastMCP) -> None:
     """
     from mcp.types import ToolAnnotations
 
+    from katana_mcp.tools.prefab_ui import register_preview_tool
+
     _read = ToolAnnotations(
         readOnlyHint=True,
         destructiveHint=False,
         idempotentHint=True,
         openWorldHint=True,
     )
-    _write = ToolAnnotations(
+    _create = ToolAnnotations(
         readOnlyHint=False, destructiveHint=False, openWorldHint=True
     )
-    _update = ToolAnnotations(
+    _modify = ToolAnnotations(
         readOnlyHint=False,
-        destructiveHint=False,
+        destructiveHint=True,
         idempotentHint=True,
         openWorldHint=True,
     )
@@ -1600,13 +1602,23 @@ def register_tools(mcp: FastMCP) -> None:
     )
 
     mcp.tool(tags={"catalog", "read"}, annotations=_read, meta=UI_META)(search_items)
-    mcp.tool(tags={"catalog", "write"}, annotations=_write, meta=UI_META)(create_item)
+    # ``create_item`` does not currently expose preview→apply, so it
+    # registers as a plain write tool. If its request grows a ``preview``
+    # field, switch to ``register_preview_tool``.
+    mcp.tool(tags={"catalog", "write"}, annotations=_create, meta=UI_META)(create_item)
     mcp.tool(tags={"catalog", "read"}, annotations=_read, meta=UI_META)(get_item)
-    mcp.tool(tags={"catalog", "write"}, annotations=_update)(modify_item)
-    mcp.tool(
+    register_preview_tool(
+        mcp,
+        modify_item,
+        tags={"catalog", "write"},
+        annotations=_modify,
+    )
+    register_preview_tool(
+        mcp,
+        delete_item,
         tags={"catalog", "write", "destructive"},
         annotations=_destructive,
-    )(delete_item)
+    )
     mcp.tool(tags={"catalog", "read"}, annotations=_read, meta=UI_META)(
         get_variant_details
     )
