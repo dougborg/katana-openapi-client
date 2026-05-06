@@ -17916,6 +17916,10 @@ paths:
               $ref: "#/components/headers/X-Ratelimit-Remaining"
             X-Ratelimit-Reset:
               $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesOrder"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "404":
@@ -19286,6 +19290,10 @@ paths:
               $ref: "#/components/headers/X-Ratelimit-Remaining"
             X-Ratelimit-Reset:
               $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerAddress"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "404":
