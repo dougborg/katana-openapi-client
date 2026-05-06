@@ -7,6 +7,7 @@ class SalesOrderStatus(StrEnum):
     PACKED = "PACKED"
     PARTIALLY_DELIVERED = "PARTIALLY_DELIVERED"
     PARTIALLY_PACKED = "PARTIALLY_PACKED"
+    PENDING = "PENDING"
 
     def __str__(self) -> str:
         return str(self.value)

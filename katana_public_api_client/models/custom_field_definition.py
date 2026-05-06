@@ -151,6 +151,9 @@ class CustomFieldDefinition:
                 return data
             if isinstance(data, Unset):
                 return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
