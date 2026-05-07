@@ -49,7 +49,12 @@ class CreateProductRequest(BaseModel):
     is_purchasable: bool = Field(True, description="Can be purchased")
     sales_price: float | None = Field(None, description="Sales price per unit")
     purchase_price: float | None = Field(None, description="Purchase cost per unit")
-    default_supplier_id: int | None = Field(None, description="Default supplier ID")
+    default_supplier_id: int | None = Field(
+        None,
+        description=(
+            "Default supplier ID. Look up via `list_suppliers` or `katana://suppliers`."
+        ),
+    )
     additional_info: str | None = Field(None, description="Additional notes")
 
 
@@ -182,7 +187,12 @@ class CreateMaterialRequest(BaseModel):
     is_sellable: bool = Field(False, description="Whether material can be sold")
     sales_price: float | None = Field(None, description="Sales price per unit")
     purchase_price: float | None = Field(None, description="Purchase cost per unit")
-    default_supplier_id: int | None = Field(None, description="Default supplier ID")
+    default_supplier_id: int | None = Field(
+        None,
+        description=(
+            "Default supplier ID. Look up via `list_suppliers` or `katana://suppliers`."
+        ),
+    )
     additional_info: str | None = Field(None, description="Additional notes")
 
 
