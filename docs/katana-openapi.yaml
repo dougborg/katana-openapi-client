@@ -12180,6 +12180,12 @@ components:
         quantity:
           type: number
           description: Quantity to fulfill
+        serial_numbers:
+          type: array
+          description: Serial number IDs allocated to this fulfillment row. Required
+            when the row's variant is serial-tracked; the count must equal `quantity`.
+          items:
+            type: integer
     CreateSalesOrderFulfillmentRequest:
       description: Request payload for creating a new sales order fulfillment
       type: object

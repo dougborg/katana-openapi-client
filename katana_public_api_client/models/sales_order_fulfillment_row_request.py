@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -19,12 +19,17 @@ class SalesOrderFulfillmentRowRequest:
 
     sales_order_row_id: int | Unset = UNSET
     quantity: float | Unset = UNSET
+    serial_numbers: list[int] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         sales_order_row_id = self.sales_order_row_id
 
         quantity = self.quantity
+
+        serial_numbers: list[int] | Unset = UNSET
+        if not isinstance(self.serial_numbers, Unset):
+            serial_numbers = self.serial_numbers
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -33,6 +38,8 @@ class SalesOrderFulfillmentRowRequest:
             field_dict["sales_order_row_id"] = sales_order_row_id
         if quantity is not UNSET:
             field_dict["quantity"] = quantity
+        if serial_numbers is not UNSET:
+            field_dict["serial_numbers"] = serial_numbers
 
         return field_dict
 
@@ -43,9 +50,12 @@ class SalesOrderFulfillmentRowRequest:
 
         quantity = d.pop("quantity", UNSET)
 
+        serial_numbers = cast(list[int], d.pop("serial_numbers", UNSET))
+
         sales_order_fulfillment_row_request = cls(
             sales_order_row_id=sales_order_row_id,
             quantity=quantity,
+            serial_numbers=serial_numbers,
         )
 
         sales_order_fulfillment_row_request.additional_properties = d
