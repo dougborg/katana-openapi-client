@@ -8,25 +8,27 @@ from attrs import (
     field as _attrs_field,
 )
 
-from ..models.enum_validation_error_code import EnumValidationErrorCode
+from ..models.unique_items_validation_error_code import UniqueItemsValidationErrorCode
 
 if TYPE_CHECKING:
-    from ..models.enum_validation_error_info import EnumValidationErrorInfo
+    from ..models.unique_items_validation_error_info import (
+        UniqueItemsValidationErrorInfo,
+    )
 
 
-T = TypeVar("T", bound="EnumValidationError")
+T = TypeVar("T", bound="UniqueItemsValidationError")
 
 
 @_attrs_define
-class EnumValidationError:
-    """Ajv ``enum`` keyword: the value is not in the allowed set.
-    ``info.allowedValues`` is the schema's enum list.
+class UniqueItemsValidationError:
+    """Ajv ``uniqueItems`` keyword: the array contains duplicate items.
+    ``info.i`` and ``info.j`` are the indices of the duplicate pair.
     """
 
     path: str
-    code: EnumValidationErrorCode
+    code: UniqueItemsValidationErrorCode
     message: str
-    info: EnumValidationErrorInfo
+    info: UniqueItemsValidationErrorInfo
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -53,26 +55,28 @@ class EnumValidationError:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.enum_validation_error_info import EnumValidationErrorInfo
+        from ..models.unique_items_validation_error_info import (
+            UniqueItemsValidationErrorInfo,
+        )
 
         d = dict(src_dict)
         path = d.pop("path")
 
-        code = EnumValidationErrorCode(d.pop("code"))
+        code = UniqueItemsValidationErrorCode(d.pop("code"))
 
         message = d.pop("message")
 
-        info = EnumValidationErrorInfo.from_dict(d.pop("info"))
+        info = UniqueItemsValidationErrorInfo.from_dict(d.pop("info"))
 
-        enum_validation_error = cls(
+        unique_items_validation_error = cls(
             path=path,
             code=code,
             message=message,
             info=info,
         )
 
-        enum_validation_error.additional_properties = d
-        return enum_validation_error
+        unique_items_validation_error.additional_properties = d
+        return unique_items_validation_error
 
     @property
     def additional_keys(self) -> list[str]:

@@ -8,34 +8,24 @@ from attrs import (
     field as _attrs_field,
 )
 
-T = TypeVar("T", bound="BaseValidationError")
+T = TypeVar("T", bound="ConstValidationErrorInfo")
 
 
 @_attrs_define
-class BaseValidationError:
-    """Common fields shared by every validation error detail. Maps to the
-    non-keyword-specific portion of an Ajv ``ErrorObject``.
-    """
+class ConstValidationErrorInfo:
+    """Keyword-specific metadata for ``const``"""
 
-    path: str
-    code: str
-    message: str
+    allowed_value: Any
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        path = self.path
-
-        code = self.code
-
-        message = self.message
+        allowed_value = self.allowed_value
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "path": path,
-                "code": code,
-                "message": message,
+                "allowedValue": allowed_value,
             }
         )
 
@@ -44,20 +34,14 @@ class BaseValidationError:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        path = d.pop("path")
+        allowed_value = d.pop("allowedValue")
 
-        code = d.pop("code")
-
-        message = d.pop("message")
-
-        base_validation_error = cls(
-            path=path,
-            code=code,
-            message=message,
+        const_validation_error_info = cls(
+            allowed_value=allowed_value,
         )
 
-        base_validation_error.additional_properties = d
-        return base_validation_error
+        const_validation_error_info.additional_properties = d
+        return const_validation_error_info
 
     @property
     def additional_keys(self) -> list[str]:

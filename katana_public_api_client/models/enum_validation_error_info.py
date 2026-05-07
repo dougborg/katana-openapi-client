@@ -1,41 +1,31 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
 
-T = TypeVar("T", bound="BaseValidationError")
+T = TypeVar("T", bound="EnumValidationErrorInfo")
 
 
 @_attrs_define
-class BaseValidationError:
-    """Common fields shared by every validation error detail. Maps to the
-    non-keyword-specific portion of an Ajv ``ErrorObject``.
-    """
+class EnumValidationErrorInfo:
+    """Keyword-specific metadata for ``enum``"""
 
-    path: str
-    code: str
-    message: str
+    allowed_values: list[Any]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        path = self.path
-
-        code = self.code
-
-        message = self.message
+        allowed_values = self.allowed_values
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "path": path,
-                "code": code,
-                "message": message,
+                "allowedValues": allowed_values,
             }
         )
 
@@ -44,20 +34,14 @@ class BaseValidationError:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        path = d.pop("path")
+        allowed_values = cast(list[Any], d.pop("allowedValues"))
 
-        code = d.pop("code")
-
-        message = d.pop("message")
-
-        base_validation_error = cls(
-            path=path,
-            code=code,
-            message=message,
+        enum_validation_error_info = cls(
+            allowed_values=allowed_values,
         )
 
-        base_validation_error.additional_properties = d
-        return base_validation_error
+        enum_validation_error_info.additional_properties = d
+        return enum_validation_error_info
 
     @property
     def additional_keys(self) -> list[str]:

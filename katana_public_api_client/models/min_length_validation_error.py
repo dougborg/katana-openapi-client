@@ -1,24 +1,33 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
 
-from ..models.min_validation_error_code import MinValidationErrorCode
+from ..models.min_length_validation_error_code import MinLengthValidationErrorCode
 
-T = TypeVar("T", bound="MinValidationError")
+if TYPE_CHECKING:
+    from ..models.min_length_validation_error_info import MinLengthValidationErrorInfo
+
+
+T = TypeVar("T", bound="MinLengthValidationError")
 
 
 @_attrs_define
-class MinValidationError:
+class MinLengthValidationError:
+    """Ajv ``minLength`` keyword: the string is shorter than the schema's
+    minimum length. Parallel to ``MaxLengthValidationError`` — the limit
+    lives in ``info.limit``.
+    """
+
     path: str
-    code: MinValidationErrorCode
+    code: MinLengthValidationErrorCode
     message: str
-    minimum: float
+    info: MinLengthValidationErrorInfo
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -28,7 +37,7 @@ class MinValidationError:
 
         message = self.message
 
-        minimum = self.minimum
+        info = self.info.to_dict()
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -37,7 +46,7 @@ class MinValidationError:
                 "path": path,
                 "code": code,
                 "message": message,
-                "minimum": minimum,
+                "info": info,
             }
         )
 
@@ -45,24 +54,28 @@ class MinValidationError:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.min_length_validation_error_info import (
+            MinLengthValidationErrorInfo,
+        )
+
         d = dict(src_dict)
         path = d.pop("path")
 
-        code = MinValidationErrorCode(d.pop("code"))
+        code = MinLengthValidationErrorCode(d.pop("code"))
 
         message = d.pop("message")
 
-        minimum = d.pop("minimum")
+        info = MinLengthValidationErrorInfo.from_dict(d.pop("info"))
 
-        min_validation_error = cls(
+        min_length_validation_error = cls(
             path=path,
             code=code,
             message=message,
-            minimum=minimum,
+            info=info,
         )
 
-        min_validation_error.additional_properties = d
-        return min_validation_error
+        min_length_validation_error.additional_properties = d
+        return min_length_validation_error
 
     @property
     def additional_keys(self) -> list[str]:

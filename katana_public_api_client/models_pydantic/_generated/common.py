@@ -18,6 +18,22 @@ from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
 from .base import DeletableEntity, UpdatableEntity
 
 
+class Comparison(StrEnum):
+    field_ = "<"
+
+
+class Comparison1(StrEnum):
+    field_ = ">"
+
+
+class Comparison2(StrEnum):
+    field__ = "<="
+
+
+class Comparison3(StrEnum):
+    field__ = ">="
+
+
 class VariantType(StrEnum):
     product = "product"
     material = "material"

@@ -8,36 +8,24 @@ from attrs import (
     field as _attrs_field,
 )
 
-from ..models.max_validation_error_code import MaxValidationErrorCode
-
-T = TypeVar("T", bound="MaxValidationError")
+T = TypeVar("T", bound="TypeValidationErrorInfo")
 
 
 @_attrs_define
-class MaxValidationError:
-    path: str
-    code: MaxValidationErrorCode
-    message: str
-    maximum: float
+class TypeValidationErrorInfo:
+    """Keyword-specific metadata for ``type``"""
+
+    type_: str
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        path = self.path
-
-        code = self.code.value
-
-        message = self.message
-
-        maximum = self.maximum
+        type_ = self.type_
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "path": path,
-                "code": code,
-                "message": message,
-                "maximum": maximum,
+                "type": type_,
             }
         )
 
@@ -46,23 +34,14 @@ class MaxValidationError:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        path = d.pop("path")
+        type_ = d.pop("type")
 
-        code = MaxValidationErrorCode(d.pop("code"))
-
-        message = d.pop("message")
-
-        maximum = d.pop("maximum")
-
-        max_validation_error = cls(
-            path=path,
-            code=code,
-            message=message,
-            maximum=maximum,
+        type_validation_error_info = cls(
+            type_=type_,
         )
 
-        max_validation_error.additional_properties = d
-        return max_validation_error
+        type_validation_error_info.additional_properties = d
+        return type_validation_error_info
 
     @property
     def additional_keys(self) -> list[str]:

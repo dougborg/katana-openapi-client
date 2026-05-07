@@ -8,25 +8,23 @@ from attrs import (
     field as _attrs_field,
 )
 
-from ..models.enum_validation_error_code import EnumValidationErrorCode
+from ..models.maximum_validation_error_code import MaximumValidationErrorCode
 
 if TYPE_CHECKING:
-    from ..models.enum_validation_error_info import EnumValidationErrorInfo
+    from ..models.maximum_validation_error_info import MaximumValidationErrorInfo
 
 
-T = TypeVar("T", bound="EnumValidationError")
+T = TypeVar("T", bound="MaximumValidationError")
 
 
 @_attrs_define
-class EnumValidationError:
-    """Ajv ``enum`` keyword: the value is not in the allowed set.
-    ``info.allowedValues`` is the schema's enum list.
-    """
+class MaximumValidationError:
+    """Ajv ``maximum`` keyword: the value exceeds its inclusive upper bound."""
 
     path: str
-    code: EnumValidationErrorCode
+    code: MaximumValidationErrorCode
     message: str
-    info: EnumValidationErrorInfo
+    info: MaximumValidationErrorInfo
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -53,26 +51,26 @@ class EnumValidationError:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.enum_validation_error_info import EnumValidationErrorInfo
+        from ..models.maximum_validation_error_info import MaximumValidationErrorInfo
 
         d = dict(src_dict)
         path = d.pop("path")
 
-        code = EnumValidationErrorCode(d.pop("code"))
+        code = MaximumValidationErrorCode(d.pop("code"))
 
         message = d.pop("message")
 
-        info = EnumValidationErrorInfo.from_dict(d.pop("info"))
+        info = MaximumValidationErrorInfo.from_dict(d.pop("info"))
 
-        enum_validation_error = cls(
+        maximum_validation_error = cls(
             path=path,
             code=code,
             message=message,
             info=info,
         )
 
-        enum_validation_error.additional_properties = d
-        return enum_validation_error
+        maximum_validation_error.additional_properties = d
+        return maximum_validation_error
 
     @property
     def additional_keys(self) -> list[str]:

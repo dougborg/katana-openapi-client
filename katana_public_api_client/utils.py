@@ -6,21 +6,37 @@ handling errors, extracting data, and formatting display values.
 
 from collections.abc import Callable
 from http import HTTPStatus
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, Any, Literal, overload
 
 from .client_types import Response, Unset
 from .domain.converters import unwrap_unset
+from .models.additional_properties_validation_error import (
+    AdditionalPropertiesValidationError,
+)
+from .models.const_validation_error import ConstValidationError
+from .models.dependencies_validation_error import DependenciesValidationError
 from .models.detailed_error_response import DetailedErrorResponse
 from .models.enum_validation_error import EnumValidationError
 from .models.error_response import ErrorResponse
-from .models.invalid_type_validation_error import InvalidTypeValidationError
-from .models.max_validation_error import MaxValidationError
-from .models.min_validation_error import MinValidationError
+from .models.exclusive_maximum_validation_error import (
+    ExclusiveMaximumValidationError,
+)
+from .models.exclusive_minimum_validation_error import (
+    ExclusiveMinimumValidationError,
+)
+from .models.format_validation_error import FormatValidationError
+from .models.max_items_validation_error import MaxItemsValidationError
+from .models.max_length_validation_error import MaxLengthValidationError
+from .models.maximum_validation_error import MaximumValidationError
+from .models.min_items_validation_error import MinItemsValidationError
+from .models.min_length_validation_error import MinLengthValidationError
+from .models.minimum_validation_error import MinimumValidationError
+from .models.multiple_of_validation_error import MultipleOfValidationError
+from .models.one_of_validation_error import OneOfValidationError
 from .models.pattern_validation_error import PatternValidationError
 from .models.required_validation_error import RequiredValidationError
-from .models.too_big_validation_error import TooBigValidationError
-from .models.too_small_validation_error import TooSmallValidationError
-from .models.unrecognized_keys_validation_error import UnrecognizedKeysValidationError
+from .models.type_validation_error import TypeValidationError
+from .models.unique_items_validation_error import UniqueItemsValidationError
 
 if TYPE_CHECKING:
     from .models.variant_response import VariantResponse
@@ -75,75 +91,110 @@ class ValidationError(APIError):
         )
 
     def __str__(self) -> str:
-        """Format validation error with code-specific details."""
+        """Format validation error with Ajv-keyword-specific details.
+
+        Each detail's typed subtype is dispatched into a keyword-specific
+        renderer that consults ``info.*`` for keyword metadata (limit,
+        pattern, allowed values, etc.). Unknown keywords route to
+        ``GenericValidationError`` and render through a fallback that
+        surfaces ``path``/``code``/``message`` plus any ``info`` captured
+        in ``additional_properties``.
+        """
         msg = super().__str__()
 
-        # Add code-specific details if present using type-safe isinstance checks
         if self.validation_errors:
             error_details = []
             for detail in self.validation_errors:
-                field = detail.path.lstrip("/")
-
-                # Use isinstance for type-safe error handling
-                if isinstance(detail, EnumValidationError):
-                    error_details.append(
-                        f"  Field '{field}' must be one of: {detail.allowed_values}"
-                    )
-
-                elif isinstance(detail, MinValidationError):
-                    error_details.append(
-                        f"  Field '{field}' must be >= {detail.minimum}"
-                    )
-
-                elif isinstance(detail, MaxValidationError):
-                    error_details.append(
-                        f"  Field '{field}' must be <= {detail.maximum}"
-                    )
-
-                elif isinstance(detail, InvalidTypeValidationError):
-                    error_details.append(
-                        f"  Field '{field}' must be of type: {detail.expected_type}"
-                    )
-
-                elif isinstance(detail, TooSmallValidationError):
-                    if not isinstance(detail.min_length, Unset):
-                        error_details.append(
-                            f"  Field '{field}' must have minimum length: {detail.min_length}"
-                        )
-                    elif not isinstance(detail.min_items, Unset):
-                        error_details.append(
-                            f"  Field '{field}' must have minimum items: {detail.min_items}"
-                        )
-
-                elif isinstance(detail, TooBigValidationError):
-                    if not isinstance(detail.max_length, Unset):
-                        error_details.append(
-                            f"  Field '{field}' must have maximum length: {detail.max_length}"
-                        )
-                    elif not isinstance(detail.max_items, Unset):
-                        error_details.append(
-                            f"  Field '{field}' must have maximum items: {detail.max_items}"
-                        )
-
-                elif isinstance(detail, RequiredValidationError):
-                    error_details.append(
-                        f"  Missing required field: '{detail.missing_property}'"
-                    )
-
-                elif isinstance(detail, PatternValidationError):
-                    error_details.append(
-                        f"  Field '{field}' must match pattern: {detail.pattern}"
-                    )
-
-                elif isinstance(detail, UnrecognizedKeysValidationError):
-                    error_details.append(f"  Unrecognized fields: {detail.keys}")
-                    if not isinstance(detail.valid_keys, Unset):
-                        error_details.append(f"  Valid fields: {detail.valid_keys}")
-
+                error_details.append(_format_ajv_detail(detail))
             if error_details:
                 msg += "\n" + "\n".join(error_details)
 
         return msg
+
+
+def _format_ajv_detail(detail: Any) -> str:
+    """Render an Ajv ``ValidationErrorDetail`` as a single human-readable line.
+
+    Dispatches by typed subtype (one branch per Ajv keyword), with a fallback
+    for ``GenericValidationError`` and any subtype whose wire payload didn't
+    match its declared schema (e.g. a future Ajv keyword we haven't typed yet,
+    or a typed subtype where deserialization fell back to Generic).
+    """
+    field = detail.path.lstrip("/") if hasattr(detail, "path") else "?"
+
+    # ── String / format keywords ────────────────────────────────────────────
+    if isinstance(detail, MaxLengthValidationError):
+        return f"  Field '{field}' must not exceed {detail.info.limit} characters"
+    if isinstance(detail, MinLengthValidationError):
+        return f"  Field '{field}' must be at least {detail.info.limit} characters"
+    if isinstance(detail, FormatValidationError):
+        return f"  Field '{field}' must match format: {detail.info.format_}"
+    if isinstance(detail, PatternValidationError):
+        return f"  Field '{field}' must match pattern: {detail.info.pattern}"
+
+    # ── Numeric keywords ────────────────────────────────────────────────────
+    if isinstance(detail, MinimumValidationError):
+        return f"  Field '{field}' must be >= {detail.info.limit}"
+    if isinstance(detail, MaximumValidationError):
+        return f"  Field '{field}' must be <= {detail.info.limit}"
+    if isinstance(detail, ExclusiveMinimumValidationError):
+        return f"  Field '{field}' must be > {detail.info.limit}"
+    if isinstance(detail, ExclusiveMaximumValidationError):
+        return f"  Field '{field}' must be < {detail.info.limit}"
+    if isinstance(detail, MultipleOfValidationError):
+        return f"  Field '{field}' must be a multiple of {detail.info.multiple_of}"
+
+    # ── Array keywords ──────────────────────────────────────────────────────
+    if isinstance(detail, MinItemsValidationError):
+        return f"  Field '{field}' must have at least {detail.info.limit} items"
+    if isinstance(detail, MaxItemsValidationError):
+        return f"  Field '{field}' must have at most {detail.info.limit} items"
+    if isinstance(detail, UniqueItemsValidationError):
+        return (
+            f"  Field '{field}' contains duplicate items "
+            f"at indices {detail.info.i} and {detail.info.j}"
+        )
+
+    # ── Object keywords ─────────────────────────────────────────────────────
+    if isinstance(detail, RequiredValidationError):
+        return f"  Missing required field: '{detail.info.missing_property}'"
+    if isinstance(detail, AdditionalPropertiesValidationError):
+        return (
+            f"  Field '{field}' has unexpected property: "
+            f"'{detail.info.additional_property}'"
+        )
+    if isinstance(detail, DependenciesValidationError):
+        return (
+            f"  Field '{field}' has property '{detail.info.property_}' "
+            f"but is missing dependent property '{detail.info.missing_property}'"
+        )
+
+    # ── Type / composition keywords ─────────────────────────────────────────
+    if isinstance(detail, TypeValidationError):
+        return f"  Field '{field}' must be of type: {detail.info.type_}"
+    if isinstance(detail, EnumValidationError):
+        return f"  Field '{field}' must be one of: {detail.info.allowed_values}"
+    if isinstance(detail, ConstValidationError):
+        return f"  Field '{field}' must equal: {detail.info.allowed_value!r}"
+    if isinstance(detail, OneOfValidationError):
+        passing = detail.info.passing_schemas
+        if passing is None:
+            return f"  Field '{field}' did not match any allowed schema"
+        return (
+            f"  Field '{field}' matched multiple allowed schemas "
+            f"(indices {passing}); must match exactly one"
+        )
+
+    # ── Fallback: GenericValidationError or any future keyword ─────────────
+    detail_message = unwrap_unset(getattr(detail, "message", None), None)
+    detail_code = unwrap_unset(getattr(detail, "code", None), None)
+    extra = getattr(detail, "additional_properties", {}) or {}
+    info = extra.get("info") if isinstance(extra, dict) else None
+    prefix = f"({detail_code}) " if detail_code else ""
+    suffix = f" — info: {info}" if info else ""
+    if detail_message:
+        return f"  Field '{field}': {prefix}{detail_message}{suffix}"
+    return f"  Field '{field}': {prefix}<no message>{suffix}"
 
 
 class RateLimitError(APIError):
@@ -162,7 +213,7 @@ class ServerError(APIError):
 def unwrap[T](
     response: Response[T],
     *,
-    raise_on_error: bool = True,
+    raise_on_error: Literal[True] = True,
 ) -> T: ...
 
 
@@ -170,7 +221,7 @@ def unwrap[T](
 def unwrap[T](
     response: Response[T],
     *,
-    raise_on_error: bool = False,
+    raise_on_error: Literal[False],
 ) -> T | None: ...
 
 
@@ -280,7 +331,7 @@ def unwrap[T](
 def unwrap_data[T](
     response: Response[T],
     *,
-    raise_on_error: bool = True,
+    raise_on_error: Literal[True] = True,
     default: None = None,
 ) -> Any: ...
 
@@ -289,7 +340,7 @@ def unwrap_data[T](
 def unwrap_data[T](
     response: Response[T],
     *,
-    raise_on_error: bool = False,
+    raise_on_error: Literal[False],
     default: None = None,
 ) -> Any | None: ...
 
@@ -403,7 +454,7 @@ def unwrap_as[T, ExpectedT](
     response: Response[T],
     expected_type: type[ExpectedT],
     *,
-    raise_on_error: bool = True,
+    raise_on_error: Literal[True] = True,
 ) -> ExpectedT: ...
 
 
@@ -412,7 +463,7 @@ def unwrap_as[T, ExpectedT](
     response: Response[T],
     expected_type: type[ExpectedT],
     *,
-    raise_on_error: bool = False,
+    raise_on_error: Literal[False],
 ) -> ExpectedT | None: ...
 
 

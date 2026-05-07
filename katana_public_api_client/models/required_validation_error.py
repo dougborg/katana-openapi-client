@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import (
     define as _attrs_define,
@@ -10,15 +10,23 @@ from attrs import (
 
 from ..models.required_validation_error_code import RequiredValidationErrorCode
 
+if TYPE_CHECKING:
+    from ..models.required_validation_error_info import RequiredValidationErrorInfo
+
+
 T = TypeVar("T", bound="RequiredValidationError")
 
 
 @_attrs_define
 class RequiredValidationError:
+    """Ajv ``required`` keyword: an object is missing a required property.
+    ``info.missingProperty`` names the missing field.
+    """
+
     path: str
     code: RequiredValidationErrorCode
     message: str
-    missing_property: str
+    info: RequiredValidationErrorInfo
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -28,7 +36,7 @@ class RequiredValidationError:
 
         message = self.message
 
-        missing_property = self.missing_property
+        info = self.info.to_dict()
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -37,7 +45,7 @@ class RequiredValidationError:
                 "path": path,
                 "code": code,
                 "message": message,
-                "missing_property": missing_property,
+                "info": info,
             }
         )
 
@@ -45,6 +53,8 @@ class RequiredValidationError:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.required_validation_error_info import RequiredValidationErrorInfo
+
         d = dict(src_dict)
         path = d.pop("path")
 
@@ -52,13 +62,13 @@ class RequiredValidationError:
 
         message = d.pop("message")
 
-        missing_property = d.pop("missing_property")
+        info = RequiredValidationErrorInfo.from_dict(d.pop("info"))
 
         required_validation_error = cls(
             path=path,
             code=code,
             message=message,
-            missing_property=missing_property,
+            info=info,
         )
 
         required_validation_error.additional_properties = d

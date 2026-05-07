@@ -8,34 +8,24 @@ from attrs import (
     field as _attrs_field,
 )
 
-T = TypeVar("T", bound="BaseValidationError")
+T = TypeVar("T", bound="FormatValidationErrorInfo")
 
 
 @_attrs_define
-class BaseValidationError:
-    """Common fields shared by every validation error detail. Maps to the
-    non-keyword-specific portion of an Ajv ``ErrorObject``.
-    """
+class FormatValidationErrorInfo:
+    """Keyword-specific metadata for ``format``"""
 
-    path: str
-    code: str
-    message: str
+    format_: str
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        path = self.path
-
-        code = self.code
-
-        message = self.message
+        format_ = self.format_
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "path": path,
-                "code": code,
-                "message": message,
+                "format": format_,
             }
         )
 
@@ -44,20 +34,14 @@ class BaseValidationError:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        path = d.pop("path")
+        format_ = d.pop("format")
 
-        code = d.pop("code")
-
-        message = d.pop("message")
-
-        base_validation_error = cls(
-            path=path,
-            code=code,
-            message=message,
+        format_validation_error_info = cls(
+            format_=format_,
         )
 
-        base_validation_error.additional_properties = d
-        return base_validation_error
+        format_validation_error_info.additional_properties = d
+        return format_validation_error_info
 
     @property
     def additional_keys(self) -> list[str]:

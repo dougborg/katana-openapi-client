@@ -1,8 +1,8 @@
 from enum import StrEnum
 
 
-class TooSmallValidationErrorCode(StrEnum):
-    TOO_SMALL = "too_small"
+class UniqueItemsValidationErrorCode(StrEnum):
+    UNIQUEITEMS = "uniqueItems"
 
     def __str__(self) -> str:
         return str(self.value)

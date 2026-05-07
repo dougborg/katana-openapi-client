@@ -8,25 +8,25 @@ from attrs import (
     field as _attrs_field,
 )
 
-from ..models.enum_validation_error_code import EnumValidationErrorCode
+from ..models.type_validation_error_code import TypeValidationErrorCode
 
 if TYPE_CHECKING:
-    from ..models.enum_validation_error_info import EnumValidationErrorInfo
+    from ..models.type_validation_error_info import TypeValidationErrorInfo
 
 
-T = TypeVar("T", bound="EnumValidationError")
+T = TypeVar("T", bound="TypeValidationError")
 
 
 @_attrs_define
-class EnumValidationError:
-    """Ajv ``enum`` keyword: the value is not in the allowed set.
-    ``info.allowedValues`` is the schema's enum list.
+class TypeValidationError:
+    """Ajv ``type`` keyword: the value's type does not match the schema's
+    ``type``. ``info.type`` names the expected type.
     """
 
     path: str
-    code: EnumValidationErrorCode
+    code: TypeValidationErrorCode
     message: str
-    info: EnumValidationErrorInfo
+    info: TypeValidationErrorInfo
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -53,26 +53,26 @@ class EnumValidationError:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.enum_validation_error_info import EnumValidationErrorInfo
+        from ..models.type_validation_error_info import TypeValidationErrorInfo
 
         d = dict(src_dict)
         path = d.pop("path")
 
-        code = EnumValidationErrorCode(d.pop("code"))
+        code = TypeValidationErrorCode(d.pop("code"))
 
         message = d.pop("message")
 
-        info = EnumValidationErrorInfo.from_dict(d.pop("info"))
+        info = TypeValidationErrorInfo.from_dict(d.pop("info"))
 
-        enum_validation_error = cls(
+        type_validation_error = cls(
             path=path,
             code=code,
             message=message,
             info=info,
         )
 
-        enum_validation_error.additional_properties = d
-        return enum_validation_error
+        type_validation_error.additional_properties = d
+        return type_validation_error
 
     @property
     def additional_keys(self) -> list[str]:
