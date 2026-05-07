@@ -156,11 +156,6 @@ _PARENT_BY_VARIANT_TYPE: dict[str, tuple[EntityType, str]] = {
     "service": (EntityType.SERVICE, "product_id"),
 }
 
-# Cap concurrent ``/inventory`` requests for ``inventory_velocity`` batches.
-# Transport-layer rate limiting handles 429s, but a semaphore prevents 100+
-# simultaneous requests from saturating the HTTP connection pool.
-_STOCK_FETCH_CONCURRENCY = 10
-
 
 async def _resolve_variant_info(
     services: Any,
@@ -900,18 +895,17 @@ async def _inventory_velocity_impl(
     recipe_rows: list[Any] = fetch_results[1] if request.include_mo_consumption else []
 
     # Stock-on-hand must be fetched per variant (separate API call each).
-    # Cap concurrency so a 100-variant batch doesn't burst 100 simultaneous
-    # ``/inventory`` requests at the connection pool — transport-layer
-    # rate limiting handles 429s, but a semaphore prevents the burst
-    # entirely.
-    stock_fetch_semaphore = asyncio.Semaphore(_STOCK_FETCH_CONCURRENCY)
-
-    async def _fetch_stock_limited(variant_id: int) -> float:
-        async with stock_fetch_semaphore:
-            return await _fetch_stock_on_hand(services, variant_id)
-
+    # The prior application-level ``asyncio.Semaphore`` capping concurrency
+    # at 10 was removed because the transport-layer ``RateLimitTransport``
+    # (#590) caps the *rate* at 60 req/min, which bounds the amount of work
+    # that can outrun httpx's default connection pool (max 100). Note:
+    # this is rate-limiting, not concurrency-limiting — bursts up to the
+    # bucket size can still fire concurrently, but pyrate stalls the rest
+    # before they reach the pool. If a future workload needs a stricter
+    # concurrency cap (e.g., to be friendlier to a downstream API the
+    # rate limit doesn't constrain), reintroduce a semaphore here.
     stock_values = await asyncio.gather(
-        *(_fetch_stock_limited(variant_id) for variant_id, _ in resolved)
+        *(_fetch_stock_on_hand(services, variant_id) for variant_id, _ in resolved)
     )
 
     # Pre-aggregate demand per variant in a single pass over each row source,
