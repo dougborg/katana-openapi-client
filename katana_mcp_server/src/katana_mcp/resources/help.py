@@ -855,9 +855,10 @@ endpoint; variant sub-payloads route to the shared `/variant` family.
   to match an existing config; PRODUCT updates always match by `name`.
   Katana overwrites the full list at apply time — omit a config and it
   gets deleted, so always send every config you want to keep.
-- `add_variants` / `update_variants[].config_attributes` — pin one
-  value per parent config (e.g. `[{config_name: "Size", config_value:
-  "M"}, ...]`). Names must match a config on the parent;
+- `add_variants[].config_attributes` /
+  `update_variants[].config_attributes` — pin one value per parent
+  config on each variant entry (e.g. `[{config_name: "Size",
+  config_value: "M"}, ...]`). Names must match a config on the parent;
   `update_variants[].config_attributes` overwrites the variant's
   existing list at apply time.
 - `add_variants` — POST `/variant`. Parent `product_id` / `material_id`
