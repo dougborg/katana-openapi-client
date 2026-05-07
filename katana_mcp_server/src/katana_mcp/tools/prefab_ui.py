@@ -300,6 +300,11 @@ def build_search_results_ui(
     - Sortable, searchable, paginated DataTable
     - Row-click fires CallTool to get_variant_details, renders in Slot
     - Summary badges for query and count
+
+    When ``total_count == 0``, drops the DataTable / drill-down Slot /
+    "Check inventory" button — they all reference nonexistent results — and
+    renders a friendly hint suggesting partial-SKU / name fallbacks. Closes
+    #470.
     """
     with (
         PrefabApp(
@@ -312,6 +317,16 @@ def build_search_results_ui(
             H3(content="Search Results")
             Badge(label=f"Query: {query}", variant="outline")
             Badge(label=f"{total_count} items", variant="secondary")
+
+        if total_count == 0:
+            Muted(
+                content=(
+                    f'No items match "{query}". Try a partial SKU, variant '
+                    "name, or parent product/material name — search uses "
+                    "FTS5 with fuzzy fallback."
+                )
+            )
+            return app
 
         DataTable(
             columns=[
@@ -629,7 +644,13 @@ def build_low_stock_ui(
     threshold: int,
     total_count: int,
 ) -> PrefabApp:
-    """Build a low stock report with table and reorder action."""
+    """Build a low stock report with table and reorder action.
+
+    When ``total_count == 0``, drops the DataTable and "Create Restock
+    Orders" button — they reference nonexistent items — and renders a
+    friendly "all clear" hint instead. Bundled with the #470 search empty-
+    state fix because the pattern is identical.
+    """
     with (
         PrefabApp(
             state={"items": items},
@@ -644,6 +665,15 @@ def build_low_stock_ui(
                 label=f"{total_count} items",
                 variant="destructive" if total_count > 0 else "secondary",
             )
+
+        if total_count == 0:
+            Muted(
+                content=(
+                    f"No items below the threshold of {threshold}. "
+                    "Inventory levels are healthy."
+                )
+            )
+            return app
 
         DataTable(
             columns=[
