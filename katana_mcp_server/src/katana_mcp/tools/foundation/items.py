@@ -1019,24 +1019,16 @@ def _coerce_material_configs(
     ]
 
 
-def _coerce_create_variant_config_attributes(
+def _coerce_variant_config_attributes(
     raw: list[dict[str, Any]],
-) -> list[APICreateVariantConfigItem]:
+    item_cls: type[APICreateVariantConfigItem] | type[APIUpdateVariantConfigItem],
+) -> list[Any]:
+    """Map ``VariantConfigAttributePatch`` dicts to the create- or update-side
+    attrs class. Both target classes share the ``config_name`` /
+    ``config_value`` shape — ``item_cls`` chooses which one fits the
+    sibling Update*Request."""
     return [
-        APICreateVariantConfigItem(
-            config_name=c["config_name"], config_value=c["config_value"]
-        )
-        for c in raw
-    ]
-
-
-def _coerce_update_variant_config_attributes(
-    raw: list[dict[str, Any]],
-) -> list[APIUpdateVariantConfigItem]:
-    return [
-        APIUpdateVariantConfigItem(
-            config_name=c["config_name"], config_value=c["config_value"]
-        )
+        item_cls(config_name=c["config_name"], config_value=c["config_value"])
         for c in raw
     ]
 
@@ -1086,7 +1078,11 @@ def _build_create_variant_request(
         extra["material_id"] = parent_id
     kwargs = unset_dict(
         variant,
-        transforms={"config_attributes": _coerce_create_variant_config_attributes},
+        transforms={
+            "config_attributes": lambda raw: _coerce_variant_config_attributes(
+                raw, APICreateVariantConfigItem
+            ),
+        },
     )
     return APICreateVariantRequest(**kwargs, **extra)
 
@@ -1095,7 +1091,11 @@ def _build_update_variant_request(patch: VariantUpdate) -> APIUpdateVariantReque
     kwargs = unset_dict(
         patch,
         exclude=("id",),
-        transforms={"config_attributes": _coerce_update_variant_config_attributes},
+        transforms={
+            "config_attributes": lambda raw: _coerce_variant_config_attributes(
+                raw, APIUpdateVariantConfigItem
+            ),
+        },
     )
     return APIUpdateVariantRequest(**kwargs)
 
