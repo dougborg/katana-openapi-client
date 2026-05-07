@@ -194,8 +194,11 @@ from .get_all_manufacturing_order_operation_rows_status import (
     GetAllManufacturingOrderOperationRowsStatus,
 )
 from .get_all_manufacturing_orders_status import GetAllManufacturingOrdersStatus
+from .get_all_materials_batch_tracked import GetAllMaterialsBatchTracked
 from .get_all_materials_extend_item import GetAllMaterialsExtendItem
+from .get_all_products_batch_tracked import GetAllProductsBatchTracked
 from .get_all_products_extend_item import GetAllProductsExtendItem
+from .get_all_products_serial_tracked import GetAllProductsSerialTracked
 from .get_all_sales_order_rows_extend_item import GetAllSalesOrderRowsExtendItem
 from .get_all_sales_order_rows_product_availability import (
     GetAllSalesOrderRowsProductAvailability,
@@ -687,8 +690,11 @@ __all__ = (
     "GetAllInventoryPointExtendItem",
     "GetAllManufacturingOrderOperationRowsStatus",
     "GetAllManufacturingOrdersStatus",
+    "GetAllMaterialsBatchTracked",
     "GetAllMaterialsExtendItem",
+    "GetAllProductsBatchTracked",
     "GetAllProductsExtendItem",
+    "GetAllProductsSerialTracked",
     "GetAllSalesOrderRowsExtendItem",
     "GetAllSalesOrderRowsProductAvailability",
     "GetAllSalesOrdersProductAvailability",
