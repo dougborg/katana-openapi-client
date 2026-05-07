@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import (
     define as _attrs_define,
@@ -10,15 +10,23 @@ from attrs import (
 
 from ..models.pattern_validation_error_code import PatternValidationErrorCode
 
+if TYPE_CHECKING:
+    from ..models.pattern_validation_error_info import PatternValidationErrorInfo
+
+
 T = TypeVar("T", bound="PatternValidationError")
 
 
 @_attrs_define
 class PatternValidationError:
+    """Ajv ``pattern`` keyword: the string does not match the schema's
+    regex. The pattern lives in ``info.pattern``.
+    """
+
     path: str
     code: PatternValidationErrorCode
     message: str
-    pattern: str
+    info: PatternValidationErrorInfo
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -28,7 +36,7 @@ class PatternValidationError:
 
         message = self.message
 
-        pattern = self.pattern
+        info = self.info.to_dict()
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -37,7 +45,7 @@ class PatternValidationError:
                 "path": path,
                 "code": code,
                 "message": message,
-                "pattern": pattern,
+                "info": info,
             }
         )
 
@@ -45,6 +53,8 @@ class PatternValidationError:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.pattern_validation_error_info import PatternValidationErrorInfo
+
         d = dict(src_dict)
         path = d.pop("path")
 
@@ -52,13 +62,13 @@ class PatternValidationError:
 
         message = d.pop("message")
 
-        pattern = d.pop("pattern")
+        info = PatternValidationErrorInfo.from_dict(d.pop("info"))
 
         pattern_validation_error = cls(
             path=path,
             code=code,
             message=message,
-            pattern=pattern,
+            info=info,
         )
 
         pattern_validation_error.additional_properties = d

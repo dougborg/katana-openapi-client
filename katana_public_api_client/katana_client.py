@@ -30,17 +30,33 @@ from .helpers.materials import Materials
 from .helpers.products import Products
 from .helpers.services import Services
 from .helpers.variants import Variants
+from .models.additional_properties_validation_error import (
+    AdditionalPropertiesValidationError,
+)
+from .models.const_validation_error import ConstValidationError
+from .models.dependencies_validation_error import DependenciesValidationError
 from .models.detailed_error_response import DetailedErrorResponse
 from .models.enum_validation_error import EnumValidationError
 from .models.error_response import ErrorResponse
-from .models.invalid_type_validation_error import InvalidTypeValidationError
-from .models.max_validation_error import MaxValidationError
-from .models.min_validation_error import MinValidationError
+from .models.exclusive_maximum_validation_error import (
+    ExclusiveMaximumValidationError,
+)
+from .models.exclusive_minimum_validation_error import (
+    ExclusiveMinimumValidationError,
+)
+from .models.format_validation_error import FormatValidationError
+from .models.max_items_validation_error import MaxItemsValidationError
+from .models.max_length_validation_error import MaxLengthValidationError
+from .models.maximum_validation_error import MaximumValidationError
+from .models.min_items_validation_error import MinItemsValidationError
+from .models.min_length_validation_error import MinLengthValidationError
+from .models.minimum_validation_error import MinimumValidationError
+from .models.multiple_of_validation_error import MultipleOfValidationError
+from .models.one_of_validation_error import OneOfValidationError
 from .models.pattern_validation_error import PatternValidationError
 from .models.required_validation_error import RequiredValidationError
-from .models.too_big_validation_error import TooBigValidationError
-from .models.too_small_validation_error import TooSmallValidationError
-from .models.unrecognized_keys_validation_error import UnrecognizedKeysValidationError
+from .models.type_validation_error import TypeValidationError
+from .models.unique_items_validation_error import UniqueItemsValidationError
 
 # Patterns used to identify sensitive query parameters and body fields in logs.
 # Values matching these patterns are redacted to prevent information disclosure.
@@ -401,73 +417,140 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
                 log_message += f"\n       Code: {detail.code}"
                 log_message += f"\n       Message: {detail.message}"
 
-                # Type-safe extraction of sent value from request body
+                # Type-safe extraction of sent value from request body. Ajv's
+                # ``instancePath`` arrives in two flavors depending on Ajv
+                # config: JSON Pointer (``/foo/bar``) or legacy ``dataPath``
+                # (``.foo.bar``). Strip both so a top-level field like
+                # ``.email`` resolves against ``request_body["email"]``.
                 sent_value = None
                 if request_body and detail.path:
-                    field_path = detail.path.lstrip("/")
-                    if "/" not in field_path:
+                    field_path = detail.path.lstrip("/.")
+                    if "/" not in field_path and "." not in field_path:
                         sent_value = request_body.get(field_path)
-                    # Redact sensitive field values to prevent information disclosure
                     if sent_value is not None and _is_sensitive(field_path):
                         sent_value = _REDACTED
 
-                # Use isinstance for type-safe error handling
+                # Ajv-keyword-specific augmentation. Each branch surfaces the
+                # ``info.*`` payload alongside the value that was actually
+                # sent (where helpful) so the log entry tells operators
+                # exactly what to fix.
                 if isinstance(detail, EnumValidationError):
                     if sent_value is not None:
                         log_message += f"\n       Sent value: {sent_value!r}"
-                    log_message += f"\n       Allowed values: {detail.allowed_values}"
+                    log_message += (
+                        f"\n       Allowed values: {detail.info.allowed_values}"
+                    )
 
-                elif isinstance(detail, MinValidationError):
+                elif isinstance(detail, MinimumValidationError):
                     if sent_value is not None:
                         log_message += f"\n       Sent value: {sent_value!r}"
-                    log_message += f"\n       Minimum allowed: {detail.minimum}"
+                    log_message += f"\n       Minimum allowed: {detail.info.limit}"
 
-                elif isinstance(detail, MaxValidationError):
+                elif isinstance(detail, MaximumValidationError):
                     if sent_value is not None:
                         log_message += f"\n       Sent value: {sent_value!r}"
-                    log_message += f"\n       Maximum allowed: {detail.maximum}"
+                    log_message += f"\n       Maximum allowed: {detail.info.limit}"
 
-                elif isinstance(detail, InvalidTypeValidationError):
+                elif isinstance(detail, ExclusiveMinimumValidationError):
+                    if sent_value is not None:
+                        log_message += f"\n       Sent value: {sent_value!r}"
+                    log_message += f"\n       Must be > {detail.info.limit}"
+
+                elif isinstance(detail, ExclusiveMaximumValidationError):
+                    if sent_value is not None:
+                        log_message += f"\n       Sent value: {sent_value!r}"
+                    log_message += f"\n       Must be < {detail.info.limit}"
+
+                elif isinstance(detail, MultipleOfValidationError):
+                    if sent_value is not None:
+                        log_message += f"\n       Sent value: {sent_value!r}"
+                    log_message += (
+                        f"\n       Must be a multiple of: {detail.info.multiple_of}"
+                    )
+
+                elif isinstance(detail, TypeValidationError):
                     if sent_value is not None:
                         sent_type = type(sent_value).__name__
                         log_message += (
                             f"\n       Sent value: {sent_value!r} (type: {sent_type})"
                         )
-                    log_message += f"\n       Expected type: {detail.expected_type}"
+                    log_message += f"\n       Expected type: {detail.info.type_}"
 
-                elif isinstance(detail, TooSmallValidationError):
+                elif isinstance(detail, MinLengthValidationError):
                     if sent_value is not None and isinstance(sent_value, list | str):
                         log_message += f"\n       Sent value length: {len(sent_value)}"
-                    if not isinstance(detail.min_length, Unset):
-                        log_message += f"\n       Minimum length: {detail.min_length}"
-                    if not isinstance(detail.min_items, Unset):
-                        log_message += f"\n       Minimum items: {detail.min_items}"
+                    log_message += f"\n       Minimum length: {detail.info.limit}"
 
-                elif isinstance(detail, TooBigValidationError):
+                elif isinstance(detail, MaxLengthValidationError):
                     if sent_value is not None and isinstance(sent_value, list | str):
                         log_message += f"\n       Sent value length: {len(sent_value)}"
-                    if not isinstance(detail.max_length, Unset):
-                        log_message += f"\n       Maximum length: {detail.max_length}"
-                    if not isinstance(detail.max_items, Unset):
-                        log_message += f"\n       Maximum items: {detail.max_items}"
+                    log_message += f"\n       Maximum length: {detail.info.limit}"
+
+                elif isinstance(detail, MinItemsValidationError):
+                    if sent_value is not None and isinstance(sent_value, list | str):
+                        log_message += f"\n       Sent value length: {len(sent_value)}"
+                    log_message += f"\n       Minimum items: {detail.info.limit}"
+
+                elif isinstance(detail, MaxItemsValidationError):
+                    if sent_value is not None and isinstance(sent_value, list | str):
+                        log_message += f"\n       Sent value length: {len(sent_value)}"
+                    log_message += f"\n       Maximum items: {detail.info.limit}"
+
+                elif isinstance(detail, UniqueItemsValidationError):
+                    log_message += (
+                        f"\n       Duplicate at indices: {detail.info.i}, "
+                        f"{detail.info.j}"
+                    )
 
                 elif isinstance(detail, RequiredValidationError):
                     log_message += (
-                        f"\n       Missing required field: {detail.missing_property}"
+                        f"\n       Missing required field: "
+                        f"{detail.info.missing_property}"
                     )
                     if request_body:
                         provided_fields = list(request_body.keys())
                         log_message += f"\n       Provided fields: {provided_fields}"
 
+                elif isinstance(detail, AdditionalPropertiesValidationError):
+                    log_message += (
+                        f"\n       Unexpected property: "
+                        f"{detail.info.additional_property}"
+                    )
+
+                elif isinstance(detail, DependenciesValidationError):
+                    log_message += (
+                        f"\n       Property '{detail.info.property_}' requires "
+                        f"'{detail.info.missing_property}'"
+                    )
+
                 elif isinstance(detail, PatternValidationError):
                     if sent_value is not None:
                         log_message += f"\n       Sent value: {sent_value!r}"
-                    log_message += f"\n       Required pattern: {detail.pattern}"
+                    log_message += f"\n       Required pattern: {detail.info.pattern}"
 
-                elif isinstance(detail, UnrecognizedKeysValidationError):
-                    log_message += f"\n       Unrecognized fields: {detail.keys}"
-                    if not isinstance(detail.valid_keys, Unset):
-                        log_message += f"\n       Valid fields: {detail.valid_keys}"
+                elif isinstance(detail, FormatValidationError):
+                    if sent_value is not None:
+                        log_message += f"\n       Sent value: {sent_value!r}"
+                    log_message += f"\n       Required format: {detail.info.format_}"
+
+                elif isinstance(detail, ConstValidationError):
+                    if sent_value is not None:
+                        log_message += f"\n       Sent value: {sent_value!r}"
+                    log_message += (
+                        f"\n       Required value: {detail.info.allowed_value!r}"
+                    )
+
+                elif isinstance(detail, OneOfValidationError):
+                    passing = detail.info.passing_schemas
+                    if passing is None:
+                        log_message += (
+                            "\n       Did not match any allowed schema branch"
+                        )
+                    else:
+                        log_message += (
+                            f"\n       Matched multiple branches "
+                            f"(indices {passing}); must match exactly one"
+                        )
 
         # Also check additional_properties for nested error details
         if hasattr(error, "additional_properties") and error.additional_properties:

@@ -13,6 +13,9 @@ from katana_public_api_client.models.additional_cost import (
 from katana_public_api_client.models.additional_cost_list_response import (
     AdditionalCostListResponse as AttrsAdditionalCostListResponse,
 )
+from katana_public_api_client.models.additional_properties_validation_error import (
+    AdditionalPropertiesValidationError as AttrsAdditionalPropertiesValidationError,
+)
 from katana_public_api_client.models.archivable_deletable_entity import (
     ArchivableDeletableEntity as AttrsArchivableDeletableEntity,
 )
@@ -55,6 +58,9 @@ from katana_public_api_client.models.clear_demand_forecast_request import (
 )
 from katana_public_api_client.models.coded_error_response import (
     CodedErrorResponse as AttrsCodedErrorResponse,
+)
+from katana_public_api_client.models.const_validation_error import (
+    ConstValidationError as AttrsConstValidationError,
 )
 from katana_public_api_client.models.create_bom_row_request import (
     CreateBomRowRequest as AttrsCreateBomRowRequest,
@@ -217,6 +223,9 @@ from katana_public_api_client.models.demand_forecast_period import (
 from katana_public_api_client.models.demand_forecast_response import (
     DemandForecastResponse as AttrsDemandForecastResponse,
 )
+from katana_public_api_client.models.dependencies_validation_error import (
+    DependenciesValidationError as AttrsDependenciesValidationError,
+)
 from katana_public_api_client.models.detailed_error_response import (
     DetailedErrorResponse as AttrsDetailedErrorResponse,
 )
@@ -226,12 +235,18 @@ from katana_public_api_client.models.enum_validation_error import (
 from katana_public_api_client.models.error_response import (
     ErrorResponse as AttrsErrorResponse,
 )
+from katana_public_api_client.models.exclusive_maximum_validation_error import (
+    ExclusiveMaximumValidationError as AttrsExclusiveMaximumValidationError,
+)
+from katana_public_api_client.models.exclusive_minimum_validation_error import (
+    ExclusiveMinimumValidationError as AttrsExclusiveMinimumValidationError,
+)
 from katana_public_api_client.models.factory import Factory as AttrsFactory
+from katana_public_api_client.models.format_validation_error import (
+    FormatValidationError as AttrsFormatValidationError,
+)
 from katana_public_api_client.models.generic_validation_error import (
     GenericValidationError as AttrsGenericValidationError,
-)
-from katana_public_api_client.models.invalid_type_validation_error import (
-    InvalidTypeValidationError as AttrsInvalidTypeValidationError,
 )
 from katana_public_api_client.models.inventory import Inventory as AttrsInventory
 from katana_public_api_client.models.inventory_item import (
@@ -308,17 +323,35 @@ from katana_public_api_client.models.material_config import (
 from katana_public_api_client.models.material_list_response import (
     MaterialListResponse as AttrsMaterialListResponse,
 )
-from katana_public_api_client.models.max_validation_error import (
-    MaxValidationError as AttrsMaxValidationError,
+from katana_public_api_client.models.max_items_validation_error import (
+    MaxItemsValidationError as AttrsMaxItemsValidationError,
 )
-from katana_public_api_client.models.min_validation_error import (
-    MinValidationError as AttrsMinValidationError,
+from katana_public_api_client.models.max_length_validation_error import (
+    MaxLengthValidationError as AttrsMaxLengthValidationError,
+)
+from katana_public_api_client.models.maximum_validation_error import (
+    MaximumValidationError as AttrsMaximumValidationError,
+)
+from katana_public_api_client.models.min_items_validation_error import (
+    MinItemsValidationError as AttrsMinItemsValidationError,
+)
+from katana_public_api_client.models.min_length_validation_error import (
+    MinLengthValidationError as AttrsMinLengthValidationError,
+)
+from katana_public_api_client.models.minimum_validation_error import (
+    MinimumValidationError as AttrsMinimumValidationError,
+)
+from katana_public_api_client.models.multiple_of_validation_error import (
+    MultipleOfValidationError as AttrsMultipleOfValidationError,
 )
 from katana_public_api_client.models.negative_stock import (
     NegativeStock as AttrsNegativeStock,
 )
 from katana_public_api_client.models.negative_stock_list_response import (
     NegativeStockListResponse as AttrsNegativeStockListResponse,
+)
+from katana_public_api_client.models.one_of_validation_error import (
+    OneOfValidationError as AttrsOneOfValidationError,
 )
 from katana_public_api_client.models.operator import Operator as AttrsOperator
 from katana_public_api_client.models.operator_list_response import (
@@ -544,11 +577,8 @@ from katana_public_api_client.models.tax_rate import TaxRate as AttrsTaxRate
 from katana_public_api_client.models.tax_rate_list_response import (
     TaxRateListResponse as AttrsTaxRateListResponse,
 )
-from katana_public_api_client.models.too_big_validation_error import (
-    TooBigValidationError as AttrsTooBigValidationError,
-)
-from katana_public_api_client.models.too_small_validation_error import (
-    TooSmallValidationError as AttrsTooSmallValidationError,
+from katana_public_api_client.models.type_validation_error import (
+    TypeValidationError as AttrsTypeValidationError,
 )
 from katana_public_api_client.models.unassigned_batch_transaction import (
     UnassignedBatchTransaction as AttrsUnassignedBatchTransaction,
@@ -556,14 +586,14 @@ from katana_public_api_client.models.unassigned_batch_transaction import (
 from katana_public_api_client.models.unassigned_batch_transaction_list_response import (
     UnassignedBatchTransactionListResponse as AttrsUnassignedBatchTransactionListResponse,
 )
+from katana_public_api_client.models.unique_items_validation_error import (
+    UniqueItemsValidationError as AttrsUniqueItemsValidationError,
+)
 from katana_public_api_client.models.unlink_manufacturing_order_request import (
     UnlinkManufacturingOrderRequest as AttrsUnlinkManufacturingOrderRequest,
 )
 from katana_public_api_client.models.unlink_variant_bin_location_request import (
     UnlinkVariantBinLocationRequest as AttrsUnlinkVariantBinLocationRequest,
-)
-from katana_public_api_client.models.unrecognized_keys_validation_error import (
-    UnrecognizedKeysValidationError as AttrsUnrecognizedKeysValidationError,
 )
 from katana_public_api_client.models.updatable_entity import (
     UpdatableEntity as AttrsUpdatableEntity,
@@ -785,20 +815,30 @@ from ._generated.contacts import (
     UpdateSupplierRequest as PydanticUpdateSupplierRequest,
 )
 from ._generated.errors import (
+    AdditionalPropertiesValidationError as PydanticAdditionalPropertiesValidationError,
     BaseValidationError as PydanticBaseValidationError,
     CodedErrorResponse as PydanticCodedErrorResponse,
+    ConstValidationError as PydanticConstValidationError,
+    DependenciesValidationError as PydanticDependenciesValidationError,
     DetailedErrorResponse as PydanticDetailedErrorResponse,
     EnumValidationError as PydanticEnumValidationError,
     ErrorResponse as PydanticErrorResponse,
+    ExclusiveMaximumValidationError as PydanticExclusiveMaximumValidationError,
+    ExclusiveMinimumValidationError as PydanticExclusiveMinimumValidationError,
+    FormatValidationError as PydanticFormatValidationError,
     GenericValidationError as PydanticGenericValidationError,
-    InvalidTypeValidationError as PydanticInvalidTypeValidationError,
-    MaxValidationError as PydanticMaxValidationError,
-    MinValidationError as PydanticMinValidationError,
+    MaximumValidationError as PydanticMaximumValidationError,
+    MaxItemsValidationError as PydanticMaxItemsValidationError,
+    MaxLengthValidationError as PydanticMaxLengthValidationError,
+    MinimumValidationError as PydanticMinimumValidationError,
+    MinItemsValidationError as PydanticMinItemsValidationError,
+    MinLengthValidationError as PydanticMinLengthValidationError,
+    MultipleOfValidationError as PydanticMultipleOfValidationError,
+    OneOfValidationError as PydanticOneOfValidationError,
     PatternValidationError as PydanticPatternValidationError,
     RequiredValidationError as PydanticRequiredValidationError,
-    TooBigValidationError as PydanticTooBigValidationError,
-    TooSmallValidationError as PydanticTooSmallValidationError,
-    UnrecognizedKeysValidationError as PydanticUnrecognizedKeysValidationError,
+    TypeValidationError as PydanticTypeValidationError,
+    UniqueItemsValidationError as PydanticUniqueItemsValidationError,
 )
 from ._generated.inventory import (
     CreateInventoryReorderPointRequest as PydanticCreateInventoryReorderPointRequest,
@@ -989,6 +1029,10 @@ def register_all_models() -> None:
     """Register all attrs <-> Pydantic model mappings."""
     register(AttrsAdditionalCost, PydanticAdditionalCost)
     register(AttrsAdditionalCostListResponse, PydanticAdditionalCostListResponse)
+    register(
+        AttrsAdditionalPropertiesValidationError,
+        PydanticAdditionalPropertiesValidationError,
+    )
     register(AttrsArchivableDeletableEntity, PydanticArchivableDeletableEntity)
     register(AttrsArchivableEntity, PydanticArchivableEntity)
     register(AttrsAssignedOperator, PydanticAssignedOperator)
@@ -1006,6 +1050,7 @@ def register_all_models() -> None:
     register(AttrsBomRowListResponse, PydanticBomRowListResponse)
     register(AttrsClearDemandForecastRequest, PydanticClearDemandForecastRequest)
     register(AttrsCodedErrorResponse, PydanticCodedErrorResponse)
+    register(AttrsConstValidationError, PydanticConstValidationError)
     register(AttrsCreateBomRowRequest, PydanticCreateBomRowRequest)
     register(
         AttrsCreateCustomFieldDefinitionRequest,
@@ -1103,12 +1148,19 @@ def register_all_models() -> None:
     register(AttrsDeleteSerialNumbersRequest, PydanticDeleteSerialNumbersRequest)
     register(AttrsDemandForecastPeriod, PydanticDemandForecastPeriod)
     register(AttrsDemandForecastResponse, PydanticDemandForecastResponse)
+    register(AttrsDependenciesValidationError, PydanticDependenciesValidationError)
     register(AttrsDetailedErrorResponse, PydanticDetailedErrorResponse)
     register(AttrsEnumValidationError, PydanticEnumValidationError)
     register(AttrsErrorResponse, PydanticErrorResponse)
+    register(
+        AttrsExclusiveMaximumValidationError, PydanticExclusiveMaximumValidationError
+    )
+    register(
+        AttrsExclusiveMinimumValidationError, PydanticExclusiveMinimumValidationError
+    )
     register(AttrsFactory, PydanticFactory)
+    register(AttrsFormatValidationError, PydanticFormatValidationError)
     register(AttrsGenericValidationError, PydanticGenericValidationError)
-    register(AttrsInvalidTypeValidationError, PydanticInvalidTypeValidationError)
     register(AttrsInventory, PydanticInventory)
     register(AttrsInventoryItem, PydanticInventoryItem)
     register(AttrsInventoryListResponse, PydanticInventoryListResponse)
@@ -1164,10 +1216,16 @@ def register_all_models() -> None:
     register(AttrsMaterial, PydanticMaterial)
     register(AttrsMaterialConfig, PydanticMaterialConfig)
     register(AttrsMaterialListResponse, PydanticMaterialListResponse)
-    register(AttrsMaxValidationError, PydanticMaxValidationError)
-    register(AttrsMinValidationError, PydanticMinValidationError)
+    register(AttrsMaxItemsValidationError, PydanticMaxItemsValidationError)
+    register(AttrsMaxLengthValidationError, PydanticMaxLengthValidationError)
+    register(AttrsMaximumValidationError, PydanticMaximumValidationError)
+    register(AttrsMinItemsValidationError, PydanticMinItemsValidationError)
+    register(AttrsMinLengthValidationError, PydanticMinLengthValidationError)
+    register(AttrsMinimumValidationError, PydanticMinimumValidationError)
+    register(AttrsMultipleOfValidationError, PydanticMultipleOfValidationError)
     register(AttrsNegativeStock, PydanticNegativeStock)
     register(AttrsNegativeStockListResponse, PydanticNegativeStockListResponse)
+    register(AttrsOneOfValidationError, PydanticOneOfValidationError)
     register(AttrsOperator, PydanticOperator)
     register(AttrsOperatorListResponse, PydanticOperatorListResponse)
     register(AttrsOutsourcedPurchaseOrder, PydanticOutsourcedPurchaseOrder)
@@ -1280,21 +1338,18 @@ def register_all_models() -> None:
     register(AttrsSupplierListResponse, PydanticSupplierListResponse)
     register(AttrsTaxRate, PydanticTaxRate)
     register(AttrsTaxRateListResponse, PydanticTaxRateListResponse)
-    register(AttrsTooBigValidationError, PydanticTooBigValidationError)
-    register(AttrsTooSmallValidationError, PydanticTooSmallValidationError)
+    register(AttrsTypeValidationError, PydanticTypeValidationError)
     register(AttrsUnassignedBatchTransaction, PydanticUnassignedBatchTransaction)
     register(
         AttrsUnassignedBatchTransactionListResponse,
         PydanticUnassignedBatchTransactionListResponse,
     )
+    register(AttrsUniqueItemsValidationError, PydanticUniqueItemsValidationError)
     register(
         AttrsUnlinkManufacturingOrderRequest, PydanticUnlinkManufacturingOrderRequest
     )
     register(
         AttrsUnlinkVariantBinLocationRequest, PydanticUnlinkVariantBinLocationRequest
-    )
-    register(
-        AttrsUnrecognizedKeysValidationError, PydanticUnrecognizedKeysValidationError
     )
     register(AttrsUpdatableEntity, PydanticUpdatableEntity)
     register(AttrsUpdateBomRowRequest, PydanticUpdateBomRowRequest)

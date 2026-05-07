@@ -8,36 +8,24 @@ from attrs import (
     field as _attrs_field,
 )
 
-from ..models.invalid_type_validation_error_code import InvalidTypeValidationErrorCode
-
-T = TypeVar("T", bound="InvalidTypeValidationError")
+T = TypeVar("T", bound="AdditionalPropertiesValidationErrorInfo")
 
 
 @_attrs_define
-class InvalidTypeValidationError:
-    path: str
-    code: InvalidTypeValidationErrorCode
-    message: str
-    expected_type: str
+class AdditionalPropertiesValidationErrorInfo:
+    """Keyword-specific metadata for ``additionalProperties``"""
+
+    additional_property: str
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        path = self.path
-
-        code = self.code.value
-
-        message = self.message
-
-        expected_type = self.expected_type
+        additional_property = self.additional_property
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "path": path,
-                "code": code,
-                "message": message,
-                "expected_type": expected_type,
+                "additionalProperty": additional_property,
             }
         )
 
@@ -46,23 +34,14 @@ class InvalidTypeValidationError:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        path = d.pop("path")
+        additional_property = d.pop("additionalProperty")
 
-        code = InvalidTypeValidationErrorCode(d.pop("code"))
-
-        message = d.pop("message")
-
-        expected_type = d.pop("expected_type")
-
-        invalid_type_validation_error = cls(
-            path=path,
-            code=code,
-            message=message,
-            expected_type=expected_type,
+        additional_properties_validation_error_info = cls(
+            additional_property=additional_property,
         )
 
-        invalid_type_validation_error.additional_properties = d
-        return invalid_type_validation_error
+        additional_properties_validation_error_info.additional_properties = d
+        return additional_properties_validation_error_info
 
     @property
     def additional_keys(self) -> list[str]:

@@ -49,27 +49,35 @@ DOMAIN_GROUPS: dict[str, list[str]] = {
         "DetailedErrorResponse",
         "BaseValidationError",
         "ValidationErrorDetail",
+        # Ajv-style validation error subtypes (one per Ajv keyword)
+        "AdditionalPropertiesValidationError",
+        "ConstValidationError",
+        "DependenciesValidationError",
         "EnumValidationError",
-        "MinValidationError",
-        "MaxValidationError",
-        "InvalidTypeValidationError",
-        "TooSmallValidationError",
-        "TooBigValidationError",
-        "RequiredValidationError",
+        "ExclusiveMaximumValidationError",
+        "ExclusiveMinimumValidationError",
+        "FormatValidationError",
+        "MaxItemsValidationError",
+        "MaxLengthValidationError",
+        "MaximumValidationError",
+        "MinItemsValidationError",
+        "MinLengthValidationError",
+        "MinimumValidationError",
+        "MultipleOfValidationError",
+        "OneOfValidationError",
         "PatternValidationError",
-        "UnrecognizedKeysValidationError",
+        "RequiredValidationError",
+        "TypeValidationError",
+        "UniqueItemsValidationError",
         "GenericValidationError",
-        # Also include Code enums that are part of error types
-        "Code",
-        "Code1",
-        "Code2",
-        "Code3",
-        "Code4",
-        "Code5",
-        "Code6",
-        "Code7",
-        "Code8",
-        "Code9",
+        # Anonymous ``info`` shape classes and ``Code*`` discriminator enums
+        # are emitted by the codegen as ``Info``/``Info1``/... and
+        # ``Code``/``Code1``/... — match them with prefix wildcards so adding
+        # a 20th Ajv keyword down the road doesn't require updating this
+        # list. Safe: ``CodedErrorResponse`` (the only non-numbered ``Code*``
+        # name) resolves via the exact-match pass above.
+        "Info*",
+        "Code*",
     ],
     "inventory": [
         "InventoryItem",

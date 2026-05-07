@@ -1,26 +1,30 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
 
-from ..client_types import UNSET, Unset
-from ..models.too_small_validation_error_code import TooSmallValidationErrorCode
+from ..models.minimum_validation_error_code import MinimumValidationErrorCode
 
-T = TypeVar("T", bound="TooSmallValidationError")
+if TYPE_CHECKING:
+    from ..models.minimum_validation_error_info import MinimumValidationErrorInfo
+
+
+T = TypeVar("T", bound="MinimumValidationError")
 
 
 @_attrs_define
-class TooSmallValidationError:
+class MinimumValidationError:
+    """Ajv ``minimum`` keyword: the value is below its inclusive lower bound."""
+
     path: str
-    code: TooSmallValidationErrorCode
+    code: MinimumValidationErrorCode
     message: str
-    min_length: int | Unset = UNSET
-    min_items: int | Unset = UNSET
+    info: MinimumValidationErrorInfo
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -30,9 +34,7 @@ class TooSmallValidationError:
 
         message = self.message
 
-        min_length = self.min_length
-
-        min_items = self.min_items
+        info = self.info.to_dict()
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -41,38 +43,34 @@ class TooSmallValidationError:
                 "path": path,
                 "code": code,
                 "message": message,
+                "info": info,
             }
         )
-        if min_length is not UNSET:
-            field_dict["min_length"] = min_length
-        if min_items is not UNSET:
-            field_dict["min_items"] = min_items
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.minimum_validation_error_info import MinimumValidationErrorInfo
+
         d = dict(src_dict)
         path = d.pop("path")
 
-        code = TooSmallValidationErrorCode(d.pop("code"))
+        code = MinimumValidationErrorCode(d.pop("code"))
 
         message = d.pop("message")
 
-        min_length = d.pop("min_length", UNSET)
+        info = MinimumValidationErrorInfo.from_dict(d.pop("info"))
 
-        min_items = d.pop("min_items", UNSET)
-
-        too_small_validation_error = cls(
+        minimum_validation_error = cls(
             path=path,
             code=code,
             message=message,
-            min_length=min_length,
-            min_items=min_items,
+            info=info,
         )
 
-        too_small_validation_error.additional_properties = d
-        return too_small_validation_error
+        minimum_validation_error.additional_properties = d
+        return minimum_validation_error
 
     @property
     def additional_keys(self) -> list[str]:

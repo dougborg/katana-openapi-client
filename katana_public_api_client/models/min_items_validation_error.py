@@ -1,28 +1,32 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
 
-from ..client_types import UNSET, Unset
-from ..models.unrecognized_keys_validation_error_code import (
-    UnrecognizedKeysValidationErrorCode,
-)
+from ..models.min_items_validation_error_code import MinItemsValidationErrorCode
 
-T = TypeVar("T", bound="UnrecognizedKeysValidationError")
+if TYPE_CHECKING:
+    from ..models.min_items_validation_error_info import MinItemsValidationErrorInfo
+
+
+T = TypeVar("T", bound="MinItemsValidationError")
 
 
 @_attrs_define
-class UnrecognizedKeysValidationError:
+class MinItemsValidationError:
+    """Ajv ``minItems`` keyword: the array is shorter than the schema's
+    minimum length.
+    """
+
     path: str
-    code: UnrecognizedKeysValidationErrorCode
+    code: MinItemsValidationErrorCode
     message: str
-    keys: list[str]
-    valid_keys: list[str] | Unset = UNSET
+    info: MinItemsValidationErrorInfo
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -32,11 +36,7 @@ class UnrecognizedKeysValidationError:
 
         message = self.message
 
-        keys = self.keys
-
-        valid_keys: list[str] | Unset = UNSET
-        if not isinstance(self.valid_keys, Unset):
-            valid_keys = self.valid_keys
+        info = self.info.to_dict()
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -45,37 +45,34 @@ class UnrecognizedKeysValidationError:
                 "path": path,
                 "code": code,
                 "message": message,
-                "keys": keys,
+                "info": info,
             }
         )
-        if valid_keys is not UNSET:
-            field_dict["valid_keys"] = valid_keys
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.min_items_validation_error_info import MinItemsValidationErrorInfo
+
         d = dict(src_dict)
         path = d.pop("path")
 
-        code = UnrecognizedKeysValidationErrorCode(d.pop("code"))
+        code = MinItemsValidationErrorCode(d.pop("code"))
 
         message = d.pop("message")
 
-        keys = cast(list[str], d.pop("keys"))
+        info = MinItemsValidationErrorInfo.from_dict(d.pop("info"))
 
-        valid_keys = cast(list[str], d.pop("valid_keys", UNSET))
-
-        unrecognized_keys_validation_error = cls(
+        min_items_validation_error = cls(
             path=path,
             code=code,
             message=message,
-            keys=keys,
-            valid_keys=valid_keys,
+            info=info,
         )
 
-        unrecognized_keys_validation_error.additional_properties = d
-        return unrecognized_keys_validation_error
+        min_items_validation_error.additional_properties = d
+        return min_items_validation_error
 
     @property
     def additional_keys(self) -> list[str]:

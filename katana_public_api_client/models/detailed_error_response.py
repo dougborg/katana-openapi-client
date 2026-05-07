@@ -11,18 +11,32 @@ from attrs import (
 from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
+    from ..models.additional_properties_validation_error import (
+        AdditionalPropertiesValidationError,
+    )
+    from ..models.const_validation_error import ConstValidationError
+    from ..models.dependencies_validation_error import DependenciesValidationError
     from ..models.enum_validation_error import EnumValidationError
+    from ..models.exclusive_maximum_validation_error import (
+        ExclusiveMaximumValidationError,
+    )
+    from ..models.exclusive_minimum_validation_error import (
+        ExclusiveMinimumValidationError,
+    )
+    from ..models.format_validation_error import FormatValidationError
     from ..models.generic_validation_error import GenericValidationError
-    from ..models.invalid_type_validation_error import InvalidTypeValidationError
-    from ..models.max_validation_error import MaxValidationError
-    from ..models.min_validation_error import MinValidationError
+    from ..models.max_items_validation_error import MaxItemsValidationError
+    from ..models.max_length_validation_error import MaxLengthValidationError
+    from ..models.maximum_validation_error import MaximumValidationError
+    from ..models.min_items_validation_error import MinItemsValidationError
+    from ..models.min_length_validation_error import MinLengthValidationError
+    from ..models.minimum_validation_error import MinimumValidationError
+    from ..models.multiple_of_validation_error import MultipleOfValidationError
+    from ..models.one_of_validation_error import OneOfValidationError
     from ..models.pattern_validation_error import PatternValidationError
     from ..models.required_validation_error import RequiredValidationError
-    from ..models.too_big_validation_error import TooBigValidationError
-    from ..models.too_small_validation_error import TooSmallValidationError
-    from ..models.unrecognized_keys_validation_error import (
-        UnrecognizedKeysValidationError,
-    )
+    from ..models.type_validation_error import TypeValidationError
+    from ..models.unique_items_validation_error import UniqueItemsValidationError
 
 
 T = TypeVar("T", bound="DetailedErrorResponse")
@@ -38,33 +52,57 @@ class DetailedErrorResponse:
     code: None | str | Unset = UNSET
     details: (
         list[
-            EnumValidationError
+            AdditionalPropertiesValidationError
+            | ConstValidationError
+            | DependenciesValidationError
+            | EnumValidationError
+            | ExclusiveMaximumValidationError
+            | ExclusiveMinimumValidationError
+            | FormatValidationError
             | GenericValidationError
-            | InvalidTypeValidationError
-            | MaxValidationError
-            | MinValidationError
+            | MaximumValidationError
+            | MaxItemsValidationError
+            | MaxLengthValidationError
+            | MinimumValidationError
+            | MinItemsValidationError
+            | MinLengthValidationError
+            | MultipleOfValidationError
+            | OneOfValidationError
             | PatternValidationError
             | RequiredValidationError
-            | TooBigValidationError
-            | TooSmallValidationError
-            | UnrecognizedKeysValidationError
+            | TypeValidationError
+            | UniqueItemsValidationError
         ]
         | Unset
     ) = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.additional_properties_validation_error import (
+            AdditionalPropertiesValidationError,
+        )
+        from ..models.const_validation_error import ConstValidationError
+        from ..models.dependencies_validation_error import DependenciesValidationError
         from ..models.enum_validation_error import EnumValidationError
-        from ..models.invalid_type_validation_error import InvalidTypeValidationError
-        from ..models.max_validation_error import MaxValidationError
-        from ..models.min_validation_error import MinValidationError
+        from ..models.exclusive_maximum_validation_error import (
+            ExclusiveMaximumValidationError,
+        )
+        from ..models.exclusive_minimum_validation_error import (
+            ExclusiveMinimumValidationError,
+        )
+        from ..models.format_validation_error import FormatValidationError
+        from ..models.max_items_validation_error import MaxItemsValidationError
+        from ..models.max_length_validation_error import MaxLengthValidationError
+        from ..models.maximum_validation_error import MaximumValidationError
+        from ..models.min_items_validation_error import MinItemsValidationError
+        from ..models.min_length_validation_error import MinLengthValidationError
+        from ..models.minimum_validation_error import MinimumValidationError
+        from ..models.multiple_of_validation_error import MultipleOfValidationError
+        from ..models.one_of_validation_error import OneOfValidationError
         from ..models.pattern_validation_error import PatternValidationError
         from ..models.required_validation_error import RequiredValidationError
-        from ..models.too_big_validation_error import TooBigValidationError
-        from ..models.too_small_validation_error import TooSmallValidationError
-        from ..models.unrecognized_keys_validation_error import (
-            UnrecognizedKeysValidationError,
-        )
+        from ..models.type_validation_error import TypeValidationError
+        from ..models.unique_items_validation_error import UniqueItemsValidationError
 
         status_code = self.status_code
 
@@ -86,15 +124,25 @@ class DetailedErrorResponse:
                 if isinstance(
                     details_item_data,
                     (
+                        AdditionalPropertiesValidationError,
+                        ConstValidationError,
+                        DependenciesValidationError,
                         EnumValidationError,
-                        MinValidationError,
-                        MaxValidationError,
-                        InvalidTypeValidationError,
-                        TooSmallValidationError,
-                        TooBigValidationError,
-                        RequiredValidationError,
+                        ExclusiveMaximumValidationError,
+                        ExclusiveMinimumValidationError,
+                        FormatValidationError,
+                        MaxItemsValidationError,
+                        MaxLengthValidationError,
+                        MaximumValidationError,
+                        MinItemsValidationError,
+                        MinLengthValidationError,
+                        MinimumValidationError,
+                        MultipleOfValidationError,
+                        OneOfValidationError,
                         PatternValidationError,
-                        UnrecognizedKeysValidationError,
+                        RequiredValidationError,
+                        TypeValidationError,
+                        UniqueItemsValidationError,
                     ),
                 ):
                     details_item = details_item_data.to_dict()
@@ -121,18 +169,32 @@ class DetailedErrorResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.additional_properties_validation_error import (
+            AdditionalPropertiesValidationError,
+        )
+        from ..models.const_validation_error import ConstValidationError
+        from ..models.dependencies_validation_error import DependenciesValidationError
         from ..models.enum_validation_error import EnumValidationError
+        from ..models.exclusive_maximum_validation_error import (
+            ExclusiveMaximumValidationError,
+        )
+        from ..models.exclusive_minimum_validation_error import (
+            ExclusiveMinimumValidationError,
+        )
+        from ..models.format_validation_error import FormatValidationError
         from ..models.generic_validation_error import GenericValidationError
-        from ..models.invalid_type_validation_error import InvalidTypeValidationError
-        from ..models.max_validation_error import MaxValidationError
-        from ..models.min_validation_error import MinValidationError
+        from ..models.max_items_validation_error import MaxItemsValidationError
+        from ..models.max_length_validation_error import MaxLengthValidationError
+        from ..models.maximum_validation_error import MaximumValidationError
+        from ..models.min_items_validation_error import MinItemsValidationError
+        from ..models.min_length_validation_error import MinLengthValidationError
+        from ..models.minimum_validation_error import MinimumValidationError
+        from ..models.multiple_of_validation_error import MultipleOfValidationError
+        from ..models.one_of_validation_error import OneOfValidationError
         from ..models.pattern_validation_error import PatternValidationError
         from ..models.required_validation_error import RequiredValidationError
-        from ..models.too_big_validation_error import TooBigValidationError
-        from ..models.too_small_validation_error import TooSmallValidationError
-        from ..models.unrecognized_keys_validation_error import (
-            UnrecognizedKeysValidationError,
-        )
+        from ..models.type_validation_error import TypeValidationError
+        from ..models.unique_items_validation_error import UniqueItemsValidationError
 
         d = dict(src_dict)
         status_code = d.pop("statusCode", UNSET)
@@ -153,16 +215,26 @@ class DetailedErrorResponse:
         _details = d.pop("details", UNSET)
         details: (
             list[
-                EnumValidationError
+                AdditionalPropertiesValidationError
+                | ConstValidationError
+                | DependenciesValidationError
+                | EnumValidationError
+                | ExclusiveMaximumValidationError
+                | ExclusiveMinimumValidationError
+                | FormatValidationError
                 | GenericValidationError
-                | InvalidTypeValidationError
-                | MaxValidationError
-                | MinValidationError
+                | MaximumValidationError
+                | MaxItemsValidationError
+                | MaxLengthValidationError
+                | MinimumValidationError
+                | MinItemsValidationError
+                | MinLengthValidationError
+                | MultipleOfValidationError
+                | OneOfValidationError
                 | PatternValidationError
                 | RequiredValidationError
-                | TooBigValidationError
-                | TooSmallValidationError
-                | UnrecognizedKeysValidationError
+                | TypeValidationError
+                | UniqueItemsValidationError
             ]
             | Unset
         ) = UNSET
@@ -173,22 +245,34 @@ class DetailedErrorResponse:
                 def _parse_details_item(
                     data: object,
                 ) -> (
-                    EnumValidationError
+                    AdditionalPropertiesValidationError
+                    | ConstValidationError
+                    | DependenciesValidationError
+                    | EnumValidationError
+                    | ExclusiveMaximumValidationError
+                    | ExclusiveMinimumValidationError
+                    | FormatValidationError
                     | GenericValidationError
-                    | InvalidTypeValidationError
-                    | MaxValidationError
-                    | MinValidationError
+                    | MaximumValidationError
+                    | MaxItemsValidationError
+                    | MaxLengthValidationError
+                    | MinimumValidationError
+                    | MinItemsValidationError
+                    | MinLengthValidationError
+                    | MultipleOfValidationError
+                    | OneOfValidationError
                     | PatternValidationError
                     | RequiredValidationError
-                    | TooBigValidationError
-                    | TooSmallValidationError
-                    | UnrecognizedKeysValidationError
+                    | TypeValidationError
+                    | UniqueItemsValidationError
                 ):
                     try:
                         if not isinstance(data, dict):
                             raise TypeError()
                         componentsschemas_validation_error_detail_type_0 = (
-                            EnumValidationError.from_dict(cast(Mapping[str, Any], data))
+                            AdditionalPropertiesValidationError.from_dict(
+                                cast(Mapping[str, Any], data)
+                            )
                         )
 
                         return componentsschemas_validation_error_detail_type_0
@@ -198,7 +282,9 @@ class DetailedErrorResponse:
                         if not isinstance(data, dict):
                             raise TypeError()
                         componentsschemas_validation_error_detail_type_1 = (
-                            MinValidationError.from_dict(cast(Mapping[str, Any], data))
+                            ConstValidationError.from_dict(
+                                cast(Mapping[str, Any], data)
+                            )
                         )
 
                         return componentsschemas_validation_error_detail_type_1
@@ -208,7 +294,9 @@ class DetailedErrorResponse:
                         if not isinstance(data, dict):
                             raise TypeError()
                         componentsschemas_validation_error_detail_type_2 = (
-                            MaxValidationError.from_dict(cast(Mapping[str, Any], data))
+                            DependenciesValidationError.from_dict(
+                                cast(Mapping[str, Any], data)
+                            )
                         )
 
                         return componentsschemas_validation_error_detail_type_2
@@ -218,9 +306,7 @@ class DetailedErrorResponse:
                         if not isinstance(data, dict):
                             raise TypeError()
                         componentsschemas_validation_error_detail_type_3 = (
-                            InvalidTypeValidationError.from_dict(
-                                cast(Mapping[str, Any], data)
-                            )
+                            EnumValidationError.from_dict(cast(Mapping[str, Any], data))
                         )
 
                         return componentsschemas_validation_error_detail_type_3
@@ -230,7 +316,7 @@ class DetailedErrorResponse:
                         if not isinstance(data, dict):
                             raise TypeError()
                         componentsschemas_validation_error_detail_type_4 = (
-                            TooSmallValidationError.from_dict(
+                            ExclusiveMaximumValidationError.from_dict(
                                 cast(Mapping[str, Any], data)
                             )
                         )
@@ -242,7 +328,7 @@ class DetailedErrorResponse:
                         if not isinstance(data, dict):
                             raise TypeError()
                         componentsschemas_validation_error_detail_type_5 = (
-                            TooBigValidationError.from_dict(
+                            ExclusiveMinimumValidationError.from_dict(
                                 cast(Mapping[str, Any], data)
                             )
                         )
@@ -254,7 +340,7 @@ class DetailedErrorResponse:
                         if not isinstance(data, dict):
                             raise TypeError()
                         componentsschemas_validation_error_detail_type_6 = (
-                            RequiredValidationError.from_dict(
+                            FormatValidationError.from_dict(
                                 cast(Mapping[str, Any], data)
                             )
                         )
@@ -266,7 +352,7 @@ class DetailedErrorResponse:
                         if not isinstance(data, dict):
                             raise TypeError()
                         componentsschemas_validation_error_detail_type_7 = (
-                            PatternValidationError.from_dict(
+                            MaxItemsValidationError.from_dict(
                                 cast(Mapping[str, Any], data)
                             )
                         )
@@ -278,7 +364,7 @@ class DetailedErrorResponse:
                         if not isinstance(data, dict):
                             raise TypeError()
                         componentsschemas_validation_error_detail_type_8 = (
-                            UnrecognizedKeysValidationError.from_dict(
+                            MaxLengthValidationError.from_dict(
                                 cast(Mapping[str, Any], data)
                             )
                         )
@@ -286,13 +372,131 @@ class DetailedErrorResponse:
                         return componentsschemas_validation_error_detail_type_8
                     except (TypeError, ValueError, AttributeError, KeyError):
                         pass
+                    try:
+                        if not isinstance(data, dict):
+                            raise TypeError()
+                        componentsschemas_validation_error_detail_type_9 = (
+                            MaximumValidationError.from_dict(
+                                cast(Mapping[str, Any], data)
+                            )
+                        )
+
+                        return componentsschemas_validation_error_detail_type_9
+                    except (TypeError, ValueError, AttributeError, KeyError):
+                        pass
+                    try:
+                        if not isinstance(data, dict):
+                            raise TypeError()
+                        componentsschemas_validation_error_detail_type_10 = (
+                            MinItemsValidationError.from_dict(
+                                cast(Mapping[str, Any], data)
+                            )
+                        )
+
+                        return componentsschemas_validation_error_detail_type_10
+                    except (TypeError, ValueError, AttributeError, KeyError):
+                        pass
+                    try:
+                        if not isinstance(data, dict):
+                            raise TypeError()
+                        componentsschemas_validation_error_detail_type_11 = (
+                            MinLengthValidationError.from_dict(
+                                cast(Mapping[str, Any], data)
+                            )
+                        )
+
+                        return componentsschemas_validation_error_detail_type_11
+                    except (TypeError, ValueError, AttributeError, KeyError):
+                        pass
+                    try:
+                        if not isinstance(data, dict):
+                            raise TypeError()
+                        componentsschemas_validation_error_detail_type_12 = (
+                            MinimumValidationError.from_dict(
+                                cast(Mapping[str, Any], data)
+                            )
+                        )
+
+                        return componentsschemas_validation_error_detail_type_12
+                    except (TypeError, ValueError, AttributeError, KeyError):
+                        pass
+                    try:
+                        if not isinstance(data, dict):
+                            raise TypeError()
+                        componentsschemas_validation_error_detail_type_13 = (
+                            MultipleOfValidationError.from_dict(
+                                cast(Mapping[str, Any], data)
+                            )
+                        )
+
+                        return componentsschemas_validation_error_detail_type_13
+                    except (TypeError, ValueError, AttributeError, KeyError):
+                        pass
+                    try:
+                        if not isinstance(data, dict):
+                            raise TypeError()
+                        componentsschemas_validation_error_detail_type_14 = (
+                            OneOfValidationError.from_dict(
+                                cast(Mapping[str, Any], data)
+                            )
+                        )
+
+                        return componentsschemas_validation_error_detail_type_14
+                    except (TypeError, ValueError, AttributeError, KeyError):
+                        pass
+                    try:
+                        if not isinstance(data, dict):
+                            raise TypeError()
+                        componentsschemas_validation_error_detail_type_15 = (
+                            PatternValidationError.from_dict(
+                                cast(Mapping[str, Any], data)
+                            )
+                        )
+
+                        return componentsschemas_validation_error_detail_type_15
+                    except (TypeError, ValueError, AttributeError, KeyError):
+                        pass
+                    try:
+                        if not isinstance(data, dict):
+                            raise TypeError()
+                        componentsschemas_validation_error_detail_type_16 = (
+                            RequiredValidationError.from_dict(
+                                cast(Mapping[str, Any], data)
+                            )
+                        )
+
+                        return componentsschemas_validation_error_detail_type_16
+                    except (TypeError, ValueError, AttributeError, KeyError):
+                        pass
+                    try:
+                        if not isinstance(data, dict):
+                            raise TypeError()
+                        componentsschemas_validation_error_detail_type_17 = (
+                            TypeValidationError.from_dict(cast(Mapping[str, Any], data))
+                        )
+
+                        return componentsschemas_validation_error_detail_type_17
+                    except (TypeError, ValueError, AttributeError, KeyError):
+                        pass
+                    try:
+                        if not isinstance(data, dict):
+                            raise TypeError()
+                        componentsschemas_validation_error_detail_type_18 = (
+                            UniqueItemsValidationError.from_dict(
+                                cast(Mapping[str, Any], data)
+                            )
+                        )
+
+                        return componentsschemas_validation_error_detail_type_18
+                    except (TypeError, ValueError, AttributeError, KeyError):
+                        pass
                     if not isinstance(data, dict):
                         raise TypeError()
-                    componentsschemas_validation_error_detail_type_9 = (
+                    componentsschemas_validation_error_detail_type_19 = (
                         GenericValidationError.from_dict(cast(Mapping[str, Any], data))
                     )
 
-                    return componentsschemas_validation_error_detail_type_9
+                    return componentsschemas_validation_error_detail_type_19
 
                 details_item = _parse_details_item(details_item_data)
 

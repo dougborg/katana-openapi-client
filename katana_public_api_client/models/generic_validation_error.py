@@ -13,6 +13,17 @@ T = TypeVar("T", bound="GenericValidationError")
 
 @_attrs_define
 class GenericValidationError:
+    """Permissive fallback for any Ajv keyword we haven't yet typed. The
+    ``code`` field is unconstrained (just ``string``), so any wire value
+    validates here when none of the typed variants match.
+    ``BaseValidationError`` fields (``path``, ``code``, ``message``) are
+    guaranteed; any keyword-specific ``info`` lives in
+    ``additional_properties``.
+
+    Listed last in ``ValidationErrorDetail.oneOf`` so deserializers try
+    the typed variants first and only land here for unknown keywords.
+    """
+
     path: str
     code: str
     message: str

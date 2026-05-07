@@ -1,8 +1,8 @@
 from enum import StrEnum
 
 
-class MinValidationErrorCode(StrEnum):
-    MIN = "min"
+class MultipleOfValidationErrorCode(StrEnum):
+    MULTIPLEOF = "multipleOf"
 
     def __str__(self) -> str:
         return str(self.value)

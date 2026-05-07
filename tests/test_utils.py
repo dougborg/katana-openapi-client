@@ -590,482 +590,392 @@ class TestHandleResponse:
         assert result is None
 
 
-@pytest.mark.unit
-class TestValidationErrorEnumFormatting:
-    """Test ValidationError enum-specific error message formatting."""
+# ============================================================================
+# Ajv-style ValidationErrorDetail formatter
+#
+# Each test mirrors a real Ajv ``ErrorObject`` wire shape:
+# ``{path, code, message, info: {<keyword-specific>}}``. Tests go through
+# ``unwrap()`` end-to-end (DetailedErrorResponse → discriminator → typed
+# subtype → ValidationError.__str__) so we exercise the full path Katana's
+# 422s actually take.
+# ============================================================================
 
-    def test_validation_error_with_enum_details(self):
-        """Test that enum validation errors include allowed values in message."""
-        from katana_public_api_client.models.enum_validation_error import (
-            EnumValidationError,
-        )
-        from katana_public_api_client.models.enum_validation_error_code import (
-            EnumValidationErrorCode,
-        )
 
-        # Create validation detail with enum error
-        detail = EnumValidationError(
-            path="/resource_type",
-            code=EnumValidationErrorCode.ENUM,
-            message="must be equal to one of the allowed values",
-            allowed_values=[
-                "ManufacturingOrder",
-                "StockAdjustmentRow",
-                "StockTransferRow",
-            ],
-        )
+def _make_422_response(details: list[dict[str, Any]]) -> Response[Any]:
+    """Build a ``Response`` carrying a Katana-shaped 422 with the given details."""
+    body = {
+        "error": {
+            "statusCode": 422,
+            "name": "UnprocessableEntityError",
+            "message": "The request body is invalid. See error object `details` property for more info.",
+            "code": "VALIDATION_FAILED",
+            "details": details,
+        }
+    }
+    return Response(
+        status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        content=b"",
+        headers={},
+        parsed=DetailedErrorResponse.from_dict(body),
+    )
 
-        error_response = DetailedErrorResponse(
-            status_code=422,
-            name="UnprocessableEntityError",
-            message="The request body is invalid.",
-            code="VALIDATION_FAILED",
-            details=[detail],
-        )
 
-        error = utils.ValidationError(
-            "Validation failed",
-            422,
-            error_response,
-        )
-
-        error_str = str(error)
-
-        # Check that the error string includes enum-specific formatting
-        assert "Field 'resource_type' must be one of:" in error_str
-        assert "ManufacturingOrder" in error_str
-        assert "StockAdjustmentRow" in error_str
-        assert "StockTransferRow" in error_str
-
-    def test_validation_error_without_enum_details(self):
-        """Test that non-enum validation errors don't break."""
-        from katana_public_api_client.models.min_validation_error import (
-            MinValidationError,
-        )
-        from katana_public_api_client.models.min_validation_error_code import (
-            MinValidationErrorCode,
-        )
-
-        # Create validation detail without enum error
-        detail = MinValidationError(
-            path="/quantity",
-            code=MinValidationErrorCode.MIN,
-            message="must be >= 0",
-            minimum=0,
-        )
-
-        error_response = DetailedErrorResponse(
-            status_code=422,
-            name="UnprocessableEntityError",
-            message="The request body is invalid.",
-            code="VALIDATION_FAILED",
-            details=[detail],
-        )
-
-        error = utils.ValidationError(
-            "Validation failed",
-            422,
-            error_response,
-        )
-
-        error_str = str(error)
-
-        # Should not include enum-specific formatting
-        assert "must be one of:" not in error_str
-        # But should still show base error message
-        assert "Validation failed" in error_str
+def _render(details: list[dict[str, Any]]) -> str:
+    """Run details through ``unwrap()`` and return the formatted exception string."""
+    with pytest.raises(utils.ValidationError) as exc_info:
+        utils.unwrap(_make_422_response(details))
+    return str(exc_info.value)
 
 
 @pytest.mark.unit
-class TestValidationErrorMinMaxFormatting:
-    """Test ValidationError min/max-specific error message formatting."""
+class TestAjvStringKeywords:
+    """``maxLength``, ``minLength``, ``pattern``, ``format``."""
 
-    def test_validation_error_with_min_details(self):
-        """Test that min validation errors include minimum value in message."""
-        from katana_public_api_client.models.min_validation_error import (
-            MinValidationError,
+    def test_max_length(self):
+        rendered = _render(
+            [
+                {
+                    "path": ".city",
+                    "code": "maxLength",
+                    "message": "should NOT be longer than 10 characters",
+                    "info": {"limit": 10},
+                }
+            ]
         )
-        from katana_public_api_client.models.min_validation_error_code import (
-            MinValidationErrorCode,
+        assert "Field '.city' must not exceed 10 characters" in rendered
+
+    def test_min_length(self):
+        rendered = _render(
+            [
+                {
+                    "path": ".sku",
+                    "code": "minLength",
+                    "message": "should NOT be shorter than 3 characters",
+                    "info": {"limit": 3},
+                }
+            ]
         )
+        assert "Field '.sku' must be at least 3 characters" in rendered
 
-        # Create validation detail with min error
-        detail = MinValidationError(
-            path="/quantity",
-            code=MinValidationErrorCode.MIN,
-            message="must be >= 0",
-            minimum=0,
+    def test_pattern(self):
+        rendered = _render(
+            [
+                {
+                    "path": ".phone",
+                    "code": "pattern",
+                    "message": "must match pattern",
+                    "info": {"pattern": "^\\d+$"},
+                }
+            ]
         )
+        assert "Field '.phone' must match pattern: ^\\d+$" in rendered
 
-        error_response = DetailedErrorResponse(
-            status_code=422,
-            name="UnprocessableEntityError",
-            message="The request body is invalid.",
-            code="VALIDATION_FAILED",
-            details=[detail],
+    def test_format(self):
+        """Captured wire shape from ``tests/test_katana_client.py:218-223``."""
+        rendered = _render(
+            [
+                {
+                    "path": ".email",
+                    "code": "format",
+                    "message": 'should match format "email"',
+                    "info": {"format": "email"},
+                }
+            ]
         )
-
-        error = utils.ValidationError(
-            "Validation failed",
-            422,
-            error_response,
-        )
-
-        error_str = str(error)
-
-        # Check that the error string includes min-specific formatting
-        assert "Field 'quantity' must be >= 0" in error_str
-
-    def test_validation_error_with_max_details(self):
-        """Test that max validation errors include maximum value in message."""
-        from katana_public_api_client.models.max_validation_error import (
-            MaxValidationError,
-        )
-        from katana_public_api_client.models.max_validation_error_code import (
-            MaxValidationErrorCode,
-        )
-
-        # Create validation detail with max error
-        detail = MaxValidationError(
-            path="/discount_percentage",
-            code=MaxValidationErrorCode.MAX,
-            message="must be <= 100",
-            maximum=100,
-        )
-
-        error_response = DetailedErrorResponse(
-            status_code=422,
-            name="UnprocessableEntityError",
-            message="The request body is invalid.",
-            code="VALIDATION_FAILED",
-            details=[detail],
-        )
-
-        error = utils.ValidationError(
-            "Validation failed",
-            422,
-            error_response,
-        )
-
-        error_str = str(error)
-
-        # Check that the error string includes max-specific formatting
-        assert "Field 'discount_percentage' must be <= 100" in error_str
+        assert "Field '.email' must match format: email" in rendered
 
 
 @pytest.mark.unit
-class TestValidationErrorInvalidTypeFormatting:
-    """Test ValidationError invalid_type-specific error message formatting."""
+class TestAjvNumericKeywords:
+    """``minimum``, ``maximum``, ``exclusiveMinimum``, ``exclusiveMaximum``, ``multipleOf``."""
 
-    def test_validation_error_with_invalid_type_details(self):
-        """Test that invalid_type validation errors include expected type in message."""
-        from katana_public_api_client.models.invalid_type_validation_error import (
-            InvalidTypeValidationError,
+    def test_minimum(self):
+        rendered = _render(
+            [
+                {
+                    "path": ".price",
+                    "code": "minimum",
+                    "message": "must be >= 1",
+                    "info": {"limit": 1, "comparison": ">="},
+                }
+            ]
         )
-        from katana_public_api_client.models.invalid_type_validation_error_code import (
-            InvalidTypeValidationErrorCode,
+        assert "Field '.price' must be >= 1" in rendered
+
+    def test_maximum(self):
+        rendered = _render(
+            [
+                {
+                    "path": ".price",
+                    "code": "maximum",
+                    "message": "must be <= 100",
+                    "info": {"limit": 100, "comparison": "<="},
+                }
+            ]
         )
+        assert "Field '.price' must be <= 100" in rendered
 
-        # Create validation detail with invalid_type error
-        detail = InvalidTypeValidationError(
-            path="/price",
-            code=InvalidTypeValidationErrorCode.INVALID_TYPE,
-            message="must be number",
-            expected_type="number",
+    def test_exclusive_minimum(self):
+        rendered = _render(
+            [
+                {
+                    "path": ".x",
+                    "code": "exclusiveMinimum",
+                    "message": "must be > 0",
+                    "info": {"limit": 0, "comparison": ">"},
+                }
+            ]
         )
+        assert "Field '.x' must be > 0" in rendered
 
-        error_response = DetailedErrorResponse(
-            status_code=422,
-            name="UnprocessableEntityError",
-            message="The request body is invalid.",
-            code="VALIDATION_FAILED",
-            details=[detail],
+    def test_exclusive_maximum(self):
+        rendered = _render(
+            [
+                {
+                    "path": ".x",
+                    "code": "exclusiveMaximum",
+                    "message": "must be < 1",
+                    "info": {"limit": 1, "comparison": "<"},
+                }
+            ]
         )
+        assert "Field '.x' must be < 1" in rendered
 
-        error = utils.ValidationError(
-            "Validation failed",
-            422,
-            error_response,
+    def test_multiple_of(self):
+        rendered = _render(
+            [
+                {
+                    "path": ".n",
+                    "code": "multipleOf",
+                    "message": "must be a multiple of 2",
+                    "info": {"multipleOf": 2},
+                }
+            ]
         )
-
-        error_str = str(error)
-
-        # Check that the error string includes invalid_type-specific formatting
-        assert "Field 'price' must be of type: number" in error_str
+        assert "Field '.n' must be a multiple of 2" in rendered
 
 
 @pytest.mark.unit
-class TestValidationErrorTooSmallTooBigFormatting:
-    """Test ValidationError too_small/too_big-specific error message formatting."""
+class TestAjvArrayKeywords:
+    """``minItems``, ``maxItems``, ``uniqueItems``."""
 
-    def test_validation_error_with_too_small_minlength(self):
-        """Test that too_small validation errors include minimum length in message."""
-        from katana_public_api_client.models.too_small_validation_error import (
-            TooSmallValidationError,
+    def test_min_items(self):
+        rendered = _render(
+            [
+                {
+                    "path": ".tags",
+                    "code": "minItems",
+                    "message": ">= 1 items",
+                    "info": {"limit": 1},
+                }
+            ]
         )
-        from katana_public_api_client.models.too_small_validation_error_code import (
-            TooSmallValidationErrorCode,
+        assert "Field '.tags' must have at least 1 items" in rendered
+
+    def test_max_items(self):
+        rendered = _render(
+            [
+                {
+                    "path": ".tags",
+                    "code": "maxItems",
+                    "message": "<= 5 items",
+                    "info": {"limit": 5},
+                }
+            ]
         )
+        assert "Field '.tags' must have at most 5 items" in rendered
 
-        # Create validation detail with too_small/minLength error
-        detail = TooSmallValidationError(
-            path="/sku",
-            code=TooSmallValidationErrorCode.TOO_SMALL,
-            message="must have at least 3 characters",
-            min_length=3,
+    def test_unique_items(self):
+        rendered = _render(
+            [
+                {
+                    "path": ".tags",
+                    "code": "uniqueItems",
+                    "message": "duplicate items",
+                    "info": {"i": 1, "j": 3},
+                }
+            ]
         )
-
-        error_response = DetailedErrorResponse(
-            status_code=422,
-            name="UnprocessableEntityError",
-            message="The request body is invalid.",
-            code="VALIDATION_FAILED",
-            details=[detail],
-        )
-
-        error = utils.ValidationError(
-            "Validation failed",
-            422,
-            error_response,
-        )
-
-        error_str = str(error)
-
-        # Check that the error string includes too_small-specific formatting
-        assert "Field 'sku' must have minimum length: 3" in error_str
-
-    def test_validation_error_with_too_small_minitems(self):
-        """Test that too_small validation errors include minimum items in message."""
-        from katana_public_api_client.models.too_small_validation_error import (
-            TooSmallValidationError,
-        )
-        from katana_public_api_client.models.too_small_validation_error_code import (
-            TooSmallValidationErrorCode,
-        )
-
-        # Create validation detail with too_small/minItems error
-        detail = TooSmallValidationError(
-            path="/items",
-            code=TooSmallValidationErrorCode.TOO_SMALL,
-            message="must have at least 1 item",
-            min_items=1,
-        )
-
-        error_response = DetailedErrorResponse(
-            status_code=422,
-            name="UnprocessableEntityError",
-            message="The request body is invalid.",
-            code="VALIDATION_FAILED",
-            details=[detail],
-        )
-
-        error = utils.ValidationError(
-            "Validation failed",
-            422,
-            error_response,
-        )
-
-        error_str = str(error)
-
-        # Check that the error string includes too_small-specific formatting
-        assert "Field 'items' must have minimum items: 1" in error_str
-
-    def test_validation_error_with_too_big_maxlength(self):
-        """Test that too_big validation errors include maximum length in message."""
-        from katana_public_api_client.models.too_big_validation_error import (
-            TooBigValidationError,
-        )
-        from katana_public_api_client.models.too_big_validation_error_code import (
-            TooBigValidationErrorCode,
-        )
-
-        # Create validation detail with too_big/maxLength error
-        detail = TooBigValidationError(
-            path="/description",
-            code=TooBigValidationErrorCode.TOO_BIG,
-            message="must have at most 100 characters",
-            max_length=100,
-        )
-
-        error_response = DetailedErrorResponse(
-            status_code=422,
-            name="UnprocessableEntityError",
-            message="The request body is invalid.",
-            code="VALIDATION_FAILED",
-            details=[detail],
-        )
-
-        error = utils.ValidationError(
-            "Validation failed",
-            422,
-            error_response,
-        )
-
-        error_str = str(error)
-
-        # Check that the error string includes too_big-specific formatting
-        assert "Field 'description' must have maximum length: 100" in error_str
-
-    def test_validation_error_with_too_big_maxitems(self):
-        """Test that too_big validation errors include maximum items in message."""
-        from katana_public_api_client.models.too_big_validation_error import (
-            TooBigValidationError,
-        )
-        from katana_public_api_client.models.too_big_validation_error_code import (
-            TooBigValidationErrorCode,
-        )
-
-        # Create validation detail with too_big/maxItems error
-        detail = TooBigValidationError(
-            path="/tags",
-            code=TooBigValidationErrorCode.TOO_BIG,
-            message="must have at most 10 items",
-            max_items=10,
-        )
-
-        error_response = DetailedErrorResponse(
-            status_code=422,
-            name="UnprocessableEntityError",
-            message="The request body is invalid.",
-            code="VALIDATION_FAILED",
-            details=[detail],
-        )
-
-        error = utils.ValidationError(
-            "Validation failed",
-            422,
-            error_response,
-        )
-
-        error_str = str(error)
-
-        # Check that the error string includes too_big-specific formatting
-        assert "Field 'tags' must have maximum items: 10" in error_str
+        assert "Field '.tags' contains duplicate items at indices 1 and 3" in rendered
 
 
 @pytest.mark.unit
-class TestValidationErrorRequiredFormatting:
-    """Test ValidationError required field error message formatting."""
+class TestAjvObjectKeywords:
+    """``required``, ``additionalProperties``, ``dependencies``."""
 
-    def test_validation_error_with_required_field(self):
-        """Test that required field validation errors include missing field in message."""
-        from katana_public_api_client.models.required_validation_error import (
-            RequiredValidationError,
+    def test_required(self):
+        rendered = _render(
+            [
+                {
+                    "path": "",
+                    "code": "required",
+                    "message": "missing property",
+                    "info": {"missingProperty": "status"},
+                }
+            ]
         )
-        from katana_public_api_client.models.required_validation_error_code import (
-            RequiredValidationErrorCode,
+        assert "Missing required field: 'status'" in rendered
+
+    def test_additional_properties(self):
+        rendered = _render(
+            [
+                {
+                    "path": "",
+                    "code": "additionalProperties",
+                    "message": "unexpected property",
+                    "info": {"additionalProperty": "extra_field"},
+                }
+            ]
         )
+        assert "has unexpected property: 'extra_field'" in rendered
 
-        # Create validation detail with required field error
-        detail = RequiredValidationError(
-            path="",
-            code=RequiredValidationErrorCode.REQUIRED,
-            message="supplier_id is required",
-            missing_property="supplier_id",
+    def test_dependencies(self):
+        rendered = _render(
+            [
+                {
+                    "path": "",
+                    "code": "dependencies",
+                    "message": "missing dependent",
+                    "info": {
+                        "property": "address",
+                        "missingProperty": "city",
+                        "deps": "city",
+                        "depsCount": 1,
+                    },
+                }
+            ]
         )
-
-        error_response = DetailedErrorResponse(
-            status_code=422,
-            name="UnprocessableEntityError",
-            message="The request body is invalid.",
-            code="VALIDATION_FAILED",
-            details=[detail],
-        )
-
-        error = utils.ValidationError(
-            "Validation failed",
-            422,
-            error_response,
-        )
-
-        error_str = str(error)
-
-        # Check that the error string includes required field-specific formatting
-        assert "Missing required field: 'supplier_id'" in error_str
-
-
-@pytest.mark.unit
-class TestValidationErrorPatternFormatting:
-    """Test ValidationError pattern-specific error message formatting."""
-
-    def test_validation_error_with_pattern(self):
-        """Test that pattern validation errors include regex pattern in message."""
-        from katana_public_api_client.models.pattern_validation_error import (
-            PatternValidationError,
-        )
-        from katana_public_api_client.models.pattern_validation_error_code import (
-            PatternValidationErrorCode,
-        )
-
-        # Create validation detail with pattern error
-        detail = PatternValidationError(
-            path="/sku",
-            code=PatternValidationErrorCode.PATTERN,
-            message="must match pattern",
-            pattern="^[A-Z]{2,3}-\\d{3,}$",
-        )
-
-        error_response = DetailedErrorResponse(
-            status_code=422,
-            name="UnprocessableEntityError",
-            message="The request body is invalid.",
-            code="VALIDATION_FAILED",
-            details=[detail],
-        )
-
-        error = utils.ValidationError(
-            "Validation failed",
-            422,
-            error_response,
-        )
-
-        error_str = str(error)
-
-        # Check that the error string includes pattern-specific formatting
-        assert "Field 'sku' must match pattern: ^[A-Z]{2,3}-\\d{3,}$" in error_str
-
-
-@pytest.mark.unit
-class TestValidationErrorUnrecognizedKeysFormatting:
-    """Test ValidationError unrecognized_keys-specific error message formatting."""
-
-    def test_validation_error_with_unrecognized_keys(self):
-        """Test that unrecognized_keys validation errors include invalid and valid fields in message."""
-        from katana_public_api_client.models.unrecognized_keys_validation_error import (
-            UnrecognizedKeysValidationError,
-        )
-        from katana_public_api_client.models.unrecognized_keys_validation_error_code import (
-            UnrecognizedKeysValidationErrorCode,
-        )
-
-        # Create validation detail with unrecognized_keys error
-        detail = UnrecognizedKeysValidationError(
-            path="",
-            code=UnrecognizedKeysValidationErrorCode.UNRECOGNIZED_KEYS,
-            message="unrecognized keys in object",
-            keys=["invalid_field", "another_invalid"],
-            valid_keys=["supplier_id", "location_id", "order_number", "items"],
-        )
-
-        error_response = DetailedErrorResponse(
-            status_code=422,
-            name="UnprocessableEntityError",
-            message="The request body is invalid.",
-            code="VALIDATION_FAILED",
-            details=[detail],
-        )
-
-        error = utils.ValidationError(
-            "Validation failed",
-            422,
-            error_response,
-        )
-
-        error_str = str(error)
-
-        # Check that the error string includes unrecognized_keys-specific formatting
-        assert "Unrecognized fields: ['invalid_field', 'another_invalid']" in error_str
         assert (
-            "Valid fields: ['supplier_id', 'location_id', 'order_number', 'items']"
-            in error_str
+            "has property 'address' but is missing dependent property 'city'"
+            in rendered
         )
+
+
+@pytest.mark.unit
+class TestAjvTypeAndCompositionKeywords:
+    """``type``, ``enum``, ``const``, ``oneOf``."""
+
+    def test_type(self):
+        rendered = _render(
+            [
+                {
+                    "path": ".age",
+                    "code": "type",
+                    "message": "must be number",
+                    "info": {"type": "number"},
+                }
+            ]
+        )
+        assert "Field '.age' must be of type: number" in rendered
+
+    def test_enum(self):
+        rendered = _render(
+            [
+                {
+                    "path": ".status",
+                    "code": "enum",
+                    "message": "must be one of allowed values",
+                    "info": {"allowedValues": ["NEW", "OPEN", "DONE"]},
+                }
+            ]
+        )
+        assert "Field '.status' must be one of:" in rendered
+        assert "NEW" in rendered and "OPEN" in rendered and "DONE" in rendered
+
+    def test_const(self):
+        rendered = _render(
+            [
+                {
+                    "path": ".version",
+                    "code": "const",
+                    "message": "must equal allowed value",
+                    "info": {"allowedValue": 42},
+                }
+            ]
+        )
+        assert "Field '.version' must equal: 42" in rendered
+
+    def test_one_of_zero_matches(self):
+        rendered = _render(
+            [
+                {
+                    "path": ".x",
+                    "code": "oneOf",
+                    "message": "no branch matched",
+                    "info": {"passingSchemas": None},
+                }
+            ]
+        )
+        assert "Field '.x' did not match any allowed schema" in rendered
+
+    def test_one_of_multiple_matches(self):
+        rendered = _render(
+            [
+                {
+                    "path": ".x",
+                    "code": "oneOf",
+                    "message": "multiple branches matched",
+                    "info": {"passingSchemas": [0, 2]},
+                }
+            ]
+        )
+        assert "Field '.x' matched multiple allowed schemas" in rendered
+        assert "[0, 2]" in rendered
+
+
+@pytest.mark.unit
+class TestAjvGenericFallback:
+    """Codes the discriminator doesn't recognize fall back to GenericValidationError.
+
+    The fallback formatter still surfaces ``path``, ``code``, ``message``, and
+    any ``info`` captured in ``additional_properties`` — so future Ajv keywords
+    (or custom user-defined keywords) don't go silent.
+    """
+
+    def test_unknown_keyword_with_info(self):
+        rendered = _render(
+            [
+                {
+                    "path": ".foo",
+                    "code": "futureKeyword",
+                    "message": "something invalid",
+                    "info": {"someParam": "value"},
+                }
+            ]
+        )
+        assert "(futureKeyword)" in rendered
+        assert "something invalid" in rendered
+        assert "{'someParam': 'value'}" in rendered
+
+    def test_unknown_keyword_without_info(self):
+        rendered = _render(
+            [
+                {
+                    "path": ".foo",
+                    "code": "customKeyword",
+                    "message": "rejected",
+                }
+            ]
+        )
+        assert "(customKeyword)" in rendered
+        assert "rejected" in rendered
+
+    def test_multiple_details_each_render(self):
+        rendered = _render(
+            [
+                {
+                    "path": ".city",
+                    "code": "maxLength",
+                    "message": "too long",
+                    "info": {"limit": 10},
+                },
+                {
+                    "path": "",
+                    "code": "required",
+                    "message": "missing",
+                    "info": {"missingProperty": "country"},
+                },
+            ]
+        )
+        assert "Field '.city' must not exceed 10 characters" in rendered
+        assert "Missing required field: 'country'" in rendered

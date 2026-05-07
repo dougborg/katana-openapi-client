@@ -9,11 +9,18 @@ To regenerate, run:
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Annotated, Literal
+from typing import Annotated, Any
 
 from pydantic import Field
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
+
+from .common import (
+    Comparison,
+    Comparison1,
+    Comparison2,
+    Comparison3,
+)
 
 
 class ErrorResponse(KatanaPydanticBase):
@@ -33,136 +40,505 @@ class CodedErrorResponse(ErrorResponse):
 
 
 class BaseValidationError(KatanaPydanticBase):
-    path: Annotated[str, Field(description="JSON path to the field with the error")]
-    code: Annotated[str, Field(description="Validation error code")]
+    path: Annotated[
+        str,
+        Field(
+            description="JSON path to the field with the error (Ajv's ``instancePath``).\nFormat depends on Ajv config: leading ``/`` for JSON Pointer style\nor leading ``.`` / dotted style for legacy ``dataPath``.\n"
+        ),
+    ]
+    code: Annotated[
+        str,
+        Field(
+            description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
+        ),
+    ]
     message: Annotated[
         str, Field(description="Human-readable validation error message")
     ]
 
 
 class Code(StrEnum):
-    enum = "enum"
+    additional_properties = "additionalProperties"
 
 
-class EnumValidationError(BaseValidationError):
-    code: Annotated[Literal["enum"], Field(description="Validation error code")]
-    allowed_values: Annotated[list[str], Field(description="List of valid enum values")]
+class Info(KatanaPydanticBase):
+    additional_property: Annotated[
+        str,
+        Field(alias="additionalProperty", description="The disallowed property name"),
+    ]
+
+
+class AdditionalPropertiesValidationError(BaseValidationError):
+    code: Annotated[
+        Code | None,
+        Field(
+            description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
+        ),
+    ] = None
+    info: Annotated[
+        Info,
+        Field(description="Keyword-specific metadata for ``additionalProperties``"),
+    ]
 
 
 class Code1(StrEnum):
-    min = "min"
+    const = "const"
 
 
-class MinValidationError(BaseValidationError):
-    code: Annotated[Literal["min"], Field(description="Validation error code")]
-    minimum: Annotated[float, Field(description="Minimum allowed value")]
+class Info1(KatanaPydanticBase):
+    allowed_value: Annotated[
+        Any,
+        Field(
+            alias="allowedValue",
+            description="The required constant value (any JSON type)",
+        ),
+    ]
+
+
+class ConstValidationError(BaseValidationError):
+    code: Annotated[
+        Code1 | None,
+        Field(
+            description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
+        ),
+    ] = None
+    info: Annotated[Info1, Field(description="Keyword-specific metadata for ``const``")]
 
 
 class Code2(StrEnum):
-    max = "max"
+    dependencies = "dependencies"
 
 
-class MaxValidationError(BaseValidationError):
-    code: Annotated[Literal["max"], Field(description="Validation error code")]
-    maximum: Annotated[float, Field(description="Maximum allowed value")]
+class Info2(KatanaPydanticBase):
+    property: Annotated[
+        str,
+        Field(description="The property whose presence triggered the dependency check"),
+    ]
+    missing_property: Annotated[
+        str,
+        Field(
+            alias="missingProperty",
+            description="The dependent property that is missing",
+        ),
+    ]
+    deps: Annotated[
+        str | None, Field(description="Comma-separated list of all required dependents")
+    ] = None
+    deps_count: Annotated[
+        int | None,
+        Field(alias="depsCount", description="Total count of required dependents"),
+    ] = None
+
+
+class DependenciesValidationError(BaseValidationError):
+    code: Annotated[
+        Code2 | None,
+        Field(
+            description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
+        ),
+    ] = None
+    info: Annotated[
+        Info2, Field(description="Keyword-specific metadata for ``dependencies``")
+    ]
 
 
 class Code3(StrEnum):
-    invalid_type = "invalid_type"
+    enum = "enum"
 
 
-class InvalidTypeValidationError(BaseValidationError):
-    code: Annotated[Literal["invalid_type"], Field(description="Validation error code")]
-    expected_type: Annotated[str, Field(description="Expected type for the field")]
+class Info3(KatanaPydanticBase):
+    allowed_values: Annotated[
+        list[Any],
+        Field(
+            alias="allowedValues",
+            description="The schema's enum list (items can be any JSON type)",
+        ),
+    ]
+
+
+class EnumValidationError(BaseValidationError):
+    code: Annotated[
+        Code3 | None,
+        Field(
+            description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
+        ),
+    ] = None
+    info: Annotated[Info3, Field(description="Keyword-specific metadata for ``enum``")]
 
 
 class Code4(StrEnum):
-    too_small = "too_small"
+    exclusive_maximum = "exclusiveMaximum"
 
 
-class TooSmallValidationError(BaseValidationError):
-    code: Annotated[Literal["too_small"], Field(description="Validation error code")]
-    min_length: Annotated[
-        int | None, Field(description="Minimum string length required")
+class Info4(KatanaPydanticBase):
+    limit: Annotated[float, Field(description="Exclusive upper bound")]
+    comparison: Annotated[
+        Comparison | None,
+        Field(description="Ajv's comparison operator marker (always ``<``)"),
     ] = None
-    min_items: Annotated[
-        int | None, Field(description="Minimum array items required")
+
+
+class ExclusiveMaximumValidationError(BaseValidationError):
+    code: Annotated[
+        Code4 | None,
+        Field(
+            description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
+        ),
     ] = None
+    info: Annotated[
+        Info4, Field(description="Keyword-specific metadata for ``exclusiveMaximum``")
+    ]
 
 
 class Code5(StrEnum):
-    too_big = "too_big"
+    exclusive_minimum = "exclusiveMinimum"
 
 
-class TooBigValidationError(BaseValidationError):
-    code: Annotated[Literal["too_big"], Field(description="Validation error code")]
-    max_length: Annotated[
-        int | None, Field(description="Maximum string length allowed")
+class Info5(KatanaPydanticBase):
+    limit: Annotated[float, Field(description="Exclusive lower bound")]
+    comparison: Annotated[
+        Comparison1 | None,
+        Field(description="Ajv's comparison operator marker (always ``>``)"),
     ] = None
-    max_items: Annotated[
-        int | None, Field(description="Maximum array items allowed")
+
+
+class ExclusiveMinimumValidationError(BaseValidationError):
+    code: Annotated[
+        Code5 | None,
+        Field(
+            description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
+        ),
     ] = None
+    info: Annotated[
+        Info5, Field(description="Keyword-specific metadata for ``exclusiveMinimum``")
+    ]
 
 
 class Code6(StrEnum):
-    required = "required"
+    format = "format"
 
 
-class RequiredValidationError(BaseValidationError):
-    code: Annotated[Literal["required"], Field(description="Validation error code")]
-    missing_property: Annotated[
-        str, Field(description="Name of the required field that is missing")
+class Info6(KatanaPydanticBase):
+    format: Annotated[
+        str,
+        Field(
+            description="Expected format name (``email``, ``date-time``, ``uri``, etc.)"
+        ),
+    ]
+
+
+class FormatValidationError(BaseValidationError):
+    code: Annotated[
+        Code6 | None,
+        Field(
+            description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
+        ),
+    ] = None
+    info: Annotated[
+        Info6, Field(description="Keyword-specific metadata for ``format``")
     ]
 
 
 class Code7(StrEnum):
-    pattern = "pattern"
+    max_items = "maxItems"
 
 
-class PatternValidationError(BaseValidationError):
-    code: Annotated[Literal["pattern"], Field(description="Validation error code")]
-    pattern: Annotated[
-        str, Field(description="Regular expression pattern that must be matched")
+class Info7(KatanaPydanticBase):
+    limit: Annotated[int, Field(description="Maximum allowed array length")]
+
+
+class MaxItemsValidationError(BaseValidationError):
+    code: Annotated[
+        Code7 | None,
+        Field(
+            description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
+        ),
+    ] = None
+    info: Annotated[
+        Info7, Field(description="Keyword-specific metadata for ``maxItems``")
     ]
 
 
 class Code8(StrEnum):
-    unrecognized_keys = "unrecognized_keys"
+    max_length = "maxLength"
 
 
-class UnrecognizedKeysValidationError(BaseValidationError):
+class Info8(KatanaPydanticBase):
+    limit: Annotated[int, Field(description="Maximum allowed string length")]
+
+
+class MaxLengthValidationError(BaseValidationError):
     code: Annotated[
-        Literal["unrecognized_keys"], Field(description="Validation error code")
-    ]
-    keys: Annotated[list[str], Field(description="List of unrecognized field names")]
-    valid_keys: Annotated[
-        list[str] | None, Field(description="List of valid field names")
+        Code8 | None,
+        Field(
+            description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
+        ),
     ] = None
+    info: Annotated[
+        Info8, Field(description="Keyword-specific metadata for ``maxLength``")
+    ]
+
+
+class Code9(StrEnum):
+    maximum = "maximum"
+
+
+class Info9(KatanaPydanticBase):
+    limit: Annotated[float, Field(description="Inclusive upper bound")]
+    comparison: Annotated[
+        Comparison2 | None,
+        Field(description="Ajv's comparison operator marker (always ``<=``)"),
+    ] = None
+
+
+class MaximumValidationError(BaseValidationError):
+    code: Annotated[
+        Code9 | None,
+        Field(
+            description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
+        ),
+    ] = None
+    info: Annotated[
+        Info9, Field(description="Keyword-specific metadata for ``maximum``")
+    ]
+
+
+class Code10(StrEnum):
+    min_items = "minItems"
+
+
+class Info10(KatanaPydanticBase):
+    limit: Annotated[int, Field(description="Minimum required array length")]
+
+
+class MinItemsValidationError(BaseValidationError):
+    code: Annotated[
+        Code10 | None,
+        Field(
+            description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
+        ),
+    ] = None
+    info: Annotated[
+        Info10, Field(description="Keyword-specific metadata for ``minItems``")
+    ]
+
+
+class Code11(StrEnum):
+    min_length = "minLength"
+
+
+class Info11(KatanaPydanticBase):
+    limit: Annotated[int, Field(description="Minimum required string length")]
+
+
+class MinLengthValidationError(BaseValidationError):
+    code: Annotated[
+        Code11 | None,
+        Field(
+            description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
+        ),
+    ] = None
+    info: Annotated[
+        Info11, Field(description="Keyword-specific metadata for ``minLength``")
+    ]
+
+
+class Code12(StrEnum):
+    minimum = "minimum"
+
+
+class Info12(KatanaPydanticBase):
+    limit: Annotated[float, Field(description="Inclusive lower bound")]
+    comparison: Annotated[
+        Comparison3 | None,
+        Field(description="Ajv's comparison operator marker (always ``>=``)"),
+    ] = None
+
+
+class MinimumValidationError(BaseValidationError):
+    code: Annotated[
+        Code12 | None,
+        Field(
+            description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
+        ),
+    ] = None
+    info: Annotated[
+        Info12, Field(description="Keyword-specific metadata for ``minimum``")
+    ]
+
+
+class Code13(StrEnum):
+    multiple_of = "multipleOf"
+
+
+class Info13(KatanaPydanticBase):
+    multiple_of: Annotated[
+        float, Field(alias="multipleOf", description="Required divisor")
+    ]
+
+
+class MultipleOfValidationError(BaseValidationError):
+    code: Annotated[
+        Code13 | None,
+        Field(
+            description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
+        ),
+    ] = None
+    info: Annotated[
+        Info13, Field(description="Keyword-specific metadata for ``multipleOf``")
+    ]
+
+
+class Code14(StrEnum):
+    one_of = "oneOf"
+
+
+class Info14(KatanaPydanticBase):
+    passing_schemas: Annotated[
+        list[int] | None,
+        Field(
+            alias="passingSchemas",
+            description="Indices of branches that matched (``null`` when none matched)",
+        ),
+    ]
+
+
+class OneOfValidationError(BaseValidationError):
+    code: Annotated[
+        Code14 | None,
+        Field(
+            description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
+        ),
+    ] = None
+    info: Annotated[
+        Info14, Field(description="Keyword-specific metadata for ``oneOf``")
+    ]
+
+
+class Code15(StrEnum):
+    pattern = "pattern"
+
+
+class Info15(KatanaPydanticBase):
+    pattern: Annotated[
+        str, Field(description="Regular expression that must be matched")
+    ]
+
+
+class PatternValidationError(BaseValidationError):
+    code: Annotated[
+        Code15 | None,
+        Field(
+            description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
+        ),
+    ] = None
+    info: Annotated[
+        Info15, Field(description="Keyword-specific metadata for ``pattern``")
+    ]
+
+
+class Code16(StrEnum):
+    required = "required"
+
+
+class Info16(KatanaPydanticBase):
+    missing_property: Annotated[
+        str,
+        Field(
+            alias="missingProperty",
+            description="Name of the required property that is missing",
+        ),
+    ]
+
+
+class RequiredValidationError(BaseValidationError):
+    code: Annotated[
+        Code16 | None,
+        Field(
+            description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
+        ),
+    ] = None
+    info: Annotated[
+        Info16, Field(description="Keyword-specific metadata for ``required``")
+    ]
+
+
+class Code17(StrEnum):
+    type = "type"
+
+
+class Info17(KatanaPydanticBase):
+    type: Annotated[
+        str,
+        Field(
+            description="Expected type (``string``, ``number``, ``integer``, ``boolean``, ``array``, ``object``, ``null``)"
+        ),
+    ]
+
+
+class TypeValidationError(BaseValidationError):
+    code: Annotated[
+        Code17 | None,
+        Field(
+            description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
+        ),
+    ] = None
+    info: Annotated[Info17, Field(description="Keyword-specific metadata for ``type``")]
+
+
+class Code18(StrEnum):
+    unique_items = "uniqueItems"
+
+
+class Info18(KatanaPydanticBase):
+    i: Annotated[int, Field(description="Index of the first duplicate")]
+    j: Annotated[int, Field(description="Index of the second duplicate")]
+
+
+class UniqueItemsValidationError(BaseValidationError):
+    code: Annotated[
+        Code18 | None,
+        Field(
+            description="Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)"
+        ),
+    ] = None
+    info: Annotated[
+        Info18, Field(description="Keyword-specific metadata for ``uniqueItems``")
+    ]
 
 
 class GenericValidationError(BaseValidationError):
     code: Annotated[
-        Literal["generic"],
-        Field(description="Validation error code for generic errors"),
-    ]
+        str | None,
+        Field(
+            description="Ajv keyword that failed (any value not covered by typed subtypes)"
+        ),
+    ] = None
 
 
 class DetailedErrorResponse(CodedErrorResponse):
     details: Annotated[
         list[
-            Annotated[
-                EnumValidationError
-                | MinValidationError
-                | MaxValidationError
-                | InvalidTypeValidationError
-                | TooSmallValidationError
-                | TooBigValidationError
-                | RequiredValidationError
-                | PatternValidationError
-                | UnrecognizedKeysValidationError
-                | GenericValidationError,
-                Field(discriminator="code"),
-            ]
+            AdditionalPropertiesValidationError
+            | ConstValidationError
+            | DependenciesValidationError
+            | EnumValidationError
+            | ExclusiveMaximumValidationError
+            | ExclusiveMinimumValidationError
+            | FormatValidationError
+            | MaxItemsValidationError
+            | MaxLengthValidationError
+            | MaximumValidationError
+            | MinItemsValidationError
+            | MinLengthValidationError
+            | MinimumValidationError
+            | MultipleOfValidationError
+            | OneOfValidationError
+            | PatternValidationError
+            | RequiredValidationError
+            | TypeValidationError
+            | UniqueItemsValidationError
+            | GenericValidationError
         ]
         | None,
         Field(description="Detailed validation error information"),

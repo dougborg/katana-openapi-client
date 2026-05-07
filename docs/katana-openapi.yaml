@@ -1027,10 +1027,10 @@ components:
           example:
             statusCode: 422
             name: UnprocessableEntityError
-            message: The request body is invalid.
+            message: The request body is invalid. See error object `details` property for more info.
             code: VALIDATION_FAILED
             details:
-              - path: .name
+              - path: .city
                 code: maxLength
                 message: should NOT be longer than 10 characters
                 info:
@@ -1126,41 +1126,57 @@ components:
               items:
                 $ref: "#/components/schemas/ValidationErrorDetail"
     ValidationErrorDetail:
+      description: |
+        Ajv-style validation error detail. Katana's API uses Ajv (the de facto
+        Node.js JSON Schema validator) under the hood; every detail item maps
+        to an Ajv ``ErrorObject``: ``path`` ↔ ``instancePath``, ``code`` ↔
+        ``keyword``, ``info`` ↔ ``params``. The shape of ``info`` is keyword-
+        specific — see each typed subtype.
+
+        **No discriminator on purpose.** Each typed variant locks its ``code``
+        to a specific Ajv keyword via ``Literal[<keyword>]``; deserializers
+        try each variant and the first match wins. ``GenericValidationError``
+        accepts any unknown ``code`` value, so future Ajv keywords (or
+        custom user-defined ones) fall through gracefully instead of raising.
+        A discriminator-based union here would lock the schema to today's
+        keyword set and break on any new code Katana ships.
       oneOf:
+        - $ref: "#/components/schemas/AdditionalPropertiesValidationError"
+        - $ref: "#/components/schemas/ConstValidationError"
+        - $ref: "#/components/schemas/DependenciesValidationError"
         - $ref: "#/components/schemas/EnumValidationError"
-        - $ref: "#/components/schemas/MinValidationError"
-        - $ref: "#/components/schemas/MaxValidationError"
-        - $ref: "#/components/schemas/InvalidTypeValidationError"
-        - $ref: "#/components/schemas/TooSmallValidationError"
-        - $ref: "#/components/schemas/TooBigValidationError"
-        - $ref: "#/components/schemas/RequiredValidationError"
+        - $ref: "#/components/schemas/ExclusiveMaximumValidationError"
+        - $ref: "#/components/schemas/ExclusiveMinimumValidationError"
+        - $ref: "#/components/schemas/FormatValidationError"
+        - $ref: "#/components/schemas/MaxItemsValidationError"
+        - $ref: "#/components/schemas/MaxLengthValidationError"
+        - $ref: "#/components/schemas/MaximumValidationError"
+        - $ref: "#/components/schemas/MinItemsValidationError"
+        - $ref: "#/components/schemas/MinLengthValidationError"
+        - $ref: "#/components/schemas/MinimumValidationError"
+        - $ref: "#/components/schemas/MultipleOfValidationError"
+        - $ref: "#/components/schemas/OneOfValidationError"
         - $ref: "#/components/schemas/PatternValidationError"
-        - $ref: "#/components/schemas/UnrecognizedKeysValidationError"
+        - $ref: "#/components/schemas/RequiredValidationError"
+        - $ref: "#/components/schemas/TypeValidationError"
+        - $ref: "#/components/schemas/UniqueItemsValidationError"
         - $ref: "#/components/schemas/GenericValidationError"
-      discriminator:
-        propertyName: code
-        mapping:
-          enum: "#/components/schemas/EnumValidationError"
-          min: "#/components/schemas/MinValidationError"
-          max: "#/components/schemas/MaxValidationError"
-          invalid_type: "#/components/schemas/InvalidTypeValidationError"
-          too_small: "#/components/schemas/TooSmallValidationError"
-          too_big: "#/components/schemas/TooBigValidationError"
-          required: "#/components/schemas/RequiredValidationError"
-          pattern: "#/components/schemas/PatternValidationError"
-          unrecognized_keys: "#/components/schemas/UnrecognizedKeysValidationError"
-          generic: "#/components/schemas/GenericValidationError"
 
     BaseValidationError:
       type: object
-      description: Base validation error with common fields
+      description: |
+        Common fields shared by every validation error detail. Maps to the
+        non-keyword-specific portion of an Ajv ``ErrorObject``.
       properties:
         path:
           type: string
-          description: JSON path to the field with the error
+          description: |
+            JSON path to the field with the error (Ajv's ``instancePath``).
+            Format depends on Ajv config: leading ``/`` for JSON Pointer style
+            or leading ``.`` / dotted style for legacy ``dataPath``.
         code:
           type: string
-          description: Validation error code
+          description: Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)
         message:
           type: string
           description: Human-readable validation error message
@@ -1169,7 +1185,90 @@ components:
         - code
         - message
 
+    AdditionalPropertiesValidationError:
+      description: |
+        Ajv ``additionalProperties`` keyword: an object includes a property
+        not permitted by the schema. ``info.additionalProperty`` names the
+        offending key.
+      allOf:
+        - $ref: "#/components/schemas/BaseValidationError"
+        - type: object
+          properties:
+            code:
+              type: string
+              enum: ["additionalProperties"]
+            info:
+              type: object
+              description: Keyword-specific metadata for ``additionalProperties``
+              properties:
+                additionalProperty:
+                  type: string
+                  description: The disallowed property name
+              required:
+                - additionalProperty
+          required:
+            - info
+
+    ConstValidationError:
+      description: |
+        Ajv ``const`` keyword: the value must equal the schema's constant.
+        ``info.allowedValue`` is the required value (any JSON type).
+      allOf:
+        - $ref: "#/components/schemas/BaseValidationError"
+        - type: object
+          properties:
+            code:
+              type: string
+              enum: ["const"]
+            info:
+              type: object
+              description: Keyword-specific metadata for ``const``
+              properties:
+                allowedValue:
+                  description: The required constant value (any JSON type)
+              required:
+                - allowedValue
+          required:
+            - info
+
+    DependenciesValidationError:
+      description: |
+        Ajv ``dependencies`` / ``dependentRequired`` keyword: presence of one
+        property requires others. ``info`` carries the offending property,
+        the missing dependent, and the full dependency list.
+      allOf:
+        - $ref: "#/components/schemas/BaseValidationError"
+        - type: object
+          properties:
+            code:
+              type: string
+              enum: ["dependencies"]
+            info:
+              type: object
+              description: Keyword-specific metadata for ``dependencies``
+              properties:
+                property:
+                  type: string
+                  description: The property whose presence triggered the dependency check
+                missingProperty:
+                  type: string
+                  description: The dependent property that is missing
+                deps:
+                  type: string
+                  description: Comma-separated list of all required dependents
+                depsCount:
+                  type: integer
+                  description: Total count of required dependents
+              required:
+                - property
+                - missingProperty
+          required:
+            - info
+
     EnumValidationError:
+      description: |
+        Ajv ``enum`` keyword: the value is not in the allowed set.
+        ``info.allowedValues`` is the schema's enum list.
       allOf:
         - $ref: "#/components/schemas/BaseValidationError"
         - type: object
@@ -1177,101 +1276,298 @@ components:
             code:
               type: string
               enum: ["enum"]
-            allowed_values:
-              type: array
-              items:
-                type: string
-              description: List of valid enum values
+            info:
+              type: object
+              description: Keyword-specific metadata for ``enum``
+              properties:
+                allowedValues:
+                  type: array
+                  items: {}
+                  description: The schema's enum list (items can be any JSON type)
+              required:
+                - allowedValues
           required:
-            - allowed_values
+            - info
 
-    MinValidationError:
+    ExclusiveMaximumValidationError:
+      description: |
+        Ajv ``exclusiveMaximum`` keyword: the value must be strictly less than
+        ``info.limit``.
       allOf:
         - $ref: "#/components/schemas/BaseValidationError"
         - type: object
           properties:
             code:
               type: string
-              enum: ["min"]
-            minimum:
-              type: number
-              description: Minimum allowed value
+              enum: ["exclusiveMaximum"]
+            info:
+              type: object
+              description: Keyword-specific metadata for ``exclusiveMaximum``
+              properties:
+                limit:
+                  type: number
+                  description: Exclusive upper bound
+                comparison:
+                  type: string
+                  enum: ["<"]
+                  description: Ajv's comparison operator marker (always ``<``)
+              required:
+                - limit
           required:
-            - minimum
+            - info
 
-    MaxValidationError:
+    ExclusiveMinimumValidationError:
+      description: |
+        Ajv ``exclusiveMinimum`` keyword: the value must be strictly greater
+        than ``info.limit``.
       allOf:
         - $ref: "#/components/schemas/BaseValidationError"
         - type: object
           properties:
             code:
               type: string
-              enum: ["max"]
-            maximum:
-              type: number
-              description: Maximum allowed value
+              enum: ["exclusiveMinimum"]
+            info:
+              type: object
+              description: Keyword-specific metadata for ``exclusiveMinimum``
+              properties:
+                limit:
+                  type: number
+                  description: Exclusive lower bound
+                comparison:
+                  type: string
+                  enum: [">"]
+                  description: Ajv's comparison operator marker (always ``>``)
+              required:
+                - limit
           required:
-            - maximum
+            - info
 
-    InvalidTypeValidationError:
+    FormatValidationError:
+      description: |
+        Ajv ``format`` keyword (e.g. ``email``, ``date-time``, ``uri``). The
+        expected format name lives in ``info.format``. Confirmed wire shape
+        from captured fixture in ``tests/test_katana_client.py:218-223``:
+        ``{path: ".email", code: "format", message: "should match format \"email\"", info: {format: "email"}}``.
       allOf:
         - $ref: "#/components/schemas/BaseValidationError"
         - type: object
           properties:
             code:
               type: string
-              enum: ["invalid_type"]
-            expected_type:
-              type: string
-              description: Expected type for the field
+              enum: ["format"]
+            info:
+              type: object
+              description: Keyword-specific metadata for ``format``
+              properties:
+                format:
+                  type: string
+                  description: Expected format name (``email``, ``date-time``, ``uri``, etc.)
+              required:
+                - format
           required:
-            - expected_type
+            - info
 
-    TooSmallValidationError:
+    MaxItemsValidationError:
+      description: |
+        Ajv ``maxItems`` keyword: the array exceeds its maximum length.
       allOf:
         - $ref: "#/components/schemas/BaseValidationError"
         - type: object
           properties:
             code:
               type: string
-              enum: ["too_small"]
-            min_length:
-              type: integer
-              description: Minimum string length required
-            min_items:
-              type: integer
-              description: Minimum array items required
-
-    TooBigValidationError:
-      allOf:
-        - $ref: "#/components/schemas/BaseValidationError"
-        - type: object
-          properties:
-            code:
-              type: string
-              enum: ["too_big"]
-            max_length:
-              type: integer
-              description: Maximum string length allowed
-            max_items:
-              type: integer
-              description: Maximum array items allowed
-
-    RequiredValidationError:
-      allOf:
-        - $ref: "#/components/schemas/BaseValidationError"
-        - type: object
-          properties:
-            code:
-              type: string
-              enum: ["required"]
-            missing_property:
-              type: string
-              description: Name of the required field that is missing
+              enum: ["maxItems"]
+            info:
+              type: object
+              description: Keyword-specific metadata for ``maxItems``
+              properties:
+                limit:
+                  type: integer
+                  description: Maximum allowed array length
+              required:
+                - limit
           required:
-            - missing_property
+            - info
+
+    MaxLengthValidationError:
+      description: |
+        Ajv ``maxLength`` keyword: the string exceeds its maximum length.
+        Confirmed wire shape from Katana's official 422 docs example and
+        ``docs/upstream-specs/readme-portal.yaml`` — the limit lives in
+        ``info.limit`` (not as a sibling of ``code``).
+      allOf:
+        - $ref: "#/components/schemas/BaseValidationError"
+        - type: object
+          properties:
+            code:
+              type: string
+              enum: ["maxLength"]
+            info:
+              type: object
+              description: Keyword-specific metadata for ``maxLength``
+              properties:
+                limit:
+                  type: integer
+                  description: Maximum allowed string length
+              required:
+                - limit
+          required:
+            - info
+
+    MaximumValidationError:
+      description: |
+        Ajv ``maximum`` keyword: the value exceeds its inclusive upper bound.
+      allOf:
+        - $ref: "#/components/schemas/BaseValidationError"
+        - type: object
+          properties:
+            code:
+              type: string
+              enum: ["maximum"]
+            info:
+              type: object
+              description: Keyword-specific metadata for ``maximum``
+              properties:
+                limit:
+                  type: number
+                  description: Inclusive upper bound
+                comparison:
+                  type: string
+                  enum: ["<="]
+                  description: Ajv's comparison operator marker (always ``<=``)
+              required:
+                - limit
+          required:
+            - info
+
+    MinItemsValidationError:
+      description: |
+        Ajv ``minItems`` keyword: the array is shorter than the schema's
+        minimum length.
+      allOf:
+        - $ref: "#/components/schemas/BaseValidationError"
+        - type: object
+          properties:
+            code:
+              type: string
+              enum: ["minItems"]
+            info:
+              type: object
+              description: Keyword-specific metadata for ``minItems``
+              properties:
+                limit:
+                  type: integer
+                  description: Minimum required array length
+              required:
+                - limit
+          required:
+            - info
+
+    MinLengthValidationError:
+      description: |
+        Ajv ``minLength`` keyword: the string is shorter than the schema's
+        minimum length. Parallel to ``MaxLengthValidationError`` — the limit
+        lives in ``info.limit``.
+      allOf:
+        - $ref: "#/components/schemas/BaseValidationError"
+        - type: object
+          properties:
+            code:
+              type: string
+              enum: ["minLength"]
+            info:
+              type: object
+              description: Keyword-specific metadata for ``minLength``
+              properties:
+                limit:
+                  type: integer
+                  description: Minimum required string length
+              required:
+                - limit
+          required:
+            - info
+
+    MinimumValidationError:
+      description: |
+        Ajv ``minimum`` keyword: the value is below its inclusive lower bound.
+      allOf:
+        - $ref: "#/components/schemas/BaseValidationError"
+        - type: object
+          properties:
+            code:
+              type: string
+              enum: ["minimum"]
+            info:
+              type: object
+              description: Keyword-specific metadata for ``minimum``
+              properties:
+                limit:
+                  type: number
+                  description: Inclusive lower bound
+                comparison:
+                  type: string
+                  enum: [">="]
+                  description: Ajv's comparison operator marker (always ``>=``)
+              required:
+                - limit
+          required:
+            - info
+
+    MultipleOfValidationError:
+      description: |
+        Ajv ``multipleOf`` keyword: the value is not a multiple of
+        ``info.multipleOf``.
+      allOf:
+        - $ref: "#/components/schemas/BaseValidationError"
+        - type: object
+          properties:
+            code:
+              type: string
+              enum: ["multipleOf"]
+            info:
+              type: object
+              description: Keyword-specific metadata for ``multipleOf``
+              properties:
+                multipleOf:
+                  type: number
+                  description: Required divisor
+              required:
+                - multipleOf
+          required:
+            - info
+
+    OneOfValidationError:
+      description: |
+        Ajv ``oneOf`` keyword: the value matched zero or multiple branches of
+        the schema's ``oneOf``. ``info.passingSchemas`` is the array of
+        matched branch indices when more than one matched, or ``null`` when
+        none matched.
+      allOf:
+        - $ref: "#/components/schemas/BaseValidationError"
+        - type: object
+          properties:
+            code:
+              type: string
+              enum: ["oneOf"]
+            info:
+              type: object
+              description: Keyword-specific metadata for ``oneOf``
+              properties:
+                passingSchemas:
+                  type: ["array", "null"]
+                  items:
+                    type: integer
+                  description: Indices of branches that matched (``null`` when none matched)
+              required:
+                - passingSchemas
+          required:
+            - info
 
     PatternValidationError:
+      description: |
+        Ajv ``pattern`` keyword: the string does not match the schema's
+        regex. The pattern lives in ``info.pattern``.
       allOf:
         - $ref: "#/components/schemas/BaseValidationError"
         - type: object
@@ -1279,42 +1575,109 @@ components:
             code:
               type: string
               enum: ["pattern"]
-            pattern:
-              type: string
-              description: Regular expression pattern that must be matched
+            info:
+              type: object
+              description: Keyword-specific metadata for ``pattern``
+              properties:
+                pattern:
+                  type: string
+                  description: Regular expression that must be matched
+              required:
+                - pattern
           required:
-            - pattern
+            - info
 
-    UnrecognizedKeysValidationError:
+    RequiredValidationError:
+      description: |
+        Ajv ``required`` keyword: an object is missing a required property.
+        ``info.missingProperty`` names the missing field.
       allOf:
         - $ref: "#/components/schemas/BaseValidationError"
         - type: object
           properties:
             code:
               type: string
-              enum: ["unrecognized_keys"]
-            keys:
-              type: array
-              items:
-                type: string
-              description: List of unrecognized field names
-            valid_keys:
-              type: array
-              items:
-                type: string
-              description: List of valid field names
+              enum: ["required"]
+            info:
+              type: object
+              description: Keyword-specific metadata for ``required``
+              properties:
+                missingProperty:
+                  type: string
+                  description: Name of the required property that is missing
+              required:
+                - missingProperty
           required:
-            - keys
+            - info
+
+    TypeValidationError:
+      description: |
+        Ajv ``type`` keyword: the value's type does not match the schema's
+        ``type``. ``info.type`` names the expected type.
+      allOf:
+        - $ref: "#/components/schemas/BaseValidationError"
+        - type: object
+          properties:
+            code:
+              type: string
+              enum: ["type"]
+            info:
+              type: object
+              description: Keyword-specific metadata for ``type``
+              properties:
+                type:
+                  type: string
+                  description: Expected type (``string``, ``number``, ``integer``, ``boolean``, ``array``, ``object``, ``null``)
+              required:
+                - type
+          required:
+            - info
+
+    UniqueItemsValidationError:
+      description: |
+        Ajv ``uniqueItems`` keyword: the array contains duplicate items.
+        ``info.i`` and ``info.j`` are the indices of the duplicate pair.
+      allOf:
+        - $ref: "#/components/schemas/BaseValidationError"
+        - type: object
+          properties:
+            code:
+              type: string
+              enum: ["uniqueItems"]
+            info:
+              type: object
+              description: Keyword-specific metadata for ``uniqueItems``
+              properties:
+                i:
+                  type: integer
+                  description: Index of the first duplicate
+                j:
+                  type: integer
+                  description: Index of the second duplicate
+              required:
+                - i
+                - j
+          required:
+            - info
 
     GenericValidationError:
+      description: |
+        Permissive fallback for any Ajv keyword we haven't yet typed. The
+        ``code`` field is unconstrained (just ``string``), so any wire value
+        validates here when none of the typed variants match.
+        ``BaseValidationError`` fields (``path``, ``code``, ``message``) are
+        guaranteed; any keyword-specific ``info`` lives in
+        ``additional_properties``.
+
+        Listed last in ``ValidationErrorDetail.oneOf`` so deserializers try
+        the typed variants first and only land here for unknown keywords.
       allOf:
         - $ref: "#/components/schemas/BaseValidationError"
         - type: object
-          description: Fallback for any validation error codes not explicitly typed
           properties:
             code:
               type: string
-              description: Validation error code for generic errors
+              description: Ajv keyword that failed (any value not covered by typed subtypes)
 
     OutsourcedPurchaseOrderIngredientAvailability:
       type: string

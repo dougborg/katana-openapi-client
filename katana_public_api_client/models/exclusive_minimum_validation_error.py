@@ -1,26 +1,36 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
 
-from ..client_types import UNSET, Unset
-from ..models.too_big_validation_error_code import TooBigValidationErrorCode
+from ..models.exclusive_minimum_validation_error_code import (
+    ExclusiveMinimumValidationErrorCode,
+)
 
-T = TypeVar("T", bound="TooBigValidationError")
+if TYPE_CHECKING:
+    from ..models.exclusive_minimum_validation_error_info import (
+        ExclusiveMinimumValidationErrorInfo,
+    )
+
+
+T = TypeVar("T", bound="ExclusiveMinimumValidationError")
 
 
 @_attrs_define
-class TooBigValidationError:
+class ExclusiveMinimumValidationError:
+    """Ajv ``exclusiveMinimum`` keyword: the value must be strictly greater
+    than ``info.limit``.
+    """
+
     path: str
-    code: TooBigValidationErrorCode
+    code: ExclusiveMinimumValidationErrorCode
     message: str
-    max_length: int | Unset = UNSET
-    max_items: int | Unset = UNSET
+    info: ExclusiveMinimumValidationErrorInfo
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -30,9 +40,7 @@ class TooBigValidationError:
 
         message = self.message
 
-        max_length = self.max_length
-
-        max_items = self.max_items
+        info = self.info.to_dict()
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -41,38 +49,36 @@ class TooBigValidationError:
                 "path": path,
                 "code": code,
                 "message": message,
+                "info": info,
             }
         )
-        if max_length is not UNSET:
-            field_dict["max_length"] = max_length
-        if max_items is not UNSET:
-            field_dict["max_items"] = max_items
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.exclusive_minimum_validation_error_info import (
+            ExclusiveMinimumValidationErrorInfo,
+        )
+
         d = dict(src_dict)
         path = d.pop("path")
 
-        code = TooBigValidationErrorCode(d.pop("code"))
+        code = ExclusiveMinimumValidationErrorCode(d.pop("code"))
 
         message = d.pop("message")
 
-        max_length = d.pop("max_length", UNSET)
+        info = ExclusiveMinimumValidationErrorInfo.from_dict(d.pop("info"))
 
-        max_items = d.pop("max_items", UNSET)
-
-        too_big_validation_error = cls(
+        exclusive_minimum_validation_error = cls(
             path=path,
             code=code,
             message=message,
-            max_length=max_length,
-            max_items=max_items,
+            info=info,
         )
 
-        too_big_validation_error.additional_properties = d
-        return too_big_validation_error
+        exclusive_minimum_validation_error.additional_properties = d
+        return exclusive_minimum_validation_error
 
     @property
     def additional_keys(self) -> list[str]:
