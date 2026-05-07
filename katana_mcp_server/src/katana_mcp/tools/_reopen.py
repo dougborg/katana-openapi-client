@@ -1,8 +1,9 @@
 """Close-state snapshots for the reopen → modify → restore pattern.
 
 The composite ``correct_<entity>`` tools (``correct_manufacturing_order``,
-``correct_sales_order``) edit records that have already reached a terminal
-status (DONE / DELIVERED) without losing the original close-state metadata.
+``correct_sales_order``, ``correct_purchase_order``) edit records that
+have already reached a terminal status (DONE / DELIVERED / RECEIVED)
+without losing the original close-state metadata.
 
 This module owns the **what to capture and replay** — it doesn't run any
 API calls. The composite tools in ``foundation/corrections.py`` consume
@@ -22,6 +23,16 @@ State-machine quirks the snapshots paper over:
   ``is_success`` instead of ``unwrap``) and patching status back to PENDING.
   Restore means re-creating each fulfillment with its original
   ``picked_date``.
+- **PO**: a RECEIVED PO has rows whose ``quantity`` / ``variant_id`` /
+  ``price_per_unit`` are immutable while ``received_date`` is non-null.
+  Reverting status to ``NOT_RECEIVED`` clears each row's ``received_date``
+  (the spec for ``/purchase_order_receive`` is explicit: "Reverting the
+  receive must also be done through that endpoint" — i.e. PATCH
+  ``/purchase_orders/{id}``). After edits, the receipt is replayed via
+  ``POST /purchase_order_receive`` with the captured per-row quantity,
+  ``received_date``, and ``batch_transactions``; the receive endpoint
+  promotes status to RECEIVED automatically when every row is fully
+  received.
 """
 
 from __future__ import annotations
@@ -36,6 +47,8 @@ from katana_public_api_client.models import (
     ManufacturingOrder,
     ManufacturingOrderProduction,
     ManufacturingOrderStatus,
+    PurchaseOrderStatus,
+    RegularPurchaseOrder,
     SalesOrder,
     SalesOrderFulfillment,
     SalesOrderStatus,
@@ -246,3 +259,147 @@ def snapshot_so_close_state(
         fulfillments=[_fulfillment_snapshot(f) for f in fulfillments],
         fulfillment_ids=[f.id for f in fulfillments if isinstance(f.id, int)],
     )
+
+
+# ============================================================================
+# Purchase order snapshots
+# ============================================================================
+
+
+# PO statuses where the record is treated as "closed" — entry conditions for
+# ``correct_purchase_order``. PARTIALLY_RECEIVED is included alongside
+# RECEIVED because partially-received POs have at least one row whose
+# ``received_date`` is non-null, and that row is immutable until the PO is
+# reverted to NOT_RECEIVED.
+PO_CLOSED_STATUSES: frozenset[str] = frozenset(
+    {
+        PurchaseOrderStatus.RECEIVED.value,
+        PurchaseOrderStatus.PARTIALLY_RECEIVED.value,
+    }
+)
+
+# Status to revert to when reopening — clears each row's ``received_date``
+# so quantity / variant_id / price_per_unit become editable again. Per the
+# OpenAPI spec on /purchase_order_receive: "Reverting the receive must also
+# be done through that endpoint" (PATCH /purchase_orders/{id}).
+PO_REOPEN_STATUS: str = PurchaseOrderStatus.NOT_RECEIVED.value
+
+# Status to restore to once edits and re-receipt land. The receive endpoint
+# auto-promotes to RECEIVED when every row is fully received, so this is
+# only used as a target string for diff display, not for an explicit PATCH.
+PO_RESTORE_STATUS: str = PurchaseOrderStatus.RECEIVED.value
+
+
+@dataclass(frozen=True)
+class PORowBatchSnapshot:
+    """Restorable shape of one batch transaction within a row receipt.
+
+    Mirrors :class:`PurchaseOrderRowBatchTransactionsItem` on the wire.
+    Replayed on the re-receive POST so batch-tracked materials land back
+    on the original batch records (Katana enforces the per-batch split on
+    receipt for batch-tracked variants).
+    """
+
+    batch_id: int | None
+    quantity: float
+
+
+@dataclass(frozen=True)
+class PORowReceiptSnapshot:
+    """Restorable shape of a single row's receipt on a PO.
+
+    Captured by reading the persisted entity (``PurchaseOrderRow``);
+    replayed via ``POST /purchase_order_receive`` with one
+    ``PurchaseOrderReceiveRow`` per snapshot.
+
+    Only rows with a non-null ``received_date`` are captured — unreceived
+    rows on a PARTIALLY_RECEIVED PO don't need replay (they stay open
+    after reopen → restore).
+    """
+
+    purchase_order_row_id: int
+    quantity: float
+    received_date: datetime
+    variant_id: int | None
+    batch_transactions: list[PORowBatchSnapshot] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class POCloseState:
+    """Snapshot of a PO's close-state metadata, captured before reopen.
+
+    The PO header itself doesn't carry a ``done_date``-equivalent — receipt
+    is the close-state, and per-row ``received_date`` is the timestamp
+    that needs preserving. Status is captured for round-tripping (and so
+    a PARTIALLY_RECEIVED PO isn't silently promoted to RECEIVED).
+    """
+
+    status: str
+    receipts: list[PORowReceiptSnapshot]
+
+
+def _batch_transactions_from_attrs(value: Any) -> list[PORowBatchSnapshot]:
+    """Extract batch-transaction snapshots from the persisted entity."""
+    items = unwrap_unset(value, None)
+    if not items:
+        return []
+    out: list[PORowBatchSnapshot] = []
+    for item in items:
+        qty = unwrap_unset(getattr(item, "quantity", UNSET), None)
+        batch_id = unwrap_unset(getattr(item, "batch_id", UNSET), None)
+        if qty is None:
+            continue
+        out.append(
+            PORowBatchSnapshot(
+                batch_id=batch_id if isinstance(batch_id, int) else None,
+                quantity=float(qty),
+            )
+        )
+    return out
+
+
+def snapshot_po_close_state(po: RegularPurchaseOrder) -> POCloseState:
+    """Build a :class:`POCloseState` from a fetched PO.
+
+    Walks ``po.purchase_order_rows`` and captures every row that has a
+    non-null ``received_date``. Rows where ``received_date`` is null are
+    skipped — they're already in the "open" state and don't need replay
+    after the reopen.
+
+    Note: the receive endpoint splits a partially-received row into a
+    received row + an unreceived remnant row at receipt time. Both rows
+    persist after reopen (the reopen clears each one's ``received_date``
+    but doesn't merge them), so a PARTIALLY_RECEIVED PO with one
+    user-created row may carry two rows in the snapshot — the previously-
+    received split (with its full receipt detail) and the previously-
+    unreceived split (skipped here).
+    """
+    status_enum = unwrap_unset(po.status, None)
+    status = status_enum.value if status_enum is not None else ""
+
+    rows = unwrap_unset(po.purchase_order_rows, None) or []
+    receipts: list[PORowReceiptSnapshot] = []
+    for row in rows:
+        received_date = unwrap_unset(getattr(row, "received_date", UNSET), None)
+        if received_date is None:
+            continue
+        qty = unwrap_unset(getattr(row, "quantity", UNSET), None)
+        if qty is None or qty <= 0:
+            continue
+        row_id = unwrap_unset(getattr(row, "id", UNSET), None)
+        if not isinstance(row_id, int):
+            continue
+        variant_id = unwrap_unset(getattr(row, "variant_id", UNSET), None)
+        receipts.append(
+            PORowReceiptSnapshot(
+                purchase_order_row_id=row_id,
+                quantity=float(qty),
+                received_date=received_date,
+                variant_id=variant_id if isinstance(variant_id, int) else None,
+                batch_transactions=_batch_transactions_from_attrs(
+                    getattr(row, "batch_transactions", UNSET)
+                ),
+            )
+        )
+
+    return POCloseState(status=status, receipts=receipts)

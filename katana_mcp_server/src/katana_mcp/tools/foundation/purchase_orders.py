@@ -2192,6 +2192,12 @@ class POOperation(StrEnum):
     ADD_ADDITIONAL_COST = "add_additional_cost"
     UPDATE_ADDITIONAL_COST = "update_additional_cost"
     DELETE_ADDITIONAL_COST = "delete_additional_cost"
+    # Receipt-replay step emitted by ``correct_purchase_order`` — POSTs
+    # one ``PurchaseOrderReceiveRow`` batch to ``/purchase_order_receive``
+    # to restore the captured close-state after edits land. Distinct from
+    # ``UPDATE_HEADER`` so the replay step is identifiable in
+    # ``ActionResult`` lists.
+    RECEIVE = "receive"
 
 
 # Tool-facing uppercase status literal — values match the API StrEnum's
