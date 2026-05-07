@@ -83,6 +83,16 @@ class FulfillOrderRequest(BaseModel):
             "Sales orders only — ignored for order_type='manufacturing'."
         ),
     )
+    serial_numbers: list[int] | None = Field(
+        default=None,
+        description=(
+            "Pre-existing SerialNumber IDs to attach to the produced units of a "
+            "manufacturing order on completion. Length must equal "
+            "``actual_quantity``. Required when the MO's finished-good variant "
+            "is serial-tracked. Manufacturing orders only — ignored for "
+            "order_type='sales' (use ``rows`` for per-row sales-order serials)."
+        ),
+    )
 
 
 class FulfillOrderResponse(BaseModel):
@@ -122,7 +132,14 @@ def _fulfill_response_to_tool_result(response: FulfillOrderResponse) -> ToolResu
 async def _fulfill_manufacturing_order(
     request: FulfillOrderRequest, context: Context
 ) -> FulfillOrderResponse:
-    """Fulfill a manufacturing order by marking it as DONE."""
+    """Fulfill a manufacturing order by marking it as DONE.
+
+    Serial-tracked finished-good variants need ``serial_numbers`` IDs
+    attached on completion; callers pass them via ``request.serial_numbers``.
+    Without them, Katana 422s on apply, so the tool emits a ``BLOCK:``
+    warning at preview time and refuses on direct apply (parity with the
+    sales-order serial-tracked guard added in #547).
+    """
     from katana_public_api_client.api.manufacturing_order import (
         get_manufacturing_order as api_get_manufacturing_order,
     )
@@ -134,12 +151,20 @@ async def _fulfill_manufacturing_order(
     mo = unwrap_as(mo_response, ManufacturingOrder)
     order_number = unwrap_unset(mo.order_no, f"MO-{request.order_id}")
     current_status = mo.status.value if mo.status else "UNKNOWN"
+    variant_id = unwrap_unset(mo.variant_id, None)
+    actual_quantity = unwrap_unset(mo.actual_quantity, None)
+
+    is_serial_tracked, sku = await _resolve_variant_serial_info(services, variant_id)
 
     inventory_updates = [
         "Manufacturing order completion will update inventory based on BOM",
         "Finished goods will be added to stock",
         "Raw materials will be consumed from inventory",
     ]
+    if is_serial_tracked and request.serial_numbers:
+        inventory_updates.append(
+            f"Finished-good serials to attach: {request.serial_numbers}"
+        )
 
     warnings: list[str] = []
     if current_status == "DONE":
@@ -152,16 +177,30 @@ async def _fulfill_manufacturing_order(
             f"Manufacturing order {order_number} is blocked - review before completing"
         )
 
+    warnings.extend(
+        _build_mo_serial_warnings(
+            order_number=order_number,
+            sku=sku,
+            is_serial_tracked=is_serial_tracked,
+            actual_quantity=actual_quantity,
+            serial_numbers=request.serial_numbers,
+        )
+    )
+
     if request.preview:
-        next_actions = (
-            ["Order is already completed - no action needed"]
-            if current_status == "DONE"
-            else [
+        has_block = any(w.startswith(BLOCK_WARNING_PREFIX) for w in warnings)
+        if current_status == "DONE":
+            next_actions = ["Order is already completed - no action needed"]
+        elif has_block:
+            next_actions = [
+                "Resolve the issue above (cancel and inspect via the Katana UI)"
+            ]
+        else:
+            next_actions = [
                 "Review the manufacturing order details",
                 "Verify all production steps are complete",
                 "Set preview=false to mark order as DONE",
             ]
-        )
         return FulfillOrderResponse(
             order_id=request.order_id,
             order_type="manufacturing",
@@ -174,6 +213,10 @@ async def _fulfill_manufacturing_order(
             message=f"Preview: Would mark manufacturing order {order_number} as DONE (currently {current_status})",
         )
 
+    # Refuse on apply if any BLOCK warning is present — the preview would have
+    # suppressed the Confirm button in the iframe, but we re-check here so
+    # direct/programmatic callers (skipping the UI) get the same protection.
+    has_block = any(w.startswith(BLOCK_WARNING_PREFIX) for w in warnings)
     if current_status == "DONE":
         return FulfillOrderResponse(
             order_id=request.order_id,
@@ -186,6 +229,24 @@ async def _fulfill_manufacturing_order(
             next_actions=["Order is already completed"],
             message=f"Manufacturing order {order_number} is already completed",
         )
+    if has_block:
+        return FulfillOrderResponse(
+            order_id=request.order_id,
+            order_type="manufacturing",
+            order_number=order_number,
+            status=current_status,
+            is_preview=False,
+            inventory_updates=[],
+            warnings=warnings,
+            next_actions=[
+                "Resolve the issue(s) above and retry with the corrected request"
+            ],
+            message=(
+                f"Refused: Manufacturing order {order_number} completion blocked by "
+                f"{sum(1 for w in warnings if w.startswith(BLOCK_WARNING_PREFIX))} "
+                "issue(s); no status change made."
+            ),
+        )
 
     from katana_public_api_client.api.manufacturing_order import (
         update_manufacturing_order as api_update_manufacturing_order,
@@ -196,6 +257,7 @@ async def _fulfill_manufacturing_order(
 
     update_req = UpdateManufacturingOrderRequest(
         status=ManufacturingOrderStatus.DONE,
+        serial_numbers=to_unset(request.serial_numbers),
     )
     update_response = await api_update_manufacturing_order.asyncio_detailed(
         id=request.order_id, client=services.client, body=update_req
@@ -314,6 +376,97 @@ async def _resolve_row_serial_info(
             parent = None
         serial_tracked[row.id] = bool(parent and parent.get("serial_tracked"))
     return serial_tracked, skus
+
+
+async def _resolve_variant_serial_info(
+    services: Any, variant_id: int | None
+) -> tuple[bool, str]:
+    """Return ``(is_serial_tracked, sku)`` for a single variant.
+
+    Single-variant counterpart to ``_resolve_row_serial_info`` used by the
+    manufacturing-order path (MOs reference one variant, not per-row). Cache
+    misses fall back to a per-ID API fetch so a cold / stale cache doesn't
+    silently mis-classify a serial-tracked MO as "OK to mark DONE without
+    serials" and surface the original Katana 422 on apply. If the variant
+    can't be resolved at all, returns ``(False, f"variant {id}")`` —
+    best-effort, same as if the entity didn't exist.
+    """
+    if variant_id is None:
+        return False, "variant ?"
+    from katana_public_api_client.api.material import get_material
+    from katana_public_api_client.api.product import get_product
+    from katana_public_api_client.api.variant import get_variant
+
+    variants_by_id = await services.cache.get_many_by_ids(
+        EntityType.VARIANT, {variant_id}
+    )
+    await _fetch_missing_from_api(services, variants_by_id, {variant_id}, get_variant)
+    variant = variants_by_id.get(variant_id)
+    sku = (variant or {}).get("sku") or f"variant {variant_id}"
+    if variant is None:
+        return False, sku
+
+    product_id = variant.get("product_id")
+    material_id = variant.get("material_id")
+    if product_id:
+        products = await services.cache.get_many_by_ids(
+            EntityType.PRODUCT, {product_id}
+        )
+        await _fetch_missing_from_api(services, products, {product_id}, get_product)
+        parent = products.get(product_id)
+    elif material_id:
+        materials = await services.cache.get_many_by_ids(
+            EntityType.MATERIAL, {material_id}
+        )
+        await _fetch_missing_from_api(services, materials, {material_id}, get_material)
+        parent = materials.get(material_id)
+    else:
+        parent = None
+    return bool(parent and parent.get("serial_tracked")), sku
+
+
+def _build_mo_serial_warnings(
+    *,
+    order_number: str,
+    sku: str,
+    is_serial_tracked: bool,
+    actual_quantity: float | None,
+    serial_numbers: list[int] | None,
+) -> list[str]:
+    """Return ``BLOCK:`` warnings for a manufacturing-order serial mismatch.
+
+    Mirrors ``_build_row_override_warnings`` but for the single-variant MO
+    shape: a serial-tracked MO needs serials attached on completion, the
+    count must equal ``actual_quantity``, and a fractional ``actual_quantity``
+    is incompatible with serial tracking (each serial represents a whole
+    unit). Numeric equality with ``int(qty)`` matches Python's ``2 == 2.0``
+    behaviour; non-integral qty on a serial-tracked MO is blocked separately.
+    """
+    warnings: list[str] = []
+    if not is_serial_tracked:
+        return warnings
+    qty = actual_quantity
+    if qty is not None and qty != int(qty):
+        warnings.append(
+            f"{BLOCK_WARNING_PREFIX} Manufacturing order {order_number} "
+            f"({sku}) is serial-tracked but actual_quantity ({qty}) is not a "
+            "whole number; serial-tracked variants must be produced in "
+            "integer units."
+        )
+        return warnings
+    if not serial_numbers and (qty or 0) > 0:
+        warnings.append(
+            f"{BLOCK_WARNING_PREFIX} Manufacturing order {order_number} "
+            f"({sku}) is serial-tracked. Pass serial_numbers (one "
+            "SerialNumber ID per unit produced) to mark the order DONE."
+        )
+    elif serial_numbers is not None and qty is not None and len(serial_numbers) != qty:
+        warnings.append(
+            f"{BLOCK_WARNING_PREFIX} Manufacturing order {order_number} "
+            f"({sku}): serial_numbers count ({len(serial_numbers)}) must "
+            f"equal actual_quantity ({qty})."
+        )
+    return warnings
 
 
 def _build_row_override_warnings(

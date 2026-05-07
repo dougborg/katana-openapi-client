@@ -1433,6 +1433,12 @@ Complete a manufacturing or sales order.
   equal the row's ordered quantity. **Required** when the row's variant is
   serial-tracked — without it, the tool emits a `BLOCK:` warning at preview
   and refuses on direct apply (Katana would 422 the request).
+- `serial_numbers` (optional, manufacturing orders only): List of pre-existing
+  `SerialNumber` IDs to attach to the produced units when marking the MO
+  DONE. Length must equal `actual_quantity`. **Required** when the MO's
+  finished-good variant is serial-tracked — without it, the tool emits a
+  `BLOCK:` warning at preview and refuses on direct apply (Katana would 422
+  the request).
 
 ---
 
