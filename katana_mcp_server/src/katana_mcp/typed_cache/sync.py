@@ -27,9 +27,12 @@ from collections.abc import Callable, Iterable
 from contextlib import AsyncExitStack
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from itertools import batched
 from typing import TYPE_CHECKING, Any
 
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlmodel import delete
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from katana_public_api_client.api.manufacturing_order import (
     get_all_manufacturing_orders,
@@ -199,6 +202,43 @@ def _convert(spec: EntitySpec, attrs_obj: Any) -> tuple[Any, list[Any]]:
     return parent, children
 
 
+# SQLite caps each prepared statement at 999 bound parameters by default.
+# Headroom (900) keeps us safe on older / embedded builds without sacrificing
+# meaningful throughput. Wide schemas (``CachedSalesOrder`` at 33 cols) end up
+# at chunks of ~27; narrow ones (recipe rows at ~13 cols) get ~69 — both
+# orders of magnitude beyond the per-row ``session.merge`` round-trip.
+_SQLITE_PARAM_BUDGET = 900
+
+
+async def _bulk_upsert(session: AsyncSession, table_cls: type, rows: list[Any]) -> None:
+    """One ``INSERT ... ON CONFLICT(id) DO UPDATE`` per chunk; no-op on empty rows.
+
+    Replaces a per-row ``session.merge`` loop (SELECT-then-INSERT-or-UPDATE
+    each) with a chunked bulk upsert. Chunk size is derived from each cache
+    class's column count so we stay under SQLite's bound-parameter cap on
+    wide schemas; narrower tables get larger chunks for free.
+
+    The include-set is driven from ``__table__.columns`` rather than a
+    hardcoded exclude list, so adding a new ``Relationship`` field to a
+    cache class can never silently leak into the values payload.
+    """
+    if not rows:
+        return
+
+    column_names = {col.name for col in table_cls.__table__.columns}
+    chunk_size = max(1, _SQLITE_PARAM_BUDGET // len(column_names))
+
+    # ``model_dump`` per chunk (not eagerly across the whole batch) so a
+    # cold sync of thousands of rows doesn't double-buffer the cache rows
+    # *and* their dict projections in memory before the first INSERT.
+    for chunk in batched(rows, chunk_size):
+        values = [r.model_dump(include=column_names) for r in chunk]
+        stmt = sqlite_insert(table_cls).values(values)
+        update_cols = {c.name: c for c in stmt.excluded if c.name != "id"}
+        stmt = stmt.on_conflict_do_update(index_elements=["id"], set_=update_cols)
+        await session.exec(stmt)
+
+
 async def _ensure_synced(
     client: KatanaClient, cache: TypedCacheEngine, spec: EntitySpec
 ) -> None:
@@ -293,10 +333,9 @@ async def _sync_one_locked(
 
     async with cache.session() as session:
         # Parents first so child FK constraints resolve on insert.
-        for parent in cached_parents:
-            await session.merge(parent)
-        for child in cached_children:
-            await session.merge(child)
+        await _bulk_upsert(session, spec.cache_cls, cached_parents)
+        if spec.child_cls is not None:
+            await _bulk_upsert(session, spec.child_cls, cached_children)
         # SQLite's DateTime column doesn't preserve tzinfo, so naive
         # UTC on the write side. ``row_count`` is the last-fetch size
         # (not a cumulative total, which would drift since a re-sync

@@ -470,3 +470,180 @@ class TestMergeFilteredFetch:
         async with typed_cache_engine.session() as session:
             result = await session.exec(select(CachedManufacturingOrderRecipeRow))
             assert result.all() == []
+
+
+class TestBulkUpsert:
+    """``_sync_one_locked`` writes parents and children via a chunked bulk upsert
+    (``INSERT ... ON CONFLICT(id) DO UPDATE``) instead of per-row
+    ``session.merge``. These tests pin the contract: idempotency, incremental
+    column updates, no-op on empty fetches, and correctness when row count
+    drives the batch past SQLite's bound-parameter chunk boundary so that
+    multiple ``INSERT`` statements are emitted in one sync.
+    """
+
+    @pytest.mark.asyncio
+    async def test_idempotent_resync(self, typed_cache_engine):
+        """Running the same sync twice produces identical state, no errors."""
+        from sqlmodel import select
+
+        attrs = AttrsPurchaseOrder.from_dict(
+            {
+                "id": 7,
+                "order_no": "PO-IDEMPOTENT-7",
+                "entity_type": "regular",
+                "supplier_id": 1,
+                "currency": "USD",
+                "status": "NOT_RECEIVED",
+                "billing_status": "NOT_BILLED",
+            }
+        )
+        parsed = MagicMock()
+        parsed.data = [attrs]
+        response = MagicMock()
+        response.status_code = 200
+        response.parsed = parsed
+
+        with (
+            patch(
+                "katana_mcp.typed_cache.sync.find_purchase_orders.asyncio_detailed",
+                new=AsyncMock(return_value=response),
+            ),
+            _stub_po_row_sync(),
+        ):
+            await ensure_purchase_orders_synced(MagicMock(), typed_cache_engine)
+            await ensure_purchase_orders_synced(MagicMock(), typed_cache_engine)
+
+        async with typed_cache_engine.session() as session:
+            result = await session.exec(select(CachedPurchaseOrder))
+            rows = result.all()
+        assert len(rows) == 1
+        assert rows[0].id == 7
+        assert rows[0].order_no == "PO-IDEMPOTENT-7"
+
+    @pytest.mark.asyncio
+    async def test_incremental_column_update(self, typed_cache_engine):
+        """A re-sync with the same id but a different column value updates the row.
+
+        Pins the ``ON CONFLICT DO UPDATE`` half: bulk upsert must overwrite
+        existing column values, not silently ignore the conflict.
+        """
+        async with typed_cache_engine.session() as session:
+            session.add(CachedPurchaseOrder(id=11, order_no="PO-OLD-NAME"))
+            await session.commit()
+
+        attrs = AttrsPurchaseOrder.from_dict(
+            {
+                "id": 11,
+                "order_no": "PO-NEW-NAME",
+                "entity_type": "regular",
+                "supplier_id": 1,
+                "currency": "USD",
+                "status": "NOT_RECEIVED",
+                "billing_status": "NOT_BILLED",
+            }
+        )
+        parsed = MagicMock()
+        parsed.data = [attrs]
+        response = MagicMock()
+        response.status_code = 200
+        response.parsed = parsed
+
+        with (
+            patch(
+                "katana_mcp.typed_cache.sync.find_purchase_orders.asyncio_detailed",
+                new=AsyncMock(return_value=response),
+            ),
+            _stub_po_row_sync(),
+        ):
+            await ensure_purchase_orders_synced(MagicMock(), typed_cache_engine)
+
+        async with typed_cache_engine.session() as session:
+            cached = await session.get(CachedPurchaseOrder, 11)
+            assert cached is not None
+            assert cached.order_no == "PO-NEW-NAME"
+
+    @pytest.mark.asyncio
+    async def test_empty_response_writes_no_rows_no_error(self, typed_cache_engine):
+        """Zero-row response advances ``SyncState`` without a SQL error.
+
+        Bulk insert with an empty values list raises ``CompileError``; the
+        helper's early return guards against that. Also verifies the
+        ``SyncState`` watermark still moves so the next sync is incremental.
+        """
+        from katana_mcp.typed_cache.sync_state import SyncState
+        from sqlmodel import select
+
+        with (
+            patch(
+                "katana_mcp.typed_cache.sync.find_purchase_orders.asyncio_detailed",
+                new=AsyncMock(return_value=_empty_response()),
+            ),
+            _stub_po_row_sync(),
+        ):
+            await ensure_purchase_orders_synced(MagicMock(), typed_cache_engine)
+
+        async with typed_cache_engine.session() as session:
+            po_rows = (await session.exec(select(CachedPurchaseOrder))).all()
+            state = await session.get(SyncState, "purchase_order")
+        assert po_rows == []
+        assert state is not None
+        assert state.last_synced is not None
+        assert state.row_count == 0
+
+    @pytest.mark.asyncio
+    async def test_bulk_upsert_past_chunking_boundary(self, typed_cache_engine):
+        """Sync 250 recipe rows in one shot — exercises multi-chunk bulk upsert.
+
+        Row count, not column count, drives this case past SQLite's 999
+        bound-parameter cap: ``CachedManufacturingOrderRecipeRow`` is a
+        narrow schema (~13 cols), but 250 rows at ~13 cols each = ~3250
+        params, well over the cap. Confirms the ``itertools.batched``
+        chunking emits multiple ``INSERT ... ON CONFLICT`` statements that
+        together cover the whole batch with no rows dropped.
+        """
+        from katana_mcp.typed_cache.sync import (
+            ensure_manufacturing_order_recipe_rows_synced,
+        )
+        from sqlmodel import func, select
+
+        from katana_public_api_client.models import (
+            ManufacturingOrderRecipeRow as AttrsRecipeRow,
+        )
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedManufacturingOrderRecipeRow,
+        )
+
+        attrs_rows = [
+            AttrsRecipeRow.from_dict(
+                {
+                    "id": i,
+                    "manufacturing_order_id": 1,
+                    "variant_id": 100 + i,
+                    "planned_quantity_per_unit": 1.0,
+                    "total_actual_quantity": 0.0,
+                    "cost": 0.0,
+                }
+            )
+            for i in range(1, 251)
+        ]
+        parsed = MagicMock()
+        parsed.data = attrs_rows
+        response = MagicMock()
+        response.status_code = 200
+        response.parsed = parsed
+
+        with patch(
+            "katana_mcp.typed_cache.sync.get_all_manufacturing_order_recipe_rows.asyncio_detailed",
+            new=AsyncMock(return_value=response),
+        ):
+            await ensure_manufacturing_order_recipe_rows_synced(
+                MagicMock(), typed_cache_engine
+            )
+
+        async with typed_cache_engine.session() as session:
+            count = (
+                await session.exec(
+                    select(func.count()).select_from(CachedManufacturingOrderRecipeRow)
+                )
+            ).one()
+        assert count == 250
