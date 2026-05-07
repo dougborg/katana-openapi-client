@@ -72,6 +72,33 @@ class TestLifecycle:
         # Second close must not raise.
         await engine.close()
 
+    @pytest.mark.asyncio
+    async def test_file_backed_engine_uses_wal_and_busy_timeout(self, tmp_path: Path):
+        """File-backed engines apply WAL + busy_timeout PRAGMAs.
+
+        Multiple MCP server processes (Claude Desktop + worktrees) share
+        ``typed_cache.db``. Without WAL, a long-running reader blocks
+        every writer; without ``busy_timeout`` the loser of a write
+        contention raises ``database is locked`` immediately. Both must
+        be applied on every checked-out connection.
+        """
+        from sqlalchemy import text
+
+        engine = TypedCacheEngine(db_path=tmp_path / "test.db")
+        await engine.open()
+        try:
+            async with engine.session() as session:
+                conn = await session.connection()
+                journal = (await conn.execute(text("PRAGMA journal_mode"))).scalar()
+                busy = (await conn.execute(text("PRAGMA busy_timeout"))).scalar()
+                synchronous = (await conn.execute(text("PRAGMA synchronous"))).scalar()
+            assert journal == "wal"
+            assert busy == 5000
+            # synchronous=NORMAL is enum value 1.
+            assert synchronous == 1
+        finally:
+            await engine.close()
+
 
 class TestSyncState:
     """SyncState upsert / read roundtrip."""
