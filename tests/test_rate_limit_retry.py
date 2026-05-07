@@ -5,9 +5,15 @@ This module tests the custom retry logic that distinguishes between:
 - Server errors (502/503/504): Retry ONLY idempotent methods (GET, PUT, DELETE, etc.)
 """
 
+import asyncio
+import time
+from email.utils import formatdate
 from http import HTTPStatus
+from unittest.mock import AsyncMock, MagicMock
 
+import httpx
 import pytest
+from httpx_retries import RetryTransport
 
 from katana_public_api_client.katana_client import RateLimitAwareRetry
 
@@ -458,3 +464,249 @@ class TestRateLimitAwareRetryStateMachine:
 
         # Back to 429 should still work
         assert retry.is_retryable_status_code(429)
+
+
+@pytest.mark.unit
+class TestRetryAfterEndToEndIntegration:
+    """End-to-end integration tests exercising ``RetryTransport``'s retry loop.
+
+    Uses ``looptime`` to fake the asyncio event loop's clock so the actual
+    ``await asyncio.sleep(retry_after)`` inside ``Retry.asleep`` runs in
+    virtual time — the test loop perceives the configured delay elapsing
+    while real wall-clock time stays at zero. This is the equivalent of
+    ``trio.testing.MockClock`` for asyncio.
+
+    All tests drive requests through the public
+    ``RetryTransport.handle_async_request`` API and assert on observed
+    behavior (response status, retry count, virtual time elapsed) — no
+    coupling to private helpers like ``_calculate_sleep``. Together they
+    cover both the Retry-After path (numeric, HTTP-date, header-overrides-
+    backoff, multi-retry accumulation) and the backoff fallback path
+    (header absent, header malformed) end-to-end.
+    """
+
+    @staticmethod
+    def _build_transport(
+        responses: list[httpx.Response | MagicMock], *, backoff_factor: float = 10.0
+    ) -> tuple[RetryTransport, AsyncMock]:
+        """Build a real ``RetryTransport`` over a mocked inner transport.
+
+        ``backoff_jitter=0`` makes the backoff deterministic (the
+        ``httpx_retries`` default of 1.0 multiplies the backoff by
+        ``random.uniform(0, 1)``, which would make timing assertions
+        flaky and can interact poorly with ``looptime`` when the
+        randomized value is very small).
+        """
+        retry = RateLimitAwareRetry(
+            total=3,
+            backoff_factor=backoff_factor,
+            backoff_jitter=0.0,
+            respect_retry_after_header=True,
+            status_forcelist=[429, 502, 503, 504],
+            allowed_methods=["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"],
+        )
+        inner = AsyncMock(spec=httpx.AsyncHTTPTransport)
+        inner.handle_async_request.side_effect = responses
+        return RetryTransport(transport=inner, retry=retry), inner
+
+    @staticmethod
+    def _resp(status: int, headers: dict[str, str] | None = None) -> MagicMock:
+        response = MagicMock(spec=httpx.Response)
+        response.status_code = status
+        response.headers = headers or {}
+        return response
+
+    @pytest.mark.asyncio
+    @pytest.mark.looptime
+    async def test_retry_after_delays_full_chain_by_header_value(self) -> None:
+        """A 429 + ``Retry-After: 5`` makes the retry loop wait 5 virtual seconds.
+
+        Goes through the *real* code path: ``RetryTransport.handle_async_request``
+        receives the 429, computes the delay from the header, calls its
+        async ``asleep()``, and the second attempt fires only after the
+        loop's clock has advanced by 5 seconds.
+        """
+        transport, inner = self._build_transport(
+            [
+                self._resp(429, {"Retry-After": "5"}),
+                self._resp(200),
+            ]
+        )
+
+        loop = asyncio.get_running_loop()
+        start = loop.time()
+        response = await transport.handle_async_request(
+            httpx.Request("GET", "https://api.example.test/items")
+        )
+        elapsed = loop.time() - start
+
+        assert response.status_code == 200
+        assert inner.handle_async_request.call_count == 2
+        # Loop time should have advanced by ~5s (the Retry-After value).
+        # Allow a small tolerance for the buffer pyrate-style libraries may
+        # add. A clean Retry-After integer landing within [4.5, 5.5] proves
+        # the header drove the delay, not the configured 10s backoff.
+        assert 4.5 <= elapsed <= 5.5, (
+            f"Retry-After: 5 should produce ~5s loop-time delay; got {elapsed:.2f}s"
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.looptime
+    async def test_retry_after_dominates_long_backoff_end_to_end(self) -> None:
+        """Header takes precedence over a much longer configured backoff.
+
+        ``backoff_factor=100`` would normally pace the first retry around
+        100 seconds. ``Retry-After: 2`` must override and land at ~2s of
+        loop time.
+        """
+        transport, _inner = self._build_transport(
+            [
+                self._resp(429, {"Retry-After": "2"}),
+                self._resp(200),
+            ],
+            backoff_factor=100.0,
+        )
+
+        loop = asyncio.get_running_loop()
+        start = loop.time()
+        response = await transport.handle_async_request(
+            httpx.Request("GET", "https://api.example.test/items")
+        )
+        elapsed = loop.time() - start
+
+        assert response.status_code == 200
+        assert elapsed <= 5.0, (
+            f"Retry-After: 2 should override 100s backoff; got {elapsed:.2f}s"
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.looptime
+    async def test_http_date_retry_after_paces_end_to_end(self) -> None:
+        """RFC 7231 HTTP-date Retry-After format paces the retry by the absolute deadline.
+
+        Builds a retry-after date 5 seconds in the future (real wall-clock
+        ``time.time()``, since httpx-retries computes the delay as
+        ``deadline - now`` against the wall clock). Under ``looptime``,
+        the loop's clock is virtual but ``time.time()`` is real — so we
+        format an absolute date that resolves to ~5s of delay when
+        ``asleep()`` parses it, and looptime fast-forwards the resulting
+        ``asyncio.sleep`` virtually.
+        """
+        retry_at = formatdate(timeval=time.time() + 5, usegmt=True)
+        transport, _inner = self._build_transport(
+            [
+                self._resp(429, {"Retry-After": retry_at}),
+                self._resp(200),
+            ]
+        )
+
+        loop = asyncio.get_running_loop()
+        start = loop.time()
+        response = await transport.handle_async_request(
+            httpx.Request("GET", "https://api.example.test/items")
+        )
+        elapsed = loop.time() - start
+
+        assert response.status_code == 200
+        # HTTP-date has 1-second resolution; the parse may land in
+        # [4s, 6s] depending on how time.time() ticked between format and
+        # parse. Tolerance is wider than the numeric integration test.
+        assert 4.0 <= elapsed <= 6.5, (
+            f"HTTP-date Retry-After should pace ~5s of loop time; got {elapsed:.2f}s"
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.looptime
+    async def test_no_retry_after_falls_back_to_backoff(self) -> None:
+        """Without a Retry-After header, the retry waits ``backoff_factor`` instead.
+
+        Inverse property of the Retry-After tests — proves the header path
+        and the backoff path are distinct, so the Retry-After tests above
+        are actually exercising the header (not coincidentally matching
+        whatever the backoff produced).
+        """
+        transport, _inner = self._build_transport(
+            [
+                self._resp(429),  # NO Retry-After header
+                self._resp(200),
+            ],
+            backoff_factor=4.0,
+        )
+
+        loop = asyncio.get_running_loop()
+        start = loop.time()
+        response = await transport.handle_async_request(
+            httpx.Request("GET", "https://api.example.test/items")
+        )
+        elapsed = loop.time() - start
+
+        assert response.status_code == 200
+        # With ``backoff_jitter=0`` the backoff is deterministic:
+        # ``backoff_factor * 2 ** attempts_made`` = 4 * 2 = 8s after the
+        # first retry. Tight bound proves the path was taken (anything
+        # outside this range would mean Retry-After parsing fired
+        # somehow, or the formula changed in a dependency upgrade).
+        assert 7.5 <= elapsed <= 8.5, (
+            f"absent Retry-After should pace via deterministic backoff (~8s); "
+            f"got {elapsed:.2f}s"
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.looptime
+    async def test_unparseable_retry_after_falls_back_to_backoff(self) -> None:
+        """A malformed Retry-After value falls back to the configured backoff.
+
+        Tolerates servers that send garbage in the header — the retry layer
+        logs a warning and uses backoff instead of crashing.
+        """
+        transport, _inner = self._build_transport(
+            [
+                self._resp(429, {"Retry-After": "not-a-number"}),
+                self._resp(200),
+            ],
+            backoff_factor=4.0,
+        )
+
+        loop = asyncio.get_running_loop()
+        start = loop.time()
+        response = await transport.handle_async_request(
+            httpx.Request("GET", "https://api.example.test/items")
+        )
+        elapsed = loop.time() - start
+
+        assert response.status_code == 200
+        # Same deterministic backoff math as the no-header case (~8s).
+        assert 7.5 <= elapsed <= 8.5, (
+            f"malformed Retry-After should fall back to backoff (~8s); "
+            f"got {elapsed:.2f}s"
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.looptime
+    async def test_multiple_retries_accumulate_delay(self) -> None:
+        """Successive 429s each pace by their Retry-After value.
+
+        Three responses: 429+Retry-After:3, 429+Retry-After:7, 200.
+        Total loop-time delay should be ~10s (3 + 7) regardless of backoff
+        configuration — proves both retries honor the header.
+        """
+        transport, inner = self._build_transport(
+            [
+                self._resp(429, {"Retry-After": "3"}),
+                self._resp(429, {"Retry-After": "7"}),
+                self._resp(200),
+            ]
+        )
+
+        loop = asyncio.get_running_loop()
+        start = loop.time()
+        response = await transport.handle_async_request(
+            httpx.Request("GET", "https://api.example.test/items")
+        )
+        elapsed = loop.time() - start
+
+        assert response.status_code == 200
+        assert inner.handle_async_request.call_count == 3
+        assert 9.0 <= elapsed <= 11.0, (
+            f"Two retries with Retry-After 3 + 7 should pace ~10s; got {elapsed:.2f}s"
+        )

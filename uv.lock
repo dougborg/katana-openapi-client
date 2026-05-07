@@ -1314,6 +1314,7 @@ dependencies = [
     { name = "httpx" },
     { name = "httpx-retries" },
     { name = "pydantic" },
+    { name = "pyrate-limiter" },
     { name = "python-dateutil" },
     { name = "python-dotenv" },
     { name = "sqlmodel" },
@@ -1327,6 +1328,7 @@ dev = [
     { name = "build" },
     { name = "datamodel-code-generator" },
     { name = "katana-mcp-server" },
+    { name = "looptime" },
     { name = "mdformat" },
     { name = "mdformat-gfm" },
     { name = "mdformat-tables" },
@@ -1377,6 +1379,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "httpx-retries", specifier = ">=0.4.5" },
     { name = "katana-mcp-server", marker = "extra == 'dev'", editable = "katana_mcp_server" },
+    { name = "looptime", marker = "extra == 'dev'", specifier = ">=0.7" },
     { name = "mdformat", marker = "extra == 'dev'", specifier = ">=0.7.21" },
     { name = "mdformat-gfm", marker = "extra == 'dev'", specifier = ">=0.4.1" },
     { name = "mdformat-tables", marker = "extra == 'dev'", specifier = ">=1.0.0" },
@@ -1391,6 +1394,7 @@ requires-dist = [
     { name = "openapi-spec-validator", marker = "extra == 'dev'", specifier = ">=0.7.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.5.0" },
     { name = "pydantic", specifier = ">=2.12.0" },
+    { name = "pyrate-limiter", specifier = ">=3.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.26.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=7.0.0" },
@@ -1471,6 +1475,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/12/ac/34cbfb433a10e28c7fd830f91c5a348462ba748413cbb950c7f259e67aa7/lazy_object_proxy-1.12.0-cp314-cp314-musllinux_1_2_aarch64.whl", hash = "sha256:0a83c6f7a6b2bfc11ef3ed67f8cbe99f8ff500b05655d8e7df9aab993a6abc95", size = 69529, upload-time = "2025-08-22T13:49:55.29Z" },
     { url = "https://files.pythonhosted.org/packages/6f/6a/11ad7e349307c3ca4c0175db7a77d60ce42a41c60bcb11800aabd6a8acb8/lazy_object_proxy-1.12.0-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:256262384ebd2a77b023ad02fbcc9326282bcfd16484d5531154b02bc304f4c5", size = 70391, upload-time = "2025-08-22T13:49:56.35Z" },
     { url = "https://files.pythonhosted.org/packages/59/97/9b410ed8fbc6e79c1ee8b13f8777a80137d4bc189caf2c6202358e66192c/lazy_object_proxy-1.12.0-cp314-cp314-win_amd64.whl", hash = "sha256:7601ec171c7e8584f8ff3f4e440aa2eebf93e854f04639263875b8c2971f819f", size = 26988, upload-time = "2025-08-22T13:49:57.302Z" },
+]
+
+[[package]]
+name = "looptime"
+version = "0.7"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d6/3e/74b54612606b87eedd21820517d206c370888fea8c66d93c05f1f4d4388e/looptime-0.7.tar.gz", hash = "sha256:6b32eab62d2f11af9d2322a0d120054a38b9eb9380383a427a68155cf34963c4", size = 38328, upload-time = "2026-01-03T13:06:26.224Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/24/3c/2bec447bf2486dfe8ed9c99d01892d57388b3620883d2374b975f36f1963/looptime-0.7-py3-none-any.whl", hash = "sha256:efb3916196dbbe943a7f2853d79647e4476a5dd149306ce2736607d814930327", size = 21890, upload-time = "2026-01-03T13:06:24.785Z" },
 ]
 
 [[package]]
@@ -2447,6 +2460,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/e7/82/28175b2414effca1cdac8dc99f76d660e7a4fb0ceefa4b4ab8f5f6742925/pyproject_hooks-1.2.0.tar.gz", hash = "sha256:1e859bd5c40fae9448642dd871adf459e5e2084186e8d2c2a79a824c970da1f8", size = 19228, upload-time = "2024-09-29T09:24:13.293Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/bd/24/12818598c362d7f300f18e74db45963dbcb85150324092410c8b49405e42/pyproject_hooks-1.2.0-py3-none-any.whl", hash = "sha256:9e5c6bfa8dcc30091c74b0cf803c81fdd29d94f01992a7707bc97babb1141913", size = 10216, upload-time = "2024-09-29T09:24:11.978Z" },
+]
+
+[[package]]
+name = "pyrate-limiter"
+version = "4.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/33/0c/6e78218e6ef726be35a4c0a5e2e281e36ddd940566800219e96d13de99ad/pyrate_limiter-4.1.0.tar.gz", hash = "sha256:be1ac413a263aa410b98757d1b01a880650948a1fc3a959512f15865eb58dbf3", size = 306136, upload-time = "2026-03-22T14:43:03.739Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c7/fd/57181fafae08385d00ea2702be246ab8035352a0a8e1f63391c2bcad74d4/pyrate_limiter-4.1.0-py3-none-any.whl", hash = "sha256:2696b4e4a6cffb3d40fc76662baccb766697893f0979e12bebbfc7d3b6b19603", size = 38197, upload-time = "2026-03-22T14:43:01.975Z" },
 ]
 
 [[package]]
