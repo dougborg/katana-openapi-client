@@ -837,3 +837,306 @@ async def test_fulfill_sales_order_non_serial_tracked_no_change():
     from katana_public_api_client.client_types import UNSET
 
     assert sent_rows[0].serial_numbers is UNSET
+
+
+# ============================================================================
+# Manufacturing Order — Serial-Tracked Variant Tests (#586)
+# ============================================================================
+
+
+def _make_serial_tracked_mo(
+    *, order_no: str, variant_id: int = 100, actual_quantity: float = 1.0
+):
+    """Build a serial-tracked ManufacturingOrder mock with the fields the tool reads.
+
+    The MO path reads ``order_no``, ``status``, ``variant_id``, and
+    ``actual_quantity`` — set them explicitly rather than letting MagicMock
+    autogen child mocks (which interact poorly with ``unwrap_unset`` +
+    cache lookups by ID).
+    """
+    mock_mo = MagicMock(spec=ManufacturingOrder)
+    mock_mo.order_no = order_no
+    mock_mo.status = ManufacturingOrderStatus.IN_PROGRESS
+    mock_mo.variant_id = variant_id
+    mock_mo.actual_quantity = actual_quantity
+    return mock_mo
+
+
+@pytest.mark.asyncio
+async def test_fulfill_manufacturing_order_preview_blocks_serial_tracked_without_serials():
+    """Serial-tracked MO + no serial_numbers → BLOCK warning naming the SKU."""
+    context, lifespan_ctx = create_mock_context()
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="ROCKER-V2")
+
+    mock_mo = _make_serial_tracked_mo(order_no="MO-SN-1", actual_quantity=1.0)
+    mock_response = MagicMock(status_code=200, parsed=mock_mo)
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+
+    get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+
+    request = FulfillOrderRequest(order_id=42, order_type="manufacturing", preview=True)
+    result = await _fulfill_order_impl(request, context)
+
+    block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
+    assert len(block_warnings) == 1
+    assert "serial-tracked" in block_warnings[0]
+    assert "ROCKER-V2" in block_warnings[0]
+    assert "Resolve the issue" in result.next_actions[0]
+
+
+@pytest.mark.asyncio
+async def test_fulfill_manufacturing_order_preview_accepts_serial_numbers():
+    """Serial-tracked MO + matching serial_numbers → no BLOCK, serials in preview."""
+    context, lifespan_ctx = create_mock_context()
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="ROCKER-V2")
+
+    mock_mo = _make_serial_tracked_mo(order_no="MO-SN-2", actual_quantity=1.0)
+    mock_response = MagicMock(status_code=200, parsed=mock_mo)
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+
+    get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+
+    request = FulfillOrderRequest(
+        order_id=42,
+        order_type="manufacturing",
+        preview=True,
+        serial_numbers=[501],
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert not [w for w in result.warnings if w.startswith("BLOCK:")]
+    assert any("[501]" in u for u in result.inventory_updates)
+
+
+@pytest.mark.asyncio
+async def test_fulfill_manufacturing_order_apply_passes_serials_to_api():
+    """Apply with serial_numbers → update_manufacturing_order body carries them."""
+    context, lifespan_ctx = create_mock_context()
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="ROCKER-V2")
+
+    mock_mo = _make_serial_tracked_mo(order_no="MO-SN-3", actual_quantity=2.0)
+    mock_get_response = MagicMock(status_code=200, parsed=mock_mo)
+
+    mock_updated_mo = MagicMock(spec=ManufacturingOrder)
+    mock_updated_mo.order_no = "MO-SN-3"
+    mock_updated_mo.status = ManufacturingOrderStatus.DONE
+    mock_update_response = MagicMock(status_code=200, parsed=mock_updated_mo)
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+        update_manufacturing_order,
+    )
+
+    get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
+    update_mock = AsyncMock(return_value=mock_update_response)
+    update_manufacturing_order.asyncio_detailed = update_mock
+
+    request = FulfillOrderRequest(
+        order_id=42,
+        order_type="manufacturing",
+        preview=False,
+        serial_numbers=[501, 502],
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert result.is_preview is False
+    assert result.status == "DONE"
+    update_mock.assert_called_once()
+    sent_body = update_mock.call_args.kwargs["body"]
+    assert sent_body.serial_numbers == [501, 502]
+
+
+@pytest.mark.asyncio
+async def test_fulfill_manufacturing_order_apply_refuses_serial_tracked_without_serials():
+    """Direct apply (preview=False) without serial_numbers → refusal, no API call."""
+    context, lifespan_ctx = create_mock_context()
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="ROCKER-V2")
+
+    mock_mo = _make_serial_tracked_mo(order_no="MO-SN-4", actual_quantity=1.0)
+    mock_response = MagicMock(status_code=200, parsed=mock_mo)
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+        update_manufacturing_order,
+    )
+
+    get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+    update_mock = AsyncMock()
+    update_manufacturing_order.asyncio_detailed = update_mock
+
+    request = FulfillOrderRequest(
+        order_id=42, order_type="manufacturing", preview=False
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert result.is_preview is False
+    block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
+    assert any("serial-tracked" in w for w in block_warnings)
+    assert "Refused" in result.message
+    update_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_fulfill_manufacturing_order_blocks_quantity_serials_mismatch():
+    """len(serial_numbers) != actual_quantity → BLOCK warning."""
+    context, lifespan_ctx = create_mock_context()
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="ROCKER-V2")
+
+    # actual_quantity=2 but only 1 serial provided.
+    mock_mo = _make_serial_tracked_mo(order_no="MO-SN-5", actual_quantity=2.0)
+    mock_response = MagicMock(status_code=200, parsed=mock_mo)
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+
+    get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+
+    request = FulfillOrderRequest(
+        order_id=42,
+        order_type="manufacturing",
+        preview=True,
+        serial_numbers=[501],
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
+    assert any("count (1) must equal actual_quantity (2" in w for w in block_warnings)
+
+
+@pytest.mark.asyncio
+async def test_fulfill_manufacturing_order_blocks_serial_tracked_non_integer_quantity():
+    """Serial-tracked MO with non-integer actual_quantity → BLOCK warning.
+
+    Each serial number represents a whole unit; a fractional ``actual_quantity``
+    is incompatible with serial tracking.
+    """
+    context, lifespan_ctx = create_mock_context()
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="ROCKER-V2")
+
+    mock_mo = _make_serial_tracked_mo(order_no="MO-SN-FRAC", actual_quantity=1.5)
+    mock_response = MagicMock(status_code=200, parsed=mock_mo)
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+
+    get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+
+    request = FulfillOrderRequest(
+        order_id=42,
+        order_type="manufacturing",
+        preview=True,
+        serial_numbers=[501],
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
+    assert any(
+        "serial-tracked but actual_quantity (1.5) is not a whole number" in w
+        for w in block_warnings
+    )
+
+
+@pytest.mark.asyncio
+async def test_fulfill_manufacturing_order_serial_tracked_detection_falls_back_to_api():
+    """Cold / stale cache: variant + product missing from cache.
+
+    Without the API fallback, a cold cache silently classifies the MO as
+    not-serial-tracked, so the BLOCK warning never fires and the user hits
+    the original Katana 422 on apply. With the fallback, the per-ID API
+    fetch resolves the variant + product and the BLOCK warning fires.
+    """
+    context, _lifespan_ctx = create_mock_context()
+    # Default mock cache returns {} for every get_many_by_ids — simulating
+    # a cold cache. We do NOT call _wire_serial_tracked_cache here.
+
+    mock_mo = _make_serial_tracked_mo(order_no="MO-SN-COLD", actual_quantity=1.0)
+    mock_get_mo_response = MagicMock(status_code=200, parsed=mock_mo)
+
+    # API fallback: get_variant returns a variant pointing at product 9100;
+    # get_product returns a serial-tracked product.
+    variant_obj = MagicMock()
+    variant_obj.to_dict = MagicMock(
+        return_value={"id": 100, "sku": "ROCKER-V2", "product_id": 9100}
+    )
+    mock_get_variant_response = MagicMock(status_code=200, parsed=variant_obj)
+
+    product_obj = MagicMock()
+    product_obj.to_dict = MagicMock(return_value={"id": 9100, "serial_tracked": True})
+    mock_get_product_response = MagicMock(status_code=200, parsed=product_obj)
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+    from katana_public_api_client.api.product import get_product
+    from katana_public_api_client.api.variant import get_variant
+
+    get_manufacturing_order.asyncio_detailed = AsyncMock(
+        return_value=mock_get_mo_response
+    )
+    get_variant.asyncio_detailed = AsyncMock(return_value=mock_get_variant_response)
+    get_product.asyncio_detailed = AsyncMock(return_value=mock_get_product_response)
+
+    request = FulfillOrderRequest(order_id=42, order_type="manufacturing", preview=True)
+    result = await _fulfill_order_impl(request, context)
+
+    block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
+    assert any("serial-tracked" in w and "ROCKER-V2" in w for w in block_warnings)
+    # Verify both API endpoints were hit.
+    get_variant.asyncio_detailed.assert_called_once()
+    get_product.asyncio_detailed.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_fulfill_manufacturing_order_non_serial_tracked_no_change():
+    """Non-serial-tracked MO + no serials → behaves as before (no BLOCK,
+    apply path passes UNSET for serial_numbers).
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    async def _get_many(entity_type: str, ids):
+        ids = list(ids or [])
+        if entity_type == EntityType.VARIANT and 100 in ids:
+            return {100: {"id": 100, "sku": "PLAIN-WIDGET", "product_id": 9100}}
+        if entity_type == EntityType.PRODUCT and 9100 in ids:
+            return {9100: {"id": 9100, "serial_tracked": False}}
+        return {}
+
+    lifespan_ctx.cache.get_many_by_ids = AsyncMock(side_effect=_get_many)
+
+    mock_mo = _make_serial_tracked_mo(order_no="MO-SN-7", actual_quantity=2.0)
+    mock_get_response = MagicMock(status_code=200, parsed=mock_mo)
+
+    mock_updated_mo = MagicMock(spec=ManufacturingOrder)
+    mock_updated_mo.order_no = "MO-SN-7"
+    mock_updated_mo.status = ManufacturingOrderStatus.DONE
+    mock_update_response = MagicMock(status_code=200, parsed=mock_updated_mo)
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+        update_manufacturing_order,
+    )
+
+    get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
+    update_mock = AsyncMock(return_value=mock_update_response)
+    update_manufacturing_order.asyncio_detailed = update_mock
+
+    request = FulfillOrderRequest(
+        order_id=42, order_type="manufacturing", preview=False
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert result.status == "DONE"
+    assert not [w for w in result.warnings if w.startswith("BLOCK:")]
+    sent_body = update_mock.call_args.kwargs["body"]
+    # serial_numbers should be UNSET (omitted from wire), not an empty list.
+    from katana_public_api_client.client_types import UNSET
+
+    assert sent_body.serial_numbers is UNSET

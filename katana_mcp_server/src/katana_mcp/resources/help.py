@@ -53,6 +53,7 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **get_purchase_order** - Look up a PO by number or ID — exhaustive detail (every PO/row field, additional cost rows, accounting metadata)
 - **modify_purchase_order** - Unified modify: header, rows, additional-cost rows in one call (typed sub-payload slots, multi-action, preview/apply)
 - **delete_purchase_order** - Delete a PO (Katana cascades child rows)
+- **correct_purchase_order** - Edit a closed (RECEIVED / PARTIALLY_RECEIVED) PO without losing its per-row `received_date` / batch-transaction metadata. Reverts to NOT_RECEIVED, edits rows keyed by row ID, then replays the original receipts via `/purchase_order_receive` to restore close-state. See "Closed-Record Corrections" below.
 
 ### Manufacturing & Sales
 - **create_manufacturing_order** - Create production work orders
@@ -74,6 +75,14 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **list_stock_transfers** - List transfers with status / location / date filters
 - **modify_stock_transfer** - Unified modify: header body fields and/or status transition in one call (preview/apply). Hides Katana's two-endpoint split.
 - **delete_stock_transfer** - Delete a transfer
+
+### Reference Data
+- **list_locations** - List warehouses and facilities (id, name, address, primary flag). Use for `location_id` lookups on orders and inventory queries.
+- **list_suppliers** - List suppliers (id, name, contact info, currency). Use for `supplier_id` / `default_supplier_id` on POs and materials.
+- **list_tax_rates** - List configured tax rates (id, rate, defaults). Use for `tax_rate_id` on order line items.
+- **list_operators** - List manufacturing operators (id, name). Use for `operator_id` / `packer_id` on MO operations and SO fulfillments.
+- **list_additional_costs** - List the additional-cost catalog (freight, duties, handling). Use for `additional_cost_id` on `modify_purchase_order`.
+- (Equivalent to the `katana://locations` / `katana://suppliers` / `katana://tax-rates` / `katana://operators` / `katana://additional-costs` resources — same cache, same data.)
 
 ### Cache Administration
 - **rebuild_cache** - Force-rebuild the local typed cache for one or more transactional entity types (PO, SO, MO, stock adjustment, stock transfer). Truncates the cache table(s), clears the sync watermark, and re-fetches from Katana. Use when the cache has phantom rows (entities present locally but missing from Katana). Destructive; preview/apply.
@@ -146,10 +155,12 @@ keeping them separate makes the destructiveHint annotation honest.
 
 ## Closed-Record Corrections
 
-Two specialized tools — `correct_manufacturing_order` and
-`correct_sales_order` — exist for the case where you need to edit a record
-that has *already* reached a terminal status (DONE for an MO, DELIVERED for
-an SO) without losing the original close-state metadata.
+Three specialized tools — `correct_manufacturing_order`,
+`correct_sales_order`, and `correct_purchase_order` — exist for the case
+where you need to edit a record that has *already* reached a terminal
+status (DONE for an MO, DELIVERED for an SO, RECEIVED /
+PARTIALLY_RECEIVED for a PO) without losing the original close-state
+metadata.
 
 The standard `modify_<entity>` tool can technically do this, but the
 operator has to discover and sequence several mechanical quirks each time:
@@ -165,6 +176,13 @@ operator has to discover and sequence several mechanical quirks each time:
   as `APIError`; callers should use `is_success`), then patching the
   status, editing lines, and re-creating fulfillments with the original
   `picked_date` / tracking metadata.
+- A RECEIVED / PARTIALLY_RECEIVED PO has rows whose `quantity` /
+  `variant_id` / `price_per_unit` are immutable while `received_date` is
+  non-null. The reopen path is PATCH `/purchase_orders/{id}` with status
+  → NOT_RECEIVED (which clears each row's `received_date`); the restore
+  path is `POST /purchase_order_receive` with the captured per-row
+  quantity / `received_date` / batch_transactions, which auto-promotes
+  status back to RECEIVED.
 
 The correction tools encode the proven sequence once. Each takes the edits
 keyed by the *current* variant on the row (not the row ID), so the operator
@@ -173,31 +191,26 @@ SP73001 on this MO"). Both follow the standard preview/apply pattern.
 
 Use the regular `modify_<entity>` tool when:
 - The record is still open (no close-state to preserve).
-- The edits don't fit the variant-keyed shape — e.g. you need to add a row,
-  delete a row, or change something other than variant/quantity.
-- The same variant appears on multiple rows and you want to disambiguate
-  with the explicit row ID.
+- The edits don't fit the variant-keyed (MO/SO) or row-id-keyed (PO)
+  shape — e.g. you need to add a row, delete a row, or change something
+  other than variant/quantity/price.
+- The same variant appears on multiple rows on the same MO/SO and you want
+  to disambiguate with the explicit row ID.
 
-**No `correct_purchase_order` or `correct_stock_transfer`** — those entity
-types don't fit the pattern:
+**Note**: `correct_purchase_order` keys edits by row ID (not variant ID
+like the MO/SO siblings). The receive endpoint may split a partially-
+received row into two physical rows post-receipt — both rows can carry
+the same `variant_id`, so variant-keyed lookup would be ambiguous. Look
+up current row IDs via `get_purchase_order` before calling
+`correct_purchase_order`.
 
-- **Purchase orders** — Katana's receipt records are append-only at the row
-  level. `modify_purchase_order` can patch a row's `received_date` (when
-  already set), but it **cannot zero out a row's `received_quantity`** —
-  there's no unreceive endpoint, and `quantity` / `variant_id` on a row are
-  only updatable when `received_date` is null. So a clean reopen path
-  doesn't exist (tracked in #532). For inventory-level recovery today:
-  `create_stock_adjustment` at the original cost basis to undo the
-  receipt's stock effect — this fixes inventory, but the PO record's
-  received quantities remain historically incorrect until Katana exposes an
-  unreceive / reset mechanism. Plan for the audit trail to show the
-  original receipt + the compensating adjustment, not a corrected receipt.
-- **Stock transfers** — no completion timestamp on the model and rows are
-  immutable, so the close-state pattern adds no value. For corrections:
-  `create_stock_adjustment` at the destination location for quantity
-  discrepancies; `delete_stock_transfer` + `create_stock_transfer` for wrong
-  variants; `modify_stock_transfer` for header metadata (works on RECEIVED
-  transfers as-is).
+**No `correct_stock_transfer`** — stock transfers don't fit the pattern:
+no completion timestamp on the model and rows are immutable, so the
+close-state pattern adds no value. For corrections:
+`create_stock_adjustment` at the destination location for quantity
+discrepancies; `delete_stock_transfer` + `create_stock_transfer` for
+wrong variants; `modify_stock_transfer` for header metadata (works on
+RECEIVED transfers as-is).
 
 ## Output Format
 
@@ -1415,6 +1428,63 @@ the captured close-state in `prior_state`.
 
 ---
 
+### correct_purchase_order
+Edit a closed PO (status RECEIVED or PARTIALLY_RECEIVED) without losing
+its original receipt metadata. Reverts to NOT_RECEIVED (clearing each
+row's `received_date` so per-row fields become editable again), edits
+rows keyed by row ID, then re-receives via `POST /purchase_order_receive`
+to restore the captured per-row `quantity` / `received_date` /
+`batch_transactions`. The receive endpoint promotes status back to
+RECEIVED automatically once every row is fully received.
+
+For a PO that hasn't been received yet, use `modify_purchase_order`
+directly — there's no close-state to preserve.
+
+**Parameters:**
+- `id` (required): Purchase order ID
+- `row_changes` (required, min_length=1): list of row edits. Each entry:
+  `row_id` (existing row ID — find via `get_purchase_order`, required),
+  `new_variant_id` (optional), `quantity` (optional, >0), `price_per_unit`
+  (optional, >=0). At least one of the latter three must be set.
+- `preview` (optional, default true): true=preview, false=execute
+
+**Sequence executed (in order):**
+1. PATCH PO status → NOT_RECEIVED (clears each row's `received_date`)
+2. PATCH each row per `row_changes` (Katana now allows
+   variant_id / quantity / price_per_unit edits since `received_date` is null)
+3. POST `/purchase_order_receive` once per captured receipt, replaying
+   `quantity` + `received_date` + `batch_transactions`. The endpoint
+   auto-promotes status back to RECEIVED.
+
+**Errors when:**
+- The PO isn't in RECEIVED / PARTIALLY_RECEIVED status (use `modify_purchase_order`).
+- A `row_id` doesn't match any current row on the PO.
+- A `row_changes` entry sets none of `new_variant_id` / `quantity` /
+  `price_per_unit`.
+- A `quantity` drops below the originally-received quantity for that row
+  (the receipt replay would fail and leave the PO mid-flow).
+
+**Constraints:**
+- Only updates rows in place; doesn't add or delete rows. Row IDs must
+  stay stable so the re-receive POST can reference them by the original
+  `purchase_order_row_id`. To add or remove a line, use `modify_purchase_order`
+  (after the correction lands), or delete + recreate the PO.
+- Edits are keyed by row ID, **not** by variant ID. The receive endpoint
+  may split partially-received rows post-receipt — both halves can share
+  the same variant — so variant-keyed lookup would be ambiguous on a
+  PARTIALLY_RECEIVED PO.
+- A PARTIALLY_RECEIVED PO's unreceived remnant rows stay open after the
+  correction lands; re-issue `receive_purchase_order` for those when the
+  rest of the shipment arrives.
+
+**Returns:** A `ModificationResponse` with one `ActionResult` per phase
+step (revert + edits + per-row re-receives). Fail-fast halt leaves the PO
+in an intermediate (open) state — typically NOT_RECEIVED with edits
+applied but receipts not replayed — with the captured close-state in
+`prior_state` for manual recovery via `receive_purchase_order`.
+
+---
+
 ### create_product / create_material
 Dedicated catalog tools for creating products or materials with a single variant.
 
@@ -1433,6 +1503,12 @@ Complete a manufacturing or sales order.
   equal the row's ordered quantity. **Required** when the row's variant is
   serial-tracked — without it, the tool emits a `BLOCK:` warning at preview
   and refuses on direct apply (Katana would 422 the request).
+- `serial_numbers` (optional, manufacturing orders only): List of pre-existing
+  `SerialNumber` IDs to attach to the produced units when marking the MO
+  DONE. Length must equal `actual_quantity`. **Required** when the MO's
+  finished-good variant is serial-tracked — without it, the tool emits a
+  `BLOCK:` warning at preview and refuses on direct apply (Katana would 422
+  the request).
 
 ---
 
@@ -1515,6 +1591,78 @@ Delete a stock transfer. Destructive — the transfer record is removed.
 **Parameters:**
 - `id` (required): Stock transfer ID
 - `preview` (optional, default true): true=preview, false=delete
+
+---
+
+## Reference Data Tools
+
+These tools surface the same cache-backed reference data as the
+`katana://locations` / `katana://suppliers` / `katana://tax-rates` /
+`katana://operators` / `katana://additional-costs` resources, but as
+`tools/list` entries so LLM agents discover them through the surface
+they reach for first. Use whichever surface your harness prefers — the
+underlying cache reads are identical.
+
+### list_locations
+List all warehouses and facilities. Returns each location's id, name,
+address, and primary flag. Use the `id` value when creating orders or
+filtering inventory queries.
+
+**Parameters:** _(none)_
+
+**Returns:** `{generated_at, summary: {total_locations}, locations: [{id,
+name, address, city, country, is_primary}], next_actions: [...]}`.
+
+---
+
+### list_suppliers
+List all suppliers. Returns each supplier's id, name, contact info, and
+currency. Use the `id` value when creating purchase orders or setting a
+default supplier on a material.
+
+**Parameters:** _(none)_
+
+**Returns:** `{generated_at, summary: {total_suppliers}, suppliers: [{id,
+name, email, phone, currency, comment}], next_actions: [...]}`.
+
+---
+
+### list_tax_rates
+List all configured tax rates. Returns each tax rate's id, name, rate,
+display name, and default-for-sales / default-for-purchases flags. Use
+the `id` value when creating sales orders or purchase-order line items
+with explicit tax assignments.
+
+**Parameters:** _(none)_
+
+**Returns:** `{generated_at, summary: {total_tax_rates}, tax_rates: [{id,
+name, rate, display_name, is_default_sales, is_default_purchases}],
+next_actions: [...]}`.
+
+---
+
+### list_operators
+List all manufacturing operators. Returns each operator's id and name.
+Use the `id` value when assigning operators to manufacturing-order
+operation rows or naming the packer on a sales order.
+
+**Parameters:** _(none)_
+
+**Returns:** `{generated_at, summary: {total_operators}, operators: [{id,
+name}], next_actions: [...]}`.
+
+---
+
+### list_additional_costs
+List the additional-cost catalog (freight, duties, handling fees, etc.).
+Returns each entry's id and name. Use the `id` value when calling
+`modify_purchase_order` with `add_additional_costs=[...]`. Pair with
+`list_tax_rates` for the matching `tax_rate_id`.
+
+**Parameters:** _(none)_
+
+**Returns:** `{generated_at, summary: {total_additional_costs},
+additional_costs: [{id, name}], next_actions: [...]}`.
 
 ---
 

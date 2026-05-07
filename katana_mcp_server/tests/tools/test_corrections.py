@@ -1,4 +1,5 @@
-"""Tests for correct_manufacturing_order and correct_sales_order.
+"""Tests for correct_manufacturing_order, correct_sales_order, and
+correct_purchase_order.
 
 Covers the reopen → modify → restore pattern: snapshot capture, ordering
 of API calls (revert before edits before recreate before close), preview
@@ -11,10 +12,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from katana_mcp.tools.foundation.corrections import (
     CorrectManufacturingOrderRequest,
+    CorrectPurchaseOrderRequest,
     CorrectSalesOrderRequest,
     MOIngredientCorrection,
+    PORowCorrection,
     SOLineCorrection,
     _correct_manufacturing_order_impl,
+    _correct_purchase_order_impl,
     _correct_sales_order_impl,
 )
 
@@ -24,6 +28,9 @@ from katana_public_api_client.models import (
     ManufacturingOrderProduction,
     ManufacturingOrderRecipeRow,
     ManufacturingOrderStatus,
+    PurchaseOrderRow,
+    PurchaseOrderStatus,
+    RegularPurchaseOrder,
     SalesOrder,
     SalesOrderFulfillment,
     SalesOrderFulfillmentStatus,
@@ -769,4 +776,389 @@ async def test_correct_so_apply_executes_phases_in_canonical_order():
         "POST fulfillment status=DELIVERED",
         "PATCH SO 99 status=DELIVERED",
     ]
+    assert response.prior_state is not None
+
+
+# ============================================================================
+# correct_purchase_order — fixtures
+# ============================================================================
+
+
+def _make_po(
+    *,
+    po_id: int = 156,
+    status: str = "RECEIVED",
+    rows: list[PurchaseOrderRow] | None = None,
+) -> RegularPurchaseOrder:
+    """Build a real attrs ``RegularPurchaseOrder`` in the requested status."""
+    po = mock_entity_for_modify(RegularPurchaseOrder, id=po_id)
+    po.status = PurchaseOrderStatus(status)
+    po.purchase_order_rows = rows if rows is not None else []
+    return po
+
+
+def _make_po_row(
+    *,
+    row_id: int,
+    variant_id: int,
+    quantity: float = 10.0,
+    price_per_unit: float = 5.0,
+    received_date: datetime | None = None,
+) -> PurchaseOrderRow:
+    row = mock_entity_for_modify(PurchaseOrderRow, id=row_id)
+    row.variant_id = variant_id
+    row.quantity = quantity
+    row.price_per_unit = price_per_unit
+    row.received_date = received_date if received_date is not None else UNSET
+    row.batch_transactions = UNSET
+    return row
+
+
+# ============================================================================
+# correct_purchase_order — entry-condition checks
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_correct_po_rejects_open_status():
+    """A PO that's still NOT_RECEIVED has no close-state to preserve."""
+    context, _ = create_mock_context()
+    po = _make_po(status="NOT_RECEIVED")
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.corrections._fetch_purchase_order_attrs",
+            new_callable=AsyncMock,
+            return_value=po,
+        ),
+        pytest.raises(ValueError, match="RECEIVED or PARTIALLY_RECEIVED"),
+    ):
+        await _correct_purchase_order_impl(
+            CorrectPurchaseOrderRequest(
+                id=156,
+                row_changes=[PORowCorrection(row_id=501, new_variant_id=600)],
+            ),
+            context,
+        )
+
+
+@pytest.mark.asyncio
+async def test_correct_po_rejects_missing_row_id():
+    """If row_id isn't on the PO, the tool errors clearly."""
+    context, _ = create_mock_context()
+    received = datetime(2026, 4, 1, 10, 0, 0, tzinfo=UTC)
+    rows = [
+        _make_po_row(row_id=501, variant_id=300, received_date=received),
+    ]
+    po = _make_po(status="RECEIVED", rows=rows)
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.corrections._fetch_purchase_order_attrs",
+            new_callable=AsyncMock,
+            return_value=po,
+        ),
+        pytest.raises(ValueError, match="No row on PO 156 has id 999"),
+    ):
+        await _correct_purchase_order_impl(
+            CorrectPurchaseOrderRequest(
+                id=156,
+                row_changes=[PORowCorrection(row_id=999, new_variant_id=600)],
+            ),
+            context,
+        )
+
+
+@pytest.mark.asyncio
+async def test_correct_po_rejects_empty_correction():
+    """A row_changes entry with neither variant nor quantity nor price is a
+    no-op and should error."""
+    context, _ = create_mock_context()
+    received = datetime(2026, 4, 1, 10, 0, 0, tzinfo=UTC)
+    rows = [
+        _make_po_row(row_id=501, variant_id=300, received_date=received),
+    ]
+    po = _make_po(status="RECEIVED", rows=rows)
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.corrections._fetch_purchase_order_attrs",
+            new_callable=AsyncMock,
+            return_value=po,
+        ),
+        pytest.raises(ValueError, match="must supply at least one"),
+    ):
+        await _correct_purchase_order_impl(
+            CorrectPurchaseOrderRequest(
+                id=156,
+                row_changes=[PORowCorrection(row_id=501)],
+            ),
+            context,
+        )
+
+
+@pytest.mark.asyncio
+async def test_correct_po_rejects_quantity_below_already_received():
+    """Preflight: refuse when row_changes drops quantity below the
+    already-received qty for that row. Catches the failure before any
+    mutations land — the receive replay would otherwise fail and leave the
+    PO stuck NOT_RECEIVED with the close-state already cleared."""
+    context, _ = create_mock_context()
+    received = datetime(2026, 4, 1, 10, 0, 0, tzinfo=UTC)
+    rows = [
+        _make_po_row(row_id=501, variant_id=300, quantity=10.0, received_date=received),
+    ]
+    po = _make_po(status="RECEIVED", rows=rows)
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.corrections._fetch_purchase_order_attrs",
+            new_callable=AsyncMock,
+            return_value=po,
+        ),
+        pytest.raises(ValueError, match="already received"),
+    ):
+        await _correct_purchase_order_impl(
+            CorrectPurchaseOrderRequest(
+                id=156,
+                # Drop quantity to 5 — below the 10 already received.
+                row_changes=[PORowCorrection(row_id=501, quantity=5.0)],
+            ),
+            context,
+        )
+
+
+# ============================================================================
+# correct_purchase_order — preview
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_correct_po_preview_emits_full_action_plan():
+    """Preview should plan: revert → edit → re-receive (per row).
+
+    No final close PATCH — the receive endpoint auto-promotes status back
+    to RECEIVED when every row is fully received.
+    """
+    context, _ = create_mock_context()
+    received = datetime(2026, 4, 1, 10, 0, 0, tzinfo=UTC)
+    rows = [
+        _make_po_row(
+            row_id=501,
+            variant_id=300,
+            quantity=10.0,
+            received_date=received,
+        ),
+    ]
+    po = _make_po(status="RECEIVED", rows=rows)
+
+    with patch(
+        "katana_mcp.tools.foundation.corrections._fetch_purchase_order_attrs",
+        new_callable=AsyncMock,
+        return_value=po,
+    ):
+        response = await _correct_purchase_order_impl(
+            CorrectPurchaseOrderRequest(
+                id=156,
+                row_changes=[PORowCorrection(row_id=501, new_variant_id=400)],
+                preview=True,
+            ),
+            context,
+        )
+
+    assert response.is_preview is True
+    assert response.entity_id == 156
+    operations = [a.operation for a in response.actions]
+    # Revert + edit + receive (one per receipt; here exactly one).
+    assert operations == ["update_header", "update_row", "receive"]
+    receive_action = response.actions[-1]
+    # The receive action's diff includes received_date and quantity.
+    fields = {c.field for c in receive_action.changes}
+    assert "received_date" in fields
+    assert "quantity" in fields
+    # All preview-shape: succeeded=None
+    assert all(a.succeeded is None for a in response.actions)
+
+
+@pytest.mark.asyncio
+async def test_correct_po_preview_partially_received_warns():
+    """A PARTIALLY_RECEIVED PO surfaces a warning that the unreceived
+    remnant rows stay open after the correction lands."""
+    context, _ = create_mock_context()
+    received = datetime(2026, 4, 1, 10, 0, 0, tzinfo=UTC)
+    rows = [
+        # Received split — appears in snapshot.
+        _make_po_row(
+            row_id=501,
+            variant_id=300,
+            quantity=7.0,
+            received_date=received,
+        ),
+        # Unreceived remnant — skipped from snapshot.
+        _make_po_row(
+            row_id=502,
+            variant_id=300,
+            quantity=3.0,
+            received_date=None,
+        ),
+    ]
+    po = _make_po(status="PARTIALLY_RECEIVED", rows=rows)
+
+    with patch(
+        "katana_mcp.tools.foundation.corrections._fetch_purchase_order_attrs",
+        new_callable=AsyncMock,
+        return_value=po,
+    ):
+        response = await _correct_purchase_order_impl(
+            CorrectPurchaseOrderRequest(
+                id=156,
+                row_changes=[PORowCorrection(row_id=501, new_variant_id=400)],
+                preview=True,
+            ),
+            context,
+        )
+
+    # Only one re-receive (for the row that had a received_date).
+    operations = [a.operation for a in response.actions]
+    assert operations == ["update_header", "update_row", "receive"]
+    # Warning about unreceived remnant rows.
+    assert any("unreceived remnant" in w for w in response.warnings)
+
+
+# ============================================================================
+# correct_purchase_order — apply
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_correct_po_apply_executes_phases_in_canonical_order():
+    """Apply order:
+    1. PATCH PO header (revert: status → NOT_RECEIVED)
+    2. PATCH each row per row_changes
+    3. POST /purchase_order_receive once per captured receipt"""
+    context, _ = create_mock_context()
+    received = datetime(2026, 4, 1, 10, 0, 0, tzinfo=UTC)
+    rows = [
+        _make_po_row(
+            row_id=501,
+            variant_id=300,
+            quantity=10.0,
+            received_date=received,
+        ),
+    ]
+    po = _make_po(status="RECEIVED", rows=rows)
+
+    call_log: list[str] = []
+
+    async def fake_update_po(*, id, client, body):
+        call_log.append(f"PATCH PO {id} status={body.status.value}")
+        resp = MagicMock()
+        resp.parsed = po
+        return resp
+
+    async def fake_update_row(*, id, client, body):
+        call_log.append(f"PATCH PO row {id}")
+        resp = MagicMock()
+        resp.parsed = rows[0]
+        return resp
+
+    async def fake_receive(*, client, body):
+        # body is a PurchaseOrderReceiveRow when single-row.
+        call_log.append(
+            f"POST receive row={body.purchase_order_row_id} qty={body.quantity}"
+        )
+        resp = MagicMock()
+        resp.status_code = 204
+        return resp
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.corrections._fetch_purchase_order_attrs",
+            new_callable=AsyncMock,
+            return_value=po,
+        ),
+        patch(
+            "katana_mcp.tools.foundation.corrections."
+            "api_update_purchase_order.asyncio_detailed",
+            side_effect=fake_update_po,
+        ),
+        patch(
+            "katana_mcp.tools.foundation.corrections."
+            "api_update_purchase_order_row.asyncio_detailed",
+            side_effect=fake_update_row,
+        ),
+        patch(
+            "katana_mcp.tools.foundation.corrections."
+            "api_receive_purchase_order.asyncio_detailed",
+            side_effect=fake_receive,
+        ),
+        patch(
+            "katana_mcp.tools.foundation.corrections.is_success",
+            return_value=True,
+        ),
+    ):
+        response = await _correct_purchase_order_impl(
+            CorrectPurchaseOrderRequest(
+                id=156,
+                row_changes=[
+                    PORowCorrection(row_id=501, new_variant_id=400, quantity=12.0)
+                ],
+                preview=False,
+            ),
+            context,
+        )
+
+    assert response.is_preview is False
+    assert all(a.succeeded is True for a in response.actions)
+    assert call_log == [
+        "PATCH PO 156 status=NOT_RECEIVED",
+        "PATCH PO row 501",
+        "POST receive row=501 qty=10.0",
+    ]
+    # Snapshot is in prior_state under the documented sentinel key.
+    assert response.prior_state is not None
+    assert "_close_state_snapshot" in response.prior_state
+
+
+@pytest.mark.asyncio
+async def test_correct_po_apply_halts_on_revert_failure():
+    """If the revert PATCH fails, no edits or receives run; the response
+    surfaces the breadcrumb."""
+    context, _ = create_mock_context()
+    received = datetime(2026, 4, 1, 10, 0, 0, tzinfo=UTC)
+    rows = [
+        _make_po_row(row_id=501, variant_id=300, received_date=received),
+    ]
+    po = _make_po(status="RECEIVED", rows=rows)
+
+    async def boom(*args, **kwargs):
+        raise RuntimeError("Katana refused to revert")
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.corrections._fetch_purchase_order_attrs",
+            new_callable=AsyncMock,
+            return_value=po,
+        ),
+        patch(
+            "katana_mcp.tools.foundation.corrections."
+            "api_update_purchase_order.asyncio_detailed",
+            side_effect=boom,
+        ),
+    ):
+        response = await _correct_purchase_order_impl(
+            CorrectPurchaseOrderRequest(
+                id=156,
+                row_changes=[PORowCorrection(row_id=501, new_variant_id=400)],
+                preview=False,
+            ),
+            context,
+        )
+
+    assert response.is_preview is False
+    # Only the revert action ran, and it failed.
+    assert len(response.actions) == 1
+    assert response.actions[0].succeeded is False
+    # Breadcrumb language flagged.
+    assert any("intermediate (open) state" in w for w in response.warnings)
     assert response.prior_state is not None
