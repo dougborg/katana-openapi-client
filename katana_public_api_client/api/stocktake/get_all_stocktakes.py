@@ -19,7 +19,7 @@ def _get_kwargs(
     location_id: int | Unset = UNSET,
     status: str | Unset = UNSET,
     stocktake_number: str | Unset = UNSET,
-    stock_adjustment_id: float | Unset = UNSET,
+    stock_adjustment_id: str | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
@@ -129,7 +129,7 @@ def sync_detailed(
     location_id: int | Unset = UNSET,
     status: str | Unset = UNSET,
     stocktake_number: str | Unset = UNSET,
-    stock_adjustment_id: float | Unset = UNSET,
+    stock_adjustment_id: str | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
@@ -147,7 +147,7 @@ def sync_detailed(
         location_id (int | Unset):
         status (str | Unset):
         stocktake_number (str | Unset):
-        stock_adjustment_id (float | Unset):
+        stock_adjustment_id (str | Unset):
         created_at_min (datetime.datetime | Unset):
         created_at_max (datetime.datetime | Unset):
         updated_at_min (datetime.datetime | Unset):
@@ -194,7 +194,7 @@ def sync(
     location_id: int | Unset = UNSET,
     status: str | Unset = UNSET,
     stocktake_number: str | Unset = UNSET,
-    stock_adjustment_id: float | Unset = UNSET,
+    stock_adjustment_id: str | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
@@ -212,7 +212,7 @@ def sync(
         location_id (int | Unset):
         status (str | Unset):
         stocktake_number (str | Unset):
-        stock_adjustment_id (float | Unset):
+        stock_adjustment_id (str | Unset):
         created_at_min (datetime.datetime | Unset):
         created_at_max (datetime.datetime | Unset):
         updated_at_min (datetime.datetime | Unset):
@@ -254,7 +254,7 @@ async def asyncio_detailed(
     location_id: int | Unset = UNSET,
     status: str | Unset = UNSET,
     stocktake_number: str | Unset = UNSET,
-    stock_adjustment_id: float | Unset = UNSET,
+    stock_adjustment_id: str | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
@@ -272,7 +272,7 @@ async def asyncio_detailed(
         location_id (int | Unset):
         status (str | Unset):
         stocktake_number (str | Unset):
-        stock_adjustment_id (float | Unset):
+        stock_adjustment_id (str | Unset):
         created_at_min (datetime.datetime | Unset):
         created_at_max (datetime.datetime | Unset):
         updated_at_min (datetime.datetime | Unset):
@@ -317,7 +317,7 @@ async def asyncio(
     location_id: int | Unset = UNSET,
     status: str | Unset = UNSET,
     stocktake_number: str | Unset = UNSET,
-    stock_adjustment_id: float | Unset = UNSET,
+    stock_adjustment_id: str | Unset = UNSET,
     created_at_min: datetime.datetime | Unset = UNSET,
     created_at_max: datetime.datetime | Unset = UNSET,
     updated_at_min: datetime.datetime | Unset = UNSET,
@@ -335,7 +335,7 @@ async def asyncio(
         location_id (int | Unset):
         status (str | Unset):
         stocktake_number (str | Unset):
-        stock_adjustment_id (float | Unset):
+        stock_adjustment_id (str | Unset):
         created_at_min (datetime.datetime | Unset):
         created_at_max (datetime.datetime | Unset):
         updated_at_min (datetime.datetime | Unset):

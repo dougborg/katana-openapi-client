@@ -8,7 +8,9 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
+from ...models.get_all_products_batch_tracked import GetAllProductsBatchTracked
 from ...models.get_all_products_extend_item import GetAllProductsExtendItem
+from ...models.get_all_products_serial_tracked import GetAllProductsSerialTracked
 from ...models.product_list_response import ProductListResponse
 
 
@@ -22,8 +24,8 @@ def _get_kwargs(
     is_purchasable: bool | Unset = UNSET,
     is_auto_assembly: bool | Unset = UNSET,
     default_supplier_id: int | Unset = UNSET,
-    batch_tracked: bool | Unset = UNSET,
-    serial_tracked: bool | Unset = UNSET,
+    batch_tracked: GetAllProductsBatchTracked | Unset = UNSET,
+    serial_tracked: GetAllProductsSerialTracked | Unset = UNSET,
     operations_in_sequence: bool | Unset = UNSET,
     purchase_uom: str | Unset = UNSET,
     purchase_uom_conversion_rate: float | Unset = UNSET,
@@ -60,9 +62,17 @@ def _get_kwargs(
 
     params["default_supplier_id"] = default_supplier_id
 
-    params["batch_tracked"] = batch_tracked
+    json_batch_tracked: str | Unset = UNSET
+    if not isinstance(batch_tracked, Unset):
+        json_batch_tracked = batch_tracked.value
 
-    params["serial_tracked"] = serial_tracked
+    params["batch_tracked"] = json_batch_tracked
+
+    json_serial_tracked: str | Unset = UNSET
+    if not isinstance(serial_tracked, Unset):
+        json_serial_tracked = serial_tracked.value
+
+    params["serial_tracked"] = json_serial_tracked
 
     params["operations_in_sequence"] = operations_in_sequence
 
@@ -169,8 +179,8 @@ def sync_detailed(
     is_purchasable: bool | Unset = UNSET,
     is_auto_assembly: bool | Unset = UNSET,
     default_supplier_id: int | Unset = UNSET,
-    batch_tracked: bool | Unset = UNSET,
-    serial_tracked: bool | Unset = UNSET,
+    batch_tracked: GetAllProductsBatchTracked | Unset = UNSET,
+    serial_tracked: GetAllProductsSerialTracked | Unset = UNSET,
     operations_in_sequence: bool | Unset = UNSET,
     purchase_uom: str | Unset = UNSET,
     purchase_uom_conversion_rate: float | Unset = UNSET,
@@ -198,8 +208,8 @@ def sync_detailed(
         is_purchasable (bool | Unset):
         is_auto_assembly (bool | Unset):
         default_supplier_id (int | Unset):
-        batch_tracked (bool | Unset):
-        serial_tracked (bool | Unset):
+        batch_tracked (GetAllProductsBatchTracked | Unset):
+        serial_tracked (GetAllProductsSerialTracked | Unset):
         operations_in_sequence (bool | Unset):
         purchase_uom (str | Unset):
         purchase_uom_conversion_rate (float | Unset):
@@ -265,8 +275,8 @@ def sync(
     is_purchasable: bool | Unset = UNSET,
     is_auto_assembly: bool | Unset = UNSET,
     default_supplier_id: int | Unset = UNSET,
-    batch_tracked: bool | Unset = UNSET,
-    serial_tracked: bool | Unset = UNSET,
+    batch_tracked: GetAllProductsBatchTracked | Unset = UNSET,
+    serial_tracked: GetAllProductsSerialTracked | Unset = UNSET,
     operations_in_sequence: bool | Unset = UNSET,
     purchase_uom: str | Unset = UNSET,
     purchase_uom_conversion_rate: float | Unset = UNSET,
@@ -294,8 +304,8 @@ def sync(
         is_purchasable (bool | Unset):
         is_auto_assembly (bool | Unset):
         default_supplier_id (int | Unset):
-        batch_tracked (bool | Unset):
-        serial_tracked (bool | Unset):
+        batch_tracked (GetAllProductsBatchTracked | Unset):
+        serial_tracked (GetAllProductsSerialTracked | Unset):
         operations_in_sequence (bool | Unset):
         purchase_uom (str | Unset):
         purchase_uom_conversion_rate (float | Unset):
@@ -356,8 +366,8 @@ async def asyncio_detailed(
     is_purchasable: bool | Unset = UNSET,
     is_auto_assembly: bool | Unset = UNSET,
     default_supplier_id: int | Unset = UNSET,
-    batch_tracked: bool | Unset = UNSET,
-    serial_tracked: bool | Unset = UNSET,
+    batch_tracked: GetAllProductsBatchTracked | Unset = UNSET,
+    serial_tracked: GetAllProductsSerialTracked | Unset = UNSET,
     operations_in_sequence: bool | Unset = UNSET,
     purchase_uom: str | Unset = UNSET,
     purchase_uom_conversion_rate: float | Unset = UNSET,
@@ -385,8 +395,8 @@ async def asyncio_detailed(
         is_purchasable (bool | Unset):
         is_auto_assembly (bool | Unset):
         default_supplier_id (int | Unset):
-        batch_tracked (bool | Unset):
-        serial_tracked (bool | Unset):
+        batch_tracked (GetAllProductsBatchTracked | Unset):
+        serial_tracked (GetAllProductsSerialTracked | Unset):
         operations_in_sequence (bool | Unset):
         purchase_uom (str | Unset):
         purchase_uom_conversion_rate (float | Unset):
@@ -450,8 +460,8 @@ async def asyncio(
     is_purchasable: bool | Unset = UNSET,
     is_auto_assembly: bool | Unset = UNSET,
     default_supplier_id: int | Unset = UNSET,
-    batch_tracked: bool | Unset = UNSET,
-    serial_tracked: bool | Unset = UNSET,
+    batch_tracked: GetAllProductsBatchTracked | Unset = UNSET,
+    serial_tracked: GetAllProductsSerialTracked | Unset = UNSET,
     operations_in_sequence: bool | Unset = UNSET,
     purchase_uom: str | Unset = UNSET,
     purchase_uom_conversion_rate: float | Unset = UNSET,
@@ -479,8 +489,8 @@ async def asyncio(
         is_purchasable (bool | Unset):
         is_auto_assembly (bool | Unset):
         default_supplier_id (int | Unset):
-        batch_tracked (bool | Unset):
-        serial_tracked (bool | Unset):
+        batch_tracked (GetAllProductsBatchTracked | Unset):
+        serial_tracked (GetAllProductsSerialTracked | Unset):
         operations_in_sequence (bool | Unset):
         purchase_uom (str | Unset):
         purchase_uom_conversion_rate (float | Unset):

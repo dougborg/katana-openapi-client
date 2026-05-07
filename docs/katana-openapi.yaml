@@ -353,9 +353,15 @@ components:
     batch_tracked:
       name: batch_tracked
       required: false
-      description: Filters records by whether they are batch tracked.
+      description: |-
+        Filters records by batch-tracking status. Send the literal string
+        ``"true"`` or ``"false"`` — Katana matches the wire value, not the JSON
+        boolean.
       schema:
-        type: boolean
+        type: string
+        enum:
+          - "true"
+          - "false"
       in: query
     purchase_uom:
       name: purchase_uom
@@ -418,9 +424,15 @@ components:
     serial_tracked:
       name: serial_tracked
       required: false
-      description: Filters products by a serial_tracked
+      description: |-
+        Filters records by serial-tracking status. Send the literal string
+        ``"true"`` or ``"false"`` — Katana matches the wire value, not the JSON
+        boolean.
       schema:
-        type: boolean
+        type: string
+        enum:
+          - "true"
+          - "false"
       in: query
     operations_in_sequence:
       name: operations_in_sequence
@@ -12863,7 +12875,14 @@ paths:
       operationId: getAllInventoryPoint
       parameters:
         - $ref: "#/components/parameters/location_id"
-        - $ref: "#/components/parameters/variant_id"
+        - name: variant_id
+          in: query
+          required: false
+          description: Filter by one or more variant IDs.
+          schema:
+            type: array
+            items:
+              type: integer
         - $ref: "#/components/parameters/include_archived"
         - $ref: "#/components/parameters/extend_inventory"
         - $ref: "#/components/parameters/limit"
@@ -17714,9 +17733,9 @@ paths:
         - $ref: "#/components/parameters/product_id"
         - name: recipe_row_id
           in: query
-          description: Filter by recipe row ID
+          description: Filter by recipe row ID (UUID).
           schema:
-            type: integer
+            type: string
       responses:
         "200":
           description: List of recipe rows
@@ -20439,7 +20458,7 @@ paths:
           description: Filters stocktakes by stock adjustment ID
           required: false
           schema:
-            type: number
+            type: string
         - $ref: "#/components/parameters/created_at_min"
         - $ref: "#/components/parameters/created_at_max"
         - $ref: "#/components/parameters/updated_at_min"

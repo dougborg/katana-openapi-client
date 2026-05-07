@@ -14,7 +14,7 @@ from ...models.inventory_list_response import InventoryListResponse
 def _get_kwargs(
     *,
     location_id: int | Unset = UNSET,
-    variant_id: int | Unset = UNSET,
+    variant_id: list[int] | Unset = UNSET,
     include_archived: bool | Unset = UNSET,
     extend: list[GetAllInventoryPointExtendItem] | Unset = UNSET,
     limit: int | Unset = UNSET,
@@ -25,7 +25,11 @@ def _get_kwargs(
 
     params["location_id"] = location_id
 
-    params["variant_id"] = variant_id
+    json_variant_id: list[int] | Unset = UNSET
+    if not isinstance(variant_id, Unset):
+        json_variant_id = variant_id
+
+    params["variant_id"] = json_variant_id
 
     params["include_archived"] = include_archived
 
@@ -97,7 +101,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     location_id: int | Unset = UNSET,
-    variant_id: int | Unset = UNSET,
+    variant_id: list[int] | Unset = UNSET,
     include_archived: bool | Unset = UNSET,
     extend: list[GetAllInventoryPointExtendItem] | Unset = UNSET,
     limit: int | Unset = UNSET,
@@ -111,7 +115,7 @@ def sync_detailed(
 
     Args:
         location_id (int | Unset):
-        variant_id (int | Unset):
+        variant_id (list[int] | Unset):
         include_archived (bool | Unset):
         extend (list[GetAllInventoryPointExtendItem] | Unset):
         limit (int | Unset):  Default: 50.
@@ -147,7 +151,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     location_id: int | Unset = UNSET,
-    variant_id: int | Unset = UNSET,
+    variant_id: list[int] | Unset = UNSET,
     include_archived: bool | Unset = UNSET,
     extend: list[GetAllInventoryPointExtendItem] | Unset = UNSET,
     limit: int | Unset = UNSET,
@@ -161,7 +165,7 @@ def sync(
 
     Args:
         location_id (int | Unset):
-        variant_id (int | Unset):
+        variant_id (list[int] | Unset):
         include_archived (bool | Unset):
         extend (list[GetAllInventoryPointExtendItem] | Unset):
         limit (int | Unset):  Default: 50.
@@ -192,7 +196,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     location_id: int | Unset = UNSET,
-    variant_id: int | Unset = UNSET,
+    variant_id: list[int] | Unset = UNSET,
     include_archived: bool | Unset = UNSET,
     extend: list[GetAllInventoryPointExtendItem] | Unset = UNSET,
     limit: int | Unset = UNSET,
@@ -206,7 +210,7 @@ async def asyncio_detailed(
 
     Args:
         location_id (int | Unset):
-        variant_id (int | Unset):
+        variant_id (list[int] | Unset):
         include_archived (bool | Unset):
         extend (list[GetAllInventoryPointExtendItem] | Unset):
         limit (int | Unset):  Default: 50.
@@ -240,7 +244,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     location_id: int | Unset = UNSET,
-    variant_id: int | Unset = UNSET,
+    variant_id: list[int] | Unset = UNSET,
     include_archived: bool | Unset = UNSET,
     extend: list[GetAllInventoryPointExtendItem] | Unset = UNSET,
     limit: int | Unset = UNSET,
@@ -254,7 +258,7 @@ async def asyncio(
 
     Args:
         location_id (int | Unset):
-        variant_id (int | Unset):
+        variant_id (list[int] | Unset):
         include_archived (bool | Unset):
         extend (list[GetAllInventoryPointExtendItem] | Unset):
         limit (int | Unset):  Default: 50.

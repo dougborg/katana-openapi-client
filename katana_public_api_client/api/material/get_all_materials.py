@@ -8,6 +8,7 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
+from ...models.get_all_materials_batch_tracked import GetAllMaterialsBatchTracked
 from ...models.get_all_materials_extend_item import GetAllMaterialsExtendItem
 from ...models.material_list_response import MaterialListResponse
 
@@ -19,7 +20,7 @@ def _get_kwargs(
     uom: str | Unset = UNSET,
     default_supplier_id: int | Unset = UNSET,
     is_sellable: bool | Unset = UNSET,
-    batch_tracked: bool | Unset = UNSET,
+    batch_tracked: GetAllMaterialsBatchTracked | Unset = UNSET,
     purchase_uom: str | Unset = UNSET,
     purchase_uom_conversion_rate: float | Unset = UNSET,
     extend: list[GetAllMaterialsExtendItem] | Unset = UNSET,
@@ -49,7 +50,11 @@ def _get_kwargs(
 
     params["is_sellable"] = is_sellable
 
-    params["batch_tracked"] = batch_tracked
+    json_batch_tracked: str | Unset = UNSET
+    if not isinstance(batch_tracked, Unset):
+        json_batch_tracked = batch_tracked.value
+
+    params["batch_tracked"] = json_batch_tracked
 
     params["purchase_uom"] = purchase_uom
 
@@ -151,7 +156,7 @@ def sync_detailed(
     uom: str | Unset = UNSET,
     default_supplier_id: int | Unset = UNSET,
     is_sellable: bool | Unset = UNSET,
-    batch_tracked: bool | Unset = UNSET,
+    batch_tracked: GetAllMaterialsBatchTracked | Unset = UNSET,
     purchase_uom: str | Unset = UNSET,
     purchase_uom_conversion_rate: float | Unset = UNSET,
     extend: list[GetAllMaterialsExtendItem] | Unset = UNSET,
@@ -175,7 +180,7 @@ def sync_detailed(
         uom (str | Unset):
         default_supplier_id (int | Unset):
         is_sellable (bool | Unset):
-        batch_tracked (bool | Unset):
+        batch_tracked (GetAllMaterialsBatchTracked | Unset):
         purchase_uom (str | Unset):
         purchase_uom_conversion_rate (float | Unset):
         extend (list[GetAllMaterialsExtendItem] | Unset):
@@ -232,7 +237,7 @@ def sync(
     uom: str | Unset = UNSET,
     default_supplier_id: int | Unset = UNSET,
     is_sellable: bool | Unset = UNSET,
-    batch_tracked: bool | Unset = UNSET,
+    batch_tracked: GetAllMaterialsBatchTracked | Unset = UNSET,
     purchase_uom: str | Unset = UNSET,
     purchase_uom_conversion_rate: float | Unset = UNSET,
     extend: list[GetAllMaterialsExtendItem] | Unset = UNSET,
@@ -256,7 +261,7 @@ def sync(
         uom (str | Unset):
         default_supplier_id (int | Unset):
         is_sellable (bool | Unset):
-        batch_tracked (bool | Unset):
+        batch_tracked (GetAllMaterialsBatchTracked | Unset):
         purchase_uom (str | Unset):
         purchase_uom_conversion_rate (float | Unset):
         extend (list[GetAllMaterialsExtendItem] | Unset):
@@ -308,7 +313,7 @@ async def asyncio_detailed(
     uom: str | Unset = UNSET,
     default_supplier_id: int | Unset = UNSET,
     is_sellable: bool | Unset = UNSET,
-    batch_tracked: bool | Unset = UNSET,
+    batch_tracked: GetAllMaterialsBatchTracked | Unset = UNSET,
     purchase_uom: str | Unset = UNSET,
     purchase_uom_conversion_rate: float | Unset = UNSET,
     extend: list[GetAllMaterialsExtendItem] | Unset = UNSET,
@@ -332,7 +337,7 @@ async def asyncio_detailed(
         uom (str | Unset):
         default_supplier_id (int | Unset):
         is_sellable (bool | Unset):
-        batch_tracked (bool | Unset):
+        batch_tracked (GetAllMaterialsBatchTracked | Unset):
         purchase_uom (str | Unset):
         purchase_uom_conversion_rate (float | Unset):
         extend (list[GetAllMaterialsExtendItem] | Unset):
@@ -387,7 +392,7 @@ async def asyncio(
     uom: str | Unset = UNSET,
     default_supplier_id: int | Unset = UNSET,
     is_sellable: bool | Unset = UNSET,
-    batch_tracked: bool | Unset = UNSET,
+    batch_tracked: GetAllMaterialsBatchTracked | Unset = UNSET,
     purchase_uom: str | Unset = UNSET,
     purchase_uom_conversion_rate: float | Unset = UNSET,
     extend: list[GetAllMaterialsExtendItem] | Unset = UNSET,
@@ -411,7 +416,7 @@ async def asyncio(
         uom (str | Unset):
         default_supplier_id (int | Unset):
         is_sellable (bool | Unset):
-        batch_tracked (bool | Unset):
+        batch_tracked (GetAllMaterialsBatchTracked | Unset):
         purchase_uom (str | Unset):
         purchase_uom_conversion_rate (float | Unset):
         extend (list[GetAllMaterialsExtendItem] | Unset):

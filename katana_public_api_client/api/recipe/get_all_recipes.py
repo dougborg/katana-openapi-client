@@ -22,7 +22,7 @@ def _get_kwargs(
     ingredient_variant_id: int | Unset = UNSET,
     product_variant_ids: list[int] | Unset = UNSET,
     product_id: int | Unset = UNSET,
-    recipe_row_id: int | Unset = UNSET,
+    recipe_row_id: str | Unset = UNSET,
 ) -> dict[str, Any]:
 
     params: dict[str, Any] = {}
@@ -126,7 +126,7 @@ def sync_detailed(
     ingredient_variant_id: int | Unset = UNSET,
     product_variant_ids: list[int] | Unset = UNSET,
     product_id: int | Unset = UNSET,
-    recipe_row_id: int | Unset = UNSET,
+    recipe_row_id: str | Unset = UNSET,
 ) -> Response[ErrorResponse | RecipeListResponse]:
     """Get all recipes
 
@@ -142,7 +142,7 @@ def sync_detailed(
         ingredient_variant_id (int | Unset):
         product_variant_ids (list[int] | Unset):
         product_id (int | Unset):
-        recipe_row_id (int | Unset):
+        recipe_row_id (str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -185,7 +185,7 @@ def sync(
     ingredient_variant_id: int | Unset = UNSET,
     product_variant_ids: list[int] | Unset = UNSET,
     product_id: int | Unset = UNSET,
-    recipe_row_id: int | Unset = UNSET,
+    recipe_row_id: str | Unset = UNSET,
 ) -> ErrorResponse | RecipeListResponse | None:
     """Get all recipes
 
@@ -201,7 +201,7 @@ def sync(
         ingredient_variant_id (int | Unset):
         product_variant_ids (list[int] | Unset):
         product_id (int | Unset):
-        recipe_row_id (int | Unset):
+        recipe_row_id (str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -239,7 +239,7 @@ async def asyncio_detailed(
     ingredient_variant_id: int | Unset = UNSET,
     product_variant_ids: list[int] | Unset = UNSET,
     product_id: int | Unset = UNSET,
-    recipe_row_id: int | Unset = UNSET,
+    recipe_row_id: str | Unset = UNSET,
 ) -> Response[ErrorResponse | RecipeListResponse]:
     """Get all recipes
 
@@ -255,7 +255,7 @@ async def asyncio_detailed(
         ingredient_variant_id (int | Unset):
         product_variant_ids (list[int] | Unset):
         product_id (int | Unset):
-        recipe_row_id (int | Unset):
+        recipe_row_id (str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -296,7 +296,7 @@ async def asyncio(
     ingredient_variant_id: int | Unset = UNSET,
     product_variant_ids: list[int] | Unset = UNSET,
     product_id: int | Unset = UNSET,
-    recipe_row_id: int | Unset = UNSET,
+    recipe_row_id: str | Unset = UNSET,
 ) -> ErrorResponse | RecipeListResponse | None:
     """Get all recipes
 
@@ -312,7 +312,7 @@ async def asyncio(
         ingredient_variant_id (int | Unset):
         product_variant_ids (list[int] | Unset):
         product_id (int | Unset):
-        recipe_row_id (int | Unset):
+        recipe_row_id (str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
