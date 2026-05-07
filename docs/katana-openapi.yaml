@@ -3258,6 +3258,13 @@ components:
           description: Batch transactions for produced items
           items:
             $ref: "#/components/schemas/BatchTransaction"
+        serial_numbers:
+          type: array
+          description: Serial number IDs allocated to the produced units of this
+            manufacturing order. Required when the MO's finished-good variant is
+            serial-tracked; the count must equal `actual_quantity`.
+          items:
+            type: integer
       example:
         planned_quantity: 75
         additional_info: Increased quantity due to additional customer demand

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -40,6 +40,7 @@ class UpdateManufacturingOrderRequest:
     done_date: datetime.datetime | Unset = UNSET
     additional_info: str | Unset = UNSET
     batch_transactions: list[BatchTransaction] | Unset = UNSET
+    serial_numbers: list[int] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -78,6 +79,10 @@ class UpdateManufacturingOrderRequest:
                 batch_transactions_item = batch_transactions_item_data.to_dict()
                 batch_transactions.append(batch_transactions_item)
 
+        serial_numbers: list[int] | Unset = UNSET
+        if not isinstance(self.serial_numbers, Unset):
+            serial_numbers = self.serial_numbers
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
@@ -103,6 +108,8 @@ class UpdateManufacturingOrderRequest:
             field_dict["additional_info"] = additional_info
         if batch_transactions is not UNSET:
             field_dict["batch_transactions"] = batch_transactions
+        if serial_numbers is not UNSET:
+            field_dict["serial_numbers"] = serial_numbers
 
         return field_dict
 
@@ -162,6 +169,8 @@ class UpdateManufacturingOrderRequest:
 
                 batch_transactions.append(batch_transactions_item)
 
+        serial_numbers = cast(list[int], d.pop("serial_numbers", UNSET))
+
         update_manufacturing_order_request = cls(
             status=status,
             order_no=order_no,
@@ -174,6 +183,7 @@ class UpdateManufacturingOrderRequest:
             done_date=done_date,
             additional_info=additional_info,
             batch_transactions=batch_transactions,
+            serial_numbers=serial_numbers,
         )
 
         update_manufacturing_order_request.additional_properties = d
