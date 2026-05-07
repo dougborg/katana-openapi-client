@@ -78,13 +78,17 @@ from katana_public_api_client.models import (
     CreateServiceRequest,
     CreateServiceVariantRequest,
     CreateVariantRequest as APICreateVariantRequest,
+    CreateVariantRequestConfigAttributesItem as APICreateVariantConfigItem,
     Material,
     Product,
     Service,
     UpdateMaterialRequest as APIUpdateMaterialRequest,
+    UpdateMaterialRequestConfigsItem as APIUpdateMaterialConfigsItem,
     UpdateProductRequest as APIUpdateProductRequest,
+    UpdateProductRequestConfigsItem as APIUpdateProductConfigsItem,
     UpdateServiceRequest as APIUpdateServiceRequest,
     UpdateVariantRequest as APIUpdateVariantRequest,
+    UpdateVariantRequestConfigAttributesItem as APIUpdateVariantConfigItem,
     Variant,
 )
 
@@ -769,8 +773,53 @@ _PRODUCT_AND_MATERIAL_FIELDS = (
     "batch_tracked",
     "purchase_uom",
     "purchase_uom_conversion_rate",
+    "configs",
 )
 _SERVICE_ONLY_FIELDS = ("sales_price", "default_cost", "sku")
+
+
+class ItemConfigPatch(BaseModel):
+    """A configuration attribute (e.g. ``Size``, ``Teeth``) on a product or material.
+
+    ``configs`` declare the set of attribute *names* a product/material exposes
+    and the allowed *values* for each. Variants pin specific values via
+    ``config_attributes``. The Katana update endpoint replaces the full
+    ``configs`` list at apply time — sending one config entry deletes any
+    others not included, so always send the full set.
+
+    ``id`` is only honored for materials (Katana's product-update DTO ignores
+    it). When omitted, the API matches existing configs by ``name``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(..., description="Config attribute name (e.g. ``Size``).")
+    values: list[str] = Field(
+        ..., description='Allowed values for this attribute (e.g. ``["S", "M"]``).'
+    )
+    id: int | None = Field(
+        default=None,
+        description=(
+            "Existing config ID to match (MATERIAL only — products are matched "
+            "by ``name`` and ignore ``id``)."
+        ),
+    )
+
+
+class VariantConfigAttributePatch(BaseModel):
+    """A specific config-attribute value pinned to one variant.
+
+    ``config_name`` must match a config defined on the parent product/material;
+    ``config_value`` must be one of that config's allowed values. Sending an
+    unknown name or value yields a 422 from Katana.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    config_name: str = Field(
+        ..., description="Name of the parent's config (e.g. ``Size``)."
+    )
+    config_value: str = Field(..., description="Value for this variant (e.g. ``M``).")
 
 
 class ItemHeaderPatch(BaseModel):
@@ -798,6 +847,15 @@ class ItemHeaderPatch(BaseModel):
     batch_tracked: bool | None = Field(default=None)
     purchase_uom: str | None = Field(default=None)
     purchase_uom_conversion_rate: float | None = Field(default=None)
+    configs: list[ItemConfigPatch] | None = Field(
+        default=None,
+        description=(
+            "Replace the full set of configuration attributes (variant-defining "
+            "axes like ``Size`` / ``Color``). Katana overwrites the existing "
+            "list — omit a config and it gets deleted at apply time, so include "
+            "every config you want to keep. PRODUCT/MATERIAL only."
+        ),
+    )
 
     # Product only:
     is_producible: bool | None = Field(default=None)
@@ -833,6 +891,14 @@ class VariantAdd(BaseModel):
     registered_barcode: str | None = Field(default=None)
     lead_time: int | None = Field(default=None)
     minimum_order_quantity: float | None = Field(default=None)
+    config_attributes: list[VariantConfigAttributePatch] | None = Field(
+        default=None,
+        description=(
+            "Pin one value per parent config to define this variant. Each "
+            "``config_name`` must match a config on the parent and "
+            "``config_value`` must be one of that config's allowed values."
+        ),
+    )
 
 
 class VariantUpdate(BaseModel):
@@ -849,6 +915,13 @@ class VariantUpdate(BaseModel):
     registered_barcode: str | None = Field(default=None)
     lead_time: int | None = Field(default=None)
     minimum_order_quantity: float | None = Field(default=None)
+    config_attributes: list[VariantConfigAttributePatch] | None = Field(
+        default=None,
+        description=(
+            "Replace this variant's pinned config-attribute values. The new "
+            "list overwrites the existing one at apply time."
+        ),
+    )
 
 
 class ModifyItemRequest(ConfirmableRequest):
@@ -914,6 +987,60 @@ def _validate_header_for_type(patch: ItemHeaderPatch, item_type: ItemType) -> No
         )
 
 
+def _coerce_product_configs(
+    raw: list[dict[str, Any]],
+) -> list[APIUpdateProductConfigsItem]:
+    """Map ``ItemConfigPatch`` dicts to the product-update attrs class.
+
+    The product DTO accepts only ``name`` and ``values`` — any ``id`` is
+    dropped here so callers who include it (legitimately, for materials)
+    don't trip ``additionalProperties: false`` on the wire.
+    """
+    return [
+        APIUpdateProductConfigsItem(name=c["name"], values=list(c["values"]))
+        for c in raw
+    ]
+
+
+def _coerce_material_configs(
+    raw: list[dict[str, Any]],
+) -> list[APIUpdateMaterialConfigsItem]:
+    """Map ``ItemConfigPatch`` dicts to the material-update attrs class.
+
+    Materials accept the optional ``id`` for matching existing configs.
+    """
+    return [
+        APIUpdateMaterialConfigsItem(
+            name=c["name"],
+            values=list(c["values"]),
+            id=to_unset(c.get("id")),
+        )
+        for c in raw
+    ]
+
+
+def _coerce_create_variant_config_attributes(
+    raw: list[dict[str, Any]],
+) -> list[APICreateVariantConfigItem]:
+    return [
+        APICreateVariantConfigItem(
+            config_name=c["config_name"], config_value=c["config_value"]
+        )
+        for c in raw
+    ]
+
+
+def _coerce_update_variant_config_attributes(
+    raw: list[dict[str, Any]],
+) -> list[APIUpdateVariantConfigItem]:
+    return [
+        APIUpdateVariantConfigItem(
+            config_name=c["config_name"], config_value=c["config_value"]
+        )
+        for c in raw
+    ]
+
+
 def _build_update_header_request(
     patch: ItemHeaderPatch, item_type: ItemType, existing_item: Any | None = None
 ) -> Any:
@@ -926,13 +1053,16 @@ def _build_update_header_request(
     rename (see its docstring for the full workaround story).
     """
     request_cls = _TYPE_ENDPOINTS[item_type]["update_request"]
+    transforms: dict[str, Any] = {}
     if item_type == ItemType.PRODUCT:
         exclude = _SERVICE_ONLY_FIELDS
+        transforms["configs"] = _coerce_product_configs
     elif item_type == ItemType.MATERIAL:
         exclude = _PRODUCT_ONLY_FIELDS + _SERVICE_ONLY_FIELDS
+        transforms["configs"] = _coerce_material_configs
     else:
         exclude = _PRODUCT_ONLY_FIELDS + _PRODUCT_AND_MATERIAL_FIELDS
-    kwargs = unset_dict(patch, exclude=exclude)
+    kwargs = unset_dict(patch, exclude=exclude, transforms=transforms)
     kwargs["additional_info"] = patch_additional_info(
         patch.additional_info,
         existing_item.additional_info if existing_item is not None else UNSET,
@@ -954,11 +1084,20 @@ def _build_create_variant_request(
         extra["product_id"] = parent_id
     elif item_type == ItemType.MATERIAL:
         extra["material_id"] = parent_id
-    return APICreateVariantRequest(**unset_dict(variant), **extra)
+    kwargs = unset_dict(
+        variant,
+        transforms={"config_attributes": _coerce_create_variant_config_attributes},
+    )
+    return APICreateVariantRequest(**kwargs, **extra)
 
 
 def _build_update_variant_request(patch: VariantUpdate) -> APIUpdateVariantRequest:
-    return APIUpdateVariantRequest(**unset_dict(patch, exclude=("id",)))
+    kwargs = unset_dict(
+        patch,
+        exclude=("id",),
+        transforms={"config_attributes": _coerce_update_variant_config_attributes},
+    )
+    return APIUpdateVariantRequest(**kwargs)
 
 
 async def _fetch_item_for_diff(services: Any, item_id: int, item_type: ItemType) -> Any:
