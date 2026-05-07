@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       code: ${{ steps.filter.outputs.code }}
+      spec: ${{ steps.filter.outputs.spec }}
     steps:
       - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v4
@@ -36,6 +37,9 @@ jobs:
               - '!.github/agents/**'
               - '!.github/instructions/**'
               - '!.github/prompts/**'
+            spec:
+              - 'docs/katana-openapi.yaml'
+              - 'docs/upstream-specs/**'
 
   test:
     needs: changes
@@ -90,15 +94,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Skip for docs-only changes
-        if: needs.changes.outputs.code == 'false'
+        if: needs.changes.outputs.code == 'false' && needs.changes.outputs.spec == 'false'
         run: echo "Skipping quality checks for documentation-only changes"
 
       - name: Checkout code
-        if: needs.changes.outputs.code == 'true'
+        if: needs.changes.outputs.code == 'true' || needs.changes.outputs.spec == 'true'
         uses: actions/checkout@v6
 
       - name: Install uv
-        if: needs.changes.outputs.code == 'true'
+        if: needs.changes.outputs.code == 'true' || needs.changes.outputs.spec == 'true'
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
@@ -106,12 +110,16 @@ jobs:
           python-version: "3.14"
 
       - name: Install dependencies
-        if: needs.changes.outputs.code == 'true'
+        if: needs.changes.outputs.code == 'true' || needs.changes.outputs.spec == 'true'
         run: uv sync --all-extras
 
       - name: Validate OpenAPI specification
-        if: needs.changes.outputs.code == 'true'
+        if: needs.changes.outputs.code == 'true' || needs.changes.outputs.spec == 'true'
         run: uv run poe validate-openapi
+
+      - name: Validate inline spec examples
+        if: needs.changes.outputs.code == 'true' || needs.changes.outputs.spec == 'true'
+        run: uv run poe validate-examples
 
       - name: Build documentation
         if: needs.changes.outputs.code == 'true'

@@ -1,0 +1,92 @@
+name: Spec drift audit
+
+# Phase 3 of #573: closed-loop validation program. Catches drift between
+# ``docs/katana-openapi.yaml`` and Katana's published specs early — weekly
+# on a schedule + on every change to the spec or cached upstream specs.
+#
+# Job runs ``audit-spec`` and ``validate-response-examples`` against the
+# checked-in cached specs (``docs/upstream-specs/``). It does *not*
+# re-fetch upstream — that's an opt-in manual step (``poe
+# refresh-upstream-spec``) so the cached snapshots stay reviewable. The
+# weekly cron exists to surface drift even when nobody touches the spec
+# directly (e.g., upstream ships a new field that we'd otherwise miss).
+#
+# Findings are surfaced via the workflow log (printed to the summary)
+# and an uploaded artifact. Failures don't block PRs by default — the
+# audit is informational. Promoting to ``--strict`` (block on drift) is
+# Phase 4 (#425).
+
+on:
+  schedule:
+    - cron: '0 14 * * 1'  # Mondays at 14:00 UTC
+  push:
+    branches: [main]
+    paths:
+      - 'docs/katana-openapi.yaml'
+      - 'docs/upstream-specs/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/katana-openapi.yaml'
+      - 'docs/upstream-specs/**'
+  workflow_dispatch:  # manual trigger
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Audit spec drift (request-side)
+        continue-on-error: true
+        run: uv run poe audit-spec | tee audit-spec-report.md
+
+      - name: Validate response examples (response-side)
+        continue-on-error: true
+        run: uv run poe validate-response-examples | tee validate-response-examples-report.md
+
+      - name: Validate inline examples
+        continue-on-error: true
+        run: uv run poe validate-examples | tee validate-examples-report.md
+
+      - name: Upload reports as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec-drift-reports
+          path: |
+            audit-spec-report.md
+            validate-response-examples-report.md
+            validate-examples-report.md
+          retention-days: 30
+
+      - name: Render summary
+        run: |
+          {
+            echo "# Spec Drift Audit"
+            echo
+            echo "## Request-side drift (\`audit-spec\`)"
+            echo
+            cat audit-spec-report.md
+            echo
+            echo "## Response-side drift (\`validate-response-examples\`)"
+            echo
+            cat validate-response-examples-report.md
+            echo
+            echo "## Inline-example consistency (\`validate-examples\`)"
+            echo
+            cat validate-examples-report.md
+          } >> "$GITHUB_STEP_SUMMARY"

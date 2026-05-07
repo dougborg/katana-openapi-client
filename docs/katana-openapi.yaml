@@ -3608,7 +3608,13 @@ components:
       example:
         id: 3801
         status: IN_PROGRESS
-        type: Production
+        # ``type`` is illustrative — any valid ``ManufacturingOperationType``
+        # value works for an example. The original fixture used
+        # ``Production``, which doesn't match the local enum
+        # (``process | setup | perUnit | fixed``). #583 tracks the open
+        # question of whether the enum or the fixture is wrong against
+        # the live API.
+        type: process
         rank: 1
         manufacturing_order_id: 3001
         operation_id: 401
