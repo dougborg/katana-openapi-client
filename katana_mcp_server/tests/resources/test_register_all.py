@@ -8,12 +8,17 @@ from katana_mcp.resources import register_all_resources
 
 
 def test_register_all_resources_registers_exactly_the_expected_uris():
-    """``register_all_resources`` must delegate to inventory + reference +
-    help so that all 10 resource URIs end up registered on the server,
-    and **only** those URIs. Asserts equality (not subset) so a future
-    bug that re-registers a deprecated resource (e.g. one of the order
-    resources removed during the tools-vs-resources split) fails loudly
-    instead of slipping through.
+    """``register_all_resources`` must delegate to inventory + help so that
+    only those URIs end up registered on the server. Asserts equality (not
+    subset) so a future bug that re-registers a deprecated resource fails
+    loudly instead of slipping through.
+
+    The five reference resources (``katana://suppliers`` /
+    ``katana://locations`` / ``katana://tax-rates`` / ``katana://operators``
+    / ``katana://additional-costs``) were removed because they dumped every
+    cached row as a single-line JSON blob, flooding agent context. Their
+    replacements are parameterized search tools (``list_suppliers(query=...)``
+    etc.) registered via ``tools/foundation/reference.py``.
     """
     mcp = MagicMock()
     mcp.resource = MagicMock(return_value=lambda fn: fn)
@@ -22,12 +27,6 @@ def test_register_all_resources_registers_exactly_the_expected_uris():
     expected = {
         # inventory (1)
         "katana://inventory/items",
-        # reference (5)
-        "katana://suppliers",
-        "katana://locations",
-        "katana://tax-rates",
-        "katana://additional-costs",
-        "katana://operators",
         # help (4)
         "katana://help",
         "katana://help/workflows",
@@ -39,3 +38,26 @@ def test_register_all_resources_registers_exactly_the_expected_uris():
         f"  Missing: {sorted(expected - registered)}\n"
         f"  Unexpected: {sorted(registered - expected)}"
     )
+
+
+def test_dropped_reference_resources_are_not_registered():
+    """The five bulk-list reference resources must stay deregistered.
+
+    Agents rely on ``list_suppliers(query=...)`` etc. for filtered access.
+    If a resource gets reintroduced (e.g., a careless revert), this test
+    fails before the regression ships.
+    """
+    mcp = MagicMock()
+    mcp.resource = MagicMock(return_value=lambda fn: fn)
+    register_all_resources(mcp)
+    registered = {call.kwargs["uri"] for call in mcp.resource.call_args_list}
+    for dropped in (
+        "katana://suppliers",
+        "katana://locations",
+        "katana://tax-rates",
+        "katana://operators",
+        "katana://additional-costs",
+    ):
+        assert dropped not in registered, (
+            f"{dropped} reappeared — should have been replaced by parameterized tools."
+        )
