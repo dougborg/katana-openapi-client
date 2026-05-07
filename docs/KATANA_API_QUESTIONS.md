@@ -365,6 +365,109 @@ Katana fixes the asymmetry, the echo becomes a no-op write.
 
 ______________________________________________________________________
 
+## 7. Stock Transfer & Stock Adjustment — Row Immutability + DELETE Behavior
+
+### 7.1 Stock-transfer / stock-adjustment rows are immutable post-creation
+
+**Status: CONFIRMED via 3-source spec agreement on 2026-05-07**
+
+`PATCH /stock_transfers/{id}` and `PATCH /stock_adjustments/{id}` both accept *header
+fields only* — neither schema includes a `stock_transfer_rows` / `stock_adjustment_rows`
+property, and both declare `additionalProperties: false`. There are also no row-level
+endpoints (`/stock_transfer_rows/{id}`, `/stock_adjustment_rows/{id}`) on any source we
+have. Confirmed across:
+
+- `docs/katana-openapi.yaml` (local)
+- `docs/upstream-specs/live-gateway.yaml` (Katana's API gateway)
+- `docs/upstream-specs/readme-portal.yaml` (Katana's public portal)
+
+**Practical implication:** Once a stock transfer or stock adjustment is created, its
+variant + quantity rows can't be edited. The only API-sanctioned correction paths are:
+
+1. Post compensating `create_stock_adjustment` call(s) that reverse or amend the prior
+   inventory delta. The shape depends on which entity got it wrong:
+
+   - **Stock adjustment** is already location-scoped, so a single compensating
+     adjustment at the same `location_id` undoes the original delta.
+   - **Stock transfer** moves inventory between two locations, so reversing it requires
+     **two** compensating adjustments — one at the source location to restore the
+     outflow, one at the target location to remove the inflow. (Both adjustments should
+     share matching `reason` text so the audit trail traces back to the same correction
+     event.)
+
+   The original record stays as the audit trail of what was *intended*; the compensating
+   adjustment(s) record what was *fixed*. This is the path the MCP `correct_*` family
+   deliberately does **not** cover for ST/SA — the reasoning is captured in #533 and the
+   (in-flight) help-resource update tracked under #602.
+
+1. `DELETE` the record and re-create with corrected rows — see open question §7.2.
+
+**Why this is asymmetric with PO/SO/MO:** Purchase orders, sales orders, and
+manufacturing orders all expose row-level PATCH endpoints (`/purchase_order_rows/{id}`,
+`/sales_order_rows/{id}`, `/manufacturing_order_recipe_rows/{id}`), which is what makes
+the reopen → modify → restore pattern work for them (`correct_manufacturing_order` /
+`correct_sales_order` / `correct_purchase_order` shipped in PR #536, #546, #595). Stock
+transfer and stock adjustment have no equivalent surface, so the same pattern can't
+apply.
+
+**Asks:**
+
+1. Confirm whether row-level CRUD is intentionally absent from the API surface for
+   stock_transfer and stock_adjustment, or if it's an oversight.
+1. If a future DTO change will add `stock_transfer_rows` / `stock_adjustment_rows` to
+   the PATCH body (or expose row-level endpoints), please flag it — our spec + tools
+   would track that change.
+
+### 7.2 DELETE behavior on already-applied stock_transfer / stock_adjustment is unverified
+
+**Status: OPEN — needs live-API verification**
+
+Both `DELETE /stock_transfers/{id}` and `DELETE /stock_adjustments/{id}` are documented
+on every spec source, but the **response code disagrees across sources**:
+
+- `docs/katana-openapi.yaml` (local) → `204`
+- `docs/upstream-specs/readme-portal.yaml` (Katana's public portal) → `204`
+- `docs/upstream-specs/live-gateway.yaml` (Katana's API gateway) → `200`
+
+The two upstream sources disagree, so we don't actually know what the live API returns
+on success. Worth resolving as part of the live-API check below — most likely `204`
+(matching the public portal and what our spec already declares), with the gateway spec
+out of sync, but worth confirming. (If it's `200`, the spec needs to declare a body
+schema for the DELETE response, since `204` means no content.)
+
+What's also unclear is the inventory-effect side of the delete:
+
+1. **Stock transfers in `received` status** have already moved inventory from source →
+   target location. Does DELETE reverse the inventory move, leave it in place, or
+   422-refuse?
+1. **Stock adjustments** apply their inventory delta on creation. Does DELETE reverse
+   the delta?
+1. **Audit-trail preservation:** Even if DELETE 204s, do the historical
+   `inventory_movements` rows associated with the deleted record stay queryable, or are
+   they removed too?
+
+**Why it matters:** A `correct_stock_transfer` or `correct_stock_adjustment` tool
+implemented via "delete + recreate with corrected rows" depends on these behaviors.
+Without confirmation, we don't know if the workaround is safe to expose or whether it'd
+silently corrupt inventory. If reversal is automatic, delete-and-recreate becomes a
+viable correction pattern; if not, the compensating-adjustment pattern (§7.1) remains
+the only safe option.
+
+**Asks:**
+
+1. Confirm the canonical DELETE success status code (`200` or `204`) so the spec sources
+   can be reconciled.
+1. Document the DELETE side-effects on each entity per status (where applicable):
+   - Does DELETE on a `received` stock_transfer reverse the inventory move?
+   - Does DELETE on any stock_adjustment reverse the inventory delta?
+   - Are historical `inventory_movements` rows preserved or removed when their parent is
+     deleted?
+1. If reversal is *not* automatic, document that explicitly so we can warn operators in
+   the MCP wrapper before they delete a record assuming the inventory effect will roll
+   back.
+
+______________________________________________________________________
+
 ## Resolved Issues (FYI)
 
 Issues discovered and fixed during P1-P4 alignment, documented here for reference:
