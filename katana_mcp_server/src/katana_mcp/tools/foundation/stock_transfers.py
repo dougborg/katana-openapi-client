@@ -161,9 +161,18 @@ class CreateStockTransferRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    source_location_id: int = Field(..., description="Source location ID")
+    source_location_id: int = Field(
+        ...,
+        description=(
+            "Source location ID. Look up via `list_locations` or `katana://locations`."
+        ),
+    )
     destination_location_id: int = Field(
-        ..., description="Destination location ID (target_location_id in API terms)"
+        ...,
+        description=(
+            "Destination location ID (target_location_id in API terms). "
+            "Look up via `list_locations` or `katana://locations`."
+        ),
     )
     expected_arrival_date: datetime = Field(
         ..., description="Expected arrival date at the destination location"
@@ -490,11 +499,18 @@ class ListStockTransfersRequest(BaseModel):
         description="Filter by transfer status (DRAFT, IN_TRANSIT, RECEIVED)",
     )
     source_location_id: int | None = Field(
-        default=None, description="Filter by source location ID"
+        default=None,
+        description=(
+            "Filter by source location ID. "
+            "Look up via `list_locations` or `katana://locations`."
+        ),
     )
     destination_location_id: int | None = Field(
         default=None,
-        description="Filter by destination location ID (target_location_id).",
+        description=(
+            "Filter by destination location ID (target_location_id). "
+            "Look up via `list_locations` or `katana://locations`."
+        ),
     )
     stock_transfer_number: str | None = Field(
         default=None, description="Filter by exact stock transfer number"

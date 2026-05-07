@@ -279,6 +279,11 @@ Browse cached reference data:
   handling) for modify_purchase_order add_additional_costs
 - katana://help — detailed workflow guides and tool reference
 
+Each reference resource also has a tool wrapper (`list_locations`,
+`list_suppliers`, `list_tax_rates`, `list_operators`,
+`list_additional_costs`) returning identical data — use whichever surface
+your harness prefers.
+
 For transactional data (orders, stock movements), use the corresponding tools.
 """,
 )

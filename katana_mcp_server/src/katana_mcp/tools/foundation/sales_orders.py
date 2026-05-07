@@ -139,9 +139,19 @@ class SalesOrderItem(BaseModel):
         default=None,
         description="Override price per unit (uses default if not specified)",
     )
-    tax_rate_id: int | None = Field(default=None, description="Tax rate ID (optional)")
+    tax_rate_id: int | None = Field(
+        default=None,
+        description=(
+            "Tax rate ID (optional). "
+            "Look up via `list_tax_rates` or `katana://tax-rates`."
+        ),
+    )
     location_id: int | None = Field(
-        default=None, description="Location to pick from (optional)"
+        default=None,
+        description=(
+            "Location to pick from (optional). "
+            "Look up via `list_locations` or `katana://locations`."
+        ),
     )
     total_discount: float | None = Field(
         default=None, description="Discount for this line item (optional)"
@@ -179,7 +189,11 @@ class CreateSalesOrderRequest(BaseModel):
     order_number: str = Field(..., description="Unique sales order number")
     items: list[SalesOrderItem] = Field(..., description="Line items", min_length=1)
     location_id: int | None = Field(
-        default=None, description="Primary fulfillment location ID (optional)"
+        default=None,
+        description=(
+            "Primary fulfillment location ID (optional). "
+            "Look up via `list_locations` or `katana://locations`."
+        ),
     )
     delivery_date: datetime | None = Field(
         default=None, description="Requested delivery date (optional)"
@@ -457,7 +471,13 @@ class ListSalesOrdersRequest(BaseModel):
         ),
     )
     customer_id: int | None = Field(default=None, description="Filter by customer ID")
-    location_id: int | None = Field(default=None, description="Filter by location ID")
+    location_id: int | None = Field(
+        default=None,
+        description=(
+            "Filter by location ID. "
+            "Look up via `list_locations` or `katana://locations`."
+        ),
+    )
     status: str | None = Field(
         default=None, description="Filter by sales order status (e.g. NOT_SHIPPED)"
     )
@@ -1486,7 +1506,12 @@ class SOHeaderPatch(BaseModel):
 
     order_no: str | None = Field(default=None, description="New SO number")
     customer_id: int | None = Field(default=None, description="New customer ID")
-    location_id: int | None = Field(default=None, description="New location ID")
+    location_id: int | None = Field(
+        default=None,
+        description=(
+            "New location ID. Look up via `list_locations` or `katana://locations`."
+        ),
+    )
     status: SalesOrderStatusLiteral | None = Field(
         default=None,
         description="New status — NOT_SHIPPED / PENDING / PACKED / DELIVERED",
@@ -1521,8 +1546,18 @@ class SORowAdd(BaseModel):
     variant_id: int = Field(..., description="Variant ID")
     quantity: float = Field(..., description="Quantity", gt=0)
     price_per_unit: float | None = Field(default=None, description="Unit price")
-    tax_rate_id: int | None = Field(default=None, description="Tax rate ID")
-    location_id: int | None = Field(default=None, description="Location ID")
+    tax_rate_id: int | None = Field(
+        default=None,
+        description=(
+            "Tax rate ID. Look up via `list_tax_rates` or `katana://tax-rates`."
+        ),
+    )
+    location_id: int | None = Field(
+        default=None,
+        description=(
+            "Location ID. Look up via `list_locations` or `katana://locations`."
+        ),
+    )
     total_discount: float | None = Field(default=None, description="Total discount")
 
 
@@ -1535,8 +1570,18 @@ class SORowUpdate(BaseModel):
     variant_id: int | None = Field(default=None, description="New variant ID")
     quantity: float | None = Field(default=None, description="New quantity", gt=0)
     price_per_unit: float | None = Field(default=None, description="New unit price")
-    tax_rate_id: int | None = Field(default=None, description="New tax rate ID")
-    location_id: int | None = Field(default=None, description="New location ID")
+    tax_rate_id: int | None = Field(
+        default=None,
+        description=(
+            "New tax rate ID. Look up via `list_tax_rates` or `katana://tax-rates`."
+        ),
+    )
+    location_id: int | None = Field(
+        default=None,
+        description=(
+            "New location ID. Look up via `list_locations` or `katana://locations`."
+        ),
+    )
     total_discount: float | None = Field(default=None, description="New discount")
 
 
@@ -1613,7 +1658,13 @@ class SOFulfillmentUpdate(BaseModel):
     id: int = Field(..., description="Fulfillment ID to update")
     status: FulfillmentStatusLiteral | None = Field(default=None)
     picked_date: datetime | None = Field(default=None)
-    packer_id: int | None = Field(default=None, description="New packer (operator)")
+    packer_id: int | None = Field(
+        default=None,
+        description=(
+            "New packer (operator). "
+            "Look up via `list_operators` or `katana://operators`."
+        ),
+    )
     conversion_rate: float | None = Field(default=None)
     conversion_date: datetime | None = Field(default=None)
     tracking_number: str | None = Field(default=None)
@@ -1629,7 +1680,12 @@ class SOShippingFeeAdd(BaseModel):
 
     amount: str = Field(..., description="Fee amount (decimal string)")
     description: str | None = Field(default=None)
-    tax_rate_id: int | None = Field(default=None)
+    tax_rate_id: int | None = Field(
+        default=None,
+        description=(
+            "Tax rate ID. Look up via `list_tax_rates` or `katana://tax-rates`."
+        ),
+    )
 
 
 class SOShippingFeeUpdate(BaseModel):
@@ -1645,7 +1701,12 @@ class SOShippingFeeUpdate(BaseModel):
     id: int = Field(..., description="Shipping fee ID to update")
     amount: str = Field(..., description="Fee amount (required by API)")
     description: str | None = Field(default=None)
-    tax_rate_id: int | None = Field(default=None)
+    tax_rate_id: int | None = Field(
+        default=None,
+        description=(
+            "Tax rate ID. Look up via `list_tax_rates` or `katana://tax-rates`."
+        ),
+    )
 
 
 class ModifySalesOrderRequest(ConfirmableRequest):

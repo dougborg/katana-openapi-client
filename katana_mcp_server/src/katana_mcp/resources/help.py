@@ -75,6 +75,14 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **modify_stock_transfer** - Unified modify: header body fields and/or status transition in one call (preview/apply). Hides Katana's two-endpoint split.
 - **delete_stock_transfer** - Delete a transfer
 
+### Reference Data
+- **list_locations** - List warehouses and facilities (id, name, address, primary flag). Use for `location_id` lookups on orders and inventory queries.
+- **list_suppliers** - List suppliers (id, name, contact info, currency). Use for `supplier_id` / `default_supplier_id` on POs and materials.
+- **list_tax_rates** - List configured tax rates (id, rate, defaults). Use for `tax_rate_id` on order line items.
+- **list_operators** - List manufacturing operators (id, name). Use for `operator_id` / `packer_id` on MO operations and SO fulfillments.
+- **list_additional_costs** - List the additional-cost catalog (freight, duties, handling). Use for `additional_cost_id` on `modify_purchase_order`.
+- (Equivalent to the `katana://locations` / `katana://suppliers` / `katana://tax-rates` / `katana://operators` / `katana://additional-costs` resources — same cache, same data.)
+
 ### Cache Administration
 - **rebuild_cache** - Force-rebuild the local typed cache for one or more transactional entity types (PO, SO, MO, stock adjustment, stock transfer). Truncates the cache table(s), clears the sync watermark, and re-fetches from Katana. Use when the cache has phantom rows (entities present locally but missing from Katana). Destructive; preview/apply.
 
@@ -1521,6 +1529,78 @@ Delete a stock transfer. Destructive — the transfer record is removed.
 **Parameters:**
 - `id` (required): Stock transfer ID
 - `preview` (optional, default true): true=preview, false=delete
+
+---
+
+## Reference Data Tools
+
+These tools surface the same cache-backed reference data as the
+`katana://locations` / `katana://suppliers` / `katana://tax-rates` /
+`katana://operators` / `katana://additional-costs` resources, but as
+`tools/list` entries so LLM agents discover them through the surface
+they reach for first. Use whichever surface your harness prefers — the
+underlying cache reads are identical.
+
+### list_locations
+List all warehouses and facilities. Returns each location's id, name,
+address, and primary flag. Use the `id` value when creating orders or
+filtering inventory queries.
+
+**Parameters:** _(none)_
+
+**Returns:** `{generated_at, summary: {total_locations}, locations: [{id,
+name, address, city, country, is_primary}], next_actions: [...]}`.
+
+---
+
+### list_suppliers
+List all suppliers. Returns each supplier's id, name, contact info, and
+currency. Use the `id` value when creating purchase orders or setting a
+default supplier on a material.
+
+**Parameters:** _(none)_
+
+**Returns:** `{generated_at, summary: {total_suppliers}, suppliers: [{id,
+name, email, phone, currency, comment}], next_actions: [...]}`.
+
+---
+
+### list_tax_rates
+List all configured tax rates. Returns each tax rate's id, name, rate,
+display name, and default-for-sales / default-for-purchases flags. Use
+the `id` value when creating sales orders or purchase-order line items
+with explicit tax assignments.
+
+**Parameters:** _(none)_
+
+**Returns:** `{generated_at, summary: {total_tax_rates}, tax_rates: [{id,
+name, rate, display_name, is_default_sales, is_default_purchases}],
+next_actions: [...]}`.
+
+---
+
+### list_operators
+List all manufacturing operators. Returns each operator's id and name.
+Use the `id` value when assigning operators to manufacturing-order
+operation rows or naming the packer on a sales order.
+
+**Parameters:** _(none)_
+
+**Returns:** `{generated_at, summary: {total_operators}, operators: [{id,
+name}], next_actions: [...]}`.
+
+---
+
+### list_additional_costs
+List the additional-cost catalog (freight, duties, handling fees, etc.).
+Returns each entry's id and name. Use the `id` value when calling
+`modify_purchase_order` with `add_additional_costs=[...]`. Pair with
+`list_tax_rates` for the matching `tax_rate_id`.
+
+**Parameters:** _(none)_
+
+**Returns:** `{generated_at, summary: {total_additional_costs},
+additional_costs: [{id, name}], next_actions: [...]}`.
 
 ---
 
