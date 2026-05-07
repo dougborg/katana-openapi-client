@@ -51,6 +51,12 @@ dependencies = [
   "email-validator>=2.2.0",  # Required for Pydantic EmailStr fields
   "typing-extensions>=4.13.0",
   "httpx-retries>=0.4.5",
+  # Token-bucket rate limiter underlying the proactive RateLimitTransport
+  # (see #590). Wraps a leaky/token bucket for honoring Katana's 60-req/min
+  # API limit; we layer header-aware adaptation (X-Ratelimit-Remaining/Reset)
+  # on top in katana_client.py rather than using httpx-limiter, since we
+  # need full control over the response-observation hook.
+  "pyrate-limiter>=3.0.0",
   # SQLModel unifies pydantic validation with SQLAlchemy ORM — used as the
   # base class for all generated domain models so a single class can serve as
   # both API response shape and cache table definition (see #342).
@@ -77,6 +83,11 @@ dev = [
   "pytest-mock>=3.14.0",
   "pytest-timeout>=2.4.0",
   "pytest-xdist>=3.6.1",
+  # Asyncio fake-clock for integration tests that exercise time-dependent
+  # transports (rate limiter reset gate, RetryTransport's Retry-After wait).
+  # Lets ``asyncio.sleep(5)`` and ``loop.call_later(5, ...)`` fire instantly
+  # in real time while the loop perceives 5 seconds elapsed.
+  "looptime>=0.7",
   "tox>=4.25.0",
   # Code quality and linting
   "ruff>=0.14.0",
@@ -221,6 +232,7 @@ markers = [
   "asyncio: marks tests as async tests",
   "docs: marks tests as documentation tests (slow, only run in CI docs jobs)",
   "schema_validation: marks tests that validate OpenAPI schema quality (run with pytest-xdist disabled)",
+  "looptime: marks tests that use the looptime fake-clock asyncio loop (the looptime plugin auto-registers this marker; explicit registration here keeps the suite robust under --strict-markers if plugin autoload is ever disabled)",
 ]
 
 [tool.coverage.run]

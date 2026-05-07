@@ -6,11 +6,13 @@ rate limiting, error handling, and pagination for all API calls without any
 decorators or wrapper methods needed.
 """
 
+import asyncio
 import contextlib
 import json
 import logging
 import netrc
 import os
+import time
 from collections.abc import Awaitable, Callable
 from http import HTTPStatus
 from pathlib import Path
@@ -19,8 +21,9 @@ from urllib.parse import parse_qs, quote, urlencode, urlparse, urlunparse
 
 import httpx
 from dotenv import load_dotenv
-from httpx import AsyncHTTPTransport
+from httpx import AsyncBaseTransport, AsyncHTTPTransport
 from httpx_retries import Retry, RetryTransport
+from pyrate_limiter import Duration, Limiter, Rate
 
 from ._logging import Logger
 from .api_wrapper import ApiNamespace
@@ -244,17 +247,20 @@ def _extract_nested_error(
     return name, message, status_code, details
 
 
-class ErrorLoggingTransport(AsyncHTTPTransport):
+class ErrorLoggingTransport(AsyncBaseTransport):
     """
     Transport layer that adds detailed error logging for 4xx client errors.
 
-    This transport wraps another AsyncHTTPTransport and intercepts responses
-    to log detailed error information using the generated error models.
+    This transport wraps another transport and intercepts responses to log
+    detailed error information using the generated error models. Inherits
+    from ``AsyncBaseTransport`` (not ``AsyncHTTPTransport``) so we don't
+    spin up an unused connection pool inside this layer; all I/O goes
+    through the wrapped transport.
     """
 
     def __init__(
         self,
-        wrapped_transport: AsyncHTTPTransport | None = None,
+        wrapped_transport: AsyncBaseTransport | None = None,
         logger: Logger | None = None,
         **kwargs: Any,
     ):
@@ -266,7 +272,6 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
             logger: Logger instance for capturing error details. If None, creates a default logger.
             **kwargs: Additional arguments passed to AsyncHTTPTransport if wrapped_transport is None.
         """
-        super().__init__()
         if wrapped_transport is None:
             wrapped_transport = AsyncHTTPTransport(**kwargs)
         self._wrapped_transport = wrapped_transport
@@ -281,6 +286,10 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
             await self._log_client_error(response, request)
 
         return response
+
+    async def aclose(self) -> None:
+        """Propagate close down the wrapped chain so inner transports release resources."""
+        await self._wrapped_transport.aclose()
 
     async def _log_client_error(
         self, response: httpx.Response, request: httpx.Request
@@ -608,12 +617,14 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
         self.logger.error(log_message)
 
 
-class PaginationTransport(AsyncHTTPTransport):
+class PaginationTransport(AsyncBaseTransport):
     """
     Transport layer that adds automatic pagination for GET requests.
 
     This transport wraps another transport and automatically collects all pages
-    for GET requests by default.
+    for GET requests by default. Inherits from ``AsyncBaseTransport`` (not
+    ``AsyncHTTPTransport``) so we don't spin up an unused connection pool
+    inside this layer; all I/O goes through the wrapped transport.
 
     Auto-pagination behavior:
     - ON by default for GET requests with NO page parameter in URL
@@ -631,7 +642,7 @@ class PaginationTransport(AsyncHTTPTransport):
 
     def __init__(
         self,
-        wrapped_transport: AsyncHTTPTransport | None = None,
+        wrapped_transport: AsyncBaseTransport | None = None,
         max_pages: int = 100,
         logger: Logger | None = None,
         **kwargs: Any,
@@ -645,16 +656,16 @@ class PaginationTransport(AsyncHTTPTransport):
             logger: Logger instance for capturing pagination operations. If None, creates a default logger.
             **kwargs: Additional arguments passed to AsyncHTTPTransport if wrapped_transport is None.
         """
-        # If no wrapped transport provided, create a base one
         if wrapped_transport is None:
             wrapped_transport = AsyncHTTPTransport(**kwargs)
-            super().__init__()
-        else:
-            super().__init__()
 
         self._wrapped_transport = wrapped_transport
         self.max_pages = max_pages
         self.logger: Logger = logger or logging.getLogger(__name__)
+
+    async def aclose(self) -> None:
+        """Propagate close down the wrapped chain so inner transports release resources."""
+        await self._wrapped_transport.aclose()
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
         """Handle request with automatic pagination for GET requests.
@@ -1071,25 +1082,371 @@ class PaginationTransport(AsyncHTTPTransport):
         return pagination_info if pagination_info else None
 
 
+# Bucket identifier for pyrate's per-name limiter. We have a single global
+# budget, so all requests share one bucket name.
+_RATE_LIMIT_BUCKET_NAME = "katana"
+
+# Spec-documented response headers we observe — see
+# ``docs/katana-openapi.yaml`` (``X-Pagination`` siblings under ``components/headers``).
+_HEADER_REMAINING = "X-Ratelimit-Remaining"
+_HEADER_RESET = "X-Ratelimit-Reset"
+
+
+class RateLimitTransport(AsyncBaseTransport):
+    """Proactive rate-limiter that respects Katana's X-Ratelimit-* headers.
+
+    Wraps another transport and gates each request through a pyrate-limiter
+    token bucket sized for Katana's documented rate limit (60 req/min by
+    default, ``X-Ratelimit-Limit`` per the spec). After every response the
+    transport reads ``X-Ratelimit-Remaining`` / ``X-Ratelimit-Reset`` and
+    adapts:
+
+    - **Sync down**: when the server reports fewer remaining tokens than our
+      local estimate (e.g., another client is sharing the API key), drain
+      the local bucket to match. We never sync *up* — the server is
+      authoritative on the lower bound only.
+    - **Reset gate**: when remaining hits 0, an ``asyncio.Event`` blocks all
+      future requests until ``X-Ratelimit-Reset`` elapses. This prevents
+      pyrate's bucket from racing ahead of Katana's window.
+
+    Stack placement is innermost (above the base ``AsyncHTTPTransport``):
+    every actual HTTP request — including retries from ``RetryTransport``
+    above and per-page paginated fetches from ``PaginationTransport`` —
+    consumes one token, matching how Katana counts requests server-side.
+
+    ``Retry-After`` waiting on 429 responses stays in ``RetryTransport``
+    (urllib3.Retry honors the header via ``respect_retry_after_header=True``).
+    Sleeping in this transport on 429 would double-delay; we only update the
+    reset gate from headers and let retry handle the actual wait.
+
+    Out-of-order responses are handled correctly: the sync-down logic only
+    fires when the response's ``remaining`` is *below* the current estimate,
+    so a delayed earlier response with a higher ``remaining`` value won't
+    overwrite a fresher (lower) estimate.
+
+    Inherits from ``AsyncBaseTransport`` (not ``AsyncHTTPTransport``) because
+    we delegate every request to ``_wrapped_transport`` — there's no need to
+    spin up an unused connection pool inside this layer.
+    """
+
+    def __init__(
+        self,
+        wrapped_transport: AsyncBaseTransport | None = None,
+        *,
+        requests_per_minute: int = 60,
+        logger: Logger | None = None,
+        **kwargs: Any,
+    ) -> None:
+        """Initialize the rate-limit transport.
+
+        Args:
+            wrapped_transport: The transport to wrap. If None, creates a new
+                AsyncHTTPTransport.
+            requests_per_minute: Steady-state request budget. Must be ``> 0``;
+                callers wanting to disable the limiter entirely should omit
+                this transport from the chain rather than passing 0.
+            logger: Logger instance for capturing state changes. If None,
+                creates a default logger.
+            **kwargs: Additional arguments passed to AsyncHTTPTransport if
+                wrapped_transport is None.
+        """
+        if requests_per_minute <= 0:
+            msg = (
+                f"requests_per_minute must be positive, got {requests_per_minute}; "
+                "to disable rate limiting, omit this transport from the chain"
+            )
+            raise ValueError(msg)
+        if wrapped_transport is None:
+            wrapped_transport = AsyncHTTPTransport(**kwargs)
+        self._wrapped_transport = wrapped_transport
+        self._rpm = requests_per_minute
+        self._limiter = Limiter(
+            Rate(requests_per_minute, Duration.MINUTE), buffer_ms=50
+        )
+        self._reset_gate = asyncio.Event()
+        self._reset_gate.set()  # initially open — no active reset window
+        self._reset_handle: asyncio.TimerHandle | None = None
+        # Epoch-ms deadline of the active gate (or ``None`` when the gate is
+        # open). Tracks the *latest* observed reset so out-of-order responses
+        # with an earlier deadline can't shorten the gate, and so a timer
+        # callback whose deadline has been superseded can no-op.
+        self._reset_until_epoch_ms: int | None = None
+        self._release_task: asyncio.Task[None] | None = None
+        self._lock = asyncio.Lock()
+        self._estimated_remaining = requests_per_minute
+        self.logger: Logger = logger or logging.getLogger(__name__)
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        """Acquire a token, forward the request, and observe rate-limit headers."""
+        # Block on any active reset window (set when remaining hit 0 on a
+        # prior response). Acts as the override on top of pyrate's bucket
+        # so we don't fire the burst-budget into a window the server has
+        # already declared exhausted.
+        await self._reset_gate.wait()
+
+        await self._limiter.try_acquire_async(name=_RATE_LIMIT_BUCKET_NAME)
+
+        # Re-check the gate after acquiring. While this request was queued
+        # on pyrate's bucket, a concurrent response observer may have seen
+        # ``X-Ratelimit-Remaining: 0`` and engaged the gate; without the
+        # second wait, we'd slip past it into the now-exhausted window.
+        # Loop until the gate is stably open through both checks: an even
+        # later engage during this wait should re-block us. The acquired
+        # token is held across the wait — pyrate refills its bucket over
+        # the window naturally, so this is not a wasted budget.
+        while not self._reset_gate.is_set():
+            await self._reset_gate.wait()
+
+        # Optimistically debit our local estimate to match what the server
+        # is about to see. Without this, the server's ``X-Ratelimit-Remaining``
+        # response would always be one lower than our untouched estimate,
+        # causing ``_observe_response`` to drain a redundant token on every
+        # request and effectively halve our usable budget. The lock keeps
+        # the debit and any concurrent sync-down consistent.
+        async with self._lock:
+            self._estimated_remaining = max(0, self._estimated_remaining - 1)
+
+        response = await self._wrapped_transport.handle_async_request(request)
+
+        await self._observe_response(response)
+        return response
+
+    async def _observe_response(self, response: httpx.Response) -> None:
+        """Parse rate-limit headers and update local state.
+
+        Defensive: many endpoints (auth flows, redirects, error pages) omit
+        these headers — silent no-op when absent. Only successful API
+        responses on the rate-limited paths populate them.
+        """
+        remaining_str = response.headers.get(_HEADER_REMAINING)
+        reset_str = response.headers.get(_HEADER_RESET)
+        if remaining_str is None or reset_str is None:
+            return
+
+        try:
+            remaining = int(remaining_str)
+            reset_epoch_ms = int(reset_str)
+        except (ValueError, TypeError):
+            self.logger.warning(
+                "Invalid rate-limit headers: remaining=%r reset=%r",
+                remaining_str,
+                reset_str,
+            )
+            return
+
+        # Stale-window guard: if the response's reset deadline is already in
+        # the past, this response describes a window that has rolled. Acting
+        # on its ``remaining`` (drain or gate-engage) would clamp the local
+        # limiter based on outdated state — and under the never-sync-up rule
+        # that artificial clamp can persist for the rest of the process.
+        # Drop the entire observation rather than just suppressing one path.
+        now_ms = int(time.time() * 1000)
+        if reset_epoch_ms <= now_ms:
+            return
+
+        # Skip the lock entirely when no update is possible — sync-down is
+        # only triggered by ``remaining < estimate`` and the reset gate only
+        # by ``remaining == 0``. Lock-free fast path for the common case
+        # where the server has at least as much budget as we think we do.
+        if remaining > 0 and remaining >= self._estimated_remaining:
+            return
+
+        async with self._lock:
+            # Sync down only — out-of-order responses with a higher
+            # ``remaining`` value must not overwrite a fresher (lower) estimate.
+            #
+            # When remaining=0, the reset gate alone is enough: it blocks
+            # until the server's window rolls. We deliberately do *not*
+            # drain pyrate's bucket here, because doing so would deplete
+            # pyrate of its tokens (e.g., a single response with
+            # remaining=0 would consume the rest of pyrate's burst budget),
+            # forcing the next request to wait pyrate's full window after
+            # the gate opens — even though Katana's window has already
+            # rolled. Sub-zero pyrate state and the gate are redundant; the
+            # gate is the override.
+            if 0 < remaining < self._estimated_remaining:
+                drain = self._estimated_remaining - remaining
+                # Best-effort: pyrate may have already drifted, so non-blocking
+                # drain.
+                await self._limiter.try_acquire_async(
+                    name=_RATE_LIMIT_BUCKET_NAME, weight=drain, blocking=False
+                )
+                self._estimated_remaining = remaining
+                self.logger.info(
+                    "Rate limit synced down: drained %d tokens, remote remaining=%d",
+                    drain,
+                    remaining,
+                )
+
+            if remaining == 0:
+                self._engage_reset_gate(reset_epoch_ms)
+
+    def _engage_reset_gate(self, reset_epoch_ms: int) -> None:
+        """Close the reset gate until ``reset_epoch_ms`` arrives.
+
+        Called under ``self._lock`` from ``_observe_response``.
+
+        Two guards on the deadline:
+
+        - **Stale earlier resets**: if there's already an active gate with a
+          *later* deadline, ignore this engage. Otherwise an earlier-window
+          response could shorten the gate and let requests through before
+          the server's true reset.
+        - **Fresh later resets**: cancel the existing timer and reschedule
+          for the new (later) deadline.
+
+        Past-due resets are filtered by ``_observe_response`` before reaching
+        this method (stale-window guard); the redundant ``wait_ms <= 0``
+        check below is defensive in case future callers bypass that filter.
+
+        ``_estimated_remaining = 0`` is pinned only after the gate actually
+        engages, so a stale ``remaining=0`` response can't permanently stick
+        the estimate at 0 (which under the never-sync-up rule would silently
+        disable sync-down for the rest of the client's lifetime).
+        """
+        now_ms = int(time.time() * 1000)
+        wait_ms = reset_epoch_ms - now_ms
+        if wait_ms <= 0:
+            return  # Reset already passed; nothing to gate against.
+
+        # If a gate is already engaged for a *later* deadline, keep it.
+        if (
+            self._reset_until_epoch_ms is not None
+            and reset_epoch_ms <= self._reset_until_epoch_ms
+        ):
+            return
+
+        wait_s = wait_ms / 1000.0
+        self._reset_until_epoch_ms = reset_epoch_ms
+        self._estimated_remaining = 0
+
+        if self._reset_gate.is_set():
+            self._reset_gate.clear()
+            self.logger.info(
+                "Rate limit reset gate engaged for %.2fs (server reports remaining=0)",
+                wait_s,
+            )
+
+        # Cancel any prior pending release so the (later) deadline replaces it.
+        if self._reset_handle is not None and not self._reset_handle.cancelled():
+            self._reset_handle.cancel()
+
+        loop = asyncio.get_running_loop()
+        self._reset_handle = loop.call_later(
+            wait_s, self._schedule_release, reset_epoch_ms
+        )
+
+    def _schedule_release(self, deadline_epoch_ms: int) -> None:
+        """Sync callback fired by ``loop.call_later`` at the deadline.
+
+        Spawns the async release helper so we can take ``self._lock`` for
+        the state mutation. Passes the deadline through so the helper can
+        verify this firing wasn't superseded by a later ``_engage_reset_gate``
+        call (in which case ``_reset_handle`` was replaced and we'd race
+        with whichever timer fires last). Stores the task reference so
+        Python doesn't garbage-collect the coroutine before it runs (asyncio
+        only holds weak refs to background tasks).
+        """
+        task = asyncio.create_task(self._release_reset_gate(deadline_epoch_ms))
+        self._release_task = task
+        task.add_done_callback(self._clear_release_task)
+
+    def _clear_release_task(self, task: asyncio.Task[None]) -> None:
+        """Drop our strong reference once the release helper completes — but only if it's still the current one.
+
+        Without the identity check, a stale callback can clear a fresher
+        in-flight task: timer A fires, spawns task A, and stores it as
+        ``self._release_task``; while task A is waiting on ``self._lock``,
+        a later ``_engage_reset_gate`` schedules timer B, which fires and
+        overwrites ``self._release_task = task_B``. When task A completes
+        (its deadline-mismatch no-op path), its ``add_done_callback``
+        would naively set ``self._release_task = None``, losing the
+        reference to the still-running task B and causing ``aclose()`` to
+        skip cancelling it.
+        """
+        if self._release_task is task:
+            self._release_task = None
+
+    async def _release_reset_gate(self, deadline_epoch_ms: int) -> None:
+        """Reopen the gate and reset estimate, atomically.
+
+        Ignores stale firings: if a subsequent ``_engage_reset_gate`` replaced
+        the deadline, our ``deadline_epoch_ms`` no longer matches
+        ``self._reset_until_epoch_ms`` and we leave the gate alone — the
+        replacement timer will fire later and own the release.
+        """
+        async with self._lock:
+            if self._reset_until_epoch_ms != deadline_epoch_ms:
+                # A fresher engage replaced this deadline; let its timer run.
+                return
+            self._reset_until_epoch_ms = None
+            self._reset_handle = None
+            self._estimated_remaining = self._rpm
+            self._reset_gate.set()
+            self.logger.info("Rate limit reset gate released")
+
+    async def aclose(self) -> None:
+        """Cancel the pending reset timer and any in-flight release, then close the wrapped transport.
+
+        Two cancellation paths must run before delegating ``aclose`` down
+        the chain:
+
+        1. ``_reset_handle`` — the ``loop.call_later`` callback. If it
+           fires after the loop is cleaned up, we get scheduling errors.
+        2. ``_release_task`` — the async ``_release_reset_gate`` task
+           spawned when the timer fired. If the timer fired *just before*
+           shutdown, the task may still be running (waiting on
+           ``self._lock``); without explicit cancel + await, asyncio
+           emits "Task was destroyed but it is pending" and the task can
+           race with the wrapped transport's own shutdown.
+        """
+        if self._reset_handle is not None and not self._reset_handle.cancelled():
+            self._reset_handle.cancel()
+        self._reset_handle = None
+
+        if self._release_task is not None and not self._release_task.done():
+            self._release_task.cancel()
+            # Suppress the cancellation so it doesn't propagate; we just
+            # want the task off the loop before we close the wrapped
+            # transport.
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._release_task
+        self._release_task = None
+
+        await self._wrapped_transport.aclose()
+
+
 def ResilientAsyncTransport(
     max_retries: int = 5,
     max_pages: int = 100,
     logger: Logger | None = None,
+    *,
+    requests_per_minute: int | None = 60,
     **kwargs: Any,
 ) -> RetryTransport:
     """
     Factory function that creates a chained transport with error logging,
-    pagination, and retry capabilities.
+    pagination, rate limiting, and retry capabilities.
 
-    This function chains multiple transport layers:
+    This function chains multiple transport layers (innermost → outermost):
     1. AsyncHTTPTransport (base HTTP transport)
-    2. ErrorLoggingTransport (logs detailed 4xx errors)
-    3. PaginationTransport (auto-collects paginated responses)
-    4. RetryTransport (handles retries with Retry-After header support)
+    2. RateLimitTransport (proactive 60-req/min throttle, header-aware)
+    3. ErrorLoggingTransport (logs detailed 4xx errors)
+    4. PaginationTransport (auto-collects paginated responses)
+    5. RetryTransport (handles retries with Retry-After header support)
+
+    The rate limiter is innermost (above the base) because Katana counts
+    *every* HTTP request — retries from the outer ``RetryTransport`` and
+    individual paginated pages from ``PaginationTransport`` all consume
+    server-side budget. Placing the limiter higher up would under-count.
 
     Args:
         max_retries: Maximum number of retry attempts for failed requests. Defaults to 5.
         max_pages: Maximum number of pages to collect during auto-pagination. Defaults to 100.
+        requests_per_minute: Steady-state request budget for the rate-limit
+            transport. Defaults to 60 (Katana's documented default). Pass ``None``
+            to omit the rate-limit layer entirely (e.g. when the caller is
+            responsible for throttling, or for tests that need raw throughput).
         logger: Logger instance for capturing operations. If None, creates a default logger.
         **kwargs: Additional arguments passed to the base AsyncHTTPTransport.
             Common parameters include:
@@ -1120,15 +1477,25 @@ def ResilientAsyncTransport(
 
     # Build the transport chain from inside out:
     # 1. Base AsyncHTTPTransport
-    base_transport = AsyncHTTPTransport(**kwargs)
+    inner_transport: AsyncBaseTransport = AsyncHTTPTransport(**kwargs)
 
-    # 2. Wrap with error logging
+    # 2. Wrap with rate limiting (innermost wrapping layer — every actual
+    #    HTTP request, including retries and per-page paginated fetches,
+    #    consumes one token. ``None`` skips this layer entirely.)
+    if requests_per_minute is not None:
+        inner_transport = RateLimitTransport(
+            wrapped_transport=inner_transport,
+            requests_per_minute=requests_per_minute,
+            logger=resolved_logger,
+        )
+
+    # 3. Wrap with error logging
     error_logging_transport = ErrorLoggingTransport(
-        wrapped_transport=base_transport,
+        wrapped_transport=inner_transport,
         logger=resolved_logger,
     )
 
-    # 3. Wrap with pagination
+    # 4. Wrap with pagination
     pagination_transport = PaginationTransport(
         wrapped_transport=error_logging_transport,
         max_pages=max_pages,
@@ -1301,6 +1668,8 @@ class KatanaClient(AuthenticatedClient):
         max_retries: int = 5,
         max_pages: int = 100,
         logger: Logger | None = None,
+        *,
+        requests_per_minute: int | None = 60,
         **httpx_kwargs: Any,
     ):
         """
@@ -1313,6 +1682,14 @@ class KatanaClient(AuthenticatedClient):
             timeout: Request timeout in seconds. Defaults to 30.0.
             max_retries: Maximum number of retry attempts for failed requests. Defaults to 5.
             max_pages: Maximum number of pages to collect during auto-pagination. Defaults to 100.
+            requests_per_minute: Steady-state request budget for the proactive
+                rate limiter. Defaults to 60 (Katana's documented limit). Set to
+                ``None`` to disable the rate limiter entirely (e.g. when callers
+                want to manage throttling themselves, or for tests that need raw
+                throughput). When the limiter is active, every actual HTTP
+                request — including retries and per-page paginated fetches —
+                consumes one token, and the transport adapts to the server's
+                ``X-Ratelimit-Remaining`` / ``X-Ratelimit-Reset`` headers.
             logger: Any object whose debug/info/warning/error methods accept
                 (msg, *args, **kwargs) — the standard logging.Logger call convention
                 (e.g. logging.Logger, structlog.BoundLogger). If None, creates a
@@ -1427,6 +1804,7 @@ class KatanaClient(AuthenticatedClient):
             transport = ResilientAsyncTransport(
                 max_retries=max_retries,
                 max_pages=max_pages,
+                requests_per_minute=requests_per_minute,
                 logger=self.logger,
                 **httpx_kwargs,  # Pass through http2, limits, verify, cert, trust_env, etc.
             )

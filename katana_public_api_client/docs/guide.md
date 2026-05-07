@@ -77,17 +77,57 @@ async with KatanaClient(max_retries=5) as client:
 
 ### Rate Limit Handling
 
+The client throttles requests in two layers, both automatic:
+
+1. **Proactive throttling** via `RateLimitTransport` — every outgoing request passes
+   through a [pyrate-limiter](https://github.com/vutran1710/PyrateLimiter) token bucket
+   sized to Katana's documented 60 req/min budget. Concurrent and paginated workloads
+   pace cleanly without thrashing 429s.
+1. **Reactive `Retry-After` handling** in `RetryTransport` — if a 429 still slips
+   through (e.g. another client is sharing the API key), the retry layer honors
+   `Retry-After` (numeric seconds or HTTP-date) before the next attempt.
+
+The proactive layer also reads `X-Ratelimit-Remaining` and `X-Ratelimit-Reset` on every
+response and **adapts**:
+
+- If the server reports fewer remaining tokens than the local estimate (e.g., another
+  client consumed budget), the local bucket is drained to match.
+- When `X-Ratelimit-Remaining` hits 0, future requests are gated by an `asyncio.Event`
+  until `X-Ratelimit-Reset` elapses.
+
 ```python
-# Automatic rate limit handling with Retry-After header support
+# Default behavior — 60/min budget, fully automatic.
 async with KatanaClient() as client:
-    # These calls will automatically be rate limited
-    for i in range(100):
+    # 100 calls fire as fast as the rate limit allows; no manual pacing
+    # needed. We don't pass an explicit ``page`` parameter — that would
+    # disable auto-pagination — so each call here is a full-result fetch
+    # demonstrating throttling.
+    for _ in range(100):
         response = await get_all_products.asyncio_detailed(
             client=client,
-            page=i,
-            limit=50
+            limit=50,
         )
-        # Client automatically waits when rate limited
+```
+
+#### Tuning the budget
+
+If your account has a different rate limit (some Katana plans differ), pass
+`requests_per_minute=`:
+
+```python
+async with KatanaClient(requests_per_minute=120) as client:
+    ...  # paces at 120/min instead of 60/min
+```
+
+#### Opting out
+
+If you want to manage throttling yourself (or in a test that needs raw throughput), pass
+`requests_per_minute=None` to skip the rate-limit layer entirely:
+
+```python
+# Reactive 429-retry only; no proactive throttling.
+async with KatanaClient(requests_per_minute=None) as client:
+    ...
 ```
 
 ### Error Recovery
