@@ -9,10 +9,12 @@ fetch).
 from __future__ import annotations
 
 import asyncio
+import sqlite3
 from collections import defaultdict
 from pathlib import Path
 
 from platformdirs import user_cache_dir
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
@@ -38,6 +40,25 @@ assert _manufacturing_mod is not None
 assert _purchase_orders_mod is not None
 
 _DEFAULT_DB_PATH = Path(user_cache_dir("katana-mcp")) / "typed_cache.db"
+
+
+def _apply_sqlite_pragmas(dbapi_conn: sqlite3.Connection, _record: object) -> None:
+    """Per-connection PRAGMAs for the file-backed typed cache.
+
+    Multiple MCP server processes (Claude Desktop + worktrees) share the
+    same SQLite file. WAL lets concurrent readers coexist with a writer;
+    ``busy_timeout`` makes a contended writer wait instead of failing
+    immediately with ``database is locked``; ``synchronous=NORMAL`` is
+    the standard pairing with WAL. Registered via ``event.listen`` on
+    the file-backed engine so every checked-out connection has them.
+    """
+    cursor = dbapi_conn.cursor()
+    try:
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=5000")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+    finally:
+        cursor.close()
 
 
 class TypedCacheEngine:
@@ -118,6 +139,8 @@ class TypedCacheEngine:
             self._engine = create_async_engine(
                 f"sqlite+aiosqlite:///{db_path}",
             )
+            event.listen(self._engine.sync_engine, "connect", _apply_sqlite_pragmas)
+
         async with self._engine.begin() as conn:
             await conn.run_sync(SQLModel.metadata.create_all)
 
