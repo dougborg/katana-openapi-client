@@ -979,3 +979,163 @@ def test_build_update_header_no_existing_skips_echo():
     )
 
     assert req.to_dict() == {"name": "RENAMED"}
+
+
+# ============================================================================
+# #503: configs / config_attributes propagate through modify_item
+# ============================================================================
+
+
+def test_build_update_header_product_configs_reaches_wire_body():
+    """``configs`` on a PRODUCT update serializes to the API wire body — the
+    bug in #503 was that the field was silently dropped before reaching the
+    request DTO. With the fix, it appears in ``request.to_dict()`` as the
+    Katana-shaped ``[{name, values}, ...]``."""
+    from katana_mcp.tools.foundation.items import (
+        ItemConfigPatch,
+        ItemHeaderPatch,
+        _build_update_header_request,
+    )
+
+    req = _build_update_header_request(
+        ItemHeaderPatch(
+            configs=[
+                ItemConfigPatch(name="Teeth", values=["32", "34"]),
+                ItemConfigPatch(name="Offset", values=["3mm"]),
+            ]
+        ),
+        ItemType.PRODUCT,
+        None,
+    )
+
+    body = req.to_dict()
+    assert body["configs"] == [
+        {"name": "Teeth", "values": ["32", "34"]},
+        {"name": "Offset", "values": ["3mm"]},
+    ]
+
+
+def test_build_update_header_product_configs_drops_id():
+    """The PRODUCT update DTO doesn't accept ``id`` on configs (only
+    MATERIAL does). When a caller includes one, it must be stripped before
+    reaching the wire — otherwise Katana 422s on ``additionalProperties``."""
+    from katana_mcp.tools.foundation.items import (
+        ItemConfigPatch,
+        ItemHeaderPatch,
+        _build_update_header_request,
+    )
+
+    req = _build_update_header_request(
+        ItemHeaderPatch(configs=[ItemConfigPatch(id=999, name="Teeth", values=["32"])]),
+        ItemType.PRODUCT,
+        None,
+    )
+
+    body = req.to_dict()
+    assert body["configs"] == [{"name": "Teeth", "values": ["32"]}]
+    assert "id" not in body["configs"][0]
+
+
+def test_build_update_header_material_configs_preserves_id_when_set():
+    """MATERIAL update DTO accepts ``id`` to match existing configs by ID
+    (vs. by ``name`` when omitted). Pin both branches."""
+    from katana_mcp.tools.foundation.items import (
+        ItemConfigPatch,
+        ItemHeaderPatch,
+        _build_update_header_request,
+    )
+
+    req = _build_update_header_request(
+        ItemHeaderPatch(
+            configs=[
+                ItemConfigPatch(id=42, name="Grade", values=["A", "B"]),
+                ItemConfigPatch(name="Finish", values=["Matte"]),
+            ]
+        ),
+        ItemType.MATERIAL,
+        None,
+    )
+
+    body = req.to_dict()
+    assert body["configs"] == [
+        {"id": 42, "name": "Grade", "values": ["A", "B"]},
+        {"name": "Finish", "values": ["Matte"]},
+    ]
+
+
+@pytest.mark.asyncio
+async def test_modify_item_rejects_configs_on_service():
+    """SERVICE doesn't support ``configs`` — it's PRODUCT/MATERIAL only.
+    ``_validate_header_for_type`` rejects before any API call, mirroring
+    the existing rejection of other PRODUCT/MATERIAL-only fields."""
+    from katana_mcp.tools.foundation.items import (
+        ItemConfigPatch,
+        ItemHeaderPatch,
+        ModifyItemRequest,
+        _modify_item_impl,
+    )
+
+    context, _ = create_mock_context()
+    request = ModifyItemRequest(
+        id=42,
+        type=ItemType.SERVICE,
+        update_header=ItemHeaderPatch(
+            configs=[ItemConfigPatch(name="Tier", values=["Basic", "Pro"])]
+        ),
+        preview=True,
+    )
+    with pytest.raises(ValueError, match="not valid for type=service"):
+        await _modify_item_impl(request, context)
+
+
+def test_build_create_variant_request_passes_config_attributes():
+    """``add_variants[].config_attributes`` reaches the variant POST body
+    (regression for #503's third silent-drop case)."""
+    from katana_mcp.tools.foundation.items import (
+        VariantAdd,
+        VariantConfigAttributePatch,
+        _build_create_variant_request,
+    )
+
+    req = _build_create_variant_request(
+        parent_id=42,
+        item_type=ItemType.PRODUCT,
+        variant=VariantAdd(
+            sku="CK1459-TMP",
+            config_attributes=[
+                VariantConfigAttributePatch(config_name="Offset", config_value="3mm"),
+                VariantConfigAttributePatch(config_name="Teeth", config_value="34"),
+            ],
+        ),
+    )
+
+    body = req.to_dict()
+    assert body["product_id"] == 42
+    assert body["config_attributes"] == [
+        {"config_name": "Offset", "config_value": "3mm"},
+        {"config_name": "Teeth", "config_value": "34"},
+    ]
+
+
+def test_build_update_variant_request_passes_config_attributes():
+    """``update_variants[].config_attributes`` reaches the variant PATCH
+    body. Pre-fix, this set was silently dropped from the wire body."""
+    from katana_mcp.tools.foundation.items import (
+        VariantConfigAttributePatch,
+        VariantUpdate,
+        _build_update_variant_request,
+    )
+
+    req = _build_update_variant_request(
+        VariantUpdate(
+            id=40312281,
+            config_attributes=[
+                VariantConfigAttributePatch(config_name="Teeth", config_value="34"),
+            ],
+        )
+    )
+
+    body = req.to_dict()
+    assert body["config_attributes"] == [{"config_name": "Teeth", "config_value": "34"}]
+    # ``id`` is the path parameter, not a body field — must not appear in body.
+    assert "id" not in body

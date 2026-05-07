@@ -845,10 +845,21 @@ endpoint; variant sub-payloads route to the shared `/variant` family.
   `is_producible` / `is_purchasable` / `is_auto_assembly` /
   `serial_tracked` / `operations_in_sequence` are PRODUCT-only;
   `default_supplier_id` / `batch_tracked` / `purchase_uom` /
-  `purchase_uom_conversion_rate` are PRODUCT/MATERIAL only;
+  `purchase_uom_conversion_rate` / `configs` are PRODUCT/MATERIAL only;
   `sales_price` / `default_cost` / `sku` are SERVICE-only.
   `is_archived` is shared across all three types — set true to archive,
   false to unarchive. Misrouted fields fail fast with a clear error.
+- `update_header.configs` — replace the full set of variant-defining
+  attributes (e.g. `Size`, `Color`). Each entry: `name` (str) and
+  `values` (list[str]). Optional `id` (int) is honored for MATERIAL only
+  to match an existing config; PRODUCT updates always match by `name`.
+  Katana overwrites the full list at apply time — omit a config and it
+  gets deleted, so always send every config you want to keep.
+- `add_variants` / `update_variants[].config_attributes` — pin one
+  value per parent config (e.g. `[{config_name: "Size", config_value:
+  "M"}, ...]`). Names must match a config on the parent;
+  `update_variants[].config_attributes` overwrites the variant's
+  existing list at apply time.
 - `add_variants` — POST `/variant`. Parent `product_id` / `material_id`
   is injected automatically from the request's `type`. Not supported
   for SERVICE (services carry pricing on the header, not on variants).
