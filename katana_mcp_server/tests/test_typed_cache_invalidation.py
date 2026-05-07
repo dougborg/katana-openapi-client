@@ -340,3 +340,133 @@ class TestRelatedSpecsFanOut:
         # Both endpoints called exactly once during one ensure_*_synced call.
         assert mo_api.call_count == 1
         assert rows_api.call_count == 1
+
+
+class TestMergeFilteredFetch:
+    """``merge_filtered_fetch`` is the filtered write-through entry point.
+
+    Distinct from ``ensure_<entity>_synced``: it merges API results into
+    the cache without advancing ``SyncState.last_synced``, so a
+    server-side filter (``ingredient_availability=NOT_AVAILABLE``) doesn't
+    fool a future watermark-driven delta into thinking it has seen every
+    row that changed since the last sync.
+    """
+
+    @pytest.mark.asyncio
+    async def test_does_not_advance_watermark(self, typed_cache_engine):
+        """``merge_filtered_fetch`` leaves the entity's ``SyncState.last_synced`` untouched.
+
+        The watermark means "I've seen everything ≥ this timestamp" — a
+        filtered fetch only saw rows matching the predicate, so advancing
+        it would silently drift other tools' data. Pin that contract here.
+        """
+        from datetime import UTC, datetime
+
+        from katana_mcp.typed_cache import (
+            MANUFACTURING_ORDER_RECIPE_ROW_SPEC,
+            SyncState,
+            merge_filtered_fetch,
+        )
+
+        from katana_public_api_client.models import (
+            ManufacturingOrderRecipeRow as AttrsRecipeRow,
+        )
+
+        # Seed the watermark with a known timestamp.
+        original = datetime(2026, 1, 15, 10, 0, 0, tzinfo=UTC).replace(tzinfo=None)
+        async with typed_cache_engine.session() as session:
+            session.add(
+                SyncState(
+                    entity_type="manufacturing_order_recipe_row",
+                    last_synced=original,
+                    row_count=10,
+                )
+            )
+            await session.commit()
+
+        attrs_row = AttrsRecipeRow.from_dict(
+            {
+                "id": 7001,
+                "manufacturing_order_id": 5001,
+                "variant_id": 9001,
+                "ingredient_availability": "NOT_AVAILABLE",
+                "planned_quantity_per_unit": 2.0,
+                "total_remaining_quantity": 4.0,
+            }
+        )
+
+        await merge_filtered_fetch(
+            typed_cache_engine, MANUFACTURING_ORDER_RECIPE_ROW_SPEC, [attrs_row]
+        )
+
+        async with typed_cache_engine.session() as session:
+            state = await session.get(SyncState, "manufacturing_order_recipe_row")
+            assert state is not None
+            assert state.last_synced == original
+            assert state.row_count == 10
+
+    @pytest.mark.asyncio
+    async def test_populates_cache(self, typed_cache_engine):
+        """Rows passed to ``merge_filtered_fetch`` land in the cache via the same conversion as the watermark sync."""
+        from katana_mcp.typed_cache import (
+            MANUFACTURING_ORDER_RECIPE_ROW_SPEC,
+            merge_filtered_fetch,
+        )
+
+        from katana_public_api_client.models import (
+            ManufacturingOrderRecipeRow as AttrsRecipeRow,
+        )
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedManufacturingOrderRecipeRow,
+        )
+
+        attrs_rows = [
+            AttrsRecipeRow.from_dict(
+                {
+                    "id": 7100 + i,
+                    "manufacturing_order_id": 5001,
+                    "variant_id": 9000 + i,
+                    "ingredient_availability": "NOT_AVAILABLE",
+                    "planned_quantity_per_unit": float(i),
+                    "total_remaining_quantity": float(i * 2),
+                }
+            )
+            for i in range(3)
+        ]
+
+        await merge_filtered_fetch(
+            typed_cache_engine, MANUFACTURING_ORDER_RECIPE_ROW_SPEC, attrs_rows
+        )
+
+        async with typed_cache_engine.session() as session:
+            for i in range(3):
+                cached = await session.get(CachedManufacturingOrderRecipeRow, 7100 + i)
+                assert cached is not None
+                assert cached.manufacturing_order_id == 5001
+                assert cached.variant_id == 9000 + i
+                assert cached.ingredient_availability == "NOT_AVAILABLE"
+
+    @pytest.mark.asyncio
+    async def test_empty_input_is_noop(self, typed_cache_engine):
+        """Empty iterable: no session opened, no rows written, no exception.
+
+        Cheap guard so callers (filtered tools) can pipe through an
+        empty result without conditional logic.
+        """
+        from katana_mcp.typed_cache import (
+            MANUFACTURING_ORDER_RECIPE_ROW_SPEC,
+            merge_filtered_fetch,
+        )
+        from sqlmodel import select
+
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedManufacturingOrderRecipeRow,
+        )
+
+        await merge_filtered_fetch(
+            typed_cache_engine, MANUFACTURING_ORDER_RECIPE_ROW_SPEC, []
+        )
+
+        async with typed_cache_engine.session() as session:
+            result = await session.exec(select(CachedManufacturingOrderRecipeRow))
+            assert result.all() == []

@@ -1871,10 +1871,33 @@ async def test_list_manufacturing_orders_includes_ingredient_availability(
 
 @pytest.fixture
 def no_sync_recipe_rows():
-    """Patch typed-cache sync for both MOs and recipe rows (used by the rollup)."""
+    """Stub the two filtered API calls used by ``list_blocking_ingredients``.
+
+    The post-#592 tool no longer calls ``ensure_manufacturing_orders_synced``;
+    it issues two filtered ``get_all_manufacturing_order_recipe_rows`` fetches
+    (one per blocking enum) and a parent-MO ``ids=`` backfill. Tests that seed
+    the cache directly want both endpoints stubbed so the tool reads the
+    seeded rows without firing real HTTP. Default response: empty ``data=[]``
+    — the cache stays exactly as the test seeded it. Patch target is the
+    ``typed_cache.sync`` namespace where these submodules are already
+    imported, so the deferred import inside the tool resolves to the same
+    (now-patched) submodule via ``sys.modules``.
+    """
+    parsed = MagicMock()
+    parsed.data = []
+    response = MagicMock()
+    response.status_code = 200
+    response.parsed = parsed
+
     with (
-        patch_typed_cache_sync("manufacturing_orders"),
-        patch_typed_cache_sync("manufacturing_order_recipe_rows"),
+        patch(
+            "katana_mcp.typed_cache.sync.get_all_manufacturing_order_recipe_rows.asyncio_detailed",
+            new=AsyncMock(return_value=response),
+        ),
+        patch(
+            "katana_mcp.typed_cache.sync.get_all_manufacturing_orders.asyncio_detailed",
+            new=AsyncMock(return_value=response),
+        ),
     ):
         yield
 
@@ -2314,6 +2337,141 @@ async def test_list_blocking_ingredients_resolves_skus_only_for_kept_variants(
     assert cache_mock.await_count == 1
     awaited_vids = cache_mock.await_args.args[1]
     assert set(awaited_vids) == {500}
+
+
+@pytest.mark.asyncio
+async def test_list_blocking_ingredients_uses_filtered_fetch_without_global_sync(
+    context_with_typed_cache,
+):
+    """Post-#592: tool fires 2 ``ingredient_availability`` calls + an MO ``ids=`` backfill.
+
+    Pin the wire shape so we don't silently regress to a global sync:
+
+    * ``ensure_manufacturing_orders_synced`` MUST NOT be called.
+    * The recipe-row endpoint is called twice — once with ``NOT_AVAILABLE``,
+      once with ``EXPECTED``.
+    * The MO endpoint is called once with the union of MO IDs the recipe
+      rows reference.
+    """
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        ListBlockingIngredientsRequest,
+        _list_blocking_ingredients_impl,
+    )
+
+    from katana_public_api_client.models import (
+        ManufacturingOrder as AttrsMO,
+        ManufacturingOrderRecipeRow as AttrsRecipeRow,
+    )
+    from katana_public_api_client.models.ingredient_availability import (
+        IngredientAvailability,
+    )
+
+    context, _, _typed_cache = context_with_typed_cache
+    _stub_variant_cache(context, {500: "WHEEL"})
+
+    # Filtered recipe-row response varies by ``ingredient_availability``;
+    # use a side_effect to dispatch by the kwarg the tool passes.
+    not_available_row = AttrsRecipeRow.from_dict(
+        {
+            "id": 11,
+            "manufacturing_order_id": 101,
+            "variant_id": 500,
+            "ingredient_availability": "NOT_AVAILABLE",
+            "planned_quantity_per_unit": 2.0,
+            "total_remaining_quantity": 4.0,
+        }
+    )
+    expected_row = AttrsRecipeRow.from_dict(
+        {
+            "id": 12,
+            "manufacturing_order_id": 102,
+            "variant_id": 500,
+            "ingredient_availability": "EXPECTED",
+            "planned_quantity_per_unit": 1.0,
+            "total_remaining_quantity": 3.0,
+        }
+    )
+
+    def _recipe_rows_response(rows):
+        parsed = MagicMock()
+        parsed.data = rows
+        response = MagicMock()
+        response.status_code = 200
+        response.parsed = parsed
+        return response
+
+    async def _recipe_rows_dispatch(**kwargs):
+        avail = kwargs.get("ingredient_availability")
+        if avail == IngredientAvailability.NOT_AVAILABLE:
+            return _recipe_rows_response([not_available_row])
+        if avail == IngredientAvailability.EXPECTED:
+            return _recipe_rows_response([expected_row])
+        # Defensive: any other value means the tool drifted.
+        msg = f"Unexpected ingredient_availability: {avail!r}"
+        raise AssertionError(msg)
+
+    # Parent MOs landed in the backfill — both with active statuses so the
+    # SQL aggregator surfaces their rows (a stale ``DONE`` cached parent
+    # would silently filter both rows out).
+    mo_101 = AttrsMO.from_dict(
+        {"id": 101, "order_no": "MO-101", "status": "IN_PROGRESS"}
+    )
+    mo_102 = AttrsMO.from_dict(
+        {"id": 102, "order_no": "MO-102", "status": "NOT_STARTED"}
+    )
+    mo_response = _recipe_rows_response([mo_101, mo_102])
+
+    recipe_api = AsyncMock(side_effect=_recipe_rows_dispatch)
+    mo_api = AsyncMock(return_value=mo_response)
+
+    # Spy on the watermark sync to assert it's never called.
+    sync_spy = AsyncMock()
+
+    with (
+        patch(
+            "katana_mcp.typed_cache.sync.get_all_manufacturing_order_recipe_rows.asyncio_detailed",
+            new=recipe_api,
+        ),
+        patch(
+            "katana_mcp.typed_cache.sync.get_all_manufacturing_orders.asyncio_detailed",
+            new=mo_api,
+        ),
+        patch(
+            "katana_mcp.typed_cache.ensure_manufacturing_orders_synced",
+            new=sync_spy,
+        ),
+    ):
+        result = await _list_blocking_ingredients_impl(
+            ListBlockingIngredientsRequest(), context
+        )
+
+    # 1. Watermark sync stayed out of the request path.
+    assert sync_spy.await_count == 0
+
+    # 2. Recipe-row endpoint hit twice, once per blocking enum value.
+    assert recipe_api.await_count == 2
+    seen_avails = {
+        call.kwargs["ingredient_availability"] for call in recipe_api.await_args_list
+    }
+    assert seen_avails == {
+        IngredientAvailability.NOT_AVAILABLE,
+        IngredientAvailability.EXPECTED,
+    }
+    # ``include_deleted=True`` per #592 plan so soft-deletes surface
+    # with ``deleted_at`` populated.
+    for call in recipe_api.await_args_list:
+        assert call.kwargs.get("include_deleted") is True
+
+    # 3. MO endpoint hit once with the union of referenced parent IDs.
+    assert mo_api.await_count == 1
+    mo_call = mo_api.await_args
+    assert mo_call is not None
+    assert sorted(mo_call.kwargs["ids"]) == [101, 102]
+    assert mo_call.kwargs.get("include_deleted") is True
+
+    # 4. Aggregation produced the expected response off the freshly-merged cache.
+    assert result.total_blocking_rows == 2
+    assert result.total_affected_mos == 2
 
 
 # ============================================================================

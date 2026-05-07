@@ -2114,24 +2114,92 @@ async def _list_blocking_ingredients_impl(
 ) -> ListBlockingIngredientsResponse:
     """Aggregate blocking recipe rows across MOs from the typed cache.
 
-    The cache holds both ``CachedManufacturingOrder`` and
-    ``CachedManufacturingOrderRecipeRow`` already (synced by the velocity
-    report and by sibling tools); the rollup is a single SQL join + filter.
-    Variant SKUs come from the legacy in-memory ``CatalogCache`` since
-    variants don't have a typed-cache table yet.
+    Uses the typed cache's filtered write-through path: two narrow API calls
+    (``ingredient_availability=NOT_AVAILABLE`` + ``=EXPECTED``) populate the
+    cache with only the rows we care about, then a parent-MO backfill (by
+    ``ids=``) refreshes the MOs those rows reference. The existing SQL join
+    + filter aggregation runs against the freshly-merged cache rows.
+
+    This avoids the cold-cache global sync of all MOs + recipe rows, which
+    under #590's 60/min rate limit can take 5-10 minutes on accounts with
+    thousands of recipe rows. Variant SKUs come from the legacy in-memory
+    ``CatalogCache`` since variants don't have a typed-cache table yet.
+
+    Parent MOs are re-fetched even when already cached: the recipe row's
+    ``ingredient_availability`` may still read ``NOT_AVAILABLE`` against an
+    MO whose status flipped to ``DONE`` via a delta the watermark sync
+    hasn't run for, which would otherwise surface as a false-positive
+    blocking entry.
     """
     from sqlmodel import select
 
-    from katana_mcp.typed_cache import ensure_manufacturing_orders_synced
+    from katana_mcp.typed_cache import (
+        MANUFACTURING_ORDER_RECIPE_ROW_SPEC,
+        MANUFACTURING_ORDER_SPEC,
+        merge_filtered_fetch,
+    )
+    from katana_public_api_client.api.manufacturing_order import (
+        get_all_manufacturing_orders,
+    )
+    from katana_public_api_client.api.manufacturing_order_recipe import (
+        get_all_manufacturing_order_recipe_rows,
+    )
+    from katana_public_api_client.models.ingredient_availability import (
+        IngredientAvailability,
+    )
     from katana_public_api_client.models_pydantic._generated import (
         CachedManufacturingOrder,
         CachedManufacturingOrderRecipeRow,
     )
+    from katana_public_api_client.utils import unwrap_data
 
     services = get_services(context)
 
-    # MO sync fans out to recipe rows via ``EntitySpec.related_specs``.
-    await ensure_manufacturing_orders_synced(services.client, services.typed_cache)
+    # Filtered recipe-row fetches: one call per blocking enum value.
+    # ``include_deleted=True`` so soft-deleted rows surface with
+    # ``deleted_at`` populated and the SQL aggregator can drop them.
+    blocking_rows: list[Any] = []
+    for availability in (
+        IngredientAvailability.NOT_AVAILABLE,
+        IngredientAvailability.EXPECTED,
+    ):
+        resp = await get_all_manufacturing_order_recipe_rows.asyncio_detailed(
+            client=services.client,
+            ingredient_availability=availability,
+            include_deleted=True,
+        )
+        blocking_rows.extend(unwrap_data(resp, default=[]))
+
+    await merge_filtered_fetch(
+        services.typed_cache, MANUFACTURING_ORDER_RECIPE_ROW_SPEC, blocking_rows
+    )
+
+    # Re-fetch ALL referenced parent MOs (not just missing ones): the
+    # cached parent's ``status`` may be stale even when present, which
+    # would silently produce false-positive blocking entries on a since-
+    # ``DONE`` MO whose recipe-row delta the watermark sync hasn't picked
+    # up. Chunk by 200 to stay under any URL-length ceiling on ``ids=``.
+    mo_ids = sorted(
+        {
+            r.manufacturing_order_id
+            for r in blocking_rows
+            if r.manufacturing_order_id is not None
+        }
+    )
+    parent_mos: list[Any] = []
+    chunk_size = 200
+    for start in range(0, len(mo_ids), chunk_size):
+        chunk = mo_ids[start : start + chunk_size]
+        resp = await get_all_manufacturing_orders.asyncio_detailed(
+            client=services.client,
+            ids=chunk,
+            include_deleted=True,
+        )
+        parent_mos.extend(unwrap_data(resp, default=[]))
+
+    await merge_filtered_fetch(
+        services.typed_cache, MANUFACTURING_ORDER_SPEC, parent_mos
+    )
 
     parsed_dates = parse_request_dates(
         request, ("production_deadline_after", "production_deadline_before")

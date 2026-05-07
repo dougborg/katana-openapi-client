@@ -40,6 +40,8 @@ from __future__ import annotations
 from .engine import TypedCacheEngine
 from .sync import (
     ENTITY_SPECS,
+    MANUFACTURING_ORDER_RECIPE_ROW_SPEC,
+    MANUFACTURING_ORDER_SPEC,
     EntitySpec,
     ensure_manufacturing_order_recipe_rows_synced,
     ensure_manufacturing_orders_synced,
@@ -48,11 +50,14 @@ from .sync import (
     ensure_stock_adjustments_synced,
     ensure_stock_transfers_synced,
     force_resync,
+    merge_filtered_fetch,
 )
 from .sync_state import SyncState
 
 __all__ = [
     "ENTITY_SPECS",
+    "MANUFACTURING_ORDER_RECIPE_ROW_SPEC",
+    "MANUFACTURING_ORDER_SPEC",
     "EntitySpec",
     "SyncState",
     "TypedCacheEngine",
@@ -63,4 +68,5 @@ __all__ = [
     "ensure_stock_adjustments_synced",
     "ensure_stock_transfers_synced",
     "force_resync",
+    "merge_filtered_fetch",
 ]
