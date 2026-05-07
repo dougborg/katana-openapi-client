@@ -64,9 +64,77 @@ class TestBuildSearchResultsUI:
         app = build_search_results_ui(items, "widget", 2)
         _assert_valid_prefab(app)
 
+    def test_with_items_renders_table_and_buttons(self):
+        """Regression guard for #470 — the existing populated-results path
+        must still render the DataTable, the drill-down Slot, and the
+        "Check inventory" button. Pairs with
+        ``test_empty_results_omits_table_and_buttons``.
+        """
+        items = [
+            {"id": 1, "sku": "SKU-001", "name": "Widget", "is_sellable": True},
+        ]
+        app = build_search_results_ui(items, "widget", 1)
+        envelope = app.to_json()
+        assert _has_node_of_type(envelope, "DataTable"), (
+            "Populated search results must render a DataTable."
+        )
+        assert _has_node_of_type(envelope, "Slot"), (
+            "Populated search results must render the drill-down Slot."
+        )
+        check_inventory_buttons = _find_buttons_by_label(
+            envelope, "Check inventory for search results"
+        )
+        assert len(check_inventory_buttons) == 1, (
+            "Populated search results must render the 'Check inventory' button."
+        )
+
     def test_empty_results(self):
         app = build_search_results_ui([], "nothing", 0)
         _assert_valid_prefab(app)
+
+    def test_empty_results_omits_table_and_buttons(self):
+        """#470 — when ``total_count == 0`` we render the header + badges
+        + a Muted hint, but no DataTable, no Slot, and no "Check
+        inventory" button (all of which would reference nonexistent
+        results).
+        """
+        app = build_search_results_ui([], "00.4021.018.003", 0)
+        envelope = app.to_json()
+
+        assert not _has_node_of_type(envelope, "DataTable"), (
+            "Empty search results must not render a DataTable."
+        )
+        assert not _has_node_of_type(envelope, "Slot"), (
+            "Empty search results must not render the drill-down Slot."
+        )
+        check_inventory_buttons = _find_buttons_by_label(
+            envelope, "Check inventory for search results"
+        )
+        assert len(check_inventory_buttons) == 0, (
+            "Empty search results must not render the 'Check inventory' button."
+        )
+
+        # Empty-state hint must mention the query and surface the fallback
+        # advice so a user pasting a full SKU knows to try a substring.
+        # Assert on the Muted node's actual content rather than
+        # ``str(envelope)`` — the header badge renders ``Query: ...``
+        # unconditionally, so an envelope-wide substring check would pass
+        # even if the Muted hint regressed.
+        muted_contents = _collect_node_content(envelope, "Muted")
+        hint = next(
+            (c for c in muted_contents if c.startswith("No items match")),
+            None,
+        )
+        assert hint is not None, (
+            f"Empty-state must render a 'No items match' Muted hint; "
+            f"got Muted contents: {muted_contents!r}"
+        )
+        assert '"00.4021.018.003"' in hint, (
+            f"Empty-state hint must echo the original query; got {hint!r}"
+        )
+        assert "partial SKU" in hint, (
+            f"Empty-state hint must suggest a partial-SKU/name fallback; got {hint!r}"
+        )
 
 
 class TestBuildVariantDetailsUI:
@@ -237,9 +305,66 @@ class TestBuildLowStockUI:
         app = build_low_stock_ui(items, 10, 1)
         _assert_valid_prefab(app)
 
+    def test_with_items_renders_table_and_restock_button(self):
+        """Regression guard for the empty-state fix bundled with #470 —
+        the populated path must still render the DataTable and the
+        "Create Restock Orders" button.
+        """
+        items = [
+            {
+                "sku": "SKU-001",
+                "product_name": "Widget",
+                "current_stock": 3,
+                "threshold": 10,
+            },
+        ]
+        app = build_low_stock_ui(items, 10, 1)
+        envelope = app.to_json()
+        assert _has_node_of_type(envelope, "DataTable"), (
+            "Populated low-stock report must render a DataTable."
+        )
+        restock_buttons = _find_buttons_by_label(envelope, "Create Restock Orders")
+        assert len(restock_buttons) == 1, (
+            "Populated low-stock report must render the 'Create Restock Orders' button."
+        )
+
     def test_empty(self):
         app = build_low_stock_ui([], 10, 0)
         _assert_valid_prefab(app)
+
+    def test_empty_omits_table_and_restock_button(self):
+        """#470-adjacent — when ``total_count == 0`` (no items below the
+        threshold) the report drops the empty DataTable and the
+        "Create Restock Orders" button (both reference nonexistent rows)
+        and renders an "all clear" Muted hint instead.
+        """
+        app = build_low_stock_ui([], 10, 0)
+        envelope = app.to_json()
+
+        assert not _has_node_of_type(envelope, "DataTable"), (
+            "Empty low-stock report must not render a DataTable."
+        )
+        restock_buttons = _find_buttons_by_label(envelope, "Create Restock Orders")
+        assert len(restock_buttons) == 0, (
+            "Empty low-stock report must not render the 'Create Restock Orders' button."
+        )
+
+        # Assert on the Muted node's actual content rather than
+        # ``str(envelope)`` — the header badge renders ``Threshold: 10``
+        # unconditionally, so a substring check on the whole envelope
+        # would pass even if the Muted hint regressed.
+        muted_contents = _collect_node_content(envelope, "Muted")
+        hint = next(
+            (c for c in muted_contents if "threshold of" in c),
+            None,
+        )
+        assert hint is not None, (
+            f"Empty-state must render a 'threshold of …' Muted hint; "
+            f"got Muted contents: {muted_contents!r}"
+        )
+        assert "threshold of 10" in hint, (
+            f"Empty-state hint must echo the threshold value; got {hint!r}"
+        )
 
 
 class TestBuildOrderPreviewUI:
@@ -973,6 +1098,39 @@ def _find_buttons_by_label(tree: object, label: str) -> list[dict]:
     elif isinstance(tree, list):
         for item in tree:
             found.extend(_find_buttons_by_label(item, label))
+    return found
+
+
+def _has_node_of_type(tree: object, node_type: str) -> bool:
+    """Return ``True`` if any node anywhere in the Prefab envelope has
+    ``type == node_type``. Used by empty-state tests (#470) to assert
+    that DataTable / Slot are or aren't rendered.
+    """
+    if isinstance(tree, dict):
+        if tree.get("type") == node_type:
+            return True
+        return any(_has_node_of_type(v, node_type) for v in tree.values())
+    if isinstance(tree, list):
+        return any(_has_node_of_type(item, node_type) for item in tree)
+    return False
+
+
+def _collect_node_content(tree: object, node_type: str) -> list[str]:
+    """Walk a Prefab envelope and return every ``content`` string from
+    nodes whose ``type`` equals ``node_type``. Used by empty-state tests
+    to assert on the actual hint text rendered by ``Muted`` (rather than
+    on ``str(envelope)``, which also matches header badges and would
+    pass even if the hint regressed).
+    """
+    found: list[str] = []
+    if isinstance(tree, dict):
+        if tree.get("type") == node_type and isinstance(tree.get("content"), str):
+            found.append(tree["content"])
+        for v in tree.values():
+            found.extend(_collect_node_content(v, node_type))
+    elif isinstance(tree, list):
+        for item in tree:
+            found.extend(_collect_node_content(item, node_type))
     return found
 
 
