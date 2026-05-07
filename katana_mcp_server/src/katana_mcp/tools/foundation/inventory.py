@@ -67,7 +67,7 @@ class CheckInventoryRequest(BaseModel):
         description=(
             "Filter to a single warehouse/facility. When set, the response "
             "totals and `by_location` only include this location. "
-            "Look up via `list_locations` or `katana://locations`."
+            "Look up via `list_locations`."
         ),
     )
     format: Literal["markdown", "json"] = Field(
@@ -299,7 +299,7 @@ async def check_inventory(
     see where stock actually is without a follow-up query. Pass
     ``location_id`` to filter to a single warehouse — totals and
     ``by_location`` then only cover that one location. Look up location
-    IDs via the ``katana://locations`` resource.
+    IDs via the ``list_locations`` tool.
 
     Use before creating orders to verify stock availability, or with a
     batch list to check multiple ingredients at once (e.g. all EXPECTED
@@ -833,10 +833,7 @@ class CreateStockAdjustmentRequest(BaseModel):
 
     location_id: int = Field(
         ...,
-        description=(
-            "Location ID for the adjustment. "
-            "Look up via `list_locations` or `katana://locations`."
-        ),
+        description=("Location ID for the adjustment. Look up via `list_locations`."),
     )
     rows: list[StockAdjustmentRow] = Field(..., description="Line items to adjust")
     reason: str | None = Field(
@@ -1011,10 +1008,7 @@ class ListStockAdjustmentsRequest(BaseModel):
     )
     location_id: int | None = Field(
         default=None,
-        description=(
-            "Filter by location ID. "
-            "Look up via `list_locations` or `katana://locations`."
-        ),
+        description=("Filter by location ID. Look up via `list_locations`."),
     )
     ids: CoercedIntListOpt = Field(
         default=None,
@@ -1380,10 +1374,7 @@ class UpdateStockAdjustmentParams(BaseModel):
     )
     location_id: int | None = Field(
         default=None,
-        description=(
-            "New location ID (optional). "
-            "Look up via `list_locations` or `katana://locations`."
-        ),
+        description=("New location ID (optional). Look up via `list_locations`."),
     )
     reason: str | None = Field(default=None, description="New reason (optional)")
     additional_info: str | None = Field(

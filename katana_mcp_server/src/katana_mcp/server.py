@@ -269,20 +269,16 @@ Top-level pages: /inventory, /sales, /purchases, /manufacturingorders.
 
 ## Resources
 
-Browse cached reference data:
+Browse cached catalog:
 - katana://inventory/items — full catalog (products, materials, services)
-- katana://suppliers — supplier directory for purchase orders
-- katana://locations — warehouses/facilities for orders and inventory
-- katana://tax-rates — configured tax rates for sales orders
-- katana://operators — manufacturing operators for operation assignments
-- katana://additional-costs — additional-cost catalog (freight, duties,
-  handling) for modify_purchase_order add_additional_costs
 - katana://help — detailed workflow guides and tool reference
 
-Each reference resource also has a tool wrapper (`list_locations`,
-`list_suppliers`, `list_tax_rates`, `list_operators`,
-`list_additional_costs`) returning identical data — use whichever surface
-your harness prefers.
+For reference data (suppliers, locations, tax rates, operators, additional
+costs), use the parameterized search tools: `list_suppliers(query=...)`,
+`list_locations(query=...)`, `list_tax_rates(query=...)`,
+`list_operators(query=...)`, `list_additional_costs(query=...)`. They
+support fuzzy name search and bounded output. Use `get_supplier(supplier_id)`
+for full-detail supplier records.
 
 For transactional data (orders, stock movements), use the corresponding tools.
 """,

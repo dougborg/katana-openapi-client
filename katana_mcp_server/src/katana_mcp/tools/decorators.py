@@ -35,6 +35,7 @@ def _get_sync_fns() -> dict[str, Any]:
     global _sync_fns  # noqa: PLW0603
     if _sync_fns is None:
         from katana_mcp.cache_sync import (
+            ensure_additional_costs_synced,
             ensure_customers_synced,
             ensure_factory_synced,
             ensure_locations_synced,
@@ -58,6 +59,7 @@ def _get_sync_fns() -> dict[str, Any]:
             EntityType.TAX_RATE: ensure_tax_rates_synced,
             EntityType.OPERATOR: ensure_operators_synced,
             EntityType.FACTORY: ensure_factory_synced,
+            EntityType.ADDITIONAL_COST: ensure_additional_costs_synced,
         }
     return _sync_fns
 

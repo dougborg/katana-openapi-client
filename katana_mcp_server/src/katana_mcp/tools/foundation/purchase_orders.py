@@ -123,10 +123,7 @@ class PurchaseOrderItem(BaseModel):
     price_per_unit: float = Field(..., description="Unit price")
     tax_rate_id: int | None = Field(
         None,
-        description=(
-            "Tax rate ID (optional). "
-            "Look up via `list_tax_rates` or `katana://tax-rates`."
-        ),
+        description=("Tax rate ID (optional). Look up via `list_tax_rates`."),
     )
     purchase_uom: str | None = Field(None, description="Purchase unit of measure")
     purchase_uom_conversion_rate: float | None = Field(
@@ -142,15 +139,12 @@ class CreatePurchaseOrderRequest(BaseModel):
 
     supplier_id: int = Field(
         ...,
-        description=(
-            "Supplier ID. Look up via `list_suppliers` or `katana://suppliers`."
-        ),
+        description=("Supplier ID. Look up via `list_suppliers`."),
     )
     location_id: int = Field(
         ...,
         description=(
-            "Location ID where items will be received. "
-            "Look up via `list_locations` or `katana://locations`."
+            "Location ID where items will be received. Look up via `list_locations`."
         ),
     )
     order_number: str = Field(..., description="Purchase order number")
@@ -1780,10 +1774,7 @@ class ListPurchaseOrdersRequest(BaseModel):
     )
     location_id: int | None = Field(
         default=None,
-        description=(
-            "Filter by receiving location ID. "
-            "Look up via `list_locations` or `katana://locations`."
-        ),
+        description=("Filter by receiving location ID. Look up via `list_locations`."),
     )
     tracking_location_id: int | None = Field(
         default=None,
@@ -1792,15 +1783,12 @@ class ListPurchaseOrdersRequest(BaseModel):
             "stores this as a hoisted column on every row; regular POs "
             "match only when ``None`` is filtered, which doesn't apply "
             "here — pair with ``entity_type='outsourced'`` to scope. "
-            "Look up via `list_locations` or `katana://locations`."
+            "Look up via `list_locations`."
         ),
     )
     supplier_id: int | None = Field(
         default=None,
-        description=(
-            "Filter by supplier ID. "
-            "Look up via `list_suppliers` or `katana://suppliers`."
-        ),
+        description=("Filter by supplier ID. Look up via `list_suppliers`."),
     )
     include_deleted: bool | None = Field(
         default=None, description="When true, include soft-deleted purchase orders."
@@ -2263,24 +2251,16 @@ class POHeaderPatch(BaseModel):
     order_no: str | None = Field(default=None, description="New PO number")
     supplier_id: int | None = Field(
         default=None,
-        description=(
-            "New supplier ID. Look up via `list_suppliers` or `katana://suppliers`."
-        ),
+        description=("New supplier ID. Look up via `list_suppliers`."),
     )
     currency: str | None = Field(default=None, description="New currency code")
     location_id: int | None = Field(
         default=None,
-        description=(
-            "New receiving location ID. "
-            "Look up via `list_locations` or `katana://locations`."
-        ),
+        description=("New receiving location ID. Look up via `list_locations`."),
     )
     tracking_location_id: int | None = Field(
         default=None,
-        description=(
-            "New tracking location ID. "
-            "Look up via `list_locations` or `katana://locations`."
-        ),
+        description=("New tracking location ID. Look up via `list_locations`."),
     )
     status: PurchaseOrderStatusLiteral | None = Field(
         default=None,
@@ -2310,9 +2290,7 @@ class PORowAdd(BaseModel):
     price_per_unit: float = Field(..., description="Unit price")
     tax_rate_id: int | None = Field(
         default=None,
-        description=(
-            "Tax rate ID. Look up via `list_tax_rates` or `katana://tax-rates`."
-        ),
+        description=("Tax rate ID. Look up via `list_tax_rates`."),
     )
     tax_name: str | None = Field(default=None, description="Tax name")
     tax_rate: str | None = Field(default=None, description="Tax rate value")
@@ -2336,9 +2314,7 @@ class PORowUpdate(BaseModel):
     variant_id: int | None = Field(default=None, description="New variant ID")
     tax_rate_id: int | None = Field(
         default=None,
-        description=(
-            "New tax rate ID. Look up via `list_tax_rates` or `katana://tax-rates`."
-        ),
+        description=("New tax rate ID. Look up via `list_tax_rates`."),
     )
     tax_name: str | None = Field(default=None, description="New tax name")
     tax_rate: str | None = Field(default=None, description="New tax rate value")
@@ -2368,15 +2344,12 @@ class POAdditionalCostAdd(BaseModel):
     additional_cost_id: int = Field(
         ...,
         description=(
-            "Additional-cost catalog entry ID. "
-            "Look up via `list_additional_costs` or `katana://additional-costs`."
+            "Additional-cost catalog entry ID. Look up via `list_additional_costs`."
         ),
     )
     tax_rate_id: int = Field(
         ...,
-        description=(
-            "Tax rate ID. Look up via `list_tax_rates` or `katana://tax-rates`."
-        ),
+        description=("Tax rate ID. Look up via `list_tax_rates`."),
     )
     price: float = Field(..., description="Cost amount")
     distribution_method: CostDistributionMethodLiteral | None = Field(
@@ -2400,16 +2373,11 @@ class POAdditionalCostUpdate(BaseModel):
     id: int = Field(..., description="Cost row ID to update")
     additional_cost_id: int | None = Field(
         default=None,
-        description=(
-            "New catalog entry ID. "
-            "Look up via `list_additional_costs` or `katana://additional-costs`."
-        ),
+        description=("New catalog entry ID. Look up via `list_additional_costs`."),
     )
     tax_rate_id: int | None = Field(
         default=None,
-        description=(
-            "New tax rate ID. Look up via `list_tax_rates` or `katana://tax-rates`."
-        ),
+        description=("New tax rate ID. Look up via `list_tax_rates`."),
     )
     price: float | None = Field(default=None, description="New price")
     distribution_method: CostDistributionMethodLiteral | None = Field(
@@ -2452,7 +2420,7 @@ class ModifyPurchaseOrderRequest(ConfirmableRequest):
         description=(
             "New line items. Each row: variant_id (int, required), quantity "
             "(float, required, >0), price_per_unit (float, required), "
-            "tax_rate_id (int — see katana://tax-rates), tax_name, tax_rate, "
+            "tax_rate_id (int — see `list_tax_rates`), tax_name, tax_rate, "
             "currency, purchase_uom, purchase_uom_conversion_rate, "
             "arrival_date."
         ),
@@ -2476,8 +2444,8 @@ class ModifyPurchaseOrderRequest(ConfirmableRequest):
         default=None,
         description=(
             "New additional-cost rows (freight, duties, handling). Each row: "
-            "additional_cost_id (int, required — see katana://additional-costs), "
-            "tax_rate_id (int, required — see katana://tax-rates), price "
+            "additional_cost_id (int, required — see `list_additional_costs`), "
+            "tax_rate_id (int, required — see `list_tax_rates`), price "
             "(float, required), distribution_method (BY_VALUE | "
             "NON_DISTRIBUTED — controls how the cost spreads across line "
             "items), group_id (int, optional — defaults to the PO's "

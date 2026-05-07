@@ -153,7 +153,7 @@ class CreateManufacturingOrderRequest(BaseModel):
         default=None,
         description=(
             "Production location ID (required for standalone MOs). "
-            "Look up via `list_locations` or `katana://locations`."
+            "Look up via `list_locations`."
         ),
     )
     sales_order_row_id: int | None = Field(
@@ -1600,10 +1600,7 @@ class ListManufacturingOrdersRequest(BaseModel):
     )
     location_id: int | None = Field(
         default=None,
-        description=(
-            "Filter by production location ID. "
-            "Look up via `list_locations` or `katana://locations`."
-        ),
+        description=("Filter by production location ID. Look up via `list_locations`."),
     )
     variant_ids: CoercedIntListOpt = Field(
         default=None,
@@ -1987,7 +1984,7 @@ class ListBlockingIngredientsRequest(BaseModel):
         default=None,
         description=(
             "Restrict the rollup to MOs at this production location. "
-            "Look up via `list_locations` or `katana://locations`."
+            "Look up via `list_locations`."
         ),
     )
     production_deadline_after: str | None = Field(
@@ -2587,10 +2584,7 @@ class MOHeaderPatch(BaseModel):
     variant_id: int | None = Field(default=None)
     location_id: int | None = Field(
         default=None,
-        description=(
-            "New production location ID. "
-            "Look up via `list_locations` or `katana://locations`."
-        ),
+        description=("New production location ID. Look up via `list_locations`."),
     )
     status: ManufacturingOrderStatusLiteral | None = Field(
         default=None,
