@@ -1,8 +1,14 @@
 # Katana API Questions
 
 Questions and inconsistencies discovered during P1-P4 OpenAPI spec alignment (Katana
-spec dated 2026-01-20, 104 paths). Each was investigated against the live API on
-2026-02-07.
+spec dated 2026-01-20, 104 paths). Each was originally investigated against the live API
+on 2026-02-07.
+
+**Doc state:** swept 2026-05-07 — entries cross-checked against the current local spec
+plus `docs/upstream-specs/live-gateway.yaml` and
+`docs/upstream-specs/readme-portal.yaml`. "Last verified" lines on each still-open entry
+note the date and method (spec-only vs live-API). Resolved entries moved to the Resolved
+Issues table at the bottom.
 
 ______________________________________________________________________
 
@@ -24,67 +30,50 @@ read-only on materials, despite being writable on products.
 correct as-is. This may be a product-line decision (materials inherit these properties
 from the products they're consumed by), but it's worth confirming with Katana.
 
+**Last verified:** 2026-05-07 (spec-only — `MaterialUpdateDto` in
+`docs/upstream-specs/live-gateway.yaml` still excludes both fields; live-API
+re-verification not re-run).
+
 ### 1.2 `MaterialConfig` schema requires `id` and `material_id` on CREATE
 
-**Status: CONFIRMED - spec error, API does not require them**
+**Status: CONFIRMED — spec error; needs follow-up in our local spec**
 
 `CreateMaterialRequest.configs` references the `MaterialConfig` schema, which has `id`
 and `material_id` as required fields. These values don't exist yet when creating a new
 material.
 
-**Investigation:** Created a material with configs containing only `name` and `values`
-(no `id` or `material_id`). The API accepted it (200 OK) and returned the created
-configs with server-generated `id` and `product_id` values.
+**Investigation (2026-02-07):** Created a material with configs containing only `name`
+and `values` (no `id` or `material_id`). The API accepted it (200 OK) and returned the
+created configs with server-generated identifier fields populated. (The original note
+recorded `product_id` as the parent-ID field name on the response — possibly a typo,
+possibly accurate if Katana's wire shape uses `product_id` even on a material's configs.
+Worth confirming on the next live-API sweep tracked under #603.)
 
-**Conclusion:** Confirmed spec error. The Katana API spec's `MaterialConfig` schema
-over-specifies the create case. Our spec already uses the simplified inline schema for
-create, which matches reality.
+**Live spec (2026-05-07 cross-check):** `live-gateway.yaml` uses an inline
+`ItemVariantConfigDto` (only `values` is required; `id` and `name` are optional).
+
+**Status of fix in our local spec:** This entry's earlier conclusion claimed *"Our spec
+already uses the simplified inline schema for create, which matches reality."* That's
+not currently true: `docs/katana-openapi.yaml` `CreateMaterialRequest.configs` still
+$refs the over-specified `MaterialConfig` schema. The reality and the upstream spec
+agree on the simplified shape; our local spec hasn't been updated yet. **Action:**
+follow-up spec PR to switch to the inline shape (or define a sibling
+`MaterialConfigCreate` and ref it from `CreateMaterialRequest`).
+
+**Last verified:** 2026-05-07 (spec-only).
 
 ### 1.3 Manufacturing Order cannot be linked to Sales Order via create/update
 
-**Status: RESOLVED - use `/manufacturing_order_make_to_order`**
-
-The Manufacturing Order response includes `sales_order_id`, `sales_order_row_id`, and
-`sales_order_delivery_deadline`, but none of these fields appear in the Create or Update
-request schemas.
-
-**Investigation:**
-
-- `PATCH /manufacturing_orders/{id}` with `sales_order_id` returns 422
-  `additionalProperties` - the field is truly not settable via update.
-- `POST /manufacturing_order_make_to_order` exists and accepts
-  `{"sales_order_row_id": <id>, "create_subassemblies": <bool>}`. This is the linking
-  mechanism - it creates a new MO already linked to a sales order row.
-- `POST /manufacturing_order_unlink` exists and accepts `{"sales_order_row_id": <id>}`
-  to break the link.
-- There is no way to link an *existing* unlinked MO to a sales order. The flow is:
-  create-linked (make_to_order) or create-unlinked (regular create), then optionally
-  unlink.
-
-**Conclusion:** The API design is intentional. Linking is one-way at creation time via
-`/manufacturing_order_make_to_order`. Our spec already documents both endpoints
-correctly. The original question about a missing "link" endpoint is answered: linking
-only happens at MO creation, not post-hoc.
+*Moved to the Resolved Issues table — `/manufacturing_order_make_to_order` is the
+linking endpoint. Linking only happens at MO creation; there is no post-hoc link
+endpoint by design.*
 
 ### 1.4 Purchase Order `status` in CREATE only accepts one value
 
-**Status: CONFIRMED - only `NOT_RECEIVED` allowed, field is optional**
-
-`CreatePurchaseOrderRequest` includes a `status` field, but the only valid value is
-`NOT_RECEIVED`.
-
-**Investigation:**
-
-- `POST /purchase_orders` without a `status` field succeeds (200 OK), and the created PO
-  has `status: "NOT_RECEIVED"` automatically.
-- `POST /purchase_orders` with `status: "NOT_RECEIVED"` also succeeds identically.
-- `POST /purchase_orders` with `status: "PARTIALLY_RECEIVED"` returns 422 with
-  `allowedValues: ["NOT_RECEIVED"]`.
-
-**Conclusion:** The field is optional and defaults to `NOT_RECEIVED`. Including it is
-harmless but pointless. This appears to be a Katana API design choice (consistent schema
-shape between create/update) rather than a bug. Our spec correctly documents the enum
-constraint.
+*Moved to the Resolved Issues table — Katana now accepts `DRAFT` and `NOT_RECEIVED` on
+`POST /purchase_orders`. The 2026-02-07 finding (only `NOT_RECEIVED`) is no longer
+current; both `live-gateway.yaml` and our local `CreatePurchaseOrderInitialStatus` enum
+list `[DRAFT, NOT_RECEIVED]` as of 2026-05-07.*
 
 ______________________________________________________________________
 
@@ -104,6 +93,13 @@ wrapped in `{"data": [...]}` like other list endpoints.
 **Conclusion:** Cannot verify field naming with no data. The raw-array response format
 is another non-standard pattern worth noting. If bin locations are ever configured in
 the test account, this should be re-investigated.
+
+**Cross-reference:** The raw-array response shape (no `{"data": [...]}` wrapper) is now
+tracked separately as #575
+(`bug(client): /bin_locations returns bare array, not StorageBinListResponse wrapper`).
+The `name` vs `bin_name` portion of this question remains open.
+
+**Last verified:** 2026-05-07 (spec-only — no live data to test against).
 
 ### 2.2 `ProductOperationRow` uses `product_operation_row_id` instead of `id`
 
@@ -126,6 +122,10 @@ The `ProductOperationRow` fields are: `product_operation_row_id`, `product_id`,
 **Conclusion:** This is confirmed as a real inconsistency in the Katana API - not a spec
 error on our side. The product operation row is the only resource that uses a
 non-standard primary key naming convention.
+
+**Last verified:** 2026-05-07 (spec-only — `product_operation_row_id` still appears as
+the key field in our local `ProductOperationRow` schema and as a query parameter in
+`live-gateway.yaml`).
 
 ______________________________________________________________________
 
@@ -154,26 +154,22 @@ ______________________________________________________________________
 system presets. Factory settings and operators are UI-managed. Our spec correctly
 documents them as GET-only.
 
+**MCP exposure update (2026-05-07):** PR #589 added `list_locations`, `list_suppliers`,
+`list_tax_rates`, `list_operators`, and `list_additional_costs` MCP tools (read-only
+wrappers around the existing `katana://...` resources). This doesn't change the API
+surface — these endpoints remain GET-only on the Katana side; the new MCP tools just
+make the read surface more discoverable to LLM agents.
+
+**Last verified:** 2026-05-07 (spec-only — `live-gateway.yaml` shows only `get` for
+`/factory`, `/operators`, and `/additional_costs`).
+
 ______________________________________________________________________
 
 ## 4. Nullable Field Semantics
 
-### 4.1 Variant `lead_time` and `minimum_order_quantity` null semantics
-
-**Status: CLARIFIED - null means "not set"**
-
-**Investigation:**
-
-- Out of 250 variants sampled, 249 had `lead_time: null` and all 250 had
-  `minimum_order_quantity: null`. Only one variant had `lead_time: 10`.
-- `PATCH /variants/{id}` with `lead_time: 0` succeeds - the response shows
-  `lead_time: 0` (integer zero, distinct from null).
-- `PATCH /variants/{id}` with `lead_time: null` succeeds - the response shows
-  `lead_time: null`.
-
-**Conclusion:** `null` means "not configured / no value set" rather than a meaningful
-zero or "N/A". The API correctly distinguishes between `0` (explicit zero) and `null`
-(not set). This is consistent with standard nullable semantics. No spec change needed.
+*Section retired — only entry (§4.1 Variant `lead_time` / `minimum_order_quantity` null
+semantics) was clarified during the original 2026-02-07 investigation; moved to the
+Resolved Issues table.*
 
 ______________________________________________________________________
 
@@ -201,6 +197,9 @@ combination. The POST "creates" forecast overrides for specific periods, and DEL
 "clears" overrides for specific periods. This design makes sense when understood as a
 calculation API rather than a REST resource. No spec change needed, but worth
 documenting the different mental model.
+
+**Last verified:** 2026-05-07 (spec-only — `live-gateway.yaml` shows the same
+non-standard shape; no live-API re-test).
 
 ______________________________________________________________________
 
@@ -322,14 +321,18 @@ Each was verified by:
 Test records used (all deleted post-verification): Material 17042013, Product 17042018,
 MO 16647058, StockAdjustment 2394711.
 
-Two other candidates couldn't be tested in this round and remain unverified:
+Two other candidates couldn't be tested in the original round and were noted as blocked.
+Both blockers have since shipped — these are now testable, follow-up verification
+pending:
 
-- **SalesOrder** — blocked by a separate spec bug (`SalesOrderStatus` enum is missing
-  `PENDING`); newly-created SOs can't be ingested through our cache. Test SO created on
-  Katana but ID unobservable; needs manual cleanup. (Filed as a separate spec issue.)
-- **StockTransfer** — blocked by `create_stock_transfer` returning an opaque 422 on the
-  execute path (preview accepts the same payload). Same shape as `create_purchase_order`
-  requires `status` (#499). Filed as a separate issue.
+- **SalesOrder** — was blocked by missing `PENDING` in `SalesOrderStatus`. Fixed in PR
+  #524 (closed #516). Ready for re-test against the wipe-on-PATCH question.
+- **StockTransfer** — was blocked by `create_stock_transfer` returning opaque 422 on the
+  execute path (#499 / #517). The 422 opacity was fixed in PR #578 (rewrote
+  `ValidationErrorDetail` to match Katana's Ajv-style wire shape). Ready for re-test.
+
+A live-API re-run that extends the §6.2 wipe table to cover SO and ST should be paired
+with the broader doc sweep tracked under #603.
 
 **Conclusion:** This is a platform-wide PATCH-merge bug, not a one-off on PurchaseOrder.
 Whatever is treating omitted `additional_info` as a null-write is doing so consistently
@@ -472,12 +475,15 @@ ______________________________________________________________________
 
 Issues discovered and fixed during P1-P4 alignment, documented here for reference:
 
-| Issue                                                                              | Resolution                                               |
-| ---------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| PurchaseOrderAccountingMetadata used camelCase field names                         | Fixed to snake_case to match actual API responses        |
-| StockAdjustment field renames (`adjustment_date` -> `stock_adjustment_date`, etc.) | Updated spec to match actual field names                 |
-| SalesOrderFulfillment schema overhaul                                              | ~8 fields removed, ~10 added to match actual API         |
-| SalesReturnRow field corrections                                                   | Updated to match actual response structure               |
-| 7 schemas incorrectly used UpdatableEntity                                         | Upgraded to DeletableEntity where DELETE endpoints exist |
-| PriceList phantom fields (`currency`, `end_date`, etc.)                            | Removed fields not present in actual API responses       |
-| StockTransfer/StockAdjustment had status enums                                     | Removed - these resources use free-form status strings   |
+| Issue                                                                              | Resolution                                                                                                                                                               |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| PurchaseOrderAccountingMetadata used camelCase field names                         | Fixed to snake_case to match actual API responses                                                                                                                        |
+| StockAdjustment field renames (`adjustment_date` -> `stock_adjustment_date`, etc.) | Updated spec to match actual field names                                                                                                                                 |
+| SalesOrderFulfillment schema overhaul                                              | ~8 fields removed, ~10 added to match actual API                                                                                                                         |
+| SalesReturnRow field corrections                                                   | Updated to match actual response structure                                                                                                                               |
+| 7 schemas incorrectly used UpdatableEntity                                         | Upgraded to DeletableEntity where DELETE endpoints exist                                                                                                                 |
+| PriceList phantom fields (`currency`, `end_date`, etc.)                            | Removed fields not present in actual API responses                                                                                                                       |
+| StockTransfer/StockAdjustment had status enums                                     | Removed - these resources use free-form status strings                                                                                                                   |
+| §1.3 — MO ↔ SO linking via PATCH                                                   | API design: linking is one-way at MO creation via `POST /manufacturing_order_make_to_order`. No post-hoc link endpoint exists by design.                                 |
+| §1.4 — PO CREATE `status` only accepted `NOT_RECEIVED` (2026-02-07)                | Katana now accepts both `DRAFT` and `NOT_RECEIVED` (verified spec-only against `live-gateway.yaml` and our local `CreatePurchaseOrderInitialStatus` enum on 2026-05-07). |
+| §4.1 — Variant `lead_time` / `minimum_order_quantity` null semantics               | Clarified — `null` means "not set" (distinct from `0`). API correctly distinguishes.                                                                                     |
