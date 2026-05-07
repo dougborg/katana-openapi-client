@@ -685,6 +685,12 @@ class SalesOrderFulfillmentRowRequest(KatanaPydanticBase):
         int | None, Field(description="Sales order row ID")
     ] = None
     quantity: Annotated[float | None, Field(description="Quantity to fulfill")] = None
+    serial_numbers: Annotated[
+        list[int] | None,
+        Field(
+            description="Serial number IDs allocated to this fulfillment row. Required when the row's variant is serial-tracked; the count must equal `quantity`."
+        ),
+    ] = None
 
 
 class CreateSalesOrderFulfillmentRequest(KatanaPydanticBase):
