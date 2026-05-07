@@ -1,24 +1,30 @@
 """Composite ``correct_<entity>`` tools — transactional edit on closed records.
 
 Lets the operator edit a record that has already reached a terminal status
-(``DONE`` for an MO, ``DELIVERED`` for an SO) without losing the original
-close-state metadata. Internally implements the proven sequence:
+(``DONE`` for an MO, ``DELIVERED`` for an SO, ``RECEIVED`` /
+``PARTIALLY_RECEIVED`` for a PO) without losing the original close-state
+metadata. Internally implements the proven sequence:
 
 1. **Capture** the close-state (status + key timestamps + child snapshots)
 2. **Reopen** by reverting status to an editable value (and, for SO,
    deleting fulfillments first — the close-state restore re-creates them)
-3. **Apply** the user's edits (recipe row swap, line item update)
-4. **Restore** the close-state, observing the mandatory ordering: status
-   first, then dates (Katana validates date fields against the *current*
-   status, so combined ``status: DONE + done_date`` calls fail).
+3. **Apply** the user's edits (recipe row swap, line item update, PO row
+   variant/quantity/price)
+4. **Restore** the close-state. For MO this is status → DONE then
+   ``done_date`` (Katana validates date fields against the *current*
+   status, so combined ``status: DONE + done_date`` calls fail). For SO
+   this is re-create fulfillments → status → DELIVERED. For PO this is a
+   single ``POST /purchase_order_receive`` per captured receipt — the
+   receive endpoint promotes status back to RECEIVED automatically.
 
 Composes ``ActionSpec`` lists from :mod:`_modification_dispatch` and the
 existing per-entity request builders. Each phase runs through
 ``execute_plan`` separately so fail-fast halts at a phase boundary with the
 captured close-state available for manual recovery.
 
-Tracked under #523 (umbrella). Phase 1 ships MO + SO; PO and stock
-transfer are deferred.
+Tracked under #523 (umbrella). MO + SO shipped in #536 / #546; PO ships
+under #532. Stock transfer remains deferred — its model has no close-state
+worth preserving (see help.py's "Closed-Record Corrections" section).
 """
 
 from __future__ import annotations
@@ -51,19 +57,28 @@ from katana_mcp.tools._reopen import (
     MO_CLOSED_STATUSES,
     MO_REOPEN_STATUS,
     MO_RESTORE_STATUS,
+    PO_CLOSED_STATUSES,
+    PO_REOPEN_STATUS,
     SO_CLOSED_STATUSES,
     SO_REOPEN_STATUS,
     SO_RESTORE_STATUS,
     MOCloseState,
     MOProductionSnapshot,
+    POCloseState,
+    PORowReceiptSnapshot,
     SOCloseState,
     SOFulfillmentSnapshot,
     snapshot_mo_close_state,
+    snapshot_po_close_state,
     snapshot_so_close_state,
 )
 from katana_mcp.tools.foundation.manufacturing_orders import (
     MOOperation,
     _fetch_manufacturing_order_attrs,
+)
+from katana_mcp.tools.foundation.purchase_orders import (
+    POOperation,
+    _fetch_purchase_order_attrs,
 )
 from katana_mcp.tools.foundation.sales_orders import (
     SOOperation,
@@ -80,6 +95,13 @@ from katana_public_api_client.api.manufacturing_order_production import (
 )
 from katana_public_api_client.api.manufacturing_order_recipe import (
     update_manufacturing_order_recipe_rows as api_update_mo_recipe_row,
+)
+from katana_public_api_client.api.purchase_order import (
+    receive_purchase_order as api_receive_purchase_order,
+    update_purchase_order as api_update_purchase_order,
+)
+from katana_public_api_client.api.purchase_order_row import (
+    update_purchase_order_row as api_update_purchase_order_row,
 )
 from katana_public_api_client.api.sales_order import (
     update_sales_order as api_update_sales_order,
@@ -99,6 +121,10 @@ from katana_public_api_client.models import (
     ManufacturingOrderProduction,
     ManufacturingOrderRecipeRow,
     ManufacturingOrderStatus,
+    PurchaseOrderReceiveRow,
+    PurchaseOrderReceiveRowBatchTransactionsItem,
+    PurchaseOrderRow,
+    PurchaseOrderStatus,
     SalesOrderFulfillment,
     SalesOrderFulfillmentRowRequest,
     SalesOrderFulfillmentStatus,
@@ -106,6 +132,8 @@ from katana_public_api_client.models import (
     UpdateManufacturingOrderProductionRequest as APIUpdateMOProductionRequest,
     UpdateManufacturingOrderRecipeRowRequest as APIUpdateMORecipeRowRequest,
     UpdateManufacturingOrderRequest as APIUpdateManufacturingOrderRequest,
+    UpdatePurchaseOrderRequest as APIUpdatePurchaseOrderRequest,
+    UpdatePurchaseOrderRowRequest as APIUpdatePORowRequest,
     UpdateSalesOrderRequest as APIUpdateSalesOrderRequest,
     UpdateSalesOrderRowRequest as APIUpdateSORowRequest,
     UpdateSalesOrderStatus,
@@ -125,7 +153,7 @@ from katana_public_api_client.utils import is_success, unwrap, unwrap_as
 
 def _augment_prior_state_with_snapshot(
     prior_state: dict[str, Any] | None,
-    snapshot: MOCloseState | SOCloseState,
+    snapshot: MOCloseState | SOCloseState | POCloseState,
 ) -> dict[str, Any]:
     """Inject the captured close-state into ``prior_state`` for recovery.
 
@@ -635,21 +663,30 @@ def _build_success_response(
     )
 
 
+def _entity_type_for_snapshot(
+    snapshot: MOCloseState | SOCloseState | POCloseState,
+) -> str:
+    """Map a close-state dataclass to the canonical entity-type string used
+    on :class:`ModificationResponse.entity_type` and the preview/failure
+    breadcrumb messaging."""
+    if isinstance(snapshot, MOCloseState):
+        return "manufacturing_order"
+    if isinstance(snapshot, SOCloseState):
+        return "sales_order"
+    return "purchase_order"
+
+
 def _build_failure_response(
     entity_id: int,
     actions: list[ActionResult],
     prior_state: dict[str, Any] | None,
     katana_url: str | None,
-    snapshot: MOCloseState | SOCloseState,
+    snapshot: MOCloseState | SOCloseState | POCloseState,
 ) -> ModificationResponse:
     succeeded = sum(1 for a in actions if a.succeeded is True)
     failed = sum(1 for a in actions if a.succeeded is False)
     return ModificationResponse(
-        entity_type=(
-            "manufacturing_order"
-            if isinstance(snapshot, MOCloseState)
-            else "sales_order"
-        ),
+        entity_type=_entity_type_for_snapshot(snapshot),
         entity_id=entity_id,
         is_preview=False,
         actions=actions,
@@ -1165,6 +1202,456 @@ async def correct_sales_order(
 
 
 # ============================================================================
+# Purchase-order corrections
+# ============================================================================
+
+
+class PORowCorrection(BaseModel):
+    """One PO row edit, identified by the ID of the row currently on the PO.
+
+    Unlike SO/MO corrections (which key by ``old_variant_id`` to give the
+    operator a content-addressed handle), PO corrections key by row ID
+    because the receive endpoint may split a partially-received row into
+    two physical rows post-receipt — both rows can carry the same
+    ``variant_id``, so variant-keyed lookup would be ambiguous on a
+    PARTIALLY_RECEIVED PO. The operator looks up the current row IDs via
+    ``get_purchase_order`` first.
+
+    ``correct_purchase_order`` only updates existing rows in place; it
+    doesn't add or delete rows. This keeps row IDs stable so the
+    re-receive POST can reference them by the original
+    ``purchase_order_row_id``. To add or remove a line, use
+    ``modify_purchase_order`` (after receiving) or delete + recreate the PO.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    row_id: int = Field(
+        ..., description="Existing row ID on the PO (find via get_purchase_order)."
+    )
+    new_variant_id: int | None = Field(
+        default=None,
+        description="New variant for the row. None = keep the existing variant.",
+    )
+    quantity: float | None = Field(
+        default=None,
+        gt=0,
+        description=(
+            "New quantity. None = keep the existing quantity. Must be >= "
+            "the originally received quantity for this row, or the receipt "
+            "replay step would fail."
+        ),
+    )
+    price_per_unit: float | None = Field(
+        default=None,
+        ge=0,
+        description="New unit price. None = keep the existing price.",
+    )
+
+
+class CorrectPurchaseOrderRequest(ConfirmableRequest):
+    """Reopen a closed PO, edit rows, restore the original close-state.
+
+    Entry condition: the PO must be in ``RECEIVED`` or
+    ``PARTIALLY_RECEIVED`` status. For POs that haven't been received yet,
+    use ``modify_purchase_order`` directly — there's no close-state to
+    preserve.
+    """
+
+    id: int = Field(..., description="Purchase order ID")
+    row_changes: list[PORowCorrection] = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Row edits keyed by row ID. At least one entry is required; "
+            "each must change at least one of new_variant_id, quantity, "
+            "or price_per_unit."
+        ),
+    )
+
+
+def _resolve_po_row(
+    po_id: int, rows: list[PurchaseOrderRow], correction: PORowCorrection
+) -> PurchaseOrderRow:
+    matches = [r for r in rows if r.id == correction.row_id]
+    if not matches:
+        raise ValueError(
+            f"No row on PO {po_id} has id {correction.row_id}. Look up "
+            "current row IDs with get_purchase_order before retrying."
+        )
+    return matches[0]
+
+
+def _check_quantity_covers_receipts(
+    po_id: int,
+    snapshot: POCloseState,
+    rows: list[PurchaseOrderRow],
+    corrections: list[PORowCorrection],
+) -> None:
+    """Preflight: refuse if any row drops below its already-received qty.
+
+    The re-receive phase replays the original receipt quantities; if a
+    row's new quantity is less than what was previously received, Katana
+    rejects the receive POST and the PO would be stuck in NOT_RECEIVED
+    with the close-state already cleared. Catching it here keeps the
+    failure clean — no mutations applied yet.
+
+    Honors the snapshot semantics where a row that was split during
+    receipt is captured by ID; if the operator targets the unreceived
+    remnant row (no entry in ``snapshot.receipts`` for that row_id), the
+    quantity guard is a no-op for that row.
+    """
+    received_per_row = {r.purchase_order_row_id: r.quantity for r in snapshot.receipts}
+
+    for correction in corrections:
+        if correction.quantity is None:
+            continue
+        try:
+            _resolve_po_row(po_id, rows, correction)
+        except ValueError:
+            # Resolution errors surface during plan-build; skip here so
+            # the original error message wins.
+            continue
+        already_received = received_per_row.get(correction.row_id, 0.0)
+        if correction.quantity < already_received:
+            raise ValueError(
+                f"row_changes for row {correction.row_id} on PO {po_id} "
+                f"drops quantity to {correction.quantity}, but "
+                f"{already_received} was already received on this row. "
+                "Refusing — the re-receive phase would fail and leave "
+                "the PO in an intermediate (open) state."
+            )
+
+
+def _build_revert_po_action(po_id: int, prior_status: str, services: Any) -> ActionSpec:
+    """PATCH PO header → status: NOT_RECEIVED.
+
+    Per the OpenAPI spec, this is the API-sanctioned reopen path: the
+    PATCH endpoint accepts a status transition out of RECEIVED, which
+    clears each row's ``received_date`` and re-opens the per-row fields
+    (``quantity`` / ``variant_id`` / ``price_per_unit``) for editing.
+
+    ``prior_status`` carries the actual current status (RECEIVED or
+    PARTIALLY_RECEIVED) so the preview/apply ``FieldChange.old`` reports
+    what the PO was reverted *from* — a partially received PO would
+    otherwise misreport "RECEIVED" as the prior state.
+    """
+    body = APIUpdatePurchaseOrderRequest(status=PurchaseOrderStatus(PO_REOPEN_STATUS))
+    return ActionSpec(
+        operation=POOperation.UPDATE_HEADER,
+        target_id=po_id,
+        diff=[
+            FieldChange(
+                field="status",
+                old=prior_status,
+                new=PO_REOPEN_STATUS,
+            )
+        ],
+        apply=_make_tolerant_patch_apply(
+            api_update_purchase_order, services, po_id, body
+        ),
+        verify=None,
+    )
+
+
+def _build_po_row_edit_actions(
+    po_id: int,
+    rows: list[PurchaseOrderRow],
+    corrections: list[PORowCorrection],
+    services: Any,
+) -> list[ActionSpec]:
+    specs: list[ActionSpec] = []
+    for correction in corrections:
+        if (
+            correction.new_variant_id is None
+            and correction.quantity is None
+            and correction.price_per_unit is None
+        ):
+            raise ValueError(
+                f"row_changes entry for row {correction.row_id}: must "
+                "supply at least one of new_variant_id, quantity, or "
+                "price_per_unit."
+            )
+        row = _resolve_po_row(po_id, rows, correction)
+
+        diff: list[FieldChange] = []
+        if correction.new_variant_id is not None:
+            diff.append(
+                FieldChange(
+                    field="variant_id",
+                    old=unwrap_unset(row.variant_id, None),
+                    new=correction.new_variant_id,
+                )
+            )
+        if correction.quantity is not None:
+            diff.append(
+                FieldChange(
+                    field="quantity",
+                    old=unwrap_unset(row.quantity, None),
+                    new=correction.quantity,
+                )
+            )
+        if correction.price_per_unit is not None:
+            diff.append(
+                FieldChange(
+                    field="price_per_unit",
+                    old=unwrap_unset(row.price_per_unit, None),
+                    new=correction.price_per_unit,
+                )
+            )
+
+        body = APIUpdatePORowRequest(
+            variant_id=to_unset(correction.new_variant_id),
+            quantity=to_unset(correction.quantity),
+            price_per_unit=to_unset(correction.price_per_unit),
+        )
+        specs.append(
+            ActionSpec(
+                operation=POOperation.UPDATE_ROW,
+                target_id=row.id,
+                diff=diff,
+                apply=_make_tolerant_patch_apply(
+                    api_update_purchase_order_row, services, row.id, body
+                ),
+                verify=None,
+            )
+        )
+    return specs
+
+
+def _build_re_receive_action(
+    po_id: int,
+    receipt: PORowReceiptSnapshot,
+    services: Any,
+) -> ActionSpec:
+    """POST one ``PurchaseOrderReceiveRow`` to replay the captured receipt.
+
+    Builds a single-row receive request (the receive endpoint also
+    accepts arrays, but per-row actions keep the ``ActionResult`` list
+    legible — one entry per replayed receipt). Re-receiving an already
+    re-receivable row promotes the PO toward RECEIVED automatically; once
+    every row is fully received, status flips back to RECEIVED without
+    a follow-up PATCH.
+    """
+    batch_transactions: list[PurchaseOrderReceiveRowBatchTransactionsItem] | Any
+    batch_transactions = []
+    for bt in receipt.batch_transactions or []:
+        if bt.batch_id is None:
+            continue
+        batch_transactions.append(
+            PurchaseOrderReceiveRowBatchTransactionsItem(
+                batch_id=bt.batch_id,
+                quantity=bt.quantity,
+            )
+        )
+    if not batch_transactions:
+        batch_transactions = to_unset(None)
+
+    receive_row = PurchaseOrderReceiveRow(
+        purchase_order_row_id=receipt.purchase_order_row_id,
+        quantity=receipt.quantity,
+        received_date=receipt.received_date,
+        batch_transactions=batch_transactions,
+    )
+
+    async def apply() -> None:
+        response = await api_receive_purchase_order.asyncio_detailed(
+            client=services.client, body=receive_row
+        )
+        if not is_success(response):
+            unwrap(response)
+        return None
+
+    diff: list[FieldChange] = [
+        FieldChange(
+            field="quantity",
+            new=receipt.quantity,
+            is_added=True,
+        ),
+        FieldChange(
+            field="received_date",
+            new=receipt.received_date.isoformat(),
+            is_added=True,
+        ),
+    ]
+    if receipt.batch_transactions:
+        diff.append(
+            FieldChange(
+                field="batch_transactions",
+                new=[
+                    {"batch_id": bt.batch_id, "quantity": bt.quantity}
+                    for bt in receipt.batch_transactions
+                ],
+                is_added=True,
+            )
+        )
+    return ActionSpec(
+        operation=POOperation.RECEIVE,
+        target_id=receipt.purchase_order_row_id,
+        diff=diff,
+        apply=apply,
+        verify=None,
+    )
+
+
+async def _correct_purchase_order_impl(
+    request: CorrectPurchaseOrderRequest, context: Context
+) -> ModificationResponse:
+    services = get_services(context)
+    katana_url = katana_web_url("purchase_order", request.id)
+
+    existing_po = await _fetch_purchase_order_attrs(services, request.id)
+    if existing_po is None:
+        raise ValueError(
+            f"Could not fetch purchase order {request.id}; verify it exists."
+        )
+    status_enum = unwrap_unset(existing_po.status, None)
+    status = status_enum.value if status_enum is not None else ""
+    if status not in PO_CLOSED_STATUSES:
+        raise ValueError(
+            f"correct_purchase_order requires the PO to be in RECEIVED or "
+            f"PARTIALLY_RECEIVED status; PO {request.id} is in status "
+            f"'{status}'. Use modify_purchase_order directly for an open "
+            "PO — there's no close-state to preserve."
+        )
+
+    rows = [
+        r
+        for r in (unwrap_unset(existing_po.purchase_order_rows, []) or [])
+        if r is not None
+    ]
+    snapshot = snapshot_po_close_state(existing_po)
+    _check_quantity_covers_receipts(request.id, snapshot, rows, request.row_changes)
+
+    revert_phase = [_build_revert_po_action(request.id, snapshot.status, services)]
+    edit_phase = _build_po_row_edit_actions(
+        request.id, rows, request.row_changes, services
+    )
+    receive_phase = [
+        _build_re_receive_action(request.id, receipt, services)
+        for receipt in snapshot.receipts
+    ]
+    phases = [revert_phase, edit_phase, receive_phase]
+
+    if request.preview:
+        full_plan = [action for phase in phases for action in phase]
+        return ModificationResponse(
+            entity_type="purchase_order",
+            entity_id=request.id,
+            is_preview=True,
+            actions=plan_to_preview_results(full_plan),
+            warnings=_close_state_warnings_po(snapshot),
+            next_actions=[
+                f"Review {len(full_plan)} planned action(s) for PO {request.id}",
+                f"Captured close-state: status={snapshot.status}, "
+                f"receipts={len(snapshot.receipts)}",
+                "Set preview=false to execute the plan",
+            ],
+            katana_url=katana_url,
+            message=(
+                f"Preview: reopen → edit → re-receive for purchase order "
+                f"{request.id} ({len(full_plan)} action(s))"
+            ),
+        )
+
+    prior_state = _augment_prior_state_with_snapshot(
+        serialize_for_prior_state(existing_po), snapshot
+    )
+    aggregated, failed = await _run_phases_until_failure(phases)
+    if failed:
+        return _build_failure_response(
+            request.id, aggregated, prior_state, katana_url, snapshot
+        )
+
+    return ModificationResponse(
+        entity_type="purchase_order",
+        entity_id=request.id,
+        is_preview=False,
+        actions=aggregated,
+        prior_state=prior_state,
+        warnings=_close_state_warnings_po(snapshot),
+        next_actions=[
+            f"Purchase order {request.id} corrected — "
+            f"{sum(1 for a in aggregated if a.succeeded)} action(s) applied",
+            f"Close-state restored: status={snapshot.status}, "
+            f"receipts={len(snapshot.receipts)}",
+        ],
+        katana_url=katana_url,
+        message=(
+            f"Successfully corrected purchase order {request.id} "
+            f"({sum(1 for a in aggregated if a.succeeded)}/"
+            f"{len(aggregated)} actions applied)"
+        ),
+    )
+
+
+def _close_state_warnings_po(snapshot: POCloseState) -> list[str]:
+    if not snapshot.receipts:
+        return [
+            "No receipts captured on this PO — the reopen step will only "
+            "flip status to NOT_RECEIVED without a re-receive phase. "
+            "Verify this matches reality before applying."
+        ]
+    if snapshot.status == PurchaseOrderStatus.PARTIALLY_RECEIVED.value:
+        return [
+            "PO was PARTIALLY_RECEIVED — only the previously-received "
+            "rows are replayed. The unreceived remnant row(s) stay open "
+            "after the correction lands; re-issue receive_purchase_order "
+            "for those when the rest of the shipment arrives."
+        ]
+    return []
+
+
+@observe_tool
+@unpack_pydantic_params
+async def correct_purchase_order(
+    request: Annotated[CorrectPurchaseOrderRequest, Unpack()], context: Context
+) -> ToolResult:
+    """Edit a closed (RECEIVED / PARTIALLY_RECEIVED) PO without losing
+    the original receipt metadata.
+
+    Reopens the PO (PATCH status: NOT_RECEIVED — Katana clears each row's
+    ``received_date`` so per-row fields become editable again), edits
+    rows keyed by row ID, then re-receives via POST
+    ``/purchase_order_receive`` to restore the captured per-row
+    ``quantity`` / ``received_date`` / ``batch_transactions``. The
+    receive endpoint promotes the PO back to RECEIVED automatically when
+    every row is fully received.
+
+    Sequence:
+
+    1. Capture close-state (status + per-row purchase_order_row_id /
+       quantity / received_date / batch_transactions for every row whose
+       ``received_date`` is non-null).
+    2. PATCH PO status: NOT_RECEIVED (clears each row's received_date,
+       making variant_id / quantity / price_per_unit editable again).
+    3. PATCH each row per ``row_changes``.
+    4. POST /purchase_order_receive once per captured receipt, replaying
+       quantity + received_date + batch_transactions.
+
+    Each ``row_changes`` entry is keyed by the row's current ID (look up
+    via ``get_purchase_order``). PO row IDs persist across the reopen, so
+    the re-receive can reference them by their original
+    ``purchase_order_row_id``.
+
+    The tool only updates rows in place; it doesn't delete or add rows.
+    To add or remove a line, use ``modify_purchase_order`` (after the
+    correction lands), or delete + recreate the PO.
+
+    Two-step flow: ``preview=true`` (default) returns the full action
+    plan; ``preview=false`` runs the plan in phases. Fail-fast halt
+    leaves the PO in an intermediate state (typically NOT_RECEIVED with
+    edits applied but receipts not replayed) with a breadcrumb in
+    ``prior_state``.
+
+    For a PO that hasn't been received yet, use ``modify_purchase_order``
+    directly — there's no close-state to preserve.
+    """
+    response = await _correct_purchase_order_impl(request, context)
+    return to_tool_result(response)
+
+
+# ============================================================================
 # Registration
 # ============================================================================
 
@@ -1192,5 +1679,11 @@ def register_tools(mcp: FastMCP) -> None:
         mcp,
         correct_sales_order,
         tags={"orders", "sales", "write", "correction"},
+        annotations=_correct,
+    )
+    register_preview_tool(
+        mcp,
+        correct_purchase_order,
+        tags={"orders", "purchasing", "write", "correction"},
         annotations=_correct,
     )
