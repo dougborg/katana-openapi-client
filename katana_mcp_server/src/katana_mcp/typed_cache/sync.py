@@ -22,7 +22,8 @@ need to change.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
+import logging
+from collections.abc import Callable, Iterable
 from contextlib import AsyncExitStack
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -73,6 +74,9 @@ if TYPE_CHECKING:
     from katana_public_api_client import KatanaClient
 
     from .engine import TypedCacheEngine
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -309,6 +313,60 @@ async def _sync_one_locked(
         await session.commit()
 
 
+async def merge_filtered_fetch(
+    cache: TypedCacheEngine,
+    spec: EntitySpec,
+    attrs_objs: Iterable[Any],
+) -> None:
+    """Convert + merge filtered API results without advancing the watermark.
+
+    Use when a tool needs a narrow predicate (e.g.,
+    ``ingredient_availability=NOT_AVAILABLE``) that the API can answer
+    server-side. Reuses the same ``_convert(spec, attrs_obj)`` parent/child
+    conversion as ``_sync_one_locked`` and merges via ``session.merge``
+    inside a single transaction.
+
+    Critically: does NOT update ``SyncState.last_synced``. The watermark is
+    a "I've seen everything ≥ this timestamp" claim; a filtered fetch only
+    saw rows matching the predicate, not all rows that changed since the
+    watermark. Advancing it would silently drift other tools' data.
+
+    Does not acquire ``cache.lock_for(...)`` either: ``session.merge`` is
+    PK-idempotent, SQLite serializes the transaction, and the per-entity
+    lock exists to coordinate the watermark write with the API fetch
+    (irrelevant here). Locking would also serialize concurrent tool calls,
+    defeating the parallelism the rate limiter affords.
+
+    Empty input is a no-op (no session opened, no merge issued).
+    """
+    cached_parents: list[Any] = []
+    cached_children: list[Any] = []
+    for attrs_obj in attrs_objs:
+        parent, children = _convert(spec, attrs_obj)
+        cached_parents.append(parent)
+        cached_children.extend(children)
+
+    if not cached_parents:
+        return
+
+    async with cache.session() as session:
+        # Parents first so child FK constraints resolve on insert (mirrors
+        # ``_sync_one_locked``'s order; redundant for entities without
+        # children but harmless).
+        for parent in cached_parents:
+            await session.merge(parent)
+        for child in cached_children:
+            await session.merge(child)
+        await session.commit()
+
+    logger.info(
+        "merge_filtered_fetch entity=%s merged=%d children=%d",
+        spec.entity_key,
+        len(cached_parents),
+        len(cached_children),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Per-entity specs
 # ---------------------------------------------------------------------------
@@ -362,7 +420,7 @@ _STOCK_ADJUSTMENT_SPEC = EntitySpec(
 # JSON column unchanged. Defined before the MO spec because the MO spec
 # references it via ``related_specs`` (frozen dataclasses can't forward-
 # reference each other).
-_MANUFACTURING_ORDER_RECIPE_ROW_SPEC = EntitySpec(
+MANUFACTURING_ORDER_RECIPE_ROW_SPEC = EntitySpec(
     entity_key="manufacturing_order_recipe_row",
     api_fn=get_all_manufacturing_order_recipe_rows,
     cache_cls=CachedManufacturingOrderRecipeRow,
@@ -376,12 +434,12 @@ _MANUFACTURING_ORDER_RECIPE_ROW_SPEC = EntitySpec(
 # recipe row (e.g. ``list_blocking_ingredients``) only needs to call
 # ``ensure_manufacturing_orders_synced`` and trusts both watermarks have
 # been advanced.
-_MANUFACTURING_ORDER_SPEC = EntitySpec(
+MANUFACTURING_ORDER_SPEC = EntitySpec(
     entity_key="manufacturing_order",
     api_fn=get_all_manufacturing_orders,
     cache_cls=CachedManufacturingOrder,
     pydantic_cls=PydanticManufacturingOrder,
-    related_specs=(_MANUFACTURING_ORDER_RECIPE_ROW_SPEC,),
+    related_specs=(MANUFACTURING_ORDER_RECIPE_ROW_SPEC,),
 )
 
 
@@ -454,7 +512,7 @@ async def ensure_manufacturing_orders_synced(
     client: KatanaClient, cache: TypedCacheEngine
 ) -> None:
     """Pull updated manufacturing orders from Katana and upsert into the cache."""
-    await _ensure_synced(client, cache, _MANUFACTURING_ORDER_SPEC)
+    await _ensure_synced(client, cache, MANUFACTURING_ORDER_SPEC)
 
 
 async def ensure_purchase_orders_synced(
@@ -484,7 +542,7 @@ async def ensure_manufacturing_order_recipe_rows_synced(
     this helper directly — it's exposed for tools that specifically want
     only the recipe-row watermark advanced.
     """
-    await _ensure_synced(client, cache, _MANUFACTURING_ORDER_RECIPE_ROW_SPEC)
+    await _ensure_synced(client, cache, MANUFACTURING_ORDER_RECIPE_ROW_SPEC)
 
 
 # ---------------------------------------------------------------------------
@@ -495,7 +553,7 @@ async def ensure_manufacturing_order_recipe_rows_synced(
 ENTITY_SPECS: dict[str, EntitySpec] = {
     "sales_order": _SALES_ORDER_SPEC,
     "stock_adjustment": _STOCK_ADJUSTMENT_SPEC,
-    "manufacturing_order": _MANUFACTURING_ORDER_SPEC,
+    "manufacturing_order": MANUFACTURING_ORDER_SPEC,
     "purchase_order": _PURCHASE_ORDER_SPEC,
     "stock_transfer": _STOCK_TRANSFER_SPEC,
 }
