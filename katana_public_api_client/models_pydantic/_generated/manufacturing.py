@@ -145,6 +145,12 @@ class UpdateManufacturingOrderRequest(KatanaPydanticBase):
         list[BatchTransaction] | None,
         Field(description="Batch transactions for produced items"),
     ] = None
+    serial_numbers: Annotated[
+        list[int] | None,
+        Field(
+            description="Serial number IDs allocated to the produced units of this manufacturing order. Required when the MO's finished-good variant is serial-tracked; the count must equal `actual_quantity`."
+        ),
+    ] = None
 
 
 class UpdateManufacturingOrderProductionRequest(KatanaPydanticBase):
