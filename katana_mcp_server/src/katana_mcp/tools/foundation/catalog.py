@@ -51,9 +51,7 @@ class CreateProductRequest(BaseModel):
     purchase_price: float | None = Field(None, description="Purchase cost per unit")
     default_supplier_id: int | None = Field(
         None,
-        description=(
-            "Default supplier ID. Look up via `list_suppliers` or `katana://suppliers`."
-        ),
+        description=("Default supplier ID. Look up via `list_suppliers`."),
     )
     additional_info: str | None = Field(None, description="Additional notes")
 
@@ -189,9 +187,7 @@ class CreateMaterialRequest(BaseModel):
     purchase_price: float | None = Field(None, description="Purchase cost per unit")
     default_supplier_id: int | None = Field(
         None,
-        description=(
-            "Default supplier ID. Look up via `list_suppliers` or `katana://suppliers`."
-        ),
+        description=("Default supplier ID. Look up via `list_suppliers`."),
     )
     additional_info: str | None = Field(None, description="Additional notes")
 

@@ -163,15 +163,13 @@ class CreateStockTransferRequest(BaseModel):
 
     source_location_id: int = Field(
         ...,
-        description=(
-            "Source location ID. Look up via `list_locations` or `katana://locations`."
-        ),
+        description=("Source location ID. Look up via `list_locations`."),
     )
     destination_location_id: int = Field(
         ...,
         description=(
             "Destination location ID (target_location_id in API terms). "
-            "Look up via `list_locations` or `katana://locations`."
+            "Look up via `list_locations`."
         ),
     )
     expected_arrival_date: datetime = Field(
@@ -500,16 +498,13 @@ class ListStockTransfersRequest(BaseModel):
     )
     source_location_id: int | None = Field(
         default=None,
-        description=(
-            "Filter by source location ID. "
-            "Look up via `list_locations` or `katana://locations`."
-        ),
+        description=("Filter by source location ID. Look up via `list_locations`."),
     )
     destination_location_id: int | None = Field(
         default=None,
         description=(
             "Filter by destination location ID (target_location_id). "
-            "Look up via `list_locations` or `katana://locations`."
+            "Look up via `list_locations`."
         ),
     )
     stock_transfer_number: str | None = Field(

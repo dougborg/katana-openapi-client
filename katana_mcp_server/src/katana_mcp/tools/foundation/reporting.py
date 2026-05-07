@@ -245,8 +245,7 @@ class TopSellingVariantsRequest(BaseModel):
     location_id: int | None = Field(
         default=None,
         description=(
-            "Optional location ID to filter by. "
-            "Look up via `list_locations` or `katana://locations`."
+            "Optional location ID to filter by. Look up via `list_locations`."
         ),
     )
     format: Literal["markdown", "json"] = Field(

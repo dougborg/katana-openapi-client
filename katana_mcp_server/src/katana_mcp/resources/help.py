@@ -77,12 +77,12 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **delete_stock_transfer** - Delete a transfer
 
 ### Reference Data
-- **list_locations** - List warehouses and facilities (id, name, address, primary flag). Use for `location_id` lookups on orders and inventory queries.
-- **list_suppliers** - List suppliers (id, name, contact info, currency). Use for `supplier_id` / `default_supplier_id` on POs and materials.
-- **list_tax_rates** - List configured tax rates (id, rate, defaults). Use for `tax_rate_id` on order line items.
-- **list_operators** - List manufacturing operators (id, name). Use for `operator_id` / `packer_id` on MO operations and SO fulfillments.
-- **list_additional_costs** - List the additional-cost catalog (freight, duties, handling). Use for `additional_cost_id` on `modify_purchase_order`.
-- (Equivalent to the `katana://locations` / `katana://suppliers` / `katana://tax-rates` / `katana://operators` / `katana://additional-costs` resources — same cache, same data.)
+- **list_locations** - List or fuzzy-search warehouses and facilities (id, name, address, primary flag). Use for `location_id` lookups on orders and inventory queries. Supports `query`, `limit`, `format`.
+- **list_suppliers** - List or fuzzy-search suppliers by name/code (id, name, email, phone, currency, code). Use for `supplier_id` / `default_supplier_id` on POs and materials. Supports `query`, `limit`, `format`.
+- **get_supplier** - Full-detail supplier record by id (contact info, address, payment terms). Pair with `list_suppliers(query=...)`.
+- **list_tax_rates** - List or fuzzy-search configured tax rates (id, rate, defaults). Use for `tax_rate_id` on order line items. Supports `query`, `limit`, `format`.
+- **list_operators** - List or fuzzy-search manufacturing operators (id, name). Use for `operator_id` / `packer_id` on MO operations and SO fulfillments. Supports `query`, `limit`, `format`.
+- **list_additional_costs** - List or fuzzy-search the additional-cost catalog (freight, duties, handling). Use for `additional_cost_id` on `modify_purchase_order`. Supports `query`, `limit`, `format`.
 
 ### Cache Administration
 - **rebuild_cache** - Force-rebuild the local typed cache for one or more transactional entity types (PO, SO, MO, stock adjustment, stock transfer). Truncates the cache table(s), clears the sync watermark, and re-fetches from Katana. Use when the cache has phantom rows (entities present locally but missing from Katana). Destructive; preview/apply.
@@ -1069,7 +1069,7 @@ additional-cost rows in one call. Replaces the prior 8 separate
 - `add_rows` — list of new line items. Each row:
   `variant_id` (int, required), `quantity` (float, required, >0),
   `price_per_unit` (float, required), `tax_rate_id` (int — see
-  `katana://tax-rates`), `tax_name`, `tax_rate`, `currency`,
+  `list_tax_rates`), `tax_name`, `tax_rate`, `currency`,
   `purchase_uom`, `purchase_uom_conversion_rate`, `arrival_date`.
 - `update_rows` — list of patches. Each entry: `id` (int, required) +
   any subset of `quantity`, `variant_id`, `tax_rate_id`, `tax_name`,
@@ -1078,8 +1078,8 @@ additional-cost rows in one call. Replaces the prior 8 separate
 - `delete_row_ids` — list of row IDs to delete.
 - `add_additional_costs` — list of new freight / duty / handling rows.
   Each row: `additional_cost_id` (int, required — see
-  `katana://additional-costs` for catalog IDs), `tax_rate_id` (int,
-  required — see `katana://tax-rates`), `price` (float, required),
+  `list_additional_costs` for catalog IDs), `tax_rate_id` (int,
+  required — see `list_tax_rates`), `price` (float, required),
   `distribution_method` (`BY_VALUE` | `NON_DISTRIBUTED` — controls how
   the cost spreads across line items; `BY_VALUE` is what produces
   `landed_cost` on each row), `group_id` (int, optional — defaults to
@@ -1596,73 +1596,102 @@ Delete a stock transfer. Destructive — the transfer record is removed.
 
 ## Reference Data Tools
 
-These tools surface the same cache-backed reference data as the
-`katana://locations` / `katana://suppliers` / `katana://tax-rates` /
-`katana://operators` / `katana://additional-costs` resources, but as
-`tools/list` entries so LLM agents discover them through the surface
-they reach for first. Use whichever surface your harness prefers — the
-underlying cache reads are identical.
+Parameterized search tools backed by the local cache (FTS5 with difflib
+fallback). Each `list_*` tool accepts `query` (optional fuzzy search),
+`limit` (default 50, max 250), and `format` (`"markdown"` | `"json"`).
+Outputs are bounded — passing `limit` keeps even large reference catalogs
+from flooding agent context.
 
 ### list_locations
-List all warehouses and facilities. Returns each location's id, name,
-address, and primary flag. Use the `id` value when creating orders or
-filtering inventory queries.
+List or fuzzy-search warehouses and facilities by name. Returns id, name,
+address, city/country, and the is_primary flag. Use the `id` value when
+creating orders or filtering inventory queries.
 
-**Parameters:** _(none)_
+**Parameters:**
+- `query` (optional): Fuzzy match by name.
+- `limit` (optional, default 50, max 250): Cap on rows returned.
+- `format` (optional, default "markdown"): "markdown" | "json".
 
-**Returns:** `{generated_at, summary: {total_locations}, locations: [{id,
-name, address, city, country, is_primary}], next_actions: [...]}`.
+**Returns:** `ListLocationsResponse` with `locations: [{id, name, address,
+city, country, is_primary}]`, `total_count`, `query`.
 
 ---
 
 ### list_suppliers
-List all suppliers. Returns each supplier's id, name, contact info, and
-currency. Use the `id` value when creating purchase orders or setting a
-default supplier on a material.
+List or fuzzy-search suppliers by name or code. Returns id, name, email,
+phone, currency, and code. Use the `id` value when creating purchase
+orders or setting a default supplier on a material. Use `get_supplier`
+for the full-detail record.
 
-**Parameters:** _(none)_
+**Parameters:**
+- `query` (optional): Fuzzy match by name or code.
+- `limit` (optional, default 50, max 250).
+- `format` (optional, default "markdown"): "markdown" | "json".
 
-**Returns:** `{generated_at, summary: {total_suppliers}, suppliers: [{id,
-name, email, phone, currency, comment}], next_actions: [...]}`.
+**Returns:** `ListSuppliersResponse` with `suppliers: [{id, name, email,
+phone, currency, code}]`, `total_count`, `query`.
+
+---
+
+### get_supplier
+Full-detail supplier record by id. Returns every cached field — contact
+info, address, currency, payment terms, comment, and timestamps.
+
+**Parameters:**
+- `supplier_id` (required): Supplier id.
+- `format` (optional, default "markdown"): "markdown" | "json".
+
+**Returns:** `GetSupplierResponse` with id, name, email, phone, currency,
+code, comment, default_payment_terms, address fields (line_1, line_2,
+city, state, zip, country), created_at, updated_at, deleted_at.
 
 ---
 
 ### list_tax_rates
-List all configured tax rates. Returns each tax rate's id, name, rate,
+List or fuzzy-search configured tax rates by name. Returns id, name, rate,
 display name, and default-for-sales / default-for-purchases flags. Use
 the `id` value when creating sales orders or purchase-order line items
 with explicit tax assignments.
 
-**Parameters:** _(none)_
+**Parameters:**
+- `query` (optional): Fuzzy match by name.
+- `limit` (optional, default 50, max 250).
+- `format` (optional, default "markdown"): "markdown" | "json".
 
-**Returns:** `{generated_at, summary: {total_tax_rates}, tax_rates: [{id,
-name, rate, display_name, is_default_sales, is_default_purchases}],
-next_actions: [...]}`.
+**Returns:** `ListTaxRatesResponse` with `tax_rates: [{id, name, rate,
+display_name, is_default_sales, is_default_purchases}]`, `total_count`,
+`query`.
 
 ---
 
 ### list_operators
-List all manufacturing operators. Returns each operator's id and name.
+List or fuzzy-search manufacturing operators by name. Returns id and name.
 Use the `id` value when assigning operators to manufacturing-order
 operation rows or naming the packer on a sales order.
 
-**Parameters:** _(none)_
+**Parameters:**
+- `query` (optional): Fuzzy match by name.
+- `limit` (optional, default 50, max 250).
+- `format` (optional, default "markdown"): "markdown" | "json".
 
-**Returns:** `{generated_at, summary: {total_operators}, operators: [{id,
-name}], next_actions: [...]}`.
+**Returns:** `ListOperatorsResponse` with `operators: [{id, name}]`,
+`total_count`, `query`.
 
 ---
 
 ### list_additional_costs
-List the additional-cost catalog (freight, duties, handling fees, etc.).
-Returns each entry's id and name. Use the `id` value when calling
-`modify_purchase_order` with `add_additional_costs=[...]`. Pair with
-`list_tax_rates` for the matching `tax_rate_id`.
+List or fuzzy-search the additional-cost catalog (freight, duties,
+handling fees, etc.) by name. Returns id and name. Use the `id` value
+when calling `modify_purchase_order` with `add_additional_costs=[...]`.
+Pair with `list_tax_rates` for the matching `tax_rate_id`.
 
-**Parameters:** _(none)_
+**Parameters:**
+- `query` (optional): Fuzzy match by name.
+- `limit` (optional, default 50, max 250).
+- `format` (optional, default "markdown"): "markdown" | "json".
 
-**Returns:** `{generated_at, summary: {total_additional_costs},
-additional_costs: [{id, name}], next_actions: [...]}`.
+**Returns:** `ListAdditionalCostsResponse` with `additional_costs: [{id,
+name}]`, `total_count`, `query`.
 
 ---
 
@@ -1791,65 +1820,15 @@ Complete catalog of products, materials, and services.
 
 ---
 
-## Reference Data Resources
-
-### katana://suppliers
-All suppliers with contact info.
-
-**Contains:**
-- id, name, email, phone, currency, comment
-- Summary count
-
-**Use when:** Looking up `supplier_id` for `create_purchase_order`.
-
----
-
-### katana://locations
-All warehouses and facilities.
-
-**Contains:**
-- id, name, address, city, country, is_primary
-- Summary count
-
-**Use when:** Looking up `location_id` for orders or inventory checks.
-
----
-
-### katana://tax-rates
-All configured tax rates.
-
-**Contains:**
-- id, name, rate, display_name, default flags
-- Summary count
-
-**Use when:** Looking up `tax_rate_id` for sales order line items.
-
----
-
-### katana://operators
-All manufacturing operators.
-
-**Contains:**
-- id, name
-- Summary count
-
-**Use when:** Assigning operators to manufacturing order operations.
-
----
-
-### katana://additional-costs
-Configured additional-cost catalog (freight, duties, handling fees) for
-purchase orders.
-
-**Contains:**
-- id, name
-- Summary count
-
-**Use when:** Looking up `additional_cost_id` for
-`modify_purchase_order(add_additional_costs=[...])`. Pair with
-`katana://tax-rates` for the matching `tax_rate_id`.
-
----
+> **Note:** Reference data (suppliers, locations, tax rates, operators,
+> additional costs) is exposed only as parameterized tools, not resources.
+> Use `list_suppliers(query=...)`, `list_locations(query=...)`,
+> `list_tax_rates(query=...)`, `list_operators(query=...)`,
+> `list_additional_costs(query=...)`, and `get_supplier(supplier_id)`.
+> The previous bulk-list resources (`katana://suppliers` etc.) were
+> removed because they dumped every row as a single-line JSON blob, which
+> floods agent context — searchable tools with bounded `limit` solve the
+> same lookup needs without the size problem.
 
 ## Help Resources
 

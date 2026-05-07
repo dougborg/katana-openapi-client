@@ -277,9 +277,7 @@ class CreateItemRequest(BaseModel):
     # Optional common fields
     default_supplier_id: int | None = Field(
         None,
-        description=(
-            "Default supplier ID. Look up via `list_suppliers` or `katana://suppliers`."
-        ),
+        description=("Default supplier ID. Look up via `list_suppliers`."),
     )
     additional_info: str | None = Field(None, description="Additional notes")
 
@@ -850,10 +848,7 @@ class ItemHeaderPatch(BaseModel):
     # Product + Material only:
     default_supplier_id: int | None = Field(
         default=None,
-        description=(
-            "New default supplier ID. "
-            "Look up via `list_suppliers` or `katana://suppliers`."
-        ),
+        description=("New default supplier ID. Look up via `list_suppliers`."),
     )
     batch_tracked: bool | None = Field(default=None)
     purchase_uom: str | None = Field(default=None)
