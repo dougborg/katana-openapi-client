@@ -8,12 +8,15 @@ These tools provide:
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+import asyncio
+from collections import Counter
+from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
 from pydantic import BaseModel, ConfigDict, Field
 
+from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.tool_result_utils import (
@@ -22,7 +25,7 @@ from katana_mcp.tools.tool_result_utils import (
     make_tool_result,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
-from katana_public_api_client.domain.converters import unwrap_unset
+from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
     ManufacturingOrder,
     SalesOrder,
@@ -37,6 +40,28 @@ logger = get_logger(__name__)
 # ============================================================================
 
 
+class FulfillRowOverride(BaseModel):
+    """Per-row override for sales-order fulfillment.
+
+    Currently carries serial-number IDs to attach to a specific row. Used
+    when a row's variant is serial-tracked: Katana's
+    ``POST /sales_order_fulfillments`` rejects the request with HTTP 422
+    unless the row carries one ``SerialNumber`` ID per unit shipped.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    sales_order_row_id: int = Field(..., description="Sales order row ID to override")
+    serial_numbers: list[int] | None = Field(
+        default=None,
+        description=(
+            "Pre-existing SerialNumber IDs to attach to this fulfillment row. "
+            "Length must equal the row's ordered quantity. Required when the "
+            "row's variant is serial-tracked."
+        ),
+    )
+
+
 class FulfillOrderRequest(BaseModel):
     """Request to fulfill an order."""
 
@@ -49,6 +74,14 @@ class FulfillOrderRequest(BaseModel):
     preview: bool = Field(
         default=True,
         description="If true (default), returns preview. If false, fulfills order.",
+    )
+    rows: list[FulfillRowOverride] | None = Field(
+        default=None,
+        description=(
+            "Per-row overrides (currently: serial_numbers). When omitted, the "
+            "tool ships the full ordered quantity with no serials attached. "
+            "Sales orders only — ignored for order_type='manufacturing'."
+        ),
     )
 
 
@@ -188,6 +221,173 @@ async def _fulfill_manufacturing_order(
     )
 
 
+async def _fetch_missing_from_api(
+    services: Any,
+    cached: dict[int, dict[str, Any]],
+    needed_ids: set[int],
+    api_get_fn: Any,
+) -> None:
+    """Fill ``cached`` in-place with API fetches for IDs not already present.
+
+    Used to backstop cache misses so a cold or stale cache doesn't mask
+    serial-tracking detection. Failures (404 / network) are swallowed and
+    the ID stays absent from ``cached`` — callers treat that as "unknown,
+    don't block" (best-effort, same fallback as a cache miss).
+    """
+    from katana_public_api_client.models import ErrorResponse
+    from katana_public_api_client.utils import unwrap
+
+    missing = [eid for eid in needed_ids if eid not in cached]
+    if not missing:
+        return
+    responses = await asyncio.gather(
+        *(
+            api_get_fn.asyncio_detailed(id=eid, client=services.client)
+            for eid in missing
+        ),
+        return_exceptions=True,
+    )
+    for eid, response in zip(missing, responses, strict=True):
+        if isinstance(response, BaseException):
+            continue
+        obj = unwrap(response, raise_on_error=False)
+        if obj is None or isinstance(obj, ErrorResponse):
+            continue
+        cached[eid] = obj.to_dict()
+
+
+async def _resolve_row_serial_info(
+    services: Any, so_rows: list[Any]
+) -> tuple[dict[int, bool], dict[int, str]]:
+    """Return ``(serial_tracked_by_row, sku_by_row)`` from cache + API fallback.
+
+    The ``serial_tracked`` flag lives on the parent Product/Material, not on
+    Variant — so we fan out variant-by-id, then group parent IDs by type
+    and bulk-resolve. Cache misses fall back to a per-ID API fetch (parallel)
+    so a cold / stale cache doesn't silently mis-classify a serial-tracked
+    row as "OK to ship without serials" and surface the original Katana 422
+    on apply. IDs that resolve neither in cache nor via API stay marked
+    ``serial_tracked=False`` and ``"variant {id}"`` for SKUs (best-effort,
+    same as if the entity didn't exist). The two parent maps are kept
+    separate per CLAUDE.md "Cache IDs are not globally unique".
+    """
+    if not so_rows:
+        return {}, {}
+    from katana_public_api_client.api.material import get_material
+    from katana_public_api_client.api.product import get_product
+    from katana_public_api_client.api.variant import get_variant
+
+    variant_ids = {row.variant_id for row in so_rows if row.variant_id is not None}
+    variants_by_id = await services.cache.get_many_by_ids(
+        EntityType.VARIANT, variant_ids
+    )
+    await _fetch_missing_from_api(services, variants_by_id, variant_ids, get_variant)
+
+    product_ids = {
+        v.get("product_id") for v in variants_by_id.values() if v.get("product_id")
+    }
+    material_ids = {
+        v.get("material_id") for v in variants_by_id.values() if v.get("material_id")
+    }
+    products, materials = await asyncio.gather(
+        services.cache.get_many_by_ids(EntityType.PRODUCT, product_ids),
+        services.cache.get_many_by_ids(EntityType.MATERIAL, material_ids),
+    )
+    await asyncio.gather(
+        _fetch_missing_from_api(services, products, product_ids, get_product),
+        _fetch_missing_from_api(services, materials, material_ids, get_material),
+    )
+
+    serial_tracked: dict[int, bool] = {}
+    skus: dict[int, str] = {}
+    for row in so_rows:
+        variant = variants_by_id.get(row.variant_id)
+        skus[row.id] = (variant or {}).get("sku") or f"variant {row.variant_id}"
+        if variant is None:
+            serial_tracked[row.id] = False
+            continue
+        if variant.get("product_id"):
+            parent = products.get(variant["product_id"])
+        elif variant.get("material_id"):
+            parent = materials.get(variant["material_id"])
+        else:
+            parent = None
+        serial_tracked[row.id] = bool(parent and parent.get("serial_tracked"))
+    return serial_tracked, skus
+
+
+def _build_row_override_warnings(
+    *,
+    so_rows: list[Any],
+    request_rows: list[FulfillRowOverride],
+    overrides_by_row: dict[int, list[int]],
+    serial_tracked_by_row: dict[int, bool],
+    sku_by_row: dict[int, str],
+    order_number: str,
+) -> list[str]:
+    """Return all ``BLOCK:`` warnings driven by ``request.rows`` content.
+
+    Covers: unknown row IDs, duplicate overrides, serial-tracked rows
+    missing serials, count/quantity mismatches, and non-integer quantity
+    on serial-tracked rows. Numeric comparisons use ``qty`` directly —
+    Python equality treats ``2 == 2.0`` as ``True``, so an integer-valued
+    ``2.0`` qty still matches ``len(serials) == 2``. Non-integral qty on a
+    serial-tracked row is blocked separately, since each serial number
+    represents a whole unit.
+    """
+    warnings: list[str] = []
+    so_row_ids = {row.id for row in so_rows}
+
+    for ovr in request_rows:
+        if ovr.sales_order_row_id not in so_row_ids:
+            warnings.append(
+                f"{BLOCK_WARNING_PREFIX} Row override references unknown "
+                f"sales_order_row_id={ovr.sales_order_row_id} "
+                f"(sales order {order_number} has rows {sorted(so_row_ids)})."
+            )
+
+    # A row appearing twice in `rows=` would silently keep only the last
+    # entry (dict-comp last-key-wins) — flag it so the caller fixes the input.
+    duplicate_override_ids = sorted(
+        rid
+        for rid, count in Counter(
+            ovr.sales_order_row_id for ovr in request_rows
+        ).items()
+        if count > 1
+    )
+    if duplicate_override_ids:
+        warnings.append(
+            f"{BLOCK_WARNING_PREFIX} Multiple overrides for the same "
+            f"sales_order_row_id ({duplicate_override_ids}); each row may "
+            "appear at most once in rows=."
+        )
+
+    for row in so_rows:
+        rid = row.id
+        qty = row.quantity
+        is_tracked = serial_tracked_by_row.get(rid, False)
+        serials = overrides_by_row.get(rid)
+        if is_tracked and qty is not None and qty != int(qty):
+            warnings.append(
+                f"{BLOCK_WARNING_PREFIX} Row {rid} ({sku_by_row.get(rid)}) is "
+                f"serial-tracked but quantity ({qty}) is not a whole number; "
+                "serial-tracked variants must ship in integer units."
+            )
+        elif is_tracked and not serials and (qty or 0) > 0:
+            warnings.append(
+                f"{BLOCK_WARNING_PREFIX} Row {rid} ({sku_by_row.get(rid)}) is "
+                "serial-tracked. Pass serial_numbers via the rows= override "
+                "(one SerialNumber ID per unit)."
+            )
+        elif serials is not None and qty is not None and len(serials) != qty:
+            warnings.append(
+                f"{BLOCK_WARNING_PREFIX} Row {rid} ({sku_by_row.get(rid)}): "
+                f"serial_numbers count ({len(serials)}) must equal quantity "
+                f"({qty})."
+            )
+    return warnings
+
+
 async def _fulfill_sales_order(
     request: FulfillOrderRequest, context: Context
 ) -> FulfillOrderResponse:
@@ -200,6 +400,11 @@ async def _fulfill_sales_order(
     "deliver everything ordered" case. For partial fulfillments the user
     should use the Katana UI directly; the tool's MCP surface intentionally
     keeps the simple case simple.
+
+    Serial-tracked variants need ``serial_numbers`` IDs attached per row;
+    callers pass them via ``request.rows`` (``FulfillRowOverride``). Without
+    them, Katana 422s on apply, so the tool emits a ``BLOCK:`` warning at
+    preview time and refuses on direct apply.
     """
     from katana_public_api_client.api.sales_order import (
         get_sales_order as api_get_sales_order,
@@ -214,15 +419,25 @@ async def _fulfill_sales_order(
     current_status = so.status.value if so.status else "UNKNOWN"
     so_rows = unwrap_unset(so.sales_order_rows, []) or []
 
-    # SKU isn't resolved per row — that would cost an N-row variant fetch on
-    # every preview. variant_id + qty is enough to recognise the shipment.
+    overrides_by_row: dict[int, list[int]] = {
+        ovr.sales_order_row_id: ovr.serial_numbers or []
+        for ovr in (request.rows or [])
+        if ovr.serial_numbers is not None
+    }
+
+    serial_tracked_by_row, sku_by_row = await _resolve_row_serial_info(
+        services, so_rows
+    )
+
     inventory_updates: list[str] = []
     for row in so_rows:
         rid = row.id
         vid = row.variant_id
         qty = row.quantity
+        serials = overrides_by_row.get(rid)
+        suffix = f" with serials {serials}" if serials else ""
         inventory_updates.append(
-            f"Row {rid}: ship {qty} of variant {vid} (full ordered quantity)"
+            f"Row {rid}: ship {qty} of variant {vid} (full ordered quantity){suffix}"
         )
     if not inventory_updates:
         inventory_updates.append("(no rows on this sales order)")
@@ -237,6 +452,17 @@ async def _fulfill_sales_order(
         warnings.append(
             f"{BLOCK_WARNING_PREFIX} Sales order {order_number} has no rows to fulfill."
         )
+
+    warnings.extend(
+        _build_row_override_warnings(
+            so_rows=so_rows,
+            request_rows=request.rows or [],
+            overrides_by_row=overrides_by_row,
+            serial_tracked_by_row=serial_tracked_by_row,
+            sku_by_row=sku_by_row,
+            order_number=order_number,
+        )
+    )
 
     if request.preview:
         has_block = any(w.startswith(BLOCK_WARNING_PREFIX) for w in warnings)
@@ -263,10 +489,10 @@ async def _fulfill_sales_order(
             ),
         )
 
-    # Refuse on apply if the order is already in a delivered state — the
-    # preview's BLOCK warning would have suppressed the Confirm button in
-    # the iframe, but we re-check here so direct/programmatic callers
-    # (skipping the UI) get the same protection.
+    # Refuse on apply if any BLOCK warning is present — the preview would have
+    # suppressed the Confirm button in the iframe, but we re-check here so
+    # direct/programmatic callers (skipping the UI) get the same protection.
+    has_block = any(w.startswith(BLOCK_WARNING_PREFIX) for w in warnings)
     if current_status in ("DELIVERED", "PARTIALLY_DELIVERED"):
         return FulfillOrderResponse(
             order_id=request.order_id,
@@ -297,6 +523,24 @@ async def _fulfill_sales_order(
                 "no fulfillment created."
             ),
         )
+    if has_block:
+        return FulfillOrderResponse(
+            order_id=request.order_id,
+            order_type="sales",
+            order_number=order_number,
+            status=current_status,
+            is_preview=False,
+            inventory_updates=[],
+            warnings=warnings,
+            next_actions=[
+                "Resolve the issue(s) above and retry with the corrected request"
+            ],
+            message=(
+                f"Refused: Sales order {order_number} fulfillment blocked by "
+                f"{sum(1 for w in warnings if w.startswith(BLOCK_WARNING_PREFIX))} "
+                "issue(s); no fulfillment created."
+            ),
+        )
 
     from katana_public_api_client.api.sales_order_fulfillment import (
         create_sales_order_fulfillment as api_create_fulfillment,
@@ -312,6 +556,7 @@ async def _fulfill_sales_order(
         SalesOrderFulfillmentRowRequest(
             sales_order_row_id=row.id,
             quantity=row.quantity,
+            serial_numbers=to_unset(overrides_by_row.get(row.id)),
         )
         for row in so_rows
     ]

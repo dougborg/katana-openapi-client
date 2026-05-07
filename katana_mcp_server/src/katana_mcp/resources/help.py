@@ -1427,6 +1427,12 @@ Complete a manufacturing or sales order.
 - `order_id` (required): Order ID to fulfill
 - `order_type` (required): "manufacturing" or "sales"
 - `preview` (optional, default true): true=preview, false=fulfill
+- `rows` (optional, sales orders only): Per-row overrides
+  `[{sales_order_row_id, serial_numbers?}]`. `serial_numbers` is a list of
+  pre-existing `SerialNumber` IDs to attach to that row; the count must
+  equal the row's ordered quantity. **Required** when the row's variant is
+  serial-tracked — without it, the tool emits a `BLOCK:` warning at preview
+  and refuses on direct apply (Katana would 422 the request).
 
 ---
 
