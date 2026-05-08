@@ -192,7 +192,19 @@ def test_render_modification_md_includes_parent_id_when_set():
     assert "**Parent ID**: 42" in md
 
 
-def test_to_tool_result_serializes_response_as_structured_data():
+def test_to_tool_result_emits_prefab_envelope_and_response_in_content():
+    """to_tool_result wires the Prefab modification card.
+
+    Per the MCP Apps spec (SEP-1865) and ``make_tool_result``: the
+    response JSON lives in ``content`` (model context — what the LLM
+    reads), and the Prefab envelope lives in ``structured_content`` (for
+    iframe rendering). The card shape itself is covered by
+    ``test_prefab_ui.py``; here we just verify the wiring.
+    """
+    import json as _json
+
+    from katana_mcp.tools._modification import ConfirmableRequest
+
     response = ModificationResponse(
         entity_type="purchase_order",
         entity_id=1,
@@ -200,12 +212,24 @@ def test_to_tool_result_serializes_response_as_structured_data():
         is_preview=False,
         message="ok",
     )
-    result = to_tool_result(response)
-    # The structured payload mirrors the response model — downstream callers
-    # rely on the shape via ``structured_content``.
+    confirm_request = ConfirmableRequest(id=1, preview=False)
+    result = to_tool_result(
+        response,
+        confirm_request=confirm_request,
+        confirm_tool="modify_purchase_order",
+    )
+
+    # content carries the response JSON for the LLM.
+    assert result.content
+    text = result.content[0].text  # type: ignore[union-attr]
+    payload = _json.loads(text)
+    assert payload["entity_type"] == "purchase_order"
+    assert payload["operation"] == "update"
+
+    # structured_content carries the Prefab envelope for the iframe.
     assert result.structured_content is not None
-    assert result.structured_content["entity_type"] == "purchase_order"
-    assert result.structured_content["operation"] == "update"
+    assert "$prefab" in result.structured_content
+    assert "view" in result.structured_content
 
 
 # ============================================================================

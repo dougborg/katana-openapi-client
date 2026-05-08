@@ -2780,7 +2780,9 @@ async def modify_purchase_order(
       pre-modification PO so callers can compose a revert call manually.
     """
     response = await _modify_purchase_order_impl(request, context)
-    return to_tool_result(response)
+    return to_tool_result(
+        response, confirm_request=request, confirm_tool="modify_purchase_order"
+    )
 
 
 # ============================================================================
@@ -2817,7 +2819,9 @@ async def delete_purchase_order(
     snapshot of the pre-delete PO so callers can recreate it manually if needed.
     """
     response = await _delete_purchase_order_impl(request, context)
-    return to_tool_result(response)
+    return to_tool_result(
+        response, confirm_request=request, confirm_tool="delete_purchase_order"
+    )
 
 
 def register_tools(mcp: FastMCP) -> None:
@@ -2884,10 +2888,14 @@ def register_tools(mcp: FastMCP) -> None:
         modify_purchase_order,
         tags={"orders", "purchasing", "write"},
         annotations=_modify,
+        meta=UI_META,
+        direct=True,
     )
     register_preview_tool(
         mcp,
         delete_purchase_order,
         tags={"orders", "purchasing", "write", "destructive"},
         annotations=_destructive,
+        meta=UI_META,
+        direct=True,
     )

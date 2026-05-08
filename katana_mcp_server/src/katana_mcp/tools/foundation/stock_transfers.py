@@ -41,6 +41,7 @@ from katana_mcp.tools._modification_dispatch import (
 )
 from katana_mcp.tools.tool_result_utils import (
     BLOCK_WARNING_PREFIX,
+    UI_META,
     PaginationMeta,
     apply_date_window_filters,
     enum_to_str,
@@ -994,7 +995,9 @@ async def modify_stock_transfer(
     so previews show every supplied field as ``(prior unknown) → new``.
     """
     response = await _modify_stock_transfer_impl(request, context)
-    return to_tool_result(response)
+    return to_tool_result(
+        response, confirm_request=request, confirm_tool="modify_stock_transfer"
+    )
 
 
 # ============================================================================
@@ -1034,7 +1037,9 @@ async def delete_stock_transfer(
     with a snapshot for manual revert).
     """
     response = await _delete_stock_transfer_impl(request, context)
-    return to_tool_result(response)
+    return to_tool_result(
+        response, confirm_request=request, confirm_tool="delete_stock_transfer"
+    )
 
 
 # ============================================================================
@@ -1085,10 +1090,14 @@ def register_tools(mcp: FastMCP) -> None:
         modify_stock_transfer,
         tags={"inventory", "stock_transfer", "write"},
         annotations=_modify,
+        meta=UI_META,
+        direct=True,
     )
     register_preview_tool(
         mcp,
         delete_stock_transfer,
         tags={"inventory", "stock_transfer", "write", "destructive"},
         annotations=_destructive,
+        meta=UI_META,
+        direct=True,
     )

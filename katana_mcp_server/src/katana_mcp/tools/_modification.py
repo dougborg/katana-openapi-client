@@ -31,7 +31,7 @@ from typing import Any, ClassVar
 from fastmcp.tools import ToolResult
 from pydantic import BaseModel, ConfigDict, Field
 
-from katana_mcp.tools.tool_result_utils import BLOCK_WARNING_PREFIX, make_simple_result
+from katana_mcp.tools.tool_result_utils import BLOCK_WARNING_PREFIX, make_tool_result
 from katana_public_api_client.client_types import UNSET, Unset
 from katana_public_api_client.domain.converters import unwrap_unset
 
@@ -425,9 +425,39 @@ def render_modification_md(response: ModificationResponse) -> str:
     return "\n".join(lines)
 
 
-def to_tool_result(response: ModificationResponse) -> ToolResult:
-    """Build a :class:`ToolResult` from a :class:`ModificationResponse`."""
-    return make_simple_result(
-        render_modification_md(response),
-        structured_data=response.model_dump(),
+def to_tool_result(
+    response: ModificationResponse,
+    *,
+    confirm_request: ConfirmableRequest,
+    confirm_tool: str,
+) -> ToolResult:
+    """Build a :class:`ToolResult` with a Prefab UI from a ModificationResponse.
+
+    Preview branch: emits ``build_modification_preview_ui`` with the
+    direct-apply rail (Confirm fires ``tools/call`` directly + iframe
+    pushes the structured result back via ``ui/update-model-context``).
+    Non-preview branch: emits ``build_modification_result_ui`` summarizing
+    each action's terminal status.
+
+    ``confirm_request`` is the original Pydantic request (its ``preview``
+    field flips to ``False`` when the iframe re-issues for apply);
+    ``confirm_tool`` is the registered MCP tool name to re-call. The
+    preview branch wires both into the Confirm-button CallTool; the
+    result branch uses ``confirm_tool`` to derive the title verb so a
+    delete reads "Product Delete" instead of "Product Modification".
+    """
+    from katana_mcp.tools.prefab_ui import (
+        build_modification_preview_ui,
+        build_modification_result_ui,
     )
+
+    response_dict = response.model_dump()
+    if response.is_preview:
+        ui = build_modification_preview_ui(
+            response_dict,
+            confirm_request=confirm_request,
+            confirm_tool=confirm_tool,
+        )
+    else:
+        ui = build_modification_result_ui(response_dict, tool_name=confirm_tool)
+    return make_tool_result(response, ui=ui)
