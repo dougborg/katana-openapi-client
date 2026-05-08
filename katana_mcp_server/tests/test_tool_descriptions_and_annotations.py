@@ -72,6 +72,11 @@ DIRECT_APPLY_TOOLS = [
     "correct_manufacturing_order",
     "correct_sales_order",
     "correct_purchase_order",
+    # Stock adjustment family — moved to direct-apply when their Prefab
+    # cards landed (closes part of #639).
+    "create_stock_adjustment",
+    "update_stock_adjustment",
+    "delete_stock_adjustment",
 ]
 
 # Tools still using the SendMessage rail (default, per ADR-0015). Tracked
@@ -79,9 +84,6 @@ DIRECT_APPLY_TOOLS = [
 SEND_MESSAGE_APPLY_TOOLS = [
     "receive_purchase_order",
     "create_stock_transfer",
-    "create_stock_adjustment",
-    "update_stock_adjustment",
-    "delete_stock_adjustment",
     "fulfill_order",
 ]
 

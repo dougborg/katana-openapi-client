@@ -836,6 +836,324 @@ def build_low_stock_ui(
 
 
 # ============================================================================
+# Stock Adjustment UIs (Create / Update / Delete)
+# ============================================================================
+
+
+_STOCK_ADJUSTMENT_ROW_COLUMNS: list[DataTableColumn] = [
+    DataTableColumn(key="sku", header="SKU"),
+    DataTableColumn(key="display_name", header="Item"),
+    DataTableColumn(key="quantity_label", header="Qty Change", align="right"),
+    DataTableColumn(key="cost_label", header="Cost / unit", align="right"),
+]
+
+_STOCK_ADJUSTMENT_FIELD_DIFF_COLUMNS: list[DataTableColumn] = [
+    DataTableColumn(key="field", header="Field"),
+    DataTableColumn(key="new_value", header="New Value"),
+]
+
+
+def _format_qty_change(qty: float) -> str:
+    """Format a quantity change with leading sign (e.g., ``+1.0``, ``-3.5``)."""
+    return f"{qty:+.1f}"
+
+
+def _format_cost(cost: float | int | None) -> str:
+    """Format a per-unit cost; ``—`` when omitted."""
+    if cost is None:
+        return "—"
+    return f"{cost:.2f}"
+
+
+# Initial state slots written by the direct-apply rail's Confirm/Cancel
+# action chains. Builders that opt into the rail seed these to ``False`` /
+# ``None`` so the iframe's If/Elif blocks have something to bind to before
+# the first click. ``SetState`` mutations from
+# ``_build_apply_action_direct`` / ``_build_cancel_action`` flip them.
+_DIRECT_APPLY_STATE_INIT: dict[str, Any] = {
+    "pending": False,
+    "cancelled": False,
+    "applied": False,
+    "error": None,
+}
+
+
+def _stock_adjustment_rows_for_table(
+    rows: list[dict[str, Any]] | None,
+) -> list[dict[str, Any]]:
+    """Project StockAdjustmentRowSummary dicts onto the DataTable row shape.
+
+    Trusts the upstream pydantic model's type guarantees — the dict comes
+    from ``StockAdjustmentResponse.model_dump()`` so ``sku`` /
+    ``display_name`` / ``quantity`` are already correctly typed.
+    """
+    return [
+        {
+            "sku": r["sku"],
+            "display_name": r["display_name"],
+            "quantity_label": _format_qty_change(r["quantity"]),
+            "cost_label": _format_cost(r.get("cost_per_unit")),
+        }
+        for r in (rows or [])
+    ]
+
+
+def build_stock_adjustment_create_ui(
+    response: dict[str, Any],
+    *,
+    confirm_request: BaseModel,
+    confirm_tool: str,
+) -> PrefabApp:
+    """Build the create-stock-adjustment preview card with direct-apply rail.
+
+    Used for both the ``preview=True`` branch (Confirm + Cancel buttons,
+    direct-apply morph) and the ``preview=False`` branch (no buttons,
+    "View in Katana" link). The same builder handles both via the
+    ``is_preview`` flag — symmetric with how the modification card
+    pair is structured.
+    """
+    is_preview = bool(response.get("is_preview"))
+    rows = _stock_adjustment_rows_for_table(response.get("rows"))
+    state: dict[str, Any] = {"plan_rows": rows}
+    apply_action: list[Action] | None = None
+    cancel_action: list[Action] | None = None
+    if is_preview:
+        state.update(_DIRECT_APPLY_STATE_INIT)
+        apply_action = _build_apply_action_direct(confirm_tool, confirm_request)
+        cancel_action = _build_cancel_action("the stock adjustment")
+
+    location_id = response.get("location_id")
+    adj_id = response.get("id")
+    reason = response.get("reason")
+
+    with PrefabApp(state=state, css_class="p-4") as app, Card():
+        with CardHeader(), Row(gap=2):
+            CardTitle(content="Stock Adjustment")
+            if adj_id is not None:
+                Badge(label=f"#{adj_id}", variant="outline")
+            if location_id is not None:
+                Badge(label=f"Location {location_id}", variant="outline")
+            Badge(
+                label="PREVIEW" if is_preview else "APPLIED",
+                variant="secondary" if is_preview else "default",
+            )
+
+        with CardContent(), Column(gap=3):
+            if response.get("message"):
+                Text(content=response["message"])
+            if reason:
+                Muted(content=f"Reason: {reason}")
+
+            if rows:
+                DataTable(
+                    columns=_STOCK_ADJUSTMENT_ROW_COLUMNS,
+                    rows="{{ plan_rows }}",
+                )
+
+            if is_preview:
+                with If("error"):
+                    Separator()
+                    with Alert(variant="destructive", icon="circle-alert"):
+                        AlertTitle(content="Apply failed")
+                        AlertDescription(content="{{ error }}")
+
+        with CardFooter(), Row(gap=2):
+            if apply_action is not None and cancel_action is not None:
+                with If("applied"):
+                    Muted(content="Stock adjustment created.")
+                with Elif("error"):
+                    Muted(content="Apply failed — see error above.")
+                with Elif("cancelled"):
+                    Muted(content="Cancelled. No changes were made.")
+                with Else():
+                    Muted(content="This is a preview. No changes have been made.")
+                _render_apply_button_row(
+                    confirm_label="Confirm & Create",
+                    apply_action=apply_action,
+                    cancel_action=cancel_action,
+                    direct_apply=True,
+                )
+            elif response.get("katana_url"):
+                Button(
+                    label="View in Katana",
+                    variant="outline",
+                    on_click=SendMessage(
+                        f"Open {response['katana_url']} in the Katana web UI"
+                    ),
+                )
+    return app
+
+
+def build_stock_adjustment_update_ui(
+    response: dict[str, Any],
+    *,
+    confirm_request: BaseModel,
+    confirm_tool: str,
+) -> PrefabApp:
+    """Build the update-stock-adjustment preview card with direct-apply rail.
+
+    Renders the requested header field changes as a small DataTable so
+    the user can sanity-check what's about to be patched.
+    """
+    is_preview = bool(response.get("is_preview"))
+    diff_rows: list[dict[str, str]] = []
+    for field, label in (
+        ("stock_adjustment_number", "Number"),
+        ("stock_adjustment_date", "Date"),
+        ("location_id", "Location ID"),
+        ("reason", "Reason"),
+        ("additional_info", "Additional Info"),
+    ):
+        value = response.get(field)
+        if value is not None:
+            diff_rows.append({"field": label, "new_value": str(value)})
+
+    state: dict[str, Any] = {"diff_rows": diff_rows}
+    apply_action: list[Action] | None = None
+    cancel_action: list[Action] | None = None
+    if is_preview:
+        state.update(_DIRECT_APPLY_STATE_INIT)
+        apply_action = _build_apply_action_direct(confirm_tool, confirm_request)
+        cancel_action = _build_cancel_action("the stock-adjustment update")
+
+    with PrefabApp(state=state, css_class="p-4") as app, Card():
+        with CardHeader(), Row(gap=2):
+            CardTitle(content="Update Stock Adjustment")
+            if response.get("id") is not None:
+                Badge(label=f"#{response['id']}", variant="outline")
+            Badge(
+                label="PREVIEW" if is_preview else "UPDATED",
+                variant="secondary" if is_preview else "default",
+            )
+
+        with CardContent(), Column(gap=3):
+            if response.get("message"):
+                Text(content=response["message"])
+            if diff_rows:
+                DataTable(
+                    columns=_STOCK_ADJUSTMENT_FIELD_DIFF_COLUMNS,
+                    rows="{{ diff_rows }}",
+                )
+            else:
+                Muted(content="No field changes supplied.")
+
+            if is_preview:
+                with If("error"):
+                    Separator()
+                    with Alert(variant="destructive", icon="circle-alert"):
+                        AlertTitle(content="Apply failed")
+                        AlertDescription(content="{{ error }}")
+
+        with CardFooter(), Row(gap=2):
+            if apply_action is not None and cancel_action is not None:
+                with If("applied"):
+                    Muted(content="Stock adjustment updated.")
+                with Elif("error"):
+                    Muted(content="Apply failed — see error above.")
+                with Elif("cancelled"):
+                    Muted(content="Cancelled. No changes were made.")
+                with Else():
+                    Muted(content="This is a preview. No changes have been made.")
+                _render_apply_button_row(
+                    confirm_label="Confirm & Update",
+                    apply_action=apply_action,
+                    cancel_action=cancel_action,
+                    direct_apply=True,
+                )
+            elif response.get("katana_url"):
+                Button(
+                    label="View in Katana",
+                    variant="outline",
+                    on_click=SendMessage(
+                        f"Open {response['katana_url']} in the Katana web UI"
+                    ),
+                )
+    return app
+
+
+def build_stock_adjustment_delete_ui(
+    response: dict[str, Any],
+    *,
+    confirm_request: BaseModel,
+    confirm_tool: str,
+) -> PrefabApp:
+    """Build the delete-stock-adjustment preview card with direct-apply rail.
+
+    Surfaces the identifying details (number, location, row count) so the
+    user can sanity-check before confirming. Apply path reverses the
+    associated inventory movements server-side — that consequence is
+    called out in the footer copy.
+    """
+    is_preview = bool(response.get("is_preview"))
+    state: dict[str, Any] = {}
+    apply_action: list[Action] | None = None
+    cancel_action: list[Action] | None = None
+    if is_preview:
+        state = dict(_DIRECT_APPLY_STATE_INIT)
+        apply_action = _build_apply_action_direct(confirm_tool, confirm_request)
+        cancel_action = _build_cancel_action("the stock-adjustment deletion")
+
+    with PrefabApp(state=state, css_class="p-4") as app, Card():
+        with CardHeader(), Row(gap=2):
+            CardTitle(content="Delete Stock Adjustment")
+            if response.get("id") is not None:
+                Badge(label=f"#{response['id']}", variant="outline")
+            Badge(
+                label="PREVIEW" if is_preview else "DELETED",
+                variant="secondary" if is_preview else "destructive",
+            )
+
+        with CardContent(), Column(gap=3):
+            if response.get("message"):
+                Text(content=response["message"])
+
+            with Row(gap=4):
+                Metric(
+                    label="Number",
+                    value=str(response.get("stock_adjustment_number") or "—"),
+                )
+                Metric(
+                    label="Location",
+                    value=str(response.get("location_id") or "—"),
+                )
+                Metric(
+                    label="Rows",
+                    value=str(response.get("row_count", 0)),
+                )
+
+            if is_preview:
+                Muted(
+                    content=(
+                        "Deleting reverses the associated inventory "
+                        "movements server-side. This cannot be undone."
+                    )
+                )
+                with If("error"):
+                    Separator()
+                    with Alert(variant="destructive", icon="circle-alert"):
+                        AlertTitle(content="Apply failed")
+                        AlertDescription(content="{{ error }}")
+
+        with CardFooter(), Row(gap=2):
+            if apply_action is not None and cancel_action is not None:
+                with If("applied"):
+                    Muted(content="Stock adjustment deleted.")
+                with Elif("error"):
+                    Muted(content="Apply failed — see error above.")
+                with Elif("cancelled"):
+                    Muted(content="Cancelled. No changes were made.")
+                with Else():
+                    Muted(content="This is a preview. No changes have been made.")
+                _render_apply_button_row(
+                    confirm_label="Confirm & Delete",
+                    apply_action=apply_action,
+                    cancel_action=cancel_action,
+                    direct_apply=True,
+                )
+    return app
+
+
+# ============================================================================
 # Order UIs (Preview + Created)
 # ============================================================================
 
