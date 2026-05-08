@@ -1311,13 +1311,44 @@ for manual recovery.
 ---
 
 ### create_sales_order
-Create a sales order.
+Create a sales order with preview/apply pattern.
 
-**Parameters:**
-- `customer_id` (required): Customer ID (use `search_customers` to find)
-- `order_number` (required): Unique sales order number
-- `items` (required): Array of items with variant_id, quantity, and optional price_per_unit
-- `preview` (optional, default true): true=preview, false=create
+**Required:**
+- `customer_id`: Customer ID (use `search_customers` to find)
+- `order_number`: Unique sales order number
+- `items`: Array of items, each with `variant_id`, `quantity`, plus
+  optional `price_per_unit`, `tax_rate_id`, `location_id`,
+  `total_discount`, and `attributes` (`list[{key, value}]` for product
+  customization metadata like engraving text, monogram, gift-wrap notes)
+
+**Optional header fields:**
+- `location_id`: Primary fulfillment location ID
+- `delivery_date` (ISO 8601): Requested delivery date
+- `order_created_date` (ISO 8601): When the order was placed. Leave None
+  to let Katana stamp the current server time. Supply for back-fills or
+  to reflect the actual placement date when different from call time.
+- `currency`: Currency code (defaults to company base currency)
+- `addresses`: List of billing/shipping addresses
+- `notes`: Internal notes (additional_info on the wire)
+- `customer_ref`: Customer's reference number
+
+**Shipping / tracking:**
+- `tracking_number`, `tracking_number_url`: Set if a carrier label is
+  already known at creation time; otherwise patch in via
+  `modify_sales_order.update_header.tracking_number`.
+
+**Ecommerce cross-references** (set when the SO mirrors an order from a
+storefront — Shopify, WooCommerce, etc.):
+- `ecommerce_order_type`: e.g. 'shopify_order'
+- `ecommerce_store_name`: e.g. 'Acme Online Store'
+- `ecommerce_order_id`: Original platform order ID
+
+**Custom fields:**
+- `custom_fields`: `list[{field_name, field_value}]`. Names must already
+  exist on the SO custom-field collection (configured via Katana's UI).
+  Sending an unknown name yields a 422.
+
+**`preview`** (optional, default true): true=preview, false=create.
 
 ---
 

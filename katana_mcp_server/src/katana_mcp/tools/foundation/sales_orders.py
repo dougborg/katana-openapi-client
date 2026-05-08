@@ -14,7 +14,7 @@ Tools:
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime
+from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal
 
@@ -101,9 +101,11 @@ from katana_public_api_client.models import (
     CreateSalesOrderFulfillmentRequest as APICreateSOFulfillmentRequest,
     CreateSalesOrderRequest as APICreateSalesOrderRequest,
     CreateSalesOrderRequestSalesOrderRowsItem,
+    CreateSalesOrderRequestSalesOrderRowsItemAttributesItem as APISORowAttributeItem,
     CreateSalesOrderRowRequest as APICreateSORowRequest,
     CreateSalesOrderShippingFeeRequest as APICreateSOShippingFeeRequest,
     CreateSalesOrderStatus,
+    CustomFieldValue as APICustomFieldValue,
     SalesOrder,
     SalesOrderAddress as APISalesOrderAddress,
     SalesOrderFulfillment,
@@ -128,6 +130,34 @@ logger = get_logger(__name__)
 # ============================================================================
 
 
+class SalesOrderRowAttribute(BaseModel):
+    """A free-form key/value attribute attached to a sales-order row.
+
+    Used for product customization metadata (engraving text, monogram,
+    gift-wrap notes, etc.). The same shape lands on
+    ``modify_sales_order.update_rows[*].attributes`` so callers can edit
+    these later.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    key: str = Field(..., description="Attribute key")
+    value: str = Field(..., description="Attribute value")
+
+
+class SalesOrderCustomField(BaseModel):
+    """A custom-field value attached to the sales order header.
+
+    Names must already exist on the SO custom-field collection (configured
+    via Katana's UI). Sending an unknown name yields a 422 from Katana.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    field_name: str = Field(..., description="Custom field name")
+    field_value: str = Field(..., description="Custom field value")
+
+
 class SalesOrderItem(BaseModel):
     """Line item for a sales order."""
 
@@ -149,6 +179,14 @@ class SalesOrderItem(BaseModel):
     )
     total_discount: float | None = Field(
         default=None, description="Discount for this line item (optional)"
+    )
+    attributes: list[SalesOrderRowAttribute] | None = Field(
+        default=None,
+        description=(
+            "Free-form key/value attributes attached to this row — e.g. "
+            "engraving text, monogram, gift-wrap notes. Use a list-of-objects "
+            "shape: `[{key: 'engraving', value: 'For Dad'}]`."
+        ),
     )
 
 
@@ -195,6 +233,15 @@ class CreateSalesOrderRequest(BaseModel):
             "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
         ),
     )
+    order_created_date: datetime | None = Field(
+        default=None,
+        description=(
+            "Date the order was placed. Leave None to let Katana stamp the "
+            "current time server-side; supply a value for back-fills (e.g. "
+            "importing historical orders) or to reflect actual placement when "
+            "different from the call time."
+        ),
+    )
     currency: str | None = Field(
         default=None,
         description="Currency code (defaults to company base currency)",
@@ -205,6 +252,48 @@ class CreateSalesOrderRequest(BaseModel):
     notes: str | None = Field(default=None, description="Additional notes (optional)")
     customer_ref: str | None = Field(
         default=None, description="Customer's reference number (optional)"
+    )
+    tracking_number: str | None = Field(
+        default=None,
+        description=(
+            "Shipping tracking number (optional). Set if a carrier label is "
+            "already known at order-creation time; otherwise patch in later "
+            "via `modify_sales_order.update_header.tracking_number`."
+        ),
+    )
+    tracking_number_url: str | None = Field(
+        default=None,
+        description="URL pointing to the tracking page for the shipment.",
+    )
+    ecommerce_order_type: str | None = Field(
+        default=None,
+        description=(
+            "Type of ecommerce order, e.g. 'shopify_order' / 'woocommerce_order'. "
+            "Use when the SO mirrors an order from an ecommerce store."
+        ),
+    )
+    ecommerce_store_name: str | None = Field(
+        default=None,
+        description=(
+            "Name of the ecommerce store the order originated from "
+            "(e.g. 'Acme Online Store')."
+        ),
+    )
+    ecommerce_order_id: str | None = Field(
+        default=None,
+        description=(
+            "Original order ID from the ecommerce platform — used to "
+            "cross-reference the Katana SO back to the storefront record."
+        ),
+    )
+    custom_fields: list[SalesOrderCustomField] | None = Field(
+        default=None,
+        description=(
+            "Custom-field values attached to the sales order header. Names "
+            "must already exist on the SO custom-field collection (configured "
+            "via Katana's UI). Use a list-of-objects shape: "
+            "`[{field_name: 'PO Reference', field_value: 'PO-12345'}]`."
+        ),
     )
     preview: bool = Field(
         default=True,
@@ -314,6 +403,12 @@ async def _create_sales_order_impl(
         # Build sales order rows
         so_rows = []
         for item in request.items:
+            row_attributes: list[APISORowAttributeItem] | Unset = UNSET
+            if item.attributes is not None:
+                row_attributes = [
+                    APISORowAttributeItem(key=a.key, value=a.value)
+                    for a in item.attributes
+                ]
             row = CreateSalesOrderRequestSalesOrderRowsItem(
                 variant_id=item.variant_id,
                 quantity=item.quantity,
@@ -321,6 +416,7 @@ async def _create_sales_order_impl(
                 tax_rate_id=to_unset(item.tax_rate_id),
                 location_id=to_unset(item.location_id),
                 total_discount=to_unset(item.total_discount),
+                attributes=row_attributes,
             )
             so_rows.append(row)
 
@@ -346,18 +442,37 @@ async def _create_sales_order_impl(
                 )
                 addresses_list.append(api_addr)
 
-        # Build API request
+        # Build API request. order_created_date is forwarded from the caller
+        # (None => UNSET => Katana server-stamps it) — the previous
+        # datetime.now(UTC) hardcode silently overwrote any caller intent and
+        # blocked back-fills, mirroring the create_purchase_order regression
+        # that #605 / #627 fixed.
+        custom_fields_list: list[APICustomFieldValue] | Unset = UNSET
+        if request.custom_fields is not None:
+            custom_fields_list = [
+                APICustomFieldValue(
+                    field_name=cf.field_name, field_value=cf.field_value
+                )
+                for cf in request.custom_fields
+            ]
+
         api_request = APICreateSalesOrderRequest(
             order_no=request.order_number,
             customer_id=request.customer_id,
             sales_order_rows=so_rows,
             location_id=to_unset(request.location_id),
             delivery_date=to_unset(request.delivery_date),
+            order_created_date=to_unset(request.order_created_date),
             currency=to_unset(request.currency),
             addresses=addresses_list,
             additional_info=to_unset(request.notes),
             customer_ref=to_unset(request.customer_ref),
-            order_created_date=datetime.now(UTC),
+            tracking_number=to_unset(request.tracking_number),
+            tracking_number_url=to_unset(request.tracking_number_url),
+            ecommerce_order_type=to_unset(request.ecommerce_order_type),
+            ecommerce_store_name=to_unset(request.ecommerce_store_name),
+            ecommerce_order_id=to_unset(request.ecommerce_order_id),
+            custom_fields=custom_fields_list,
             status=CreateSalesOrderStatus.PENDING,
         )
 
