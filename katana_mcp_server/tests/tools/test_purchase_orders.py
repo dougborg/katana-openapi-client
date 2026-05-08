@@ -473,6 +473,29 @@ async def test_create_purchase_order_apply_omits_unset_header_fields():
 
 
 @pytest.mark.asyncio
+async def test_create_purchase_order_apply_fails_fast_on_outsourced_without_tracking():
+    """Apply path must raise ValueError immediately when entity_type='outsourced'
+    without tracking_location_id, instead of relying on Katana to 422.
+    Programmatic callers using preview=false don't see the BLOCK warning, so
+    fail-fast at the MCP boundary is what they get.
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_id = AsyncMock(return_value=None)
+
+    request = CreatePurchaseOrderRequest(
+        supplier_id=4001,
+        location_id=1,
+        order_number="PO-OS-MISSING",
+        items=[PurchaseOrderItem(variant_id=1, quantity=1, price_per_unit=1.0)],
+        entity_type="outsourced",
+        # tracking_location_id intentionally omitted
+        preview=False,
+    )
+    with pytest.raises(ValueError, match="tracking_location_id"):
+        await _create_purchase_order_impl(request, context)
+
+
+@pytest.mark.asyncio
 async def test_create_purchase_order_preview_warns_on_outsourced_without_tracking():
     """Preview must surface a BLOCK warning when entity_type='outsourced' but
     tracking_location_id is None — Katana would 422 the request, so flag it

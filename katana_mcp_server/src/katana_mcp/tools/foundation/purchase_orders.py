@@ -161,7 +161,7 @@ class CreatePurchaseOrderRequest(BaseModel):
         None,
         description="Initial status — 'DRAFT' or 'NOT_RECEIVED' (default: NOT_RECEIVED)",
     )
-    entity_type: Literal["regular", "outsourced"] | None = Field(
+    entity_type: PurchaseOrderEntityType | None = Field(
         None,
         description=(
             "Type of purchase order. 'regular' (default) buys raw materials or "
@@ -338,6 +338,18 @@ async def _create_purchase_order_impl(
             message=f"Preview: Purchase order {request.order_number} with {len(request.items)} items totaling {total_cost:.2f}",
         )
 
+    # Mirror the preview-branch BLOCK warning as a fail-fast check on the
+    # apply path — clearer error than waiting for Katana's 422 when callers
+    # bypass the preview UI (e.g. programmatic ``preview=false``).
+    if (
+        request.entity_type == PurchaseOrderEntityType.OUTSOURCED
+        and request.tracking_location_id is None
+    ):
+        raise ValueError(
+            "entity_type='outsourced' requires tracking_location_id. "
+            "Either supply tracking_location_id or set entity_type='regular'."
+        )
+
     try:
         # Build purchase order rows
         po_rows = []
@@ -359,11 +371,7 @@ async def _create_purchase_order_impl(
         # (None => UNSET => Katana server-stamps it). Previously the MCP layer
         # hardcoded datetime.now(UTC), which silently overwrote any caller
         # intent and blocked back-fills (#605).
-        entity_type_attr = (
-            PurchaseOrderEntityType(request.entity_type)
-            if request.entity_type is not None
-            else PurchaseOrderEntityType.REGULAR
-        )
+        entity_type_attr = request.entity_type or PurchaseOrderEntityType.REGULAR
         api_request = APICreatePurchaseOrderRequest(
             order_no=request.order_number,
             supplier_id=request.supplier_id,
