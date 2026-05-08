@@ -9,6 +9,7 @@ headers that LLM consumers misread (the SW7083 supplier_item_codes bug).
 from __future__ import annotations
 
 import json
+from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -44,20 +45,28 @@ def _patch_cache_sync():
     first call, so patching the cache_sync module alone is not enough — we
     also need to clear and re-mock the cached mapping in the decorators module.
 
-    ``get_variant_details`` syncs VARIANT plus PRODUCT, MATERIAL, and SUPPLIER
+    ``get_variant_details`` syncs Variant plus Product, Material, and Supplier
     (so the parent-derived ``default_supplier_id`` / ``default_supplier_name``
     can be lifted onto the variant response — see #613-followup), so all four
     are mocked.
+
+    Decorator keys are now typed-cache ``Cached*`` classes (#472 Phase C).
     """
-    from katana_mcp.cache import EntityType
     from katana_mcp.tools import decorators
+
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedMaterial,
+        CachedProduct,
+        CachedSupplier,
+        CachedVariant,
+    )
 
     original = decorators._sync_fns
     decorators._sync_fns = {
-        EntityType.VARIANT: AsyncMock(),
-        EntityType.PRODUCT: AsyncMock(),
-        EntityType.MATERIAL: AsyncMock(),
-        EntityType.SUPPLIER: AsyncMock(),
+        CachedVariant: AsyncMock(),
+        CachedProduct: AsyncMock(),
+        CachedMaterial: AsyncMock(),
+        CachedSupplier: AsyncMock(),
     }
     try:
         with patch(
@@ -164,13 +173,19 @@ async def test_get_variant_details_format_json_includes_deleted_at():
 @pytest.mark.asyncio
 async def test_get_variant_details_syncs_parent_entity_caches():
     """get_variant_details lifts ``default_supplier_id`` / ``_name`` from the
-    parent product/material — so PRODUCT, MATERIAL, and SUPPLIER caches must
-    be synced alongside VARIANT before the lookup runs. Otherwise a fresh
+    parent product/material — so Product, Material, and Supplier caches must
+    be synced alongside Variant before the lookup runs. Otherwise a fresh
     install / cold cache yields ``default_supplier_id: null`` for variants
     whose parent simply hasn't been cached yet.
     """
-    from katana_mcp.cache import EntityType
     from katana_mcp.tools import decorators
+
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedMaterial,
+        CachedProduct,
+        CachedSupplier,
+        CachedVariant,
+    )
 
     context, lifespan_ctx = create_mock_context()
     lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=dict(_FULL_VARIANT_DICT))
@@ -180,13 +195,15 @@ async def test_get_variant_details_syncs_parent_entity_caches():
 
     sync_fns = decorators._sync_fns
     assert sync_fns is not None  # set by the autouse fixture
-    for entity_type in (
-        EntityType.VARIANT,
-        EntityType.PRODUCT,
-        EntityType.MATERIAL,
-        EntityType.SUPPLIER,
+    for cls in (
+        CachedVariant,
+        CachedProduct,
+        CachedMaterial,
+        CachedSupplier,
     ):
-        sync_fns[entity_type].assert_awaited()
+        # Fixture stores AsyncMock instances; the dict's declared element
+        # type is the production callable signature, so cast for ty.
+        cast("AsyncMock", sync_fns[cls]).assert_awaited()
 
 
 @pytest.mark.asyncio

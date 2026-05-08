@@ -37,6 +37,7 @@ from katana_mcp.web_urls import katana_web_url
 from katana_public_api_client.api.stock_adjustment import get_all_stock_adjustments
 from katana_public_api_client.client_types import UNSET, Unset
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
+from katana_public_api_client.models_pydantic._generated import CachedVariant
 from katana_public_api_client.utils import unwrap_data
 
 logger = get_logger(__name__)
@@ -415,7 +416,7 @@ class LowStockResponse(BaseModel):
     total_count: int
 
 
-@cache_read(EntityType.VARIANT)
+@cache_read(CachedVariant)
 async def _list_low_stock_items_impl(
     request: LowStockRequest, context: Context
 ) -> LowStockResponse:

@@ -91,6 +91,12 @@ from katana_public_api_client.models import (
     UpdateVariantRequestConfigAttributesItem as APIUpdateVariantConfigItem,
     Variant,
 )
+from katana_public_api_client.models_pydantic._generated import (
+    CachedMaterial,
+    CachedProduct,
+    CachedSupplier,
+    CachedVariant,
+)
 
 logger = get_logger(__name__)
 
@@ -177,7 +183,7 @@ def _search_response_to_tool_result(
     return make_tool_result(filtered_response, ui=ui)
 
 
-@cache_read(EntityType.VARIANT)
+@cache_read(CachedVariant)
 async def _search_items_impl(
     request: SearchItemsRequest, context: Context
 ) -> SearchItemsResponse:
@@ -1755,10 +1761,10 @@ def _partition_variant_lookups(
 
 
 @cache_read(
-    EntityType.VARIANT,
-    EntityType.PRODUCT,
-    EntityType.MATERIAL,
-    EntityType.SUPPLIER,
+    CachedVariant,
+    CachedProduct,
+    CachedMaterial,
+    CachedSupplier,
 )
 async def _get_variant_details_impl(
     request: GetVariantDetailsRequest, context: Context

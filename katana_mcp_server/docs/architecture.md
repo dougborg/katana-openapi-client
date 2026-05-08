@@ -82,12 +82,15 @@ sync when tool surface changes.
 
 ### Cache-aware decorators
 
-`tools/decorators.py` provides `@cache_read("entity")` and
-`@cache_write("entity_a", "entity_b")` decorators. `cache_read` triggers an incremental
-sync of the named entity before invoking the tool; `cache_write` invalidates the listed
-entities after a mutating call so the next list/get returns fresh data. Tool
-implementations stay focused on business logic; sync orchestration lives in the
-decorator.
+`tools/decorators.py` provides `@cache_read(CachedVariant, ...)` and
+`@cache_write("entity_a", "entity_b")` decorators. `cache_read` keys off the typed-cache
+`Cached*` row class (e.g. `CachedVariant`, `CachedProduct`) and triggers an incremental
+sync of the named entity before invoking the tool. During the #472 unification rollout
+(Phase C) the decorator fans each sync out to BOTH the legacy `CatalogCache` helper and
+the typed-cache helper so tool bodies see fresh data on either path; Phase D drops the
+legacy half. `cache_write` invalidates the listed entities after a mutating call so the
+next list/get returns fresh data. Tool implementations stay focused on business logic;
+sync orchestration lives in the decorator.
 
 ## Resources
 
@@ -210,9 +213,9 @@ bugs at the client/generator layer").
    integration; use elicitation for any state-changing operation.
 1. **Follow ADR-0019** for naming (`<entity>_<field>s` for batch list filters, singular
    for `get_*`) and the docstring opening sentence.
-1. **If the tool reads from cache,** add `@cache_read("entity")`. If it writes, add
-   `@cache_write("entity_a", "entity_b")` listing every entity whose cache should be
-   invalidated.
+1. **If the tool reads from cache,** add `@cache_read(CachedEntity)` keyed by the typed
+   `Cached*` row class. If it writes, add `@cache_write("entity_a", "entity_b")` listing
+   every entity whose cache should be invalidated.
 1. **For new transactional list tools backed by typed cache:** add an `EntitySpec`
    literal in `typed_cache/sync.py` and a thin `ensure_<entity>_synced` wrapper. The
    `Cached<Entity>` row class is auto-generated from the spec by the next regen.
