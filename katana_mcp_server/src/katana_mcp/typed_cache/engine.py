@@ -25,6 +25,9 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 # entity modules here as they come online.
 from katana_mcp.typed_cache import sync_state as _sync_state_mod
 from katana_public_api_client.models_pydantic._generated import (
+    common as _common_mod,
+    contacts as _contacts_mod,
+    inventory as _inventory_mod,
     manufacturing as _manufacturing_mod,
     purchase_orders as _purchase_orders_mod,
     sales_orders as _sales_orders_mod,
@@ -33,11 +36,17 @@ from katana_public_api_client.models_pydantic._generated import (
 
 # ``stock`` already covers StockTransfer (sibling to StockAdjustment in the
 # same generated module), so no extra side-effect import is needed.
+# ``inventory`` registers Cached{Variant,Product,Material,Service};
+# ``contacts`` registers Cached{Customer,Supplier};
+# ``common`` registers Cached{Location,TaxRate,Operator,Factory,AdditionalCost}.
 assert _sync_state_mod is not None
 assert _sales_orders_mod is not None
 assert _stock_mod is not None
 assert _manufacturing_mod is not None
 assert _purchase_orders_mod is not None
+assert _inventory_mod is not None
+assert _contacts_mod is not None
+assert _common_mod is not None
 
 _DEFAULT_DB_PATH = Path(user_cache_dir("katana-mcp")) / "typed_cache.db"
 
@@ -69,6 +78,11 @@ class TypedCacheEngine:
     shutdown to flush and dispose the engine. Tools obtain sessions via
     the ``session()`` context manager and take ``lock_for(entity_type)``
     before kicking off a sync so concurrent callers don't fan out.
+
+    The ``catalog`` attribute exposes a :class:`CatalogQueries` adapter
+    that wraps typed reads (``get_by_id``, ``smart_search``, ...) over
+    the catalog tier of the cache. Phase D will migrate ~33 legacy
+    ``services.cache.*`` call sites onto it.
     """
 
     def __init__(
@@ -102,6 +116,11 @@ class TypedCacheEngine:
         )
         self._engine: AsyncEngine | None = None
         self._locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+        # Lazy import — ``queries`` imports from this module's siblings,
+        # so doing it at function definition time would create a cycle.
+        from .queries import CatalogQueries
+
+        self.catalog: CatalogQueries = CatalogQueries(self)
 
     @property
     def db_path(self) -> Path | None:
@@ -141,8 +160,27 @@ class TypedCacheEngine:
             )
             event.listen(self._engine.sync_engine, "connect", _apply_sqlite_pragmas)
 
+        # Validate the EntitySpec dependency graph before any sync runs.
+        # Lazy import — ``sync`` imports from ``engine`` for typing
+        # (``TYPE_CHECKING``), but the runtime call needs to land here.
+        from .fts import (
+            initialize_fts_for_connection,
+            install_fts_listeners,
+            populate_fts_from_existing_rows,
+        )
+        from .sync import ENTITY_SPECS, _validate_dependency_graph
+
+        _validate_dependency_graph(ENTITY_SPECS.values())
+
         async with self._engine.begin() as conn:
             await conn.run_sync(SQLModel.metadata.create_all)
+            # FTS5 virtual tables sit alongside the SQLModel-managed
+            # tables and need their own DDL. Install the after_*
+            # listeners first so any rows already on disk re-emit FTS
+            # entries during the rebuild.
+            await conn.run_sync(lambda sync_conn: install_fts_listeners())
+            await conn.run_sync(initialize_fts_for_connection)
+            await conn.run_sync(populate_fts_from_existing_rows)
 
     async def close(self) -> None:
         """Dispose the underlying SQLAlchemy engine.
