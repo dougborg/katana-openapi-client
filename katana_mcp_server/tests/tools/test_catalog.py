@@ -468,25 +468,25 @@ async def test_create_material_error_handling():
 def test_create_product_requires_name():
     """Test create_product requires name field."""
     with pytest.raises(ValueError):
-        CreateProductRequest(sku="TEST-001")
+        CreateProductRequest.model_validate({"sku": "TEST-001"})
 
 
 def test_create_product_requires_sku():
     """Test create_product requires sku field."""
     with pytest.raises(ValueError):
-        CreateProductRequest(name="Test Product")
+        CreateProductRequest.model_validate({"name": "Test Product"})
 
 
 def test_create_material_requires_name():
     """Test create_material requires name field."""
     with pytest.raises(ValueError):
-        CreateMaterialRequest(sku="MAT-001")
+        CreateMaterialRequest.model_validate({"sku": "MAT-001"})
 
 
 def test_create_material_requires_sku():
     """Test create_material requires sku field."""
     with pytest.raises(ValueError):
-        CreateMaterialRequest(name="Test Material")
+        CreateMaterialRequest.model_validate({"name": "Test Material"})
 
 
 # ============================================================================

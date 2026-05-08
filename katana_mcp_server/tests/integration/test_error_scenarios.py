@@ -26,8 +26,7 @@ from katana_mcp.tools.foundation.items import (
     _get_variant_details_impl,
     _search_items_impl,
 )
-
-from tests.conftest import create_mock_context
+from katana_mcp_server.tests.conftest import create_mock_context
 
 
 @pytest.fixture(autouse=True)

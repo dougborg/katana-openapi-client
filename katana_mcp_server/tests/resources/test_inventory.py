@@ -18,8 +18,7 @@ from katana_mcp.resources.inventory import (
     get_inventory_items,
     register_resources,
 )
-
-from tests.conftest import create_mock_context
+from katana_mcp_server.tests.conftest import create_mock_context
 
 ENSURE_PRODUCTS = "katana_mcp.resources.inventory.ensure_products_synced"
 ENSURE_MATERIALS = "katana_mcp.resources.inventory.ensure_materials_synced"

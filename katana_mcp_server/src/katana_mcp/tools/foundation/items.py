@@ -261,25 +261,27 @@ class CreateItemRequest(BaseModel):
     uom: str = Field(
         default="pcs", description="Unit of measure (e.g., pcs, kg, hours)"
     )
-    category_name: str | None = Field(None, description="Category for grouping")
-    is_sellable: bool = Field(True, description="Whether item can be sold")
-    sales_price: float | None = Field(None, description="Sales price per unit")
-    purchase_price: float | None = Field(None, description="Purchase cost per unit")
+    category_name: str | None = Field(default=None, description="Category for grouping")
+    is_sellable: bool = Field(default=True, description="Whether item can be sold")
+    sales_price: float | None = Field(default=None, description="Sales price per unit")
+    purchase_price: float | None = Field(
+        default=None, description="Purchase cost per unit"
+    )
 
     # Product-specific
     is_producible: bool = Field(
-        False, description="Can be manufactured (products only)"
+        default=False, description="Can be manufactured (products only)"
     )
     is_purchasable: bool = Field(
-        True, description="Can be purchased (products/materials)"
+        default=True, description="Can be purchased (products/materials)"
     )
 
     # Optional common fields
     default_supplier_id: int | None = Field(
-        None,
+        default=None,
         description=("Default supplier ID. Look up via `list_suppliers`."),
     )
-    additional_info: str | None = Field(None, description="Additional notes")
+    additional_info: str | None = Field(default=None, description="Additional notes")
 
     # Variant-level fields — apply only when type is product or material.
     # Services carry pricing on the header; these fields are ignored for type=service.

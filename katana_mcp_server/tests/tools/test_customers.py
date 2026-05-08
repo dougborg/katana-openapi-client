@@ -12,8 +12,7 @@ from katana_mcp.tools.foundation.customers import (
     get_customer,
     search_customers,
 )
-
-from tests.conftest import create_mock_context
+from katana_mcp_server.tests.conftest import create_mock_context
 
 
 @pytest.fixture(autouse=True)

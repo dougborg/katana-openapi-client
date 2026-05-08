@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock
 
 import httpx
@@ -79,8 +79,12 @@ def katana_client_with_mock_transport(mock_api_credentials, mock_transport):
         transport=mock_transport, base_url=mock_api_credentials["base_url"]
     )
 
-    # Replace the authenticated client's async client
-    client._client._async_client = mock_httpx_client
+    # Replace the authenticated client's async client. ``_client`` is
+    # the stale alias on ``KatanaClient`` (private), and ``_async_client``
+    # is httpx's lazily-set internal handle; both are runtime attributes
+    # the static type doesn't expose.
+    inner_client = cast(Any, client)._client
+    cast(Any, inner_client)._async_client = mock_httpx_client
 
     return client
 

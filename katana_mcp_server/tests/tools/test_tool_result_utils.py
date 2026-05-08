@@ -63,7 +63,11 @@ def test_make_tool_result_emits_response_json_as_content():
     # content comes back as a list of TextContent blocks; assert the first
     # block parses as the response JSON.
     assert result.content
-    text = result.content[0].text  # type: ignore[union-attr]
+    first_content = result.content[0]
+    from mcp.types import TextContent
+
+    assert isinstance(first_content, TextContent)
+    text = first_content.text
     assert json.loads(text) == {"id": 42, "label": "hello"}
 
 

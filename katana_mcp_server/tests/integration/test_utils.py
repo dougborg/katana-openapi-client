@@ -280,7 +280,9 @@ async def cleanup_orphaned_test_data(client: KatanaClient) -> dict[str, int]:
     )
     from katana_public_api_client.api.material import get_all_materials
     from katana_public_api_client.api.product import get_all_products
-    from katana_public_api_client.api.purchase_order import get_all_purchase_orders
+    from katana_public_api_client.api.purchase_order import (
+        find_purchase_orders as get_all_purchase_orders,
+    )
     from katana_public_api_client.api.sales_order import get_all_sales_orders
 
     deleted_counts: dict[str, int] = {}

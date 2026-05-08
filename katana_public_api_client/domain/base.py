@@ -61,13 +61,14 @@ class KatanaBaseModel(BaseModel):
     # Common timestamp fields (most Katana entities have these)
     # Using AwareDatetime to match generated Pydantic models and ensure timezone awareness
     created_at: AwareDatetime | None = Field(
-        None, description="Timestamp when entity was created"
+        default=None, description="Timestamp when entity was created"
     )
     updated_at: AwareDatetime | None = Field(
-        None, description="Timestamp when entity was last updated"
+        default=None, description="Timestamp when entity was last updated"
     )
     deleted_at: AwareDatetime | None = Field(
-        None, description="Timestamp when entity was soft-deleted (if applicable)"
+        default=None,
+        description="Timestamp when entity was soft-deleted (if applicable)",
     )
 
     def model_dump_for_etl(self) -> dict[str, Any]:

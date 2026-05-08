@@ -2,6 +2,7 @@
 
 import json
 from datetime import UTC, datetime
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -22,6 +23,7 @@ from katana_mcp.tools.foundation.manufacturing_orders import (
     get_manufacturing_order_recipe,
     list_manufacturing_orders,
 )
+from katana_mcp_server.tests.conftest import create_mock_context, patch_typed_cache_sync
 
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models import (
@@ -29,7 +31,6 @@ from katana_public_api_client.models import (
     ManufacturingOrderStatus,
 )
 from katana_public_api_client.utils import APIError
-from tests.conftest import create_mock_context, patch_typed_cache_sync
 from tests.factories import (
     make_manufacturing_order,
     mock_entity_for_modify,
@@ -99,7 +100,7 @@ async def test_create_manufacturing_order_confirm_success():
     import katana_public_api_client.api.manufacturing_order.create_manufacturing_order as create_mo_module
 
     original_asyncio_detailed = create_mo_module.asyncio_detailed
-    create_mo_module.asyncio_detailed = mock_api_call
+    cast(Any, create_mo_module).asyncio_detailed = mock_api_call
 
     try:
         request = CreateManufacturingOrderRequest(
@@ -156,7 +157,7 @@ async def test_create_manufacturing_order_make_to_order_preview_populates_fields
     import katana_public_api_client.api.sales_order_row.get_sales_order_row as get_sor_module
 
     original = get_sor_module.asyncio_detailed
-    get_sor_module.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_sor_module).asyncio_detailed = AsyncMock(return_value=mock_response)
     try:
         request = CreateManufacturingOrderRequest(
             sales_order_row_id=99001,
@@ -173,7 +174,7 @@ async def test_create_manufacturing_order_make_to_order_preview_populates_fields
         # No BLOCK warnings on the happy path → Confirm button stays.
         assert not any(w.startswith("BLOCK:") for w in result.warnings)
     finally:
-        get_sor_module.asyncio_detailed = original
+        cast(Any, get_sor_module).asyncio_detailed = original
 
 
 @pytest.mark.asyncio
@@ -205,9 +206,9 @@ async def test_create_manufacturing_order_make_to_order_confirm_refuses_when_alr
 
     original_get = get_sor_module.asyncio_detailed
     original_mto = getattr(mto_module, "asyncio_detailed", None)
-    get_sor_module.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_sor_module).asyncio_detailed = AsyncMock(return_value=mock_response)
     mto_mock = AsyncMock()
-    mto_module.asyncio_detailed = mto_mock
+    cast(Any, mto_module).asyncio_detailed = mto_mock
     try:
         request = CreateManufacturingOrderRequest(
             sales_order_row_id=99003,
@@ -253,7 +254,7 @@ async def test_create_manufacturing_order_make_to_order_blocks_when_already_link
     import katana_public_api_client.api.sales_order_row.get_sales_order_row as get_sor_module
 
     original = get_sor_module.asyncio_detailed
-    get_sor_module.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_sor_module).asyncio_detailed = AsyncMock(return_value=mock_response)
     try:
         request = CreateManufacturingOrderRequest(
             sales_order_row_id=99002,
@@ -270,7 +271,7 @@ async def test_create_manufacturing_order_make_to_order_blocks_when_already_link
         assert "88888" in block_warnings[0]
         assert "already linked" in block_warnings[0]
     finally:
-        get_sor_module.asyncio_detailed = original
+        cast(Any, get_sor_module).asyncio_detailed = original
 
 
 @pytest.mark.asyncio
@@ -328,7 +329,7 @@ async def test_create_manufacturing_order_confirm_with_minimal_fields():
     import katana_public_api_client.api.manufacturing_order.create_manufacturing_order as create_mo_module
 
     original_asyncio_detailed = create_mo_module.asyncio_detailed
-    create_mo_module.asyncio_detailed = mock_api_call
+    cast(Any, create_mo_module).asyncio_detailed = mock_api_call
 
     try:
         request = CreateManufacturingOrderRequest(
@@ -369,7 +370,7 @@ async def test_create_manufacturing_order_api_error():
     import katana_public_api_client.api.manufacturing_order.create_manufacturing_order as create_mo_module
 
     original_asyncio_detailed = create_mo_module.asyncio_detailed
-    create_mo_module.asyncio_detailed = mock_api_call
+    cast(Any, create_mo_module).asyncio_detailed = mock_api_call
 
     try:
         request = CreateManufacturingOrderRequest(
@@ -398,7 +399,7 @@ async def test_create_manufacturing_order_api_exception():
     import katana_public_api_client.api.manufacturing_order.create_manufacturing_order as create_mo_module
 
     original_asyncio_detailed = create_mo_module.asyncio_detailed
-    create_mo_module.asyncio_detailed = mock_api_call
+    cast(Any, create_mo_module).asyncio_detailed = mock_api_call
 
     try:
         request = CreateManufacturingOrderRequest(
@@ -698,7 +699,7 @@ async def test_create_manufacturing_order_make_to_order_preview():
     import katana_public_api_client.api.sales_order_row.get_sales_order_row as get_sor_module
 
     original = get_sor_module.asyncio_detailed
-    get_sor_module.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_sor_module).asyncio_detailed = AsyncMock(return_value=mock_response)
     try:
         request = CreateManufacturingOrderRequest(
             sales_order_row_id=105664660,
@@ -710,7 +711,7 @@ async def test_create_manufacturing_order_make_to_order_preview():
         assert "Make-to-order" in result.message or "make-to-order" in result.message
         assert "105664660" in result.message
     finally:
-        get_sor_module.asyncio_detailed = original
+        cast(Any, get_sor_module).asyncio_detailed = original
 
 
 @pytest.mark.asyncio
@@ -738,7 +739,7 @@ async def test_create_manufacturing_order_make_to_order_with_subassemblies():
     import katana_public_api_client.api.sales_order_row.get_sales_order_row as get_sor_module
 
     original = get_sor_module.asyncio_detailed
-    get_sor_module.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_sor_module).asyncio_detailed = AsyncMock(return_value=mock_response)
     try:
         request = CreateManufacturingOrderRequest(
             sales_order_row_id=105664660,
@@ -750,7 +751,7 @@ async def test_create_manufacturing_order_make_to_order_with_subassemblies():
         assert result.is_preview is True
         assert "subassemblies" in result.message
     finally:
-        get_sor_module.asyncio_detailed = original
+        cast(Any, get_sor_module).asyncio_detailed = original
 
 
 # ============================================================================
@@ -819,8 +820,8 @@ async def test_list_manufacturing_orders_filters_by_status(
         _list_manufacturing_orders_impl,
     )
 
-    from katana_public_api_client.models_pydantic._generated import (
-        ManufacturingOrderStatus,
+    from katana_public_api_client.models import (
+        ManufacturingOrderStatus as APIManufacturingOrderStatus,
     )
 
     context, _, typed_cache = context_with_typed_cache
@@ -834,7 +835,7 @@ async def test_list_manufacturing_orders_filters_by_status(
     )
 
     result = await _list_manufacturing_orders_impl(
-        ListManufacturingOrdersRequest(status=ManufacturingOrderStatus.in_progress),
+        ListManufacturingOrdersRequest(status=APIManufacturingOrderStatus.IN_PROGRESS),
         context,
     )
 
@@ -1441,10 +1442,13 @@ async def test_get_manufacturing_order_fetches_related_resources():
 
     # Each helper called exactly once with the MO id:
     mock_fetch_recipe.assert_awaited_once()
+    assert mock_fetch_recipe.await_args is not None
     assert mock_fetch_recipe.await_args.args[1] == 3001
     mock_fetch_ops.assert_awaited_once()
+    assert mock_fetch_ops.await_args is not None
     assert mock_fetch_ops.await_args.args[1] == 3001
     mock_fetch_prods.assert_awaited_once()
+    assert mock_fetch_prods.await_args is not None
     assert mock_fetch_prods.await_args.args[1] == 3001
 
     # Results flow through to the response:
@@ -1525,6 +1529,9 @@ async def test_get_manufacturing_order_recipe_full_field_coverage():
         _recipe_row_info_from_attrs,
     )
 
+    from katana_public_api_client.models.ingredient_availability import (
+        IngredientAvailability,
+    )
     from katana_public_api_client.models.manufacturing_order_recipe_row import (
         ManufacturingOrderRecipeRow,
     )
@@ -1542,7 +1549,7 @@ async def test_get_manufacturing_order_recipe_full_field_coverage():
         notes="Use only grade 304 material",
         planned_quantity_per_unit=2.5,
         total_actual_quantity=125.0,
-        ingredient_availability="IN_STOCK",
+        ingredient_availability=IngredientAvailability.IN_STOCK,
         ingredient_expected_date=datetime(2024, 1, 18, 0, 0, 0, tzinfo=UTC),
         batch_transactions=[
             ManufacturingOrderRecipeRowBatchTransactionsItem(
@@ -2335,6 +2342,7 @@ async def test_list_blocking_ingredients_resolves_skus_only_for_kept_variants(
     # cache, validating slice-then-resolve over fetch-then-trim.
     cache_mock = context.request_context.lifespan_context.cache.get_many_by_ids
     assert cache_mock.await_count == 1
+    assert cache_mock.await_args is not None
     awaited_vids = cache_mock.await_args.args[1]
     assert set(awaited_vids) == {500}
 

@@ -59,34 +59,38 @@ class KatanaVariant(KatanaBaseModel):
     # ============ Pricing Fields ============
 
     sales_price: float | None = Field(
-        None, ge=0, le=100_000_000_000, description="Sales price"
+        default=None, ge=0, le=100_000_000_000, description="Sales price"
     )
     purchase_price: float | None = Field(
-        None, ge=0, le=100_000_000_000, description="Purchase cost"
+        default=None, ge=0, le=100_000_000_000, description="Purchase cost"
     )
 
     # ============ Relationship Fields ============
 
     product_id: int | None = Field(
-        None, description="ID of parent product (if product variant)"
+        default=None, description="ID of parent product (if product variant)"
     )
     material_id: int | None = Field(
-        None, description="ID of parent material (if material variant)"
+        default=None, description="ID of parent material (if material variant)"
     )
     product_or_material_name: str | None = Field(
-        None, description="Name of parent product or material"
+        default=None, description="Name of parent product or material"
     )
 
     # ============ Classification ============
 
     type_: Literal["product", "material", "service"] | None = Field(
-        None, alias="type", description="Variant type (product, material, or service)"
+        default=None,
+        alias="type",
+        description="Variant type (product, material, or service)",
     )
 
     # ============ Inventory & Barcode Fields ============
 
-    internal_barcode: str | None = Field(None, description="Internal barcode")
-    registered_barcode: str | None = Field(None, description="Registered/UPC barcode")
+    internal_barcode: str | None = Field(default=None, description="Internal barcode")
+    registered_barcode: str | None = Field(
+        default=None, description="Registered/UPC barcode"
+    )
     supplier_item_codes: list[str] = Field(
         default_factory=list, description="Supplier item codes"
     )
@@ -94,10 +98,10 @@ class KatanaVariant(KatanaBaseModel):
     # ============ Ordering Fields ============
 
     lead_time: int | None = Field(
-        None, ge=0, le=999, description="Lead time in days to fulfill order"
+        default=None, ge=0, le=999, description="Lead time in days to fulfill order"
     )
     minimum_order_quantity: float | None = Field(
-        None, ge=0, le=999_999_999, description="Minimum order quantity"
+        default=None, ge=0, le=999_999_999, description="Minimum order quantity"
     )
 
     # ============ Configuration & Custom Data ============
@@ -170,8 +174,17 @@ class KatanaVariant(KatanaBaseModel):
                 if hasattr(generated.type, "value")
                 else generated.type
             )
-            if raw_type in ("product", "material", "service"):
-                type_value = raw_type
+            # Per-branch narrowing satisfies both pyright and ty:
+            # ``raw_type`` is ``VariantType | str``; pyright doesn't
+            # narrow membership-against-literals, and ty calls a wrapping
+            # cast redundant. Direct equality on each literal narrows
+            # cleanly under both checkers.
+            if raw_type == "product":
+                type_value = "product"
+            elif raw_type == "material":
+                type_value = "material"
+            elif raw_type == "service":
+                type_value = "service"
 
         return cls(
             id=generated.id,
@@ -234,7 +247,10 @@ class KatanaVariant(KatanaBaseModel):
         ):
             from ..client_types import UNSET
 
-            pom = attrs_variant.product_or_material
+            # Attribute exists per ``hasattr`` but isn't on the static
+            # ``Variant`` shape (it comes in via ``?extend=`` API
+            # responses) — read via ``getattr`` to satisfy the checker.
+            pom = getattr(attrs_variant, "product_or_material", None)
             if pom is not UNSET and pom is not None and hasattr(pom, "name"):
                 name = pom.name
                 if name is not UNSET and isinstance(name, str):

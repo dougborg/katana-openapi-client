@@ -35,10 +35,10 @@ from katana_mcp.tools.foundation.items import (
     get_variant_details,
     search_items,
 )
+from katana_mcp_server.tests.conftest import create_mock_context, patch_typed_cache_sync
 from pydantic import ValidationError
 
 from katana_public_api_client.client_types import UNSET
-from tests.conftest import create_mock_context, patch_typed_cache_sync
 from tests.factories import (
     make_stock_adjustment,
     make_stock_adjustment_row,
@@ -801,6 +801,7 @@ async def test_create_stock_adjustment_apply_forwards_new_fields():
         )
         await _create_stock_adjustment_impl(request, context)
 
+    assert mock_api_call.call_args is not None
     api_body = mock_api_call.call_args.kwargs["body"]
     assert api_body.stock_adjustment_number == "SA-IMPORT-001"
     assert api_body.stock_adjustment_date == physical_count_date
@@ -1654,6 +1655,7 @@ async def test_delete_stock_adjustment_preview_returns_what_would_be_deleted():
     assert result.row_count == 1
     mock_delete.assert_not_called()
     # The delete-preview lookup should short-circuit auto-pagination.
+    assert mock_get_all.call_args is not None
     assert mock_get_all.call_args.kwargs["page"] == 1
 
 
@@ -1998,6 +2000,7 @@ async def test_check_inventory_single_variant_id():
     # Verify the variant_id path (not the SKU path) was taken
     mock_fetch.assert_awaited_once()
     call_args = mock_fetch.await_args
+    assert call_args is not None
     assert call_args.args[1] == 42
 
 
@@ -2059,6 +2062,7 @@ async def test_check_inventory_mixed_sku_and_variant_id():
 
     lifespan_ctx.cache.get_by_sku.assert_awaited_once()
     mock_fetch.assert_awaited_once()
+    assert mock_fetch.await_args is not None
     assert mock_fetch.await_args.args[1] == 42
 
     # Output order matches input order.
@@ -2313,6 +2317,7 @@ async def test_update_stock_adjustment_echoes_additional_info_when_unchanged():
         result = await _update_stock_adjustment_impl(request, context)
 
     assert result.is_preview is False
+    assert update_mock.call_args is not None
     body = update_mock.call_args.kwargs["body"]
     assert body.additional_info == "UPS tracking 1Z123 — preserve me"
     assert body.reason == "Updated reason"
@@ -2498,6 +2503,7 @@ async def test_check_inventory_location_filter_threads_to_api():
         await _check_inventory_impl(request, context)
 
     # The API was called with location_id=161114 forwarded
+    assert mock_api.call_args is not None
     assert mock_api.call_args.kwargs["location_id"] == 161114
     assert mock_api.call_args.kwargs["variant_id"] == 3001
 

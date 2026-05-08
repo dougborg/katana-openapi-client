@@ -443,7 +443,11 @@ def test_generated_cached_location_uses_name_override() -> None:
     ``__tablename__`` ``location`` (not ``location_1``)."""
     from katana_public_api_client.models_pydantic._generated import CachedLocation
 
-    assert CachedLocation.__tablename__ == "location"
+    # SQLModel's metaclass exposes ``__tablename__`` as ``declared_attr[str]``
+    # at class-level access; pyright sees ``==`` on that as
+    # ``ColumnElement[bool]``. Read via ``str()`` to compare the actual
+    # tablename string.
+    assert str(CachedLocation.__tablename__) == "location"
 
 
 def test_generated_cached_material_flattens_inventory_item() -> None:
