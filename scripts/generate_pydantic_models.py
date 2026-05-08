@@ -16,10 +16,12 @@ Usage:
 from __future__ import annotations
 
 import ast
+import io
 import re
 import shutil
 import subprocess
 import tempfile
+import tokenize
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -233,11 +235,28 @@ class CacheTableSpec:
     - ``json_columns``: fields whose values stay JSON in the cache (lists
       of polymorphic / non-cached nested models, single nested objects
       SQLAlchemy can't auto-map).
+    - ``unique_columns``: fields that get ``unique=True`` (and
+      ``index=True``) on the SQLAlchemy column, enforcing uniqueness at
+      the DB level. Use only when the domain truly guarantees uniqueness
+      (and add a NOCASE collation hint via ``sa_column`` if case-folding
+      lookups are expected — bare ``unique=True`` is binary-comparison).
+    - ``index_columns``: fields that get ``index=True`` (non-unique).
+      Used for high-cardinality lookup columns where the legacy schema
+      defined a plain index — e.g., ``Variant.sku`` (legacy
+      ``idx_entity_sku ON entity_index(sku COLLATE NOCASE)``).
+    - ``flatten_parent``: when set, the cache class flattens an intermediate
+      non-base, non-cached parent class (e.g., ``Material(InventoryItem)`` →
+      ``CachedMaterial(ArchivableEntity)`` with ``InventoryItem``'s fields
+      inlined). Required for SQLModel ``table=True`` because the intermediate
+      parent's nested-list/nested-object fields can't be inferred as columns.
     """
 
     name_override: str | None = None
     extra_fields: tuple[CacheExtraField, ...] = ()
     json_columns: tuple[str, ...] = ()
+    unique_columns: tuple[str, ...] = ()
+    index_columns: tuple[str, ...] = ()
+    flatten_parent: str | None = None
 
 
 # Cache-table configuration for #342 — select generated pydantic classes opt
@@ -289,6 +308,153 @@ CACHE_TABLES: dict[str, CacheTableSpec] = {
     ),
     "StockTransfer": CacheTableSpec(),
     "StockTransferRow": CacheTableSpec(json_columns=("batch_transactions",)),
+    # ── Catalog tier (#472 Phase A) ──────────────────────────────────────
+    # 11 entity types previously cached in the legacy single-table
+    # ``CatalogCache`` (entities + entity_index + FTS5). Each gets its own
+    # ``Cached<Name>`` SQLModel sibling so they can join the typed-cache
+    # engine in Phase B.
+    "Variant": CacheTableSpec(
+        # Variant has no ``archived_at`` of its own — Katana archives at the
+        # parent (Product/Material) level. The legacy cache denormalized
+        # ``parent_archived_at`` at sync time so the index could filter
+        # archived variants out by default. Phase B's ``attrs_postprocess``
+        # hook populates this column from ``attrs_obj.product_or_material``.
+        # ``display_name``, ``parent_name``, and ``supplier_item_codes_text``
+        # are also synthesized at sync time — they back the FTS5 columns
+        # declared in ``CACHE_FTS_SPECS["Variant"]``.
+        extra_fields=(
+            CacheExtraField(
+                name="parent_archived_at",
+                python_type="datetime | None",
+                description=(
+                    "(cache-only) Lifted from parent product/material so search "
+                    "can filter by parent archive state without a join."
+                ),
+            ),
+            CacheExtraField(
+                name="display_name",
+                python_type="str | None",
+                description=(
+                    "(cache-only) Synthesized at sync time — parent name + "
+                    "config attribute values, joined with ``/``. Backs FTS5 "
+                    "search; falls back to SKU when parent name is empty."
+                ),
+            ),
+            CacheExtraField(
+                name="parent_name",
+                python_type="str | None",
+                description=(
+                    "(cache-only) Lifted from parent product/material name. "
+                    "Backs FTS5 search and surfaces in result rendering."
+                ),
+            ),
+            CacheExtraField(
+                name="supplier_item_codes_text",
+                python_type="str | None",
+                description=(
+                    "(cache-only) Space-joined ``supplier_item_codes`` so the "
+                    "FTS5 tokenizer can index multi-token supplier codes "
+                    "without parsing JSON at query time."
+                ),
+            ),
+        ),
+        # ``custom_fields`` and ``config_attributes`` are lists of nested
+        # objects SQLAlchemy can't auto-map. ``supplier_item_codes`` is a
+        # ``list[str]`` — JSON-columned for the same reason; the FTS-friendly
+        # joined form lives in ``supplier_item_codes_text`` (extra_field).
+        json_columns=("custom_fields", "config_attributes", "supplier_item_codes"),
+        # The legacy ``entity_index`` table had only a non-unique index
+        # ``idx_entity_sku`` (with ``COLLATE NOCASE``) on sku — uniqueness
+        # was on ``(entity_type, id)``, not on sku. Mirror that here:
+        # ``sku`` is indexed but not unique. Phase B's CatalogQueries
+        # adapter applies ``COLLATE NOCASE`` in the lookup query so
+        # case-insensitive ``get_by_sku`` keeps the legacy semantics.
+        # If we ever want to enforce SKU uniqueness as a domain
+        # invariant, add ``unique_columns=("sku",)`` and a NOCASE
+        # collation hint together (see #472 follow-up tracking).
+        index_columns=("sku",),
+    ),
+    "Product": CacheTableSpec(
+        # Product extends ``InventoryItem`` (intermediate non-cached parent
+        # with nested-list fields SQLModel can't auto-map). Flatten to
+        # ``ArchivableEntity`` directly, inlining InventoryItem's columns
+        # into the cache class body so JSON-column injection lands.
+        flatten_parent="InventoryItem",
+        # ``variants`` references CachedVariant after the duplicate-pass
+        # rewrite (a list of nested cache rows); ``configs`` is a list of
+        # ``ItemConfig`` (not in CACHE_TABLES); ``supplier`` is a single
+        # nested ``Supplier`` (becomes ``CachedSupplier`` after rewrite,
+        # but cross-entity FK wiring is deferred to Phase B). All three
+        # stay JSON for Phase A.
+        json_columns=("variants", "configs", "supplier"),
+    ),
+    "Material": CacheTableSpec(
+        flatten_parent="InventoryItem",
+        json_columns=("variants", "configs", "supplier"),
+    ),
+    "Service": CacheTableSpec(
+        # ``variants: list[ServiceVariant]`` — ServiceVariant is not in
+        # CACHE_TABLES, JSON-column it.
+        json_columns=("variants",),
+    ),
+    "Customer": CacheTableSpec(
+        # ``addresses: list[CustomerAddress]`` — CustomerAddress is not in
+        # CACHE_TABLES, JSON-column it.
+        json_columns=("addresses",),
+    ),
+    "Supplier": CacheTableSpec(
+        json_columns=("addresses",),
+    ),
+    "Location1": CacheTableSpec(
+        # API name is ``Location1`` (datamodel-codegen suffix). Cache as
+        # ``CachedLocation`` / ``__tablename__`` ``location`` so call sites
+        # read naturally.
+        name_override="Location",
+        # ``address: LocationAddress | None`` is a single nested object
+        # SQLAlchemy can't auto-map, JSON it.
+        json_columns=("address",),
+    ),
+    "TaxRate": CacheTableSpec(),
+    "Operator": CacheTableSpec(),
+    "Factory": CacheTableSpec(
+        # ``legal_address: dict[str, Any] | None`` is an unstructured dict
+        # SQLAlchemy can't auto-map, JSON it.
+        json_columns=("legal_address",),
+    ),
+    "AdditionalCost": CacheTableSpec(),
+}
+
+
+# ── #472 Phase A — FTS5 column specs ─────────────────────────────────────
+# Per-entity FTS5 search columns. Phase B builds ``<entity>_fts`` virtual
+# tables from these specs and rewrites ``smart_search`` to MATCH against
+# them. Entities omitted from this dict skip FTS — ``get_all`` + ``difflib``
+# fuzzy fallback covers the lookup-only types (Location, TaxRate, Operator,
+# Factory, AdditionalCost).
+#
+# Generator emits ``__fts_columns__: ClassVar[tuple[str, ...]]`` on each
+# ``Cached*`` class with an entry here. Every column listed must exist on
+# ``Cached<Name>.__table__.columns`` — a Phase B startup assertion will
+# enforce this. Synthesized columns (``display_name``, ``parent_name``,
+# ``supplier_item_codes_text`` on Variant) live in CACHE_TABLES.extra_fields
+# so the schema and the FTS spec stay honest.
+CACHE_FTS_SPECS: dict[str, tuple[str, ...]] = {
+    "Variant": (
+        "sku",
+        "display_name",
+        "parent_name",
+        "supplier_item_codes_text",
+        "internal_barcode",
+        "registered_barcode",
+    ),
+    "Product": ("name", "category_name"),
+    "Material": ("name", "category_name"),
+    "Service": ("name",),
+    # Supplier doesn't have a ``code`` field on the wire (the legacy index's
+    # ``name2_key="code"`` resolved to ``None`` in dict lookups). Drop it
+    # from FTS — searchable fields below are the real ones.
+    "Customer": ("name", "email", "phone"),
+    "Supplier": ("name", "email", "phone"),
 }
 
 
@@ -328,6 +494,71 @@ class CacheTableRelationship:
 def _snake_case(name: str) -> str:
     """CamelCase → snake_case — used for default SQLAlchemy tablenames."""
     return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+
+
+def _rewrite_identifiers_outside_strings(
+    source: str, replacements: dict[str, str]
+) -> str:
+    """Rename identifiers in Python source, skipping string literals.
+
+    Used by both ``duplicate_cache_tables_as_cached_siblings`` and
+    ``flatten_intermediate_inheritance`` to rewrite cross-cache type
+    references (``Variant`` → ``CachedVariant``, etc.) without corrupting
+    descriptions that happen to use the same identifier as an English
+    word (e.g. ``"Customer's reference number"`` stays untouched).
+
+    Walks the source via ``tokenize`` and substitutes inside ``NAME``
+    tokens plus single-line forward-reference ``STRING`` tokens
+    (``Mapped[Optional["Variant"]]`` — SQLAlchemy resolves these as type
+    expressions). Triple-quoted docstrings stay untouched. ``untokenize``
+    in 5-tuple form preserves the original formatting exactly.
+
+    Falls back to a regex-based rewrite if tokenize fails on
+    syntactically odd input — should not happen on valid generated code,
+    but keeps the pipeline alive if datamodel-codegen ever emits an
+    edge-case shape.
+    """
+    rewritten: list[tokenize.TokenInfo] = []
+    try:
+        for tok in tokenize.generate_tokens(io.StringIO(source).readline):
+            new_string = _rewrite_token_string(tok, replacements)
+            if new_string is None:
+                rewritten.append(tok)
+            else:
+                rewritten.append(tok._replace(string=new_string))
+    except (tokenize.TokenizeError, IndentationError):
+        result = source
+        for key in sorted(replacements, key=len, reverse=True):
+            result = re.sub(rf"\b{re.escape(key)}\b", replacements[key], result)
+        return result
+    return tokenize.untokenize(rewritten)
+
+
+def _rewrite_token_string(
+    tok: tokenize.TokenInfo, replacements: dict[str, str]
+) -> str | None:
+    """Return the rewritten token string, or None if the token is unchanged.
+
+    Two cases get rewritten:
+
+    - ``NAME`` tokens whose value is in ``replacements`` (identifier rename).
+    - Single-quoted ``STRING`` tokens whose unquoted content is in
+      ``replacements`` (forward-reference rename in
+      ``Mapped[Optional["Variant"]]`` etc.). Triple-quoted strings
+      (docstrings) and prefix-quoted strings (``r""``, ``b""``) are skipped.
+    """
+    if tok.type == tokenize.NAME and tok.string in replacements:
+        return replacements[tok.string]
+    if (
+        tok.type == tokenize.STRING
+        and tok.string
+        and tok.string[0] in ('"', "'")
+        and not tok.string.startswith(('"""', "'''"))
+        and tok.string[1:-1] in replacements
+    ):
+        quote = tok.string[0]
+        return f"{quote}{replacements[tok.string[1:-1]]}{quote}"
+    return None
 
 
 def _resolve_cache_class(name: str) -> str:
@@ -621,19 +852,29 @@ def parse_generated_file(
     # relationships, and JSON columns. Order matters:
     # 1. Duplicate each CACHE_TABLES API class as a ``Cached<Name>`` copy
     #    with internal references to other cached siblings rewritten.
-    # 2. table=True + frozen=False model_config on the cached class header.
-    # 3. Redeclare id with primary_key=True (depends on the model_config
-    #    line placed by step 2).
-    # 4. Swap AwareDatetime → datetime so SQLModel's type inference works.
-    # 5. FK / relationship / JSON column annotations on field declarations.
+    # 2. Flatten intermediate-parent inheritance (e.g., ``Material(InventoryItem)``
+    #    → ``CachedMaterial(ArchivableEntity)`` with InventoryItem's fields
+    #    inlined) so SQLModel's column inference sees every field on the
+    #    cache class itself.
+    # 3. table=True + frozen=False model_config on the cached class header.
+    # 4. Redeclare id with primary_key=True (depends on the model_config
+    #    line placed by step 3).
+    # 5. Swap AwareDatetime → datetime so SQLModel's type inference works.
+    # 6. FK / relationship / JSON column / index annotations on
+    #    field declarations.
+    # 7. ``__fts_columns__`` ClassVar declaration for entities with FTS5
+    #    search columns (Phase B's <entity>_fts virtual tables read this).
     classes = duplicate_cache_tables_as_cached_siblings(classes)
+    classes = flatten_intermediate_inheritance(classes)
     classes = inject_table_annotations(classes)
     classes = inject_primary_key_in_table_classes(classes)
     classes = swap_awaredatetime_for_datetime(classes)
     classes = inject_foreign_keys(classes)
     classes = inject_relationship_fields(classes)
     classes = inject_json_columns(classes)
+    classes = inject_index_annotations(classes)
     classes = inject_extra_cache_fields(classes)
+    classes = inject_fts_columns(classes)
     # ``Mapped[T]`` wrap runs LAST — earlier passes match
     # ``Annotated[T, Field(...)]`` literally, and would not find their
     # targets if the type was already wrapped.
@@ -932,16 +1173,18 @@ def duplicate_cache_tables_as_cached_siblings(
     cached_targets = {n: _cached_name(n) for n in CACHE_TABLES}
 
     def _rewrite_internal_refs(source: str) -> str:
-        new_source = source
         # Word-boundary swap so e.g. ``SalesOrder`` → ``CachedSalesOrder``
         # doesn't also touch ``SalesOrderRow`` (the longer name handled in
         # its own iteration). Iterate longest-first to avoid corrupting
         # nested references like ``SalesOrderRow`` → ``CachedSalesOrderRow``
         # when ``SalesOrder`` is rewritten first.
-        for original in sorted(cached_targets, key=len, reverse=True):
-            cached = cached_targets[original]
-            new_source = re.sub(rf"\b{re.escape(original)}\b", cached, new_source)
-        return new_source
+        #
+        # Use a tokenize-aware rewrite to avoid touching string literals.
+        # Common English-word class names (``Customer``, ``Supplier``,
+        # ``Material``, ``Product``) would otherwise corrupt description
+        # strings such as ``"Customer's reference number"`` →
+        # ``"CachedCustomer's reference number"``.
+        return _rewrite_identifiers_outside_strings(source, cached_targets)
 
     cached_copies: list[ClassInfo] = []
     for cls in classes:
@@ -1376,6 +1619,21 @@ def wrap_cache_fields_in_mapped(classes: list[ClassInfo]) -> list[ClassInfo]:
         rf"(^\s+\w+:\s+)((?:[^=\n\[\]]|\[{inner_balanced}\])+?)(\s*=\s*Relationship\()",
         re.MULTILINE,
     )
+    # Match 3: bare ``    name: <type> = <default>`` and
+    # ``    name: <type>`` declarations — datamodel-codegen emits these
+    # for properties without a description (e.g., ``Variant.type:
+    # VariantType | None = None``). Without wrapping, class-level access
+    # ``CachedVariant.type.in_(...)`` doesn't type-check consistently
+    # with the rest of the cached fields. Excludes the relationship case
+    # already handled by Match 2 (``= Relationship(``) and dunder fields
+    # (``__tablename__``, ``__fts_columns__``).
+    bare_field_pattern = re.compile(
+        rf"(^    (?!__)\w+:\s+)"
+        rf"(?!Mapped\[|Annotated\[)"
+        rf"((?:[^=\n\[\]]|\[{inner_balanced}\])+?)"
+        rf"(\s*(?:=(?!\s*Relationship\()|$))",
+        re.MULTILINE,
+    )
     # Safety net: any ``Annotated[`` that survives substitution without
     # ``Mapped[`` immediately inside is a missed wrap (e.g., a field
     # whose type uses bracket nesting deeper than the regex handles).
@@ -1391,6 +1649,7 @@ def wrap_cache_fields_in_mapped(classes: list[ClassInfo]) -> list[ClassInfo]:
             continue
         new_source = annotated_pattern.sub(r"\1Mapped[\2]\3", cls.source)
         new_source = relationship_pattern.sub(r"\1Mapped[\2]\3", new_source)
+        new_source = bare_field_pattern.sub(r"\1Mapped[\2]\3", new_source)
         if unwrapped_annotated.search(new_source):
             sample = unwrapped_annotated.search(new_source)
             assert sample is not None  # for type-checkers
@@ -1407,6 +1666,386 @@ def wrap_cache_fields_in_mapped(classes: list[ClassInfo]) -> list[ClassInfo]:
     return fixed
 
 
+# Class-body field declarations look like ``    name: <type>`` at exactly
+# 4-space indent. Match the leading whitespace + identifier + colon so we
+# don't catch nested ``Annotated[..., Field(...)]`` lines that also contain
+# ``:``. Multi-line tolerant: matches the first line of a multi-line
+# ``Annotated[...]`` declaration. ``\s*$|\s*[^A-Za-z_]`` after the colon
+# rules out e.g. ``__tablename__:`` (no space prefix anyway, but defensive).
+_FIELD_DECLARATION_HEAD = re.compile(
+    r"^    ([A-Za-z_][A-Za-z0-9_]*)\s*:",
+    re.MULTILINE,
+)
+
+
+def _extract_field_names(class_body: str) -> set[str]:
+    """Return the set of top-level field names declared on a class body.
+
+    Used by ``flatten_intermediate_inheritance`` to detect when a child
+    class redeclares a parent's field — the cache class can only carry
+    one column per name, and the parent's typed declaration usually wins
+    (the child's override is often a discriminator narrowing like
+    ``Literal["material"]`` that SQLModel can't map to a column).
+
+    Skips dunder names (``__tablename__``) so the set really is field-only.
+    """
+    names: set[str] = set()
+    for match in _FIELD_DECLARATION_HEAD.finditer(class_body):
+        name = match.group(1)
+        if name.startswith("__"):
+            continue
+        names.add(name)
+    return names
+
+
+def _strip_field_declaration(class_body: str, field_name: str) -> str:
+    """Remove a top-level field declaration (header + continuation lines).
+
+    Field declarations span one or more lines:
+    - Single-line: ``    name: int = 0``
+    - Multi-line (``Annotated[...]``):
+      ::
+
+          name: Annotated[
+              int,
+              Field(...),
+          ] = None
+
+    Strips from the first line whose 4-space indent + identifier matches
+    ``field_name`` through the next blank line OR the next field
+    declaration head. Preserves all other content.
+    """
+    lines = class_body.split("\n")
+    out_lines: list[str] = []
+    skipping = False
+    for line in lines:
+        head_match = _FIELD_DECLARATION_HEAD.match(line)
+        if head_match and head_match.group(1) == field_name:
+            skipping = True
+            continue
+        if skipping:
+            # Stop skipping when we see the next field declaration head
+            # OR a class-level statement at column 0 (rare but possible).
+            if head_match and head_match.group(1) != field_name:
+                skipping = False
+                out_lines.append(line)
+                continue
+            # Also stop on lines that are clearly outside the class body
+            # (top-level statements at column 0).
+            if line and not line[0].isspace():
+                skipping = False
+                out_lines.append(line)
+                continue
+            # Otherwise still inside the multi-line continuation — skip.
+            continue
+        out_lines.append(line)
+    return "\n".join(out_lines)
+
+
+def flatten_intermediate_inheritance(classes: list[ClassInfo]) -> list[ClassInfo]:
+    """Inline an intermediate parent class's fields into the cache class body.
+
+    Some catalog API classes inherit from a non-base, non-cached
+    *intermediate* class — e.g., ``Material(InventoryItem)`` where
+    ``InventoryItem`` declares nested-list fields (``variants``,
+    ``configs``, ``supplier``) that SQLModel's column inference can't
+    auto-map. Just leaving the cache class as ``CachedMaterial(InventoryItem)``
+    and ``table=True`` raises ``ValueError: <class 'list'> has no
+    matching SQLAlchemy type`` at class-definition time.
+
+    The flatten pass:
+
+    1. Reads ``CacheTableSpec.flatten_parent`` (e.g., ``"InventoryItem"``).
+    2. Looks up the parent class's source.
+    3. Extracts the parent body (everything after the class header and
+       any ``model_config = ConfigDict(...)`` declaration).
+    4. Inlines the parent body fields at the top of the cache class body
+       (just below the cache class header).
+    5. Rewrites the cache class's bases list, replacing the intermediate
+       parent with the parent's own bases (e.g., ``InventoryItem`` →
+       ``ArchivableEntity``).
+
+    The injected fields then look just like body-declared ones to all
+    downstream passes (``inject_json_columns``, etc.), so a
+    ``json_columns=("variants", ...)`` entry on ``CacheTableSpec`` lands
+    correctly.
+
+    References to other cache classes inside the inlined fields go
+    through the same ``_rewrite_internal_refs`` logic as the duplicate
+    pass — e.g., ``InventoryItem.variants: list[Variant]`` becomes
+    ``list[CachedVariant]`` on the cache class.
+    """
+    cached_targets = {n: _cached_name(n) for n in CACHE_TABLES}
+    flatten_specs = {
+        _cached_name(name): spec.flatten_parent
+        for name, spec in CACHE_TABLES.items()
+        if spec.flatten_parent is not None
+    }
+    if not flatten_specs:
+        return classes
+
+    by_name = {cls.name: cls for cls in classes}
+
+    def _rewrite_internal_refs(source: str) -> str:
+        # Tokenize-aware so descriptions / docstrings that mention class
+        # names as English words (e.g. ``"Customer's reference number"``)
+        # don't get corrupted. See ``_rewrite_identifiers_outside_strings``.
+        return _rewrite_identifiers_outside_strings(source, cached_targets)
+
+    fixed = []
+    for cls in classes:
+        parent_name = flatten_specs.get(cls.name)
+        if parent_name is None:
+            fixed.append(cls)
+            continue
+        parent_cls = by_name.get(parent_name)
+        if parent_cls is None:
+            msg = (
+                f"flatten_intermediate_inheritance: cannot find parent class "
+                f"{parent_name!r} for {cls.name}. Check spelling in "
+                f"CacheTableSpec.flatten_parent."
+            )
+            raise GenerationError(msg)
+
+        # Identify which fields the child class itself declares — we'll
+        # need to de-dup. When the child overrides a parent field
+        # (e.g., ``Material.type: Literal["material"]`` overrides
+        # ``InventoryItem.type: InventoryItemType``), we keep the parent's
+        # declaration on the cache class because SQLModel can't map
+        # ``Literal[...]`` to a column type, while the parent's enum/scalar
+        # type maps cleanly. Strip the child's overriding declaration from
+        # ``cls.source`` after flattening.
+        child_field_names = _extract_field_names(cls.source)
+
+        # Extract the parent's body — everything after the class header.
+        # Strip any ``model_config = ConfigDict(...)`` declaration (we keep
+        # the cache class's own model_config from inject_table_annotations)
+        # and any ``id`` field (the cache class redeclares it as a primary
+        # key via inject_primary_key_in_table_classes).
+        parent_lines = parent_cls.source.split("\n")
+        parent_body_lines: list[str] = []
+        in_model_config = False
+        for line in parent_lines:
+            stripped = line.lstrip()
+            # Skip the class header line.
+            if stripped.startswith("class "):
+                continue
+            # Skip model_config declarations (single-line and multi-line).
+            if "model_config" in stripped and "ConfigDict" in stripped:
+                if line.rstrip().endswith(")"):
+                    continue
+                in_model_config = True
+                continue
+            if in_model_config:
+                if stripped.endswith(")"):
+                    in_model_config = False
+                continue
+            parent_body_lines.append(line)
+
+        # Drop any leading/trailing blank lines so the inlined block sits
+        # cleanly above the cache class's own body.
+        parent_body = "\n".join(parent_body_lines).strip("\n")
+        # Rewrite cross-cache references (e.g., ``list[Variant]`` →
+        # ``list[CachedVariant]``) so JSON-column injection on inlined
+        # fields lands on the cache-aware types.
+        parent_body = _rewrite_internal_refs(parent_body)
+
+        # Identify parent-declared field names so we can strip the child's
+        # overriding declarations (kept the parent's instead). Without
+        # this, ``Material.type: Literal["material"]`` survives alongside
+        # the inlined ``InventoryItem.type: InventoryItemType`` and
+        # SQLModel raises on the ambiguous duplicate (and on Literal[...]
+        # which it can't map to a column type).
+        parent_field_names = _extract_field_names(parent_body)
+        overriding_fields = child_field_names & parent_field_names
+
+        child_source = cls.source
+        for field_name in overriding_fields:
+            child_source = _strip_field_declaration(child_source, field_name)
+
+        # Replace the parent name in the cache class header with the
+        # parent's own bases. Preserves the ``Cached<Name>(<base>...):``
+        # shape so inject_table_annotations can append ``, table=True``
+        # and inject the body header lines.
+        parent_bases_str = (
+            ", ".join(parent_cls.bases) if parent_cls.bases else "BaseEntity"
+        )
+        new_source, n = re.subn(
+            rf"^(class {re.escape(cls.name)}\()[^)]+(\):)",
+            rf"\1{parent_bases_str}\2",
+            child_source,
+            count=1,
+            flags=re.MULTILINE,
+        )
+        if n != 1:
+            msg = (
+                f"flatten_intermediate_inheritance: failed to rewrite class "
+                f"header bases on {cls.name}. Expected single header line."
+            )
+            raise GenerationError(msg)
+
+        # Insert the parent body right after the cache class header.
+        # The cache class header was just rewritten; locate it again to
+        # inject the inlined fields immediately below. ``parent_body``
+        # contains string literals with ``\n`` escape sequences (literal
+        # backslash-n character pairs); ``re.escape`` would leave those
+        # alone, but ``re.sub``'s replacement-string parser would still
+        # interpret them. Use ``re.sub``'s callable form so the body is
+        # treated as raw text — the lambda returns the captured header
+        # plus the body verbatim.
+        body_with_trailing = parent_body + "\n"
+        new_source, n = re.subn(
+            rf"^(class {re.escape(cls.name)}\([^)]*\):\n)",
+            lambda m, _body=body_with_trailing: m.group(1) + _body,
+            new_source,
+            count=1,
+            flags=re.MULTILINE,
+        )
+        if n != 1:
+            msg = (
+                f"flatten_intermediate_inheritance: failed to inline parent "
+                f"body on {cls.name}. Header may have an unexpected shape."
+            )
+            raise GenerationError(msg)
+
+        # Cache class's own bases also flip — propagate to the ClassInfo
+        # so downstream passes / classify_class see the new bases.
+        fixed.append(
+            ClassInfo(
+                name=cls.name,
+                source=new_source,
+                bases=list(parent_cls.bases),
+                line_start=cls.line_start,
+                line_end=cls.line_end,
+            )
+        )
+    return fixed
+
+
+def inject_index_annotations(classes: list[ClassInfo]) -> list[ClassInfo]:
+    """Add ``unique=True``/``index=True`` to fields per the cache spec.
+
+    Reads ``CacheTableSpec.unique_columns`` (DB-level uniqueness, also
+    indexed) and ``CacheTableSpec.index_columns`` (non-unique index)
+    and rewrites the matching ``Field(...)`` declarations to
+    ``SQLField(...)`` with the appropriate kwargs preserving description.
+
+    SQLite (and most engines) implement ``UNIQUE`` via a unique index;
+    we set ``index=True`` explicitly on unique columns too so the
+    column shows up cleanly in introspection. Non-unique ``index_columns``
+    mirror the legacy ``CatalogCache``'s plain indexes (e.g.,
+    ``idx_entity_sku ON entity_index(sku COLLATE NOCASE)``); the
+    NOCASE collation is applied at query time by the Phase B adapter,
+    not on the column itself.
+
+    Two cases mirror ``inject_foreign_keys``:
+
+    - Field already declares ``Field(...)``: rewrite to ``SQLField(...)``
+      preserving description.
+    - Field already declares ``SQLField(...)``: insert kwargs as leading
+      args (covers the case where ``inject_json_columns`` already
+      rewrote the field — symmetric/safe).
+
+    Operates on ``Cached<Name>`` siblings only.
+    """
+    column_specs: dict[str, dict[str, str]] = {}
+    for name, spec in CACHE_TABLES.items():
+        cached = _cached_name(name)
+        per_class: dict[str, str] = {}
+        for field_name in spec.unique_columns:
+            per_class[field_name] = "unique=True, index=True, "
+        for field_name in spec.index_columns:
+            per_class.setdefault(field_name, "index=True, ")
+        if per_class:
+            column_specs[cached] = per_class
+
+    fixed = []
+    for cls in classes:
+        per_class = column_specs.get(cls.name)
+        if not per_class:
+            fixed.append(cls)
+            continue
+        new_source = cls.source
+        for field_name, kwargs_prefix in per_class.items():
+            # Case 1: the field still uses ``Field(`` (no prior rewrite).
+            pattern_pydantic = (
+                rf"({re.escape(field_name)}:\s*Annotated\[\s*[^,]+,\s*)"
+                r"Field\(\s*(description=)"
+            )
+            replacement_pydantic = rf"\1SQLField({kwargs_prefix}\2"
+            new_source, n = re.subn(
+                pattern_pydantic, replacement_pydantic, new_source, count=1
+            )
+            if n == 1:
+                continue
+            # Case 2: a prior pass already rewrote to ``SQLField(...)`` —
+            # inject as leading kwargs (idempotent: skip if already
+            # present so a re-run doesn't double-add).
+            already_marker = kwargs_prefix.split("=", 1)[0]
+            pattern_sqlfield = (
+                rf"({re.escape(field_name)}:\s*Annotated\[\s*[^,]+,\s*)"
+                rf"SQLField\(\s*(?!{re.escape(already_marker)}=)"
+            )
+            replacement_sqlfield = rf"\1SQLField({kwargs_prefix}"
+            new_source, n = re.subn(
+                pattern_sqlfield, replacement_sqlfield, new_source, count=1
+            )
+            if n != 1:
+                msg = (
+                    f"Failed to inject index annotations on "
+                    f"{cls.name}.{field_name}. Field shape may have "
+                    "changed, or the column name doesn't match a "
+                    "declared field."
+                )
+                raise GenerationError(msg)
+        fixed.append(cls.with_source(new_source))
+    return fixed
+
+
+def inject_fts_columns(classes: list[ClassInfo]) -> list[ClassInfo]:
+    """Emit ``__fts_columns__: ClassVar[tuple[str, ...]] = (...)``.
+
+    For each ``Cached<Name>`` class with an entry in ``CACHE_FTS_SPECS``,
+    declares a class-level constant naming the columns Phase B's
+    ``<entity>_fts`` virtual table will index. The runtime invariant:
+    every column listed must exist on ``Cached<Name>.__table__.columns``
+    (Phase B will assert this at engine open).
+
+    The declaration sits right below ``__tablename__`` so a reader can see
+    the table identity and FTS contract together at the top of the class
+    body. ``ClassVar`` ensures pydantic and SQLModel skip it during field
+    enumeration — it's metadata, not a column.
+    """
+    cached_fts_specs = {
+        _cached_name(name): cols for name, cols in CACHE_FTS_SPECS.items()
+    }
+    fixed = []
+    for cls in classes:
+        cols = cached_fts_specs.get(cls.name)
+        if not cols:
+            fixed.append(cls)
+            continue
+        cols_str = ", ".join(repr(c) for c in cols)
+        fts_line = f"    __fts_columns__: ClassVar[tuple[str, ...]] = ({cols_str},)\n"
+        # Insert right after ``__tablename__ = "..."``. inject_table_annotations
+        # places that line; this pass runs after, so the line is present.
+        new_source, n = re.subn(
+            r'(__tablename__ = "[^"]+"\n)',
+            rf"\1{fts_line}",
+            cls.source,
+            count=1,
+        )
+        if n != 1:
+            msg = (
+                f"inject_fts_columns: failed to find __tablename__ on "
+                f"{cls.name}. inject_table_annotations may not have run "
+                "yet, or the format has changed."
+            )
+            raise GenerationError(msg)
+        fixed.append(cls.with_source(new_source))
+    return fixed
+
+
 def inject_json_columns(classes: list[ClassInfo]) -> list[ClassInfo]:
     """Annotate specified list fields with ``sa_column=Column(JSON)``.
 
@@ -1416,6 +2055,15 @@ def inject_json_columns(classes: list[ClassInfo]) -> list[ClassInfo]:
     than attempting to normalize them into child tables. Operates on the
     ``Cached<Name>`` siblings: spec keys are user-facing API names so the
     cached lookup converts via ``_cached_name``.
+
+    Handles two field shapes:
+
+    1. ``Annotated[T, Field(description=...)]`` — the common datamodel-codegen
+       output. Rewrites ``Field(`` to ``SQLField(sa_column=Column(PydanticJSON), ``.
+    2. ``name: T = Default`` (no ``Annotated``, no ``Field``) — emitted by
+       datamodel-codegen for classes without a description on the property
+       (e.g., ``Location1.address: LocationAddress | None = None``). Wraps
+       in ``Annotated[T, SQLField(sa_column=Column(PydanticJSON))]``.
     """
     cached_json_columns = {
         _cached_name(name): spec.json_columns
@@ -1430,15 +2078,44 @@ def inject_json_columns(classes: list[ClassInfo]) -> list[ClassInfo]:
             continue
         new_source = cls.source
         for field_name in fields:
+            # Case 1: Annotated[T, Field(description=...)] — most common.
             # Rewrite `Field(` → `SQLField(` AND inject sa_column=Column(JSON).
-            # Same rationale as foreign_key injection — pydantic.Field
-            # doesn't accept ``sa_column``; SQLField does.
-            pattern = (
+            # pydantic.Field doesn't accept ``sa_column``; SQLField does.
+            #
+            # ``[^\[\]]|\[[^\[\]]*\]`` matches a non-bracket char OR a
+            # single-level bracket pair, so ``dict[str, Any] | None`` (with
+            # an inner comma) is captured fully. This is the same balanced
+            # pattern ``wrap_cache_fields_in_mapped`` uses; the ``,\s*Field(``
+            # delimiter terminates the type group at the right comma.
+            pattern_field = (
                 rf"({re.escape(field_name)}:\s*Annotated\[\s*"
-                rf"[^,]+,\s*)Field\(\s*(description=)"
+                rf"(?:[^\[\]]|\[[^\[\]]*\])+?,\s*)Field\(\s*(description=)"
             )
-            replacement = r"\1SQLField(sa_column=Column(PydanticJSON), \2"
-            new_source, n = re.subn(pattern, replacement, new_source, count=1)
+            replacement_field = r"\1SQLField(sa_column=Column(PydanticJSON), \2"
+            new_source, n = re.subn(
+                pattern_field, replacement_field, new_source, count=1
+            )
+            if n == 1:
+                continue
+            # Case 2: bare ``name: T = Default`` (no Annotated, no Field) —
+            # datamodel-codegen omits Annotated when the property has no
+            # description. Wrap in ``Annotated[T, SQLField(sa_column=...)]``.
+            # Multi-line tolerant since the type annotation may be a long
+            # union split across lines (rare but possible).
+            pattern_bare = (
+                rf"^(\s+){re.escape(field_name)}:\s*([^=\n]+?)(\s*=\s*[^\n]+)$"
+            )
+            replacement_bare = (
+                rf"\1{field_name}: Annotated["
+                rf"\2, SQLField(sa_column=Column(PydanticJSON))]\3"
+            )
+            new_source, n = re.subn(
+                pattern_bare,
+                replacement_bare,
+                new_source,
+                count=1,
+                flags=re.MULTILINE,
+            )
             if n != 1:
                 msg = (
                     f"Failed to inject JSON sa_column on "
@@ -1577,8 +2254,17 @@ def generate_module_imports(
     # child back-reference annotations (``Optional["Parent"]`` form required
     # so SQLAlchemy's string-form relationship resolution can parse the
     # forward ref).
+    cached_fts_class_names = {_cached_name(n) for n in CACHE_FTS_SPECS}
+    has_fts_columns = any(cls.name in cached_fts_class_names for cls in classes)
     if has_cache_tables:
-        import_lines.append("from typing import Optional")
+        # ``ClassVar`` joins ``Optional`` on the same ``from typing import ...``
+        # line when both are needed (FTS-bearing modules), keeping imports
+        # tidy. ClassVar only matters for FTS columns; non-FTS modules skip it.
+        typing_names = ["Optional"]
+        if has_fts_columns:
+            typing_names.append("ClassVar")
+        typing_names.sort()
+        import_lines.append(f"from typing import {', '.join(typing_names)}")
         import_lines.append("from sqlmodel import Field as SQLField, Relationship")
         if not any("ConfigDict" in line for line in import_lines):
             import_lines.append("from pydantic import ConfigDict")

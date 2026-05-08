@@ -6,14 +6,18 @@ To regenerate, run:
     uv run poe generate-pydantic
 """
 
-from __future__ import annotations
-
 from enum import StrEnum
-from typing import Annotated
+from typing import Annotated, ClassVar
 
 from pydantic import ConfigDict, EmailStr, Field, RootModel
+from sqlalchemy import Column
+from sqlmodel import (
+    Field as SQLField,
+)
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
+from katana_public_api_client.models_pydantic._mapped_shim import Mapped
+from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON
 
 from .base import DeletableEntity, UpdatableEntity
 from .common import Address, AddressEntityType, PriceAdjustmentMethod
@@ -655,4 +659,136 @@ class Customer(DeletableEntity):
 class CustomerListResponse(KatanaPydanticBase):
     data: Annotated[
         list[Customer] | None, Field(description="Array of customer entities")
+    ] = None
+
+
+class CachedSupplier(DeletableEntity, table=True):
+    __tablename__ = "supplier"
+    __fts_columns__: ClassVar[tuple[str, ...]] = (
+        "name",
+        "email",
+        "phone",
+    )
+    model_config = ConfigDict(frozen=False)
+
+    id: Annotated[
+        Mapped[int], SQLField(primary_key=True, description="Unique identifier")
+    ]
+
+    name: Annotated[
+        Mapped[str | None],
+        Field(description="Business name of the supplier company or individual"),
+    ] = None
+    email: Annotated[
+        Mapped[str | None],
+        Field(
+            description="Primary email address for supplier communication and order confirmations"
+        ),
+    ] = None
+    phone: Annotated[
+        Mapped[str | None],
+        Field(
+            description="Primary phone number for supplier contact and communication"
+        ),
+    ] = None
+    currency: Annotated[
+        Mapped[str | None],
+        Field(
+            description="Default currency used for transactions with this supplier (ISO 4217 format)",
+            pattern="^[A-Z]{3}$",
+        ),
+    ] = None
+    comment: Annotated[
+        Mapped[str | None],
+        Field(description="Optional notes or comments about the supplier relationship"),
+    ] = None
+    default_address_id: Annotated[
+        Mapped[int | None],
+        Field(description="Unique identifier of the default address for this supplier"),
+    ] = None
+    addresses: Annotated[
+        Mapped[list[SupplierAddress] | None],
+        SQLField(
+            sa_column=Column(PydanticJSON),
+            description="List of addresses associated with this supplier",
+        ),
+    ] = None
+
+
+class CachedCustomer(DeletableEntity, table=True):
+    __tablename__ = "customer"
+    __fts_columns__: ClassVar[tuple[str, ...]] = (
+        "name",
+        "email",
+        "phone",
+    )
+    model_config = ConfigDict(frozen=False)
+
+    id: Annotated[
+        Mapped[int], SQLField(primary_key=True, description="Unique identifier")
+    ]
+
+    name: Annotated[
+        Mapped[str],
+        Field(
+            description="Customer display name, either individual name or company name"
+        ),
+    ]
+    first_name: Annotated[
+        Mapped[str | None],
+        Field(description="Customer's first name for individual contacts"),
+    ] = None
+    last_name: Annotated[
+        Mapped[str | None],
+        Field(description="Customer's last name for individual contacts"),
+    ] = None
+    company: Annotated[
+        Mapped[str | None], Field(description="Company name for business customers")
+    ] = None
+    email: Annotated[
+        Mapped[str | None],
+        Field(
+            description="Primary email address for communication and order notifications"
+        ),
+    ] = None
+    phone: Annotated[
+        Mapped[str | None],
+        Field(description="Primary phone number for customer contact"),
+    ] = None
+    comment: Annotated[
+        Mapped[str | None],
+        Field(description="Internal notes and comments about the customer"),
+    ] = None
+    currency: Annotated[
+        Mapped[str | None],
+        Field(
+            description="Default currency code for all transactions with this customer"
+        ),
+    ] = None
+    reference_id: Annotated[
+        Mapped[str | None],
+        Field(description="External reference ID for integration with other systems"),
+    ] = None
+    category: Annotated[
+        Mapped[str | None],
+        Field(description="Customer category for segmentation and reporting"),
+    ] = None
+    discount_rate: Annotated[
+        Mapped[float | None],
+        Field(description="Default discount percentage applied to all orders (0-100)"),
+    ] = None
+    default_billing_id: Annotated[
+        Mapped[int | None],
+        Field(description="ID of the default billing address for this customer"),
+    ] = None
+    default_shipping_id: Annotated[
+        Mapped[int | None],
+        Field(description="ID of the default shipping address for this customer"),
+    ] = None
+    addresses: Annotated[
+        Mapped[list[CustomerAddress] | None],
+        SQLField(
+            sa_column=Column(PydanticJSON),
+            description="Complete list of billing and shipping addresses for this customer",
+        ),
     ] = None

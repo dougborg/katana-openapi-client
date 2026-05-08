@@ -23,7 +23,7 @@ from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON
 
 from .base import DeletableEntity
 from .common import CostDistributionMethod, DocumentSendStatus
-from .contacts import Supplier
+from .contacts import CachedSupplier, Supplier
 from .stock import (
     BatchTransaction4,
     BatchTransaction5,
@@ -1061,7 +1061,7 @@ class CachedPurchaseOrder(DeletableEntity, table=True):
         back_populates="purchase_order"
     )
     supplier: Annotated[
-        Mapped[Supplier | None],
+        Mapped[CachedSupplier | None],
         SQLField(
             sa_column=Column(PydanticJSON),
             description="Complete supplier information for this purchase order",
