@@ -1633,9 +1633,17 @@ Create a stock transfer moving inventory between two locations.
 - `source_location_id` (required): Source location ID
 - `destination_location_id` (required): Destination location ID (target_location_id)
 - `expected_arrival_date` (required): Expected arrival datetime (ISO-8601)
+- `transfer_date` (optional, ISO 8601): Date items leave the source.
+  Distinct from `expected_arrival_date` (when they arrive). Leave None
+  to let Katana stamp it server-side; supply for back-fills or to
+  record an actual ship-out date.
+- `order_created_date` (optional, ISO 8601): When the transfer record
+  was created. Leave None for server-stamping; supply for back-fills.
 - `rows` (required): Line items `[{variant_id, quantity, batch_transactions?}]` —
   `batch_transactions` is `[{batch_id, quantity}]` for batch-tracked variants
-- `order_no` (optional): Stock transfer number. When omitted, the tool generates a `ST-<unix-ts>` default before sending — Katana's API requires the field.
+- `order_no` (optional): Stock transfer number. When omitted, the tool
+  generates a `ST-<unix-ts>` default before sending — Katana's API
+  requires the field.
 - `additional_info` (optional): Notes
 - `preview` (optional, default true): true=preview, false=create
 

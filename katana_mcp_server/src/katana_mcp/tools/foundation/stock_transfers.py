@@ -180,6 +180,23 @@ class CreateStockTransferRequest(BaseModel):
             "or datetime (e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
         ),
     )
+    transfer_date: datetime | None = Field(
+        default=None,
+        description=(
+            "Date the items leave the source location. Distinct from "
+            "`expected_arrival_date` (when they arrive at the destination). "
+            "Leave None to let Katana stamp it server-side; supply for "
+            "back-fills or to record an actual ship-out date."
+        ),
+    )
+    order_created_date: datetime | None = Field(
+        default=None,
+        description=(
+            "Date the transfer record was created. Leave None to let Katana "
+            "stamp the current time server-side; supply for back-fills "
+            "(importing historical transfers, etc.)."
+        ),
+    )
     rows: list[StockTransferRowInput] = Field(
         ..., description="Line items to transfer", min_length=1
     )
@@ -387,11 +404,16 @@ async def _create_stock_transfer_impl(
     # pattern in ``_create_manufacturing_order_impl``.
     transfer_number = request.order_no or f"ST-{int(datetime.now(UTC).timestamp())}"
 
+    # order_created_date and transfer_date are forwarded from the caller
+    # (None => UNSET => Katana server-stamps). Previously order_created_date
+    # was hardcoded to datetime.now(UTC), silently overwriting any caller
+    # intent and blocking back-fills (mirroring #605).
     api_request = APICreateStockTransferRequest(
         source_location_id=request.source_location_id,
         target_location_id=request.destination_location_id,
         expected_arrival_date=request.expected_arrival_date,
-        order_created_date=datetime.now(UTC),
+        transfer_date=to_unset(request.transfer_date),
+        order_created_date=to_unset(request.order_created_date),
         stock_transfer_number=transfer_number,
         additional_info=to_unset(request.additional_info),
         stock_transfer_rows=api_rows,
