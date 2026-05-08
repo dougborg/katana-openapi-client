@@ -639,6 +639,93 @@ class TestCrossEntitySpecOrdering:
         assert v_product.parent_name == "Knife"
         assert v_material.parent_name == "Steel"
 
+    @pytest.mark.asyncio
+    async def test_ensure_variants_synced_populates_fts_index(self, typed_cache_engine):
+        """The bulk-upsert path keeps the FTS5 sidecar in sync.
+
+        ``_sync_one_locked`` writes via ``sqlalchemy.dialects.sqlite.insert``
+        (Core ``INSERT ... ON CONFLICT``), which bypasses SQLAlchemy
+        ORM mapper events. The FTS5 sidecar relies on **SQLite triggers**
+        (registered by ``_create_fts_tables_ddl`` on engine.open()) that
+        fire for every write mode — ORM, Core, raw SQL — so the sync
+        path keeps the inverted index in lock-step without an explicit
+        reindex pass. Pre-#646 this surface was wired through ORM-only
+        mapper-event listeners and ``smart_search`` would silently
+        return empty until the next engine reopen rebuilt the index;
+        this test pins the contract end-to-end: sync via the public
+        ``ensure_variants_synced`` entrypoint, then assert
+        ``smart_search`` against an FTS-only token (``KNF-V1-FTSTEST``)
+        finds the synced rows.
+        """
+        product_attrs = AttrsProduct.from_dict(
+            {"id": 201, "name": "Chef Knife", "type": "product"}
+        )
+        material_attrs = AttrsMaterial.from_dict(
+            {"id": 6001, "name": "Stainless Steel", "type": "material"}
+        )
+        variant_for_product = AttrsVariantResponse.from_dict(
+            {
+                "id": 4001,
+                "sku": "KNF-V1-FTSTEST",
+                "product_id": 201,
+                "type": "product",
+                "product_or_material": {
+                    "id": 201,
+                    "name": "Chef Knife",
+                    "type": "product",
+                },
+            }
+        )
+        variant_for_material = AttrsVariantResponse.from_dict(
+            {
+                "id": 4002,
+                "sku": "STL-V1-FTSTEST",
+                "material_id": 6001,
+                "type": "material",
+                "product_or_material": {
+                    "id": 6001,
+                    "name": "Stainless Steel",
+                    "type": "material",
+                },
+            }
+        )
+
+        with (
+            _stub_endpoint("get_all_products", _list_response([product_attrs])),
+            _stub_endpoint("get_all_materials", _list_response([material_attrs])),
+            _stub_endpoint(
+                "get_all_variants",
+                _list_response([variant_for_product, variant_for_material]),
+            ),
+        ):
+            await ensure_variants_synced(MagicMock(), typed_cache_engine)
+
+        # FTS-backed search should find the variant by SKU prefix even
+        # though the row was written via Core upsert (where ORM mapper
+        # events would not fire). The SQLite trigger trio fires for
+        # Core writes, so this assertion catches a regression where
+        # the trigger DDL stops being emitted on engine.open().
+        variant_results = await typed_cache_engine.catalog.smart_search(
+            CachedVariant, "KNF-V1-FTSTEST"
+        )
+        assert any(r.id == 4001 for r in variant_results), (
+            "FTS5 sidecar not populated for variant inserted via "
+            "_bulk_upsert — trigger trio likely dropped from "
+            "_create_fts_tables_ddl"
+        )
+
+        # Parents (product, material) also ride the bulk-upsert path —
+        # exercise their FTS sidecars too so a regression on either
+        # surface is caught.
+        product_results = await typed_cache_engine.catalog.smart_search(
+            CachedProduct, "Chef Knife"
+        )
+        assert any(r.id == 201 for r in product_results)
+        material_results = await typed_cache_engine.catalog.smart_search(
+            CachedMaterial, "Stainless"
+        )
+        assert any(r.id == 6001 for r in material_results)
+
 
 class TestFTSSchemaValidation:
     """FTS column declarations stay in sync with the cache table schema."""
@@ -681,20 +768,20 @@ class TestNoDoubleOpenInteraction:
 
     @pytest.mark.asyncio
     async def test_fts_index_consistent_after_insert(self, typed_cache_engine):
-        """Inserting a row populates the FTS sidecar via after_insert listener."""
+        """ORM ``session.add`` populates the FTS sidecar via the ``ai`` trigger."""
         async with typed_cache_engine.session() as session:
             session.add(
                 CachedVariant(
                     id=10,
-                    sku="LISTENER-TEST",
-                    display_name="Listener Test Item",
+                    sku="TRIGGER-TEST",
+                    display_name="Trigger Test Item",
                 )
             )
             await session.commit()
 
         # Round-trip: can we find it via the FTS-backed smart_search?
         results = await typed_cache_engine.catalog.smart_search(
-            CachedVariant, "listener"
+            CachedVariant, "trigger"
         )
         assert any(r.id == 10 for r in results)
 

@@ -507,6 +507,13 @@ async def _sync_one_locked(
 
     async with cache.session() as session:
         # Parents first so child FK constraints resolve on insert.
+        # ``_bulk_upsert`` issues Core ``INSERT ... ON CONFLICT``
+        # statements via ``sqlalchemy.dialects.sqlite.insert``. SQLite
+        # triggers (registered by ``_create_fts_tables_ddl`` on
+        # engine.open()) keep the FTS5 inverted index in sync —
+        # SQLAlchemy mapper events would silently miss this Core path,
+        # but SQLite triggers fire for every write mode (ORM, Core,
+        # raw SQL).
         await _bulk_upsert(session, spec.cache_cls, cached_parents)
         if spec.child_cls is not None:
             await _bulk_upsert(session, spec.child_cls, cached_children)
@@ -788,12 +795,19 @@ _MATERIAL_SPEC = EntitySpec(
 )
 
 
-# Variants depend on Product + Material because:
-# 1. ``parent_archived_at`` is lifted from the extended product_or_material
-#    payload — the postprocess hook needs the parent's archive timestamp.
-# 2. The cache class carries no FK constraint, but conceptually the
-#    parent rows must exist before variants reference them; cold-start
-#    sync respects that ordering via ``depends_on``.
+# Variants depend on Product + Material for cache-completeness reasons:
+# variants carry FK references to product/material IDs, and join-style
+# queries against the cache (``v.product_id -> CachedProduct``) need
+# both sides cached for results to land. The ``parent_archived_at`` /
+# ``parent_name`` denormalization lives entirely on the variant
+# postprocess hook — it reads from the *extended* attrs payload
+# (``product_or_material`` set via ``extend=[PRODUCT_OR_MATERIAL]``),
+# not from the cached parent row, so the dependency is a soft cache-
+# completeness guarantee rather than a postprocess prerequisite. Today
+# ``ensure_variants_synced`` enforces ordering via ``asyncio.gather``;
+# the ``depends_on`` field is declarative metadata for a future
+# topo-walking scheduler (validated at ``engine.open()``, not yet
+# consulted at sync time).
 _VARIANT_SPEC = EntitySpec(
     entity_key="variant",
     api_fn=get_all_variants,
@@ -951,10 +965,13 @@ async def ensure_manufacturing_order_recipe_rows_synced(
 
 
 # Catalog wrappers (#472 Phase B). Variant explicitly syncs its parents
-# first because the cold-start postprocess hook needs the parent rows
-# already cached for ``parent_archived_at`` to be populated correctly.
-# After Phase D lands, these wrappers replace ``cache_sync.py``'s legacy
-# ``ensure_*_synced`` helpers.
+# first so any caller that joins variants to their cached parents sees
+# both sides on a single ``ensure_variants_synced`` round trip — the
+# postprocess hook itself reads ``parent_archived_at`` / ``parent_name``
+# from the extended ``product_or_material`` attrs payload, not from the
+# cached parent row, so it doesn't actually depend on the parent rows
+# having landed first. After Phase D lands, these wrappers replace
+# ``cache_sync.py``'s legacy ``ensure_*_synced`` helpers.
 
 
 async def ensure_products_synced(client: KatanaClient, cache: TypedCacheEngine) -> None:
@@ -972,11 +989,16 @@ async def ensure_materials_synced(
 async def ensure_variants_synced(client: KatanaClient, cache: TypedCacheEngine) -> None:
     """Pull updated variants from Katana and upsert into the cache.
 
-    Syncs Product + Material parents first so the variant postprocess
-    hook can lift ``parent_archived_at`` / ``parent_name`` from rows
-    that already exist in cache. Parents have no inter-dependency, so
-    they sync in parallel; the variant sync then fans out under its own
-    lock once both parent watermarks have advanced.
+    Syncs Product + Material parents in parallel first, then variants.
+    The ordering exists for cache-completeness (downstream queries that
+    join variants to their cached parents need both sides materialized);
+    the variant postprocess hook itself reads ``parent_archived_at`` /
+    ``parent_name`` from the *extended* ``product_or_material`` attrs
+    payload set by ``extend=[PRODUCT_OR_MATERIAL]``, not from the cached
+    parent row, so it works even if the parent sync hasn't run yet.
+    Parents have no inter-dependency, so they sync in parallel; the
+    variant sync then fans out under its own lock once both parent
+    watermarks have advanced.
     """
     await asyncio.gather(
         _ensure_synced(client, cache, _PRODUCT_SPEC),
@@ -1106,6 +1128,10 @@ async def force_resync(
         for related in spec.related_specs:
             children_to_delete.add(related.cache_cls)
         async with cache.session() as session:
+            # Core ``DELETE`` fires the per-row ``<entity>_ad`` trigger
+            # for each row, which issues the FTS5 ``'delete'`` command
+            # against the inverted index — so the FTS sidecar self-cleans
+            # in the same transaction without an explicit truncate pass.
             for child_cls in children_to_delete:
                 await session.exec(delete(child_cls))
             await session.exec(delete(spec.cache_cls))
