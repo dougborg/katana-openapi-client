@@ -812,6 +812,22 @@ async def get_inventory_movements(
 # ============================================================================
 
 
+class StockAdjustmentBatchAllocation(BaseModel):
+    """Allocate a portion of a row's adjustment quantity to a specific batch.
+
+    Required for batch-tracked materials so adjustments land on the right
+    batch record. The summed ``quantity`` across an item's batch_transactions
+    should equal the row-level ``quantity`` being adjusted.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    batch_id: int = Field(..., description="Batch ID to allocate adjustment to")
+    quantity: float = Field(
+        ..., description="Quantity allocated to this batch (signed like the row)"
+    )
+
+
 class StockAdjustmentRow(BaseModel):
     """A single line item in a stock adjustment."""
 
@@ -823,6 +839,16 @@ class StockAdjustmentRow(BaseModel):
     )
     cost_per_unit: float | None = Field(
         default=None, description="Cost per unit (optional)"
+    )
+    batch_transactions: list[StockAdjustmentBatchAllocation] | None = Field(
+        default=None,
+        description=(
+            "Per-batch allocation list. Required for batch-tracked materials — "
+            "Katana rejects batch-tracked adjustments without it. Each entry: "
+            "`{batch_id, quantity}`; summed quantity across batch_transactions "
+            "should equal this row's quantity. Leave None for non-batch-tracked "
+            "items."
+        ),
     )
 
 
@@ -840,6 +866,23 @@ class CreateStockAdjustmentRequest(BaseModel):
         default=None, description="Reason for adjustment (e.g., 'Sample received')"
     )
     additional_info: str | None = Field(default=None, description="Additional notes")
+    stock_adjustment_number: str | None = Field(
+        default=None,
+        description=(
+            "Adjustment number (optional). Leave None and the tool will generate "
+            "a `SA-<timestamp>` default — Katana's API requires the field but "
+            "doesn't auto-assign one. Supply only when importing from an external "
+            "system or you need a specific number."
+        ),
+    )
+    stock_adjustment_date: datetime | None = Field(
+        default=None,
+        description=(
+            "Date the adjustment occurred (ISO 8601). Leave None to stamp the "
+            "current call time; supply for back-fills or to reflect the actual "
+            "physical-count date when different from the call time."
+        ),
+    )
     preview: bool = Field(
         default=True,
         description="Set true (default) to preview, false to create",
@@ -863,9 +906,11 @@ async def _create_stock_adjustment_impl(
     from datetime import UTC, datetime
 
     from katana_public_api_client.api.stock_adjustment import create_stock_adjustment
+    from katana_public_api_client.client_types import UNSET
     from katana_public_api_client.domain.converters import to_unset
     from katana_public_api_client.models import (
         CreateStockAdjustmentRequest as APICreateStockAdjustmentRequest,
+        StockAdjustmentBatchTransaction as APISABatchTransaction,
     )
     from katana_public_api_client.models.create_stock_adjustment_request_stock_adjustment_rows_item import (
         CreateStockAdjustmentRequestStockAdjustmentRowsItem,
@@ -884,11 +929,20 @@ async def _create_stock_adjustment_impl(
         if not variant:
             raise ValueError(f"SKU '{row.sku}' not found")
         display_name = variant.get("display_name") or row.sku
+
+        batch_txns: list[APISABatchTransaction] | Unset = UNSET
+        if row.batch_transactions is not None:
+            batch_txns = [
+                APISABatchTransaction(quantity=bt.quantity, batch_id=bt.batch_id)
+                for bt in row.batch_transactions
+            ]
+
         api_rows.append(
             CreateStockAdjustmentRequestStockAdjustmentRowsItem(
                 variant_id=variant["id"],
                 quantity=row.quantity,
                 cost_per_unit=to_unset(row.cost_per_unit),
+                batch_transactions=batch_txns,
             )
         )
         rows_summary_parts.append(f"- {row.sku} ({display_name}): {row.quantity:+.1f}")
@@ -904,14 +958,28 @@ async def _create_stock_adjustment_impl(
             rows_summary=rows_summary,
         )
 
-    # Generate a collision-resistant SA number using timestamp
-    adj_number = f"SA-{datetime.now(tz=UTC).strftime('%Y%m%d-%H%M%S')}"
+    # Caller-supplied stock_adjustment_number takes precedence; otherwise
+    # generate a collision-resistant default. Katana's API requires the field
+    # but doesn't auto-assign one.
+    adj_number = (
+        request.stock_adjustment_number
+        if request.stock_adjustment_number is not None
+        else f"SA-{datetime.now(tz=UTC).strftime('%Y%m%d-%H%M%S')}"
+    )
+
+    # stock_adjustment_date: caller-supplied wins; default to call time so the
+    # field is always populated (Katana requires a value).
+    adj_date = (
+        request.stock_adjustment_date
+        if request.stock_adjustment_date is not None
+        else datetime.now(tz=UTC)
+    )
 
     api_request = APICreateStockAdjustmentRequest(
         location_id=request.location_id,
         stock_adjustment_rows=api_rows,
         stock_adjustment_number=adj_number,
-        stock_adjustment_date=datetime.now(tz=UTC),
+        stock_adjustment_date=adj_date,
         reason=to_unset(request.reason),
         additional_info=to_unset(request.additional_info),
     )

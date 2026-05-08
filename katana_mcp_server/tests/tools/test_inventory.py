@@ -759,6 +759,99 @@ async def test_create_stock_adjustment_sku_not_found():
 
 
 @pytest.mark.asyncio
+async def test_create_stock_adjustment_apply_forwards_new_fields():
+    """Caller-supplied stock_adjustment_number, stock_adjustment_date, and
+    row-level batch_transactions reach the API call body (#627).
+    """
+    from datetime import UTC, datetime
+
+    from katana_mcp.tools.foundation.inventory import StockAdjustmentBatchAllocation
+
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "BATCH-001", "display_name": "Batch Item"}
+    )
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_adj = MagicMock()
+    mock_adj.id = 9001
+    mock_response.parsed = mock_adj
+    mock_api_call = AsyncMock(return_value=mock_response)
+
+    physical_count_date = datetime(2026, 4, 1, 8, 0, tzinfo=UTC)
+
+    with patch(_SA_API + ".asyncio_detailed", mock_api_call):
+        request = CreateStockAdjustmentRequest(
+            location_id=1,
+            rows=[
+                StockAdjustmentRow(
+                    sku="BATCH-001",
+                    quantity=10,
+                    cost_per_unit=2.50,
+                    batch_transactions=[
+                        StockAdjustmentBatchAllocation(batch_id=42, quantity=6),
+                        StockAdjustmentBatchAllocation(batch_id=43, quantity=4),
+                    ],
+                ),
+            ],
+            stock_adjustment_number="SA-IMPORT-001",
+            stock_adjustment_date=physical_count_date,
+            preview=False,
+        )
+        await _create_stock_adjustment_impl(request, context)
+
+    api_body = mock_api_call.call_args.kwargs["body"]
+    assert api_body.stock_adjustment_number == "SA-IMPORT-001"
+    assert api_body.stock_adjustment_date == physical_count_date
+    row = api_body.stock_adjustment_rows[0]
+    assert len(row.batch_transactions) == 2
+    assert row.batch_transactions[0].batch_id == 42
+    assert row.batch_transactions[0].quantity == 6
+    assert row.batch_transactions[1].batch_id == 43
+    assert row.batch_transactions[1].quantity == 4
+
+
+@pytest.mark.asyncio
+async def test_create_stock_adjustment_apply_defaults_when_unset():
+    """When the new fields aren't supplied, the tool generates a SA-<ts>
+    number and stamps the call time as the date — Katana requires both
+    fields. row-level batch_transactions stays UNSET when the caller
+    leaves it None.
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
+    )
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_adj = MagicMock()
+    mock_adj.id = 9002
+    mock_response.parsed = mock_adj
+    mock_api_call = AsyncMock(return_value=mock_response)
+
+    from katana_public_api_client.client_types import UNSET
+
+    with patch(_SA_API + ".asyncio_detailed", mock_api_call):
+        request = CreateStockAdjustmentRequest(
+            location_id=1,
+            rows=[StockAdjustmentRow(sku="WIDGET-001", quantity=1)],
+            preview=False,
+        )
+        await _create_stock_adjustment_impl(request, context)
+
+    api_body = mock_api_call.call_args.kwargs["body"]
+    # Auto-generated SA number — pattern check rather than exact match
+    assert api_body.stock_adjustment_number.startswith("SA-")
+    # stock_adjustment_date is always populated (Katana requires it)
+    assert api_body.stock_adjustment_date is not None
+    assert api_body.stock_adjustment_date is not UNSET
+    # batch_transactions stays UNSET when caller omits it
+    assert api_body.stock_adjustment_rows[0].batch_transactions is UNSET
+
+
+@pytest.mark.asyncio
 async def test_create_stock_adjustment_empty_rows():
     """Test stock adjustment with no rows."""
     context, _ = create_mock_context()
