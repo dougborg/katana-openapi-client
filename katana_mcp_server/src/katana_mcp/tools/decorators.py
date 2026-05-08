@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from functools import wraps
-from typing import Any
+from typing import Any, cast
 
 from katana_mcp.cache import EntityType
 from katana_mcp.services import get_services
@@ -91,7 +91,7 @@ def cache_read(*entity_types: str) -> Callable:
 
             return await fn(*args, **kwargs)
 
-        return wrapper  # type: ignore[return-value]
+        return cast("F", wrapper)
 
     return decorator
 
@@ -122,6 +122,6 @@ def cache_write(*entity_types: str) -> Callable:
 
             return result
 
-        return wrapper  # type: ignore[return-value]
+        return cast("F", wrapper)
 
     return decorator

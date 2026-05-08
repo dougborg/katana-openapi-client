@@ -53,7 +53,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -374,8 +374,7 @@ def make_post_apply[T](
 
     async def apply() -> T:
         response = await endpoint.asyncio_detailed(client=services.client, body=body)
-        # ``unwrap_as`` raises on error by default; narrow ``T | None`` → ``T``.
-        return cast(T, unwrap_as(response, return_type))
+        return unwrap_as(response, return_type)
 
     return apply
 
@@ -398,7 +397,7 @@ def make_patch_apply[T](
         response = await endpoint.asyncio_detailed(
             id=target_id, client=services.client, body=body
         )
-        return cast(T, unwrap_as(response, return_type))
+        return unwrap_as(response, return_type)
 
     return apply
 

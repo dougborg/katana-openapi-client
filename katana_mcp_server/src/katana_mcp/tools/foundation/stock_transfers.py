@@ -16,7 +16,7 @@ import asyncio
 import datetime as _datetime
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, cast
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
@@ -574,6 +574,8 @@ def _apply_stock_transfer_filters(
     (``draft``, ``inTransit`` (camelCase!), ``received``) which is what the
     cache column stores.
     """
+    from sqlmodel import col
+
     from katana_public_api_client.models_pydantic._generated import (
         CachedStockTransfer,
     )
@@ -593,7 +595,7 @@ def _apply_stock_transfer_filters(
         stmt = stmt.where(
             CachedStockTransfer.stock_transfer_number == request.stock_transfer_number
         )
-    stmt = stmt.where(CachedStockTransfer.deleted_at.is_(None))
+    stmt = stmt.where(col(CachedStockTransfer.deleted_at).is_(None))
 
     return apply_date_window_filters(
         stmt,
@@ -613,8 +615,8 @@ async def _list_stock_transfers_impl(
     Filters (including ``status``, which Katana doesn't expose as a
     server-side filter) translate to indexed SQL. See ADR-0018.
     """
-    from sqlalchemy.orm import selectinload
-    from sqlmodel import func, select
+    from sqlalchemy.orm import QueryableAttribute, selectinload
+    from sqlmodel import col, func, select
 
     from katana_mcp.typed_cache import ensure_stock_transfers_synced
     from katana_public_api_client.models_pydantic._generated import (
@@ -633,11 +635,16 @@ async def _list_stock_transfers_impl(
     # materialization time and we skip the correlated COUNT subquery.
     if request.include_rows:
         stmt = select(CachedStockTransfer).options(
-            selectinload(CachedStockTransfer.stock_transfer_rows)
+            selectinload(
+                cast(
+                    "QueryableAttribute[Any]",
+                    CachedStockTransfer.stock_transfer_rows,
+                )
+            )
         )
     else:
         row_count_subq = (
-            select(func.count(CachedStockTransferRow.id))
+            select(func.count(col(CachedStockTransferRow.id)))
             .where(CachedStockTransferRow.stock_transfer_id == CachedStockTransfer.id)
             .correlate(CachedStockTransfer)
             .scalar_subquery()
@@ -646,7 +653,8 @@ async def _list_stock_transfers_impl(
         stmt = select(CachedStockTransfer, row_count_subq)
     stmt = _apply_stock_transfer_filters(stmt, request, parsed_dates)
     stmt = stmt.order_by(
-        CachedStockTransfer.created_at.desc(), CachedStockTransfer.id.desc()
+        col(CachedStockTransfer.created_at).desc(),
+        col(CachedStockTransfer.id).desc(),
     )
     if request.page is not None:
         stmt = stmt.offset((request.page - 1) * request.limit).limit(request.limit)

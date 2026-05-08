@@ -16,7 +16,7 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, cast
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
@@ -614,6 +614,8 @@ def _apply_sales_order_filters(
     this function lets the paginated path avoid re-parsing on the COUNT
     query.
     """
+    from sqlmodel import col
+
     from katana_public_api_client.models_pydantic._generated import (
         CachedSalesOrder,
         SalesOrderProductionStatus,
@@ -627,7 +629,7 @@ def _apply_sales_order_filters(
     if request.order_no is not None:
         stmt = stmt.where(CachedSalesOrder.order_no == request.order_no)
     if request.ids is not None:
-        stmt = stmt.where(CachedSalesOrder.id.in_(request.ids))
+        stmt = stmt.where(col(CachedSalesOrder.id).in_(request.ids))
     if request.customer_id is not None:
         stmt = stmt.where(CachedSalesOrder.customer_id == request.customer_id)
     if request.location_id is not None:
@@ -649,7 +651,7 @@ def _apply_sales_order_filters(
     if request.currency is not None:
         stmt = stmt.where(CachedSalesOrder.currency == request.currency)
     if not request.include_deleted:
-        stmt = stmt.where(CachedSalesOrder.deleted_at.is_(None))
+        stmt = stmt.where(col(CachedSalesOrder.deleted_at).is_(None))
 
     return apply_date_window_filters(
         stmt,
@@ -677,8 +679,8 @@ async def _list_sales_orders_impl(
     translates request filters into indexed SQL and returns results
     directly. See ADR-0018.
     """
-    from sqlalchemy.orm import selectinload
-    from sqlmodel import func, select
+    from sqlalchemy.orm import QueryableAttribute, selectinload
+    from sqlmodel import col, func, select
 
     from katana_mcp.typed_cache import ensure_sales_orders_synced
     from katana_public_api_client.models_pydantic._generated import (
@@ -697,11 +699,13 @@ async def _list_sales_orders_impl(
     # time and we skip the correlated COUNT subquery entirely.
     if request.include_rows:
         stmt = select(CachedSalesOrder).options(
-            selectinload(CachedSalesOrder.sales_order_rows)
+            selectinload(
+                cast("QueryableAttribute[Any]", CachedSalesOrder.sales_order_rows)
+            )
         )
     else:
         row_count_subq = (
-            select(func.count(CachedSalesOrderRow.id))
+            select(func.count(col(CachedSalesOrderRow.id)))
             .where(CachedSalesOrderRow.sales_order_id == CachedSalesOrder.id)
             .correlate(CachedSalesOrder)
             .scalar_subquery()
@@ -709,7 +713,9 @@ async def _list_sales_orders_impl(
         )
         stmt = select(CachedSalesOrder, row_count_subq)
     stmt = _apply_sales_order_filters(stmt, request, parsed_dates)
-    stmt = stmt.order_by(CachedSalesOrder.created_at.desc(), CachedSalesOrder.id.desc())
+    stmt = stmt.order_by(
+        col(CachedSalesOrder.created_at).desc(), col(CachedSalesOrder.id).desc()
+    )
     if request.page is not None:
         stmt = stmt.offset((request.page - 1) * request.limit).limit(request.limit)
     else:

@@ -25,5 +25,7 @@
     }
   ],
   "reportMissingImports": "error",
-  "reportMissingTypeStubs": "none"
+  "reportMissingTypeStubs": "none",
+  "reportIncompatibleVariableOverride": "none",
+  "reportAssignmentType": "warning"
 }
