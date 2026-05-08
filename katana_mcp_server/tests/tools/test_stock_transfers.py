@@ -218,6 +218,79 @@ async def test_create_stock_transfer_auto_generates_number_when_order_no_omitted
 
 
 @pytest.mark.asyncio
+async def test_create_stock_transfer_apply_forwards_dates():
+    """Caller-supplied transfer_date and order_created_date reach the API call
+    body. Regression: order_created_date used to be hardcoded to
+    datetime.now(UTC), silently overwriting the caller's value (#605 mirror).
+    """
+    context, _ = create_mock_context()
+    mock_transfer = _make_mock_transfer(
+        id=200,
+        stock_transfer_number="DATE-TEST",
+        source_location_id=1,
+        target_location_id=2,
+    )
+
+    placed_at = datetime(2026, 3, 1, 9, 0, tzinfo=UTC)
+    shipped_at = datetime(2026, 3, 5, 12, 30, tzinfo=UTC)
+
+    with (
+        patch(f"{_ST_CREATE}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
+        patch(_ST_UNWRAP_AS, return_value=mock_transfer),
+    ):
+        request = CreateStockTransferRequest(
+            source_location_id=1,
+            destination_location_id=2,
+            expected_arrival_date=datetime(2026, 3, 10, 16, 0, tzinfo=UTC),
+            transfer_date=shipped_at,
+            order_created_date=placed_at,
+            rows=[StockTransferRowInput(variant_id=100, quantity=1)],
+            order_no="DATE-TEST",
+            preview=False,
+        )
+        await _create_stock_transfer_impl(request, context)
+
+    body = mock_api.await_args.kwargs["body"]
+    assert body.order_created_date == placed_at
+    assert body.transfer_date == shipped_at
+
+
+@pytest.mark.asyncio
+async def test_create_stock_transfer_apply_omits_unset_dates():
+    """When transfer_date and order_created_date aren't supplied, the API
+    body must carry UNSET for both — Katana server-stamps them. Regression
+    against the prior datetime.now(UTC) hardcode on order_created_date.
+    """
+    from katana_public_api_client.client_types import UNSET
+
+    context, _ = create_mock_context()
+    mock_transfer = _make_mock_transfer(
+        id=201,
+        stock_transfer_number="DATE-UNSET",
+        source_location_id=1,
+        target_location_id=2,
+    )
+
+    with (
+        patch(f"{_ST_CREATE}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
+        patch(_ST_UNWRAP_AS, return_value=mock_transfer),
+    ):
+        request = CreateStockTransferRequest(
+            source_location_id=1,
+            destination_location_id=2,
+            expected_arrival_date=datetime(2026, 3, 10, 16, 0, tzinfo=UTC),
+            rows=[StockTransferRowInput(variant_id=100, quantity=1)],
+            order_no="DATE-UNSET",
+            preview=False,
+        )
+        await _create_stock_transfer_impl(request, context)
+
+    body = mock_api.await_args.kwargs["body"]
+    assert body.order_created_date is UNSET
+    assert body.transfer_date is UNSET
+
+
+@pytest.mark.asyncio
 async def test_create_stock_transfer_passes_through_provided_order_no():
     """When ``order_no`` is provided, it flows through verbatim — the
     auto-generation only kicks in when omitted."""
