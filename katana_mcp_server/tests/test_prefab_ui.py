@@ -7,6 +7,10 @@ valid PrefabApp instances. This catches constructor signature mismatches
 
 from __future__ import annotations
 
+import json
+import re
+from typing import Any
+
 import pytest
 from katana_mcp.tools.prefab_ui import (
     build_batch_recipe_update_ui,
@@ -38,11 +42,69 @@ class _StubRequest(BaseModel):
     preview: bool = True
 
 
+def _walk_view_tree(node: object) -> list[dict[str, Any]]:
+    """Yield every Component dict in a view tree (for test traversal)."""
+    found: list[dict[str, Any]] = []
+
+    def visit(o: object) -> None:
+        if isinstance(o, dict):
+            if "type" in o:
+                found.append(o)
+            for v in o.values():
+                visit(v)
+        elif isinstance(o, list):
+            for v in o:
+                visit(v)
+
+    visit(node)
+    return found
+
+
+_MUSTACHE_RE = re.compile(r"^\s*\{\{\s*([^}\s]+)\s*\}\}\s*$")
+
+
+def _assert_state_bindings_resolve(envelope: dict[str, Any]) -> None:
+    """Every DataTable rendering rows by state-key reference must point to
+    a slot that exists in ``state``, AND must use the mustache template
+    form ``{{ key }}``. Bare strings crash the JS renderer with
+    ``t.some is not a function`` — discovered via headless render tests.
+    """
+    state = envelope.get("state") or {}
+    for component in _walk_view_tree(envelope.get("view")):
+        if component.get("type") != "DataTable":
+            continue
+        rows = component.get("rows")
+        if not isinstance(rows, str):
+            continue
+        m = _MUSTACHE_RE.match(rows)
+        assert m is not None, (
+            f"DataTable.rows={rows!r} is a bare string. State-bound rows "
+            f"must use the mustache template form '{{{{ key }}}}' — bare "
+            f"strings crash the JS renderer."
+        )
+        # The mustache content can be a path expression like "stock.by_location"
+        # — only the first segment must exist in state.
+        first_segment = m.group(1).split(".", 1)[0]
+        assert first_segment in state, (
+            f"DataTable.rows={rows!r} references missing state slot "
+            f"{first_segment!r}. Available: {sorted(state)}"
+        )
+
+
 def _assert_valid_prefab(app: PrefabApp) -> None:
-    """Assert that a PrefabApp serializes to valid JSON."""
+    """Assert that a PrefabApp serializes to valid JSON.
+
+    Beyond the basic shape check, also rounds-trips through ``json.dumps``
+    (catches non-serializable values that ``to_json`` may have skipped) and
+    verifies that every state-bound DataTable references a present slot.
+    """
     result = app.to_json()
     assert isinstance(result, dict)
     assert "$prefab" in result
+    # Full JSON serialization roundtrip — catches anything ``to_json``
+    # produced that pydantic_core wouldn't accept downstream.
+    json.dumps(result)
+    _assert_state_bindings_resolve(result)
 
 
 class TestBuildSearchResultsUI:
@@ -1849,6 +1911,163 @@ class TestBuildModificationPreviewUI:
             f"Legacy single-action title must include the count suffix; got {titles!r}"
         )
 
+    def test_twelve_action_mixed_plan_renders_single_state_bound_table(self):
+        """Reproduces #629: 12-action mixed plans (6 adds + 6 deletes)
+        previously emitted N separate state-bound DataTables, blowing the
+        renderer. The fix is one DataTable bound to ``state.plan_actions``.
+        """
+        actions = []
+        for i in range(6):
+            actions.append(
+                {
+                    "operation": "add_recipe_row",
+                    "target_id": None,
+                    "changes": [
+                        {
+                            "field": "variant_id",
+                            "old": None,
+                            "new": 40000000 + i,
+                            "is_added": True,
+                            "is_unchanged": False,
+                            "is_unknown_prior": False,
+                        },
+                        {
+                            "field": "planned_quantity_per_unit",
+                            "old": None,
+                            "new": 1,
+                            "is_added": True,
+                            "is_unchanged": False,
+                            "is_unknown_prior": False,
+                        },
+                        {
+                            "field": "notes",
+                            "old": None,
+                            "new": f"AM swap {i}: notes with (parens) and #{i}",
+                            "is_added": True,
+                            "is_unchanged": False,
+                            "is_unknown_prior": False,
+                        },
+                    ],
+                    "succeeded": None,
+                    "error": None,
+                    "verified": None,
+                    "actual_after": None,
+                }
+            )
+        for i in range(6):
+            actions.append(
+                {
+                    "operation": "delete_recipe_row",
+                    "target_id": 97411400 + i,
+                    "changes": [],
+                    "succeeded": None,
+                    "error": None,
+                    "verified": None,
+                    "actual_after": None,
+                }
+            )
+        response = _modification_preview_response(actions=actions)
+        app = build_modification_preview_ui(
+            response,
+            confirm_request=_ModifyStubRequest(id=16467730, preview=True),
+            confirm_tool="modify_manufacturing_order",
+        )
+        envelope = app.to_json()
+
+        # Sanity: full envelope serializes and bindings resolve.
+        _assert_valid_prefab(app)
+
+        # Exactly one DataTable, bound to plan_actions via mustache template.
+        # Bare-string state references crash the JS renderer with
+        # "t.some is not a function" — discovered via headless apps_dev tests.
+        tables = [
+            n
+            for n in _walk_view_tree(envelope.get("view"))
+            if n.get("type") == "DataTable"
+        ]
+        assert len(tables) == 1, f"expected 1 DataTable, got {len(tables)}"
+        assert tables[0]["rows"] == "{{ plan_actions }}"
+
+        # plan_actions has 12 rows, all PLANNED.
+        plan_rows = envelope["state"]["plan_actions"]
+        assert len(plan_rows) == 12
+        assert [r["index"] for r in plan_rows] == list(range(1, 13))
+        assert all(r["status_label"] == "PLANNED" for r in plan_rows)
+
+        # Adds have target_label "—", deletes have "#<id>".
+        for r in plan_rows[:6]:
+            assert r["target_label"] == "—"
+            assert "field(s) set" in r["summary"]
+        for r in plan_rows[6:]:
+            assert r["target_label"].startswith("#")
+            assert r["summary"] == "deleted"
+
+    def test_apply_button_does_not_set_state_plan_actions(self):
+        """Pin: the live-tick design (``SetState("plan_actions", RESULT.actions)``)
+        was attempted in #634 but turned out to be broken — ``$result`` in
+        the on_success Rx context resolves to the apply tool's
+        ``structured_content`` (a PrefabApp wire envelope), not to the raw
+        ``ModificationResponse``. The SetState was a no-op in production.
+
+        Until the right Rx path is identified (tracked as a follow-up), the
+        on_success chain MUST NOT include a SetState targeting plan_actions
+        — a no-op SetState is misleading. The apply path morphs the card via
+        the existing ``applied=True`` flag instead.
+        """
+        response = _modification_preview_response(
+            actions=[
+                {
+                    "operation": "update_header",
+                    "target_id": 1,
+                    "changes": [],
+                    "succeeded": None,
+                    "error": None,
+                    "verified": None,
+                    "actual_after": None,
+                }
+            ],
+        )
+        app = build_modification_preview_ui(
+            response,
+            confirm_request=_ModifyStubRequest(),
+            confirm_tool="modify_item",
+        )
+        envelope = app.to_json()
+
+        def find_action(o: object, action_name: str) -> dict[str, Any] | None:
+            if isinstance(o, dict):
+                if o.get("action") == action_name:
+                    return o
+                for v in o.values():
+                    found = find_action(v, action_name)
+                    if found is not None:
+                        return found
+            elif isinstance(o, list):
+                for v in o:
+                    found = find_action(v, action_name)
+                    if found is not None:
+                        return found
+            return None
+
+        call_tool = find_action(envelope, "toolCall")
+        assert call_tool is not None
+        on_success = call_tool.get("onSuccess") or call_tool.get("on_success") or []
+        plan_action_set = next(
+            (
+                a
+                for a in on_success
+                if isinstance(a, dict)
+                and a.get("action") == "setState"
+                and a.get("key") == "plan_actions"
+            ),
+            None,
+        )
+        assert plan_action_set is None, (
+            f"on_success must NOT SetState('plan_actions', ...) — it would "
+            f"be a no-op until the live-tick Rx path is fixed. Found: "
+            f"{plan_action_set!r}"
+        )
+
 
 class TestBuildModificationResultUI:
     """Result card for an applied (non-preview) ModificationResponse."""
@@ -1951,8 +2170,13 @@ class TestBuildModificationResultUI:
         assert "PARTIAL FAILURE" in labels, (
             f"Mixed succeed/fail must surface PARTIAL FAILURE; got {labels!r}"
         )
-        # Per-action FAILED badge must also surface
-        assert "FAILED" in labels
+        # Per-action FAILED status must surface in the row data (status_label
+        # column of the plan_actions DataTable). After the live-tick redesign
+        # (#629), per-action status lives in the table cells, not in Badges.
+        plan_rows = envelope["state"]["plan_actions"]
+        statuses = [r["status_label"] for r in plan_rows]
+        assert "APPLIED" in statuses, f"expected APPLIED in {statuses!r}"
+        assert "FAILED" in statuses, f"expected FAILED in {statuses!r}"
 
     def test_view_in_katana_button_present_when_url_set(self):
         response = self._response(

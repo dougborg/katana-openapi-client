@@ -5,9 +5,10 @@ Guidance for Claude Code working with this repository.
 ## Quick Start
 
 ```bash
-uv sync --all-extras         # Install dependencies
-uv run pre-commit install    # Setup hooks (installs both pre-commit AND pre-push)
-cp .env.example .env         # Add KATANA_API_KEY
+uv sync --all-extras                # Install dependencies
+uv run pre-commit install           # Setup hooks (installs both pre-commit AND pre-push)
+uv run playwright install chromium  # Headless browser for Prefab UI render tests
+cp .env.example .env                # Add KATANA_API_KEY
 ```
 
 **Worktrees: re-run `uv run pre-commit install` after `git worktree add`** — pre-commit
@@ -17,14 +18,15 @@ worktree's `.git/hooks/`.
 
 ## Essential Commands
 
-| Command                  | Time   | When to Use              |
-| ------------------------ | ------ | ------------------------ |
-| `uv run poe quick-check` | ~5-10s | During development       |
-| `uv run poe agent-check` | ~8-12s | Before committing        |
-| `uv run poe check`       | ~30s   | **Before opening PR**    |
-| `uv run poe full-check`  | ~40s   | Before requesting review |
-| `uv run poe fix`         | ~5s    | Auto-fix lint issues     |
-| `uv run poe test`        | ~16s   | Run tests (4 workers)    |
+| Command                   | Time   | When to Use                          |
+| ------------------------- | ------ | ------------------------------------ |
+| `uv run poe quick-check`  | ~5-10s | During development                   |
+| `uv run poe agent-check`  | ~8-12s | Before committing                    |
+| `uv run poe check`        | ~75s   | **Before opening PR** (incl browser) |
+| `uv run poe full-check`   | ~85s   | Before requesting review             |
+| `uv run poe fix`          | ~5s    | Auto-fix lint issues                 |
+| `uv run poe test`         | ~16s   | Run tests (4 workers, no browser)    |
+| `uv run poe test-browser` | ~60s   | Headless Prefab UI render tests      |
 
 **NEVER CANCEL** long-running commands - they may appear to hang but are processing.
 
@@ -277,6 +279,22 @@ Common mistakes to avoid:
   ruleset has `bypass_mode: always` for the Admin role (required by semantic-release's
   PAT-based pushes); tightening that bypass is tracked in #429 (GitHub App migration).
   Until #429 lands, the local hook is the only mechanical guardrail.
+
+- **Prefab `DataTable.rows` requires mustache `{{ key }}` for state binding, not bare
+  string** - The Python pydantic field type accepts `rows: str` either way, but the JS
+  renderer crashes the entire iframe with `t.some is not a function` if it sees a bare
+  state-key string — it treats the string as the rows array itself, calls `.some()` on a
+  string, and the React tree never mounts. Use mustache form everywhere:
+  `rows="{{ items }}"`, `rows="{{ stock.by_location }}"` (dotted paths supported).
+  `_assert_state_bindings_resolve` in `katana_mcp_server/tests/test_prefab_ui.py`
+  enforces this on every state-bound DataTable. The browser-render harness in
+  `katana_mcp_server/tests/browser/` proves cards actually render in headless Chromium —
+  the prior unit-test contract (`to_json()` returns a dict with `$prefab`) was
+  insufficient because the wire envelope can be "valid but unrenderable." Discovered
+  while investigating #629; bit every state-bound DataTable in the repo (search,
+  inventory, verification, batch_recipe, modification card). Run
+  `uv run poe test-browser` to exercise the JS renderer locally; needs one-time
+  `uv run playwright install chromium`.
 
 ## Using the LSP tool
 

@@ -1,6 +1,6 @@
 [project]
 name = "katana-openapi-client"
-version = "0.59.0"
+version = "0.60.0"
 description = "A modern, pythonic Katana Manufacturing ERP API client with automatic retries, rate limiting, and smart pagination"
 authors = [
     {name = "Doug Borg", email = "dougborg@dougborg.org"},
@@ -88,6 +88,12 @@ dev = [
   # Lets ``asyncio.sleep(5)`` and ``loop.call_later(5, ...)`` fire instantly
   # in real time while the loop perceives 5 seconds elapsed.
   "looptime>=0.7",
+  # Headless browser testing for Prefab UI cards via fastmcp dev-apps.
+  # We use the raw ``playwright`` sync API (not pytest-playwright fixtures)
+  # to avoid pytest-base-url's ``base_url`` fixture colliding with our
+  # integration tests' same-name fixture. Requires a one-time
+  # ``uv run playwright install chromium`` to fetch Chromium (~250MB).
+  "playwright>=1.59.0",
   "tox>=4.25.0",
   # Code quality and linting
   "ruff>=0.14.0",
@@ -233,6 +239,7 @@ markers = [
   "docs: marks tests as documentation tests (slow, only run in CI docs jobs)",
   "schema_validation: marks tests that validate OpenAPI schema quality (run with pytest-xdist disabled)",
   "looptime: marks tests that use the looptime fake-clock asyncio loop (the looptime plugin auto-registers this marker; explicit registration here keeps the suite robust under --strict-markers if plugin autoload is ever disabled)",
+  "browser: marks tests that drive a headless browser via Playwright against the fastmcp dev-apps preview server (slower, needs `playwright install chromium`)",
 ]
 
 [tool.coverage.run]
@@ -562,17 +569,21 @@ lint = ["lint-ruff", "typecheck", "lint-yaml"]
 # Performance: sequential 25s → parallel 16s = 36% faster
 # Note: Optimal count may vary by system (4+ cores recommended for best results)
 # Note: Integration tests excluded by default (hit real API, may be rate limited)
-test = "pytest -n 4 -m 'not docs and not schema_validation and not integration'"  # Parallel execution with pytest-xdist
-test-sequential = "pytest -m 'not docs and not schema_validation and not integration'"  # Sequential execution (if parallel has issues)
-test-verbose = "pytest -n 4 -v -m 'not docs and not schema_validation and not integration'"
-test-coverage = "pytest -n 4 --cov=katana_public_api_client --cov-report=term-missing -m 'not docs and not schema_validation and not integration'"
-test-coverage-html = "pytest -n 4 --cov=katana_public_api_client --cov-report=html -m 'not docs and not schema_validation and not integration'"
+test = "pytest -n 4 -m 'not docs and not schema_validation and not integration and not browser'"  # Parallel execution with pytest-xdist
+test-sequential = "pytest -m 'not docs and not schema_validation and not integration and not browser'"  # Sequential execution (if parallel has issues)
+test-verbose = "pytest -n 4 -v -m 'not docs and not schema_validation and not integration and not browser'"
+test-coverage = "pytest -n 4 --cov=katana_public_api_client --cov-report=term-missing -m 'not docs and not schema_validation and not integration and not browser'"
+test-coverage-html = "pytest -n 4 --cov=katana_public_api_client --cov-report=html -m 'not docs and not schema_validation and not integration and not browser'"
 test-unit = "pytest -n 4 -m 'unit and not schema_validation'"
 test-integration = "pytest -n 4 -m 'integration and not schema_validation'"
 test-docs = { shell = "CI_DOCS_BUILD=true pytest -m docs -v --timeout=600" }  # 10 minute timeout for docs
-test-no-docs = "pytest -n 4 -m 'not docs and not schema_validation and not integration'"
-test-all = "pytest -n 4 -m 'not schema_validation and not integration'"  # Run everything except schema_validation and integration (parallel-incompatible, API rate limits)
+test-no-docs = "pytest -n 4 -m 'not docs and not schema_validation and not integration and not browser'"
+test-all = "pytest -n 4 -m 'not schema_validation and not integration and not browser'"  # Run everything except schema_validation, integration, and browser (each parallel-incompatible or stateful)
 test-schema = "pytest -m schema_validation"  # Run schema validation tests only (sequential, may be slow)
+# Browser-render tests for Prefab UI cards. Runs sequentially because the
+# fastmcp dev-apps server holds a single MCP-port pair. First run requires
+# ``uv run playwright install chromium`` (~250MB).
+test-browser = { shell = "pytest -m browser --timeout=120 katana_mcp_server/tests/browser/" }
 
 # -----------------------------------------------------------------------------
 # OpenAPI and Code Generation Tasks
@@ -617,8 +628,8 @@ pre-commit-update = "pre-commit autoupdate"
 # Validation Tiers (for agent workflows)
 quick-check = ["format-check", "lint-ruff"]                              # Tier 1: Fast feedback (~5-10s)
 agent-check = ["format-check", "lint-ruff", "typecheck"]                # Tier 2: Pre-commit (~10-15s)
-check = ["format-check", "lint", "test"]                                 # Tier 3: PR validation (~40s)
-full-check = ["format-check", "lint", "test", "docs-build"]             # Tier 4: Final validation (~50s)
+check = ["format-check", "lint", "test", "test-browser"]                 # Tier 3: PR validation (~60s including browser render tests)
+full-check = ["format-check", "lint", "test", "test-browser", "docs-build"]             # Tier 4: Final validation (~70s)
 
 # Other combined workflows
 fix = ["format", "lint-ruff-fix"]

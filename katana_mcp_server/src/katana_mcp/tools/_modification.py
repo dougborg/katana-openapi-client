@@ -29,7 +29,7 @@ from enum import Enum
 from typing import Any, ClassVar
 
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from katana_mcp.tools.tool_result_utils import BLOCK_WARNING_PREFIX, make_tool_result
 from katana_public_api_client.client_types import UNSET, Unset
@@ -154,6 +154,73 @@ class ActionResult(BaseModel):
     error: str | None = None
     verified: bool | None = None
     actual_after: dict[str, Any] | None = None
+
+    # Derived display fields — computed from succeeded/verified/changes/operation
+    # so client renderers (Prefab cards) bind directly without recomputing.
+    # Travels with every preview AND apply response, so the live-tick path
+    # (SetState("plan_actions", RESULT.actions) on Confirm) preserves the
+    # exact same row shape between preview-time and apply-time. ``index`` is
+    # set by the dispatcher (it's the position in the plan, 1-based).
+    index: int = 0
+    operation_label: str = ""
+    target_label: str = ""
+    status_label: str = ""
+    summary: str = ""
+
+    @model_validator(mode="after")
+    def _populate_derived(self) -> ActionResult:
+        if not self.operation_label:
+            self.operation_label = _derive_operation_label(self)
+        if not self.target_label:
+            self.target_label = _derive_target_label(self)
+        if not self.status_label:
+            self.status_label = _derive_status_label(self)
+        if not self.summary:
+            self.summary = _derive_summary(self)
+        return self
+
+
+def _derive_operation_label(action: ActionResult) -> str:
+    """Humanize the snake_case operation for the display column."""
+    raw = (action.operation or "").replace("_", " ").title()
+    return raw or "Action"
+
+
+def _derive_target_label(action: ActionResult) -> str:
+    """``#<id>`` when the action has a target, em-dash otherwise."""
+    return f"#{action.target_id}" if action.target_id is not None else "—"
+
+
+def _derive_status_label(action: ActionResult) -> str:
+    """Compute a status label string for an ActionResult.
+
+    Mirrors ``katana_mcp.tools.prefab_ui._action_status_badge`` (which we
+    delete in this change) so client + server agree without coordination.
+    """
+    if action.succeeded is None:
+        return "PLANNED"
+    if action.succeeded is True:
+        if action.verified is False:
+            return "APPLIED (verification mismatch)"
+        if action.verified is True:
+            return "APPLIED (verified)"
+        return "APPLIED"
+    return "FAILED"
+
+
+def _derive_summary(action: ActionResult) -> str:
+    """One-line description of what an action does, for the Changes column."""
+    op = action.operation.lower()
+    if op.startswith("delete"):
+        return "deleted"
+    if op.startswith("add") or op.startswith("create"):
+        n = len(action.changes)
+        return f"{n} field(s) set"
+    # update_*, modify_*, correct_*, etc.
+    n = sum(1 for c in action.changes if not c.is_unchanged)
+    if n == 0 and action.changes:
+        return f"{len(action.changes)} field(s) — no change"
+    return f"{n} field(s) changed"
 
 
 class ModificationResponse(BaseModel):

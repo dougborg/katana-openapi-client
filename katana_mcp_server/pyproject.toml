@@ -36,7 +36,7 @@ classifiers = [
 ]
 dependencies = [
     "fastmcp>=3.0",
-    "katana-openapi-client>=0.56.1",
+    "katana-openapi-client>=0.60.0",
     "prefab-ui>=0.18,<0.19",
     "pydantic>=2.12.0",
     "python-dotenv>=1.0.0",
@@ -79,6 +79,7 @@ asyncio_mode = "strict"
 markers = [
     "unit: Unit tests with mocks",
     "integration: Integration tests requiring API key",
+    "browser: Browser-render tests via Playwright + fastmcp dev-apps (slow, needs `playwright install chromium`)",
 ]
 
 [tool.semantic_release]
