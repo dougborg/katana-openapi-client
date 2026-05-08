@@ -539,7 +539,13 @@ format-check = ["format-python-check", "format-markdown-check"]
 # tests/conftest.py is excluded because it is pytest-specific support code.
 # tests/test_generate_tools_json.py is excluded because it imports a script via
 # sys.path manipulation that ty cannot resolve statically.
-typecheck = "ty check --exclude 'tests/conftest.py' --exclude 'tests/test_generate_tools_json.py' --exclude 'scripts/' --exclude 'katana_mcp_server/tests/' --exclude '.claude/worktrees/'"
+# katana_public_api_client/models_pydantic/_generated/ is excluded because ty
+# rejects the ``Annotated[Mapped[T | None], Field(...)] = None`` field shape
+# emitted by ``wrap_cache_fields_in_mapped`` (the trailing ``= None`` doesn't
+# match the declared ``Mapped[T | None]`` type), while pyright accepts it.
+# Generated files are auto-emitted; consistent exclusion across both checkers
+# matches ``pyrightconfig.json``'s existing ``_generated/`` skip.
+typecheck = "ty check --exclude 'tests/conftest.py' --exclude 'tests/test_generate_tools_json.py' --exclude 'scripts/' --exclude 'katana_mcp_server/tests/' --exclude 'katana_public_api_client/models_pydantic/_generated/' --exclude '.claude/worktrees/'"
 lint-ruff = "ruff check ."
 lint-ruff-fix = "ruff check --fix ."
 lint-yaml = "yamllint ."

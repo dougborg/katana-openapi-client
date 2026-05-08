@@ -18,6 +18,7 @@ from sqlmodel import (
 )
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
+from katana_public_api_client.models_pydantic._mapped_shim import Mapped
 from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON
 
 from .base import DeletableEntity
@@ -872,100 +873,107 @@ class CachedPurchaseOrderRow(DeletableEntity, table=True):
     __tablename__ = "purchase_order_row"
     model_config = ConfigDict(frozen=False)
 
-    id: Annotated[int, SQLField(primary_key=True, description="Unique identifier")]
+    id: Annotated[
+        Mapped[int], SQLField(primary_key=True, description="Unique identifier")
+    ]
 
     quantity: Annotated[
-        float | None, Field(description="The quantity of items for the order line.")
+        Mapped[float | None],
+        Field(description="The quantity of items for the order line."),
     ] = None
     variant_id: Annotated[
-        int | None,
+        Mapped[int | None],
         Field(description="ID of product or material variant added to the order line."),
     ] = None
     tax_rate_id: Annotated[
-        int | None, Field(description="ID of tax added to price per unit.")
+        Mapped[int | None], Field(description="ID of tax added to price per unit.")
     ] = None
     price_per_unit: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(
             description="The sales price of one unit (excluding taxes) in sales order currency."
         ),
     ] = None
     price_per_unit_in_base_currency: Annotated[
-        float | None, Field(description="Unit price converted to the base currency")
+        Mapped[float | None],
+        Field(description="Unit price converted to the base currency"),
     ] = None
     purchase_uom_conversion_rate: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(
             description="The conversion rate between the purchase and stock tracking UoMs."
         ),
     ] = None
     purchase_uom: Annotated[
-        str | None,
+        Mapped[str | None],
         Field(
             description="The unit used to measure the quantity of the items (e.g. pcs, kg, m) you purchase. It can be different\nfrom the unit used to track stock.\n"
         ),
     ] = None
     currency: Annotated[
-        str | None, Field(description="Currency used for this line item pricing")
+        Mapped[str | None],
+        Field(description="Currency used for this line item pricing"),
     ] = None
     conversion_rate: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(
             description="Currency rate used to convert from purchase order currency into factory base currency."
         ),
     ] = None
     total: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(
             description="The total value of the purchase order row (excluding taxes) in purchase order currency."
         ),
     ] = None
     total_in_base_currency: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(
             description="The total value of the purchase order row (excluding taxes) in base currency."
         ),
     ] = None
     conversion_date: Annotated[
-        datetime | None, Field(description="The date of the conversion rate used.")
+        Mapped[datetime | None],
+        Field(description="The date of the conversion rate used."),
     ] = None
     received_date: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(
             description="The date when the items on the purchase order row were received to your stock."
         ),
     ] = None
     arrival_date: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(
             description="The timestamp when the item on the row is expected to arrive (in full) in your warehouse. ISO 8601\nformat with time and timezone must be used.\n"
         ),
     ] = None
     batch_transactions: Annotated[
-        list[BatchTransaction4] | None,
+        Mapped[list[BatchTransaction4] | None],
         SQLField(
             sa_column=Column(PydanticJSON),
             description="An array of batch transactions and their quantities. You can receive stock for the same item in multiple\nbatches.\n",
         ),
     ] = None
     purchase_order_id: Annotated[
-        int | None,
+        Mapped[int | None],
         SQLField(
             foreign_key="purchase_order.id",
             description="Unique identifier of the parent purchase order",
         ),
     ] = None
     landed_cost: Annotated[
-        str | float | None,
+        Mapped[str | float | None],
         SQLField(
             sa_column=Column(PydanticJSON),
             description="Total landed cost including shipping, duties, and other charges",
         ),
     ] = None
     group_id: Annotated[
-        int | None, Field(description="Grouping identifier for organizational purposes")
+        Mapped[int | None],
+        Field(description="Grouping identifier for organizational purposes"),
     ] = None
-    purchase_order: Optional["CachedPurchaseOrder"] = Relationship(
+    purchase_order: Mapped[Optional["CachedPurchaseOrder"]] = Relationship(
         back_populates="purchase_order_rows"
     )
 
@@ -974,90 +982,93 @@ class CachedPurchaseOrder(DeletableEntity, table=True):
     __tablename__ = "purchase_order"
     model_config = ConfigDict(frozen=False)
 
-    id: Annotated[int, SQLField(primary_key=True, description="Unique identifier")]
+    id: Annotated[
+        Mapped[int], SQLField(primary_key=True, description="Unique identifier")
+    ]
 
     status: Annotated[
-        PurchaseOrderStatus | None, Field(description="Status of the order.")
+        Mapped[PurchaseOrderStatus | None], Field(description="Status of the order.")
     ] = None
     order_no: Annotated[
-        str | None,
+        Mapped[str | None],
         Field(
             description="A unique, identifying string used in the UI and controlled by the user."
         ),
     ] = None
     entity_type: Annotated[
-        PurchaseOrderEntityType | None,
+        Mapped[PurchaseOrderEntityType | None],
         Field(
             description='Either "regular" or "outsourced", depending on the purchase order type.'
         ),
     ] = None
     default_group_id: Annotated[
-        int | None,
+        Mapped[int | None],
         Field(description="Default grouping identifier for organizational purposes"),
     ] = None
     supplier_id: Annotated[
-        int | None, Field(description="ID of the supplier who this order belongs to.")
+        Mapped[int | None],
+        Field(description="ID of the supplier who this order belongs to."),
     ] = None
     currency: Annotated[
-        str | None,
+        Mapped[str | None],
         Field(
             description="Currency of the purchase order. Filled with supplier currency by default."
         ),
     ] = None
     expected_arrival_date: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(
             description="The timestamp when the items are expected to arrive (in full) in your warehouse."
         ),
     ] = None
     order_created_date: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(description="The timestamp of creating the document."),
     ] = None
     additional_info: Annotated[
-        str | None,
+        Mapped[str | None],
         Field(
             description="A string attached to the object to add any internal comments, links to external files, additional\ninstructions, etc.\n"
         ),
     ] = None
     location_id: Annotated[
-        int | None,
+        Mapped[int | None],
         Field(description="The ID of the location to which items are received."),
     ] = None
     total: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(
             description="The total value of the order (including taxes) in purchase order currency."
         ),
     ] = None
     total_in_base_currency: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(
             description="The total value of the order (including taxes) in base currency."
         ),
     ] = None
     billing_status: Annotated[
-        PurchaseOrderBillingStatus | None,
+        Mapped[PurchaseOrderBillingStatus | None],
         Field(
             description='Indicating the status of generating the bill through accounting integration to either Xero or QuickBooks\nOnline. "PARTIALLY_BILLED" does not apply to Xero integration.\n'
         ),
     ] = None
     last_document_status: Annotated[
-        DocumentSendStatus | None,
+        Mapped[DocumentSendStatus | None],
         Field(description="Status of the last e-mail sent from (O)PO card."),
     ] = None
-    purchase_order_rows: list["CachedPurchaseOrderRow"] = Relationship(
+    purchase_order_rows: Mapped[list["CachedPurchaseOrderRow"]] = Relationship(
         back_populates="purchase_order"
     )
     supplier: Annotated[
-        Supplier | None,
+        Mapped[Supplier | None],
         SQLField(
             sa_column=Column(PydanticJSON),
             description="Complete supplier information for this purchase order",
         ),
     ] = None
     tracking_location_id: Annotated[
-        int | None,
+        Mapped[int | None],
         Field(
             description="(cache-only) Hoisted from OutsourcedPurchaseOrder so the single ``purchase_order`` cache table can filter by tracking location without a UNION across regular/outsourced rows."
         ),

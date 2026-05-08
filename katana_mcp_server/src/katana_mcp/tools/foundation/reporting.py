@@ -793,7 +793,7 @@ async def _fetch_completed_mo_recipe_rows_in_window(
     window datetimes must also be naive UTC — callers are responsible for
     stripping tzinfo before passing.
     """
-    from sqlmodel import col, select
+    from sqlmodel import select
 
     from katana_mcp.typed_cache import ensure_manufacturing_orders_synced
     from katana_public_api_client.models_pydantic._generated import (
@@ -815,13 +815,13 @@ async def _fetch_completed_mo_recipe_rows_in_window(
             select(CachedManufacturingOrderRecipeRow)
             .join(
                 CachedManufacturingOrder,
-                col(CachedManufacturingOrder.id)
+                CachedManufacturingOrder.id
                 == CachedManufacturingOrderRecipeRow.manufacturing_order_id,
             )
             .where(CachedManufacturingOrder.status == ManufacturingOrderStatus.done)
-            .where(col(CachedManufacturingOrder.done_date).is_not(None))
-            .where(col(CachedManufacturingOrder.deleted_at).is_(None))
-            .where(col(CachedManufacturingOrderRecipeRow.deleted_at).is_(None))
+            .where(CachedManufacturingOrder.done_date.is_not(None))
+            .where(CachedManufacturingOrder.deleted_at.is_(None))
+            .where(CachedManufacturingOrderRecipeRow.deleted_at.is_(None))
         )
         row_stmt = apply_date_window_filters(
             row_stmt,

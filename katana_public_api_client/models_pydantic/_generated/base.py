@@ -14,65 +14,66 @@ from typing import Annotated
 from pydantic import ConfigDict, Field
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
+from katana_public_api_client.models_pydantic._mapped_shim import Mapped
 
 
 class BaseEntity(KatanaPydanticBase):
     model_config = ConfigDict(extra="ignore")
 
-    id: Annotated[int, Field(description="Unique identifier")]
+    id: Annotated[Mapped[int], Field(description="Unique identifier")]
 
 
 class UpdatableEntity(BaseEntity):
     created_at: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(description="Timestamp when the entity was first created"),
     ] = None
     updated_at: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(description="Timestamp when the entity was last updated"),
     ] = None
 
 
 class ArchivableEntity(BaseEntity):
     created_at: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(description="Timestamp when the entity was first created"),
     ] = None
     updated_at: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(description="Timestamp when the entity was last updated"),
     ] = None
     archived_at: Annotated[
-        datetime | None, Field(description="Nullable archive timestamp")
+        Mapped[datetime | None], Field(description="Nullable archive timestamp")
     ] = None
 
 
 class DeletableEntity(BaseEntity):
     created_at: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(description="Timestamp when the entity was first created"),
     ] = None
     updated_at: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(description="Timestamp when the entity was last updated"),
     ] = None
     deleted_at: Annotated[
-        datetime | None, Field(description="Nullable deletion timestamp")
+        Mapped[datetime | None], Field(description="Nullable deletion timestamp")
     ] = None
 
 
 class ArchivableDeletableEntity(BaseEntity):
     created_at: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(description="Timestamp when the entity was first created"),
     ] = None
     updated_at: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(description="Timestamp when the entity was last updated"),
     ] = None
     archived_at: Annotated[
-        datetime | None, Field(description="Nullable archive timestamp")
+        Mapped[datetime | None], Field(description="Nullable archive timestamp")
     ] = None
     deleted_at: Annotated[
-        datetime | None, Field(description="Nullable deletion timestamp")
+        Mapped[datetime | None], Field(description="Nullable deletion timestamp")
     ] = None

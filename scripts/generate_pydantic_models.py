@@ -634,6 +634,10 @@ def parse_generated_file(
     classes = inject_relationship_fields(classes)
     classes = inject_json_columns(classes)
     classes = inject_extra_cache_fields(classes)
+    # ``Mapped[T]`` wrap runs LAST — earlier passes match
+    # ``Annotated[T, Field(...)]`` literally, and would not find their
+    # targets if the type was already wrapped.
+    classes = wrap_cache_fields_in_mapped(classes)
 
     print(
         f"  Found {len(imports)} imports, {len(classes)} classes, "
@@ -1324,6 +1328,85 @@ def inject_extra_cache_fields(classes: list[ClassInfo]) -> list[ClassInfo]:
     return fixed
 
 
+def wrap_cache_fields_in_mapped(classes: list[ClassInfo]) -> list[ClassInfo]:
+    """Wrap each cache class's field types in ``Mapped[...]``.
+
+    Lets foundation-file query call sites use ``CachedX.field.in_(...)``
+    without ``sqlmodel.col()`` wrappers — type checkers see ``Mapped[T]``
+    (which exposes ``.in_/.is_/.desc/.ilike``), while the runtime
+    ``Mapped`` shim makes ``Mapped[T]`` reduce to ``T`` so
+    SQLModel + pydantic schema generation is unaffected.
+
+    Operates on both ``Cached*`` siblings *and* the shared entity base
+    classes (BaseEntity, UpdatableEntity, DeletableEntity, etc.) because
+    ``Cached*`` inherits ``id`` / ``created_at`` / ``updated_at`` /
+    ``deleted_at`` / ``archived_at`` from those bases. Wrapping only the
+    Cached classes would leave the inherited fields as bare ``T`` from
+    the type checker's point of view — and those are exactly the fields
+    most query call sites filter on. The API classes that share the same
+    bases are unaffected at runtime (Mapped → identity) and only see
+    ``Mapped[T]`` typing on class-level attribute access, which no API
+    consumer relies on (instance-level access stays as ``T`` per
+    pydantic's normal field handling).
+
+    Must run **after** all field-rewrite passes (``inject_primary_key``,
+    ``inject_foreign_keys``, ``inject_json_columns``,
+    ``inject_relationship_fields``, ``inject_extra_cache_fields``).
+    Those passes match ``Annotated[T, Field(...)]`` literally; running
+    this wrap before them would leave them unable to find their targets.
+    """
+    target_class_names = {_cached_name(n) for n in CACHE_TABLES} | ENTITY_BASE_CLASSES
+    # Match 1: ``Annotated[<type>,`` — wraps the column-field type. Type
+    # captures any chars that aren't ``,[]`` PLUS up to two levels of
+    # balanced brackets, covering ``list["X"]``, ``dict[str, list[int]]``,
+    # ``Optional[list["X"]]``. Multi-line tolerant; relationship fields
+    # (no ``Annotated[`` shape) are naturally skipped. Three-level nesting
+    # is not handled — see the post-substitution assertion below.
+    inner_balanced = r"(?:[^\[\]]|\[[^\[\]]*\])*"
+    annotated_pattern = re.compile(
+        rf"(Annotated\[\s*)((?:[^,\[\]]|\[{inner_balanced}\])+?)(\s*,)"
+    )
+    # Match 2: relationship-field annotations of shape
+    # ``    name: <type> = Relationship(...)`` — wraps the relationship
+    # type so ``selectinload(Cached*.<rel>)`` type-checks without a
+    # ``cast(QueryableAttribute, ...)``. SQLAlchemy 2.0 docs canonically
+    # type relationships as ``Mapped[List[X]]`` / ``Mapped[Optional[X]]``,
+    # so this brings the generated form into line.
+    relationship_pattern = re.compile(
+        rf"(^\s+\w+:\s+)((?:[^=\n\[\]]|\[{inner_balanced}\])+?)(\s*=\s*Relationship\()",
+        re.MULTILINE,
+    )
+    # Safety net: any ``Annotated[`` that survives substitution without
+    # ``Mapped[`` immediately inside is a missed wrap (e.g., a field
+    # whose type uses bracket nesting deeper than the regex handles).
+    # Crash loud rather than emit silently-untyped class fields.
+    # ``\s*+`` is the atomic (no-backtrack) variant; without it the
+    # negative lookahead would let the engine reconsider shorter
+    # whitespace runs and falsely match already-wrapped fields.
+    unwrapped_annotated = re.compile(r"\bAnnotated\[\s*+(?!Mapped\[)")
+    fixed = []
+    for cls in classes:
+        if cls.name not in target_class_names:
+            fixed.append(cls)
+            continue
+        new_source = annotated_pattern.sub(r"\1Mapped[\2]\3", cls.source)
+        new_source = relationship_pattern.sub(r"\1Mapped[\2]\3", new_source)
+        if unwrapped_annotated.search(new_source):
+            sample = unwrapped_annotated.search(new_source)
+            assert sample is not None  # for type-checkers
+            line_no = new_source.count("\n", 0, sample.start()) + 1
+            msg = (
+                f"wrap_cache_fields_in_mapped: missed an Annotated[ "
+                f"on {cls.name} (line {line_no} of class body). The "
+                f"field's type likely has nesting deeper than the "
+                f"two-level regex handles — extend ``inner_balanced`` "
+                f"or refactor the field shape."
+            )
+            raise GenerationError(msg)
+        fixed.append(cls.with_source(new_source))
+    return fixed
+
+
 def inject_json_columns(classes: list[ClassInfo]) -> list[ClassInfo]:
     """Annotate specified list fields with ``sa_column=Column(JSON)``.
 
@@ -1504,6 +1587,19 @@ def generate_module_imports(
             import_lines.append(
                 "from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON"
             )
+
+    # ``Mapped`` shim import: cache-table modules and the base module
+    # both need it. ``wrap_cache_fields_in_mapped`` wraps fields on every
+    # ``Cached*`` class *and* on the shared entity base classes
+    # (BaseEntity, DeletableEntity, etc.), so ``base.py`` ships the
+    # shim too even though it has no ``table=True`` classes itself.
+    has_mapped_targets = any(
+        cls.name in (cached_class_names | ENTITY_BASE_CLASSES) for cls in classes
+    )
+    if has_mapped_targets:
+        import_lines.append(
+            "from katana_public_api_client.models_pydantic._mapped_shim import Mapped"
+        )
 
     # #342: any module whose classes had AwareDatetime swapped for plain
     # datetime needs the stdlib datetime import. Applies to both cache-table
