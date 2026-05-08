@@ -35,42 +35,79 @@ from sqlmodel import SQLModel, delete
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from katana_mcp.logging import get_logger
+from katana_public_api_client.api.additional_costs import get_additional_costs
+from katana_public_api_client.api.customer import get_all_customers
+from katana_public_api_client.api.factory import get_factory
+from katana_public_api_client.api.location import get_all_locations
 from katana_public_api_client.api.manufacturing_order import (
     get_all_manufacturing_orders,
 )
 from katana_public_api_client.api.manufacturing_order_recipe import (
     get_all_manufacturing_order_recipe_rows,
 )
+from katana_public_api_client.api.material import get_all_materials
+from katana_public_api_client.api.operator import get_all_operators
+from katana_public_api_client.api.product import get_all_products
 from katana_public_api_client.api.purchase_order import find_purchase_orders
 from katana_public_api_client.api.purchase_order_row import (
     get_all_purchase_order_rows,
 )
 from katana_public_api_client.api.sales_order import get_all_sales_orders
 from katana_public_api_client.api.sales_order_row import get_all_sales_order_rows
+from katana_public_api_client.api.services import get_all_services
 from katana_public_api_client.api.stock_adjustment import get_all_stock_adjustments
 from katana_public_api_client.api.stock_transfer import get_all_stock_transfers
+from katana_public_api_client.api.supplier import get_all_suppliers
+from katana_public_api_client.api.tax_rate import get_all_tax_rates
+from katana_public_api_client.api.variant import get_all_variants
+from katana_public_api_client.domain.converters import unwrap_unset
+from katana_public_api_client.models.get_all_variants_extend_item import (
+    GetAllVariantsExtendItem,
+)
 from katana_public_api_client.models_pydantic._generated import (
+    AdditionalCost as PydanticAdditionalCost,
+    CachedAdditionalCost,
+    CachedCustomer,
+    CachedFactory,
+    CachedLocation,
     CachedManufacturingOrder,
     CachedManufacturingOrderRecipeRow,
+    CachedMaterial,
+    CachedOperator,
+    CachedProduct,
     CachedPurchaseOrder,
     CachedPurchaseOrderRow,
     CachedSalesOrder,
     CachedSalesOrderRow,
+    CachedService,
     CachedStockAdjustment,
     CachedStockAdjustmentRow,
     CachedStockTransfer,
     CachedStockTransferRow,
+    CachedSupplier,
+    CachedTaxRate,
+    CachedVariant,
+    Customer as PydanticCustomer,
+    Factory as PydanticFactory,
+    Location1 as PydanticLocation,
     ManufacturingOrder as PydanticManufacturingOrder,
     ManufacturingOrderRecipeRow as PydanticManufacturingOrderRecipeRow,
+    Material as PydanticMaterial,
+    Operator as PydanticOperator,
+    Product as PydanticProduct,
     PurchaseOrderBase as PydanticPurchaseOrderBase,
     PurchaseOrderRow as PydanticPurchaseOrderRow,
     SalesOrder as PydanticSalesOrder,
     SalesOrderRow as PydanticSalesOrderRow,
+    Service as PydanticService,
     StockAdjustment as PydanticStockAdjustment,
     StockTransfer as PydanticStockTransfer,
+    Supplier as PydanticSupplier,
+    TaxRate as PydanticTaxRate,
+    VariantResponse as PydanticVariantResponse,
 )
 from katana_public_api_client.models_pydantic._registry import get_pydantic_class
-from katana_public_api_client.utils import unwrap_data
+from katana_public_api_client.utils import unwrap, unwrap_data
 
 from .sync_state import SyncState
 
@@ -126,6 +163,35 @@ class EntitySpec:
     that join parent ↔ child in cache can call a single
     ``ensure_<parent>_synced`` and trust that both sides are fresh —
     no caller-side ``asyncio.gather`` to forget.
+
+    Phase B (#472) additions:
+
+    - ``depends_on`` — entity_keys this spec must sync after. Catalog
+      example: ``CachedVariant`` has FK to ``CachedProduct`` /
+      ``CachedMaterial`` and lifts ``parent_archived_at`` from the
+      extended payload, so it must run after both. The validator checks
+      for unknown references and cycles at engine.open() time; topo sort
+      drives the cold-start order.
+    - ``attrs_postprocess`` — ``(attrs_obj, cache_row) -> None`` mutating
+      hook called after ``_convert`` builds the cache row. Variant uses
+      it to populate ``parent_archived_at`` / ``display_name`` /
+      ``parent_name`` / ``supplier_item_codes_text`` from the extended
+      ``product_or_material`` payload — keeps Variant-specific
+      denormalization out of the generic ``_convert``.
+    - ``extra_fetch_kwargs`` — kwargs always passed to ``api_fn``
+      regardless of incremental state. Variant uses it to enable
+      ``extend=[PRODUCT_OR_MATERIAL]`` so the postprocess hook can read
+      the parent's archive timestamp.
+    - ``supports_incremental`` — when False (operator, factory: no
+      ``updated_at_min`` support), the cold-start fetch always runs;
+      relies on the per-entity sync lock to debounce concurrent callers.
+    - ``supports_include_deleted`` — when False (operator, tax_rate,
+      factory: no ``include_deleted`` query parameter), drops the kwarg.
+      Tombstones won't propagate for these — acceptable since they're
+      reference data without practical soft-deletes.
+    - ``single_record`` — when True, the endpoint returns one record
+      directly (Factory) rather than a list-wrapped response. Bypasses
+      ``unwrap_data`` and constructs a one-element list internally.
     """
 
     entity_key: str
@@ -137,6 +203,12 @@ class EntitySpec:
     fk_field: str | None = None
     pydantic_resolver: Callable[[Any], type[_FromAttrs]] | None = None
     related_specs: tuple[EntitySpec, ...] = field(default_factory=tuple)
+    depends_on: tuple[str, ...] = ()
+    attrs_postprocess: Callable[[Any, Any], None] | None = None
+    extra_fetch_kwargs: dict[str, Any] = field(default_factory=dict)
+    supports_incremental: bool = True
+    supports_include_deleted: bool = True
+    single_record: bool = False
 
     def __post_init__(self) -> None:
         # Children are configured by a ``(child_cls, rows_field, fk_field)``
@@ -151,6 +223,87 @@ class EntitySpec:
                 "set together or all left as None"
             )
             raise ValueError(msg)
+
+
+def _topo_sort_specs(
+    specs: Iterable[EntitySpec], *, validate_unknown_deps: bool
+) -> list[EntitySpec]:
+    """Topologically sort ``specs``; raises on cycles, optionally on unknown deps.
+
+    Single source of truth for dependency-graph traversal. Returns the
+    specs in dependency order (parents before dependents). Stable across
+    independent specs — the iteration order of ``specs`` controls
+    tie-breaking so log output stays predictable.
+
+    ``validate_unknown_deps=True`` raises if any ``depends_on`` references
+    an entity_key not in ``specs``; the engine.open() validator wants
+    this strict check. ``False`` skips unknown deps quietly so the
+    public ``topo_sort_specs`` helper accepts an arbitrary subset.
+
+    Cycle detection uses a tri-state coloring (white/gray/black). Gray
+    means "on the current DFS stack" — a back-edge to a gray node is
+    a cycle.
+    """
+    spec_list = list(specs)
+    by_key = {s.entity_key: s for s in spec_list}
+
+    if validate_unknown_deps:
+        for spec in spec_list:
+            for dep in spec.depends_on:
+                if dep not in by_key:
+                    msg = (
+                        f"EntitySpec {spec.entity_key!r} declares "
+                        f"depends_on={dep!r} but no spec with that "
+                        f"entity_key is registered"
+                    )
+                    raise ValueError(msg)
+
+    visited: set[str] = set()
+    on_stack: list[str] = []
+    on_stack_set: set[str] = set()
+    result: list[EntitySpec] = []
+
+    def dfs(key: str) -> None:
+        if key in visited:
+            return
+        if key in on_stack_set:
+            cycle_path = [*on_stack[on_stack.index(key) :], key]
+            msg = f"EntitySpec dependency cycle detected: {' -> '.join(cycle_path)}"
+            raise ValueError(msg)
+        on_stack.append(key)
+        on_stack_set.add(key)
+        for dep in by_key[key].depends_on:
+            if dep in by_key:
+                dfs(dep)
+        on_stack.pop()
+        on_stack_set.discard(key)
+        visited.add(key)
+        result.append(by_key[key])
+
+    for spec in spec_list:
+        dfs(spec.entity_key)
+    return result
+
+
+def _validate_dependency_graph(specs: Iterable[EntitySpec]) -> None:
+    """Validate ``EntitySpec.depends_on`` references and detect cycles.
+
+    Raises ``ValueError`` if any spec references an unknown ``entity_key``
+    or if the dependency graph has a cycle. Run at ``engine.open()`` so
+    misconfiguration surfaces eagerly — never at the first sync.
+    """
+    _topo_sort_specs(specs, validate_unknown_deps=True)
+
+
+def topo_sort_specs(specs: Iterable[EntitySpec]) -> list[EntitySpec]:
+    """Return ``specs`` in dependency order — parents before dependents.
+
+    Stable: preserves the registration order among independent specs so
+    log output stays predictable. Assumes ``_validate_dependency_graph``
+    has already run; callers that don't pre-validate get raised cycles
+    via the same DFS.
+    """
+    return _topo_sort_specs(specs, validate_unknown_deps=False)
 
 
 def _resolve_purchase_order_class(attrs_po: Any) -> type:
@@ -203,7 +356,14 @@ def _convert(spec: EntitySpec, attrs_obj: Any) -> tuple[Any, list[Any]]:
     api_obj = api_cls.from_attrs(attrs_obj)
 
     exclude = {spec.rows_field} if spec.rows_field else set()
-    parent = spec.cache_cls.model_validate(api_obj.model_dump(exclude=exclude))
+    parent_data = api_obj.model_dump(exclude=exclude)
+    # Singleton endpoints (Factory) don't ship an ``id`` on the wire,
+    # but the cache class needs one as PK. Pin id=1 here so
+    # ``model_validate`` succeeds; postprocess hooks can still mutate
+    # the row downstream. Other entities are no-ops.
+    if spec.single_record and "id" not in parent_data:
+        parent_data["id"] = 1
+    parent = spec.cache_cls.model_validate(parent_data)
 
     children: list[Any] = []
     if (
@@ -216,6 +376,15 @@ def _convert(spec: EntitySpec, attrs_obj: Any) -> tuple[Any, list[Any]]:
             row_data = api_row.model_dump()
             row_data[spec.fk_field] = api_obj.id
             children.append(spec.child_cls.model_validate(row_data))
+
+    # The postprocess hook runs after the cache row is built so it can
+    # populate cache-only fields from the original attrs object — fields
+    # like ``parent_archived_at`` that aren't on the API pydantic class
+    # and therefore never make it through the ``from_attrs`` /
+    # ``model_dump`` path. The hook mutates ``parent`` in place; returning
+    # ``None`` keeps the convention with the pre-#472 sync helpers.
+    if spec.attrs_postprocess is not None:
+        spec.attrs_postprocess(attrs_obj, parent)
 
     return parent, children
 
@@ -341,12 +510,23 @@ async def _sync_one_locked(
     # ``include_deleted=True`` is always sent so soft-deletes after
     # the watermark surface in the response (Katana bumps
     # ``updated_at`` when ``deleted_at`` is set), letting the upsert
-    # propagate the tombstone into the cache row.
-    kwargs: dict[str, Any] = {"include_deleted": True}
-    if last_synced is not None:
+    # propagate the tombstone into the cache row. A few catalog endpoints
+    # (operator, factory, tax_rate) don't expose ``include_deleted`` —
+    # spec.supports_include_deleted=False drops the kwarg there.
+    kwargs: dict[str, Any] = dict(spec.extra_fetch_kwargs)
+    if spec.supports_include_deleted:
+        kwargs.setdefault("include_deleted", True)
+    if last_synced is not None and spec.supports_incremental:
         kwargs["updated_at_min"] = last_synced.replace(tzinfo=UTC)
     response = await spec.api_fn.asyncio_detailed(client=client, **kwargs)
-    attrs_objs = unwrap_data(response, default=[])
+    if spec.single_record:
+        # Endpoints like ``GET /factory`` return a bare object rather than
+        # a list-wrapped ``{"data": [...]}``. Normalize to a one-element
+        # list so the rest of the pipeline stays generic.
+        single = unwrap(response)
+        attrs_objs = [single] if single is not None else []
+    else:
+        attrs_objs = unwrap_data(response, default=[])
 
     cached_parents: list[Any] = []
     cached_children: list[Any] = []
@@ -553,6 +733,198 @@ _STOCK_TRANSFER_SPEC = EntitySpec(
 
 
 # ---------------------------------------------------------------------------
+# Catalog specs (#472 Phase B) — variant + product/material parents,
+# service, customer, supplier, plus reference data.
+# ---------------------------------------------------------------------------
+
+
+def _variant_postprocess(attrs_obj: Any, cache_row: CachedVariant) -> None:
+    """Populate cache-only Variant fields from the extended attrs payload.
+
+    Variants don't carry their own archive lifecycle on the wire — Katana
+    archives at the parent (Product / Material) level and cascades. We
+    fetch each variant with ``extend=[PRODUCT_OR_MATERIAL]``, then lift
+    ``parent.archived_at`` here so search can filter archived rows
+    without re-joining at query time.
+
+    Three more cache-only fields land here for FTS5 performance:
+
+    - ``parent_name`` — direct lift, surfaces in result rendering.
+    - ``display_name`` — synthesized from ``parent_name`` + each
+      ``config_attribute.config_value`` joined by `` / ``. Falls back to
+      the SKU when the parent name is empty (a defensive case the legacy
+      cache also handled).
+    - ``supplier_item_codes_text`` — space-joined ``supplier_item_codes``
+      so the FTS5 tokenizer can index multi-token supplier codes without
+      re-parsing JSON at query time.
+
+    Mirrors the legacy ``_variant_to_cache_dict`` semantics in
+    ``katana_mcp/cache_sync.py`` byte-for-byte; the only structural
+    change is that the postprocess hook runs *after* the cache row is
+    built rather than mutating a raw dict before it.
+    """
+    parent = unwrap_unset(getattr(attrs_obj, "product_or_material", None), None)
+
+    # ``parent_archived_at`` + ``parent_name`` lift directly from the
+    # extended payload. ``parent`` is an attrs object (Product/Material)
+    # when the API returns it; UNSET means the caller didn't request the
+    # extension or the row points at a non-existent parent.
+    parent_name: str | None = None
+    if parent is not None:
+        cache_row.parent_archived_at = unwrap_unset(
+            getattr(parent, "archived_at", None), None
+        )
+        parent_name = unwrap_unset(getattr(parent, "name", None), None)
+        cache_row.parent_name = parent_name
+
+    # ``display_name`` mirrors the legacy synthesis: parent name (or SKU
+    # fallback) joined with each config attribute's value. The empty-
+    # parent-name fallback to SKU is defensive — Katana always returns
+    # a non-empty parent name in practice, but the legacy cache handled
+    # the empty case so we preserve it.
+    sku = unwrap_unset(getattr(attrs_obj, "sku", None), "") or ""
+    display_parts: list[str] = [parent_name] if parent_name else [sku] if sku else []
+    config_attrs = unwrap_unset(getattr(attrs_obj, "config_attributes", None), [])
+    if config_attrs:
+        for attr in config_attrs:
+            value = unwrap_unset(getattr(attr, "config_value", None), None)
+            if value:
+                display_parts.append(value)
+    cache_row.display_name = " / ".join(display_parts) if display_parts else None
+
+    # ``supplier_item_codes_text``: FTS5's default tokenizer splits on
+    # whitespace, so the cache-side text projection is a space-joined
+    # version of the JSON-array column. ``None`` when there are no codes
+    # so the FTS sidecar's NULL-safe handling stays simple.
+    codes = unwrap_unset(getattr(attrs_obj, "supplier_item_codes", None), [])
+    cache_row.supplier_item_codes_text = " ".join(codes) if codes else None
+
+
+_PRODUCT_SPEC = EntitySpec(
+    entity_key="product",
+    api_fn=get_all_products,
+    cache_cls=CachedProduct,
+    pydantic_cls=PydanticProduct,
+    extra_fetch_kwargs={"include_archived": True},
+)
+
+
+_MATERIAL_SPEC = EntitySpec(
+    entity_key="material",
+    api_fn=get_all_materials,
+    cache_cls=CachedMaterial,
+    pydantic_cls=PydanticMaterial,
+    extra_fetch_kwargs={"include_archived": True},
+)
+
+
+# Variants depend on Product + Material because:
+# 1. ``parent_archived_at`` is lifted from the extended product_or_material
+#    payload — the postprocess hook needs the parent's archive timestamp.
+# 2. The cache class carries no FK constraint, but conceptually the
+#    parent rows must exist before variants reference them; cold-start
+#    sync respects that ordering via ``depends_on``.
+_VARIANT_SPEC = EntitySpec(
+    entity_key="variant",
+    api_fn=get_all_variants,
+    cache_cls=CachedVariant,
+    pydantic_cls=PydanticVariantResponse,
+    extra_fetch_kwargs={
+        "extend": [GetAllVariantsExtendItem.PRODUCT_OR_MATERIAL],
+        "include_archived": True,
+    },
+    depends_on=("product", "material"),
+    attrs_postprocess=_variant_postprocess,
+)
+
+
+_SERVICE_SPEC = EntitySpec(
+    entity_key="service",
+    api_fn=get_all_services,
+    cache_cls=CachedService,
+    pydantic_cls=PydanticService,
+    extra_fetch_kwargs={"include_archived": True},
+)
+
+
+_CUSTOMER_SPEC = EntitySpec(
+    entity_key="customer",
+    api_fn=get_all_customers,
+    cache_cls=CachedCustomer,
+    pydantic_cls=PydanticCustomer,
+)
+
+
+_SUPPLIER_SPEC = EntitySpec(
+    entity_key="supplier",
+    api_fn=get_all_suppliers,
+    cache_cls=CachedSupplier,
+    pydantic_cls=PydanticSupplier,
+)
+
+
+_LOCATION_SPEC = EntitySpec(
+    entity_key="location",
+    api_fn=get_all_locations,
+    cache_cls=CachedLocation,
+    pydantic_cls=PydanticLocation,
+)
+
+
+# Tax rates: ``GET /tax_rates`` supports ``updated_at_min`` but not
+# ``include_deleted``, so we sync incrementally without the deletion
+# flag. Tax rates have no soft-delete concept (no ``deleted_at``
+# column on the cache class either), so dropping the flag is safe.
+_TAX_RATE_SPEC = EntitySpec(
+    entity_key="tax_rate",
+    api_fn=get_all_tax_rates,
+    cache_cls=CachedTaxRate,
+    pydantic_cls=PydanticTaxRate,
+    supports_include_deleted=False,
+)
+
+
+# Operators: ``GET /operators`` supports neither ``updated_at_min`` nor
+# ``include_deleted`` (the API exposes the operator list as a stable
+# snapshot tied to working_area). Each sync re-fetches the full list;
+# the per-entity lock debounces concurrent callers.
+_OPERATOR_SPEC = EntitySpec(
+    entity_key="operator",
+    api_fn=get_all_operators,
+    cache_cls=CachedOperator,
+    pydantic_cls=PydanticOperator,
+    supports_incremental=False,
+    supports_include_deleted=False,
+)
+
+
+_ADDITIONAL_COST_SPEC = EntitySpec(
+    entity_key="additional_cost",
+    api_fn=get_additional_costs,
+    cache_cls=CachedAdditionalCost,
+    pydantic_cls=PydanticAdditionalCost,
+)
+
+
+# Factory: ``GET /factory`` returns a single record (not a list-wrapped
+# response). The endpoint also supports neither ``updated_at_min`` nor
+# ``include_deleted``; ``single_record=True`` swaps ``unwrap_data`` for
+# ``unwrap`` and wraps the result in a one-element list so the rest of
+# the pipeline stays generic. The wire shape has no ``id`` field, so
+# ``_convert`` synthesizes ``id=1`` for singleton specs (matches the
+# legacy ``CatalogCache._fetch_factory`` convention).
+_FACTORY_SPEC = EntitySpec(
+    entity_key="factory",
+    api_fn=get_factory,
+    cache_cls=CachedFactory,
+    pydantic_cls=PydanticFactory,
+    supports_incremental=False,
+    supports_include_deleted=False,
+    single_record=True,
+)
+
+
+# ---------------------------------------------------------------------------
 # Public per-entity wrappers
 # ---------------------------------------------------------------------------
 
@@ -608,6 +980,93 @@ async def ensure_manufacturing_order_recipe_rows_synced(
     await _ensure_synced(client, cache, MANUFACTURING_ORDER_RECIPE_ROW_SPEC)
 
 
+# Catalog wrappers (#472 Phase B). Variant explicitly syncs its parents
+# first because the cold-start postprocess hook needs the parent rows
+# already cached for ``parent_archived_at`` to be populated correctly.
+# After Phase D lands, these wrappers replace ``cache_sync.py``'s legacy
+# ``ensure_*_synced`` helpers.
+
+
+async def ensure_products_synced(client: KatanaClient, cache: TypedCacheEngine) -> None:
+    """Pull updated products from Katana and upsert into the cache."""
+    await _ensure_synced(client, cache, _PRODUCT_SPEC)
+
+
+async def ensure_materials_synced(
+    client: KatanaClient, cache: TypedCacheEngine
+) -> None:
+    """Pull updated materials from Katana and upsert into the cache."""
+    await _ensure_synced(client, cache, _MATERIAL_SPEC)
+
+
+async def ensure_variants_synced(client: KatanaClient, cache: TypedCacheEngine) -> None:
+    """Pull updated variants from Katana and upsert into the cache.
+
+    Syncs Product + Material parents first so the variant postprocess
+    hook can lift ``parent_archived_at`` / ``parent_name`` from rows
+    that already exist in cache. Parents have no inter-dependency, so
+    they sync in parallel; the variant sync then fans out under its own
+    lock once both parent watermarks have advanced.
+    """
+    await asyncio.gather(
+        _ensure_synced(client, cache, _PRODUCT_SPEC),
+        _ensure_synced(client, cache, _MATERIAL_SPEC),
+    )
+    await _ensure_synced(client, cache, _VARIANT_SPEC)
+
+
+async def ensure_services_synced(client: KatanaClient, cache: TypedCacheEngine) -> None:
+    """Pull updated services from Katana and upsert into the cache."""
+    await _ensure_synced(client, cache, _SERVICE_SPEC)
+
+
+async def ensure_customers_synced(
+    client: KatanaClient, cache: TypedCacheEngine
+) -> None:
+    """Pull updated customers from Katana and upsert into the cache."""
+    await _ensure_synced(client, cache, _CUSTOMER_SPEC)
+
+
+async def ensure_suppliers_synced(
+    client: KatanaClient, cache: TypedCacheEngine
+) -> None:
+    """Pull updated suppliers from Katana and upsert into the cache."""
+    await _ensure_synced(client, cache, _SUPPLIER_SPEC)
+
+
+async def ensure_locations_synced(
+    client: KatanaClient, cache: TypedCacheEngine
+) -> None:
+    """Pull locations from Katana and upsert into the cache."""
+    await _ensure_synced(client, cache, _LOCATION_SPEC)
+
+
+async def ensure_tax_rates_synced(
+    client: KatanaClient, cache: TypedCacheEngine
+) -> None:
+    """Pull updated tax rates from Katana and upsert into the cache."""
+    await _ensure_synced(client, cache, _TAX_RATE_SPEC)
+
+
+async def ensure_operators_synced(
+    client: KatanaClient, cache: TypedCacheEngine
+) -> None:
+    """Pull operators from Katana and upsert into the cache."""
+    await _ensure_synced(client, cache, _OPERATOR_SPEC)
+
+
+async def ensure_factory_synced(client: KatanaClient, cache: TypedCacheEngine) -> None:
+    """Pull the (singleton) factory record from Katana and upsert into the cache."""
+    await _ensure_synced(client, cache, _FACTORY_SPEC)
+
+
+async def ensure_additional_costs_synced(
+    client: KatanaClient, cache: TypedCacheEngine
+) -> None:
+    """Pull updated additional costs from Katana and upsert into the cache."""
+    await _ensure_synced(client, cache, _ADDITIONAL_COST_SPEC)
+
+
 # ---------------------------------------------------------------------------
 # Force-resync (truncate + cold-start re-pull, atomically)
 # ---------------------------------------------------------------------------
@@ -619,6 +1078,17 @@ ENTITY_SPECS: dict[str, EntitySpec] = {
     "manufacturing_order": MANUFACTURING_ORDER_SPEC,
     "purchase_order": _PURCHASE_ORDER_SPEC,
     "stock_transfer": _STOCK_TRANSFER_SPEC,
+    "product": _PRODUCT_SPEC,
+    "material": _MATERIAL_SPEC,
+    "variant": _VARIANT_SPEC,
+    "service": _SERVICE_SPEC,
+    "customer": _CUSTOMER_SPEC,
+    "supplier": _SUPPLIER_SPEC,
+    "location": _LOCATION_SPEC,
+    "tax_rate": _TAX_RATE_SPEC,
+    "operator": _OPERATOR_SPEC,
+    "factory": _FACTORY_SPEC,
+    "additional_cost": _ADDITIONAL_COST_SPEC,
 }
 """Public registry of top-level entity specs by user-facing key.
 
