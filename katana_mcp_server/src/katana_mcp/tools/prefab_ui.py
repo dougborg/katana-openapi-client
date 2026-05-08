@@ -957,8 +957,9 @@ def build_order_preview_ui(
                     )
                 with Elif("error"):
                     Separator()
-                    Text(content="Apply failed.")
-                    Muted(content="{{ $state.error }}")
+                    with Alert(variant="destructive", icon="circle-alert"):
+                        AlertTitle(content="Apply failed")
+                        AlertDescription(content="{{ error }}")
 
         with CardFooter():
             if block_warnings:
@@ -1957,8 +1958,9 @@ def build_apply_error_ui(
             Badge(label="ERROR", variant="destructive")
 
         with CardContent(), Column(gap=2):
-            Text(content=error_message)
+            with Alert(variant="destructive", icon="circle-alert"):
+                AlertTitle(content="Error")
+                AlertDescription(content=error_message)
             if hint:
-                Separator()
                 Muted(content=hint)
     return app

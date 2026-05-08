@@ -166,10 +166,18 @@ class CreateManufacturingOrderRequest(BaseModel):
         description="Make-to-order only: also create MOs for subassemblies. Ignored for standalone MOs.",
     )
     order_created_date: datetime | None = Field(
-        default=None, description="Order creation date (standalone mode only)"
+        default=None,
+        description=(
+            "Order creation date (standalone mode only) — ISO 8601 date or "
+            "datetime (e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
     )
     production_deadline_date: datetime | None = Field(
-        default=None, description="Production deadline date (standalone mode only)"
+        default=None,
+        description=(
+            "Production deadline date (standalone mode only) — ISO 8601 date "
+            "or datetime (e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
     )
     additional_info: str | None = Field(
         default=None, description="Additional notes (standalone mode only)"
@@ -202,8 +210,14 @@ class ManufacturingOrderResponse(BaseModel):
     production_deadline_date: datetime | None = None
     additional_info: str | None = None
     is_preview: bool
-    warnings: list[str] = Field(default_factory=list)
-    next_actions: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(
+        default_factory=list,
+        description="Operator-facing warnings raised during the operation.",
+    )
+    next_actions: list[str] = Field(
+        default_factory=list,
+        description="Suggested follow-up tools to call after this response.",
+    )
     message: str
     katana_url: str | None = None
 
@@ -625,7 +639,8 @@ class RecipeRowInfo(BaseModel):
     ingredient_availability: str | None = None
     ingredient_expected_date: str | None = None
     batch_transactions: list[RecipeRowBatchTransactionInfo] = Field(
-        default_factory=list
+        default_factory=list,
+        description="Batch allocations consumed for this recipe row.",
     )
     cost: float | None = None
     created_at: str | None = None
@@ -641,14 +656,24 @@ class OperationRowInfo(BaseModel):
     id: int
     manufacturing_order_id: int | None = None
     status: str | None = None
-    type_: str | None = Field(default=None, alias="type_")
+    type_: str | None = Field(
+        default=None,
+        alias="type_",
+        description="Operation type — one of fixed, perUnit, process, or setup.",
+    )
     rank: float | None = None
     operation_id: int | None = None
     operation_name: str | None = None
     resource_id: int | None = None
     resource_name: str | None = None
-    assigned_operators: list[AssignedOperatorInfo] = Field(default_factory=list)
-    completed_by_operators: list[AssignedOperatorInfo] = Field(default_factory=list)
+    assigned_operators: list[AssignedOperatorInfo] = Field(
+        default_factory=list,
+        description="Operators currently assigned to this operation.",
+    )
+    completed_by_operators: list[AssignedOperatorInfo] = Field(
+        default_factory=list,
+        description="Operators who logged completed time on this operation.",
+    )
     active_operator_id: float | None = None
     planned_time_per_unit: float | None = None
     planned_time_parameter: float | None = None
@@ -714,9 +739,18 @@ class ProductionInfo(BaseModel):
     factory_id: int | None = None
     quantity: float | None = None
     production_date: str | None = None
-    ingredients: list[ProductionIngredientInfo] = Field(default_factory=list)
-    operations: list[ProductionOperationInfo] = Field(default_factory=list)
-    serial_numbers: list[SerialNumberInfo] = Field(default_factory=list)
+    ingredients: list[ProductionIngredientInfo] = Field(
+        default_factory=list,
+        description="Ingredient consumption records for this production.",
+    )
+    operations: list[ProductionOperationInfo] = Field(
+        default_factory=list,
+        description="Operation time records for this production.",
+    )
+    serial_numbers: list[SerialNumberInfo] = Field(
+        default_factory=list,
+        description="Serial numbers issued for this production.",
+    )
     created_at: str | None = None
     updated_at: str | None = None
     deleted_at: str | None = None
@@ -755,14 +789,29 @@ class GetManufacturingOrderResponse(BaseModel):
     material_cost: float | None = None
     subassemblies_cost: float | None = None
     operations_cost: float | None = None
-    batch_transactions: list[BatchTransactionInfo] = Field(default_factory=list)
-    serial_numbers: list[SerialNumberInfo] = Field(default_factory=list)
+    batch_transactions: list[BatchTransactionInfo] = Field(
+        default_factory=list,
+        description="Batch allocations rolled up across all recipe rows.",
+    )
+    serial_numbers: list[SerialNumberInfo] = Field(
+        default_factory=list,
+        description="Serial numbers issued across all productions on this MO.",
+    )
     created_at: str | None = None
     updated_at: str | None = None
     deleted_at: str | None = None
-    recipe_rows: list[RecipeRowInfo] = Field(default_factory=list)
-    operation_rows: list[OperationRowInfo] = Field(default_factory=list)
-    productions: list[ProductionInfo] = Field(default_factory=list)
+    recipe_rows: list[RecipeRowInfo] = Field(
+        default_factory=list,
+        description="Recipe rows (ingredients) on the manufacturing order.",
+    )
+    operation_rows: list[OperationRowInfo] = Field(
+        default_factory=list,
+        description="Operation rows (production steps) on the manufacturing order.",
+    )
+    productions: list[ProductionInfo] = Field(
+        default_factory=list,
+        description="Production records (completion logs) on the manufacturing order.",
+    )
 
 
 def _recipe_row_info_from_attrs(row: Any, sku: str | None) -> RecipeRowInfo:
@@ -2580,8 +2629,14 @@ class MOHeaderPatch(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    order_no: str | None = Field(default=None)
-    variant_id: int | None = Field(default=None)
+    order_no: str | None = Field(default=None, description="New order number")
+    variant_id: int | None = Field(
+        default=None,
+        description=(
+            "New produced-variant ID (the SKU being manufactured). "
+            "Look up via `search_items`."
+        ),
+    )
     location_id: int | None = Field(
         default=None,
         description=("New production location ID. Look up via `list_locations`."),
@@ -2593,12 +2648,40 @@ class MOHeaderPatch(BaseModel):
             "PARTIALLY_COMPLETED. Katana validates transitions server-side."
         ),
     )
-    planned_quantity: float | None = Field(default=None, gt=0)
-    actual_quantity: float | None = Field(default=None, ge=0)
-    order_created_date: datetime | None = Field(default=None)
-    production_deadline_date: datetime | None = Field(default=None)
-    done_date: datetime | None = Field(default=None)
-    additional_info: str | None = Field(default=None)
+    planned_quantity: float | None = Field(
+        default=None,
+        gt=0,
+        description="New planned production quantity",
+    )
+    actual_quantity: float | None = Field(
+        default=None,
+        ge=0,
+        description="New actual produced quantity",
+    )
+    order_created_date: datetime | None = Field(
+        default=None,
+        description=(
+            "New order created date — ISO 8601 date or datetime "
+            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
+    )
+    production_deadline_date: datetime | None = Field(
+        default=None,
+        description=(
+            "New production deadline — ISO 8601 date or datetime "
+            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
+    )
+    done_date: datetime | None = Field(
+        default=None,
+        description=(
+            "New completion timestamp (when MO was finished) — ISO 8601 date "
+            "or datetime (e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
+    )
+    additional_info: str | None = Field(
+        default=None, description="New notes / additional info"
+    )
 
 
 class RecipeRowBatchTransaction(BaseModel):
@@ -2623,8 +2706,16 @@ class MORecipeRowAdd(BaseModel):
 
     variant_id: int = Field(..., description="Variant ID of the ingredient")
     planned_quantity_per_unit: float = Field(..., description="Quantity per unit", gt=0)
-    notes: str | None = Field(default=None)
-    total_actual_quantity: float | None = Field(default=None, ge=0)
+    notes: str | None = Field(
+        default=None, description="Operator notes for this recipe row"
+    )
+    total_actual_quantity: float | None = Field(
+        default=None,
+        ge=0,
+        description=(
+            "Total quantity actually consumed (for completion logging on the row)"
+        ),
+    )
     batch_transactions: list[RecipeRowBatchTransaction] | None = Field(
         default=None,
         description=(
@@ -2642,10 +2733,21 @@ class MORecipeRowUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: int = Field(..., description="Recipe row ID")
-    variant_id: int | None = Field(default=None)
-    planned_quantity_per_unit: float | None = Field(default=None, gt=0)
-    notes: str | None = Field(default=None)
-    total_actual_quantity: float | None = Field(default=None, ge=0)
+    variant_id: int | None = Field(
+        default=None,
+        description="New ingredient variant ID. Look up via `search_items`.",
+    )
+    planned_quantity_per_unit: float | None = Field(
+        default=None,
+        gt=0,
+        description="New planned consumption per produced unit",
+    )
+    notes: str | None = Field(default=None, description="New operator notes")
+    total_actual_quantity: float | None = Field(
+        default=None,
+        ge=0,
+        description="New total actual quantity consumed",
+    )
     batch_transactions: list[RecipeRowBatchTransaction] | None = Field(
         default=None,
         description=(
@@ -2665,17 +2767,51 @@ class MOOperationRowAdd(BaseModel):
     status: ManufacturingOperationStatusLiteral = Field(
         ..., description="Initial operation status"
     )
-    operation_id: int | None = Field(default=None)
-    type: ManufacturingOperationTypeLiteral | None = Field(
-        default=None, description="LINKED (template) or STANDARD"
+    operation_id: int | None = Field(
+        default=None,
+        description=(
+            "Operation template ID — links this row to a reusable operation "
+            "definition. Omit for ad-hoc operations not bound to a template."
+        ),
     )
-    operation_name: str | None = Field(default=None)
-    resource_id: int | None = Field(default=None)
-    resource_name: str | None = Field(default=None)
-    planned_time_parameter: float | None = Field(default=None)
-    planned_time_per_unit: float | None = Field(default=None)
-    cost_parameter: float | None = Field(default=None)
-    cost_per_hour: float | None = Field(default=None)
+    type: ManufacturingOperationTypeLiteral | None = Field(
+        default=None,
+        description="Operation cost-model type — one of fixed, perUnit, process, or setup.",
+    )
+    operation_name: str | None = Field(
+        default=None,
+        description="Free-text operation label (e.g., 'Cut to length')",
+    )
+    resource_id: int | None = Field(
+        default=None,
+        description=(
+            "Resource (work-station/machine) ID configured in Katana. "
+            "Distinct from operators — Katana doesn't expose a list-resources "
+            "MCP tool, so callers typically read this from an existing MO's "
+            "operation_rows or the Katana web UI."
+        ),
+    )
+    resource_name: str | None = Field(
+        default=None, description="Free-text resource name"
+    )
+    planned_time_parameter: float | None = Field(
+        default=None,
+        description=(
+            "Planned-time divisor for the operation cost model "
+            "(e.g., minutes-per-item denominator)"
+        ),
+    )
+    planned_time_per_unit: float | None = Field(
+        default=None,
+        description="Planned time per produced unit (in operation time units)",
+    )
+    cost_parameter: float | None = Field(
+        default=None,
+        description="Cost calculation parameter (e.g., per-hour rate divisor)",
+    )
+    cost_per_hour: float | None = Field(
+        default=None, description="Operation cost per hour"
+    )
 
 
 class MOOperationRowUpdate(BaseModel):
@@ -2684,17 +2820,51 @@ class MOOperationRowUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: int = Field(..., description="Operation row ID")
-    status: ManufacturingOperationStatusLiteral | None = Field(default=None)
-    operation_id: int | None = Field(default=None)
-    type: ManufacturingOperationTypeLiteral | None = Field(default=None)
-    operation_name: str | None = Field(default=None)
-    resource_id: int | None = Field(default=None)
-    resource_name: str | None = Field(default=None)
-    planned_time_parameter: float | None = Field(default=None)
-    planned_time_per_unit: float | None = Field(default=None)
-    total_actual_time: float | None = Field(default=None)
-    cost_parameter: float | None = Field(default=None)
-    cost_per_hour: float | None = Field(default=None)
+    status: ManufacturingOperationStatusLiteral | None = Field(
+        default=None,
+        description=(
+            "New operation status — NOT_STARTED / IN_PROGRESS / PAUSED / "
+            "BLOCKED / COMPLETED. Katana validates transitions server-side."
+        ),
+    )
+    operation_id: int | None = Field(
+        default=None, description="New operation template ID"
+    )
+    type: ManufacturingOperationTypeLiteral | None = Field(
+        default=None,
+        description="New operation cost-model type — fixed, perUnit, process, or setup.",
+    )
+    operation_name: str | None = Field(
+        default=None, description="New free-text operation label"
+    )
+    resource_id: int | None = Field(
+        default=None,
+        description=(
+            "New resource (work-station/machine) ID. Distinct from operators "
+            "— Katana doesn't expose a list-resources MCP tool, so callers "
+            "typically read this from an existing MO's operation_rows or the "
+            "Katana web UI."
+        ),
+    )
+    resource_name: str | None = Field(
+        default=None, description="New free-text resource name"
+    )
+    planned_time_parameter: float | None = Field(
+        default=None, description="New planned-time divisor"
+    )
+    planned_time_per_unit: float | None = Field(
+        default=None, description="New planned time per produced unit"
+    )
+    total_actual_time: float | None = Field(
+        default=None,
+        description="Total time actually spent on this operation (for completion logging)",
+    )
+    cost_parameter: float | None = Field(
+        default=None, description="New cost calculation parameter"
+    )
+    cost_per_hour: float | None = Field(
+        default=None, description="New operation cost per hour"
+    )
 
 
 class MOProductionAdd(BaseModel):
@@ -2705,7 +2875,13 @@ class MOProductionAdd(BaseModel):
     completed_quantity: float = Field(
         ..., description="Quantity produced in this production record", gt=0
     )
-    completed_date: datetime | None = Field(default=None)
+    completed_date: datetime | None = Field(
+        default=None,
+        description=(
+            "Completion timestamp (when production was finished) — ISO 8601 "
+            "date or datetime (e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
+    )
     is_final: bool | None = Field(
         default=None,
         description="When true, marks this as the final production record",
@@ -2721,7 +2897,13 @@ class MOProductionUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: int = Field(..., description="Production record ID")
-    production_date: datetime | None = Field(default=None)
+    production_date: datetime | None = Field(
+        default=None,
+        description=(
+            "When production happened — ISO 8601 date or datetime "
+            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
+    )
 
 
 class ModifyManufacturingOrderRequest(ConfirmableRequest):
