@@ -2002,10 +2002,17 @@ class TestBuildModificationPreviewUI:
             assert r["target_label"].startswith("#")
             assert r["summary"] == "deleted"
 
-    def test_apply_button_pushes_result_actions_into_state(self):
-        """The Confirm button's CallTool on_success chain must SetState
-        ``plan_actions`` to ``$result.actions`` so each row's status_label
-        ticks live from PLANNED → APPLIED/FAILED on apply.
+    def test_apply_button_does_not_set_state_plan_actions(self):
+        """Pin: the live-tick design (``SetState("plan_actions", RESULT.actions)``)
+        was attempted in #634 but turned out to be broken — ``$result`` in
+        the on_success Rx context resolves to the apply tool's
+        ``structured_content`` (a PrefabApp wire envelope), not to the raw
+        ``ModificationResponse``. The SetState was a no-op in production.
+
+        Until the right Rx path is identified (tracked as a follow-up), the
+        on_success chain MUST NOT include a SetState targeting plan_actions
+        — a no-op SetState is misleading. The apply path morphs the card via
+        the existing ``applied=True`` flag instead.
         """
         response = _modification_preview_response(
             actions=[
@@ -2027,9 +2034,6 @@ class TestBuildModificationPreviewUI:
         )
         envelope = app.to_json()
 
-        # Find the CallTool action and inspect its on_success chain.
-        # toolCall actions are nested under Button.on_click (not Component
-        # children), so search the full envelope tree.
         def find_action(o: object, action_name: str) -> dict[str, Any] | None:
             if isinstance(o, dict):
                 if o.get("action") == action_name:
@@ -2047,9 +2051,7 @@ class TestBuildModificationPreviewUI:
 
         call_tool = find_action(envelope, "toolCall")
         assert call_tool is not None
-        # The wire field is camelCase via Pydantic alias="onSuccess".
         on_success = call_tool.get("onSuccess") or call_tool.get("on_success") or []
-        # Must include a setState targeting plan_actions with $result.actions.
         plan_action_set = next(
             (
                 a
@@ -2060,15 +2062,10 @@ class TestBuildModificationPreviewUI:
             ),
             None,
         )
-        assert plan_action_set is not None, (
-            f"on_success must SetState('plan_actions', RESULT.actions) for "
-            f"live-tick; got {on_success!r}"
-        )
-        # The value should be an Rx reference resolving to $result.actions.
-        # Rx serializes via str() to "{{ key }}".
-        value = plan_action_set.get("value")
-        assert isinstance(value, str) and "$result.actions" in value, (
-            f"plan_actions value must reference $result.actions; got {value!r}"
+        assert plan_action_set is None, (
+            f"on_success must NOT SetState('plan_actions', ...) — it would "
+            f"be a no-op until the live-tick Rx path is fixed. Found: "
+            f"{plan_action_set!r}"
         )
 
 

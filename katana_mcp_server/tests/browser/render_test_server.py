@@ -17,7 +17,11 @@ from typing import Any
 
 from fastmcp import FastMCP
 from fastmcp.tools import ToolResult
-from katana_mcp.tools._modification import ActionResult, FieldChange
+from katana_mcp.tools._modification import (
+    ActionResult,
+    FieldChange,
+    ModificationResponse,
+)
 from katana_mcp.tools.prefab_ui import (
     build_batch_recipe_update_ui,
     build_inventory_check_ui,
@@ -26,6 +30,7 @@ from katana_mcp.tools.prefab_ui import (
     build_search_results_ui,
     build_verification_ui,
 )
+from katana_mcp.tools.tool_result_utils import make_tool_result
 from prefab_ui.app import PrefabApp
 from pydantic import BaseModel
 
@@ -391,7 +396,14 @@ async def modify_manufacturing_order(
     Sub-payload args mirror :class:`ModifyManufacturingOrderRequest` so
     FastMCP's signature validator accepts the full Confirm-button payload.
     All values are ignored — the stub always returns the same canned
-    envelope, since we just need ``RESULT.actions`` to land in state.
+    envelope.
+
+    Uses ``make_tool_result`` (same helper real modification tools use) so
+    the wire shape matches production exactly: ``content`` carries the
+    response JSON, ``structured_content`` carries the apply result card's
+    Prefab envelope. This pins the contract that ``RESULT.actions`` in
+    the on_success Rx expression resolves the same way against the stub
+    as it does against the real tool.
     """
     del (
         id,
@@ -406,13 +418,14 @@ async def modify_manufacturing_order(
         update_productions,
         delete_production_ids,
     )  # unused — canned response
-    response = _twelve_action_response(
+    response_dict = _twelve_action_response(
         is_preview=preview, succeeded=None if preview else True
     )
-    return ToolResult(
-        content="ok",
-        structured_content=response,
+    response = ModificationResponse.model_validate(response_dict)
+    ui = build_modification_result_ui(
+        response_dict, tool_name="modify_manufacturing_order"
     )
+    return make_tool_result(response, ui=ui)
 
 
 if __name__ == "__main__":

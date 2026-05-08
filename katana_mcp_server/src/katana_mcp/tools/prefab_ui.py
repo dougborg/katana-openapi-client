@@ -1444,16 +1444,17 @@ def build_modification_preview_ui(
         if legacy is not None:
             actions = [legacy]
 
-    apply_action = _build_apply_action_direct(
-        confirm_tool,
-        confirm_request,
-        # Live-tick: replace the planned rows with the apply RESULT's actions
-        # before the generic ``applied=True`` flag flips. Each row's
-        # ``status_label`` updates from PLANNED to its terminal value
-        # (APPLIED / APPLIED (verified) / FAILED) and the DataTable
-        # re-renders rows in place — no iframe morph.
-        extra_on_success=[SetState(_PLAN_ACTIONS_KEY, RESULT.actions)],
-    )
+    apply_action = _build_apply_action_direct(confirm_tool, confirm_request)
+    # NOTE: A live-tick design (rows ticking PLANNED -> APPLIED in place via
+    # ``SetState("plan_actions", RESULT.actions)``) was attempted in #634 but
+    # turned out to be broken: ``$result`` in the on_success Rx context
+    # resolves to the apply tool's ``structured_content`` (a PrefabApp wire
+    # envelope from ``make_tool_result``), not to the raw
+    # ``ModificationResponse``. ``$result.actions`` therefore doesn't
+    # resolve and the SetState was a no-op in production. Caught by Copilot
+    # review; verified by the browser harness when its stub was switched to
+    # match production shape. Tracked as a follow-up — until then the
+    # apply path morphs the card via the existing ``applied=True`` flag.
     entity_type_raw = str(response.get("entity_type") or "entity")
     entity_type_label = _humanize_snake_case(entity_type_raw)
     verb_label = _verb_label(confirm_tool)
