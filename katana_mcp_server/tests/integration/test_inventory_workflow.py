@@ -66,7 +66,7 @@ class TestInventorySearchWorkflow:
             _var_results = await _get_variant_details_impl(
                 details_request, integration_context
             )
-            details = _var_results[0]
+            details = _var_results.found[0]
         except ValueError as e:
             # SKU might have been deleted between search and details call
             if "not found" in str(e).lower():
@@ -149,7 +149,7 @@ class TestInventorySearchWorkflow:
                 _var_results = await _get_variant_details_impl(
                     details_request, integration_context
                 )
-                details = _var_results[0]
+                details = _var_results.found[0]
                 details_results.append(details)
             except ValueError:
                 # Item not found - skip it
@@ -288,7 +288,7 @@ class TestInventoryDataConsistency:
                 _var_results = await _get_variant_details_impl(
                     details_request, integration_context
                 )
-                details = _var_results[0]
+                details = _var_results.found[0]
 
                 # IDs should match
                 assert details.id == item.id, (
