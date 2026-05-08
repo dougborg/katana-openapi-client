@@ -280,6 +280,22 @@ Common mistakes to avoid:
   PAT-based pushes); tightening that bypass is tracked in #429 (GitHub App migration).
   Until #429 lands, the local hook is the only mechanical guardrail.
 
+- **Prefab `DataTable.rows` requires mustache `{{ key }}` for state binding, not bare
+  string** - The Python pydantic field type accepts `rows: str` either way, but the JS
+  renderer crashes the entire iframe with `t.some is not a function` if it sees a bare
+  state-key string — it treats the string as the rows array itself, calls `.some()` on a
+  string, and the React tree never mounts. Use mustache form everywhere:
+  `rows="{{ items }}"`, `rows="{{ stock.by_location }}"` (dotted paths supported).
+  `_assert_state_bindings_resolve` in `katana_mcp_server/tests/test_prefab_ui.py`
+  enforces this on every state-bound DataTable. The browser-render harness in
+  `katana_mcp_server/tests/browser/` proves cards actually render in headless Chromium —
+  the prior unit-test contract (`to_json()` returns a dict with `$prefab`) was
+  insufficient because the wire envelope can be "valid but unrenderable." Discovered
+  while investigating #629; bit every state-bound DataTable in the repo (search,
+  inventory, verification, batch_recipe, modification card). Run
+  `uv run poe test-browser` to exercise the JS renderer locally; needs one-time
+  `uv run playwright install chromium`.
+
 ## Using the LSP tool
 
 Both Python (pyright) and TypeScript (typescript-language-server) LSPs are configured
