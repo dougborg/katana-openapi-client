@@ -12,7 +12,7 @@ from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
@@ -1435,6 +1435,47 @@ class VariantDetailsResponse(BaseModel):
     deleted_at: str | None = None
 
 
+class VariantNotFound(BaseModel):
+    """Identifier for a variant that was requested but couldn't be resolved.
+
+    Exactly one of ``sku`` / ``variant_id`` is set, matching the form the
+    caller used in the request. Surfaced from
+    :func:`_get_variant_details_impl` so batch callers can see the gaps
+    without parsing exception text. The XOR is enforced at validation
+    time so invalid shapes (both set, both unset) can't leak into the
+    JSON / markdown rendering paths — e.g., the markdown miss line
+    formats ``#{variant_id}`` whenever ``sku is None``, so a both-None
+    instance would render ``#None``.
+    """
+
+    sku: str | None = None
+    variant_id: int | None = None
+
+    @model_validator(mode="after")
+    def _check_exactly_one_identifier(self) -> VariantNotFound:
+        if (self.sku is None) == (self.variant_id is None):
+            raise ValueError(
+                "VariantNotFound requires exactly one of 'sku' or 'variant_id'; "
+                f"got sku={self.sku!r}, variant_id={self.variant_id!r}"
+            )
+        return self
+
+
+class GetVariantDetailsResult(BaseModel):
+    """Partial-result envelope for variant lookups.
+
+    Splits hits from misses so a batch with one bad SKU still returns the
+    rest of the batch. The singular convenience path (a request with a
+    single ``sku=`` / ``variant_id=``) keeps raising ``ValueError`` for a
+    clean "that one variant doesn't exist" UX — only the batch path
+    (``skus=[...]`` / ``variant_ids=[...]`` or any mixed form) lands here
+    and never short-circuits. See issue #617.
+    """
+
+    found: list[VariantDetailsResponse] = Field(default_factory=list)
+    not_found: list[VariantNotFound] = Field(default_factory=list)
+
+
 def _variant_details_to_tool_result(response: VariantDetailsResponse) -> ToolResult:
     """Convert VariantDetailsResponse to ToolResult.
 
@@ -1575,19 +1616,12 @@ async def _fetch_variant_by_id(services: Any, variant_id: int) -> dict[str, Any]
     return variant_obj.to_dict()
 
 
-@cache_read(
-    EntityType.VARIANT,
-    EntityType.PRODUCT,
-    EntityType.MATERIAL,
-    EntityType.SUPPLIER,
-)
-async def _get_variant_details_impl(
-    request: GetVariantDetailsRequest, context: Context
-) -> list[VariantDetailsResponse]:
-    """Look up one or more variants by SKU(s) or variant ID(s).
-
-    Returns a list of matching variants. Raises ValueError if any are not found.
-    """
+def _collect_variant_identifiers(
+    request: GetVariantDetailsRequest,
+) -> tuple[list[str], list[int]]:
+    """Flatten the request's singular + plural identifier fields into
+    a single ``(skus, variant_ids)`` pair, validating that at least one
+    identifier was provided and that no SKU is blank."""
     skus: list[str] = []
     variant_ids: list[int] = []
 
@@ -1608,12 +1642,79 @@ async def _get_variant_details_impl(
             "Must provide at least one of: sku, variant_id, skus, variant_ids"
         )
 
-    services = get_services(context)
-
-    # Validate SKUs aren't blank before dispatching
     sku_cleaned = [s.strip() for s in skus]
     if any(not clean for clean in sku_cleaned):
         raise ValueError("SKU cannot be empty")
+
+    return sku_cleaned, variant_ids
+
+
+def _is_singular_request(request: GetVariantDetailsRequest) -> bool:
+    """True when the request carries exactly one identifier via the
+    scalar ``sku=`` / ``variant_id=`` field, with no plural list. The
+    singular path raises on a miss; the batch path returns it in
+    ``not_found``."""
+    return (
+        not request.skus
+        and not request.variant_ids
+        and (request.sku is not None) ^ (request.variant_id is not None)
+    )
+
+
+def _partition_variant_lookups(
+    *,
+    sku_cleaned: list[str],
+    sku_variants: list[dict[str, Any] | None],
+    variant_ids: list[int],
+    id_variants: list[dict[str, Any] | None],
+    is_singular_request: bool,
+) -> tuple[list[dict[str, Any]], list[VariantNotFound]]:
+    """Split parallel-lookup results into hits and misses. In singular
+    mode, the first miss raises; in batch mode, misses accumulate into
+    ``not_found`` and processing continues."""
+    hits: list[dict[str, Any]] = []
+    not_found: list[VariantNotFound] = []
+    for sku, v in zip(sku_cleaned, sku_variants, strict=True):
+        if not v:
+            if is_singular_request:
+                raise ValueError(f"Variant with SKU '{sku}' not found")
+            not_found.append(VariantNotFound(sku=sku))
+            continue
+        hits.append(v)
+    for variant_id, v in zip(variant_ids, id_variants, strict=True):
+        if v is None:
+            if is_singular_request:
+                raise ValueError(f"Variant ID {variant_id} not found")
+            not_found.append(VariantNotFound(variant_id=variant_id))
+            continue
+        hits.append(v)
+    return hits, not_found
+
+
+@cache_read(
+    EntityType.VARIANT,
+    EntityType.PRODUCT,
+    EntityType.MATERIAL,
+    EntityType.SUPPLIER,
+)
+async def _get_variant_details_impl(
+    request: GetVariantDetailsRequest, context: Context
+) -> GetVariantDetailsResult:
+    """Look up one or more variants by SKU(s) or variant ID(s).
+
+    Returns a :class:`GetVariantDetailsResult` with hits in ``found`` and
+    misses in ``not_found``. The singular convenience path (the request
+    carries exactly one identifier via ``sku=`` or ``variant_id=``, with
+    no plural list) keeps raising ``ValueError`` on a miss so the
+    "that one variant doesn't exist" UX stays clean. The batch path —
+    ``skus=[...]`` / ``variant_ids=[...]`` or any mixed form — never
+    short-circuits, so a single bad SKU can't kill an otherwise-good
+    batch (#617).
+    """
+    sku_cleaned, variant_ids = _collect_variant_identifiers(request)
+    is_singular_request = _is_singular_request(request)
+
+    services = get_services(context)
 
     # Parallelize both groups of lookups
     sku_variants, id_variants = await asyncio.gather(
@@ -1621,24 +1722,22 @@ async def _get_variant_details_impl(
         asyncio.gather(*(_fetch_variant_by_id(services, v) for v in variant_ids)),
     )
 
-    found: list[dict[str, Any]] = []
-    for sku, v in zip(sku_cleaned, sku_variants, strict=True):
-        if not v:
-            raise ValueError(f"Variant with SKU '{sku}' not found")
-        found.append(v)
-    for variant_id, v in zip(variant_ids, id_variants, strict=True):
-        if v is None:
-            raise ValueError(f"Variant ID {variant_id} not found")
-        found.append(v)
+    hits, not_found = _partition_variant_lookups(
+        sku_cleaned=sku_cleaned,
+        sku_variants=list(sku_variants),
+        variant_ids=variant_ids,
+        id_variants=list(id_variants),
+        is_singular_request=is_singular_request,
+    )
 
     # Bulk-fetch parents + suppliers once for the whole batch so the
     # response includes UoM, default supplier name, and batch-tracked
     # status without a per-variant follow-up call (#538).
     products, materials, supplier_by_id = await _enrich_variants_with_parent(
-        services, found
+        services, hits
     )
-    results: list[VariantDetailsResponse] = []
-    for v in found:
+    found: list[VariantDetailsResponse] = []
+    for v in hits:
         # Pick the parent map by which ID the variant carries — product
         # and material IDs may collide, so a merged map would mis-attach.
         if v.get("product_id"):
@@ -1649,9 +1748,9 @@ async def _get_variant_details_impl(
             parent = None
         sup_id = (parent or {}).get("default_supplier_id")
         supplier = supplier_by_id.get(sup_id) if sup_id else None
-        results.append(_dict_to_variant_details(v, parent=parent, supplier=supplier))
+        found.append(_dict_to_variant_details(v, parent=parent, supplier=supplier))
 
-    return results
+    return GetVariantDetailsResult(found=found, not_found=not_found)
 
 
 @observe_tool
@@ -1662,9 +1761,10 @@ async def get_variant_details(
     """Get comprehensive variant details by SKU(s) or variant ID(s).
 
     Pass one or more values via ``skus`` / ``variant_ids`` (or the singular
-    ``sku`` / ``variant_id``). A single item returns a rich detail card; multiple
-    items return a summary table. Batching N lookups in one call beats N
-    separate invocations.
+    ``sku`` / ``variant_id``). When exactly one variant resolves and there are
+    no misses, the response is a rich detail card; otherwise it's a summary
+    table (and a ``Not found`` section is appended when the batch had misses).
+    Batching N lookups in one call beats N separate invocations.
 
     Returns pricing, barcodes, supplier codes, and more.
 
@@ -1672,12 +1772,21 @@ async def get_variant_details(
     items, MO recipe rows) to resolve them to SKUs and full details.
 
     Tries the cache first; falls back to the API for variant IDs not in cache.
-    Raises ValueError if any requested variant is not found.
+    For a singular request (one ``sku=`` or ``variant_id=``), raises
+    ``ValueError`` if the variant isn't found. For a batch request
+    (``skus=[...]`` / ``variant_ids=[...]`` or mixed), returns the variants
+    that resolved plus a ``not_found`` list of the misses — a single bad
+    identifier never kills the whole batch (#617).
     """
-    responses = await _get_variant_details_impl(request, context)
+    result = await _get_variant_details_impl(request, context)
+    found = result.found
+    not_found = result.not_found
 
     if request.format == "json":
-        payload = {"variants": [r.model_dump() for r in responses]}
+        payload = {
+            "variants": [r.model_dump() for r in found],
+            "not_found": [n.model_dump(exclude_none=True) for n in not_found],
+        }
         import json as _json
 
         return ToolResult(
@@ -1687,35 +1796,58 @@ async def get_variant_details(
 
     # If a single-variant request, return the single-variant markdown + UI.
     # Treat a single-element batch list (skus=[X] or variant_ids=[X]) the same
-    # as the singular form to honor the docstring's "single item" promise.
-    is_single = len(responses) == 1 and (
-        request.sku is not None
-        or request.variant_id is not None
-        or len(request.skus or []) == 1
-        or len(request.variant_ids or []) == 1
+    # as the singular form to honor the docstring's "single item" promise —
+    # but only when there are no misses; with misses we fall through to the
+    # batch renderer so the "Not found" section still surfaces.
+    is_single = (
+        len(found) == 1
+        and not not_found
+        and (
+            request.sku is not None
+            or request.variant_id is not None
+            or len(request.skus or []) == 1
+            or len(request.variant_ids or []) == 1
+        )
     )
     if is_single:
-        return _variant_details_to_tool_result(responses[0])
+        return _variant_details_to_tool_result(found[0])
 
-    # Batch response: summary + table
-    table = format_md_table(
-        headers=["ID", "SKU", "Name", "Sales Price", "Purchase Price"],
-        rows=[
-            [
-                v.id,
-                v.sku,
-                v.name,
-                f"${v.sales_price:,.2f}" if v.sales_price is not None else "N/A",
-                f"${v.purchase_price:,.2f}" if v.purchase_price is not None else "N/A",
-            ]
-            for v in responses
-        ],
-    )
-    markdown = f"## Variant Details ({len(responses)} variants)\n\n{table}"
+    # Batch response: summary + table (+ a "Not found" section when the
+    # batch had misses, so callers see the gaps at a glance without
+    # reaching into structured_content).
+    if found:
+        table = format_md_table(
+            headers=["ID", "SKU", "Name", "Sales Price", "Purchase Price"],
+            rows=[
+                [
+                    v.id,
+                    v.sku,
+                    v.name,
+                    f"${v.sales_price:,.2f}" if v.sales_price is not None else "N/A",
+                    f"${v.purchase_price:,.2f}"
+                    if v.purchase_price is not None
+                    else "N/A",
+                ]
+                for v in found
+            ],
+        )
+        markdown = f"## Variant Details ({len(found)} variants)\n\n{table}"
+    else:
+        markdown = "## Variant Details (0 variants)\n\nNo variants resolved."
+
+    if not_found:
+        misses = ", ".join(
+            f"`{n.sku}`" if n.sku is not None else f"`#{n.variant_id}`"
+            for n in not_found
+        )
+        markdown += f"\n\n**Not found ({len(not_found)}):** {misses}"
 
     return make_simple_result(
         markdown,
-        structured_data={"variants": [v.model_dump() for v in responses]},
+        structured_data={
+            "variants": [v.model_dump() for v in found],
+            "not_found": [n.model_dump(exclude_none=True) for n in not_found],
+        },
     )
 
 

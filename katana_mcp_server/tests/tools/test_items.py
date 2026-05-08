@@ -16,11 +16,13 @@ from katana_mcp.tools.foundation.items import (
     GetItemRequest,
     GetVariantDetailsRequest,
     ItemType,
+    VariantNotFound,
     _get_item_impl,
     _get_variant_details_impl,
     get_item,
     get_variant_details,
 )
+from pydantic import ValidationError
 
 from tests.conftest import create_mock_context
 
@@ -114,8 +116,8 @@ async def test_get_variant_details_surfaces_every_variant_field():
     lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=variant_dict)
 
     request = GetVariantDetailsRequest(sku="KNF-PRO-8PC-STL")
-    results = await _get_variant_details_impl(request, context)
-    result = results[0]
+    result_envelope = await _get_variant_details_impl(request, context)
+    result = result_envelope.found[0]
 
     # Core fields
     assert result.id == 3001
@@ -219,12 +221,215 @@ async def test_get_variant_details_lifts_default_supplier_from_parent():
     lifespan_ctx.cache.get_many_by_ids = AsyncMock(side_effect=_get_many_by_ids)
 
     request = GetVariantDetailsRequest(sku="KNF-PRO-8PC-STL")
-    [result] = await _get_variant_details_impl(request, context)
+    [result] = (await _get_variant_details_impl(request, context)).found
 
     assert result.default_supplier_id == 555
     assert result.default_supplier_name == "Acme Cutlery Co"
     assert result.uom == "set"
     assert result.is_batch_tracked is False
+
+
+# ============================================================================
+# get_variant_details — partial-result batching (#617)
+# ============================================================================
+#
+# Pre-#617 the impl raised on the first cache miss inside a batch, killing
+# any other hits in the same call. The contract is now:
+#
+# - Singular convenience path (one ``sku=`` or ``variant_id=`` and no plural
+#   list) — keep raising ``ValueError`` so the "that one variant doesn't
+#   exist" UX stays clean.
+# - Batch path (``skus=[...]`` / ``variant_ids=[...]`` or any mixed form) —
+#   never short-circuit; return the hits in ``found`` and the misses in
+#   ``not_found``.
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_batch_all_hits_returns_all_no_misses():
+    """All-hits batch behaves identically to the pre-#617 path: every
+    requested variant lands in ``found`` and ``not_found`` is empty."""
+    context, lifespan_ctx = create_mock_context()
+    by_sku = {
+        "WIDGET-A": {"id": 1, "sku": "WIDGET-A", "display_name": "Widget A"},
+        "WIDGET-B": {"id": 2, "sku": "WIDGET-B", "display_name": "Widget B"},
+    }
+    lifespan_ctx.cache.get_by_sku = AsyncMock(side_effect=by_sku.get)
+
+    request = GetVariantDetailsRequest(skus=["WIDGET-A", "WIDGET-B"])
+    result = await _get_variant_details_impl(request, context)
+
+    assert [v.sku for v in result.found] == ["WIDGET-A", "WIDGET-B"]
+    assert result.not_found == []
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_batch_partial_hits_returns_hits_and_misses():
+    """A batch with one miss + one hit returns the hit in ``found`` and
+    the missing identifier in ``not_found`` — no raise. This is the
+    canonical receiving-flow case from #617."""
+    context, lifespan_ctx = create_mock_context()
+    by_sku = {
+        "WIDGET-B": {"id": 2, "sku": "WIDGET-B", "display_name": "Widget B"},
+    }
+    lifespan_ctx.cache.get_by_sku = AsyncMock(side_effect=by_sku.get)
+
+    request = GetVariantDetailsRequest(skus=["MISSING-A", "WIDGET-B"])
+    result = await _get_variant_details_impl(request, context)
+
+    assert [v.sku for v in result.found] == ["WIDGET-B"]
+    assert len(result.not_found) == 1
+    assert result.not_found[0].sku == "MISSING-A"
+    assert result.not_found[0].variant_id is None
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_batch_all_misses_returns_empty_found():
+    """An all-misses batch returns an empty ``found`` list and a
+    populated ``not_found`` — no raise even though nothing resolved."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
+
+    request = GetVariantDetailsRequest(skus=["MISSING-A", "MISSING-B"])
+    result = await _get_variant_details_impl(request, context)
+
+    assert result.found == []
+    assert [n.sku for n in result.not_found] == ["MISSING-A", "MISSING-B"]
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_singular_sku_miss_still_raises():
+    """The singular convenience path (one ``sku=``) keeps raising
+    ``ValueError`` on a miss — the partial-result contract only applies
+    to the batch path."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
+
+    request = GetVariantDetailsRequest(sku="MISSING-SOLO")
+    with pytest.raises(ValueError, match="Variant with SKU 'MISSING-SOLO' not found"):
+        await _get_variant_details_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_singular_variant_id_miss_still_raises():
+    """Singular ``variant_id=`` miss raises identically to singular
+    ``sku=`` miss."""
+    context, _lifespan_ctx = create_mock_context()
+
+    with patch(
+        "katana_mcp.tools.foundation.items._fetch_variant_by_id",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        request = GetVariantDetailsRequest(variant_id=99999)
+        with pytest.raises(ValueError, match="Variant ID 99999 not found"):
+            await _get_variant_details_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_mixed_skus_and_variant_ids_partial():
+    """Mixed ``skus`` + ``variant_ids`` follows the batch contract — the
+    caller is treating it as a batch, so misses on either side land in
+    ``not_found`` rather than raising."""
+    context, lifespan_ctx = create_mock_context()
+    by_sku = {
+        "WIDGET-OK": {"id": 1, "sku": "WIDGET-OK", "display_name": "Widget OK"},
+    }
+    lifespan_ctx.cache.get_by_sku = AsyncMock(side_effect=by_sku.get)
+
+    by_id = {
+        2: {"id": 2, "sku": "VAR-OK", "display_name": "Variant OK"},
+    }
+
+    async def _fetch(_services, vid):
+        return by_id.get(vid)
+
+    with patch(
+        "katana_mcp.tools.foundation.items._fetch_variant_by_id",
+        side_effect=_fetch,
+    ):
+        request = GetVariantDetailsRequest(
+            skus=["WIDGET-OK", "MISSING-X"],
+            variant_ids=[2, 99999],
+        )
+        result = await _get_variant_details_impl(request, context)
+
+    assert sorted(v.sku for v in result.found) == ["VAR-OK", "WIDGET-OK"]
+    assert {(n.sku, n.variant_id) for n in result.not_found} == {
+        ("MISSING-X", None),
+        (None, 99999),
+    }
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_batch_markdown_lists_not_found_section():
+    """Public tool's markdown rendering surfaces a ``Not found`` section
+    when a batch had misses, so callers see the gaps without parsing the
+    structured payload."""
+    context, lifespan_ctx = create_mock_context()
+    by_sku = {
+        "WIDGET-B": {"id": 2, "sku": "WIDGET-B", "display_name": "Widget B"},
+    }
+    lifespan_ctx.cache.get_by_sku = AsyncMock(side_effect=by_sku.get)
+
+    result = await get_variant_details(skus=["MISSING-A", "WIDGET-B"], context=context)
+
+    text = _content_text(result)
+    assert "WIDGET-B" in text
+    assert "Not found" in text
+    assert "MISSING-A" in text
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_batch_json_includes_not_found():
+    """Public tool's JSON rendering carries a ``not_found`` array next to
+    ``variants`` so programmatic consumers can branch on it."""
+    context, lifespan_ctx = create_mock_context()
+    by_sku = {
+        "WIDGET-B": {"id": 2, "sku": "WIDGET-B", "display_name": "Widget B"},
+    }
+    lifespan_ctx.cache.get_by_sku = AsyncMock(side_effect=by_sku.get)
+
+    result = await get_variant_details(
+        skus=["MISSING-A", "WIDGET-B"], format="json", context=context
+    )
+
+    payload = json.loads(_content_text(result))
+    assert [v["sku"] for v in payload["variants"]] == ["WIDGET-B"]
+    assert payload["not_found"] == [{"sku": "MISSING-A"}]
+
+
+# ============================================================================
+# VariantNotFound — XOR invariant on identifier shape
+# ============================================================================
+
+
+def test_variant_not_found_accepts_sku_only():
+    """The canonical SKU-miss shape is valid."""
+    miss = VariantNotFound(sku="MISSING-A")
+    assert miss.sku == "MISSING-A"
+    assert miss.variant_id is None
+
+
+def test_variant_not_found_accepts_variant_id_only():
+    """The canonical variant-id-miss shape is valid."""
+    miss = VariantNotFound(variant_id=99999)
+    assert miss.sku is None
+    assert miss.variant_id == 99999
+
+
+def test_variant_not_found_rejects_both_set():
+    """Both identifiers set is invalid — would render an ambiguous miss
+    line in markdown / leak both fields in JSON."""
+    with pytest.raises(ValidationError, match="exactly one of 'sku' or 'variant_id'"):
+        VariantNotFound(sku="MISSING-A", variant_id=99999)
+
+
+def test_variant_not_found_rejects_both_none():
+    """Both identifiers unset is invalid — markdown would render
+    ``#None`` because the formatter falls back to ``variant_id`` when
+    ``sku`` is None."""
+    with pytest.raises(ValidationError, match="exactly one of 'sku' or 'variant_id'"):
+        VariantNotFound()
 
 
 # ============================================================================
