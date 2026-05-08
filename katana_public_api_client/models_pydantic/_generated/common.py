@@ -6,14 +6,19 @@ To regenerate, run:
     uv run poe generate-pydantic
 """
 
-from __future__ import annotations
-
+from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any
 
 from pydantic import AwareDatetime, ConfigDict, Field, RootModel
+from sqlalchemy import Column
+from sqlmodel import (
+    Field as SQLField,
+)
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
+from katana_public_api_client.models_pydantic._mapped_shim import Mapped
+from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON
 
 from .base import DeletableEntity, UpdatableEntity
 
@@ -1125,3 +1130,144 @@ class CustomFieldsCollectionListResponse(KatanaPydanticBase):
             description="Array of custom field collections with their field definitions and configuration"
         ),
     ] = None
+
+
+class CachedAdditionalCost(DeletableEntity, table=True):
+    __tablename__ = "additional_cost"
+    model_config = ConfigDict(frozen=False)
+
+    id: Annotated[
+        Mapped[int], SQLField(primary_key=True, description="Unique identifier")
+    ]
+
+    name: Mapped[str]
+
+
+class CachedLocation(KatanaPydanticBase, table=True):
+    __tablename__ = "location"
+    model_config = ConfigDict(frozen=False)
+
+    id: Annotated[
+        Mapped[int], SQLField(primary_key=True, description="Unique identifier")
+    ]
+
+    name: Mapped[str]
+    legal_name: Mapped[str | None] = None
+    address_id: Mapped[int | None] = None
+    address: Annotated[
+        Mapped[LocationAddress | None], SQLField(sa_column=Column(PydanticJSON))
+    ] = None
+    is_primary: Mapped[bool | None] = None
+    sales_allowed: Mapped[bool | None] = None
+    purchase_allowed: Mapped[bool | None] = None
+    manufacturing_allowed: Mapped[bool | None] = None
+
+
+class CachedTaxRate(UpdatableEntity, table=True):
+    __tablename__ = "tax_rate"
+    model_config = ConfigDict(frozen=False)
+
+    id: Annotated[
+        Mapped[int], SQLField(primary_key=True, description="Unique identifier")
+    ]
+
+    name: Annotated[
+        Mapped[str | None],
+        Field(
+            description='Descriptive name for the tax rate (e.g., "VAT 20%", "Sales Tax", "GST")'
+        ),
+    ] = None
+    rate: Annotated[
+        Mapped[float | None],
+        Field(description="Tax rate as a percentage (e.g., 20.5 for 20.5% tax)"),
+    ] = None
+    is_default_sales: Annotated[
+        Mapped[bool | None],
+        Field(
+            description="Whether this tax rate is the default for sales transactions"
+        ),
+    ] = None
+    is_default_purchases: Annotated[
+        Mapped[bool | None],
+        Field(
+            description="Whether this tax rate is the default for purchase transactions"
+        ),
+    ] = None
+    display_name: Annotated[
+        Mapped[str | None],
+        Field(description="Formatted display name for user interface presentation"),
+    ] = None
+
+
+class CachedFactory(KatanaPydanticBase, table=True):
+    __tablename__ = "factory"
+    model_config = ConfigDict(frozen=False)
+
+    id: Annotated[
+        Mapped[int], SQLField(primary_key=True, description="Unique identifier")
+    ]
+
+    name: Annotated[
+        Mapped[str | None],
+        Field(description="Display name of the manufacturing facility"),
+    ] = None
+    address: Annotated[
+        Mapped[str | None],
+        Field(
+            description="Physical address of the manufacturing facility for shipping and logistics"
+        ),
+    ] = None
+    currency: Annotated[
+        Mapped[str | None],
+        Field(
+            description="Default currency code (ISO 4217) used for financial transactions at this facility"
+        ),
+    ] = None
+    timezone: Annotated[
+        Mapped[str | None],
+        Field(
+            description="Timezone identifier for the facility location used for scheduling and time tracking"
+        ),
+    ] = None
+    legal_address: Annotated[
+        Mapped[dict[str, Any] | None],
+        SQLField(
+            sa_column=Column(PydanticJSON), description="Legal address information"
+        ),
+    ] = None
+    legal_name: Annotated[
+        Mapped[str | None], Field(description="Legal name of the company")
+    ] = None
+    display_name: Annotated[
+        Mapped[str], Field(description="Display name of the company")
+    ]
+    base_currency_code: Annotated[Mapped[str], Field(description="Base currency code")]
+    default_so_delivery_time: Annotated[
+        Mapped[datetime | None], Field(description="Default sales order delivery time")
+    ] = None
+    default_po_lead_time: Annotated[
+        Mapped[datetime | None], Field(description="Default purchase order lead time")
+    ] = None
+    default_manufacturing_location_id: Annotated[
+        Mapped[int | None], Field(description="Default manufacturing location ID")
+    ] = None
+    default_purchases_location_id: Annotated[
+        Mapped[int | None], Field(description="Default purchases location ID")
+    ] = None
+    default_sales_location_id: Annotated[
+        Mapped[int | None], Field(description="Default sales location ID")
+    ] = None
+    inventory_closing_date: Annotated[
+        Mapped[datetime | None], Field(description="Inventory closing date")
+    ] = None
+
+
+class CachedOperator(DeletableEntity, table=True):
+    __tablename__ = "operator"
+    model_config = ConfigDict(frozen=False)
+
+    id: Annotated[
+        Mapped[int], SQLField(primary_key=True, description="Unique identifier")
+    ]
+
+    operator_name: Mapped[str]

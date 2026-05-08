@@ -6,13 +6,18 @@ To regenerate, run:
     uv run poe generate-pydantic
 """
 
-from __future__ import annotations
-
-from typing import Annotated, Any, Literal
+from datetime import datetime
+from typing import Annotated, Any, ClassVar, Literal
 
 from pydantic import AwareDatetime, ConfigDict, Field
+from sqlalchemy import Column
+from sqlmodel import (
+    Field as SQLField,
+)
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
+from katana_public_api_client.models_pydantic._mapped_shim import Mapped
+from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON
 
 from .base import (
     ArchivableDeletableEntity,
@@ -43,7 +48,7 @@ from .common import (
     ServiceType,
     VariantType,
 )
-from .contacts import Supplier, SupplierItemCode
+from .contacts import CachedSupplier, Supplier, SupplierItemCode
 
 
 class MaterialConfig(BaseEntity):
@@ -1464,4 +1469,408 @@ class VariantListResponse(KatanaPydanticBase):
     data: Annotated[
         list[VariantResponse] | None,
         Field(description="Array of variant objects returned by the API"),
+    ] = None
+
+
+class CachedVariant(UpdatableEntity, DeletableEntity, table=True):
+    __tablename__ = "variant"
+    __fts_columns__: ClassVar[tuple[str, ...]] = (
+        "sku",
+        "display_name",
+        "parent_name",
+        "supplier_item_codes_text",
+        "internal_barcode",
+        "registered_barcode",
+    )
+    model_config = ConfigDict(frozen=False)
+
+    id: Annotated[
+        Mapped[int], SQLField(primary_key=True, description="Unique identifier")
+    ]
+
+    sku: Annotated[
+        Mapped[str],
+        SQLField(
+            index=True,
+            description="Stock keeping unit - unique identifier for this variant",
+        ),
+    ]
+    sales_price: Annotated[
+        Mapped[float | None],
+        Field(description="Price at which this variant is sold to customers"),
+    ] = None
+    product_id: Annotated[
+        Mapped[int | None],
+        Field(
+            description="ID of the parent product if this variant belongs to a finished good"
+        ),
+    ] = None
+    material_id: Annotated[
+        Mapped[int | None],
+        Field(
+            description="ID of the parent material if this variant belongs to a raw material"
+        ),
+    ] = None
+    purchase_price: Annotated[
+        Mapped[float | None],
+        Field(description="Cost to purchase this variant from suppliers"),
+    ] = None
+    type: Mapped[VariantType | None] = None
+    internal_barcode: Annotated[
+        Mapped[str | None],
+        Field(description="Internal barcode for warehouse scanning and tracking"),
+    ] = None
+    registered_barcode: Annotated[
+        Mapped[str | None],
+        Field(
+            description="Official registered barcode (UPC, EAN, etc.) for retail use"
+        ),
+    ] = None
+    supplier_item_codes: Annotated[
+        Mapped[list[str] | None],
+        SQLField(
+            sa_column=Column(PydanticJSON),
+            description="Supplier-specific part numbers or SKUs for purchasing",
+        ),
+    ] = None
+    lead_time: Annotated[
+        Mapped[int | None],
+        Field(description="Days required to manufacture or procure this variant"),
+    ] = None
+    minimum_order_quantity: Annotated[
+        Mapped[float | None],
+        Field(description="Minimum quantity that must be ordered from suppliers"),
+    ] = None
+    custom_fields: Annotated[
+        Mapped[list[CustomField] | None],
+        SQLField(
+            sa_column=Column(PydanticJSON),
+            description="Custom field values specific to this variant",
+        ),
+    ] = None
+    config_attributes: Annotated[
+        Mapped[list[ConfigAttribute] | None],
+        SQLField(
+            sa_column=Column(PydanticJSON),
+            description="Configuration attribute values that define this variant (color, size, etc.)",
+        ),
+    ] = None
+    parent_archived_at: Annotated[
+        Mapped[datetime | None],
+        Field(
+            description="(cache-only) Lifted from parent product/material so search can filter by parent archive state without a join."
+        ),
+    ] = None
+    display_name: Annotated[
+        Mapped[str | None],
+        Field(
+            description="(cache-only) Synthesized at sync time — parent name + config attribute values, joined with ``/``. Backs FTS5 search; falls back to SKU when parent name is empty."
+        ),
+    ] = None
+    parent_name: Annotated[
+        Mapped[str | None],
+        Field(
+            description="(cache-only) Lifted from parent product/material name. Backs FTS5 search and surfaces in result rendering."
+        ),
+    ] = None
+    supplier_item_codes_text: Annotated[
+        Mapped[str | None],
+        Field(
+            description="(cache-only) Space-joined ``supplier_item_codes`` so the FTS5 tokenizer can index multi-token supplier codes without parsing JSON at query time."
+        ),
+    ] = None
+
+
+class CachedService(ArchivableDeletableEntity, table=True):
+    __tablename__ = "service"
+    __fts_columns__: ClassVar[tuple[str, ...]] = ("name",)
+    model_config = ConfigDict(frozen=False)
+
+    id: Annotated[
+        Mapped[int], SQLField(primary_key=True, description="Unique identifier")
+    ]
+
+    name: Annotated[
+        Mapped[str | None], Field(description="The service's unique name")
+    ] = None
+    uom: Annotated[
+        Mapped[str | None],
+        Field(
+            description="The unit used to measure the quantity of the service (e.g. pcs, hours)"
+        ),
+    ] = None
+    category_name: Annotated[
+        Mapped[str | None],
+        Field(
+            description="A string used to group similar items for better organization and analysis"
+        ),
+    ] = None
+    is_sellable: Annotated[
+        Mapped[bool | None],
+        Field(description="Sellable services can be added to Quotes and Sales orders"),
+    ] = None
+    type: Annotated[
+        Mapped[ServiceType | None],
+        Field(
+            description='Indicating the item type. Service objects are of type "service"'
+        ),
+    ] = None
+    additional_info: Annotated[
+        Mapped[str | None],
+        Field(
+            description="A string attached to the object to add any internal comments, links to external files, additional\ninstructions, etc.\n"
+        ),
+    ] = None
+    custom_field_collection_id: Annotated[
+        Mapped[int | None],
+        Field(
+            description="ID of the custom field collection associated with this service"
+        ),
+    ] = None
+    variants: Annotated[
+        Mapped[list[ServiceVariant] | None],
+        SQLField(
+            sa_column=Column(PydanticJSON),
+            description="An array of service variant objects",
+        ),
+    ] = None
+
+
+class CachedMaterial(ArchivableEntity, table=True):
+    __tablename__ = "material"
+    __fts_columns__: ClassVar[tuple[str, ...]] = (
+        "name",
+        "category_name",
+    )
+    model_config = ConfigDict(frozen=False)
+
+    id: Annotated[
+        Mapped[int], SQLField(primary_key=True, description="Unique identifier")
+    ]
+
+    name: Annotated[
+        Mapped[str],
+        Field(
+            description="Display name for the item used in sales, manufacturing, and purchasing contexts"
+        ),
+    ]
+    uom: Annotated[
+        Mapped[str | None],
+        Field(description="Unit of measurement for the item (e.g., pcs, kg, m)"),
+    ] = None
+    category_name: Annotated[
+        Mapped[str | None],
+        Field(description="Category for organizational grouping and reporting"),
+    ] = None
+    is_sellable: Annotated[
+        Mapped[bool | None],
+        Field(description="Whether this item can be sold to customers"),
+    ] = None
+    default_supplier_id: Annotated[
+        Mapped[int | None],
+        Field(
+            description="Primary supplier ID for purchasing this item", le=2147483647
+        ),
+    ] = None
+    additional_info: Annotated[
+        Mapped[str | None],
+        Field(description="Additional notes, specifications, or internal comments"),
+    ] = None
+    batch_tracked: Annotated[
+        Mapped[bool | None],
+        Field(description="Whether inventory movements are tracked by batch numbers"),
+    ] = None
+    purchase_uom: Annotated[
+        Mapped[str | None],
+        Field(
+            description="If purchasing in a different unit of measure than the default unit of measure (used for tracking stock)\nfor this item, you can define the purchase unit. Value null indicates that purchasing is done in same\nunit\nof measure. If value is not null, purchase_uom_conversion_rate must also be populated.",
+            max_length=7,
+        ),
+    ] = None
+    purchase_uom_conversion_rate: Annotated[
+        Mapped[float | None],
+        Field(
+            description="The conversion rate between the purchase and default UoMs. If used, item must have a purchase_uom\nthat is different from uom.",
+            le=1000000000000.0,
+        ),
+    ] = None
+    custom_field_collection_id: Annotated[
+        Mapped[int | None],
+        Field(
+            description="ID of the custom field collection associated with this item",
+            le=2147483647,
+        ),
+    ] = None
+    variants: Annotated[
+        Mapped[list[CachedVariant] | None],
+        SQLField(
+            sa_column=Column(PydanticJSON),
+            description="Item variants with different SKUs, pricing, and configurations",
+        ),
+    ] = None
+    configs: Annotated[
+        Mapped[list[ItemConfig] | None],
+        SQLField(
+            sa_column=Column(PydanticJSON),
+            description="Configuration attributes that define variant combinations (size, color, etc.)",
+        ),
+    ] = None
+    supplier: Annotated[
+        Mapped[CachedSupplier | None],
+        SQLField(
+            sa_column=Column(PydanticJSON),
+            description="Primary supplier information for this item",
+        ),
+    ] = None
+    type: Annotated[
+        Mapped[InventoryItemType],
+        Field(description="Item type discriminator - either 'product' or 'material'"),
+    ]
+    deleted_at: Annotated[
+        Mapped[datetime | None],
+        Field(description="Timestamp when this material was soft-deleted"),
+    ] = None
+    serial_tracked: Annotated[
+        Mapped[bool | None],
+        Field(
+            description="Whether inventory movements are tracked by individual serial numbers"
+        ),
+    ] = None
+    operations_in_sequence: Annotated[
+        Mapped[bool | None],
+        Field(
+            description="Whether manufacturing operations must be completed in a specific sequence"
+        ),
+    ] = None
+
+
+class CachedProduct(ArchivableEntity, table=True):
+    __tablename__ = "product"
+    __fts_columns__: ClassVar[tuple[str, ...]] = (
+        "name",
+        "category_name",
+    )
+    model_config = ConfigDict(frozen=False)
+
+    id: Annotated[
+        Mapped[int], SQLField(primary_key=True, description="Unique identifier")
+    ]
+
+    name: Annotated[
+        Mapped[str],
+        Field(
+            description="Display name for the item used in sales, manufacturing, and purchasing contexts"
+        ),
+    ]
+    uom: Annotated[
+        Mapped[str | None],
+        Field(description="Unit of measurement for the item (e.g., pcs, kg, m)"),
+    ] = None
+    category_name: Annotated[
+        Mapped[str | None],
+        Field(description="Category for organizational grouping and reporting"),
+    ] = None
+    is_sellable: Annotated[
+        Mapped[bool | None],
+        Field(description="Whether this item can be sold to customers"),
+    ] = None
+    default_supplier_id: Annotated[
+        Mapped[int | None],
+        Field(
+            description="Primary supplier ID for purchasing this item", le=2147483647
+        ),
+    ] = None
+    additional_info: Annotated[
+        Mapped[str | None],
+        Field(description="Additional notes, specifications, or internal comments"),
+    ] = None
+    batch_tracked: Annotated[
+        Mapped[bool | None],
+        Field(description="Whether inventory movements are tracked by batch numbers"),
+    ] = None
+    purchase_uom: Annotated[
+        Mapped[str | None],
+        Field(
+            description="If purchasing in a different unit of measure than the default unit of measure (used for tracking stock)\nfor this item, you can define the purchase unit. Value null indicates that purchasing is done in same\nunit\nof measure. If value is not null, purchase_uom_conversion_rate must also be populated.",
+            max_length=7,
+        ),
+    ] = None
+    purchase_uom_conversion_rate: Annotated[
+        Mapped[float | None],
+        Field(
+            description="The conversion rate between the purchase and default UoMs. If used, item must have a purchase_uom\nthat is different from uom.",
+            le=1000000000000.0,
+        ),
+    ] = None
+    custom_field_collection_id: Annotated[
+        Mapped[int | None],
+        Field(
+            description="ID of the custom field collection associated with this item",
+            le=2147483647,
+        ),
+    ] = None
+    variants: Annotated[
+        Mapped[list[CachedVariant] | None],
+        SQLField(
+            sa_column=Column(PydanticJSON),
+            description="Item variants with different SKUs, pricing, and configurations",
+        ),
+    ] = None
+    configs: Annotated[
+        Mapped[list[ItemConfig] | None],
+        SQLField(
+            sa_column=Column(PydanticJSON),
+            description="Configuration attributes that define variant combinations (size, color, etc.)",
+        ),
+    ] = None
+    supplier: Annotated[
+        Mapped[CachedSupplier | None],
+        SQLField(
+            sa_column=Column(PydanticJSON),
+            description="Primary supplier information for this item",
+        ),
+    ] = None
+    type: Annotated[
+        Mapped[InventoryItemType],
+        Field(description="Item type discriminator - either 'product' or 'material'"),
+    ]
+    is_producible: Annotated[
+        Mapped[bool | None],
+        Field(description="Whether this product can be manufactured in-house"),
+    ] = None
+    is_purchasable: Annotated[
+        Mapped[bool | None],
+        Field(description="Whether this product can be purchased from suppliers"),
+    ] = None
+    is_auto_assembly: Annotated[
+        Mapped[bool | None],
+        Field(
+            description="Whether the product should be automatically assembled when components are available"
+        ),
+    ] = None
+    serial_tracked: Annotated[
+        Mapped[bool | None],
+        Field(
+            description="Whether inventory movements are tracked by individual serial numbers"
+        ),
+    ] = None
+    operations_in_sequence: Annotated[
+        Mapped[bool | None],
+        Field(
+            description="Whether manufacturing operations must be completed in a specific sequence"
+        ),
+    ] = None
+    lead_time: Annotated[
+        Mapped[int | None],
+        Field(description="Expected lead time for procurement or production", le=999),
+    ] = None
+    minimum_order_quantity: Annotated[
+        Mapped[float | None],
+        Field(
+            description="Minimum quantity that must be ordered", ge=0.0, le=999999999.0
+        ),
+    ] = None
+    deleted_at: Annotated[
+        Mapped[datetime | None],
+        Field(description="Timestamp when this product was soft-deleted"),
     ] = None
