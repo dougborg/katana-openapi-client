@@ -835,11 +835,29 @@ not a freshness barrier.
 Create a new item (product, material, or service).
 
 **Parameters:**
-- `type` (required): Item type - "product", "material", or "service"
+- `type` (required): Item type — "product", "material", or "service"
 - `name` (required): Item name
 - `sku` (required): SKU for the item variant
-- `uom` (optional): Unit of measure (default: "pcs")
-- Plus optional fields: category_name, is_sellable, sales_price, purchase_price, etc.
+- `uom` (optional, default "pcs"): Unit of measure
+- `category_name` (optional): Category for grouping
+- `is_sellable` (optional, default true): Whether the item can be sold
+- `sales_price` / `purchase_price` (optional): Variant pricing
+- `is_producible` / `is_purchasable` (optional, products/materials only)
+- `default_supplier_id` / `additional_info` (optional)
+
+**Variant-level fields** (apply to product / material — ignored for service):
+- `supplier_item_codes` (optional, `list[str]`): Supplier MPNs / cross-references.
+  Use a list — Katana stores multiple codes per variant.
+- `internal_barcode` / `registered_barcode` (optional): Barcodes (UPC/EAN goes in
+  `registered_barcode`).
+- `lead_time` (optional, int days), `minimum_order_quantity` (optional, float).
+- `config_attributes` (optional, `list[{config_name, config_value}]`): Pin one
+  value per parent config to define this variant. Only meaningful for
+  multi-variant items — leave None for single-variant.
+
+PREFER `create_product` for finished goods or `create_material` for raw materials —
+those tools have simpler dedicated parameters. Use `create_item` for services or
+when type is determined dynamically.
 
 ---
 
@@ -1498,7 +1516,30 @@ applied but receipts not replayed — with the captured close-state in
 ---
 
 ### create_product / create_material
-Dedicated catalog tools for creating products or materials with a single variant.
+Dedicated catalog tools for creating products (finished goods) or materials
+(raw inputs) with a single variant. Header fields plus variant-level fields
+(barcodes, supplier codes, lead time, MOQ, config attributes) all flow through
+in one call — no follow-up `modify_item` round-trip needed.
+
+**Header parameters (both):**
+- `name` (required), `sku` (required), `uom` (optional, default "pcs")
+- `category_name`, `is_sellable`, `sales_price`, `purchase_price`,
+  `default_supplier_id`, `additional_info` (all optional)
+
+**`create_product` only:**
+- `is_producible` (default false), `is_purchasable` (default true)
+
+**Variant-level fields (both — forwarded to the item's single variant):**
+- `supplier_item_codes` (optional, `list[str]`): Supplier MPNs / cross-references
+- `internal_barcode` / `registered_barcode` (optional): Barcodes; UPC/EAN goes in
+  `registered_barcode`
+- `lead_time` (optional, int days), `minimum_order_quantity` (optional, float)
+- `config_attributes` (optional, `list[{config_name, config_value}]`): Pin
+  one value per parent config to define this variant. Only meaningful for
+  multi-variant items — leave None for single-variant.
+
+To edit any of the above on an existing item, use `modify_item` with
+`update_variants` / `update_header`.
 
 ---
 

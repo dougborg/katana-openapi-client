@@ -281,6 +281,47 @@ class CreateItemRequest(BaseModel):
     )
     additional_info: str | None = Field(None, description="Additional notes")
 
+    # Variant-level fields — apply only when type is product or material.
+    # Services carry pricing on the header; these fields are ignored for type=service.
+    supplier_item_codes: list[str] | None = Field(
+        default=None,
+        description=(
+            "Supplier item codes (e.g. supplier MPNs). Use a list — Katana "
+            "stores multiple codes per variant. Ignored for type=service."
+        ),
+    )
+    internal_barcode: str | None = Field(
+        default=None,
+        description="Internal barcode for the variant. Ignored for type=service.",
+    )
+    registered_barcode: str | None = Field(
+        default=None,
+        description=(
+            "Registered (e.g. UPC/EAN) barcode for the variant. "
+            "Ignored for type=service."
+        ),
+    )
+    lead_time: int | None = Field(
+        default=None,
+        description="Variant lead time in days. Ignored for type=service.",
+    )
+    minimum_order_quantity: float | None = Field(
+        default=None,
+        description=(
+            "Minimum order quantity for the variant. Ignored for type=service."
+        ),
+    )
+    config_attributes: list[VariantConfigAttributePatch] | None = Field(
+        default=None,
+        description=(
+            "Pin one value per parent config to define this variant. Each "
+            "``config_name`` must match a config on the parent and "
+            "``config_value`` must be one of that config's allowed values. "
+            "Only meaningful for multi-variant product/material — leave None "
+            "for single-variant items and for type=service."
+        ),
+    )
+
 
 def _item_katana_url(item_type: ItemType, id: int | None) -> str | None:
     """Web URL for a product or material. Services have no URL pattern."""
@@ -326,10 +367,24 @@ async def _create_item_impl(
         )
         result = await services.client.services.create(api_request)
     else:
+        config_attrs = (
+            coerce_variant_config_attributes(
+                [c.model_dump() for c in request.config_attributes],
+                APICreateVariantConfigItem,
+            )
+            if request.config_attributes is not None
+            else None
+        )
         variant = APICreateVariantRequest(
             sku=request.sku,
             sales_price=to_unset(request.sales_price),
             purchase_price=to_unset(request.purchase_price),
+            supplier_item_codes=to_unset(request.supplier_item_codes),
+            internal_barcode=to_unset(request.internal_barcode),
+            registered_barcode=to_unset(request.registered_barcode),
+            lead_time=to_unset(request.lead_time),
+            minimum_order_quantity=to_unset(request.minimum_order_quantity),
+            config_attributes=to_unset(config_attrs),
         )
         if request.type == ItemType.PRODUCT:
             api_request = CreateProductRequest(
@@ -1031,7 +1086,7 @@ def _coerce_material_configs(
     ]
 
 
-def _coerce_variant_config_attributes(
+def coerce_variant_config_attributes(
     raw: list[dict[str, Any]],
     item_cls: type[APICreateVariantConfigItem] | type[APIUpdateVariantConfigItem],
 ) -> list[Any]:
@@ -1091,7 +1146,7 @@ def _build_create_variant_request(
     kwargs = unset_dict(
         variant,
         transforms={
-            "config_attributes": lambda raw: _coerce_variant_config_attributes(
+            "config_attributes": lambda raw: coerce_variant_config_attributes(
                 raw, APICreateVariantConfigItem
             ),
         },
@@ -1104,7 +1159,7 @@ def _build_update_variant_request(patch: VariantUpdate) -> APIUpdateVariantReque
         patch,
         exclude=("id",),
         transforms={
-            "config_attributes": lambda raw: _coerce_variant_config_attributes(
+            "config_attributes": lambda raw: coerce_variant_config_attributes(
                 raw, APIUpdateVariantConfigItem
             ),
         },
