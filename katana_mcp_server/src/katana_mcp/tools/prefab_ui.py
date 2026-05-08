@@ -472,7 +472,7 @@ def build_search_results_ui(
                     sortable=True,
                 ),
             ],
-            rows="items",
+            rows="{{ items }}",
             search=True,
             paginated=True,
             pageSize=20,
@@ -749,7 +749,7 @@ def build_inventory_check_ui(
                         DataTableColumn(key="available", header="Available"),
                         DataTableColumn(key="expected", header="Expected"),
                     ],
-                    rows="stock.by_location",
+                    rows="{{ stock.by_location }}",
                 )
 
         with CardFooter(), Row(gap=2):
@@ -820,7 +820,7 @@ def build_low_stock_ui(
                     align="right",
                 ),
             ],
-            rows="items",
+            rows="{{ items }}",
             search=True,
             paginated=True,
         )
@@ -1217,7 +1217,7 @@ def build_verification_ui(
                     DataTableColumn(key="unit_price", header="Price", align="right"),
                     DataTableColumn(key="status", header="Status"),
                 ],
-                rows="matches",
+                rows="{{ matches }}",
             )
 
         # Discrepancies table
@@ -1229,7 +1229,7 @@ def build_verification_ui(
                     DataTableColumn(key="type", header="Type"),
                     DataTableColumn(key="message", header="Details"),
                 ],
-                rows="discrepancies",
+                rows="{{ discrepancies }}",
             )
 
         # Action buttons
@@ -1303,6 +1303,13 @@ _ACTION_COLUMNS: list[DataTableColumn] = [
 ]
 
 _PLAN_ACTIONS_KEY = "plan_actions"
+# DataTable.rows requires the mustache template form (``{{ key }}``) for
+# state-bound rows — the JS renderer interprets bare strings as the rows
+# array itself and crashes with ``t.some is not a function``. Discovered
+# via headless apps_dev render tests after #634; the Python pydantic
+# field type accepts bare strings, but the wire format only resolves
+# mustache references.
+_PLAN_ACTIONS_REF = f"{{{{ {_PLAN_ACTIONS_KEY} }}}}"
 
 
 def _derive_status_label(action: dict[str, Any]) -> str:
@@ -1357,15 +1364,14 @@ def _action_to_row(idx: int, action: dict[str, Any]) -> dict[str, Any]:
     absent (legacy single-action shape, older response generators, tests).
     """
     target = action.get("target_id")
-    status_label = action.get("status_label") or _derive_status_label(action)
-    summary = action.get("summary") or _derive_summary(action)
     return {
-        "index": idx,
-        "operation_label": _humanize_snake_case(str(action.get("operation") or ""))
-        or "Action",
-        "target_label": f"#{target}" if target is not None else "—",
-        "summary": summary,
-        "status_label": status_label,
+        "index": action.get("index") or idx,
+        "operation_label": action.get("operation_label")
+        or (_humanize_snake_case(str(action.get("operation") or "")) or "Action"),
+        "target_label": action.get("target_label")
+        or (f"#{target}" if target is not None else "—"),
+        "summary": action.get("summary") or _derive_summary(action),
+        "status_label": action.get("status_label") or _derive_status_label(action),
         # Pass through the underlying fields so RESULT.actions replacement
         # preserves shape (the server's ActionResults carry these too).
         "operation": action.get("operation"),
@@ -1480,7 +1486,7 @@ def build_modification_preview_ui(
                 Text(content=response["message"])
 
             if n_actions > 0:
-                DataTable(columns=_ACTION_COLUMNS, rows=_PLAN_ACTIONS_KEY)
+                DataTable(columns=_ACTION_COLUMNS, rows=_PLAN_ACTIONS_REF)
 
             if block_warnings or regular_warnings:
                 Separator()
@@ -1592,7 +1598,7 @@ def build_modification_result_ui(
                         f"of {len(actions)}"
                     )
                 )
-                DataTable(columns=_ACTION_COLUMNS, rows=_PLAN_ACTIONS_KEY)
+                DataTable(columns=_ACTION_COLUMNS, rows=_PLAN_ACTIONS_REF)
 
         if response.get("katana_url"):
             with CardFooter(), Row(gap=2):
@@ -1846,7 +1852,7 @@ def build_batch_recipe_update_ui(
                 DataTableColumn(key="status", header="Status", sortable=True),
                 DataTableColumn(key="error", header="Error"),
             ],
-            rows="rows",
+            rows="{{ rows }}",
             search=True,
             paginated=True,
             pageSize=25,

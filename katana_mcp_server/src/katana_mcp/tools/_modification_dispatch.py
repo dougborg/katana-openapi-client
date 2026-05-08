@@ -102,9 +102,15 @@ class ActionSpec:
     apply: ApplyCallable | None = None
     verify: VerifyCallable | None = None
 
-    def to_planned_result(self) -> ActionResult:
-        """Build an ActionResult for the preview branch (action not yet run)."""
+    def to_planned_result(self, index: int = 0) -> ActionResult:
+        """Build an ActionResult for the preview branch (action not yet run).
+
+        ``index`` is the 1-based position in the plan — used by the Prefab
+        card's ``#`` column. The dispatcher passes a real index when
+        constructing the list; default 0 is for direct unit-test calls.
+        """
         return ActionResult(
+            index=index,
             operation=self.operation,
             target_id=self.target_id,
             changes=list(self.diff),
@@ -129,7 +135,7 @@ async def execute_plan(plan: list[ActionSpec]) -> list[ActionResult]:
     """
     results: list[ActionResult] = []
 
-    for spec in plan:
+    for idx, spec in enumerate(plan, start=1):
         if spec.apply is None:
             raise RuntimeError(
                 f"ActionSpec for {spec.operation} (target {spec.target_id}) "
@@ -145,6 +151,7 @@ async def execute_plan(plan: list[ActionSpec]) -> list[ActionResult]:
             )
             results.append(
                 ActionResult(
+                    index=idx,
                     operation=spec.operation,
                     target_id=spec.target_id,
                     changes=list(spec.diff),
@@ -169,6 +176,7 @@ async def execute_plan(plan: list[ActionSpec]) -> list[ActionResult]:
 
         results.append(
             ActionResult(
+                index=idx,
                 operation=spec.operation,
                 target_id=spec.target_id,
                 changes=list(spec.diff),
@@ -188,7 +196,7 @@ def plan_to_preview_results(plan: list[ActionSpec]) -> list[ActionResult]:
     Each ActionResult carries the operation/target/diff but
     ``succeeded=None`` to signal "planned, not yet executed".
     """
-    return [spec.to_planned_result() for spec in plan]
+    return [spec.to_planned_result(index=idx) for idx, spec in enumerate(plan, start=1)]
 
 
 def unset_dict(

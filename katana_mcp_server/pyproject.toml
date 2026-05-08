@@ -79,6 +79,7 @@ asyncio_mode = "strict"
 markers = [
     "unit: Unit tests with mocks",
     "integration: Integration tests requiring API key",
+    "browser: Browser-render tests via Playwright + fastmcp dev-apps (slow, needs `playwright install chromium`)",
 ]
 
 [tool.semantic_release]
