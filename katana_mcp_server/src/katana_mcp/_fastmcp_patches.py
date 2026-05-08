@@ -22,7 +22,7 @@ import inspect
 import types
 from collections.abc import Callable
 from functools import lru_cache
-from typing import Annotated, Any, get_args, get_origin, get_type_hints
+from typing import Annotated, Any, cast, get_args, get_origin, get_type_hints
 
 from pydantic import Field, TypeAdapter
 
@@ -122,19 +122,18 @@ def _patched_get_cached_typeadapter[T](cls: T) -> TypeAdapter[T]:
 
         # Create new function if annotations changed
         if processed_hints != cls.__annotations__:
+            # ``cls.__func__`` and ``cls`` here are runtime ``FunctionType``
+            # instances, but the static type is the broader ``Callable[..., Any]``
+            # — explicit casts let the checker see the introspection attributes.
             if inspect.ismethod(cls):
-                actual_func = cls.__func__
-                code = actual_func.__code__
-                globals_dict = actual_func.__globals__
-                name = actual_func.__name__
-                defaults = actual_func.__defaults__
-                closure = actual_func.__closure__
+                actual_func = cast(types.FunctionType, cls.__func__)
             else:
-                code = cls.__code__
-                globals_dict = cls.__globals__
-                name = cls.__name__
-                defaults = cls.__defaults__
-                closure = cls.__closure__
+                actual_func = cast(types.FunctionType, cls)
+            code = actual_func.__code__
+            globals_dict = actual_func.__globals__
+            name = actual_func.__name__
+            defaults = actual_func.__defaults__
+            closure = actual_func.__closure__
 
             new_func = types.FunctionType(
                 code,

@@ -647,23 +647,29 @@ async def _fetch_item_attrs(services: Any, item_id: int, item_type: ItemType) ->
     )
     from katana_public_api_client.utils import unwrap
 
+    # Each branch unwraps separately so each `unwrap` call sees a single
+    # `Response[T]` rather than a union of three — `Response[T]` is
+    # invariant, so `Response[A] | Response[B] | Response[C]` doesn't
+    # unify under one `T` and pyright rejects the union form.
     if item_type == ItemType.PRODUCT:
-        response = await get_product.asyncio_detailed(
-            client=services.client,
-            id=item_id,
-            extend=[GetProductExtendItem.SUPPLIER],
+        return unwrap(
+            await get_product.asyncio_detailed(
+                client=services.client,
+                id=item_id,
+                extend=[GetProductExtendItem.SUPPLIER],
+            )
         )
-    elif item_type == ItemType.MATERIAL:
-        response = await get_material.asyncio_detailed(
-            client=services.client,
-            id=item_id,
-            extend=[GetMaterialExtendItem.SUPPLIER],
+    if item_type == ItemType.MATERIAL:
+        return unwrap(
+            await get_material.asyncio_detailed(
+                client=services.client,
+                id=item_id,
+                extend=[GetMaterialExtendItem.SUPPLIER],
+            )
         )
-    else:
-        response = await get_service.asyncio_detailed(
-            client=services.client, id=item_id
-        )
-    return unwrap(response)
+    return unwrap(
+        await get_service.asyncio_detailed(client=services.client, id=item_id)
+    )
 
 
 async def _get_item_impl(

@@ -766,7 +766,7 @@ async def _resolve_sku_or_variant_id(
 async def _fetch_stock_on_hand(services: Any, variant_id: int) -> float:
     """Sum quantity_in_stock across all locations for a variant."""
     response = await get_all_inventory_point.asyncio_detailed(
-        client=services.client, variant_id=variant_id
+        client=services.client, variant_id=[variant_id]
     )
     items = unwrap_data(response, default=[])
     total = 0.0
@@ -793,7 +793,7 @@ async def _fetch_completed_mo_recipe_rows_in_window(
     window datetimes must also be naive UTC — callers are responsible for
     stripping tzinfo before passing.
     """
-    from sqlmodel import select
+    from sqlmodel import col, select
 
     from katana_mcp.typed_cache import ensure_manufacturing_orders_synced
     from katana_public_api_client.models_pydantic._generated import (
@@ -815,13 +815,13 @@ async def _fetch_completed_mo_recipe_rows_in_window(
             select(CachedManufacturingOrderRecipeRow)
             .join(
                 CachedManufacturingOrder,
-                CachedManufacturingOrder.id
+                col(CachedManufacturingOrder.id)
                 == CachedManufacturingOrderRecipeRow.manufacturing_order_id,
             )
             .where(CachedManufacturingOrder.status == ManufacturingOrderStatus.done)
-            .where(CachedManufacturingOrder.done_date.is_not(None))
-            .where(CachedManufacturingOrder.deleted_at.is_(None))
-            .where(CachedManufacturingOrderRecipeRow.deleted_at.is_(None))
+            .where(col(CachedManufacturingOrder.done_date).is_not(None))
+            .where(col(CachedManufacturingOrder.deleted_at).is_(None))
+            .where(col(CachedManufacturingOrderRecipeRow.deleted_at).is_(None))
         )
         row_stmt = apply_date_window_filters(
             row_stmt,

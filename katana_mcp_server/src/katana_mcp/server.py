@@ -15,7 +15,7 @@ Features:
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, cast
 
 if TYPE_CHECKING:
     from fastmcp.server.auth import AuthProvider  # pragma: no cover
@@ -120,8 +120,11 @@ async def lifespan(server: FastMCP) -> AsyncIterator[Services]:
                 await typed_cache.open()
                 logger.info("typed_cache_initialized", db_path=str(typed_cache.db_path))
                 try:
+                    # The generated ``AuthenticatedClient.__aenter__`` is
+                    # annotated to return its own class, dropping the
+                    # ``KatanaClient`` subclass we constructed.
                     context = Services(
-                        client=client,  # type: ignore[arg-type]
+                        client=cast(KatanaClient, client),
                         cache=cache,
                         typed_cache=typed_cache,
                     )
@@ -171,13 +174,13 @@ def _build_auth() -> "AuthProvider | None":
         "MCP_GITHUB_CLIENT_SECRET": github_secret,
         "MCP_BASE_URL": base_url,
     }
-    if all(github_vars.values()):
+    if github_id and github_secret and base_url:
         from fastmcp.server.auth.providers.github import GitHubProvider
 
         return GitHubProvider(
-            client_id=github_id,  # type: ignore[arg-type]
-            client_secret=github_secret,  # type: ignore[arg-type]
-            base_url=base_url,  # type: ignore[arg-type]
+            client_id=github_id,
+            client_secret=github_secret,
+            base_url=base_url,
         )
     if any(github_vars.values()):
         missing = [k for k, v in github_vars.items() if not v]

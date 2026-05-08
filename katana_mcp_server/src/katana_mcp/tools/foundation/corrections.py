@@ -436,10 +436,7 @@ def _build_recreate_production_action(
         create_resp = await api_create_mo_production.asyncio_detailed(
             client=services.client, body=create_body
         )
-        new_prod = cast(
-            ManufacturingOrderProduction,
-            unwrap_as(create_resp, ManufacturingOrderProduction),
-        )
+        new_prod = unwrap_as(create_resp, ManufacturingOrderProduction)
         if snapshot.production_date is not None:
             patch_body = APIUpdateMOProductionRequest(
                 production_date=snapshot.production_date
@@ -1013,7 +1010,7 @@ def _build_recreate_fulfillment_action(
         response = await api_create_so_fulfillment.asyncio_detailed(
             client=services.client, body=body
         )
-        return cast(SalesOrderFulfillment, unwrap_as(response, SalesOrderFulfillment))
+        return unwrap_as(response, SalesOrderFulfillment)
 
     diff: list[FieldChange] = [
         FieldChange(field="status", new=snapshot.status, is_added=True),
