@@ -541,6 +541,7 @@ async def create_sales_order(
             "Sales Order",
             confirm_request=request,
             confirm_tool="create_sales_order",
+            direct_apply=True,
         )
     else:
         ui = build_order_created_ui(order_dict, "Sales Order")
@@ -2403,6 +2404,7 @@ def register_tools(mcp: FastMCP) -> None:
         tags={"orders", "sales", "write"},
         annotations=_create,
         meta=UI_META,
+        direct=True,
     )
     mcp.tool(tags={"orders", "sales", "read"}, annotations=_read)(list_sales_orders)
     mcp.tool(tags={"orders", "sales", "read"}, annotations=_read)(get_sales_order)
