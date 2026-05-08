@@ -161,6 +161,39 @@ class CreatePurchaseOrderRequest(BaseModel):
         None,
         description="Initial status — 'DRAFT' or 'NOT_RECEIVED' (default: NOT_RECEIVED)",
     )
+    entity_type: PurchaseOrderEntityType | None = Field(
+        None,
+        description=(
+            "Type of purchase order. 'regular' (default) buys raw materials or "
+            "finished goods from a supplier; 'outsourced' tracks subcontractor "
+            "manufacturing — when set to 'outsourced', `tracking_location_id` is "
+            "required and identifies where the outsourced work is tracked."
+        ),
+    )
+    order_created_date: datetime | None = Field(
+        None,
+        description=(
+            "Date the order was placed. Leave None to let Katana stamp the "
+            "current time server-side; supply a value for back-fills (e.g. "
+            "importing historical orders) or to reflect the actual placement "
+            "date when different from the call time."
+        ),
+    )
+    expected_arrival_date: datetime | None = Field(
+        None,
+        description=(
+            "Expected full-arrival date for the order. Distinct from per-row "
+            "`arrival_date` — this is the order-level estimate; row-level "
+            "values can override per line item."
+        ),
+    )
+    tracking_location_id: int | None = Field(
+        None,
+        description=(
+            "Location ID for tracking outsourced orders. Required when "
+            "`entity_type='outsourced'`. Look up via `list_locations`."
+        ),
+    )
     preview: bool = Field(
         True,
         description="If true (default), returns preview. If false, creates order.",
@@ -278,6 +311,11 @@ async def _create_purchase_order_impl(
         )
 
         warnings: list[str] = [w for w in (sup_warn, loc_warn) if w]
+        if request.entity_type == "outsourced" and request.tracking_location_id is None:
+            warnings.append(
+                "BLOCK: entity_type='outsourced' requires tracking_location_id. "
+                "Katana will reject the create call without it."
+            )
 
         return PurchaseOrderResponse(
             order_number=request.order_number,
@@ -286,7 +324,7 @@ async def _create_purchase_order_impl(
             location_id=request.location_id,
             location_name=location_name,
             status=request.status or "NOT_RECEIVED",
-            entity_type="regular",
+            entity_type=request.entity_type or "regular",
             total_cost=total_cost,
             currency=request.currency,
             item_count=len(request.items),
@@ -298,6 +336,18 @@ async def _create_purchase_order_impl(
                 "Set preview=false to create the purchase order",
             ],
             message=f"Preview: Purchase order {request.order_number} with {len(request.items)} items totaling {total_cost:.2f}",
+        )
+
+    # Mirror the preview-branch BLOCK warning as a fail-fast check on the
+    # apply path — clearer error than waiting for Katana's 422 when callers
+    # bypass the preview UI (e.g. programmatic ``preview=false``).
+    if (
+        request.entity_type == PurchaseOrderEntityType.OUTSOURCED
+        and request.tracking_location_id is None
+    ):
+        raise ValueError(
+            "entity_type='outsourced' requires tracking_location_id. "
+            "Either supply tracking_location_id or set entity_type='regular'."
         )
 
     try:
@@ -317,18 +367,24 @@ async def _create_purchase_order_impl(
             )
             po_rows.append(row)
 
-        # Build API request
+        # Build API request. order_created_date is forwarded from the caller
+        # (None => UNSET => Katana server-stamps it). Previously the MCP layer
+        # hardcoded datetime.now(UTC), which silently overwrote any caller
+        # intent and blocked back-fills (#605).
+        entity_type_attr = request.entity_type or PurchaseOrderEntityType.REGULAR
         api_request = APICreatePurchaseOrderRequest(
             order_no=request.order_number,
             supplier_id=request.supplier_id,
             location_id=request.location_id,
             purchase_order_rows=po_rows,
-            entity_type=PurchaseOrderEntityType.REGULAR,
+            entity_type=entity_type_attr,
             currency=to_unset(request.currency),
             status=CreatePurchaseOrderInitialStatus(request.status)
             if request.status is not None
             else UNSET,
-            order_created_date=datetime.now(UTC),
+            order_created_date=to_unset(request.order_created_date),
+            expected_arrival_date=to_unset(request.expected_arrival_date),
+            tracking_location_id=to_unset(request.tracking_location_id),
             additional_info=to_unset(request.notes),
         )
 
@@ -365,7 +421,7 @@ async def _create_purchase_order_impl(
             location_id=location_id,
             location_name=location_name,
             status=po.status.value if po.status else "UNKNOWN",
-            entity_type="regular",
+            entity_type=entity_type_attr.value,
             total_cost=total_cost,
             currency=currency,
             item_count=len(request.items),

@@ -355,6 +355,173 @@ async def test_create_purchase_order_apply_proceeds_when_cache_is_unhealthy():
         create_po_module.asyncio_detailed = original_asyncio_detailed
 
 
+@pytest.mark.asyncio
+async def test_create_purchase_order_apply_forwards_new_header_fields():
+    """entity_type, order_created_date, expected_arrival_date, and
+    tracking_location_id supplied on the request must reach the API call body
+    (issue #627 — closes #605 + scope-creep audit notes).
+    """
+    from datetime import UTC, datetime
+
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_id = AsyncMock(return_value=None)
+
+    from katana_public_api_client.models import (
+        PurchaseOrderEntityType as APIPurchaseOrderEntityType,
+        PurchaseOrderStatus as APIPurchaseOrderStatus,
+    )
+
+    mock_po = mock_entity_for_modify(
+        RegularPurchaseOrder,
+        id=9100,
+        order_no="PO-OS-001",
+        supplier_id=4001,
+        location_id=1,
+        currency="USD",
+        status=APIPurchaseOrderStatus.NOT_RECEIVED,
+        entity_type=APIPurchaseOrderEntityType.OUTSOURCED,
+    )
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = mock_po
+    mock_api_call = AsyncMock(return_value=mock_response)
+
+    import katana_public_api_client.api.purchase_order.create_purchase_order as create_po_module
+
+    original = create_po_module.asyncio_detailed
+    create_po_module.asyncio_detailed = mock_api_call
+    try:
+        placed_at = datetime(2026, 4, 1, 10, 0, tzinfo=UTC)
+        eta = datetime(2026, 4, 15, 17, 0, tzinfo=UTC)
+        request = CreatePurchaseOrderRequest(
+            supplier_id=4001,
+            location_id=1,
+            order_number="PO-OS-001",
+            items=[PurchaseOrderItem(variant_id=1, quantity=1, price_per_unit=10.0)],
+            entity_type="outsourced",
+            tracking_location_id=2,
+            order_created_date=placed_at,
+            expected_arrival_date=eta,
+            preview=False,
+        )
+        await _create_purchase_order_impl(request, context)
+    finally:
+        create_po_module.asyncio_detailed = original
+
+    api_body = mock_api_call.call_args.kwargs["body"]
+    assert api_body.entity_type == APIPurchaseOrderEntityType.OUTSOURCED
+    assert api_body.tracking_location_id == 2
+    assert api_body.order_created_date == placed_at
+    assert api_body.expected_arrival_date == eta
+
+
+@pytest.mark.asyncio
+async def test_create_purchase_order_apply_omits_unset_header_fields():
+    """When the new header fields aren't supplied, the API body must carry
+    UNSET (not None, not a fabricated datetime). Regression: the MCP layer
+    used to hardcode ``order_created_date=datetime.now(UTC)`` and overwrite
+    any caller intent — that's gone now (#605).
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_id = AsyncMock(return_value=None)
+
+    from katana_public_api_client.client_types import UNSET
+    from katana_public_api_client.models import (
+        PurchaseOrderEntityType as APIPurchaseOrderEntityType,
+        PurchaseOrderStatus as APIPurchaseOrderStatus,
+    )
+
+    mock_po = mock_entity_for_modify(
+        RegularPurchaseOrder,
+        id=9101,
+        order_no="PO-PLAIN-001",
+        supplier_id=4001,
+        location_id=1,
+        status=APIPurchaseOrderStatus.NOT_RECEIVED,
+        entity_type=APIPurchaseOrderEntityType.REGULAR,
+    )
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = mock_po
+    mock_api_call = AsyncMock(return_value=mock_response)
+
+    import katana_public_api_client.api.purchase_order.create_purchase_order as create_po_module
+
+    original = create_po_module.asyncio_detailed
+    create_po_module.asyncio_detailed = mock_api_call
+    try:
+        request = CreatePurchaseOrderRequest(
+            supplier_id=4001,
+            location_id=1,
+            order_number="PO-PLAIN-001",
+            items=[PurchaseOrderItem(variant_id=1, quantity=1, price_per_unit=1.0)],
+            preview=False,
+        )
+        await _create_purchase_order_impl(request, context)
+    finally:
+        create_po_module.asyncio_detailed = original
+
+    api_body = mock_api_call.call_args.kwargs["body"]
+    # entity_type defaults to REGULAR (not UNSET — the impl chooses regular
+    # when caller leaves it None; this matches Katana's docs that say
+    # entity_type is required server-side).
+    assert api_body.entity_type == APIPurchaseOrderEntityType.REGULAR
+    # The other three must be UNSET — the regression case.
+    assert api_body.order_created_date is UNSET
+    assert api_body.expected_arrival_date is UNSET
+    assert api_body.tracking_location_id is UNSET
+
+
+@pytest.mark.asyncio
+async def test_create_purchase_order_apply_fails_fast_on_outsourced_without_tracking():
+    """Apply path must raise ValueError immediately when entity_type='outsourced'
+    without tracking_location_id, instead of relying on Katana to 422.
+    Programmatic callers using preview=false don't see the BLOCK warning, so
+    fail-fast at the MCP boundary is what they get.
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_id = AsyncMock(return_value=None)
+
+    request = CreatePurchaseOrderRequest(
+        supplier_id=4001,
+        location_id=1,
+        order_number="PO-OS-MISSING",
+        items=[PurchaseOrderItem(variant_id=1, quantity=1, price_per_unit=1.0)],
+        entity_type="outsourced",
+        # tracking_location_id intentionally omitted
+        preview=False,
+    )
+    with pytest.raises(ValueError, match="tracking_location_id"):
+        await _create_purchase_order_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_create_purchase_order_preview_warns_on_outsourced_without_tracking():
+    """Preview must surface a BLOCK warning when entity_type='outsourced' but
+    tracking_location_id is None — Katana would 422 the request, so flag it
+    early instead of letting the user click apply and fail.
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_id = AsyncMock(return_value=None)
+
+    request = CreatePurchaseOrderRequest(
+        supplier_id=4001,
+        location_id=1,
+        order_number="PO-OS-MISSING-TRACK",
+        items=[PurchaseOrderItem(variant_id=1, quantity=1, price_per_unit=1.0)],
+        entity_type="outsourced",
+        # tracking_location_id intentionally omitted
+        preview=True,
+    )
+    result = await _create_purchase_order_impl(request, context)
+
+    assert result.is_preview is True
+    assert result.entity_type == "outsourced"
+    block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
+    assert len(block_warnings) == 1
+    assert "tracking_location_id" in block_warnings[0]
+
+
 def test_po_response_to_tool_result_apply_renders_enriched_fields():
     """The apply card built from ``_po_response_to_tool_result`` must render
     notes, supplier_name, location_name, and item_count somewhere in the

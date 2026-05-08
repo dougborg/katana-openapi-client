@@ -647,8 +647,19 @@ Create a stock adjustment to correct inventory levels.
 
 **Parameters:**
 - `location_id` (required): Location ID for the adjustment
-- `rows` (required): List of `{sku, quantity, cost_per_unit?}` — positive to add, negative to remove
+- `rows` (required): List of `{sku, quantity, cost_per_unit?, batch_transactions?}`
+  - `quantity`: positive to add, negative to remove
+  - `batch_transactions`: `list[{batch_id, quantity}]` — required for
+    batch-tracked materials. Sum of allocated quantities should equal
+    the row's `quantity`. Leave None for non-batch-tracked items.
 - `reason` (optional): Reason for adjustment
+- `additional_info` (optional): Internal notes
+- `stock_adjustment_number` (optional): Adjustment number. Leave None to
+  let the tool generate a `SA-<timestamp>` default. Supply only when
+  importing from an external system or you need a specific number.
+- `stock_adjustment_date` (optional, ISO 8601): When the adjustment
+  occurred. Leave None to stamp the current call time. Supply for
+  back-fills (e.g. recording a physical count from yesterday).
 - `preview` (optional, default true): Set true to preview, false to create
 
 **Returns:** Adjustment ID and summary of changes.
@@ -835,11 +846,29 @@ not a freshness barrier.
 Create a new item (product, material, or service).
 
 **Parameters:**
-- `type` (required): Item type - "product", "material", or "service"
+- `type` (required): Item type — "product", "material", or "service"
 - `name` (required): Item name
 - `sku` (required): SKU for the item variant
-- `uom` (optional): Unit of measure (default: "pcs")
-- Plus optional fields: category_name, is_sellable, sales_price, purchase_price, etc.
+- `uom` (optional, default "pcs"): Unit of measure
+- `category_name` (optional): Category for grouping
+- `is_sellable` (optional, default true): Whether the item can be sold
+- `sales_price` / `purchase_price` (optional): Variant pricing
+- `is_producible` / `is_purchasable` (optional, products/materials only)
+- `default_supplier_id` / `additional_info` (optional)
+
+**Variant-level fields** (apply to product / material — ignored for service):
+- `supplier_item_codes` (optional, `list[str]`): Supplier MPNs / cross-references.
+  Use a list — Katana stores multiple codes per variant.
+- `internal_barcode` / `registered_barcode` (optional): Barcodes (UPC/EAN goes in
+  `registered_barcode`).
+- `lead_time` (optional, int days), `minimum_order_quantity` (optional, float).
+- `config_attributes` (optional, `list[{config_name, config_value}]`): Pin one
+  value per parent config to define this variant. Only meaningful for
+  multi-variant items — leave None for single-variant.
+
+PREFER `create_product` for finished goods or `create_material` for raw materials —
+those tools have simpler dedicated parameters. Use `create_item` for services or
+when type is determined dynamically.
 
 ---
 
@@ -939,7 +968,24 @@ Create a purchase order with preview/apply pattern.
 - `supplier_id` (required): Supplier ID
 - `location_id` (required): Warehouse location for receipt
 - `order_number` (required): PO number (e.g., "PO-2025-001")
-- `items` (required): Array of line items with variant_id, quantity, price_per_unit
+- `items` (required): Array of line items with variant_id, quantity,
+  price_per_unit (plus optional tax_rate_id, purchase_uom,
+  purchase_uom_conversion_rate, arrival_date)
+- `notes` (optional): Internal notes (additional_info on the wire)
+- `currency` (optional): Currency code (e.g., USD, EUR)
+- `status` (optional): "DRAFT" or "NOT_RECEIVED" (default NOT_RECEIVED)
+- `entity_type` (optional): "regular" (default) or "outsourced". Outsourced
+  orders track subcontractor manufacturing. **When `entity_type="outsourced"`,
+  `tracking_location_id` is required** — Katana will reject the create call
+  without it.
+- `order_created_date` (optional, ISO 8601): When the order was placed.
+  Leave None to let Katana stamp the current server time. Supply for
+  back-fills (importing historical orders) or to reflect actual placement
+  when different from the call time.
+- `expected_arrival_date` (optional, ISO 8601): Order-level expected
+  arrival; row-level `arrival_date` overrides per line.
+- `tracking_location_id` (optional, int): Location ID for tracking
+  outsourced orders. Required when `entity_type="outsourced"`.
 - `preview` (optional, default true): true=preview, false=create
 
 **Safety:** When preview=false, prompts user for confirmation before creating.
@@ -1276,13 +1322,44 @@ for manual recovery.
 ---
 
 ### create_sales_order
-Create a sales order.
+Create a sales order with preview/apply pattern.
 
-**Parameters:**
-- `customer_id` (required): Customer ID (use `search_customers` to find)
-- `order_number` (required): Unique sales order number
-- `items` (required): Array of items with variant_id, quantity, and optional price_per_unit
-- `preview` (optional, default true): true=preview, false=create
+**Required:**
+- `customer_id`: Customer ID (use `search_customers` to find)
+- `order_number`: Unique sales order number
+- `items`: Array of items, each with `variant_id`, `quantity`, plus
+  optional `price_per_unit`, `tax_rate_id`, `location_id`,
+  `total_discount`, and `attributes` (`list[{key, value}]` for product
+  customization metadata like engraving text, monogram, gift-wrap notes)
+
+**Optional header fields:**
+- `location_id`: Primary fulfillment location ID
+- `delivery_date` (ISO 8601): Requested delivery date
+- `order_created_date` (ISO 8601): When the order was placed. Leave None
+  to let Katana stamp the current server time. Supply for back-fills or
+  to reflect the actual placement date when different from call time.
+- `currency`: Currency code (defaults to company base currency)
+- `addresses`: List of billing/shipping addresses
+- `notes`: Internal notes (additional_info on the wire)
+- `customer_ref`: Customer's reference number
+
+**Shipping / tracking:**
+- `tracking_number`, `tracking_number_url`: Set if a carrier label is
+  already known at creation time; otherwise patch in via
+  `modify_sales_order.update_header.tracking_number`.
+
+**Ecommerce cross-references** (set when the SO mirrors an order from a
+storefront — Shopify, WooCommerce, etc.):
+- `ecommerce_order_type`: e.g. 'shopify_order'
+- `ecommerce_store_name`: e.g. 'Acme Online Store'
+- `ecommerce_order_id`: Original platform order ID
+
+**Custom fields:**
+- `custom_fields`: `list[{field_name, field_value}]`. Names must already
+  exist on the SO custom-field collection (configured via Katana's UI).
+  Sending an unknown name yields a 422.
+
+**`preview`** (optional, default true): true=preview, false=create.
 
 ---
 
@@ -1498,7 +1575,30 @@ applied but receipts not replayed — with the captured close-state in
 ---
 
 ### create_product / create_material
-Dedicated catalog tools for creating products or materials with a single variant.
+Dedicated catalog tools for creating products (finished goods) or materials
+(raw inputs) with a single variant. Header fields plus variant-level fields
+(barcodes, supplier codes, lead time, MOQ, config attributes) all flow through
+in one call — no follow-up `modify_item` round-trip needed.
+
+**Header parameters (both):**
+- `name` (required), `sku` (required), `uom` (optional, default "pcs")
+- `category_name`, `is_sellable`, `sales_price`, `purchase_price`,
+  `default_supplier_id`, `additional_info` (all optional)
+
+**`create_product` only:**
+- `is_producible` (default false), `is_purchasable` (default true)
+
+**Variant-level fields (both — forwarded to the item's single variant):**
+- `supplier_item_codes` (optional, `list[str]`): Supplier MPNs / cross-references
+- `internal_barcode` / `registered_barcode` (optional): Barcodes; UPC/EAN goes in
+  `registered_barcode`
+- `lead_time` (optional, int days), `minimum_order_quantity` (optional, float)
+- `config_attributes` (optional, `list[{config_name, config_value}]`): Pin
+  one value per parent config to define this variant. Only meaningful for
+  multi-variant items — leave None for single-variant.
+
+To edit any of the above on an existing item, use `modify_item` with
+`update_variants` / `update_header`.
 
 ---
 
@@ -1533,9 +1633,17 @@ Create a stock transfer moving inventory between two locations.
 - `source_location_id` (required): Source location ID
 - `destination_location_id` (required): Destination location ID (target_location_id)
 - `expected_arrival_date` (required): Expected arrival datetime (ISO-8601)
+- `transfer_date` (optional, ISO 8601): Date items leave the source.
+  Distinct from `expected_arrival_date` (when they arrive). Leave None
+  to let Katana stamp it server-side; supply for back-fills or to
+  record an actual ship-out date.
+- `order_created_date` (optional, ISO 8601): When the transfer record
+  was created. Leave None for server-stamping; supply for back-fills.
 - `rows` (required): Line items `[{variant_id, quantity, batch_transactions?}]` —
   `batch_transactions` is `[{batch_id, quantity}]` for batch-tracked variants
-- `order_no` (optional): Stock transfer number. When omitted, the tool generates a `ST-<unix-ts>` default before sending — Katana's API requires the field.
+- `order_no` (optional): Stock transfer number. When omitted, the tool
+  generates a `ST-<unix-ts>` default before sending — Katana's API
+  requires the field.
 - `additional_info` (optional): Notes
 - `preview` (optional, default true): true=preview, false=create
 

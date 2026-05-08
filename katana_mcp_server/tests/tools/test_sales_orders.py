@@ -209,6 +209,140 @@ async def test_create_sales_order_confirm_success():
 
 
 @pytest.mark.asyncio
+async def test_create_sales_order_forwards_new_header_and_row_fields():
+    """Tracking, ecommerce, custom_fields, order_created_date, and row-level
+    attributes supplied on the request must reach the API call body
+    (#627 — write-side parity sweep).
+    """
+    from katana_mcp.tools.foundation.sales_orders import (
+        SalesOrderCustomField,
+        SalesOrderRowAttribute,
+    )
+
+    context, _lifespan_ctx = create_mock_context()
+
+    mock_so = SalesOrder(
+        id=2100,
+        customer_id=1501,
+        order_no="SO-FULL-001",
+        location_id=1,
+        status=SalesOrderStatus.NOT_SHIPPED,
+    )
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = mock_so
+    mock_api_call = AsyncMock(return_value=mock_response)
+
+    import katana_public_api_client.api.sales_order.create_sales_order as create_so_module
+
+    original = create_so_module.asyncio_detailed
+    create_so_module.asyncio_detailed = mock_api_call
+    try:
+        placed_at = datetime(2026, 3, 15, 10, 0, tzinfo=UTC)
+        request = CreateSalesOrderRequest(
+            customer_id=1501,
+            order_number="SO-FULL-001",
+            items=[
+                SalesOrderItem(
+                    variant_id=2101,
+                    quantity=1,
+                    price_per_unit=99.99,
+                    attributes=[
+                        SalesOrderRowAttribute(key="engraving", value="For Dad"),
+                        SalesOrderRowAttribute(key="gift_wrap", value="Birthday paper"),
+                    ],
+                ),
+            ],
+            order_created_date=placed_at,
+            tracking_number="1Z999AA10123456784",
+            tracking_number_url="https://tracking.example.com/1Z999AA10123456784",
+            ecommerce_order_type="shopify_order",
+            ecommerce_store_name="Acme Online Store",
+            ecommerce_order_id="store-order-12345",
+            custom_fields=[
+                SalesOrderCustomField(
+                    field_name="PO Reference", field_value="PO-12345"
+                ),
+            ],
+            preview=False,
+        )
+        await _create_sales_order_impl(request, context)
+    finally:
+        create_so_module.asyncio_detailed = original
+
+    api_body = mock_api_call.call_args.kwargs["body"]
+
+    # Header fields
+    assert api_body.order_created_date == placed_at
+    assert api_body.tracking_number == "1Z999AA10123456784"
+    assert api_body.tracking_number_url == (
+        "https://tracking.example.com/1Z999AA10123456784"
+    )
+    assert api_body.ecommerce_order_type == "shopify_order"
+    assert api_body.ecommerce_store_name == "Acme Online Store"
+    assert api_body.ecommerce_order_id == "store-order-12345"
+    assert len(api_body.custom_fields) == 1
+    assert api_body.custom_fields[0].field_name == "PO Reference"
+    assert api_body.custom_fields[0].field_value == "PO-12345"
+
+    # Row-level attributes
+    row = api_body.sales_order_rows[0]
+    assert len(row.attributes) == 2
+    assert row.attributes[0].key == "engraving"
+    assert row.attributes[0].value == "For Dad"
+    assert row.attributes[1].key == "gift_wrap"
+    assert row.attributes[1].value == "Birthday paper"
+
+
+@pytest.mark.asyncio
+async def test_create_sales_order_apply_omits_unset_fields():
+    """When the new fields aren't supplied, the API body must carry UNSET —
+    notably ``order_created_date`` (regression: was hardcoded to
+    datetime.now(UTC), silently overwriting any caller intent and blocking
+    back-fills, mirroring the create_purchase_order regression #605).
+    """
+    context, _lifespan_ctx = create_mock_context()
+
+    mock_so = SalesOrder(
+        id=2101,
+        customer_id=1501,
+        order_no="SO-PLAIN-001",
+        location_id=1,
+        status=SalesOrderStatus.NOT_SHIPPED,
+    )
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = mock_so
+    mock_api_call = AsyncMock(return_value=mock_response)
+
+    import katana_public_api_client.api.sales_order.create_sales_order as create_so_module
+
+    original = create_so_module.asyncio_detailed
+    create_so_module.asyncio_detailed = mock_api_call
+    try:
+        request = CreateSalesOrderRequest(
+            customer_id=1501,
+            order_number="SO-PLAIN-001",
+            items=[SalesOrderItem(variant_id=2101, quantity=1)],
+            preview=False,
+        )
+        await _create_sales_order_impl(request, context)
+    finally:
+        create_so_module.asyncio_detailed = original
+
+    api_body = mock_api_call.call_args.kwargs["body"]
+    assert api_body.order_created_date is UNSET
+    assert api_body.tracking_number is UNSET
+    assert api_body.tracking_number_url is UNSET
+    assert api_body.ecommerce_order_type is UNSET
+    assert api_body.ecommerce_store_name is UNSET
+    assert api_body.ecommerce_order_id is UNSET
+    assert api_body.custom_fields is UNSET
+    # And the single row must carry UNSET attributes
+    assert api_body.sales_order_rows[0].attributes is UNSET
+
+
+@pytest.mark.asyncio
 async def test_create_sales_order_with_addresses():
     """Test create_sales_order with billing and shipping addresses."""
     context, _lifespan_ctx = create_mock_context()
