@@ -31,7 +31,7 @@ import time
 from collections.abc import Callable
 from contextvars import ContextVar
 from functools import wraps
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 import structlog
 from structlog.typing import EventDict, WrappedLogger
@@ -238,7 +238,7 @@ def observe_tool[F: Callable[..., Any]](func: F) -> F:
 
             raise
 
-    return wrapper  # type: ignore[return-value]
+    return cast("F", wrapper)
 
 
 # Type variable for observe_service decorator
@@ -305,7 +305,7 @@ def observe_service(operation: str) -> Callable[[F], F]:
 
                 raise
 
-        return wrapper  # type: ignore[return-value]
+        return cast("F", wrapper)
 
     return decorator
 

@@ -31,7 +31,7 @@ from __future__ import annotations
 import functools
 import inspect
 from collections.abc import Callable
-from typing import Annotated, Any, get_args, get_origin, get_type_hints
+from typing import Annotated, Any, cast, get_args, get_origin, get_type_hints
 
 from pydantic import BaseModel, ValidationError
 from pydantic_core import PydanticUndefined
@@ -267,8 +267,12 @@ def unpack_pydantic_params(func: Callable) -> Callable:
     # Choose wrapper based on whether original function is async
     wrapper = async_wrapper if inspect.iscoroutinefunction(func) else sync_wrapper
 
-    # Update wrapper signature to show flattened parameters
-    wrapper.__signature__ = new_sig  # type: ignore[attr-defined]
+    # Update wrapper signature to show flattened parameters. ``functools.wraps``
+    # types ``wrapper`` as a ``_Wrapped`` partial that doesn't expose
+    # ``__signature__`` statically, but ``inspect`` reads it from the runtime
+    # attribute, so cast through ``Any`` to silence the static checker on the
+    # write — the runtime attribute is real and used by ``inspect.signature``.
+    cast(Any, wrapper).__signature__ = new_sig
 
     # CRITICAL: Also update __annotations__ so get_type_hints() sees the flattened params
     # This is required for FastMCP's ParsedFunction.from_function() to work correctly

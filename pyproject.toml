@@ -539,7 +539,7 @@ format-check = ["format-python-check", "format-markdown-check"]
 # tests/conftest.py is excluded because it is pytest-specific support code.
 # tests/test_generate_tools_json.py is excluded because it imports a script via
 # sys.path manipulation that ty cannot resolve statically.
-typecheck = "ty check --exclude 'tests/conftest.py' --exclude 'tests/test_generate_tools_json.py' --exclude 'scripts/' --exclude 'katana_mcp_server/' --exclude '.claude/worktrees/'"
+typecheck = "ty check --exclude 'tests/conftest.py' --exclude 'tests/test_generate_tools_json.py' --exclude 'scripts/' --exclude 'katana_mcp_server/tests/' --exclude '.claude/worktrees/'"
 lint-ruff = "ruff check ."
 lint-ruff-fix = "ruff check --fix ."
 lint-yaml = "yamllint ."

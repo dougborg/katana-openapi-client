@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
-from fastmcp.tools.tool import ToolResult
+from fastmcp.tools import ToolResult
 from pydantic import BaseModel, ConfigDict, Field
 
 from katana_mcp.cache import EntityType
