@@ -189,7 +189,11 @@ class CreateSalesOrderRequest(BaseModel):
         ),
     )
     delivery_date: datetime | None = Field(
-        default=None, description="Requested delivery date (optional)"
+        default=None,
+        description=(
+            "Requested delivery date (optional) — ISO 8601 date or datetime "
+            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
     )
     currency: str | None = Field(
         default=None,
@@ -222,8 +226,14 @@ class SalesOrderResponse(BaseModel):
     delivery_date: str | None = None
     item_count: int | None = None
     is_preview: bool
-    warnings: list[str] = Field(default_factory=list)
-    next_actions: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(
+        default_factory=list,
+        description="Operator-facing warnings raised during the operation.",
+    )
+    next_actions: list[str] = Field(
+        default_factory=list,
+        description="Suggested follow-up tools to call after this response.",
+    )
     message: str
     katana_url: str | None = None
 
@@ -891,7 +901,10 @@ class SalesOrderRowDetail(BaseModel):
     linked_manufacturing_order_id: int | None = None
     conversion_rate: float | None = None
     conversion_date: str | None = None
-    serial_numbers: list[int] = Field(default_factory=list)
+    serial_numbers: list[int] = Field(
+        default_factory=list,
+        description="Serial number IDs allocated to this row.",
+    )
     created_at: str | None = None
     updated_at: str | None = None
     deleted_at: str | None = None
@@ -979,7 +992,10 @@ class GetSalesOrderResponse(BaseModel):
     # Addresses — both the ID pointers on the SO and the full resolved list
     billing_address_id: int | None = None
     shipping_address_id: int | None = None
-    addresses: list[SalesOrderAddressInfo] = Field(default_factory=list)
+    addresses: list[SalesOrderAddressInfo] = Field(
+        default_factory=list,
+        description="Sales order addresses (billing and shipping).",
+    )
 
     # Linked resources
     linked_manufacturing_order_id: int | None = None
@@ -996,7 +1012,10 @@ class GetSalesOrderResponse(BaseModel):
     deleted_at: str | None = None
 
     # Line items — exhaustive per-row detail
-    rows: list[SalesOrderRowDetail] = Field(default_factory=list)
+    rows: list[SalesOrderRowDetail] = Field(
+        default_factory=list,
+        description="Line items on the sales order.",
+    )
 
 
 def _shipping_fee_from_attrs(fee: Any) -> SalesOrderShippingFeeInfo | None:
@@ -1512,12 +1531,26 @@ class SOHeaderPatch(BaseModel):
         default=None, description="New conversion date (ISO-8601)"
     )
     order_created_date: datetime | None = Field(
-        default=None, description="New order created date"
+        default=None,
+        description=(
+            "New order created date — ISO 8601 date or datetime "
+            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
     )
     delivery_date: datetime | None = Field(
-        default=None, description="New delivery date"
+        default=None,
+        description=(
+            "New delivery date — ISO 8601 date or datetime "
+            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
     )
-    picked_date: datetime | None = Field(default=None, description="New picked date")
+    picked_date: datetime | None = Field(
+        default=None,
+        description=(
+            "New picked date — ISO 8601 date or datetime "
+            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
+    )
     additional_info: str | None = Field(
         default=None, description="New notes / additional info"
     )
@@ -1573,14 +1606,17 @@ class SOAddressAdd(BaseModel):
     entity_type: AddressEntityTypeLiteral = Field(
         ..., description="Address kind — billing or shipping"
     )
-    first_name: str | None = Field(default=None)
-    last_name: str | None = Field(default=None)
-    company: str | None = Field(default=None)
-    city: str | None = Field(default=None)
-    state: str | None = Field(default=None)
-    zip: str | None = Field(default=None)
-    country: str | None = Field(default=None)
-    phone: str | None = Field(default=None)
+    first_name: str | None = Field(default=None, description="Recipient first name")
+    last_name: str | None = Field(default=None, description="Recipient last name")
+    company: str | None = Field(default=None, description="Company name")
+    city: str | None = Field(default=None, description="City")
+    state: str | None = Field(default=None, description="State or region")
+    zip: str | None = Field(default=None, description="Postal/ZIP code")
+    country: str | None = Field(
+        default=None,
+        description="Country (ISO 3166 name or two-letter code, e.g. 'US', 'United States')",
+    )
+    phone: str | None = Field(default=None, description="Contact phone number")
 
 
 class SOAddressUpdate(BaseModel):
@@ -1591,14 +1627,17 @@ class SOAddressUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: int = Field(..., description="Address ID to update")
-    first_name: str | None = Field(default=None)
-    last_name: str | None = Field(default=None)
-    company: str | None = Field(default=None)
-    city: str | None = Field(default=None)
-    state: str | None = Field(default=None)
-    zip: str | None = Field(default=None)
-    country: str | None = Field(default=None)
-    phone: str | None = Field(default=None)
+    first_name: str | None = Field(default=None, description="New recipient first name")
+    last_name: str | None = Field(default=None, description="New recipient last name")
+    company: str | None = Field(default=None, description="New company name")
+    city: str | None = Field(default=None, description="New city")
+    state: str | None = Field(default=None, description="New state or region")
+    zip: str | None = Field(default=None, description="New postal/ZIP code")
+    country: str | None = Field(
+        default=None,
+        description="New country (ISO 3166 name or two-letter code)",
+    )
+    phone: str | None = Field(default=None, description="New contact phone number")
 
 
 class SOFulfillmentRowInput(BaseModel):
@@ -1621,13 +1660,34 @@ class SOFulfillmentAdd(BaseModel):
     sales_order_fulfillment_rows: list[SOFulfillmentRowInput] = Field(
         ..., description="Rows being fulfilled (variant + quantity)", min_length=1
     )
-    picked_date: datetime | None = Field(default=None)
-    conversion_rate: float | None = Field(default=None)
-    conversion_date: datetime | None = Field(default=None)
-    tracking_number: str | None = Field(default=None)
-    tracking_url: str | None = Field(default=None)
-    tracking_carrier: str | None = Field(default=None)
-    tracking_method: str | None = Field(default=None)
+    picked_date: datetime | None = Field(
+        default=None,
+        description=(
+            "When items were picked — ISO 8601 date or datetime "
+            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
+    )
+    conversion_rate: float | None = Field(
+        default=None,
+        description="Currency conversion rate applied to the fulfillment",
+    )
+    conversion_date: datetime | None = Field(
+        default=None,
+        description=(
+            "Conversion-rate fix date — ISO 8601 date or datetime "
+            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
+    )
+    tracking_number: str | None = Field(
+        default=None, description="Carrier tracking number"
+    )
+    tracking_url: str | None = Field(default=None, description="Carrier tracking URL")
+    tracking_carrier: str | None = Field(
+        default=None, description="Carrier name (e.g., UPS, FedEx, USPS)"
+    )
+    tracking_method: str | None = Field(
+        default=None, description="Shipping method (e.g., Ground, Express, 2-Day)"
+    )
 
 
 class SOFulfillmentUpdate(BaseModel):
@@ -1636,18 +1696,44 @@ class SOFulfillmentUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: int = Field(..., description="Fulfillment ID to update")
-    status: FulfillmentStatusLiteral | None = Field(default=None)
-    picked_date: datetime | None = Field(default=None)
+    status: FulfillmentStatusLiteral | None = Field(
+        default=None,
+        description="New fulfillment status — DELIVERED or PACKED",
+    )
+    picked_date: datetime | None = Field(
+        default=None,
+        description=(
+            "New picked date — ISO 8601 date or datetime "
+            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
+    )
     packer_id: int | None = Field(
         default=None,
         description=("New packer (operator). Look up via `list_operators`."),
     )
-    conversion_rate: float | None = Field(default=None)
-    conversion_date: datetime | None = Field(default=None)
-    tracking_number: str | None = Field(default=None)
-    tracking_url: str | None = Field(default=None)
-    tracking_carrier: str | None = Field(default=None)
-    tracking_method: str | None = Field(default=None)
+    conversion_rate: float | None = Field(
+        default=None, description="New currency conversion rate"
+    )
+    conversion_date: datetime | None = Field(
+        default=None,
+        description=(
+            "New conversion-rate fix date — ISO 8601 date or datetime "
+            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
+    )
+    tracking_number: str | None = Field(
+        default=None, description="New carrier tracking number"
+    )
+    tracking_url: str | None = Field(
+        default=None, description="New carrier tracking URL"
+    )
+    tracking_carrier: str | None = Field(
+        default=None, description="New carrier name (e.g., UPS, FedEx, USPS)"
+    )
+    tracking_method: str | None = Field(
+        default=None,
+        description="New shipping method (e.g., Ground, Express, 2-Day)",
+    )
 
 
 class SOShippingFeeAdd(BaseModel):
@@ -1656,7 +1742,10 @@ class SOShippingFeeAdd(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     amount: str = Field(..., description="Fee amount (decimal string)")
-    description: str | None = Field(default=None)
+    description: str | None = Field(
+        default=None,
+        description="Customer-facing fee label (e.g., 'Standard shipping')",
+    )
     tax_rate_id: int | None = Field(
         default=None,
         description=("Tax rate ID. Look up via `list_tax_rates`."),
@@ -1675,7 +1764,10 @@ class SOShippingFeeUpdate(BaseModel):
 
     id: int = Field(..., description="Shipping fee ID to update")
     amount: str = Field(..., description="Fee amount (required by API)")
-    description: str | None = Field(default=None)
+    description: str | None = Field(
+        default=None,
+        description="New customer-facing fee label",
+    )
     tax_rate_id: int | None = Field(
         default=None,
         description=("Tax rate ID. Look up via `list_tax_rates`."),
@@ -2108,7 +2200,9 @@ async def modify_sales_order(
     field as ``(prior unknown) → new``.
     """
     response = await _modify_sales_order_impl(request, context)
-    return to_tool_result(response)
+    return to_tool_result(
+        response, confirm_request=request, confirm_tool="modify_sales_order"
+    )
 
 
 # ============================================================================
@@ -2144,7 +2238,9 @@ async def delete_sales_order(
     The response carries a ``prior_state`` snapshot for manual revert.
     """
     response = await _delete_sales_order_impl(request, context)
-    return to_tool_result(response)
+    return to_tool_result(
+        response, confirm_request=request, confirm_tool="delete_sales_order"
+    )
 
 
 def register_tools(mcp: FastMCP) -> None:
@@ -2194,10 +2290,14 @@ def register_tools(mcp: FastMCP) -> None:
         modify_sales_order,
         tags={"orders", "sales", "write"},
         annotations=_modify,
+        meta=UI_META,
+        direct=True,
     )
     register_preview_tool(
         mcp,
         delete_sales_order,
         tags={"orders", "sales", "write", "destructive"},
         annotations=_destructive,
+        meta=UI_META,
+        direct=True,
     )

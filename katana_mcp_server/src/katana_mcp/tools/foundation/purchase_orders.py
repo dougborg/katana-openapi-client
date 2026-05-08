@@ -129,7 +129,13 @@ class PurchaseOrderItem(BaseModel):
     purchase_uom_conversion_rate: float | None = Field(
         None, description="Conversion rate for purchase UOM"
     )
-    arrival_date: datetime | None = Field(None, description="Expected arrival date")
+    arrival_date: datetime | None = Field(
+        None,
+        description=(
+            "Expected arrival date — ISO 8601 date or datetime "
+            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
+    )
 
 
 class CreatePurchaseOrderRequest(BaseModel):
@@ -177,8 +183,14 @@ class PurchaseOrderResponse(BaseModel):
     item_count: int | None = None
     notes: str | None = None
     is_preview: bool
-    warnings: list[str] = Field(default_factory=list)
-    next_actions: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(
+        default_factory=list,
+        description="Operator-facing warnings raised during the operation.",
+    )
+    next_actions: list[str] = Field(
+        default_factory=list,
+        description="Suggested follow-up tools to call after this response.",
+    )
     message: str
     katana_url: str | None = None
 
@@ -478,8 +490,14 @@ class ReceivePurchaseOrderResponse(BaseModel):
     total_cost: float | None = None
     items_received: int = 0
     is_preview: bool = True
-    warnings: list[str] = Field(default_factory=list)
-    next_actions: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(
+        default_factory=list,
+        description="Operator-facing warnings raised during the operation.",
+    )
+    next_actions: list[str] = Field(
+        default_factory=list,
+        description="Suggested follow-up tools to call after this response.",
+    )
     message: str
 
 
@@ -740,7 +758,10 @@ class PurchaseOrderRowInfo(BaseModel):
     purchase_order_id: int | None = None
     landed_cost: float | str | None = None
     group_id: int | None = None
-    batch_transactions: list[dict[str, Any]] = Field(default_factory=list)
+    batch_transactions: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Batch allocations for this row's received quantity.",
+    )
 
 
 class PurchaseOrderAdditionalCostRowInfo(BaseModel):
@@ -790,7 +811,10 @@ class SupplierInfo(BaseModel):
     currency: str | None = None
     comment: str | None = None
     default_address_id: int | None = None
-    addresses: list[dict[str, Any]] = Field(default_factory=list)
+    addresses: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Supplier address records (billing/shipping).",
+    )
     created_at: str | None = None
     updated_at: str | None = None
     deleted_at: str | None = None
@@ -824,12 +848,17 @@ class GetPurchaseOrderResponse(BaseModel):
     billing_status: str | None = None
     last_document_status: str | None = None
     tracking_location_id: int | None = None
-    purchase_order_rows: list[PurchaseOrderRowInfo] = Field(default_factory=list)
+    purchase_order_rows: list[PurchaseOrderRowInfo] = Field(
+        default_factory=list,
+        description="Line items on the purchase order.",
+    )
     additional_cost_rows: list[PurchaseOrderAdditionalCostRowInfo] = Field(
-        default_factory=list
+        default_factory=list,
+        description="Additional cost rows (shipping, duties, handling fees).",
     )
     accounting_metadata: list[PurchaseOrderAccountingMetadataInfo] = Field(
-        default_factory=list
+        default_factory=list,
+        description="Accounting integration metadata (bill IDs, integration type).",
     )
 
 
@@ -1476,9 +1505,18 @@ class VerifyOrderDocumentResponse(BaseModel):
 
     order_id: int
     purchase_order: GetPurchaseOrderResponse | None = None
-    matches: list[MatchResult] = Field(default_factory=list)
-    discrepancies: list[Discrepancy] = Field(default_factory=list)
-    suggested_actions: list[str] = Field(default_factory=list)
+    matches: list[MatchResult] = Field(
+        default_factory=list,
+        description="Line items where the document agrees with the PO.",
+    )
+    discrepancies: list[Discrepancy] = Field(
+        default_factory=list,
+        description="Differences detected between the document and the PO.",
+    )
+    suggested_actions: list[str] = Field(
+        default_factory=list,
+        description="Recommended follow-up tool calls to resolve discrepancies.",
+    )
     overall_status: str = Field(..., description="match, partial_match, or no_match")
     message: str
 
@@ -2287,10 +2325,18 @@ class POHeaderPatch(BaseModel):
         ),
     )
     expected_arrival_date: datetime | None = Field(
-        default=None, description="New expected arrival date"
+        default=None,
+        description=(
+            "New expected arrival date — ISO 8601 date or datetime "
+            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
     )
     order_created_date: datetime | None = Field(
-        default=None, description="New order created date"
+        default=None,
+        description=(
+            "New order created date — ISO 8601 date or datetime "
+            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
     )
     additional_info: str | None = Field(
         default=None, description="New notes / additional info"
@@ -2317,7 +2363,11 @@ class PORowAdd(BaseModel):
         default=None, description="UOM conversion rate"
     )
     arrival_date: datetime | None = Field(
-        default=None, description="Expected arrival date for this row"
+        default=None,
+        description=(
+            "Expected arrival date for this row — ISO 8601 date or datetime "
+            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
     )
 
 
@@ -2341,10 +2391,18 @@ class PORowUpdate(BaseModel):
     )
     purchase_uom: str | None = Field(default=None, description="New purchase UOM")
     received_date: datetime | None = Field(
-        default=None, description="New received date"
+        default=None,
+        description=(
+            "New received date — ISO 8601 date or datetime "
+            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
     )
     arrival_date: datetime | None = Field(
-        default=None, description="New row-level arrival date"
+        default=None,
+        description=(
+            "New row-level arrival date — ISO 8601 date or datetime "
+            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
     )
 
 
@@ -2722,7 +2780,9 @@ async def modify_purchase_order(
       pre-modification PO so callers can compose a revert call manually.
     """
     response = await _modify_purchase_order_impl(request, context)
-    return to_tool_result(response)
+    return to_tool_result(
+        response, confirm_request=request, confirm_tool="modify_purchase_order"
+    )
 
 
 # ============================================================================
@@ -2759,7 +2819,9 @@ async def delete_purchase_order(
     snapshot of the pre-delete PO so callers can recreate it manually if needed.
     """
     response = await _delete_purchase_order_impl(request, context)
-    return to_tool_result(response)
+    return to_tool_result(
+        response, confirm_request=request, confirm_tool="delete_purchase_order"
+    )
 
 
 def register_tools(mcp: FastMCP) -> None:
@@ -2826,10 +2888,14 @@ def register_tools(mcp: FastMCP) -> None:
         modify_purchase_order,
         tags={"orders", "purchasing", "write"},
         annotations=_modify,
+        meta=UI_META,
+        direct=True,
     )
     register_preview_tool(
         mcp,
         delete_purchase_order,
         tags={"orders", "purchasing", "write", "destructive"},
         annotations=_destructive,
+        meta=UI_META,
+        direct=True,
     )

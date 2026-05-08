@@ -53,30 +53,33 @@ def registered_tools() -> dict[str, object]:
 # Tools currently using the direct-apply rail (per ADR-0016 spike).
 DIRECT_APPLY_TOOLS = [
     "create_purchase_order",
+    # Modification tools — every tool that returns a ModificationResponse
+    # via _modification.to_tool_result is on the direct-apply rail.
+    "modify_purchase_order",
+    "delete_purchase_order",
+    "modify_sales_order",
+    "delete_sales_order",
+    "modify_manufacturing_order",
+    "delete_manufacturing_order",
+    "modify_stock_transfer",
+    "delete_stock_transfer",
+    "modify_item",
+    "delete_item",
+    "correct_manufacturing_order",
+    "correct_sales_order",
+    "correct_purchase_order",
 ]
 
 # Tools using the SendMessage rail (default, per ADR-0015).
 SEND_MESSAGE_APPLY_TOOLS = [
-    "modify_purchase_order",
-    "delete_purchase_order",
     "receive_purchase_order",
     "create_sales_order",
-    "modify_sales_order",
-    "delete_sales_order",
     "create_manufacturing_order",
-    "modify_manufacturing_order",
-    "delete_manufacturing_order",
     "create_stock_transfer",
-    "modify_stock_transfer",
-    "delete_stock_transfer",
     "create_stock_adjustment",
     "update_stock_adjustment",
     "delete_stock_adjustment",
-    "modify_item",
-    "delete_item",
     "fulfill_order",
-    "correct_manufacturing_order",
-    "correct_sales_order",
 ]
 
 PREVIEW_BUTTON_TOOLS = DIRECT_APPLY_TOOLS + SEND_MESSAGE_APPLY_TOOLS
