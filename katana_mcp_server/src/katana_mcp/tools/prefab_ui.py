@@ -239,6 +239,8 @@ def _build_apply_action(
 def _build_apply_action_direct(
     confirm_tool: str | None,
     confirm_request: BaseModel | None,
+    *,
+    extra_on_success: list[Action] | None = None,
 ) -> list[Action] | None:
     """Construct the direct-apply Confirm-button click action chain.
 
@@ -282,6 +284,18 @@ def _build_apply_action_direct(
             f"`preview` field; {type(confirm_request).__name__} has none."
         )
     args["preview"] = False
+    # The on_success chain runs the caller's extras BEFORE the generic
+    # flags so a builder that pushes RESULT.actions into a state slot (e.g.
+    # the modification card binding ``state.plan_actions`` for live-tick row
+    # updates) sees its row data land before the iframe morphs to its
+    # ``applied=True`` rendering.
+    on_success: list[Action] = [
+        *(extra_on_success or []),
+        SetState("pending", False),
+        SetState("applied", True),
+        SetState("result", RESULT),
+        UpdateContext(content=RESULT),
+    ]
     return [
         # Click guard — disables the button immediately so a double-click
         # in the iframe can't fire two applies (which would create
@@ -290,12 +304,7 @@ def _build_apply_action_direct(
         CallTool(
             tool=confirm_tool,
             arguments=args,
-            on_success=[
-                SetState("pending", False),
-                SetState("applied", True),
-                SetState("result", RESULT),
-                UpdateContext(content=RESULT),
-            ],
+            on_success=on_success,
             on_error=[
                 SetState("pending", False),
                 SetState("error", "{{ $error }}"),
@@ -1250,57 +1259,6 @@ def build_verification_ui(
 # ============================================================================
 
 
-def _format_field_value(value: Any) -> str:
-    """Render a FieldChange ``old`` / ``new`` value for the diff DataTable.
-
-    ``None`` collapses to ``(unset)`` so the cell isn't blank; lists are
-    comma-joined for compact display; everything else stringifies.
-    """
-    if value is None:
-        return "(unset)"
-    if isinstance(value, list):
-        return ", ".join(str(v) for v in value)
-    return str(value)
-
-
-def _change_to_diff_row(change: dict[str, Any]) -> dict[str, Any]:
-    """Convert a :class:`FieldChange` dict into a diff DataTable row.
-
-    Mirrors the markdown layout in
-    :func:`katana_mcp.tools._modification._render_changes_block`:
-
-    - ``is_unchanged`` — "(unchanged)" in the After column
-    - ``is_unknown_prior`` — "(prior unknown)" in the Before column
-    - ``is_added`` — "(unset)" in the Before column
-    - default — old → new
-    """
-    field = str(change.get("field", ""))
-    new = _format_field_value(change.get("new"))
-    if change.get("is_unchanged"):
-        return {
-            "field": field,
-            "before": _format_field_value(change.get("old")),
-            "after": "(unchanged)",
-        }
-    if change.get("is_unknown_prior"):
-        return {"field": field, "before": "(prior unknown)", "after": new}
-    if change.get("is_added"):
-        return {"field": field, "before": "(unset)", "after": new}
-    return {
-        "field": field,
-        "before": _format_field_value(change.get("old")),
-        "after": new,
-    }
-
-
-_DIFF_COLUMNS: list[DataTableColumn] = [
-    DataTableColumn(key="field", header="Field"),
-    DataTableColumn(key="before", header="Before"),
-    DataTableColumn(key="after", header="After"),
-]
-
-_LEGACY_DIFF_STATE_KEY = "legacy_diff_rows"
-
 # Display labels for the verb in modification card titles. The verb is
 # derived from the registered tool name (its first underscore-delimited
 # token), so ``modify_item`` → "Modify", ``delete_item`` → "Delete", etc.
@@ -1332,90 +1290,127 @@ def _verb_label(tool_name: str | None) -> str:
     return _VERB_DISPLAY.get(tool_name.split("_", 1)[0], "Modify")
 
 
-def _action_status_badge(
-    action: dict[str, Any],
-) -> tuple[str, Literal["default", "secondary", "outline", "destructive"]]:
-    """Pick a (label, variant) pair for an action's status badge.
+# Single column set used by both preview and result modification cards.
+# One row per planned action — server-derived ``status_label`` and
+# ``summary`` fields land directly here so the apply path's
+# ``SetState("plan_actions", RESULT.actions)`` swap preserves shape.
+_ACTION_COLUMNS: list[DataTableColumn] = [
+    DataTableColumn(key="index", header="#", width="3rem"),
+    DataTableColumn(key="operation_label", header="Operation"),
+    DataTableColumn(key="target_label", header="Target"),
+    DataTableColumn(key="summary", header="Changes"),
+    DataTableColumn(key="status_label", header="Status"),
+]
 
-    ``succeeded is None`` means the action hasn't been executed (preview
-    or fail-fast skip), so we surface PLANNED. Mirrors the status string
-    in ``katana_mcp.tools._modification._render_action_block`` so the
-    Prefab card and the markdown fallback agree on how each action reads.
+_PLAN_ACTIONS_KEY = "plan_actions"
+
+
+def _derive_status_label(action: dict[str, Any]) -> str:
+    """Compute a status label from raw ``succeeded`` / ``verified`` fields.
+
+    Used as a fallback for action dicts that don't already carry the
+    server-derived ``status_label`` (legacy responses, older clients,
+    test fixtures). Mirrors
+    :func:`katana_mcp.tools._modification._derive_status_label`.
     """
     succeeded = action.get("succeeded")
     if succeeded is None:
-        return "PLANNED", "secondary"
+        return "PLANNED"
     if succeeded is True:
         verified = action.get("verified")
         if verified is False:
-            return "APPLIED (verification mismatch)", "destructive"
-        if verified is None:
-            return "APPLIED", "default"
-        return "APPLIED (verified)", "default"
-    return "FAILED", "destructive"
+            return "APPLIED (verification mismatch)"
+        if verified is True:
+            return "APPLIED (verified)"
+        return "APPLIED"
+    return "FAILED"
 
 
-def _render_action_section(
-    idx: int,
-    action: dict[str, Any],
-    *,
-    rows_state_key: str | None,
-) -> None:
-    """Render one ActionResult as a Separator + heading + diff DataTable.
+def _derive_summary(action: dict[str, Any]) -> str:
+    """Fallback summary derivation when the action lacks a server-supplied one."""
+    op = str(action.get("operation") or "").lower()
+    changes = action.get("changes") or []
+    if op.startswith("delete"):
+        return "deleted"
+    if op.startswith("add") or op.startswith("create"):
+        return f"{len(changes)} field(s) set"
+    n_changed = sum(
+        1 for c in changes if isinstance(c, dict) and not c.get("is_unchanged")
+    )
+    if n_changed == 0 and changes:
+        return f"{len(changes)} field(s) — no change"
+    return f"{n_changed} field(s) changed"
 
-    ``rows_state_key`` is the PrefabApp state slot holding the diff rows
-    for this action (or ``None`` when the action has no field changes —
-    e.g. a delete). DataTable binds rows by state-key string per the
-    file's convention.
+
+def _action_to_row(idx: int, action: dict[str, Any]) -> dict[str, Any]:
+    """Project one ActionResult dict into a DataTable row.
+
+    Returns a dict that carries display-only derived fields (``index``,
+    ``operation_label``, ``target_label``) on top of the underlying
+    ActionResult fields. Pre-populating the same shape both at preview-
+    build time and on the apply RESULT means the on_success
+    ``SetState("plan_actions", RESULT.actions)`` swap doesn't need any
+    transformation — the server's ``status_label``/``summary`` already
+    travel on every ActionResult.
+
+    Falls back to local derivation when ``status_label``/``summary`` are
+    absent (legacy single-action shape, older response generators, tests).
     """
-    Separator()
-    op_label = _humanize_snake_case(str(action.get("operation") or "")) or "Action"
     target = action.get("target_id")
-    target_suffix = f" #{target}" if target is not None else ""
-    status_label, status_variant = _action_status_badge(action)
-    with Row(gap=2):
-        Text(content=f"{idx}. {op_label}{target_suffix}")
-        Badge(label=status_label, variant=status_variant)
+    status_label = action.get("status_label") or _derive_status_label(action)
+    summary = action.get("summary") or _derive_summary(action)
+    return {
+        "index": idx,
+        "operation_label": _humanize_snake_case(str(action.get("operation") or ""))
+        or "Action",
+        "target_label": f"#{target}" if target is not None else "—",
+        "summary": summary,
+        "status_label": status_label,
+        # Pass through the underlying fields so RESULT.actions replacement
+        # preserves shape (the server's ActionResults carry these too).
+        "operation": action.get("operation"),
+        "target_id": target,
+        "succeeded": action.get("succeeded"),
+        "verified": action.get("verified"),
+        "error": action.get("error"),
+    }
 
-    if action.get("error"):
-        Muted(content=f"Error: {action['error']}")
 
-    if rows_state_key is not None:
-        DataTable(columns=_DIFF_COLUMNS, rows=rows_state_key)
+def _legacy_action(response: dict[str, Any]) -> dict[str, Any] | None:
+    """Synthesize a single ActionResult-shaped dict from the legacy shape.
 
-
-def _summarize_actions(
-    actions: list[dict[str, Any]],
-) -> tuple[dict[str, list[dict[str, Any]]], list[str | None], int, int]:
-    """One-pass action scan for the modification builders.
-
-    Returns ``(state_slots, per_action_keys, success_count, failed_count)``:
-
-    - ``state_slots`` maps slot name (``"diff_action_<idx>"``) to its row
-      list — fold this into the PrefabApp ``state`` dict.
-    - ``per_action_keys[i]`` is the slot name for action ``i``, or ``None``
-      if the action has no field changes (e.g. a delete).
-    - The two counts are used by the result builder for the aggregate
-      status badge; the preview builder ignores them (succeeded is always
-      ``None`` on preview-shaped actions).
+    The legacy single-action response carries top-level ``operation`` +
+    ``changes`` (instead of an ``actions`` list). Wrap it as one synthetic
+    action so both card builders flow through the same row builder.
     """
-    state_slots: dict[str, list[dict[str, Any]]] = {}
-    per_action_keys: list[str | None] = []
-    success_count = failed_count = 0
-    for idx, action in enumerate(actions, start=1):
-        succeeded = action.get("succeeded")
-        if succeeded is True:
-            success_count += 1
-        elif succeeded is False:
-            failed_count += 1
-        rows = [_change_to_diff_row(c) for c in (action.get("changes") or [])]
-        if rows:
-            key = f"diff_action_{idx}"
-            state_slots[key] = rows
-            per_action_keys.append(key)
-        else:
-            per_action_keys.append(None)
-    return state_slots, per_action_keys, success_count, failed_count
+    legacy_changes = response.get("changes") or []
+    legacy_op = response.get("operation") or ""
+    if not legacy_op and not legacy_changes:
+        return None
+    is_preview = bool(response.get("is_preview"))
+    n = len(legacy_changes)
+    return {
+        "operation": legacy_op,
+        "target_id": response.get("entity_id"),
+        "changes": legacy_changes,
+        "succeeded": None if is_preview else True,
+        "verified": None,
+        "error": None,
+        "status_label": "PLANNED" if is_preview else "APPLIED",
+        "summary": f"{n} field(s) changed" if n else "—",
+    }
+
+
+def _actions_to_rows(actions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Map ActionResult dicts to DataTable rows for ``state.plan_actions``."""
+    return [_action_to_row(idx, action) for idx, action in enumerate(actions, start=1)]
+
+
+def _count_outcomes(actions: list[dict[str, Any]]) -> tuple[int, int]:
+    """Tally ``(succeeded, failed)`` across an action list."""
+    s = sum(1 for a in actions if a.get("succeeded") is True)
+    f = sum(1 for a in actions if a.get("succeeded") is False)
+    return s, f
 
 
 def build_modification_preview_ui(
@@ -1428,15 +1423,31 @@ def build_modification_preview_ui(
 
     Used by every tool that returns a ``ModificationResponse`` from
     ``_modification.py`` — ``modify_*``, ``delete_*``, ``correct_*``.
-    Confirm fires ``tools/call`` directly and the iframe pushes the
-    structured result to the agent via ``ui/update-model-context``
-    (ADR-0016 spike rail).
 
-    Renders one section per planned :class:`ActionResult` (operation header
-    + diff DataTable) plus a footer Confirm/Cancel pair that morphs in
-    place to applied / error / cancelled states.
+    The card renders **one DataTable** bound to ``state.plan_actions``
+    (one row per planned action: # / Operation / Target / Changes / Status).
+    Confirm fires ``tools/call`` directly; the on_success chain pushes
+    ``RESULT.actions`` into ``state.plan_actions`` so each row's status
+    cell ticks PLANNED → APPLIED/FAILED in place without re-rendering
+    the iframe (ADR-0016 direct-apply rail). The iframe also pushes the
+    structured result to the agent via ``ui/update-model-context``.
     """
-    apply_action = _build_apply_action_direct(confirm_tool, confirm_request)
+    actions = response.get("actions") or []
+    if not actions:
+        legacy = _legacy_action(response)
+        if legacy is not None:
+            actions = [legacy]
+
+    apply_action = _build_apply_action_direct(
+        confirm_tool,
+        confirm_request,
+        # Live-tick: replace the planned rows with the apply RESULT's actions
+        # before the generic ``applied=True`` flag flips. Each row's
+        # ``status_label`` updates from PLANNED to its terminal value
+        # (APPLIED / APPLIED (verified) / FAILED) and the DataTable
+        # re-renders rows in place — no iframe morph.
+        extra_on_success=[SetState(_PLAN_ACTIONS_KEY, RESULT.actions)],
+    )
     entity_type_raw = str(response.get("entity_type") or "entity")
     entity_type_label = _humanize_snake_case(entity_type_raw)
     verb_label = _verb_label(confirm_tool)
@@ -1444,25 +1455,16 @@ def build_modification_preview_ui(
         f"the {entity_type_raw.replace('_', ' ')} {verb_label.lower()}"
     )
 
-    actions = response.get("actions") or []
-    legacy_changes = response.get("changes") or []
     block_warnings, regular_warnings = _split_warnings(response.get("warnings"))
-    n_actions = len(actions) if actions else (1 if legacy_changes else 0)
-
-    action_row_slots, per_action_keys, _, _ = _summarize_actions(actions)
-    legacy_rows_key: str | None = None
-    if not actions and legacy_changes:
-        legacy_rows_key = _LEGACY_DIFF_STATE_KEY
+    n_actions = len(actions)
 
     state: dict[str, Any] = {
         "pending": False,
         "cancelled": False,
         "applied": False,
         "error": None,
-        **action_row_slots,
+        _PLAN_ACTIONS_KEY: _actions_to_rows(actions),
     }
-    if legacy_rows_key is not None:
-        state[legacy_rows_key] = [_change_to_diff_row(c) for c in legacy_changes]
 
     with PrefabApp(state=state, css_class="p-4") as app, Card():
         with CardHeader(), Row(gap=2):
@@ -1477,13 +1479,8 @@ def build_modification_preview_ui(
             if response.get("message"):
                 Text(content=response["message"])
 
-            if actions:
-                for idx, action in enumerate(actions, start=1):
-                    _render_action_section(
-                        idx, action, rows_state_key=per_action_keys[idx - 1]
-                    )
-            elif legacy_rows_key is not None:
-                DataTable(columns=_DIFF_COLUMNS, rows=legacy_rows_key)
+            if n_actions > 0:
+                DataTable(columns=_ACTION_COLUMNS, rows=_PLAN_ACTIONS_KEY)
 
             if block_warnings or regular_warnings:
                 Separator()
@@ -1492,16 +1489,7 @@ def build_modification_preview_ui(
                 for warning in regular_warnings:
                     Badge(label=warning, variant="secondary")
 
-            with If("applied"):
-                Separator()
-                Text(content=f"{entity_type_label} {verb_label.lower()} applied.")
-                Muted(
-                    content=(
-                        "The structured result has been pushed to the "
-                        "assistant's context."
-                    )
-                )
-            with Elif("error"):
+            with If("error"):
                 Separator()
                 with Alert(variant="destructive", icon="circle-alert"):
                     AlertTitle(content="Apply failed")
@@ -1514,7 +1502,9 @@ def build_modification_preview_ui(
                 )
             else:
                 with If("applied"):
-                    Muted(content="Changes applied.")
+                    Muted(
+                        content="Changes applied — see status column for per-action outcome."
+                    )
                 with Elif("error"):
                     Muted(content="Apply failed — see error above.")
                 with Elif("cancelled"):
@@ -1556,12 +1546,13 @@ def build_modification_result_ui(
         str(response.get("entity_type") or "entity")
     )
     actions = response.get("actions") or []
-    legacy_changes = response.get("changes") or []
     legacy_op = _humanize_snake_case(str(response.get("operation") or ""))
+    if not actions:
+        legacy = _legacy_action(response)
+        if legacy is not None:
+            actions = [legacy]
 
-    action_row_slots, per_action_keys, success_count, failed_count = _summarize_actions(
-        actions
-    )
+    success_count, failed_count = _count_outcomes(actions)
 
     overall_status: str
     overall_variant: Literal["default", "secondary", "outline", "destructive"]
@@ -1572,13 +1563,7 @@ def build_modification_result_ui(
     else:
         overall_status, overall_variant = "APPLIED", "default"
 
-    legacy_rows_key: str | None = None
-    if not actions and legacy_changes:
-        legacy_rows_key = _LEGACY_DIFF_STATE_KEY
-
-    state: dict[str, Any] = dict(action_row_slots)
-    if legacy_rows_key is not None:
-        state[legacy_rows_key] = [_change_to_diff_row(c) for c in legacy_changes]
+    state: dict[str, Any] = {_PLAN_ACTIONS_KEY: _actions_to_rows(actions)}
 
     # Title verb: prefer the tool-derived verb (works for delete/correct
     # tools); fall back to the legacy single-action ``operation`` field;
@@ -1607,12 +1592,7 @@ def build_modification_result_ui(
                         f"of {len(actions)}"
                     )
                 )
-                for idx, action in enumerate(actions, start=1):
-                    _render_action_section(
-                        idx, action, rows_state_key=per_action_keys[idx - 1]
-                    )
-            elif legacy_rows_key is not None:
-                DataTable(columns=_DIFF_COLUMNS, rows=legacy_rows_key)
+                DataTable(columns=_ACTION_COLUMNS, rows=_PLAN_ACTIONS_KEY)
 
         if response.get("katana_url"):
             with CardFooter(), Row(gap=2):
