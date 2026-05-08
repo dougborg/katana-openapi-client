@@ -647,8 +647,19 @@ Create a stock adjustment to correct inventory levels.
 
 **Parameters:**
 - `location_id` (required): Location ID for the adjustment
-- `rows` (required): List of `{sku, quantity, cost_per_unit?}` — positive to add, negative to remove
+- `rows` (required): List of `{sku, quantity, cost_per_unit?, batch_transactions?}`
+  - `quantity`: positive to add, negative to remove
+  - `batch_transactions`: `list[{batch_id, quantity}]` — required for
+    batch-tracked materials. Sum of allocated quantities should equal
+    the row's `quantity`. Leave None for non-batch-tracked items.
 - `reason` (optional): Reason for adjustment
+- `additional_info` (optional): Internal notes
+- `stock_adjustment_number` (optional): Adjustment number. Leave None to
+  let the tool generate a `SA-<timestamp>` default. Supply only when
+  importing from an external system or you need a specific number.
+- `stock_adjustment_date` (optional, ISO 8601): When the adjustment
+  occurred. Leave None to stamp the current call time. Supply for
+  back-fills (e.g. recording a physical count from yesterday).
 - `preview` (optional, default true): Set true to preview, false to create
 
 **Returns:** Adjustment ID and summary of changes.
