@@ -173,7 +173,11 @@ class CreateStockTransferRequest(BaseModel):
         ),
     )
     expected_arrival_date: datetime = Field(
-        ..., description="Expected arrival date at the destination location"
+        ...,
+        description=(
+            "Expected arrival date at the destination location — ISO 8601 date "
+            "or datetime (e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
     )
     rows: list[StockTransferRowInput] = Field(
         ..., description="Line items to transfer", min_length=1
@@ -208,8 +212,14 @@ class StockTransferResponse(BaseModel):
     expected_arrival_date: str | None = None
     item_count: int | None = None
     is_preview: bool
-    warnings: list[str] = Field(default_factory=list)
-    next_actions: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(
+        default_factory=list,
+        description="Operator-facing warnings raised during the operation.",
+    )
+    next_actions: list[str] = Field(
+        default_factory=list,
+        description="Suggested follow-up tools to call after this response.",
+    )
     message: str
     katana_url: str | None = None
 
@@ -799,10 +809,18 @@ class StockTransferHeaderPatch(BaseModel):
         default=None, description="New stock transfer number"
     )
     transfer_date: datetime | None = Field(
-        default=None, description="New transfer date"
+        default=None,
+        description=(
+            "New transfer date — ISO 8601 date or datetime "
+            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
     )
     expected_arrival_date: datetime | None = Field(
-        default=None, description="New expected arrival date"
+        default=None,
+        description=(
+            "New expected arrival date — ISO 8601 date or datetime "
+            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+        ),
     )
     additional_info: str | None = Field(
         default=None, description="New additional info/notes"
@@ -839,8 +857,20 @@ class ModifyStockTransferRequest(ConfirmableRequest):
     """
 
     id: int = Field(..., description="Stock transfer ID")
-    update_header: StockTransferHeaderPatch | None = Field(default=None)
-    update_status: StockTransferStatusPatch | None = Field(default=None)
+    update_header: StockTransferHeaderPatch | None = Field(
+        default=None,
+        description=(
+            "Header-field patches: transfer number, transfer/expected-arrival "
+            "dates, additional info."
+        ),
+    )
+    update_status: StockTransferStatusPatch | None = Field(
+        default=None,
+        description=(
+            "Status transition (DRAFT → IN_TRANSIT → RECEIVED). Maps to the "
+            "dedicated status endpoint; runs after header updates."
+        ),
+    )
 
 
 class DeleteStockTransferRequest(ConfirmableRequest):
