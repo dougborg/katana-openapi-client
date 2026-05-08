@@ -957,7 +957,24 @@ Create a purchase order with preview/apply pattern.
 - `supplier_id` (required): Supplier ID
 - `location_id` (required): Warehouse location for receipt
 - `order_number` (required): PO number (e.g., "PO-2025-001")
-- `items` (required): Array of line items with variant_id, quantity, price_per_unit
+- `items` (required): Array of line items with variant_id, quantity,
+  price_per_unit (plus optional tax_rate_id, purchase_uom,
+  purchase_uom_conversion_rate, arrival_date)
+- `notes` (optional): Internal notes (additional_info on the wire)
+- `currency` (optional): Currency code (e.g., USD, EUR)
+- `status` (optional): "DRAFT" or "NOT_RECEIVED" (default NOT_RECEIVED)
+- `entity_type` (optional): "regular" (default) or "outsourced". Outsourced
+  orders track subcontractor manufacturing. **When `entity_type="outsourced"`,
+  `tracking_location_id` is required** — Katana will reject the create call
+  without it.
+- `order_created_date` (optional, ISO 8601): When the order was placed.
+  Leave None to let Katana stamp the current server time. Supply for
+  back-fills (importing historical orders) or to reflect actual placement
+  when different from the call time.
+- `expected_arrival_date` (optional, ISO 8601): Order-level expected
+  arrival; row-level `arrival_date` overrides per line.
+- `tracking_location_id` (optional, int): Location ID for tracking
+  outsourced orders. Required when `entity_type="outsourced"`.
 - `preview` (optional, default true): true=preview, false=create
 
 **Safety:** When preview=false, prompts user for confirmation before creating.
