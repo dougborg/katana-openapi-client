@@ -71,39 +71,40 @@ class TestModificationCardRender:
         # Every action shows APPLIED (verified).
         assert frame.locator("td").filter(has_text="APPLIED").count() == 12
 
-    def test_apply_button_ticks_rows_live(self, render_scenario):
-        """Click-through live-tick: Confirm fires the apply call, the
-        on_success chain pushes RESULT.actions into state.plan_actions,
-        and rows transition from PLANNED to APPLIED in place.
+    def test_apply_button_morphs_card_to_applied_state(self, render_scenario):
+        """Click-through: Confirm fires the apply call, the on_success
+        chain flips ``state.applied=True``, and the footer/badge row
+        morphs to its applied state.
+
+        The pinned-here behavior is the conservative apply UX — the row
+        cells stay PLANNED because ``$result.actions`` doesn't resolve
+        in the on_success Rx context (see in-code comment in
+        ``build_modification_preview_ui``). A live-tick UX where rows
+        transition PLANNED → APPLIED in place is tracked as a follow-up
+        once the right Rx path is identified.
 
         The stub ``modify_manufacturing_order`` tool in
-        ``render_test_server.py`` returns a canned applied response.
-
-        Waits on the observable post-state condition (12 APPLIED cells
-        present) rather than a fixed timeout — fast on warm CI, robust
-        on slow CI, deterministic-fail if the live-tick path breaks.
+        ``render_test_server.py`` matches production wire shape via
+        ``make_tool_result``, so this test fails the same way production
+        would if the apply path regresses.
         """
         frame = render_scenario("modify_mo_12_actions_preview")
 
-        # Pre-state: 12 PLANNED, 0 APPLIED.
+        # Pre-state: 12 PLANNED, 0 APPLIED, "Applying..." badge absent,
+        # "Applied" footer pill absent.
         assert frame.locator("td").filter(has_text="PLANNED").count() == 12
-        assert frame.locator("td").filter(has_text="APPLIED").count() == 0
+        assert frame.locator("text=Applied").count() == 0
 
         # Fire the Confirm button.
         frame.locator("button").filter(has_text="Confirm").first.click()
 
-        # Wait for the live-tick to land — first APPLIED cell to become
-        # visible. ``wait_for`` polls with a 30s default timeout, so this
-        # completes ~immediately when the apply round-trip succeeds and
+        # Wait for the applied-state morph: the "Applied" pill in the
+        # button row appears once on_success fires. ``wait_for`` polls
+        # with a 30s timeout — completes fast when the apply succeeds,
         # fails deterministically if the on_success chain is broken.
-        frame.locator("td").filter(has_text="APPLIED").first.wait_for(
-            state="visible", timeout=30000
-        )
+        frame.locator("text=Applied").first.wait_for(state="visible", timeout=30000)
 
-        # Post-state: 0 PLANNED, 12 APPLIED.
-        assert frame.locator("td").filter(has_text="PLANNED").count() == 0, (
-            "Live-tick failed — Confirm click did not push RESULT.actions "
-            "into state.plan_actions, so rows stayed PLANNED. Check the "
-            "on_success chain in _build_apply_action_direct."
-        )
-        assert frame.locator("td").filter(has_text="APPLIED").count() == 12
+        # The Confirm button is now disabled (state.applied gates it via
+        # the ``locked`` Rx in ``_render_apply_button_row``).
+        confirm = frame.locator("button").filter(has_text="Confirm").first
+        assert confirm.is_disabled()
