@@ -792,6 +792,276 @@ class TestConfirmButtonEmitsApplyMessage:
         assert "preview=False" in msg["content"]
 
 
+class TestConfirmButtonDirectApplyRail:
+    """Direct-apply rail (ADR-0016, supersedes ADR-0015 for opted-in tools):
+
+    The Confirm button fires ``tools/call`` directly from the iframe with
+    the original args + ``preview=False``, and on success pushes the
+    structured result back to the agent's model context via
+    ``ui/update-model-context``. The agent does NOT re-issue the call.
+
+    Currently opted into by ``create_purchase_order``; rolling out to other
+    write tools after Cowork verification.
+    """
+
+    @staticmethod
+    def _confirm_action(envelope: dict, label: str) -> dict:
+        """Return the inner ``toolCall`` action for the direct-apply rail.
+
+        The direct rail's onClick is a list:
+        ``[setState("pending", True), toolCall(...)]``. The leading
+        ``setState`` is the in-flight click guard (so a double-click can't
+        fire two applies); the toolCall is what we return for assertions.
+        """
+        buttons = _find_buttons_by_label(envelope, label)
+        assert len(buttons) == 1, (
+            f"Expected exactly one Button with label {label!r}; found {len(buttons)}."
+        )
+        on_click = buttons[0].get("onClick") or buttons[0].get("on_click")
+        assert isinstance(on_click, list), (
+            f"Direct-apply rail onClick should be a [SetState, CallTool] list; "
+            f"got {type(on_click).__name__}: {on_click!r}"
+        )
+        # Click guard must come first: SetState(pending=True) before the
+        # CallTool so the button binds locked the moment the click fires.
+        assert on_click[0].get("action") == "setState", (
+            f"First action must be the pending guard; got {on_click[0]!r}"
+        )
+        assert on_click[0].get("key") == "pending"
+        assert on_click[0].get("value") is True, (
+            f"pending guard must set pending=True; got {on_click[0]!r}"
+        )
+        tool_calls = [a for a in on_click if a.get("action") == "toolCall"]
+        assert len(tool_calls) == 1, (
+            f"Expected exactly one toolCall in onClick; got {tool_calls!r}"
+        )
+        return tool_calls[0]
+
+    def test_po_preview_direct_apply_fires_call_tool(self):
+        from katana_mcp.tools.foundation.purchase_orders import (
+            CreatePurchaseOrderRequest,
+            PurchaseOrderItem,
+        )
+
+        request = CreatePurchaseOrderRequest(
+            supplier_id=2,
+            location_id=3,
+            order_number="PO-1",
+            items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.0)],
+        )
+        app = build_order_preview_ui(
+            {
+                "id": 1,
+                "order_number": "PO-1",
+                "supplier_id": 2,
+                "location_id": 3,
+                "status": "NOT_RECEIVED",
+                "warnings": [],
+            },
+            "Purchase Order",
+            confirm_request=request,
+            confirm_tool="create_purchase_order",
+            direct_apply=True,
+        )
+        envelope = app.to_json()
+        on_click = self._confirm_action(envelope, "Confirm & Create Purchase Order")
+
+        # The direct rail fires CallTool with the apply args (preview=False).
+        assert on_click.get("tool") == "create_purchase_order"
+        args = on_click.get("arguments") or {}
+        assert args.get("preview") is False, (
+            f"Direct rail must override preview=False; got {args!r}"
+        )
+        assert args.get("supplier_id") == 2
+        assert args.get("location_id") == 3
+        assert args.get("order_number") == "PO-1"
+
+    def test_po_preview_direct_apply_pushes_result_via_update_context(self):
+        """on_success chain must include UpdateContext(content=$result).
+
+        This is the load-bearing primitive: the iframe pushes the apply
+        result into the agent's context for its next turn, replacing the
+        SendMessage round-trip.
+        """
+        from katana_mcp.tools.foundation.purchase_orders import (
+            CreatePurchaseOrderRequest,
+            PurchaseOrderItem,
+        )
+
+        request = CreatePurchaseOrderRequest(
+            supplier_id=2,
+            location_id=3,
+            order_number="PO-1",
+            items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.0)],
+        )
+        app = build_order_preview_ui(
+            {
+                "id": 1,
+                "order_number": "PO-1",
+                "supplier_id": 2,
+                "location_id": 3,
+                "status": "NOT_RECEIVED",
+                "warnings": [],
+            },
+            "Purchase Order",
+            confirm_request=request,
+            confirm_tool="create_purchase_order",
+            direct_apply=True,
+        )
+        envelope = app.to_json()
+        on_click = self._confirm_action(envelope, "Confirm & Create Purchase Order")
+
+        on_success = on_click.get("onSuccess")
+        assert isinstance(on_success, list), (
+            f"Expected onSuccess to be a list; got {on_success!r}"
+        )
+        update_contexts = [a for a in on_success if a.get("action") == "updateContext"]
+        assert len(update_contexts) == 1, (
+            f"Expected exactly one updateContext action; got {update_contexts!r}"
+        )
+        assert update_contexts[0].get("content") == "{{ $result }}", (
+            f"updateContext.content must carry $result reactive ref so the "
+            f"agent receives the structured apply response on its next turn; "
+            f"got {update_contexts[0]!r}"
+        )
+
+        # State morph: applied=True so the iframe flips to a result view in
+        # place. result=$result so any inline Rx refs to state.result work.
+        set_states = [a for a in on_success if a.get("action") == "setState"]
+        keys = {s.get("key") for s in set_states}
+        assert "applied" in keys and "result" in keys, (
+            f"Expected applied/result state morph; got keys {keys!r}"
+        )
+
+    def test_po_preview_direct_apply_handles_error(self):
+        """on_error chain must include UpdateContext with the error reason
+        plus a toast and an 'error' state morph.
+        """
+        from katana_mcp.tools.foundation.purchase_orders import (
+            CreatePurchaseOrderRequest,
+            PurchaseOrderItem,
+        )
+
+        request = CreatePurchaseOrderRequest(
+            supplier_id=2,
+            location_id=3,
+            order_number="PO-1",
+            items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.0)],
+        )
+        app = build_order_preview_ui(
+            {
+                "id": 1,
+                "order_number": "PO-1",
+                "supplier_id": 2,
+                "location_id": 3,
+                "status": "NOT_RECEIVED",
+                "warnings": [],
+            },
+            "Purchase Order",
+            confirm_request=request,
+            confirm_tool="create_purchase_order",
+            direct_apply=True,
+        )
+        envelope = app.to_json()
+        on_click = self._confirm_action(envelope, "Confirm & Create Purchase Order")
+
+        on_error = on_click.get("onError")
+        assert isinstance(on_error, list), (
+            f"Expected onError to be a list; got {on_error!r}"
+        )
+        update_contexts = [a for a in on_error if a.get("action") == "updateContext"]
+        assert len(update_contexts) == 1, (
+            f"Expected exactly one updateContext on error; got {update_contexts!r}"
+        )
+        assert "$error" in update_contexts[0].get("content", ""), (
+            f"updateContext on error must include the error reason; "
+            f"got {update_contexts[0]!r}"
+        )
+        toasts = [a for a in on_error if a.get("action") == "showToast"]
+        assert len(toasts) == 1, f"Expected one error toast; got {toasts!r}"
+
+    def test_po_preview_direct_apply_double_click_is_guarded(self):
+        """Confirm button binds ``pending`` so a double-click cannot fire
+        two applies. Ensures (1) on_click sets pending=True before
+        CallTool, (2) on_success/on_error clear pending=False, and (3) the
+        button's disabled expression includes ``pending`` (so the second
+        click is dropped while the first is in flight).
+
+        Without this guard a fast double-click on ``create_purchase_order``
+        would fire two CallTool requests in parallel and create duplicate
+        POs in Katana — there's no idempotency on the API side.
+        """
+        from katana_mcp.tools.foundation.purchase_orders import (
+            CreatePurchaseOrderRequest,
+            PurchaseOrderItem,
+        )
+
+        request = CreatePurchaseOrderRequest(
+            supplier_id=2,
+            location_id=3,
+            order_number="PO-1",
+            items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.0)],
+        )
+        app = build_order_preview_ui(
+            {
+                "id": 1,
+                "order_number": "PO-1",
+                "supplier_id": 2,
+                "location_id": 3,
+                "status": "NOT_RECEIVED",
+                "warnings": [],
+            },
+            "Purchase Order",
+            confirm_request=request,
+            confirm_tool="create_purchase_order",
+            direct_apply=True,
+        )
+        envelope = app.to_json()
+
+        buttons = _find_buttons_by_label(envelope, "Confirm & Create Purchase Order")
+        on_click = buttons[0].get("onClick") or buttons[0].get("on_click")
+        # Click chain: [SetState(pending, True), CallTool(...)].
+        assert on_click[0].get("action") == "setState"
+        assert on_click[0].get("key") == "pending"
+        assert on_click[0].get("value") is True
+
+        # Inner CallTool clears pending in both on_success and on_error.
+        tool_call = next(a for a in on_click if a.get("action") == "toolCall")
+        for chain_name in ("onSuccess", "onError"):
+            chain = tool_call.get(chain_name) or []
+            pending_clears = [
+                a
+                for a in chain
+                if a.get("action") == "setState"
+                and a.get("key") == "pending"
+                and a.get("value") is False
+            ]
+            assert len(pending_clears) == 1, (
+                f"{chain_name} must clear pending=False so the buttons unlock "
+                f"after the call resolves; got {chain!r}"
+            )
+
+        # The button's `disabled` field carries the reactive lockout
+        # expression. Assert against that specific field — searching the
+        # whole button payload would false-positive because the guard
+        # names also appear inside `onClick` actions (e.g.,
+        # `setState(key="applied")` in on_success).
+        disabled = buttons[0].get("disabled")
+        assert isinstance(disabled, str), (
+            f"Expected disabled to be a reactive template string; got "
+            f"{disabled!r}. Lockout-contract pin lives there."
+        )
+        # Both the click guard (pending) and the morph guards (applied,
+        # error, cancelled) must be in the disabled expression so the
+        # button locks the moment any of those states flips.
+        for guard in ("pending", "applied", "error", "cancelled"):
+            assert guard in disabled, (
+                f"Confirm button's `disabled` expression must reference "
+                f"state '{guard}' so the button locks when it flips; "
+                f"got disabled={disabled!r}"
+            )
+
+
 class TestCancelButtonEmitsCancelMessage:
     """The Cancel button must fire ``setState("cancelled", True)`` plus a
     ``sendMessage("Cancel: do not apply ...")`` so the agent recognizes the

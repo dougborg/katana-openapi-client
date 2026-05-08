@@ -37,13 +37,26 @@ def registered_tools() -> dict[str, object]:
 # Tools whose request model has a ``preview: bool`` field AND emit a Prefab
 # preview card with Confirm/Cancel buttons. These must include the coaching
 # block (``with_preview_coaching``) in their description so the agent
-# recognizes the iframe SendMessage round-trip.
+# recognizes the iframe round-trip.
+#
+# Two rails:
+#   - SendMessage rail (default) — Confirm fires a ``Apply: call`` chat hint
+#     and the agent re-issues. Coaching: ``PREVIEW_APPLY_COACHING``.
+#   - Direct-apply rail (``register_preview_tool(direct=True)``) — Confirm
+#     fires ``tools/call`` directly and pushes the structured result back via
+#     ``ui/update-model-context``. Coaching: ``PREVIEW_APPLY_DIRECT_COACHING``.
 #
 # ``rebuild_cache`` has a ``preview`` field but renders markdown text rather
 # than a Prefab card, so it does not need coaching about button-driven
 # Apply: messages.
-PREVIEW_BUTTON_TOOLS = [
+
+# Tools currently using the direct-apply rail (per ADR-0016 spike).
+DIRECT_APPLY_TOOLS = [
     "create_purchase_order",
+]
+
+# Tools using the SendMessage rail (default, per ADR-0015).
+SEND_MESSAGE_APPLY_TOOLS = [
     "modify_purchase_order",
     "delete_purchase_order",
     "receive_purchase_order",
@@ -66,14 +79,15 @@ PREVIEW_BUTTON_TOOLS = [
     "correct_sales_order",
 ]
 
+PREVIEW_BUTTON_TOOLS = DIRECT_APPLY_TOOLS + SEND_MESSAGE_APPLY_TOOLS
+
 
 @pytest.mark.parametrize("tool_name", PREVIEW_BUTTON_TOOLS)
-def test_preview_button_tool_has_apply_coaching(
+def test_preview_button_tool_has_no_renarrate_coaching(
     registered_tools: dict[str, object], tool_name: str
 ) -> None:
-    """Every preview-button tool's description must include both coaching
-    paragraphs from ``PREVIEW_APPLY_COACHING``: the "do not re-narrate"
-    guidance (closes #544) and the ``Apply:`` re-issue instruction.
+    """Every preview-button tool's description must include the
+    "do not re-narrate" coaching (closes #544). Required for both rails.
     """
     tool = registered_tools[tool_name]
     description = tool.description or ""
@@ -82,10 +96,42 @@ def test_preview_button_tool_has_apply_coaching(
         f"re-narrate the preview card and ask for confirmation in chat. "
         f"Wire via with_preview_coaching() in register_tools."
     )
+
+
+@pytest.mark.parametrize("tool_name", SEND_MESSAGE_APPLY_TOOLS)
+def test_send_message_apply_tool_has_apply_call_coaching(
+    registered_tools: dict[str, object], tool_name: str
+) -> None:
+    """SendMessage-rail tools must coach the agent to recognize the
+    ``Apply: call <tool>(...)`` chat hint and re-issue.
+    """
+    tool = registered_tools[tool_name]
+    description = tool.description or ""
     assert "Apply: call" in description, (
         f"{tool_name}: missing 'Apply: call' coaching — agent will not "
         f"recognize the Confirm-button SendMessage and re-issue the call. "
-        f"Wire via with_preview_coaching() in register_tools."
+        f"Wire via with_preview_coaching() (direct=False) in register_tools."
+    )
+
+
+@pytest.mark.parametrize("tool_name", DIRECT_APPLY_TOOLS)
+def test_direct_apply_tool_has_update_model_context_coaching(
+    registered_tools: dict[str, object], tool_name: str
+) -> None:
+    """Direct-apply-rail tools must coach the agent that the apply result
+    arrives via ``ui/update-model-context``, not via re-issue.
+    """
+    tool = registered_tools[tool_name]
+    description = tool.description or ""
+    assert "ui/update-model-context" in description, (
+        f"{tool_name}: missing 'ui/update-model-context' coaching — agent "
+        f"won't know to expect the apply result via the iframe context push. "
+        f"Wire via with_preview_coaching(direct=True) in register_tools."
+    )
+    assert "Do NOT re-issue" in description, (
+        f"{tool_name}: missing 'Do NOT re-issue' coaching — agent may "
+        f"incorrectly re-issue after the iframe already applied. "
+        f"Wire via with_preview_coaching(direct=True) in register_tools."
     )
 
 
@@ -125,6 +171,11 @@ def test_read_only_tools_do_not_have_coaching(
         description = registered_tools[name].description or ""
         assert "Apply: call" not in description, (
             f"{name}: read-only tool unexpectedly carries the preview→apply "
+            f"coaching. The coaching should only be on tools that emit a "
+            f"Prefab preview card with Confirm/Cancel buttons."
+        )
+        assert "ui/update-model-context" not in description, (
+            f"{name}: read-only tool unexpectedly carries the direct-apply "
             f"coaching. The coaching should only be on tools that emit a "
             f"Prefab preview card with Confirm/Cancel buttons."
         )

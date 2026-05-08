@@ -188,9 +188,10 @@ def _po_response_to_tool_result(
 ) -> ToolResult:
     """Convert PurchaseOrderResponse to ToolResult with the appropriate Prefab UI.
 
-    On the preview branch, the rendered UI's "Confirm & Create" button
-    invokes ``create_purchase_order`` directly via ``CallTool`` with the
-    original args + ``preview=False``.
+    On the preview branch, the rendered UI uses the direct-apply rail
+    (Confirm fires ``tools/call`` directly + iframe pushes the structured
+    result to the agent via ``ui/update-model-context``). This is the spike
+    for the rail described in ADR-0016 (forthcoming, supersedes ADR-0015).
     """
     from katana_mcp.tools.prefab_ui import (
         build_order_created_ui,
@@ -204,6 +205,7 @@ def _po_response_to_tool_result(
             "Purchase Order",
             confirm_request=request,
             confirm_tool="create_purchase_order",
+            direct_apply=True,
         )
     else:
         ui = build_order_created_ui(order_dict, "Purchase Order")
@@ -2784,6 +2786,7 @@ def register_tools(mcp: FastMCP) -> None:
         tags={"orders", "purchasing", "write"},
         annotations=_create,
         meta=UI_META,
+        direct=True,
     )
     register_preview_tool(
         mcp,

@@ -24,7 +24,7 @@ from __future__ import annotations
 from typing import Any, Literal
 
 from prefab_ui.actions import Action, SetState, ShowToast
-from prefab_ui.actions.mcp import CallTool, SendMessage
+from prefab_ui.actions.mcp import CallTool, SendMessage, UpdateContext
 from prefab_ui.app import PrefabApp
 from prefab_ui.components import (
     H3,
@@ -44,7 +44,7 @@ from prefab_ui.components import (
     Separator,
     Text,
 )
-from prefab_ui.components.control_flow import Elif, ForEach, If
+from prefab_ui.components.control_flow import Elif, Else, ForEach, If
 from prefab_ui.components.slot import Slot
 from prefab_ui.rx import RESULT, Rx
 from pydantic import BaseModel
@@ -90,21 +90,50 @@ PREVIEW_APPLY_COACHING = (
 )
 
 
-def with_preview_coaching(fn: Any) -> str:
+# Coaching text for tools using the direct-apply rail (Confirm button fires
+# ``tools/call`` directly + iframe pushes the structured result back via
+# ``ui/update-model-context``). The agent does not re-issue the call — it
+# receives the apply result automatically on its next turn. See
+# ``docs/adr/0016-direct-apply-confirm-button-rail.md`` (forthcoming).
+PREVIEW_APPLY_DIRECT_COACHING = (
+    "Preview→apply: when ``preview=True`` (default) AND the host renders "
+    "MCP Apps iframes (Claude Desktop, Claude.ai, Cowork, etc.), returns a "
+    "Prefab card with Confirm/Cancel buttons. Do NOT re-narrate the card or "
+    "ask for confirmation in chat — the buttons handle that. End your turn "
+    "after the preview response.\n\n"
+    "When the user clicks Confirm in the iframe, the iframe fires the apply "
+    "call directly and morphs in place to a result card. The structured "
+    "apply response (id, status, etc.) arrives in your context on your next "
+    "turn via ``ui/update-model-context``. Treat it as you would any "
+    "tool-call result — acknowledge completion, suggest next steps. Do NOT "
+    "re-issue the call after the iframe already applied.\n\n"
+    "Non-iframe-host fallback: if the host does not render Prefab cards "
+    "(no iframe was shown to the user), there are no buttons. Ask the user "
+    "for confirmation in chat, then re-issue with ``preview=False`` "
+    "yourself.\n\n"
+    "If you receive a chat message starting with ``Cancel: do not apply ...``, "
+    "the user opted out — acknowledge briefly without re-issuing."
+)
+
+
+def with_preview_coaching(fn: Any, *, direct: bool = False) -> str:
     """Build a FastMCP tool description by appending preview→apply coaching
     to the function's docstring.
 
-    The constant ``PREVIEW_APPLY_COACHING`` is the single source of truth
-    for this text — update there to update every tool's description at
-    once. Tools without a ``preview`` parameter do not receive the
-    coaching (their tool description should not lie about the flow they
-    actually expose).
+    Two coaching variants:
+
+    - ``direct=False`` (default): tools using the SendMessage rail. Confirm
+      fires a ``Apply: call <tool>(...)`` chat message; agent re-issues.
+    - ``direct=True``: tools using the direct-apply rail. Confirm fires
+      ``tools/call`` directly and pushes the result via
+      ``ui/update-model-context``; agent does not re-issue.
 
     Most callers should use :func:`register_preview_tool` rather than
     calling this directly.
     """
+    coaching = PREVIEW_APPLY_DIRECT_COACHING if direct else PREVIEW_APPLY_COACHING
     base = (fn.__doc__ or "").strip()
-    return f"{base}\n\n{PREVIEW_APPLY_COACHING}" if base else PREVIEW_APPLY_COACHING
+    return f"{base}\n\n{coaching}" if base else coaching
 
 
 def register_preview_tool(
@@ -114,26 +143,18 @@ def register_preview_tool(
     tags: set[str],
     annotations: Any,
     meta: Any = None,
+    direct: bool = False,
 ) -> None:
     """Register a preview-mode write tool with standard coaching applied.
 
-    Equivalent to::
-
-        mcp.tool(
-            description=with_preview_coaching(fn),
-            tags=tags,
-            annotations=annotations,
-            meta=meta,
-        )(fn)
-
-    Every tool whose request model has a ``preview`` field and emits a
-    Prefab preview card with Confirm/Cancel buttons should register via
-    this helper — that's how the audit test in
-    ``tests/test_tool_descriptions_and_annotations.py`` knows the agent
-    contract is wired up.
+    Set ``direct=True`` for tools whose preview UI uses the direct-apply
+    rail (Confirm button fires ``tools/call`` directly and pushes the
+    structured result back via ``ui/update-model-context``). Default
+    ``direct=False`` uses the SendMessage rail (Confirm fires a chat
+    ``Apply: call ...`` for the agent to re-issue).
     """
     mcp.tool(
-        description=with_preview_coaching(fn),
+        description=with_preview_coaching(fn, direct=direct),
         tags=tags,
         annotations=annotations,
         meta=meta,
@@ -212,6 +233,76 @@ def _build_apply_action(
     ]
 
 
+def _build_apply_action_direct(
+    confirm_tool: str | None,
+    confirm_request: BaseModel | None,
+) -> list[Action] | None:
+    """Construct the direct-apply Confirm-button click action chain.
+
+    The chain is ``[SetState(pending, True), CallTool(...)]``. Setting
+    ``pending=True`` synchronously before the call fires is the spam guard:
+    the buttons bind ``disabled=Rx("pending") | ...`` so a second click
+    while the call is in flight is dropped (no duplicate POs). The
+    ``on_success`` / ``on_error`` chains clear ``pending`` and flip
+    ``applied`` / ``error`` for the in-place morph.
+
+    On success the iframe pushes the structured result back to the agent's
+    model context via ``ui/update-model-context`` (MCP Apps spec,
+    SEP-1865, 2026-01-26). The agent sees the result on its next turn —
+    no re-issue needed.
+
+    On error the iframe shows the error inline and pushes the error
+    reason into model context so the agent can react on its next turn.
+
+    The ``UpdateContext.content`` field (text channel) is the spec-correct
+    one for agent-visible context: per the MCP Apps spec, ``content``
+    reaches the model; ``structuredContent`` is for UI rendering and is
+    not guaranteed in model context.
+
+    See ``docs/adr/0016-direct-apply-confirm-button-rail.md`` (forthcoming)
+    for the architectural rationale; supersedes ADR-0015 for tools that
+    opt into this rail.
+
+    ``confirm_tool`` and ``confirm_request`` must be both set or both
+    ``None`` (the latter for builders that render their non-preview branch).
+    """
+    if confirm_tool is None and confirm_request is None:
+        return None
+    if confirm_tool is None or confirm_request is None:
+        raise ValueError(
+            "confirm_tool and confirm_request must be set together (or both None)"
+        )
+    args = confirm_request.model_dump(mode="json")
+    if "preview" not in args:
+        raise ValueError(
+            f"_build_apply_action_direct requires a request model with a "
+            f"`preview` field; {type(confirm_request).__name__} has none."
+        )
+    args["preview"] = False
+    return [
+        # Click guard — disables the button immediately so a double-click
+        # in the iframe can't fire two applies (which would create
+        # duplicate POs etc.). Cleared in on_success/on_error.
+        SetState("pending", True),
+        CallTool(
+            tool=confirm_tool,
+            arguments=args,
+            on_success=[
+                SetState("pending", False),
+                SetState("applied", True),
+                SetState("result", RESULT),
+                UpdateContext(content=RESULT),
+            ],
+            on_error=[
+                SetState("pending", False),
+                SetState("error", "{{ $error }}"),
+                ShowToast("{{ $error }}", variant="error"),
+                UpdateContext(content="Apply failed: {{ $error }}"),
+            ],
+        ),
+    ]
+
+
 def _build_cancel_action(operation_label: str) -> list[Action]:
     """Construct the Cancel-button click action.
 
@@ -236,14 +327,24 @@ def _render_apply_button_row(
     apply_action: list[Action] | None,
     cancel_action: list[Action],
     disabled: bool = False,
+    direct_apply: bool = False,
 ) -> None:
     """Render the preview-card button row with state-aware visuals.
 
-    Three visual states, all driven by iframe state (`pending`, `cancelled`):
+    States driven by iframe state:
 
     - **Default** — Confirm + Cancel buttons enabled.
-    - **Pending…** — pill rendered, both buttons disabled, after Confirm
-      click. The agent is now expected to re-issue the apply tool call.
+    - **Pending…** — pill rendered, both buttons disabled. Set on click for
+      both rails: SendMessage rail uses it as the re-issue handoff signal;
+      direct-apply rail uses it as the in-flight click guard so a
+      double-click cannot fire two applies. Cleared in on_success /
+      on_error for direct rail; persists for SendMessage rail (the agent
+      re-issue replaces the card).
+    - **Applied** — pill rendered, both buttons disabled. Direct-apply rail
+      only (``direct_apply=True``); apply succeeded and the iframe morphed.
+    - **Error** — pill rendered, both buttons disabled. Direct-apply rail
+      only; apply failed. The error reason is in iframe state and was
+      pushed to the agent via ``ui/update-model-context``.
     - **Cancelled** — pill rendered, both buttons disabled, after Cancel
       click.
 
@@ -264,12 +365,28 @@ def _render_apply_button_row(
             )
         return
 
-    locked = Rx("pending") | Rx("cancelled")
+    if direct_apply:
+        # `pending` is the in-flight guard — set on click before CallTool
+        # fires, cleared in on_success/on_error. Including it in `locked`
+        # is what prevents double-click from firing two applies.
+        locked = Rx("pending") | Rx("applied") | Rx("error") | Rx("cancelled")
+    else:
+        locked = Rx("pending") | Rx("cancelled")
     with Row(gap=2):
-        with If("pending"):
-            Badge(label="Pending…", variant="secondary")
-        with Elif("cancelled"):
-            Badge(label="Cancelled", variant="secondary")
+        if direct_apply:
+            with If("pending"):
+                Badge(label="Applying…", variant="secondary")
+            with Elif("applied"):
+                Badge(label="Applied", variant="default")
+            with Elif("error"):
+                Badge(label="Error", variant="destructive")
+            with Elif("cancelled"):
+                Badge(label="Cancelled", variant="secondary")
+        else:
+            with If("pending"):
+                Badge(label="Pending…", variant="secondary")
+            with Elif("cancelled"):
+                Badge(label="Cancelled", variant="secondary")
         Button(
             label=confirm_label,
             variant="default",
@@ -766,17 +883,36 @@ def build_order_preview_ui(
     *,
     confirm_request: BaseModel,
     confirm_tool: str,
+    direct_apply: bool = False,
 ) -> PrefabApp:
     """Build an order preview card with confirm/cancel buttons.
 
     Pass the original Pydantic ``confirm_request`` and matching
-    ``confirm_tool`` name; the Confirm button is wired via
-    :func:`_build_apply_action`.
+    ``confirm_tool`` name. Two apply rails:
+
+    - ``direct_apply=False`` (default) — Confirm fires a SendMessage chat
+      hint and the agent re-issues the call. See ADR-0015.
+    - ``direct_apply=True`` — Confirm fires ``tools/call`` directly, the
+      iframe morphs in place to a result view, and the structured response
+      is pushed to the agent via ``ui/update-model-context``. See ADR-0016
+      (forthcoming). Currently opted into by ``create_purchase_order``;
+      rolling out across the rest of the write tools after Cowork
+      verification.
     """
     fields = _extract_order_fields(order)
-    apply_action = _build_apply_action(confirm_tool, confirm_request)
+    apply_action: list[Action] | CallTool | None
+    if direct_apply:
+        apply_action = _build_apply_action_direct(confirm_tool, confirm_request)
+    else:
+        apply_action = _build_apply_action(confirm_tool, confirm_request)
     cancel_action = _build_cancel_action(f"that {order_type.lower()}")
     state: dict[str, Any] = {"order": order, "pending": False, "cancelled": False}
+    if direct_apply:
+        # Initial state for the morph; on apply success the iframe sets
+        # `applied=True` and stashes the structured response in `result`.
+        state["applied"] = False
+        state["error"] = None
+        state["result"] = None
 
     with PrefabApp(state=state, css_class="p-4") as app, Card():
         with CardHeader(), Row(gap=2):
@@ -801,11 +937,43 @@ def build_order_preview_ui(
                 for warning in regular_warnings:
                     Badge(label=warning, variant="secondary")
 
+            if direct_apply:
+                # Direct-apply morph: success/error blocks render in place
+                # of the preview footer messaging when the iframe state
+                # flips. The agent has already received the structured
+                # result via ui/update-model-context — these blocks are
+                # for the user, not the agent.
+                with If("applied"):
+                    Separator()
+                    Text(content=f"{order_type} created.")
+                    Muted(
+                        content=(
+                            "The structured result has been pushed to the "
+                            "assistant's context."
+                        )
+                    )
+                with Elif("error"):
+                    Separator()
+                    Text(content="Apply failed.")
+                    Muted(content="{{ $state.error }}")
+
         with CardFooter():
             if block_warnings:
                 Muted(
                     content="Cannot proceed — see warnings above. No changes have been made."
                 )
+            elif direct_apply:
+                # Footer message tracks the iframe state — once applied or
+                # errored, "This is a preview" is no longer true and would
+                # confuse the user.
+                with If("applied"):
+                    Muted(content=f"{order_type} created.")
+                with Elif("error"):
+                    Muted(content="Apply failed — see error above.")
+                with Elif("cancelled"):
+                    Muted(content="Cancelled. No changes were made.")
+                with Else():
+                    Muted(content="This is a preview. No changes have been made.")
             else:
                 Muted(content="This is a preview. No changes have been made.")
 
@@ -814,6 +982,7 @@ def build_order_preview_ui(
                 apply_action=apply_action,
                 cancel_action=cancel_action,
                 disabled=bool(block_warnings),
+                direct_apply=direct_apply,
             )
     return app
 
