@@ -492,6 +492,7 @@ async def create_manufacturing_order(
             "Manufacturing Order",
             confirm_request=request,
             confirm_tool="create_manufacturing_order",
+            direct_apply=True,
         )
     else:
         ui = build_order_created_ui(order_dict, "Manufacturing Order")
@@ -3384,6 +3385,7 @@ def register_tools(mcp: FastMCP) -> None:
         tags={"orders", "manufacturing", "write"},
         annotations=_create,
         meta=UI_META,
+        direct=True,
     )
     mcp.tool(
         tags={"orders", "manufacturing", "read"},

@@ -52,7 +52,10 @@ def registered_tools() -> dict[str, object]:
 
 # Tools currently using the direct-apply rail (per ADR-0016 spike).
 DIRECT_APPLY_TOOLS = [
+    # Order creates that route through build_order_preview_ui.
     "create_purchase_order",
+    "create_sales_order",
+    "create_manufacturing_order",
     # Modification tools — every tool that returns a ModificationResponse
     # via _modification.to_tool_result is on the direct-apply rail.
     "modify_purchase_order",
@@ -70,11 +73,10 @@ DIRECT_APPLY_TOOLS = [
     "correct_purchase_order",
 ]
 
-# Tools using the SendMessage rail (default, per ADR-0015).
+# Tools still using the SendMessage rail (default, per ADR-0015). Tracked
+# for migration in #633.
 SEND_MESSAGE_APPLY_TOOLS = [
     "receive_purchase_order",
-    "create_sales_order",
-    "create_manufacturing_order",
     "create_stock_transfer",
     "create_stock_adjustment",
     "update_stock_adjustment",
