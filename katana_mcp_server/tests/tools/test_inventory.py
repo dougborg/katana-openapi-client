@@ -58,13 +58,30 @@ def _content_text(result) -> str:
 
 @pytest.fixture(autouse=True)
 def _patch_cache_sync():
-    """Patch ensure_variants_synced for all unit tests.
+    """Patch entity syncs for all unit tests.
 
     The cache sync is tested separately; tool tests verify tool logic
-    with pre-populated cache mocks.
+    with pre-populated cache mocks. ``get_variant_details`` syncs VARIANT
+    plus PRODUCT, MATERIAL, and SUPPLIER (parent-derived ``default_supplier_*``
+    are lifted from the parent product/material), so all four are mocked.
     """
-    with patch("katana_mcp.cache_sync.ensure_variants_synced", new_callable=AsyncMock):
-        yield
+    from katana_mcp.cache import EntityType
+    from katana_mcp.tools import decorators
+
+    original = decorators._sync_fns
+    decorators._sync_fns = {
+        EntityType.VARIANT: AsyncMock(),
+        EntityType.PRODUCT: AsyncMock(),
+        EntityType.MATERIAL: AsyncMock(),
+        EntityType.SUPPLIER: AsyncMock(),
+    }
+    try:
+        with patch(
+            "katana_mcp.cache_sync.ensure_variants_synced", new_callable=AsyncMock
+        ):
+            yield
+    finally:
+        decorators._sync_fns = original
 
 
 _INVENTORY_API = "katana_public_api_client.api.inventory.get_all_inventory_point"
