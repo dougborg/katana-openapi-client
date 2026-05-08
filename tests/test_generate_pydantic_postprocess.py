@@ -200,8 +200,8 @@ def test_inject_index_annotations_handles_index_columns(gen: ModuleType) -> None
     )
     [out] = gen.inject_index_annotations([cls])
     assert "SQLField(index=True, description=" in out.source
-    # ``unique=True`` should NOT be present — Variant uses index_columns,
-    # not unique_columns (legacy didn't enforce SKU uniqueness).
+    # ``unique=True`` should NOT be present — legacy didn't enforce SKU
+    # uniqueness, only a plain (non-unique) index.
     assert "unique=True" not in out.source
     # description preserved
     assert '"Stock keeping unit"' in out.source
@@ -210,7 +210,7 @@ def test_inject_index_annotations_handles_index_columns(gen: ModuleType) -> None
 def test_inject_index_annotations_skips_classes_without_specs(
     gen: ModuleType,
 ) -> None:
-    """Classes without ``unique_columns`` or ``index_columns`` are untouched."""
+    """Classes without ``index_columns`` are untouched."""
     # CachedSalesOrder has neither spec.
     cls = _make_cls(
         gen,

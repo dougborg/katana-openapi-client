@@ -235,15 +235,12 @@ class CacheTableSpec:
     - ``json_columns``: fields whose values stay JSON in the cache (lists
       of polymorphic / non-cached nested models, single nested objects
       SQLAlchemy can't auto-map).
-    - ``unique_columns``: fields that get ``unique=True`` (and
-      ``index=True``) on the SQLAlchemy column, enforcing uniqueness at
-      the DB level. Use only when the domain truly guarantees uniqueness
-      (and add a NOCASE collation hint via ``sa_column`` if case-folding
-      lookups are expected — bare ``unique=True`` is binary-comparison).
-    - ``index_columns``: fields that get ``index=True`` (non-unique).
-      Used for high-cardinality lookup columns where the legacy schema
-      defined a plain index — e.g., ``Variant.sku`` (legacy
-      ``idx_entity_sku ON entity_index(sku COLLATE NOCASE)``).
+    - ``index_columns``: fields that get ``index=True`` on the SQLAlchemy
+      column. Used for high-cardinality lookup columns where the legacy
+      schema defined a plain index — e.g., ``Variant.sku`` (legacy
+      ``idx_entity_sku ON entity_index(sku COLLATE NOCASE)``). Add
+      ``unique=True`` support here when a future cache class needs
+      DB-level uniqueness.
     - ``flatten_parent``: when set, the cache class flattens an intermediate
       non-base, non-cached parent class (e.g., ``Material(InventoryItem)`` →
       ``CachedMaterial(ArchivableEntity)`` with ``InventoryItem``'s fields
@@ -254,7 +251,6 @@ class CacheTableSpec:
     name_override: str | None = None
     extra_fields: tuple[CacheExtraField, ...] = ()
     json_columns: tuple[str, ...] = ()
-    unique_columns: tuple[str, ...] = ()
     index_columns: tuple[str, ...] = ()
     flatten_parent: str | None = None
 
@@ -369,9 +365,6 @@ CACHE_TABLES: dict[str, CacheTableSpec] = {
         # ``sku`` is indexed but not unique. Phase B's CatalogQueries
         # adapter applies ``COLLATE NOCASE`` in the lookup query so
         # case-insensitive ``get_by_sku`` keeps the legacy semantics.
-        # If we ever want to enforce SKU uniqueness as a domain
-        # invariant, add ``unique_columns=("sku",)`` and a NOCASE
-        # collation hint together (see #472 follow-up tracking).
         index_columns=("sku",),
     ),
     "Product": CacheTableSpec(
@@ -1170,21 +1163,12 @@ def duplicate_cache_tables_as_cached_siblings(
     (``SalesOrderListResponse.data: list[SalesOrder]``) keep pointing at
     the API classes.
     """
+    # Tokenize-aware identifier rewrite so cross-cache references
+    # (``Variant`` → ``CachedVariant``) skip string literals — class names
+    # that are also English words (``Customer``, ``Supplier``, ``Material``,
+    # ``Product``) would otherwise corrupt descriptions like ``"Customer's
+    # reference number"``. See ``_rewrite_identifiers_outside_strings``.
     cached_targets = {n: _cached_name(n) for n in CACHE_TABLES}
-
-    def _rewrite_internal_refs(source: str) -> str:
-        # Word-boundary swap so e.g. ``SalesOrder`` → ``CachedSalesOrder``
-        # doesn't also touch ``SalesOrderRow`` (the longer name handled in
-        # its own iteration). Iterate longest-first to avoid corrupting
-        # nested references like ``SalesOrderRow`` → ``CachedSalesOrderRow``
-        # when ``SalesOrder`` is rewritten first.
-        #
-        # Use a tokenize-aware rewrite to avoid touching string literals.
-        # Common English-word class names (``Customer``, ``Supplier``,
-        # ``Material``, ``Product``) would otherwise corrupt description
-        # strings such as ``"Customer's reference number"`` →
-        # ``"CachedCustomer's reference number"``.
-        return _rewrite_identifiers_outside_strings(source, cached_targets)
 
     cached_copies: list[ClassInfo] = []
     for cls in classes:
@@ -1202,7 +1186,7 @@ def duplicate_cache_tables_as_cached_siblings(
             count=1,
             flags=re.MULTILINE,
         )
-        new_source = _rewrite_internal_refs(new_source)
+        new_source = _rewrite_identifiers_outside_strings(new_source, cached_targets)
         # Strip body-level statements that the cache passes will replace
         # with their SQL-aware equivalents. Standalone classes (extending
         # ``KatanaPydanticBase`` directly rather than an entity base) emit
@@ -1771,9 +1755,9 @@ def flatten_intermediate_inheritance(classes: list[ClassInfo]) -> list[ClassInfo
     correctly.
 
     References to other cache classes inside the inlined fields go
-    through the same ``_rewrite_internal_refs`` logic as the duplicate
-    pass — e.g., ``InventoryItem.variants: list[Variant]`` becomes
-    ``list[CachedVariant]`` on the cache class.
+    through ``_rewrite_identifiers_outside_strings`` (same as the
+    duplicate pass) — e.g., ``InventoryItem.variants: list[Variant]``
+    becomes ``list[CachedVariant]`` on the cache class.
     """
     cached_targets = {n: _cached_name(n) for n in CACHE_TABLES}
     flatten_specs = {
@@ -1785,12 +1769,6 @@ def flatten_intermediate_inheritance(classes: list[ClassInfo]) -> list[ClassInfo
         return classes
 
     by_name = {cls.name: cls for cls in classes}
-
-    def _rewrite_internal_refs(source: str) -> str:
-        # Tokenize-aware so descriptions / docstrings that mention class
-        # names as English words (e.g. ``"Customer's reference number"``)
-        # don't get corrupted. See ``_rewrite_identifiers_outside_strings``.
-        return _rewrite_identifiers_outside_strings(source, cached_targets)
 
     fixed = []
     for cls in classes:
@@ -1847,8 +1825,10 @@ def flatten_intermediate_inheritance(classes: list[ClassInfo]) -> list[ClassInfo
         parent_body = "\n".join(parent_body_lines).strip("\n")
         # Rewrite cross-cache references (e.g., ``list[Variant]`` →
         # ``list[CachedVariant]``) so JSON-column injection on inlined
-        # fields lands on the cache-aware types.
-        parent_body = _rewrite_internal_refs(parent_body)
+        # fields lands on the cache-aware types. Tokenize-aware so
+        # descriptions that mention class names as English words don't get
+        # corrupted — see ``_rewrite_identifiers_outside_strings``.
+        parent_body = _rewrite_identifiers_outside_strings(parent_body, cached_targets)
 
         # Identify parent-declared field names so we can strip the child's
         # overriding declarations (kept the parent's instead). Without
@@ -1923,70 +1903,58 @@ def flatten_intermediate_inheritance(classes: list[ClassInfo]) -> list[ClassInfo
 
 
 def inject_index_annotations(classes: list[ClassInfo]) -> list[ClassInfo]:
-    """Add ``unique=True``/``index=True`` to fields per the cache spec.
+    """Add ``index=True`` to fields per the cache spec.
 
-    Reads ``CacheTableSpec.unique_columns`` (DB-level uniqueness, also
-    indexed) and ``CacheTableSpec.index_columns`` (non-unique index)
-    and rewrites the matching ``Field(...)`` declarations to
-    ``SQLField(...)`` with the appropriate kwargs preserving description.
-
-    SQLite (and most engines) implement ``UNIQUE`` via a unique index;
-    we set ``index=True`` explicitly on unique columns too so the
-    column shows up cleanly in introspection. Non-unique ``index_columns``
-    mirror the legacy ``CatalogCache``'s plain indexes (e.g.,
-    ``idx_entity_sku ON entity_index(sku COLLATE NOCASE)``); the
-    NOCASE collation is applied at query time by the Phase B adapter,
-    not on the column itself.
+    Reads ``CacheTableSpec.index_columns`` and rewrites the matching
+    ``Field(...)`` declarations to ``SQLField(index=True, ...)`` preserving
+    description. Mirrors the legacy ``CatalogCache``'s plain indexes (e.g.,
+    ``idx_entity_sku ON entity_index(sku COLLATE NOCASE)``); the NOCASE
+    collation is applied at query time by the Phase B adapter, not on the
+    column itself.
 
     Two cases mirror ``inject_foreign_keys``:
 
     - Field already declares ``Field(...)``: rewrite to ``SQLField(...)``
       preserving description.
-    - Field already declares ``SQLField(...)``: insert kwargs as leading
-      args (covers the case where ``inject_json_columns`` already
+    - Field already declares ``SQLField(...)``: insert ``index=True`` as a
+      leading kwarg (covers the case where ``inject_json_columns`` already
       rewrote the field — symmetric/safe).
 
     Operates on ``Cached<Name>`` siblings only.
     """
-    column_specs: dict[str, dict[str, str]] = {}
-    for name, spec in CACHE_TABLES.items():
-        cached = _cached_name(name)
-        per_class: dict[str, str] = {}
-        for field_name in spec.unique_columns:
-            per_class[field_name] = "unique=True, index=True, "
-        for field_name in spec.index_columns:
-            per_class.setdefault(field_name, "index=True, ")
-        if per_class:
-            column_specs[cached] = per_class
+    column_specs: dict[str, tuple[str, ...]] = {
+        _cached_name(name): spec.index_columns
+        for name, spec in CACHE_TABLES.items()
+        if spec.index_columns
+    }
 
     fixed = []
     for cls in classes:
-        per_class = column_specs.get(cls.name)
-        if not per_class:
+        fields = column_specs.get(cls.name)
+        if not fields:
             fixed.append(cls)
             continue
         new_source = cls.source
-        for field_name, kwargs_prefix in per_class.items():
+        for field_name in fields:
             # Case 1: the field still uses ``Field(`` (no prior rewrite).
             pattern_pydantic = (
                 rf"({re.escape(field_name)}:\s*Annotated\[\s*[^,]+,\s*)"
                 r"Field\(\s*(description=)"
             )
-            replacement_pydantic = rf"\1SQLField({kwargs_prefix}\2"
+            replacement_pydantic = r"\1SQLField(index=True, \2"
             new_source, n = re.subn(
                 pattern_pydantic, replacement_pydantic, new_source, count=1
             )
             if n == 1:
                 continue
             # Case 2: a prior pass already rewrote to ``SQLField(...)`` —
-            # inject as leading kwargs (idempotent: skip if already
-            # present so a re-run doesn't double-add).
-            already_marker = kwargs_prefix.split("=", 1)[0]
+            # inject ``index=True`` as a leading kwarg (idempotent: skip
+            # if already present so a re-run doesn't double-add).
             pattern_sqlfield = (
                 rf"({re.escape(field_name)}:\s*Annotated\[\s*[^,]+,\s*)"
-                rf"SQLField\(\s*(?!{re.escape(already_marker)}=)"
+                r"SQLField\(\s*(?!index=)"
             )
-            replacement_sqlfield = rf"\1SQLField({kwargs_prefix}"
+            replacement_sqlfield = r"\1SQLField(index=True, "
             new_source, n = re.subn(
                 pattern_sqlfield, replacement_sqlfield, new_source, count=1
             )
