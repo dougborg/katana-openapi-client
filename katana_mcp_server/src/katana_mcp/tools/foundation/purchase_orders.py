@@ -254,8 +254,9 @@ async def _create_purchase_order_impl(
 
     # Resolve supplier/location names from cache for both preview and apply
     # branches so the result card has the same information density either way
-    # (#618). Cache misses surface as advisory warnings on the preview branch
-    # only — by the time we're applying, the user has already seen them.
+    # (#618). Cache-miss warnings are surfaced on whichever branch runs —
+    # interactive callers see them on preview, programmatic callers using
+    # ``preview=false`` directly see them on the apply response.
     (supplier_name, sup_warn), (location_name, loc_warn) = await asyncio.gather(
         resolve_entity_name(
             services.cache,
@@ -370,6 +371,7 @@ async def _create_purchase_order_impl(
             item_count=len(request.items),
             notes=notes_echo,
             is_preview=False,
+            warnings=[w for w in (sup_warn, loc_warn) if w],
             katana_url=katana_web_url("purchase_order", po.id),
             next_actions=[
                 f"Purchase order created with ID {po.id}",
