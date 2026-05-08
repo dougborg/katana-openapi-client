@@ -15,6 +15,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.tools.foundation.items import (
+    VariantConfigAttributePatch,
+    coerce_variant_config_attributes,
+)
 from katana_mcp.tools.tool_result_utils import UI_META, make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_mcp.web_urls import katana_web_url
@@ -23,6 +27,7 @@ from katana_public_api_client.models import (
     CreateMaterialRequest as ApiCreateMaterialRequest,
     CreateProductRequest as ApiCreateProductRequest,
     CreateVariantRequest,
+    CreateVariantRequestConfigAttributesItem as ApiCreateVariantConfigItem,
 )
 
 logger = get_logger(__name__)
@@ -54,6 +59,42 @@ class CreateProductRequest(BaseModel):
         description=("Default supplier ID. Look up via `list_suppliers`."),
     )
     additional_info: str | None = Field(None, description="Additional notes")
+
+    # Variant-level fields — forwarded to the embedded CreateVariantRequest.
+    # Mirror modify_item.add_variants (VariantAdd) so create/modify symmetry holds.
+    supplier_item_codes: list[str] | None = Field(
+        default=None,
+        description=(
+            "Supplier item codes (e.g. supplier MPNs). Use a list — Katana stores "
+            "multiple codes per variant."
+        ),
+    )
+    internal_barcode: str | None = Field(
+        default=None,
+        description="Internal barcode for the variant.",
+    )
+    registered_barcode: str | None = Field(
+        default=None,
+        description="Registered (e.g. UPC/EAN) barcode for the variant.",
+    )
+    lead_time: int | None = Field(
+        default=None,
+        description="Variant lead time in days.",
+    )
+    minimum_order_quantity: float | None = Field(
+        default=None,
+        description="Minimum order quantity for the variant.",
+    )
+    config_attributes: list[VariantConfigAttributePatch] | None = Field(
+        default=None,
+        description=(
+            "Pin one value per parent config to define this variant. Each "
+            "``config_name`` must match a config on the parent and "
+            "``config_value`` must be one of that config's allowed values. "
+            "Only meaningful for multi-variant products — a single-variant "
+            "product without configs should leave this None."
+        ),
+    )
 
 
 class CreateProductResponse(BaseModel):
@@ -95,10 +136,24 @@ async def _create_product_impl(
         services = get_services(context)
 
         # Create variant request
+        config_attrs = (
+            coerce_variant_config_attributes(
+                [c.model_dump() for c in request.config_attributes],
+                ApiCreateVariantConfigItem,
+            )
+            if request.config_attributes is not None
+            else None
+        )
         variant = CreateVariantRequest(
             sku=request.sku,
             sales_price=to_unset(request.sales_price),
             purchase_price=to_unset(request.purchase_price),
+            supplier_item_codes=to_unset(request.supplier_item_codes),
+            internal_barcode=to_unset(request.internal_barcode),
+            registered_barcode=to_unset(request.registered_barcode),
+            lead_time=to_unset(request.lead_time),
+            minimum_order_quantity=to_unset(request.minimum_order_quantity),
+            config_attributes=to_unset(config_attrs),
         )
 
         # Create product request
@@ -191,6 +246,42 @@ class CreateMaterialRequest(BaseModel):
     )
     additional_info: str | None = Field(None, description="Additional notes")
 
+    # Variant-level fields — forwarded to the embedded CreateVariantRequest.
+    # Mirror modify_item.add_variants (VariantAdd) so create/modify symmetry holds.
+    supplier_item_codes: list[str] | None = Field(
+        default=None,
+        description=(
+            "Supplier item codes (e.g. supplier MPNs). Use a list — Katana stores "
+            "multiple codes per variant."
+        ),
+    )
+    internal_barcode: str | None = Field(
+        default=None,
+        description="Internal barcode for the variant.",
+    )
+    registered_barcode: str | None = Field(
+        default=None,
+        description="Registered (e.g. UPC/EAN) barcode for the variant.",
+    )
+    lead_time: int | None = Field(
+        default=None,
+        description="Variant lead time in days.",
+    )
+    minimum_order_quantity: float | None = Field(
+        default=None,
+        description="Minimum order quantity for the variant.",
+    )
+    config_attributes: list[VariantConfigAttributePatch] | None = Field(
+        default=None,
+        description=(
+            "Pin one value per parent config to define this variant. Each "
+            "``config_name`` must match a config on the parent and "
+            "``config_value`` must be one of that config's allowed values. "
+            "Only meaningful for multi-variant materials — a single-variant "
+            "material without configs should leave this None."
+        ),
+    )
+
 
 class CreateMaterialResponse(BaseModel):
     """Response from creating a material."""
@@ -231,10 +322,24 @@ async def _create_material_impl(
         services = get_services(context)
 
         # Create variant request
+        config_attrs = (
+            coerce_variant_config_attributes(
+                [c.model_dump() for c in request.config_attributes],
+                ApiCreateVariantConfigItem,
+            )
+            if request.config_attributes is not None
+            else None
+        )
         variant = CreateVariantRequest(
             sku=request.sku,
             sales_price=to_unset(request.sales_price),
             purchase_price=to_unset(request.purchase_price),
+            supplier_item_codes=to_unset(request.supplier_item_codes),
+            internal_barcode=to_unset(request.internal_barcode),
+            registered_barcode=to_unset(request.registered_barcode),
+            lead_time=to_unset(request.lead_time),
+            minimum_order_quantity=to_unset(request.minimum_order_quantity),
+            config_attributes=to_unset(config_attrs),
         )
 
         # Create material request

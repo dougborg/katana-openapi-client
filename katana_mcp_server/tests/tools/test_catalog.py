@@ -10,6 +10,12 @@ from katana_mcp.tools.foundation.catalog import (
     _create_material_impl,
     _create_product_impl,
 )
+from katana_mcp.tools.foundation.items import VariantConfigAttributePatch
+
+from katana_public_api_client.client_types import UNSET
+from katana_public_api_client.models import (
+    CreateVariantRequestConfigAttributesItem as ApiCreateVariantConfigItem,
+)
 
 # ============================================================================
 # Test Helpers
@@ -176,6 +182,140 @@ async def test_create_product_error_handling():
 
     with pytest.raises(Exception, match="API Error: Invalid product data"):
         await _create_product_impl(request, context)
+
+
+# ============================================================================
+# Variant-field forwarding (Entity A — issue #627)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_create_product_forwards_variant_fields():
+    """All variant-level fields supplied to create_product should land on the
+    embedded CreateVariantRequest, not be silently dropped at the MCP boundary.
+    Regression for the gap that #627 closes.
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    mock_product = MagicMock()
+    mock_product.id = 700
+    mock_product.name = "Variant Pro"
+    lifespan_ctx.client.products.create = AsyncMock(return_value=mock_product)
+
+    request = CreateProductRequest(
+        name="Variant Pro",
+        sku="VP-001",
+        supplier_item_codes=["SUP-001", "SUP-002"],
+        internal_barcode="INT-VP-001",
+        registered_barcode="0123456789012",
+        lead_time=14,
+        minimum_order_quantity=5.0,
+        config_attributes=[
+            VariantConfigAttributePatch(config_name="Size", config_value="M"),
+            VariantConfigAttributePatch(config_name="Color", config_value="Blue"),
+        ],
+    )
+    await _create_product_impl(request, context)
+
+    call_args = lifespan_ctx.client.products.create.call_args[0][0]
+    assert len(call_args.variants) == 1
+    variant = call_args.variants[0]
+    assert variant.supplier_item_codes == ["SUP-001", "SUP-002"]
+    assert variant.internal_barcode == "INT-VP-001"
+    assert variant.registered_barcode == "0123456789012"
+    assert variant.lead_time == 14
+    assert variant.minimum_order_quantity == 5.0
+    assert len(variant.config_attributes) == 2
+    assert all(
+        isinstance(c, ApiCreateVariantConfigItem) for c in variant.config_attributes
+    )
+    assert variant.config_attributes[0].config_name == "Size"
+    assert variant.config_attributes[0].config_value == "M"
+    assert variant.config_attributes[1].config_name == "Color"
+    assert variant.config_attributes[1].config_value == "Blue"
+
+
+@pytest.mark.asyncio
+async def test_create_product_omits_unset_variant_fields():
+    """When variant fields aren't supplied, they must be UNSET on the API
+    request (not None) so the wire body skips the keys entirely. Required by
+    Katana's `extra="forbid"`-style attrs models — None would serialize as
+    null and trigger 422s on optional-but-not-nullable fields.
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    mock_product = MagicMock()
+    mock_product.id = 701
+    mock_product.name = "Plain"
+    lifespan_ctx.client.products.create = AsyncMock(return_value=mock_product)
+
+    request = CreateProductRequest(name="Plain", sku="PLN-001")
+    await _create_product_impl(request, context)
+
+    variant = lifespan_ctx.client.products.create.call_args[0][0].variants[0]
+    assert variant.supplier_item_codes is UNSET
+    assert variant.internal_barcode is UNSET
+    assert variant.registered_barcode is UNSET
+    assert variant.lead_time is UNSET
+    assert variant.minimum_order_quantity is UNSET
+    assert variant.config_attributes is UNSET
+
+
+@pytest.mark.asyncio
+async def test_create_material_forwards_variant_fields():
+    """Mirror of test_create_product_forwards_variant_fields for materials."""
+    context, lifespan_ctx = create_mock_context()
+
+    mock_material = MagicMock()
+    mock_material.id = 800
+    mock_material.name = "Steel Rod"
+    lifespan_ctx.client.materials.create = AsyncMock(return_value=mock_material)
+
+    request = CreateMaterialRequest(
+        name="Steel Rod",
+        sku="MAT-STEEL-001",
+        supplier_item_codes=["QBP-12345"],
+        internal_barcode="INT-MAT-001",
+        registered_barcode="9876543210987",
+        lead_time=21,
+        minimum_order_quantity=10.0,
+        config_attributes=[
+            VariantConfigAttributePatch(config_name="Length", config_value="2m"),
+        ],
+    )
+    await _create_material_impl(request, context)
+
+    variant = lifespan_ctx.client.materials.create.call_args[0][0].variants[0]
+    assert variant.supplier_item_codes == ["QBP-12345"]
+    assert variant.internal_barcode == "INT-MAT-001"
+    assert variant.registered_barcode == "9876543210987"
+    assert variant.lead_time == 21
+    assert variant.minimum_order_quantity == 10.0
+    assert len(variant.config_attributes) == 1
+    assert variant.config_attributes[0].config_name == "Length"
+    assert variant.config_attributes[0].config_value == "2m"
+
+
+@pytest.mark.asyncio
+async def test_create_material_omits_unset_variant_fields():
+    """Mirror of test_create_product_omits_unset_variant_fields for materials."""
+    context, lifespan_ctx = create_mock_context()
+
+    mock_material = MagicMock()
+    mock_material.id = 801
+    mock_material.name = "Plain Material"
+    lifespan_ctx.client.materials.create = AsyncMock(return_value=mock_material)
+
+    request = CreateMaterialRequest(name="Plain Material", sku="PLN-MAT-001")
+    await _create_material_impl(request, context)
+
+    variant = lifespan_ctx.client.materials.create.call_args[0][0].variants[0]
+    assert variant.supplier_item_codes is UNSET
+    assert variant.internal_barcode is UNSET
+    assert variant.registered_barcode is UNSET
+    assert variant.lead_time is UNSET
+    assert variant.minimum_order_quantity is UNSET
+    assert variant.config_attributes is UNSET
 
 
 # ============================================================================

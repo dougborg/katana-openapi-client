@@ -890,6 +890,157 @@ def test_item_katana_url_returns_none_for_service_type(_no_web_base_url: None):
 
 
 # ============================================================================
+# create_item — variant-field forwarding (Entity A — issue #627)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_create_item_product_forwards_variant_fields():
+    """Variant-level fields supplied to create_item with type=product should
+    land on the embedded CreateVariantRequest. Symmetric with create_product
+    (#627)."""
+    from katana_mcp.tools.foundation.items import (
+        CreateItemRequest,
+        VariantConfigAttributePatch,
+        _create_item_impl,
+    )
+
+    from katana_public_api_client.models import (
+        CreateVariantRequestConfigAttributesItem as ApiCreateVariantConfigItem,
+    )
+
+    context, lifespan_ctx = create_mock_context()
+    mock_product = MagicMock()
+    mock_product.id = 900
+    mock_product.name = "Variant Item"
+    lifespan_ctx.client.products.create = AsyncMock(return_value=mock_product)
+
+    request = CreateItemRequest(
+        type=ItemType.PRODUCT,
+        name="Variant Item",
+        sku="VI-001",
+        supplier_item_codes=["MPN-A", "MPN-B"],
+        internal_barcode="INT-VI-001",
+        registered_barcode="0000000000000",
+        lead_time=10,
+        minimum_order_quantity=2.5,
+        config_attributes=[
+            VariantConfigAttributePatch(config_name="Size", config_value="L"),
+        ],
+    )
+    await _create_item_impl(request, context)
+
+    variant = lifespan_ctx.client.products.create.call_args[0][0].variants[0]
+    assert variant.supplier_item_codes == ["MPN-A", "MPN-B"]
+    assert variant.internal_barcode == "INT-VI-001"
+    assert variant.registered_barcode == "0000000000000"
+    assert variant.lead_time == 10
+    assert variant.minimum_order_quantity == 2.5
+    assert len(variant.config_attributes) == 1
+    assert isinstance(variant.config_attributes[0], ApiCreateVariantConfigItem)
+    assert variant.config_attributes[0].config_name == "Size"
+    assert variant.config_attributes[0].config_value == "L"
+
+
+@pytest.mark.asyncio
+async def test_create_item_material_forwards_variant_fields():
+    """Mirror for type=material — same forwarding contract."""
+    from katana_mcp.tools.foundation.items import (
+        CreateItemRequest,
+        _create_item_impl,
+    )
+
+    context, lifespan_ctx = create_mock_context()
+    mock_material = MagicMock()
+    mock_material.id = 901
+    mock_material.name = "Variant Material"
+    lifespan_ctx.client.materials.create = AsyncMock(return_value=mock_material)
+
+    request = CreateItemRequest(
+        type=ItemType.MATERIAL,
+        name="Variant Material",
+        sku="VM-001",
+        supplier_item_codes=["QBP-12345"],
+        internal_barcode="INT-VM-001",
+        lead_time=14,
+    )
+    await _create_item_impl(request, context)
+
+    variant = lifespan_ctx.client.materials.create.call_args[0][0].variants[0]
+    assert variant.supplier_item_codes == ["QBP-12345"]
+    assert variant.internal_barcode == "INT-VM-001"
+    assert variant.lead_time == 14
+
+
+@pytest.mark.asyncio
+async def test_create_item_omits_unset_variant_fields():
+    """When variant fields aren't supplied to create_item, they must be UNSET
+    on the API request (not None) — mirrors the create_product / create_material
+    UNSET contract."""
+    from katana_mcp.tools.foundation.items import (
+        CreateItemRequest,
+        _create_item_impl,
+    )
+
+    from katana_public_api_client.client_types import UNSET
+
+    context, lifespan_ctx = create_mock_context()
+    mock_product = MagicMock()
+    mock_product.id = 902
+    mock_product.name = "Plain Item"
+    lifespan_ctx.client.products.create = AsyncMock(return_value=mock_product)
+
+    request = CreateItemRequest(type=ItemType.PRODUCT, name="Plain Item", sku="PI-001")
+    await _create_item_impl(request, context)
+
+    variant = lifespan_ctx.client.products.create.call_args[0][0].variants[0]
+    assert variant.supplier_item_codes is UNSET
+    assert variant.internal_barcode is UNSET
+    assert variant.registered_barcode is UNSET
+    assert variant.lead_time is UNSET
+    assert variant.minimum_order_quantity is UNSET
+    assert variant.config_attributes is UNSET
+
+
+@pytest.mark.asyncio
+async def test_create_item_service_ignores_variant_fields():
+    """Services don't have variants in the same sense — pricing lives on the
+    header. Variant-level fields supplied with type=service must not crash and
+    must not appear on the service variant request."""
+    from katana_mcp.tools.foundation.items import (
+        CreateItemRequest,
+        _create_item_impl,
+    )
+
+    context, lifespan_ctx = create_mock_context()
+    mock_service = MagicMock()
+    mock_service.id = 903
+    mock_service.name = "Consulting Service"
+    lifespan_ctx.client.services.create = AsyncMock(return_value=mock_service)
+
+    request = CreateItemRequest(
+        type=ItemType.SERVICE,
+        name="Consulting Service",
+        sku="SVC-001",
+        sales_price=150.0,
+        # Supplied but should be ignored for service type
+        supplier_item_codes=["IGNORED"],
+        internal_barcode="ALSO-IGNORED",
+    )
+    await _create_item_impl(request, context)
+
+    api_request = lifespan_ctx.client.services.create.call_args[0][0]
+    service_variant = api_request.variants[0]
+    # Service variant model has sku/sales_price/default_cost — no barcodes,
+    # so the fields must not be passed through.
+    assert (
+        not hasattr(service_variant, "internal_barcode")
+        or not getattr(service_variant, "internal_barcode", None)
+        or service_variant.internal_barcode is None
+    )
+
+
+# ============================================================================
 # modify_item / delete_item — unified modification surface
 # ============================================================================
 
