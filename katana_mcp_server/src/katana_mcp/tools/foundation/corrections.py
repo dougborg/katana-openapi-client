@@ -84,6 +84,7 @@ from katana_mcp.tools.foundation.sales_orders import (
     SOOperation,
     _fetch_sales_order_attrs,
 )
+from katana_mcp.tools.tool_result_utils import UI_META
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_mcp.web_urls import katana_web_url
 from katana_public_api_client.api.manufacturing_order import (
@@ -747,7 +748,11 @@ async def correct_manufacturing_order(
     ``prior_state``.
     """
     response = await _correct_manufacturing_order_impl(request, context)
-    return to_tool_result(response)
+    return to_tool_result(
+        response,
+        confirm_request=request,
+        confirm_tool="correct_manufacturing_order",
+    )
 
 
 # ============================================================================
@@ -1198,7 +1203,9 @@ async def correct_sales_order(
     SO in an intermediate state with a breadcrumb in ``prior_state``.
     """
     response = await _correct_sales_order_impl(request, context)
-    return to_tool_result(response)
+    return to_tool_result(
+        response, confirm_request=request, confirm_tool="correct_sales_order"
+    )
 
 
 # ============================================================================
@@ -1648,7 +1655,9 @@ async def correct_purchase_order(
     directly — there's no close-state to preserve.
     """
     response = await _correct_purchase_order_impl(request, context)
-    return to_tool_result(response)
+    return to_tool_result(
+        response, confirm_request=request, confirm_tool="correct_purchase_order"
+    )
 
 
 # ============================================================================
@@ -1674,16 +1683,22 @@ def register_tools(mcp: FastMCP) -> None:
         correct_manufacturing_order,
         tags={"orders", "manufacturing", "write", "correction"},
         annotations=_correct,
+        meta=UI_META,
+        direct=True,
     )
     register_preview_tool(
         mcp,
         correct_sales_order,
         tags={"orders", "sales", "write", "correction"},
         annotations=_correct,
+        meta=UI_META,
+        direct=True,
     )
     register_preview_tool(
         mcp,
         correct_purchase_order,
         tags={"orders", "purchasing", "write", "correction"},
         annotations=_correct,
+        meta=UI_META,
+        direct=True,
     )

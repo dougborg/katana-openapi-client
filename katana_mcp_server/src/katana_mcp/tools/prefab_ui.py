@@ -1237,6 +1237,387 @@ def build_verification_ui(
 
 
 # ============================================================================
+# Generic Modification Preview/Result UIs (modify_*/delete_*/correct_*)
+# ============================================================================
+
+
+def _format_field_value(value: Any) -> str:
+    """Render a FieldChange ``old`` / ``new`` value for the diff DataTable.
+
+    ``None`` collapses to ``(unset)`` so the cell isn't blank; lists are
+    comma-joined for compact display; everything else stringifies.
+    """
+    if value is None:
+        return "(unset)"
+    if isinstance(value, list):
+        return ", ".join(str(v) for v in value)
+    return str(value)
+
+
+def _change_to_diff_row(change: dict[str, Any]) -> dict[str, Any]:
+    """Convert a :class:`FieldChange` dict into a diff DataTable row.
+
+    Mirrors the markdown layout in
+    :func:`katana_mcp.tools._modification._render_changes_block`:
+
+    - ``is_unchanged`` — "(unchanged)" in the After column
+    - ``is_unknown_prior`` — "(prior unknown)" in the Before column
+    - ``is_added`` — "(unset)" in the Before column
+    - default — old → new
+    """
+    field = str(change.get("field", ""))
+    new = _format_field_value(change.get("new"))
+    if change.get("is_unchanged"):
+        return {
+            "field": field,
+            "before": _format_field_value(change.get("old")),
+            "after": "(unchanged)",
+        }
+    if change.get("is_unknown_prior"):
+        return {"field": field, "before": "(prior unknown)", "after": new}
+    if change.get("is_added"):
+        return {"field": field, "before": "(unset)", "after": new}
+    return {
+        "field": field,
+        "before": _format_field_value(change.get("old")),
+        "after": new,
+    }
+
+
+_DIFF_COLUMNS: list[DataTableColumn] = [
+    DataTableColumn(key="field", header="Field"),
+    DataTableColumn(key="before", header="Before"),
+    DataTableColumn(key="after", header="After"),
+]
+
+_LEGACY_DIFF_STATE_KEY = "legacy_diff_rows"
+
+# Display labels for the verb in modification card titles. The verb is
+# derived from the registered tool name (its first underscore-delimited
+# token), so ``modify_item`` → "Modify", ``delete_item`` → "Delete", etc.
+# Fallback for unrecognized verbs is "Modify" so the title still reads
+# sensibly even if a new tool prefix is introduced before this map is
+# updated.
+_VERB_DISPLAY: dict[str, str] = {
+    "modify": "Modify",
+    "delete": "Delete",
+    "correct": "Correct",
+    "update": "Update",
+}
+
+
+def _humanize_snake_case(raw: str) -> str:
+    """Convert a snake_case identifier to a Title Case display label."""
+    return raw.replace("_", " ").title()
+
+
+def _verb_label(tool_name: str | None) -> str:
+    """Pick the human-readable verb for the modification card title.
+
+    Used to render ``"Modify Product"`` / ``"Delete Product"`` /
+    ``"Correct Purchase Order"`` titles correctly across the modification
+    rail. ``None`` (or any unrecognized prefix) falls back to "Modify".
+    """
+    if not tool_name:
+        return "Modify"
+    return _VERB_DISPLAY.get(tool_name.split("_", 1)[0], "Modify")
+
+
+def _action_status_badge(
+    action: dict[str, Any],
+) -> tuple[str, Literal["default", "secondary", "outline", "destructive"]]:
+    """Pick a (label, variant) pair for an action's status badge.
+
+    ``succeeded is None`` means the action hasn't been executed (preview
+    or fail-fast skip), so we surface PLANNED. Mirrors the status string
+    in ``katana_mcp.tools._modification._render_action_block`` so the
+    Prefab card and the markdown fallback agree on how each action reads.
+    """
+    succeeded = action.get("succeeded")
+    if succeeded is None:
+        return "PLANNED", "secondary"
+    if succeeded is True:
+        verified = action.get("verified")
+        if verified is False:
+            return "APPLIED (verification mismatch)", "destructive"
+        if verified is None:
+            return "APPLIED", "default"
+        return "APPLIED (verified)", "default"
+    return "FAILED", "destructive"
+
+
+def _render_action_section(
+    idx: int,
+    action: dict[str, Any],
+    *,
+    rows_state_key: str | None,
+) -> None:
+    """Render one ActionResult as a Separator + heading + diff DataTable.
+
+    ``rows_state_key`` is the PrefabApp state slot holding the diff rows
+    for this action (or ``None`` when the action has no field changes —
+    e.g. a delete). DataTable binds rows by state-key string per the
+    file's convention.
+    """
+    Separator()
+    op_label = _humanize_snake_case(str(action.get("operation") or "")) or "Action"
+    target = action.get("target_id")
+    target_suffix = f" #{target}" if target is not None else ""
+    status_label, status_variant = _action_status_badge(action)
+    with Row(gap=2):
+        Text(content=f"{idx}. {op_label}{target_suffix}")
+        Badge(label=status_label, variant=status_variant)
+
+    if action.get("error"):
+        Muted(content=f"Error: {action['error']}")
+
+    if rows_state_key is not None:
+        DataTable(columns=_DIFF_COLUMNS, rows=rows_state_key)
+
+
+def _summarize_actions(
+    actions: list[dict[str, Any]],
+) -> tuple[dict[str, list[dict[str, Any]]], list[str | None], int, int]:
+    """One-pass action scan for the modification builders.
+
+    Returns ``(state_slots, per_action_keys, success_count, failed_count)``:
+
+    - ``state_slots`` maps slot name (``"diff_action_<idx>"``) to its row
+      list — fold this into the PrefabApp ``state`` dict.
+    - ``per_action_keys[i]`` is the slot name for action ``i``, or ``None``
+      if the action has no field changes (e.g. a delete).
+    - The two counts are used by the result builder for the aggregate
+      status badge; the preview builder ignores them (succeeded is always
+      ``None`` on preview-shaped actions).
+    """
+    state_slots: dict[str, list[dict[str, Any]]] = {}
+    per_action_keys: list[str | None] = []
+    success_count = failed_count = 0
+    for idx, action in enumerate(actions, start=1):
+        succeeded = action.get("succeeded")
+        if succeeded is True:
+            success_count += 1
+        elif succeeded is False:
+            failed_count += 1
+        rows = [_change_to_diff_row(c) for c in (action.get("changes") or [])]
+        if rows:
+            key = f"diff_action_{idx}"
+            state_slots[key] = rows
+            per_action_keys.append(key)
+        else:
+            per_action_keys.append(None)
+    return state_slots, per_action_keys, success_count, failed_count
+
+
+def build_modification_preview_ui(
+    response: dict[str, Any],
+    *,
+    confirm_request: BaseModel,
+    confirm_tool: str,
+) -> PrefabApp:
+    """Preview card for a :class:`ModificationResponse` with the direct-apply rail.
+
+    Used by every tool that returns a ``ModificationResponse`` from
+    ``_modification.py`` — ``modify_*``, ``delete_*``, ``correct_*``.
+    Confirm fires ``tools/call`` directly and the iframe pushes the
+    structured result to the agent via ``ui/update-model-context``
+    (ADR-0016 spike rail).
+
+    Renders one section per planned :class:`ActionResult` (operation header
+    + diff DataTable) plus a footer Confirm/Cancel pair that morphs in
+    place to applied / error / cancelled states.
+    """
+    apply_action = _build_apply_action_direct(confirm_tool, confirm_request)
+    entity_type_raw = str(response.get("entity_type") or "entity")
+    entity_type_label = _humanize_snake_case(entity_type_raw)
+    verb_label = _verb_label(confirm_tool)
+    cancel_action = _build_cancel_action(
+        f"the {entity_type_raw.replace('_', ' ')} {verb_label.lower()}"
+    )
+
+    actions = response.get("actions") or []
+    legacy_changes = response.get("changes") or []
+    block_warnings, regular_warnings = _split_warnings(response.get("warnings"))
+    n_actions = len(actions) if actions else (1 if legacy_changes else 0)
+
+    action_row_slots, per_action_keys, _, _ = _summarize_actions(actions)
+    legacy_rows_key: str | None = None
+    if not actions and legacy_changes:
+        legacy_rows_key = _LEGACY_DIFF_STATE_KEY
+
+    state: dict[str, Any] = {
+        "pending": False,
+        "cancelled": False,
+        "applied": False,
+        "error": None,
+        **action_row_slots,
+    }
+    if legacy_rows_key is not None:
+        state[legacy_rows_key] = [_change_to_diff_row(c) for c in legacy_changes]
+
+    with PrefabApp(state=state, css_class="p-4") as app, Card():
+        with CardHeader(), Row(gap=2):
+            title_suffix = f" — {n_actions} action(s)" if n_actions > 0 else ""
+            CardTitle(content=f"{verb_label} {entity_type_label}{title_suffix}")
+            entity_id = response.get("entity_id")
+            if entity_id is not None:
+                Badge(label=f"#{entity_id}", variant="outline")
+            Badge(label="PREVIEW", variant="secondary")
+
+        with CardContent(), Column(gap=3):
+            if response.get("message"):
+                Text(content=response["message"])
+
+            if actions:
+                for idx, action in enumerate(actions, start=1):
+                    _render_action_section(
+                        idx, action, rows_state_key=per_action_keys[idx - 1]
+                    )
+            elif legacy_rows_key is not None:
+                DataTable(columns=_DIFF_COLUMNS, rows=legacy_rows_key)
+
+            if block_warnings or regular_warnings:
+                Separator()
+                for warning in block_warnings:
+                    Badge(label=warning, variant="destructive")
+                for warning in regular_warnings:
+                    Badge(label=warning, variant="secondary")
+
+            with If("applied"):
+                Separator()
+                Text(content=f"{entity_type_label} {verb_label.lower()} applied.")
+                Muted(
+                    content=(
+                        "The structured result has been pushed to the "
+                        "assistant's context."
+                    )
+                )
+            with Elif("error"):
+                Separator()
+                with Alert(variant="destructive", icon="circle-alert"):
+                    AlertTitle(content="Apply failed")
+                    AlertDescription(content="{{ error }}")
+
+        with CardFooter():
+            if block_warnings:
+                Muted(
+                    content="Cannot proceed — see warnings above. No changes have been made."
+                )
+            else:
+                with If("applied"):
+                    Muted(content="Changes applied.")
+                with Elif("error"):
+                    Muted(content="Apply failed — see error above.")
+                with Elif("cancelled"):
+                    Muted(content="Cancelled. No changes were made.")
+                with Else():
+                    Muted(content="This is a preview. No changes have been made.")
+
+            confirm_label = (
+                f"Confirm {n_actions} action(s)" if n_actions > 1 else "Confirm Changes"
+            )
+            _render_apply_button_row(
+                confirm_label=confirm_label,
+                apply_action=apply_action,
+                cancel_action=cancel_action,
+                disabled=bool(block_warnings),
+                direct_apply=True,
+            )
+    return app
+
+
+def build_modification_result_ui(
+    response: dict[str, Any], *, tool_name: str | None = None
+) -> PrefabApp:
+    """Result card for an *applied* :class:`ModificationResponse`.
+
+    Mirrors :func:`build_modification_preview_ui` but without Confirm/Cancel
+    — every action carries its terminal status (APPLIED / APPLIED (verified) /
+    APPLIED (verification mismatch) / FAILED) and the card surfaces the
+    aggregate outcome plus a "View in Katana" button when a ``katana_url``
+    is present (deletes successfully applied null out the URL upstream).
+
+    ``tool_name`` is the registered MCP tool name (e.g. ``"delete_item"``) —
+    used to derive the title's verb so a successful delete reads "Product
+    Delete" rather than the misleading "Product Modification". Optional
+    for backwards compatibility with the legacy single-action shape, which
+    falls back to the response's top-level ``operation`` field.
+    """
+    entity_type_label = _humanize_snake_case(
+        str(response.get("entity_type") or "entity")
+    )
+    actions = response.get("actions") or []
+    legacy_changes = response.get("changes") or []
+    legacy_op = _humanize_snake_case(str(response.get("operation") or ""))
+
+    action_row_slots, per_action_keys, success_count, failed_count = _summarize_actions(
+        actions
+    )
+
+    overall_status: str
+    overall_variant: Literal["default", "secondary", "outline", "destructive"]
+    if failed_count > 0 and success_count > 0:
+        overall_status, overall_variant = "PARTIAL FAILURE", "destructive"
+    elif failed_count > 0:
+        overall_status, overall_variant = "FAILED", "destructive"
+    else:
+        overall_status, overall_variant = "APPLIED", "default"
+
+    legacy_rows_key: str | None = None
+    if not actions and legacy_changes:
+        legacy_rows_key = _LEGACY_DIFF_STATE_KEY
+
+    state: dict[str, Any] = dict(action_row_slots)
+    if legacy_rows_key is not None:
+        state[legacy_rows_key] = [_change_to_diff_row(c) for c in legacy_changes]
+
+    # Title verb: prefer the tool-derived verb (works for delete/correct
+    # tools); fall back to the legacy single-action ``operation`` field;
+    # finally to a neutral "Modification".
+    if tool_name:
+        title_op = _verb_label(tool_name)
+    else:
+        title_op = legacy_op or "Modification"
+
+    with PrefabApp(state=state, css_class="p-4") as app, Card():
+        with CardHeader(), Row(gap=2):
+            CardTitle(content=f"{entity_type_label} {title_op}")
+            entity_id = response.get("entity_id")
+            if entity_id is not None:
+                Badge(label=f"#{entity_id}", variant="outline")
+            Badge(label=overall_status, variant=overall_variant)
+
+        with CardContent(), Column(gap=3):
+            if response.get("message"):
+                Text(content=response["message"])
+
+            if actions:
+                Muted(
+                    content=(
+                        f"{success_count} succeeded, {failed_count} failed "
+                        f"of {len(actions)}"
+                    )
+                )
+                for idx, action in enumerate(actions, start=1):
+                    _render_action_section(
+                        idx, action, rows_state_key=per_action_keys[idx - 1]
+                    )
+            elif legacy_rows_key is not None:
+                DataTable(columns=_DIFF_COLUMNS, rows=legacy_rows_key)
+
+        if response.get("katana_url"):
+            with CardFooter(), Row(gap=2):
+                Button(
+                    label="View in Katana",
+                    variant="outline",
+                    on_click=SendMessage(
+                        f"Open {response['katana_url']} in the Katana web UI"
+                    ),
+                )
+    return app
+
+
+# ============================================================================
 # Item Created/Updated/Deleted UIs
 # ============================================================================
 

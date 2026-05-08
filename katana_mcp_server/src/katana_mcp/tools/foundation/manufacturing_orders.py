@@ -3300,7 +3300,11 @@ async def modify_manufacturing_order(
     revert.
     """
     response = await _modify_manufacturing_order_impl(request, context)
-    return to_tool_result(response)
+    return to_tool_result(
+        response,
+        confirm_request=request,
+        confirm_tool="modify_manufacturing_order",
+    )
 
 
 # ============================================================================
@@ -3337,7 +3341,11 @@ async def delete_manufacturing_order(
     The response carries a ``prior_state`` snapshot for manual revert.
     """
     response = await _delete_manufacturing_order_impl(request, context)
-    return to_tool_result(response)
+    return to_tool_result(
+        response,
+        confirm_request=request,
+        confirm_tool="delete_manufacturing_order",
+    )
 
 
 def register_tools(mcp: FastMCP) -> None:
@@ -3397,10 +3405,14 @@ def register_tools(mcp: FastMCP) -> None:
         modify_manufacturing_order,
         tags={"orders", "manufacturing", "write"},
         annotations=_modify,
+        meta=UI_META,
+        direct=True,
     )
     register_preview_tool(
         mcp,
         delete_manufacturing_order,
         tags={"orders", "manufacturing", "write", "destructive"},
         annotations=_destructive_write,
+        meta=UI_META,
+        direct=True,
     )

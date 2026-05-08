@@ -1288,7 +1288,7 @@ async def modify_item(
     error.
     """
     response = await _modify_item_impl(request, context)
-    return to_tool_result(response)
+    return to_tool_result(response, confirm_request=request, confirm_tool="modify_item")
 
 
 # ============================================================================
@@ -1333,7 +1333,7 @@ async def delete_item(
     for manual revert.
     """
     response = await _delete_item_impl(request, context)
-    return to_tool_result(response)
+    return to_tool_result(response, confirm_request=request, confirm_tool="delete_item")
 
 
 # ============================================================================
@@ -1762,12 +1762,16 @@ def register_tools(mcp: FastMCP) -> None:
         modify_item,
         tags={"catalog", "write"},
         annotations=_modify,
+        meta=UI_META,
+        direct=True,
     )
     register_preview_tool(
         mcp,
         delete_item,
         tags={"catalog", "write", "destructive"},
         annotations=_destructive,
+        meta=UI_META,
+        direct=True,
     )
     mcp.tool(tags={"catalog", "read"}, annotations=_read, meta=UI_META)(
         get_variant_details
