@@ -296,6 +296,22 @@ Common mistakes to avoid:
   `uv run poe test-browser` to exercise the JS renderer locally; needs one-time
   `uv run playwright install chromium`.
 
+- **MCP tool stubs in browser tests must mirror production wire shape via
+  `make_tool_result`** - When stubbing an MCP tool in
+  `katana_mcp_server/tests/browser/render_test_server.py`, return
+  `make_tool_result(response_pydantic, ui=ui_card)` exactly like real tool code in
+  `katana_mcp_server/src/katana_mcp/tools/foundation/`. A hand-built
+  `ToolResult(content="ok", structured_content=raw_dict)` silently passes browser tests
+  but misses production-shape bugs: in particular, `$result` in the on_success Rx
+  context resolves to the apply tool's `structured_content` (a PrefabApp wire envelope
+  from `make_tool_result` with `{$prefab, view, state, defs}` — no `actions` field), not
+  to the raw `ModificationResponse` the stub might construct directly. A stub with the
+  wrong-but-convenient shape gives false green: it looks like the apply rail's
+  `Rx("$result.actions")` resolves correctly when in production it does not. Discovered
+  via Copilot review on #634; the broken live-tick that "passed" against the bad stub is
+  tracked for proper fix in #645. Rule: **a stub that doesn't match production wire
+  shape is worse than no stub.**
+
 ## Using the LSP tool
 
 Both Python (pyright) and TypeScript (typescript-language-server) LSPs are configured
