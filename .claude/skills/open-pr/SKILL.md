@@ -41,13 +41,14 @@ Take a feature branch from "implementation done" to "PR open, CI green, review a
 
 ## STANDARD PATH
 
-1. **Pre-flight** — confirm not on `main`, run `uv run poe check`, check for existing PR (Phase 1).
-2. **Self-review** — read the full diff vs base; fix issues found (Phase 2).
-3. **Organize commits** — group into logical commits with conventional format (Phase 3).
-4. **Push and create** — `git push -u origin HEAD:refs/heads/<branch>`, `gh pr create` with HEREDOC body (Phase 4).
-5. **Wait for CI** — `gh pr checks --watch`; fix failures in-place (Phase 5).
-6. **Wait for review** — poll for ≤15 min; if comments arrive, delegate to `/review-pr` (Phases 6–7).
-7. **Summary** — print PR URL, commit count, CI status, review state (Phase 8).
+1. **If the branch is behind the chosen base branch (default `main`), run `/rebase` first** — opening a PR from a stale tip means CI runs against the old base, conflict resolution happens mid-review, and `uv.lock` drift from sibling-package releases isn't caught until pre-commit fights with you. `/rebase` handles the conflict resolution + lockfile-bundling protocol cleanly. Resolve the base from `$ARGUMENTS` (default `main`), then check freshness with `git fetch origin <base> && git log --oneline HEAD..origin/<base> | head -1` — if anything appears, rebase first. The `git fetch` is required: `origin/<base>` is a remote-tracking ref that may be stale without it, which would silently let a "behind" branch through.
+2. **Pre-flight** — confirm not on `main`, run `uv run poe check`, check for existing PR (Phase 1).
+3. **Self-review** — read the full diff vs base; fix issues found (Phase 2).
+4. **Organize commits** — group into logical commits with conventional format (Phase 3).
+5. **Push and create** — `git push -u origin HEAD:refs/heads/<branch>`, `gh pr create` with HEREDOC body (Phase 4).
+6. **Wait for CI** — `gh pr checks --watch`; fix failures in-place (Phase 5).
+7. **Wait for review** — poll for ≤15 min; if comments arrive, delegate to `/review-pr` (Phases 6–7).
+8. **Summary** — print PR URL, commit count, CI status, review state (Phase 8).
 
 See phase detail below.
 
