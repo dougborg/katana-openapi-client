@@ -29,10 +29,10 @@ from katana_mcp.tools.foundation.stock_transfers import (
     _modify_stock_transfer_impl,
     list_stock_transfers,
 )
+from katana_mcp_server.tests.conftest import create_mock_context, patch_typed_cache_sync
 
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.utils import APIError
-from tests.conftest import create_mock_context, patch_typed_cache_sync
 from tests.factories import (
     make_stock_transfer,
     make_stock_transfer_row,
@@ -161,6 +161,7 @@ async def test_create_stock_transfer_confirm_success():
 
     # Verify API was called
     mock_api.assert_awaited_once()
+    assert mock_api.await_args is not None
     call_body = mock_api.await_args.kwargs["body"]
     assert call_body.source_location_id == 1
     assert call_body.target_location_id == 2
@@ -207,6 +208,7 @@ async def test_create_stock_transfer_auto_generates_number_when_order_no_omitted
         )
         await _create_stock_transfer_impl(request, context)
 
+    assert mock_api.await_args is not None
     call_body = mock_api.await_args.kwargs["body"]
     # Auto-generated number is a real string in ``ST-<unix_timestamp>`` form
     # (not UNSET, not empty, not None).
@@ -250,6 +252,7 @@ async def test_create_stock_transfer_apply_forwards_dates():
         )
         await _create_stock_transfer_impl(request, context)
 
+    assert mock_api.await_args is not None
     body = mock_api.await_args.kwargs["body"]
     assert body.order_created_date == placed_at
     assert body.transfer_date == shipped_at
@@ -285,6 +288,7 @@ async def test_create_stock_transfer_apply_omits_unset_dates():
         )
         await _create_stock_transfer_impl(request, context)
 
+    assert mock_api.await_args is not None
     body = mock_api.await_args.kwargs["body"]
     assert body.order_created_date is UNSET
     assert body.transfer_date is UNSET
@@ -324,6 +328,7 @@ async def test_create_stock_transfer_passes_through_provided_order_no():
         )
         await _create_stock_transfer_impl(request, context)
 
+    assert mock_api.await_args is not None
     call_body = mock_api.await_args.kwargs["body"]
     assert call_body.stock_transfer_number == "MY-CUSTOM-99"
 
@@ -634,6 +639,7 @@ async def test_modify_st_header_confirm_dispatches_to_update_endpoint():
     assert response.actions[0].operation == "update_header"
     assert response.actions[0].succeeded is True
     mock_update.assert_awaited_once()
+    assert mock_update.await_args is not None
     kwargs = mock_update.await_args.kwargs
     assert kwargs["id"] == 42
     assert kwargs["body"].stock_transfer_number == "ST-42-revised"
@@ -661,6 +667,7 @@ async def test_modify_st_status_confirm_dispatches_to_status_endpoint():
     assert response.actions[0].operation == "update_status"
     assert response.actions[0].succeeded is True
     mock_status.assert_awaited_once()
+    assert mock_status.await_args is not None
     kwargs = mock_status.await_args.kwargs
     assert kwargs["id"] == 42
     # The API status enum should be the camelCase wire value ``inTransit``.
@@ -768,6 +775,7 @@ async def test_delete_stock_transfer_confirm_success():
     assert response.is_preview is False
     assert response.actions[0].succeeded is True
     mock_delete.assert_awaited_once()
+    assert mock_delete.await_args is not None
     kwargs = mock_delete.await_args.kwargs
     assert kwargs["id"] == 42
 

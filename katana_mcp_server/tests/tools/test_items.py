@@ -22,9 +22,8 @@ from katana_mcp.tools.foundation.items import (
     get_item,
     get_variant_details,
 )
+from katana_mcp_server.tests.conftest import create_mock_context
 from pydantic import ValidationError
-
-from tests.conftest import create_mock_context
 
 
 def _content_text(result) -> str:
@@ -1270,6 +1269,7 @@ async def test_modify_item_add_variant_injects_parent_id_for_product():
 
     assert response.actions[0].operation == "add_variant"
     mock_create.assert_awaited_once()
+    assert mock_create.await_args is not None
     body = mock_create.await_args.kwargs["body"]
     assert body.product_id == 42
     # material_id should be UNSET, not 42 — it's a PRODUCT.

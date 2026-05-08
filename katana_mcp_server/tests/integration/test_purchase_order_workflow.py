@@ -221,9 +221,8 @@ class TestPurchaseOrderValidation:
         }
 
         # Preview mode
-        preview_request = CreatePurchaseOrderRequest(
-            **base_request_data,
-            preview=True,
+        preview_request = CreatePurchaseOrderRequest.model_validate(
+            {**base_request_data, "preview": True}
         )
         preview_result = await _create_purchase_order_impl(
             preview_request, integration_context

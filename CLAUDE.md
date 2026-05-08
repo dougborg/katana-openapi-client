@@ -328,6 +328,34 @@ questions** — they are faster, more accurate, and cross-reference the real typ
   fastmcp), the langserver is stale — flag to the user that Claude Code needs a restart
   to re-read `pyrightconfig.json`. All project-internal imports should always resolve.
 
+### Handling `<new-diagnostics>` system reminders
+
+After each edit, the harness may surface a `<new-diagnostics>` block listing
+pyright/ruff diagnostics on the file. **Treat these as real until proven otherwise** —
+both pyright and ty run in CI (`uv run poe lint`), so an LSP-flagged error will likely
+break the build.
+
+The protocol when a `<new-diagnostics>` block appears:
+
+1. **Check pyright CLI on the affected file** — `uv run pyright <path>`. Pyright CLI is
+   the source of truth; the LSP can be stale (especially after generator regen,
+   stash/pop, or rebase).
+1. **If pyright CLI agrees**, fix it. Don't push code with pending pyright errors — CI
+   will fail.
+1. **If pyright CLI disagrees**, the LSP is stale. **Note it explicitly in your reply to
+   the user** ("LSP shows X but pyright CLI is clean — likely stale after regen") so
+   they know whether their editor needs a restart. Do NOT silently move on without
+   verifying.
+1. **Stale-LSP common triggers** — running `uv run poe generate-pydantic`, rebasing onto
+   main, or stashing & popping. Pyright re-indexes lazily; the system reminder may show
+   pre-edit state until the next save.
+
+The repo's house rule (no `# type: ignore` / `# noqa`) means **a real diagnostic is
+always a fix, never a suppression**. If the diagnostic is wrong (third-party stub gap),
+document the rationale and use a config-level rule override in `pyrightconfig.json`
+(already done for `reportIncompatibleVariableOverride` and `reportAssignmentType` — see
+`sync_state.py`).
+
 ## Architecture Overview
 
 **Monorepo with 3 packages:**

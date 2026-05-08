@@ -12,6 +12,7 @@ from katana_mcp.tools.foundation.cache_admin import (
     _rebuild_cache_impl,
 )
 from katana_mcp.typed_cache import ENTITY_SPECS, SyncState, force_resync
+from katana_mcp_server.tests.conftest import create_mock_context
 from sqlmodel import select
 
 from katana_public_api_client.models import (
@@ -25,7 +26,6 @@ from katana_public_api_client.models_pydantic._generated import (
     CachedStockAdjustment,
     CachedStockTransfer,
 )
-from tests.conftest import create_mock_context
 from tests.factories import (
     make_manufacturing_order,
     make_purchase_order,
@@ -570,9 +570,16 @@ class TestForceResyncAtomicity:
 
 class TestRequestValidation:
     def test_unknown_entity_type_fails_pydantic_validation(self):
-        """The Literal-typed ``entity_types`` field rejects unknown values."""
+        """The Literal-typed ``entity_types`` field rejects unknown values.
+
+        ``model_validate`` is used (not the constructor) so the static-checker
+        doesn't reject the bad literal — the test is *about* runtime
+        validation, not constructor type-checking.
+        """
         with pytest.raises(ValueError):
-            RebuildCacheRequest(entity_types=["not_a_real_entity"], preview=True)  # type: ignore[list-item]
+            RebuildCacheRequest.model_validate(
+                {"entity_types": ["not_a_real_entity"], "preview": True}
+            )
 
     def test_empty_entity_types_fails_pydantic_validation(self):
         """``min_length=1`` blocks empty lists at construction time."""

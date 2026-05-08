@@ -24,9 +24,8 @@ from katana_mcp.tools.foundation.reference import (
     list_tax_rates,
     register_tools,
 )
+from katana_mcp_server.tests.conftest import create_mock_context
 from mcp.types import TextContent
-
-from tests.conftest import create_mock_context
 
 
 @pytest.fixture(autouse=True)
@@ -510,12 +509,12 @@ class TestRequestModels:
 
     def test_format_must_be_known(self):
         with pytest.raises(ValueError):
-            ListSuppliersRequest(format="xml")  # type: ignore[arg-type]
+            ListSuppliersRequest.model_validate({"format": "xml"})
 
     def test_extra_fields_forbidden(self):
         """``extra="forbid"`` keeps callers honest about parameter names."""
         with pytest.raises(ValueError):
-            ListSuppliersRequest(querystr="SRAM")  # type: ignore[call-arg]
+            ListSuppliersRequest.model_validate({"querystr": "SRAM"})
 
     def test_default_query_is_none_default_format_markdown(self):
         req = ListSuppliersRequest()

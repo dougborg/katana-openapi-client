@@ -42,11 +42,11 @@ class _StubRequest(BaseModel):
     preview: bool = True
 
 
-def _walk_view_tree(node: object) -> list[dict[str, Any]]:
+def _walk_view_tree(node: Any) -> list[dict[str, Any]]:
     """Yield every Component dict in a view tree (for test traversal)."""
     found: list[dict[str, Any]] = []
 
-    def visit(o: object) -> None:
+    def visit(o: Any) -> None:
         if isinstance(o, dict):
             if "type" in o:
                 found.append(o)
@@ -1084,6 +1084,7 @@ class TestConfirmButtonDirectApplyRail:
 
         buttons = _find_buttons_by_label(envelope, "Confirm & Create Purchase Order")
         on_click = buttons[0].get("onClick") or buttons[0].get("on_click")
+        assert on_click is not None
         # Click chain: [SetState(pending, True), CallTool(...)].
         assert on_click[0].get("action") == "setState"
         assert on_click[0].get("key") == "pending"
@@ -1320,7 +1321,11 @@ class TestBuildApplyActionXorInvariant:
         assert actions is not None
         send_messages = [a for a in actions if hasattr(a, "content")]
         assert len(send_messages) == 1
-        text = send_messages[0].content
+        # ``Action`` is a discriminated union; only some variants expose
+        # ``content``. ``hasattr`` filters at runtime, but the static type
+        # is the bare union — read via ``getattr`` to satisfy the checker.
+        text = getattr(send_messages[0], "content", None)
+        assert isinstance(text, str)
         assert text.startswith("Apply: call fulfill_order(")
         assert "order_id=42" in text
         assert "order_type='sales'" in text
@@ -1370,7 +1375,7 @@ class TestBuildApplyResultUIs:
         # Title appears verbatim somewhere in the rendered card
         text_nodes: list[str] = []
 
-        def collect(o: object) -> None:
+        def collect(o: Any) -> None:
             if isinstance(o, dict):
                 if isinstance(o.get("content"), str):
                     text_nodes.append(o["content"])
@@ -1398,7 +1403,7 @@ class TestBuildApplyResultUIs:
         envelope = app.to_json()
         text_nodes: list[str] = []
 
-        def collect(o: object) -> None:
+        def collect(o: Any) -> None:
             if isinstance(o, dict):
                 if isinstance(o.get("content"), str):
                     text_nodes.append(o["content"])
@@ -1418,7 +1423,7 @@ class TestBuildApplyResultUIs:
         assert "Check the SO's current production_status" in joined
 
 
-def _find_buttons_by_label(tree: object, label: str) -> list[dict]:
+def _find_buttons_by_label(tree: Any, label: str) -> list[dict]:
     """Walk a Prefab envelope and return every Button node whose label
     matches ``label`` exactly. Used by BLOCK-warning regression tests to
     assert the Confirm button is/isn't rendered.
@@ -1435,7 +1440,7 @@ def _find_buttons_by_label(tree: object, label: str) -> list[dict]:
     return found
 
 
-def _has_node_of_type(tree: object, node_type: str) -> bool:
+def _has_node_of_type(tree: Any, node_type: str) -> bool:
     """Return ``True`` if any node anywhere in the Prefab envelope has
     ``type == node_type``. Used by empty-state tests (#470) to assert
     that DataTable / Slot are or aren't rendered.
@@ -1449,7 +1454,7 @@ def _has_node_of_type(tree: object, node_type: str) -> bool:
     return False
 
 
-def _collect_node_content(tree: object, node_type: str) -> list[str]:
+def _collect_node_content(tree: Any, node_type: str) -> list[str]:
     """Walk a Prefab envelope and return every ``content`` string from
     nodes whose ``type`` equals ``node_type``. Used by empty-state tests
     to assert on the actual hint text rendered by ``Muted`` (rather than
@@ -1597,7 +1602,7 @@ class TestBlockWarningSuppressesConfirm:
             confirm_tool="create_manufacturing_order",
         )
 
-        def collect_badge_labels(tree: object, out: list[str]) -> None:
+        def collect_badge_labels(tree: Any, out: list[str]) -> None:
             if isinstance(tree, dict):
                 if tree.get("type") == "Badge":
                     label = tree.get("label")
@@ -1746,7 +1751,7 @@ class TestBuildModificationPreviewUI:
         envelope = app.to_json()
 
         # Find the CallTool action — it's nested under a Button's onClick.
-        def find_call_tool(tree: object) -> dict | None:
+        def find_call_tool(tree: Any) -> dict | None:
             if isinstance(tree, dict):
                 if tree.get("action") == "toolCall":
                     return tree
@@ -1854,7 +1859,7 @@ class TestBuildModificationPreviewUI:
         envelope = app.to_json()
         titles: list[str] = []
 
-        def collect_titles(o: object) -> None:
+        def collect_titles(o: Any) -> None:
             if isinstance(o, dict):
                 if o.get("type") == "CardTitle" and isinstance(o.get("content"), str):
                     titles.append(o["content"])
@@ -1896,7 +1901,7 @@ class TestBuildModificationPreviewUI:
         envelope = app.to_json()
         titles: list[str] = []
 
-        def collect_titles(o: object) -> None:
+        def collect_titles(o: Any) -> None:
             if isinstance(o, dict):
                 if o.get("type") == "CardTitle" and isinstance(o.get("content"), str):
                     titles.append(o["content"])
@@ -2034,7 +2039,7 @@ class TestBuildModificationPreviewUI:
         )
         envelope = app.to_json()
 
-        def find_action(o: object, action_name: str) -> dict[str, Any] | None:
+        def find_action(o: Any, action_name: str) -> dict[str, Any] | None:
             if isinstance(o, dict):
                 if o.get("action") == action_name:
                     return o
@@ -2114,7 +2119,7 @@ class TestBuildModificationResultUI:
         envelope = app.to_json()
         labels: list[str] = []
 
-        def collect_badges(o: object) -> None:
+        def collect_badges(o: Any) -> None:
             if isinstance(o, dict):
                 if o.get("type") == "Badge" and isinstance(o.get("label"), str):
                     labels.append(o["label"])
@@ -2156,7 +2161,7 @@ class TestBuildModificationResultUI:
         envelope = app.to_json()
         labels: list[str] = []
 
-        def collect_badges(o: object) -> None:
+        def collect_badges(o: Any) -> None:
             if isinstance(o, dict):
                 if o.get("type") == "Badge" and isinstance(o.get("label"), str):
                     labels.append(o["label"])
@@ -2237,7 +2242,7 @@ class TestBuildModificationResultUI:
         envelope = app.to_json()
         titles: list[str] = []
 
-        def collect_titles(o: object) -> None:
+        def collect_titles(o: Any) -> None:
             if isinstance(o, dict):
                 if o.get("type") == "CardTitle" and isinstance(o.get("content"), str):
                     titles.append(o["content"])

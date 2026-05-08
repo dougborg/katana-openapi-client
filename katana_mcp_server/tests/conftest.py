@@ -174,24 +174,35 @@ async def context_with_typed_cache(typed_cache_engine):
 
 
 @pytest.fixture
-def mock_get_purchase_order():
-    """Fixture for mocking get_purchase_order API call."""
+def mock_get_purchase_order(monkeypatch: pytest.MonkeyPatch) -> AsyncMock:
+    """Fixture for mocking get_purchase_order API call.
+
+    Uses ``monkeypatch.setattr`` so pytest restores the original function
+    after the test — without it, the mock would leak across the rest of
+    the suite (especially under xdist) and produce ordering-dependent
+    flakes for any test that hits the real endpoint or installs a
+    different mock.
+    """
     from katana_public_api_client.api.purchase_order import (
         get_purchase_order as api_get_purchase_order,
     )
 
     mock_api = AsyncMock()
-    api_get_purchase_order.asyncio_detailed = mock_api
+    monkeypatch.setattr(api_get_purchase_order, "asyncio_detailed", mock_api)
     return mock_api
 
 
 @pytest.fixture
-def mock_receive_purchase_order():
-    """Fixture for mocking receive_purchase_order API call."""
+def mock_receive_purchase_order(monkeypatch: pytest.MonkeyPatch) -> AsyncMock:
+    """Fixture for mocking receive_purchase_order API call.
+
+    Uses ``monkeypatch.setattr`` so pytest restores the original function
+    after the test — see ``mock_get_purchase_order`` for the rationale.
+    """
     from katana_public_api_client.api.purchase_order import (
         receive_purchase_order as api_receive_purchase_order,
     )
 
     mock_api = AsyncMock()
-    api_receive_purchase_order.asyncio_detailed = mock_api
+    monkeypatch.setattr(api_receive_purchase_order, "asyncio_detailed", mock_api)
     return mock_api

@@ -3,6 +3,7 @@
 import json
 import os
 from datetime import UTC, datetime
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -35,18 +36,19 @@ from katana_mcp.tools.foundation.purchase_orders import (
     list_purchase_orders,
     verify_order_document,
 )
+from katana_mcp_server.tests.conftest import create_mock_context, patch_typed_cache_sync
 
 from katana_public_api_client.api.purchase_order import (
     get_purchase_order as api_get_purchase_order,
 )
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models import (
+    PurchaseOrderEntityType,
     PurchaseOrderReceiveRow,
     PurchaseOrderRow,
     RegularPurchaseOrder,
 )
 from katana_public_api_client.utils import APIError
-from tests.conftest import create_mock_context, patch_typed_cache_sync
 from tests.factories import (
     make_purchase_order,
     make_purchase_order_row,
@@ -210,7 +212,7 @@ async def test_create_purchase_order_apply_echoes_notes_and_resolves_names():
     import katana_public_api_client.api.purchase_order.create_purchase_order as create_po_module
 
     original_asyncio_detailed = create_po_module.asyncio_detailed
-    create_po_module.asyncio_detailed = mock_api_call
+    cast(Any, create_po_module).asyncio_detailed = mock_api_call
 
     try:
         request = CreatePurchaseOrderRequest(
@@ -273,7 +275,7 @@ async def test_create_purchase_order_apply_falls_back_to_request_notes_when_unse
     import katana_public_api_client.api.purchase_order.create_purchase_order as create_po_module
 
     original_asyncio_detailed = create_po_module.asyncio_detailed
-    create_po_module.asyncio_detailed = mock_api_call
+    cast(Any, create_po_module).asyncio_detailed = mock_api_call
 
     try:
         request = CreatePurchaseOrderRequest(
@@ -331,7 +333,7 @@ async def test_create_purchase_order_apply_proceeds_when_cache_is_unhealthy():
     import katana_public_api_client.api.purchase_order.create_purchase_order as create_po_module
 
     original_asyncio_detailed = create_po_module.asyncio_detailed
-    create_po_module.asyncio_detailed = mock_api_call
+    cast(Any, create_po_module).asyncio_detailed = mock_api_call
 
     try:
         request = CreatePurchaseOrderRequest(
@@ -389,7 +391,7 @@ async def test_create_purchase_order_apply_forwards_new_header_fields():
     import katana_public_api_client.api.purchase_order.create_purchase_order as create_po_module
 
     original = create_po_module.asyncio_detailed
-    create_po_module.asyncio_detailed = mock_api_call
+    cast(Any, create_po_module).asyncio_detailed = mock_api_call
     try:
         placed_at = datetime(2026, 4, 1, 10, 0, tzinfo=UTC)
         eta = datetime(2026, 4, 15, 17, 0, tzinfo=UTC)
@@ -398,7 +400,7 @@ async def test_create_purchase_order_apply_forwards_new_header_fields():
             location_id=1,
             order_number="PO-OS-001",
             items=[PurchaseOrderItem(variant_id=1, quantity=1, price_per_unit=10.0)],
-            entity_type="outsourced",
+            entity_type=APIPurchaseOrderEntityType.OUTSOURCED,
             tracking_location_id=2,
             order_created_date=placed_at,
             expected_arrival_date=eta,
@@ -406,8 +408,9 @@ async def test_create_purchase_order_apply_forwards_new_header_fields():
         )
         await _create_purchase_order_impl(request, context)
     finally:
-        create_po_module.asyncio_detailed = original
+        cast(Any, create_po_module).asyncio_detailed = original
 
+    assert mock_api_call.call_args is not None
     api_body = mock_api_call.call_args.kwargs["body"]
     assert api_body.entity_type == APIPurchaseOrderEntityType.OUTSOURCED
     assert api_body.tracking_location_id == 2
@@ -448,7 +451,7 @@ async def test_create_purchase_order_apply_omits_unset_header_fields():
     import katana_public_api_client.api.purchase_order.create_purchase_order as create_po_module
 
     original = create_po_module.asyncio_detailed
-    create_po_module.asyncio_detailed = mock_api_call
+    cast(Any, create_po_module).asyncio_detailed = mock_api_call
     try:
         request = CreatePurchaseOrderRequest(
             supplier_id=4001,
@@ -459,7 +462,7 @@ async def test_create_purchase_order_apply_omits_unset_header_fields():
         )
         await _create_purchase_order_impl(request, context)
     finally:
-        create_po_module.asyncio_detailed = original
+        cast(Any, create_po_module).asyncio_detailed = original
 
     api_body = mock_api_call.call_args.kwargs["body"]
     # entity_type defaults to REGULAR (not UNSET — the impl chooses regular
@@ -487,7 +490,7 @@ async def test_create_purchase_order_apply_fails_fast_on_outsourced_without_trac
         location_id=1,
         order_number="PO-OS-MISSING",
         items=[PurchaseOrderItem(variant_id=1, quantity=1, price_per_unit=1.0)],
-        entity_type="outsourced",
+        entity_type=PurchaseOrderEntityType.OUTSOURCED,
         # tracking_location_id intentionally omitted
         preview=False,
     )
@@ -509,7 +512,7 @@ async def test_create_purchase_order_preview_warns_on_outsourced_without_trackin
         location_id=1,
         order_number="PO-OS-MISSING-TRACK",
         items=[PurchaseOrderItem(variant_id=1, quantity=1, price_per_unit=1.0)],
-        entity_type="outsourced",
+        entity_type=PurchaseOrderEntityType.OUTSOURCED,
         # tracking_location_id intentionally omitted
         preview=True,
     )
@@ -612,7 +615,9 @@ async def test_verify_order_document_perfect_match():
 
     # Setup mocks
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_po_response
+    )
     lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
 
     # Document items matching PO perfectly
@@ -662,7 +667,9 @@ async def test_verify_order_document_quantity_mismatch():
 
     mock_variants = [create_mock_variant(variant_id=1, sku="WIDGET-001")]
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_po_response
+    )
     lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
 
     # Document with different quantity
@@ -717,7 +724,9 @@ async def test_verify_order_document_price_mismatch():
 
     mock_variants = [create_mock_variant(variant_id=1, sku="WIDGET-001")]
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_po_response
+    )
     lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
 
     # Document with different price
@@ -770,7 +779,9 @@ async def test_verify_order_document_missing_in_po():
 
     mock_variants = [create_mock_variant(variant_id=1, sku="WIDGET-001")]
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_po_response
+    )
     lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
 
     # Document includes WIDGET-002 which is not in PO
@@ -825,7 +836,9 @@ async def test_verify_order_document_extra_in_document():
         create_mock_variant(variant_id=2, sku="WIDGET-002"),
     ]
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_po_response
+    )
     lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
 
     # Document only has WIDGET-001 (missing WIDGET-002 from PO)
@@ -871,7 +884,9 @@ async def test_verify_order_document_mixed_discrepancies():
         create_mock_variant(variant_id=2, sku="WIDGET-002"),
     ]
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_po_response
+    )
     lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
 
     # Document with: perfect match, quantity mismatch, missing item
@@ -938,7 +953,9 @@ async def test_verify_order_document_empty_po():
     mock_po_response.status_code = 200
     mock_po_response.parsed = mock_po
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_po_response
+    )
 
     request = VerifyOrderDocumentRequest(
         order_id=1234,
@@ -970,7 +987,9 @@ async def test_verify_order_document_po_not_found():
     mock_po_response.status_code = 404
     mock_po_response.parsed = None
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_po_response
+    )
 
     request = VerifyOrderDocumentRequest(
         order_id=9999,
@@ -1002,7 +1021,9 @@ async def test_verify_order_document_unset_values():
 
     mock_variants = [create_mock_variant(variant_id=1, sku="WIDGET-001")]
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_po_response
+    )
     lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
 
     request = VerifyOrderDocumentRequest(
@@ -1040,7 +1061,9 @@ async def test_verify_order_document_no_price_in_document():
 
     mock_variants = [create_mock_variant(variant_id=1, sku="WIDGET-001")]
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_po_response
+    )
     lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
 
     # Document without price
@@ -1079,7 +1102,9 @@ async def test_verify_order_document_variant_not_found():
     # Variants list doesn't include variant_id=1
     mock_variants = []
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_po_response
+    )
     lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
 
     request = VerifyOrderDocumentRequest(
@@ -1120,7 +1145,9 @@ async def test_verify_order_document_unset_order_no():
 
     mock_variants = [create_mock_variant(variant_id=1, sku="WIDGET-001")]
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_po_response
+    )
     lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
 
     request = VerifyOrderDocumentRequest(
@@ -1180,7 +1207,9 @@ async def test_verify_order_document_no_match():
 
     mock_variants = [create_mock_variant(variant_id=1, sku="WIDGET-001")]
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_po_response)
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_po_response
+    )
     lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
 
     # Document with completely different items
@@ -1239,7 +1268,9 @@ async def test_receive_purchase_order_preview():
         get_purchase_order as api_get_purchase_order,
     )
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
 
     # Create request with preview=true (preview mode)
     request = ReceivePurchaseOrderRequest(
@@ -1292,8 +1323,10 @@ async def test_receive_purchase_order_confirm_success():
         receive_purchase_order as api_receive_purchase_order,
     )
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
-    api_receive_purchase_order.asyncio_detailed = AsyncMock(
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+    cast(Any, api_receive_purchase_order).asyncio_detailed = AsyncMock(
         return_value=mock_receive_response
     )
 
@@ -1319,8 +1352,8 @@ async def test_receive_purchase_order_confirm_success():
     assert "Inventory has been updated" in result.next_actions
 
     # Verify API was called with correct data
-    api_receive_purchase_order.asyncio_detailed.assert_called_once()
-    call_args = api_receive_purchase_order.asyncio_detailed.call_args
+    cast(Any, api_receive_purchase_order.asyncio_detailed).assert_called_once()
+    call_args = cast(Any, api_receive_purchase_order.asyncio_detailed).call_args
     body = call_args.kwargs["body"]
 
     # Verify the body contains correct receive rows
@@ -1359,8 +1392,10 @@ async def test_receive_purchase_order_single_item():
         receive_purchase_order as api_receive_purchase_order,
     )
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
-    api_receive_purchase_order.asyncio_detailed = AsyncMock(
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+    cast(Any, api_receive_purchase_order).asyncio_detailed = AsyncMock(
         return_value=mock_receive_response
     )
 
@@ -1394,7 +1429,9 @@ async def test_receive_purchase_order_get_po_fails():
         get_purchase_order as api_get_purchase_order,
     )
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
 
     request = ReceivePurchaseOrderRequest(
         order_id=9999,
@@ -1441,8 +1478,10 @@ async def test_receive_purchase_order_receive_api_fails():
         receive_purchase_order as api_receive_purchase_order,
     )
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
-    api_receive_purchase_order.asyncio_detailed = AsyncMock(
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+    cast(Any, api_receive_purchase_order).asyncio_detailed = AsyncMock(
         return_value=mock_receive_response
     )
 
@@ -1484,7 +1523,9 @@ async def test_receive_purchase_order_order_no_unset():
         get_purchase_order as api_get_purchase_order,
     )
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
 
     request = ReceivePurchaseOrderRequest(
         order_id=1234,
@@ -1531,8 +1572,10 @@ async def test_receive_purchase_order_received_date_falls_back_to_now():
         receive_purchase_order as api_receive_purchase_order,
     )
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
-    api_receive_purchase_order.asyncio_detailed = AsyncMock(
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+    cast(Any, api_receive_purchase_order).asyncio_detailed = AsyncMock(
         return_value=mock_receive_response
     )
 
@@ -1551,7 +1594,7 @@ async def test_receive_purchase_order_received_date_falls_back_to_now():
     after_time = datetime.now(UTC)
 
     # Verify received_date was set
-    call_args = api_receive_purchase_order.asyncio_detailed.call_args
+    call_args = cast(Any, api_receive_purchase_order.asyncio_detailed).call_args
     body = call_args.kwargs["body"]
     received_date = body[0].received_date
 
@@ -1594,8 +1637,10 @@ async def test_receive_purchase_order_received_date_passthrough():
         receive_purchase_order as api_receive_purchase_order,
     )
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
-    api_receive_purchase_order.asyncio_detailed = AsyncMock(
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+    cast(Any, api_receive_purchase_order).asyncio_detailed = AsyncMock(
         return_value=mock_receive_response
     )
 
@@ -1620,7 +1665,10 @@ async def test_receive_purchase_order_received_date_passthrough():
 
     await _receive_purchase_order_impl(request, context)
 
-    body = api_receive_purchase_order.asyncio_detailed.call_args.kwargs["body"]
+    assert cast(Any, api_receive_purchase_order.asyncio_detailed).call_args is not None
+    body = cast(Any, api_receive_purchase_order.asyncio_detailed).call_args.kwargs[
+        "body"
+    ]
     assert body[0].received_date == actual_delivery
     assert body[1].received_date == actual_delivery
 
@@ -1657,8 +1705,10 @@ async def test_receive_purchase_order_batch_transactions_passthrough():
         receive_purchase_order as api_receive_purchase_order,
     )
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
-    api_receive_purchase_order.asyncio_detailed = AsyncMock(
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+    cast(Any, api_receive_purchase_order).asyncio_detailed = AsyncMock(
         return_value=mock_receive_response
     )
 
@@ -1679,7 +1729,9 @@ async def test_receive_purchase_order_batch_transactions_passthrough():
 
     await _receive_purchase_order_impl(request, context)
 
-    body = api_receive_purchase_order.asyncio_detailed.call_args.kwargs["body"]
+    body = cast(Any, api_receive_purchase_order.asyncio_detailed).call_args.kwargs[
+        "body"
+    ]
     sent_batches = body[0].batch_transactions
     assert len(sent_batches) == 2
     assert sent_batches[0].batch_id == 9001
@@ -1725,8 +1777,10 @@ async def test_receive_purchase_order_omits_batch_transactions_when_unset():
         receive_purchase_order as api_receive_purchase_order,
     )
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
-    api_receive_purchase_order.asyncio_detailed = AsyncMock(
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+    cast(Any, api_receive_purchase_order).asyncio_detailed = AsyncMock(
         return_value=mock_receive_response
     )
 
@@ -1738,7 +1792,9 @@ async def test_receive_purchase_order_omits_batch_transactions_when_unset():
 
     await _receive_purchase_order_impl(request, context)
 
-    body = api_receive_purchase_order.asyncio_detailed.call_args.kwargs["body"]
+    body = cast(Any, api_receive_purchase_order.asyncio_detailed).call_args.kwargs[
+        "body"
+    ]
     assert "batch_transactions" not in body[0].to_dict()
 
 
@@ -1806,7 +1862,9 @@ async def test_receive_purchase_order_wrapper():
         get_purchase_order as api_get_purchase_order,
     )
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
 
     # Create request
     request = ReceivePurchaseOrderRequest(
@@ -1850,8 +1908,10 @@ async def test_receive_purchase_order_multiple_items_various_quantities():
         receive_purchase_order as api_receive_purchase_order,
     )
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
-    api_receive_purchase_order.asyncio_detailed = AsyncMock(
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+    cast(Any, api_receive_purchase_order).asyncio_detailed = AsyncMock(
         return_value=mock_receive_response
     )
 
@@ -1873,7 +1933,7 @@ async def test_receive_purchase_order_multiple_items_various_quantities():
     assert result.is_preview is False
 
     # Verify all items were sent to API
-    call_args = api_receive_purchase_order.asyncio_detailed.call_args
+    call_args = cast(Any, api_receive_purchase_order.asyncio_detailed).call_args
     body = call_args.kwargs["body"]
     assert len(body) == 4
     assert body[0].quantity == 100.0
@@ -1915,7 +1975,7 @@ async def test_receive_purchase_order_exception_handling():
         get_purchase_order as api_get_purchase_order,
     )
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
         side_effect=Exception("Network error")
     )
 
@@ -1960,8 +2020,10 @@ async def test_receive_purchase_order_builds_correct_api_payload():
         receive_purchase_order as api_receive_purchase_order,
     )
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
-    api_receive_purchase_order.asyncio_detailed = AsyncMock(
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+    cast(Any, api_receive_purchase_order).asyncio_detailed = AsyncMock(
         return_value=mock_receive_response
     )
 
@@ -1978,8 +2040,8 @@ async def test_receive_purchase_order_builds_correct_api_payload():
     await _receive_purchase_order_impl(request, context)
 
     # Verify the API was called with correct parameters
-    api_receive_purchase_order.asyncio_detailed.assert_called_once()
-    call_args = api_receive_purchase_order.asyncio_detailed.call_args
+    cast(Any, api_receive_purchase_order.asyncio_detailed).assert_called_once()
+    call_args = cast(Any, api_receive_purchase_order.asyncio_detailed).call_args
 
     # Check client parameter
     assert "client" in call_args.kwargs
@@ -2032,9 +2094,11 @@ async def test_receive_purchase_order_confirm_refuses_when_already_received():
         receive_purchase_order as api_receive_purchase_order,
     )
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
     receive_mock = AsyncMock()
-    api_receive_purchase_order.asyncio_detailed = receive_mock
+    cast(Any, api_receive_purchase_order).asyncio_detailed = receive_mock
 
     request = ReceivePurchaseOrderRequest(
         order_id=8888,
@@ -2085,8 +2149,10 @@ async def test_receive_purchase_order_response_structure():
         receive_purchase_order as api_receive_purchase_order,
     )
 
-    api_get_purchase_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
-    api_receive_purchase_order.asyncio_detailed = AsyncMock(
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+    cast(Any, api_receive_purchase_order).asyncio_detailed = AsyncMock(
         return_value=mock_receive_response
     )
 
@@ -2457,8 +2523,10 @@ async def test_get_purchase_order_fetches_additional_costs_and_accounting_metada
 
     # Side-data helpers called with the right PO-scope identifiers
     mock_fetch_costs.assert_awaited_once()
+    assert mock_fetch_costs.await_args is not None
     assert mock_fetch_costs.await_args.args[1] == 8080  # default_group_id
     mock_fetch_meta.assert_awaited_once()
+    assert mock_fetch_meta.await_args is not None
     assert mock_fetch_meta.await_args.args[1] == 12345  # PO id
 
     # Fetched values flow through to the response
@@ -2671,6 +2739,7 @@ async def test_get_purchase_order_accepts_zero_order_id_via_is_none_check():
     mock_detailed.assert_awaited_once()
     # ``find_purchase_orders`` (the list-by-order_no branch) must NOT have
     # been exercised — the get-by-id path was taken.
+    assert mock_detailed.await_args is not None
     assert mock_detailed.await_args.kwargs["id"] == 0
     assert result.id == 0
 
@@ -2700,6 +2769,7 @@ async def test_get_purchase_order_runs_side_data_fetches_concurrently():
 
     # gather called with two awaitables — the two side-data coroutines.
     spy_gather.assert_called_once()
+    assert spy_gather.call_args is not None
     assert len(spy_gather.call_args.args) == 2
 
 

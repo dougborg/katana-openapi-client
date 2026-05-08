@@ -2,6 +2,7 @@
 
 import json
 from datetime import UTC, datetime
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -24,6 +25,7 @@ from katana_mcp.tools.foundation.sales_orders import (
     get_sales_order,
     list_sales_orders,
 )
+from katana_mcp_server.tests.conftest import create_mock_context, patch_typed_cache_sync
 
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models import (
@@ -31,7 +33,6 @@ from katana_public_api_client.models import (
     SalesOrderStatus,
 )
 from katana_public_api_client.utils import APIError
-from tests.conftest import create_mock_context, patch_typed_cache_sync
 from tests.factories import (
     make_sales_order,
     make_sales_order_row,
@@ -175,7 +176,7 @@ async def test_create_sales_order_confirm_success():
     import katana_public_api_client.api.sales_order.create_sales_order as create_so_module
 
     original_asyncio_detailed = create_so_module.asyncio_detailed
-    create_so_module.asyncio_detailed = mock_api_call
+    cast(Any, create_so_module).asyncio_detailed = mock_api_call
 
     try:
         request = CreateSalesOrderRequest(
@@ -236,7 +237,7 @@ async def test_create_sales_order_forwards_new_header_and_row_fields():
     import katana_public_api_client.api.sales_order.create_sales_order as create_so_module
 
     original = create_so_module.asyncio_detailed
-    create_so_module.asyncio_detailed = mock_api_call
+    cast(Any, create_so_module).asyncio_detailed = mock_api_call
     try:
         placed_at = datetime(2026, 3, 15, 10, 0, tzinfo=UTC)
         request = CreateSalesOrderRequest(
@@ -268,8 +269,9 @@ async def test_create_sales_order_forwards_new_header_and_row_fields():
         )
         await _create_sales_order_impl(request, context)
     finally:
-        create_so_module.asyncio_detailed = original
+        cast(Any, create_so_module).asyncio_detailed = original
 
+    assert mock_api_call.call_args is not None
     api_body = mock_api_call.call_args.kwargs["body"]
 
     # Header fields
@@ -318,7 +320,7 @@ async def test_create_sales_order_apply_omits_unset_fields():
     import katana_public_api_client.api.sales_order.create_sales_order as create_so_module
 
     original = create_so_module.asyncio_detailed
-    create_so_module.asyncio_detailed = mock_api_call
+    cast(Any, create_so_module).asyncio_detailed = mock_api_call
     try:
         request = CreateSalesOrderRequest(
             customer_id=1501,
@@ -328,7 +330,7 @@ async def test_create_sales_order_apply_omits_unset_fields():
         )
         await _create_sales_order_impl(request, context)
     finally:
-        create_so_module.asyncio_detailed = original
+        cast(Any, create_so_module).asyncio_detailed = original
 
     api_body = mock_api_call.call_args.kwargs["body"]
     assert api_body.order_created_date is UNSET
@@ -365,7 +367,7 @@ async def test_create_sales_order_with_addresses():
     import katana_public_api_client.api.sales_order.create_sales_order as create_so_module
 
     original_asyncio_detailed = create_so_module.asyncio_detailed
-    create_so_module.asyncio_detailed = mock_api_call
+    cast(Any, create_so_module).asyncio_detailed = mock_api_call
 
     try:
         request = CreateSalesOrderRequest(
@@ -407,6 +409,7 @@ async def test_create_sales_order_with_addresses():
         mock_api_call.assert_called_once()
 
         # Verify addresses were passed to API
+        assert mock_api_call.call_args is not None
         call_kwargs = mock_api_call.call_args.kwargs
         api_request = call_kwargs["body"]
         assert not isinstance(api_request.addresses, type(UNSET))
@@ -455,7 +458,7 @@ async def test_create_sales_order_api_error():
     import katana_public_api_client.api.sales_order.create_sales_order as create_so_module
 
     original_asyncio_detailed = create_so_module.asyncio_detailed
-    create_so_module.asyncio_detailed = mock_api_call
+    cast(Any, create_so_module).asyncio_detailed = mock_api_call
 
     try:
         request = CreateSalesOrderRequest(
@@ -484,7 +487,7 @@ async def test_create_sales_order_api_exception():
     import katana_public_api_client.api.sales_order.create_sales_order as create_so_module
 
     original_asyncio_detailed = create_so_module.asyncio_detailed
-    create_so_module.asyncio_detailed = mock_api_call
+    cast(Any, create_so_module).asyncio_detailed = mock_api_call
 
     try:
         request = CreateSalesOrderRequest(
@@ -527,7 +530,7 @@ async def test_create_sales_order_confirm_with_minimal_fields():
     import katana_public_api_client.api.sales_order.create_sales_order as create_so_module
 
     original_asyncio_detailed = create_so_module.asyncio_detailed
-    create_so_module.asyncio_detailed = mock_api_call
+    cast(Any, create_so_module).asyncio_detailed = mock_api_call
 
     try:
         request = CreateSalesOrderRequest(

@@ -161,7 +161,7 @@ class TestMiddlewareBehavior:
             captured["args"] = c.message.arguments
             return MagicMock()
 
-        await JsonStringCoercionMiddleware().on_call_tool(ctx, call_next)
+        await JsonStringCoercionMiddleware().on_call_tool(ctx, cast(Any, call_next))
         return captured["args"]
 
     async def test_decodes_stringified_int_list(self):

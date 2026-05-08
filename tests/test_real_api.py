@@ -147,13 +147,16 @@ class TestRealAPIIntegration:
                     f"Expected 200, got {response.status_code}"
                 )
 
-                # Extract products from response
+                # Extract products from response. ``response.parsed`` is a
+                # union of error/success types; only the success branches
+                # have ``.data``. ``hasattr`` filters at runtime; read via
+                # ``getattr`` to satisfy the static checker.
                 if (
                     hasattr(response, "parsed")
                     and response.parsed
                     and hasattr(response.parsed, "data")
                 ):
-                    products = response.parsed.data
+                    products = getattr(response.parsed, "data", None)
                     if isinstance(products, list) and len(products) > 0:
                         assert len(products) > 0, "Should get at least some products"
 

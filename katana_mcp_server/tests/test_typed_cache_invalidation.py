@@ -121,6 +121,7 @@ class TestSoftDeleteSync:
         ):
             await ensure_purchase_orders_synced(MagicMock(), typed_cache_engine)
 
+        assert mock_api.call_args is not None
         assert mock_api.call_args.kwargs["include_deleted"] is True
 
     @pytest.mark.asyncio

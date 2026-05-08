@@ -101,12 +101,19 @@ def _sanitize_url(url: str) -> str:
                 sanitized[k] = [_REDACTED]
             else:
                 sanitized[k] = values
-        # Use urlencode with custom quote function that preserves * characters
+        # Use urlencode with custom quote function that preserves * characters.
+        # ``urlencode``'s ``quote_via`` has overloaded protocols for
+        # ``str`` and ``bytes`` that don't unify under a single
+        # callable shape; cast the lambda to ``Any`` to satisfy the
+        # checker without picking one overload.
         clean_query = urlencode(
             sanitized,
             doseq=True,
-            quote_via=lambda s, safe="", encoding=None, errors=None: quote(
-                s, safe=safe + "*", encoding=encoding, errors=errors
+            quote_via=cast(
+                "Any",
+                lambda s, safe="", encoding=None, errors=None: quote(
+                    s, safe=safe + "*", encoding=encoding, errors=errors
+                ),
             ),
         )
         return urlunparse(parsed._replace(query=clean_query))

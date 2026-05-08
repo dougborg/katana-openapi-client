@@ -48,17 +48,19 @@ class CreateProductRequest(BaseModel):
     uom: str = Field(
         default="pcs", description="Unit of measure (e.g., pcs, kg, hours)"
     )
-    category_name: str | None = Field(None, description="Category for grouping")
-    is_sellable: bool = Field(True, description="Whether product can be sold")
-    is_producible: bool = Field(False, description="Can be manufactured")
-    is_purchasable: bool = Field(True, description="Can be purchased")
-    sales_price: float | None = Field(None, description="Sales price per unit")
-    purchase_price: float | None = Field(None, description="Purchase cost per unit")
+    category_name: str | None = Field(default=None, description="Category for grouping")
+    is_sellable: bool = Field(default=True, description="Whether product can be sold")
+    is_producible: bool = Field(default=False, description="Can be manufactured")
+    is_purchasable: bool = Field(default=True, description="Can be purchased")
+    sales_price: float | None = Field(default=None, description="Sales price per unit")
+    purchase_price: float | None = Field(
+        default=None, description="Purchase cost per unit"
+    )
     default_supplier_id: int | None = Field(
-        None,
+        default=None,
         description=("Default supplier ID. Look up via `list_suppliers`."),
     )
-    additional_info: str | None = Field(None, description="Additional notes")
+    additional_info: str | None = Field(default=None, description="Additional notes")
 
     # Variant-level fields — forwarded to the embedded CreateVariantRequest.
     # Mirror modify_item.add_variants (VariantAdd) so create/modify symmetry holds.
@@ -236,15 +238,17 @@ class CreateMaterialRequest(BaseModel):
     uom: str = Field(
         default="pcs", description="Unit of measure (e.g., pcs, kg, meters)"
     )
-    category_name: str | None = Field(None, description="Category for grouping")
-    is_sellable: bool = Field(False, description="Whether material can be sold")
-    sales_price: float | None = Field(None, description="Sales price per unit")
-    purchase_price: float | None = Field(None, description="Purchase cost per unit")
+    category_name: str | None = Field(default=None, description="Category for grouping")
+    is_sellable: bool = Field(default=False, description="Whether material can be sold")
+    sales_price: float | None = Field(default=None, description="Sales price per unit")
+    purchase_price: float | None = Field(
+        default=None, description="Purchase cost per unit"
+    )
     default_supplier_id: int | None = Field(
-        None,
+        default=None,
         description=("Default supplier ID. Look up via `list_suppliers`."),
     )
-    additional_info: str | None = Field(None, description="Additional notes")
+    additional_info: str | None = Field(default=None, description="Additional notes")
 
     # Variant-level fields — forwarded to the embedded CreateVariantRequest.
     # Mirror modify_item.add_variants (VariantAdd) so create/modify symmetry holds.

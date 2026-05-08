@@ -1,5 +1,6 @@
 """Tests for order fulfillment MCP tools."""
 
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -9,6 +10,7 @@ from katana_mcp.tools.foundation.orders import (
     FulfillRowOverride,
     _fulfill_order_impl,
 )
+from katana_mcp_server.tests.conftest import create_mock_context
 
 from katana_public_api_client.models import (
     ManufacturingOrder,
@@ -17,7 +19,6 @@ from katana_public_api_client.models import (
 )
 from katana_public_api_client.models.sales_order_status import SalesOrderStatus
 from katana_public_api_client.utils import APIError
-from tests.conftest import create_mock_context
 
 # ============================================================================
 # Manufacturing Order Tests
@@ -43,7 +44,9 @@ async def test_fulfill_manufacturing_order_preview():
         get_manufacturing_order,
     )
 
-    get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=mock_response
+    )
 
     request = FulfillOrderRequest(
         order_id=1234, order_type="manufacturing", preview=True
@@ -89,8 +92,10 @@ async def test_fulfill_manufacturing_order_confirm():
         update_manufacturing_order,
     )
 
-    get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
-    update_manufacturing_order.asyncio_detailed = AsyncMock(
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+    cast(Any, update_manufacturing_order).asyncio_detailed = AsyncMock(
         return_value=mock_update_response
     )
 
@@ -108,7 +113,7 @@ async def test_fulfill_manufacturing_order_confirm():
     assert "marked" in result.message.lower() or "done" in result.message.lower()
 
     # Verify update was called
-    update_manufacturing_order.asyncio_detailed.assert_called_once()
+    cast(Any, update_manufacturing_order.asyncio_detailed).assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -129,7 +134,9 @@ async def test_fulfill_manufacturing_order_already_done():
         get_manufacturing_order,
     )
 
-    get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=mock_response
+    )
 
     # Preview mode
     request = FulfillOrderRequest(
@@ -170,7 +177,9 @@ async def test_fulfill_manufacturing_order_blocked():
         get_manufacturing_order,
     )
 
-    get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=mock_response
+    )
 
     request = FulfillOrderRequest(
         order_id=1234, order_type="manufacturing", preview=True
@@ -195,7 +204,9 @@ async def test_fulfill_manufacturing_order_not_found():
         get_manufacturing_order,
     )
 
-    get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=mock_response
+    )
 
     request = FulfillOrderRequest(
         order_id=9999, order_type="manufacturing", preview=True
@@ -238,7 +249,7 @@ async def test_fulfill_sales_order_preview():
 
     from katana_public_api_client.api.sales_order import get_sales_order
 
-    get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(return_value=mock_response)
 
     request = FulfillOrderRequest(order_id=5678, order_type="sales", preview=True)
     result = await _fulfill_order_impl(request, context)
@@ -273,7 +284,9 @@ async def test_fulfill_sales_order_confirm_creates_fulfillment():
         create_sales_order_fulfillment,
     )
 
-    get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
 
     from katana_public_api_client.models import SalesOrderFulfillment
 
@@ -281,7 +294,7 @@ async def test_fulfill_sales_order_confirm_creates_fulfillment():
     fulfillment_obj.id = 9999
     mock_create_response = MagicMock(status_code=201, parsed=fulfillment_obj)
     create_mock = AsyncMock(return_value=mock_create_response)
-    create_sales_order_fulfillment.asyncio_detailed = create_mock
+    cast(Any, create_sales_order_fulfillment).asyncio_detailed = create_mock
 
     request = FulfillOrderRequest(order_id=5678, order_type="sales", preview=False)
     result = await _fulfill_order_impl(request, context)
@@ -312,9 +325,9 @@ async def test_fulfill_sales_order_confirm_refuses_when_no_rows():
         create_sales_order_fulfillment,
     )
 
-    get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(return_value=mock_response)
     create_mock = AsyncMock()
-    create_sales_order_fulfillment.asyncio_detailed = create_mock
+    cast(Any, create_sales_order_fulfillment).asyncio_detailed = create_mock
 
     request = FulfillOrderRequest(order_id=5678, order_type="sales", preview=False)
     result = await _fulfill_order_impl(request, context)
@@ -342,7 +355,7 @@ async def test_fulfill_sales_order_blocks_when_already_delivered():
 
     from katana_public_api_client.api.sales_order import get_sales_order
 
-    get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(return_value=mock_response)
 
     # Preview path: BLOCK warning present.
     request = FulfillOrderRequest(order_id=5678, order_type="sales", preview=True)
@@ -372,7 +385,7 @@ async def test_fulfill_sales_order_not_found():
 
     from katana_public_api_client.api.sales_order import get_sales_order
 
-    get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(return_value=mock_response)
 
     request = FulfillOrderRequest(order_id=9999, order_type="sales", preview=True)
 
@@ -424,8 +437,10 @@ async def test_fulfill_manufacturing_order_api_error():
         update_manufacturing_order,
     )
 
-    get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
-    update_manufacturing_order.asyncio_detailed = AsyncMock(
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+    cast(Any, update_manufacturing_order).asyncio_detailed = AsyncMock(
         return_value=mock_update_response
     )
 
@@ -490,7 +505,7 @@ async def test_fulfill_sales_order_preview_blocks_serial_tracked_without_overrid
     mock_response = MagicMock(status_code=200, parsed=mock_so)
     from katana_public_api_client.api.sales_order import get_sales_order
 
-    get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(return_value=mock_response)
 
     request = FulfillOrderRequest(order_id=42, order_type="sales", preview=True)
     result = await _fulfill_order_impl(request, context)
@@ -516,7 +531,7 @@ async def test_fulfill_sales_order_preview_accepts_serial_override():
     mock_response = MagicMock(status_code=200, parsed=mock_so)
     from katana_public_api_client.api.sales_order import get_sales_order
 
-    get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(return_value=mock_response)
 
     request = FulfillOrderRequest(
         order_id=42,
@@ -549,12 +564,14 @@ async def test_fulfill_sales_order_apply_passes_serials_to_api():
     )
     from katana_public_api_client.models import SalesOrderFulfillment
 
-    get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
     fulfillment_obj = MagicMock(spec=SalesOrderFulfillment)
     fulfillment_obj.id = 7777
     mock_create_response = MagicMock(status_code=201, parsed=fulfillment_obj)
     create_mock = AsyncMock(return_value=mock_create_response)
-    create_sales_order_fulfillment.asyncio_detailed = create_mock
+    cast(Any, create_sales_order_fulfillment).asyncio_detailed = create_mock
 
     request = FulfillOrderRequest(
         order_id=42,
@@ -567,6 +584,7 @@ async def test_fulfill_sales_order_apply_passes_serials_to_api():
     assert result.is_preview is False
     assert result.status == "DELIVERED"
     create_mock.assert_called_once()
+    assert create_mock.call_args is not None
     sent_body = create_mock.call_args.kwargs["body"]
     sent_rows = sent_body.sales_order_fulfillment_rows
     assert len(sent_rows) == 1
@@ -592,9 +610,9 @@ async def test_fulfill_sales_order_apply_refuses_serial_tracked_without_override
         create_sales_order_fulfillment,
     )
 
-    get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(return_value=mock_response)
     create_mock = AsyncMock()
-    create_sales_order_fulfillment.asyncio_detailed = create_mock
+    cast(Any, create_sales_order_fulfillment).asyncio_detailed = create_mock
 
     request = FulfillOrderRequest(order_id=42, order_type="sales", preview=False)
     result = await _fulfill_order_impl(request, context)
@@ -621,7 +639,7 @@ async def test_fulfill_sales_order_blocks_quantity_serials_mismatch():
     mock_response = MagicMock(status_code=200, parsed=mock_so)
     from katana_public_api_client.api.sales_order import get_sales_order
 
-    get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(return_value=mock_response)
 
     request = FulfillOrderRequest(
         order_id=42,
@@ -648,7 +666,7 @@ async def test_fulfill_sales_order_blocks_unknown_row_override():
     mock_response = MagicMock(status_code=200, parsed=mock_so)
     from katana_public_api_client.api.sales_order import get_sales_order
 
-    get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(return_value=mock_response)
 
     request = FulfillOrderRequest(
         order_id=42,
@@ -698,9 +716,15 @@ async def test_fulfill_sales_order_serial_tracked_detection_falls_back_to_api():
     from katana_public_api_client.api.sales_order import get_sales_order
     from katana_public_api_client.api.variant import get_variant
 
-    get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_get_so_response)
-    get_variant.asyncio_detailed = AsyncMock(return_value=mock_get_variant_response)
-    get_product.asyncio_detailed = AsyncMock(return_value=mock_get_product_response)
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_so_response
+    )
+    cast(Any, get_variant).asyncio_detailed = AsyncMock(
+        return_value=mock_get_variant_response
+    )
+    cast(Any, get_product).asyncio_detailed = AsyncMock(
+        return_value=mock_get_product_response
+    )
 
     request = FulfillOrderRequest(order_id=42, order_type="sales", preview=True)
     result = await _fulfill_order_impl(request, context)
@@ -708,8 +732,8 @@ async def test_fulfill_sales_order_serial_tracked_detection_falls_back_to_api():
     block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
     assert any("serial-tracked" in w and "ROCKER-V2" in w for w in block_warnings)
     # Verify both API endpoints were hit.
-    get_variant.asyncio_detailed.assert_called_once()
-    get_product.asyncio_detailed.assert_called_once()
+    cast(Any, get_variant.asyncio_detailed).assert_called_once()
+    cast(Any, get_product.asyncio_detailed).assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -730,7 +754,7 @@ async def test_fulfill_sales_order_blocks_duplicate_row_override():
     mock_response = MagicMock(status_code=200, parsed=mock_so)
     from katana_public_api_client.api.sales_order import get_sales_order
 
-    get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(return_value=mock_response)
 
     request = FulfillOrderRequest(
         order_id=42,
@@ -768,7 +792,7 @@ async def test_fulfill_sales_order_blocks_serial_tracked_non_integer_quantity():
     mock_response = MagicMock(status_code=200, parsed=mock_so)
     from katana_public_api_client.api.sales_order import get_sales_order
 
-    get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(return_value=mock_response)
 
     request = FulfillOrderRequest(
         order_id=42,
@@ -819,12 +843,14 @@ async def test_fulfill_sales_order_non_serial_tracked_no_change():
     )
     from katana_public_api_client.models import SalesOrderFulfillment
 
-    get_sales_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
     fulfillment_obj = MagicMock(spec=SalesOrderFulfillment)
     fulfillment_obj.id = 8888
     mock_create_response = MagicMock(status_code=201, parsed=fulfillment_obj)
     create_mock = AsyncMock(return_value=mock_create_response)
-    create_sales_order_fulfillment.asyncio_detailed = create_mock
+    cast(Any, create_sales_order_fulfillment).asyncio_detailed = create_mock
 
     request = FulfillOrderRequest(order_id=42, order_type="sales", preview=False)
     result = await _fulfill_order_impl(request, context)
@@ -875,7 +901,9 @@ async def test_fulfill_manufacturing_order_preview_blocks_serial_tracked_without
         get_manufacturing_order,
     )
 
-    get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=mock_response
+    )
 
     request = FulfillOrderRequest(order_id=42, order_type="manufacturing", preview=True)
     result = await _fulfill_order_impl(request, context)
@@ -900,7 +928,9 @@ async def test_fulfill_manufacturing_order_preview_accepts_serial_numbers():
         get_manufacturing_order,
     )
 
-    get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=mock_response
+    )
 
     request = FulfillOrderRequest(
         order_id=42,
@@ -933,9 +963,11 @@ async def test_fulfill_manufacturing_order_apply_passes_serials_to_api():
         update_manufacturing_order,
     )
 
-    get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
     update_mock = AsyncMock(return_value=mock_update_response)
-    update_manufacturing_order.asyncio_detailed = update_mock
+    cast(Any, update_manufacturing_order).asyncio_detailed = update_mock
 
     request = FulfillOrderRequest(
         order_id=42,
@@ -948,6 +980,7 @@ async def test_fulfill_manufacturing_order_apply_passes_serials_to_api():
     assert result.is_preview is False
     assert result.status == "DONE"
     update_mock.assert_called_once()
+    assert update_mock.call_args is not None
     sent_body = update_mock.call_args.kwargs["body"]
     assert sent_body.serial_numbers == [501, 502]
 
@@ -966,9 +999,11 @@ async def test_fulfill_manufacturing_order_apply_refuses_serial_tracked_without_
         update_manufacturing_order,
     )
 
-    get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=mock_response
+    )
     update_mock = AsyncMock()
-    update_manufacturing_order.asyncio_detailed = update_mock
+    cast(Any, update_manufacturing_order).asyncio_detailed = update_mock
 
     request = FulfillOrderRequest(
         order_id=42, order_type="manufacturing", preview=False
@@ -996,7 +1031,9 @@ async def test_fulfill_manufacturing_order_blocks_quantity_serials_mismatch():
         get_manufacturing_order,
     )
 
-    get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=mock_response
+    )
 
     request = FulfillOrderRequest(
         order_id=42,
@@ -1027,7 +1064,9 @@ async def test_fulfill_manufacturing_order_blocks_serial_tracked_non_integer_qua
         get_manufacturing_order,
     )
 
-    get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_response)
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=mock_response
+    )
 
     request = FulfillOrderRequest(
         order_id=42,
@@ -1078,11 +1117,15 @@ async def test_fulfill_manufacturing_order_serial_tracked_detection_falls_back_t
     from katana_public_api_client.api.product import get_product
     from katana_public_api_client.api.variant import get_variant
 
-    get_manufacturing_order.asyncio_detailed = AsyncMock(
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
         return_value=mock_get_mo_response
     )
-    get_variant.asyncio_detailed = AsyncMock(return_value=mock_get_variant_response)
-    get_product.asyncio_detailed = AsyncMock(return_value=mock_get_product_response)
+    cast(Any, get_variant).asyncio_detailed = AsyncMock(
+        return_value=mock_get_variant_response
+    )
+    cast(Any, get_product).asyncio_detailed = AsyncMock(
+        return_value=mock_get_product_response
+    )
 
     request = FulfillOrderRequest(order_id=42, order_type="manufacturing", preview=True)
     result = await _fulfill_order_impl(request, context)
@@ -1090,8 +1133,8 @@ async def test_fulfill_manufacturing_order_serial_tracked_detection_falls_back_t
     block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
     assert any("serial-tracked" in w and "ROCKER-V2" in w for w in block_warnings)
     # Verify both API endpoints were hit.
-    get_variant.asyncio_detailed.assert_called_once()
-    get_product.asyncio_detailed.assert_called_once()
+    cast(Any, get_variant.asyncio_detailed).assert_called_once()
+    cast(Any, get_product.asyncio_detailed).assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -1124,9 +1167,11 @@ async def test_fulfill_manufacturing_order_non_serial_tracked_no_change():
         update_manufacturing_order,
     )
 
-    get_manufacturing_order.asyncio_detailed = AsyncMock(return_value=mock_get_response)
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
     update_mock = AsyncMock(return_value=mock_update_response)
-    update_manufacturing_order.asyncio_detailed = update_mock
+    cast(Any, update_manufacturing_order).asyncio_detailed = update_mock
 
     request = FulfillOrderRequest(
         order_id=42, order_type="manufacturing", preview=False

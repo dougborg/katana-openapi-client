@@ -16,7 +16,8 @@
     "katana_public_api_client/api",
     "katana_public_api_client/models",
     "katana_public_api_client/client.py",
-    "katana_public_api_client/models_pydantic/_generated"
+    "katana_public_api_client/models_pydantic/_generated",
+    "scripts/test_mcp_resources.py"
   ],
   "executionEnvironments": [
     {
