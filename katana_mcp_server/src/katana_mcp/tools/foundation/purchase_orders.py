@@ -175,6 +175,7 @@ class PurchaseOrderResponse(BaseModel):
     total_cost: float | None = None
     currency: str | None = None
     item_count: int | None = None
+    notes: str | None = None
     is_preview: bool
     warnings: list[str] = Field(default_factory=list)
     next_actions: list[str] = Field(default_factory=list)
@@ -236,28 +237,33 @@ async def _create_purchase_order_impl(
     # Calculate preview total
     total_cost = sum(item.price_per_unit * item.quantity for item in request.items)
 
+    services = get_services(context)
+    from katana_mcp.cache import EntityType
+
+    # Resolve supplier/location names from cache for both preview and apply
+    # branches so the result card has the same information density either way
+    # (#618). Cache misses surface as advisory warnings on the preview branch
+    # only — by the time we're applying, the user has already seen them.
+    (supplier_name, sup_warn), (location_name, loc_warn) = await asyncio.gather(
+        resolve_entity_name(
+            services.cache,
+            EntityType.SUPPLIER,
+            request.supplier_id,
+            entity_label="Supplier",
+        ),
+        resolve_entity_name(
+            services.cache,
+            EntityType.LOCATION,
+            request.location_id,
+            entity_label="Location",
+        ),
+    )
+
     if request.preview:
         logger.info(
             f"Preview mode: PO {request.order_number} would have {len(request.items)} items"
         )
 
-        services = get_services(context)
-        from katana_mcp.cache import EntityType
-
-        (supplier_name, sup_warn), (location_name, loc_warn) = await asyncio.gather(
-            resolve_entity_name(
-                services.cache,
-                EntityType.SUPPLIER,
-                request.supplier_id,
-                entity_label="Supplier",
-            ),
-            resolve_entity_name(
-                services.cache,
-                EntityType.LOCATION,
-                request.location_id,
-                entity_label="Location",
-            ),
-        )
         warnings: list[str] = [w for w in (sup_warn, loc_warn) if w]
 
         return PurchaseOrderResponse(
@@ -271,6 +277,7 @@ async def _create_purchase_order_impl(
             total_cost=total_cost,
             currency=request.currency,
             item_count=len(request.items),
+            notes=request.notes,
             is_preview=True,
             warnings=warnings,
             next_actions=[
@@ -281,8 +288,6 @@ async def _create_purchase_order_impl(
         )
 
     try:
-        services = get_services(context)
-
         # Build purchase order rows
         po_rows = []
         for item in request.items:
@@ -333,15 +338,25 @@ async def _create_purchase_order_impl(
         location_id = unwrap_unset(po.location_id, request.location_id)
         currency = unwrap_unset(po.currency, None)
 
+        # Echo notes back so callers can visually verify the value persisted
+        # — Katana exposes the field on the wire as ``additional_info``; we
+        # surface our own ``notes`` request field name for symmetry with the
+        # request and preview cards (#618).
+        notes_echo = unwrap_unset(po.additional_info, request.notes)
+
         return PurchaseOrderResponse(
             id=po.id,
             order_number=order_no,
             supplier_id=supplier_id,
+            supplier_name=supplier_name,
             location_id=location_id,
+            location_name=location_name,
             status=po.status.value if po.status else "UNKNOWN",
             entity_type="regular",
             total_cost=total_cost,
             currency=currency,
+            item_count=len(request.items),
+            notes=notes_echo,
             is_preview=False,
             katana_url=katana_web_url("purchase_order", po.id),
             next_actions=[
