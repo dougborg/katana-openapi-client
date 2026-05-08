@@ -37,18 +37,27 @@ def _content_text(result) -> str:
 
 @pytest.fixture(autouse=True)
 def _patch_cache_sync():
-    """Patch variant sync for all unit tests.
+    """Patch entity syncs for all unit tests.
 
     The @cache_read decorator caches sync functions in a module-level dict on
     first call, so patching the cache_sync module alone is not enough — we
     also need to clear and re-mock the cached mapping in the decorators module.
+
+    ``get_variant_details`` syncs VARIANT plus PRODUCT, MATERIAL, and SUPPLIER
+    (so the parent-derived ``default_supplier_id`` / ``default_supplier_name``
+    can be lifted onto the variant response — see #613-followup), so all four
+    are mocked.
     """
     from katana_mcp.cache import EntityType
     from katana_mcp.tools import decorators
 
-    mock_sync = AsyncMock()
     original = decorators._sync_fns
-    decorators._sync_fns = {EntityType.VARIANT: mock_sync}
+    decorators._sync_fns = {
+        EntityType.VARIANT: AsyncMock(),
+        EntityType.PRODUCT: AsyncMock(),
+        EntityType.MATERIAL: AsyncMock(),
+        EntityType.SUPPLIER: AsyncMock(),
+    }
     try:
         with patch(
             "katana_mcp.cache_sync.ensure_variants_synced", new_callable=AsyncMock
@@ -149,6 +158,73 @@ async def test_get_variant_details_format_json_includes_deleted_at():
 
     data = json.loads(_content_text(result))
     assert data["variants"][0]["deleted_at"] == "2024-09-01T12:00:00+00:00"
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_syncs_parent_entity_caches():
+    """get_variant_details lifts ``default_supplier_id`` / ``_name`` from the
+    parent product/material — so PRODUCT, MATERIAL, and SUPPLIER caches must
+    be synced alongside VARIANT before the lookup runs. Otherwise a fresh
+    install / cold cache yields ``default_supplier_id: null`` for variants
+    whose parent simply hasn't been cached yet.
+    """
+    from katana_mcp.cache import EntityType
+    from katana_mcp.tools import decorators
+
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=dict(_FULL_VARIANT_DICT))
+
+    request = GetVariantDetailsRequest(sku="KNF-PRO-8PC-STL")
+    await _get_variant_details_impl(request, context)
+
+    sync_fns = decorators._sync_fns
+    assert sync_fns is not None  # set by the autouse fixture
+    for entity_type in (
+        EntityType.VARIANT,
+        EntityType.PRODUCT,
+        EntityType.MATERIAL,
+        EntityType.SUPPLIER,
+    ):
+        sync_fns[entity_type].assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_lifts_default_supplier_from_parent():
+    """When parent + supplier are present in the cache, ``default_supplier_id``
+    and ``default_supplier_name`` are lifted onto the variant response
+    (regression: cold-cache call previously returned ``null`` because
+    PRODUCT/SUPPLIER were never synced before the parent lookup).
+    """
+    context, lifespan_ctx = create_mock_context()
+    variant = dict(_FULL_VARIANT_DICT)
+    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=variant)
+
+    parent_product = {
+        "id": 101,
+        "uom": "set",
+        "default_supplier_id": 555,
+        "batch_tracked": False,
+    }
+    supplier = {"id": 555, "name": "Acme Cutlery Co"}
+
+    async def _get_many_by_ids(entity_type, ids):
+        from katana_mcp.cache import EntityType
+
+        if entity_type == EntityType.PRODUCT:
+            return {101: parent_product} if 101 in set(ids) else {}
+        if entity_type == EntityType.SUPPLIER:
+            return {555: supplier} if 555 in set(ids) else {}
+        return {}
+
+    lifespan_ctx.cache.get_many_by_ids = AsyncMock(side_effect=_get_many_by_ids)
+
+    request = GetVariantDetailsRequest(sku="KNF-PRO-8PC-STL")
+    [result] = await _get_variant_details_impl(request, context)
+
+    assert result.default_supplier_id == 555
+    assert result.default_supplier_name == "Acme Cutlery Co"
+    assert result.uom == "set"
+    assert result.is_batch_tracked is False
 
 
 # ============================================================================

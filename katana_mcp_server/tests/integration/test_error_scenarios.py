@@ -32,9 +32,29 @@ from tests.conftest import create_mock_context
 
 @pytest.fixture(autouse=True)
 def _patch_cache_sync():
-    """Patch cache sync for all error scenario tests."""
-    with patch("katana_mcp.cache_sync.ensure_variants_synced", new_callable=AsyncMock):
-        yield
+    """Patch cache sync for all error scenario tests.
+
+    ``get_variant_details`` syncs VARIANT plus PRODUCT, MATERIAL, and SUPPLIER
+    (parent-derived ``default_supplier_*`` fields are lifted from the parent
+    product/material), so all four are mocked here.
+    """
+    from katana_mcp.cache import EntityType
+    from katana_mcp.tools import decorators
+
+    original = decorators._sync_fns
+    decorators._sync_fns = {
+        EntityType.VARIANT: AsyncMock(),
+        EntityType.PRODUCT: AsyncMock(),
+        EntityType.MATERIAL: AsyncMock(),
+        EntityType.SUPPLIER: AsyncMock(),
+    }
+    try:
+        with patch(
+            "katana_mcp.cache_sync.ensure_variants_synced", new_callable=AsyncMock
+        ):
+            yield
+    finally:
+        decorators._sync_fns = original
 
 
 @pytest.mark.asyncio
