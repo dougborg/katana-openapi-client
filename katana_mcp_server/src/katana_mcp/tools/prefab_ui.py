@@ -850,7 +850,11 @@ def _render_order_fields(order: dict[str, Any], *, total: Any, currency: str) ->
     """Render shared order content fields (supplier/customer/location + total).
 
     Prefers human-readable names when present (``customer_name``,
-    ``supplier_name``, ``location_name``) and falls back to bare IDs.
+    ``supplier_name``, ``location_name``) and falls back to bare IDs. When
+    ``notes`` is non-empty (currently surfaced by ``create_purchase_order``;
+    other ``create_*`` tools follow), it renders below the entity lines so
+    the user can visually verify the value persisted on the apply card —
+    matching the preview's information density (#618).
     """
     if total is not None:
         Metric(label="Total", value=f"${total:,.2f} {currency}")
@@ -878,6 +882,9 @@ def _render_order_fields(order: dict[str, Any], *, total: Any, currency: str) ->
         )
     if order.get("item_count") is not None:
         Text(content=f"Items: {order['item_count']}")
+    notes = order.get("notes")
+    if notes:
+        Text(content=f"Notes: {notes}")
 
 
 def build_order_preview_ui(

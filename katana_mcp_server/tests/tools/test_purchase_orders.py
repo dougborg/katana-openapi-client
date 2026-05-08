@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from katana_mcp.tools.foundation.purchase_orders import (
+    CreatePurchaseOrderRequest,
     DeletePurchaseOrderRequest,
     DiscrepancyType,
     DocumentItem,
@@ -16,14 +17,18 @@ from katana_mcp.tools.foundation.purchase_orders import (
     POHeaderPatch,
     PORowAdd,
     PORowUpdate,
+    PurchaseOrderItem,
+    PurchaseOrderResponse,
     ReceiveBatchTransaction,
     ReceiveItemRequest,
     ReceivePurchaseOrderRequest,
     ReceivePurchaseOrderResponse,
     VerifyOrderDocumentRequest,
+    _create_purchase_order_impl,
     _delete_purchase_order_impl,
     _get_purchase_order_impl,
     _modify_purchase_order_impl,
+    _po_response_to_tool_result,
     _receive_purchase_order_impl,
     _verify_order_document_impl,
     get_purchase_order,
@@ -107,6 +112,243 @@ def create_mock_po(order_id: int, order_no: str, rows: list):
         order_no=order_no,
         purchase_order_rows=rows,
     )
+
+
+# ============================================================================
+# Unit Tests - create_purchase_order
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_create_purchase_order_preview_echoes_notes_and_resolves_names():
+    """Preview branch must populate notes + supplier_name + location_name +
+    item_count so the preview card shows full context (#618).
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    # resolve_entity_name calls cache.get_by_id once per entity. Returning a
+    # different dict for supplier vs location keeps both names distinct.
+    async def get_by_id(entity_type, entity_id):
+        if entity_id == 4001:
+            return {"id": 4001, "name": "Acme Supply Co"}
+        if entity_id == 1:
+            return {"id": 1, "name": "Main Warehouse"}
+        return None
+
+    lifespan_ctx.cache.get_by_id = AsyncMock(side_effect=get_by_id)
+
+    request = CreatePurchaseOrderRequest(
+        supplier_id=4001,
+        location_id=1,
+        order_number="PO-2026-001",
+        items=[
+            PurchaseOrderItem(variant_id=1, quantity=10, price_per_unit=5.0),
+            PurchaseOrderItem(variant_id=2, quantity=2, price_per_unit=20.0),
+        ],
+        notes="Net-30 terms; deliver to receiving dock B.",
+        currency="USD",
+        preview=True,
+    )
+    result = await _create_purchase_order_impl(request, context)
+
+    assert result.is_preview is True
+    assert result.supplier_name == "Acme Supply Co"
+    assert result.location_name == "Main Warehouse"
+    assert result.item_count == 2
+    assert result.notes == "Net-30 terms; deliver to receiving dock B."
+    assert result.warnings == []  # both names resolved
+
+
+@pytest.mark.asyncio
+async def test_create_purchase_order_apply_echoes_notes_and_resolves_names():
+    """Apply branch must populate notes + supplier_name + location_name +
+    item_count, matching the preview branch's information density (#618).
+
+    Pre-#618, the apply branch returned a thinner ``PurchaseOrderResponse``:
+    missing the resolved names, missing item_count, and missing the notes
+    echo entirely (the field didn't exist on the model). This test pins the
+    parity contract: whatever the preview shows, the apply card shows too.
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    async def get_by_id(entity_type, entity_id):
+        if entity_id == 4001:
+            return {"id": 4001, "name": "Acme Supply Co"}
+        if entity_id == 1:
+            return {"id": 1, "name": "Main Warehouse"}
+        return None
+
+    lifespan_ctx.cache.get_by_id = AsyncMock(side_effect=get_by_id)
+
+    # Build a typed RegularPurchaseOrder the live API would return on
+    # success — the impl unwraps via ``unwrap_as`` and reads
+    # ``additional_info`` for the notes echo.
+    from katana_public_api_client.models import (
+        PurchaseOrderEntityType as APIPurchaseOrderEntityType,
+        PurchaseOrderStatus as APIPurchaseOrderStatus,
+    )
+
+    notes = "Net-30 terms; deliver to receiving dock B."
+    mock_po = mock_entity_for_modify(
+        RegularPurchaseOrder,
+        id=9001,
+        order_no="PO-2026-001",
+        supplier_id=4001,
+        location_id=1,
+        currency="USD",
+        status=APIPurchaseOrderStatus.NOT_RECEIVED,
+        entity_type=APIPurchaseOrderEntityType.REGULAR,
+        additional_info=notes,
+    )
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = mock_po
+
+    mock_api_call = AsyncMock(return_value=mock_response)
+
+    import katana_public_api_client.api.purchase_order.create_purchase_order as create_po_module
+
+    original_asyncio_detailed = create_po_module.asyncio_detailed
+    create_po_module.asyncio_detailed = mock_api_call
+
+    try:
+        request = CreatePurchaseOrderRequest(
+            supplier_id=4001,
+            location_id=1,
+            order_number="PO-2026-001",
+            items=[
+                PurchaseOrderItem(variant_id=1, quantity=10, price_per_unit=5.0),
+                PurchaseOrderItem(variant_id=2, quantity=2, price_per_unit=20.0),
+            ],
+            notes=notes,
+            currency="USD",
+            preview=False,
+        )
+        result = await _create_purchase_order_impl(request, context)
+
+        assert result.is_preview is False
+        assert result.id == 9001
+        assert result.supplier_name == "Acme Supply Co"
+        assert result.location_name == "Main Warehouse"
+        assert result.item_count == 2
+        assert result.notes == notes
+    finally:
+        create_po_module.asyncio_detailed = original_asyncio_detailed
+
+
+@pytest.mark.asyncio
+async def test_create_purchase_order_apply_falls_back_to_request_notes_when_unset():
+    """When the live API doesn't echo ``additional_info`` (e.g., older Katana
+    deployments or the field is dropped on the response), the apply branch
+    should fall back to the request's ``notes`` so the card still shows
+    what the caller sent (#618).
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_id = AsyncMock(return_value=None)
+
+    from katana_public_api_client.models import (
+        PurchaseOrderEntityType as APIPurchaseOrderEntityType,
+        PurchaseOrderStatus as APIPurchaseOrderStatus,
+    )
+
+    # additional_info defaults to UNSET on the mock — mock_entity_for_modify
+    # only sets the fields we explicitly pass.
+    mock_po = mock_entity_for_modify(
+        RegularPurchaseOrder,
+        id=9002,
+        order_no="PO-2026-002",
+        supplier_id=4001,
+        location_id=1,
+        currency="USD",
+        status=APIPurchaseOrderStatus.NOT_RECEIVED,
+        entity_type=APIPurchaseOrderEntityType.REGULAR,
+    )
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = mock_po
+    mock_api_call = AsyncMock(return_value=mock_response)
+
+    import katana_public_api_client.api.purchase_order.create_purchase_order as create_po_module
+
+    original_asyncio_detailed = create_po_module.asyncio_detailed
+    create_po_module.asyncio_detailed = mock_api_call
+
+    try:
+        request = CreatePurchaseOrderRequest(
+            supplier_id=4001,
+            location_id=1,
+            order_number="PO-2026-002",
+            items=[PurchaseOrderItem(variant_id=1, quantity=1, price_per_unit=1.0)],
+            notes="caller-supplied notes",
+            preview=False,
+        )
+        result = await _create_purchase_order_impl(request, context)
+
+        assert result.notes == "caller-supplied notes"
+    finally:
+        create_po_module.asyncio_detailed = original_asyncio_detailed
+
+
+def test_po_response_to_tool_result_apply_renders_enriched_fields():
+    """The apply card built from ``_po_response_to_tool_result`` must render
+    notes, supplier_name, location_name, and item_count somewhere in the
+    Prefab envelope so the user gets the same at-a-glance confirmation the
+    preview offered (#618).
+    """
+    response = PurchaseOrderResponse(
+        id=9001,
+        order_number="PO-2026-001",
+        supplier_id=4001,
+        supplier_name="Acme Supply Co",
+        location_id=1,
+        location_name="Main Warehouse",
+        status="NOT_RECEIVED",
+        entity_type="regular",
+        total_cost=100.0,
+        currency="USD",
+        item_count=2,
+        notes="Net-30 terms; deliver to receiving dock B.",
+        is_preview=False,
+        message="ok",
+        katana_url="https://factory.katanamrp.com/purchaseorder/9001",
+    )
+    request = CreatePurchaseOrderRequest(
+        supplier_id=4001,
+        location_id=1,
+        order_number="PO-2026-001",
+        items=[PurchaseOrderItem(variant_id=1, quantity=10, price_per_unit=5.0)],
+        notes="Net-30 terms; deliver to receiving dock B.",
+        preview=False,
+    )
+
+    tool_result = _po_response_to_tool_result(response, request=request)
+
+    # Walk the Prefab envelope, collecting Text content strings, and assert
+    # the enriched fields show up. The preview card already renders these
+    # via the shared ``_render_order_fields`` helper; the regression #618
+    # was the apply card silently losing them.
+    envelope = tool_result.structured_content
+    assert envelope is not None
+    text_nodes: list[str] = []
+
+    def collect(o):
+        if isinstance(o, dict):
+            if isinstance(o.get("content"), str):
+                text_nodes.append(o["content"])
+            for v in o.values():
+                collect(v)
+        elif isinstance(o, list):
+            for v in o:
+                collect(v)
+
+    collect(envelope)
+    joined = "\n".join(text_nodes)
+    assert "Acme Supply Co" in joined
+    assert "Main Warehouse" in joined
+    assert "Items: 2" in joined
+    assert "Net-30 terms" in joined
 
 
 # ============================================================================
