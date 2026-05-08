@@ -1604,16 +1604,18 @@ from flooding agent context.
 
 ### list_locations
 List or fuzzy-search warehouses and facilities by name. Returns id, name,
-address, city/country, and the is_primary flag. Use the `id` value when
-creating orders or filtering inventory queries.
+the is_primary flag, and a nested `address` object (line_1, line_2, city,
+state, zip, country) when one is on file. Use the `id` value when creating
+orders or filtering inventory queries.
 
 **Parameters:**
 - `query` (optional): Fuzzy match by name.
 - `limit` (optional, default 50, max 250): Cap on rows returned.
 - `format` (optional, default "markdown"): "markdown" | "json".
 
-**Returns:** `ListLocationsResponse` with `locations: [{id, name, address,
-city, country, is_primary}]`, `total_count`, `query`.
+**Returns:** `ListLocationsResponse` with `locations: [{id, name,
+address: {line_1, line_2, city, state, zip, country} | null,
+is_primary}]`, `total_count`, `query`.
 
 ---
 

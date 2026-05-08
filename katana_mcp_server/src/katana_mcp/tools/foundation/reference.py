@@ -325,12 +325,19 @@ class ListLocationsRequest(BaseModel):
     format: Literal["markdown", "json"] = Field(default="markdown")
 
 
+class AddressInfo(BaseModel):
+    line_1: str | None = None
+    line_2: str | None = None
+    city: str | None = None
+    state: str | None = None
+    zip: str | None = None
+    country: str | None = None
+
+
 class LocationInfo(BaseModel):
     id: int
     name: str
-    address: str | None = None
-    city: str | None = None
-    country: str | None = None
+    address: AddressInfo | None = None
     is_primary: bool | None = None
 
 
@@ -340,13 +347,38 @@ class ListLocationsResponse(BaseModel):
     query: str | None = None
 
 
+def _address_from_dict(d: dict[str, Any] | None) -> AddressInfo | None:
+    if not d:
+        return None
+
+    def _clean(value: Any) -> str | None:
+        # Katana sometimes returns blank address parts as "" (notably line_2)
+        # rather than omitting them — treat whitespace-only as missing so the
+        # all-empty case below collapses to None instead of an AddressInfo
+        # full of empty strings.
+        if isinstance(value, str):
+            stripped = value.strip()
+            return stripped or None
+        return value
+
+    info = AddressInfo(
+        line_1=_clean(d.get("line_1")),
+        line_2=_clean(d.get("line_2")),
+        city=_clean(d.get("city")),
+        state=_clean(d.get("state")),
+        zip=_clean(d.get("zip")),
+        country=_clean(d.get("country")),
+    )
+    return info if info.model_dump(exclude_none=True) else None
+
+
 def _location_from_dict(d: dict[str, Any]) -> LocationInfo:
+    raw_address = d.get("address")
+    address = _address_from_dict(raw_address) if isinstance(raw_address, dict) else None
     return LocationInfo(
         id=d.get("id") or 0,
         name=d.get("name") or "",
-        address=d.get("address"),
-        city=d.get("city"),
-        country=d.get("country"),
+        address=address,
         is_primary=d.get("is_primary"),
     )
 
@@ -367,10 +399,17 @@ async def _list_locations_impl(
 def _render_location_md(response: ListLocationsResponse) -> str:
     if not response.locations:
         return _empty_message("locations", response.query)
+
+    def _city_country(loc: LocationInfo) -> str:
+        if not loc.address:
+            return ""
+        parts = [p for p in (loc.address.city, loc.address.country) if p]
+        return f" — {', '.join(parts)}" if parts else ""
+
     lines = [
         f"- **{loc.name}** (ID: {loc.id})"
         + (" [primary]" if loc.is_primary else "")
-        + (f" — {loc.city}, {loc.country}" if loc.city or loc.country else "")
+        + _city_country(loc)
         for loc in response.locations
     ]
     header = _list_header(
@@ -384,9 +423,11 @@ def _render_location_md(response: ListLocationsResponse) -> str:
 async def list_locations(
     request: Annotated[ListLocationsRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """List or search warehouses and facilities. Returns id, name, address,
-    city/country, and the is_primary flag. Use the ``id`` value when
-    creating orders or filtering inventory queries.
+    """List or search warehouses and facilities. Returns id, name, the
+    is_primary flag, and a nested ``address`` object
+    (``line_1``, ``line_2``, ``city``, ``state``, ``zip``, ``country``) when
+    one is on file. Use the ``id`` value when creating orders or filtering
+    inventory queries.
 
     Pass ``query`` to fuzzy-match by name; omit to browse. Default limit
     caps output at 50 rows.
