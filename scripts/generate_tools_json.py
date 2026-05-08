@@ -80,13 +80,16 @@ def _extract_from_directory(directory: Path) -> list[dict[str, str]]:
             with open(py_file) as f:
                 tree = ast.parse(f.read(), filename=str(py_file))
 
-            # Find all async function definitions that are tools
-            # Tools are the public async functions (not starting with _)
-            for node in ast.walk(tree):
+            # Find all async function definitions that are tools.
+            # Tools are the public async functions (not starting with _).
+            # Iterate the module body directly — `ast.walk` recurses into
+            # nested function definitions (e.g. inner `async def apply()`
+            # closures inside `register_preview_tool` wiring), which would
+            # surface duplicates that aren't actually registered tools.
+            for node in tree.body:
                 if isinstance(node, ast.AsyncFunctionDef) and not node.name.startswith(
                     "_"
                 ):
-                    # This is a tool function
                     description = _extract_description(node)
                     tools.append({"name": node.name, "description": description})
 
@@ -103,21 +106,41 @@ def _extract_from_directory(directory: Path) -> list[dict[str, str]]:
 def _extract_description(node: ast.AsyncFunctionDef) -> str:
     """Extract description from function docstring.
 
-    Args:
-        node: AST node for async function
-
-    Returns:
-        First non-empty line of docstring or default description
+    Joins the first paragraph of the docstring (everything up to the first
+    blank line) into a single string, then trims to the first complete
+    sentence so we don't ship descriptions that end mid-clause when the
+    first line of the docstring wraps.
     """
     docstring = ast.get_docstring(node)
-    if docstring:
-        # Extract first non-empty line
-        lines = [line.strip() for line in docstring.split("\n") if line.strip()]
-        if lines:
-            return lines[0]
+    if not docstring:
+        return f"Tool: {node.name}"
 
-    # Fallback description
-    return f"Tool: {node.name}"
+    paragraph_lines: list[str] = []
+    for line in docstring.split("\n"):
+        stripped = line.strip()
+        if not stripped:
+            if paragraph_lines:
+                break
+            continue
+        paragraph_lines.append(stripped)
+
+    if not paragraph_lines:
+        return f"Tool: {node.name}"
+
+    paragraph = " ".join(paragraph_lines)
+
+    # Trim to the first sentence. Look for terminal punctuation followed by
+    # whitespace, so we don't split on e.g. "id, name," in mid-sentence.
+    for terminator in (". ", "! ", "? "):
+        idx = paragraph.find(terminator)
+        if idx != -1:
+            return paragraph[: idx + 1]
+
+    # No terminator — return the full first paragraph, with a trailing period
+    # if it doesn't already end in punctuation, so descriptions read cleanly.
+    if paragraph[-1] not in ".!?":
+        return paragraph + "."
+    return paragraph
 
 
 def validate_tools(tools: list[dict[str, str]]) -> None:
