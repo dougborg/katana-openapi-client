@@ -19,6 +19,7 @@ from sqlmodel import (
 )
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
+from katana_public_api_client.models_pydantic._mapped_shim import Mapped
 from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON
 
 from .base import DeletableEntity
@@ -974,65 +975,67 @@ class CachedManufacturingOrderRecipeRow(DeletableEntity, table=True):
     __tablename__ = "manufacturing_order_recipe_row"
     model_config = ConfigDict(frozen=False)
 
-    id: Annotated[int, SQLField(primary_key=True, description="Unique identifier")]
+    id: Annotated[
+        Mapped[int], SQLField(primary_key=True, description="Unique identifier")
+    ]
 
     manufacturing_order_id: Annotated[
-        int | None,
+        Mapped[int | None],
         SQLField(
             foreign_key="manufacturing_order.id",
             description="ID of the manufacturing order this recipe row belongs to",
         ),
     ] = None
     variant_id: Annotated[
-        int | None,
+        Mapped[int | None],
         Field(description="ID of the ingredient variant required for production"),
     ] = None
     notes: Annotated[
-        str | None,
+        Mapped[str | None],
         Field(
             description="Additional notes about this ingredient or special handling instructions"
         ),
     ] = None
     planned_quantity_per_unit: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(
             description="Planned quantity of this ingredient needed per unit produced"
         ),
     ] = None
     total_actual_quantity: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(description="Total actual quantity of this ingredient consumed"),
     ] = None
     ingredient_availability: Annotated[
-        OutsourcedPurchaseOrderIngredientAvailability | None,
+        Mapped[OutsourcedPurchaseOrderIngredientAvailability | None],
         Field(description="Current availability status of this ingredient"),
     ] = None
     ingredient_expected_date: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(
             description="Expected date when ingredient will be available if currently unavailable"
         ),
     ] = None
     batch_transactions: Annotated[
-        list[BatchTransaction3] | None,
+        Mapped[list[BatchTransaction3] | None],
         SQLField(
             sa_column=Column(PydanticJSON),
             description="Batch tracking transactions for this ingredient consumption",
         ),
     ] = None
     cost: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(description="Total cost of this ingredient for the manufacturing order"),
     ] = None
     total_consumed_quantity: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(description="Total quantity consumed so far from this ingredient"),
     ] = None
     total_remaining_quantity: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(description="Remaining quantity needed from this ingredient"),
     ] = None
-    manufacturing_order: Optional["CachedManufacturingOrder"] = Relationship(
+    manufacturing_order: Mapped[Optional["CachedManufacturingOrder"]] = Relationship(
         back_populates="recipe_rows"
     )
 
@@ -1041,123 +1044,130 @@ class CachedManufacturingOrder(DeletableEntity, table=True):
     __tablename__ = "manufacturing_order"
     model_config = ConfigDict(frozen=False)
 
-    id: Annotated[int, SQLField(primary_key=True, description="Unique identifier")]
+    id: Annotated[
+        Mapped[int], SQLField(primary_key=True, description="Unique identifier")
+    ]
 
     status: Annotated[
-        ManufacturingOrderStatus | None,
+        Mapped[ManufacturingOrderStatus | None],
         Field(description="Current production status of the manufacturing order"),
     ] = None
     order_no: Annotated[
-        str | None,
+        Mapped[str | None],
         Field(
             description="Unique manufacturing order number for tracking and reference"
         ),
     ] = None
     variant_id: Annotated[
-        int | None, Field(description="ID of the product variant being manufactured")
+        Mapped[int | None],
+        Field(description="ID of the product variant being manufactured"),
     ] = None
     planned_quantity: Annotated[
-        float | None, Field(description="Originally planned quantity to produce")
+        Mapped[float | None],
+        Field(description="Originally planned quantity to produce"),
     ] = None
     actual_quantity: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(description="Actual quantity produced, null if production not completed"),
     ] = None
     completed_quantity: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(
             description="Total quantity completed so far (including partial completions)"
         ),
     ] = None
     remaining_quantity: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(description="Remaining quantity to produce (planned - completed)"),
     ] = None
     includes_partial_completions: Annotated[
-        bool | None,
+        Mapped[bool | None],
         Field(description="Whether this order has been partially completed"),
     ] = None
     batch_transactions: Annotated[
-        list[BatchTransaction] | None,
+        Mapped[list[BatchTransaction] | None],
         SQLField(
             sa_column=Column(PydanticJSON),
             description="Batch transactions for produced items, typically one transaction per manufacturing order",
         ),
     ] = None
     location_id: Annotated[
-        int | None,
+        Mapped[int | None],
         Field(description="ID of the factory location where production takes place"),
     ] = None
     order_created_date: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(description="Date and time when the manufacturing order was created"),
     ] = None
     production_deadline_date: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(description="Target deadline for completing production"),
     ] = None
     done_date: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(description="Timestamp when the manufacturing order was completed"),
     ] = None
     additional_info: Annotated[
-        str | None,
+        Mapped[str | None],
         Field(description="Optional notes or additional information about the order"),
     ] = None
     is_linked_to_sales_order: Annotated[
-        bool | None,
+        Mapped[bool | None],
         Field(
             description="Whether this manufacturing order is linked to a sales order"
         ),
     ] = None
     ingredient_availability: Annotated[
-        OutsourcedPurchaseOrderIngredientAvailability | None,
+        Mapped[OutsourcedPurchaseOrderIngredientAvailability | None],
         Field(
             description="Status of material ingredient availability for production",
         ),
     ] = None
     total_cost: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(
             description="Total cost of the manufacturing order including all materials and operations"
         ),
     ] = None
     total_actual_time: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(description="Total actual time spent on production operations"),
     ] = None
     total_planned_time: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(description="Total planned time for all production operations"),
     ] = None
     sales_order_id: Annotated[
-        int | None, Field(description="ID of the linked sales order, if applicable")
+        Mapped[int | None],
+        Field(description="ID of the linked sales order, if applicable"),
     ] = None
     sales_order_row_id: Annotated[
-        int | None,
+        Mapped[int | None],
         Field(description="ID of the specific sales order row, if applicable"),
     ] = None
     sales_order_delivery_deadline: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(description="Delivery deadline from the linked sales order"),
     ] = None
     material_cost: Annotated[
-        float | None, Field(description="Total cost of materials used in production")
+        Mapped[float | None],
+        Field(description="Total cost of materials used in production"),
     ] = None
     subassemblies_cost: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(description="Total cost of subassemblies used in production"),
     ] = None
     operations_cost: Annotated[
-        float | None, Field(description="Total cost of production operations and labor")
+        Mapped[float | None],
+        Field(description="Total cost of production operations and labor"),
     ] = None
     serial_numbers: Annotated[
-        list[SerialNumber] | None,
+        Mapped[list[SerialNumber] | None],
         SQLField(
             sa_column=Column(PydanticJSON),
             description="Serial numbers assigned to produced items",
         ),
     ] = None
-    recipe_rows: list["CachedManufacturingOrderRecipeRow"] = Relationship(
+    recipe_rows: Mapped[list["CachedManufacturingOrderRecipeRow"]] = Relationship(
         back_populates="manufacturing_order"
     )

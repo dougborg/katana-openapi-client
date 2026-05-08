@@ -13,7 +13,7 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Annotated, Any, Literal, cast
+from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
@@ -2013,7 +2013,6 @@ def _apply_purchase_order_filters(
     Shared by the data SELECT and the COUNT SELECT so pagination totals
     reflect exactly the same filter set as the data rows.
     """
-    from sqlmodel import col
 
     from katana_public_api_client.models_pydantic._generated import (
         CachedPurchaseOrder,
@@ -2023,7 +2022,7 @@ def _apply_purchase_order_filters(
     )
 
     if request.ids is not None:
-        stmt = stmt.where(col(CachedPurchaseOrder.id).in_(request.ids))
+        stmt = stmt.where(CachedPurchaseOrder.id.in_(request.ids))
     if request.order_no is not None:
         stmt = stmt.where(CachedPurchaseOrder.order_no == request.order_no)
     if request.entity_type is not None:
@@ -2056,7 +2055,7 @@ def _apply_purchase_order_filters(
     if request.supplier_id is not None:
         stmt = stmt.where(CachedPurchaseOrder.supplier_id == request.supplier_id)
     if not request.include_deleted:
-        stmt = stmt.where(col(CachedPurchaseOrder.deleted_at).is_(None))
+        stmt = stmt.where(CachedPurchaseOrder.deleted_at.is_(None))
 
     return apply_date_window_filters(
         stmt,
@@ -2085,8 +2084,8 @@ async def _list_purchase_orders_impl(
     outsourced-only ``tracking_location_id``) translate to indexed SQL.
     See ADR-0018.
     """
-    from sqlalchemy.orm import QueryableAttribute, selectinload
-    from sqlmodel import col, func, select
+    from sqlalchemy.orm import selectinload
+    from sqlmodel import func, select
 
     from katana_mcp.typed_cache import ensure_purchase_orders_synced
     from katana_public_api_client.models_pydantic._generated import (
@@ -2105,16 +2104,11 @@ async def _list_purchase_orders_impl(
     # time and we skip the correlated COUNT subquery.
     if request.include_rows:
         stmt = select(CachedPurchaseOrder).options(
-            selectinload(
-                cast(
-                    "QueryableAttribute[Any]",
-                    CachedPurchaseOrder.purchase_order_rows,
-                )
-            )
+            selectinload(CachedPurchaseOrder.purchase_order_rows)
         )
     else:
         row_count_subq = (
-            select(func.count(col(CachedPurchaseOrderRow.id)))
+            select(func.count(CachedPurchaseOrderRow.id))
             .where(CachedPurchaseOrderRow.purchase_order_id == CachedPurchaseOrder.id)
             .correlate(CachedPurchaseOrder)
             .scalar_subquery()
@@ -2123,8 +2117,8 @@ async def _list_purchase_orders_impl(
         stmt = select(CachedPurchaseOrder, row_count_subq)
     stmt = _apply_purchase_order_filters(stmt, request, parsed_dates)
     stmt = stmt.order_by(
-        col(CachedPurchaseOrder.created_at).desc(),
-        col(CachedPurchaseOrder.id).desc(),
+        CachedPurchaseOrder.created_at.desc(),
+        CachedPurchaseOrder.id.desc(),
     )
     if request.page is not None:
         stmt = stmt.offset((request.page - 1) * request.limit).limit(request.limit)

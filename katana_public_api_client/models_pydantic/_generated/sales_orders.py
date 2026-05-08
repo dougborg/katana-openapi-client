@@ -18,6 +18,7 @@ from sqlmodel import (
 )
 
 from katana_public_api_client.models_pydantic._base import KatanaPydanticBase
+from katana_public_api_client.models_pydantic._mapped_shim import Mapped
 from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON
 
 from .base import DeletableEntity, UpdatableEntity
@@ -1279,103 +1280,111 @@ class CachedSalesOrderRow(DeletableEntity, table=True):
     __tablename__ = "sales_order_row"
     model_config = ConfigDict(frozen=False)
 
-    id: Annotated[int, SQLField(primary_key=True, description="Unique identifier")]
+    id: Annotated[
+        Mapped[int], SQLField(primary_key=True, description="Unique identifier")
+    ]
 
     sales_order_id: Annotated[
-        int | None,
+        Mapped[int | None],
         SQLField(
             foreign_key="sales_order.id",
             description="ID of the sales order this row belongs to",
         ),
     ] = None
     quantity: Annotated[
-        float, Field(description="Ordered quantity of the product variant")
+        Mapped[float], Field(description="Ordered quantity of the product variant")
     ]
     variant_id: Annotated[
-        int, Field(description="ID of the product variant being ordered")
+        Mapped[int], Field(description="ID of the product variant being ordered")
     ]
     tax_rate_id: Annotated[
-        int | None, Field(description="ID of the tax rate applied to this line item")
+        Mapped[int | None],
+        Field(description="ID of the tax rate applied to this line item"),
     ] = None
     tax_rate: Annotated[
-        float | None, Field(description="Tax rate percentage applied to this line item")
+        Mapped[float | None],
+        Field(description="Tax rate percentage applied to this line item"),
     ] = None
     location_id: Annotated[
-        int | None,
+        Mapped[int | None],
         Field(description="Location where the product should be picked from"),
     ] = None
     product_availability: Annotated[
-        ProductAvailability | None,
+        Mapped[ProductAvailability | None],
         Field(
             description="Current availability status of the product for this order row",
         ),
     ] = None
     product_expected_date: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(
             description="Expected date when the product will be available if not currently in stock"
         ),
     ] = None
     price_per_unit: Annotated[
-        float | None, Field(description="Selling price per unit in the order currency")
+        Mapped[float | None],
+        Field(description="Selling price per unit in the order currency"),
     ] = None
     price_per_unit_in_base_currency: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(
             description="Selling price per unit converted to the base company currency"
         ),
     ] = None
     total: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(
             description="Total line amount (quantity * price_per_unit) in order currency"
         ),
     ] = None
     total_in_base_currency: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(description="Total line amount converted to the base company currency"),
     ] = None
     total_discount: Annotated[
-        str | None, Field(description="Discount amount applied to this line item")
+        Mapped[str | None],
+        Field(description="Discount amount applied to this line item"),
     ] = None
     cogs_value: Annotated[
-        float | None, Field(description="Cost of goods sold value for this line item")
+        Mapped[float | None],
+        Field(description="Cost of goods sold value for this line item"),
     ] = None
     attributes: Annotated[
-        list[Attribute] | None,
+        Mapped[list[Attribute] | None],
         SQLField(
             sa_column=Column(PydanticJSON),
             description="Custom attributes associated with this sales order row",
         ),
     ] = None
     batch_transactions: Annotated[
-        list[BatchTransaction6] | None,
+        Mapped[list[BatchTransaction6] | None],
         SQLField(
             sa_column=Column(PydanticJSON),
             description="Batch allocations for this order row when using batch tracking",
         ),
     ] = None
     serial_numbers: Annotated[
-        list[int] | None,
+        Mapped[list[int] | None],
         SQLField(
             sa_column=Column(PydanticJSON),
             description="Serial numbers allocated to this order row for serialized products",
         ),
     ] = None
     linked_manufacturing_order_id: Annotated[
-        int | None,
+        Mapped[int | None],
         Field(
             description="ID of the manufacturing order linked to this sales order row for make-to-order items"
         ),
     ] = None
     conversion_rate: Annotated[
-        float | None, Field(description="Currency conversion rate used for this row")
+        Mapped[float | None],
+        Field(description="Currency conversion rate used for this row"),
     ] = None
     conversion_date: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(description="Date when the currency conversion rate was applied"),
     ] = None
-    sales_order: Optional["CachedSalesOrder"] = Relationship(
+    sales_order: Mapped[Optional["CachedSalesOrder"]] = Relationship(
         back_populates="sales_order_rows"
     )
 
@@ -1384,156 +1393,160 @@ class CachedSalesOrder(DeletableEntity, table=True):
     __tablename__ = "sales_order"
     model_config = ConfigDict(frozen=False)
 
-    id: Annotated[int, SQLField(primary_key=True, description="Unique identifier")]
+    id: Annotated[
+        Mapped[int], SQLField(primary_key=True, description="Unique identifier")
+    ]
 
     customer_id: Annotated[
-        int, Field(description="Unique identifier of the customer placing the order")
+        Mapped[int],
+        Field(description="Unique identifier of the customer placing the order"),
     ]
     order_no: Annotated[
-        str,
+        Mapped[str],
         Field(description="Unique order number for tracking and reference purposes"),
     ]
     source: Annotated[
-        str | None,
+        Mapped[str | None],
         Field(
             description="Source system or channel where the order originated (e.g., Shopify, manual entry)"
         ),
     ] = None
     order_created_date: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(
             description="Date and time when the sales order was created in the system"
         ),
     ] = None
     delivery_date: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(description="Requested or promised delivery date for the order"),
     ] = None
     picked_date: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(description="Date when items were picked from inventory for shipment"),
     ] = None
     location_id: Annotated[
-        int,
+        Mapped[int],
         Field(
             description="Unique identifier of the fulfillment location for this order"
         ),
     ]
     status: Annotated[
-        SalesOrderStatus,
+        Mapped[SalesOrderStatus],
         Field(description="Current fulfillment status of the sales order"),
     ]
     currency: Annotated[
-        str | None,
+        Mapped[str | None],
         Field(
             description="Currency code for the order pricing (ISO 4217 format)",
             pattern="^[A-Z]{3}$",
         ),
     ] = None
     conversion_rate: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(
             description="Exchange rate used to convert order currency to base company currency"
         ),
     ] = None
     conversion_date: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(description="Date when the currency conversion rate was applied"),
     ] = None
     invoicing_status: Annotated[
-        str | None,
+        Mapped[str | None],
         Field(description="Current invoicing status indicating billing progress"),
     ] = None
     total: Annotated[
-        float | None, Field(description="Total order amount in the order currency")
+        Mapped[float | None],
+        Field(description="Total order amount in the order currency"),
     ] = None
     total_in_base_currency: Annotated[
-        float | None,
+        Mapped[float | None],
         Field(
             description="Total order amount converted to the company's base currency"
         ),
     ] = None
     additional_info: Annotated[
-        str | None,
+        Mapped[str | None],
         Field(description="Additional notes or instructions for the sales order"),
     ] = None
     customer_ref: Annotated[
-        str | None,
+        Mapped[str | None],
         Field(description="Customer's reference number or purchase order number"),
     ] = None
-    sales_order_rows: list["CachedSalesOrderRow"] = Relationship(
+    sales_order_rows: Mapped[list["CachedSalesOrderRow"]] = Relationship(
         back_populates="sales_order"
     )
     ecommerce_order_type: Annotated[
-        str | None,
+        Mapped[str | None],
         Field(
             description="Type of ecommerce order when imported from external platforms"
         ),
     ] = None
     ecommerce_store_name: Annotated[
-        str | None,
+        Mapped[str | None],
         Field(
             description="Name of the ecommerce store when order originated from external platforms"
         ),
     ] = None
     ecommerce_order_id: Annotated[
-        str | None,
+        Mapped[str | None],
         Field(description="Original order ID from the external ecommerce platform"),
     ] = None
-    product_availability: Annotated[ProductAvailability | None, Field()] = None
+    product_availability: Annotated[Mapped[ProductAvailability | None], Field()] = None
     product_expected_date: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(
             description="Expected date when products will be available for fulfillment"
         ),
     ] = None
     ingredient_availability: Annotated[
-        OutsourcedPurchaseOrderIngredientAvailability | None,
+        Mapped[OutsourcedPurchaseOrderIngredientAvailability | None],
         Field(),
     ] = None
     ingredient_expected_date: Annotated[
-        datetime | None,
+        Mapped[datetime | None],
         Field(
             description="Expected date when ingredients will be available for production"
         ),
     ] = None
     production_status: Annotated[
-        SalesOrderProductionStatus | None,
+        Mapped[SalesOrderProductionStatus | None],
         Field(
             description="Current status of production for items in this order",
         ),
     ] = None
     tracking_number: Annotated[
-        str | None,
+        Mapped[str | None],
         Field(description="Shipping carrier tracking number for package tracking"),
     ] = None
     tracking_number_url: Annotated[
-        str | None,
+        Mapped[str | None],
         Field(description="URL link to track the shipment on carrier website"),
     ] = None
     billing_address_id: Annotated[
-        int | None,
+        Mapped[int | None],
         Field(description="Reference to the customer address used for billing"),
     ] = None
     shipping_address_id: Annotated[
-        int | None,
+        Mapped[int | None],
         Field(description="Reference to the customer address used for shipping"),
     ] = None
     linked_manufacturing_order_id: Annotated[
-        int | None,
+        Mapped[int | None],
         Field(
             description="ID of the linked manufacturing order if this sales order has associated production"
         ),
     ] = None
     shipping_fee: Annotated[
-        SalesOrderShippingFee | None,
+        Mapped[SalesOrderShippingFee | None],
         SQLField(
             sa_column=Column(PydanticJSON),
             description="Shipping fee details for this sales order",
         ),
     ] = None
     addresses: Annotated[
-        list[SalesOrderAddress] | None,
+        Mapped[list[SalesOrderAddress] | None],
         SQLField(
             sa_column=Column(PydanticJSON),
             description="Complete address information for billing and shipping",

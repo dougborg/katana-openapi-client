@@ -1776,14 +1776,13 @@ def _apply_manufacturing_order_filters(
     reflect exactly the same filter set as the data rows. ``parsed_dates``
     must come from :func:`parse_request_dates`.
     """
-    from sqlmodel import col
 
     from katana_public_api_client.models_pydantic._generated import (
         CachedManufacturingOrder,
     )
 
     if request.ids is not None:
-        stmt = stmt.where(col(CachedManufacturingOrder.id).in_(request.ids))
+        stmt = stmt.where(CachedManufacturingOrder.id.in_(request.ids))
     if request.order_no is not None:
         stmt = stmt.where(CachedManufacturingOrder.order_no == request.order_no)
     if request.status is not None:
@@ -1791,12 +1790,10 @@ def _apply_manufacturing_order_filters(
     if request.location_id is not None:
         stmt = stmt.where(CachedManufacturingOrder.location_id == request.location_id)
     if request.variant_ids is not None:
-        stmt = stmt.where(
-            col(CachedManufacturingOrder.variant_id).in_(request.variant_ids)
-        )
+        stmt = stmt.where(CachedManufacturingOrder.variant_id.in_(request.variant_ids))
     if request.sales_order_ids is not None:
         stmt = stmt.where(
-            col(CachedManufacturingOrder.sales_order_id).in_(request.sales_order_ids)
+            CachedManufacturingOrder.sales_order_id.in_(request.sales_order_ids)
         )
     if request.ingredient_availability is not None:
         stmt = stmt.where(
@@ -1813,7 +1810,7 @@ def _apply_manufacturing_order_filters(
             == request.is_linked_to_sales_order
         )
     if not request.include_deleted:
-        stmt = stmt.where(col(CachedManufacturingOrder.deleted_at).is_(None))
+        stmt = stmt.where(CachedManufacturingOrder.deleted_at.is_(None))
 
     return apply_date_window_filters(
         stmt,
@@ -1841,7 +1838,7 @@ async def _list_manufacturing_orders_impl(
     Filters (including ``production_deadline_*``) translate to indexed
     SQL. See ADR-0018.
     """
-    from sqlmodel import col, func, select
+    from sqlmodel import func, select
 
     from katana_mcp.typed_cache import ensure_manufacturing_orders_synced
     from katana_public_api_client.models_pydantic._generated import (
@@ -1857,8 +1854,8 @@ async def _list_manufacturing_orders_impl(
     stmt = select(CachedManufacturingOrder)
     stmt = _apply_manufacturing_order_filters(stmt, request, parsed_dates)
     stmt = stmt.order_by(
-        col(CachedManufacturingOrder.created_at).desc(),
-        col(CachedManufacturingOrder.id).desc(),
+        CachedManufacturingOrder.created_at.desc(),
+        CachedManufacturingOrder.id.desc(),
     )
     if request.page is not None:
         stmt = stmt.offset((request.page - 1) * request.limit).limit(request.limit)
@@ -2181,7 +2178,7 @@ async def _list_blocking_ingredients_impl(
     hasn't run for, which would otherwise surface as a false-positive
     blocking entry.
     """
-    from sqlmodel import col, select
+    from sqlmodel import select
 
     from katana_mcp.typed_cache import (
         MANUFACTURING_ORDER_RECIPE_ROW_SPEC,
@@ -2263,24 +2260,22 @@ async def _list_blocking_ingredients_impl(
         select(CachedManufacturingOrderRecipeRow, CachedManufacturingOrder)
         .join(
             CachedManufacturingOrder,
-            col(CachedManufacturingOrder.id)
+            CachedManufacturingOrder.id
             == CachedManufacturingOrderRecipeRow.manufacturing_order_id,
         )
-        .where(col(CachedManufacturingOrder.deleted_at).is_(None))
-        .where(col(CachedManufacturingOrderRecipeRow.deleted_at).is_(None))
-        .where(col(CachedManufacturingOrder.status).in_(statuses))
+        .where(CachedManufacturingOrder.deleted_at.is_(None))
+        .where(CachedManufacturingOrderRecipeRow.deleted_at.is_(None))
+        .where(CachedManufacturingOrder.status.in_(statuses))
         .where(
-            col(CachedManufacturingOrderRecipeRow.ingredient_availability).in_(
+            CachedManufacturingOrderRecipeRow.ingredient_availability.in_(
                 list(_BLOCKING_AVAILABILITY)
             )
         )
     )
     if request.mo_ids is not None:
-        stmt = stmt.where(col(CachedManufacturingOrder.id).in_(request.mo_ids))
+        stmt = stmt.where(CachedManufacturingOrder.id.in_(request.mo_ids))
     if request.mo_order_nos is not None:
-        stmt = stmt.where(
-            col(CachedManufacturingOrder.order_no).in_(request.mo_order_nos)
-        )
+        stmt = stmt.where(CachedManufacturingOrder.order_no.in_(request.mo_order_nos))
     if request.location_id is not None:
         stmt = stmt.where(CachedManufacturingOrder.location_id == request.location_id)
     stmt = apply_date_window_filters(

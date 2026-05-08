@@ -10,7 +10,7 @@ import asyncio
 import json
 import time
 from datetime import datetime
-from typing import Annotated, Any, Literal, cast
+from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
@@ -1192,7 +1192,7 @@ def _apply_stock_adjustment_filters(
     this function lets the paginated path avoid re-parsing on the COUNT
     query.
     """
-    from sqlmodel import col, exists, select
+    from sqlmodel import exists, select
 
     from katana_public_api_client.models_pydantic._generated import (
         CachedStockAdjustment,
@@ -1202,14 +1202,14 @@ def _apply_stock_adjustment_filters(
     if request.location_id is not None:
         stmt = stmt.where(CachedStockAdjustment.location_id == request.location_id)
     if request.ids is not None:
-        stmt = stmt.where(col(CachedStockAdjustment.id).in_(request.ids))
+        stmt = stmt.where(CachedStockAdjustment.id.in_(request.ids))
     if request.stock_adjustment_number is not None:
         stmt = stmt.where(
             CachedStockAdjustment.stock_adjustment_number
             == request.stock_adjustment_number
         )
     if not request.include_deleted:
-        stmt = stmt.where(col(CachedStockAdjustment.deleted_at).is_(None))
+        stmt = stmt.where(CachedStockAdjustment.deleted_at.is_(None))
 
     # ``variant_id`` is a row-level field — EXISTS subquery scans the
     # indexed FK directly so a match on any row of any adjustment is
@@ -1229,7 +1229,7 @@ def _apply_stock_adjustment_filters(
     if request.reason is not None:
         needle = request.reason.strip()
         if needle:
-            stmt = stmt.where(col(CachedStockAdjustment.reason).ilike(f"%{needle}%"))
+            stmt = stmt.where(CachedStockAdjustment.reason.ilike(f"%{needle}%"))
 
     return apply_date_window_filters(
         stmt,
@@ -1256,8 +1256,8 @@ async def _list_stock_adjustments_impl(
     subquery against the row table so a match on any row is found
     regardless of how many adjustments precede it. See ADR-0018.
     """
-    from sqlalchemy.orm import QueryableAttribute, selectinload
-    from sqlmodel import col, func, select
+    from sqlalchemy.orm import selectinload
+    from sqlmodel import func, select
 
     from katana_mcp.typed_cache import ensure_stock_adjustments_synced
     from katana_public_api_client.models_pydantic._generated import (
@@ -1276,16 +1276,11 @@ async def _list_stock_adjustments_impl(
     # materialization time and we skip the correlated COUNT subquery.
     if request.include_rows:
         stmt = select(CachedStockAdjustment).options(
-            selectinload(
-                cast(
-                    "QueryableAttribute[Any]",
-                    CachedStockAdjustment.stock_adjustment_rows,
-                )
-            )
+            selectinload(CachedStockAdjustment.stock_adjustment_rows)
         )
     else:
         row_count_subq = (
-            select(func.count(col(CachedStockAdjustmentRow.id)))
+            select(func.count(CachedStockAdjustmentRow.id))
             .where(
                 CachedStockAdjustmentRow.stock_adjustment_id == CachedStockAdjustment.id
             )
@@ -1296,8 +1291,8 @@ async def _list_stock_adjustments_impl(
         stmt = select(CachedStockAdjustment, row_count_subq)
     stmt = _apply_stock_adjustment_filters(stmt, request, parsed_dates)
     stmt = stmt.order_by(
-        col(CachedStockAdjustment.created_at).desc(),
-        col(CachedStockAdjustment.id).desc(),
+        CachedStockAdjustment.created_at.desc(),
+        CachedStockAdjustment.id.desc(),
     )
     if request.page is not None:
         stmt = stmt.offset((request.page - 1) * request.limit).limit(request.limit)
