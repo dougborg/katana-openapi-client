@@ -12,6 +12,7 @@ tree in a sandboxed iframe (MCP Apps SEP-1865, see #422).
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Iterable
 from datetime import UTC, datetime
 from enum import Enum
@@ -22,6 +23,8 @@ from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
     from prefab_ui.app import PrefabApp
+
+logger = logging.getLogger(__name__)
 
 
 # Opt-in marker for Prefab UI rendering. Pass as ``meta=UI_META`` in
@@ -63,8 +66,30 @@ async def resolve_entity_name(
     pretty-print the name. Hard duplicate-create gates (already linked,
     already received, source==destination) are the caller's responsibility
     and use ``BLOCK_WARNING_PREFIX`` explicitly.
+
+    Cache *failures* (SQLite errors, locked DB, corruption, etc.) are
+    swallowed and converted into the same advisory shape: ``(None, warning)``
+    with a message explaining the cache was unhealthy. This keeps name
+    resolution best-effort so callers — particularly destructive apply
+    paths — can still proceed to the live API even when the cache is
+    unavailable. The exception is logged at WARNING for stderr-side
+    visibility.
     """
-    d = await cache.get_by_id(entity_type, entity_id)
+    try:
+        d = await cache.get_by_id(entity_type, entity_id)
+    except Exception as exc:
+        logger.warning(
+            "resolve_entity_name: cache lookup for %s id=%s failed: %s",
+            entity_label,
+            entity_id,
+            exc,
+        )
+        warning = (
+            f"{entity_label} with id={entity_id} could not be looked up "
+            f"(cache unavailable: {type(exc).__name__}); the "
+            f"{entity_label.lower()} will be validated by the live API on apply."
+        )
+        return None, warning
     if d is None:
         warning = (
             f"{entity_label} with id={entity_id} was not found in the cache "

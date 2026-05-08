@@ -291,6 +291,70 @@ async def test_create_purchase_order_apply_falls_back_to_request_notes_when_unse
         create_po_module.asyncio_detailed = original_asyncio_detailed
 
 
+@pytest.mark.asyncio
+async def test_create_purchase_order_apply_proceeds_when_cache_is_unhealthy():
+    """Cache failure must NOT abort the apply path (PR #620 review).
+
+    Pre-fix, lifting the ``resolve_entity_name`` lookups out of the
+    preview-only branch meant any ``cache.get_by_id`` exception (locked
+    SQLite, corrupted DB, IO error) would propagate and prevent the live
+    API call. ``resolve_entity_name`` now swallows cache exceptions and
+    returns advisory warnings, so the live API call still happens. This
+    test pins that contract end-to-end on ``create_purchase_order``.
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.cache.get_by_id = AsyncMock(
+        side_effect=RuntimeError("database is locked")
+    )
+
+    from katana_public_api_client.models import (
+        PurchaseOrderEntityType as APIPurchaseOrderEntityType,
+        PurchaseOrderStatus as APIPurchaseOrderStatus,
+    )
+
+    mock_po = mock_entity_for_modify(
+        RegularPurchaseOrder,
+        id=9003,
+        order_no="PO-2026-003",
+        supplier_id=4001,
+        location_id=1,
+        currency="USD",
+        status=APIPurchaseOrderStatus.NOT_RECEIVED,
+        entity_type=APIPurchaseOrderEntityType.REGULAR,
+    )
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = mock_po
+    mock_api_call = AsyncMock(return_value=mock_response)
+
+    import katana_public_api_client.api.purchase_order.create_purchase_order as create_po_module
+
+    original_asyncio_detailed = create_po_module.asyncio_detailed
+    create_po_module.asyncio_detailed = mock_api_call
+
+    try:
+        request = CreatePurchaseOrderRequest(
+            supplier_id=4001,
+            location_id=1,
+            order_number="PO-2026-003",
+            items=[PurchaseOrderItem(variant_id=1, quantity=1, price_per_unit=1.0)],
+            preview=False,
+        )
+        result = await _create_purchase_order_impl(request, context)
+
+        # The live API call still happened — apply did not abort.
+        assert mock_api_call.await_count == 1
+        assert result.is_preview is False
+        assert result.id == 9003
+        # Names couldn't be resolved (cache failed), but the apply still
+        # succeeded; supplier_name/location_name fall through to None.
+        assert result.supplier_name is None
+        assert result.location_name is None
+    finally:
+        create_po_module.asyncio_detailed = original_asyncio_detailed
+
+
 def test_po_response_to_tool_result_apply_renders_enriched_fields():
     """The apply card built from ``_po_response_to_tool_result`` must render
     notes, supplier_name, location_name, and item_count somewhere in the
