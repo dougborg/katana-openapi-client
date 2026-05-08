@@ -25,6 +25,7 @@ from __future__ import annotations
 import json
 from collections.abc import Awaitable, Callable, Iterable
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from enum import Enum
 from typing import Any, ClassVar
 
@@ -261,8 +262,14 @@ def _normalize(value: Any) -> Any:
     """Normalize a value for diff comparison.
 
     UNSET sentinels collapse to ``None``; datetimes flatten to ISO strings;
-    enums to their wire value. Lists and dicts are returned as-is — the
-    caller is responsible for upstream comparability.
+    enums to their wire value. Numeric values (and decimal-looking strings —
+    those containing a decimal point) coerce to ``Decimal`` so caller-supplied
+    ints/floats compare cleanly against Katana's zero-padded decimal-string
+    representation of monetary fields (e.g. ``"1100.0000000000"`` vs ``1100``).
+    Integer-only strings stay as strings — order numbers, ZIP codes, and
+    zero-padded SKUs like ``"00123"`` carry semantically meaningful
+    formatting that Decimal coercion would silently drop. Lists and dicts
+    are returned as-is — the caller is responsible for upstream comparability.
     """
     if value is UNSET:
         return None
@@ -270,6 +277,20 @@ def _normalize(value: Any) -> Any:
         return value.isoformat()
     if isinstance(value, Enum):
         return value.value
+    # bool is a subclass of int — short-circuit so True/False don't
+    # accidentally become Decimal('1') / Decimal('0').
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float, Decimal)):
+        return Decimal(str(value))
+    if isinstance(value, str) and "." in value:
+        # Only coerce decimal-looking strings. Integer-only strings keep
+        # their formatting — Katana's monetary-string pattern always has
+        # a decimal point, so this still catches the bug we're fixing.
+        try:
+            return Decimal(value)
+        except InvalidOperation:
+            return value
     return value
 
 

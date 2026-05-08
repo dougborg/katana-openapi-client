@@ -18,6 +18,7 @@ from katana_mcp.tools._modification import (
     FieldChange,
     ModificationResponse,
     compute_field_diff,
+    make_response_verifier,
     render_modification_md,
     to_tool_result,
 )
@@ -99,6 +100,73 @@ def test_compute_field_diff_normalizes_enum_to_value():
     diff = compute_field_diff(existing, request)
     assert diff[0].old == "DRAFT"
     assert diff[0].new == "DONE"
+
+
+def test_compute_field_diff_numeric_string_matches_int_request():
+    # Katana returns monetary fields as zero-padded decimal strings
+    # (e.g. ``"1100.0000000000"``); request supplies plain ints/floats.
+    # Without numeric normalization the diff would mark these as changed.
+    existing = MagicMock()
+    existing.qty = "1100.0000000000"
+    request = _SampleRequest(id=1, qty=1100)
+    diff = compute_field_diff(existing, request)
+    assert diff[0].is_unchanged is True
+
+
+def test_compute_field_diff_zero_string_matches_zero_request():
+    # Mirrors the production case where ``total_discount: 0`` is sent and
+    # Katana stores ``"0.0000000000"``.
+    existing = MagicMock()
+    existing.qty = "0.0000000000"
+    request = _SampleRequest(id=1, qty=0)
+    diff = compute_field_diff(existing, request)
+    assert diff[0].is_unchanged is True
+
+
+def test_compute_field_diff_non_numeric_strings_compare_as_strings():
+    # Decimal coercion must fall back gracefully for arbitrary strings —
+    # SKUs, names, etc. should still compare exactly.
+    existing = MagicMock()
+    existing.name = "M14025LG4STRLB"
+    request = _SampleRequest(id=1, name="M14025LG4STRLB")
+    diff = compute_field_diff(existing, request)
+    assert diff[0].is_unchanged is True
+
+
+def test_compute_field_diff_preserves_leading_zeros_in_integer_strings():
+    # Digit-only strings (order numbers, ZIP codes, zero-padded SKUs) must
+    # NOT coerce to Decimal — that would drop leading zeros and silently
+    # mask real mismatches like ``"00123"`` vs ``"123"``. Only strings
+    # containing a decimal point (Katana's monetary format) are coerced.
+    existing = MagicMock()
+    existing.name = "00123"
+    request = _SampleRequest(id=1, name="123")
+    diff = compute_field_diff(existing, request)
+    assert diff[0].is_unchanged is False
+    assert diff[0].old == "00123"
+    assert diff[0].new == "123"
+
+
+@pytest.mark.asyncio
+async def test_response_verifier_passes_when_decimal_string_equals_int():
+    # The verifier closure compares the post-update API response (which
+    # carries decimal strings on monetary fields) against the
+    # pre-normalized ``FieldChange.new`` from the request. Without
+    # numeric normalization this read as ``"1100.0000000000" != 1100``
+    # and produced a spurious "verification mismatch" status. See the
+    # session that triggered the fix — modify_sales_order on
+    # SO 44256191 set total_discount and the verifier flagged it
+    # despite the value landing correctly server-side.
+    diff = compute_field_diff(
+        MagicMock(qty=0),
+        _SampleRequest(id=1, qty=1100),
+    )
+    verify = make_response_verifier(diff)
+    response_outcome = MagicMock()
+    response_outcome.qty = "1100.0000000000"
+    verified, actual = await verify(response_outcome)
+    assert verified is True
+    assert actual is None
 
 
 def test_compute_field_diff_field_map_renames_attr_lookup():
