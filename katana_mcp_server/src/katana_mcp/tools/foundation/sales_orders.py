@@ -2108,7 +2108,9 @@ async def modify_sales_order(
     field as ``(prior unknown) → new``.
     """
     response = await _modify_sales_order_impl(request, context)
-    return to_tool_result(response)
+    return to_tool_result(
+        response, confirm_request=request, confirm_tool="modify_sales_order"
+    )
 
 
 # ============================================================================
@@ -2144,7 +2146,9 @@ async def delete_sales_order(
     The response carries a ``prior_state`` snapshot for manual revert.
     """
     response = await _delete_sales_order_impl(request, context)
-    return to_tool_result(response)
+    return to_tool_result(
+        response, confirm_request=request, confirm_tool="delete_sales_order"
+    )
 
 
 def register_tools(mcp: FastMCP) -> None:
@@ -2194,10 +2198,14 @@ def register_tools(mcp: FastMCP) -> None:
         modify_sales_order,
         tags={"orders", "sales", "write"},
         annotations=_modify,
+        meta=UI_META,
+        direct=True,
     )
     register_preview_tool(
         mcp,
         delete_sales_order,
         tags={"orders", "sales", "write", "destructive"},
         annotations=_destructive,
+        meta=UI_META,
+        direct=True,
     )

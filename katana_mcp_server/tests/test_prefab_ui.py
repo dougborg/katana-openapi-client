@@ -16,6 +16,8 @@ from katana_mcp.tools.prefab_ui import (
     build_item_detail_ui,
     build_item_mutation_ui,
     build_low_stock_ui,
+    build_modification_preview_ui,
+    build_modification_result_ui,
     build_order_created_ui,
     build_order_preview_ui,
     build_receipt_ui,
@@ -1556,4 +1558,472 @@ class TestBlockWarningSuppressesConfirm:
         )
         assert not diagnostic_label.startswith("BLOCK:"), (
             f"Badge label still has literal BLOCK: prefix: {diagnostic_label!r}"
+        )
+
+
+class _ModifyStubRequest(BaseModel):
+    """Stub for ``ConfirmableRequest`` used by modification-card tests.
+
+    Mirrors the load-bearing fields ``_build_apply_action_direct`` reads
+    (``id``, ``preview``) without pulling a real entity request shape into
+    these unit tests.
+    """
+
+    id: int = 1
+    preview: bool = True
+
+
+def _modification_preview_response(
+    *,
+    actions: list[dict] | None = None,
+    legacy_changes: list[dict] | None = None,
+    warnings: list[str] | None = None,
+    katana_url: str | None = None,
+) -> dict:
+    """Build a minimal preview-shaped ``ModificationResponse`` dict."""
+    return {
+        "entity_type": "product",
+        "entity_id": 17058420,
+        "is_preview": True,
+        "operation": "" if actions is not None else "update",
+        "changes": legacy_changes or [],
+        "actions": actions or [],
+        "prior_state": None,
+        "warnings": warnings or [],
+        "next_actions": ["Review the planned actions", "Set preview=false to apply"],
+        "katana_url": katana_url,
+        "message": "Preview: 2 action(s) planned",
+    }
+
+
+class TestBuildModificationPreviewUI:
+    """Preview card for ``modify_*`` / ``delete_*`` / ``correct_*`` tools.
+
+    The card must render a per-action diff DataTable and a Confirm button
+    on the direct-apply rail (Confirm fires ``tools/call`` directly + the
+    iframe pushes the result via ``ui/update-model-context``).
+    """
+
+    def test_basic_two_action_preview_renders_envelope(self):
+        response = _modification_preview_response(
+            actions=[
+                {
+                    "operation": "update_header",
+                    "target_id": 17058420,
+                    "changes": [
+                        {
+                            "field": "name",
+                            "old": "Old Name",
+                            "new": "New Name",
+                            "is_added": False,
+                            "is_unchanged": False,
+                            "is_unknown_prior": False,
+                        }
+                    ],
+                    "succeeded": None,
+                    "error": None,
+                    "verified": None,
+                    "actual_after": None,
+                },
+                {
+                    "operation": "update_variant",
+                    "target_id": 40371805,
+                    "changes": [
+                        {
+                            "field": "internal_barcode",
+                            "old": None,
+                            "new": "LD0739",
+                            "is_added": False,
+                            "is_unchanged": False,
+                            "is_unknown_prior": True,
+                        }
+                    ],
+                    "succeeded": None,
+                    "error": None,
+                    "verified": None,
+                    "actual_after": None,
+                },
+            ],
+        )
+        app = build_modification_preview_ui(
+            response,
+            confirm_request=_ModifyStubRequest(id=17058420, preview=True),
+            confirm_tool="modify_item",
+        )
+        _assert_valid_prefab(app)
+
+    def test_confirm_button_uses_direct_apply_call_tool(self):
+        """Confirm wires CallTool(modify_item, ..., preview=False)."""
+        response = _modification_preview_response(
+            actions=[
+                {
+                    "operation": "update_header",
+                    "target_id": 1,
+                    "changes": [
+                        {
+                            "field": "name",
+                            "old": "x",
+                            "new": "y",
+                            "is_added": False,
+                            "is_unchanged": False,
+                            "is_unknown_prior": False,
+                        }
+                    ],
+                    "succeeded": None,
+                    "error": None,
+                    "verified": None,
+                    "actual_after": None,
+                }
+            ],
+        )
+        app = build_modification_preview_ui(
+            response,
+            confirm_request=_ModifyStubRequest(id=1, preview=True),
+            confirm_tool="modify_item",
+        )
+        envelope = app.to_json()
+
+        # Find the CallTool action — it's nested under a Button's onClick.
+        def find_call_tool(tree: object) -> dict | None:
+            if isinstance(tree, dict):
+                if tree.get("action") == "toolCall":
+                    return tree
+                for v in tree.values():
+                    found = find_call_tool(v)
+                    if found is not None:
+                        return found
+            elif isinstance(tree, list):
+                for v in tree:
+                    found = find_call_tool(v)
+                    if found is not None:
+                        return found
+            return None
+
+        call_tool = find_call_tool(envelope)
+        assert call_tool is not None, "Confirm button must wire a CallTool action"
+        assert call_tool["tool"] == "modify_item"
+        assert call_tool["arguments"]["preview"] is False, (
+            "CallTool arguments must flip preview=False so the direct-apply "
+            "fires the apply branch."
+        )
+
+    def test_block_warning_suppresses_confirm_button(self):
+        """A ``BLOCK:``-prefixed warning must drop the Confirm button (only
+        Cancel remains), matching the shape used by the other preview cards.
+        """
+        response = _modification_preview_response(
+            actions=[
+                {
+                    "operation": "delete",
+                    "target_id": 1,
+                    "changes": [],
+                    "succeeded": None,
+                    "error": None,
+                    "verified": None,
+                    "actual_after": None,
+                }
+            ],
+            warnings=["BLOCK: cannot proceed — already deleted"],
+        )
+        app = build_modification_preview_ui(
+            response,
+            confirm_request=_ModifyStubRequest(),
+            confirm_tool="delete_item",
+        )
+        envelope = app.to_json()
+        confirm = _find_buttons_by_label(envelope, "Confirm Changes")
+        confirm_n = _find_buttons_by_label(envelope, "Confirm 1 action(s)")
+        assert len(confirm) + len(confirm_n) == 0, (
+            "Confirm button must be suppressed when a BLOCK: warning is set."
+        )
+        cancel = _find_buttons_by_label(envelope, "Cancel")
+        assert len(cancel) == 1, "Cancel button must remain on BLOCK warning."
+
+    def test_legacy_single_action_shape_renders_diff_table(self):
+        """Tools that still emit the legacy single-action shape (top-level
+        ``operation`` + ``changes``, empty ``actions``) must still get a
+        diff table rendered."""
+        response = _modification_preview_response(
+            actions=[],
+            legacy_changes=[
+                {
+                    "field": "status",
+                    "old": "DRAFT",
+                    "new": "RECEIVED",
+                    "is_added": False,
+                    "is_unchanged": False,
+                    "is_unknown_prior": False,
+                }
+            ],
+        )
+        app = build_modification_preview_ui(
+            response,
+            confirm_request=_ModifyStubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        envelope = app.to_json()
+        assert _has_node_of_type(envelope, "DataTable"), (
+            "Legacy single-action shape must still render a diff DataTable."
+        )
+
+    def test_title_verb_derives_from_tool_name(self):
+        """``modify_item`` → "Modify", ``delete_item`` → "Delete",
+        ``correct_purchase_order`` → "Correct" — closes Copilot review
+        finding that the title was hard-coded as "Modify".
+        """
+        response = _modification_preview_response(
+            actions=[
+                {
+                    "operation": "delete",
+                    "target_id": 1,
+                    "changes": [],
+                    "succeeded": None,
+                    "error": None,
+                    "verified": None,
+                    "actual_after": None,
+                }
+            ],
+        )
+        app = build_modification_preview_ui(
+            response,
+            confirm_request=_ModifyStubRequest(),
+            confirm_tool="delete_item",
+        )
+        envelope = app.to_json()
+        titles: list[str] = []
+
+        def collect_titles(o: object) -> None:
+            if isinstance(o, dict):
+                if o.get("type") == "CardTitle" and isinstance(o.get("content"), str):
+                    titles.append(o["content"])
+                for v in o.values():
+                    collect_titles(v)
+            elif isinstance(o, list):
+                for v in o:
+                    collect_titles(v)
+
+        collect_titles(envelope)
+        assert any(t.startswith("Delete ") for t in titles), (
+            f"delete_item card title must start with 'Delete'; got {titles!r}"
+        )
+
+    def test_title_action_count_suffix_uses_n_actions(self):
+        """The action-count suffix must be present whenever there's at
+        least one planned action, including the legacy single-action
+        shape (where ``actions`` is empty but ``changes`` is populated).
+        Closes Copilot review finding.
+        """
+        response = _modification_preview_response(
+            actions=[],
+            legacy_changes=[
+                {
+                    "field": "status",
+                    "old": "DRAFT",
+                    "new": "RECEIVED",
+                    "is_added": False,
+                    "is_unchanged": False,
+                    "is_unknown_prior": False,
+                }
+            ],
+        )
+        app = build_modification_preview_ui(
+            response,
+            confirm_request=_ModifyStubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        envelope = app.to_json()
+        titles: list[str] = []
+
+        def collect_titles(o: object) -> None:
+            if isinstance(o, dict):
+                if o.get("type") == "CardTitle" and isinstance(o.get("content"), str):
+                    titles.append(o["content"])
+                for v in o.values():
+                    collect_titles(v)
+            elif isinstance(o, list):
+                for v in o:
+                    collect_titles(v)
+
+        collect_titles(envelope)
+        assert any("1 action(s)" in t for t in titles), (
+            f"Legacy single-action title must include the count suffix; got {titles!r}"
+        )
+
+
+class TestBuildModificationResultUI:
+    """Result card for an applied (non-preview) ModificationResponse."""
+
+    def _response(self, actions: list[dict]) -> dict:
+        return {
+            "entity_type": "purchase_order",
+            "entity_id": 99,
+            "is_preview": False,
+            "operation": "",
+            "changes": [],
+            "actions": actions,
+            "prior_state": None,
+            "warnings": [],
+            "next_actions": [],
+            "katana_url": "https://factory.katanamrp.com/purchaseorder/99",
+            "message": "Applied 2 action(s)",
+        }
+
+    def test_all_succeeded_renders_applied_status(self):
+        response = self._response(
+            [
+                {
+                    "operation": "update_header",
+                    "target_id": 99,
+                    "changes": [
+                        {
+                            "field": "status",
+                            "old": "DRAFT",
+                            "new": "OPEN",
+                            "is_added": False,
+                            "is_unchanged": False,
+                            "is_unknown_prior": False,
+                        }
+                    ],
+                    "succeeded": True,
+                    "error": None,
+                    "verified": True,
+                    "actual_after": None,
+                }
+            ]
+        )
+        app = build_modification_result_ui(response)
+        envelope = app.to_json()
+        labels: list[str] = []
+
+        def collect_badges(o: object) -> None:
+            if isinstance(o, dict):
+                if o.get("type") == "Badge" and isinstance(o.get("label"), str):
+                    labels.append(o["label"])
+                for v in o.values():
+                    collect_badges(v)
+            elif isinstance(o, list):
+                for v in o:
+                    collect_badges(v)
+
+        collect_badges(envelope)
+        assert "APPLIED" in labels, (
+            f"Top-level status badge must read APPLIED on full success; got {labels!r}"
+        )
+
+    def test_partial_failure_marks_overall_partial_failure(self):
+        response = self._response(
+            [
+                {
+                    "operation": "update_header",
+                    "target_id": 99,
+                    "changes": [],
+                    "succeeded": True,
+                    "error": None,
+                    "verified": None,
+                    "actual_after": None,
+                },
+                {
+                    "operation": "update_row",
+                    "target_id": 1234,
+                    "changes": [],
+                    "succeeded": False,
+                    "error": "422 row already shipped",
+                    "verified": None,
+                    "actual_after": None,
+                },
+            ]
+        )
+        app = build_modification_result_ui(response)
+        envelope = app.to_json()
+        labels: list[str] = []
+
+        def collect_badges(o: object) -> None:
+            if isinstance(o, dict):
+                if o.get("type") == "Badge" and isinstance(o.get("label"), str):
+                    labels.append(o["label"])
+                for v in o.values():
+                    collect_badges(v)
+            elif isinstance(o, list):
+                for v in o:
+                    collect_badges(v)
+
+        collect_badges(envelope)
+        assert "PARTIAL FAILURE" in labels, (
+            f"Mixed succeed/fail must surface PARTIAL FAILURE; got {labels!r}"
+        )
+        # Per-action FAILED badge must also surface
+        assert "FAILED" in labels
+
+    def test_view_in_katana_button_present_when_url_set(self):
+        response = self._response(
+            [
+                {
+                    "operation": "update_header",
+                    "target_id": 99,
+                    "changes": [],
+                    "succeeded": True,
+                    "error": None,
+                    "verified": None,
+                    "actual_after": None,
+                }
+            ]
+        )
+        app = build_modification_result_ui(response)
+        envelope = app.to_json()
+        assert len(_find_buttons_by_label(envelope, "View in Katana")) == 1
+
+    def test_no_katana_url_drops_view_button(self):
+        response = self._response(
+            [
+                {
+                    "operation": "delete",
+                    "target_id": 99,
+                    "changes": [],
+                    "succeeded": True,
+                    "error": None,
+                    "verified": None,
+                    "actual_after": None,
+                }
+            ]
+        )
+        response["katana_url"] = None  # delete nulls it
+        app = build_modification_result_ui(response)
+        envelope = app.to_json()
+        assert len(_find_buttons_by_label(envelope, "View in Katana")) == 0
+
+    def test_title_verb_derives_from_tool_name(self):
+        """Result-card title verb mirrors the preview-card behavior —
+        ``delete_purchase_order`` reads "Purchase Order Delete" rather
+        than the misleading "Purchase Order Modification".
+        """
+        response = self._response(
+            [
+                {
+                    "operation": "delete",
+                    "target_id": 99,
+                    "changes": [],
+                    "succeeded": True,
+                    "error": None,
+                    "verified": None,
+                    "actual_after": None,
+                }
+            ]
+        )
+        app = build_modification_result_ui(response, tool_name="delete_purchase_order")
+        envelope = app.to_json()
+        titles: list[str] = []
+
+        def collect_titles(o: object) -> None:
+            if isinstance(o, dict):
+                if o.get("type") == "CardTitle" and isinstance(o.get("content"), str):
+                    titles.append(o["content"])
+                for v in o.values():
+                    collect_titles(v)
+            elif isinstance(o, list):
+                for v in o:
+                    collect_titles(v)
+
+        collect_titles(envelope)
+        assert any(t.endswith("Delete") for t in titles), (
+            f"delete_* result title must end with 'Delete'; got {titles!r}"
         )
