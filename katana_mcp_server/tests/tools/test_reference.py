@@ -309,8 +309,15 @@ class TestListLocations:
                 {
                     "id": 100,
                     "name": "Main Warehouse",
-                    "city": "Portland",
-                    "country": "US",
+                    "address": {
+                        "id": 9,
+                        "line_1": "1 Industrial Way",
+                        "line_2": "Suite 4",
+                        "city": "Portland",
+                        "state": "OR",
+                        "zip": "97201",
+                        "country": "US",
+                    },
                     "is_primary": True,
                 }
             ]
@@ -320,7 +327,94 @@ class TestListLocations:
         )
         lifespan_ctx.cache.smart_search.assert_awaited_once()
         payload = json.loads(_extract_text(result))
-        assert payload["locations"][0]["is_primary"] is True
+        loc = payload["locations"][0]
+        assert loc["is_primary"] is True
+        assert loc["address"] == {
+            "line_1": "1 Industrial Way",
+            "line_2": "Suite 4",
+            "city": "Portland",
+            "state": "OR",
+            "zip": "97201",
+            "country": "US",
+        }
+
+    @pytest.mark.asyncio
+    async def test_markdown_renders_city_country_from_nested_address(self):
+        context, _ = _make_context(
+            get_all=[
+                {
+                    "id": 24141,
+                    "name": "Goleta DC",
+                    "address": {"city": "Goleta", "country": "US"},
+                }
+            ]
+        )
+        result = await list_locations(
+            query=None, limit=50, format="markdown", context=context
+        )
+        text = _extract_text(result)
+        assert "Goleta DC" in text
+        assert "Goleta, US" in text
+
+    @pytest.mark.asyncio
+    async def test_missing_address_yields_none(self):
+        context, _ = _make_context(get_all=[{"id": 1, "name": "No-address site"}])
+        result = await list_locations(
+            query=None, limit=50, format="json", context=context
+        )
+        payload = json.loads(_extract_text(result))
+        assert payload["locations"][0]["address"] is None
+
+    @pytest.mark.asyncio
+    async def test_blank_string_address_parts_collapse_to_none(self):
+        """Katana sometimes returns blank address parts as ``""`` rather than
+        omitting them — the all-empty case must still collapse to
+        ``address: null`` instead of an AddressInfo full of empty strings.
+        Also pins that a non-blank line_1 alongside blank-only siblings
+        still yields a populated address with the empties normalized away.
+        """
+        context, _ = _make_context(
+            get_all=[
+                {
+                    "id": 1,
+                    "name": "All-blank address",
+                    "address": {
+                        "id": 9,
+                        "line_1": "",
+                        "line_2": "   ",
+                        "city": "",
+                        "state": "",
+                        "zip": "",
+                        "country": "",
+                    },
+                },
+                {
+                    "id": 2,
+                    "name": "Partially-populated address",
+                    "address": {
+                        "line_1": "1 Main St",
+                        "line_2": "",
+                        "city": "Goleta",
+                        "state": "  ",
+                        "zip": None,
+                        "country": "US",
+                    },
+                },
+            ]
+        )
+        result = await list_locations(
+            query=None, limit=50, format="json", context=context
+        )
+        payload = json.loads(_extract_text(result))
+        assert payload["locations"][0]["address"] is None
+        assert payload["locations"][1]["address"] == {
+            "line_1": "1 Main St",
+            "line_2": None,
+            "city": "Goleta",
+            "state": None,
+            "zip": None,
+            "country": "US",
+        }
 
     @pytest.mark.asyncio
     async def test_no_query_filters_deleted(self):
