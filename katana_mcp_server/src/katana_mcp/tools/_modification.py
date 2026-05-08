@@ -158,17 +158,37 @@ class ActionResult(BaseModel):
     # Derived display fields — computed from succeeded/verified/changes/operation
     # so client renderers (Prefab cards) bind directly without recomputing.
     # Travels with every preview AND apply response, so the live-tick path
-    # (SetState("plan_actions", RESULT.actions) on Confirm) preserves shape.
+    # (SetState("plan_actions", RESULT.actions) on Confirm) preserves the
+    # exact same row shape between preview-time and apply-time. ``index`` is
+    # set by the dispatcher (it's the position in the plan, 1-based).
+    index: int = 0
+    operation_label: str = ""
+    target_label: str = ""
     status_label: str = ""
     summary: str = ""
 
     @model_validator(mode="after")
     def _populate_derived(self) -> ActionResult:
+        if not self.operation_label:
+            self.operation_label = _derive_operation_label(self)
+        if not self.target_label:
+            self.target_label = _derive_target_label(self)
         if not self.status_label:
             self.status_label = _derive_status_label(self)
         if not self.summary:
             self.summary = _derive_summary(self)
         return self
+
+
+def _derive_operation_label(action: ActionResult) -> str:
+    """Humanize the snake_case operation for the display column."""
+    raw = (action.operation or "").replace("_", " ").title()
+    return raw or "Action"
+
+
+def _derive_target_label(action: ActionResult) -> str:
+    """``#<id>`` when the action has a target, em-dash otherwise."""
+    return f"#{action.target_id}" if action.target_id is not None else "—"
 
 
 def _derive_status_label(action: ActionResult) -> str:

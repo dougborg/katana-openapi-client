@@ -8,6 +8,7 @@ valid PrefabApp instances. This catches constructor signature mismatches
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 import pytest
@@ -59,10 +60,14 @@ def _walk_view_tree(node: object) -> list[dict[str, Any]]:
     return found
 
 
+_MUSTACHE_RE = re.compile(r"^\s*\{\{\s*([^}\s]+)\s*\}\}\s*$")
+
+
 def _assert_state_bindings_resolve(envelope: dict[str, Any]) -> None:
     """Every DataTable rendering rows by state-key reference must point to
-    a slot that exists in ``state``. Catches typos and broken refactors
-    where a state slot is renamed but the binding isn't updated.
+    a slot that exists in ``state``, AND must use the mustache template
+    form ``{{ key }}``. Bare strings crash the JS renderer with
+    ``t.some is not a function`` — discovered via headless render tests.
     """
     state = envelope.get("state") or {}
     for component in _walk_view_tree(envelope.get("view")):
@@ -71,12 +76,18 @@ def _assert_state_bindings_resolve(envelope: dict[str, Any]) -> None:
         rows = component.get("rows")
         if not isinstance(rows, str):
             continue
-        # Bare key (e.g. "plan_actions") or templated ref ("{{ x }}").
-        if rows.startswith("{{"):
-            continue
-        assert rows in state, (
-            f"DataTable.rows='{rows}' references missing state slot. "
-            f"Available: {sorted(state)}"
+        m = _MUSTACHE_RE.match(rows)
+        assert m is not None, (
+            f"DataTable.rows={rows!r} is a bare string. State-bound rows "
+            f"must use the mustache template form '{{{{ key }}}}' — bare "
+            f"strings crash the JS renderer."
+        )
+        # The mustache content can be a path expression like "stock.by_location"
+        # — only the first segment must exist in state.
+        first_segment = m.group(1).split(".", 1)[0]
+        assert first_segment in state, (
+            f"DataTable.rows={rows!r} references missing state slot "
+            f"{first_segment!r}. Available: {sorted(state)}"
         )
 
 
@@ -1966,14 +1977,16 @@ class TestBuildModificationPreviewUI:
         # Sanity: full envelope serializes and bindings resolve.
         _assert_valid_prefab(app)
 
-        # Exactly one DataTable, bound to plan_actions.
+        # Exactly one DataTable, bound to plan_actions via mustache template.
+        # Bare-string state references crash the JS renderer with
+        # "t.some is not a function" — discovered via headless apps_dev tests.
         tables = [
             n
             for n in _walk_view_tree(envelope.get("view"))
             if n.get("type") == "DataTable"
         ]
         assert len(tables) == 1, f"expected 1 DataTable, got {len(tables)}"
-        assert tables[0]["rows"] == "plan_actions"
+        assert tables[0]["rows"] == "{{ plan_actions }}"
 
         # plan_actions has 12 rows, all PLANNED.
         plan_rows = envelope["state"]["plan_actions"]

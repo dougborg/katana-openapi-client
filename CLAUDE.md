@@ -5,9 +5,10 @@ Guidance for Claude Code working with this repository.
 ## Quick Start
 
 ```bash
-uv sync --all-extras         # Install dependencies
-uv run pre-commit install    # Setup hooks (installs both pre-commit AND pre-push)
-cp .env.example .env         # Add KATANA_API_KEY
+uv sync --all-extras                # Install dependencies
+uv run pre-commit install           # Setup hooks (installs both pre-commit AND pre-push)
+uv run playwright install chromium  # Headless browser for Prefab UI render tests
+cp .env.example .env                # Add KATANA_API_KEY
 ```
 
 **Worktrees: re-run `uv run pre-commit install` after `git worktree add`** — pre-commit
@@ -17,14 +18,15 @@ worktree's `.git/hooks/`.
 
 ## Essential Commands
 
-| Command                  | Time   | When to Use              |
-| ------------------------ | ------ | ------------------------ |
-| `uv run poe quick-check` | ~5-10s | During development       |
-| `uv run poe agent-check` | ~8-12s | Before committing        |
-| `uv run poe check`       | ~30s   | **Before opening PR**    |
-| `uv run poe full-check`  | ~40s   | Before requesting review |
-| `uv run poe fix`         | ~5s    | Auto-fix lint issues     |
-| `uv run poe test`        | ~16s   | Run tests (4 workers)    |
+| Command                   | Time   | When to Use                          |
+| ------------------------- | ------ | ------------------------------------ |
+| `uv run poe quick-check`  | ~5-10s | During development                   |
+| `uv run poe agent-check`  | ~8-12s | Before committing                    |
+| `uv run poe check`        | ~75s   | **Before opening PR** (incl browser) |
+| `uv run poe full-check`   | ~85s   | Before requesting review             |
+| `uv run poe fix`          | ~5s    | Auto-fix lint issues                 |
+| `uv run poe test`         | ~16s   | Run tests (4 workers, no browser)    |
+| `uv run poe test-browser` | ~60s   | Headless Prefab UI render tests      |
 
 **NEVER CANCEL** long-running commands - they may appear to hang but are processing.
 
