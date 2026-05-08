@@ -2,6 +2,33 @@
 
 <!-- version list -->
 
+## v0.60.0 (2026-05-08)
+
+### Chores
+
+- **client**: Emit Mapped[T] field types on Cached\* classes (drop col()/cast()
+  ergonomics tax)
+  ([`c845c69`](https://github.com/dougborg/katana-openapi-client/commit/c845c6947cd2497f94738e055cbac63a2b4cc48d))
+
+- **release**: Mcp v0.62.0
+  ([`b82abdb`](https://github.com/dougborg/katana-openapi-client/commit/b82abdbad7fdaaff8b360ee6dc03eb7ce7e233dc))
+
+### Features
+
+- **client**: Add catalog Cached\* siblings + FTS5 specs (#472 Phase A)
+  ([`7133848`](https://github.com/dougborg/katana-openapi-client/commit/7133848e9bb84e83dac2fda054f8a52f405b6bc6))
+
+- **mcp**: Direct-apply rail for create_sales_order + create_manufacturing_order
+  ([`9110857`](https://github.com/dougborg/katana-openapi-client/commit/91108575c032cfb69b0b75f4c9eeb90204837834))
+
+### Breaking Changes
+
+- **client**: New public Cached\* classes (CachedVariant, CachedProduct, CachedMaterial,
+  CachedService, CachedCustomer, CachedSupplier, CachedLocation, CachedTaxRate,
+  CachedOperator, CachedFactory, CachedAdditionalCost) ship in the generated client.
+  CachedPurchaseOrder.supplier field type changed from Supplier to CachedSupplier (now
+  references the cache sibling, consistent with the typed-cache pattern).
+
 ## v0.59.0 (2026-05-08)
 
 ### Bug Fixes
