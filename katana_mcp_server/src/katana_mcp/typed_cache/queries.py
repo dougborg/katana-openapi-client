@@ -87,11 +87,16 @@ def _is_fts_syntax_error(exc: OperationalError) -> bool:
 
     SQLite's FTS5 module surfaces query-grammar problems as
     ``OperationalError`` with a message prefixed by ``fts5:``. The
-    underlying ``orig`` is a ``sqlite3.OperationalError``; checking
-    ``str(exc)`` covers both that and the SQLAlchemy-wrapped form.
+    underlying ``orig`` is a ``sqlite3.OperationalError`` whose
+    ``str()`` is the raw SQLite message ("fts5: syntax error near
+    ..."); the SQLAlchemy wrapper's ``str(exc)`` decorates that with
+    ``(builtins.Exception) `` and a SQL statement footer, so we
+    inspect ``exc.orig`` directly with ``startswith`` to keep the
+    match narrow (no false positives on errors that happen to mention
+    ``fts5`` later in the message).
     """
-    text = str(exc)
-    return any(prefix in text for prefix in _FTS_SYNTAX_ERROR_PREFIXES)
+    orig_text = str(exc.orig) if exc.orig is not None else str(exc)
+    return any(orig_text.startswith(prefix) for prefix in _FTS_SYNTAX_ERROR_PREFIXES)
 
 
 def _tokenize_query(query: str) -> list[str]:
