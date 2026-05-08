@@ -12,7 +12,6 @@ tree in a sandboxed iframe (MCP Apps SEP-1865, see #422).
 from __future__ import annotations
 
 import json
-import logging
 from collections.abc import Iterable
 from datetime import UTC, datetime
 from enum import Enum
@@ -21,10 +20,12 @@ from typing import TYPE_CHECKING, Any
 from fastmcp.tools import ToolResult
 from pydantic import BaseModel, Field
 
+from katana_mcp.logging import get_logger
+
 if TYPE_CHECKING:
     from prefab_ui.app import PrefabApp
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 # Opt-in marker for Prefab UI rendering. Pass as ``meta=UI_META`` in
@@ -79,22 +80,22 @@ async def resolve_entity_name(
         d = await cache.get_by_id(entity_type, entity_id)
     except Exception as exc:
         logger.warning(
-            "resolve_entity_name: cache lookup for %s id=%s failed: %s",
-            entity_label,
-            entity_id,
-            exc,
+            "resolve_entity_name: cache lookup failed",
+            entity_label=entity_label,
+            entity_id=entity_id,
+            error=str(exc),
         )
         warning = (
             f"{entity_label} with id={entity_id} could not be looked up "
-            f"(cache unavailable: {type(exc).__name__}); the "
-            f"{entity_label.lower()} will be validated by the live API on apply."
+            f"(cache unavailable: {type(exc).__name__}); the live API "
+            f"validates the {entity_label.lower()}."
         )
         return None, warning
     if d is None:
         warning = (
             f"{entity_label} with id={entity_id} was not found in the cache "
-            f"(possible cache lag); the {entity_label.lower()} will be "
-            "validated by the live API on apply."
+            f"(possible cache lag); the live API validates the "
+            f"{entity_label.lower()}."
         )
         return None, warning
     return d.get("name") or None, None
