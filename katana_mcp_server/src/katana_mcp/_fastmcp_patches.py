@@ -19,7 +19,6 @@ so only the get_cached_typeadapter patch is needed now.
 from __future__ import annotations
 
 import inspect
-import logging
 import types
 from collections.abc import Callable
 from functools import lru_cache
@@ -27,7 +26,9 @@ from typing import Annotated, Any, get_args, get_origin, get_type_hints
 
 from pydantic import Field, TypeAdapter
 
-logger = logging.getLogger(__name__)
+from katana_mcp.logging import get_logger
+
+logger = get_logger(__name__)
 
 # Track whether patches have been applied (mutable container avoids global statement)
 _state: dict[str, bool] = {"patched": False}
@@ -97,9 +98,9 @@ def _patched_get_cached_typeadapter[T](cls: T) -> TypeAdapter[T]:
             resolved_hints = get_type_hints(cls, include_extras=True)
         except (NameError, TypeError) as exc:
             logger.debug(
-                "get_type_hints failed for %r — falling back to __annotations__: %s",
-                cls,
-                exc,
+                "get_type_hints_failed_falling_back_to_annotations",
+                cls=repr(cls),
+                error=str(exc),
             )
             resolved_hints = cls.__annotations__
 

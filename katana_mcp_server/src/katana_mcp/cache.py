@@ -25,7 +25,6 @@ Usage::
 from __future__ import annotations
 
 import json
-import logging
 import time
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -36,7 +35,9 @@ from typing import Any
 import aiosqlite
 from platformdirs import user_cache_dir
 
-logger = logging.getLogger(__name__)
+from katana_mcp.logging import get_logger
+
+logger = get_logger(__name__)
 
 # Default cache location
 _DEFAULT_CACHE_DIR = Path(user_cache_dir("katana-mcp"))
@@ -203,7 +204,7 @@ class CatalogCache:
         await self._db.execute("PRAGMA synchronous=NORMAL")
 
         await self._ensure_schema()
-        logger.info("cache_opened", extra={"db_path": str(self._db_path)})
+        logger.info("cache_opened", db_path=str(self._db_path))
 
     async def close(self) -> None:
         """Close the database connection."""
@@ -230,7 +231,8 @@ class CatalogCache:
                 # Drop old schema and rebuild
                 logger.info(
                     "cache_schema_upgrade",
-                    extra={"from": current_version, "to": _SCHEMA_VERSION},
+                    from_version=current_version,
+                    to_version=_SCHEMA_VERSION,
                 )
                 await self._db.executescript(
                     "DROP TABLE IF EXISTS entity_fts;"
@@ -338,11 +340,9 @@ class CatalogCache:
         await db.commit()
         logger.info(
             "cache_synced",
-            extra={
-                "entity_type": entity_type,
-                "upserted": len(entities),
-                "total": count,
-            },
+            entity_type=entity_type,
+            upserted=len(entities),
+            total=count,
         )
 
     async def get_last_synced(self, entity_type: str) -> float | None:
@@ -424,7 +424,7 @@ class CatalogCache:
                 return [json.loads(row[0]) for row in rows]
         except aiosqlite.OperationalError as exc:
             # FTS5 query syntax error — fall through to fuzzy
-            logger.debug("fts5_query_failed", extra={"query": query, "error": str(exc)})
+            logger.debug("fts5_query_failed", query=query, error=str(exc))
             return []
 
     async def search_fuzzy(
