@@ -287,7 +287,9 @@ def populate_fts_from_existing_rows(connection: Any) -> None:
     linearly with row count, dominated by the catalog cold-start scope
     (~5K variants on a typical Katana shop).
 
-    Skipped when the main table is empty (cold-start before sync runs).
+    The DELETE/INSERT pair runs unconditionally for every FTS-enabled
+    class. Cold-start (empty main table) is a cheap no-op rather than
+    an explicit skip — both statements operate on zero rows.
     """
     for cls in _classes_with_fts_columns():
         table = _table_for(cls)
