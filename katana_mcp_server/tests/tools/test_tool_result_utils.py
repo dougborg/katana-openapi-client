@@ -11,8 +11,14 @@ JSON dump of the response so the LLM can act on the data.
 from __future__ import annotations
 
 import json
+from unittest.mock import AsyncMock
 
-from katana_mcp.tools.tool_result_utils import UI_META, make_tool_result
+import pytest
+from katana_mcp.tools.tool_result_utils import (
+    UI_META,
+    make_tool_result,
+    resolve_entity_name,
+)
 from prefab_ui.app import PrefabApp
 from prefab_ui.components import Text
 from pydantic import BaseModel
@@ -67,3 +73,66 @@ def test_ui_meta_is_the_opt_in_marker_for_prefab_rendering():
     # full _meta.ui = {"resourceUri": "ui://prefab/renderer.html", "csp": ...}
     # shape required by MCP Apps and registers the renderer resource.
     assert UI_META == {"ui": True}
+
+
+# ============================================================================
+# resolve_entity_name — best-effort cache enrichment
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_resolve_entity_name_returns_name_on_cache_hit():
+    """Hit path: cache returns a row, function returns ``(name, None)``."""
+    cache = AsyncMock()
+    cache.get_by_id = AsyncMock(return_value={"id": 1, "name": "Acme Supply Co"})
+
+    name, warning = await resolve_entity_name(
+        cache, "supplier", 1, entity_label="Supplier"
+    )
+
+    assert name == "Acme Supply Co"
+    assert warning is None
+
+
+@pytest.mark.asyncio
+async def test_resolve_entity_name_returns_advisory_warning_on_cache_miss():
+    """Miss path: cache returns None, function returns ``(None, warning)`` —
+    advisory only (no BLOCK prefix), explaining the live API will validate
+    the ID on apply."""
+    cache = AsyncMock()
+    cache.get_by_id = AsyncMock(return_value=None)
+
+    name, warning = await resolve_entity_name(
+        cache, "supplier", 9999, entity_label="Supplier"
+    )
+
+    assert name is None
+    assert warning is not None
+    assert "9999" in warning
+    assert "not found in the cache" in warning
+    # Advisory warnings must NOT carry the BLOCK prefix — that prefix is
+    # reserved for hard duplicate-create gates.
+    assert not warning.startswith("BLOCK:")
+
+
+@pytest.mark.asyncio
+async def test_resolve_entity_name_swallows_cache_exceptions_so_apply_can_proceed():
+    """Cache failure path (#620 Copilot review): a SQLite/IO error inside
+    ``cache.get_by_id`` must NOT propagate. Otherwise an unhealthy cache
+    aborts destructive apply paths (e.g. ``create_purchase_order``) before
+    the live API call. The function returns the same ``(None, warning)``
+    advisory shape as a miss, with a message explaining the cache was
+    unavailable."""
+    cache = AsyncMock()
+    cache.get_by_id = AsyncMock(side_effect=RuntimeError("database is locked"))
+
+    name, warning = await resolve_entity_name(
+        cache, "supplier", 4001, entity_label="Supplier"
+    )
+
+    assert name is None
+    assert warning is not None
+    assert "4001" in warning
+    assert "cache unavailable" in warning
+    assert "RuntimeError" in warning
+    assert not warning.startswith("BLOCK:")
