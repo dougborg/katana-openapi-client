@@ -204,7 +204,7 @@ class TestUnpackDecorator:
         with pytest.raises(TypeError, match="must be a Pydantic BaseModel"):
 
             @unpack_pydantic_params
-            def process(request: Annotated[NotAModel, Unpack()]) -> dict:  # type: ignore
+            def process(request: Annotated[NotAModel, Unpack()]) -> dict:
                 return {}
 
     def test_field_with_factory_default(self):

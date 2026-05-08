@@ -56,34 +56,40 @@ class KatanaService(KatanaBaseModel):
     # ============ Core Fields (always present) ============
 
     id: int = Field(..., description="Unique service ID")
-    name: str | None = Field(None, description="Service name")
+    name: str | None = Field(default=None, description="Service name")
     type_: Literal["service"] = Field(
-        "service", alias="type", description="Entity type (always 'service')"
+        default="service", alias="type", description="Entity type (always 'service')"
     )
 
     # ============ Classification & Units ============
 
-    uom: str | None = Field(None, description="Unit of measure (e.g., 'pcs', 'hours')")
-    category_name: str | None = Field(None, description="Service category name")
+    uom: str | None = Field(
+        default=None, description="Unit of measure (e.g., 'pcs', 'hours')"
+    )
+    category_name: str | None = Field(default=None, description="Service category name")
 
     # ============ Capabilities ============
 
-    is_sellable: bool | None = Field(None, description="Can be sold to customers")
+    is_sellable: bool | None = Field(
+        default=None, description="Can be sold to customers"
+    )
 
     # ============ Additional Info ============
 
-    additional_info: str | None = Field(None, description="Additional notes/info")
+    additional_info: str | None = Field(
+        default=None, description="Additional notes/info"
+    )
     custom_field_collection_id: int | None = Field(
-        None, description="Custom field collection ID"
+        default=None, description="Custom field collection ID"
     )
     archived_at: AwareDatetime | None = Field(
-        None, description="Timestamp when service was archived"
+        default=None, description="Timestamp when service was archived"
     )
 
     # ============ Nested Data ============
 
     variant_count: int = Field(
-        0, ge=0, description="Number of variants for this service"
+        default=0, ge=0, description="Number of variants for this service"
     )
 
     # ============ Factory Methods ============

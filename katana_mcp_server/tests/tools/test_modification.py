@@ -221,7 +221,11 @@ def test_to_tool_result_emits_prefab_envelope_and_response_in_content():
 
     # content carries the response JSON for the LLM.
     assert result.content
-    text = result.content[0].text  # type: ignore[union-attr]
+    first_content = result.content[0]
+    from mcp.types import TextContent
+
+    assert isinstance(first_content, TextContent)
+    text = first_content.text
     payload = _json.loads(text)
     assert payload["entity_type"] == "purchase_order"
     assert payload["operation"] == "update"

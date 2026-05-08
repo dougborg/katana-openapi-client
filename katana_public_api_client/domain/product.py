@@ -61,52 +61,64 @@ class KatanaProduct(KatanaBaseModel):
     id: int = Field(..., description="Unique product ID")
     name: str = Field(..., description="Product name", min_length=1)
     type_: Literal["product"] = Field(
-        "product", alias="type", description="Entity type"
+        default="product", alias="type", description="Entity type"
     )
 
     # ============ Classification & Units ============
 
-    uom: str | None = Field(None, description="Unit of measure (e.g., 'pcs', 'kg')")
-    category_name: str | None = Field(None, description="Product category name")
+    uom: str | None = Field(
+        default=None, description="Unit of measure (e.g., 'pcs', 'kg')"
+    )
+    category_name: str | None = Field(default=None, description="Product category name")
 
     # ============ Capabilities ============
 
-    is_sellable: bool | None = Field(None, description="Can be sold to customers")
-    is_producible: bool | None = Field(None, description="Can be manufactured in-house")
+    is_sellable: bool | None = Field(
+        default=None, description="Can be sold to customers"
+    )
+    is_producible: bool | None = Field(
+        default=None, description="Can be manufactured in-house"
+    )
     is_purchasable: bool | None = Field(
-        None, description="Can be purchased from suppliers"
+        default=None, description="Can be purchased from suppliers"
     )
     is_auto_assembly: bool | None = Field(
-        None, description="Automatically assemble when components available"
+        default=None, description="Automatically assemble when components available"
     )
 
     # ============ Tracking Features ============
 
-    batch_tracked: bool | None = Field(None, description="Track by batch/lot numbers")
-    serial_tracked: bool | None = Field(None, description="Track by serial numbers")
+    batch_tracked: bool | None = Field(
+        default=None, description="Track by batch/lot numbers"
+    )
+    serial_tracked: bool | None = Field(
+        default=None, description="Track by serial numbers"
+    )
     operations_in_sequence: bool | None = Field(
-        None, description="Manufacturing operations must be done in sequence"
+        default=None, description="Manufacturing operations must be done in sequence"
     )
 
     # ============ Supplier & Ordering ============
 
-    default_supplier_id: int | None = Field(None, description="Default supplier ID")
+    default_supplier_id: int | None = Field(
+        default=None, description="Default supplier ID"
+    )
     lead_time: int | None = Field(
-        None, ge=0, le=999, description="Lead time in days to fulfill order"
+        default=None, ge=0, le=999, description="Lead time in days to fulfill order"
     )
     minimum_order_quantity: float | None = Field(
-        None, ge=0, le=999_999_999, description="Minimum order quantity"
+        default=None, ge=0, le=999_999_999, description="Minimum order quantity"
     )
 
     # ============ Purchase Unit Conversion ============
 
     purchase_uom: str | None = Field(
-        None,
+        default=None,
         max_length=7,
         description="Purchase unit of measure (if different from base UOM)",
     )
     purchase_uom_conversion_rate: float | None = Field(
-        None,
+        default=None,
         ge=0,
         le=1_000_000_000_000,
         description="Conversion rate from purchase UOM to base UOM",
@@ -114,20 +126,24 @@ class KatanaProduct(KatanaBaseModel):
 
     # ============ Additional Info ============
 
-    additional_info: str | None = Field(None, description="Additional notes/info")
+    additional_info: str | None = Field(
+        default=None, description="Additional notes/info"
+    )
     custom_field_collection_id: int | None = Field(
-        None, description="Custom field collection ID"
+        default=None, description="Custom field collection ID"
     )
     archived_at: AwareDatetime | None = Field(
-        None, description="Timestamp when product was archived"
+        default=None, description="Timestamp when product was archived"
     )
 
     # ============ Nested Data ============
 
     variant_count: int = Field(
-        0, ge=0, description="Number of variants for this product"
+        default=0, ge=0, description="Number of variants for this product"
     )
-    config_count: int = Field(0, ge=0, description="Number of configuration attributes")
+    config_count: int = Field(
+        default=0, ge=0, description="Number of configuration attributes"
+    )
 
     # ============ Factory Methods ============
 

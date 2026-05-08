@@ -20,9 +20,9 @@ from katana_mcp.tools.foundation.reporting import (
     sales_summary,
     top_selling_variants,
 )
+from katana_mcp_server.tests.conftest import create_mock_context
 
 from katana_public_api_client.client_types import UNSET
-from tests.conftest import create_mock_context
 
 # ============================================================================
 # Mock helpers
@@ -589,7 +589,7 @@ async def test_inventory_velocity_batch_returns_multiple_rows():
     context, lifespan_ctx = create_mock_context()
 
     # Both resolved via get_by_sku
-    async def fake_get_by_sku(sku: str) -> dict:
+    async def fake_get_by_sku(sku: str) -> dict | None:
         return {
             "WIDGET-1": {"id": 10, "sku": "WIDGET-1"},
             "WIDGET-2": {"id": 20, "sku": "WIDGET-2"},
@@ -720,7 +720,7 @@ def test_inventory_velocity_rejects_batch_too_large():
     from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
-        InventoryVelocityRequest(sku_or_variant_ids=["SKU"] * 101)
+        InventoryVelocityRequest.model_validate({"sku_or_variant_ids": ["SKU"] * 101})
 
 
 # ============================================================================
@@ -844,7 +844,7 @@ async def test_inventory_velocity_format_json_returns_json():
 @pytest.fixture
 def _no_mo_or_recipe_sync():
     """Stub both ``ensure_*_synced`` helpers used by the MO-consumption path."""
-    from tests.conftest import patch_typed_cache_sync
+    from katana_mcp_server.tests.conftest import patch_typed_cache_sync
 
     with (
         patch_typed_cache_sync("manufacturing_orders"),

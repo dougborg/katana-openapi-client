@@ -13,12 +13,13 @@ module-level fixture; they're slower than the unit tests in
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 
 import pytest
 
 
 @pytest.fixture(scope="module")
-def registered_tools() -> dict[str, object]:
+def registered_tools() -> dict[str, Any]:
     """Boot the server once and return ``{tool_name: ToolInfo}``.
 
     Module-scoped so the (somewhat heavy) FastMCP setup runs only once
@@ -89,7 +90,7 @@ PREVIEW_BUTTON_TOOLS = DIRECT_APPLY_TOOLS + SEND_MESSAGE_APPLY_TOOLS
 
 @pytest.mark.parametrize("tool_name", PREVIEW_BUTTON_TOOLS)
 def test_preview_button_tool_has_no_renarrate_coaching(
-    registered_tools: dict[str, object], tool_name: str
+    registered_tools: dict[str, Any], tool_name: str
 ) -> None:
     """Every preview-button tool's description must include the
     "do not re-narrate" coaching (closes #544). Required for both rails.
@@ -105,7 +106,7 @@ def test_preview_button_tool_has_no_renarrate_coaching(
 
 @pytest.mark.parametrize("tool_name", SEND_MESSAGE_APPLY_TOOLS)
 def test_send_message_apply_tool_has_apply_call_coaching(
-    registered_tools: dict[str, object], tool_name: str
+    registered_tools: dict[str, Any], tool_name: str
 ) -> None:
     """SendMessage-rail tools must coach the agent to recognize the
     ``Apply: call <tool>(...)`` chat hint and re-issue.
@@ -121,7 +122,7 @@ def test_send_message_apply_tool_has_apply_call_coaching(
 
 @pytest.mark.parametrize("tool_name", DIRECT_APPLY_TOOLS)
 def test_direct_apply_tool_has_update_model_context_coaching(
-    registered_tools: dict[str, object], tool_name: str
+    registered_tools: dict[str, Any], tool_name: str
 ) -> None:
     """Direct-apply-rail tools must coach the agent that the apply result
     arrives via ``ui/update-model-context``, not via re-issue.
@@ -141,7 +142,7 @@ def test_direct_apply_tool_has_update_model_context_coaching(
 
 
 def test_read_only_tools_do_not_have_coaching(
-    registered_tools: dict[str, object],
+    registered_tools: dict[str, Any],
 ) -> None:
     """Tools with no ``preview`` parameter must NOT carry the coaching —
     the description shouldn't lie about a flow the tool doesn't expose.
@@ -230,7 +231,7 @@ DESTRUCTIVE_HINT_POLICY = [
 
 @pytest.mark.parametrize("tool_name, expected", DESTRUCTIVE_HINT_POLICY)
 def test_destructive_hint_matches_policy(
-    registered_tools: dict[str, object],
+    registered_tools: dict[str, Any],
     tool_name: str,
     expected: bool,
 ) -> None:

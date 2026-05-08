@@ -143,6 +143,7 @@ dev = [
     "aiohttp>=3.13.3",
     "brotli>=1.2.0",
     "poethepoet>=0.37.0",
+    "pyright>=1.1.400",
     "ty>=0.0.1a25",
     "types-jsonschema>=4.25.1.20251009",
 ]
@@ -552,12 +553,18 @@ format-check = ["format-python-check", "format-markdown-check"]
 # match the declared ``Mapped[T | None]`` type), while pyright accepts it.
 # Generated files are auto-emitted; consistent exclusion across both checkers
 # matches ``pyrightconfig.json``'s existing ``_generated/`` skip.
-typecheck = "ty check --exclude 'tests/conftest.py' --exclude 'tests/test_generate_tools_json.py' --exclude 'scripts/' --exclude 'katana_mcp_server/tests/' --exclude 'katana_public_api_client/models_pydantic/_generated/' --exclude '.claude/worktrees/'"
+typecheck = "ty check --exclude 'tests/conftest.py' --exclude 'tests/test_generate_tools_json.py' --exclude 'scripts/' --exclude 'katana_public_api_client/models_pydantic/_generated/' --exclude '.claude/worktrees/'"
+# Pyright runs alongside ty: ty is the primary CI gate (faster, drives
+# CI), pyright catches things ty doesn't yet (e.g., generic-invariance
+# on ``Response[T]`` unions, pydantic positional-default detection).
+# Configuration lives in ``pyrightconfig.json`` — exclusions there match
+# the typecheck exclusions plus a few pyright-specific ones.
+typecheck-pyright = "pyright"
 lint-ruff = "ruff check ."
 lint-ruff-fix = "ruff check --fix ."
 lint-yaml = "yamllint ."
 
-lint = ["lint-ruff", "typecheck", "lint-yaml"]
+lint = ["lint-ruff", "typecheck", "typecheck-pyright", "lint-yaml"]
 
 # -----------------------------------------------------------------------------
 # Testing Tasks

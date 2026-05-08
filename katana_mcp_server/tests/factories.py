@@ -34,6 +34,7 @@ from katana_public_api_client.models_pydantic._generated import (
     CachedStockTransfer,
     CachedStockTransferRow,
     ManufacturingOrderStatus,
+    PurchaseOrderBillingStatus,
     PurchaseOrderEntityType,
     PurchaseOrderStatus,
     SalesOrderProductionStatus,
@@ -329,7 +330,7 @@ def make_purchase_order(
     order_no: str = "PO-TEST",
     entity_type: PurchaseOrderEntityType | str = "regular",
     status: PurchaseOrderStatus | str | None = None,
-    billing_status: str | None = None,
+    billing_status: PurchaseOrderBillingStatus | str | None = None,
     supplier_id: int | None = 4001,
     location_id: int | None = 1,
     tracking_location_id: int | None = None,
@@ -361,13 +362,18 @@ def make_purchase_order(
         if isinstance(status, str)
         else (status if status is not None else PurchaseOrderStatus.not_received)
     )
+    resolved_billing_status = (
+        PurchaseOrderBillingStatus(billing_status)
+        if isinstance(billing_status, str)
+        else billing_status
+    )
 
     cached = CachedPurchaseOrder(
         id=id,
         order_no=order_no,
         entity_type=resolved_entity_type,
         status=resolved_status,
-        billing_status=billing_status,
+        billing_status=resolved_billing_status,
         supplier_id=supplier_id,
         location_id=location_id,
         tracking_location_id=tracking_location_id,

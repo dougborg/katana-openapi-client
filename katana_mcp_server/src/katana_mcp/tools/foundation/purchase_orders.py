@@ -122,15 +122,17 @@ class PurchaseOrderItem(BaseModel):
     quantity: float = Field(..., description="Quantity to order", gt=0)
     price_per_unit: float = Field(..., description="Unit price")
     tax_rate_id: int | None = Field(
-        None,
+        default=None,
         description=("Tax rate ID (optional). Look up via `list_tax_rates`."),
     )
-    purchase_uom: str | None = Field(None, description="Purchase unit of measure")
+    purchase_uom: str | None = Field(
+        default=None, description="Purchase unit of measure"
+    )
     purchase_uom_conversion_rate: float | None = Field(
-        None, description="Conversion rate for purchase UOM"
+        default=None, description="Conversion rate for purchase UOM"
     )
     arrival_date: datetime | None = Field(
-        None,
+        default=None,
         description=(
             "Expected arrival date — ISO 8601 date or datetime "
             "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
@@ -155,14 +157,16 @@ class CreatePurchaseOrderRequest(BaseModel):
     )
     order_number: str = Field(..., description="Purchase order number")
     items: list[PurchaseOrderItem] = Field(..., description="Line items", min_length=1)
-    notes: str | None = Field(None, description="Order notes (additional_info)")
-    currency: str | None = Field(None, description="Currency code (e.g., USD, EUR)")
+    notes: str | None = Field(default=None, description="Order notes (additional_info)")
+    currency: str | None = Field(
+        default=None, description="Currency code (e.g., USD, EUR)"
+    )
     status: Literal["DRAFT", "NOT_RECEIVED"] | None = Field(
-        None,
+        default=None,
         description="Initial status — 'DRAFT' or 'NOT_RECEIVED' (default: NOT_RECEIVED)",
     )
     entity_type: PurchaseOrderEntityType | None = Field(
-        None,
+        default=None,
         description=(
             "Type of purchase order. 'regular' (default) buys raw materials or "
             "finished goods from a supplier; 'outsourced' tracks subcontractor "
@@ -171,7 +175,7 @@ class CreatePurchaseOrderRequest(BaseModel):
         ),
     )
     order_created_date: datetime | None = Field(
-        None,
+        default=None,
         description=(
             "Date the order was placed. Leave None to let Katana stamp the "
             "current time server-side; supply a value for back-fills (e.g. "
@@ -180,7 +184,7 @@ class CreatePurchaseOrderRequest(BaseModel):
         ),
     )
     expected_arrival_date: datetime | None = Field(
-        None,
+        default=None,
         description=(
             "Expected full-arrival date for the order. Distinct from per-row "
             "`arrival_date` — this is the order-level estimate; row-level "
@@ -188,14 +192,14 @@ class CreatePurchaseOrderRequest(BaseModel):
         ),
     )
     tracking_location_id: int | None = Field(
-        None,
+        default=None,
         description=(
             "Location ID for tracking outsourced orders. Required when "
             "`entity_type='outsourced'`. Look up via `list_locations`."
         ),
     )
     preview: bool = Field(
-        True,
+        default=True,
         description="If true (default), returns preview. If false, creates order.",
     )
 
@@ -484,7 +488,7 @@ class ReceiveItemRequest(BaseModel):
     purchase_order_row_id: int = Field(..., description="Purchase order row ID")
     quantity: float = Field(..., description="Quantity to receive", gt=0)
     received_date: datetime | None = Field(
-        None,
+        default=None,
         description=(
             "Optional ISO 8601 timestamp for when the items were actually "
             "received. Defaults to the time of the call, which is wrong for "
@@ -493,7 +497,7 @@ class ReceiveItemRequest(BaseModel):
         ),
     )
     batch_transactions: list[ReceiveBatchTransaction] | None = Field(
-        None,
+        default=None,
         description=(
             "Optional batch allocations for this row. Required when the "
             "underlying material is batch-tracked — without it the receive "
@@ -531,7 +535,7 @@ class ReceivePurchaseOrderRequest(BaseModel):
         ..., description="Items to receive", min_length=1
     )
     preview: bool = Field(
-        True,
+        default=True,
         description="If true (default), returns preview. If false, receives items.",
     )
 
@@ -1497,7 +1501,7 @@ class DocumentItem(BaseModel):
 
     sku: str = Field(..., description="Item SKU from document")
     quantity: float = Field(..., description="Quantity from document")
-    unit_price: float | None = Field(None, description="Price from document")
+    unit_price: float | None = Field(default=None, description="Price from document")
 
 
 class MatchResult(BaseModel):
@@ -1505,7 +1509,7 @@ class MatchResult(BaseModel):
 
     sku: str = Field(..., description="Item SKU")
     quantity: float = Field(..., description="Matched quantity")
-    unit_price: float | None = Field(None, description="Matched price")
+    unit_price: float | None = Field(default=None, description="Matched price")
     status: str = Field(
         ...,
         description="Match status (perfect, quantity_diff, price_diff, both_diff)",
@@ -1525,8 +1529,10 @@ class Discrepancy(BaseModel):
 
     sku: str = Field(..., description="Item SKU")
     type: DiscrepancyType = Field(..., description="Type of discrepancy")
-    expected: float | None = Field(None, description="Expected value (from PO)")
-    actual: float | None = Field(None, description="Actual value (from document)")
+    expected: float | None = Field(default=None, description="Expected value (from PO)")
+    actual: float | None = Field(
+        default=None, description="Actual value (from document)"
+    )
     message: str = Field(..., description="Human-readable description")
 
 

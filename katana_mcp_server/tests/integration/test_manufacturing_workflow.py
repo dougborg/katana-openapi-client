@@ -158,9 +158,8 @@ class TestManufacturingOrderValidation:
         }
 
         # Preview mode - should not create
-        preview_request = CreateManufacturingOrderRequest(
-            **base_request_data,
-            preview=True,
+        preview_request = CreateManufacturingOrderRequest.model_validate(
+            {**base_request_data, "preview": True}
         )
         preview_result = await _create_manufacturing_order_impl(
             preview_request, integration_context

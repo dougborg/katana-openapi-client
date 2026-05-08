@@ -21,6 +21,7 @@ from katana_mcp.tools.foundation.corrections import (
     _correct_purchase_order_impl,
     _correct_sales_order_impl,
 )
+from katana_mcp_server.tests.conftest import create_mock_context
 
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models import (
@@ -38,7 +39,6 @@ from katana_public_api_client.models import (
     SalesOrderStatus,
     SerialNumber,
 )
-from tests.conftest import create_mock_context
 from tests.factories import mock_entity_for_modify
 
 # ============================================================================

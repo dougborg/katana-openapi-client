@@ -23,6 +23,8 @@ The script should be run with 'uv run python' to ensure all dependencies
 Node.js and npx are required for Redocly validation.
 """
 
+from __future__ import annotations
+
 import re
 import shutil
 import subprocess
@@ -78,6 +80,7 @@ def run_command_streaming(
     if timeout:
         print(f"   ⏱️  Timeout: {timeout}s")
 
+    process: subprocess.Popen[str] | None = None
     try:
         process = subprocess.Popen(
             cmd,

@@ -11,7 +11,7 @@ Usage:
 
     class MyRequest(BaseModel):
         name: str = Field(..., description="Item name")
-        limit: int = Field(10, description="Max results")
+        limit: int = Field(default=10, description="Max results")
 
     @unpack_pydantic_params
     async def my_tool(

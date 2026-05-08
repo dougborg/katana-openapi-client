@@ -519,7 +519,7 @@ def _rewrite_identifiers_outside_strings(
                 rewritten.append(tok)
             else:
                 rewritten.append(tok._replace(string=new_string))
-    except (tokenize.TokenizeError, IndentationError):
+    except (tokenize.TokenError, IndentationError):
         result = source
         for key in sorted(replacements, key=len, reverse=True):
             result = re.sub(rf"\b{re.escape(key)}\b", replacements[key], result)

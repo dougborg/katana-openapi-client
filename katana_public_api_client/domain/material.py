@@ -60,37 +60,46 @@ class KatanaMaterial(KatanaBaseModel):
     id: int = Field(..., description="Unique material ID")
     name: str = Field(..., description="Material name", min_length=1)
     type_: Literal["material"] = Field(
-        "material", alias="type", description="Entity type"
+        default="material", alias="type", description="Entity type"
     )
 
     # ============ Classification & Units ============
 
-    uom: str | None = Field(None, description="Unit of measure (e.g., 'kg', 'm²')")
-    category_name: str | None = Field(None, description="Material category name")
+    uom: str | None = Field(
+        default=None, description="Unit of measure (e.g., 'kg', 'm²')"
+    )
+    category_name: str | None = Field(
+        default=None, description="Material category name"
+    )
 
     # ============ Capabilities ============
 
     is_sellable: bool | None = Field(
-        None, description="Can be sold to customers (usually False for materials)"
+        default=None,
+        description="Can be sold to customers (usually False for materials)",
     )
 
     # ============ Tracking Features ============
 
-    batch_tracked: bool | None = Field(None, description="Track by batch/lot numbers")
+    batch_tracked: bool | None = Field(
+        default=None, description="Track by batch/lot numbers"
+    )
 
     # ============ Supplier & Ordering ============
 
-    default_supplier_id: int | None = Field(None, description="Default supplier ID")
+    default_supplier_id: int | None = Field(
+        default=None, description="Default supplier ID"
+    )
 
     # ============ Purchase Unit Conversion ============
 
     purchase_uom: str | None = Field(
-        None,
+        default=None,
         max_length=7,
         description="Purchase unit of measure (if different from base UOM)",
     )
     purchase_uom_conversion_rate: float | None = Field(
-        None,
+        default=None,
         ge=0,
         le=1_000_000_000_000,
         description="Conversion rate from purchase UOM to base UOM",
@@ -98,20 +107,24 @@ class KatanaMaterial(KatanaBaseModel):
 
     # ============ Additional Info ============
 
-    additional_info: str | None = Field(None, description="Additional notes/info")
+    additional_info: str | None = Field(
+        default=None, description="Additional notes/info"
+    )
     custom_field_collection_id: int | None = Field(
-        None, description="Custom field collection ID"
+        default=None, description="Custom field collection ID"
     )
     archived_at: AwareDatetime | None = Field(
-        None, description="Timestamp when material was archived"
+        default=None, description="Timestamp when material was archived"
     )
 
     # ============ Nested Data ============
 
     variant_count: int = Field(
-        0, ge=0, description="Number of variants for this material"
+        default=0, ge=0, description="Number of variants for this material"
     )
-    config_count: int = Field(0, ge=0, description="Number of configuration attributes")
+    config_count: int = Field(
+        default=0, ge=0, description="Number of configuration attributes"
+    )
 
     # ============ Factory Methods ============
 
