@@ -71,7 +71,6 @@ from .sync import (
     ensure_variants_synced,
     force_resync,
     merge_filtered_fetch,
-    topo_sort_specs,
 )
 from .sync_state import SyncState
 
@@ -102,5 +101,4 @@ __all__ = [
     "ensure_variants_synced",
     "force_resync",
     "merge_filtered_fetch",
-    "topo_sort_specs",
 ]
