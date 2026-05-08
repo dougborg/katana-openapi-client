@@ -19,8 +19,12 @@ from fastmcp import FastMCP
 from fastmcp.tools import ToolResult
 from katana_mcp.tools._modification import ActionResult, FieldChange
 from katana_mcp.tools.prefab_ui import (
+    build_batch_recipe_update_ui,
+    build_inventory_check_ui,
     build_modification_preview_ui,
     build_modification_result_ui,
+    build_search_results_ui,
+    build_verification_ui,
 )
 from prefab_ui.app import PrefabApp
 from pydantic import BaseModel
@@ -186,6 +190,113 @@ def _datatable_state_template_app() -> PrefabApp:
     return app
 
 
+# ---------------------------------------------------------------------------
+# Audit scenarios: cover the other state-bound DataTable cards that share
+# the bare-string-vs-mustache risk class. Verifies the mustache fix
+# actually renders, not just passes the assertion.
+# ---------------------------------------------------------------------------
+
+
+def _search_results_app() -> PrefabApp:
+    """build_search_results_ui with 50 items — exercises rows='{{ items }}'."""
+    items = [
+        {
+            "id": 10000 + i,
+            "sku": f"SKU-{i:04d}",
+            "name": f"Test Item {i}",
+            "item_type": "product" if i % 2 == 0 else "material",
+            "is_archived": False,
+            "is_sellable": True,
+        }
+        for i in range(50)
+    ]
+    return build_search_results_ui(items, query="Test", total_count=50)
+
+
+def _inventory_check_app() -> PrefabApp:
+    """build_inventory_check_ui with multi-location stock — exercises
+    rows='{{ stock.by_location }}' (path expression)."""
+    stock = {
+        "sku": "SKU-WIDGET",
+        "product_name": "Widget",
+        "in_stock": 42,
+        "available_stock": 35,
+        "committed": 7,
+        "expected": 100,
+        "by_location": [
+            {
+                "location_name": "Main Warehouse",
+                "location_id": 1,
+                "in_stock": 30,
+                "committed": 5,
+                "available": 25,
+                "expected": 60,
+            },
+            {
+                "location_name": "Brooklyn",
+                "location_id": 2,
+                "in_stock": 12,
+                "committed": 2,
+                "available": 10,
+                "expected": 40,
+            },
+        ],
+    }
+    return build_inventory_check_ui(stock)
+
+
+def _verification_app() -> PrefabApp:
+    """build_verification_ui with matches + discrepancies — exercises both
+    rows='{{ matches }}' and rows='{{ discrepancies }}'."""
+    response = {
+        "order_id": 123,
+        "overall_status": "partial_match",
+        "matches": [
+            {
+                "sku": "SKU-A",
+                "quantity": 5,
+                "unit_price": 10.50,
+                "status": "matched",
+            },
+            {
+                "sku": "SKU-B",
+                "quantity": 3,
+                "unit_price": 7.25,
+                "status": "matched",
+            },
+        ],
+        "discrepancies": [
+            {
+                "sku": "SKU-C",
+                "type": "qty_mismatch",
+                "message": "Expected 5, received 3",
+            },
+        ],
+    }
+    return build_verification_ui(response)
+
+
+def _batch_recipe_update_app() -> PrefabApp:
+    """build_batch_recipe_update_ui with 5 sub-ops — exercises rows='{{ rows }}'."""
+    response = {
+        "is_preview": True,
+        "message": "5 sub-ops planned",
+        "warnings": [],
+        "results": [
+            {
+                "group_label": "Replace bolt with nut",
+                "sub_op": "delete",
+                "sku": f"SKU-OLD-{i}",
+                "qty": 1,
+                "status": "PENDING",
+                "error": None,
+            }
+            for i in range(5)
+        ],
+    }
+    return build_batch_recipe_update_ui(response)
+
+
 SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
     # The bug-repro: 12 mixed actions on the preview card. Pre-fix this
     # rendered as a blank iframe; post-fix it renders one DataTable with 12
@@ -208,6 +319,12 @@ SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
     "datatable_inline": _datatable_inline_app,
     "datatable_state": _datatable_state_app,
     "datatable_state_template": _datatable_state_template_app,
+    # Audit coverage: post-mustache-fix render checks for every other
+    # state-bound DataTable card.
+    "search_results": _search_results_app,
+    "inventory_check": _inventory_check_app,
+    "verification": _verification_app,
+    "batch_recipe_update": _batch_recipe_update_app,
     "modify_item_single_preview": lambda: build_modification_preview_ui(
         {
             "entity_type": "product",
