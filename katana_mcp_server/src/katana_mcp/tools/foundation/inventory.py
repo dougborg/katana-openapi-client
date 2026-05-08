@@ -889,13 +889,31 @@ class CreateStockAdjustmentRequest(BaseModel):
     )
 
 
+class StockAdjustmentRowSummary(BaseModel):
+    """One line item in a stock adjustment, in display-ready form.
+
+    Carries enough data for the Prefab card's DataTable + the markdown
+    fallback. ``display_name`` resolves the SKU to the variant's human-
+    readable name at preview/apply time so the card doesn't have to
+    re-fetch.
+    """
+
+    sku: str
+    display_name: str
+    quantity: float
+    cost_per_unit: float | None = None
+
+
 class StockAdjustmentResponse(BaseModel):
     """Response from stock adjustment creation."""
 
     id: int | None
     is_preview: bool
+    location_id: int
     message: str
+    rows: list[StockAdjustmentRowSummary] = Field(default_factory=list)
     rows_summary: str
+    reason: str | None = None
     katana_url: str | None = None
 
 
@@ -924,6 +942,7 @@ async def _create_stock_adjustment_impl(
     # Resolve SKUs to variant IDs
     api_rows = []
     rows_summary_parts = []
+    structured_rows: list[StockAdjustmentRowSummary] = []
     for row in request.rows:
         variant = await services.cache.get_by_sku(sku=row.sku)
         if not variant:
@@ -946,6 +965,14 @@ async def _create_stock_adjustment_impl(
             )
         )
         rows_summary_parts.append(f"- {row.sku} ({display_name}): {row.quantity:+.1f}")
+        structured_rows.append(
+            StockAdjustmentRowSummary(
+                sku=row.sku,
+                display_name=display_name,
+                quantity=row.quantity,
+                cost_per_unit=row.cost_per_unit,
+            )
+        )
 
     rows_summary = "\n".join(rows_summary_parts)
 
@@ -954,8 +981,11 @@ async def _create_stock_adjustment_impl(
         return StockAdjustmentResponse(
             id=None,
             is_preview=True,
+            location_id=request.location_id,
             message="Preview — call again with preview=false to create",
+            rows=structured_rows,
             rows_summary=rows_summary,
+            reason=request.reason,
         )
 
     # Caller-supplied stock_adjustment_number takes precedence; otherwise
@@ -1007,8 +1037,11 @@ async def _create_stock_adjustment_impl(
     return StockAdjustmentResponse(
         id=adj_id,
         is_preview=False,
+        location_id=request.location_id,
         message="Stock adjustment created successfully",
+        rows=structured_rows,
         rows_summary=rows_summary,
+        reason=request.reason,
         katana_url=katana_web_url("stock_adjustment", adj_id),
     )
 
@@ -1025,25 +1058,16 @@ async def create_stock_adjustment(
 
     Use positive quantities to add stock, negative to remove.
     """
-    from katana_mcp.tools.tool_result_utils import make_simple_result
+    from katana_mcp.tools.prefab_ui import build_stock_adjustment_create_ui
+    from katana_mcp.tools.tool_result_utils import make_tool_result
 
     response = await _create_stock_adjustment_impl(request, context)
-
-    status = "PREVIEW" if response.is_preview else "CREATED"
-    md = (
-        f"## Stock Adjustment ({status})\n\n"
-        f"{response.message}\n\n"
-        f"### Items\n{response.rows_summary}\n"
+    ui = build_stock_adjustment_create_ui(
+        response.model_dump(),
+        confirm_request=request,
+        confirm_tool="create_stock_adjustment",
     )
-    if response.id:
-        md += f"\n**Adjustment ID**: {response.id}\n"
-    if response.katana_url:
-        md += f"**Katana URL**: {response.katana_url}\n"
-
-    return make_simple_result(
-        md,
-        structured_data=response.model_dump(),
-    )
+    return make_tool_result(response, ui=ui)
 
 
 # ============================================================================
@@ -1627,14 +1651,16 @@ async def update_stock_adjustment(
     additional_info). Row-level changes are not supported — create a new
     adjustment for that.
     """
+    from katana_mcp.tools.prefab_ui import build_stock_adjustment_update_ui
+    from katana_mcp.tools.tool_result_utils import make_tool_result
+
     response = await _update_stock_adjustment_impl(request, context)
-    status = "PREVIEW" if response.is_preview else "UPDATED"
-    md = (
-        f"## Stock Adjustment {response.id} ({status})\n\n"
-        f"{response.message}\n\n"
-        f"### Changes\n{response.changes_summary}\n"
+    ui = build_stock_adjustment_update_ui(
+        response.model_dump(),
+        confirm_request=request,
+        confirm_tool="update_stock_adjustment",
     )
-    return make_simple_result(md, structured_data=response.model_dump())
+    return make_tool_result(response, ui=ui)
 
 
 # ============================================================================
@@ -1760,16 +1786,16 @@ async def delete_stock_adjustment(
     `preview=false` prompts the user for confirmation, then calls DELETE.
     Deleting a stock adjustment reverses the associated inventory movements.
     """
+    from katana_mcp.tools.prefab_ui import build_stock_adjustment_delete_ui
+    from katana_mcp.tools.tool_result_utils import make_tool_result
+
     response = await _delete_stock_adjustment_impl(request, context)
-    status = "PREVIEW" if response.is_preview else "DELETED"
-    md = (
-        f"## Stock Adjustment {response.id} ({status})\n\n"
-        f"{response.message}\n\n"
-        f"- **Number**: {response.stock_adjustment_number or '—'}\n"
-        f"- **Location**: {response.location_id or '—'}\n"
-        f"- **Rows**: {response.row_count}\n"
+    ui = build_stock_adjustment_delete_ui(
+        response.model_dump(),
+        confirm_request=request,
+        confirm_tool="delete_stock_adjustment",
     )
-    return make_simple_result(md, structured_data=response.model_dump())
+    return make_tool_result(response, ui=ui)
 
 
 def register_tools(mcp: FastMCP) -> None:
@@ -1814,16 +1840,22 @@ def register_tools(mcp: FastMCP) -> None:
         create_stock_adjustment,
         tags={"inventory", "write"},
         annotations=_create,
+        meta=UI_META,
+        direct=True,
     )
     register_preview_tool(
         mcp,
         update_stock_adjustment,
         tags={"inventory", "write"},
         annotations=_destructive_write,
+        meta=UI_META,
+        direct=True,
     )
     register_preview_tool(
         mcp,
         delete_stock_adjustment,
         tags={"inventory", "write"},
         annotations=_destructive_write,
+        meta=UI_META,
+        direct=True,
     )

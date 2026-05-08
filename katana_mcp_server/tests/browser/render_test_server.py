@@ -28,6 +28,9 @@ from katana_mcp.tools.prefab_ui import (
     build_modification_preview_ui,
     build_modification_result_ui,
     build_search_results_ui,
+    build_stock_adjustment_create_ui,
+    build_stock_adjustment_delete_ui,
+    build_stock_adjustment_update_ui,
     build_verification_ui,
 )
 from katana_mcp.tools.tool_result_utils import make_tool_result
@@ -302,6 +305,81 @@ def _batch_recipe_update_app() -> PrefabApp:
     return build_batch_recipe_update_ui(response)
 
 
+# ---------------------------------------------------------------------------
+# Stock-adjustment scenarios — preview/result for create / update / delete.
+# Adds direct-apply rail coverage for #639's stock_adjustment family.
+# ---------------------------------------------------------------------------
+
+
+def _stock_adjustment_response(*, is_preview: bool, n_rows: int = 3) -> dict:
+    """Build a canned StockAdjustmentResponse dict with N rows."""
+    rows = [
+        {
+            "sku": f"SKU-{1000 + i}",
+            "display_name": f"Test Item {i}",
+            "quantity": float(i + 1) if i % 2 == 0 else -float(i + 1),
+            "cost_per_unit": 10.50 if i == 0 else None,
+        }
+        for i in range(n_rows)
+    ]
+    return {
+        "id": None if is_preview else 9876,
+        "is_preview": is_preview,
+        "location_id": 160411,
+        "message": (
+            "Preview — call again with preview=false to create"
+            if is_preview
+            else "Stock adjustment created successfully"
+        ),
+        "rows": rows,
+        "rows_summary": "\n".join(
+            f"- {r['sku']} ({r['display_name']}): {r['quantity']:+.1f}" for r in rows
+        ),
+        "reason": "Found one in stock",
+        "katana_url": (
+            None if is_preview else "https://factory.katanamrp.com/stockadjustment/9876"
+        ),
+    }
+
+
+def _stock_adjustment_update_response(*, is_preview: bool) -> dict:
+    """Build a canned UpdateStockAdjustmentResponse dict with field changes."""
+    return {
+        "id": 9876,
+        "is_preview": is_preview,
+        "stock_adjustment_number": "SA-FY26-Q2-001",
+        "stock_adjustment_date": "2026-05-08T12:00:00+00:00",
+        "location_id": 160411,
+        "reason": "Updated reason",
+        "additional_info": None,
+        "changes_summary": "stock_adjustment_number, reason",
+        "message": (
+            "Preview — call again with preview=false to update stock adjustment 9876"
+            if is_preview
+            else "Stock adjustment 9876 updated successfully"
+        ),
+        "katana_url": "https://factory.katanamrp.com/stockadjustment/9876",
+    }
+
+
+def _stock_adjustment_delete_response(*, is_preview: bool) -> dict:
+    """Build a canned DeleteStockAdjustmentResponse dict."""
+    return {
+        "id": 9876,
+        "is_preview": is_preview,
+        "stock_adjustment_number": "SA-FY26-Q2-001",
+        "location_id": 160411,
+        "row_count": 3,
+        "message": (
+            "Preview — call again with preview=false to delete stock adjustment "
+            "SA-FY26-Q2-001 (3 rows)"
+            if is_preview
+            else "Stock adjustment SA-FY26-Q2-001 (id=9876) deleted; "
+            "associated inventory movements reversed"
+        ),
+    }
+
+
 SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
     # The bug-repro: 12 mixed actions on the preview card. Pre-fix this
     # rendered as a blank iframe; post-fix it renders one DataTable with 12
@@ -330,6 +408,37 @@ SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
     "inventory_check": _inventory_check_app,
     "verification": _verification_app,
     "batch_recipe_update": _batch_recipe_update_app,
+    # Stock-adjustment family (preview + result for each of create/update/delete).
+    "stock_adjustment_create_preview": lambda: build_stock_adjustment_create_ui(
+        _stock_adjustment_response(is_preview=True),
+        confirm_request=_StubRequest(),
+        confirm_tool="create_stock_adjustment",
+    ),
+    "stock_adjustment_create_applied": lambda: build_stock_adjustment_create_ui(
+        _stock_adjustment_response(is_preview=False),
+        confirm_request=_StubRequest(),
+        confirm_tool="create_stock_adjustment",
+    ),
+    "stock_adjustment_update_preview": lambda: build_stock_adjustment_update_ui(
+        _stock_adjustment_update_response(is_preview=True),
+        confirm_request=_StubRequest(),
+        confirm_tool="update_stock_adjustment",
+    ),
+    "stock_adjustment_update_applied": lambda: build_stock_adjustment_update_ui(
+        _stock_adjustment_update_response(is_preview=False),
+        confirm_request=_StubRequest(),
+        confirm_tool="update_stock_adjustment",
+    ),
+    "stock_adjustment_delete_preview": lambda: build_stock_adjustment_delete_ui(
+        _stock_adjustment_delete_response(is_preview=True),
+        confirm_request=_StubRequest(),
+        confirm_tool="delete_stock_adjustment",
+    ),
+    "stock_adjustment_delete_applied": lambda: build_stock_adjustment_delete_ui(
+        _stock_adjustment_delete_response(is_preview=False),
+        confirm_request=_StubRequest(),
+        confirm_tool="delete_stock_adjustment",
+    ),
     "modify_item_single_preview": lambda: build_modification_preview_ui(
         {
             "entity_type": "product",
