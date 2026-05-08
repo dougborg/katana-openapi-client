@@ -910,7 +910,7 @@ async def test_get_variant_details():
 
     request = GetVariantDetailsRequest(sku="WIDGET-001")
     _var_results = await _get_variant_details_impl(request, context)
-    result = _var_results[0]
+    result = _var_results.found[0]
 
     assert result.id == 123
     assert result.sku == "WIDGET-001"
@@ -950,7 +950,7 @@ async def test_get_variant_details_case_insensitive():
     # Search with lowercase SKU
     request = GetVariantDetailsRequest(sku="widget-001")
     _var_results = await _get_variant_details_impl(request, context)
-    result = _var_results[0]
+    result = _var_results.found[0]
 
     assert result.id == 123
     assert result.sku == "WIDGET-001"
@@ -1015,7 +1015,7 @@ async def test_get_variant_details_minimal_fields():
 
     request = GetVariantDetailsRequest(sku="MIN-001")
     _var_results = await _get_variant_details_impl(request, context)
-    result = _var_results[0]
+    result = _var_results.found[0]
 
     assert result.id == 123
     assert result.sku == "MIN-001"
@@ -1051,7 +1051,7 @@ async def test_get_variant_details_with_timestamps():
 
     request = GetVariantDetailsRequest(sku="TIME-001")
     _var_results = await _get_variant_details_impl(request, context)
-    result = _var_results[0]
+    result = _var_results.found[0]
 
     assert result.created_at == "2024-01-01T12:00:00+00:00"
     assert result.updated_at == "2024-06-01T14:30:00+00:00"
@@ -1775,7 +1775,7 @@ async def test_get_variant_details_integration(katana_context):
 
     try:
         _var_results = await _get_variant_details_impl(request, katana_context)
-        result = _var_results[0]
+        result = _var_results.found[0]
 
         # Verify response structure
         assert isinstance(result.id, int)
@@ -2018,19 +2018,25 @@ async def test_get_variant_details_format_json_returns_json():
         "katana_mcp.tools.foundation.items._get_variant_details_impl",
         new_callable=AsyncMock,
     ) as mock_impl:
-        from katana_mcp.tools.foundation.items import VariantDetailsResponse
+        from katana_mcp.tools.foundation.items import (
+            GetVariantDetailsResult,
+            VariantDetailsResponse,
+        )
 
-        mock_impl.return_value = [
-            VariantDetailsResponse(
-                id=42,
-                sku="VAR-42",
-                name="Test Variant",
-                item_id=100,
-                item_type="product",
-                sales_price=10.0,
-                purchase_price=5.0,
-            )
-        ]
+        mock_impl.return_value = GetVariantDetailsResult(
+            found=[
+                VariantDetailsResponse(
+                    id=42,
+                    sku="VAR-42",
+                    name="Test Variant",
+                    product_id=100,
+                    type="product",
+                    sales_price=10.0,
+                    purchase_price=5.0,
+                )
+            ],
+            not_found=[],
+        )
 
         result = await get_variant_details(
             variant_id=42, format="json", context=context

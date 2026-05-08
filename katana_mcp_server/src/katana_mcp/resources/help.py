@@ -550,8 +550,9 @@ exposes on the Variant record is surfaced — no follow-up lookups needed
 for pricing, barcodes, supplier codes, config attributes, custom fields,
 or timestamps (including `deleted_at`).
 
-For multiple variants at once, pass `skus=[...]` or `variant_ids=[...]` —
-batching N lookups in one call beats N separate invocations.
+For multiple variants at once, pass `{"skus": [...]}` or
+`{"variant_ids": [...]}` — batching N lookups in one call beats N separate
+invocations.
 
 **Parameters (at least one of the first four is required):**
 - `sku` (optional): Single SKU to look up (exact case-insensitive match)
@@ -578,6 +579,17 @@ labels use the canonical Pydantic field names (e.g.
 rendered in explicit bracket syntax so LLM consumers can't misread a value
 as a differently-labeled field. List form returned when a batch is
 requested.
+
+**Partial results on batch misses:** Singular requests
+(`{"sku": "..."}` / `{"variant_id": ...}`) raise an error if the variant
+isn't found. Batch requests (`{"skus": [...]}` / `{"variant_ids": [...]}`,
+or any mixed form) never short-circuit — the response carries every variant
+that resolved plus a `not_found` list of the missing identifiers. JSON
+payloads expose this as
+`{"variants": [...], "not_found": [{"sku": ...}, ...]}`; markdown appends
+a `**Not found (n):** ...` section after the table when there are
+misses. This makes batching safe for receiving-flow lookups where one
+bad SKU on a packing slip shouldn't lose the rest of the batch.
 
 ---
 
