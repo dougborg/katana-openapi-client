@@ -512,12 +512,24 @@ class TestCatalogQueriesSearch:
 
     @pytest.mark.asyncio
     async def test_smart_search_falls_through_on_syntax_error(self, typed_cache_engine):
-        """Unbalanced parens trigger ``OperationalError``; fall through to fuzzy.
+        """FTS5 ``OperationalError`` falls through to fuzzy.
 
-        Legacy cache silently returned an empty list — a real bug since
-        the user got *zero* results for a typo'd query that fuzzy could
-        have rescued.
+        The tokenizer strips punctuation (``re.split(\\W+, ...)``), so
+        user-supplied punctuation like ``stainles(`` can't actually
+        trigger an FTS5 syntax error in production — the malformed
+        token never reaches the FTS5 grammar. To exercise the
+        fall-through branch directly, patch the FTS-execution path to
+        raise the same ``OperationalError`` SQLite would have raised
+        for a syntactically invalid match expression. Fuzzy fallback
+        should still rescue the row by approximate match on
+        ``display_name`` / ``parent_name``.
+
+        Legacy cache silently returned an empty list — a real bug
+        since the user got *zero* results for a query that fuzzy
+        could have rescued.
         """
+        from sqlalchemy.exc import OperationalError
+
         async with typed_cache_engine.session() as session:
             session.add(
                 CachedVariant(
@@ -529,13 +541,70 @@ class TestCatalogQueriesSearch:
             )
             await session.commit()
 
-        # ``stainles`` is misspelled; the malformed-paren prefix forces
-        # the FTS path to raise OperationalError.
-        results = await typed_cache_engine.catalog.smart_search(
-            CachedVariant, "stainles("
-        )
+        # Stub ``exec_driver_sql`` to raise the FTS5 syntax error
+        # SQLite would emit for an invalid match expression. Wrap the
+        # original so non-FTS calls (the fuzzy path's own SELECTs) keep
+        # working — only the first call (the FTS5 query in
+        # ``smart_search``) raises.
+        from sqlalchemy.ext.asyncio import AsyncConnection
+
+        original = AsyncConnection.exec_driver_sql
+        call_count = {"n": 0}
+
+        async def _raise_first(self, statement, parameters=None, *a, **kw):
+            call_count["n"] += 1
+            if call_count["n"] == 1 and "MATCH" in statement:
+                msg = 'fts5: syntax error near "("'
+                raise OperationalError(statement, parameters, Exception(msg))
+            return await original(self, statement, parameters, *a, **kw)
+
+        with patch.object(AsyncConnection, "exec_driver_sql", _raise_first):
+            results = await typed_cache_engine.catalog.smart_search(
+                CachedVariant, "stainles"
+            )
         # Fuzzy fallback should rescue the row by approximate match.
         assert any(r.id == 4 for r in results)
+        # Belt-and-suspenders: confirm the patched path actually fired.
+        assert call_count["n"] >= 1
+
+    @pytest.mark.asyncio
+    async def test_smart_search_propagates_non_syntax_operational_error(
+        self, typed_cache_engine
+    ):
+        """Operational errors (locked DB, missing table) propagate — no silent fuzzy.
+
+        The fall-through is narrowed to FTS5 syntax errors only. A
+        generic ``OperationalError`` (e.g. ``database is locked``,
+        ``no such table: variant_fts``) signals a real problem; masking
+        it behind a fuzzy fallback would leave the operator without
+        any signal that the FTS sidecar broke.
+        """
+        from sqlalchemy.exc import OperationalError
+        from sqlalchemy.ext.asyncio import AsyncConnection
+
+        async with typed_cache_engine.session() as session:
+            session.add(
+                CachedVariant(
+                    id=99,
+                    sku="OPERATIONAL-ERR",
+                    display_name="Should Not Surface",
+                )
+            )
+            await session.commit()
+
+        original = AsyncConnection.exec_driver_sql
+
+        async def _raise_locked(self, statement, parameters=None, *a, **kw):
+            if "MATCH" in statement:
+                msg = "database is locked"
+                raise OperationalError(statement, parameters, Exception(msg))
+            return await original(self, statement, parameters, *a, **kw)
+
+        with (
+            patch.object(AsyncConnection, "exec_driver_sql", _raise_locked),
+            pytest.raises(OperationalError),
+        ):
+            await typed_cache_engine.catalog.smart_search(CachedVariant, "operational")
 
     @pytest.mark.asyncio
     async def test_smart_search_empty_query_returns_empty(self, typed_cache_engine):

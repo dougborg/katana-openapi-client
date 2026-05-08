@@ -73,6 +73,26 @@ _FUZZY_WEIGHT_SECONDARY = 20
 # tokens line up with index tokens.
 _TOKEN_RE = re.compile(r"\W+")
 
+# FTS5 syntax errors raise ``OperationalError`` with a message that
+# starts ``fts5: syntax error`` (or, for malformed prefix matches,
+# ``fts5: unknown special query``). We only want to silently fall
+# through to fuzzy on those — other ``OperationalError``s (locked DB,
+# missing FTS table, disk I/O) should propagate so callers see real
+# operational failures instead of degraded-but-silent search.
+_FTS_SYNTAX_ERROR_PREFIXES = ("fts5: syntax error", "fts5: unknown")
+
+
+def _is_fts_syntax_error(exc: OperationalError) -> bool:
+    """True iff ``exc`` is a recoverable FTS5 syntax error.
+
+    SQLite's FTS5 module surfaces query-grammar problems as
+    ``OperationalError`` with a message prefixed by ``fts5:``. The
+    underlying ``orig`` is a ``sqlite3.OperationalError``; checking
+    ``str(exc)`` covers both that and the SQLAlchemy-wrapped form.
+    """
+    text = str(exc)
+    return any(prefix in text for prefix in _FTS_SYNTAX_ERROR_PREFIXES)
+
 
 def _tokenize_query(query: str) -> list[str]:
     """Split a search query into FTS5 prefix-AND tokens."""
@@ -338,12 +358,14 @@ class CatalogQueries:
 
         1. Empty / blank query short-circuits to an empty list (no
            sense pretending an FTS5 ``MATCH ''`` query was meaningful).
-        2. FTS5 ``OperationalError`` (e.g., unbalanced parens, reserved-
-           word collision) falls through to ``search_fuzzy`` rather
-           than raising. The legacy implementation caught it and
-           returned an empty list silently — same shape, but never
-           actually offered the user fuzzy results for a malformed
-           query. Now we always offer them.
+        2. FTS5 *syntax errors* (e.g., unbalanced parens, reserved-word
+           collision) fall through to ``search_fuzzy`` rather than
+           raising. The legacy implementation caught it and returned
+           an empty list silently — same shape, but never actually
+           offered the user fuzzy results for a malformed query. Now
+           we always offer them. *Operational* ``OperationalError``s
+           (locked DB, missing FTS table, disk I/O) propagate; silently
+           returning fuzzy results would mask the underlying failure.
         """
         stripped = query.strip()
         if not stripped:
@@ -413,9 +435,16 @@ class CatalogQueries:
                 conn = await session.connection()
                 cursor = await conn.exec_driver_sql(sql, (fts_match, limit))
                 ids = [int(row[0]) for row in cursor.all()]
-        except OperationalError:
-            # FTS5 syntax error — surface fuzzy results so the user
-            # gets *something* back rather than a silent empty list.
+        except OperationalError as exc:
+            # FTS5 syntax errors surface as ``OperationalError`` with a
+            # message starting "fts5: syntax error". Fall through to
+            # fuzzy so the user gets results for a malformed query.
+            # ``OperationalError`` also covers operational issues
+            # (locked DB, missing table, disk I/O) where silent fuzzy
+            # fallback would mask real bugs — re-raise those so they
+            # surface in logs / alerts instead of being swallowed.
+            if not _is_fts_syntax_error(exc):
+                raise
             return await _fuzzy()
 
         if not ids:
