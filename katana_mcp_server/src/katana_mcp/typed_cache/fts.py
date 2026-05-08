@@ -16,32 +16,33 @@ entity's FTS columns can mirror its actual schema. ``content='<table>'``
 table — row content lives in the main table, FTS5 only stores the
 inverted index.
 
-Mutations (insert/update/delete) flow through SQLAlchemy event
-listeners on ``engine.sync_engine``. The events run synchronously on
-the connection pool's sync side; the work is just a few INSERT/DELETE
-statements per row, so adding async overhead would gain nothing.
-``after_insert`` / ``after_update`` keep the FTS index in lock-step
-with the main table; ``after_delete`` removes the corresponding FTS
-row so soft-deleted entities (and force-resyncs) clean up correctly.
+Mutations flow through **SQLite triggers** on the content tables:
+``<entity>_ai`` (after-insert) emits an FTS row, ``<entity>_au``
+(after-update) issues an FTS5 ``delete`` for the old content followed
+by an INSERT of the new content, and ``<entity>_ad`` (after-delete)
+issues the FTS5 ``delete`` command. Triggers fire for *every* write
+mode — SQLAlchemy ORM (``session.add`` / ``session.merge``), Core
+statements (``sqlalchemy.dialects.sqlite.insert(...).on_conflict_do_update``,
+``sqlmodel.delete``), and raw SQL — so the typed-cache bulk-upsert
+path in ``sync._sync_one_locked`` keeps the FTS index in lock-step
+without an extra reindex pass. The trigger-based design is the
+SQLite-recommended pattern for external-content FTS5 tables (see
+https://sqlite.org/fts5.html#external_content_tables).
 
 Startup also asserts every column in ``Cached*.__fts_columns__`` exists
 on the table — a generator regression that drops a column from the
 schema but leaves it in the FTS spec would otherwise corrupt every
 search until the next user-visible failure.
 
-**SQL safety**: FTS5 virtual tables can't be expressed through the
-SQLAlchemy ORM (no ``Table`` declarative object exists for them), so
-the SQL must be assembled as strings. Two SQLAlchemy primitives keep
-the security audit clean:
-
-- ``DDL(...)`` for schema operations (``CREATE VIRTUAL TABLE`` and
-  the truncate-style ``DELETE FROM <fts>``). DDL is the SQLAlchemy
-  construct designated for raw schema SQL — no user input is ever
-  meant to flow through it, and Semgrep's ``avoid-sqlalchemy-text``
-  rule correctly leaves it alone.
-- ``conn.exec_driver_sql(...)`` for FTS row INSERT/DELETE. Driver-SQL
-  takes positional ``?`` placeholders bound by the DBAPI, so user
-  input (FTS row content, row IDs) never reaches the SQL string.
+**SQL safety**: FTS5 virtual tables and triggers can't be expressed
+through the SQLAlchemy ORM (no ``Table`` declarative object exists
+for them), so the schema SQL must be assembled as strings. All FTS
+schema work goes through ``DDL(...)`` (``CREATE VIRTUAL TABLE``,
+``CREATE TRIGGER``, ``DROP TRIGGER IF EXISTS``, the data-rebuild
+``DELETE FROM <fts>`` + ``INSERT ... SELECT FROM <main>``) —
+the SQLAlchemy construct designated for raw schema SQL. No user
+input ever flows through it, and Semgrep's ``avoid-sqlalchemy-text``
+rule correctly leaves it alone.
 
 Identifiers (table names, column names) come exclusively from the
 Python-class metadata set by the SQLModel generator at import time —
@@ -55,15 +56,10 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterator
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-from sqlalchemy import DDL, event
+from sqlalchemy import DDL
 from sqlmodel import SQLModel
-
-if TYPE_CHECKING:
-    from sqlalchemy.engine import Connection
-    from sqlalchemy.orm import Mapper
-
 
 # SQL identifiers (table + column names) must match this pattern before
 # we interpolate them into a DDL/DML statement. The cache-class
@@ -174,14 +170,38 @@ def _validate_fts_columns(cls: type[SQLModel]) -> None:
 
 
 def _create_fts_tables_ddl(conn: Any) -> None:
-    """Emit ``CREATE VIRTUAL TABLE IF NOT EXISTS <entity>_fts USING fts5(...)``.
+    """Emit FTS5 virtual tables + the trigger trio that keeps them in sync.
 
-    External-content table: ``content='<table>'`` + ``content_rowid='id'``.
-    The FTS index stays in lock-step with the main table only via the
-    after-insert/update/delete listeners — we deliberately do *not*
-    install SQL triggers, because pre-existing rows on cold-start come
-    in through SQLAlchemy event hooks and triggers would double-write
-    every FTS row.
+    For each FTS-enabled cache class:
+
+    1. ``CREATE VIRTUAL TABLE IF NOT EXISTS <entity>_fts USING fts5(...)``
+       — external-content table: ``content='<table>'`` +
+       ``content_rowid='id'``. The FTS row content lives in the main
+       table; FTS5 stores only the inverted index.
+    2. Three triggers on the main table — ``<entity>_ai`` (after
+       INSERT), ``<entity>_au`` (after UPDATE), ``<entity>_ad`` (after
+       DELETE) — that keep the inverted index in lock-step. Triggers
+       fire for *every* write mode (ORM, Core, raw SQL), unlike
+       SQLAlchemy mapper events (ORM-only). This matters because the
+       typed-cache bulk-upsert path in ``sync._sync_one_locked``
+       writes via ``sqlalchemy.dialects.sqlite.insert(...).on_conflict_do_update``,
+       a Core statement that bypasses ORM events but fires triggers
+       just like any other SQLite write.
+
+    The trigger trio uses FTS5's external-content maintenance pattern:
+    after-insert writes the new row's content into the inverted index;
+    after-delete issues the FTS5 ``'delete'`` command with the OLD
+    content so FTS5 can derive the tokens to remove; after-update is
+    delete-of-old + insert-of-new in one trigger body. ``IFNULL(col, '')``
+    coerces NULLs to empty strings on the way into the index so the
+    column shape stays consistent (FTS5 distinguishes empty-string rows
+    from absent-column rows in some edge cases; consistency is safer).
+
+    All trigger bodies and the virtual-table DDL go through ``DDL(...)``
+    rather than ``text(...)`` so Semgrep's ``avoid-sqlalchemy-text`` rule
+    leaves them alone — no user input ever flows through them; the only
+    interpolated values are validated identifiers from cache-class
+    metadata.
     """
     for cls in _classes_with_fts_columns():
         _validate_fts_columns(cls)
@@ -189,152 +209,63 @@ def _create_fts_tables_ddl(conn: Any) -> None:
         table_name = _safe_identifier(table.name)
         fts_table = _fts_table_name(table_name)
         cols = _fts_columns(cls)
-        col_list = ", ".join(_safe_identifier(c) for c in cols)
+        safe_cols = [_safe_identifier(c) for c in cols]
+        col_list = ", ".join(safe_cols)
         # ``content`` + ``content_rowid`` make the FTS table reference
         # rows in the main table by ``id`` (the integer PK on every
         # Cached* class). FTS5 uses the rowid for ranking + lookups; the
         # FTS row mirrors the content columns at insert/update time.
-        sql = (
-            f"CREATE VIRTUAL TABLE IF NOT EXISTS {fts_table} "
-            f"USING fts5({col_list}, content='{table_name}', content_rowid='id')"
+        conn.execute(
+            DDL(
+                f"CREATE VIRTUAL TABLE IF NOT EXISTS {fts_table} "
+                f"USING fts5({col_list}, content='{table_name}', content_rowid='id')"
+            )
         )
-        # ``DDL`` is the SQLAlchemy primitive for raw schema statements
-        # (FTS5 virtual tables have no ORM construct). Identifiers are
-        # validated by ``_safe_identifier``.
-        conn.execute(DDL(sql))
 
-
-def _row_value(target: Any, col: str) -> Any:
-    """Pull ``col`` off the ORM instance, returning ``None`` on missing.
-
-    SQLAlchemy event hooks pass the mapped instance; pydantic-side
-    ``model_dump`` would re-emit cache-only fields and is heavier, so
-    direct ``getattr`` is the right tool.
-    """
-    return getattr(target, col, None)
-
-
-def _delete_fts_row(conn: Connection, table_name: str, row_id: int) -> None:
-    """Remove the row's FTS entry (if any). No-op when row never indexed.
-
-    External-content FTS5 tables don't auto-purge on main-table DELETE,
-    so we delete by rowid here. Update flow uses delete-then-insert so
-    the inverted index never carries stale tokens.
-    """
-    fts = _fts_table_name(table_name)
-    # ``exec_driver_sql`` binds ``row_id`` via the DBAPI's positional
-    # ``?`` placeholder — user input never reaches the SQL string.
-    # ``fts`` is a validated identifier from cache-class metadata.
-    conn.exec_driver_sql(f"DELETE FROM {fts} WHERE rowid = ?", (row_id,))
-
-
-def _insert_fts_row(
-    conn: Connection,
-    table_name: str,
-    fts_cols: tuple[str, ...],
-    row_id: int,
-    values: list[Any],
-) -> None:
-    """Insert one row into the FTS sidecar. Empty / NULL values become ``''``.
-
-    FTS5 stores NULL as the absence of a token, which is fine — except
-    we want the row to exist so ``MATCH`` can rank it; coerce to empty
-    string. The empty-string rows still match ``""`` queries (i.e.
-    nothing) but never match real tokens, so ranking stays correct.
-    """
-    fts = _fts_table_name(table_name)
-    col_list = ", ".join(_safe_identifier(c) for c in fts_cols)
-    placeholders = ", ".join("?" for _ in fts_cols)
-    coerced = tuple("" if v is None else str(v) for v in values)
-    # ``exec_driver_sql`` passes ``coerced`` as positional ``?`` binds
-    # at the DBAPI layer — user input never reaches the SQL string.
-    # ``fts`` / ``col_list`` are validated identifiers from cache-class
-    # metadata.
-    conn.exec_driver_sql(
-        f"INSERT INTO {fts} (rowid, {col_list}) VALUES (?, {placeholders})",
-        (row_id, *coerced),
-    )
-
-
-def _make_after_insert(cls: type[SQLModel]) -> Any:
-    """Bind one event handler per FTS-enabled class.
-
-    SQLAlchemy events take ``(mapper, connection, target)``; the closure
-    captures ``cls`` so the handler can read the right ``__fts_columns__``
-    without re-walking the registry on every row.
-    """
-    fts_cols = _fts_columns(cls)
-    table_name: str = _table_for(cls).name
-
-    def after_insert(mapper: Mapper[Any], connection: Connection, target: Any) -> None:
-        del mapper
-        row_id = _row_value(target, "id")
-        if row_id is None:
-            # Generator-side primary keys never hit this branch — IDs
-            # arrive from Katana — but defensively skip rather than
-            # raise, since FTS state shouldn't break a real INSERT.
-            return
-        values = [_row_value(target, col) for col in fts_cols]
-        _insert_fts_row(connection, table_name, fts_cols, int(row_id), values)
-
-    return after_insert
-
-
-def _make_after_update(cls: type[SQLModel]) -> Any:
-    """Delete-then-insert keeps the FTS row token-fresh on update."""
-    fts_cols = _fts_columns(cls)
-    table_name: str = _table_for(cls).name
-
-    def after_update(mapper: Mapper[Any], connection: Connection, target: Any) -> None:
-        del mapper
-        row_id = _row_value(target, "id")
-        if row_id is None:
-            return
-        _delete_fts_row(connection, table_name, int(row_id))
-        values = [_row_value(target, col) for col in fts_cols]
-        _insert_fts_row(connection, table_name, fts_cols, int(row_id), values)
-
-    return after_update
-
-
-def _make_after_delete(cls: type[SQLModel]) -> Any:
-    """Remove the orphaned FTS row when the main row is deleted."""
-    table_name: str = _table_for(cls).name
-
-    def after_delete(mapper: Mapper[Any], connection: Connection, target: Any) -> None:
-        del mapper
-        row_id = _row_value(target, "id")
-        if row_id is None:
-            return
-        _delete_fts_row(connection, table_name, int(row_id))
-
-    return after_delete
-
-
-def install_fts_listeners() -> None:
-    """Idempotently register after_insert / after_update / after_delete listeners.
-
-    The mapper-level ``event.listens_for`` API doesn't currently expose
-    a clean "is this listener already attached" probe, so we track
-    installed classes in a module-level set and short-circuit on the
-    second call. Tests that spin up a fresh ``TypedCacheEngine`` per
-    test still re-use the global SQLModel registry, so we only want to
-    install once per process.
-    """
-    for cls in _classes_with_fts_columns():
-        if cls in _LISTENERS_INSTALLED:
-            continue
-        event.listen(cls, "after_insert", _make_after_insert(cls))
-        event.listen(cls, "after_update", _make_after_update(cls))
-        event.listen(cls, "after_delete", _make_after_delete(cls))
-        _LISTENERS_INSTALLED.add(cls)
-
-
-_LISTENERS_INSTALLED: set[type[SQLModel]] = set()
+        # Trigger trio. Drop-then-create is idempotent across reopens
+        # — ``CREATE TRIGGER IF NOT EXISTS`` would skip re-creation if
+        # the trigger body changed (e.g., an FTS column was added),
+        # silently leaving the old definition in place. Drop + create
+        # forces a refresh on every engine.open(). Cheap (the triggers
+        # don't fire during DDL) and self-healing.
+        new_value_list = ", ".join(f"IFNULL(new.{c}, '')" for c in safe_cols)
+        old_value_list = ", ".join(f"IFNULL(old.{c}, '')" for c in safe_cols)
+        ai_trigger = f"{table_name}_ai"
+        au_trigger = f"{table_name}_au"
+        ad_trigger = f"{table_name}_ad"
+        conn.execute(DDL(f"DROP TRIGGER IF EXISTS {ai_trigger}"))
+        conn.execute(DDL(f"DROP TRIGGER IF EXISTS {au_trigger}"))
+        conn.execute(DDL(f"DROP TRIGGER IF EXISTS {ad_trigger}"))
+        conn.execute(
+            DDL(
+                f"CREATE TRIGGER {ai_trigger} AFTER INSERT ON {table_name} BEGIN "
+                f"INSERT INTO {fts_table} (rowid, {col_list}) "
+                f"VALUES (new.id, {new_value_list}); "
+                f"END"
+            )
+        )
+        conn.execute(
+            DDL(
+                f"CREATE TRIGGER {ad_trigger} AFTER DELETE ON {table_name} BEGIN "
+                f"INSERT INTO {fts_table}({fts_table}, rowid, {col_list}) "
+                f"VALUES('delete', old.id, {old_value_list}); "
+                f"END"
+            )
+        )
+        conn.execute(
+            DDL(
+                f"CREATE TRIGGER {au_trigger} AFTER UPDATE ON {table_name} BEGIN "
+                f"INSERT INTO {fts_table}({fts_table}, rowid, {col_list}) "
+                f"VALUES('delete', old.id, {old_value_list}); "
+                f"INSERT INTO {fts_table} (rowid, {col_list}) "
+                f"VALUES (new.id, {new_value_list}); "
+                f"END"
+            )
+        )
 
 
 def initialize_fts_for_connection(connection: Any) -> None:
-    """Create the per-entity FTS5 virtual tables on the given connection.
+    """Create per-entity FTS5 virtual tables + their sync triggers.
 
     Called from ``TypedCacheEngine.open()`` inside the ``run_sync`` block
     that already runs ``SQLModel.metadata.create_all``. Wraps the DDL

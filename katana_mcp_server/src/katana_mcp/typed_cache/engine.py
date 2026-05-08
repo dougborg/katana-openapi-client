@@ -165,7 +165,6 @@ class TypedCacheEngine:
         # (``TYPE_CHECKING``), but the runtime call needs to land here.
         from .fts import (
             initialize_fts_for_connection,
-            install_fts_listeners,
             populate_fts_from_existing_rows,
         )
         from .sync import ENTITY_SPECS, _validate_dependency_graph
@@ -175,10 +174,21 @@ class TypedCacheEngine:
         async with self._engine.begin() as conn:
             await conn.run_sync(SQLModel.metadata.create_all)
             # FTS5 virtual tables sit alongside the SQLModel-managed
-            # tables and need their own DDL. Install the after_*
-            # listeners first so any rows already on disk re-emit FTS
-            # entries during the rebuild.
-            await conn.run_sync(lambda sync_conn: install_fts_listeners())
+            # tables and need their own DDL. Two steps, in order:
+            # 1. ``initialize_fts_for_connection`` — emit
+            #    ``CREATE VIRTUAL TABLE IF NOT EXISTS <entity>_fts``
+            #    plus the trigger trio (``<entity>_ai`` / ``_au`` /
+            #    ``_ad``) that keeps the inverted index in sync with
+            #    the content table for every write mode (ORM, Core,
+            #    raw SQL). Triggers replace the pre-#646 mapper-event
+            #    listeners, which fired only for ORM writes and so
+            #    silently missed the typed-cache bulk-upsert path.
+            # 2. ``populate_fts_from_existing_rows`` — direct-SQL
+            #    rebuild from the main tables. Backfills pre-existing
+            #    rows on reopen and is the canonical recovery path if
+            #    the FTS index ever drifts out of sync with the main
+            #    table (cheap server-side ``DELETE`` + ``INSERT
+            #    ... SELECT`` per entity, idempotent).
             await conn.run_sync(initialize_fts_for_connection)
             await conn.run_sync(populate_fts_from_existing_rows)
 
