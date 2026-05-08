@@ -39,14 +39,16 @@ import re
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any, TypeVar
 
-from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 from sqlmodel import SQLModel, select
 
 from katana_public_api_client.helpers.search import score_match
 from katana_public_api_client.models_pydantic._generated import CachedVariant
 
-from .fts import _fts_columns as _fts_columns_for
+from .fts import (
+    _fts_columns as _fts_columns_for,
+    _safe_identifier,
+)
 
 if TYPE_CHECKING:
     from .engine import TypedCacheEngine
@@ -371,16 +373,19 @@ class CatalogQueries:
         # classes; ``Any`` cast keeps the static checker quiet on the
         # otherwise-untyped attribute (see also ``fts.py``).
         table_obj: Any = getattr(cls, "__table__")  # noqa: B009
-        table_name: str = table_obj.name
+        # ``_safe_identifier`` validates the cache-class metadata
+        # against ``[A-Za-z_][A-Za-z0-9_]*`` before interpolation —
+        # belt-and-suspenders against a future generator regression.
+        table_name = _safe_identifier(table_obj.name)
         fts_table = f"{table_name}_fts"
 
         # Build the WHERE-clause filters as raw SQL since the FTS5
         # JOIN sits at the SQL level (FTS virtual tables don't have a
-        # SQLModel-mapped class). The bound parameters keep user input
-        # safely separated from query text.
+        # SQLModel-mapped class). The bound ``?`` placeholders keep
+        # user input safely separated from query text.
         archive_clause = ""
         if not include_archived and _has_archive_column(cls):
-            archive_col = (
+            archive_col = _safe_identifier(
                 "parent_archived_at" if cls is CachedVariant else "archived_at"
             )
             archive_clause = f" AND main.{archive_col} IS NULL"
@@ -391,30 +396,23 @@ class CatalogQueries:
         sql = (
             f"SELECT main.id FROM {fts_table} fts "
             f"JOIN {table_name} main ON main.id = fts.rowid "
-            f"WHERE {fts_table} MATCH :match"
+            f"WHERE {fts_table} MATCH ?"
             f"{archive_clause}{deleted_clause} "
             f"ORDER BY bm25({fts_table}) "
-            f"LIMIT :limit"
+            f"LIMIT ?"
         )
 
         try:
             async with self._engine.session() as session:
-                # ``session.exec`` is typed for SQLModel SELECT statements;
-                # raw ``text(...)`` queries hit the underlying
-                # ``AsyncSession.execute``. Drop to the SQLAlchemy
-                # primitive for the FTS join.
-                #
-                # Trusted SQL: ``fts_table`` / ``table_name`` /
-                # archive+deleted clauses interpolate only cache-class
-                # metadata (no user input). User-supplied ``query`` lands
-                # in the ``:match`` bound parameter; the ``limit`` is
-                # bound too. FTS5 virtual tables can't be expressed via
-                # the SQLAlchemy ORM, so raw text is the only path.
+                # FTS5 virtual tables can't be expressed via the
+                # SQLAlchemy ORM, and ``session.exec`` is typed for
+                # SQLModel SELECT statements only — drop to
+                # ``exec_driver_sql`` so user input flows through the
+                # DBAPI's positional ``?`` binds. Identifiers
+                # (``fts_table`` / ``table_name`` / archive+deleted
+                # clauses) come from validated cache-class metadata.
                 conn = await session.connection()
-                stmt = text(sql).bindparams(  # nosemgrep: avoid-sqlalchemy-text
-                    match=fts_match, limit=limit
-                )
-                cursor = await conn.execute(stmt)
+                cursor = await conn.exec_driver_sql(sql, (fts_match, limit))
                 ids = [int(row[0]) for row in cursor.all()]
         except OperationalError:
             # FTS5 syntax error — surface fuzzy results so the user
