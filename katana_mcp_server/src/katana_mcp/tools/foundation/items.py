@@ -1575,7 +1575,12 @@ async def _fetch_variant_by_id(services: Any, variant_id: int) -> dict[str, Any]
     return variant_obj.to_dict()
 
 
-@cache_read(EntityType.VARIANT)
+@cache_read(
+    EntityType.VARIANT,
+    EntityType.PRODUCT,
+    EntityType.MATERIAL,
+    EntityType.SUPPLIER,
+)
 async def _get_variant_details_impl(
     request: GetVariantDetailsRequest, context: Context
 ) -> list[VariantDetailsResponse]:
