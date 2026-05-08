@@ -20,6 +20,13 @@ from katana_mcp.services import get_services
 from katana_mcp.tools.decorators import cache_read
 from katana_mcp.tools.tool_result_utils import make_simple_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
+from katana_public_api_client.models_pydantic._generated import (
+    CachedAdditionalCost,
+    CachedLocation,
+    CachedOperator,
+    CachedSupplier,
+    CachedTaxRate,
+)
 
 # ============================================================================
 # Shared helpers
@@ -140,7 +147,7 @@ def _supplier_summary_from_dict(d: dict[str, Any]) -> SupplierInfo:
     )
 
 
-@cache_read(EntityType.SUPPLIER)
+@cache_read(CachedSupplier)
 async def _list_suppliers_impl(
     request: ListSuppliersRequest, context: Context
 ) -> ListSuppliersResponse:
@@ -230,7 +237,7 @@ def _iso_or_none(value: Any) -> str | None:
     return str(value)
 
 
-@cache_read(EntityType.SUPPLIER)
+@cache_read(CachedSupplier)
 async def _get_supplier_impl(
     request: GetSupplierRequest, context: Context
 ) -> GetSupplierResponse:
@@ -383,7 +390,7 @@ def _location_from_dict(d: dict[str, Any]) -> LocationInfo:
     )
 
 
-@cache_read(EntityType.LOCATION)
+@cache_read(CachedLocation)
 async def _list_locations_impl(
     request: ListLocationsRequest, context: Context
 ) -> ListLocationsResponse:
@@ -482,7 +489,7 @@ def _tax_rate_from_dict(d: dict[str, Any]) -> TaxRateInfo:
     )
 
 
-@cache_read(EntityType.TAX_RATE)
+@cache_read(CachedTaxRate)
 async def _list_tax_rates_impl(
     request: ListTaxRatesRequest, context: Context
 ) -> ListTaxRatesResponse:
@@ -566,7 +573,7 @@ def _operator_from_dict(d: dict[str, Any]) -> OperatorInfo:
     return OperatorInfo(id=d.get("id") or 0, name=d.get("name") or "")
 
 
-@cache_read(EntityType.OPERATOR)
+@cache_read(CachedOperator)
 async def _list_operators_impl(
     request: ListOperatorsRequest, context: Context
 ) -> ListOperatorsResponse:
@@ -641,7 +648,7 @@ def _additional_cost_from_dict(d: dict[str, Any]) -> AdditionalCostInfo:
     return AdditionalCostInfo(id=d.get("id") or 0, name=d.get("name") or "")
 
 
-@cache_read(EntityType.ADDITIONAL_COST)
+@cache_read(CachedAdditionalCost)
 async def _list_additional_costs_impl(
     request: ListAdditionalCostsRequest, context: Context
 ) -> ListAdditionalCostsResponse:

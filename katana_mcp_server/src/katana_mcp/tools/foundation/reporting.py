@@ -60,6 +60,12 @@ from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.api.inventory import get_all_inventory_point
 from katana_public_api_client.api.sales_order import get_all_sales_orders
 from katana_public_api_client.domain.converters import unwrap_unset
+from katana_public_api_client.models_pydantic._generated import (
+    CachedMaterial,
+    CachedProduct,
+    CachedService,
+    CachedVariant,
+)
 from katana_public_api_client.utils import unwrap_data
 
 logger = get_logger(__name__)
@@ -277,9 +283,7 @@ class TopSellingVariantsResponse(BaseModel):
     window_end: str
 
 
-@cache_read(
-    EntityType.VARIANT, EntityType.PRODUCT, EntityType.MATERIAL, EntityType.SERVICE
-)
+@cache_read(CachedVariant, CachedProduct, CachedMaterial, CachedService)
 async def _top_selling_variants_impl(
     request: TopSellingVariantsRequest, context: Context
 ) -> TopSellingVariantsResponse:
@@ -476,9 +480,7 @@ def _group_key_time(so_created: datetime, group_by: SalesGroupBy) -> str:
     return f"{so_created.year:04d}-{so_created.month:02d}"
 
 
-@cache_read(
-    EntityType.VARIANT, EntityType.PRODUCT, EntityType.MATERIAL, EntityType.SERVICE
-)
+@cache_read(CachedVariant, CachedProduct, CachedMaterial, CachedService)
 async def _sales_summary_impl(
     request: SalesSummaryRequest, context: Context
 ) -> SalesSummaryResponse:

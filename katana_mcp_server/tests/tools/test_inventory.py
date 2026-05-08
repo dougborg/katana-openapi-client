@@ -61,19 +61,27 @@ def _patch_cache_sync():
     """Patch entity syncs for all unit tests.
 
     The cache sync is tested separately; tool tests verify tool logic
-    with pre-populated cache mocks. ``get_variant_details`` syncs VARIANT
-    plus PRODUCT, MATERIAL, and SUPPLIER (parent-derived ``default_supplier_*``
+    with pre-populated cache mocks. ``get_variant_details`` syncs Variant
+    plus Product, Material, and Supplier (parent-derived ``default_supplier_*``
     are lifted from the parent product/material), so all four are mocked.
+
+    Decorator keys are now typed-cache ``Cached*`` classes (#472 Phase C).
     """
-    from katana_mcp.cache import EntityType
     from katana_mcp.tools import decorators
+
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedMaterial,
+        CachedProduct,
+        CachedSupplier,
+        CachedVariant,
+    )
 
     original = decorators._sync_fns
     decorators._sync_fns = {
-        EntityType.VARIANT: AsyncMock(),
-        EntityType.PRODUCT: AsyncMock(),
-        EntityType.MATERIAL: AsyncMock(),
-        EntityType.SUPPLIER: AsyncMock(),
+        CachedVariant: AsyncMock(),
+        CachedProduct: AsyncMock(),
+        CachedMaterial: AsyncMock(),
+        CachedSupplier: AsyncMock(),
     }
     try:
         with patch(

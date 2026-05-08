@@ -22,13 +22,16 @@ def _patch_cache_sync():
     The @cache_read decorator caches sync functions in a module-level dict on
     first call, so patching the cache_sync module alone is not enough — we
     also need to clear and re-mock the cached mapping in the decorators module.
+
+    Decorator keys are now typed-cache ``Cached*`` classes (#472 Phase C).
     """
-    from katana_mcp.cache import EntityType
     from katana_mcp.tools import decorators
+
+    from katana_public_api_client.models_pydantic._generated import CachedCustomer
 
     mock_sync = AsyncMock()
     original = decorators._sync_fns
-    decorators._sync_fns = {EntityType.CUSTOMER: mock_sync}
+    decorators._sync_fns = {CachedCustomer: mock_sync}
     try:
         with patch(
             "katana_mcp.cache_sync.ensure_customers_synced", new_callable=AsyncMock
