@@ -21,4 +21,11 @@ echo "🪝 Installing pre-commit hooks..."
 uv run pre-commit install
 uv run pre-commit install-hooks
 
+# Install Chromium for Playwright (needed by `poe test-browser`).
+# ``--with-deps`` pulls in apt system libs Chromium needs at launch
+# time. ~250MB; cached in the Codespaces prebuild so spinning up a
+# fresh codespace is instant.
+echo "🎭 Installing Chromium for Playwright (browser-render tests)..."
+uv run playwright install --with-deps chromium
+
 echo "✅ onCreate setup complete - dependencies cached for fast startup!"
