@@ -22,7 +22,6 @@ need to change.
 from __future__ import annotations
 
 import asyncio
-import logging
 from collections.abc import Callable, Iterable
 from contextlib import AsyncExitStack
 from dataclasses import dataclass, field
@@ -34,6 +33,7 @@ from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlmodel import delete
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from katana_mcp.logging import get_logger
 from katana_public_api_client.api.manufacturing_order import (
     get_all_manufacturing_orders,
 )
@@ -79,7 +79,7 @@ if TYPE_CHECKING:
     from .engine import TypedCacheEngine
 
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -399,10 +399,10 @@ async def merge_filtered_fetch(
         await session.commit()
 
     logger.info(
-        "merge_filtered_fetch entity=%s merged=%d children=%d",
-        spec.entity_key,
-        len(cached_parents),
-        len(cached_children),
+        "merge_filtered_fetch",
+        entity=spec.entity_key,
+        merged=len(cached_parents),
+        children=len(cached_children),
     )
 
 

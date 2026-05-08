@@ -30,14 +30,15 @@ from __future__ import annotations
 
 import functools
 import inspect
-import logging
 from collections.abc import Callable
 from typing import Annotated, Any, get_args, get_origin, get_type_hints
 
 from pydantic import BaseModel, ValidationError
 from pydantic_core import PydanticUndefined
 
-logger = logging.getLogger(__name__)
+from katana_mcp.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class Unpack:
@@ -97,9 +98,9 @@ def unpack_pydantic_params(func: Callable) -> Callable:
         type_hints = get_type_hints(func, include_extras=True)
     except (NameError, TypeError) as exc:
         logger.debug(
-            "get_type_hints failed for %r — falling back to empty hint dict: %s",
-            func,
-            exc,
+            "get_type_hints_failed_falling_back_to_empty_hint_dict",
+            func=repr(func),
+            error=str(exc),
         )
         type_hints = {}
 
