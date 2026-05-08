@@ -91,29 +91,29 @@ def _build_fts_match(tokens: list[str]) -> str:
     return " AND ".join(f'"{tok}"*' for tok in escaped)
 
 
-def _is_archived_filtered(cls: type[SQLModel]) -> Any:
-    """SQL predicate for "this row's archive timestamp is NULL".
+def _pk_col(cls: type[SQLModel]) -> Any:
+    """Return the SQLAlchemy InstrumentedAttribute for ``cls.id``.
 
-    Callers use this when ``include_archived=False`` and the cache
-    class actually has an archive column. Variant's archive state
-    lives on ``parent_archived_at`` (denormalized from parent);
-    everything else uses ``archived_at`` directly.
+    Every ``Cached*`` class has an ``id`` integer PK, but the static
+    checker can't narrow ``getattr`` through the ``T`` TypeVar. Centralize
+    the reach so the ``# noqa: B009`` lives in one place.
+    """
+    return getattr(cls, "id")  # noqa: B009
 
-    ``getattr`` keeps the static checker happy across catalog classes
-    that don't share an inheritance ancestor for these columns
-    (CachedProduct extends ArchivableEntity; CachedCustomer extends
-    DeletableEntity; etc.).
+
+def _archive_col_name(cls: type[SQLModel]) -> str | None:
+    """Return the cache column tracking archive state, or ``None`` if absent.
+
+    Variants don't carry their own archive lifecycle on the wire — Katana
+    archives at the parent (Product / Material) level — so the cache
+    class denormalizes ``parent_archived_at`` from the extended payload.
+    Every other class uses its own ``archived_at`` if present.
     """
     if cls is CachedVariant:
-        return getattr(cls, "parent_archived_at").is_(None)  # noqa: B009
-    return getattr(cls, "archived_at").is_(None)  # noqa: B009
-
-
-def _has_archive_column(cls: type[SQLModel]) -> bool:
-    """True iff filtering by archive state makes sense for this class."""
-    if cls is CachedVariant:
-        return True  # parent_archived_at lives on the cache row
-    return hasattr(cls, "archived_at")
+        return "parent_archived_at"
+    if hasattr(cls, "archived_at"):
+        return "archived_at"
+    return None
 
 
 def _has_deleted_column(cls: type[SQLModel]) -> bool:
@@ -133,9 +133,14 @@ def _apply_soft_state_filters(
     The two flags compose: a row that's both archived and deleted is
     dropped unless both ``include_*`` are True. Centralized here so the
     rules can't drift between ``get_*`` / ``smart_search`` / ``search_fuzzy``.
+
+    ``getattr`` keeps the static checker happy across catalog classes
+    that don't share an inheritance ancestor for archive/delete columns.
     """
-    if not include_archived and _has_archive_column(cls):
-        stmt = stmt.where(_is_archived_filtered(cls))
+    if not include_archived:
+        archive_col = _archive_col_name(cls)
+        if archive_col is not None:
+            stmt = stmt.where(getattr(cls, archive_col).is_(None))
     if not include_deleted and _has_deleted_column(cls):
         stmt = stmt.where(getattr(cls, "deleted_at").is_(None))  # noqa: B009
     return stmt
@@ -221,11 +226,7 @@ class CatalogQueries:
         include_deleted: bool = False,
     ) -> T | None:
         """Fetch one row by primary key, honoring soft-state filters."""
-        # ``cls.id`` is the SQLAlchemy InstrumentedAttribute on every
-        # ``Cached*`` PK column; the static checker can't narrow that
-        # through the ``T`` TypeVar, so reach for it via ``getattr``.
-        id_col = getattr(cls, "id")  # noqa: B009
-        stmt = select(cls).where(id_col == entity_id)
+        stmt = select(cls).where(_pk_col(cls) == entity_id)
         stmt = _apply_soft_state_filters(
             stmt,
             cls,
@@ -280,8 +281,7 @@ class CatalogQueries:
         ids = list({int(i) for i in entity_ids})
         if not ids:
             return {}
-        id_col = getattr(cls, "id")  # noqa: B009
-        stmt = select(cls).where(id_col.in_(ids))
+        stmt = select(cls).where(_pk_col(cls).in_(ids))
         stmt = _apply_soft_state_filters(
             stmt,
             cls,
@@ -384,11 +384,10 @@ class CatalogQueries:
         # SQLModel-mapped class). The bound ``?`` placeholders keep
         # user input safely separated from query text.
         archive_clause = ""
-        if not include_archived and _has_archive_column(cls):
-            archive_col = _safe_identifier(
-                "parent_archived_at" if cls is CachedVariant else "archived_at"
-            )
-            archive_clause = f" AND main.{archive_col} IS NULL"
+        if not include_archived:
+            col = _archive_col_name(cls)
+            if col is not None:
+                archive_clause = f" AND main.{_safe_identifier(col)} IS NULL"
         deleted_clause = ""
         if not include_deleted and _has_deleted_column(cls):
             deleted_clause = " AND main.deleted_at IS NULL"

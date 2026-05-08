@@ -169,9 +169,13 @@ class EntitySpec:
     - ``depends_on`` — entity_keys this spec must sync after. Catalog
       example: ``CachedVariant`` has FK to ``CachedProduct`` /
       ``CachedMaterial`` and lifts ``parent_archived_at`` from the
-      extended payload, so it must run after both. The validator checks
-      for unknown references and cycles at engine.open() time; topo sort
-      drives the cold-start order.
+      extended payload, so it must run after both. Today the only
+      runtime use is the validator at ``engine.open()`` (cycles +
+      unknown refs); the actual ordering is hand-coded inside
+      ``ensure_variants_synced`` via ``asyncio.gather``. The field is
+      retained so the dependency declaration lives next to the spec and
+      a future scheduler can replace the hand-coded gather with a topo
+      walk without churn.
     - ``attrs_postprocess`` — ``(attrs_obj, cache_row) -> None`` mutating
       hook called after ``_convert`` builds the cache row. Variant uses
       it to populate ``parent_archived_at`` / ``display_name`` /
@@ -225,43 +229,33 @@ class EntitySpec:
             raise ValueError(msg)
 
 
-def _topo_sort_specs(
-    specs: Iterable[EntitySpec], *, validate_unknown_deps: bool
-) -> list[EntitySpec]:
-    """Topologically sort ``specs``; raises on cycles, optionally on unknown deps.
+def _validate_dependency_graph(specs: Iterable[EntitySpec]) -> None:
+    """Validate ``EntitySpec.depends_on`` references and detect cycles.
 
-    Single source of truth for dependency-graph traversal. Returns the
-    specs in dependency order (parents before dependents). Stable across
-    independent specs — the iteration order of ``specs`` controls
-    tie-breaking so log output stays predictable.
+    Raises ``ValueError`` if any spec references an unknown ``entity_key``
+    or if the dependency graph has a cycle. Run at ``engine.open()`` so
+    misconfiguration surfaces eagerly — never at the first sync.
 
-    ``validate_unknown_deps=True`` raises if any ``depends_on`` references
-    an entity_key not in ``specs``; the engine.open() validator wants
-    this strict check. ``False`` skips unknown deps quietly so the
-    public ``topo_sort_specs`` helper accepts an arbitrary subset.
-
-    Cycle detection uses a tri-state coloring (white/gray/black). Gray
-    means "on the current DFS stack" — a back-edge to a gray node is
-    a cycle.
+    Cycle detection uses a tri-state coloring (white/gray/black) DFS.
+    Gray means "on the current DFS stack" — a back-edge to a gray node
+    is a cycle.
     """
     spec_list = list(specs)
     by_key = {s.entity_key: s for s in spec_list}
 
-    if validate_unknown_deps:
-        for spec in spec_list:
-            for dep in spec.depends_on:
-                if dep not in by_key:
-                    msg = (
-                        f"EntitySpec {spec.entity_key!r} declares "
-                        f"depends_on={dep!r} but no spec with that "
-                        f"entity_key is registered"
-                    )
-                    raise ValueError(msg)
+    for spec in spec_list:
+        for dep in spec.depends_on:
+            if dep not in by_key:
+                msg = (
+                    f"EntitySpec {spec.entity_key!r} declares "
+                    f"depends_on={dep!r} but no spec with that "
+                    f"entity_key is registered"
+                )
+                raise ValueError(msg)
 
     visited: set[str] = set()
     on_stack: list[str] = []
     on_stack_set: set[str] = set()
-    result: list[EntitySpec] = []
 
     def dfs(key: str) -> None:
         if key in visited:
@@ -273,37 +267,13 @@ def _topo_sort_specs(
         on_stack.append(key)
         on_stack_set.add(key)
         for dep in by_key[key].depends_on:
-            if dep in by_key:
-                dfs(dep)
+            dfs(dep)
         on_stack.pop()
         on_stack_set.discard(key)
         visited.add(key)
-        result.append(by_key[key])
 
     for spec in spec_list:
         dfs(spec.entity_key)
-    return result
-
-
-def _validate_dependency_graph(specs: Iterable[EntitySpec]) -> None:
-    """Validate ``EntitySpec.depends_on`` references and detect cycles.
-
-    Raises ``ValueError`` if any spec references an unknown ``entity_key``
-    or if the dependency graph has a cycle. Run at ``engine.open()`` so
-    misconfiguration surfaces eagerly — never at the first sync.
-    """
-    _topo_sort_specs(specs, validate_unknown_deps=True)
-
-
-def topo_sort_specs(specs: Iterable[EntitySpec]) -> list[EntitySpec]:
-    """Return ``specs`` in dependency order — parents before dependents.
-
-    Stable: preserves the registration order among independent specs so
-    log output stays predictable. Assumes ``_validate_dependency_graph``
-    has already run; callers that don't pre-validate get raised cycles
-    via the same DFS.
-    """
-    return _topo_sort_specs(specs, validate_unknown_deps=False)
 
 
 def _resolve_purchase_order_class(attrs_po: Any) -> type:

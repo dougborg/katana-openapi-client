@@ -40,7 +40,7 @@ from katana_mcp.typed_cache import (
     ensure_tax_rates_synced,
     ensure_variants_synced,
 )
-from katana_mcp.typed_cache.sync import _validate_dependency_graph, topo_sort_specs
+from katana_mcp.typed_cache.sync import _validate_dependency_graph
 
 from katana_public_api_client.models import (
     Customer as AttrsCustomer,
@@ -136,17 +136,6 @@ class TestEntitySpecValidation:
         )
         with pytest.raises(ValueError, match="cycle"):
             _validate_dependency_graph([a, b])
-
-    def test_topo_sort_orders_parents_first(self):
-        """Variant should appear after Product + Material in topo order."""
-        # Use the real registered specs — the source of truth for the
-        # dependency graph.
-        from katana_mcp.typed_cache.sync import ENTITY_SPECS
-
-        ordered = topo_sort_specs(ENTITY_SPECS.values())
-        order = [spec.entity_key for spec in ordered]
-        assert order.index("product") < order.index("variant")
-        assert order.index("material") < order.index("variant")
 
 
 class TestCatalogSync:
