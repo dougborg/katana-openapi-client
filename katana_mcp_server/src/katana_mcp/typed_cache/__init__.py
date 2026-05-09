@@ -1,36 +1,44 @@
-"""SQLModel-backed cache for transactional list tools (#342, ADR-0018).
+"""SQLModel-backed typed cache for Katana entities (#342, ADR-0018, #472).
 
-Complements ``katana_mcp.cache.CatalogCache`` — the two caches serve
-different concerns and both are permanent:
+``TypedCacheEngine`` holds all cached entity types (catalog +
+transactional) in per-entity SQLModel tables with proper FK relationships
+and JSON columns. The legacy ``katana_mcp.cache.CatalogCache`` is in
+the process of being retired — see #472. While the migration is in
+flight Phase B (the catalog ``Cached*`` siblings + FTS5 sidecar +
+``CatalogQueries`` adapter) ships in parallel with the legacy cache;
+Phase D flips the call sites and removes the legacy module.
 
-- **CatalogCache** holds the 10 reference entity types (variants, products,
-  materials, services, suppliers, customers, locations, tax rates,
-  operators, factories) in a generic SQLite + FTS5 store. Powers
-  ``search_items`` / ``get_variant_details`` and other lookup tools.
-- **TypedCacheEngine** (this package) holds transactional types
-  (sales_orders, manufacturing_orders, purchase_orders, stock_adjustments,
-  stock_transfers, manufacturing_order_recipe_rows) in per-entity SQLModel
-  tables with proper FK relationships and JSON columns. Powers the
-  cache-backed ``list_*`` tools.
+End-state coverage:
 
-The transactional types' richer filter needs (status, customer/supplier
-IDs, date ranges, variant-id-via-rows) and 30+-field schemas don't fit
-``CatalogCache``'s three-text-column ``entity_index`` projection — see
-ADR-0018 for the full rationale. The two caches will continue to coexist.
+- Catalog: variants, products, materials, services, customers,
+  suppliers, locations, tax rates, operators, factories, additional
+  costs (11 types). Search uses per-entity FTS5 virtual tables; the
+  ``CatalogQueries`` adapter wraps ``smart_search`` / ``get_by_id`` /
+  ``get_by_sku`` / ``get_many_by_ids`` / ``get_all`` /
+  ``search_fuzzy`` with default ``include_archived=False`` /
+  ``include_deleted=False`` filters.
+- Transactional: sales orders, manufacturing orders (+ recipe rows),
+  purchase orders (+ rows), stock adjustments, stock transfers (10
+  ``Cached*`` siblings counting child rows). Search via SQL WHERE
+  clauses; no FTS sidecar — these tables don't carry free-text fields.
 
 Public API::
 
     from katana_mcp.typed_cache import (
         TypedCacheEngine,
         ensure_sales_orders_synced,
+        ensure_variants_synced,
     )
 
     engine = TypedCacheEngine()
     await engine.open()
     try:
-        await ensure_sales_orders_synced(client, engine)
-        async with engine.session() as session:
-            orders = (await session.exec(select(SalesOrder))).all()
+        await ensure_variants_synced(client, engine)
+        # Typed lookups via the CatalogQueries adapter on engine.catalog.
+        variant = await engine.catalog.get_by_sku("FOX-FORK-160")
+        results = await engine.catalog.smart_search(
+            CachedVariant, "kitchen knife"
+        )
     finally:
         await engine.close()
 """
@@ -38,17 +46,29 @@ Public API::
 from __future__ import annotations
 
 from .engine import TypedCacheEngine
+from .queries import CatalogQueries
 from .sync import (
     ENTITY_SPECS,
     MANUFACTURING_ORDER_RECIPE_ROW_SPEC,
     MANUFACTURING_ORDER_SPEC,
     EntitySpec,
+    ensure_additional_costs_synced,
+    ensure_customers_synced,
+    ensure_factory_synced,
+    ensure_locations_synced,
     ensure_manufacturing_order_recipe_rows_synced,
     ensure_manufacturing_orders_synced,
+    ensure_materials_synced,
+    ensure_operators_synced,
+    ensure_products_synced,
     ensure_purchase_orders_synced,
     ensure_sales_orders_synced,
+    ensure_services_synced,
     ensure_stock_adjustments_synced,
     ensure_stock_transfers_synced,
+    ensure_suppliers_synced,
+    ensure_tax_rates_synced,
+    ensure_variants_synced,
     force_resync,
     merge_filtered_fetch,
 )
@@ -58,15 +78,27 @@ __all__ = [
     "ENTITY_SPECS",
     "MANUFACTURING_ORDER_RECIPE_ROW_SPEC",
     "MANUFACTURING_ORDER_SPEC",
+    "CatalogQueries",
     "EntitySpec",
     "SyncState",
     "TypedCacheEngine",
+    "ensure_additional_costs_synced",
+    "ensure_customers_synced",
+    "ensure_factory_synced",
+    "ensure_locations_synced",
     "ensure_manufacturing_order_recipe_rows_synced",
     "ensure_manufacturing_orders_synced",
+    "ensure_materials_synced",
+    "ensure_operators_synced",
+    "ensure_products_synced",
     "ensure_purchase_orders_synced",
     "ensure_sales_orders_synced",
+    "ensure_services_synced",
     "ensure_stock_adjustments_synced",
     "ensure_stock_transfers_synced",
+    "ensure_suppliers_synced",
+    "ensure_tax_rates_synced",
+    "ensure_variants_synced",
     "force_resync",
     "merge_filtered_fetch",
 ]

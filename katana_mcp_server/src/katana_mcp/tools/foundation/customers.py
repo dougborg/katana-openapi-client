@@ -20,6 +20,7 @@ from katana_mcp.tools.decorators import cache_read
 from katana_mcp.tools.tool_result_utils import make_simple_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_mcp.web_urls import katana_web_url
+from katana_public_api_client.models_pydantic._generated import CachedCustomer
 
 # ============================================================================
 # Tool 1: search_customers
@@ -74,7 +75,7 @@ def _customer_from_dict(d: dict) -> CustomerInfo:
     )
 
 
-@cache_read(EntityType.CUSTOMER)
+@cache_read(CachedCustomer)
 async def _search_customers_impl(
     request: SearchCustomersRequest, context: Context
 ) -> SearchCustomersResponse:
@@ -274,7 +275,7 @@ async def _fetch_customer_addresses(
     return result
 
 
-@cache_read(EntityType.CUSTOMER)
+@cache_read(CachedCustomer)
 async def _get_customer_impl(
     request: GetCustomerRequest, context: Context
 ) -> GetCustomerResponse:

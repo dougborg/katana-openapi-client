@@ -40,11 +40,11 @@ _FETCH_MO_RECIPE = (
 def _patch_cache_sync():
     """Neutralize @cache_read so aggregation tests don't drive real sync helpers.
 
-    Reporting tools are decorated with @cache_read(VARIANT, PRODUCT, MATERIAL,
-    SERVICE). The decorator caches a dict of sync fns the first time it runs,
-    so patching by source module is order-dependent. Patching the dict
-    accessor to return {} neutralizes the decorator uniformly regardless of
-    test ordering.
+    Reporting tools are decorated with @cache_read(CachedVariant, CachedProduct,
+    CachedMaterial, CachedService). The decorator caches a dict of sync fns the
+    first time it runs, so patching by source module is order-dependent.
+    Patching the dict accessor to return {} neutralizes the decorator uniformly
+    regardless of test ordering.
     """
     with patch(
         "katana_mcp.tools.decorators._get_sync_fns",

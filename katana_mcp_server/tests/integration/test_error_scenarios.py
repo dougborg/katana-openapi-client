@@ -33,19 +33,27 @@ from katana_mcp_server.tests.conftest import create_mock_context
 def _patch_cache_sync():
     """Patch cache sync for all error scenario tests.
 
-    ``get_variant_details`` syncs VARIANT plus PRODUCT, MATERIAL, and SUPPLIER
+    ``get_variant_details`` syncs Variant plus Product, Material, and Supplier
     (parent-derived ``default_supplier_*`` fields are lifted from the parent
     product/material), so all four are mocked here.
+
+    Decorator keys are now typed-cache ``Cached*`` classes (#472 Phase C).
     """
-    from katana_mcp.cache import EntityType
     from katana_mcp.tools import decorators
+
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedMaterial,
+        CachedProduct,
+        CachedSupplier,
+        CachedVariant,
+    )
 
     original = decorators._sync_fns
     decorators._sync_fns = {
-        EntityType.VARIANT: AsyncMock(),
-        EntityType.PRODUCT: AsyncMock(),
-        EntityType.MATERIAL: AsyncMock(),
-        EntityType.SUPPLIER: AsyncMock(),
+        CachedVariant: AsyncMock(),
+        CachedProduct: AsyncMock(),
+        CachedMaterial: AsyncMock(),
+        CachedSupplier: AsyncMock(),
     }
     try:
         with patch(

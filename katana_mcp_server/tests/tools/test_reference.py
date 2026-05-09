@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastmcp.tools import ToolResult
-from katana_mcp.cache import EntityType
 from katana_mcp.tools import decorators
 from katana_mcp.tools.foundation.reference import (
     GetSupplierRequest,
@@ -27,22 +26,33 @@ from katana_mcp.tools.foundation.reference import (
 from katana_mcp_server.tests.conftest import create_mock_context
 from mcp.types import TextContent
 
+from katana_public_api_client.models_pydantic._generated import (
+    CachedAdditionalCost,
+    CachedLocation,
+    CachedOperator,
+    CachedSupplier,
+    CachedTaxRate,
+)
+
 
 @pytest.fixture(autouse=True)
 def _patch_cache_sync():
-    """Stub @cache_read sync fns so cache reads don't trigger API fetches."""
+    """Stub @cache_read sync fns so cache reads don't trigger API fetches.
+
+    Decorator keys are typed-cache ``Cached*`` classes (#472 Phase C).
+    """
     # Direct dict replacement (not patch.dict): the decorator caches its
-    # entity_type → sync_fn map by reference on first call, so patching
+    # class → sync_fn map by reference on first call, so patching
     # `katana_mcp.cache_sync` after the dict is populated has no effect.
     original = decorators._sync_fns
     decorators._sync_fns = {
-        et: AsyncMock()
-        for et in (
-            EntityType.SUPPLIER,
-            EntityType.LOCATION,
-            EntityType.TAX_RATE,
-            EntityType.OPERATOR,
-            EntityType.ADDITIONAL_COST,
+        cls: AsyncMock()
+        for cls in (
+            CachedSupplier,
+            CachedLocation,
+            CachedTaxRate,
+            CachedOperator,
+            CachedAdditionalCost,
         )
     }
     try:
