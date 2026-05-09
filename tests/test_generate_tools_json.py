@@ -137,6 +137,44 @@ async def _private_impl():
             tools = _extract_from_directory(test_dir)
             assert len(tools) == 0
 
+    def test_skips_nested_async_functions(self):
+        """Nested ``async def`` closures must not be mistaken for top-level tools.
+
+        Regression: ``register_preview_tool`` wiring uses inner
+        ``async def apply()`` closures to handle the apply step. A previous
+        implementation walked the AST recursively, which surfaced these
+        closures as duplicate ``apply`` tool entries (5 of them in
+        ``corrections.py`` alone) in the generated tools.json.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            test_dir = Path(tmpdir)
+            test_file = test_dir / "tool_with_nested.py"
+            test_file.write_text('''
+async def public_tool():
+    """Public tool description."""
+
+    async def apply():
+        """Inner closure that should NOT be extracted."""
+        pass
+
+    async def _private_helper():
+        """Inner private — also should NOT be extracted."""
+        pass
+
+    return apply
+
+async def another_public_tool():
+    """Another public tool."""
+    pass
+''')
+
+            tools = _extract_from_directory(test_dir)
+            tool_names = [t["name"] for t in tools]
+
+            assert tool_names == ["public_tool", "another_public_tool"]
+            assert "apply" not in tool_names
+            assert "_private_helper" not in tool_names
+
 
 class TestExtractDescription:
     """Tests for _extract_description function."""
@@ -192,6 +230,54 @@ async def test_tool():
         description = _extract_description(func_node)
 
         assert description == "Tool: test_tool"
+
+    def test_joins_wrapped_first_sentence(self):
+        """A first sentence that wraps onto a second line must not be truncated.
+
+        Regression: previously the extractor took only the first line of the
+        docstring, which produced descriptions ending in a comma when the
+        first sentence wrapped (e.g. ``get_inventory_movements`` shipped a
+        truncated description in the Docker MCP Registry submission).
+        """
+        import ast
+
+        code = '''
+async def wrapped_tool():
+    """Get inventory movement history for a SKU — every stock change with dates,
+    quantities, and what caused each movement.
+
+    More details below.
+    """
+    pass
+'''
+        tree = ast.parse(code)
+        func_node = tree.body[0]
+        description = _extract_description(func_node)
+
+        assert description == (
+            "Get inventory movement history for a SKU — every stock change "
+            "with dates, quantities, and what caused each movement."
+        )
+
+    def test_trims_to_first_sentence_after_paragraph_join(self):
+        """Once paragraph lines are joined, only the first sentence is kept."""
+        import ast
+
+        code = '''
+async def two_sentence_tool():
+    """Edit a closed sales order without losing its picked_date and
+    fulfillment metadata. Reopens the order, applies edits, then closes.
+    """
+    pass
+'''
+        tree = ast.parse(code)
+        func_node = tree.body[0]
+        description = _extract_description(func_node)
+
+        assert description == (
+            "Edit a closed sales order without losing its picked_date "
+            "and fulfillment metadata."
+        )
 
 
 class TestValidateTools:
