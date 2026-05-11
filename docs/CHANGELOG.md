@@ -2,6 +2,163 @@
 
 <!-- version list -->
 
+## v0.61.0 (2026-05-11)
+
+### Bug Fixes
+
+- **client**: Drop Location anyOf union and InventoryItem.purchase_uom maxLength
+  ([`d554da9`](https://github.com/dougborg/katana-openapi-client/commit/d554da90c463dcb4a8c0c66253e445e9b9cd3441))
+
+- **client**: PydanticJSON serializes nested datetimes in plain dicts/lists
+  ([`1174c34`](https://github.com/dougborg/katana-openapi-client/commit/1174c34c4af2a1d19c1506b5efd9bc1a69d18861))
+
+- **mcp**: Coerce numerics in modification helpers to drop verification false-positives
+  ([`a667e16`](https://github.com/dougborg/katana-openapi-client/commit/a667e1660d56f71d46de47d28e034fabfb35bd5f))
+
+- **mcp**: Collapse modification cards to one state-bound DataTable + wire live-tick on
+  apply ([#629](https://github.com/dougborg/katana-openapi-client/pull/629),
+  [`b43ceb3`](https://github.com/dougborg/katana-openapi-client/commit/b43ceb3c987fc31176b9a4f16a4a57a3e3d6a401))
+
+- **mcp**: Drop broken live-tick SetState; pin behavior with production-shape harness
+  stub ([#645](https://github.com/dougborg/katana-openapi-client/pull/645),
+  [`8c54f18`](https://github.com/dougborg/katana-openapi-client/commit/8c54f18ebf9362ea3d24bb34b1a6d00ecc3c7d30))
+
+- **mcp**: Narrow OperationalError fallback to FTS5 syntax errors only
+  ([`c693bb4`](https://github.com/dougborg/katana-openapi-client/commit/c693bb486cb67117853313e04980e781aa0e3ecc))
+
+- **mcp**: Replace FTS5 listeners with SQLite triggers
+  ([`2b12f46`](https://github.com/dougborg/katana-openapi-client/commit/2b12f469050a65028f8ae9a89e6a5e7d2bb8550b))
+
+- **mcp**: Replace text() with DDL/exec_driver_sql in typed-cache FTS
+  ([`df68488`](https://github.com/dougborg/katana-openapi-client/commit/df684880514ee0fd4514e4f030b417f989321fa3))
+
+- **mcp**: Rollback typed-cache session on bind-param failures so subsequent calls don't
+  hang
+  ([`d0468d7`](https://github.com/dougborg/katana-openapi-client/commit/d0468d79b22585acc42daa15a70ee195eaf2a38b))
+
+- **mcp**: Use startswith for FTS5 syntax-error matching
+  ([`62445b8`](https://github.com/dougborg/katana-openapi-client/commit/62445b885a25c64f36ac2254a12e5117bb6ff3c1))
+
+- **scripts**: Tools.json generator emits clean, non-duplicate descriptions
+  ([`b8e0b69`](https://github.com/dougborg/katana-openapi-client/commit/b8e0b6970ec545b3081ee0cadf8c41dd2cf989ec))
+
+### Chores
+
+- Regenerate uv.lock for mcp v0.66.0 workspace bump
+  ([`63359e1`](https://github.com/dougborg/katana-openapi-client/commit/63359e166fae006e69b8fcbc2d3b881c6fd2c332))
+
+- **client**: Simplify Phase A generator passes (#472 follow-up)
+  ([`4646318`](https://github.com/dougborg/katana-openapi-client/commit/46463183c4ece2caca0cb166e792740883033028))
+
+- **deps**: Bump prefab-ui 0.18.5 → 0.19.1
+  ([`86437c7`](https://github.com/dougborg/katana-openapi-client/commit/86437c7412b12da93b16f09479adfb8ad6286272))
+
+- **deps**: Consolidated dependency updates
+  ([`2cdaf0b`](https://github.com/dougborg/katana-openapi-client/commit/2cdaf0ba2cb44db13120c35c581e3242c828c2ac))
+
+- **deps)(deps**: Bump openapi-python-client
+  ([`13a9478`](https://github.com/dougborg/katana-openapi-client/commit/13a9478a84002e1e0e03a9d288d3503a7543233d))
+
+- **harness**: Teach /open-pr to suggest /rebase when branch is behind main
+  ([`d31f886`](https://github.com/dougborg/katana-openapi-client/commit/d31f886769b6e005706cbaeb6f6257027423526d))
+
+- **mcp**: Start typecheck cleanup of katana_mcp_server/tests/ (#480 Phase B, partial)
+  ([`9659503`](https://github.com/dougborg/katana-openapi-client/commit/96595039466513a22739e80a334c4bba331193c5))
+
+- **mcp**: Update client dependency to v0.60.0
+  ([`a566692`](https://github.com/dougborg/katana-openapi-client/commit/a566692a1786037c5563e020e7ab7d5f86b89247))
+
+- **release**: Mcp v0.63.0
+  ([`a17e0cd`](https://github.com/dougborg/katana-openapi-client/commit/a17e0cd7ce8e6865cb068a57abfa4ca66dbf8263))
+
+- **release**: Mcp v0.64.0
+  ([`150cc37`](https://github.com/dougborg/katana-openapi-client/commit/150cc37cb94fb6c0e4b8056edc3b27e98857f7fe))
+
+- **release**: Mcp v0.64.1
+  ([`a98dda4`](https://github.com/dougborg/katana-openapi-client/commit/a98dda4ee6bfcb5b623fabec7e21ae88342430e7))
+
+- **release**: Mcp v0.65.0
+  ([`39c2744`](https://github.com/dougborg/katana-openapi-client/commit/39c274455f01bffcffcc0aa31b61a8eb2e25f96a))
+
+- **release**: Mcp v0.66.0
+  ([`94f594e`](https://github.com/dougborg/katana-openapi-client/commit/94f594efa68d03cc8bdd35597b92cf60d28adcb7))
+
+- **release**: Mcp v0.67.0
+  ([`318aa42`](https://github.com/dougborg/katana-openapi-client/commit/318aa426d8c3a1c84f680e21a9125d0a318b5e27))
+
+- **release**: Mcp v0.68.0
+  ([`1befd80`](https://github.com/dougborg/katana-openapi-client/commit/1befd80ec30efdf6132feb176b8d076fb7723360))
+
+### Continuous Integration
+
+- **mcp**: Wire poe test-browser into CI + pre-install Chromium in devcontainer
+  ([`26cbd47`](https://github.com/dougborg/katana-openapi-client/commit/26cbd47f0d6786f3e5136c675a6d63e726487bc7))
+
+### Documentation
+
+- **claude**: Add stub-shape + docstring-promise pitfalls to Known Pitfalls
+  ([`3a41c77`](https://github.com/dougborg/katana-openapi-client/commit/3a41c776e8bf60f53f85e2026aa1fcb5b28eb9ba))
+
+- **claude**: Document Prefab DataTable mustache state-binding requirement
+  ([`cc231f9`](https://github.com/dougborg/katana-openapi-client/commit/cc231f970c372fa5f50e0c271b5785d149220d7d))
+
+- **mcp**: Address Copilot review comments on cookbook recipe
+  ([#665](https://github.com/dougborg/katana-openapi-client/pull/665),
+  [`caace27`](https://github.com/dougborg/katana-openapi-client/commit/caace275db5b1915dcf79174fd5f6ef3faf748ca))
+
+- **mcp**: Cookbook recipe for catalog search in the typed cache (#472 Phase E)
+  ([`7cf330c`](https://github.com/dougborg/katana-openapi-client/commit/7cf330cc5165118a3d3fe0c377f62d7f43ef7fd5))
+
+- **mcp**: Correct cookbook recipe accuracy issues (#665 round 2)
+  ([`04bd48a`](https://github.com/dougborg/katana-openapi-client/commit/04bd48a366681f3b6957d9105db0264dd5b07832))
+
+- **mcp**: Correct populate_fts_from_existing_rows docstring
+  ([`b406230`](https://github.com/dougborg/katana-openapi-client/commit/b4062306bbb7e59e1d06b731b01a9396310837d7))
+
+- **mcp**: Fix code-reviewer findings on cookbook recipe (#665 review)
+  ([`d51da13`](https://github.com/dougborg/katana-openapi-client/commit/d51da13b9b4911a82bf6189aa848086a1721376a))
+
+### Features
+
+- **mcp**: Migrate catalog call sites to typed cache + decommission CatalogCache (#472
+  Phase D)
+  ([`42d782e`](https://github.com/dougborg/katana-openapi-client/commit/42d782e49155b3c60cb961f29cb1d3bf0e766fba))
+
+- **mcp**: Prefab UI cards for stock_adjustment family + direct-apply rail (#311, #639)
+  ([`52ae702`](https://github.com/dougborg/katana-openapi-client/commit/52ae702217a91c43782ff0fde5303dc2e3adb3d6))
+
+- **mcp**: Rewire @cache_read decorator to Cached\* class keys (#472 Phase C)
+  ([`8ef5106`](https://github.com/dougborg/katana-openapi-client/commit/8ef5106cf823bce21d9225e3fdea6233b4e4cccb))
+
+- **mcp**: Wire catalog typed-cache sync + FTS sidecar + CatalogQueries adapter (#472
+  Phase B)
+  ([`e433980`](https://github.com/dougborg/katana-openapi-client/commit/e4339803cb763ee3a6ac0ff2664313f49737b0b9))
+
+### Refactoring
+
+- **mcp**: Drop unused topo_sort_specs and dedupe archive-column logic
+  ([`854550c`](https://github.com/dougborg/katana-openapi-client/commit/854550c43e64ad28584f6fb5df2d7058f14c2951))
+
+### Testing
+
+- **mcp**: Browser render coverage for the other 4 state-bound DataTable cards
+  ([`d5d4a30`](https://github.com/dougborg/katana-openapi-client/commit/d5d4a30e18984bc6172f12d52bef2c24dd07a9ad))
+
+- **mcp**: Browser-render tests catch the actual #629 bug + audit-fix all bare-string
+  state bindings
+  ([`762efe8`](https://github.com/dougborg/katana-openapi-client/commit/762efe8b710cc1a999c0aa6a980ad6ab665ac1e8))
+
+- **scripts**: Regression tests for tools.json generator bugfixes
+  ([`6d81e26`](https://github.com/dougborg/katana-openapi-client/commit/6d81e268e5143853aace1e5d10483743c58fe22f))
+
+### Breaking Changes
+
+- **mcp**: `Services.cache` field removed. `katana_mcp.cache` and
+  `katana_mcp.cache_sync` modules removed. `EntityType` enum removed. Third-party
+  consumers of `katana_mcp_server` that touched any of these will need to migrate to
+  `services.typed_cache.catalog` and the `Cached*` SQLModel classes from
+  `katana_public_api_client.models_pydantic._generated`.
+
 ## v0.60.0 (2026-05-08)
 
 ### Chores
