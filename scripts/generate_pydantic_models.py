@@ -398,11 +398,7 @@ CACHE_TABLES: dict[str, CacheTableSpec] = {
     "Supplier": CacheTableSpec(
         json_columns=("addresses",),
     ),
-    "Location1": CacheTableSpec(
-        # API name is ``Location1`` (datamodel-codegen suffix). Cache as
-        # ``CachedLocation`` / ``__tablename__`` ``location`` so call sites
-        # read naturally.
-        name_override="Location",
+    "Location": CacheTableSpec(
         # ``address: LocationAddress | None`` is a single nested object
         # SQLAlchemy can't auto-map, JSON it.
         json_columns=("address",),
@@ -2030,7 +2026,7 @@ def inject_json_columns(classes: list[ClassInfo]) -> list[ClassInfo]:
        output. Rewrites ``Field(`` to ``SQLField(sa_column=Column(PydanticJSON), ``.
     2. ``name: T = Default`` (no ``Annotated``, no ``Field``) — emitted by
        datamodel-codegen for classes without a description on the property
-       (e.g., ``Location1.address: LocationAddress | None = None``). Wraps
+       (e.g., ``Location.address: LocationAddress | None = None``). Wraps
        in ``Annotated[T, SQLField(sa_column=Column(PydanticJSON))]``.
     """
     cached_json_columns = {

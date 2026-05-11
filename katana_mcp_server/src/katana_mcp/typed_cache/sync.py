@@ -89,7 +89,7 @@ from katana_public_api_client.models_pydantic._generated import (
     CachedVariant,
     Customer as PydanticCustomer,
     Factory as PydanticFactory,
-    Location1 as PydanticLocation,
+    Location as PydanticLocation,
     ManufacturingOrder as PydanticManufacturingOrder,
     ManufacturingOrderRecipeRow as PydanticManufacturingOrderRecipeRow,
     Material as PydanticMaterial,

@@ -274,6 +274,7 @@ from katana_public_api_client.models.inventory_safety_stock_level_response impor
     InventorySafetyStockLevelResponse as AttrsInventorySafetyStockLevelResponse,
 )
 from katana_public_api_client.models.item_config import ItemConfig as AttrsItemConfig
+from katana_public_api_client.models.location import Location as AttrsLocation
 from katana_public_api_client.models.location_address import (
     LocationAddress as AttrsLocationAddress,
 )
@@ -765,6 +766,7 @@ from ._generated.common import (
     DemandForecastPeriod as PydanticDemandForecastPeriod,
     DemandForecastResponse as PydanticDemandForecastResponse,
     Factory as PydanticFactory,
+    Location as PydanticLocation,
     LocationAddress as PydanticLocationAddress,
     LocationListResponse as PydanticLocationListResponse,
     Operator as PydanticOperator,
@@ -1174,6 +1176,7 @@ def register_all_models() -> None:
         PydanticInventorySafetyStockLevelResponse,
     )
     register(AttrsItemConfig, PydanticItemConfig)
+    register(AttrsLocation, PydanticLocation)
     register(AttrsLocationAddress, PydanticLocationAddress)
     register(AttrsLocationListResponse, PydanticLocationListResponse)
     register(

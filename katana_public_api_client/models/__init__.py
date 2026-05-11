@@ -226,9 +226,9 @@ from .inventory_reorder_point_response import InventoryReorderPointResponse
 from .inventory_safety_stock_level import InventorySafetyStockLevel
 from .inventory_safety_stock_level_response import InventorySafetyStockLevelResponse
 from .item_config import ItemConfig
+from .location import Location
 from .location_address import LocationAddress
 from .location_list_response import LocationListResponse
-from .location_type_0 import LocationType0
 from .make_to_order_manufacturing_order_request import (
     MakeToOrderManufacturingOrderRequest,
 )
@@ -718,9 +718,9 @@ __all__ = (
     "InventorySafetyStockLevel",
     "InventorySafetyStockLevelResponse",
     "ItemConfig",
+    "Location",
     "LocationAddress",
     "LocationListResponse",
-    "LocationType0",
     "MakeToOrderManufacturingOrderRequest",
     "ManufacturingOperationStatus",
     "ManufacturingOperationType",
