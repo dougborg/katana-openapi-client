@@ -182,7 +182,7 @@ END;
 
 Triggers fire for every write mode SQLite supports — ORM `session.add()`, Core
 `INSERT ... ON CONFLICT`, raw `exec_driver_sql`, even a future migration helper issuing
-`text(...)` SQL. That's the SQLite-recommended pattern for external- content FTS5 and is
+`text(...)` SQL. That's the SQLite-recommended pattern for external-content FTS5 and is
 what the typed cache uses now.
 
 The regression test that would have caught the original bug is
@@ -203,11 +203,15 @@ The relevant hook is `_variant_postprocess` in `typed_cache/sync.py`:
 ```python
 def _variant_postprocess(attrs_obj: Any, cache_row: CachedVariant) -> None:
     parent = unwrap_unset(attrs_obj.product_or_material, None)
+    parent_name: str | None = None
+    sku = unwrap_unset(attrs_obj.sku, None)
+
     if parent is not None:
         cache_row.parent_archived_at = unwrap_unset(
             getattr(parent, "archived_at", None), None
         )
-        cache_row.parent_name = unwrap_unset(getattr(parent, "name", None), None)
+        parent_name = unwrap_unset(getattr(parent, "name", None), None)
+        cache_row.parent_name = parent_name
 
     display_parts = [parent_name] if parent_name else [sku] if sku else []
     # ...append variant config_attributes...
@@ -302,8 +306,9 @@ Tokenize: `["00", "7018", "581", "003"]`. Match:
 column carries the space-joined supplier codes; all four tokens hit prefixes there.
 
 This is the [#473](https://github.com/dougborg/katana-openapi-client/issues/473) repro
-that lived in the cowork retro. It only works because the tokenizer splits on `\W+`;
-with the legacy `query.split()` the whole string was one unmatchable token.
+case (originally a real supplier-item-code lookup that returned zero results from the
+legacy cache). It only works because the tokenizer splits on `\W+`; with the legacy
+`query.split()` the whole string was one unmatchable token.
 
 ### Multi-token natural-language
 
