@@ -3,9 +3,9 @@
 Operational utilities for the typed cache (``katana_mcp.typed_cache``).
 
 Currently provides ``rebuild_cache``: a destructive force-resync that
-truncates the cache tables for a set of transactional entity types,
-clears their ``SyncState`` watermarks, and re-fetches the live state
-from Katana — atomically under the entity's sync lock so concurrent
+truncates the cache tables for a set of cached entity types, clears
+their ``SyncState`` watermarks, and re-fetches the live state from
+Katana — atomically under the entity's sync lock so concurrent
 ``list_*`` tools never see the empty intermediate state.
 
 Why this exists: the steady-state sync path upserts via
@@ -17,6 +17,12 @@ state predating cache initialization) persist locally as phantoms.
 ``list_*`` tools filter ``deleted_at IS NULL``, but phantom rows that
 never received a soft-delete bump still leak. Rebuild is the manual
 escape hatch.
+
+Coverage: every key in ``katana_mcp.typed_cache.ENTITY_SPECS`` is
+addressable — both the transactional entities (PO, SO, MO + recipe
+rows, stock adjustments, stock transfers) and the catalog entities
+(variants, products, materials, services, customers, suppliers,
+locations, tax rates, operators, factories, additional costs).
 """
 
 from __future__ import annotations
@@ -49,11 +55,26 @@ logger = get_logger(__name__)
 # pyright ``Literal`` mismatch until added below, catching the drift at
 # review time rather than runtime).
 CacheEntityType = Literal[
+    # Transactional entities — parent + nested/related child rows.
     "purchase_order",
     "sales_order",
     "manufacturing_order",
     "stock_adjustment",
     "stock_transfer",
+    # Catalog entities — flat tables, no inline child rows. ``variant``
+    # carries denormalized parent-archive state; the rest are simple
+    # name/id lookups against the corresponding Katana endpoints.
+    "variant",
+    "product",
+    "material",
+    "service",
+    "customer",
+    "supplier",
+    "location",
+    "tax_rate",
+    "operator",
+    "factory",
+    "additional_cost",
 ]
 
 
@@ -73,7 +94,11 @@ class RebuildCacheRequest(BaseModel):
         description=(
             "Entity types to rebuild. Each entry truncates the cache "
             "table(s) for that entity, clears its sync watermark, and "
-            "re-fetches the live state from Katana."
+            "re-fetches the live state from Katana. Covers transactional "
+            "entities (purchase_order, sales_order, manufacturing_order, "
+            "stock_adjustment, stock_transfer) and catalog entities "
+            "(variant, product, material, service, customer, supplier, "
+            "location, tax_rate, operator, factory, additional_cost)."
         ),
     )
     preview: bool = Field(
@@ -271,7 +296,7 @@ def _format_markdown(response: RebuildCacheResponse) -> str:
 async def rebuild_cache(
     request: Annotated[RebuildCacheRequest, Unpack()], context: Context
 ) -> ToolResult:
-    """Force-rebuild the local typed cache for one or more transactional entity types.
+    """Force-rebuild the local typed cache for one or more cached entity types.
 
     Use this when the local cache has drifted from Katana — the most
     common symptom is "phantom" rows (entities present in the cache
@@ -290,8 +315,16 @@ async def rebuild_cache(
        locks, so concurrent ``list_*`` tools block until the cache is
        repopulated and never see the empty intermediate state.
 
-    **Supported entity types:** ``purchase_order``, ``sales_order``,
-    ``manufacturing_order``, ``stock_adjustment``, ``stock_transfer``.
+    **Supported entity types:**
+
+    - Transactional: ``purchase_order``, ``sales_order``,
+      ``manufacturing_order``, ``stock_adjustment``, ``stock_transfer``
+      (each rebuilds the parent table plus its child/related-spec
+      tables, e.g. PO + PO rows, MO + MO recipe rows).
+    - Catalog: ``variant``, ``product``, ``material``, ``service``,
+      ``customer``, ``supplier``, ``location``, ``tax_rate``,
+      ``operator``, ``factory``, ``additional_cost`` (flat tables,
+      no inline child rows).
 
     **Two-step flow:**
     - ``preview=true`` (default) — reports current row counts and last-

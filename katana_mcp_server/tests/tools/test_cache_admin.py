@@ -564,6 +564,89 @@ class TestForceResyncAtomicity:
 
 
 # ============================================================================
+# Catalog entity coverage — `rebuild_cache` accepts all 16 keys in
+# `ENTITY_SPECS`, not just the 5 transactional ones it shipped with.
+# Smoke-test one catalog entity end-to-end (location — the headline #669
+# regression source) plus a literal-shape test that pins the full
+# accepted set against `ENTITY_SPECS` so adding a new entity to the
+# typed cache surfaces the missing literal at review time.
+# ============================================================================
+
+
+class TestCatalogEntityRebuild:
+    @pytest.mark.asyncio
+    async def test_rebuild_location_clears_phantom_and_repulls(
+        self, typed_cache_engine
+    ):
+        """End-to-end smoke test for the catalog tier of `rebuild_cache`.
+
+        Exercises one catalog entity (location) through the full
+        `force_resync` path: seed two locations (one of which the live
+        API will omit), patch the API to return only the live one,
+        confirm the phantom is gone after rebuild and that the live row
+        survives. Same shape as the headline transactional test
+        `test_phantom_purchase_order_is_removed_after_rebuild`, just
+        against a flat catalog table.
+        """
+        from katana_public_api_client.models import Location as AttrsLocation
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedLocation,
+        )
+
+        # Seed: one row Katana still has, one phantom Katana doesn't.
+        async with typed_cache_engine.session() as session:
+            session.add(CachedLocation(id=1, name="Main Warehouse"))
+            session.add(CachedLocation(id=999, name="Phantom Warehouse"))
+            await session.commit()
+
+        context = _build_context(typed_cache_engine)
+        live_location = AttrsLocation.from_dict({"id": 1, "name": "Main Warehouse"})
+        live_response = MagicMock()
+        live_response.status_code = 200
+        live_response.parsed = MagicMock(data=[live_location])
+
+        with patch(
+            "katana_mcp.typed_cache.sync.get_all_locations.asyncio_detailed",
+            new=AsyncMock(return_value=live_response),
+        ):
+            response = await _rebuild_cache_impl(
+                RebuildCacheRequest(entity_types=["location"], preview=False),
+                context,
+            )
+
+        assert response.is_preview is False
+        result = response.results[0]
+        assert result.entity_type == "location"
+        assert result.parent_rows_before == 2
+        assert result.parent_rows_after == 1
+        # Catalog entities have no related-spec children, so the only
+        # cleared key is the parent's own watermark.
+        assert result.sync_state_keys_cleared == ["location"]
+
+        async with typed_cache_engine.session() as session:
+            remaining = (await session.exec(select(CachedLocation))).all()
+        ids = {loc.id for loc in remaining}
+        assert ids == {1}, f"Phantom location 999 should be gone, got {ids}"
+
+    def test_request_accepts_all_entity_specs_keys(self):
+        """The `CacheEntityType` literal must stay in lock-step with
+        `ENTITY_SPECS`. Adding a new entity to the typed cache without
+        also extending the `Literal` would silently exclude it from the
+        rebuild_cache tool — tested explicitly so the gap can't ship.
+        """
+        for entity_key in ENTITY_SPECS:
+            # `model_validate` exercises the Literal check at runtime;
+            # success means the key is in the accepted set.
+            req = RebuildCacheRequest.model_validate(
+                {"entity_types": [entity_key], "preview": True}
+            )
+            assert req.entity_types == [entity_key], (
+                f"{entity_key!r} accepted by ENTITY_SPECS but rejected by "
+                f"CacheEntityType — extend the Literal in cache_admin.py."
+            )
+
+
+# ============================================================================
 # Request validation — invalid entity types fail at the request boundary
 # ============================================================================
 

@@ -85,7 +85,7 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **list_additional_costs** - List or fuzzy-search the additional-cost catalog (freight, duties, handling). Use for `additional_cost_id` on `modify_purchase_order`. Supports `query`, `limit`, `format`.
 
 ### Cache Administration
-- **rebuild_cache** - Force-rebuild the local typed cache for one or more transactional entity types (PO, SO, MO, stock adjustment, stock transfer). Truncates the cache table(s), clears the sync watermark, and re-fetches from Katana. Use when the cache has phantom rows (entities present locally but missing from Katana). Destructive; preview/apply.
+- **rebuild_cache** - Force-rebuild the local typed cache for one or more cached entity types. Covers transactional entities (PO, SO, MO, stock adjustment, stock transfer) and catalog entities (variant, product, material, service, customer, supplier, location, tax_rate, operator, factory, additional_cost). Truncates the cache table(s), clears the sync watermark, and re-fetches from Katana. Use when the cache has phantom rows (entities present locally but missing from Katana). Destructive; preview/apply.
 
 ## Safety Pattern
 
@@ -1820,7 +1820,7 @@ name}]`, `total_count`, `query`.
 ## Cache Administration Tools
 
 ### rebuild_cache
-Force-rebuild the local typed cache for one or more transactional entity types.
+Force-rebuild the local typed cache for one or more cached entity types.
 The steady-state sync path upserts via `session.merge` and never deletes — soft-
 deletes from Katana are folded in correctly because the tombstone surfaces in
 the next `updated_at_min` delta, but rows that left Katana without a tombstone
@@ -1837,8 +1837,11 @@ For each requested entity type, the rebuild:
 
 **Parameters:**
 - `entity_types` (required, min length 1): list of entity types to rebuild.
-  Allowed values: `purchase_order`, `sales_order`, `manufacturing_order`,
-  `stock_adjustment`, `stock_transfer`.
+  Allowed values cover transactional entities (`purchase_order`, `sales_order`,
+  `manufacturing_order`, `stock_adjustment`, `stock_transfer`) and catalog
+  entities (`variant`, `product`, `material`, `service`, `customer`,
+  `supplier`, `location`, `tax_rate`, `operator`, `factory`,
+  `additional_cost`).
 - `preview` (optional, default true): true = report current row counts and
   last-synced timestamps without modifying anything; false = perform the
   destructive rebuild.
