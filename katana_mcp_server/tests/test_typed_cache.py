@@ -86,8 +86,9 @@ class TestLifecycle:
 
         db_path = tmp_path / "stale.db"
         # Hand-craft a pre-#671 variant table with the old NOT NULL constraint.
-        # Use plain sqlite3 (sync) for the setup so we don't need to spin up an
-        # engine just to land DDL.
+        # Use aiosqlite (async) for the setup since the rest of the harness
+        # is already async — no need to bring in a sync sqlite3 dependency
+        # for one fixture.
         async with aiosqlite.connect(str(db_path)) as conn:
             await conn.execute(
                 "CREATE TABLE variant (id INTEGER PRIMARY KEY, sku VARCHAR NOT NULL)"
