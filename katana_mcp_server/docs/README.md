@@ -16,6 +16,15 @@ This directory contains all documentation specific to the `katana-mcp-server` pa
   patterns
 - **[ADRs](adr/README.md)** - Architecture Decision Records
 
+### Cookbook
+
+Task-oriented recipes covering specific behaviors of the MCP server. Reach for these
+when you're debugging a "why doesn't this work?" or extending a subsystem.
+
+- **[Catalog Search](cookbook/catalog-search.md)** - How `search_items` /
+  `search_customers` work end-to-end: tokenizer, FTS5 sidecar, SQLite triggers, variant
+  denormalization, soft-state filtering.
+
 ## Quick Links
 
 - **[Main Repository README](../../README.md)** - Project overview
