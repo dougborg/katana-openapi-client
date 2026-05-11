@@ -319,6 +319,141 @@ class TestCacheTables:
             mo = result.one()
             assert mo.batch_transactions == []
 
+    @pytest.mark.asyncio
+    async def test_json_column_handles_nested_datetime_in_plain_dicts(
+        self, typed_cache_engine
+    ):
+        """Regression (#659): JSON columns must serialize datetime values nested
+        inside plain dicts/lists, not just live ``BaseModel`` instances.
+
+        The user-reported crash on ``list_suppliers`` /
+        ``list_sales_orders`` originates in the typed-cache write path.
+        ``_convert`` runs ``api_obj.model_dump()`` (default
+        ``mode="python"``) → ``cache_cls.model_validate(...)`` to build the
+        cache row. ``_bulk_upsert`` then calls
+        ``row.model_dump(include=column_names)`` (also default
+        ``mode="python"``) for the INSERT VALUES. By the time SQLAlchemy
+        binds the JSON-column parameter, the field can be a list of plain
+        dicts whose leaves still hold live ``datetime`` instances
+        (``SupplierAddress`` extends ``DeletableEntity`` so each entry
+        carries ``created_at`` / ``updated_at`` columns). Stock
+        ``json.dumps`` then crashes with
+        ``TypeError: Object of type datetime is not JSON serializable``.
+
+        This test reproduces the exact path: build the upstream pydantic
+        ``Supplier``, run it through the same ``model_dump`` →
+        ``model_validate`` → ``model_dump(include=cols)`` chain
+        ``_convert`` + ``_bulk_upsert`` use, then INSERT and SELECT it.
+        """
+        from datetime import UTC, datetime
+
+        from sqlalchemy import inspect as sqla_inspect
+        from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedSupplier,
+            Supplier as PydanticSupplier,
+        )
+        from katana_public_api_client.models_pydantic._generated.contacts import (
+            SupplierAddress,
+        )
+
+        now = datetime.now(tz=UTC)
+        api_supplier = PydanticSupplier(
+            id=42,
+            name="Acme Supplies",
+            updated_at=now,
+            created_at=now,
+            addresses=[
+                SupplierAddress(
+                    id=1,
+                    supplier_id=42,
+                    line_1="123 Main St",
+                    city="Austin",
+                    created_at=now,
+                    updated_at=now,
+                ),
+            ],
+        )
+        # Mirror ``_convert``: model_dump → model_validate. After this,
+        # ``cached.addresses`` is a list of plain dicts (not SupplierAddress
+        # instances) because SQLModel's ``Mapped[list[X]]`` annotation
+        # leaves the field shape as-dumped under default mode="python".
+        cached = CachedSupplier.model_validate(api_supplier.model_dump())
+
+        # Mirror ``_bulk_upsert``: include=column_names + dialect insert.
+        mapper = sqla_inspect(CachedSupplier)
+        column_names = {col.name for col in mapper.columns}
+        values = [cached.model_dump(include=column_names)]
+        stmt = sqlite_insert(CachedSupplier).values(values)
+        async with typed_cache_engine.session() as session:
+            await session.exec(stmt)
+            await session.commit()
+
+        async with typed_cache_engine.session() as session:
+            stmt2 = select(CachedSupplier).where(CachedSupplier.id == 42)
+            result = await session.exec(stmt2)
+            fetched = result.one()
+            assert fetched.addresses is not None
+            assert len(fetched.addresses) == 1
+            addr = fetched.addresses[0]
+            assert isinstance(addr, dict)
+            assert addr["line_1"] == "123 Main St"
+            # The datetime survived the JSON round-trip as an ISO-8601 string,
+            # not as a live ``datetime`` (json.loads doesn't reconstruct
+            # datetimes). Both ``created_at`` and ``updated_at`` should be
+            # present and string-shaped.
+            assert isinstance(addr["created_at"], str)
+            assert isinstance(addr["updated_at"], str)
+
+    def test_pydantic_json_serializes_plain_dict_with_datetime(self):
+        """Unit-level regression (#659): PydanticJSON's ``process_bind_param``
+        must JSON-serialize plain dicts/lists whose leaves contain live
+        ``datetime`` values.
+
+        The pre-fix encoder only handled ``BaseModel`` instances and
+        ``list[BaseModel]``. A plain ``dict`` or ``list[dict]`` containing
+        datetimes (the shape ``model_dump(mode='python')`` produces) fell
+        through unchanged and crashed at ``json.dumps`` time.
+        """
+        import json
+        from datetime import UTC, datetime
+
+        from katana_public_api_client.models_pydantic._pydantic_json import (
+            PydanticJSON,
+        )
+
+        encoder = PydanticJSON()
+
+        # A list of plain dicts with live datetime leaves — exactly the
+        # shape produced by ``CachedSupplier.model_dump(...)`` for the
+        # ``addresses`` field.
+        now = datetime.now(tz=UTC)
+        value = [{"id": 1, "line_1": "123 Main", "updated_at": now}]
+        encoded = encoder.process_bind_param(value, dialect=None)
+
+        # The encoder's output must be plain-JSON-serializable.
+        encoded_str = json.dumps(encoded)
+
+        # And the datetime survived as an ISO-8601 string in the encoded
+        # payload. Round-trip through json.loads to get a fresh, fully-typed
+        # ``list[dict[str, Any]]`` view that ty can reason about (the
+        # ``encoded`` value out of ``process_bind_param`` is typed ``object``
+        # by SQLAlchemy's TypeDecorator base class).
+        round_trip = json.loads(encoded_str)
+        assert isinstance(round_trip, list)
+        first = round_trip[0]
+        assert isinstance(first, dict)
+        assert isinstance(first["updated_at"], str)
+
+    def test_pydantic_json_passes_through_none(self):
+        """``None`` short-circuits to ``None`` so SQLAlchemy stores SQL NULL."""
+        from katana_public_api_client.models_pydantic._pydantic_json import (
+            PydanticJSON,
+        )
+
+        assert PydanticJSON().process_bind_param(None, dialect=None) is None
+
 
 class TestSyncShippingFeeEmpty:
     """Regression tests for shipping_fee: {} Katana quirk.
@@ -422,6 +557,132 @@ class TestSyncShippingFeeEmpty:
             cached = result.one()
             assert cached.order_no == "SO-FEE-SYNC"
             assert cached.shipping_fee is None
+
+
+class TestSyncRollbackOnFailure:
+    """Regression tests for #659: sync write blocks must rollback on
+    exception so aiosqlite releases the SQLite file lock and subsequent
+    syncs against any entity don't hang.
+
+    Without an explicit ``await session.rollback()`` in the ``except``
+    branch, a mid-flush failure (e.g. a bind-param encoder error) leaves
+    the transaction half-open; the connection returns to the pool with
+    the file lock held, and the next ``BEGIN`` waits the full
+    ``busy_timeout`` (commonly 4+ minutes) before failing. The
+    user-reported symptom on katana-mcp-server v0.66.0 was every
+    subsequent tool call hanging for 4+ minutes after the first
+    serialization crash.
+
+    Tests assert ``session.rollback`` is called on the failure path —
+    the in-memory SQLite engine used in tests doesn't reproduce the
+    file-lock-hang behaviour (StaticPool + ``:memory:`` shares one
+    connection without WAL), so we verify the *invariant* — rollback
+    happens — rather than the symptom (timeout).
+    """
+
+    @pytest.mark.asyncio
+    async def test_sync_one_locked_rolls_back_on_bulk_upsert_failure(
+        self, typed_cache_engine
+    ):
+        """When ``_bulk_upsert`` raises mid-sync, ``_sync_one_locked``
+        must call ``session.rollback()`` before re-raising.
+
+        The original exception must propagate so callers can react;
+        rollback is purely a cleanup side effect on the session/connection
+        before the session context manager closes.
+        """
+        from unittest.mock import AsyncMock, MagicMock, patch
+
+        from katana_mcp.typed_cache.sync import ensure_suppliers_synced
+        from sqlmodel.ext.asyncio.session import AsyncSession
+
+        from katana_public_api_client.models import Supplier as AttrsSupplier
+
+        attrs_supplier = AttrsSupplier.from_dict({"id": 1, "name": "Acme"})
+        supplier_resp = MagicMock()
+        supplier_resp.status_code = 200
+        supplier_resp.parsed = MagicMock(data=[attrs_supplier])
+
+        boom = RuntimeError("bind-param encoder failure")
+        # Spy on AsyncSession.rollback so we can assert it was awaited at
+        # least once on the failure path. Wrap the original bound method
+        # so the rollback actually happens (test cleanup needs it) while
+        # the spy records the call.
+        original_rollback = AsyncSession.rollback
+        rollback_calls: list[None] = []
+
+        async def spy_rollback(self: AsyncSession) -> None:
+            rollback_calls.append(None)
+            await original_rollback(self)
+
+        with (
+            patch(
+                "katana_mcp.typed_cache.sync.get_all_suppliers.asyncio_detailed",
+                new=AsyncMock(return_value=supplier_resp),
+            ),
+            patch(
+                "katana_mcp.typed_cache.sync._bulk_upsert",
+                new=AsyncMock(side_effect=boom),
+            ),
+            patch.object(AsyncSession, "rollback", new=spy_rollback),
+            pytest.raises(RuntimeError, match="bind-param encoder failure"),
+        ):
+            await ensure_suppliers_synced(client=MagicMock(), cache=typed_cache_engine)
+
+        # The write block's except branch must have rolled back the
+        # session before letting the exception propagate.
+        assert len(rollback_calls) >= 1
+
+    @pytest.mark.asyncio
+    async def test_merge_filtered_fetch_rolls_back_on_failure(self, typed_cache_engine):
+        """``merge_filtered_fetch`` mirrors the same rollback contract.
+
+        It's the alternate write entry-point used by tools that fetch
+        narrow filtered result sets (e.g. blocking-ingredient lookups);
+        a mid-merge failure here must call ``session.rollback`` for the
+        same reason ``_sync_one_locked`` does.
+        """
+        from unittest.mock import AsyncMock, patch
+
+        from katana_mcp.typed_cache.sync import (
+            _SUPPLIER_SPEC,
+            merge_filtered_fetch,
+        )
+        from sqlmodel.ext.asyncio.session import AsyncSession
+
+        from katana_public_api_client.models import Supplier as AttrsSupplier
+
+        attrs_supplier = AttrsSupplier.from_dict({"id": 1, "name": "Acme"})
+
+        boom = RuntimeError("merge encoder failure")
+        # ``merge`` raises (simulating a bind-param failure on the first
+        # parent row); ``rollback`` is spied so we can assert the
+        # cleanup branch fired before the exception propagated. Wrap the
+        # original so the actual rollback still runs and the test's
+        # session cleanup is well-behaved.
+        original_rollback = AsyncSession.rollback
+        rollback_calls: list[None] = []
+
+        async def spy_rollback(self: AsyncSession) -> None:
+            rollback_calls.append(None)
+            await original_rollback(self)
+
+        with (
+            patch.object(
+                AsyncSession,
+                "merge",
+                new=AsyncMock(side_effect=boom),
+            ),
+            patch.object(AsyncSession, "rollback", new=spy_rollback),
+            pytest.raises(RuntimeError, match="merge encoder failure"),
+        ):
+            await merge_filtered_fetch(
+                cache=typed_cache_engine,
+                spec=_SUPPLIER_SPEC,
+                attrs_objs=[attrs_supplier],
+            )
+
+        assert len(rollback_calls) >= 1
 
 
 class TestLocks:
