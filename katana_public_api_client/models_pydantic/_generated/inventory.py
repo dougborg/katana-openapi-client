@@ -1379,7 +1379,9 @@ class VariantResponse(DeletableEntity):
     ] = None
     sku: Annotated[
         str | None,
-        Field(description="Stock keeping unit code for unique identification"),
+        Field(
+            description="Stock keeping unit code for unique identification. Katana allows\nvariants to be created without a SKU; the field is always present in\nthe response but may be null for such rows."
+        ),
     ] = None
     sales_price: Annotated[
         float | None,

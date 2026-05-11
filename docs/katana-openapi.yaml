@@ -6604,8 +6604,13 @@ components:
               type: integer
               description: Unique identifier for this variant
             sku:
-              type: string
-              description: Stock keeping unit code for unique identification
+              type:
+                - string
+                - "null"
+              description: |-
+                Stock keeping unit code for unique identification. Katana allows
+                variants to be created without a SKU; the field is always present in
+                the response but may be null for such rows.
             sales_price:
               type: number
               description: Price at which this variant is sold to customers

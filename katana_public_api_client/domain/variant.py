@@ -51,14 +51,16 @@ class KatanaVariant(KatanaBaseModel):
         ```
     """
 
-    # ============ Core Fields (always present) ============
+    # ============ Core Fields (key always present, value may be null) ============
 
     id: int = Field(..., description="Unique variant ID")
     sku: str | None = Field(
-        default=None,
+        ...,
         description=(
             "Stock Keeping Unit. Katana allows variants to be created without "
-            "a SKU; nullable to match the wire contract."
+            "a SKU; nullable to match the wire contract. The field is always "
+            "present in API responses but may be ``None`` for variants created "
+            "without a SKU (e.g., legacy NetSuite imports)."
         ),
     )
 

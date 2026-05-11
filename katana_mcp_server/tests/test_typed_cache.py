@@ -73,6 +73,67 @@ class TestLifecycle:
         await engine.close()
 
     @pytest.mark.asyncio
+    async def test_open_migrates_pre_671_variant_table_with_not_null_sku(
+        self, tmp_path: Path
+    ):
+        """Pre-#671 caches had ``sku VARCHAR NOT NULL`` baked into the
+        ``variant`` CREATE statement; the spec relaxation makes ``sku`` nullable,
+        but ``SQLModel.metadata.create_all`` is a no-op on existing tables.
+        ``open()`` must detect the stale DDL and rebuild the variant table so
+        Katana's null-sku rows insert cleanly on subsequent sync.
+        """
+        import aiosqlite
+
+        db_path = tmp_path / "stale.db"
+        # Hand-craft a pre-#671 variant table with the old NOT NULL constraint.
+        # Use plain sqlite3 (sync) for the setup so we don't need to spin up an
+        # engine just to land DDL.
+        async with aiosqlite.connect(str(db_path)) as conn:
+            await conn.execute(
+                "CREATE TABLE variant (id INTEGER PRIMARY KEY, sku VARCHAR NOT NULL)"
+            )
+            await conn.execute("INSERT INTO variant (id, sku) VALUES (1, 'OLD-SKU')")
+            await conn.commit()
+
+        engine = TypedCacheEngine(db_path=db_path)
+        await engine.open()
+        try:
+            # After open(), inserting a null-sku row must succeed — proves the
+            # NOT NULL constraint is gone. The pre-existing 'OLD-SKU' row was
+            # dropped along with the table; the cache is derivable from the API.
+            from katana_public_api_client.models_pydantic._generated import (
+                CachedVariant,
+            )
+
+            async with engine.session() as session:
+                session.add(CachedVariant(id=42, sku=None))
+                await session.commit()
+                row = await session.get(CachedVariant, 42)
+            assert row is not None
+            assert row.sku is None
+        finally:
+            await engine.close()
+
+    @pytest.mark.asyncio
+    async def test_open_migration_is_noop_on_fresh_db(self, tmp_path: Path):
+        """A fresh DB without a stale ``variant`` table reopens cleanly."""
+        engine = TypedCacheEngine(db_path=tmp_path / "fresh.db")
+        await engine.open()
+        try:
+            from katana_public_api_client.models_pydantic._generated import (
+                CachedVariant,
+            )
+
+            async with engine.session() as session:
+                session.add(CachedVariant(id=1, sku=None))
+                await session.commit()
+                row = await session.get(CachedVariant, 1)
+            assert row is not None
+            assert row.sku is None
+        finally:
+            await engine.close()
+
+    @pytest.mark.asyncio
     async def test_file_backed_engine_uses_wal_and_busy_timeout(self, tmp_path: Path):
         """File-backed engines apply WAL + busy_timeout PRAGMAs.
 
