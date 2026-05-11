@@ -66,23 +66,32 @@ BM25 (`ORDER BY bm25(<entity>_fts)`), highest signal first.
 
 ```python
 try:
-    rows = conn.exec_driver_sql(match_sql, params).fetchall()
+    async with self._engine.session() as session:
+        conn = await session.connection()
+        cursor = await conn.exec_driver_sql(sql, (fts_match, limit))
+        ids = [int(row[0]) for row in cursor.all()]
 except OperationalError as exc:
     if not _is_fts_syntax_error(exc):
         raise  # genuine OperationalError (locked DB, missing table) — propagate
-    rows = []
-if not rows:
-    return await self.search_fuzzy(cls, query, limit=limit, ...)
+    return await _fuzzy()  # FTS5 syntax error → fuzzy
+if not ids:
+    return await _fuzzy()  # FTS5 returned no hits → fuzzy
 ```
 
 Two conditions trigger the fuzzy fall-through:
 
-1. **FTS5 returned zero hits.** Common for partial matches, typos, or queries that
-   tokenize to an empty list (e.g., a query of only punctuation).
+1. **FTS5 returned zero hits.** Common for partial matches and typos. Note that queries
+   that *tokenize* to an empty list (whitespace-only or punctuation-only input) return
+   `[]` directly without fuzzy — there's nothing to match against.
 1. **FTS5 raised an `OperationalError` whose underlying `orig` message starts with
    `fts5: syntax error` or `fts5: unknown`.** This is narrow on purpose — other
    `OperationalError`s (locked DB, missing FTS table, disk I/O) propagate so operators
    see real failures instead of degraded-but-silent search.
+
+A third path exists: entities **without** an FTS sidecar (the lookup-only types listed
+in the coverage table below) skip FTS entirely and go straight to fuzzy. `smart_search`
+on `CachedTaxRate`, for example, has no `tax_rate_fts` table to query — fuzzy is the
+only available path.
 
 The narrowing is done via `str(exc.orig).startswith(...)` (with a defensive fallback to
 `str(exc)` if `exc.orig` happens to be `None`, which SQLAlchemy shouldn't produce in
@@ -230,12 +239,14 @@ The four cache-only fields on `CachedVariant`:
 | `display_name`             | `parent.name` + variant `config_attributes`          | Human-readable result rendering                                              |
 | `supplier_item_codes_text` | `" ".join(supplier_item_codes)`                      | FTS5 tokenizes whitespace-separated text; a list field wouldn't be indexable |
 
-The variant `EntitySpec` declares `depends_on=("product", "material")` so the parent
-records exist by the time the postprocess hook reads them. Cold-start ordering — parents
-before children — is the responsibility of the caller (today, `ensure_variants_synced`
-explicitly `asyncio.gather`s product+material syncs before running the variant sync);
-`depends_on` is documentation + a future scheduler hook (see
-`_validate_dependency_graph`).
+**An aside on `depends_on`**: the postprocess hook gets parent data from the *extended
+API payload* (the variant fetch uses `extend=[PRODUCT_OR_MATERIAL]` so each variant
+arrives with its parent inlined), **not** from cached parent rows. The variant
+`EntitySpec`'s `depends_on=("product", "material")` is therefore declarative metadata —
+useful for FK-join queries against the cache and for `_validate_dependency_graph`
+cycle-detection at engine open, but not load-bearing for variant denormalization itself.
+Cold-start ordering today is handled explicitly: `ensure_variants_synced`
+`asyncio.gather`s the product + material syncs before running the variant sync.
 
 ## Soft-state filtering
 
@@ -320,20 +331,23 @@ hits = await catalog.smart_search(CachedProduct, "kitchen knife")
 Tokenize: `["kitchen", "knife"]`. Match: `"kitchen"* AND "knife"*`. Behavior unchanged
 from the legacy cache — multi-token AND with prefix expansion.
 
-### Syntax-error fall-through
+### Syntax-error fall-through (the test-only path)
 
-```python
-hits = await catalog.smart_search(CachedVariant, "AND OR NOT")
-# → falls through to search_fuzzy; returns whatever difflib scores best
-```
+The `\W+` tokenizer plus `_build_fts_match`'s double-quote escaping protect every
+user-typed query from producing an invalid FTS5 MATCH expression. Reserved-word queries
+like `"AND OR NOT"` tokenize to `["AND", "OR", "NOT"]` and emit the valid (if odd)
+expression `"AND"* AND "OR"* AND "NOT"*` — the words land inside the quoted string
+literals and don't trigger FTS5's keyword parser.
 
-Tokenize produces tokens that, after FTS5 sees them, form an invalid match expression.
-FTS5 raises `OperationalError("fts5: syntax error near ...")`. `_is_fts_syntax_error`
-returns `True`; `search_fuzzy` runs.
+This is by design — `_is_fts_syntax_error` exists to handle the rare case where a future
+generator regression or a SQLite version bump produces a query the FTS5 parser rejects.
+The regression test for this path patches `exec_driver_sql` to raise
+`OperationalError("fts5: syntax error near ...")` directly and asserts the fall-through
+routes to fuzzy.
 
 A `LockedError` or `OperationalError("no such table: ...")` would **not** match the
-prefix check and would propagate. That's the design — silent fall-through is reserved
-for the recoverable case.
+`fts5:` prefix check and would propagate. That's the design — silent fall-through is
+reserved for the recoverable case.
 
 ## Where to look
 
