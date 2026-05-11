@@ -438,9 +438,9 @@ def test_generated_catalog_cache_classes_resolve() -> None:
     assert not missing, f"Tables not registered with SQLModel.metadata: {missing}"
 
 
-def test_generated_cached_location_uses_name_override() -> None:
-    """``Location1`` API class shadowed as ``CachedLocation`` /
-    ``__tablename__`` ``location`` (not ``location_1``)."""
+def test_generated_cached_location_tablename() -> None:
+    """``Location`` API class shadowed as ``CachedLocation`` /
+    ``__tablename__`` ``location``."""
     from katana_public_api_client.models_pydantic._generated import CachedLocation
 
     # SQLModel's metaclass exposes ``__tablename__`` as ``declared_attr[str]``

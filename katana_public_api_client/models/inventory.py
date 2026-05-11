@@ -13,8 +13,7 @@ from dateutil.parser import isoparse
 from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.deletable_entity import DeletableEntity
-    from ..models.location_type_0 import LocationType0
+    from ..models.location import Location
     from ..models.variant import Variant
 
 
@@ -44,14 +43,12 @@ class Inventory:
     quantity_potential: str
     safety_stock_level: str | Unset = UNSET
     variant: Variant | Unset = UNSET
-    location: DeletableEntity | LocationType0 | Unset = UNSET
+    location: Location | Unset = UNSET
     archived_at: datetime.datetime | None | Unset = UNSET
     default_storage_bin: Any | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.location_type_0 import LocationType0
-
         variant_id = self.variant_id
 
         location_id = self.location_id
@@ -78,12 +75,8 @@ class Inventory:
         if not isinstance(self.variant, Unset):
             variant = self.variant.to_dict()
 
-        location: dict[str, Any] | Unset
-        if isinstance(self.location, Unset):
-            location = UNSET
-        elif isinstance(self.location, LocationType0):
-            location = self.location.to_dict()
-        else:
+        location: dict[str, Any] | Unset = UNSET
+        if not isinstance(self.location, Unset):
             location = self.location.to_dict()
 
         archived_at: None | str | Unset
@@ -127,8 +120,7 @@ class Inventory:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.deletable_entity import DeletableEntity
-        from ..models.location_type_0 import LocationType0
+        from ..models.location import Location
         from ..models.variant import Variant
 
         d = dict(src_dict)
@@ -161,28 +153,12 @@ class Inventory:
         else:
             variant = Variant.from_dict(_variant)
 
-        def _parse_location(data: object) -> DeletableEntity | LocationType0 | Unset:
-            if isinstance(data, Unset):
-                return data
-            try:
-                if not isinstance(data, dict):
-                    raise TypeError()
-                componentsschemas_location_type_0 = LocationType0.from_dict(
-                    cast(Mapping[str, Any], data)
-                )
-
-                return componentsschemas_location_type_0
-            except (TypeError, ValueError, AttributeError, KeyError):
-                pass
-            if not isinstance(data, dict):
-                raise TypeError()
-            componentsschemas_location_type_1 = DeletableEntity.from_dict(
-                cast(Mapping[str, Any], data)
-            )
-
-            return componentsschemas_location_type_1
-
-        location = _parse_location(d.pop("location", UNSET))
+        _location = d.pop("location", UNSET)
+        location: Location | Unset
+        if isinstance(_location, Unset):
+            location = UNSET
+        else:
+            location = Location.from_dict(_location)
 
         def _parse_archived_at(data: object) -> datetime.datetime | None | Unset:
             if data is None:

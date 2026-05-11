@@ -204,16 +204,43 @@ class LocationAddress(KatanaPydanticBase):
     zip: Annotated[str, Field(description="Postal code or ZIP code for the location")]
 
 
-class Location1(KatanaPydanticBase):
-    id: int
-    name: str
-    legal_name: str | None = None
-    address_id: int | None = None
-    address: LocationAddress | None = None
-    is_primary: bool | None = None
-    sales_allowed: bool | None = None
-    purchase_allowed: bool | None = None
-    manufacturing_allowed: bool | None = None
+class Location(DeletableEntity):
+    name: Annotated[str, Field(description="Display name of the location")]
+    legal_name: Annotated[
+        str | None, Field(description="Legal name of the entity that owns the location")
+    ] = None
+    address_id: Annotated[
+        int | None,
+        Field(
+            description="Identifier of the associated address record, or null if no address is on file"
+        ),
+    ] = None
+    address: Annotated[
+        LocationAddress | None,
+        Field(
+            description="Structured address information for the location, or null if no address is on file",
+        ),
+    ] = None
+    is_primary: Annotated[
+        bool | None,
+        Field(
+            description="Whether this location is the primary location for the tenant"
+        ),
+    ] = None
+    sales_allowed: Annotated[
+        bool | None,
+        Field(description="Whether sales orders may be fulfilled from this location"),
+    ] = None
+    purchase_allowed: Annotated[
+        bool | None,
+        Field(description="Whether purchase orders may be received at this location"),
+    ] = None
+    manufacturing_allowed: Annotated[
+        bool | None,
+        Field(
+            description="Whether manufacturing orders may be produced at this location"
+        ),
+    ] = None
 
 
 class Status(StrEnum):
@@ -1086,7 +1113,7 @@ class ProductOperationRerank(KatanaPydanticBase):
 
 
 class LocationListResponse(KatanaPydanticBase):
-    data: list[Location1 | DeletableEntity] | None = None
+    data: list[Location] | None = None
 
 
 class ProductOperationRowListResponse(KatanaPydanticBase):
@@ -1143,7 +1170,7 @@ class CachedAdditionalCost(DeletableEntity, table=True):
     name: Mapped[str]
 
 
-class CachedLocation(KatanaPydanticBase, table=True):
+class CachedLocation(DeletableEntity, table=True):
     __tablename__ = "location"
     model_config = ConfigDict(frozen=False)
 
@@ -1151,16 +1178,44 @@ class CachedLocation(KatanaPydanticBase, table=True):
         Mapped[int], SQLField(primary_key=True, description="Unique identifier")
     ]
 
-    name: Mapped[str]
-    legal_name: Mapped[str | None] = None
-    address_id: Mapped[int | None] = None
-    address: Annotated[
-        Mapped[LocationAddress | None], SQLField(sa_column=Column(PydanticJSON))
+    name: Annotated[Mapped[str], Field(description="Display name of the location")]
+    legal_name: Annotated[
+        Mapped[str | None],
+        Field(description="Legal name of the entity that owns the location"),
     ] = None
-    is_primary: Mapped[bool | None] = None
-    sales_allowed: Mapped[bool | None] = None
-    purchase_allowed: Mapped[bool | None] = None
-    manufacturing_allowed: Mapped[bool | None] = None
+    address_id: Annotated[
+        Mapped[int | None],
+        Field(
+            description="Identifier of the associated address record, or null if no address is on file"
+        ),
+    ] = None
+    address: Annotated[
+        Mapped[LocationAddress | None],
+        SQLField(
+            sa_column=Column(PydanticJSON),
+            description="Structured address information for the location, or null if no address is on file",
+        ),
+    ] = None
+    is_primary: Annotated[
+        Mapped[bool | None],
+        Field(
+            description="Whether this location is the primary location for the tenant"
+        ),
+    ] = None
+    sales_allowed: Annotated[
+        Mapped[bool | None],
+        Field(description="Whether sales orders may be fulfilled from this location"),
+    ] = None
+    purchase_allowed: Annotated[
+        Mapped[bool | None],
+        Field(description="Whether purchase orders may be received at this location"),
+    ] = None
+    manufacturing_allowed: Annotated[
+        Mapped[bool | None],
+        Field(
+            description="Whether manufacturing orders may be produced at this location"
+        ),
+    ] = None
 
 
 class CachedTaxRate(UpdatableEntity, table=True):

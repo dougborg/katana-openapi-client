@@ -22,7 +22,10 @@ from katana_public_api_client.models_pydantic._mapped_shim import Mapped
 from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON
 
 from .base import DeletableEntity
-from .common import CostDistributionMethod, DocumentSendStatus
+from .common import (
+    CostDistributionMethod,
+    DocumentSendStatus,
+)
 from .contacts import CachedSupplier, Supplier
 from .stock import (
     BatchTransaction4,

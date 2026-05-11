@@ -45,7 +45,7 @@ from katana_mcp.typed_cache.sync import _validate_dependency_graph
 from katana_public_api_client.models import (
     Customer as AttrsCustomer,
     Factory as AttrsFactory,
-    LocationType0 as AttrsLocation,
+    Location as AttrsLocation,
     Material as AttrsMaterial,
     Product as AttrsProduct,
     Service as AttrsService,
