@@ -506,44 +506,31 @@ async def _sync_one_locked(
         cached_children.extend(children)
 
     async with cache.session() as session:
-        # Explicit rollback on any exception inside the write block so
-        # aiosqlite releases the file lock. Without it, a failure mid-flush
-        # (e.g. a bind-param encoder error from PydanticJSON) leaves the
-        # SQLite transaction half-open; the connection is returned to the
-        # pool with the underlying file lock still held, and the next sync
-        # against any entity hangs on ``BEGIN`` until the busy_timeout
-        # expires (commonly 4+ minutes in practice — see #659). The plain
-        # ``async with cache.session(): ...`` exit just closes the session;
-        # it doesn't roll back, so we wrap the body explicitly.
-        try:
-            # Parents first so child FK constraints resolve on insert.
-            # ``_bulk_upsert`` issues Core ``INSERT ... ON CONFLICT``
-            # statements via ``sqlalchemy.dialects.sqlite.insert``. SQLite
-            # triggers (registered by ``_create_fts_tables_ddl`` on
-            # engine.open()) keep the FTS5 inverted index in sync —
-            # SQLAlchemy mapper events would silently miss this Core path,
-            # but SQLite triggers fire for every write mode (ORM, Core,
-            # raw SQL).
-            await _bulk_upsert(session, spec.cache_cls, cached_parents)
-            if spec.child_cls is not None:
-                await _bulk_upsert(session, spec.child_cls, cached_children)
-            # SQLite's DateTime column doesn't preserve tzinfo, so naive
-            # UTC on the write side. ``row_count`` is the last-fetch size
-            # (not a cumulative total, which would drift since a re-sync
-            # that finds zero changed rows would otherwise reset the
-            # count); consumers needing a true total run ``SELECT COUNT(*)``
-            # on the entity table itself.
-            await session.merge(
-                SyncState(
-                    entity_type=spec.entity_key,
-                    last_synced=datetime.now(tz=UTC).replace(tzinfo=None),
-                    row_count=len(cached_parents),
-                )
+        # Parents first so child FK constraints resolve on insert.
+        # ``_bulk_upsert`` issues Core ``INSERT ... ON CONFLICT``
+        # statements via ``sqlalchemy.dialects.sqlite.insert``. SQLite
+        # triggers (registered by ``_create_fts_tables_ddl`` on
+        # engine.open()) keep the FTS5 inverted index in sync —
+        # SQLAlchemy mapper events would silently miss this Core path,
+        # but SQLite triggers fire for every write mode (ORM, Core,
+        # raw SQL).
+        await _bulk_upsert(session, spec.cache_cls, cached_parents)
+        if spec.child_cls is not None:
+            await _bulk_upsert(session, spec.child_cls, cached_children)
+        # SQLite's DateTime column doesn't preserve tzinfo, so naive
+        # UTC on the write side. ``row_count`` is the last-fetch size
+        # (not a cumulative total, which would drift since a re-sync
+        # that finds zero changed rows would otherwise reset the
+        # count); consumers needing a true total run ``SELECT COUNT(*)``
+        # on the entity table itself.
+        await session.merge(
+            SyncState(
+                entity_type=spec.entity_key,
+                last_synced=datetime.now(tz=UTC).replace(tzinfo=None),
+                row_count=len(cached_parents),
             )
-            await session.commit()
-        except BaseException:
-            await session.rollback()
-            raise
+        )
+        await session.commit()
 
 
 async def merge_filtered_fetch(
@@ -583,21 +570,14 @@ async def merge_filtered_fetch(
         return
 
     async with cache.session() as session:
-        # Mirror ``_sync_one_locked``'s rollback-on-exception guard so a
-        # mid-merge failure here doesn't leave aiosqlite holding the SQLite
-        # file lock and hang every subsequent sync (#659).
-        try:
-            # Parents first so child FK constraints resolve on insert (mirrors
-            # ``_sync_one_locked``'s order; redundant for entities without
-            # children but harmless).
-            for parent in cached_parents:
-                await session.merge(parent)
-            for child in cached_children:
-                await session.merge(child)
-            await session.commit()
-        except BaseException:
-            await session.rollback()
-            raise
+        # Parents first so child FK constraints resolve on insert (mirrors
+        # ``_sync_one_locked``'s order; redundant for entities without
+        # children but harmless).
+        for parent in cached_parents:
+            await session.merge(parent)
+        for child in cached_children:
+            await session.merge(child)
+        await session.commit()
 
     logger.info(
         "merge_filtered_fetch",
