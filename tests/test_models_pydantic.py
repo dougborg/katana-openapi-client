@@ -333,6 +333,69 @@ class TestModelInstantiation:
             Product(**incomplete_kwargs)
 
 
+class TestVariantNullSku:
+    """Variant.sku must accept None — Katana lets users create variants without one.
+
+    Pinning the wire-contract relaxation that ships in this PR: the spec previously
+    declared ``sku: type: string`` (non-nullable), but Katana actually emits
+    ``sku: null`` for variants created without one. The bug surfaced as a typed-cache
+    sync crash because ``get_all_variants(extend=PRODUCT_OR_MATERIAL)`` nests each
+    parent's full ``variants[]`` array, and ``Variant.from_attrs`` recursively
+    validated each nested variant — one null-sku sibling killed the whole batch.
+    """
+
+    def test_variant_accepts_null_sku(self) -> None:
+        from katana_public_api_client.models_pydantic._generated import Variant
+
+        variant = Variant(id=33351828, sku=None)
+        assert variant.sku is None
+
+    def test_variant_response_accepts_null_sku(self) -> None:
+        from katana_public_api_client.models_pydantic._generated import VariantResponse
+
+        response = VariantResponse(id=33351828, sku=None)
+        assert response.sku is None
+
+    def test_variant_from_attrs_with_null_sku(self) -> None:
+        """The crash path: ``Variant.from_attrs(attrs_with_null_sku)`` must succeed."""
+        from katana_public_api_client.models import Variant as AttrsVariant
+        from katana_public_api_client.models_pydantic._generated import Variant
+
+        attrs_variant = AttrsVariant.from_dict({"id": 33351828, "sku": None})
+        pydantic_variant = Variant.from_attrs(attrs_variant)
+        assert pydantic_variant.sku is None
+        assert pydantic_variant.id == 33351828
+
+    def test_product_with_null_sku_nested_variant(self) -> None:
+        """Recursive conversion crash path: a parent product whose nested
+        ``variants[]`` array contains a null-sku variant must round-trip cleanly.
+
+        This is the exact shape Katana returns when ``get_all_variants`` is called
+        with ``extend=PRODUCT_OR_MATERIAL`` — every parent embeds its full variant
+        list, and previously a single null-sku sibling raised before any row landed
+        in the cache.
+        """
+        from katana_public_api_client.models import Product as AttrsProduct
+        from katana_public_api_client.models_pydantic._generated import Product
+
+        attrs_product = AttrsProduct.from_dict(
+            {
+                "id": 101,
+                "name": "Legacy NetSuite Import",
+                "type": "product",
+                "variants": [
+                    {"id": 1, "sku": "VALID-SKU"},
+                    {"id": 2, "sku": None},
+                ],
+            }
+        )
+        pydantic_product = Product.from_attrs(attrs_product)
+        assert pydantic_product.variants is not None
+        assert len(pydantic_product.variants) == 2
+        assert pydantic_product.variants[0].sku == "VALID-SKU"
+        assert pydantic_product.variants[1].sku is None
+
+
 class TestRequestModels:
     """Tests for request model instantiation."""
 

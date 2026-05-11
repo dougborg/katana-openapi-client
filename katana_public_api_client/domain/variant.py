@@ -54,7 +54,13 @@ class KatanaVariant(KatanaBaseModel):
     # ============ Core Fields (always present) ============
 
     id: int = Field(..., description="Unique variant ID")
-    sku: str = Field(..., description="Stock Keeping Unit")
+    sku: str | None = Field(
+        default=None,
+        description=(
+            "Stock Keeping Unit. Katana allows variants to be created without "
+            "a SKU; nullable to match the wire contract."
+        ),
+    )
 
     # ============ Pricing Fields ============
 
@@ -284,7 +290,7 @@ class KatanaVariant(KatanaBaseModel):
             ```
         """
         if not self.product_or_material_name:
-            return self.sku
+            return self.sku or ""
 
         parts = [self.product_or_material_name]
 
@@ -330,7 +336,7 @@ class KatanaVariant(KatanaBaseModel):
             score_match(
                 query=query,
                 fields={
-                    "sku": (self.sku, 100),
+                    "sku": (self.sku or "", 100),
                     "name": (self.product_or_material_name or "", 30),
                     "extra": (extra_text, 10),
                 },

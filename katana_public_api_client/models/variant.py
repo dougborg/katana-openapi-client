@@ -36,7 +36,7 @@ class Variant:
     """
 
     id: int
-    sku: str
+    sku: None | str
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
     deleted_at: datetime.datetime | None | Unset = UNSET
@@ -57,6 +57,7 @@ class Variant:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
+        sku: None | str
         sku = self.sku
 
         created_at: str | Unset = UNSET
@@ -182,7 +183,12 @@ class Variant:
         d = dict(src_dict)
         id = d.pop("id")
 
-        sku = d.pop("sku")
+        def _parse_sku(data: object) -> None | str:
+            if data is None:
+                return data
+            return cast(None | str, data)
+
+        sku = _parse_sku(d.pop("sku"))
 
         _created_at = d.pop("created_at", UNSET)
         created_at: datetime.datetime | Unset
