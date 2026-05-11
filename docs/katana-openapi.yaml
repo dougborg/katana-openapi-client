@@ -6609,8 +6609,10 @@ components:
                 - "null"
               description: |-
                 Stock keeping unit code for unique identification. Katana allows
-                variants to be created without a SKU; the field is always present in
-                the response but may be null for such rows.
+                variants to be created without a SKU; the value may be null for
+                such rows. ``VariantResponse`` does not declare ``sku`` as required,
+                so the key may also be omitted entirely on some response shapes —
+                consumers should handle both ``null`` and missing keys.
             sales_price:
               type: number
               description: Price at which this variant is sold to customers
