@@ -2575,9 +2575,13 @@ components:
         - type: object
           properties:
             sku:
-              type: string
+              type:
+                - string
+                - "null"
               description: |-
-                Stock keeping unit - unique identifier for this variant
+                Stock keeping unit - unique identifier for this variant. Katana allows
+                variants to be created without a SKU; the field is always present in the
+                response but may be null for such rows.
             sales_price:
               type:
                 - number

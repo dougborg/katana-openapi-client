@@ -313,6 +313,58 @@ class TestVariantPostprocess:
         assert cached.supplier_item_codes_text == "SUPP-KNF-001"
 
     @pytest.mark.asyncio
+    async def test_sync_tolerates_null_sku_in_nested_variants(self, typed_cache_engine):
+        """A batch containing a null-sku variant must complete without crashing.
+
+        Katana lets users create variants without a SKU; ``get_all_variants`` with
+        ``extend=PRODUCT_OR_MATERIAL`` nests the parent's full ``variants[]`` array
+        in every row. Before the spec relaxation, ``Variant.from_attrs`` raised
+        ``ValidationError`` on the nested null-sku sibling, aborting the whole
+        batch and leaving the cache empty. Pin the working batch flow here so the
+        regression can't sneak back in.
+        """
+        good = AttrsVariantResponse.from_dict(
+            {
+                "id": 3001,
+                "sku": "GOOD-SKU",
+                "type": "product",
+                "product_id": 101,
+                "product_or_material": {
+                    "id": 101,
+                    "name": "Legacy NetSuite Import",
+                    "type": "product",
+                    "variants": [
+                        {"id": 3001, "sku": "GOOD-SKU"},
+                        {"id": 3002, "sku": None},
+                    ],
+                },
+            }
+        )
+        null_sku = AttrsVariantResponse.from_dict(
+            {
+                "id": 3002,
+                "sku": None,
+                "type": "product",
+                "product_id": 101,
+            }
+        )
+        empty = _list_response([])
+        with (
+            _stub_endpoint("get_all_products", empty),
+            _stub_endpoint("get_all_materials", empty),
+            _stub_endpoint("get_all_variants", _list_response([good, null_sku])),
+        ):
+            await ensure_variants_synced(MagicMock(), typed_cache_engine)
+
+        async with typed_cache_engine.session() as session:
+            cached_good = await session.get(CachedVariant, 3001)
+            cached_null = await session.get(CachedVariant, 3002)
+        assert cached_good is not None
+        assert cached_good.sku == "GOOD-SKU"
+        assert cached_null is not None
+        assert cached_null.sku is None
+
+    @pytest.mark.asyncio
     async def test_display_name_falls_back_to_sku(self, typed_cache_engine):
         """Defensive fallback when parent name is empty — mirrors legacy semantics."""
         variant_attrs = AttrsVariantResponse.from_dict(
