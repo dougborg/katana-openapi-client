@@ -46,7 +46,6 @@ from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
 from pydantic import BaseModel, ConfigDict, Field
 
-from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.decorators import cache_read
@@ -59,6 +58,7 @@ from katana_mcp.tools.tool_result_utils import (
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.api.inventory import get_all_inventory_point
 from katana_public_api_client.api.sales_order import get_all_sales_orders
+from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.domain.converters import unwrap_unset
 from katana_public_api_client.models_pydantic._generated import (
     CachedMaterial,
@@ -67,6 +67,24 @@ from katana_public_api_client.models_pydantic._generated import (
     CachedVariant,
 )
 from katana_public_api_client.utils import unwrap_data
+
+
+def _attr(obj: Any, name: str, default: Any = None) -> Any:
+    """Read ``name`` from a cache row, attrs model, OR dict uniformly.
+
+    Cached SQLModel rows expose plain attributes; attrs models use the
+    ``UNSET`` sentinel for missing optional fields; tests occasionally
+    fixture in raw dicts (the legacy cache shape) — accept all three
+    so call sites stay agnostic to which side filled the slot.
+    """
+    if obj is None:
+        return default
+    if isinstance(obj, dict):
+        val = obj.get(name, default)
+    else:
+        val = getattr(obj, name, default)
+    return default if val is UNSET else val
+
 
 logger = get_logger(__name__)
 
@@ -153,55 +171,67 @@ async def _fetch_delivered_sales_orders_in_window(
     return filtered
 
 
-# Map the variant's normalized "type" string (set by cache_sync._variant_to_cache_dict
-# from VariantType) to the (cache entity type, FK field name on the variant dict).
-# Services appear to share the product_id FK namespace in Katana's schema.
-_PARENT_BY_VARIANT_TYPE: dict[str, tuple[EntityType, str]] = {
-    "product": (EntityType.PRODUCT, "product_id"),
-    "material": (EntityType.MATERIAL, "material_id"),
-    "service": (EntityType.SERVICE, "product_id"),
+# Map the variant's normalized type string (set by ``CachedVariant.type``)
+# to the (Cached* parent class, FK field name on the variant row). Services
+# share the product_id FK namespace in Katana's schema.
+_PARENT_BY_VARIANT_TYPE: dict[str, tuple[type[Any], str]] = {
+    "product": (CachedProduct, "product_id"),
+    "material": (CachedMaterial, "material_id"),
+    "service": (CachedService, "product_id"),
 }
 
 
 async def _resolve_variant_info(
     services: Any,
     variant_id: int,
-    variant_cache: dict[int, dict[str, Any]],
-    category_cache: dict[tuple[EntityType, int], str | None],
-) -> tuple[dict[str, Any] | None, str | None]:
-    """Resolve variant dict and its item-category from the local cache.
+    variant_cache: dict[int, Any],
+    category_cache: dict[tuple[type[Any], int], str | None],
+) -> tuple[Any | None, str | None]:
+    """Resolve variant row and its item-category from the local cache.
 
-    Returns ``(variant_dict, category_name)``. Both may be None if lookups
+    Returns ``(variant_row, category_name)``. Both may be None if lookups
     miss (cache-only path; we do not fall back to API to keep aggregation
     calls bounded — unknown variants are still counted in aggregates, just
     without SKU/name/category enrichment).
 
     The variant's ``type`` field tells us which of product/material/service
     owns the parent, so we do one targeted cache lookup instead of probing
-    all three tables.
+    all three tables. Category lookups deliberately ``include_archived=True``
+    /``include_deleted=True`` because reporting tools are looking at
+    *historical* sales — an item archived since the report window was
+    open should still appear under its real category, not "uncategorized".
     """
-    variant = variant_cache.get(variant_id)
-    if variant is None:
-        variant = await services.cache.get_by_id(EntityType.VARIANT, variant_id)
-        variant_cache[variant_id] = variant or {}
+    # Cache the negative lookup (None value) so a follow-up call for the
+    # same missing variant doesn't re-hit the DB. ``not in`` distinguishes
+    # "never looked up" from "looked up, didn't exist" — ``dict.get`` would
+    # collapse both cases and re-query on every call.
+    if variant_id not in variant_cache:
+        variant_cache[variant_id] = await services.typed_cache.catalog.get_by_id(
+            CachedVariant, variant_id, include_archived=True, include_deleted=True
+        )
+    variant = variant_cache[variant_id]
 
-    if not variant:
+    if variant is None:
         return None, None
 
-    mapping = _PARENT_BY_VARIANT_TYPE.get(variant.get("type") or "")
+    type_val = _attr(variant, "type")
+    type_str = type_val.value if hasattr(type_val, "value") else type_val
+    mapping = _PARENT_BY_VARIANT_TYPE.get(type_str or "")
     if mapping is None:
         return variant, None
-    parent_entity_type, fk_field = mapping
-    parent_id = variant.get(fk_field)
+    parent_cls, fk_field = mapping
+    parent_id = _attr(variant, fk_field)
     if parent_id is None:
         return variant, None
 
-    cache_key = (parent_entity_type, parent_id)
+    cache_key = (parent_cls, parent_id)
     if cache_key in category_cache:
         return variant, category_cache[cache_key]
 
-    parent = await services.cache.get_by_id(parent_entity_type, parent_id)
-    category = parent.get("category_name") if parent else None
+    parent = await services.typed_cache.catalog.get_by_id(
+        parent_cls, parent_id, include_archived=True, include_deleted=True
+    )
+    category = _attr(parent, "category_name")
     category_cache[cache_key] = category or None
     return variant, category or None
 
@@ -311,8 +341,8 @@ async def _top_selling_variants_impl(
     agg: dict[int, dict[str, Any]] = defaultdict(
         lambda: {"units": 0.0, "revenue": 0.0, "order_ids": set()}
     )
-    variant_cache: dict[int, dict[str, Any]] = {}
-    category_cache: dict[tuple[EntityType, int], str | None] = {}
+    variant_cache: dict[int, Any] = {}
+    category_cache: dict[tuple[type[Any], int], str | None] = {}
 
     for so in orders:
         so_id = so.id
@@ -338,11 +368,13 @@ async def _top_selling_variants_impl(
             category is None or category.lower() != request.category.lower()
         ):
             continue
+        sku = _attr(variant, "sku")
+        display_name = _attr(variant, "display_name")
         rows.append(
             VariantSalesRow(
-                sku=(variant or {}).get("sku"),
+                sku=sku,
                 variant_id=variant_id,
-                name=(variant or {}).get("display_name") or (variant or {}).get("sku"),
+                name=display_name or sku,
                 units=round(bucket["units"], 4),
                 revenue=round(bucket["revenue"], 2),
                 order_count=len(bucket["order_ids"]),
@@ -501,8 +533,8 @@ async def _sales_summary_impl(
     agg: dict[str, dict[str, Any]] = defaultdict(
         lambda: {"units": 0.0, "revenue": 0.0, "order_ids": set()}
     )
-    variant_cache: dict[int, dict[str, Any]] = {}
-    category_cache: dict[tuple[EntityType, int], str | None] = {}
+    variant_cache: dict[int, Any] = {}
+    category_cache: dict[tuple[type[Any], int], str | None] = {}
 
     for so in orders:
         so_id = so.id
@@ -546,7 +578,8 @@ async def _sales_summary_impl(
                 variant, _ = await _resolve_variant_info(
                     services, variant_id, variant_cache, category_cache
                 )
-                key = (variant or {}).get("sku") or f"variant:{variant_id}"
+                v_sku = _attr(variant, "sku")
+                key = v_sku or f"variant:{variant_id}"
             else:  # category
                 _, category = await _resolve_variant_info(
                     services, variant_id, variant_cache, category_cache
@@ -739,30 +772,37 @@ class InventoryVelocityResponse(BaseModel):
 async def _resolve_sku_or_variant_id(
     services: Any, sku_or_id: str | int
 ) -> tuple[int, str | None]:
-    """Return (variant_id, sku) for either an integer ID or a SKU string."""
-    if isinstance(sku_or_id, int):
-        from katana_mcp.cache import EntityType
+    """Return (variant_id, sku) for either an integer ID or a SKU string.
 
-        variant = await services.cache.get_by_id(EntityType.VARIANT, sku_or_id)
-        sku = (variant or {}).get("sku")
-        return sku_or_id, sku
+    Direct-lookup parity with the legacy cache: include archived/deleted
+    rows so a CLI user inspecting a soft-deleted variant's sales
+    velocity still resolves the row instead of bouncing on a SKU
+    not-found error.
+    """
+    catalog = services.typed_cache.catalog
+    if isinstance(sku_or_id, int):
+        variant = await catalog.get_by_id(
+            CachedVariant, sku_or_id, include_archived=True, include_deleted=True
+        )
+        return sku_or_id, _attr(variant, "sku")
 
     sku_str = str(sku_or_id).strip()
     if not sku_str:
         raise ValueError("sku_or_variant_id cannot be empty")
     # Try to parse as integer first — some callers pass the id as a string
     if sku_str.isdigit():
-        from katana_mcp.cache import EntityType
-
         vid = int(sku_str)
-        variant = await services.cache.get_by_id(EntityType.VARIANT, vid)
-        sku = (variant or {}).get("sku")
-        return vid, sku
+        variant = await catalog.get_by_id(
+            CachedVariant, vid, include_archived=True, include_deleted=True
+        )
+        return vid, _attr(variant, "sku")
 
-    variant = await services.cache.get_by_sku(sku=sku_str)
-    if not variant:
+    variant = await catalog.get_by_sku(
+        sku_str, include_archived=True, include_deleted=True
+    )
+    if variant is None:
         raise ValueError(f"SKU '{sku_str}' not found in variant cache")
-    return variant["id"], sku_str
+    return _attr(variant, "id"), sku_str
 
 
 async def _fetch_stock_on_hand(services: Any, variant_id: int) -> float:

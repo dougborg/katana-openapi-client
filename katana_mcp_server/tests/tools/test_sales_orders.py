@@ -50,7 +50,9 @@ async def test_create_sales_order_preview():
     """Test create_sales_order in preview mode."""
     context, lifespan_ctx = create_mock_context()
     # Seed customer cache so the BLOCK warning for missing customer doesn't fire.
-    lifespan_ctx.cache.get_by_id = AsyncMock(return_value={"id": 1501, "name": "Acme"})
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(
+        return_value={"id": 1501, "name": "Acme"}
+    )
 
     request = CreateSalesOrderRequest(
         customer_id=1501,
@@ -87,7 +89,9 @@ async def test_create_sales_order_preview():
 async def test_create_sales_order_preview_minimal_fields():
     """Test create_sales_order preview with only required fields."""
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_id = AsyncMock(return_value={"id": 1501, "name": "Acme"})
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(
+        return_value={"id": 1501, "name": "Acme"}
+    )
 
     request = CreateSalesOrderRequest(
         customer_id=1501,
@@ -125,7 +129,7 @@ async def test_create_sales_order_preview_warns_advisorily_on_customer_cache_mis
     genuinely bad.
     """
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_id = AsyncMock(return_value=None)
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
 
     request = CreateSalesOrderRequest(
         customer_id=99999,
@@ -1330,10 +1334,12 @@ async def test_get_sales_order_enriches_row_sku_from_cache():
     # absent from the result (per get_many_by_ids contract).
     catalog = {500: {"id": 500, "sku": "BIKE-A", "display_name": "Bike A"}}
 
-    async def fake_get_many_by_ids(_entity_type, variant_ids):
+    async def fake_get_many_by_ids(_entity_type, variant_ids, **_kw):
         return {vid: catalog[vid] for vid in variant_ids if vid in catalog}
 
-    lifespan_ctx.cache.get_many_by_ids = AsyncMock(side_effect=fake_get_many_by_ids)
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
+        side_effect=fake_get_many_by_ids
+    )
 
     mock_so = _make_mock_so(
         id=9,
@@ -1460,7 +1466,7 @@ async def test_get_sales_order_surfaces_every_sales_order_field():
     coverage so a future refactor can't silently drop them again.
     """
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_id = AsyncMock(return_value=None)
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
     mock_so = _make_mock_so_all_fields(so_id=2001)
 
     with (
@@ -1542,7 +1548,7 @@ async def test_get_sales_order_fetches_and_surfaces_addresses():
     from katana_mcp.tools.foundation.sales_orders import SalesOrderAddressInfo
 
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_id = AsyncMock(return_value=None)
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
     mock_so = _make_mock_so(id=2001, order_no="SO-2001")
 
     billing = SalesOrderAddressInfo(
@@ -1601,7 +1607,7 @@ async def test_get_sales_order_markdown_uses_canonical_field_names():
     per-item blocks.
     """
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_id = AsyncMock(return_value=None)
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
     mock_so = _make_mock_so(
         id=2001,
         order_no="SO-2001",
@@ -1674,7 +1680,7 @@ async def test_list_sales_orders_format_markdown_default(
 async def test_get_sales_order_format_json_returns_json():
     """format='json' returns JSON-parseable content."""
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_id = AsyncMock(return_value=None)
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
     mock_so = _make_mock_so(id=9, order_no="SO-9")
 
     with (

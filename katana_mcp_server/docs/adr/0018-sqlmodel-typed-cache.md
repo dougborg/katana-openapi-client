@@ -6,6 +6,14 @@ Accepted
 
 Date: 2026-04-23
 
+**Update (2026-05-11, #472 Phase D):** the "follow-up epic" called out below — unifying
+the catalog tier under `TypedCacheEngine` and retiring `CatalogCache` — is **complete**.
+`katana_mcp.cache` and `katana_mcp.cache_sync` are removed; the typed cache now backs
+both transactional and catalog reads via the `CatalogQueries` adapter
+(`services.typed_cache.catalog`). The "dual-cache coexistence during rollout" section
+below describes a transient state that no longer exists. The "Scope 2" question
+(replacing the attrs API transport) remains open.
+
 ## Context
 
 Analytical workflows over Katana data were making large numbers of sequential API calls

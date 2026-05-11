@@ -617,7 +617,7 @@ _UNWRAP_DATA = "katana_public_api_client.utils.unwrap_data"
 async def test_get_manufacturing_order_recipe():
     """Test listing recipe rows for an MO."""
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_many_by_ids = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
         return_value={
             101: {"id": 101, "sku": "FORK-001"},
             102: {"id": 102, "sku": "BOLT-004"},
@@ -1910,13 +1910,13 @@ def no_sync_recipe_rows():
 
 
 def _stub_variant_cache(context, sku_by_id: dict[int, str]) -> None:
-    """Stub services.cache.get_many_by_ids(VARIANT, ...) to return SKUs for tests."""
+    """Stub services.typed_cache.catalog.get_many_by_ids(VARIANT, ...) to return SKUs for tests."""
 
-    async def _lookup(_entity_type, vids):
+    async def _lookup(_entity_type, vids, **_kw):
         return {vid: {"sku": sku_by_id[vid]} for vid in vids if vid in sku_by_id}
 
-    context.request_context.lifespan_context.cache.get_many_by_ids = AsyncMock(
-        side_effect=_lookup
+    context.request_context.lifespan_context.typed_cache.catalog.get_many_by_ids = (
+        AsyncMock(side_effect=_lookup)
     )
 
 
@@ -2289,7 +2289,7 @@ async def test_list_blocking_ingredients_resolves_skus_only_for_kept_variants(
 
     Seeds two blocking variants (impact 1 and 2 MOs respectively); with
     ``limit=1`` only the higher-impact variant survives. Asserts that
-    ``services.cache.get_by_id`` was awaited exactly once — for that variant.
+    ``services.typed_cache.catalog.get_by_id`` was awaited exactly once — for that variant.
     """
     from katana_mcp.tools.foundation.manufacturing_orders import (
         ListBlockingIngredientsRequest,
@@ -2337,10 +2337,12 @@ async def test_list_blocking_ingredients_resolves_skus_only_for_kept_variants(
     assert result.by_variant is not None and len(result.by_variant) == 1
     assert result.by_variant[0].variant_id == 500
     assert result.by_variant[0].sku == "WHEEL"
-    # Legacy cache batch helper called exactly once with only the kept
+    # Catalog batch helper called exactly once with only the kept
     # variant ID — the dropped variant 600 never makes it to the catalog
     # cache, validating slice-then-resolve over fetch-then-trim.
-    cache_mock = context.request_context.lifespan_context.cache.get_many_by_ids
+    cache_mock = (
+        context.request_context.lifespan_context.typed_cache.catalog.get_many_by_ids
+    )
     assert cache_mock.await_count == 1
     assert cache_mock.await_args is not None
     awaited_vids = cache_mock.await_args.args[1]

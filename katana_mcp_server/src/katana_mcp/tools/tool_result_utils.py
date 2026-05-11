@@ -50,13 +50,22 @@ BLOCK_WARNING_PREFIX = "BLOCK:"
 
 
 async def resolve_entity_name(
-    cache: Any,
-    entity_type: Any,
+    catalog: Any,
+    cached_cls: Any,
     entity_id: int,
     *,
     entity_label: str,
 ) -> tuple[str | None, str | None]:
     """Look up a cached entity by ID and return ``(name, advisory_warning)``.
+
+    Args:
+        catalog: ``CatalogQueries`` adapter (typically
+            ``services.typed_cache.catalog``).
+        cached_cls: ``Cached*`` SQLModel class (e.g., ``CachedSupplier``,
+            ``CachedLocation``, ``CachedCustomer``).
+        entity_id: Primary-key ID of the entity to look up.
+        entity_label: Human-readable label for warnings ("Supplier",
+            "Location", ...).
 
     On hit returns ``(name_or_None, None)``. On miss returns
     ``(None, "<entity_label> with id=N was not found in the cache...")`` —
@@ -75,9 +84,20 @@ async def resolve_entity_name(
     paths — can still proceed to the live API even when the cache is
     unavailable. The exception is logged at WARNING for stderr-side
     visibility.
+
+    The lookup passes ``include_archived=True`` / ``include_deleted=True``
+    so soft-state entities still resolve to their cached display name —
+    this keeps the warning text accurate ("Supplier 'Acme Corp' was
+    soft-deleted") even though the apply path lets the live API decide
+    whether to accept the request.
     """
     try:
-        d = await cache.get_by_id(entity_type, entity_id)
+        row = await catalog.get_by_id(
+            cached_cls,
+            entity_id,
+            include_archived=True,
+            include_deleted=True,
+        )
     except Exception as exc:
         logger.warning(
             "resolve_entity_name: cache lookup failed",
@@ -91,14 +111,18 @@ async def resolve_entity_name(
             f"validates the {entity_label.lower()}."
         )
         return None, warning
-    if d is None:
+    if row is None:
         warning = (
             f"{entity_label} with id={entity_id} was not found in the cache "
             f"(possible cache lag); the live API validates the "
             f"{entity_label.lower()}."
         )
         return None, warning
-    return d.get("name") or None, None
+    # Tolerate both ``Cached*`` rows (attribute access) and dict-shaped
+    # legacy fixtures still present in some tests.
+    if isinstance(row, dict):
+        return row.get("name") or None, None
+    return getattr(row, "name", None) or None, None
 
 
 def enum_to_str(value: Any) -> str | None:

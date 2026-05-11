@@ -4,50 +4,82 @@ Cache-backed read of products + materials + services. Each entity type
 has slightly different default-flag semantics (services default to
 sellable when the field is missing/None; materials default to
 purchasable; products use conservative is-True checks). The tests pin
-that contract, the deleted-row filter, and the summary counts.
+that contract and the summary counts.
+
+Soft-state filtering is owned by the
+:class:`~katana_mcp.typed_cache.queries.CatalogQueries` adapter
+(``include_archived=False`` / ``include_deleted=False`` defaults), so
+the resource handler no longer post-filters in Python — those tests
+that previously asserted on the deleted-row drop have been removed.
 """
 
 from __future__ import annotations
 
 import json
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from katana_mcp.resources.inventory import (
-    _filter_deleted,
     get_inventory_items,
     register_resources,
 )
 from katana_mcp_server.tests.conftest import create_mock_context
+
+from katana_public_api_client.models_pydantic._generated import (
+    CachedMaterial,
+    CachedProduct,
+    CachedService,
+)
 
 ENSURE_PRODUCTS = "katana_mcp.resources.inventory.ensure_products_synced"
 ENSURE_MATERIALS = "katana_mcp.resources.inventory.ensure_materials_synced"
 ENSURE_SERVICES = "katana_mcp.resources.inventory.ensure_services_synced"
 
 
+def _make_product(**fields: Any) -> CachedProduct:
+    fields.setdefault("id", 1)
+    fields.setdefault("name", "Product")
+    fields.setdefault("type", "product")
+    return CachedProduct(**fields)
+
+
+def _make_material(**fields: Any) -> CachedMaterial:
+    fields.setdefault("id", 1)
+    fields.setdefault("name", "Material")
+    fields.setdefault("type", "material")
+    return CachedMaterial(**fields)
+
+
+def _make_service(**fields: Any) -> CachedService:
+    fields.setdefault("id", 1)
+    fields.setdefault("name", "Service")
+    return CachedService(**fields)
+
+
 def _make_context_with_cache(
     *,
-    products: list[dict] | None = None,
-    materials: list[dict] | None = None,
-    services: list[dict] | None = None,
+    products: list[CachedProduct] | None = None,
+    materials: list[CachedMaterial] | None = None,
+    services: list[CachedService] | None = None,
 ):
-    """Build a mock context whose ``cache.get_all`` returns the given
-    per-entity-type buckets. The handler keys cache lookups by
-    ``EntityType``; we side-effect the mock so each call returns the
-    right bucket.
+    """Build a mock context whose ``catalog.get_all`` returns the right
+    bucket based on which ``Cached*`` class the caller passes.
+
+    The handler keys cache lookups by class identity; we side-effect
+    the mock so each call returns the right list.
     """
     context, lifespan_ctx = create_mock_context()
-    by_type: dict[str, list[dict]] = {
-        "product": products or [],
-        "material": materials or [],
-        "service": services or [],
+    by_cls: dict[type, list[Any]] = {
+        CachedProduct: products or [],
+        CachedMaterial: materials or [],
+        CachedService: services or [],
     }
 
-    async def _get_all(entity_type):
-        # EntityType is a StrEnum; ``.value`` matches the dict key
-        return by_type.get(getattr(entity_type, "value", str(entity_type)), [])
+    async def _get_all(cls, **_kw):
+        return by_cls.get(cls, [])
 
-    lifespan_ctx.cache.get_all = AsyncMock(side_effect=_get_all)
+    lifespan_ctx.typed_cache.catalog.get_all = AsyncMock(side_effect=_get_all)
     return context
 
 
@@ -60,26 +92,6 @@ async def _call_and_parse(context) -> dict:
         result = await get_inventory_items(context)
     assert isinstance(result, str), "Resource handlers must return JSON strings"
     return json.loads(result)
-
-
-# ============================================================================
-# _filter_deleted helper
-# ============================================================================
-
-
-class TestFilterDeleted:
-    def test_drops_entries_with_truthy_deleted_at(self):
-        entities = [
-            {"id": 1, "deleted_at": None},
-            {"id": 2, "deleted_at": "2026-01-01T00:00:00Z"},
-            {"id": 3, "deleted_at": ""},  # empty string falsy → keep
-            {"id": 4},  # missing key → keep
-        ]
-        out = _filter_deleted(entities)
-        assert [e["id"] for e in out] == [1, 3, 4]
-
-    def test_empty_list_passthrough(self):
-        assert _filter_deleted([]) == []
 
 
 # ============================================================================
@@ -106,14 +118,14 @@ class TestInventoryItemsResource:
     async def test_summary_counts_match_cache_buckets(self):
         context = _make_context_with_cache(
             products=[
-                {"id": 1, "name": "Widget", "is_sellable": True},
-                {"id": 2, "name": "Gear", "is_sellable": True},
+                _make_product(id=1, name="Widget", is_sellable=True),
+                _make_product(id=2, name="Gear", is_sellable=True),
             ],
-            materials=[{"id": 100, "name": "Steel"}],
+            materials=[_make_material(id=100, name="Steel")],
             services=[
-                {"id": 200, "name": "Setup"},
-                {"id": 201, "name": "Calibration"},
-                {"id": 202, "name": "Inspection"},
+                _make_service(id=200, name="Setup"),
+                _make_service(id=201, name="Calibration"),
+                _make_service(id=202, name="Inspection"),
             ],
         )
         result = await _call_and_parse(context)
@@ -123,28 +135,6 @@ class TestInventoryItemsResource:
             "materials": 1,
             "services": 3,
         }
-
-    @pytest.mark.asyncio
-    async def test_deleted_entities_filtered_from_each_bucket(self):
-        context = _make_context_with_cache(
-            products=[
-                {"id": 1, "name": "Active", "deleted_at": None},
-                {"id": 2, "name": "Deleted", "deleted_at": "2026-01-01T00:00:00Z"},
-            ],
-            materials=[
-                {"id": 100, "name": "DeletedMat", "deleted_at": "2026-01-01T00:00:00Z"},
-                {"id": 101, "name": "ActiveMat"},
-            ],
-            services=[
-                {"id": 200, "name": "DeletedSvc", "deleted_at": "2026-01-01T00:00:00Z"},
-            ],
-        )
-        result = await _call_and_parse(context)
-        names = {item["name"] for item in result["items"]}
-        assert names == {"Active", "ActiveMat"}
-        assert result["summary"]["products"] == 1
-        assert result["summary"]["materials"] == 1
-        assert result["summary"]["services"] == 0
 
 
 # ============================================================================
@@ -163,13 +153,13 @@ class TestProductCapabilityDefaults:
     async def test_explicit_true_passes_through(self):
         context = _make_context_with_cache(
             products=[
-                {
-                    "id": 1,
-                    "name": "Widget",
-                    "is_sellable": True,
-                    "is_producible": True,
-                    "is_purchasable": True,
-                }
+                _make_product(
+                    id=1,
+                    name="Widget",
+                    is_sellable=True,
+                    is_producible=True,
+                    is_purchasable=True,
+                )
             ]
         )
         result = await _call_and_parse(context)
@@ -185,7 +175,9 @@ class TestProductCapabilityDefaults:
 
     @pytest.mark.asyncio
     async def test_missing_flags_default_to_false(self):
-        context = _make_context_with_cache(products=[{"id": 1, "name": "Sparse"}])
+        context = _make_context_with_cache(
+            products=[_make_product(id=1, name="Sparse")]
+        )
         result = await _call_and_parse(context)
         item = result["items"][0]
         assert item["is_sellable"] is False
@@ -196,13 +188,13 @@ class TestProductCapabilityDefaults:
     async def test_explicit_none_treated_as_false(self):
         context = _make_context_with_cache(
             products=[
-                {
-                    "id": 1,
-                    "name": "Nullable",
-                    "is_sellable": None,
-                    "is_producible": None,
-                    "is_purchasable": None,
-                }
+                _make_product(
+                    id=1,
+                    name="Nullable",
+                    is_sellable=None,
+                    is_producible=None,
+                    is_purchasable=None,
+                )
             ]
         )
         result = await _call_and_parse(context)
@@ -215,13 +207,13 @@ class TestProductCapabilityDefaults:
     async def test_explicit_false_stays_false(self):
         context = _make_context_with_cache(
             products=[
-                {
-                    "id": 1,
-                    "name": "Disabled",
-                    "is_sellable": False,
-                    "is_producible": False,
-                    "is_purchasable": False,
-                }
+                _make_product(
+                    id=1,
+                    name="Disabled",
+                    is_sellable=False,
+                    is_producible=False,
+                    is_purchasable=False,
+                )
             ]
         )
         result = await _call_and_parse(context)
@@ -243,14 +235,13 @@ class TestMaterialCapabilityDefaults:
     async def test_flags_are_constant(self):
         context = _make_context_with_cache(
             materials=[
-                {
-                    "id": 1,
-                    "name": "Steel",
+                _make_material(
+                    id=1,
+                    name="Steel",
                     # These should be ignored — handler hard-codes the answer.
-                    "is_sellable": True,
-                    "is_producible": True,
-                    "is_purchasable": False,
-                }
+                    is_sellable=True,
+                    is_purchasable=False,
+                )
             ]
         )
         result = await _call_and_parse(context)
@@ -275,7 +266,7 @@ class TestServiceCapabilityDefaults:
 
     @pytest.mark.asyncio
     async def test_missing_flag_defaults_to_sellable(self):
-        context = _make_context_with_cache(services=[{"id": 1, "name": "Setup"}])
+        context = _make_context_with_cache(services=[_make_service(id=1, name="Setup")])
         result = await _call_and_parse(context)
         item = result["items"][0]
         assert item["is_sellable"] is True
@@ -284,10 +275,8 @@ class TestServiceCapabilityDefaults:
 
     @pytest.mark.asyncio
     async def test_explicit_none_treated_as_sellable(self):
-        # Service-specific default: ``None`` is treated as sellable
-        # (services were historically not-flagged in the API).
         context = _make_context_with_cache(
-            services=[{"id": 1, "name": "Implicit", "is_sellable": None}]
+            services=[_make_service(id=1, name="Implicit", is_sellable=None)]
         )
         result = await _call_and_parse(context)
         item = result["items"][0]
@@ -296,7 +285,7 @@ class TestServiceCapabilityDefaults:
     @pytest.mark.asyncio
     async def test_explicit_false_disables_sellable(self):
         context = _make_context_with_cache(
-            services=[{"id": 1, "name": "Internal", "is_sellable": False}]
+            services=[_make_service(id=1, name="Internal", is_sellable=False)]
         )
         result = await _call_and_parse(context)
         item = result["items"][0]
@@ -305,7 +294,7 @@ class TestServiceCapabilityDefaults:
     @pytest.mark.asyncio
     async def test_explicit_true_passes_through(self):
         context = _make_context_with_cache(
-            services=[{"id": 1, "name": "Billable", "is_sellable": True}]
+            services=[_make_service(id=1, name="Billable", is_sellable=True)]
         )
         result = await _call_and_parse(context)
         item = result["items"][0]
@@ -330,7 +319,8 @@ class TestCacheSyncInvocation:
         A regression that reads stale cache data first and syncs after
         would still pass an "awaited once" assertion on each mock; this
         test fails it. Tracks ordering via a shared call log appended
-        from each sync's side_effect and from a wrapped ``cache.get_all``.
+        from each sync's side_effect and from a wrapped
+        ``catalog.get_all``.
         """
         call_log: list[str] = []
 
@@ -343,12 +333,12 @@ class TestCacheSyncInvocation:
         async def _sync_services(*_args, **_kw):
             call_log.append("sync:services")
 
-        async def _cache_get_all(entity_type):
-            call_log.append(f"read:{getattr(entity_type, 'value', entity_type)}")
+        async def _cache_get_all(cls, **_kw):
+            call_log.append(f"read:{getattr(cls, '__name__', cls)}")
             return []
 
         context, lifespan_ctx = create_mock_context()
-        lifespan_ctx.cache.get_all = AsyncMock(side_effect=_cache_get_all)
+        lifespan_ctx.typed_cache.catalog.get_all = AsyncMock(side_effect=_cache_get_all)
 
         with (
             patch(ENSURE_PRODUCTS, new=AsyncMock(side_effect=_sync_products)),

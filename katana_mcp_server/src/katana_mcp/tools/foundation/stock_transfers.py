@@ -317,19 +317,19 @@ async def _create_stock_transfer_impl(
     # the preview and apply paths use them. Source==destination is a
     # hard BLOCK enforced on the apply path too — defense in depth for
     # callers that skip the preview UI.
-    from katana_mcp.cache import EntityType
+    from katana_public_api_client.models_pydantic._generated import CachedLocation
 
     services = get_services(context)
     (src_name, src_warn), (dst_name, dst_warn) = await asyncio.gather(
         resolve_entity_name(
-            services.cache,
-            EntityType.LOCATION,
+            services.typed_cache.catalog,
+            CachedLocation,
             request.source_location_id,
             entity_label="Source location",
         ),
         resolve_entity_name(
-            services.cache,
-            EntityType.LOCATION,
+            services.typed_cache.catalog,
+            CachedLocation,
             request.destination_location_id,
             entity_label="Destination location",
         ),

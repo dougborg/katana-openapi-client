@@ -8,27 +8,14 @@ Usage::
     @cache_read(CachedVariant)
     async def _search_items_impl(request, context):
         services = get_services(context)
-        return await services.cache.smart_search("variant", request.query)
-
-
-    @cache_write("product", "variant")
-    async def _create_item_impl(request, context):
-        services = get_services(context)
-        return await services.client.products.create(...)
-
-The ``cache_read`` decorator now keys off the typed-cache ``Cached*``
-classes (``CachedVariant``, ``CachedProduct``, …) instead of the legacy
-``EntityType`` enum. During the #472 unification rollout the decorator
-runs **both** the legacy ``cache_sync.ensure_*_synced`` helper and the
-typed ``typed_cache.ensure_*_synced`` helper for each registered class
-so tool bodies see fresh data on either path. Phase D drops the legacy
-half along with the call sites that read from ``services.cache``.
+        return await services.typed_cache.catalog.smart_search(
+            CachedVariant, request.query
+        )
 """
 
 from __future__ import annotations
 
-import asyncio
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 from functools import wraps
 from typing import TYPE_CHECKING, Any, cast
 
@@ -38,85 +25,97 @@ if TYPE_CHECKING:
     from sqlmodel import SQLModel
 
     from katana_mcp.services.dependencies import Services
+    from katana_mcp.typed_cache import TypedCacheEngine
+    from katana_public_api_client import KatanaClient
 
 
-# Lazy-initialized cache of sync functions (avoids circular imports).
-# Keys are typed-cache ``Cached*`` classes; values are async wrappers
-# that fan out to the legacy ``cache_sync.ensure_*_synced(services)``
-# AND the typed ``typed_cache.ensure_*_synced(client, typed_cache)``
-# helpers (#472 Phase C). Phase D drops the legacy half.
-_sync_fns: dict[type[SQLModel], Callable[[Services], Awaitable[None]]] | None = None
-
-# (Cached* class, ensure-helper stem) — both ``cache_sync`` and ``typed_cache``
-# expose ``ensure_<stem>_synced``, differing only in argument shape (legacy
-# takes ``services``; typed takes ``client, cache``). The dual wrapper in
-# ``_get_sync_fns`` resolves the stem against both modules.
-_DUAL_SYNC_REGISTRY: tuple[tuple[str, str], ...] = (
-    ("CachedVariant", "variants"),
-    ("CachedProduct", "products"),
-    ("CachedMaterial", "materials"),
-    ("CachedService", "services"),
-    ("CachedSupplier", "suppliers"),
-    ("CachedCustomer", "customers"),
-    ("CachedLocation", "locations"),
-    ("CachedTaxRate", "tax_rates"),
-    ("CachedOperator", "operators"),
-    ("CachedFactory", "factory"),
-    ("CachedAdditionalCost", "additional_costs"),
-)
+# Lazy-initialized registry: ``Cached*`` class → ``ensure_<entity>_synced``.
+# The ``ensure_*`` helpers live in ``katana_mcp.typed_cache.sync``; importing
+# them at module load time would force ``sqlmodel`` and friends in before
+# the dependency-injection lifespan is wired up, so we defer the lookup
+# until the decorator first runs.
+_sync_fns: dict[type[Any], Any] | None = None
 
 
-def _get_sync_fns() -> dict[type[SQLModel], Callable[[Services], Awaitable[None]]]:
-    """Get the ``Cached*`` class → dual-sync wrapper mapping (initialized once).
+def _get_sync_fns() -> dict[type[Any], Any]:
+    """Get the ``Cached*`` class → sync function mapping (initialized once).
 
-    Each wrapper runs the legacy ``cache_sync.ensure_<stem>_synced(services)``
-    and the typed ``typed_cache.ensure_<stem>_synced(client, typed_cache)``
-    concurrently via ``asyncio.gather`` so both caches stay populated during
-    the Phase C → Phase D transition without serializing two API fetches.
-    The registry is tiny on purpose — Phase D removes the legacy half.
+    Indexed by class identity rather than ``StrEnum`` value because
+    Phase D retired the ``EntityType`` enum in favor of the typed
+    ``Cached*`` siblings — every catalog entity now has exactly one
+    ``Cached*`` SQLModel class that doubles as its registry key.
     """
     global _sync_fns  # noqa: PLW0603
     if _sync_fns is None:
-        from katana_mcp import cache_sync, typed_cache
-        from katana_public_api_client.models_pydantic import _generated as cached_models
-
-        def _dual(
-            legacy: Callable[[Services], Awaitable[None]],
-            typed: Callable[..., Awaitable[None]],
-        ) -> Callable[[Services], Awaitable[None]]:
-            async def _wrapped(services: Services) -> None:
-                await asyncio.gather(
-                    legacy(services),
-                    typed(services.client, services.typed_cache),
-                )
-
-            return _wrapped
+        from katana_mcp.typed_cache.sync import (
+            ensure_additional_costs_synced,
+            ensure_customers_synced,
+            ensure_factory_synced,
+            ensure_locations_synced,
+            ensure_materials_synced,
+            ensure_operators_synced,
+            ensure_products_synced,
+            ensure_services_synced,
+            ensure_suppliers_synced,
+            ensure_tax_rates_synced,
+            ensure_variants_synced,
+        )
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedAdditionalCost,
+            CachedCustomer,
+            CachedFactory,
+            CachedLocation,
+            CachedMaterial,
+            CachedOperator,
+            CachedProduct,
+            CachedService,
+            CachedSupplier,
+            CachedTaxRate,
+            CachedVariant,
+        )
 
         _sync_fns = {
-            getattr(cached_models, cls_name): _dual(
-                getattr(cache_sync, f"ensure_{stem}_synced"),
-                getattr(typed_cache, f"ensure_{stem}_synced"),
-            )
-            for cls_name, stem in _DUAL_SYNC_REGISTRY
+            CachedVariant: ensure_variants_synced,
+            CachedProduct: ensure_products_synced,
+            CachedMaterial: ensure_materials_synced,
+            CachedService: ensure_services_synced,
+            CachedSupplier: ensure_suppliers_synced,
+            CachedCustomer: ensure_customers_synced,
+            CachedLocation: ensure_locations_synced,
+            CachedTaxRate: ensure_tax_rates_synced,
+            CachedOperator: ensure_operators_synced,
+            CachedFactory: ensure_factory_synced,
+            CachedAdditionalCost: ensure_additional_costs_synced,
         }
     return _sync_fns
 
 
-def cache_read(*entity_classes: type[SQLModel]) -> Callable:
-    """Sync cache for the given typed ``Cached*`` classes before running the tool.
+async def _run_sync(
+    services: Services, sync_fn: Callable[[KatanaClient, TypedCacheEngine], Any]
+) -> None:
+    """Invoke a typed-cache ``ensure_<entity>_synced`` helper.
 
-    For each class the decorator looks up the registered sync wrapper in
-    ``_get_sync_fns()`` and awaits it. Each wrapper currently fans out to
-    BOTH the legacy ``CatalogCache`` sync helper AND the typed-cache
-    ``ensure_*_synced`` helper so tool bodies see fresh data on either
-    path during the #472 unification rollout. Phase D drops the legacy
-    half along with the ``services.cache`` call sites.
+    The typed-cache helpers take ``(client, cache)`` rather than the
+    ``Services`` container so they're usable outside the MCP tool
+    surface (cookbook recipes, ad-hoc scripts). The decorator bridges
+    the two shapes here so call sites remain
+    ``@cache_read(CachedVariant)`` without a ``services``-aware wrapper.
+    """
+    await sync_fn(services.client, services.typed_cache)
+
+
+def cache_read(*cached_classes: type[SQLModel]) -> Callable:
+    """Sync the typed cache for given ``Cached*`` classes before the tool runs.
+
+    Calls ``ensure_<entity>_synced(client, typed_cache)`` for each class
+    before invoking the decorated function. The function receives a
+    context with a guaranteed-fresh cache.
 
     Unknown classes raise ``ValueError`` at decoration time so a typo
     fails at import, not silently as a stale-cache read at first call.
 
     Args:
-        *entity_classes: Typed ``Cached*`` classes to sync (e.g.,
+        *cached_classes: ``Cached*`` SQLModel classes to sync (e.g.,
             ``CachedVariant``, ``CachedProduct``).
     """
     # Fail fast at decoration time so a typo blows up at import, not as
@@ -125,7 +124,7 @@ def cache_read(*entity_classes: type[SQLModel]) -> Callable:
     # mocks at call time — the wrapper re-resolves through
     # ``_get_sync_fns()``.
     registered = _get_sync_fns()
-    unknown = [cls for cls in entity_classes if cls not in registered]
+    unknown = [cls for cls in cached_classes if cls not in registered]
     if unknown:
         names = ", ".join(cls.__name__ for cls in unknown)
         known = ", ".join(sorted(c.__name__ for c in registered))
@@ -141,43 +140,12 @@ def cache_read(*entity_classes: type[SQLModel]) -> Callable:
             services = get_services(context)
 
             sync_fns = _get_sync_fns()
-            for cls in entity_classes:
-                sync_fn = sync_fns.get(cls)
+            for cached_cls in cached_classes:
+                sync_fn = sync_fns.get(cached_cls)
                 if sync_fn is not None:
-                    await sync_fn(services)
+                    await _run_sync(services, sync_fn)
 
             return await fn(*args, **kwargs)
-
-        return cast("F", wrapper)
-
-    return decorator
-
-
-def cache_write(*entity_types: str) -> Callable:
-    """Invalidate cache for entity types after a successful write.
-
-    Runs the decorated function normally. On success, marks the specified
-    entity types dirty so the next read triggers an incremental sync.
-    On exception, does NOT invalidate (the write didn't succeed).
-
-    Args:
-        *entity_types: Entity type names to invalidate (e.g., "product", "variant").
-    """
-
-    def decorator[F: Callable[..., Any]](fn: F) -> F:
-        @wraps(fn)
-        async def wrapper(*args: Any, **kwargs: Any) -> Any:
-            result = await fn(*args, **kwargs)
-
-            # Invalidate on success
-            context = kwargs.get("context") or args[-1]
-            services = get_services(context)
-            cache = getattr(services, "cache", None)
-            if cache:
-                for entity_type in entity_types:
-                    await cache.mark_dirty(entity_type)
-
-            return result
 
         return cast("F", wrapper)
 

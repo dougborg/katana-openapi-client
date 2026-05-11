@@ -130,14 +130,14 @@ async def test_create_purchase_order_preview_echoes_notes_and_resolves_names():
 
     # resolve_entity_name calls cache.get_by_id once per entity. Returning a
     # different dict for supplier vs location keeps both names distinct.
-    async def get_by_id(entity_type, entity_id):
+    async def get_by_id(entity_type, entity_id, **_kw):
         if entity_id == 4001:
             return {"id": 4001, "name": "Acme Supply Co"}
         if entity_id == 1:
             return {"id": 1, "name": "Main Warehouse"}
         return None
 
-    lifespan_ctx.cache.get_by_id = AsyncMock(side_effect=get_by_id)
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(side_effect=get_by_id)
 
     request = CreatePurchaseOrderRequest(
         supplier_id=4001,
@@ -173,14 +173,14 @@ async def test_create_purchase_order_apply_echoes_notes_and_resolves_names():
     """
     context, lifespan_ctx = create_mock_context()
 
-    async def get_by_id(entity_type, entity_id):
+    async def get_by_id(entity_type, entity_id, **_kw):
         if entity_id == 4001:
             return {"id": 4001, "name": "Acme Supply Co"}
         if entity_id == 1:
             return {"id": 1, "name": "Main Warehouse"}
         return None
 
-    lifespan_ctx.cache.get_by_id = AsyncMock(side_effect=get_by_id)
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(side_effect=get_by_id)
 
     # Build a typed RegularPurchaseOrder the live API would return on
     # success — the impl unwraps via ``unwrap_as`` and reads
@@ -247,7 +247,7 @@ async def test_create_purchase_order_apply_falls_back_to_request_notes_when_unse
     what the caller sent (#618).
     """
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_id = AsyncMock(return_value=None)
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
 
     from katana_public_api_client.models import (
         PurchaseOrderEntityType as APIPurchaseOrderEntityType,
@@ -305,7 +305,7 @@ async def test_create_purchase_order_apply_proceeds_when_cache_is_unhealthy():
     test pins that contract end-to-end on ``create_purchase_order``.
     """
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_id = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(
         side_effect=RuntimeError("database is locked")
     )
 
@@ -366,7 +366,7 @@ async def test_create_purchase_order_apply_forwards_new_header_fields():
     from datetime import UTC, datetime
 
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_id = AsyncMock(return_value=None)
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
 
     from katana_public_api_client.models import (
         PurchaseOrderEntityType as APIPurchaseOrderEntityType,
@@ -426,7 +426,7 @@ async def test_create_purchase_order_apply_omits_unset_header_fields():
     any caller intent — that's gone now (#605).
     """
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_id = AsyncMock(return_value=None)
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
 
     from katana_public_api_client.client_types import UNSET
     from katana_public_api_client.models import (
@@ -483,7 +483,7 @@ async def test_create_purchase_order_apply_fails_fast_on_outsourced_without_trac
     fail-fast at the MCP boundary is what they get.
     """
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_id = AsyncMock(return_value=None)
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
 
     request = CreatePurchaseOrderRequest(
         supplier_id=4001,
@@ -505,7 +505,7 @@ async def test_create_purchase_order_preview_warns_on_outsourced_without_trackin
     early instead of letting the user click apply and fail.
     """
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_id = AsyncMock(return_value=None)
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
 
     request = CreatePurchaseOrderRequest(
         supplier_id=4001,

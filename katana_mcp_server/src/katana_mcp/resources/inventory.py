@@ -15,21 +15,20 @@ from typing import Any
 
 from fastmcp import Context, FastMCP
 
-from katana_mcp.cache import EntityType
-from katana_mcp.cache_sync import (
+from katana_mcp.logging import get_logger
+from katana_mcp.services import get_services
+from katana_mcp.typed_cache import (
     ensure_materials_synced,
     ensure_products_synced,
     ensure_services_synced,
 )
-from katana_mcp.logging import get_logger
-from katana_mcp.services import get_services
+from katana_public_api_client.models_pydantic._generated import (
+    CachedMaterial,
+    CachedProduct,
+    CachedService,
+)
 
 logger = get_logger(__name__)
-
-
-def _filter_deleted(entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Filter out entities marked as deleted."""
-    return [e for e in entities if not e.get("deleted_at")]
 
 
 async def get_inventory_items(context: Context) -> str:
@@ -53,40 +52,41 @@ async def get_inventory_items(context: Context) -> str:
     start = time.monotonic()
     services = get_services(context)
 
-    # Ensure cache is fresh for all three item types
-    await ensure_products_synced(services)
-    await ensure_materials_synced(services)
-    await ensure_services_synced(services)
+    # Ensure cache is fresh for all three item types — typed-cache helpers
+    # take ``(client, cache)`` rather than the ``Services`` container.
+    await ensure_products_synced(services.client, services.typed_cache)
+    await ensure_materials_synced(services.client, services.typed_cache)
+    await ensure_services_synced(services.client, services.typed_cache)
 
-    # Read from cache
-    products_raw = await services.cache.get_all(EntityType.PRODUCT)
-    materials_raw = await services.cache.get_all(EntityType.MATERIAL)
-    services_raw = await services.cache.get_all(EntityType.SERVICE)
-
-    products = _filter_deleted(products_raw)
-    materials = _filter_deleted(materials_raw)
-    service_items = _filter_deleted(services_raw)
+    # Read from typed cache. ``get_all`` defaults to filtering archived /
+    # soft-deleted rows (papercut fix from #472 Phase B), which matches
+    # the legacy ``_filter_deleted`` behavior — pass nothing to keep the
+    # filter on, no explicit Python-side dropping needed.
+    catalog = services.typed_cache.catalog
+    products = await catalog.get_all(CachedProduct)
+    materials = await catalog.get_all(CachedMaterial)
+    service_items = await catalog.get_all(CachedService)
 
     items: list[dict[str, Any]] = []
 
     for p in products:
         items.append(
             {
-                "id": p.get("id"),
-                "name": p.get("name"),
+                "id": p.id,
+                "name": p.name,
                 "type": "product",
                 # Default None to False for products (conservative: unset means not flagged)
-                "is_sellable": p.get("is_sellable") is True,
-                "is_producible": p.get("is_producible") is True,
-                "is_purchasable": p.get("is_purchasable") is True,
+                "is_sellable": p.is_sellable is True,
+                "is_producible": p.is_producible is True,
+                "is_purchasable": p.is_purchasable is True,
             }
         )
 
     for m in materials:
         items.append(
             {
-                "id": m.get("id"),
-                "name": m.get("name"),
+                "id": m.id,
+                "name": m.name,
                 "type": "material",
                 "is_sellable": False,
                 "is_producible": False,
@@ -97,11 +97,11 @@ async def get_inventory_items(context: Context) -> str:
     for s in service_items:
         items.append(
             {
-                "id": s.get("id"),
-                "name": s.get("name"),
+                "id": s.id,
+                "name": s.name,
                 "type": "service",
                 # Services default to sellable when field is missing/None
-                "is_sellable": s.get("is_sellable") is not False,
+                "is_sellable": s.is_sellable is not False,
                 "is_producible": False,
                 "is_purchasable": False,
             }

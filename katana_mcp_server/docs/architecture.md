@@ -31,9 +31,10 @@ calls with its own retry / rate-limit logic.
 │  Services / dependencies (services/dependencies.py)        │
 │   get_services(context) → KatanaClient + caches            │
 ├────────────────────────────────────────────────────────────┤
-│  Caches (two, by design — see ADR-0018)                    │
-│   CatalogCache (cache.py)       — reference entities       │
-│   TypedCacheEngine (typed_cache/) — transactional entities │
+│  Cache (unified — see ADR-0018 + #472 Phase D)             │
+│   TypedCacheEngine (typed_cache/)                          │
+│   - catalog tier   — variants/products/materials/...       │
+│   - transactional  — sales/manufacturing/purchase orders   │
 ├────────────────────────────────────────────────────────────┤
 │  KatanaClient (katana_public_api_client)                   │
 │   - transport-layer resilience                             │
@@ -82,15 +83,15 @@ sync when tool surface changes.
 
 ### Cache-aware decorators
 
-`tools/decorators.py` provides `@cache_read(CachedVariant, ...)` and
-`@cache_write("entity_a", "entity_b")` decorators. `cache_read` keys off the typed-cache
-`Cached*` row class (e.g. `CachedVariant`, `CachedProduct`) and triggers an incremental
-sync of the named entity before invoking the tool. During the #472 unification rollout
-(Phase C) the decorator fans each sync out to BOTH the legacy `CatalogCache` helper and
-the typed-cache helper so tool bodies see fresh data on either path; Phase D drops the
-legacy half. `cache_write` invalidates the listed entities after a mutating call so the
-next list/get returns fresh data. Tool implementations stay focused on business logic;
-sync orchestration lives in the decorator.
+`tools/decorators.py` provides `@cache_read(CachedVariant, CachedProduct, ...)`.
+`cache_read` triggers an incremental sync of the named typed-cache entities before
+invoking the tool. Tool implementations stay focused on business logic; sync
+orchestration lives in the decorator.
+
+Cache invalidation after writes is **implicit**: the typed cache pulls incremental
+deltas via `updated_at_min` on every `@cache_read`-decorated call, so a freshly-created
+or modified entity is picked up automatically by the next read. The legacy `cache_write`
+/ `mark_dirty` mechanism was retired alongside `CatalogCache` (#472 Phase D).
 
 ## Resources
 
@@ -116,37 +117,36 @@ from katana_mcp.services import get_services
 
 services = get_services(context)
 client = services.client            # KatanaClient
-catalog_cache = services.cache      # CatalogCache
 typed_cache = services.typed_cache  # TypedCacheEngine
+catalog = services.typed_cache.catalog  # CatalogQueries adapter
 ```
 
 Lifespan management (engine open/close, client cleanup) is handled by `server.py`.
 
-## Caches
+## Cache
 
-The MCP server runs **two** complementary caches. They serve different needs and both
-are permanent — neither is a temporary stepping stone toward the other
-([ADR-0018](adr/0018-sqlmodel-typed-cache.md)).
-
-### CatalogCache (`katana_mcp/cache.py`, `cache_sync.py`)
-
-A generic SQLite + FTS5 store for the 10 reference entity types: variants, products,
-materials, services, suppliers, customers, locations, tax rates, operators, factories.
-Every row projects into a three-text-column `entity_index` (name, description, code) for
-cheap full-text search across heterogeneous types. Powers `search_items` and
-`get_variant_details`-style lookup tools.
+The MCP server runs a single SQLModel-backed cache covering both catalog and
+transactional tiers (see [ADR-0018](adr/0018-sqlmodel-typed-cache.md) for the original
+typed-cache architecture and #472 Phase D for the catalog unification).
 
 ### TypedCacheEngine (`katana_mcp/typed_cache/`)
 
-SQLModel-backed per-entity tables for transactional types: sales orders, manufacturing
-orders, purchase orders, stock adjustments, stock transfers, manufacturing-order recipe
-rows. Each entity has its own table with proper FK relationships and JSON columns;
-nested rows (sales-order rows, MO recipe rows, …) become child tables with FKs back to
-the parent.
+SQLModel-backed per-entity tables for every cached type. Each entity has its own table
+with proper FK relationships and JSON columns; nested rows (sales-order rows, MO recipe
+rows, ...) become child tables with FKs back to the parent.
 
-The transactional types' filter shape (status enums, date ranges, customer/ supplier
-IDs, variant-id-via-rows) and 30+-field schemas don't fit `CatalogCache`'s
-three-text-column projection — hence the dedicated typed store.
+**Catalog tier** (11 entity types): variants, products, materials, services, suppliers,
+customers, locations, tax rates, operators, factories, additional costs. Search via
+per-entity FTS5 sidecar tables (`<entity>_fts`) wired through a `CatalogQueries` adapter
+exposed at `services.typed_cache.catalog`. The adapter provides typed `get_by_id` /
+`get_by_sku` / `get_many_by_ids` / `get_all` / `smart_search` / `search_fuzzy` methods
+that return `Cached*` SQLModel instances directly (not dict shims), with default
+`include_archived=False` / `include_deleted=False` filters.
+
+**Transactional tier** (10 entity types counting child rows): sales orders,
+manufacturing orders (+ recipe rows), purchase orders (+ rows), stock adjustments (+
+rows), stock transfers (+ rows). Searched via SQL `WHERE` clauses; no FTS sidecar —
+these tables don't carry free-text fields.
 
 ### EntitySpec — the generic sync driver
 
@@ -213,9 +213,13 @@ bugs at the client/generator layer").
    integration; use elicitation for any state-changing operation.
 1. **Follow ADR-0019** for naming (`<entity>_<field>s` for batch list filters, singular
    for `get_*`) and the docstring opening sentence.
-1. **If the tool reads from cache,** add `@cache_read(CachedEntity)` keyed by the typed
-   `Cached*` row class. If it writes, add `@cache_write("entity_a", "entity_b")` listing
-   every entity whose cache should be invalidated.
+1. **If the tool reads from cache,** add `@cache_read(CachedEntity, ...)` keyed by the
+   typed-cache `Cached*` SQLModel class (e.g. `CachedVariant`, `CachedProduct`).
+   Mutating tools do **not** need an explicit invalidation decorator — the typed cache
+   pulls incremental deltas via `updated_at_min` on every `@cache_read`-decorated call,
+   so a freshly-created or modified entity is picked up by the next read. The legacy
+   `@cache_write` / `mark_dirty` mechanism was retired with `CatalogCache` (#472 Phase
+   D).
 1. **For new transactional list tools backed by typed cache:** add an `EntitySpec`
    literal in `typed_cache/sync.py` and a thin `ensure_<entity>_synced` wrapper. The
    `Cached<Entity>` row class is auto-generated from the spec by the next regen.

@@ -1,11 +1,12 @@
-"""``CatalogQueries`` adapter — typed read API over ``TypedCacheEngine`` (#472 Phase B).
+"""``CatalogQueries`` adapter — typed read API over ``TypedCacheEngine`` (#472 Phase B/D).
 
-Phase D will migrate ~33 ``services.cache.<method>`` call sites onto this
-adapter. Until then it ships unused except by Phase B's own tests, but
-it's the single place where the new typed-cache search semantics — the
-SKU-shaped tokenizer fix, the FTS-syntax-error fall-through to fuzzy,
-and the default ``include_archived=False`` / ``include_deleted=False``
-filters — converge.
+This adapter is the single read path for the catalog tier as of #472
+Phase D — the legacy ``CatalogCache`` was decommissioned and all ~33
+``services.cache.<method>`` call sites moved onto it. The new
+typed-cache search semantics — the SKU-shaped tokenizer fix, the
+FTS-syntax-error fall-through to fuzzy, and the default
+``include_archived=False`` / ``include_deleted=False`` filters —
+converge here.
 
 The legacy ``CatalogCache`` returned ``dict[str, Any]`` rows. This
 adapter returns the typed ``Cached*`` SQLModel instances directly, so

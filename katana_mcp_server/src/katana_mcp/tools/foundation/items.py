@@ -14,7 +14,6 @@ from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools._modification import (
@@ -99,6 +98,25 @@ from katana_public_api_client.models_pydantic._generated import (
 )
 
 logger = get_logger(__name__)
+
+
+def _attr(obj: Any, name: str, default: Any = None) -> Any:
+    """Read ``name`` from a cache row, attrs model, OR dict uniformly.
+
+    Cached SQLModel rows expose plain attributes; attrs API models use
+    the ``UNSET`` sentinel for missing optional fields; tests
+    occasionally fixture in raw dicts (the legacy cache shape) — accept
+    all three so call sites stay agnostic to which side filled the
+    slot (cache hit vs. API-fallback vs. test fixture). Used by the
+    variant-enrichment paths after the #472 Phase D migration.
+    """
+    if obj is None:
+        return default
+    if isinstance(obj, dict):
+        val = obj.get(name, default)
+    else:
+        val = getattr(obj, name, default)
+    return default if val is UNSET else val
 
 
 # ============================================================================
@@ -194,26 +212,34 @@ async def _search_items_impl(
         raise ValueError("Limit must be positive")
 
     services = get_services(context)
-    variant_dicts = await services.cache.smart_search(
-        "variant",
+    variants = await services.typed_cache.catalog.smart_search(
+        CachedVariant,
         request.query,
         limit=request.limit,
         include_archived=request.include_archived,
     )
 
     # Variants inherit archived state from their parent product/material;
-    # ``parent_archived_at`` is set during sync (see cache_sync._variant_to_cache_dict).
+    # ``parent_archived_at`` is denormalized at sync time on the
+    # ``CachedVariant`` row (see ``_variant_postprocess`` in
+    # ``typed_cache/sync.py``).
+    def _item_type(v: Any) -> str:
+        type_val = _attr(v, "type")
+        if type_val is None:
+            return "unknown"
+        return type_val.value if hasattr(type_val, "value") else str(type_val)
+
     items_info = [
         ItemInfo(
-            id=v["id"],
-            sku=v.get("sku") or "",
-            name=v.get("display_name") or v.get("sku") or "",
-            item_type=v.get("type") or "unknown",
-            is_sellable=v.get("type") == "product",
+            id=_attr(v, "id"),
+            sku=_attr(v, "sku") or "",
+            name=_attr(v, "display_name") or _attr(v, "sku") or "",
+            item_type=_item_type(v),
+            is_sellable=_item_type(v) == "product",
             stock_level=None,
-            is_archived=v.get("parent_archived_at") is not None,
+            is_archived=_attr(v, "parent_archived_at") is not None,
         )
-        for v in variant_dicts
+        for v in variants
     ]
 
     return SearchItemsResponse(items=items_info, total_count=len(items_info))
@@ -357,7 +383,6 @@ async def _create_item_impl(
 ) -> CreateItemResponse:
     """Create a product, material, or service with a variant."""
     services = get_services(context)
-    cache = getattr(services, "cache", None)
 
     # Build variant (services use a different variant model)
     if request.type == ItemType.SERVICE:
@@ -421,10 +446,10 @@ async def _create_item_impl(
         else:
             raise ValueError(f"Invalid item type: {request.type}")
 
-    # Invalidate only the affected type + variants
-    if cache:
-        await cache.mark_dirty(request.type.value)
-        await cache.mark_dirty(EntityType.VARIANT)
+    # No explicit invalidation needed: the typed cache pulls incremental
+    # deltas via ``updated_at_min`` on every ``@cache_read``-decorated
+    # call, so the next ``search_items`` / ``get_variant_details`` sees
+    # the new row without a manual dirty bit.
 
     return CreateItemResponse(
         id=result.id,
@@ -1197,18 +1222,19 @@ async def _fetch_variant_for_diff(services: Any, variant_id: int) -> Variant | N
     )
 
 
-async def _invalidate_item_cache(services: Any, item_type: ItemType) -> None:
-    """Mark the per-type entity row and the variants table dirty.
+async def _invalidate_item_cache(_services: Any, _item_type: ItemType) -> None:
+    """No-op kept for call-site compatibility.
 
-    The typed cache stores variants and per-type entities (products /
-    materials / services) separately. After an applied modify or delete
-    we invalidate both so the next read sees fresh data. Other modify_*
-    tools don't need this because their entity types aren't cache-backed.
+    Pre-#472 this marked the per-type entity row and the variants table
+    dirty in the legacy ``CatalogCache``. The typed cache (#342) pulls
+    incremental deltas via ``updated_at_min`` on every
+    ``@cache_read``-decorated call, so the next ``search_items`` /
+    ``get_variant_details`` sees the new row without a manual dirty bit.
+    Phase D folded the legacy cache out, leaving this helper as a
+    no-op rather than ripping it out — it's still a useful seam if
+    we ever need to add a cache hook back at the modify-apply path.
     """
-    cache = getattr(services, "cache", None)
-    if cache:
-        await cache.mark_dirty(item_type.value)
-        await cache.mark_dirty(EntityType.VARIANT)
+    return None
 
 
 async def _modify_item_impl(
@@ -1571,21 +1597,32 @@ def _iso_or_none(value: Any) -> str | None:
 
 
 def _dict_to_variant_details(
-    v: dict[str, Any],
+    v: Any,
     *,
-    parent: dict[str, Any] | None = None,
-    supplier: dict[str, Any] | None = None,
+    parent: Any | None = None,
+    supplier: Any | None = None,
 ) -> VariantDetailsResponse:
-    """Build a VariantDetailsResponse from a cache/API variant dict.
+    """Build a VariantDetailsResponse from a variant cache row or attrs model.
 
     Surfaces every field the generated ``Variant`` attrs model exposes
     plus the parent-derived context (``uom``, ``default_supplier_*``,
-    ``is_batch_tracked``) when ``parent`` and/or ``supplier`` dicts are
+    ``is_batch_tracked``) when ``parent`` and/or ``supplier`` rows are
     supplied. Both are optional; missing parents/suppliers (cold cache,
     miss) gracefully degrade to ``None`` for those fields.
+
+    Accepts either a ``CachedVariant`` SQLModel (the cache hit path)
+    or a generated ``Variant`` attrs model (the API-fallback path)
+    via ``_attr``, which unwraps ``UNSET`` for the attrs side and
+    returns plain attributes for the cache side.
+
+    The ``config_attributes`` / ``custom_fields`` fields come back as
+    typed pydantic objects on the cache side (``ConfigAttribute`` /
+    ``CustomField``); we ``model_dump()`` them so the response remains
+    plain-dict-shaped for JSON consumers — same wire shape the legacy
+    cache emitted via ``json_columns``.
     """
-    product_id = v.get("product_id")
-    material_id = v.get("material_id")
+    product_id = _attr(v, "product_id")
+    material_id = _attr(v, "material_id")
     # Variants don't have their own page in Katana; link to whichever
     # parent (product or material) actually owns this variant. Picking
     # by which field is non-null (vs `or`) keeps the kind correct if
@@ -1593,42 +1630,47 @@ def _dict_to_variant_details(
     parent_url = katana_web_url("product", product_id) or katana_web_url(
         "material", material_id
     )
-    parent_dict = parent or {}
+    type_val = _attr(v, "type")
+    type_str = type_val.value if hasattr(type_val, "value") else type_val
+
+    def _dump_list(items: Any) -> list[Any]:
+        if not items:
+            return []
+        return [
+            item.model_dump() if hasattr(item, "model_dump") else item for item in items
+        ]
+
     return VariantDetailsResponse(
-        id=v["id"],
-        sku=v.get("sku") or "",
-        name=v.get("display_name") or v.get("sku") or "",
-        sales_price=v.get("sales_price"),
-        purchase_price=v.get("purchase_price"),
-        type=v.get("type") or v.get("type_"),
+        id=_attr(v, "id"),
+        sku=_attr(v, "sku") or "",
+        name=_attr(v, "display_name") or _attr(v, "sku") or "",
+        sales_price=_attr(v, "sales_price"),
+        purchase_price=_attr(v, "purchase_price"),
+        type=type_str,
         product_id=product_id,
         material_id=material_id,
-        product_or_material_name=v.get("parent_name"),
-        uom=parent_dict.get("uom"),
-        default_supplier_id=parent_dict.get("default_supplier_id"),
-        default_supplier_name=(supplier or {}).get("name"),
-        is_batch_tracked=parent_dict.get("batch_tracked"),
+        product_or_material_name=_attr(v, "parent_name"),
+        uom=_attr(parent, "uom"),
+        default_supplier_id=_attr(parent, "default_supplier_id"),
+        default_supplier_name=_attr(supplier, "name"),
+        is_batch_tracked=_attr(parent, "batch_tracked"),
         katana_url=parent_url,
-        internal_barcode=v.get("internal_barcode"),
-        registered_barcode=v.get("registered_barcode"),
-        supplier_item_codes=v.get("supplier_item_codes") or [],
-        lead_time=v.get("lead_time"),
-        minimum_order_quantity=v.get("minimum_order_quantity"),
-        config_attributes=v.get("config_attributes") or [],
-        custom_fields=v.get("custom_fields") or [],
-        created_at=_iso_or_none(v.get("created_at")),
-        updated_at=_iso_or_none(v.get("updated_at")),
-        deleted_at=_iso_or_none(v.get("deleted_at")),
+        internal_barcode=_attr(v, "internal_barcode"),
+        registered_barcode=_attr(v, "registered_barcode"),
+        supplier_item_codes=_attr(v, "supplier_item_codes") or [],
+        lead_time=_attr(v, "lead_time"),
+        minimum_order_quantity=_attr(v, "minimum_order_quantity"),
+        config_attributes=_dump_list(_attr(v, "config_attributes")),
+        custom_fields=_dump_list(_attr(v, "custom_fields")),
+        created_at=_iso_or_none(_attr(v, "created_at")),
+        updated_at=_iso_or_none(_attr(v, "updated_at")),
+        deleted_at=_iso_or_none(_attr(v, "deleted_at")),
     )
 
 
 async def _enrich_variants_with_parent(
-    services: Any, variants: list[dict[str, Any]]
-) -> tuple[
-    dict[int, dict[str, Any]],
-    dict[int, dict[str, Any]],
-    dict[int, dict[str, Any]],
-]:
+    services: Any, variants: list[Any]
+) -> tuple[dict[int, Any], dict[int, Any], dict[int, Any]]:
     """Bulk-fetch parent products/materials and default suppliers for a
     set of variants. Returns ``(products_by_id, materials_by_id,
     supplier_by_id)`` — separate maps per entity type so callers can
@@ -1636,42 +1678,64 @@ async def _enrich_variants_with_parent(
     ``product_id`` or ``material_id``.
 
     Product and material IDs are NOT guaranteed disjoint (the cache
-    keys rows by ``(entity_type, id)``), so merging into a single map
-    keyed only by numeric ID would mis-associate parents on collision.
+    used to key rows by ``(entity_type, id)``; the typed cache keeps
+    the same shape via per-class tables), so merging into a single
+    map keyed only by numeric ID would mis-associate parents on
+    collision — see CLAUDE.md "Cache IDs are not globally unique".
 
     Splits parent IDs by entity type and uses ``get_many_by_ids`` per
     type so we make at most three cache queries total
     (parents-product, parents-material, suppliers) regardless of how
-    many variants are in the input.
+    many variants are in the input. Passes ``include_archived=True``
+    /``include_deleted=True`` so direct-lookup (variant → parent)
+    enrichment doesn't drop rows for archived parents — the
+    ``is_archived`` flag still surfaces on the response, but the
+    parent's ``uom`` / ``default_supplier_*`` data still loads.
     """
-    product_ids = {v.get("product_id") for v in variants if v.get("product_id")}
-    material_ids = {v.get("material_id") for v in variants if v.get("material_id")}
+    product_ids = {pid for v in variants if (pid := _attr(v, "product_id"))}
+    material_ids = {mid for v in variants if (mid := _attr(v, "material_id"))}
+    catalog = services.typed_cache.catalog
     products, materials = await asyncio.gather(
-        services.cache.get_many_by_ids(EntityType.PRODUCT, product_ids),
-        services.cache.get_many_by_ids(EntityType.MATERIAL, material_ids),
+        catalog.get_many_by_ids(
+            CachedProduct, product_ids, include_archived=True, include_deleted=True
+        ),
+        catalog.get_many_by_ids(
+            CachedMaterial, material_ids, include_archived=True, include_deleted=True
+        ),
     )
-    # Pull supplier IDs from both parent dicts, then bulk-resolve
+    # Pull supplier IDs from both parent rows, then bulk-resolve
     # supplier names — usually a small unique set even for big variant lists.
     supplier_ids = {
-        p.get("default_supplier_id")
+        sid
         for p in (*products.values(), *materials.values())
-        if p.get("default_supplier_id")
+        if (sid := _attr(p, "default_supplier_id"))
     }
-    supplier_by_id = await services.cache.get_many_by_ids(
-        EntityType.SUPPLIER, supplier_ids
+    supplier_by_id = await catalog.get_many_by_ids(
+        CachedSupplier, supplier_ids, include_deleted=True
     )
     return products, materials, supplier_by_id
 
 
-async def _fetch_variant_by_id(services: Any, variant_id: int) -> dict[str, Any] | None:
+async def _fetch_variant_by_id(services: Any, variant_id: int) -> Any | None:
     """Look up a variant by ID — cache first, then API fallback.
 
-    Returns None if the variant is not found. Uses ``raise_on_error=False``
-    so a 404 (or an ErrorResponse body) becomes ``None`` instead of a raw
-    ``APIError``, which is what callers expect as the "not found" sentinel.
+    Returns either a ``CachedVariant`` (cache hit) or a ``Variant``
+    attrs model (API fallback), or ``None`` if neither path turned
+    up the row. Both shapes share the field names callers read
+    (``id``, ``sku``, ``product_id``, ``material_id``, ...), so
+    callers use ``_attr`` to access them uniformly.
+
+    Uses ``raise_on_error=False`` so a 404 (or an ErrorResponse body)
+    becomes ``None`` instead of a raw ``APIError``, which is what
+    callers expect as the "not found" sentinel. Passes
+    ``include_archived=True`` / ``include_deleted=True`` to the
+    cache lookup so direct-lookup parity matches the legacy cache
+    (every row regardless of soft-state).
     """
-    v = await services.cache.get_by_id(EntityType.VARIANT, variant_id)
-    if v:
+    v = await services.typed_cache.catalog.get_by_id(
+        CachedVariant, variant_id, include_archived=True, include_deleted=True
+    )
+    if v is not None:
         return v
     # Cache miss — fetch from API
     from katana_public_api_client.api.variant import get_variant
@@ -1682,7 +1746,7 @@ async def _fetch_variant_by_id(services: Any, variant_id: int) -> dict[str, Any]
     variant_obj = unwrap(response, raise_on_error=False)
     if variant_obj is None or isinstance(variant_obj, ErrorResponse):
         return None
-    return variant_obj.to_dict()
+    return variant_obj
 
 
 def _collect_variant_identifiers(
@@ -1733,18 +1797,18 @@ def _is_singular_request(request: GetVariantDetailsRequest) -> bool:
 def _partition_variant_lookups(
     *,
     sku_cleaned: list[str],
-    sku_variants: list[dict[str, Any] | None],
+    sku_variants: list[Any | None],
     variant_ids: list[int],
-    id_variants: list[dict[str, Any] | None],
+    id_variants: list[Any | None],
     is_singular_request: bool,
-) -> tuple[list[dict[str, Any]], list[VariantNotFound]]:
+) -> tuple[list[Any], list[VariantNotFound]]:
     """Split parallel-lookup results into hits and misses. In singular
     mode, the first miss raises; in batch mode, misses accumulate into
     ``not_found`` and processing continues."""
-    hits: list[dict[str, Any]] = []
+    hits: list[Any] = []
     not_found: list[VariantNotFound] = []
     for sku, v in zip(sku_cleaned, sku_variants, strict=True):
-        if not v:
+        if v is None:
             if is_singular_request:
                 raise ValueError(f"Variant with SKU '{sku}' not found")
             not_found.append(VariantNotFound(sku=sku))
@@ -1784,10 +1848,18 @@ async def _get_variant_details_impl(
     is_singular_request = _is_singular_request(request)
 
     services = get_services(context)
+    catalog = services.typed_cache.catalog
 
-    # Parallelize both groups of lookups
+    # Parallelize both groups of lookups. Direct-lookup parity with the
+    # legacy cache: include archived/deleted variants so the user can
+    # still inspect rows they're cleaning up.
     sku_variants, id_variants = await asyncio.gather(
-        asyncio.gather(*(services.cache.get_by_sku(s) for s in sku_cleaned)),
+        asyncio.gather(
+            *(
+                catalog.get_by_sku(s, include_archived=True, include_deleted=True)
+                for s in sku_cleaned
+            )
+        ),
         asyncio.gather(*(_fetch_variant_by_id(services, v) for v in variant_ids)),
     )
 
@@ -1809,13 +1881,15 @@ async def _get_variant_details_impl(
     for v in hits:
         # Pick the parent map by which ID the variant carries — product
         # and material IDs may collide, so a merged map would mis-attach.
-        if v.get("product_id"):
-            parent = products.get(v["product_id"])
-        elif v.get("material_id"):
-            parent = materials.get(v["material_id"])
+        product_id = _attr(v, "product_id")
+        material_id = _attr(v, "material_id")
+        if product_id:
+            parent = products.get(product_id)
+        elif material_id:
+            parent = materials.get(material_id)
         else:
             parent = None
-        sup_id = (parent or {}).get("default_supplier_id")
+        sup_id = _attr(parent, "default_supplier_id")
         supplier = supplier_by_id.get(sup_id) if sup_id else None
         found.append(_dict_to_variant_details(v, parent=parent, supplier=supplier))
 

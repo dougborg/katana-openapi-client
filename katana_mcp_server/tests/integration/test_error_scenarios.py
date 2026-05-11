@@ -56,10 +56,7 @@ def _patch_cache_sync():
         CachedSupplier: AsyncMock(),
     }
     try:
-        with patch(
-            "katana_mcp.cache_sync.ensure_variants_synced", new_callable=AsyncMock
-        ):
-            yield
+        yield
     finally:
         decorators._sync_fns = original
 
@@ -126,7 +123,7 @@ class TestAPIErrorHandling:
         context, lifespan_ctx = create_mock_context()
 
         # Cache returns None (SKU not found)
-        lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
+        lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=None)
 
         request = CheckInventoryRequest(skus_or_variant_ids=["NONEXISTENT-SKU"])
         _inv_results = await _check_inventory_impl(request, context)
@@ -142,7 +139,7 @@ class TestAPIErrorHandling:
         context, lifespan_ctx = create_mock_context()
 
         # Cache returns None (not found)
-        lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
+        lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=None)
 
         request = GetVariantDetailsRequest(sku="NONEXISTENT-SKU")
         with pytest.raises(ValueError, match="not found"):
@@ -153,7 +150,7 @@ class TestAPIErrorHandling:
         context, lifespan_ctx = create_mock_context()
 
         # Cache returns empty list
-        lifespan_ctx.cache.smart_search = AsyncMock(return_value=[])
+        lifespan_ctx.typed_cache.catalog.smart_search = AsyncMock(return_value=[])
 
         request = SearchItemsRequest(query="xyznonexistent123")
         result = await _search_items_impl(request, context)
@@ -166,7 +163,7 @@ class TestAPIErrorHandling:
         context, lifespan_ctx = create_mock_context()
 
         # Cache finds the variant but API call fails
-        lifespan_ctx.cache.get_by_sku = AsyncMock(
+        lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
             return_value={"id": 1, "sku": "TEST-SKU", "display_name": "Test"}
         )
 
@@ -190,7 +187,7 @@ class TestNetworkErrorHandling:
         context, lifespan_ctx = create_mock_context()
 
         # Cache finds the variant but connection fails
-        lifespan_ctx.cache.get_by_sku = AsyncMock(
+        lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
             return_value={"id": 1, "sku": "TEST-SKU", "display_name": "Test"}
         )
 
@@ -209,7 +206,7 @@ class TestNetworkErrorHandling:
         context, lifespan_ctx = create_mock_context()
 
         # Mock cache search raising timeout error
-        lifespan_ctx.cache.smart_search = AsyncMock(
+        lifespan_ctx.typed_cache.catalog.smart_search = AsyncMock(
             side_effect=TimeoutError("Request timed out")
         )
 
@@ -261,14 +258,16 @@ class TestDataConsistencyErrors:
             "type": "product",
             "display_name": "Temp Item",
         }
-        lifespan_ctx.cache.smart_search = AsyncMock(return_value=[cached_variant])
+        lifespan_ctx.typed_cache.catalog.smart_search = AsyncMock(
+            return_value=[cached_variant]
+        )
 
         search_request = SearchItemsRequest(query="TEMP")
         search_result = await _search_items_impl(search_request, context)
         assert len(search_result.items) == 1
 
         # But SKU lookup returns None (item deleted/cache stale)
-        lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
+        lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=None)
 
         details_request = GetVariantDetailsRequest(sku="TEMP-SKU")
         with pytest.raises(ValueError, match="not found"):
@@ -281,7 +280,9 @@ class TestDataConsistencyErrors:
         # Cached variant with minimal/null fields
         cached_variant = {"id": 1}
 
-        lifespan_ctx.cache.smart_search = AsyncMock(return_value=[cached_variant])
+        lifespan_ctx.typed_cache.catalog.smart_search = AsyncMock(
+            return_value=[cached_variant]
+        )
 
         request = SearchItemsRequest(query="test")
         result = await _search_items_impl(request, context)

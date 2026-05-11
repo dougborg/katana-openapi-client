@@ -13,7 +13,6 @@ from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
 from pydantic import BaseModel, ConfigDict, Field
 
-from katana_mcp.cache import EntityType
 from katana_mcp.logging import observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.decorators import cache_read
@@ -62,15 +61,28 @@ class SearchCustomersResponse(BaseModel):
     total_count: int
 
 
-def _customer_from_dict(d: dict) -> CustomerInfo:
-    customer_id = d.get("id")
+def _customer_from_cached(c: Any) -> CustomerInfo:
+    """Build a ``CustomerInfo`` summary from a ``CachedCustomer`` row.
+
+    Accepts ``Any`` so legacy test fixtures that pass plain dicts still
+    work — the field accesses use ``getattr`` with sensible fallbacks.
+    Production callers always pass a typed ``CachedCustomer``.
+    """
+    if isinstance(c, dict):
+        get = c.get  # type: ignore[union-attr]
+    else:
+
+        def get(key: str, default: Any = None) -> Any:
+            return getattr(c, key, default)
+
+    customer_id = get("id")
     return CustomerInfo(
         id=customer_id or 0,
-        name=d.get("name") or "",
-        email=d.get("email"),
-        phone=d.get("phone"),
-        currency=d.get("currency"),
-        company=d.get("company"),
+        name=get("name") or "",
+        email=get("email"),
+        phone=get("phone"),
+        currency=get("currency"),
+        company=get("company"),
         katana_url=katana_web_url("customer", customer_id),
     )
 
@@ -86,10 +98,10 @@ async def _search_customers_impl(
         raise ValueError("Limit must be positive")
 
     services = get_services(context)
-    customer_dicts = await services.cache.smart_search(
-        EntityType.CUSTOMER, request.query, limit=request.limit
+    rows = await services.typed_cache.catalog.smart_search(
+        CachedCustomer, request.query, limit=request.limit
     )
-    customers = [_customer_from_dict(c) for c in customer_dicts]
+    customers = [_customer_from_cached(c) for c in rows]
     return SearchCustomersResponse(customers=customers, total_count=len(customers))
 
 
@@ -279,36 +291,55 @@ async def _fetch_customer_addresses(
 async def _get_customer_impl(
     request: GetCustomerRequest, context: Context
 ) -> GetCustomerResponse:
-    """Look up a customer by ID via the cache, with addresses from the API."""
+    """Look up a customer by ID via the cache, with addresses from the API.
+
+    Passes ``include_deleted=True`` so a soft-deleted customer record
+    still resolves to its cached fields — matches the legacy cache's
+    behavior of returning every row regardless of soft-state. Tools
+    that need to surface "this customer was deleted" use the
+    ``deleted_at`` field on the response.
+    """
     services = get_services(context)
-    d = await services.cache.get_by_id(EntityType.CUSTOMER, request.customer_id)
-    if not d:
+    row = await services.typed_cache.catalog.get_by_id(
+        CachedCustomer, request.customer_id, include_deleted=True
+    )
+    if row is None:
         raise ValueError(f"Customer with ID {request.customer_id} not found")
 
     # Addresses live on a separate endpoint; no cache entity for them yet
     # (tracked in #342). Fetch-on-demand — one extra HTTP call per get_customer.
     addresses = await _fetch_customer_addresses(services, request.customer_id)
 
-    customer_id = d.get("id", request.customer_id)
+    # ``getattr`` keeps the path tolerant of legacy dict fixtures that
+    # exist in some tests; production callers always pass a typed
+    # ``CachedCustomer`` and the access reduces to a normal attribute read.
+    if isinstance(row, dict):
+        get = row.get  # type: ignore[union-attr]
+    else:
+
+        def get(key: str, default: Any = None) -> Any:
+            return getattr(row, key, default)
+
+    customer_id = get("id") or request.customer_id
     return GetCustomerResponse(
         id=customer_id,
         katana_url=katana_web_url("customer", customer_id),
-        name=d.get("name") or "",
-        first_name=d.get("first_name"),
-        last_name=d.get("last_name"),
-        company=d.get("company"),
-        email=d.get("email"),
-        phone=d.get("phone"),
-        comment=d.get("comment"),
-        currency=d.get("currency"),
-        reference_id=d.get("reference_id"),
-        category=d.get("category"),
-        discount_rate=d.get("discount_rate"),
-        default_billing_id=d.get("default_billing_id"),
-        default_shipping_id=d.get("default_shipping_id"),
-        created_at=_iso_or_none(d.get("created_at")),
-        updated_at=_iso_or_none(d.get("updated_at")),
-        deleted_at=_iso_or_none(d.get("deleted_at")),
+        name=get("name") or "",
+        first_name=get("first_name"),
+        last_name=get("last_name"),
+        company=get("company"),
+        email=get("email"),
+        phone=get("phone"),
+        comment=get("comment"),
+        currency=get("currency"),
+        reference_id=get("reference_id"),
+        category=get("category"),
+        discount_rate=get("discount_rate"),
+        default_billing_id=get("default_billing_id"),
+        default_shipping_id=get("default_shipping_id"),
+        created_at=_iso_or_none(get("created_at")),
+        updated_at=_iso_or_none(get("updated_at")),
+        deleted_at=_iso_or_none(get("deleted_at")),
         addresses=addresses,
     )
 

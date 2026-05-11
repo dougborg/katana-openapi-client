@@ -22,7 +22,6 @@ from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
 from pydantic import BaseModel, ConfigDict, Field
 
-from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools._modification import (
@@ -114,6 +113,7 @@ from katana_public_api_client.models import (
     UpdateManufacturingOrderRequest as APIUpdateManufacturingOrderRequest,
 )
 from katana_public_api_client.models_pydantic._generated import (
+    CachedVariant,
     OutsourcedPurchaseOrderIngredientAvailability,
 )
 from katana_public_api_client.utils import unwrap_as
@@ -990,11 +990,21 @@ async def _fetch_mo_recipe_rows(
         for v_id in (unwrap_unset(row.variant_id, None) for row in raw_rows)
         if v_id is not None
     }
-    variants = await services.cache.get_many_by_ids(EntityType.VARIANT, variant_ids)
+    variants = await services.typed_cache.catalog.get_many_by_ids(
+        CachedVariant, variant_ids, include_deleted=True
+    )
+
+    def _sku_for(v: Any) -> Any:
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            return v.get("sku")
+        return getattr(v, "sku", None)
+
     return [
         _recipe_row_info_from_attrs(
             row,
-            (variants.get(v_id) or {}).get("sku")
+            _sku_for(variants.get(v_id))
             if (v_id := unwrap_unset(row.variant_id, None)) is not None
             else None,
         )
@@ -2408,8 +2418,18 @@ async def _resolve_variant_skus(
     """
     if not variant_ids:
         return {}
-    variants = await services.cache.get_many_by_ids(EntityType.VARIANT, variant_ids)
-    return {vid: (variants.get(vid) or {}).get("sku") for vid in variant_ids}
+    variants = await services.typed_cache.catalog.get_many_by_ids(
+        CachedVariant, variant_ids, include_deleted=True
+    )
+
+    def _sku_for(v: Any) -> Any:
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            return v.get("sku")
+        return getattr(v, "sku", None)
+
+    return {vid: _sku_for(variants.get(vid)) for vid in variant_ids}
 
 
 @observe_tool

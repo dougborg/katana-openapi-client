@@ -113,7 +113,7 @@ async def test_top_selling_variants_sorts_by_units_and_applies_limit():
     context, lifespan_ctx = create_mock_context()
 
     # Variant cache returns variant dicts for enrichment
-    async def fake_get_by_id(entity_type, variant_id):
+    async def fake_get_by_id(entity_type, variant_id, **_kw):
         return {
             100: {
                 "id": 100,
@@ -135,7 +135,7 @@ async def test_top_selling_variants_sorts_by_units_and_applies_limit():
             },
         }.get(variant_id)
 
-    lifespan_ctx.cache.get_by_id = AsyncMock(side_effect=fake_get_by_id)
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(side_effect=fake_get_by_id)
 
     # Three variants: BIKE-B=10u/2000, BIKE-A=5u/3000, HELMET-X=15u/450
     orders = [
@@ -185,7 +185,7 @@ async def test_top_selling_variants_sort_by_revenue():
     """order_by='revenue' sorts by dollar volume, not units."""
     context, lifespan_ctx = create_mock_context()
 
-    async def fake_get_by_id(entity_type, variant_id):
+    async def fake_get_by_id(entity_type, variant_id, **_kw):
         return {
             100: {
                 "id": 100,
@@ -207,7 +207,7 @@ async def test_top_selling_variants_sort_by_revenue():
             },
         }.get(variant_id)
 
-    lifespan_ctx.cache.get_by_id = AsyncMock(side_effect=fake_get_by_id)
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(side_effect=fake_get_by_id)
 
     orders = [
         _mock_so(
@@ -245,7 +245,10 @@ async def test_top_selling_variants_category_filter():
     """category filter drops variants whose item category doesn't match."""
     context, lifespan_ctx = create_mock_context()
 
-    from katana_mcp.cache import EntityType
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedProduct,
+        CachedVariant,
+    )
 
     variant_rows = {
         100: {
@@ -268,14 +271,14 @@ async def test_top_selling_variants_category_filter():
         30: {"id": 30, "name": "Helmet X", "category_name": "accessories"},
     }
 
-    async def fake_get_by_id(entity_type, entity_id):
-        if entity_type == EntityType.VARIANT:
+    async def fake_get_by_id(entity_type, entity_id, **_kw):
+        if entity_type == CachedVariant:
             return variant_rows.get(entity_id)
-        if entity_type == EntityType.PRODUCT:
+        if entity_type == CachedProduct:
             return product_rows.get(entity_id)
         return None
 
-    lifespan_ctx.cache.get_by_id = AsyncMock(side_effect=fake_get_by_id)
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(side_effect=fake_get_by_id)
 
     orders = [
         _mock_so(
@@ -407,7 +410,7 @@ async def test_inventory_velocity_computes_avg_daily_and_days_of_cover():
     """One variant, 180 units over 90 days, 600 stock on hand → 2u/day, 300 days cover."""
     context, lifespan_ctx = create_mock_context()
 
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
         return_value={"id": 500, "sku": "BIKE-MTB-01", "display_name": "Mountain Bike"}
     )
 
@@ -467,7 +470,7 @@ async def test_inventory_velocity_zero_sales_returns_none_cover():
     """avg_daily=0 ⇒ days_of_cover is None (no divide-by-zero)."""
     context, lifespan_ctx = create_mock_context()
 
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
         return_value={"id": 500, "sku": "DEAD-SKU", "display_name": "Unsold"}
     )
 
@@ -499,7 +502,7 @@ async def test_inventory_velocity_includes_mo_consumption():
     """MO ingredient consumption adds to units_total when include_mo_consumption=True."""
     context, lifespan_ctx = create_mock_context()
 
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
         return_value={"id": 42, "sku": "SCREW-M5", "display_name": "M5 Screw"}
     )
 
@@ -545,7 +548,7 @@ async def test_inventory_velocity_exclude_mo_consumption():
     """include_mo_consumption=False reproduces legacy SO-only numbers."""
     context, lifespan_ctx = create_mock_context()
 
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
         return_value={"id": 42, "sku": "SCREW-M5", "display_name": "M5 Screw"}
     )
 
@@ -589,13 +592,13 @@ async def test_inventory_velocity_batch_returns_multiple_rows():
     context, lifespan_ctx = create_mock_context()
 
     # Both resolved via get_by_sku
-    async def fake_get_by_sku(sku: str) -> dict | None:
+    async def fake_get_by_sku(sku: str, **_kw) -> dict | None:
         return {
             "WIDGET-1": {"id": 10, "sku": "WIDGET-1"},
             "WIDGET-2": {"id": 20, "sku": "WIDGET-2"},
         }.get(sku)
 
-    lifespan_ctx.cache.get_by_sku = AsyncMock(side_effect=fake_get_by_sku)
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(side_effect=fake_get_by_sku)
 
     orders = [
         _mock_so(
@@ -639,14 +642,16 @@ async def test_inventory_velocity_batch_with_int_id():
     """Batch shape accepts integer variant IDs as well as SKU strings."""
     context, lifespan_ctx = create_mock_context()
 
-    from katana_mcp.cache import EntityType
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedVariant,
+    )
 
-    async def fake_get_by_id(entity_type, variant_id):
-        if entity_type == EntityType.VARIANT and variant_id == 99:
+    async def fake_get_by_id(entity_type, variant_id, **_kw):
+        if entity_type == CachedVariant and variant_id == 99:
             return {"id": 99, "sku": "INT-VARIANT"}
         return None
 
-    lifespan_ctx.cache.get_by_id = AsyncMock(side_effect=fake_get_by_id)
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(side_effect=fake_get_by_id)
 
     inv_items = [_mock_inv_item(0)]
 
