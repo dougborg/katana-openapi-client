@@ -8,7 +8,6 @@ from dataclasses import dataclass
 
 from fastmcp import Context
 
-from katana_mcp.cache import CatalogCache
 from katana_mcp.typed_cache import TypedCacheEngine
 from katana_public_api_client import KatanaClient
 
@@ -23,21 +22,23 @@ class Services:
 
     Attributes:
         client: The KatanaClient instance for API operations.
-        cache: ``CatalogCache`` — SQLite + FTS5 store for the 10 reference
-            entity types (variants, products, materials, services, suppliers,
-            customers, locations, tax rates, operators, factories). Powers
-            ``search_items`` and ``get_variant_details``-style lookups.
         typed_cache: ``TypedCacheEngine`` — SQLModel-backed per-entity tables
-            for transactional types (sales orders, manufacturing orders,
-            purchase orders, stock adjustments/transfers, MO recipe rows).
-            Powers cache-backed ``list_*`` tools.
+            covering both transactional types (sales orders, manufacturing
+            orders, purchase orders, stock adjustments/transfers, MO recipe
+            rows) and the catalog tier (variants, products, materials,
+            services, suppliers, customers, locations, tax rates, operators,
+            factories, additional costs). Powers cache-backed ``list_*``
+            tools, the ``search_items`` / ``get_variant_details`` lookups
+            via ``typed_cache.catalog`` (a :class:`CatalogQueries` adapter),
+            and the FTS5 sidecar search.
 
-    Both caches are permanent and complementary; see ADR-0018 and the
-    ``katana_mcp.typed_cache`` package docstring for the rationale.
+    The legacy ``CatalogCache`` (previously exposed here as ``cache``) was
+    decommissioned in #472 Phase D once ``services.typed_cache.catalog``
+    fully replaced its read API and the catalog ``EntitySpec`` pipeline
+    fully replaced its sync helpers.
     """
 
     client: KatanaClient
-    cache: CatalogCache
     typed_cache: TypedCacheEngine
 
 

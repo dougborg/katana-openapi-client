@@ -70,6 +70,7 @@ def _patch_cache_sync():
     from katana_mcp.tools import decorators
 
     from katana_public_api_client.models_pydantic._generated import (
+        CachedLocation,
         CachedMaterial,
         CachedProduct,
         CachedSupplier,
@@ -82,12 +83,10 @@ def _patch_cache_sync():
         CachedProduct: AsyncMock(),
         CachedMaterial: AsyncMock(),
         CachedSupplier: AsyncMock(),
+        CachedLocation: AsyncMock(),
     }
     try:
-        with patch(
-            "katana_mcp.cache_sync.ensure_variants_synced", new_callable=AsyncMock
-        ):
-            yield
+        yield
     finally:
         decorators._sync_fns = original
 
@@ -102,7 +101,7 @@ async def test_check_inventory():
     context, lifespan_ctx = create_mock_context()
 
     # Mock cached variant lookup
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
         return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
     )
 
@@ -134,7 +133,7 @@ async def test_check_inventory_multiple_locations():
     """Test check_inventory sums stock across multiple locations."""
     context, lifespan_ctx = create_mock_context()
 
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
         return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
     )
 
@@ -167,7 +166,7 @@ async def test_check_inventory_multiple_locations():
 async def test_check_inventory_not_found():
     """Test check_inventory when SKU not found in cache."""
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=None)
 
     request = CheckInventoryRequest(skus_or_variant_ids=["NOT-FOUND"])
     _inv_results = await _check_inventory_impl(request, context)
@@ -201,7 +200,7 @@ async def test_list_low_stock_items():
         _mock_inventory_row(1002, "3"),
         _mock_inventory_row(1003, "8"),
     ]
-    lifespan_ctx.cache.get_many_by_ids = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
         return_value={
             1001: {"id": 1001, "sku": "ITEM-001", "display_name": "Item 1"},
             1002: {"id": 1002, "sku": "ITEM-002", "display_name": "Item 2"},
@@ -231,7 +230,7 @@ async def test_list_low_stock_items_with_limit():
     context, lifespan_ctx = create_mock_context()
 
     inventory_rows = [_mock_inventory_row(2000 + i, str(i)) for i in range(100)]
-    lifespan_ctx.cache.get_many_by_ids = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
         return_value={
             2000 + i: {
                 "id": 2000 + i,
@@ -259,7 +258,7 @@ async def test_list_low_stock_items_handles_missing_variant_fields():
     context, lifespan_ctx = create_mock_context()
 
     inventory_rows = [_mock_inventory_row(3001, "5")]
-    lifespan_ctx.cache.get_many_by_ids = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
         return_value={3001: {"id": 3001}}  # No sku, no display_name, no name.
     )
 
@@ -310,7 +309,7 @@ async def test_list_low_stock_sums_across_locations():
         _mock_inventory_row(4001, "3"),
         _mock_inventory_row(4002, "30"),
     ]
-    lifespan_ctx.cache.get_many_by_ids = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
         return_value={
             4001: {"id": 4001, "sku": "MULTI-LOC", "display_name": "Multi-loc Widget"},
         }
@@ -339,7 +338,7 @@ async def test_list_low_stock_excludes_above_threshold():
         _mock_inventory_row(5002, "100"),  # above threshold — excluded
         _mock_inventory_row(5003, "2"),  # below threshold — included
     ]
-    lifespan_ctx.cache.get_many_by_ids = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
         return_value={
             5003: {"id": 5003, "sku": "LOW", "display_name": "Low item"},
         }
@@ -398,7 +397,9 @@ async def test_search_items():
         "display_name": "Test Widget",
     }
 
-    lifespan_ctx.cache.smart_search = AsyncMock(return_value=[cached_variant])
+    lifespan_ctx.typed_cache.catalog.smart_search = AsyncMock(
+        return_value=[cached_variant]
+    )
 
     request = SearchItemsRequest(query="widget", limit=20)
     result = await _search_items_impl(request, context)
@@ -419,7 +420,9 @@ async def test_search_items_handles_optional_fields():
     # Mock cached variant with missing optional fields
     cached_variant = {"id": 456}
 
-    lifespan_ctx.cache.smart_search = AsyncMock(return_value=[cached_variant])
+    lifespan_ctx.typed_cache.catalog.smart_search = AsyncMock(
+        return_value=[cached_variant]
+    )
 
     request = SearchItemsRequest(query="test")
     result = await _search_items_impl(request, context)
@@ -438,8 +441,10 @@ async def test_search_items_default_limit():
     await _search_items_impl(request, context)
 
     assert request.limit == 20  # Default
-    lifespan_ctx.cache.smart_search.assert_called_once_with(
-        "variant", "test", limit=20, include_archived=False
+    from katana_public_api_client.models_pydantic._generated import CachedVariant
+
+    lifespan_ctx.typed_cache.catalog.smart_search.assert_called_once_with(
+        CachedVariant, "test", limit=20, include_archived=False
     )
 
 
@@ -468,7 +473,9 @@ async def test_search_items_surfaces_archived_state_from_parent():
             "parent_archived_at": "2024-01-01T00:00:00+00:00",
         },
     ]
-    lifespan_ctx.cache.smart_search = AsyncMock(return_value=cached_variants)
+    lifespan_ctx.typed_cache.catalog.smart_search = AsyncMock(
+        return_value=cached_variants
+    )
 
     request = SearchItemsRequest(query="item", include_archived=True)
     result = await _search_items_impl(request, context)
@@ -477,8 +484,10 @@ async def test_search_items_surfaces_archived_state_from_parent():
     assert by_sku["ACTIVE-1"].is_archived is False
     assert by_sku["ARCHIVED-1"].is_archived is True
     # Cache call must thread the flag through, otherwise the filter is moot.
-    lifespan_ctx.cache.smart_search.assert_called_once_with(
-        "variant", "item", limit=20, include_archived=True
+    from katana_public_api_client.models_pydantic._generated import CachedVariant
+
+    lifespan_ctx.typed_cache.catalog.smart_search.assert_called_once_with(
+        CachedVariant, "item", limit=20, include_archived=True
     )
 
 
@@ -498,7 +507,9 @@ async def test_search_items_multiple_results():
         for i in range(5)
     ]
 
-    lifespan_ctx.cache.smart_search = AsyncMock(return_value=cached_variants)
+    lifespan_ctx.typed_cache.catalog.smart_search = AsyncMock(
+        return_value=cached_variants
+    )
 
     request = SearchItemsRequest(query="item", limit=10)
     result = await _search_items_impl(request, context)
@@ -525,7 +536,7 @@ async def test_get_inventory_movements():
     """Test get_inventory_movements with mocked API."""
     context, lifespan_ctx = create_mock_context()
 
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
         return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
     )
 
@@ -564,7 +575,7 @@ async def test_get_inventory_movements():
 async def test_get_inventory_movements_not_found():
     """Test get_inventory_movements when SKU not found."""
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=None)
 
     request = GetInventoryMovementsRequest(sku="NOT-FOUND")
     result = await _get_inventory_movements_impl(request, context)
@@ -586,7 +597,7 @@ async def test_get_inventory_movements_full_field_coverage():
     """
     context, lifespan_ctx = create_mock_context()
 
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
         return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
     )
 
@@ -734,7 +745,7 @@ async def test_create_stock_adjustment_preview():
     """Test stock adjustment preview mode."""
     context, lifespan_ctx = create_mock_context()
 
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
         return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
     )
 
@@ -755,7 +766,7 @@ async def test_create_stock_adjustment_preview():
 async def test_create_stock_adjustment_sku_not_found():
     """Test stock adjustment with unknown SKU."""
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=None)
 
     request = CreateStockAdjustmentRequest(
         location_id=1,
@@ -776,7 +787,7 @@ async def test_create_stock_adjustment_apply_forwards_new_fields():
     from katana_mcp.tools.foundation.inventory import StockAdjustmentBatchAllocation
 
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
         return_value={"id": 3001, "sku": "BATCH-001", "display_name": "Batch Item"}
     )
 
@@ -829,7 +840,7 @@ async def test_create_stock_adjustment_apply_defaults_when_unset():
     leaves it None.
     """
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
         return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
     )
 
@@ -1008,7 +1019,7 @@ async def test_get_variant_details():
         "updated_at": None,
     }
 
-    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=cached_variant)
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=cached_variant)
 
     request = GetVariantDetailsRequest(sku="WIDGET-001")
     _var_results = await _get_variant_details_impl(request, context)
@@ -1047,7 +1058,7 @@ async def test_get_variant_details_case_insensitive():
         "parent_name": "Test Widget",
     }
 
-    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=cached_variant)
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=cached_variant)
 
     # Search with lowercase SKU
     request = GetVariantDetailsRequest(sku="widget-001")
@@ -1065,7 +1076,7 @@ async def test_get_variant_details_not_found():
     context, lifespan_ctx = create_mock_context()
 
     # Cache returns None (no match)
-    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=None)
 
     request = GetVariantDetailsRequest(sku="NOT-FOUND")
     with pytest.raises(ValueError, match="Variant with SKU 'NOT-FOUND' not found"):
@@ -1078,7 +1089,7 @@ async def test_get_variant_details_no_exact_match():
     context, lifespan_ctx = create_mock_context()
 
     # Cache returns None (SKU lookup is exact)
-    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=None)
 
     request = GetVariantDetailsRequest(sku="WIDGET-001")
     with pytest.raises(ValueError, match="Variant with SKU 'WIDGET-001' not found"):
@@ -1113,7 +1124,7 @@ async def test_get_variant_details_minimal_fields():
     # Cached variant with only required fields
     cached_variant = {"id": 123, "sku": "MIN-001"}
 
-    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=cached_variant)
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=cached_variant)
 
     request = GetVariantDetailsRequest(sku="MIN-001")
     _var_results = await _get_variant_details_impl(request, context)
@@ -1149,7 +1160,7 @@ async def test_get_variant_details_with_timestamps():
         "updated_at": "2024-06-01T14:30:00+00:00",
     }
 
-    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=cached_variant)
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=cached_variant)
 
     request = GetVariantDetailsRequest(sku="TIME-001")
     _var_results = await _get_variant_details_impl(request, context)
@@ -1946,7 +1957,7 @@ async def test_get_variant_details_nonexistent_integration(katana_context):
 async def test_check_inventory_batch_skus():
     """Batch check_inventory with multiple SKUs."""
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
         side_effect=[
             {"id": 101, "sku": "WIDGET-A", "display_name": "Widget A"},
             {"id": 102, "sku": "WIDGET-B", "display_name": "Widget B"},
@@ -2020,7 +2031,7 @@ async def test_check_inventory_mixed_sku_and_variant_id():
     ``[WIDGET-1, WIDGET-42]`` regardless of how parallel resolution interleaves.
     """
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
         return_value={"id": 101, "sku": "WIDGET-1", "display_name": "Widget 1"}
     )
 
@@ -2068,7 +2079,7 @@ async def test_check_inventory_mixed_sku_and_variant_id():
 
     assert len(results) == 2
 
-    lifespan_ctx.cache.get_by_sku.assert_awaited_once()
+    lifespan_ctx.typed_cache.catalog.get_by_sku.assert_awaited_once()
     mock_fetch.assert_awaited_once()
     assert mock_fetch.await_args is not None
     assert mock_fetch.await_args.args[1] == 42
@@ -2092,7 +2103,7 @@ async def test_check_inventory_mixed_sku_and_variant_id():
 async def test_search_items_format_json_returns_json():
     """format='json' returns JSON-parseable content."""
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.smart_search = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.smart_search = AsyncMock(
         return_value=[{"id": 1, "sku": "WIDGET-1", "display_name": "Widget"}]
     )
 
@@ -2109,7 +2120,7 @@ async def test_search_items_format_json_returns_json():
 async def test_get_variant_details_format_json_returns_json():
     """format='json' returns JSON-parseable content."""
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_id = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(
         return_value={
             "id": 42,
             "sku": "VAR-42",
@@ -2436,13 +2447,13 @@ async def test_check_inventory_per_location_breakdown_populated():
     shows first. Location names resolved from cache."""
     context, lifespan_ctx = create_mock_context()
 
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
         return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
     )
 
     # Cache returns location names for both warehouses (one bulk call —
     # impl uses get_many_by_ids to avoid an N+1 against the cache).
-    lifespan_ctx.cache.get_many_by_ids = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
         return_value={161114: {"name": "Demo"}, 160411: {"name": "Spot HQ"}}
     )
 
@@ -2488,10 +2499,10 @@ async def test_check_inventory_location_filter_threads_to_api():
     mocked call kwargs."""
     context, lifespan_ctx = create_mock_context()
 
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
         return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
     )
-    lifespan_ctx.cache.get_many_by_ids = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
         return_value={161114: {"name": "Demo"}}
     )
 
@@ -2521,7 +2532,7 @@ async def test_check_inventory_zero_stock_returns_empty_by_location():
     """A variant with no stock anywhere returns an empty by_location list
     (not None)."""
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
         return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
     )
 
@@ -2542,12 +2553,12 @@ async def test_check_inventory_location_name_falls_back_to_none_on_cache_miss():
     `location_name` is None — the location_id alone is still useful and
     cache lag shouldn't block the inventory lookup."""
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
         return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
     )
     # Cache miss — get_many_by_ids returns an empty dict (the requested
     # location ID isn't in the cache yet, so it's absent from the result).
-    lifespan_ctx.cache.get_many_by_ids = AsyncMock(return_value={})
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(return_value={})
 
     inv = MagicMock()
     inv.location_id = 999999
@@ -2577,7 +2588,7 @@ async def test_check_inventory_uses_bulk_cache_lookup_not_n_plus_one():
     request touching many variants across multiple locations would otherwise
     fan out a flood of single-row cache calls."""
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_sku = AsyncMock(
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
         return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
     )
 
@@ -2588,10 +2599,10 @@ async def test_check_inventory_uses_bulk_cache_lookup_not_n_plus_one():
             161115: {"name": "R&D"},
         }
     )
-    lifespan_ctx.cache.get_many_by_ids = bulk_mock
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = bulk_mock
     # If the impl falls back to per-row lookups, this would be called instead.
     per_row_mock = AsyncMock()
-    lifespan_ctx.cache.get_by_id = per_row_mock
+    lifespan_ctx.typed_cache.catalog.get_by_id = per_row_mock
 
     rows = []
     for loc_id, qty in [(161114, "1.0"), (160411, "10.0"), (161115, "5.0")]:

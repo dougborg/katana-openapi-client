@@ -16,33 +16,23 @@ from katana_public_api_client import KatanaClient
 
 @pytest.fixture
 def isolated_caches(tmp_path: Path) -> Iterator[None]:
-    """Redirect ``lifespan()``'s cache constructors to per-test temp paths.
+    """Redirect ``lifespan()``'s cache constructor to a per-test temp path.
 
-    ``server.lifespan()`` instantiates ``CatalogCache()`` and
-    ``TypedCacheEngine()`` with no args, which both default to fixed
-    locations under ``platformdirs.user_cache_dir("katana-mcp")``. Under
-    pytest-xdist (``-n 4`` per the project's ``poe test``), parallel
-    workers race on those shared SQLite files and one of them sees
-    ``table sync_state already exists`` (#455).
+    ``server.lifespan()`` instantiates ``TypedCacheEngine()`` with no
+    args, which defaults to a fixed location under
+    ``platformdirs.user_cache_dir("katana-mcp")``. Under pytest-xdist
+    (``-n 4`` per the project's ``poe test``), parallel workers race on
+    that shared SQLite file and one of them sees ``table sync_state
+    already exists`` (#455).
 
-    Patch each constructor at the namespace ``lifespan()``'s deferred
-    imports resolve through. ``CatalogCache`` is at the module level
-    (``katana_mcp.cache``), but ``TypedCacheEngine`` is re-exported by the
-    ``katana_mcp.typed_cache`` package's ``__init__.py`` — patching the
-    inner ``engine`` module wouldn't reach the alias the package binds at
-    import time, so we patch the package alias directly.
+    Patch the constructor at the namespace ``lifespan()``'s deferred
+    import resolves through — the ``katana_mcp.typed_cache`` package's
+    ``__init__.py`` re-export. The legacy ``CatalogCache`` was retired
+    in #472 Phase D so only the typed engine needs isolation.
     """
-    from katana_mcp import (
-        cache as cache_module,
-        typed_cache as typed_cache_pkg,
-    )
+    from katana_mcp import typed_cache as typed_cache_pkg
 
-    real_catalog_cache = cache_module.CatalogCache
     real_typed_engine = typed_cache_pkg.TypedCacheEngine
-
-    def make_isolated_catalog_cache(*args, **kwargs):
-        kwargs.setdefault("db_path", tmp_path / "catalog.db")
-        return real_catalog_cache(*args, **kwargs)
 
     def make_isolated_typed_engine(*args, **kwargs):
         # Avoid stomping explicit ``in_memory=True`` (it's incompatible
@@ -51,15 +41,10 @@ def isolated_caches(tmp_path: Path) -> Iterator[None]:
             kwargs.setdefault("db_path", tmp_path / "typed_cache.db")
         return real_typed_engine(*args, **kwargs)
 
-    with (
-        patch.object(
-            cache_module, "CatalogCache", side_effect=make_isolated_catalog_cache
-        ),
-        patch.object(
-            typed_cache_pkg,
-            "TypedCacheEngine",
-            side_effect=make_isolated_typed_engine,
-        ),
+    with patch.object(
+        typed_cache_pkg,
+        "TypedCacheEngine",
+        side_effect=make_isolated_typed_engine,
     ):
         yield
 
@@ -68,29 +53,26 @@ class TestServices:
     """Tests for Services class."""
 
     def test_services_initialization(self):
-        """Test Services initializes with KatanaClient, CatalogCache, typed cache."""
+        """Test Services initializes with KatanaClient + typed cache.
+
+        The legacy ``CatalogCache`` was retired in #472 Phase D —
+        ``Services`` now carries only the typed cache + client.
+        """
         mock_client = MagicMock(spec=KatanaClient)
-        mock_cache = MagicMock()
         mock_typed_cache = MagicMock()
-        context = Services(
-            client=mock_client, cache=mock_cache, typed_cache=mock_typed_cache
-        )
+        context = Services(client=mock_client, typed_cache=mock_typed_cache)
 
         assert context.client is mock_client
-        assert context.cache is mock_cache
         assert context.typed_cache is mock_typed_cache
 
     def test_services_stores_client(self):
         """Test Services correctly stores and retrieves client."""
         mock_client = MagicMock(spec=KatanaClient)
-        mock_cache = MagicMock()
         mock_typed_cache = MagicMock()
-        context = Services(
-            client=mock_client, cache=mock_cache, typed_cache=mock_typed_cache
-        )
+        context = Services(client=mock_client, typed_cache=mock_typed_cache)
 
         assert context.client is mock_client
-        assert context.cache is mock_cache
+        assert context.typed_cache is mock_typed_cache
 
 
 @pytest.mark.usefixtures("isolated_caches")

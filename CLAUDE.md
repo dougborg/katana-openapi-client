@@ -163,13 +163,15 @@ Common mistakes to avoid:
   soft-deleted. Two MCP-side conventions surface this; keep them symmetric:
 
   - **Query-param flags** for opting into surfacing soft-state rows. **Default
-    `False`.** Items use `include_archived` (`search_items`, catalog cache); the
-    canonical wiring (landed in #526) is `cache.py`'s denormalized
-    `entity_index.is_archived` column populated during sync, plus the
-    `idx.is_archived = 0` predicate in `cache.search` / `search_fuzzy`. Transactional
+    `False`.** Items use `include_archived` (`search_items`, catalog cache); after #472
+    Phase D the canonical wiring is the typed cache's `CatalogQueries` adapter —
+    `parent_archived_at` is denormalized onto `CachedVariant` at sync time (via the
+    variant `attrs_postprocess` hook in `typed_cache/sync.py`) and the adapter's default
+    `include_archived=False` / `include_deleted=False` filters push the
+    `archived_at IS NULL` / `deleted_at IS NULL` predicates down to SQL. Transactional
     entities use `include_deleted` on `list_purchase_orders` / `list_sales_orders` /
-    `list_manufacturing_orders` / `list_stock_adjustments`, filtering at the typed-cache
-    query layer.
+    `list_manufacturing_orders` / `list_stock_adjustments`, filtering at the same
+    typed-cache query layer.
   - **Response-side derived booleans**: every response model that exposes `archived_at`
     / `deleted_at` should also expose a convenience `is_archived` / `is_deleted` bool
     derived from `<timestamp> is not None`, saving callers from the timestamp/null
@@ -243,18 +245,18 @@ Common mistakes to avoid:
   `.claude/worktrees/` as off-limits for destructive operations.
 
 - **Cache IDs are not globally unique — never merge cross-entity maps by numeric ID
-  alone** - The legacy `CatalogCache` (`katana_mcp/cache.py`) — and `services.cache` by
-  extension — keys rows by `(entity_type, id)`, so a product with `id=42` and a material
-  with `id=42` are both legal. When enriching a list of variants with parent context (or
-  any other cross-entity batch fetch), keep separate per-type maps (`products`,
-  `materials`) and select based on which ID the variant carries (`v.product_id` vs
-  `v.material_id`). Merging into a single dict via `{**products, **materials}`
-  mis-attaches parents on collision — Python dict-unpack iterates left-to-right and
-  later keys win, so the material entry silently overwrites the product entry on shared
-  IDs. The bug is symmetric in practice: every product variant whose ID also exists as a
-  material ID looks up the material's data instead (and vice versa if you reorder the
-  unpack). Caught in #542 (variant card redesign) by Copilot review; regression test
-  pins the case in
+  alone** - The typed cache stores each entity type in its own table (`product`,
+  `material`, `supplier`, ...), so a product with `id=42` and a material with `id=42`
+  are both legal. When enriching a list of variants with parent context (or any other
+  cross-entity batch fetch), keep separate per-type maps (`products`, `materials`) and
+  select based on which ID the variant carries (`v.product_id` vs `v.material_id`).
+  Merging into a single dict via `{**products, **materials}` mis-attaches parents on
+  collision — Python dict-unpack iterates left-to-right and later keys win, so the
+  material entry silently overwrites the product entry on shared IDs. The bug is
+  symmetric in practice: every product variant whose ID also exists as a material ID
+  looks up the material's data instead (and vice versa if you reorder the unpack).
+  Caught in #542 (variant card redesign) by Copilot review; regression test pins the
+  case in
   `test_items.py::test_enrich_variants_keeps_product_and_material_maps_separate`.
 
 - **First push of a feature branch — use `HEAD:refs/heads/<name>`, not bare branch

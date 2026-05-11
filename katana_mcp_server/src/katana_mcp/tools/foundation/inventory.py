@@ -16,7 +16,6 @@ from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
 from pydantic import BaseModel, ConfigDict, Field
 
-from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools._modification import patch_additional_info
@@ -37,10 +36,33 @@ from katana_mcp.web_urls import katana_web_url
 from katana_public_api_client.api.stock_adjustment import get_all_stock_adjustments
 from katana_public_api_client.client_types import UNSET, Unset
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
-from katana_public_api_client.models_pydantic._generated import CachedVariant
+from katana_public_api_client.models_pydantic._generated import (
+    CachedLocation,
+    CachedVariant,
+)
 from katana_public_api_client.utils import unwrap_data
 
 logger = get_logger(__name__)
+
+
+def _attr(obj: Any, name: str, default: Any = None) -> Any:
+    """Read ``name`` from a cache row, attrs model, OR dict uniformly.
+
+    Cached SQLModel rows expose plain attributes; attrs models use the
+    ``UNSET`` sentinel for missing optional fields; tests occasionally
+    fixture in raw dicts (the legacy cache shape) — accept all three
+    so call sites stay agnostic to which side filled the slot.
+    Used by the variant-lookup paths in :mod:`inventory` and
+    :mod:`items` after the #472 Phase D migration.
+    """
+    if obj is None:
+        return default
+    if isinstance(obj, dict):
+        val = obj.get(name, default)
+    else:
+        val = getattr(obj, name, default)
+    return default if val is UNSET else val
+
 
 # ============================================================================
 # Tool 1: check_inventory
@@ -154,12 +176,10 @@ async def _fetch_stock_for_variant(
     loc_names: dict[int, str | None] = {}
     if rows:
         unique_loc_ids = {loc_id for loc_id, _, _, _ in rows}
-        loc_lookups = await services.cache.get_many_by_ids(
-            EntityType.LOCATION, unique_loc_ids
+        loc_lookups = await services.typed_cache.catalog.get_many_by_ids(
+            CachedLocation, unique_loc_ids
         )
-        loc_names = {
-            lid: (loc_lookups.get(lid) or {}).get("name") for lid in unique_loc_ids
-        }
+        loc_names = {lid: _attr(loc_lookups.get(lid), "name") for lid in unique_loc_ids}
 
     by_location = [
         LocationStock(
@@ -221,7 +241,15 @@ async def _check_inventory_impl(
 
         async def _fetch(item: str | int) -> StockInfo:
             if isinstance(item, str):
-                variant = await services.cache.get_by_sku(sku=item)
+                # ``get_by_sku`` defaults filter archived parents and
+                # soft-deleted variants; pass ``include_*=True`` so
+                # ``check_inventory("ARCHIVED-SKU")`` still returns the
+                # row instead of silently looking like the SKU doesn't
+                # exist (matches the legacy cache's "show everything"
+                # semantics for direct lookups).
+                variant = await services.typed_cache.catalog.get_by_sku(
+                    item, include_archived=True, include_deleted=True
+                )
                 if not variant:
                     logger.warning("inventory_check_not_found", sku=item)
                     return StockInfo(
@@ -234,9 +262,9 @@ async def _check_inventory_impl(
                     )
                 return await _fetch_stock_for_variant(
                     services,
-                    variant["id"],
+                    _attr(variant, "id"),
                     item,
-                    variant.get("display_name") or variant.get("sku") or "",
+                    _attr(variant, "display_name") or _attr(variant, "sku") or "",
                     location_id=request.location_id,
                 )
 
@@ -252,12 +280,12 @@ async def _check_inventory_impl(
                     expected=0,
                     in_stock=0,
                 )
-            sku = variant.get("sku", "")
+            sku = _attr(variant, "sku") or ""
             return await _fetch_stock_for_variant(
                 services,
                 item,
                 sku,
-                variant.get("display_name") or sku or "",
+                _attr(variant, "display_name") or sku or "",
                 location_id=request.location_id,
             )
 
@@ -479,18 +507,20 @@ async def _list_low_stock_items_impl(
         limited = low_stock[: request.limit]
         variant_ids = [variant_id for variant_id, _ in limited]
 
-        cached_variants = await services.cache.get_many_by_ids(
-            EntityType.VARIANT, variant_ids
+        cached_variants: dict[
+            int, Any
+        ] = await services.typed_cache.catalog.get_many_by_ids(
+            CachedVariant, variant_ids, include_deleted=True
         )
 
         items: list[LowStockItem] = []
         for variant_id, total in limited:
-            variant = cached_variants.get(variant_id)
-            if not variant:
+            variant: Any = cached_variants.get(variant_id)
+            if variant is None:
                 variant = await _fetch_variant_by_id(services, variant_id)
-            sku = (variant or {}).get("sku") or ""
+            sku = _attr(variant, "sku") or ""
             product_name = (
-                (variant or {}).get("display_name") or (variant or {}).get("name") or ""
+                _attr(variant, "display_name") or _attr(variant, "name") or ""
             )
             items.append(
                 LowStockItem(
@@ -637,9 +667,14 @@ async def _get_inventory_movements_impl(
     try:
         services = get_services(context)
 
-        # Resolve SKU → variant_id via the cached catalog
-        variant = await services.cache.get_by_sku(sku=request.sku)
-        if not variant:
+        # Resolve SKU → variant_id via the cached catalog. Surface
+        # archived/deleted variants too so the user sees movements
+        # for items they're cleaning up — direct-lookup parity with
+        # the legacy cache's behavior.
+        variant = await services.typed_cache.catalog.get_by_sku(
+            request.sku, include_archived=True, include_deleted=True
+        )
+        if variant is None:
             duration_ms = round((time.monotonic() - start_time) * 1000, 2)
             logger.warning(
                 "inventory_movements_not_found",
@@ -653,8 +688,8 @@ async def _get_inventory_movements_impl(
                 total_count=0,
             )
 
-        variant_id = variant["id"]
-        product_name = variant.get("display_name") or variant.get("sku") or ""
+        variant_id = _attr(variant, "id")
+        product_name = _attr(variant, "display_name") or _attr(variant, "sku") or ""
 
         # Query inventory movements filtered by variant_id
         response = await get_all_inventory_movements.asyncio_detailed(
@@ -945,10 +980,15 @@ async def _create_stock_adjustment_impl(
     rows_summary_parts = []
     structured_rows: list[StockAdjustmentRowSummary] = []
     for row in request.rows:
-        variant = await services.cache.get_by_sku(sku=row.sku)
-        if not variant:
+        # Direct-lookup path: include archived/deleted so a CLI user
+        # adjusting an in-progress cleanup workflow can still resolve
+        # the SKU. The live API will reject genuinely bad SKUs.
+        variant = await services.typed_cache.catalog.get_by_sku(
+            row.sku, include_archived=True, include_deleted=True
+        )
+        if variant is None:
             raise ValueError(f"SKU '{row.sku}' not found")
-        display_name = variant.get("display_name") or row.sku
+        display_name = _attr(variant, "display_name") or row.sku
 
         batch_txns: list[APISABatchTransaction] | Unset = UNSET
         if row.batch_transactions is not None:
@@ -959,7 +999,7 @@ async def _create_stock_adjustment_impl(
 
         api_rows.append(
             CreateStockAdjustmentRequestStockAdjustmentRowsItem(
-                variant_id=variant["id"],
+                variant_id=_attr(variant, "id"),
                 quantity=row.quantity,
                 cost_per_unit=to_unset(row.cost_per_unit),
                 batch_transactions=batch_txns,

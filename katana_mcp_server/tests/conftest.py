@@ -67,10 +67,16 @@ def create_mock_context():
 
     Returns:
         Tuple of (context, lifespan_context) where context has the structure:
-        context.request_context.lifespan_context.client
+        context.request_context.lifespan_context.client (and
+        ``.typed_cache.catalog`` for catalog reads).
 
     This helper creates the nested mock structure that FastMCP uses to provide
-    the KatanaClient to tool implementations.
+    the KatanaClient to tool implementations. The ``typed_cache.catalog``
+    adapter is mocked with the same six methods the real
+    :class:`katana_mcp.typed_cache.queries.CatalogQueries` exposes
+    (``get_by_id`` / ``get_by_sku`` / ``get_many_by_ids`` / ``get_all`` /
+    ``smart_search`` / ``search_fuzzy``), each returning the empty
+    sentinel for the method's natural shape.
     """
     context = MagicMock()
     mock_request_context = MagicMock()
@@ -78,16 +84,19 @@ def create_mock_context():
     context.request_context = mock_request_context
     mock_request_context.lifespan_context = mock_lifespan_context
 
-    # Set up cache mock with async methods
-    mock_cache = AsyncMock()
-    mock_cache.get_last_synced = AsyncMock(return_value=None)
-    mock_cache.sync = AsyncMock()
-    mock_cache.smart_search = AsyncMock(return_value=[])
-    mock_cache.get_by_sku = AsyncMock(return_value=None)
-    mock_cache.get_by_id = AsyncMock(return_value=None)
-    mock_cache.get_many_by_ids = AsyncMock(return_value={})
-    mock_cache.mark_dirty = AsyncMock()
-    mock_lifespan_context.cache = mock_cache
+    # Set up typed_cache.catalog mock with the six CatalogQueries methods.
+    # Tests override per-method return values via
+    # ``lifespan_ctx.typed_cache.catalog.<method>.return_value = ...`` or
+    # by reassigning ``AsyncMock(return_value=...)`` on the attribute.
+    mock_catalog = AsyncMock()
+    mock_catalog.get_by_id = AsyncMock(return_value=None)
+    mock_catalog.get_by_sku = AsyncMock(return_value=None)
+    mock_catalog.get_many_by_ids = AsyncMock(return_value={})
+    mock_catalog.get_all = AsyncMock(return_value=[])
+    mock_catalog.smart_search = AsyncMock(return_value=[])
+    mock_catalog.search_fuzzy = AsyncMock(return_value=[])
+    mock_lifespan_context.typed_cache = MagicMock()
+    mock_lifespan_context.typed_cache.catalog = mock_catalog
 
     return context, mock_lifespan_context
 

@@ -4,7 +4,6 @@ from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from katana_mcp.cache import EntityType
 from katana_mcp.tools.foundation.orders import (
     FulfillOrderRequest,
     FulfillRowOverride,
@@ -18,6 +17,12 @@ from katana_public_api_client.models import (
     SalesOrder,
 )
 from katana_public_api_client.models.sales_order_status import SalesOrderStatus
+from katana_public_api_client.models_pydantic._generated import (
+    CachedMaterial,
+    CachedProduct,
+    CachedVariant,
+    InventoryItemType,
+)
 from katana_public_api_client.utils import APIError
 
 # ============================================================================
@@ -474,21 +479,32 @@ def _wire_serial_tracked_cache(
     material — both surface ``serial_tracked`` on the parent.
     """
     parent_id = 9000 + variant_id
-    parent_key = f"{parent_kind}_id"
-    variant_data = {"id": variant_id, "sku": sku, parent_key: parent_id}
-    parent_data = {"id": parent_id, "serial_tracked": True}
+    variant_kwargs: dict[str, Any] = {
+        "id": variant_id,
+        "sku": sku,
+    }
+    variant_kwargs[f"{parent_kind}_id"] = parent_id
+    variant_row = CachedVariant(**variant_kwargs)
+    parent_cls = CachedProduct if parent_kind == "product" else CachedMaterial
+    parent_kwargs: dict[str, Any] = {
+        "id": parent_id,
+        "name": "Parent",
+        "type": parent_kind,
+        "serial_tracked": True,
+    }
+    parent_row = parent_cls(**parent_kwargs)
 
-    async def _get_many(entity_type: str, ids):
+    async def _get_many(cls, ids, **_kw):
         ids = list(ids or [])
-        if entity_type == EntityType.VARIANT and variant_id in ids:
-            return {variant_id: variant_data}
-        if entity_type == EntityType.PRODUCT and parent_kind == "product":
-            return {parent_id: parent_data} if parent_id in ids else {}
-        if entity_type == EntityType.MATERIAL and parent_kind == "material":
-            return {parent_id: parent_data} if parent_id in ids else {}
+        if cls is CachedVariant and variant_id in ids:
+            return {variant_id: variant_row}
+        if cls is CachedProduct and parent_kind == "product":
+            return {parent_id: parent_row} if parent_id in ids else {}
+        if cls is CachedMaterial and parent_kind == "material":
+            return {parent_id: parent_row} if parent_id in ids else {}
         return {}
 
-    lifespan_ctx.cache.get_many_by_ids = AsyncMock(side_effect=_get_many)
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(side_effect=_get_many)
 
 
 @pytest.mark.asyncio
@@ -701,15 +717,21 @@ async def test_fulfill_sales_order_serial_tracked_detection_falls_back_to_api():
     mock_get_so_response = MagicMock(status_code=200, parsed=mock_so)
 
     # API fallback: get_variant returns a variant pointing at product 9100;
-    # get_product returns a serial-tracked product.
+    # get_product returns a serial-tracked product. Phase D's
+    # ``_fetch_missing_from_api`` stores the attrs object directly
+    # (callers use ``getattr`` to read fields uniformly across cache hits
+    # and API-fallback rows), so we set attributes on the mocks instead
+    # of the legacy ``to_dict`` shim.
     variant_obj = MagicMock()
-    variant_obj.to_dict = MagicMock(
-        return_value={"id": 100, "sku": "ROCKER-V2", "product_id": 9100}
-    )
+    variant_obj.id = 100
+    variant_obj.sku = "ROCKER-V2"
+    variant_obj.product_id = 9100
+    variant_obj.material_id = None
     mock_get_variant_response = MagicMock(status_code=200, parsed=variant_obj)
 
     product_obj = MagicMock()
-    product_obj.to_dict = MagicMock(return_value={"id": 9100, "serial_tracked": True})
+    product_obj.id = 9100
+    product_obj.serial_tracked = True
     mock_get_product_response = MagicMock(status_code=200, parsed=product_obj)
 
     from katana_public_api_client.api.product import get_product
@@ -820,15 +842,22 @@ async def test_fulfill_sales_order_non_serial_tracked_no_change():
     """
     context, lifespan_ctx = create_mock_context()
 
-    async def _get_many(entity_type: str, ids):
+    async def _get_many(cls, ids, **_kw):
         ids = list(ids or [])
-        if entity_type == EntityType.VARIANT and 100 in ids:
-            return {100: {"id": 100, "sku": "PLAIN-WIDGET", "product_id": 9100}}
-        if entity_type == EntityType.PRODUCT and 9100 in ids:
-            return {9100: {"id": 9100, "serial_tracked": False}}
+        if cls is CachedVariant and 100 in ids:
+            return {100: CachedVariant(id=100, sku="PLAIN-WIDGET", product_id=9100)}
+        if cls is CachedProduct and 9100 in ids:
+            return {
+                9100: CachedProduct(
+                    id=9100,
+                    name="Widget",
+                    type=InventoryItemType.product,
+                    serial_tracked=False,
+                )
+            }
         return {}
 
-    lifespan_ctx.cache.get_many_by_ids = AsyncMock(side_effect=_get_many)
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(side_effect=_get_many)
 
     mock_so = MagicMock(spec=SalesOrder)
     mock_so.order_no = "SO-SN-7"
@@ -1100,15 +1129,21 @@ async def test_fulfill_manufacturing_order_serial_tracked_detection_falls_back_t
     mock_get_mo_response = MagicMock(status_code=200, parsed=mock_mo)
 
     # API fallback: get_variant returns a variant pointing at product 9100;
-    # get_product returns a serial-tracked product.
+    # get_product returns a serial-tracked product. Phase D's
+    # ``_fetch_missing_from_api`` stores the attrs object directly
+    # (callers use ``getattr`` to read fields uniformly across cache hits
+    # and API-fallback rows), so we set attributes on the mocks instead
+    # of the legacy ``to_dict`` shim.
     variant_obj = MagicMock()
-    variant_obj.to_dict = MagicMock(
-        return_value={"id": 100, "sku": "ROCKER-V2", "product_id": 9100}
-    )
+    variant_obj.id = 100
+    variant_obj.sku = "ROCKER-V2"
+    variant_obj.product_id = 9100
+    variant_obj.material_id = None
     mock_get_variant_response = MagicMock(status_code=200, parsed=variant_obj)
 
     product_obj = MagicMock()
-    product_obj.to_dict = MagicMock(return_value={"id": 9100, "serial_tracked": True})
+    product_obj.id = 9100
+    product_obj.serial_tracked = True
     mock_get_product_response = MagicMock(status_code=200, parsed=product_obj)
 
     from katana_public_api_client.api.manufacturing_order import (
@@ -1144,15 +1179,22 @@ async def test_fulfill_manufacturing_order_non_serial_tracked_no_change():
     """
     context, lifespan_ctx = create_mock_context()
 
-    async def _get_many(entity_type: str, ids):
+    async def _get_many(cls, ids, **_kw):
         ids = list(ids or [])
-        if entity_type == EntityType.VARIANT and 100 in ids:
-            return {100: {"id": 100, "sku": "PLAIN-WIDGET", "product_id": 9100}}
-        if entity_type == EntityType.PRODUCT and 9100 in ids:
-            return {9100: {"id": 9100, "serial_tracked": False}}
+        if cls is CachedVariant and 100 in ids:
+            return {100: CachedVariant(id=100, sku="PLAIN-WIDGET", product_id=9100)}
+        if cls is CachedProduct and 9100 in ids:
+            return {
+                9100: CachedProduct(
+                    id=9100,
+                    name="Widget",
+                    type=InventoryItemType.product,
+                    serial_tracked=False,
+                )
+            }
         return {}
 
-    lifespan_ctx.cache.get_many_by_ids = AsyncMock(side_effect=_get_many)
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(side_effect=_get_many)
 
     mock_mo = _make_serial_tracked_mo(order_no="MO-SN-7", actual_quantity=2.0)
     mock_get_response = MagicMock(status_code=200, parsed=mock_mo)

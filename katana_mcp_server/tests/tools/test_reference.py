@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -39,11 +40,10 @@ from katana_public_api_client.models_pydantic._generated import (
 def _patch_cache_sync():
     """Stub @cache_read sync fns so cache reads don't trigger API fetches.
 
-    Decorator keys are typed-cache ``Cached*`` classes (#472 Phase C).
+    Direct dict replacement (not patch.dict): the decorator caches its
+    Cached* class → sync_fn map by reference on first call, so patching
+    the typed_cache.sync module after the dict is populated has no effect.
     """
-    # Direct dict replacement (not patch.dict): the decorator caches its
-    # class → sync_fn map by reference on first call, so patching
-    # `katana_mcp.cache_sync` after the dict is populated has no effect.
     original = decorators._sync_fns
     decorators._sync_fns = {
         cls: AsyncMock()
@@ -78,19 +78,51 @@ def _extract_text(tool_result: ToolResult) -> str:
 
 def _make_context(
     *,
-    get_all: list[dict] | None = None,
-    smart_search: list[dict] | None = None,
-    get_by_id: dict | None = None,
+    get_all: list[Any] | None = None,
+    smart_search: list[Any] | None = None,
+    get_by_id: Any | None = None,
 ):
-    """Mock context with cache methods primed for the test."""
+    """Mock context with typed-cache catalog methods primed for the test."""
     context, lifespan_ctx = create_mock_context()
     if get_all is not None:
-        lifespan_ctx.cache.get_all = AsyncMock(return_value=get_all)
+        lifespan_ctx.typed_cache.catalog.get_all = AsyncMock(return_value=get_all)
     if smart_search is not None:
-        lifespan_ctx.cache.smart_search = AsyncMock(return_value=smart_search)
+        lifespan_ctx.typed_cache.catalog.smart_search = AsyncMock(
+            return_value=smart_search
+        )
     if get_by_id is not None:
-        lifespan_ctx.cache.get_by_id = AsyncMock(return_value=get_by_id)
+        lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(return_value=get_by_id)
     return context, lifespan_ctx
+
+
+def _supplier(**fields: Any) -> CachedSupplier:
+    fields.setdefault("id", 1)
+    fields.setdefault("name", "Test Supplier")
+    return CachedSupplier(**fields)
+
+
+def _location(**fields: Any) -> CachedLocation:
+    fields.setdefault("id", 1)
+    fields.setdefault("name", "Test Location")
+    return CachedLocation(**fields)
+
+
+def _tax_rate(**fields: Any) -> CachedTaxRate:
+    fields.setdefault("id", 1)
+    fields.setdefault("name", "Test Tax Rate")
+    return CachedTaxRate(**fields)
+
+
+def _operator(**fields: Any) -> CachedOperator:
+    fields.setdefault("id", 1)
+    fields.setdefault("operator_name", "Test Operator")
+    return CachedOperator(**fields)
+
+
+def _additional_cost(**fields: Any) -> CachedAdditionalCost:
+    fields.setdefault("id", 1)
+    fields.setdefault("name", "Test Cost")
+    return CachedAdditionalCost(**fields)
 
 
 # ============================================================================
@@ -99,17 +131,20 @@ def _make_context(
 
 
 class TestListSuppliers:
+    """The catalog adapter's ``get_all`` and ``smart_search`` already
+    push ``deleted_at IS NULL`` down to SQL (default
+    ``include_deleted=False``), so the per-tool soft-delete filter from
+    the legacy cache is gone. Tests below pin the routing semantics
+    (query → smart_search, no-query → get_all, etc.) and the response
+    shape, but no longer fixture in soft-deleted rows that the
+    adapter would have already dropped.
+    """
+
     @pytest.mark.asyncio
-    async def test_no_query_uses_get_all_and_filters_deleted(self):
+    async def test_no_query_uses_get_all(self):
         cached = [
-            {"id": 1, "name": "Acme", "email": "a@acme.com", "currency": "USD"},
-            {
-                "id": 2,
-                "name": "RetiredCo",
-                "email": "x@retired.com",
-                "deleted_at": "2026-01-01T00:00:00Z",
-            },
-            {"id": 3, "name": "BetaCo", "code": "BETA"},
+            _supplier(id=1, name="Acme", email="a@acme.com", currency="USD"),
+            _supplier(id=3, name="BetaCo"),
         ]
         context, lifespan_ctx = _make_context(get_all=cached)
 
@@ -117,21 +152,19 @@ class TestListSuppliers:
             query=None, limit=50, format="json", context=context
         )
 
-        assert lifespan_ctx.cache.get_all.await_count == 1
+        assert lifespan_ctx.typed_cache.catalog.get_all.await_count == 1
         # smart_search must NOT be called when query is None
-        assert lifespan_ctx.cache.smart_search.await_count == 0
+        assert lifespan_ctx.typed_cache.catalog.smart_search.await_count == 0
 
         payload = json.loads(_extract_text(result))
         assert len(payload["suppliers"]) == 2
-        assert payload["total_count"] == 2  # post-deleted-filter total
+        assert payload["total_count"] == 2
         assert {s["id"] for s in payload["suppliers"]} == {1, 3}
         assert payload["query"] is None
 
     @pytest.mark.asyncio
     async def test_query_uses_smart_search_not_get_all(self):
-        matches = [
-            {"id": 7, "name": "SRAM", "email": "kemmett@sram.com", "code": "SRAM-01"},
-        ]
+        matches = [_supplier(id=7, name="SRAM", email="kemmett@sram.com")]
         context, lifespan_ctx = _make_context(smart_search=matches, get_all=[])
 
         result = await list_suppliers(
@@ -139,10 +172,11 @@ class TestListSuppliers:
         )
 
         # Query path must use FTS, not full-list dump
-        assert lifespan_ctx.cache.smart_search.await_count == 1
-        assert lifespan_ctx.cache.get_all.await_count == 0
-        smart_call = lifespan_ctx.cache.smart_search.await_args
-        assert smart_call.args[0] == "supplier"
+        assert lifespan_ctx.typed_cache.catalog.smart_search.await_count == 1
+        assert lifespan_ctx.typed_cache.catalog.get_all.await_count == 0
+        smart_call = lifespan_ctx.typed_cache.catalog.smart_search.await_args
+        # First positional arg is the Cached* class, second is the query.
+        assert smart_call.args[0] is CachedSupplier
         assert smart_call.args[1] == "SRAM"
         assert smart_call.kwargs["limit"] == 10
 
@@ -153,7 +187,7 @@ class TestListSuppliers:
 
     @pytest.mark.asyncio
     async def test_limit_caps_no_query_path(self):
-        cached = [{"id": i, "name": f"Supplier-{i}"} for i in range(1, 21)]
+        cached = [_supplier(id=i, name=f"Supplier-{i}") for i in range(1, 21)]
         context, _ = _make_context(get_all=cached)
 
         result = await list_suppliers(
@@ -167,7 +201,7 @@ class TestListSuppliers:
 
     @pytest.mark.asyncio
     async def test_markdown_format_renders_bounded_summary_not_giant_blob(self):
-        cached = [{"id": 1, "name": "Acme", "email": "a@acme.com", "currency": "USD"}]
+        cached = [_supplier(id=1, name="Acme", email="a@acme.com", currency="USD")]
         context, _ = _make_context(get_all=cached)
 
         result = await list_suppliers(
@@ -203,37 +237,12 @@ class TestListSuppliers:
         assert "NoSuchSupplier" in text
 
     @pytest.mark.asyncio
-    async def test_query_path_filters_soft_deleted(self):
-        """smart_search results must drop deleted_at rows — symmetric with
-        the no-query path. Without this filter, an FTS hit on a soft-
-        deleted supplier would surface in the response.
-        """
-        matches = [
-            {"id": 1, "name": "ActiveCo", "code": "AC"},
-            {
-                "id": 2,
-                "name": "TombstonedCo",
-                "code": "AC",
-                "deleted_at": "2026-01-01T00:00:00Z",
-            },
-        ]
-        context, _ = _make_context(smart_search=matches)
-
-        result = await list_suppliers(
-            query="AC", limit=10, format="json", context=context
-        )
-
-        payload = json.loads(_extract_text(result))
-        assert {s["id"] for s in payload["suppliers"]} == {1}
-        assert payload["total_count"] == 1
-
-    @pytest.mark.asyncio
     async def test_whitespace_only_query_treated_as_no_query(self):
         """``query="   "`` falls through to ``get_all`` (not smart_search)
         and ``response.query`` ends up ``None`` — so the markdown header
         renders the no-query form, not "query `   `".
         """
-        cached = [{"id": 1, "name": "Acme"}]
+        cached = [_supplier(id=1, name="Acme")]
         context, lifespan_ctx = _make_context(get_all=cached, smart_search=[])
 
         result = await list_suppliers(
@@ -241,8 +250,8 @@ class TestListSuppliers:
         )
 
         # Whitespace-only query must NOT trigger smart_search
-        assert lifespan_ctx.cache.smart_search.await_count == 0
-        assert lifespan_ctx.cache.get_all.await_count == 1
+        assert lifespan_ctx.typed_cache.catalog.smart_search.await_count == 0
+        assert lifespan_ctx.typed_cache.catalog.get_all.await_count == 1
 
         text = _extract_text(result)
         # Header should be the no-query form ("## Suppliers (1 of 1)"),
@@ -259,44 +268,47 @@ class TestListSuppliers:
 class TestGetSupplier:
     @pytest.mark.asyncio
     async def test_returns_full_detail(self):
-        record = {
-            "id": 1302095,
-            "name": "SRAM",
-            "email": "kemmett@example.com",
-            "phone": "555-0100",
-            "currency": "USD",
-            "code": "SRAM-01",
-            "comment": "Primary drivetrain supplier.",
-            "default_payment_terms": "Net 30",
-            "address_line_1": "1 SRAM Way",
-            "city": "Chicago",
-            "state": "IL",
-            "zip": "60601",
-            "country": "US",
-            "created_at": "2024-01-01T00:00:00Z",
-            "updated_at": "2026-01-15T00:00:00Z",
-        }
+        from datetime import datetime
+
+        record = _supplier(
+            id=1302095,
+            name="SRAM",
+            email="kemmett@example.com",
+            phone="555-0100",
+            currency="USD",
+            comment="Primary drivetrain supplier.",
+            created_at=datetime(2024, 1, 1),
+            updated_at=datetime(2026, 1, 15),
+        )
         context, lifespan_ctx = _make_context(get_by_id=record)
 
         result = await get_supplier(supplier_id=1302095, format="json", context=context)
 
-        lifespan_ctx.cache.get_by_id.assert_awaited_once_with("supplier", 1302095)
+        # Adapter takes the Cached* class as the first positional arg.
+        await_args = lifespan_ctx.typed_cache.catalog.get_by_id.await_args
+        assert await_args.args[0] is CachedSupplier
+        assert await_args.args[1] == 1302095
         payload = json.loads(_extract_text(result))
         assert payload["id"] == 1302095
         assert payload["name"] == "SRAM"
-        assert payload["default_payment_terms"] == "Net 30"
-        assert payload["city"] == "Chicago"
-        assert payload["country"] == "US"
+        assert payload["currency"] == "USD"
+        # Fields that the wire ``Supplier`` schema doesn't carry default to None.
+        assert payload["default_payment_terms"] is None
+        assert payload["city"] is None
+        assert payload["country"] is None
 
     @pytest.mark.asyncio
     async def test_not_found_raises_value_error(self):
-        context, _ = _make_context(get_by_id=None)
+        # Re-attach to a fresh context; create_mock_context yields fresh mocks
+        # per call so this is the canonical "supplier not in cache" path.
+        context2, lifespan_ctx2 = create_mock_context()
+        lifespan_ctx2.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
         with pytest.raises(ValueError, match="Supplier with ID 999 not found"):
-            await get_supplier(supplier_id=999, format="json", context=context)
+            await get_supplier(supplier_id=999, format="json", context=context2)
 
     @pytest.mark.asyncio
     async def test_markdown_format_renders_card(self):
-        record = {"id": 1, "name": "Acme", "email": "a@acme.com", "currency": "USD"}
+        record = _supplier(id=1, name="Acme", email="a@acme.com", currency="USD")
         context, _ = _make_context(get_by_id=record)
         result = await get_supplier(supplier_id=1, format="markdown", context=context)
         text = _extract_text(result)
@@ -313,32 +325,33 @@ class TestGetSupplier:
 class TestListLocations:
     @pytest.mark.asyncio
     async def test_query_uses_smart_search(self):
-        context, lifespan_ctx = _make_context(
-            smart_search=[
-                {
-                    "id": 100,
-                    "name": "Main Warehouse",
-                    "address": {
-                        "id": 9,
-                        "line_1": "1 Industrial Way",
-                        "line_2": "Suite 4",
-                        "city": "Portland",
-                        "state": "OR",
-                        "zip": "97201",
-                        "country": "US",
-                    },
-                    "is_primary": True,
-                }
-            ]
+        from katana_public_api_client.models_pydantic._generated import (
+            LocationAddress,
         )
+
+        loc = _location(
+            id=100,
+            name="Main Warehouse",
+            address=LocationAddress(
+                id=9,
+                line_1="1 Industrial Way",
+                line_2="Suite 4",
+                city="Portland",
+                state="OR",
+                zip="97201",
+                country="US",
+            ),
+            is_primary=True,
+        )
+        context, lifespan_ctx = _make_context(smart_search=[loc])
         result = await list_locations(
             query="Main", limit=5, format="json", context=context
         )
-        lifespan_ctx.cache.smart_search.assert_awaited_once()
+        lifespan_ctx.typed_cache.catalog.smart_search.assert_awaited_once()
         payload = json.loads(_extract_text(result))
-        loc = payload["locations"][0]
-        assert loc["is_primary"] is True
-        assert loc["address"] == {
+        loc_payload = payload["locations"][0]
+        assert loc_payload["is_primary"] is True
+        assert loc_payload["address"] == {
             "line_1": "1 Industrial Way",
             "line_2": "Suite 4",
             "city": "Portland",
@@ -349,15 +362,14 @@ class TestListLocations:
 
     @pytest.mark.asyncio
     async def test_markdown_renders_city_country_from_nested_address(self):
-        context, _ = _make_context(
-            get_all=[
-                {
-                    "id": 24141,
-                    "name": "Goleta DC",
-                    "address": {"city": "Goleta", "country": "US"},
-                }
-            ]
-        )
+        # Bypass pydantic validation on the JSON column — the helper's
+        # ``_address_from_obj`` accepts either ``LocationAddress`` or a
+        # raw dict, and it's the dict shape that exercises the partial-
+        # field path (a real wire ``LocationAddress`` would carry every
+        # required field).
+        loc = _location(id=24141, name="Goleta DC")
+        object.__setattr__(loc, "address", {"city": "Goleta", "country": "US"})
+        context, _ = _make_context(get_all=[loc])
         result = await list_locations(
             query=None, limit=50, format="markdown", context=context
         )
@@ -367,7 +379,7 @@ class TestListLocations:
 
     @pytest.mark.asyncio
     async def test_missing_address_yields_none(self):
-        context, _ = _make_context(get_all=[{"id": 1, "name": "No-address site"}])
+        context, _ = _make_context(get_all=[_location(id=1, name="No-address site")])
         result = await list_locations(
             query=None, limit=50, format="json", context=context
         )
@@ -376,47 +388,39 @@ class TestListLocations:
 
     @pytest.mark.asyncio
     async def test_blank_string_address_parts_collapse_to_none(self):
-        """Katana sometimes returns blank address parts as ``""`` rather than
-        omitting them — the all-empty case must still collapse to
-        ``address: null`` instead of an AddressInfo full of empty strings.
-        Also pins that a non-blank line_1 alongside blank-only siblings
-        still yields a populated address with the empties normalized away.
+        """Katana sometimes returns blank address parts as ``""`` (notably
+        ``line_2``) rather than omitting them — the cleaning helper
+        must whitespace-collapse those to ``None`` so callers don't
+        render ``line_2: ""`` artifacts.
+
+        Constructs the row's ``address`` as a dict and bypasses
+        pydantic validation by setting it post-construction — the
+        typed ``LocationAddress`` validators reject empty strings on
+        required fields like ``city``/``zip``, but the cache JSON column
+        round-trips arbitrary shapes via ``model_dump`` and the
+        cleaning helper has to handle whatever comes back.
         """
-        context, _ = _make_context(
-            get_all=[
-                {
-                    "id": 1,
-                    "name": "All-blank address",
-                    "address": {
-                        "id": 9,
-                        "line_1": "",
-                        "line_2": "   ",
-                        "city": "",
-                        "state": "",
-                        "zip": "",
-                        "country": "",
-                    },
-                },
-                {
-                    "id": 2,
-                    "name": "Partially-populated address",
-                    "address": {
-                        "line_1": "1 Main St",
-                        "line_2": "",
-                        "city": "Goleta",
-                        "state": "  ",
-                        "zip": None,
-                        "country": "US",
-                    },
-                },
-            ]
+        loc = _location(id=2, name="Partially-populated address")
+        # Bypass pydantic validation on the JSON column — the helper's
+        # job is to handle the raw dict shape that comes off the wire.
+        object.__setattr__(
+            loc,
+            "address",
+            {
+                "line_1": "1 Main St",
+                "line_2": "",  # whitespace-empty → None
+                "city": "Goleta",
+                "state": "  ",  # whitespace-only → None
+                "zip": None,
+                "country": "US",
+            },
         )
+        context, _ = _make_context(get_all=[loc])
         result = await list_locations(
             query=None, limit=50, format="json", context=context
         )
         payload = json.loads(_extract_text(result))
-        assert payload["locations"][0]["address"] is None
-        assert payload["locations"][1]["address"] == {
+        assert payload["locations"][0]["address"] == {
             "line_1": "1 Main St",
             "line_2": None,
             "city": "Goleta",
@@ -424,24 +428,6 @@ class TestListLocations:
             "zip": None,
             "country": "US",
         }
-
-    @pytest.mark.asyncio
-    async def test_no_query_filters_deleted(self):
-        cached = [
-            {"id": 1, "name": "Active"},
-            {
-                "id": 2,
-                "name": "Closed",
-                "deleted_at": "2026-01-01T00:00:00Z",
-            },
-        ]
-        context, _ = _make_context(get_all=cached)
-        result = await list_locations(
-            query=None, limit=50, format="json", context=context
-        )
-        payload = json.loads(_extract_text(result))
-        assert len(payload["locations"]) == 1
-        assert payload["locations"][0]["id"] == 1
 
 
 # ============================================================================
@@ -456,12 +442,12 @@ class TestSmallReferenceTools:
     async def test_list_tax_rates_returns_summary(self):
         context, _ = _make_context(
             get_all=[
-                {
-                    "id": 1,
-                    "name": "Standard",
-                    "rate": 8.5,
-                    "is_default_sales": True,
-                }
+                _tax_rate(
+                    id=1,
+                    name="Standard",
+                    rate=8.5,
+                    is_default_sales=True,
+                )
             ]
         )
         result = await list_tax_rates(
@@ -474,7 +460,10 @@ class TestSmallReferenceTools:
     @pytest.mark.asyncio
     async def test_list_operators_returns_summary(self):
         context, _ = _make_context(
-            get_all=[{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]
+            get_all=[
+                _operator(id=1, operator_name="Alice"),
+                _operator(id=2, operator_name="Bob"),
+            ]
         )
         result = await list_operators(
             query=None, limit=50, format="json", context=context
@@ -486,8 +475,8 @@ class TestSmallReferenceTools:
     async def test_list_additional_costs_returns_summary(self):
         context, _ = _make_context(
             get_all=[
-                {"id": 1, "name": "Shipping"},
-                {"id": 2, "name": "Import Duty"},
+                _additional_cost(id=1, name="Shipping"),
+                _additional_cost(id=2, name="Import Duty"),
             ]
         )
         result = await list_additional_costs(

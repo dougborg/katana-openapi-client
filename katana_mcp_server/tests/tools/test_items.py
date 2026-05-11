@@ -69,10 +69,7 @@ def _patch_cache_sync():
         CachedSupplier: AsyncMock(),
     }
     try:
-        with patch(
-            "katana_mcp.cache_sync.ensure_variants_synced", new_callable=AsyncMock
-        ):
-            yield
+        yield
     finally:
         decorators._sync_fns = original
 
@@ -121,7 +118,7 @@ async def test_get_variant_details_surfaces_every_variant_field():
     # Populate deleted_at to confirm it's surfaced (not just initialized).
     variant_dict["deleted_at"] = "2024-09-01T12:00:00+00:00"
 
-    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=variant_dict)
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=variant_dict)
 
     request = GetVariantDetailsRequest(sku="KNF-PRO-8PC-STL")
     result_envelope = await _get_variant_details_impl(request, context)
@@ -160,7 +157,7 @@ async def test_get_variant_details_format_json_includes_deleted_at():
     context, lifespan_ctx = create_mock_context()
     variant = dict(_FULL_VARIANT_DICT)
     variant["deleted_at"] = "2024-09-01T12:00:00+00:00"
-    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=variant)
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=variant)
 
     result = await get_variant_details(
         sku="KNF-PRO-8PC-STL", format="json", context=context
@@ -188,7 +185,9 @@ async def test_get_variant_details_syncs_parent_entity_caches():
     )
 
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=dict(_FULL_VARIANT_DICT))
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value=dict(_FULL_VARIANT_DICT)
+    )
 
     request = GetVariantDetailsRequest(sku="KNF-PRO-8PC-STL")
     await _get_variant_details_impl(request, context)
@@ -215,7 +214,7 @@ async def test_get_variant_details_lifts_default_supplier_from_parent():
     """
     context, lifespan_ctx = create_mock_context()
     variant = dict(_FULL_VARIANT_DICT)
-    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=variant)
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=variant)
 
     parent_product = {
         "id": 101,
@@ -225,16 +224,21 @@ async def test_get_variant_details_lifts_default_supplier_from_parent():
     }
     supplier = {"id": 555, "name": "Acme Cutlery Co"}
 
-    async def _get_many_by_ids(entity_type, ids):
-        from katana_mcp.cache import EntityType
+    async def _get_many_by_ids(entity_type, ids, **_kw):
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedProduct,
+            CachedSupplier,
+        )
 
-        if entity_type == EntityType.PRODUCT:
+        if entity_type == CachedProduct:
             return {101: parent_product} if 101 in set(ids) else {}
-        if entity_type == EntityType.SUPPLIER:
+        if entity_type == CachedSupplier:
             return {555: supplier} if 555 in set(ids) else {}
         return {}
 
-    lifespan_ctx.cache.get_many_by_ids = AsyncMock(side_effect=_get_many_by_ids)
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
+        side_effect=_get_many_by_ids
+    )
 
     request = GetVariantDetailsRequest(sku="KNF-PRO-8PC-STL")
     [result] = (await _get_variant_details_impl(request, context)).found
@@ -269,7 +273,9 @@ async def test_get_variant_details_batch_all_hits_returns_all_no_misses():
         "WIDGET-A": {"id": 1, "sku": "WIDGET-A", "display_name": "Widget A"},
         "WIDGET-B": {"id": 2, "sku": "WIDGET-B", "display_name": "Widget B"},
     }
-    lifespan_ctx.cache.get_by_sku = AsyncMock(side_effect=by_sku.get)
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        side_effect=lambda sku, **_kw: by_sku.get(sku)
+    )
 
     request = GetVariantDetailsRequest(skus=["WIDGET-A", "WIDGET-B"])
     result = await _get_variant_details_impl(request, context)
@@ -287,7 +293,9 @@ async def test_get_variant_details_batch_partial_hits_returns_hits_and_misses():
     by_sku = {
         "WIDGET-B": {"id": 2, "sku": "WIDGET-B", "display_name": "Widget B"},
     }
-    lifespan_ctx.cache.get_by_sku = AsyncMock(side_effect=by_sku.get)
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        side_effect=lambda sku, **_kw: by_sku.get(sku)
+    )
 
     request = GetVariantDetailsRequest(skus=["MISSING-A", "WIDGET-B"])
     result = await _get_variant_details_impl(request, context)
@@ -303,7 +311,7 @@ async def test_get_variant_details_batch_all_misses_returns_empty_found():
     """An all-misses batch returns an empty ``found`` list and a
     populated ``not_found`` — no raise even though nothing resolved."""
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=None)
 
     request = GetVariantDetailsRequest(skus=["MISSING-A", "MISSING-B"])
     result = await _get_variant_details_impl(request, context)
@@ -318,7 +326,7 @@ async def test_get_variant_details_singular_sku_miss_still_raises():
     ``ValueError`` on a miss — the partial-result contract only applies
     to the batch path."""
     context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.cache.get_by_sku = AsyncMock(return_value=None)
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=None)
 
     request = GetVariantDetailsRequest(sku="MISSING-SOLO")
     with pytest.raises(ValueError, match="Variant with SKU 'MISSING-SOLO' not found"):
@@ -350,7 +358,9 @@ async def test_get_variant_details_mixed_skus_and_variant_ids_partial():
     by_sku = {
         "WIDGET-OK": {"id": 1, "sku": "WIDGET-OK", "display_name": "Widget OK"},
     }
-    lifespan_ctx.cache.get_by_sku = AsyncMock(side_effect=by_sku.get)
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        side_effect=lambda sku, **_kw: by_sku.get(sku)
+    )
 
     by_id = {
         2: {"id": 2, "sku": "VAR-OK", "display_name": "Variant OK"},
@@ -385,7 +395,9 @@ async def test_get_variant_details_batch_markdown_lists_not_found_section():
     by_sku = {
         "WIDGET-B": {"id": 2, "sku": "WIDGET-B", "display_name": "Widget B"},
     }
-    lifespan_ctx.cache.get_by_sku = AsyncMock(side_effect=by_sku.get)
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        side_effect=lambda sku, **_kw: by_sku.get(sku)
+    )
 
     result = await get_variant_details(skus=["MISSING-A", "WIDGET-B"], context=context)
 
@@ -403,7 +415,9 @@ async def test_get_variant_details_batch_json_includes_not_found():
     by_sku = {
         "WIDGET-B": {"id": 2, "sku": "WIDGET-B", "display_name": "Widget B"},
     }
-    lifespan_ctx.cache.get_by_sku = AsyncMock(side_effect=by_sku.get)
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        side_effect=lambda sku, **_kw: by_sku.get(sku)
+    )
 
     result = await get_variant_details(
         skus=["MISSING-A", "WIDGET-B"], format="json", context=context
@@ -863,16 +877,21 @@ async def test_enrich_variants_keeps_product_and_material_maps_separate():
     constructs a colliding-ID scenario and pins the per-type lookup so the
     bug can't regress (Copilot review on #542).
     """
-    from katana_mcp.cache import EntityType
     from katana_mcp.tools.foundation.items import _enrich_variants_with_parent
 
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedMaterial,
+        CachedProduct,
+        CachedSupplier,
+    )
+
     services = MagicMock()
-    services.cache = MagicMock()
-    services.cache.get_many_by_ids = AsyncMock(
-        side_effect=lambda entity_type, _ids: {
-            EntityType.PRODUCT: {42: {"id": 42, "uom": "pcs", "name": "Widget"}},
-            EntityType.MATERIAL: {42: {"id": 42, "uom": "ml", "name": "Sealant"}},
-            EntityType.SUPPLIER: {},
+    services.typed_cache.catalog = MagicMock()
+    services.typed_cache.catalog.get_many_by_ids = AsyncMock(
+        side_effect=lambda entity_type, _ids, **_kw: {
+            CachedProduct: {42: {"id": 42, "uom": "pcs", "name": "Widget"}},
+            CachedMaterial: {42: {"id": 42, "uom": "ml", "name": "Sealant"}},
+            CachedSupplier: {},
         }[entity_type]
     )
 

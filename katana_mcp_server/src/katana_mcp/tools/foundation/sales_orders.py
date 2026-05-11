@@ -22,7 +22,6 @@ from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
 from pydantic import BaseModel, ConfigDict, Field
 
-from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools._modification import (
@@ -119,6 +118,10 @@ from katana_public_api_client.models import (
     UpdateSalesOrderRowRequest as APIUpdateSORowRequest,
     UpdateSalesOrderShippingFeeRequest as APIUpdateSOShippingFeeRequest,
     UpdateSalesOrderStatus,
+)
+from katana_public_api_client.models_pydantic._generated import (
+    CachedCustomer,
+    CachedVariant,
 )
 from katana_public_api_client.utils import unwrap_as
 
@@ -360,8 +363,8 @@ async def _create_sales_order_impl(
 
         services = get_services(context)
         customer_name, cust_warn = await resolve_entity_name(
-            services.cache,
-            EntityType.CUSTOMER,
+            services.typed_cache.catalog,
+            CachedCustomer,
             request.customer_id,
             entity_label="Customer",
         )
@@ -1267,9 +1270,18 @@ async def _get_sales_order_impl(
         if v_id is not None
     }
     variants, addresses = await asyncio.gather(
-        services.cache.get_many_by_ids(EntityType.VARIANT, variant_ids),
+        services.typed_cache.catalog.get_many_by_ids(
+            CachedVariant, variant_ids, include_deleted=True
+        ),
         _fetch_sales_order_addresses(services, so.id),
     )
+
+    def _sku_for(v: Any) -> Any:
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            return v.get("sku")
+        return getattr(v, "sku", None)
 
     row_details: list[SalesOrderRowDetail] = []
     for r in raw_rows:
@@ -1279,7 +1291,7 @@ async def _get_sales_order_impl(
             SalesOrderRowDetail(
                 id=r.id,
                 variant_id=v_id,
-                sku=variant.get("sku") if variant else None,
+                sku=_sku_for(variant),
                 quantity=unwrap_unset(r.quantity, None),
                 sales_order_id=unwrap_unset(r.sales_order_id, None),
                 tax_rate_id=unwrap_unset(r.tax_rate_id, None),

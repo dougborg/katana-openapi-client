@@ -16,7 +16,6 @@ from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
 from pydantic import BaseModel, ConfigDict, Field
 
-from katana_mcp.cache import EntityType
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.tool_result_utils import (
@@ -30,6 +29,11 @@ from katana_public_api_client.models import (
     ManufacturingOrder,
     SalesOrder,
     UpdateManufacturingOrderRequest,
+)
+from katana_public_api_client.models_pydantic._generated import (
+    CachedMaterial,
+    CachedProduct,
+    CachedVariant,
 )
 from katana_public_api_client.utils import unwrap_as
 
@@ -285,7 +289,7 @@ async def _fulfill_manufacturing_order(
 
 async def _fetch_missing_from_api(
     services: Any,
-    cached: dict[int, dict[str, Any]],
+    cached: dict[int, Any],
     needed_ids: set[int],
     api_get_fn: Any,
 ) -> None:
@@ -295,6 +299,12 @@ async def _fetch_missing_from_api(
     serial-tracking detection. Failures (404 / network) are swallowed and
     the ID stays absent from ``cached`` — callers treat that as "unknown,
     don't block" (best-effort, same fallback as a cache miss).
+
+    The cache lookup that seeds ``cached`` returns ``Cached*`` SQLModel
+    instances post-#472 Phase D; this helper appends the API attrs models
+    on cache miss. Both shapes expose the same field names as attributes
+    (``.sku``, ``.product_id``, etc.), so callers can use ``getattr`` to
+    read fields uniformly across cache hits and API-fallback rows.
     """
     from katana_public_api_client.models import ErrorResponse
     from katana_public_api_client.utils import unwrap
@@ -315,7 +325,28 @@ async def _fetch_missing_from_api(
         obj = unwrap(response, raise_on_error=False)
         if obj is None or isinstance(obj, ErrorResponse):
             continue
-        cached[eid] = obj.to_dict()
+        cached[eid] = obj
+
+
+def _attr(obj: Any, name: str, default: Any = None) -> Any:
+    """Read ``name`` from a cache row, attrs model, OR dict uniformly.
+
+    Cached SQLModel rows expose plain attributes; attrs models use the
+    ``UNSET`` sentinel for missing optional fields; tests occasionally
+    fixture in raw dicts (the legacy cache shape) — accept all three
+    so call sites stay agnostic to which side filled the slot
+    (cache hit vs. API-fallback vs. test fixture). Used in
+    serial-track / SKU lookup paths.
+    """
+    from katana_public_api_client.client_types import UNSET
+
+    if obj is None:
+        return default
+    if isinstance(obj, dict):
+        val = obj.get(name, default)
+    else:
+        val = getattr(obj, name, default)
+    return default if val is UNSET else val
 
 
 async def _resolve_row_serial_info(
@@ -340,20 +371,27 @@ async def _resolve_row_serial_info(
     from katana_public_api_client.api.variant import get_variant
 
     variant_ids = {row.variant_id for row in so_rows if row.variant_id is not None}
-    variants_by_id = await services.cache.get_many_by_ids(
-        EntityType.VARIANT, variant_ids
+    catalog = services.typed_cache.catalog
+    variants_by_id: dict[int, Any] = await catalog.get_many_by_ids(
+        CachedVariant, variant_ids, include_deleted=True
     )
     await _fetch_missing_from_api(services, variants_by_id, variant_ids, get_variant)
 
     product_ids = {
-        v.get("product_id") for v in variants_by_id.values() if v.get("product_id")
+        pid
+        for v in variants_by_id.values()
+        if (pid := _attr(v, "product_id")) is not None
     }
     material_ids = {
-        v.get("material_id") for v in variants_by_id.values() if v.get("material_id")
+        mid
+        for v in variants_by_id.values()
+        if (mid := _attr(v, "material_id")) is not None
     }
+    products: dict[int, Any]
+    materials: dict[int, Any]
     products, materials = await asyncio.gather(
-        services.cache.get_many_by_ids(EntityType.PRODUCT, product_ids),
-        services.cache.get_many_by_ids(EntityType.MATERIAL, material_ids),
+        catalog.get_many_by_ids(CachedProduct, product_ids, include_archived=True),
+        catalog.get_many_by_ids(CachedMaterial, material_ids, include_archived=True),
     )
     await asyncio.gather(
         _fetch_missing_from_api(services, products, product_ids, get_product),
@@ -364,17 +402,20 @@ async def _resolve_row_serial_info(
     skus: dict[int, str] = {}
     for row in so_rows:
         variant = variants_by_id.get(row.variant_id)
-        skus[row.id] = (variant or {}).get("sku") or f"variant {row.variant_id}"
+        sku = _attr(variant, "sku") if variant is not None else None
+        skus[row.id] = sku or f"variant {row.variant_id}"
         if variant is None:
             serial_tracked[row.id] = False
             continue
-        if variant.get("product_id"):
-            parent = products.get(variant["product_id"])
-        elif variant.get("material_id"):
-            parent = materials.get(variant["material_id"])
+        product_id = _attr(variant, "product_id")
+        material_id = _attr(variant, "material_id")
+        if product_id:
+            parent = products.get(product_id)
+        elif material_id:
+            parent = materials.get(material_id)
         else:
             parent = None
-        serial_tracked[row.id] = bool(parent and parent.get("serial_tracked"))
+        serial_tracked[row.id] = bool(parent and _attr(parent, "serial_tracked"))
     return serial_tracked, skus
 
 
@@ -397,32 +438,33 @@ async def _resolve_variant_serial_info(
     from katana_public_api_client.api.product import get_product
     from katana_public_api_client.api.variant import get_variant
 
-    variants_by_id = await services.cache.get_many_by_ids(
-        EntityType.VARIANT, {variant_id}
+    catalog = services.typed_cache.catalog
+    variants_by_id: dict[int, Any] = await catalog.get_many_by_ids(
+        CachedVariant, {variant_id}, include_deleted=True
     )
     await _fetch_missing_from_api(services, variants_by_id, {variant_id}, get_variant)
     variant = variants_by_id.get(variant_id)
-    sku = (variant or {}).get("sku") or f"variant {variant_id}"
+    sku_val = _attr(variant, "sku") if variant is not None else None
+    sku = sku_val or f"variant {variant_id}"
     if variant is None:
         return False, sku
 
-    product_id = variant.get("product_id")
-    material_id = variant.get("material_id")
+    product_id = _attr(variant, "product_id")
+    material_id = _attr(variant, "material_id")
+    parent: Any = None
     if product_id:
-        products = await services.cache.get_many_by_ids(
-            EntityType.PRODUCT, {product_id}
+        products: dict[int, Any] = await catalog.get_many_by_ids(
+            CachedProduct, {product_id}, include_archived=True
         )
         await _fetch_missing_from_api(services, products, {product_id}, get_product)
         parent = products.get(product_id)
     elif material_id:
-        materials = await services.cache.get_many_by_ids(
-            EntityType.MATERIAL, {material_id}
+        materials: dict[int, Any] = await catalog.get_many_by_ids(
+            CachedMaterial, {material_id}, include_archived=True
         )
         await _fetch_missing_from_api(services, materials, {material_id}, get_material)
         parent = materials.get(material_id)
-    else:
-        parent = None
-    return bool(parent and parent.get("serial_tracked")), sku
+    return bool(parent and _attr(parent, "serial_tracked")), sku
 
 
 def _build_mo_serial_warnings(

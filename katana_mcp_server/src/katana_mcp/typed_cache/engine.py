@@ -81,8 +81,8 @@ class TypedCacheEngine:
 
     The ``catalog`` attribute exposes a :class:`CatalogQueries` adapter
     that wraps typed reads (``get_by_id``, ``smart_search``, ...) over
-    the catalog tier of the cache. Phase D will migrate ~33 legacy
-    ``services.cache.*`` call sites onto it.
+    the catalog tier of the cache. As of #472 Phase D this is the only
+    catalog read path — the legacy ``CatalogCache`` was decommissioned.
     """
 
     def __init__(

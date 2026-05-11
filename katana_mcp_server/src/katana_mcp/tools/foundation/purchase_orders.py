@@ -287,7 +287,10 @@ async def _create_purchase_order_impl(
     total_cost = sum(item.price_per_unit * item.quantity for item in request.items)
 
     services = get_services(context)
-    from katana_mcp.cache import EntityType
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedLocation,
+        CachedSupplier,
+    )
 
     # Resolve supplier/location names from cache for both preview and apply
     # branches so the result card has the same information density either way
@@ -296,14 +299,14 @@ async def _create_purchase_order_impl(
     # ``preview=false`` directly see them on the apply response.
     (supplier_name, sup_warn), (location_name, loc_warn) = await asyncio.gather(
         resolve_entity_name(
-            services.cache,
-            EntityType.SUPPLIER,
+            services.typed_cache.catalog,
+            CachedSupplier,
             request.supplier_id,
             entity_label="Supplier",
         ),
         resolve_entity_name(
-            services.cache,
-            EntityType.LOCATION,
+            services.typed_cache.catalog,
+            CachedLocation,
             request.location_id,
             entity_label="Location",
         ),
@@ -638,11 +641,13 @@ async def _receive_purchase_order_impl(
             supplier_name: str | None = None
             warnings: list[str] = []
             if supplier_id is not None:
-                from katana_mcp.cache import EntityType
+                from katana_public_api_client.models_pydantic._generated import (
+                    CachedSupplier,
+                )
 
                 supplier_name, sup_warn = await resolve_entity_name(
-                    services.cache,
-                    EntityType.SUPPLIER,
+                    services.typed_cache.catalog,
+                    CachedSupplier,
                     supplier_id,
                     entity_label="Supplier",
                 )

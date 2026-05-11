@@ -2,11 +2,11 @@
 
 ``TypedCacheEngine`` holds all cached entity types (catalog +
 transactional) in per-entity SQLModel tables with proper FK relationships
-and JSON columns. The legacy ``katana_mcp.cache.CatalogCache`` is in
-the process of being retired — see #472. While the migration is in
-flight Phase B (the catalog ``Cached*`` siblings + FTS5 sidecar +
-``CatalogQueries`` adapter) ships in parallel with the legacy cache;
-Phase D flips the call sites and removes the legacy module.
+and JSON columns. The legacy ``katana_mcp.cache.CatalogCache`` was
+retired in #472 Phase D once ``services.typed_cache.catalog`` (a
+:class:`CatalogQueries` adapter) replaced its read API and the catalog
+``EntitySpec`` pipeline replaced its sync helpers — see ADR-0018 for
+the original architectural framing.
 
 End-state coverage:
 

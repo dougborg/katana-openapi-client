@@ -13,8 +13,8 @@ from typing import Annotated, Any, Literal
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
 from pydantic import BaseModel, ConfigDict, Field
+from sqlmodel import SQLModel
 
-from katana_mcp.cache import EntityType
 from katana_mcp.logging import observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.decorators import cache_read
@@ -33,10 +33,6 @@ from katana_public_api_client.models_pydantic._generated import (
 # ============================================================================
 
 
-def _filter_deleted(entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [e for e in entities if not e.get("deleted_at")]
-
-
 def _normalize_query(query: str | None) -> str | None:
     """Strip whitespace and treat empty / whitespace-only input as no query.
 
@@ -53,30 +49,34 @@ def _normalize_query(query: str | None) -> str | None:
 
 async def _fetch_rows(
     context: Context,
-    entity_type: EntityType,
+    cached_cls: type[SQLModel],
     query: str | None,
     limit: int,
-) -> tuple[list[dict[str, Any]], int]:
+) -> tuple[list[Any], int]:
     """Return ``(rows, total_before_limit)`` for a reference list query.
 
-    Both branches drop soft-deleted rows. With ``query`` set,
-    ``smart_search`` already caps at ``limit`` and we treat the filtered
-    count as the visible total. Without a query, ``get_all`` + Python-side
-    soft-delete filter is the only path — the cache index has no
-    ``is_deleted`` column today, so SQL pushdown is a follow-up.
+    Both branches drop soft-deleted / archived rows via the
+    :class:`CatalogQueries` adapter's default filters
+    (``include_archived=False`` / ``include_deleted=False``) — the
+    legacy cache returned every row and post-filtered in Python; the
+    typed cache pushes the filter down to SQL so we get the same
+    result without the round-trip.
+
+    With ``query`` set, ``smart_search`` already caps at ``limit`` and we
+    treat the filtered count as the visible total. Without a query,
+    ``get_all`` returns every (filtered) row and we slice to ``limit``.
 
     ``query`` must already be normalized (see ``_normalize_query``).
     """
     services = get_services(context)
+    catalog = services.typed_cache.catalog
     if query is not None:
-        rows = await services.cache.smart_search(entity_type, query, limit=limit)
-        rows = _filter_deleted(rows)
+        rows = await catalog.smart_search(cached_cls, query, limit=limit)
         return rows, len(rows)
 
-    raw = await services.cache.get_all(entity_type)
-    filtered = _filter_deleted(raw)
-    total = len(filtered)
-    return filtered[:limit], total
+    raw = await catalog.get_all(cached_cls)
+    total = len(raw)
+    return raw[:limit], total
 
 
 def _list_header(title: str, query: str | None, returned: int, total: int) -> str:
@@ -136,14 +136,23 @@ class ListSuppliersResponse(BaseModel):
     query: str | None = None
 
 
-def _supplier_summary_from_dict(d: dict[str, Any]) -> SupplierInfo:
+def _supplier_summary_from_row(s: Any) -> SupplierInfo:
+    """Build a ``SupplierInfo`` summary from a ``CachedSupplier`` row.
+
+    ``code`` is preserved on the response shape for backwards
+    compatibility with consumers, but the wire model
+    (``CachedSupplier``) doesn't carry it — Katana never shipped a
+    ``code`` field on suppliers (the legacy ``SUPPLIER_INDEX`` had
+    a ``name2_key="code"`` slot that silently resolved to ``None``).
+    Returns ``None`` for ``code`` until / unless Katana adds the field.
+    """
     return SupplierInfo(
-        id=d.get("id") or 0,
-        name=d.get("name") or "",
-        email=d.get("email"),
-        phone=d.get("phone"),
-        currency=d.get("currency"),
-        code=d.get("code"),
+        id=s.id or 0,
+        name=s.name or "",
+        email=s.email,
+        phone=s.phone,
+        currency=s.currency,
+        code=getattr(s, "code", None),
     )
 
 
@@ -152,9 +161,9 @@ async def _list_suppliers_impl(
     request: ListSuppliersRequest, context: Context
 ) -> ListSuppliersResponse:
     query = _normalize_query(request.query)
-    rows, total = await _fetch_rows(context, EntityType.SUPPLIER, query, request.limit)
+    rows, total = await _fetch_rows(context, CachedSupplier, query, request.limit)
     return ListSuppliersResponse(
-        suppliers=[_supplier_summary_from_dict(r) for r in rows],
+        suppliers=[_supplier_summary_from_row(r) for r in rows],
         total_count=total,
         query=query,
     )
@@ -241,29 +250,45 @@ def _iso_or_none(value: Any) -> str | None:
 async def _get_supplier_impl(
     request: GetSupplierRequest, context: Context
 ) -> GetSupplierResponse:
+    """Look up a supplier by ID via the cache.
+
+    Surfaces archived/deleted suppliers via ``include_deleted=True`` so
+    a CLI user inspecting a soft-deleted supplier still resolves the
+    record (matches the legacy cache's "show everything" semantics for
+    direct lookups; the response's ``deleted_at`` field tells the caller
+    when applicable).
+
+    Most "rich" supplier fields (``code``, ``default_payment_terms``,
+    address parts) don't exist on the wire — Katana's ``Supplier``
+    schema only carries name/email/phone/currency/comment plus an
+    address list. The response model preserves the fields for API
+    stability; they always resolve to ``None``.
+    """
     services = get_services(context)
-    d = await services.cache.get_by_id(EntityType.SUPPLIER, request.supplier_id)
-    if not d:
+    s = await services.typed_cache.catalog.get_by_id(
+        CachedSupplier, request.supplier_id, include_deleted=True
+    )
+    if s is None:
         raise ValueError(f"Supplier with ID {request.supplier_id} not found")
 
     return GetSupplierResponse(
-        id=d.get("id", request.supplier_id),
-        name=d.get("name") or "",
-        email=d.get("email"),
-        phone=d.get("phone"),
-        currency=d.get("currency"),
-        code=d.get("code"),
-        comment=d.get("comment"),
-        default_payment_terms=d.get("default_payment_terms"),
-        address_line_1=d.get("address_line_1"),
-        address_line_2=d.get("address_line_2"),
-        city=d.get("city"),
-        state=d.get("state"),
-        zip=d.get("zip"),
-        country=d.get("country"),
-        created_at=_iso_or_none(d.get("created_at")),
-        updated_at=_iso_or_none(d.get("updated_at")),
-        deleted_at=_iso_or_none(d.get("deleted_at")),
+        id=s.id or request.supplier_id,
+        name=s.name or "",
+        email=s.email,
+        phone=s.phone,
+        currency=s.currency,
+        code=getattr(s, "code", None),
+        comment=s.comment,
+        default_payment_terms=getattr(s, "default_payment_terms", None),
+        address_line_1=getattr(s, "address_line_1", None),
+        address_line_2=getattr(s, "address_line_2", None),
+        city=getattr(s, "city", None),
+        state=getattr(s, "state", None),
+        zip=getattr(s, "zip", None),
+        country=getattr(s, "country", None),
+        created_at=_iso_or_none(s.created_at),
+        updated_at=_iso_or_none(s.updated_at),
+        deleted_at=_iso_or_none(s.deleted_at),
     )
 
 
@@ -354,8 +379,16 @@ class ListLocationsResponse(BaseModel):
     query: str | None = None
 
 
-def _address_from_dict(d: dict[str, Any] | None) -> AddressInfo | None:
-    if not d:
+def _address_from_obj(addr: Any) -> AddressInfo | None:
+    """Build an :class:`AddressInfo` from a typed address row or a dict.
+
+    The ``CachedLocation`` ``address`` column is a JSON-serialized
+    ``LocationAddress`` (or ``None``); the legacy cache stored it as a
+    plain dict. Accept either shape for forward compatibility — Katana's
+    address schemas don't always round-trip through pydantic identically
+    across regen passes.
+    """
+    if addr is None:
         return None
 
     def _clean(value: Any) -> str | None:
@@ -368,25 +401,28 @@ def _address_from_dict(d: dict[str, Any] | None) -> AddressInfo | None:
             return stripped or None
         return value
 
+    def _get(name: str) -> Any:
+        if isinstance(addr, dict):
+            return addr.get(name)
+        return getattr(addr, name, None)
+
     info = AddressInfo(
-        line_1=_clean(d.get("line_1")),
-        line_2=_clean(d.get("line_2")),
-        city=_clean(d.get("city")),
-        state=_clean(d.get("state")),
-        zip=_clean(d.get("zip")),
-        country=_clean(d.get("country")),
+        line_1=_clean(_get("line_1")),
+        line_2=_clean(_get("line_2")),
+        city=_clean(_get("city")),
+        state=_clean(_get("state")),
+        zip=_clean(_get("zip")),
+        country=_clean(_get("country")),
     )
     return info if info.model_dump(exclude_none=True) else None
 
 
-def _location_from_dict(d: dict[str, Any]) -> LocationInfo:
-    raw_address = d.get("address")
-    address = _address_from_dict(raw_address) if isinstance(raw_address, dict) else None
+def _location_from_row(loc: Any) -> LocationInfo:
     return LocationInfo(
-        id=d.get("id") or 0,
-        name=d.get("name") or "",
-        address=address,
-        is_primary=d.get("is_primary"),
+        id=loc.id or 0,
+        name=loc.name or "",
+        address=_address_from_obj(getattr(loc, "address", None)),
+        is_primary=getattr(loc, "is_primary", None),
     )
 
 
@@ -395,9 +431,9 @@ async def _list_locations_impl(
     request: ListLocationsRequest, context: Context
 ) -> ListLocationsResponse:
     query = _normalize_query(request.query)
-    rows, total = await _fetch_rows(context, EntityType.LOCATION, query, request.limit)
+    rows, total = await _fetch_rows(context, CachedLocation, query, request.limit)
     return ListLocationsResponse(
-        locations=[_location_from_dict(r) for r in rows],
+        locations=[_location_from_row(r) for r in rows],
         total_count=total,
         query=query,
     )
@@ -478,14 +514,14 @@ class ListTaxRatesResponse(BaseModel):
     query: str | None = None
 
 
-def _tax_rate_from_dict(d: dict[str, Any]) -> TaxRateInfo:
+def _tax_rate_from_row(tr: Any) -> TaxRateInfo:
     return TaxRateInfo(
-        id=d.get("id") or 0,
-        name=d.get("name") or "",
-        rate=d.get("rate"),
-        display_name=d.get("display_name"),
-        is_default_sales=d.get("is_default_sales"),
-        is_default_purchases=d.get("is_default_purchases"),
+        id=tr.id or 0,
+        name=tr.name or "",
+        rate=getattr(tr, "rate", None),
+        display_name=getattr(tr, "display_name", None),
+        is_default_sales=getattr(tr, "is_default_sales", None),
+        is_default_purchases=getattr(tr, "is_default_purchases", None),
     )
 
 
@@ -494,9 +530,9 @@ async def _list_tax_rates_impl(
     request: ListTaxRatesRequest, context: Context
 ) -> ListTaxRatesResponse:
     query = _normalize_query(request.query)
-    rows, total = await _fetch_rows(context, EntityType.TAX_RATE, query, request.limit)
+    rows, total = await _fetch_rows(context, CachedTaxRate, query, request.limit)
     return ListTaxRatesResponse(
-        tax_rates=[_tax_rate_from_dict(r) for r in rows],
+        tax_rates=[_tax_rate_from_row(r) for r in rows],
         total_count=total,
         query=query,
     )
@@ -569,8 +605,13 @@ class ListOperatorsResponse(BaseModel):
     query: str | None = None
 
 
-def _operator_from_dict(d: dict[str, Any]) -> OperatorInfo:
-    return OperatorInfo(id=d.get("id") or 0, name=d.get("name") or "")
+def _operator_from_row(op: Any) -> OperatorInfo:
+    """Build an :class:`OperatorInfo` from a ``CachedOperator`` row.
+
+    The wire schema uses ``operator_name`` rather than ``name`` — the
+    response shape preserves ``name`` for caller stability.
+    """
+    return OperatorInfo(id=op.id or 0, name=op.operator_name or "")
 
 
 @cache_read(CachedOperator)
@@ -578,9 +619,9 @@ async def _list_operators_impl(
     request: ListOperatorsRequest, context: Context
 ) -> ListOperatorsResponse:
     query = _normalize_query(request.query)
-    rows, total = await _fetch_rows(context, EntityType.OPERATOR, query, request.limit)
+    rows, total = await _fetch_rows(context, CachedOperator, query, request.limit)
     return ListOperatorsResponse(
-        operators=[_operator_from_dict(r) for r in rows],
+        operators=[_operator_from_row(r) for r in rows],
         total_count=total,
         query=query,
     )
@@ -644,8 +685,8 @@ class ListAdditionalCostsResponse(BaseModel):
     query: str | None = None
 
 
-def _additional_cost_from_dict(d: dict[str, Any]) -> AdditionalCostInfo:
-    return AdditionalCostInfo(id=d.get("id") or 0, name=d.get("name") or "")
+def _additional_cost_from_row(ac: Any) -> AdditionalCostInfo:
+    return AdditionalCostInfo(id=ac.id or 0, name=getattr(ac, "name", None) or "")
 
 
 @cache_read(CachedAdditionalCost)
@@ -653,11 +694,9 @@ async def _list_additional_costs_impl(
     request: ListAdditionalCostsRequest, context: Context
 ) -> ListAdditionalCostsResponse:
     query = _normalize_query(request.query)
-    rows, total = await _fetch_rows(
-        context, EntityType.ADDITIONAL_COST, query, request.limit
-    )
+    rows, total = await _fetch_rows(context, CachedAdditionalCost, query, request.limit)
     return ListAdditionalCostsResponse(
-        additional_costs=[_additional_cost_from_dict(r) for r in rows],
+        additional_costs=[_additional_cost_from_row(r) for r in rows],
         total_count=total,
         query=query,
     )
