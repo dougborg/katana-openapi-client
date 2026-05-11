@@ -2,6 +2,27 @@
 
 <!-- version list -->
 
+## v0.62.0 (2026-05-11)
+
+### Bug Fixes
+
+- **client**: Also relax VariantResponse.sku + migrate pre-existing caches
+  ([`b79a478`](https://github.com/dougborg/katana-openapi-client/commit/b79a4780f4fb244422262a65493480aaf9bb56e7))
+
+- **client**: Clarify VariantResponse.sku presence + test setup comment
+  ([`2cf54df`](https://github.com/dougborg/katana-openapi-client/commit/2cf54dfe23ff9d1674567779bdd660499ceeb680))
+
+- **client**: Declare Variant.sku as nullable to match wire contract
+  ([`a8109c2`](https://github.com/dougborg/katana-openapi-client/commit/a8109c2e0152aaf3077e63a81eeb40045085c592))
+
+### Chores
+
+- Sync uv.lock to mcp v0.68.0
+  ([`b56322c`](https://github.com/dougborg/katana-openapi-client/commit/b56322c114ac9f497e6a560e4f3db7f6df37de04))
+
+- **client**: Regen catches stale MO operation row example
+  ([`bf4ba61`](https://github.com/dougborg/katana-openapi-client/commit/bf4ba61514299c5fd4ea0d2ae1d3d3e6bdc941b9))
+
 ## v0.61.0 (2026-05-11)
 
 ### Bug Fixes

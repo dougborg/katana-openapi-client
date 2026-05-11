@@ -12,6 +12,7 @@ import asyncio
 import sqlite3
 from collections import defaultdict
 from pathlib import Path
+from typing import Any
 
 from platformdirs import user_cache_dir
 from sqlalchemy import event
@@ -49,6 +50,44 @@ assert _contacts_mod is not None
 assert _common_mod is not None
 
 _DEFAULT_DB_PATH = Path(user_cache_dir("katana-mcp")) / "typed_cache.db"
+
+
+def _migrate_pre_create_all(sync_conn: Any) -> None:
+    """One-shot DDL migrations to run before ``SQLModel.metadata.create_all``.
+
+    ``create_all`` only emits ``CREATE TABLE IF NOT EXISTS``, so it can't
+    alter an existing table's column constraints. Whenever a generator-
+    driven schema change relaxes a column (e.g., ``NOT NULL`` → nullable)
+    or otherwise changes existing DDL, the matching cache rebuild belongs
+    here: read the live DDL via ``sqlite_master`` and drop the table when
+    it's stale, then ``create_all`` rebuilds it with the current
+    generator output and the next entity sync repopulates from the API.
+
+    Each migration block is keyed on a substring of the *stale* DDL so
+    re-running ``open()`` against an already-migrated DB is a fast no-op
+    (the substring won't match).
+    """
+    from sqlalchemy import text
+
+    def _table_ddl(name: str) -> str | None:
+        row = sync_conn.execute(
+            text("SELECT sql FROM sqlite_master WHERE type='table' AND name=:n"),
+            {"n": name},
+        ).first()
+        return row[0] if row else None
+
+    # #671: ``Variant.sku`` was relaxed from required-non-null ``str`` to
+    # nullable ``str | None`` to match Katana's wire reality (variants can
+    # be created without a SKU; legacy NetSuite imports are a common
+    # source). Pre-#671 installations have ``sku VARCHAR NOT NULL`` baked
+    # into the CREATE statement, which rejects the null-sku rows Katana
+    # legitimately emits. Drop on mismatch so ``create_all`` rebuilds with
+    # the nullable column; the FTS sidecar gets rebuilt alongside in the
+    # ``initialize_fts_for_connection`` step downstream.
+    variant_ddl = _table_ddl("variant")
+    if variant_ddl is not None and "sku VARCHAR NOT NULL" in variant_ddl:
+        sync_conn.execute(text("DROP TABLE IF EXISTS variant_fts"))
+        sync_conn.execute(text("DROP TABLE IF EXISTS variant"))
 
 
 def _apply_sqlite_pragmas(dbapi_conn: sqlite3.Connection, _record: object) -> None:
@@ -172,6 +211,15 @@ class TypedCacheEngine:
         _validate_dependency_graph(ENTITY_SPECS.values())
 
         async with self._engine.begin() as conn:
+            # Run targeted DDL migrations against the pre-existing schema
+            # *before* ``create_all``, since ``create_all`` is a no-op on
+            # tables that already exist. Anything that needs to widen an
+            # existing column or relax a NOT NULL constraint has to drop
+            # the affected table first; ``create_all`` then rebuilds it
+            # with the current generator output, and the next sync
+            # repopulates from the API. The cache is a derived store —
+            # losing rows on schema drift is the right trade.
+            await conn.run_sync(_migrate_pre_create_all)
             await conn.run_sync(SQLModel.metadata.create_all)
             # FTS5 virtual tables sit alongside the SQLModel-managed
             # tables and need their own DDL. Two steps, in order:

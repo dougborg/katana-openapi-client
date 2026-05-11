@@ -159,8 +159,10 @@ class InventoryMovementListResponse(KatanaPydanticBase):
 
 class Variant(UpdatableEntity, DeletableEntity):
     sku: Annotated[
-        str,
-        Field(description="Stock keeping unit - unique identifier for this variant"),
+        str | None,
+        Field(
+            description="Stock keeping unit - unique identifier for this variant. Katana allows\nvariants to be created without a SKU; the field is always present in the\nresponse but may be null for such rows."
+        ),
     ]
     sales_price: Annotated[
         float | None,
@@ -1377,7 +1379,9 @@ class VariantResponse(DeletableEntity):
     ] = None
     sku: Annotated[
         str | None,
-        Field(description="Stock keeping unit code for unique identification"),
+        Field(
+            description="Stock keeping unit code for unique identification. Katana allows\nvariants to be created without a SKU; the value may be null for\nsuch rows. ``VariantResponse`` does not declare ``sku`` as required,\nso the key may also be omitted entirely on some response shapes —\nconsumers should handle both ``null`` and missing keys."
+        ),
     ] = None
     sales_price: Annotated[
         float | None,
@@ -1462,10 +1466,10 @@ class CachedVariant(UpdatableEntity, DeletableEntity, table=True):
     ]
 
     sku: Annotated[
-        Mapped[str],
+        Mapped[str | None],
         SQLField(
             index=True,
-            description="Stock keeping unit - unique identifier for this variant",
+            description="Stock keeping unit - unique identifier for this variant. Katana allows\nvariants to be created without a SKU; the field is always present in the\nresponse but may be null for such rows.",
         ),
     ]
     sales_price: Annotated[

@@ -51,10 +51,18 @@ class KatanaVariant(KatanaBaseModel):
         ```
     """
 
-    # ============ Core Fields (always present) ============
+    # ============ Core Fields (key always present, value may be null) ============
 
     id: int = Field(..., description="Unique variant ID")
-    sku: str = Field(..., description="Stock Keeping Unit")
+    sku: str | None = Field(
+        ...,
+        description=(
+            "Stock Keeping Unit. Katana allows variants to be created without "
+            "a SKU; nullable to match the wire contract. The field is always "
+            "present in API responses but may be ``None`` for variants created "
+            "without a SKU (e.g., legacy NetSuite imports)."
+        ),
+    )
 
     # ============ Pricing Fields ============
 
@@ -284,7 +292,7 @@ class KatanaVariant(KatanaBaseModel):
             ```
         """
         if not self.product_or_material_name:
-            return self.sku
+            return self.sku or ""
 
         parts = [self.product_or_material_name]
 
@@ -330,7 +338,7 @@ class KatanaVariant(KatanaBaseModel):
             score_match(
                 query=query,
                 fields={
-                    "sku": (self.sku, 100),
+                    "sku": (self.sku or "", 100),
                     "name": (self.product_or_material_name or "", 30),
                     "extra": (extra_text, 10),
                 },

@@ -74,6 +74,22 @@ behavior, or gotcha during development, add it here so future sessions don't rep
 
 Common mistakes to avoid:
 
+- **Variants can have null SKUs — never assume `Variant.sku` is non-null** - Katana
+  allows users to create variants without a SKU (legacy NetSuite imports are a common
+  source — items that came across with a "Display Name" but no Item Name). The wire
+  contract reflects this: `Variant.sku` is `str | None` in both the attrs and pydantic
+  models. The bug that prompted the spec relaxation was a typed-cache sync crash —
+  `get_all_variants(extend=PRODUCT_OR_MATERIAL)` nests each parent's full `variants[]`
+  array, and a single null-sku sibling raised pydantic `ValidationError` during
+  `Variant.from_attrs` recursion, aborting the whole sync batch and leaving the cache
+  empty. Pinned by tests in `tests/test_models_pydantic.py::TestVariantNullSku` and
+  `katana_mcp_server/tests/test_typed_cache_catalog.py::TestVariantPostprocess::test_sync_tolerates_null_sku_in_nested_variants`.
+  **Downstream consumers must coalesce** — render with `variant.sku or ""`, score with
+  `(variant.sku or "", weight)`, etc. The `KatanaVariant` domain model and the typed
+  cache's `CachedVariant` table both accept null SKU; `get_by_sku` won't match these
+  rows (NULL ≠ string), so they're effectively unreachable by SKU lookup but still
+  surface in ID-based reads and FTS fuzzy search.
+
 - **Editing generated files** - `api/**/*.py`, `models/**/*.py`, and `client.py` are
   generated. Run `uv run poe regenerate-client` instead of editing them directly.
 

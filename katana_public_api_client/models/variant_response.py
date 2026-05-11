@@ -47,7 +47,7 @@ class VariantResponse:
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
     deleted_at: datetime.datetime | None | Unset = UNSET
-    sku: str | Unset = UNSET
+    sku: None | str | Unset = UNSET
     sales_price: float | Unset = UNSET
     purchase_price: float | Unset = UNSET
     product_id: int | None | Unset = UNSET
@@ -84,7 +84,11 @@ class VariantResponse:
         else:
             deleted_at = self.deleted_at
 
-        sku = self.sku
+        sku: None | str | Unset
+        if isinstance(self.sku, Unset):
+            sku = UNSET
+        else:
+            sku = self.sku
 
         sales_price = self.sales_price
 
@@ -237,7 +241,14 @@ class VariantResponse:
 
         deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
 
-        sku = d.pop("sku", UNSET)
+        def _parse_sku(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        sku = _parse_sku(d.pop("sku", UNSET))
 
         sales_price = d.pop("sales_price", UNSET)
 
