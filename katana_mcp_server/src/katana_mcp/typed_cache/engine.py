@@ -24,7 +24,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 # Side-effect imports: register table=True SQLModel classes with
 # ``SQLModel.metadata`` so ``create_all`` emits their DDL. Add new
 # entity modules here as they come online.
-from katana_mcp.typed_cache import sync_state as _sync_state_mod
+from katana_mcp.typed_cache import (
+    schema_fingerprint as _schema_fingerprint_mod,
+    sync_state as _sync_state_mod,
+)
 from katana_public_api_client.models_pydantic._generated import (
     common as _common_mod,
     contacts as _contacts_mod,
@@ -41,6 +44,7 @@ from katana_public_api_client.models_pydantic._generated import (
 # ``contacts`` registers Cached{Customer,Supplier};
 # ``common`` registers Cached{Location,TaxRate,Operator,Factory,AdditionalCost}.
 assert _sync_state_mod is not None
+assert _schema_fingerprint_mod is not None
 assert _sales_orders_mod is not None
 assert _stock_mod is not None
 assert _manufacturing_mod is not None
@@ -206,6 +210,10 @@ class TypedCacheEngine:
             initialize_fts_for_connection,
             populate_fts_from_existing_rows,
         )
+        from .schema_fingerprint import (
+            check_and_rebuild_on_drift,
+            write_current_fingerprint,
+        )
         from .sync import ENTITY_SPECS, _validate_dependency_graph
 
         _validate_dependency_graph(ENTITY_SPECS.values())
@@ -220,7 +228,29 @@ class TypedCacheEngine:
             # repopulates from the API. The cache is a derived store —
             # losing rows on schema drift is the right trade.
             await conn.run_sync(_migrate_pre_create_all)
+            # Schema-fingerprint backstop runs AFTER the targeted
+            # migration pass so the targeted migrations get to do their
+            # fine-grained work first (only dropping one table's data
+            # for known regressions). The fingerprint backstop only
+            # fires for changes the targeted migrations didn't catch.
+            # The two coexist by design:
+            #   - ``_migrate_pre_create_all`` is the narrow optimization
+            #     for known cases where we want to keep *other* tables'
+            #     data and only drop the one we're migrating.
+            #   - ``check_and_rebuild_on_drift`` is the wide net: any
+            #     remaining change to ``SQLModel.metadata`` (column
+            #     added/removed, type changed, constraint changed) trips
+            #     it. Drops every managed table + FTS sidecar;
+            #     ``create_all`` rebuilds. After a targeted migration
+            #     ran, only the unmigrated drift remains for this pass
+            #     to catch.
+            await conn.run_sync(check_and_rebuild_on_drift)
             await conn.run_sync(SQLModel.metadata.create_all)
+            # Write the current fingerprint AFTER ``create_all`` so the
+            # ``cache_meta`` table is guaranteed to exist when we INSERT.
+            # Stamps both fresh DBs and post-rebuild DBs so the next
+            # open's drift check has a comparison baseline.
+            await conn.run_sync(write_current_fingerprint)
             # FTS5 virtual tables sit alongside the SQLModel-managed
             # tables and need their own DDL. Two steps, in order:
             # 1. ``initialize_fts_for_connection`` — emit

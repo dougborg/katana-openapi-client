@@ -135,6 +135,260 @@ class TestLifecycle:
             await engine.close()
 
     @pytest.mark.asyncio
+    async def test_open_rebuilds_pre_669_location_table_missing_deleted_at(
+        self, tmp_path: Path
+    ):
+        """The headline #669 regression: pre-#669 ``CachedLocation`` extended
+        ``KatanaPydanticBase``, so the SQLite ``location`` table had only the
+        explicit columns (``id``, ``name``, ``legal_name``, ...). #669 promoted
+        it to ``DeletableEntity``, adding ``created_at``, ``updated_at``, and
+        ``deleted_at``. ``SQLModel.metadata.create_all`` is a no-op against
+        existing tables, so an upgraded user keeps the narrow table — and the
+        next ``list_locations`` call's ``WHERE deleted_at IS NULL`` blows up
+        with ``sqlite3.OperationalError: no such column: location.deleted_at``.
+
+        The schema-fingerprint backstop must catch this on open (no stored
+        fingerprint + tables present → upgrade path → drop everything and
+        rebuild). After ``open()``, the ``location`` table must have all the
+        new columns, and the next ``list_locations`` query path must succeed.
+        """
+        import aiosqlite
+        from sqlalchemy import text
+
+        db_path = tmp_path / "pre_669.db"
+        # Hand-craft a pre-#669 ``location`` table — the explicit columns
+        # only, no ``DeletableEntity`` audit fields. This is byte-identical
+        # to what an upgraded user has on disk.
+        async with aiosqlite.connect(str(db_path)) as conn:
+            await conn.execute(
+                "CREATE TABLE location ("
+                "id INTEGER PRIMARY KEY, "
+                "name VARCHAR NOT NULL, "
+                "legal_name VARCHAR"
+                ")"
+            )
+            await conn.execute(
+                "INSERT INTO location (id, name) VALUES (1, 'Old Warehouse')"
+            )
+            await conn.commit()
+
+        engine = TypedCacheEngine(db_path=db_path)
+        await engine.open()
+        try:
+            # Confirm the rebuild added the missing columns.
+            async with engine.session() as session:
+                conn = await session.connection()
+                cols = (
+                    await conn.execute(text("PRAGMA table_info(location)"))
+                ).fetchall()
+                col_names = {row[1] for row in cols}
+            assert "deleted_at" in col_names, (
+                f"deleted_at missing — fingerprint backstop failed to "
+                f"rebuild. Columns: {col_names}"
+            )
+            assert "created_at" in col_names
+            assert "updated_at" in col_names
+
+            # The ``WHERE deleted_at IS NULL`` query path must now succeed
+            # — this is the actual user-visible failure mode #669
+            # introduced.
+            from katana_public_api_client.models_pydantic._generated import (
+                CachedLocation,
+            )
+
+            async with engine.session() as session:
+                rows = (
+                    await session.exec(
+                        select(CachedLocation).where(
+                            CachedLocation.deleted_at.is_(None)
+                        )
+                    )
+                ).all()
+            # Pre-existing 'Old Warehouse' row was dropped along with the
+            # narrow table — cache is derivable from the API.
+            assert rows == []
+        finally:
+            await engine.close()
+
+    @pytest.mark.asyncio
+    async def test_open_rebuild_drops_fts_sidecars_alongside_main_tables(
+        self, tmp_path: Path
+    ):
+        """When the fingerprint backstop drops a content table, its FTS5
+        sidecar + the trigger trio must drop too — otherwise the next
+        ``CREATE TRIGGER`` would error on the leftover trigger and the
+        FTS5 virtual table would reference a now-missing content table.
+
+        Hand-build a stale variant table and a matching ``variant_fts``
+        sidecar (mirroring what a pre-fingerprint engine would have left
+        on disk), then confirm both get rebuilt.
+        """
+        import aiosqlite
+        from sqlalchemy import text
+
+        db_path = tmp_path / "stale_with_fts.db"
+        async with aiosqlite.connect(str(db_path)) as conn:
+            # Stale variant table (forces a fingerprint mismatch) +
+            # matching FTS sidecar + one trigger to confirm cleanup.
+            await conn.execute(
+                "CREATE TABLE variant ("
+                "id INTEGER PRIMARY KEY, sku VARCHAR, made_up_old_col VARCHAR"
+                ")"
+            )
+            await conn.execute(
+                "CREATE VIRTUAL TABLE variant_fts USING fts5("
+                "sku, content='variant', content_rowid='id'"
+                ")"
+            )
+            await conn.execute(
+                "CREATE TRIGGER variant_ai AFTER INSERT ON variant BEGIN "
+                "INSERT INTO variant_fts (rowid, sku) "
+                "VALUES (new.id, IFNULL(new.sku, '')); END"
+            )
+            await conn.commit()
+
+        engine = TypedCacheEngine(db_path=db_path)
+        await engine.open()
+        try:
+            async with engine.session() as session:
+                conn = await session.connection()
+                # FTS sidecar exists.
+                fts = (
+                    await conn.execute(
+                        text(
+                            "SELECT name FROM sqlite_master "
+                            "WHERE type='table' AND name='variant_fts'"
+                        )
+                    )
+                ).first()
+                # Trigger exists (recreated post-rebuild by FTS init).
+                trigger = (
+                    await conn.execute(
+                        text(
+                            "SELECT name FROM sqlite_master "
+                            "WHERE type='trigger' AND name='variant_ai'"
+                        )
+                    )
+                ).first()
+                # The stale fictional column is gone — proves the variant
+                # table was actually dropped + recreated, not just left in
+                # place with a bonus FTS sidecar.
+                cols = (
+                    await conn.execute(text("PRAGMA table_info(variant)"))
+                ).fetchall()
+                col_names = {row[1] for row in cols}
+            assert fts is not None
+            assert trigger is not None
+            assert "made_up_old_col" not in col_names
+        finally:
+            await engine.close()
+
+    @pytest.mark.asyncio
+    async def test_open_writes_fingerprint_to_cache_meta(self, tmp_path: Path):
+        """First open of a fresh DB stamps a fingerprint row in ``cache_meta``."""
+        from katana_mcp.typed_cache.schema_fingerprint import (
+            CacheMeta,
+            compute_metadata_fingerprint,
+        )
+
+        engine = TypedCacheEngine(db_path=tmp_path / "fresh.db")
+        await engine.open()
+        try:
+            async with engine.session() as session:
+                row = await session.get(CacheMeta, "schema_fingerprint")
+            assert row is not None
+            assert row.value == compute_metadata_fingerprint()
+            # SHA-256 hex is exactly 64 chars — sanity check we're not
+            # storing something pathological like the empty string.
+            assert len(row.value) == 64
+        finally:
+            await engine.close()
+
+    @pytest.mark.asyncio
+    async def test_second_open_with_unchanged_metadata_is_a_noop(self, tmp_path: Path):
+        """Reopen against an already-stamped DB must NOT rebuild — user
+        rows survive across engine restarts unless the schema actually
+        changed. This is the most important non-headline guarantee:
+        without it, every server restart would clear the cache.
+        """
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedLocation,
+        )
+
+        db_path = tmp_path / "stable.db"
+
+        # First open: stamps fingerprint + lays down schema. Seed a row.
+        engine = TypedCacheEngine(db_path=db_path)
+        await engine.open()
+        try:
+            async with engine.session() as session:
+                session.add(CachedLocation(id=42, name="Survivor Warehouse"))
+                await session.commit()
+        finally:
+            await engine.close()
+
+        # Second open: fingerprint matches → no rebuild → row survives.
+        engine = TypedCacheEngine(db_path=db_path)
+        await engine.open()
+        try:
+            async with engine.session() as session:
+                row = await session.get(CachedLocation, 42)
+            assert row is not None, (
+                "Cache row was wiped on a no-op reopen — the fingerprint "
+                "backstop is rebuilding when it shouldn't be."
+            )
+            assert row.name == "Survivor Warehouse"
+        finally:
+            await engine.close()
+
+    @pytest.mark.asyncio
+    async def test_open_rebuilds_when_fingerprint_mismatch(self, tmp_path: Path):
+        """Synthetic drift: write a wrong fingerprint to ``cache_meta``,
+        seed a row, reopen — the row must be wiped (proves the mismatch
+        path runs) and the new fingerprint must overwrite the wrong one.
+        """
+        from katana_mcp.typed_cache.schema_fingerprint import (
+            CacheMeta,
+            compute_metadata_fingerprint,
+        )
+
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedLocation,
+        )
+
+        db_path = tmp_path / "drifty.db"
+
+        # First open lays down the schema + writes the correct fingerprint.
+        engine = TypedCacheEngine(db_path=db_path)
+        await engine.open()
+        try:
+            async with engine.session() as session:
+                session.add(CachedLocation(id=1, name="Will Vanish"))
+                # Replace the correct fingerprint with a synthetic wrong one.
+                meta = await session.get(CacheMeta, "schema_fingerprint")
+                assert meta is not None
+                meta.value = "0" * 64
+                session.add(meta)
+                await session.commit()
+        finally:
+            await engine.close()
+
+        # Second open: stored fingerprint != current → rebuild fires.
+        engine = TypedCacheEngine(db_path=db_path)
+        await engine.open()
+        try:
+            async with engine.session() as session:
+                vanished = await session.get(CachedLocation, 1)
+                meta = await session.get(CacheMeta, "schema_fingerprint")
+            assert vanished is None, (
+                "Row survived a fingerprint-mismatch open — rebuild didn't fire."
+            )
+            assert meta is not None
+            assert meta.value == compute_metadata_fingerprint()
+        finally:
+            await engine.close()
+
+    @pytest.mark.asyncio
     async def test_file_backed_engine_uses_wal_and_busy_timeout(self, tmp_path: Path):
         """File-backed engines apply WAL + busy_timeout PRAGMAs.
 
