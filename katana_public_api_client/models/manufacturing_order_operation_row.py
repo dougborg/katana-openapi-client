@@ -27,7 +27,7 @@ class ManufacturingOrderOperationRow:
     assignments, time, and costs.
 
         Example:
-            {'id': 3801, 'status': 'IN_PROGRESS', 'type': 'Production', 'rank': 1, 'manufacturing_order_id': 3001,
+            {'id': 3801, 'status': 'IN_PROGRESS', 'type': 'process', 'rank': 1, 'manufacturing_order_id': 3001,
                 'operation_id': 401, 'operation_name': 'Cut Steel Sheets', 'resource_id': 501, 'resource_name': 'Laser Cutting
                 Machine', 'assigned_operators': [{'id': 101, 'operator_id': 101, 'name': 'John Smith', 'working_area':
                 'Production Floor A', 'resource_id': 501}], 'completed_by_operators': [], 'active_operator_id': 101,
