@@ -1,6 +1,5 @@
-from collections.abc import Mapping
 from http import HTTPStatus
-from typing import Any, cast
+from typing import Any
 from urllib.parse import quote
 
 import httpx
@@ -8,9 +7,8 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import Response
-from ...models.deletable_entity import DeletableEntity
 from ...models.error_response import ErrorResponse
-from ...models.location_type_0 import LocationType0
+from ...models.location import Location
 
 
 def _get_kwargs(
@@ -29,29 +27,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> DeletableEntity | LocationType0 | ErrorResponse | None:
+) -> ErrorResponse | Location | None:
     if response.status_code == 200:
-
-        def _parse_response_200(data: object) -> DeletableEntity | LocationType0:
-            try:
-                if not isinstance(data, dict):
-                    raise TypeError()
-                componentsschemas_location_type_0 = LocationType0.from_dict(
-                    cast(Mapping[str, Any], data)
-                )
-
-                return componentsschemas_location_type_0
-            except (TypeError, ValueError, AttributeError, KeyError):
-                pass
-            if not isinstance(data, dict):
-                raise TypeError()
-            componentsschemas_location_type_1 = DeletableEntity.from_dict(
-                cast(Mapping[str, Any], data)
-            )
-
-            return componentsschemas_location_type_1
-
-        response_200 = _parse_response_200(response.json())
+        response_200 = Location.from_dict(response.json())
 
         return response_200
 
@@ -83,7 +61,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[DeletableEntity | LocationType0 | ErrorResponse]:
+) -> Response[ErrorResponse | Location]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -96,7 +74,7 @@ def sync_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[DeletableEntity | LocationType0 | ErrorResponse]:
+) -> Response[ErrorResponse | Location]:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -110,7 +88,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[DeletableEntity | LocationType0 | ErrorResponse]
+        Response[ErrorResponse | Location]
     """
 
     kwargs = _get_kwargs(
@@ -128,7 +106,7 @@ def sync(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> DeletableEntity | LocationType0 | ErrorResponse | None:
+) -> ErrorResponse | Location | None:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -142,7 +120,7 @@ def sync(
 
 
     Returns:
-        DeletableEntity | LocationType0 | ErrorResponse
+        ErrorResponse | Location
     """
 
     return sync_detailed(
@@ -155,7 +133,7 @@ async def asyncio_detailed(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> Response[DeletableEntity | LocationType0 | ErrorResponse]:
+) -> Response[ErrorResponse | Location]:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -169,7 +147,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[DeletableEntity | LocationType0 | ErrorResponse]
+        Response[ErrorResponse | Location]
     """
 
     kwargs = _get_kwargs(
@@ -185,7 +163,7 @@ async def asyncio(
     id: int,
     *,
     client: AuthenticatedClient | Client,
-) -> DeletableEntity | LocationType0 | ErrorResponse | None:
+) -> ErrorResponse | Location | None:
     """Retrieve a location
 
      Retrieves the details of an existing location based on ID.
@@ -199,7 +177,7 @@ async def asyncio(
 
 
     Returns:
-        DeletableEntity | LocationType0 | ErrorResponse
+        ErrorResponse | Location
     """
 
     return (
