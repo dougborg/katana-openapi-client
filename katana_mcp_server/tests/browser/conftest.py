@@ -93,7 +93,18 @@ def apps_dev_server() -> Iterator[str]:
             str(_DEV_PORT),
             "--no-reload",
         ],
-        env={**os.environ, "FASTMCP_LOG_LEVEL": "WARNING"},
+        # ``fastmcp dev apps`` unconditionally calls ``webbrowser.open(dev_url)``
+        # on startup with no flag to disable it. Setting ``BROWSER=true`` makes
+        # Python's webbrowser module dispatch to the ``true`` command (resolved
+        # via PATH) — exits 0, opens nothing. Skipped on Windows: there's no
+        # ``true`` there, and webbrowser would fall through to the default
+        # browser. The suite is documented as macOS/Linux-only, matching the
+        # ``start_new_session`` guard below.
+        env={
+            **os.environ,
+            "FASTMCP_LOG_LEVEL": "WARNING",
+            **({"BROWSER": "true"} if sys.platform != "win32" else {}),
+        },
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         start_new_session=sys.platform != "win32",
