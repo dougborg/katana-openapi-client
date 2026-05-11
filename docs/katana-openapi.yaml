@@ -2774,31 +2774,40 @@ components:
         zip: "78745"
     Location:
       description: Manufacturing location or warehouse facility where inventory is managed and operations are performed
-      anyOf:
+      allOf:
+        - $ref: "#/components/schemas/DeletableEntity"
         - type: object
           properties:
-            id:
-              type: integer
             name:
               type: string
+              description: Display name of the location
             legal_name:
               type: string
+              description: Legal name of the entity that owns the location
             address_id:
-              type: integer
+              type:
+                - integer
+                - "null"
+              description: Identifier of the associated address record, or null if no address is on file
             address:
-              $ref: "#/components/schemas/LocationAddress"
+              description: Structured address information for the location, or null if no address is on file
+              oneOf:
+                - $ref: "#/components/schemas/LocationAddress"
+                - type: "null"
             is_primary:
               type: boolean
+              description: Whether this location is the primary location for the tenant
             sales_allowed:
               type: boolean
+              description: Whether sales orders may be fulfilled from this location
             purchase_allowed:
               type: boolean
+              description: Whether purchase orders may be received at this location
             manufacturing_allowed:
               type: boolean
+              description: Whether manufacturing orders may be produced at this location
           required:
-            - id
             - name
-        - $ref: "#/components/schemas/DeletableEntity"
       example:
         id: 1
         name: Main location
@@ -4315,7 +4324,6 @@ components:
               type:
                 - string
                 - "null"
-              maxLength: 7
               description: |-
                 If purchasing in a different unit of measure than the default unit of measure (used for tracking stock)
                 for this item, you can define the purchase unit. Value null indicates that purchasing is done in same

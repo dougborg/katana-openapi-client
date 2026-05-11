@@ -43,7 +43,7 @@ from .common import (
     CustomFieldValue,
     InventoryItemType,
     InventoryMovementResourceType,
-    Location1,
+    Location,
     ProductOperationType,
     ServiceType,
     VariantType,
@@ -298,34 +298,8 @@ class Inventory(KatanaPydanticBase):
         ),
     ] = None
     location: Annotated[
-        Location1 | DeletableEntity | None,
-        Field(
-            description="Location details where this inventory is stored",
-            examples=[
-                {
-                    "id": 1,
-                    "name": "Main location",
-                    "legal_name": "Amazon",
-                    "address_id": 1,
-                    "address": {
-                        "id": 1,
-                        "city": "New York",
-                        "country": "US",
-                        "line_1": "10 East 20th Example St",
-                        "line_2": "",
-                        "state": "New York",
-                        "zip": "10000",
-                    },
-                    "is_primary": True,
-                    "sales_allowed": True,
-                    "purchase_allowed": True,
-                    "manufacturing_allowed": True,
-                    "created_at": "2020-10-23T10:37:05.085Z",
-                    "updated_at": "2020-10-23T10:37:05.085Z",
-                    "deleted_at": None,
-                }
-            ],
-        ),
+        Location | None,
+        Field(description="Location details where this inventory is stored"),
     ] = None
     archived_at: Annotated[
         AwareDatetime | None,
@@ -1264,8 +1238,7 @@ class InventoryItem(ArchivableEntity):
     purchase_uom: Annotated[
         str | None,
         Field(
-            description="If purchasing in a different unit of measure than the default unit of measure (used for tracking stock)\nfor this item, you can define the purchase unit. Value null indicates that purchasing is done in same\nunit\nof measure. If value is not null, purchase_uom_conversion_rate must also be populated.",
-            max_length=7,
+            description="If purchasing in a different unit of measure than the default unit of measure (used for tracking stock)\nfor this item, you can define the purchase unit. Value null indicates that purchasing is done in same\nunit\nof measure. If value is not null, purchase_uom_conversion_rate must also be populated."
         ),
     ] = None
     purchase_uom_conversion_rate: Annotated[
@@ -1685,8 +1658,7 @@ class CachedMaterial(ArchivableEntity, table=True):
     purchase_uom: Annotated[
         Mapped[str | None],
         Field(
-            description="If purchasing in a different unit of measure than the default unit of measure (used for tracking stock)\nfor this item, you can define the purchase unit. Value null indicates that purchasing is done in same\nunit\nof measure. If value is not null, purchase_uom_conversion_rate must also be populated.",
-            max_length=7,
+            description="If purchasing in a different unit of measure than the default unit of measure (used for tracking stock)\nfor this item, you can define the purchase unit. Value null indicates that purchasing is done in same\nunit\nof measure. If value is not null, purchase_uom_conversion_rate must also be populated."
         ),
     ] = None
     purchase_uom_conversion_rate: Annotated[
@@ -1793,8 +1765,7 @@ class CachedProduct(ArchivableEntity, table=True):
     purchase_uom: Annotated[
         Mapped[str | None],
         Field(
-            description="If purchasing in a different unit of measure than the default unit of measure (used for tracking stock)\nfor this item, you can define the purchase unit. Value null indicates that purchasing is done in same\nunit\nof measure. If value is not null, purchase_uom_conversion_rate must also be populated.",
-            max_length=7,
+            description="If purchasing in a different unit of measure than the default unit of measure (used for tracking stock)\nfor this item, you can define the purchase unit. Value null indicates that purchasing is done in same\nunit\nof measure. If value is not null, purchase_uom_conversion_rate must also be populated."
         ),
     ] = None
     purchase_uom_conversion_rate: Annotated[

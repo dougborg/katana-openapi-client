@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import (
     define as _attrs_define,
@@ -11,8 +11,7 @@ from attrs import (
 from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.deletable_entity import DeletableEntity
-    from ..models.location_type_0 import LocationType0
+    from ..models.location import Location
 
 
 T = TypeVar("T", bound="LocationListResponse")
@@ -22,22 +21,15 @@ T = TypeVar("T", bound="LocationListResponse")
 class LocationListResponse:
     """Response containing a list of locations"""
 
-    data: list[DeletableEntity | LocationType0] | Unset = UNSET
+    data: list[Location] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.location_type_0 import LocationType0
-
         data: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.data, Unset):
             data = []
             for data_item_data in self.data:
-                data_item: dict[str, Any]
-                if isinstance(data_item_data, LocationType0):
-                    data_item = data_item_data.to_dict()
-                else:
-                    data_item = data_item_data.to_dict()
-
+                data_item = data_item_data.to_dict()
                 data.append(data_item)
 
         field_dict: dict[str, Any] = {}
@@ -50,36 +42,15 @@ class LocationListResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.deletable_entity import DeletableEntity
-        from ..models.location_type_0 import LocationType0
+        from ..models.location import Location
 
         d = dict(src_dict)
         _data = d.pop("data", UNSET)
-        data: list[DeletableEntity | LocationType0] | Unset = UNSET
+        data: list[Location] | Unset = UNSET
         if _data is not UNSET:
             data = []
             for data_item_data in _data:
-
-                def _parse_data_item(data: object) -> DeletableEntity | LocationType0:
-                    try:
-                        if not isinstance(data, dict):
-                            raise TypeError()
-                        componentsschemas_location_type_0 = LocationType0.from_dict(
-                            cast(Mapping[str, Any], data)
-                        )
-
-                        return componentsschemas_location_type_0
-                    except (TypeError, ValueError, AttributeError, KeyError):
-                        pass
-                    if not isinstance(data, dict):
-                        raise TypeError()
-                    componentsschemas_location_type_1 = DeletableEntity.from_dict(
-                        cast(Mapping[str, Any], data)
-                    )
-
-                    return componentsschemas_location_type_1
-
-                data_item = _parse_data_item(data_item_data)
+                data_item = Location.from_dict(data_item_data)
 
                 data.append(data_item)
 
