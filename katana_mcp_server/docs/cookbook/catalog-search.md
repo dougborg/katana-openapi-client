@@ -84,9 +84,11 @@ Two conditions trigger the fuzzy fall-through:
    `OperationalError`s (locked DB, missing FTS table, disk I/O) propagate so operators
    see real failures instead of degraded-but-silent search.
 
-The narrowing is done via `str(exc.orig).startswith(...)`. `str(exc)` would include
-SQLAlchemy's wrapper decoration `(builtins.Exception) ... [SQL: ...]` and make the
-prefix match unreliable.
+The narrowing is done via `str(exc.orig).startswith(...)` (with a defensive fallback to
+`str(exc)` if `exc.orig` happens to be `None`, which SQLAlchemy shouldn't produce in
+practice but is guarded for safety). `str(exc)` on its own would include SQLAlchemy's
+wrapper decoration `(builtins.Exception) ... [SQL: ...]` and make the prefix match
+unreliable.
 
 ### Fuzzy scoring
 
@@ -140,7 +142,7 @@ Coverage today (`CACHE_FTS_SPECS`):
 | `CachedMaterial` | `name`, `category_name`                                                                                    |
 | `CachedService`  | `name`                                                                                                     |
 | `CachedCustomer` | `name`, `email`, `phone`                                                                                   |
-| `CachedSupplier` | `name`, `code`, `email`, `phone`                                                                           |
+| `CachedSupplier` | `name`, `email`, `phone`                                                                                   |
 
 Lookup-only types (`CachedLocation`, `CachedTaxRate`, `CachedOperator`, `CachedFactory`,
 `CachedAdditionalCost`) skip FTS — `get_all` + `score_match` fuzzy is plenty for
@@ -150,7 +152,7 @@ catalogs that small.
 
 The original Phase B spike wired `after_insert` / `after_update` / `after_delete` mapper
 events. CI was green. A reviewer caught the bug: the typed-cache sync path uses
-`_bulk_upsert` (`typed_cache/sync.py:213`), which issues `INSERT ... ON CONFLICT` via
+`_bulk_upsert` (`typed_cache/sync.py`), which issues `INSERT ... ON CONFLICT` via
 SQLAlchemy Core — **not** ORM-level `session.add()`. Core statements **do not fire
 mapper events**.
 
