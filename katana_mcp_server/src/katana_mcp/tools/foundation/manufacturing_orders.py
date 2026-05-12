@@ -1799,6 +1799,17 @@ class ManufacturingOrderSummary(BaseModel):
     status: str | None
     ingredient_availability: str | None
     variant_id: int | None
+    sku: str | None = None
+    """SKU of the MO's finished-good variant, lifted from the typed cache
+    in a batched IN-clause read across the result set. ``None`` on cache
+    miss (matches the SO/PO list convention).
+    """
+    display_name: str | None = None
+    """Katana-UI-format human-readable name for the MO's finished good
+    (``parent / value1 / value2``). Surfaces what's actually being
+    manufactured without a follow-up variant lookup. Cache-only — same
+    resolution path as ``sku`` above.
+    """
     planned_quantity: float | None
     actual_quantity: float | None
     location_id: int | None
@@ -1947,8 +1958,26 @@ async def _list_manufacturing_orders_impl(
                 last_page=request.page >= total_pages,
             )
 
+    # Resolve SKU + canonical display_name for every MO's finished-good
+    # variant in one batched cache read. MOs reference one variant (the
+    # finished good); the lookup is one IN-clause across the result set.
+    variant_ids = {mo.variant_id for mo in cached_orders if mo.variant_id is not None}
+    variant_lookup: dict[int, Any] = {}
+    if variant_ids:
+        variant_lookup = await services.typed_cache.catalog.get_many_by_ids(
+            CachedVariant, variant_ids, include_deleted=True
+        )
+
+    def _variant_field(v: Any, name: str) -> Any:
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            return v.get(name)
+        return getattr(v, name, None)
+
     summaries: list[ManufacturingOrderSummary] = []
     for mo in cached_orders:
+        variant = variant_lookup.get(mo.variant_id) if mo.variant_id else None
         summaries.append(
             ManufacturingOrderSummary(
                 id=mo.id,
@@ -1956,6 +1985,8 @@ async def _list_manufacturing_orders_impl(
                 status=enum_to_str(mo.status),
                 ingredient_availability=enum_to_str(mo.ingredient_availability),
                 variant_id=mo.variant_id,
+                sku=_variant_field(variant, "sku"),
+                display_name=_variant_field(variant, "display_name"),
                 planned_quantity=mo.planned_quantity,
                 actual_quantity=mo.actual_quantity,
                 location_id=mo.location_id,
