@@ -28,6 +28,7 @@ Take a feature branch from "implementation done" to "PR open, CI green, review a
 
 ## CRITICAL
 
+- **Rebase on the target branch before opening — no exceptions** — `git fetch origin <base>` then check `git log HEAD..origin/<base>` first. If anything appears, the branch is stale; rebase before doing anything else. Opening a PR from a stale tip means: (a) CI runs against an old base — green checks here don't prove the code works on `main`'s actual current state; (b) reviewers see merge artifacts that aren't yours; (c) `uv.lock` drift from sibling-package releases shows up mid-pre-commit; (d) GitHub auto-merge gets stuck on `mergeStateStatus=BEHIND` and can't fire. Use `git rebase origin/<base>` directly, or invoke `harness-kit:rebase` if you have the harness-kit plugin installed (it handles conflicts + lockfile bundling more cleanly). Same check applies before every `--force-with-lease` push during the cycle.
 - **Validate before opening** — `uv run poe check` must pass; never use `--no-verify`, `noqa`, or `type: ignore`.
 - **Self-review the full diff** — review every change before opening, not just the latest commit.
 - **Stage specific files** — never `git add -A` or `git add .`.
@@ -41,14 +42,13 @@ Take a feature branch from "implementation done" to "PR open, CI green, review a
 
 ## STANDARD PATH
 
-1. **If the branch is behind the chosen base branch (default `main`), run `/rebase` first** — opening a PR from a stale tip means CI runs against the old base, conflict resolution happens mid-review, and `uv.lock` drift from sibling-package releases isn't caught until pre-commit fights with you. `/rebase` handles the conflict resolution + lockfile-bundling protocol cleanly. Resolve the base from `$ARGUMENTS` (default `main`), then check freshness with `git fetch origin <base> && git log --oneline HEAD..origin/<base> | head -1` — if anything appears, rebase first. The `git fetch` is required: `origin/<base>` is a remote-tracking ref that may be stale without it, which would silently let a "behind" branch through.
-2. **Pre-flight** — confirm not on `main`, run `uv run poe check`, check for existing PR (Phase 1).
-3. **Self-review** — read the full diff vs base; fix issues found (Phase 2).
-4. **Organize commits** — group into logical commits with conventional format (Phase 3).
-5. **Push and create** — `git push -u origin HEAD:refs/heads/<branch>`, `gh pr create` with HEREDOC body (Phase 4).
-6. **Wait for CI** — `gh pr checks --watch`; fix failures in-place (Phase 5).
-7. **Wait for review** — poll for ≤15 min; if comments arrive, delegate to `/review-pr` (Phases 6–7).
-8. **Summary** — print PR URL, commit count, CI status, review state (Phase 8).
+1. **Pre-flight** — confirm not on `main`, **rebase on latest target branch** (mandatory; see CRITICAL), run `uv run poe check`, check for existing PR (Phase 1).
+2. **Self-review** — read the full diff vs base; fix issues found (Phase 2).
+3. **Organize commits** — group into logical commits with conventional format (Phase 3).
+4. **Push and create** — `git push -u origin HEAD:refs/heads/<branch>`, `gh pr create` with HEREDOC body (Phase 4).
+5. **Wait for CI** — `gh pr checks --watch`; fix failures in-place (Phase 5).
+6. **Wait for review** — poll for ≤15 min; if comments arrive, delegate to `/review-pr` (Phases 6–7).
+7. **Summary** — print PR URL, commit count, CI status, review state (Phase 8).
 
 See phase detail below.
 
@@ -70,6 +70,29 @@ See phase detail below.
 
 1. **Determine base branch** — use `$ARGUMENTS` if provided and non-empty, otherwise
    default to `main`.
+
+1. **Rebase on latest target branch** — fetch the base and check freshness:
+
+   ```bash
+   git fetch origin <base>
+   git log HEAD..origin/<base> --oneline
+   ```
+
+   If any commits appear, the branch is behind — rebase before doing anything else:
+
+   ```bash
+   git rebase origin/<base>
+   # If uv.lock or other artifacts drifted post-rebase, stage them and
+   # bundle into the existing commit (or amend if it makes sense).
+   ```
+
+   The `harness-kit:rebase` skill (if installed) wraps this with conflict
+   resolution and uv.lock bundling; use it when available, otherwise the
+   plain `git rebase` above is the canonical command.
+
+   This step is **mandatory**, not optional. Skipping it produces every failure mode
+   listed in CRITICAL above. The fetch is required — `origin/<base>` is a
+   remote-tracking ref that may be stale without it.
 
 1. **Run validation**:
 

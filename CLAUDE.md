@@ -376,6 +376,19 @@ Common mistakes to avoid:
   PAT-based pushes); tightening that bypass is tracked in #429 (GitHub App migration).
   Until #429 lands, the local hook is the only mechanical guardrail.
 
+- **Rebase on the target branch before opening a PR or addressing review** - A branch
+  that's behind the target produces a chain of compounding problems: CI runs against a
+  stale base (green checks here don't prove the code works on `main`'s actual current
+  state); reviewers see merge artifacts that aren't yours; `uv.lock` drift from
+  sibling-package releases shows up mid-pre-commit (this happened ~5 times in one
+  session before the rule was codified); GitHub auto-merge gets stuck on
+  `mergeStateStatus=BEHIND` and can't fire even when CI is green and all threads are
+  resolved (this trapped PR #690 mid-cycle). The `/open-pr` and `/review-pr` skills'
+  CRITICAL sections enforce this — always
+  `git fetch origin <base> && git log HEAD..origin/<base>` before opening or before each
+  fixup push. If anything appears, `git rebase origin/<base>` first, bundle any
+  `uv.lock` drift, then push.
+
 - **Prefab `DataTable.rows` requires mustache `{{ key }}` for state binding, not bare
   string** - The Python pydantic field type accepts `rows: str` either way, but the JS
   renderer crashes the entire iframe with `t.some is not a function` if it sees a bare
