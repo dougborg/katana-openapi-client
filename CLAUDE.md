@@ -16,6 +16,11 @@ hooks aren't shared across worktrees. The `pre-push-guard.sh` that blocks uninte
 pushes to `main` (see `Known Pitfalls`) only fires when the hook is installed in the
 worktree's `.git/hooks/`.
 
+**For ongoing work pickup, open the
+[Rolling Backlog](https://github.com/users/dougborg/projects/5) board first — it's the
+canonical answer to "what should I work on?"** See `Project Backlog` below for the
+Priority / Workstream conventions and the issue-status contract.
+
 ## Essential Commands
 
 | Command                   | Time   | When to Use                          |
@@ -51,6 +56,68 @@ Always run the appropriate validation tier before considering work complete. See
 Essential Commands table above - use `quick-check` during development, `agent-check`
 before committing, and `check` before opening a PR. Don't trust that code works just
 because it looks right.
+
+## Project Backlog
+
+**Board:** [Katana MCP — Rolling Backlog](https://github.com/users/dougborg/projects/5)
+(project #5) is the durable answer to "what's next?" — not `gh issue list`. The board
+classifies every open issue across four dimensions (Priority / Effort / Workstream /
+Umbrella) and surfaces them in three views (List, Board, Roadmap). Every new Issue and
+PR auto-adds in the **Todo** column with unset Priority/Workstream until a human
+triages.
+
+### Session-start anchor
+
+First thing in a session: glance at the Board view. Look at the **In Progress** column
+(anything already running) and the top of **Todo** (P0 and P1). If the user asks "what
+should I work on?", the answer is the top of Todo. **Do not re-derive the queue from
+`gh issue list` — the board is the source of truth.**
+
+### Priority bucket definitions
+
+| Priority         | Definition                                                                                  | Examples                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **P0-now**       | Breaks a workflow that's already shipped; user-visible failure; should not survive the day. | #527 (every PATCH raises), #547 (browser bail-out for serial-tracked)    |
+| **P1-this-week** | Real value, no acute breakage, but compounding cost if deferred.                            | #500 (timeouts), #503 (silent drop), umbrella-driven workstream advances |
+| **P2-soon**      | Worth doing; not blocking; has a path.                                                      | Card sub-issues, audits, secondary umbrellas                             |
+| **P3-someday**   | Backlog parking; revisit on next groom; close if stale.                                     | Dead skill ideas, infrastructure ideas without a forcing function        |
+
+### Workstream definitions
+
+- **Cards** — Prefab UI builders + per-entity card design (driven by #537).
+- **Cache** — typed cache, FTS5, sync, cold-cache recovery (driven by #472, #473).
+- **Fulfillment** — `fulfill_order` / `receive_purchase_order` / order lifecycle.
+  Orthogonal to umbrellas.
+- **Spec-drift** — Katana API spec misalignment, codegen issues.
+- **Harness** — `.claude/`, harness-kit integration, skills, agents.
+- **Process** — backlog hygiene, docs, ADRs, retros.
+- **Other** — anything that doesn't fit above; usually means the schema needs a new
+  bucket.
+
+### Status contract
+
+- Issue → **In Progress** when a linked PR opens. Use a GitHub closing keyword in the PR
+  body to create the link: **`Closes #N`** is the canonical form for this repo
+  (`Fixes #N` / `Resolves #N` also work — GitHub recognizes all three as closing
+  keywords). `Refs #N` and `See #N` are *references*, not links — they don't trigger the
+  auto-move workflow and won't auto-close the issue on merge.
+- Issue → **Done** when the linked PR merges, regardless of whether the issue itself is
+  closed — issues may stay open as parents to future sub-work.
+- Status moves are driven by GitHub's built-in project workflows; the auto-add-workflow
+  keeps new Issues + PRs on the board so nothing slips through.
+
+### Adding to the board manually
+
+If the auto-add workflow misses something (rare), or to retroactively classify a
+pre-board issue, use the gh CLI:
+
+```bash
+gh project item-add 5 --owner @me --url <issue-or-pr-url>
+# then set Priority + Workstream via gh project item-edit --single-select-option-id
+```
+
+The field IDs / option IDs are stable;
+`gh project field-list 5 --owner @me --format json` prints them.
 
 ## Continuous Improvement
 
