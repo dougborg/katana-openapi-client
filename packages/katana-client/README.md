@@ -1,5 +1,7 @@
 # katana-openapi-client
 
+[![npm](https://img.shields.io/npm/v/katana-openapi-client.svg)](https://www.npmjs.com/package/katana-openapi-client)
+
 TypeScript/JavaScript client for the
 [Katana Manufacturing ERP API](https://katanamrp.com/) with automatic resilience
 features.
