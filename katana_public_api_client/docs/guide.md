@@ -33,6 +33,7 @@ import asyncio
 
 from katana_public_api_client import KatanaClient
 from katana_public_api_client.api.product import get_all_products
+from katana_public_api_client.utils import unwrap_data
 
 async def main():
     # Automatic configuration from .env file
@@ -43,12 +44,90 @@ async def main():
             limit=50
         )
 
-        if response.status_code == 200:
-            products = response.parsed.data
-            print(f"Retrieved {len(products)} products")
+        products = unwrap_data(response, default=[])
+        print(f"Retrieved {len(products)} products")
 
 asyncio.run(main())
 ```
+
+## 📥 Response Handling
+
+Use the helper utilities in `katana_public_api_client.utils` for consistent response
+handling. They replace manual status-code checks, give you typed errors, and handle the
+`{"data": [...]}` wrapping that Katana applies to every list endpoint.
+
+### Helpers at a glance
+
+```python
+from katana_public_api_client.utils import unwrap, unwrap_as, unwrap_data, is_success
+from katana_public_api_client.domain.converters import unwrap_unset
+
+# Single-object responses (200 OK with parsed model)
+order = unwrap_as(response, ManufacturingOrder)  # type-safe, raises on error
+
+# List responses (200 OK with `data` array)
+items = unwrap_data(response, default=[])  # extracts the .data field
+
+# Success-only responses (201 Created, 204 No Content)
+if is_success(response):
+    ...
+
+# attrs model fields that may be UNSET
+status = unwrap_unset(order.status, None)  # returns None if UNSET
+```
+
+### When to use each
+
+| Scenario            | Pattern                             | Example               |
+| ------------------- | ----------------------------------- | --------------------- |
+| Single object (200) | `unwrap_as(response, Type)`         | Get/update operations |
+| List endpoint (200) | `unwrap_data(response, default=[])` | List operations       |
+| Create (201)        | `is_success(response)`              | POST with no body     |
+| Delete/action (204) | `is_success(response)`              | DELETE, fulfill       |
+| attrs UNSET field   | `unwrap_unset(field, default)`      | Optional API fields   |
+
+### Anti-patterns
+
+```python
+# ❌ DON'T: manual status code checks
+if response.status_code == 200:
+    result = response.parsed
+# ✅ DO: use helpers
+result = unwrap_as(response, ExpectedType)
+
+# ❌ DON'T: isinstance with UNSET
+if not isinstance(value, type(UNSET)):
+    use(value)
+# ✅ DO: use unwrap_unset
+use(unwrap_unset(value, default))
+
+# ❌ DON'T: hasattr for attrs-defined fields
+if hasattr(order, "status"):
+    status = order.status
+# ✅ DO: use unwrap_unset (attrs fields always exist, may be UNSET)
+status = unwrap_unset(order.status, None)
+
+# ❌ DON'T: wrap API methods to add retries / rate limiting
+# ✅ DO: nothing — resilience is at the transport layer; every endpoint inherits it.
+
+# ❌ DON'T: build attrs request bodies with conditional UNSET
+optional_field = value if value is not None else UNSET
+# ✅ DO: use to_unset
+from katana_public_api_client.domain.converters import to_unset
+optional_field = to_unset(value)
+```
+
+### Exception hierarchy
+
+`unwrap()` and `unwrap_as()` raise typed exceptions on non-2xx responses:
+
+- `AuthenticationError` — 401 Unauthorized
+- `ValidationError` — 422 Unprocessable Entity
+- `RateLimitError` — 429 Too Many Requests (retries exhausted)
+- `ServerError` — 5xx server errors
+- `APIError` — other errors (400, 403, 404, …)
+
+`is_success(response)` returns `True` for any 2xx status without raising.
 
 ## 🛡️ Automatic Resilience
 
@@ -493,7 +572,7 @@ async def process_products_in_batches(product_ids, batch_size=10):
 
 ```python
 import httpx
-from katana_public_api_client.errors import UnexpectedStatus
+from katana_public_api_client.utils import unwrap_data, APIError
 
 async with KatanaClient() as client:
     try:
@@ -501,18 +580,14 @@ async with KatanaClient() as client:
             client=client,
             limit=50
         )
-
-        if response.status_code == 200:
-            products = response.parsed.data
-            print(f"Success: {len(products)} products")
-        else:
-            print(f"API returned: {response.status_code}")
+        products = unwrap_data(response, default=[])
+        print(f"Success: {len(products)} products")
 
     except httpx.TimeoutException:
         print("Request timed out after retries")
     except httpx.ConnectError:
         print("Connection failed after retries")
-    except UnexpectedStatus as e:
+    except APIError as e:
         print(f"Unexpected API response: {e.status_code}")
 ```
 
@@ -581,20 +656,22 @@ while True:  # Could run forever!
 ### 4. Handle Different Response Types
 
 ```python
+from katana_public_api_client.utils import unwrap_data, AuthenticationError, APIError
+
 async with KatanaClient() as client:
     response = await get_all_products.asyncio_detailed(
         client=client,
         limit=50
     )
 
-    # ✅ Good: Check status before accessing data
-    if response.status_code == 200:
-        products = response.parsed.data
+    # ✅ Good: use unwrap helpers + typed exceptions
+    try:
+        products = unwrap_data(response, default=[])
         print(f"Retrieved {len(products)} products")
-    elif response.status_code == 401:
+    except AuthenticationError:
         print("Authentication failed")
-    else:
-        print(f"Unexpected status: {response.status_code}")
+    except APIError as e:
+        print(f"Unexpected status: {e.status_code}")
 ```
 
 ### 5. Use Direct API Calls
@@ -608,8 +685,7 @@ async with KatanaClient() as client:
         client=client,
         is_sellable=True
     )
-    if response.status_code == 200:
-        products = response.parsed.data
+    products = unwrap_data(response, default=[])
 ```
 
 ## 🚀 Performance Tips
