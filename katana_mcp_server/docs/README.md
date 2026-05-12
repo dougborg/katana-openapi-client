@@ -9,12 +9,23 @@ This directory contains all documentation specific to the `katana-mcp-server` pa
 - **[Development Guide](development.md)** - Setup and development workflow
 - **[Deployment Guide](deployment.md)** - Production deployment strategies
 - **[Docker Guide](docker.md)** - Container deployment
+- **[Logging](LOGGING.md)** - Structured logging configuration
 
 ### Architecture & Design
 
 - **[Architecture Design](architecture.md)** - Comprehensive MCP architecture and
   patterns
 - **[ADRs](adr/README.md)** - Architecture Decision Records
+
+### Subsystem Guides
+
+Topical references that go deeper than the architecture overview. Open the relevant
+README when working in that subsystem.
+
+- **[Prefab UI](prefab/README.md)** - Card builders, DataTable mustache binding,
+  `register_preview_tool` + `meta=UI_META` contract, browser-render harness pitfalls.
+- **[Typed Cache](typed_cache/README.md)** - SQLite-backed cache, FTS5 search, archive /
+  deleted soft-state, `Cached<Name>` sibling tables, sync postprocessing.
 
 ### Cookbook
 
@@ -30,15 +41,6 @@ when you're debugging a "why doesn't this work?" or extending a subsystem.
 - **[Main Repository README](../../README.md)** - Project overview
 - **[Contributing Guide](../../docs/CONTRIBUTING.md)** - How to contribute
 - **[PyPI Package](https://pypi.org/project/katana-mcp-server/)** - Published package
-
-## Package Information
-
-The MCP server is published as a separate package:
-
-- **Package Name**: `katana-mcp-server`
-- **PyPI**: https://pypi.org/project/katana-mcp-server/
-- **Dependencies**: `katana-openapi-client`, `fastmcp`
-- **Installation**: `pip install katana-mcp-server` or `uvx katana-mcp-server`
 
 ## Related Packages
 

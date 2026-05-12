@@ -11,6 +11,12 @@ package.
 - **[Cookbook](cookbook.md)** - Common usage patterns and recipes
 - **[Testing Guide](testing.md)** - Testing strategy and test coverage
 
+### Maintainer Guides
+
+- **[OpenAPI Spec Authoring](spec-authoring.md)** - OpenAPI 3.1 conventions,
+  generator/regen lockstep, `ListResponse` shape, breaking-change markers, privacy
+  rules. Read this before editing `docs/katana-openapi.yaml`.
+
 ### Reference
 
 - **[Changelog](CHANGELOG.md)** - Release history and version notes
