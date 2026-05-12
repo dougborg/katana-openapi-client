@@ -276,7 +276,10 @@ class TestBuildVariantDetailsUI:
         assert "Size: Large" in rendered
 
     def test_includes_default_supplier_name(self):
-        """Supplier name (with id in parens) should appear in the reference section."""
+        """Supplier name lands in the reference section without the
+        previously-rendered ``(<id>)`` parenthetical. IDs are noise for
+        human readers; tooling reads them from ``structured_content``.
+        """
         variant = {
             "id": 100,
             "sku": "SKU-001",
@@ -287,7 +290,191 @@ class TestBuildVariantDetailsUI:
         app = build_variant_details_ui(variant)
         _assert_valid_prefab(app)
         rendered = str(app.to_json())
-        assert "Default Supplier: Acme Industrial (42)" in rendered
+        assert "Default Supplier:" in rendered
+        assert "Acme Industrial" in rendered
+        # The (id) parenthetical was dropped.
+        assert "Acme Industrial (42)" not in rendered
+
+    def test_supplier_name_renders_as_external_link(self):
+        """When both name and id are known, the supplier name renders as
+        an external Link pointing at the Katana supplier page — same
+        pattern as the title's parent-product link. Follows the module
+        convention: link Katana entities wherever possible, never use
+        ``SendMessage`` as an indirect way to surface a URL."""
+        variant = {
+            "id": 100,
+            "sku": "SKU-001",
+            "name": "Widget",
+            "default_supplier_id": 1301979,
+            "default_supplier_name": "Enduro Bearings",
+        }
+        app = build_variant_details_ui(variant)
+        _assert_valid_prefab(app)
+        envelope = app.to_json()
+        links = _find_components_by_type(envelope, "Link")
+        # One link in the supplier line pointing at the Katana supplier
+        # page (the title may add another link to the parent — both are
+        # fine; we just need to find the supplier one).
+        supplier_link_hrefs = [
+            link.get("href")
+            for link in links
+            if isinstance(link.get("href"), str)
+            and "/contacts/suppliers/" in link.get("href", "")
+        ]
+        assert "https://factory.katanamrp.com/contacts/suppliers/1301979" in (
+            supplier_link_hrefs
+        )
+        # The visible link text is the supplier name.
+        supplier_link_contents = [
+            link.get("content")
+            for link in links
+            if isinstance(link.get("href"), str)
+            and "/contacts/suppliers/" in link.get("href", "")
+        ]
+        assert "Enduro Bearings" in supplier_link_contents
+
+    def test_supplier_renders_as_plain_text_when_id_missing(self):
+        """With only ``default_supplier_name`` set (no id), the supplier
+        line falls back to plain Text — can't construct a URL without
+        the id."""
+        variant = {
+            "id": 100,
+            "sku": "SKU-001",
+            "name": "Widget",
+            "default_supplier_id": None,
+            "default_supplier_name": "Unknown Inc",
+        }
+        app = build_variant_details_ui(variant)
+        _assert_valid_prefab(app)
+        envelope = app.to_json()
+        rendered = str(envelope)
+        assert "Default Supplier: Unknown Inc" in rendered
+        # No supplier link rendered.
+        links = _find_components_by_type(envelope, "Link")
+        supplier_links = [
+            link
+            for link in links
+            if isinstance(link.get("href"), str)
+            and "/contacts/suppliers/" in link.get("href", "")
+        ]
+        assert supplier_links == []
+
+    def test_title_uses_display_name_when_provided(self):
+        """The card title pulls from ``display_name`` (the Katana-UI-format
+        ``parent / configN`` string), not the raw ``name``. Falls back to
+        ``name`` for legacy dicts and then ``sku``."""
+        variant = {
+            "id": 100,
+            "sku": "SKU-001",
+            "name": "raw-katana-name",
+            "display_name": "Kitchen Knife / 8-inch / Black",
+        }
+        app = build_variant_details_ui(variant)
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        # The formatted display_name lands in the rendered title.
+        assert "Kitchen Knife / 8-inch / Black" in rendered
+
+    def test_title_wraps_in_link_when_katana_url_set(self):
+        """When ``katana_url`` is set (parent product/material page),
+        the title renders as a real external Link, not a SendMessage
+        button. Clicking opens the parent page directly — no agent
+        round-trip."""
+        variant = {
+            "id": 100,
+            "sku": "SKU-001",
+            "name": "Widget",
+            "display_name": "Parent / Red",
+            "katana_url": "https://factory.katanamrp.com/material/12345",
+        }
+        app = build_variant_details_ui(variant)
+        _assert_valid_prefab(app)
+        envelope = app.to_json()
+        # A Link node must carry the katana_url as href.
+        links = _find_components_by_type(envelope, "Link")
+        href_values = [
+            link.get("href") for link in links if isinstance(link.get("href"), str)
+        ]
+        assert "https://factory.katanamrp.com/material/12345" in href_values
+        # The footer "View in Katana" Button is gone — the title link
+        # replaces it.
+        assert len(_find_buttons_by_label(envelope, "View in Katana")) == 0
+
+    def test_title_bare_when_no_katana_url(self):
+        """Without ``katana_url`` the title still renders, just not as
+        a Link — fallback path for orphan variants / missing parent."""
+        variant = {
+            "id": 100,
+            "sku": "SKU-001",
+            "name": "Widget",
+            "display_name": "Orphan Widget",
+            "katana_url": None,
+        }
+        app = build_variant_details_ui(variant)
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "Orphan Widget" in rendered
+
+    def test_supplier_codes_inline_with_code_font(self):
+        """Supplier codes render inline using ``Code`` components — same
+        row as the label, monospace font, comma-separated. The previous
+        rendering used a ``Muted`` label + ``ForEach`` Text block that
+        broke each code onto its own line."""
+        variant = {
+            "id": 100,
+            "sku": "SKU-001",
+            "name": "Widget",
+            "supplier_item_codes": ["BB63802LLUMAX-BAG", "OTHER-CODE-123"],
+        }
+        app = build_variant_details_ui(variant)
+        _assert_valid_prefab(app)
+        envelope = app.to_json()
+        rendered = str(envelope)
+        # Both codes appear, wrapped in Code components for monospace
+        # rendering.
+        code_nodes = _find_components_by_type(envelope, "Code")
+        code_contents = [
+            n.get("content") for n in code_nodes if isinstance(n.get("content"), str)
+        ]
+        assert "BB63802LLUMAX-BAG" in code_contents
+        assert "OTHER-CODE-123" in code_contents
+        # Label text still appears once.
+        assert "Supplier Codes:" in rendered
+
+    def test_no_raw_id_row(self):
+        """The bottom ``variant_id=... · material_id=...`` Muted row was
+        dropped — IDs are noise for human readers. Tooling can still
+        read IDs from ``structured_content``."""
+        variant = {
+            "id": 100,
+            "sku": "SKU-001",
+            "name": "Widget",
+            "material_id": 200,
+        }
+        app = build_variant_details_ui(variant)
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "variant_id=" not in rendered
+        assert "material_id=" not in rendered
+        assert "product_id=" not in rendered
+
+    def test_no_part_of_line(self):
+        """The ``Part of:`` Muted line was dropped — ``display_name``
+        already includes the parent name as its leading segment, so the
+        separate line just duplicated information (especially when the
+        variant has no config attributes and ``display_name == parent_name``,
+        which is the common case for single-variant materials)."""
+        variant = {
+            "id": 100,
+            "sku": "SKU-001",
+            "name": "Widget",
+            "display_name": "Enduro Bearings / 8mm",
+            "product_or_material_name": "Enduro Bearings",
+        }
+        app = build_variant_details_ui(variant)
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "Part of:" not in rendered
 
     def test_renders_when_parent_lookup_returns_nothing(self):
         """When parent enrichment finds nothing (uom/supplier/batch all None),
@@ -1440,6 +1627,25 @@ def _find_buttons_by_label(tree: Any, label: str) -> list[dict]:
     elif isinstance(tree, list):
         for item in tree:
             found.extend(_find_buttons_by_label(item, label))
+    return found
+
+
+def _find_components_by_type(tree: Any, node_type: str) -> list[dict]:
+    """Walk a Prefab envelope and return every node whose ``type`` matches.
+
+    Variant of :func:`_has_node_of_type` that returns the actual nodes
+    instead of a boolean — used when the caller wants to inspect props
+    (e.g. ``href`` on Link, ``content`` on Code).
+    """
+    found: list[dict] = []
+    if isinstance(tree, dict):
+        if tree.get("type") == node_type:
+            found.append(tree)
+        for v in tree.values():
+            found.extend(_find_components_by_type(v, node_type))
+    elif isinstance(tree, list):
+        for item in tree:
+            found.extend(_find_components_by_type(item, node_type))
     return found
 
 

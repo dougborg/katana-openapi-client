@@ -17,6 +17,30 @@ Usage::
     items_dicts = [item.model_dump() for item in response.items]
     app = build_search_results_ui(items_dicts, query, response.total_count)
     return make_tool_result(response, ui=app)
+
+Design conventions
+------------------
+
+**Link Katana entities wherever possible.** When a card displays a
+field that maps to a Katana entity with a known web URL (suppliers,
+customers, products, materials, orders, etc. — see
+``katana_mcp.web_urls.EntityKind``), render it as a ``Link`` with
+``href`` pointing at the Katana page, not as plain ``Text`` or a
+``SendMessage`` button that asks the agent to surface the URL.
+
+A real anchor tag is a one-click path to the source of truth, costs
+nothing in agent tokens or chat noise, and stays correct regardless
+of which host renders the iframe. The variant card uses this pattern
+twice (parent product/material on the title; default supplier in
+the reference section); future card work should follow the same
+shape. If a field corresponds to a Katana entity not yet in
+``EntityKind``, add the path template in ``web_urls.py`` and wire
+the link — don't fall back to ``SendMessage`` indirection.
+
+The agent-prompt rail (``SendMessage(...)``) is reserved for follow-up
+*actions* that need the agent to invoke another tool (e.g.
+``Check Inventory`` → triggers ``check_inventory`` for the SKU). It's
+the wrong primitive for "open this URL".
 """
 
 from __future__ import annotations
@@ -38,21 +62,24 @@ from prefab_ui.components import (
     CardFooter,
     CardHeader,
     CardTitle,
+    Code,
     Column,
     DataTable,
     DataTableColumn,
+    Link,
     Metric,
     Muted,
     Row,
     Separator,
     Text,
 )
-from prefab_ui.components.control_flow import Elif, Else, ForEach, If
+from prefab_ui.components.control_flow import Elif, Else, If
 from prefab_ui.components.slot import Slot
 from prefab_ui.rx import RESULT, Rx
 from pydantic import BaseModel
 
 from katana_mcp.tools.tool_result_utils import BLOCK_WARNING_PREFIX
+from katana_mcp.web_urls import katana_web_url
 
 
 def _split_warnings(
@@ -530,19 +557,43 @@ def build_search_results_ui(
 
 
 def _variant_header_section(variant: dict[str, Any]) -> None:
-    """Render variant card header: title, badges, parent, config-attribute pills."""
+    """Render variant card header: title (linked when a parent URL exists),
+    badges, and config-attribute pills.
+
+    ``display_name`` carries the Katana-UI-format name
+    (``parent_name / value1 / value2``) computed via
+    ``build_variant_display_name`` upstream, so we don't need a separate
+    ``Part of:`` line — the parent name is the leading segment of the
+    title. The ``katana_url`` on the response is the parent product /
+    material URL (variants don't have their own page in Katana's web
+    app); wrapping the title in a ``Link`` makes it an actual external
+    anchor — clicking opens the parent page directly, no chat
+    round-trip.
+    """
+    katana_url = variant.get("katana_url")
+    # ``display_name`` is the canonical title. Falls back to legacy
+    # ``name`` then SKU for safety — every code path through
+    # ``_dict_to_variant_details`` populates ``display_name``, but this
+    # guards against tests / future call sites that build the dict by
+    # hand without it.
+    title_content = (
+        variant.get("display_name") or variant.get("name") or variant.get("sku") or ""
+    )
     with Row(gap=2):
-        CardTitle(content=variant.get("name", "Unknown"))
+        with CardTitle():
+            if katana_url:
+                Link(content=title_content, href=katana_url, target="_blank")
+            else:
+                Text(content=title_content)
         Badge(label=variant.get("sku", ""), variant="outline")
         if variant.get("type"):
             Badge(label=variant["type"], variant="secondary")
         if variant.get("is_batch_tracked"):
             Badge(label="Batch tracked", variant="secondary")
-    parent_name = variant.get("product_or_material_name")
-    if parent_name:
-        Muted(content=f"Part of: {parent_name}")
-    # Config-attribute pills (size / color / volume) inline so the
-    # variant's distinguishing axes are visible without scrolling.
+    # Config-attribute pills label each axis ("Color: Red", "Size: Large")
+    # explicitly. The slash-joined values in the title give scan-friendly
+    # identity matching Katana's UI; these pills give axis context the
+    # title can't convey.
     config_attrs = variant.get("config_attributes") or []
     if config_attrs:
         with Row(gap=2):
@@ -556,11 +607,24 @@ def _variant_header_section(variant: dict[str, Any]) -> None:
 
 
 def _variant_supplier_line(variant: dict[str, Any]) -> None:
-    """Render the default-supplier text row when name and/or id is set."""
+    """Render the default-supplier text row when name and/or id is set.
+
+    The supplier name renders as an external ``Link`` to the Katana
+    supplier page when the id is known — same pattern as the title's
+    parent link. Falls back to plain ``Text`` when only one of name/id
+    is set. The supplier ID parenthetical was dropped; ID-as-text is
+    available via ``structured_content`` for tooling.
+    """
     name = variant.get("default_supplier_name")
     sid = variant.get("default_supplier_id")
     if name and sid:
-        Text(content=f"Default Supplier: {name} ({sid})")
+        supplier_url = katana_web_url("supplier", sid)
+        if supplier_url:
+            with Row(gap=1):
+                Text(content="Default Supplier:")
+                Link(content=name, href=supplier_url, target="_blank")
+        else:
+            Text(content=f"Default Supplier: {name}")
     elif name:
         Text(content=f"Default Supplier: {name}")
     elif sid:
@@ -578,21 +642,36 @@ def _variant_barcode_line(variant: dict[str, Any]) -> None:
         Text(content=f"Barcodes: {', '.join(parts)}")
 
 
-def _variant_id_line(variant: dict[str, Any]) -> None:
-    """IDs deprioritized to a single Muted row at the bottom — they're
-    useful for follow-up tool calls but not the primary signal a human
-    reader needs.
+def _variant_supplier_codes_line(variant: dict[str, Any]) -> None:
+    """Render supplier codes inline using monospace ``Code`` chips.
+
+    Each code lands as its own ``Code`` element with a comma between —
+    consistent with the inline ``Barcodes:`` row above and matching the
+    fixed-width-font convention for codes / identifiers. The previous
+    rendering used a separate ``Muted`` label + ``ForEach`` block, which
+    pushed each code onto its own row and broke the otherwise-tight
+    reference section.
     """
-    id_parts = [f"variant_id={variant.get('id', 'N/A')}"]
-    if variant.get("product_id"):
-        id_parts.append(f"product_id={variant['product_id']}")
-    if variant.get("material_id"):
-        id_parts.append(f"material_id={variant['material_id']}")
-    Muted(content=" · ".join(id_parts))
+    codes = variant.get("supplier_item_codes") or []
+    if not codes:
+        return
+    with Row(gap=1):
+        Text(content="Supplier Codes:")
+        for i, code in enumerate(codes):
+            if i > 0:
+                Text(content=",")
+            Code(content=str(code))
 
 
 def _variant_reference_section(variant: dict[str, Any]) -> None:
-    """Render the reference data block (UoM, supplier, lead time, codes, IDs)."""
+    """Render the reference data block (UoM, supplier, lead time, codes).
+
+    The raw IDs row (``variant_id=... · material_id=...``) was dropped
+    intentionally — IDs are noise for human readers, and tooling that
+    needs them reads from the JSON ``structured_content`` channel
+    directly. Cross-references to other Katana objects belong in
+    typed actions / links, not bare ID text.
+    """
     if variant.get("uom"):
         Text(content=f"UoM: {variant['uom']}")
     _variant_supplier_line(variant)
@@ -601,22 +680,18 @@ def _variant_reference_section(variant: dict[str, Any]) -> None:
     if variant.get("minimum_order_quantity") is not None:
         Text(content=f"Min Order Qty: {variant['minimum_order_quantity']}")
     _variant_barcode_line(variant)
-    if variant.get("supplier_item_codes"):
-        Muted(content="Supplier Codes:")
-        with ForEach("variant.supplier_item_codes"):
-            Text(content="{{ $item }}")
-    _variant_id_line(variant)
+    _variant_supplier_codes_line(variant)
 
 
 def _variant_footer_section(variant: dict[str, Any]) -> None:
-    """Render footer action buttons."""
+    """Render footer action buttons.
+
+    "View in Katana" used to live here as a ``SendMessage`` button that
+    asked the agent to surface the URL. Replaced by a real external
+    ``Link`` wrapping the card title — clicking the title opens the
+    parent's Katana page directly, no agent round-trip needed.
+    """
     sku = variant.get("sku", "")
-    if variant.get("katana_url"):
-        Button(
-            label="View in Katana",
-            variant="outline",
-            on_click=SendMessage(f"Open the Katana URL: {variant['katana_url']}"),
-        )
     Button(
         label="Check Inventory",
         variant="outline",

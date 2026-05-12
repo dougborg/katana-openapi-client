@@ -73,6 +73,7 @@ from katana_public_api_client.api.variant import (
 )
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.domain.converters import to_unset
+from katana_public_api_client.domain.variant import build_variant_display_name
 from katana_public_api_client.models import (
     CreateMaterialRequest,
     CreateProductRequest,
@@ -1534,6 +1535,24 @@ class VariantDetailsResponse(BaseModel):
     id: int
     sku: str
     name: str
+    """Display-format variant name. In practice this is the same value
+    as :attr:`display_name` below — ``_dict_to_variant_details``
+    populates both from the canonical formula. Preserved as a separate
+    field so wire-level consumers that historically read ``name`` keep
+    working; new consumers should prefer :attr:`display_name` for
+    semantic clarity. The raw Katana ``variant.name`` attribute is not
+    surfaced separately on this response — every code path uses the
+    formatted display name.
+    """
+    display_name: str = ""
+    """Katana-UI-format human-readable name: ``"{parent_name} / {config1} / {config2}"``.
+
+    Built via :func:`katana_public_api_client.domain.variant.build_variant_display_name`
+    so it stays consistent with the typed-cache ``CachedVariant.display_name``
+    column and the ``KatanaVariant.get_display_name`` domain method.
+    This is the canonical title field for UI rendering. The legacy
+    ``name`` field above carries the same value today; prefer this one.
+    """
 
     # Pricing
     sales_price: float | None = None
@@ -1686,16 +1705,30 @@ def _dict_to_variant_details(
             item.model_dump() if hasattr(item, "model_dump") else item for item in items
         ]
 
+    parent_name_value = _attr(v, "parent_name") or _attr(parent, "name")
+    sku_value = _attr(v, "sku") or ""
+    # ``display_name`` from the cache row is already pre-computed via the
+    # variant postprocess hook (which itself delegates to
+    # ``build_variant_display_name``). For the API-fallback path the cache
+    # row's field is absent — compute fresh from parent + configs so the
+    # response always carries a canonical display name regardless of
+    # which code path produced ``v``.
+    display_name_value = _attr(v, "display_name") or build_variant_display_name(
+        parent_name_value,
+        _attr(v, "config_attributes") or [],
+        sku_value,
+    )
     return VariantDetailsResponse(
         id=_attr(v, "id"),
-        sku=_attr(v, "sku") or "",
-        name=_attr(v, "display_name") or _attr(v, "sku") or "",
+        sku=sku_value,
+        name=display_name_value or sku_value,
+        display_name=display_name_value,
         sales_price=_attr(v, "sales_price"),
         purchase_price=_attr(v, "purchase_price"),
         type=type_str,
         product_id=product_id,
         material_id=material_id,
-        product_or_material_name=_attr(v, "parent_name"),
+        product_or_material_name=parent_name_value,
         uom=_attr(parent, "uom"),
         default_supplier_id=_attr(parent, "default_supplier_id"),
         default_supplier_name=_attr(supplier, "name"),

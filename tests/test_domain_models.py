@@ -539,6 +539,96 @@ class TestDomainModelBusinessMethods:
 
         assert display_name == "FALLBACK-SKU"
 
+
+class TestBuildVariantDisplayName:
+    """Tests for the standalone ``build_variant_display_name`` helper.
+
+    The domain-class method delegates here, so these pin the formula for
+    every consumer (``KatanaVariant`` domain method, typed-cache
+    postprocess, MCP variant-details response).
+    """
+
+    def test_parent_name_with_configs_joins_with_slashes(self) -> None:
+        from katana_public_api_client.domain.variant import (
+            build_variant_display_name,
+        )
+
+        result = build_variant_display_name(
+            "T-Shirt",
+            [
+                {"config_name": "Color", "config_value": "Red"},
+                {"config_name": "Size", "config_value": "Large"},
+            ],
+        )
+        assert result == "T-Shirt / Red / Large"
+
+    def test_parent_name_only_with_no_configs(self) -> None:
+        from katana_public_api_client.domain.variant import (
+            build_variant_display_name,
+        )
+
+        result = build_variant_display_name(
+            "Enduro Bearings - 63802 LLU MAX",
+            [],
+        )
+        assert result == "Enduro Bearings - 63802 LLU MAX"
+
+    def test_empty_parent_falls_back_to_sku(self) -> None:
+        from katana_public_api_client.domain.variant import (
+            build_variant_display_name,
+        )
+
+        assert build_variant_display_name(None, [], "KNF-001") == "KNF-001"
+        assert build_variant_display_name("", [], "KNF-001") == "KNF-001"
+
+    def test_empty_parent_no_sku_returns_empty(self) -> None:
+        from katana_public_api_client.domain.variant import (
+            build_variant_display_name,
+        )
+
+        assert build_variant_display_name(None, []) == ""
+        assert build_variant_display_name(None, [], None) == ""
+
+    def test_accepts_attrs_objects_via_getattr(self) -> None:
+        """Cache-side callers (typed_cache postprocess) pass raw API attrs
+        objects whose config_attributes are attrs records, not dicts.
+        The helper accepts both shapes."""
+        from types import SimpleNamespace
+
+        from katana_public_api_client.domain.variant import (
+            build_variant_display_name,
+        )
+
+        attrs_config = [
+            SimpleNamespace(config_name="Color", config_value="Blue"),
+            SimpleNamespace(config_name="Size", config_value="M"),
+        ]
+        result = build_variant_display_name("T-Shirt", attrs_config)
+        assert result == "T-Shirt / Blue / M"
+
+    def test_skips_configs_without_values(self) -> None:
+        from katana_public_api_client.domain.variant import (
+            build_variant_display_name,
+        )
+
+        result = build_variant_display_name(
+            "Item",
+            [
+                {"config_name": "Color", "config_value": "Red"},
+                {"config_name": "Empty", "config_value": ""},  # skipped
+                {"config_name": "None", "config_value": None},  # skipped
+                {"config_name": "Size", "config_value": "L"},
+            ],
+        )
+        assert result == "Item / Red / L"
+
+    def test_handles_none_config_attributes(self) -> None:
+        from katana_public_api_client.domain.variant import (
+            build_variant_display_name,
+        )
+
+        assert build_variant_display_name("T-Shirt", None) == "T-Shirt"
+
     def test_variant_matches_search(self) -> None:
         """Test KatanaVariant.matches_search()."""
         from katana_public_api_client.domain.variant import KatanaVariant
