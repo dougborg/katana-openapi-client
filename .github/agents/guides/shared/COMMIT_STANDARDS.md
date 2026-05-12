@@ -17,12 +17,16 @@ monorepo versioning. Proper commit formatting is critical for automated releases
 
 ## Monorepo Structure
 
-This repository contains two packages:
+The repository contains three packages — only the two Python ones release through
+semantic-release with the scopes below:
 
-1. **katana-openapi-client** - Python client library
-1. **katana-mcp-server** - Model Context Protocol server
+1. **`katana_public_api_client/`** → scope `(client)`, releases as
+   `katana-openapi-client` on PyPI.
+1. **`katana_mcp_server/`** → scope `(mcp)`, releases as `katana-mcp-server` on PyPI.
+1. **`packages/katana-client/`** → TypeScript client, released independently via npm (no
+   semantic-release scope; managed via its own `package.json` versioning).
 
-Releases are managed independently using commit scopes.
+Releases for the two Python packages are managed independently using commit scopes.
 
 ## Commit Scopes for Releases
 
@@ -31,13 +35,13 @@ Releases are managed independently using commit scopes.
 Triggers release of `katana-openapi-client`:
 
 ```bash
-# New feature (MINOR version bump: 0.30.0 → 0.31.0)
+# New feature → MINOR bump
 git commit -m "feat(client): add Products domain helper class"
 
-# Bug fix (PATCH version bump: 0.30.0 → 0.30.1)
+# Bug fix → PATCH bump
 git commit -m "fix(client): handle null values in pagination"
 
-# Breaking change (MAJOR version bump: 0.30.0 → 1.0.0)
+# Breaking change → MAJOR bump (post-1.0; see Pre-1.0 Special Rules below)
 git commit -m "feat(client)!: redesign authentication interface"
 ```
 
@@ -46,15 +50,18 @@ git commit -m "feat(client)!: redesign authentication interface"
 Triggers release of `katana-mcp-server`:
 
 ```bash
-# New feature (MINOR version bump: 0.7.0 → 0.8.0)
+# New feature → MINOR bump
 git commit -m "feat(mcp): add inventory management tools"
 
-# Bug fix (PATCH version bump: 0.7.0 → 0.7.1)
+# Bug fix → PATCH bump
 git commit -m "fix(mcp): correct order status filtering"
 
-# Breaking change (MAJOR version bump: 0.7.0 → 1.0.0)
+# Breaking change → MAJOR bump (post-1.0)
 git commit -m "feat(mcp)!: change tool parameter structure"
 ```
+
+For the canonical current versions of each package, see the shields.io badges in the
+top-level [README.md](../../../../README.md) — never hand-quote a version in a guide.
 
 ### Unscoped Releases (Default to Client)
 
@@ -178,19 +185,26 @@ The project follows [Semantic Versioning](https://semver.org/): **MAJOR.MINOR.PA
 
 ### Version Bump Rules
 
-| Change Type         | Scope                   | Bump  | Example         |
-| ------------------- | ----------------------- | ----- | --------------- |
-| **Breaking change** | `feat!:` or `fix!:`     | MAJOR | 0.30.0 → 1.0.0  |
-| **New feature**     | `feat:`                 | MINOR | 0.30.0 → 0.31.0 |
-| **Bug fix**         | `fix:`                  | PATCH | 0.30.0 → 0.30.1 |
-| **Other types**     | `chore:`, `docs:`, etc. | None  | 0.30.0 → 0.30.0 |
+| Change Type         | Scope                   | Bump  |
+| ------------------- | ----------------------- | ----- |
+| **Breaking change** | `feat!:` or `fix!:`     | MAJOR |
+| **New feature**     | `feat:`                 | MINOR |
+| **Bug fix**         | `fix:`                  | PATCH |
+| **Other types**     | `chore:`, `docs:`, etc. | None  |
 
 ### Pre-1.0 Special Rules
 
-Before version 1.0.0, breaking changes still bump MINOR (not MAJOR):
+Both Python packages are pre-1.0. Before 1.0.0, breaking changes still bump MINOR (not
+MAJOR):
 
-- `feat!:` in 0.x.y → MINOR bump (0.30.0 → 0.31.0)
-- After 1.0.0 → MAJOR bump (1.0.0 → 2.0.0)
+- `feat!:` while `0.x.y` → MINOR bump
+- `feat!:` after `1.0.0` → MAJOR bump
+
+This means `feat(client)!:` on a 0.x.y client behaves like a normal `feat:` from a
+version-number perspective. The breaking-change signal then has to come from the
+**changelog entry** (the `BREAKING CHANGE:` footer is what surfaces it). See "Schema and
+Generator Changes" below for the rule that requires the marker even on small
+spec/generator edits.
 
 ## Best Practices
 
@@ -226,108 +240,69 @@ Use `feat(client)!:` (or `fix(client)!:`) **with a `BREAKING CHANGE:` footer** w
 a spec or generator edit causes any of the following in the regenerated client output:
 
 - A previously-exported class **disappears** (e.g., a `StrEnum` was deduped into a
-  structurally identical sibling — see #414 / `OutsourcedRecipeIngredientAvailability`
-  collapsed into `OutsourcedPurchaseOrderIngredientAvailability`)
+  structurally identical sibling).
 - A field **type narrows** in a way that makes previously-valid values raise (e.g.,
-  `type: string` → `$ref` to a `StrEnum` — see #410)
-- A field is **renamed** or **removed** on a response or request schema
-- An endpoint path is **removed**
-- A required field becomes **optional** (changes parse semantics) or vice versa
+  `type: string` → `$ref` to a `StrEnum`).
+- A field is **renamed** or **removed** on a response or request schema.
+- An endpoint path is **removed**.
+- A required field becomes **optional** (changes parse semantics) or vice versa.
 
 The footer must list the affected name(s) so a consumer searching the changelog for the
-broken import or attribute can find the change:
+broken import or attribute can find the change. Example shape:
 
 ```
-fix(client)!: dedupe collapses OutsourcedRecipeIngredientAvailability
+fix(client)!: dedupe collapses OldName
 
-The pydantic generator's structural-dedupe pass (``reuse-model = true`` in
-datamodel-codegen) now collapses ``OutsourcedRecipeIngredientAvailability``
-into ``OutsourcedPurchaseOrderIngredientAvailability`` because their value
-sets matched after #409 added ``NO_RECIPE``.
+<body explaining the trigger>
 
-BREAKING CHANGE: ``katana_public_api_client.models_pydantic.OutsourcedRecipeIngredientAvailability``
-no longer exists; import ``OutsourcedPurchaseOrderIngredientAvailability``
-instead. Both enums had identical values; the rewrite is mechanical.
-Refs #409
+BREAKING CHANGE: ``katana_public_api_client.models_pydantic.OldName``
+no longer exists; import ``NewName`` instead. Both enums had identical
+values; the rewrite is mechanical.
 ```
 
 ### What does NOT need the breaking-change marker
 
-- Adding a new endpoint or field (purely additive)
-- Adding a value to an existing enum (parse stays tolerant; old values still work)
+- Adding a new endpoint or field (purely additive).
+- Adding a value to an existing enum (parse stays tolerant; old values still work).
 - Generated-file diff is byte-identical (e.g., a docstring tweak in the generator that
-  doesn't change emitted code)
-- Internal-only refactors that don't change the surface (e.g., consolidating generator
-  config dicts — see #407)
+  doesn't change emitted code).
+- Internal-only refactors that don't change the surface (consolidating generator config,
+  renaming private helpers, etc.).
 
 ### Why this matters pre-1.0
 
-The package is pre-1.0, so breaking changes bump MINOR (per the "Pre-1.0 Special Rules"
-section above) — *not* MAJOR. That's a smaller version-number signal than a 1.x → 2.x
-bump, so the **changelog entry** carries the discoverability for affected consumers.
-Without the breaking-change footer, the change shows up in the changelog as a normal
-`fix:` line and consumers hit an `ImportError` (or `ValueError`, etc.) without a
-breadcrumb to follow.
+The packages are pre-1.0, so breaking changes bump MINOR (per "Pre-1.0 Special Rules"
+above) — *not* MAJOR. That's a smaller version-number signal than a 1.x → 2.x bump, so
+the **changelog entry** carries the discoverability for affected consumers. Without the
+breaking-change footer, the change shows up as a normal `fix:` line and consumers hit an
+`ImportError` (or `ValueError`, etc.) without a breadcrumb to follow.
 
 When in doubt, run `uv run poe regenerate-client && uv run poe generate-pydantic` and
 inspect `git diff katana_public_api_client/`. If the diff removes any top-level class,
 removes any `__all__` entry, or changes a field's type annotation in a non-additive way,
 use `!` and `BREAKING CHANGE:`.
 
-### Generator/spec edits must commit the regen in the same PR
+### Spec-authoring conventions live in their own guide
 
-Whenever you edit a generator script or the OpenAPI spec, run the regen, run
-`uv run poe check` (or at minimum `agent-check` + `uv run poe test`), and commit the
-regenerated output **in the same PR**. The input and its output stay locked together at
-every commit so the cause-and-effect chain is reviewable.
+The companion rules — OpenAPI 3.1 conventions, `ListResponse` schema requirements,
+use-site descriptions, the regen-in-same-PR rule, and the upstream-drift audit workflow
+— live in
+[`katana_public_api_client/docs/spec-authoring.md`](../../../../katana_public_api_client/docs/spec-authoring.md).
+Read that before editing `docs/katana-openapi.yaml`.
 
-- Pushing a generator/spec change **without** its regen leaves CI green-but-stale until
-  the next time someone runs the generator.
-- Pushing regen output **without** the input change drifts in the other direction.
+## Lockfile and First-Push Safety
 
-Note the generated-file impact in the PR description (e.g., "byte-identical except X" or
-list affected files). Before editing the spec, audit upstream drift via the workflow in
-[`docs/upstream-specs/README.md`](../../../docs/upstream-specs/README.md)
-(`poe refresh-upstream-spec` → `poe audit-spec` → `poe validate-response-examples` →
-`poe validate-examples`).
+The two ambient commit/push pitfalls — `uv.lock` drift bundling and the
+`HEAD:refs/heads/<name>` first-push form — are documented in
+[CLAUDE.md "Known Pitfalls"](../../../../CLAUDE.md). The CLAUDE.md entries are the
+canonical version; this guide deliberately doesn't restate them so the two don't
+diverge.
 
-## Lockfile Drift
+Quick reminders only:
 
-When `uv.lock` shows up modified but you didn't touch dependencies (e.g., a
-sibling-package release on `main` bumped a workspace version), `git add uv.lock` and
-bundle it into your current commit.
-
-**Don't `git checkout -- uv.lock` to drop it**: pre-commit's auto-stash/restore fights
-with the lockfile being regenerated mid-hook (pytest's `uv run` re-syncs it), producing
-confusing "files were modified by this hook" failures where nothing was actually wrong
-with the staged content. The lockfile must stay in sync with `pyproject.toml` at every
-commit anyway, so bundling is always the right call.
-
-## First-Push Safety
-
-When a local branch was created via `git checkout -b <name> origin/main`, its upstream
-is set to `origin/main`. A subsequent `git push -u origin <name>` then resolves to its
-tracked upstream and **pushes the local tip straight to `main`** — bypassing PR review
-and triggering semantic-release.
-
-This actually happened: commit `30f3fd86` reached main + tagged `mcp-v0.44.1` +
-published to PyPI before the pipeline could be cancelled.
-
-**Always use the explicit destination ref for first-time pushes:**
-
-```bash
-# Wrong — pushes to whatever the local branch tracks (may be main)
-git push -u origin chore/foo
-
-# Right — explicit destination, creates the remote branch
-git push -u origin HEAD:refs/heads/chore/foo
-```
-
-A `pre-push` hook at `.pre-commit-config.yaml`'s `pre-push` stage enforces this for
-contributors who run pre-commit; **do not bypass with `--no-verify`**. The
-`Protect Main` ruleset has `bypass_mode: always` for the Admin role (required by
-semantic-release's PAT-based pushes); tightening that bypass is tracked in #429 (GitHub
-App migration). Until #429 lands, the local hook is the only mechanical guardrail.
+- **`uv.lock` drift** — bundle into the current commit; never `git checkout -- uv.lock`.
+- **First push** — always `git push -u origin HEAD:refs/heads/<branch-name>`. The
+  `block-push-to-main` pre-push hook enforces this; never bypass with `--no-verify`.
 
 ## Multi-Package Changes
 
@@ -453,11 +428,16 @@ git tag -l
 
 ## Related Documentation
 
-- **[MONOREPO_SEMANTIC_RELEASE.md](../../../docs/MONOREPO_SEMANTIC_RELEASE.md)** -
-  Complete monorepo release guide
-- **[Conventional Commits](https://www.conventionalcommits.org/)** - Official
-  specification
-- **[Semantic Versioning](https://semver.org/)** - Versioning specification
+- **[CLAUDE.md](../../../../CLAUDE.md)** — session-level guidance, Known Pitfalls
+  (lockfile drift, first-push safety, rebase-before-PR rule).
+- **[Spec Authoring Guide](../../../../katana_public_api_client/docs/spec-authoring.md)**
+  — OpenAPI 3.1 conventions, `ListResponse` schema, use-site descriptions, the
+  regen-in-same-PR rule.
+- **[Release Process Guide](../devops/RELEASE_PROCESS.md)** — semantic-release
+  configuration and operational details.
+- **[Conventional Commits](https://www.conventionalcommits.org/)** — official
+  specification.
+- **[Semantic Versioning](https://semver.org/)** — versioning specification.
 
 ## Summary
 
