@@ -676,6 +676,14 @@ class SalesOrderRowInfo(BaseModel):
     id: int
     variant_id: int | None
     sku: str | None
+    display_name: str | None = None
+    """Katana-UI-format human-readable name. Unpopulated by ``list_sales_orders``
+    today — resolving requires a per-row variant lookup that would defeat
+    the single-query win. Use ``get_sales_order`` for SKU- and display-name-
+    enriched rows on a specific order. Left in the model for forward-compat
+    so a future cache-side denormalization can fill it without bumping the
+    response shape.
+    """
     quantity: float | None
     price_per_unit: float | None
     linked_manufacturing_order_id: int | None
@@ -1009,6 +1017,14 @@ class SalesOrderRowDetail(BaseModel):
     id: int
     variant_id: int | None = None
     sku: str | None = None
+    display_name: str | None = None
+    """Katana-UI-format human-readable name for this row's variant.
+
+    Lifted from the typed-cache ``CachedVariant.display_name`` column
+    (built via :func:`build_variant_display_name`) so the rendered name
+    stays consistent with every other variant-displaying surface. ``None``
+    when the variant can't be resolved from the cache.
+    """
     quantity: float | None = None
     sales_order_id: int | None = None
     tax_rate_id: int | None = None
@@ -1287,6 +1303,14 @@ async def _get_sales_order_impl(
             return v.get("sku")
         return getattr(v, "sku", None)
 
+    def _display_name_for(v: Any) -> str | None:
+        """Lift the typed cache's pre-computed display_name when available."""
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            return v.get("display_name")
+        return getattr(v, "display_name", None)
+
     row_details: list[SalesOrderRowDetail] = []
     for r in raw_rows:
         v_id = unwrap_unset(r.variant_id, None)
@@ -1296,6 +1320,7 @@ async def _get_sales_order_impl(
                 id=r.id,
                 variant_id=v_id,
                 sku=_sku_for(variant),
+                display_name=_display_name_for(variant),
                 quantity=unwrap_unset(r.quantity, None),
                 sales_order_id=unwrap_unset(r.sales_order_id, None),
                 tax_rate_id=unwrap_unset(r.tax_rate_id, None),
@@ -1433,8 +1458,11 @@ _ADDRESS_FIELDS: tuple[str, ...] = (
 )
 
 # Per-row fields rendered under a ``rows`` block. ``id`` + ``variant_id`` /
-# ``sku`` are emitted first as the row header; the rest are indented beneath.
-_ROW_HEADER_FIELDS: tuple[str, ...] = ("variant_id", "sku")
+# ``sku`` / ``display_name`` are emitted first as the row header; the rest
+# are indented beneath. ``display_name`` carries the canonical Katana-UI
+# name (parent / value1 / value2) so each row in the rendered output
+# matches the convention used by every other variant-displaying surface.
+_ROW_HEADER_FIELDS: tuple[str, ...] = ("variant_id", "sku", "display_name")
 _ROW_BODY_FIELDS: tuple[str, ...] = (
     "sales_order_id",
     "quantity",
