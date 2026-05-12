@@ -24,6 +24,7 @@ from katana_mcp.services import get_services
 from katana_mcp.tools._modification import (
     ConfirmableRequest,
     ModificationResponse,
+    WireDatetime,
     compute_field_diff,
     make_response_verifier,
     patch_additional_info,
@@ -131,11 +132,12 @@ class PurchaseOrderItem(BaseModel):
     purchase_uom_conversion_rate: float | None = Field(
         default=None, description="Conversion rate for purchase UOM"
     )
-    arrival_date: datetime | None = Field(
+    arrival_date: WireDatetime | None = Field(
         default=None,
         description=(
             "Expected arrival date — ISO 8601 date or datetime "
-            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+            "(e.g. '2026-05-08T14:30:00Z' or '2026-05-08T14:30:00-08:00'). "
+            "Naive datetimes (no timezone) are interpreted as UTC."
         ),
     )
 
@@ -174,7 +176,7 @@ class CreatePurchaseOrderRequest(BaseModel):
             "required and identifies where the outsourced work is tracked."
         ),
     )
-    order_created_date: datetime | None = Field(
+    order_created_date: WireDatetime | None = Field(
         default=None,
         description=(
             "Date the order was placed. Leave None to let Katana stamp the "
@@ -183,7 +185,7 @@ class CreatePurchaseOrderRequest(BaseModel):
             "date when different from the call time."
         ),
     )
-    expected_arrival_date: datetime | None = Field(
+    expected_arrival_date: WireDatetime | None = Field(
         default=None,
         description=(
             "Expected full-arrival date for the order. Distinct from per-row "
@@ -490,7 +492,7 @@ class ReceiveItemRequest(BaseModel):
 
     purchase_order_row_id: int = Field(..., description="Purchase order row ID")
     quantity: float = Field(..., description="Quantity to receive", gt=0)
-    received_date: datetime | None = Field(
+    received_date: WireDatetime | None = Field(
         default=None,
         description=(
             "Optional ISO 8601 timestamp for when the items were actually "
@@ -2395,18 +2397,26 @@ class POHeaderPatch(BaseModel):
             "Use receive_purchase_order to flip to RECEIVED with inventory updates."
         ),
     )
-    expected_arrival_date: datetime | None = Field(
+    expected_arrival_date: WireDatetime | None = Field(
         default=None,
         description=(
             "New expected arrival date — ISO 8601 date or datetime "
-            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+            "(e.g. '2026-05-08T14:30:00Z' or '2026-05-08T14:30:00-08:00'). "
+            "Naive datetimes (no timezone) are interpreted as UTC. "
+            "WARNING: Katana cascades this header value server-side onto the "
+            "row-level `arrival_date` of line items. If you need specific "
+            "rows to keep different dates, include them in `update_rows` in "
+            "the SAME modify_purchase_order call. Conversely, updating a "
+            "single row's `arrival_date` bumps the header to the latest row "
+            "date if applicable, but does not affect other rows."
         ),
     )
-    order_created_date: datetime | None = Field(
+    order_created_date: WireDatetime | None = Field(
         default=None,
         description=(
             "New order created date — ISO 8601 date or datetime "
-            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+            "(e.g. '2026-05-08T14:30:00Z' or '2026-05-08T14:30:00-08:00'). "
+            "Naive datetimes (no timezone) are interpreted as UTC."
         ),
     )
     additional_info: str | None = Field(
@@ -2433,11 +2443,12 @@ class PORowAdd(BaseModel):
     purchase_uom_conversion_rate: float | None = Field(
         default=None, description="UOM conversion rate"
     )
-    arrival_date: datetime | None = Field(
+    arrival_date: WireDatetime | None = Field(
         default=None,
         description=(
             "Expected arrival date for this row — ISO 8601 date or datetime "
-            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+            "(e.g. '2026-05-08T14:30:00Z' or '2026-05-08T14:30:00-08:00'). "
+            "Naive datetimes (no timezone) are interpreted as UTC."
         ),
     )
 
@@ -2461,18 +2472,20 @@ class PORowUpdate(BaseModel):
         default=None, description="New UOM conversion rate"
     )
     purchase_uom: str | None = Field(default=None, description="New purchase UOM")
-    received_date: datetime | None = Field(
+    received_date: WireDatetime | None = Field(
         default=None,
         description=(
             "New received date — ISO 8601 date or datetime "
-            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+            "(e.g. '2026-05-08T14:30:00Z' or '2026-05-08T14:30:00-08:00'). "
+            "Naive datetimes (no timezone) are interpreted as UTC."
         ),
     )
-    arrival_date: datetime | None = Field(
+    arrival_date: WireDatetime | None = Field(
         default=None,
         description=(
             "New row-level arrival date — ISO 8601 date or datetime "
-            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+            "(e.g. '2026-05-08T14:30:00Z' or '2026-05-08T14:30:00-08:00'). "
+            "Naive datetimes (no timezone) are interpreted as UTC."
         ),
     )
 

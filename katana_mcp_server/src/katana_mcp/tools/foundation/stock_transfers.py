@@ -27,6 +27,7 @@ from katana_mcp.services import get_services
 from katana_mcp.tools._modification import (
     ConfirmableRequest,
     ModificationResponse,
+    WireDatetime,
     compute_field_diff,
     make_response_verifier,
     to_tool_result,
@@ -173,14 +174,15 @@ class CreateStockTransferRequest(BaseModel):
             "Look up via `list_locations`."
         ),
     )
-    expected_arrival_date: datetime = Field(
+    expected_arrival_date: WireDatetime = Field(
         ...,
         description=(
-            "Expected arrival date at the destination location — ISO 8601 date "
-            "or datetime (e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+            "Expected arrival date at the destination location — ISO 8601 datetime "
+            "(e.g. '2026-05-08T14:30:00Z' or '2026-05-08T14:30:00-08:00'). "
+            "Naive datetimes (no timezone) are interpreted as UTC."
         ),
     )
-    transfer_date: datetime | None = Field(
+    transfer_date: WireDatetime | None = Field(
         default=None,
         description=(
             "Date the items leave the source location. Distinct from "
@@ -189,7 +191,7 @@ class CreateStockTransferRequest(BaseModel):
             "back-fills or to record an actual ship-out date."
         ),
     )
-    order_created_date: datetime | None = Field(
+    order_created_date: WireDatetime | None = Field(
         default=None,
         description=(
             "Date the transfer record was created. Leave None to let Katana "
@@ -833,18 +835,20 @@ class StockTransferHeaderPatch(BaseModel):
     stock_transfer_number: str | None = Field(
         default=None, description="New stock transfer number"
     )
-    transfer_date: datetime | None = Field(
+    transfer_date: WireDatetime | None = Field(
         default=None,
         description=(
             "New transfer date — ISO 8601 date or datetime "
-            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+            "(e.g. '2026-05-08T14:30:00Z' or '2026-05-08T14:30:00-08:00'). "
+            "Naive datetimes (no timezone) are interpreted as UTC."
         ),
     )
-    expected_arrival_date: datetime | None = Field(
+    expected_arrival_date: WireDatetime | None = Field(
         default=None,
         description=(
             "New expected arrival date — ISO 8601 date or datetime "
-            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+            "(e.g. '2026-05-08T14:30:00Z' or '2026-05-08T14:30:00-08:00'). "
+            "Naive datetimes (no timezone) are interpreted as UTC."
         ),
     )
     additional_info: str | None = Field(
