@@ -332,13 +332,6 @@ def _build_apply_action_direct(
                 SetState("pending", False),
                 SetState("error", "{{ $error }}"),
                 ShowToast("{{ $error }}", variant="error"),
-                # Mirror the cancel-button rail (line ~355): send a chat-
-                # visible message so the user sees the failure in chat
-                # instead of relying on the iframe toast (which is
-                # easy to miss / may not render in some hosts). The
-                # ``UpdateContext`` below is the agent-visible channel —
-                # this ``SendMessage`` is the user-visible one.
-                SendMessage("Apply failed: {{ $error }}"),
                 UpdateContext(content="Apply failed: {{ $error }}"),
             ],
         ),
