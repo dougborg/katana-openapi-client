@@ -32,6 +32,7 @@ Address every unresolved PR review comment: fix code, validate, commit, push, re
 
 ## CRITICAL
 
+- **Rebase on the target branch before fixing — no exceptions** — if the PR shows `mergeStateStatus=BEHIND` or `git log HEAD..origin/<base>` shows anything, the branch is stale. Rebase before reading comments or making code changes. Reasons: (a) some comments may already be obsolete after the base advanced and you'd waste time addressing them; (b) fixes pushed onto a stale branch trigger a new CI run against the still-stale base; (c) auto-merge stays blocked on BEHIND status even when CI is green and all threads are resolved. Same check applies before every `--force-with-lease` after a fixup. See Phase 1b.
 - **Fix first, reply after push** — replies confirm the fix is live; never reply on stale code.
 - **Reply to every unresolved comment** — none left without a response.
 - **No shortcuts** — never `--no-verify`, `noqa`, `type: ignore`, or `@pytest.mark.skip` to make validation pass.
@@ -79,29 +80,67 @@ If no PR is found, tell the user and stop.
 Store the PR's base branch (from `baseRefName`) — use `origin/<baseRefName>` as the
 rebase/log target throughout the workflow. Do **not** assume `main`.
 
-## Phase 1b: Check for merge conflicts and CI failures
+## Phase 1b: Sync branch with target + check CI
 
-Before reviewing comments, check if the PR is mergeable and if CI is passing:
+**Check out the PR's head branch first** — `/review-pr` is often invoked with an
+explicit PR number while the current checkout is a different branch (or `main`).
+Without this step the rebase-status check would compare the wrong `HEAD`:
+
+```bash
+# Determine the PR's head branch.
+head_ref=$(gh pr view {number} --json headRefName --jq '.headRefName')
+
+# Switch to it (gh pr checkout creates/updates the local branch).
+gh pr checkout {number}
+
+# Sanity-check: HEAD should now be on the PR's head branch.
+test "$(git branch --show-current)" = "$head_ref"
+```
+
+Now check the PR's mergeability and rebase status against its base:
 
 ```bash
 gh pr view {number} --json mergeable,mergeStateStatus,statusCheckRollup
+git fetch origin <baseRefName>
+git log HEAD..origin/<baseRefName> --oneline
 ```
+
+### If the branch is behind the target (commits appear in `HEAD..origin/<base>` OR `mergeStateStatus=BEHIND`):
+
+Rebase before addressing any review comments. This step is **mandatory** (see CRITICAL).
+
+```bash
+# Rebase onto the latest base. (You're already on the PR's head branch
+# from the gh pr checkout above.)
+git rebase origin/<baseRefName>
+
+# Handle uv.lock / other drift bundled in.
+git status --short  # if uv.lock shows up, stage it into the rebased commit head
+git add uv.lock  # if applicable
+git commit --amend --no-edit  # or rebase --continue if mid-rebase
+
+# Force-push the rebased branch.
+git push --force-with-lease origin HEAD:refs/heads/<branch-name>
+```
+
+After the rebase, re-fetch the comment list — some comments may now reference
+deleted/moved lines and need to be re-classified or marked as resolved.
 
 ### If there are merge conflicts (`mergeable: CONFLICTING`):
 
-1. Fetch the latest base branch and attempt a merge:
-   ```bash
-   git fetch origin <baseRefName>
-   git merge origin/<baseRefName>
-   ```
+The rebase above may have surfaced conflicts. If so:
+
 1. Resolve conflicts by reading each conflicted file, understanding both sides, and
    keeping the correct resolution (usually our branch's intent integrated with the base
    branch's changes).
-1. After resolving, stage the files and continue the merge:
+1. After resolving, stage the files and continue the rebase:
    ```bash
    git add <resolved files>
-   git commit -m "merge: resolve conflicts with <baseRefName>"
+   git rebase --continue
    ```
+1. If the conflicts originated from an explicit `git merge` instead (e.g., GitHub's
+   "Update branch" button created a merge commit on the remote), pull that merge first
+   with `git pull --no-rebase` and resolve normally.
 
 ### If CI is failing (`mergeStateStatus: not SUCCESS`):
 
@@ -113,8 +152,8 @@ gh pr view {number} --json mergeable,mergeStateStatus,statusCheckRollup
 1. If it's an infrastructure issue (flaky CI, timeout), note it in the summary but don't
    block on it.
 
-**Always resolve conflicts and build failures before addressing review comments** —
-review comments may no longer apply after a conflict resolution.
+**Always sync the branch and resolve conflicts/build failures before addressing review
+comments** — review comments may no longer apply after a rebase + base advance.
 
 ## Phase 2: Fetch all review comments
 
