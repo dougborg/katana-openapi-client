@@ -2,6 +2,55 @@
 
 <!-- version list -->
 
+## v0.63.0 (2026-05-12)
+
+### Bug Fixes
+
+- **client**: Backfill missing property descriptions on 12 schemas
+  (test_schema_comprehensive)
+  ([#681](https://github.com/dougborg/katana-openapi-client/pull/681),
+  [`7a637b7`](https://github.com/dougborg/katana-openapi-client/commit/7a637b7378cd79825e66c5220f205a9af9d30ce3))
+
+- **mcp**: Auto-rebuild typed cache on schema fingerprint mismatch
+  ([`03a714c`](https://github.com/dougborg/katana-openapi-client/commit/03a714c72acbc61430b8e881cc134bb37b43af0a))
+
+- **mcp**: Lead preview coaching with no-iframe fallback
+  ([#648](https://github.com/dougborg/katana-openapi-client/pull/648),
+  [`b6fb056`](https://github.com/dougborg/katana-openapi-client/commit/b6fb056af3d2171c5f2ac42fbab1cea0e7922aed))
+
+### Chores
+
+- **release**: Mcp v0.69.0
+  ([`12062a5`](https://github.com/dougborg/katana-openapi-client/commit/12062a5963ee7640c1de3c4294719e3343e0c5fc))
+
+- **release**: Mcp v0.69.1
+  ([`32b8e07`](https://github.com/dougborg/katana-openapi-client/commit/32b8e07ae71f7b7e8d48766d6535bba85770623e))
+
+- **release**: Mcp v0.70.0
+  ([`02875aa`](https://github.com/dougborg/katana-openapi-client/commit/02875aae70555a379795c88d407a7e4bb22ed58c))
+
+### Features
+
+- **mcp**: Background cache warm-up at lifespan startup (#593)
+  ([#680](https://github.com/dougborg/katana-openapi-client/pull/680),
+  [`4f0f7fa`](https://github.com/dougborg/katana-openapi-client/commit/4f0f7fa74408f8ca5f8649c82111c56ec7d1bcd7))
+
+- **mcp**: Extend rebuild_cache to cover catalog entity types
+  ([`afa3641`](https://github.com/dougborg/katana-openapi-client/commit/afa36417998f9b23cbd170d50fad46eda81ba002))
+
+### Testing
+
+- **mcp**: Pin MO+datetime regression on typed-cache write path (#632)
+  ([#678](https://github.com/dougborg/katana-openapi-client/pull/678),
+  [`c329345`](https://github.com/dougborg/katana-openapi-client/commit/c3293451860c64e5bbc038b402e5a8e8cc89135e))
+
+- **mcp**: Suppress webbrowser.open during browser-test fixture
+  ([`cd90d5c`](https://github.com/dougborg/katana-openapi-client/commit/cd90d5cadc56a93f5c51b7a9b1a3a249b8923354))
+
+### Breaking Changes
+
+- **client**: Two narrowings in this PR.
+
 ## v0.62.0 (2026-05-11)
 
 ### Bug Fixes
