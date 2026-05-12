@@ -59,15 +59,33 @@ def fetch_project_items() -> list[dict[str, Any]]:
     return data.get("items", [])
 
 
-def fetch_issue_states(issue_numbers: set[int]) -> dict[int, dict[str, Any]]:
-    """Batch-fetch ``state`` (+ has-open-PR signal) for each issue number.
+def fetch_issue_states(
+    issue_numbers: set[int],
+) -> tuple[dict[int, dict[str, Any]], list[dict[str, Any]]]:
+    """Fetch ``state`` + has-open-PR signal for each issue number, one
+    ``gh issue view`` subprocess per number.
 
-    Returns ``{number: {state: "open"|"closed", has_open_pr: bool,
-    updated_at: ISO8601}}``. Skips fetches for numbers in
-    ``issue_numbers`` that aren't actually issues (e.g., PR numbers) —
-    ``gh issue view`` errors on those and we just omit them.
+    Returns ``(states, errors)`` where:
+
+    - ``states`` is ``{number: {state, updated_at, has_open_pr}}`` for
+      every number we successfully read.
+    - ``errors`` is a list of ``{number, reason, stderr}`` records for
+      numbers that errored at the gh layer. We differentiate
+      "404 / not an issue" (PR numbers land here, since the project
+      board contains both issues and PRs) from transient/auth/rate-limit
+      failures: 404s are dropped silently; everything else is surfaced
+      so callers can decide whether to retry or warn the user.
+
+    Implementation note: this is **not** a batched call — under the hood
+    it loops, paying one round-trip per issue. For a 200-item board that
+    is ~30s wall-clock; if that becomes painful, swap to a single
+    GraphQL ``nodes(ids: [...])`` query against the issue node IDs.
+    Kept as serial gh calls today for simplicity (one subprocess shape,
+    no GraphQL query construction) and because the skill is interactive
+    and runs at human cadence.
     """
-    out: dict[int, dict[str, Any]] = {}
+    states: dict[int, dict[str, Any]] = {}
+    errors: list[dict[str, Any]] = []
     for num in sorted(issue_numbers):
         try:
             raw = run_gh(
@@ -79,18 +97,35 @@ def fetch_issue_states(issue_numbers: set[int]) -> dict[int, dict[str, Any]]:
                     "state,updatedAt,closedByPullRequestsReferences",
                 ]
             )
-            data = json.loads(raw)
-            prs = data.get("closedByPullRequestsReferences") or []
-            has_open_pr = any(pr.get("state") == "OPEN" for pr in prs)
-            out[num] = {
-                "state": (data.get("state") or "").lower(),
-                "updated_at": data.get("updatedAt"),
-                "has_open_pr": has_open_pr,
-            }
-        except subprocess.CalledProcessError:
-            # Not an issue (PR or invalid number) — skip silently.
+        except subprocess.CalledProcessError as exc:
+            stderr = (exc.stderr or "").strip()
+            # PR numbers + numbers that never existed both produce
+            # "GraphQL: Could not resolve to an Issue" — that's the
+            # 'not an issue' signal we want to drop silently.
+            is_not_an_issue = (
+                "could not resolve to an issue" in stderr.lower()
+                or "could not resolve to a node" in stderr.lower()
+            )
+            if not is_not_an_issue:
+                # Auth, rate-limit, network glitch, etc. — surface so
+                # the caller can decide. Don't pretend these are fine.
+                errors.append(
+                    {
+                        "number": num,
+                        "reason": "gh_error",
+                        "stderr": stderr[:500],
+                    }
+                )
             continue
-    return out
+        data = json.loads(raw)
+        prs = data.get("closedByPullRequestsReferences") or []
+        has_open_pr = any(pr.get("state") == "OPEN" for pr in prs)
+        states[num] = {
+            "state": (data.get("state") or "").lower(),
+            "updated_at": data.get("updatedAt"),
+            "has_open_pr": has_open_pr,
+        }
+    return states, errors
 
 
 def parse_issue_number(url: str | None) -> int | None:
@@ -213,11 +248,11 @@ def main() -> int:
         if issue_no is not None:
             issue_numbers.add(issue_no)
 
-    issue_states = fetch_issue_states(issue_numbers)
+    issue_states, fetch_errors = fetch_issue_states(issue_numbers)
     proposals = classify_items(items, issue_states, now)
 
     summary = {category: len(rows) for category, rows in proposals.items()}
-    output = {
+    output: dict[str, Any] = {
         "project_number": PROJECT_NUMBER,
         "project_title": PROJECT_TITLE,
         "analyzed_at": now.isoformat(),
@@ -225,6 +260,13 @@ def main() -> int:
         "total_items": len(items),
         "proposals": proposals,
     }
+    # Surface gh-layer errors (auth, rate-limit, network) so the agent
+    # can warn the user — heuristics that depend on issue state may be
+    # under-counted for any number we couldn't read. ``fetch_errors``
+    # is empty in the happy path; we only emit the key when non-empty.
+    if fetch_errors:
+        output["fetch_errors"] = fetch_errors
+        summary["fetch_errors"] = len(fetch_errors)
     json.dump(output, sys.stdout, indent=2)
     print()
     return 0
