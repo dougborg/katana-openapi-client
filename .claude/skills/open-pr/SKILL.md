@@ -193,6 +193,47 @@ uv run poe check
 
 1. **Print the PR URL** for the user.
 
+1. **Surface linked-issue board status** — after creating the PR, parse the PR body
+   for GitHub closing keywords (`Closes #N` / `Fixes #N` / `Resolves #N` — the three
+   forms GitHub recognizes as "linked issues") and confirm each linked issue is on
+   project #5 (the Rolling Backlog). `Refs #N` is a reference, not a link, and won't
+   trigger GitHub's auto-move workflow — so it's intentionally excluded from both the
+   regex and the workflow expectations. The two-step check:
+
+   ```bash
+   # Find linked issues (closing keywords only — Refs/See excluded by design).
+   gh pr view <number> --json body --jq '.body' \
+     | grep -oiE '(close[sd]?|fixe[sd]?|resolve[sd]?) #[0-9]+' \
+     | grep -oE '[0-9]+' \
+     | sort -u
+
+   # For each linked issue, fetch the project item (if any) and surface its
+   # Priority + Workstream so we can see the classification at a glance.
+   gh issue view <issue#> --json projectItems \
+     --jq '.projectItems[]
+           | select(.title=="Katana MCP — Rolling Backlog")
+           | {status, priority, workstream}'
+   ```
+
+   If a linked issue is **not** on the board, add it now (it should auto-add via the
+   project workflow, but the workflow has a delay or could be misconfigured):
+
+   ```bash
+   gh project item-add 5 --owner @me --url "$issue_url"
+   # then set Priority + Workstream — see CLAUDE.md "Project Backlog" for the
+   # field-IDs / option-IDs lookup via `gh project field-list 5 --owner @me --format json`.
+   ```
+
+   The board's "Pull request linked to issue" workflow should auto-move the linked
+   issue's Status to **In Progress** once the PR opens. Confirm by re-reading the
+   issue's project status after creating the PR. If Status didn't move (sometimes
+   the workflow lags or doesn't fire for cross-repo references), nudge it manually
+   via `gh project item-edit --field-id <Status> --single-select-option-id <In Progress>`.
+
+   Don't gate the PR on this — board status is observability, not a release gate. But
+   surface the result in the summary (Phase 8) so the user knows the board reflects
+   reality.
+
 ## Phase 5: Wait for CI
 
 1. **Poll CI status**:
@@ -260,6 +301,9 @@ Print an overall summary:
 - **CI status** (all green / any failures)
 - **Review comments addressed** (count, if any)
 - **Current PR state** (ready for re-review, approved, etc.)
+- **Board state** — for each linked issue, the project #5 Status (In Progress / Done /
+  not-on-board) so the user can see at a glance that the board reflects the work
+  (see Phase 4 step 4).
 
 ## Important Rules
 
