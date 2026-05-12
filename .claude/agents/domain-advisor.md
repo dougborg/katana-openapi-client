@@ -53,7 +53,7 @@ items = unwrap_data(response, default=[])              # 200 list (.data envelop
 if is_success(response): ...                           # 201/204
 ```
 
-Anti-pattern: `if response.status_code == 200`. Source: `CLAUDE.md` API Response Handling Best Practices.
+Anti-pattern: `if response.status_code == 200`. Source: `katana_public_api_client/docs/guide.md` — Response Handling section.
 
 ### "How do I handle UNSET attrs fields?"
 
@@ -64,7 +64,7 @@ status = unwrap_unset(order.status, None)        # read attrs field; default if 
 payload_value = to_unset(maybe_optional)         # write attrs field; UNSET if None
 ```
 
-Never `isinstance(value, type(UNSET))`, never `hasattr(order, 'status')` for attrs-defined fields. Source: `CLAUDE.md` Anti-Patterns.
+Never `isinstance(value, type(UNSET))`, never `hasattr(order, 'status')` for attrs-defined fields. Source: `katana_public_api_client/docs/guide.md` — Response Handling section (anti-patterns).
 
 ### "Where do retries go?"
 
@@ -72,7 +72,7 @@ Transport layer (`katana_client.py`). All 100+ endpoints get retries, rate-limit
 
 ### "How are list responses shaped?"
 
-Katana wraps every list in `{"data": [...]}`. Test mocks must reflect this — never define raw arrays. Source: `CLAUDE.md` Known Pitfalls.
+Katana wraps every list in `{"data": [...]}`. Test mocks must reflect this — never define raw arrays. Source: `katana_public_api_client/docs/spec-authoring.md` — "List responses must use a `ListResponse` schema".
 
 ### "Which exceptions can `unwrap_as` raise?"
 
@@ -84,11 +84,11 @@ Katana wraps every list in `{"data": [...]}`. Test mocks must reflect this — n
 | 5xx | `ServerError` |
 | Other 4xx | `APIError` |
 
-Source: `CLAUDE.md` Exception Hierarchy.
+Source: `katana_public_api_client/docs/guide.md` — Response Handling section, "Exception hierarchy".
 
 ### "When do I need to update the help resource?"
 
-When you add or change MCP tool parameters. The help resource at `katana_mcp_server/.../resources/help.py` has hardcoded tool documentation that drifts silently. Source: `CLAUDE.md` Known Pitfalls.
+When you add or change MCP tool parameters. The help resource at `katana_mcp_server/.../resources/help.py` has hardcoded tool documentation that drifts silently. Source: `katana_mcp_server/docs/prefab/README.md` — "Help resource drift".
 
 ## EDGE CASES
 

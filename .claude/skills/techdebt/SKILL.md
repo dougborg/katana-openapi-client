@@ -35,7 +35,7 @@ uv run poe quick-check
 Categories:
 
 1. **Dead code** — unused imports/vars/functions/classes; unreachable paths; commented-out blocks. Confirm with `LSP findReferences` before flagging.
-2. **Outdated patterns** — anti-patterns from `CLAUDE.md` Known Pitfalls / Anti-Patterns sections (UNSET misuse, manual status checks, retry wrapping, hasattr on attrs models, raw list mocks).
+2. **Outdated patterns** — anti-patterns from `katana_public_api_client/docs/guide.md` "Response Handling" section and `CLAUDE.md` "Known Pitfalls" (UNSET misuse, manual status checks, retry wrapping, hasattr on attrs models, raw list mocks).
 3. **Code duplication** — repeated logic that should be a helper, copy-pasted test setup that should be a fixture.
 4. **Code smells** — broad `except Exception`, missing type annotations on public functions, parameter explosions, name shadowing, circular imports.
 5. **Missing best practices** — public functions without docstrings, async tests missing `@pytest.mark.asyncio`, fixtures that should be `scope="session"`.
