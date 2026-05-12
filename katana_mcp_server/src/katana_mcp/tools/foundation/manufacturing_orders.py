@@ -631,13 +631,23 @@ class RecipeRowBatchTransactionInfo(BaseModel):
 class RecipeRowInfo(BaseModel):
     """Full manufacturing-order recipe row. Exhaustive — every field on
     ``ManufacturingOrderRecipeRow`` is surfaced, plus the resolved SKU
-    for display convenience.
+    and canonical ``display_name`` for display convenience.
     """
 
     id: int
     manufacturing_order_id: int | None = None
     variant_id: int | None = None
     sku: str | None = None
+    display_name: str | None = None
+    """Katana-UI-format human-readable name for this row's variant.
+
+    Lifted from the typed-cache ``CachedVariant.display_name`` column
+    (which itself delegates to
+    :func:`katana_public_api_client.domain.variant.build_variant_display_name`)
+    so the rendered name stays consistent with every other variant-displaying
+    surface. ``None`` when the variant can't be resolved (cache miss + no
+    API fallback for this read path).
+    """
     notes: str | None = None
     planned_quantity_per_unit: float | None = None
     total_actual_quantity: float | None = None
@@ -821,8 +831,15 @@ class GetManufacturingOrderResponse(BaseModel):
     )
 
 
-def _recipe_row_info_from_attrs(row: Any, sku: str | None) -> RecipeRowInfo:
-    """Build RecipeRowInfo from a ManufacturingOrderRecipeRow attrs model."""
+def _recipe_row_info_from_attrs(
+    row: Any, sku: str | None, display_name: str | None = None
+) -> RecipeRowInfo:
+    """Build RecipeRowInfo from a ManufacturingOrderRecipeRow attrs model.
+
+    ``sku`` and ``display_name`` are looked up upstream in
+    :func:`_fetch_mo_recipe_rows` from the typed cache so each row carries
+    the canonical Katana-UI name without an extra API call per row.
+    """
     raw_batch = unwrap_unset(row.batch_transactions, []) or []
     batch_infos = [
         RecipeRowBatchTransactionInfo(
@@ -836,6 +853,7 @@ def _recipe_row_info_from_attrs(row: Any, sku: str | None) -> RecipeRowInfo:
         manufacturing_order_id=unwrap_unset(row.manufacturing_order_id, None),
         variant_id=unwrap_unset(row.variant_id, None),
         sku=sku,
+        display_name=display_name,
         notes=unwrap_unset(row.notes, None),
         planned_quantity_per_unit=unwrap_unset(row.planned_quantity_per_unit, None),
         total_actual_quantity=unwrap_unset(row.total_actual_quantity, None),
@@ -1024,19 +1042,23 @@ async def _fetch_mo_recipe_rows(
         CachedVariant, variant_ids, include_deleted=True
     )
 
-    def _sku_for(v: Any) -> Any:
+    def _field_for(v: Any, field_name: str) -> Any:
         if v is None:
             return None
         if isinstance(v, dict):
-            return v.get("sku")
-        return getattr(v, "sku", None)
+            return v.get(field_name)
+        return getattr(v, field_name, None)
+
+    def _resolved(v_id: int | None) -> tuple[str | None, str | None]:
+        if v_id is None:
+            return None, None
+        v = variants.get(v_id)
+        return _field_for(v, "sku"), _field_for(v, "display_name")
 
     return [
         _recipe_row_info_from_attrs(
             row,
-            _sku_for(variants.get(v_id))
-            if (v_id := unwrap_unset(row.variant_id, None)) is not None
-            else None,
+            *_resolved(unwrap_unset(row.variant_id, None)),
         )
         for row in raw_rows
     ]
@@ -1277,6 +1299,7 @@ def _render_recipe_row_md(row: RecipeRowInfo, *, verbose: bool = True) -> str:
         "manufacturing_order_id",
         "variant_id",
         "sku",
+        "display_name",
         "notes",
         "planned_quantity_per_unit",
         "total_actual_quantity",

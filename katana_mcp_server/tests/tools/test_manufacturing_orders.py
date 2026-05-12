@@ -619,8 +619,12 @@ async def test_get_manufacturing_order_recipe():
     context, lifespan_ctx = create_mock_context()
     lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
         return_value={
-            101: {"id": 101, "sku": "FORK-001"},
-            102: {"id": 102, "sku": "BOLT-004"},
+            101: {
+                "id": 101,
+                "sku": "FORK-001",
+                "display_name": "Fox Float / 36mm / Black",
+            },
+            102: {"id": 102, "sku": "BOLT-004", "display_name": "M5 Bolt / 12mm"},
         }
     )
 
@@ -662,7 +666,12 @@ async def test_get_manufacturing_order_recipe():
     assert result.total_count == 2
     assert result.rows[0].id == 5001
     assert result.rows[0].sku == "FORK-001"
+    # ``display_name`` is lifted from CachedVariant so each rendered row
+    # carries the canonical Katana-UI-format name, matching every other
+    # variant-displaying surface (search_items, check_inventory, variant card).
+    assert result.rows[0].display_name == "Fox Float / 36mm / Black"
     assert result.rows[1].sku == "BOLT-004"
+    assert result.rows[1].display_name == "M5 Bolt / 12mm"
 
 
 @pytest.mark.asyncio
@@ -1561,7 +1570,11 @@ async def test_get_manufacturing_order_recipe_full_field_coverage():
         total_remaining_quantity=25.0,
     )
 
-    info = _recipe_row_info_from_attrs(attrs_row, sku="STEEL-304")
+    info = _recipe_row_info_from_attrs(
+        attrs_row,
+        sku="STEEL-304",
+        display_name="Stainless Steel Sheet 304 / 1.5mm",
+    )
 
     # Previously-dropped fields:
     assert info.manufacturing_order_id == 3001
@@ -1578,6 +1591,10 @@ async def test_get_manufacturing_order_recipe_full_field_coverage():
     assert info.id == 4001
     assert info.variant_id == 3201
     assert info.sku == "STEEL-304"
+    # ``display_name`` is the canonical Katana-UI-format name — surfaced on
+    # every recipe row so the rendered card matches search_items / variant
+    # detail / inventory card naming.
+    assert info.display_name == "Stainless Steel Sheet 304 / 1.5mm"
     assert info.notes == "Use only grade 304 material"
     assert info.planned_quantity_per_unit == 2.5
     assert info.total_actual_quantity == 125.0
