@@ -1623,11 +1623,15 @@ def build_verification_ui(
                 label=overall_status.replace("_", " ").title(), variant=status_variant
             )
 
-        # Matches table
+        # Matches table — ``Item`` column shows the canonical
+        # Katana-UI-format display name (parent / config1 / config2),
+        # ``SKU`` remains as a secondary identity column for ops + scripts.
+        # Same column ordering used by the batch recipe update card.
         if matches:
             Muted(content="Matched Items:")
             DataTable(
                 columns=[
+                    DataTableColumn(key="display_name", header="Item", sortable=True),
                     DataTableColumn(key="sku", header="SKU", sortable=True),
                     DataTableColumn(key="quantity", header="Quantity", align="right"),
                     DataTableColumn(key="unit_price", header="Price", align="right"),
@@ -1636,11 +1640,13 @@ def build_verification_ui(
                 rows="{{ matches }}",
             )
 
-        # Discrepancies table
+        # Discrepancies table — same ``Item`` / ``SKU`` ordering for
+        # visual consistency with the matches table above.
         if discrepancies:
             Muted(content="Discrepancies:")
             DataTable(
                 columns=[
+                    DataTableColumn(key="display_name", header="Item"),
                     DataTableColumn(key="sku", header="SKU"),
                     DataTableColumn(key="type", header="Type"),
                     DataTableColumn(key="message", header="Details"),

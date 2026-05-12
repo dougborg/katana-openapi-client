@@ -720,6 +720,46 @@ class TestBuildVerificationUI:
         app = build_verification_ui(response)
         _assert_valid_prefab(app)
 
+    def test_match_and_discrepancy_tables_include_item_column(self):
+        """Both tables expose ``Item`` as the leading sortable column so the
+        rendered card shows the canonical Katana-UI display name ahead of
+        the raw SKU — matching every other variant-displaying surface
+        (search_items, check_inventory, batch recipe update card).
+        """
+        response = {
+            "overall_status": "partial_match",
+            "order_id": 789,
+            "matches": [
+                {
+                    "sku": "WIDGET-001",
+                    "display_name": "Acme Widget / Large / Red",
+                    "quantity": 10,
+                    "unit_price": 5.0,
+                    "status": "perfect",
+                }
+            ],
+            "discrepancies": [
+                {
+                    "sku": "WIDGET-002",
+                    "display_name": "Acme Widget / Small / Blue",
+                    "type": "quantity_mismatch",
+                    "message": "Quantity off by 2",
+                }
+            ],
+        }
+        app = build_verification_ui(response)
+        envelope = app.to_json()
+
+        # Both DataTable nodes must have ``Item`` (display_name) as the
+        # first column, with ``SKU`` immediately after.
+        tables = _find_components_by_type(envelope, "DataTable")
+        assert len(tables) == 2  # matches + discrepancies
+        for table in tables:
+            cols = table.get("columns", [])
+            assert cols[0]["key"] == "display_name"
+            assert cols[0]["header"] == "Item"
+            assert cols[1]["key"] == "sku"
+
 
 class TestBuildItemMutationUI:
     @pytest.mark.parametrize("action", ["Created", "Updated", "Deleted"])

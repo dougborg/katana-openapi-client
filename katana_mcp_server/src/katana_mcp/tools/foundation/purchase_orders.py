@@ -1517,6 +1517,18 @@ class MatchResult(BaseModel):
     """Result of matching a document item to a PO line."""
 
     sku: str = Field(..., description="Item SKU")
+    display_name: str = Field(
+        default="",
+        description=(
+            "Katana-UI-format human-readable name "
+            "(``{parent_name} / {config1} / ...``) — built via "
+            ":func:`build_variant_display_name` from the PO row's variant + "
+            "parent product/material lookup so the verification card shows "
+            "the same canonical name as every other variant-displaying "
+            "surface. Empty string when the variant can't be resolved "
+            "(rare — would mean the PO row references a deleted variant)."
+        ),
+    )
     quantity: float = Field(..., description="Matched quantity")
     unit_price: float | None = Field(default=None, description="Matched price")
     status: str = Field(
@@ -1537,6 +1549,16 @@ class Discrepancy(BaseModel):
     """A discrepancy found during verification."""
 
     sku: str = Field(..., description="Item SKU")
+    display_name: str = Field(
+        default="",
+        description=(
+            "Katana-UI-format human-readable name "
+            "(``{parent_name} / {config1} / ...``). Empty string for "
+            "``MISSING_IN_PO`` discrepancies (the document item's SKU "
+            "didn't match any PO row, so there's no variant to resolve "
+            "against)."
+        ),
+    )
     type: DiscrepancyType = Field(..., description="Type of discrepancy")
     expected: float | None = Field(default=None, description="Expected value (from PO)")
     actual: float | None = Field(
@@ -1680,29 +1702,132 @@ async def _verify_order_document_impl(
         po_rows = po_rows_raw
 
         # Collect all variant IDs from PO rows using unwrap_unset
-        variant_ids = []
+        variant_ids: list[int] = []
         for row in po_rows:
             variant_id = unwrap_unset(row.variant_id, None)
             if variant_id is not None:
                 variant_ids.append(variant_id)
 
-        # Fetch only the needed variants by ID (API-level filtering)
-        try:
-            filtered_variants = await services.client.variants.list(ids=variant_ids)
-            variant_by_id = {v.id: v for v in filtered_variants}
-        except Exception as e:
-            logger.error(f"Failed to fetch variants: {e}")
-            raise
+        # Resolve SKU + canonical display_name in one cache read instead of
+        # an API call per row. The typed cache pre-computes
+        # ``CachedVariant.display_name`` via the variant postprocess hook
+        # (same Katana-UI formula used by every other surface — see
+        # ``build_variant_display_name``). API fallback covers cold-cache
+        # gaps so a fresh install doesn't silently lose verification rows.
+        from katana_mcp.tools.foundation.items import _fetch_variant_by_id
+        from katana_public_api_client.domain.variant import (
+            build_variant_display_name,
+        )
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedMaterial,
+            CachedProduct,
+            CachedVariant,
+        )
 
-        # Build a map of SKU -> PO row for matching
-        sku_to_row: dict[str, Any] = {}
+        cached_variants: dict[
+            int, Any
+        ] = await services.typed_cache.catalog.get_many_by_ids(
+            CachedVariant, set(variant_ids), include_deleted=True
+        )
+
+        # Cold-cache fallback: any variant_id not in the cache gets a
+        # fresh API fetch. Dedup first (a PO can reference the same
+        # variant on multiple rows) and fire all fetches in parallel —
+        # the previous serial-await pattern added avoidable latency on
+        # POs with many cache misses.
+        missing_ids = list({vid for vid in variant_ids if vid not in cached_variants})
+        if missing_ids:
+            fallback_variants = await asyncio.gather(
+                *(_fetch_variant_by_id(services, vid) for vid in missing_ids)
+            )
+            # API-fallback ``Variant`` attrs don't carry the
+            # ``display_name`` field (the typed-cache postprocess
+            # computes it during sync, but cold-cache paths skip that).
+            # Bulk-resolve parents from the cache so each fallback can
+            # get a canonical display_name via the same helper every
+            # other surface uses — keeps verification rows readable
+            # without re-fetching at render time.
+            present_fallbacks = [v for v in fallback_variants if v is not None]
+            parent_product_ids = {
+                pid
+                for v in present_fallbacks
+                if (pid := unwrap_unset(getattr(v, "product_id", None), None))
+            }
+            parent_material_ids = {
+                mid
+                for v in present_fallbacks
+                if (mid := unwrap_unset(getattr(v, "material_id", None), None))
+            }
+            products_by_id, materials_by_id = await asyncio.gather(
+                services.typed_cache.catalog.get_many_by_ids(
+                    CachedProduct,
+                    parent_product_ids,
+                    include_archived=True,
+                    include_deleted=True,
+                ),
+                services.typed_cache.catalog.get_many_by_ids(
+                    CachedMaterial,
+                    parent_material_ids,
+                    include_archived=True,
+                    include_deleted=True,
+                ),
+            )
+            for vid, fallback in zip(missing_ids, fallback_variants, strict=True):
+                if fallback is None:
+                    continue
+                pid = unwrap_unset(getattr(fallback, "product_id", None), None)
+                mid = unwrap_unset(getattr(fallback, "material_id", None), None)
+                parent = None
+                if pid is not None:
+                    parent = products_by_id.get(pid)
+                elif mid is not None:
+                    parent = materials_by_id.get(mid)
+                parent_name = (
+                    getattr(parent, "name", None) if parent is not None else None
+                )
+                sku_value = unwrap_unset(getattr(fallback, "sku", None), None)
+                config_attrs = unwrap_unset(
+                    getattr(fallback, "config_attributes", None), []
+                )
+                display_name = build_variant_display_name(
+                    parent_name, config_attrs, sku_value
+                )
+                # Normalize to a dict so ``_sku_of`` / ``_display_name_of``
+                # below read uniformly — they already key off the
+                # ``isinstance(v, dict)`` branch for the cache-miss case.
+                cached_variants[vid] = {
+                    "sku": sku_value,
+                    "display_name": display_name,
+                    "product_id": pid,
+                    "material_id": mid,
+                }
+
+        def _sku_of(v: Any) -> str | None:
+            if v is None:
+                return None
+            if isinstance(v, dict):
+                return v.get("sku")
+            return getattr(v, "sku", None)
+
+        def _display_name_of(v: Any) -> str | None:
+            if v is None:
+                return None
+            if isinstance(v, dict):
+                return v.get("display_name")
+            return getattr(v, "display_name", None)
+
+        # Build a map of SKU -> (PO row, display_name) for matching. The
+        # display_name is cached alongside the row so each MatchResult /
+        # Discrepancy can surface the canonical name without re-resolving.
+        sku_to_row: dict[str, tuple[Any, str]] = {}
         for row in po_rows:
             variant_id = unwrap_unset(row.variant_id, None)
             if variant_id is None:
                 continue
-            variant = variant_by_id.get(variant_id)
-            if variant and variant.sku:
-                sku_to_row[variant.sku] = row
+            variant = cached_variants.get(variant_id)
+            sku = _sku_of(variant)
+            if sku:
+                sku_to_row[sku] = (row, _display_name_of(variant) or "")
 
         # Now match document items to PO rows
         matches: list[MatchResult] = []
@@ -1714,6 +1839,8 @@ async def _verify_order_document_impl(
                 discrepancies.append(
                     Discrepancy(
                         sku=doc_item.sku,
+                        # MISSING_IN_PO has no variant to resolve against
+                        # — leave display_name empty (the model default).
                         type=DiscrepancyType.MISSING_IN_PO,
                         expected=None,
                         actual=doc_item.quantity,
@@ -1722,7 +1849,7 @@ async def _verify_order_document_impl(
                 )
                 continue
 
-            row = sku_to_row[doc_item.sku]
+            row, display_name = sku_to_row[doc_item.sku]
             row_qty = unwrap_unset(row.quantity, 0.0)
             row_price = unwrap_unset(row.price_per_unit, 0.0)
 
@@ -1738,6 +1865,7 @@ async def _verify_order_document_impl(
                 discrepancies.append(
                     Discrepancy(
                         sku=doc_item.sku,
+                        display_name=display_name,
                         type=DiscrepancyType.QUANTITY_MISMATCH,
                         expected=row_qty,
                         actual=doc_item.quantity,
@@ -1754,6 +1882,7 @@ async def _verify_order_document_impl(
                 discrepancies.append(
                     Discrepancy(
                         sku=doc_item.sku,
+                        display_name=display_name,
                         type=DiscrepancyType.PRICE_MISMATCH,
                         expected=row_price,
                         actual=doc_item.unit_price,
@@ -1775,6 +1904,7 @@ async def _verify_order_document_impl(
             matches.append(
                 MatchResult(
                     sku=doc_item.sku,
+                    display_name=display_name,
                     quantity=doc_item.quantity,
                     unit_price=doc_item.unit_price,
                     status=status,
