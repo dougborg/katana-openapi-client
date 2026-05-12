@@ -12,11 +12,11 @@ with automatic resilience, rate limiting, and pagination.
 
 ## Packages
 
-| Package                                            | Language   | Version | Description                                              |
-| -------------------------------------------------- | ---------- | ------- | -------------------------------------------------------- |
-| [katana-openapi-client](katana_public_api_client/) | Python     | 0.41.0  | Full-featured API client with transport-layer resilience |
-| [katana-mcp-server](katana_mcp_server/)            | Python     | 0.25.0  | Model Context Protocol server for AI assistants          |
-| [katana-openapi-client](packages/katana-client/)   | TypeScript | 0.0.1   | TypeScript/JavaScript client with full type safety       |
+| Package                                            | Language   | Version                                                                                                                      | Description                                              |
+| -------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| [katana-openapi-client](katana_public_api_client/) | Python     | [![PyPI](https://img.shields.io/pypi/v/katana-openapi-client.svg?label=)](https://pypi.org/project/katana-openapi-client/)   | Full-featured API client with transport-layer resilience |
+| [katana-mcp-server](katana_mcp_server/)            | Python     | [![PyPI](https://img.shields.io/pypi/v/katana-mcp-server.svg?label=)](https://pypi.org/project/katana-mcp-server/)           | Model Context Protocol server for AI assistants          |
+| [katana-openapi-client](packages/katana-client/)   | TypeScript | [![npm](https://img.shields.io/npm/v/katana-openapi-client.svg?label=)](https://www.npmjs.com/package/katana-openapi-client) | TypeScript/JavaScript client with full type safety       |
 
 ## Features Comparison
 
@@ -106,17 +106,16 @@ KATANA_BASE_URL=https://api.katanamrp.com/v1  # Optional
 
 ## API Coverage
 
-All clients provide access to the complete Katana API:
+All clients provide access to the complete Katana API. The canonical endpoint surface is
+the OpenAPI spec at [`docs/katana-openapi.yaml`](docs/katana-openapi.yaml); the Python
+and TypeScript clients are generated from it, and the MCP server wraps a curated subset
+of high-level tools on top of the Python client.
 
-| Category             | Endpoints | Description                                 |
-| -------------------- | --------- | ------------------------------------------- |
-| Products & Inventory | 25+       | Products, variants, materials, stock levels |
-| Orders               | 20+       | Sales orders, purchase orders, fulfillment  |
-| Manufacturing        | 15+       | BOMs, manufacturing orders, operations      |
-| Business Relations   | 10+       | Customers, suppliers, addresses             |
-| Configuration        | 6+        | Locations, webhooks, custom fields          |
-
-**Total**: 76+ endpoints with 150+ fully-typed data models
+- **Python / TypeScript clients** — every operation in the spec, with generated types
+  for all request and response models.
+- **MCP server** — a higher-level tool surface (search, modify, fulfill, verify, plus
+  preview/apply pairs for write operations); the live tool list is exposed via the
+  `katana://help/tools` resource.
 
 ## Project Structure
 
@@ -130,14 +129,16 @@ katana-openapi-client/               # Monorepo root
 │   └── *.md                         # Shared documentation
 ├── katana_public_api_client/        # Python client package
 │   ├── katana_client.py             # Resilient client with retries
-│   ├── api/                         # Generated API modules (76+)
-│   ├── models/                      # Generated data models (150+)
+│   ├── api/                         # Generated API modules
+│   ├── models/                      # Generated data models
+│   ├── models_pydantic/             # Generated pydantic models
 │   └── docs/                        # Package documentation
 ├── katana_mcp_server/               # MCP server package
 │   ├── src/katana_mcp/
 │   │   ├── server.py                # FastMCP server
-│   │   ├── tools/                   # MCP tools (12)
-│   │   └── resources/               # MCP resources (5)
+│   │   ├── tools/                   # MCP tools
+│   │   ├── resources/               # MCP resources
+│   │   └── typed_cache/             # SQLite-backed typed cache
 │   └── docs/                        # Package documentation
 └── packages/
     └── katana-client/               # TypeScript client package
@@ -153,56 +154,41 @@ katana-openapi-client/               # Monorepo root
 
 Each package has its own documentation in its `docs/` directory:
 
-- **[Python Client Guide](katana_public_api_client/docs/guide.md)** - Complete usage
-  guide
-- **[Python Client Cookbook](katana_public_api_client/docs/cookbook.md)** - Practical
+- **[Python Client Guide](katana_public_api_client/docs/guide.md)** — usage, response
+  helpers, pagination, retries
+- **[Python Client Cookbook](katana_public_api_client/docs/cookbook.md)** — practical
   recipes
-- **[MCP Server Architecture](katana_mcp_server/docs/architecture.md)** - MCP design
+- **[OpenAPI Spec Authoring](katana_public_api_client/docs/spec-authoring.md)** — 3.1
+  conventions, generator/regen lockstep, breaking-change markers
+- **[MCP Server Architecture](katana_mcp_server/docs/architecture.md)** — MCP design
   patterns
-- **[MCP Server Development](katana_mcp_server/docs/development.md)** - Development
-  guide
-- **[TypeScript Client Guide](packages/katana-client/docs/guide.md)** - TypeScript usage
+- **[MCP Server Development](katana_mcp_server/docs/development.md)** — development
+  workflow
+- **[MCP Prefab UI](katana_mcp_server/docs/prefab/README.md)** — card builders and
+  renderer pitfalls
+- **[MCP Typed Cache](katana_mcp_server/docs/typed_cache/README.md)** — SQLite cache,
+  FTS5, soft-state filtering
+- **[TypeScript Client Guide](packages/katana-client/docs/guide.md)** — TypeScript usage
 
 ### Architecture Decisions
 
-Key architectural decisions are documented as ADRs (Architecture Decision Records):
+Architecture Decision Records live under each package's `docs/adr/` directory plus
+shared monorepo ADRs under `docs/adr/`. Each ADR directory has a `README.md` index that
+lists every ADR in that scope with its current status — those indexes are the canonical
+list and stay current as ADRs are added or superseded.
 
-**Python Client ADRs**
-([katana_public_api_client/docs/adr/](katana_public_api_client/docs/adr/)):
-
-- [ADR-001](katana_public_api_client/docs/adr/0001-transport-layer-resilience.md):
-  Transport-Layer Resilience
-- [ADR-002](katana_public_api_client/docs/adr/0002-openapi-code-generation.md): OpenAPI
-  Code Generation
-- [ADR-003](katana_public_api_client/docs/adr/0003-transparent-pagination.md):
-  Transparent Pagination
-- [ADR-006](katana_public_api_client/docs/adr/0006-response-unwrapping-utilities.md):
-  Response Unwrapping
-
-**MCP Server ADRs** ([katana_mcp_server/docs/adr/](katana_mcp_server/docs/adr/)):
-
-- [ADR-010](katana_mcp_server/docs/adr/0010-katana-mcp-server.md): MCP Server
-  Architecture
-
-**TypeScript Client ADRs**
-([packages/katana-client/docs/adr/](packages/katana-client/docs/adr/)):
-
-- [ADR-001](packages/katana-client/docs/adr/0001-composable-fetch-wrappers.md):
-  Composable Fetch Wrappers
-- [ADR-002](packages/katana-client/docs/adr/0002-hey-api-code-generation.md): Hey API
-  Code Generation
-- [ADR-003](packages/katana-client/docs/adr/0003-biome-for-linting.md): Biome for
-  Linting
-
-**Shared/Monorepo ADRs** ([docs/adr/](docs/adr/)):
-
-- [ADR-009](docs/adr/0009-migrate-from-poetry-to-uv.md): Migrate to uv
+- **[Shared / monorepo ADRs](docs/adr/README.md)** — cross-cutting decisions
+- **[Python client ADRs](katana_public_api_client/docs/adr/README.md)** — client package
+  decisions
+- **[MCP server ADRs](katana_mcp_server/docs/adr/README.md)** — MCP package decisions
+- **[TypeScript client ADRs](packages/katana-client/docs/adr/README.md)** — TS package
+  decisions
 
 ### Shared Documentation
 
-- **[Contributing Guide](docs/CONTRIBUTING.md)** - How to contribute
-- **[uv Usage Guide](docs/UV_USAGE.md)** - Package manager guide
-- **[Monorepo Release Guide](docs/MONOREPO_SEMANTIC_RELEASE.md)** - Semantic release
+- **[Contributing Guide](docs/CONTRIBUTING.md)** — how to contribute
+- **[uv Usage Guide](docs/UV_USAGE.md)** — package manager guide
+- **[Monorepo Release Guide](docs/MONOREPO_SEMANTIC_RELEASE.md)** — semantic release
   setup
 
 ## Development
