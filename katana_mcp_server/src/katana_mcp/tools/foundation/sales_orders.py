@@ -677,12 +677,12 @@ class SalesOrderRowInfo(BaseModel):
     variant_id: int | None
     sku: str | None
     display_name: str | None = None
-    """Katana-UI-format human-readable name. Unpopulated by ``list_sales_orders``
-    today — resolving requires a per-row variant lookup that would defeat
-    the single-query win. Use ``get_sales_order`` for SKU- and display-name-
-    enriched rows on a specific order. Left in the model for forward-compat
-    so a future cache-side denormalization can fill it without bumping the
-    response shape.
+    """Katana-UI-format human-readable name lifted from the typed cache
+    in a single batched IN-clause read (one query regardless of result-set
+    size). ``None`` on cache miss; the list path stays cache-only by design
+    so the variant must be present in ``CachedVariant`` for the field to
+    populate. Matches the convention used by every other variant-displaying
+    surface (search_items, check_inventory, recipe rows, verify card).
     """
     quantity: float | None
     price_per_unit: float | None
@@ -876,8 +876,33 @@ async def _list_sales_orders_impl(
                 last_page=request.page >= total_pages,
             )
 
-    # ``sku`` stays None — resolving it would require a variant lookup
-    # per row and defeat the single-query win.
+    # When ``include_rows`` is set, lift SKU + canonical display_name from
+    # the typed cache in one batched IN-clause read. Adds one extra query
+    # — much cheaper than the per-row API fallback the get path uses, and
+    # keeps the ``ensure_sales_orders_synced`` cache-only win for everything
+    # else.
+    variant_lookup: dict[int, Any] = {}
+    if request.include_rows:
+        from katana_public_api_client.models_pydantic._generated import CachedVariant
+
+        variant_ids = {
+            r.variant_id
+            for so, _ in orders_with_counts
+            for r in so.sales_order_rows
+            if r.variant_id is not None
+        }
+        if variant_ids:
+            variant_lookup = await services.typed_cache.catalog.get_many_by_ids(
+                CachedVariant, variant_ids, include_deleted=True
+            )
+
+    def _row_attr(v: Any, name: str) -> Any:
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            return v.get(name)
+        return getattr(v, name, None)
+
     orders: list[SalesOrderSummary] = []
     for so, row_count in orders_with_counts:
         row_infos: list[SalesOrderRowInfo] | None = None
@@ -886,7 +911,10 @@ async def _list_sales_orders_impl(
                 SalesOrderRowInfo(
                     id=r.id,
                     variant_id=r.variant_id,
-                    sku=None,
+                    sku=_row_attr(variant_lookup.get(r.variant_id), "sku"),
+                    display_name=_row_attr(
+                        variant_lookup.get(r.variant_id), "display_name"
+                    ),
                     quantity=r.quantity,
                     price_per_unit=r.price_per_unit,
                     linked_manufacturing_order_id=r.linked_manufacturing_order_id,

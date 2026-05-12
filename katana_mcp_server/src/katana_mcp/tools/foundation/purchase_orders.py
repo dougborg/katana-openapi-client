@@ -2189,6 +2189,18 @@ class PurchaseOrderRowSummary(BaseModel):
 
     id: int | None = None
     variant_id: int | None = None
+    sku: str | None = None
+    """SKU from the variant, populated when the typed cache resolves the
+    row's ``variant_id``. ``None`` on cache miss — matches the convention
+    used by ``SalesOrderRowInfo``.
+    """
+    display_name: str | None = None
+    """Katana-UI-format human-readable name. Like ``sku``, lifted from
+    the typed cache when the row's variant is present. ``None`` on cache
+    miss. The list-tool path uses ``ensure_purchase_orders_synced`` so
+    these are typically populated in steady state; cold-cache callers may
+    see ``None`` until the next variant sync runs.
+    """
     quantity: float | None = None
     price_per_unit: float | None = None
     arrival_date: str | None = None
@@ -2382,6 +2394,34 @@ async def _list_purchase_orders_impl(
                 last_page=request.page >= total_pages,
             )
 
+    # When ``include_rows`` is set, collect every row's variant_id and do
+    # one batched cache read to lift SKU + canonical display_name onto each
+    # row summary. Adds one extra IN-clause read regardless of result-set
+    # size — much cheaper than the per-row API fallback the get path uses
+    # (the list path explicitly stays cache-only by design to keep the
+    # ``ensure_purchase_orders_synced`` + single-query win intact).
+    variant_lookup: dict[int, Any] = {}
+    if request.include_rows:
+        from katana_public_api_client.models_pydantic._generated import CachedVariant
+
+        variant_ids = {
+            r.variant_id
+            for po, _ in orders_with_counts
+            for r in po.purchase_order_rows
+            if r.variant_id is not None
+        }
+        if variant_ids:
+            variant_lookup = await services.typed_cache.catalog.get_many_by_ids(
+                CachedVariant, variant_ids, include_deleted=True
+            )
+
+    def _row_attr(v: Any, name: str) -> Any:
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            return v.get(name)
+        return getattr(v, name, None)
+
     summaries: list[PurchaseOrderSummary] = []
     for po, row_count in orders_with_counts:
         rows: list[PurchaseOrderRowSummary] | None = None
@@ -2390,6 +2430,10 @@ async def _list_purchase_orders_impl(
                 PurchaseOrderRowSummary(
                     id=r.id,
                     variant_id=r.variant_id,
+                    sku=_row_attr(variant_lookup.get(r.variant_id), "sku"),
+                    display_name=_row_attr(
+                        variant_lookup.get(r.variant_id), "display_name"
+                    ),
                     quantity=r.quantity,
                     price_per_unit=r.price_per_unit,
                     arrival_date=iso_or_none(r.arrival_date),
