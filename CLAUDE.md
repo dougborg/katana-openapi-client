@@ -254,15 +254,44 @@ The protocol when a `<new-diagnostics>` block appears:
 1. **Check pyright CLI on the affected file** — `uv run pyright <path>`. Pyright CLI is
    the source of truth; the LSP can be stale (especially after generator regen,
    stash/pop, or rebase).
+
 1. **If pyright CLI agrees**, fix it. Don't push code with pending pyright errors — CI
    will fail.
+
 1. **If pyright CLI disagrees**, the LSP is stale. **Note it explicitly in your reply to
    the user** ("LSP shows X but pyright CLI is clean — likely stale after regen") so
    they know whether their editor needs a restart. Do NOT silently move on without
    verifying.
+
 1. **Stale-LSP common triggers** — running `uv run poe generate-pydantic`, rebasing onto
    main, or stashing & popping. Pyright re-indexes lazily; the system reminder may show
    pre-edit state until the next save.
+
+1. **Cross-worktree LSP bleed** — when a sub-agent is operating in a sibling git
+   worktree (e.g., the repo root `/Users/dougborg/Projects/katana-openapi-client/` while
+   your session lives in `.claude/worktrees/<name>/`), the pyright LSP daemon stays
+   rooted at the session's *original* primary cwd and never switches when other agents
+   enter sibling worktrees. The daemon's snapshot reflects one branch's files; your
+   edits target another branch's files. `<new-diagnostics>` reminders then surface
+   phantom errors that complain about fields / params that exist on one branch but not
+   the other. Symptom: `uv run pyright <path>` from your worktree is clean while LSP
+   keeps flagging mismatches across a wide swath of files you didn't touch.
+
+   **Workaround:** trust `uv run pyright <path>` from your worktree as ground truth;
+   ignore the LSP diagnostics until the sub-agent's PR lands and you rebase. Don't try
+   to "fix" the phantom diagnostics — the code is correct on your branch.
+
+   **Why this isn't fixable here:** the pyright-lsp plugin can't accept a per-call
+   `projectRoot` (Anthropic
+   [claude-code#32230](https://github.com/anthropics/claude-code/issues/32230), closed
+   as not planned). The LSP plugin layer doesn't even receive a workspace `rootUri`
+   during init for per-project config discovery
+   ([#27220](https://github.com/anthropics/claude-code/issues/27220)). Subagents resolve
+   to the main repo root rather than their worktree
+   ([#31546](https://github.com/anthropics/claude-code/issues/31546)); session worktrees
+   go inside the repo root by default
+   ([#49986](https://github.com/anthropics/claude-code/issues/49986)). All four upstream
+   issues are closed without fix as of this writing.
 
 The repo's house rule (no `# type: ignore` / `# noqa`) means **a real diagnostic is
 always a fix, never a suppression**. If the diagnostic is wrong (third-party stub gap),
