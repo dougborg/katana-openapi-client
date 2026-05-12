@@ -11,18 +11,19 @@ from typing import Annotated
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.foundation.items import (
     VariantConfigAttributePatch,
+    _validate_purchase_uom_pair,
     coerce_variant_config_attributes,
 )
 from katana_mcp.tools.tool_result_utils import UI_META, make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_mcp.web_urls import katana_web_url
-from katana_public_api_client.domain.converters import to_unset
+from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
     CreateMaterialRequest as ApiCreateMaterialRequest,
     CreateProductRequest as ApiCreateProductRequest,
@@ -59,6 +60,23 @@ class CreateProductRequest(BaseModel):
     default_supplier_id: int | None = Field(
         default=None,
         description=("Default supplier ID. Look up via `list_suppliers`."),
+    )
+    purchase_uom: str | None = Field(
+        default=None,
+        description=(
+            "Purchase unit of measure when buying in a different unit than the "
+            "stock ``uom`` (e.g. ``kit`` / ``box`` / ``case``). Pair with "
+            "``purchase_uom_conversion_rate`` to set the kit-size. Leave None "
+            "when purchased and stocked in the same unit."
+        ),
+    )
+    purchase_uom_conversion_rate: float | None = Field(
+        default=None,
+        description=(
+            "How many stock-``uom`` units are received per one ``purchase_uom`` "
+            "unit (e.g. 4 for a 4-pcs kit, 100 for a box of 100). Required "
+            "when ``purchase_uom`` is set."
+        ),
     )
     additional_info: str | None = Field(default=None, description="Additional notes")
 
@@ -98,6 +116,13 @@ class CreateProductRequest(BaseModel):
         ),
     )
 
+    @model_validator(mode="after")
+    def _check_purchase_uom_pair(self) -> CreateProductRequest:
+        _validate_purchase_uom_pair(
+            self.purchase_uom, self.purchase_uom_conversion_rate
+        )
+        return self
+
 
 class CreateProductResponse(BaseModel):
     """Response from creating a product."""
@@ -106,6 +131,9 @@ class CreateProductResponse(BaseModel):
     name: str
     sku: str
     type: str = "product"
+    uom: str | None = None
+    purchase_uom: str | None = None
+    purchase_uom_conversion_rate: float | None = None
     success: bool = True
     message: str = "Product created successfully"
     katana_url: str | None = None
@@ -167,6 +195,8 @@ async def _create_product_impl(
             is_producible=request.is_producible,
             is_purchasable=request.is_purchasable,
             default_supplier_id=to_unset(request.default_supplier_id),
+            purchase_uom=to_unset(request.purchase_uom),
+            purchase_uom_conversion_rate=to_unset(request.purchase_uom_conversion_rate),
             additional_info=to_unset(request.additional_info),
             variants=[variant],
         )
@@ -182,11 +212,17 @@ async def _create_product_impl(
             duration_ms=duration_ms,
         )
 
+        product_name = product.name or request.name
         return CreateProductResponse(
             id=product.id,
-            name=product.name or "",
+            name=product_name,
             sku=request.sku,
-            message=f"Product '{product.name}' created successfully with SKU {request.sku}",
+            uom=unwrap_unset(product.uom),
+            purchase_uom=unwrap_unset(product.purchase_uom),
+            purchase_uom_conversion_rate=unwrap_unset(
+                product.purchase_uom_conversion_rate
+            ),
+            message=f"Product '{product_name}' created successfully with SKU {request.sku}",
             katana_url=katana_web_url("product", product.id),
         )
 
@@ -248,6 +284,23 @@ class CreateMaterialRequest(BaseModel):
         default=None,
         description=("Default supplier ID. Look up via `list_suppliers`."),
     )
+    purchase_uom: str | None = Field(
+        default=None,
+        description=(
+            "Purchase unit of measure when buying in a different unit than the "
+            "stock ``uom`` (e.g. ``kit`` / ``box`` / ``case``). Pair with "
+            "``purchase_uom_conversion_rate`` to set the kit-size. Leave None "
+            "when purchased and stocked in the same unit."
+        ),
+    )
+    purchase_uom_conversion_rate: float | None = Field(
+        default=None,
+        description=(
+            "How many stock-``uom`` units are received per one ``purchase_uom`` "
+            "unit (e.g. 4 for a 4-pcs kit, 100 for a box of 100). Required "
+            "when ``purchase_uom`` is set."
+        ),
+    )
     additional_info: str | None = Field(default=None, description="Additional notes")
 
     # Variant-level fields — forwarded to the embedded CreateVariantRequest.
@@ -286,6 +339,13 @@ class CreateMaterialRequest(BaseModel):
         ),
     )
 
+    @model_validator(mode="after")
+    def _check_purchase_uom_pair(self) -> CreateMaterialRequest:
+        _validate_purchase_uom_pair(
+            self.purchase_uom, self.purchase_uom_conversion_rate
+        )
+        return self
+
 
 class CreateMaterialResponse(BaseModel):
     """Response from creating a material."""
@@ -294,6 +354,9 @@ class CreateMaterialResponse(BaseModel):
     name: str
     sku: str
     type: str = "material"
+    uom: str | None = None
+    purchase_uom: str | None = None
+    purchase_uom_conversion_rate: float | None = None
     success: bool = True
     message: str = "Material created successfully"
     katana_url: str | None = None
@@ -353,6 +416,8 @@ async def _create_material_impl(
             category_name=to_unset(request.category_name),
             is_sellable=request.is_sellable,
             default_supplier_id=to_unset(request.default_supplier_id),
+            purchase_uom=to_unset(request.purchase_uom),
+            purchase_uom_conversion_rate=to_unset(request.purchase_uom_conversion_rate),
             additional_info=to_unset(request.additional_info),
             variants=[variant],
         )
@@ -368,11 +433,17 @@ async def _create_material_impl(
             duration_ms=duration_ms,
         )
 
+        material_name = material.name or request.name
         return CreateMaterialResponse(
             id=material.id,
-            name=material.name or "",
+            name=material_name,
             sku=request.sku,
-            message=f"Material '{material.name}' created successfully with SKU {request.sku}",
+            uom=unwrap_unset(material.uom),
+            purchase_uom=unwrap_unset(material.purchase_uom),
+            purchase_uom_conversion_rate=unwrap_unset(
+                material.purchase_uom_conversion_rate
+            ),
+            message=f"Material '{material_name}' created successfully with SKU {request.sku}",
             katana_url=katana_web_url("material", material.id),
         )
 

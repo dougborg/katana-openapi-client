@@ -642,6 +642,30 @@ def _variant_barcode_line(variant: dict[str, Any]) -> None:
         Text(content=f"Barcodes: {', '.join(parts)}")
 
 
+def _variant_purchase_uom_line(variant: dict[str, Any]) -> None:
+    """Render the purchase-UoM conversion row when it differs from the stock UoM.
+
+    Stays quiet in the common case (purchase and stock UoM match) so the
+    card doesn't carry a noisy redundant row. Surfaces ``"Purchase UoM:
+    kit (x4 pcs)"`` when an item is purchased in packs (kits, boxes,
+    cases) and stocked as individual units — the conversion factor is
+    the actionable bit for anyone drafting a PO.
+    """
+    purchase_uom = variant.get("purchase_uom")
+    if not purchase_uom:
+        return
+    stock_uom = variant.get("uom")
+    if purchase_uom == stock_uom:
+        return
+    rate = variant.get("purchase_uom_conversion_rate")
+    if rate is None:
+        Text(content=f"Purchase UoM: {purchase_uom}")
+        return
+    rate_str = f"{rate:g}"
+    suffix = f" {stock_uom}" if stock_uom else ""
+    Text(content=f"Purchase UoM: {purchase_uom} (x{rate_str}{suffix})")
+
+
 def _variant_supplier_codes_line(variant: dict[str, Any]) -> None:
     """Render supplier codes inline using monospace ``Code`` chips.
 
@@ -674,6 +698,7 @@ def _variant_reference_section(variant: dict[str, Any]) -> None:
     """
     if variant.get("uom"):
         Text(content=f"UoM: {variant['uom']}")
+    _variant_purchase_uom_line(variant)
     _variant_supplier_line(variant)
     if variant.get("lead_time") is not None:
         Text(content=f"Lead Time: {variant['lead_time']} days")
@@ -766,6 +791,7 @@ def build_item_detail_ui(
             Text(content=f"ID: {item.get('id', 'N/A')}")
             if item.get("uom"):
                 Text(content=f"Unit of Measure: {item['uom']}")
+            _variant_purchase_uom_line(item)
             if item.get("category_name"):
                 Text(content=f"Category: {item['category_name']}")
 
@@ -2056,6 +2082,7 @@ def build_item_mutation_ui(
             Text(content=f"Name: {item.get('name', 'N/A')}")
             if item.get("sku"):
                 Text(content=f"SKU: {item['sku']}")
+            _variant_purchase_uom_line(item)
             if item.get("message"):
                 Text(content=item["message"])
 

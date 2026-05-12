@@ -72,7 +72,7 @@ from katana_public_api_client.api.variant import (
     update_variant as api_update_variant,
 )
 from katana_public_api_client.client_types import UNSET
-from katana_public_api_client.domain.converters import to_unset
+from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.domain.variant import build_variant_display_name
 from katana_public_api_client.models import (
     CreateMaterialRequest,
@@ -280,6 +280,29 @@ async def search_items(
 # ============================================================================
 
 
+def _validate_purchase_uom_pair(
+    purchase_uom: str | None,
+    purchase_uom_conversion_rate: float | None,
+) -> None:
+    """Enforce the purchase_uom / conversion-rate co-dependency.
+
+    Both fields must be set together (or both omitted) and the rate must be
+    positive. Raises ``ValueError`` so callers get a clear validation error
+    at the MCP boundary instead of a 422 from Katana. Shared by
+    ``CreateProductRequest`` / ``CreateMaterialRequest`` / ``CreateItemRequest``.
+    """
+    if purchase_uom is not None and purchase_uom_conversion_rate is None:
+        raise ValueError(
+            "purchase_uom_conversion_rate is required when purchase_uom is set"
+        )
+    if purchase_uom_conversion_rate is not None and purchase_uom is None:
+        raise ValueError(
+            "purchase_uom is required when purchase_uom_conversion_rate is set"
+        )
+    if purchase_uom_conversion_rate is not None and purchase_uom_conversion_rate <= 0:
+        raise ValueError("purchase_uom_conversion_rate must be greater than 0")
+
+
 class CreateItemRequest(BaseModel):
     """Create a new item (product, material, or service).
 
@@ -315,6 +338,24 @@ class CreateItemRequest(BaseModel):
     default_supplier_id: int | None = Field(
         default=None,
         description=("Default supplier ID. Look up via `list_suppliers`."),
+    )
+    purchase_uom: str | None = Field(
+        default=None,
+        description=(
+            "Purchase unit of measure when buying in a different unit than the "
+            "stock ``uom`` (e.g. ``kit`` / ``box`` / ``case``). Pair with "
+            "``purchase_uom_conversion_rate`` to set the kit-size. Leave None "
+            "when purchased and stocked in the same unit. Ignored for "
+            "type=service."
+        ),
+    )
+    purchase_uom_conversion_rate: float | None = Field(
+        default=None,
+        description=(
+            "How many stock-``uom`` units are received per one ``purchase_uom`` "
+            "unit (e.g. 4 for a 4-pcs kit, 100 for a box of 100). Required "
+            "when ``purchase_uom`` is set. Ignored for type=service."
+        ),
     )
     additional_info: str | None = Field(default=None, description="Additional notes")
 
@@ -359,6 +400,13 @@ class CreateItemRequest(BaseModel):
         ),
     )
 
+    @model_validator(mode="after")
+    def _check_purchase_uom_pair(self) -> CreateItemRequest:
+        _validate_purchase_uom_pair(
+            self.purchase_uom, self.purchase_uom_conversion_rate
+        )
+        return self
+
 
 def _item_katana_url(item_type: ItemType, id: int | None) -> str | None:
     """Web URL for a product or material. Services have no URL pattern."""
@@ -376,6 +424,9 @@ class CreateItemResponse(BaseModel):
     type: ItemType
     variant_id: int | None = None
     sku: str | None = None
+    uom: str | None = None
+    purchase_uom: str | None = None
+    purchase_uom_conversion_rate: float | None = None
     success: bool = True
     message: str = "Item created successfully"
     katana_url: str | None = None
@@ -431,6 +482,10 @@ async def _create_item_impl(
                 is_producible=request.is_producible,
                 is_purchasable=request.is_purchasable,
                 default_supplier_id=to_unset(request.default_supplier_id),
+                purchase_uom=to_unset(request.purchase_uom),
+                purchase_uom_conversion_rate=to_unset(
+                    request.purchase_uom_conversion_rate
+                ),
                 additional_info=to_unset(request.additional_info),
                 variants=[variant],
             )
@@ -442,6 +497,10 @@ async def _create_item_impl(
                 category_name=to_unset(request.category_name),
                 is_sellable=request.is_sellable,
                 default_supplier_id=to_unset(request.default_supplier_id),
+                purchase_uom=to_unset(request.purchase_uom),
+                purchase_uom_conversion_rate=to_unset(
+                    request.purchase_uom_conversion_rate
+                ),
                 additional_info=to_unset(request.additional_info),
                 variants=[variant],
             )
@@ -454,12 +513,23 @@ async def _create_item_impl(
     # call, so the next ``search_items`` / ``get_variant_details`` sees
     # the new row without a manual dirty bit.
 
+    # Service items don't carry purchase_uom — Product/Material do.
+    result_uom = unwrap_unset(getattr(result, "uom", None))
+    result_purchase_uom = unwrap_unset(getattr(result, "purchase_uom", None))
+    result_conversion_rate = unwrap_unset(
+        getattr(result, "purchase_uom_conversion_rate", None)
+    )
+
+    result_name = result.name or request.name
     return CreateItemResponse(
         id=result.id,
-        name=result.name or "",
+        name=result_name,
         type=request.type,
         sku=request.sku,
-        message=f"{request.type.value.title()} '{result.name}' created successfully with SKU {request.sku}",
+        uom=result_uom,
+        purchase_uom=result_purchase_uom,
+        purchase_uom_conversion_rate=result_conversion_rate,
+        message=f"{request.type.value.title()} '{result_name}' created successfully with SKU {request.sku}",
         katana_url=_item_katana_url(request.type, result.id),
     )
 
@@ -1617,6 +1687,8 @@ class VariantDetailsResponse(BaseModel):
     default_supplier_id: int | None = None
     default_supplier_name: str | None = None
     is_batch_tracked: bool | None = None
+    purchase_uom: str | None = None
+    purchase_uom_conversion_rate: float | None = None
 
     # Deep-link to the parent product or material — variants don't have
     # their own page in Katana's web app, so callers click through to the
@@ -1780,6 +1852,8 @@ def _dict_to_variant_details(
         default_supplier_id=_attr(parent, "default_supplier_id"),
         default_supplier_name=_attr(supplier, "name"),
         is_batch_tracked=_attr(parent, "batch_tracked"),
+        purchase_uom=_attr(parent, "purchase_uom"),
+        purchase_uom_conversion_rate=_attr(parent, "purchase_uom_conversion_rate"),
         katana_url=parent_url,
         internal_barcode=_attr(v, "internal_barcode"),
         registered_barcode=_attr(v, "registered_barcode"),
