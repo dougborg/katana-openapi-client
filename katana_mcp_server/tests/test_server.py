@@ -1,5 +1,6 @@
 """Unit tests for Katana MCP Server and authentication."""
 
+import asyncio
 import os
 from collections.abc import Iterator
 from pathlib import Path
@@ -246,6 +247,230 @@ class TestLifespan:
 
             # Verify cleanup was called (context manager exit)
             mock_client_instance.__aexit__.assert_called_once()
+
+
+@pytest.mark.usefixtures("isolated_caches")
+class TestCacheWarmup:
+    """Tests for the lifespan cache warm-up task (#593)."""
+
+    @staticmethod
+    def _find_warmup_task() -> asyncio.Task[object] | None:
+        """Look up the running warmup task by its well-known name.
+
+        Avoids spying on ``asyncio.create_task`` (which also fires for
+        SQLAlchemy-internal connection close, sqlite engine teardown,
+        etc., producing noisy false positives).
+        """
+        for task in asyncio.all_tasks():
+            if task.get_name() == "katana_cache_warmup":
+                return task
+        return None
+
+    @pytest.mark.asyncio
+    async def test_disable_env_var_skips_warmup(self):
+        """``MCP_DISABLE_CACHE_WARMUP=1`` prevents the warmup task from being created.
+
+        Pinned because the conftest autouse fixture relies on this
+        contract — if a future refactor decouples the env-var check from
+        the task creation, the entire test suite suddenly schedules real
+        warmup tasks against the mock client.
+        """
+        mock_server = MagicMock(spec=FastMCP)
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "KATANA_API_KEY": "test-api-key-123",
+                    "MCP_DISABLE_CACHE_WARMUP": "1",
+                },
+            ),
+            patch("katana_mcp.server.load_dotenv"),
+            patch("katana_mcp.server.KatanaClient") as mock_client_class,
+        ):
+            mock_client_instance = AsyncMock(spec=KatanaClient)
+            mock_client_instance.__aenter__ = AsyncMock(
+                return_value=mock_client_instance
+            )
+            mock_client_instance.__aexit__ = AsyncMock(return_value=None)
+            mock_client_class.return_value = mock_client_instance
+
+            async with lifespan(mock_server):
+                # No warmup task should be running with the disable flag set.
+                assert self._find_warmup_task() is None
+
+    @pytest.mark.cache_warmup_enabled
+    @pytest.mark.asyncio
+    async def test_warmup_task_scheduled_when_enabled(self):
+        """Without the disable flag, lifespan schedules the warmup task and
+        the yield happens immediately — proving the task is fire-and-forget
+        rather than awaited inline (the whole point of #593).
+        """
+        import katana_mcp.server as server_mod
+
+        mock_server = MagicMock(spec=FastMCP)
+
+        async def fake_warmup(*_args: object, **_kwargs: object) -> None:
+            # Sleep longer than yield will plausibly wait — if the yield
+            # blocked on this, the test would hang. Cancelled by lifespan
+            # shutdown.
+            await asyncio.sleep(60)
+
+        with (
+            patch.dict(
+                os.environ,
+                {"KATANA_API_KEY": "test-api-key-123"},
+            ),
+            patch("katana_mcp.server.load_dotenv"),
+            patch("katana_mcp.server.KatanaClient") as mock_client_class,
+            patch.object(server_mod, "_warm_caches_in_background", fake_warmup),
+        ):
+            os.environ.pop("MCP_DISABLE_CACHE_WARMUP", None)
+
+            mock_client_instance = AsyncMock(spec=KatanaClient)
+            mock_client_instance.__aenter__ = AsyncMock(
+                return_value=mock_client_instance
+            )
+            mock_client_instance.__aexit__ = AsyncMock(return_value=None)
+            mock_client_class.return_value = mock_client_instance
+
+            warmup_task_in_lifespan: asyncio.Task[object] | None = None
+            async with lifespan(mock_server):
+                # Yield reached without waiting on the warmup — the task
+                # is running but not done.
+                warmup_task_in_lifespan = self._find_warmup_task()
+                assert warmup_task_in_lifespan is not None
+                assert not warmup_task_in_lifespan.done()
+
+            # After lifespan exit, the task is cancelled cleanly.
+            assert warmup_task_in_lifespan is not None
+            assert warmup_task_in_lifespan.cancelled() or warmup_task_in_lifespan.done()
+
+    @pytest.mark.cache_warmup_enabled
+    @pytest.mark.asyncio
+    async def test_warmup_failure_does_not_crash_server(
+        self, caplog: pytest.LogCaptureFixture
+    ):
+        """A warmup task that raises an unexpected exception must not
+        propagate out of the lifespan, and the exception must be consumed
+        on shutdown — not left to surface as an asyncio "Task exception
+        was never retrieved" warning later.
+
+        ``_warm_caches_in_background`` already swallows per-helper errors
+        internally via ``return_exceptions=True`` in the inner gather; this
+        test exercises the unexpected-error path at the task scope itself
+        (something unrelated to a helper raised, e.g. an import bug or
+        logging failure).
+        """
+        import katana_mcp.server as server_mod
+
+        mock_server = MagicMock(spec=FastMCP)
+
+        async def boom_warmup(*_args: object, **_kwargs: object) -> None:
+            raise RuntimeError("simulated unexpected task-scope failure")
+
+        with (
+            patch.dict(os.environ, {"KATANA_API_KEY": "test-api-key-123"}),
+            patch("katana_mcp.server.load_dotenv"),
+            patch("katana_mcp.server.KatanaClient") as mock_client_class,
+            patch.object(server_mod, "_warm_caches_in_background", boom_warmup),
+        ):
+            os.environ.pop("MCP_DISABLE_CACHE_WARMUP", None)
+
+            mock_client_instance = AsyncMock(spec=KatanaClient)
+            mock_client_instance.__aenter__ = AsyncMock(
+                return_value=mock_client_instance
+            )
+            mock_client_instance.__aexit__ = AsyncMock(return_value=None)
+            mock_client_class.return_value = mock_client_instance
+
+            # Should NOT raise even though warmup body raises.
+            async with lifespan(mock_server) as context:
+                assert isinstance(context, Services)
+                # Give the warmup task a turn to fire its exception.
+                await asyncio.sleep(0)
+
+        # The shutdown handler must have consumed the task's exception and
+        # logged it — proves the exception was retrieved rather than left
+        # to surface later as a noisy asyncio "Task exception was never
+        # retrieved" warning. Log records use structlog's event-key, so
+        # check both the message and the event attribute.
+        warmup_failure_records = [
+            r
+            for r in caplog.records
+            if "cache_warmup_task_raised" in r.getMessage()
+            or getattr(r, "event", None) == "cache_warmup_task_raised"
+        ]
+        assert warmup_failure_records, (
+            "lifespan shutdown must log cache_warmup_task_raised when the "
+            "warmup task ends with an unexpected exception; otherwise the "
+            "task exception goes unretrieved and surfaces as an asyncio "
+            "warning later."
+        )
+
+    @pytest.mark.asyncio
+    async def test_warm_caches_in_background_swallows_per_entity_errors(self):
+        """``_warm_caches_in_background`` calls 16 ``ensure_*_synced``
+        helpers via ``asyncio.gather(..., return_exceptions=True)``. A
+        single helper raising must not stop the others, and the function
+        itself must return without raising so the wrapping task doesn't
+        surface an exception.
+        """
+        import katana_mcp.server as server_mod
+
+        mock_client = MagicMock(spec=KatanaClient)
+        mock_cache = MagicMock()
+
+        async def ok(*_args: object, **_kwargs: object) -> None:
+            return None
+
+        async def boom(*_args: object, **_kwargs: object) -> None:
+            raise RuntimeError("transient")
+
+        # Patch one helper to raise; all others succeed. The function
+        # must still return cleanly.
+        with (
+            patch.object(
+                server_mod,
+                "_warm_caches_in_background",
+                wraps=server_mod._warm_caches_in_background,
+            ),
+            patch(
+                "katana_mcp.typed_cache.ensure_sales_orders_synced",
+                side_effect=boom,
+            ),
+            patch(
+                "katana_mcp.typed_cache.ensure_purchase_orders_synced",
+                side_effect=ok,
+            ),
+            patch(
+                "katana_mcp.typed_cache.ensure_manufacturing_orders_synced",
+                side_effect=ok,
+            ),
+            patch(
+                "katana_mcp.typed_cache.ensure_stock_adjustments_synced",
+                side_effect=ok,
+            ),
+            patch(
+                "katana_mcp.typed_cache.ensure_stock_transfers_synced",
+                side_effect=ok,
+            ),
+            patch("katana_mcp.typed_cache.ensure_customers_synced", side_effect=ok),
+            patch("katana_mcp.typed_cache.ensure_suppliers_synced", side_effect=ok),
+            patch("katana_mcp.typed_cache.ensure_locations_synced", side_effect=ok),
+            patch("katana_mcp.typed_cache.ensure_tax_rates_synced", side_effect=ok),
+            patch("katana_mcp.typed_cache.ensure_operators_synced", side_effect=ok),
+            patch(
+                "katana_mcp.typed_cache.ensure_additional_costs_synced",
+                side_effect=ok,
+            ),
+            patch("katana_mcp.typed_cache.ensure_variants_synced", side_effect=ok),
+            patch("katana_mcp.typed_cache.ensure_products_synced", side_effect=ok),
+            patch("katana_mcp.typed_cache.ensure_materials_synced", side_effect=ok),
+            patch("katana_mcp.typed_cache.ensure_services_synced", side_effect=ok),
+            patch("katana_mcp.typed_cache.ensure_factory_synced", side_effect=ok),
+        ):
+            # Must not raise.
+            await server_mod._warm_caches_in_background(mock_client, mock_cache)
 
 
 class TestMCPServerInitialization:

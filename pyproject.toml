@@ -241,6 +241,7 @@ markers = [
   "schema_validation: marks tests that validate OpenAPI schema quality (run with pytest-xdist disabled)",
   "looptime: marks tests that use the looptime fake-clock asyncio loop (the looptime plugin auto-registers this marker; explicit registration here keeps the suite robust under --strict-markers if plugin autoload is ever disabled)",
   "browser: marks tests that drive a headless browser via Playwright against the fastmcp dev-apps preview server (slower, needs `playwright install chromium`)",
+  "cache_warmup_enabled: opt in to the lifespan cache-warmup task (default-off in tests via the conftest autouse fixture in katana_mcp_server/tests)",
 ]
 
 [tool.coverage.run]

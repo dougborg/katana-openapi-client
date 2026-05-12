@@ -80,6 +80,7 @@ markers = [
     "unit: Unit tests with mocks",
     "integration: Integration tests requiring API key",
     "browser: Browser-render tests via Playwright + fastmcp dev-apps (slow, needs `playwright install chromium`)",
+    "cache_warmup_enabled: opt in to the lifespan cache-warmup task (default-off in tests via autouse fixture)",
 ]
 
 [tool.semantic_release]
