@@ -7,7 +7,7 @@ To regenerate, run:
 """
 
 from datetime import datetime
-from typing import Annotated, Any, ClassVar, Literal
+from typing import Annotated, ClassVar, Literal
 
 from pydantic import AwareDatetime, ConfigDict, Field
 from sqlalchemy import Column
@@ -46,6 +46,7 @@ from .common import (
     Location,
     ProductOperationType,
     ServiceType,
+    VariantDefaultStorageBinLinkResponse,
     VariantType,
 )
 from .contacts import CachedSupplier, Supplier, SupplierItemCode
@@ -238,86 +239,6 @@ class ServiceVariant(UpdatableEntity, DeletableEntity):
         list[CustomField1] | None,
         Field(description="Custom field values specific to this service variant"),
     ] = None
-
-
-class Inventory(KatanaPydanticBase):
-    variant_id: Annotated[
-        int, Field(description="Unique identifier of the product variant")
-    ]
-    location_id: Annotated[
-        int,
-        Field(
-            description="Unique identifier of the location where inventory is stored"
-        ),
-    ]
-    safety_stock_level: Annotated[
-        str | None,
-        Field(
-            description="The quantity of a product or material which indicates an acceptable stock level for unexpected demand\nwithout overstocking\n"
-        ),
-    ] = None
-    reorder_point: Annotated[
-        str,
-        Field(
-            description="(Deprecated - use safety_stock_level instead) Queries the safety stock level"
-        ),
-    ]
-    average_cost: Annotated[
-        str, Field(description="Average cost per unit of this variant at this location")
-    ]
-    value_in_stock: Annotated[
-        str, Field(description="Total monetary value of current stock")
-    ]
-    quantity_in_stock: Annotated[
-        str, Field(description="Current physical quantity available at this location")
-    ]
-    quantity_committed: Annotated[
-        str,
-        Field(description="Quantity already allocated to orders but not yet shipped"),
-    ]
-    quantity_expected: Annotated[
-        str,
-        Field(description="Quantity expected to arrive from pending purchase orders"),
-    ]
-    quantity_missing_or_excess: Annotated[
-        str,
-        Field(
-            description="Difference between expected and actual stock (negative means missing, positive means excess)"
-        ),
-    ]
-    quantity_potential: Annotated[
-        str,
-        Field(
-            description="Total quantity that could be available (in stock + expected)"
-        ),
-    ]
-    variant: Annotated[
-        Variant | None,
-        Field(
-            description="Product variant details associated with this inventory record"
-        ),
-    ] = None
-    location: Annotated[
-        Location | None,
-        Field(description="Location details where this inventory is stored"),
-    ] = None
-    archived_at: Annotated[
-        AwareDatetime | None,
-        Field(description="Timestamp when this inventory record was archived"),
-    ] = None
-    default_storage_bin: Annotated[
-        Any | None,
-        Field(description="Default storage bin for this inventory at this location"),
-    ] = None
-
-
-class InventoryListResponse(KatanaPydanticBase):
-    data: Annotated[
-        list[Inventory],
-        Field(
-            description="Array of inventory records with current stock levels and location details"
-        ),
-    ]
 
 
 class InventoryReorderPoint(KatanaPydanticBase):
@@ -797,7 +718,14 @@ class CreateProductOperationRowItem(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    product_variant_id: Annotated[float, Field(ge=1.0, le=2147483647.0)]
+    product_variant_id: Annotated[
+        int,
+        Field(
+            description="ID of the product variant that this operation row applies to",
+            ge=1,
+            le=2147483647,
+        ),
+    ]
     operation_id: Annotated[
         int | None,
         Field(
@@ -879,7 +807,12 @@ class CreateProductOperationRowsRequest(KatanaPydanticBase):
         ),
     ] = None
     rows: Annotated[
-        list[CreateProductOperationRowItem], Field(max_length=150, min_length=1)
+        list[CreateProductOperationRowItem],
+        Field(
+            description="List of product operation rows to create in this bulk request (max 150 per call)",
+            max_length=150,
+            min_length=1,
+        ),
     ]
 
 
@@ -913,6 +846,88 @@ class UpdateProductOperationRowRequest(KatanaPydanticBase):
         float | None, Field(description="Parameter for calculating cost")
     ] = None
     cost_per_hour: Annotated[float | None, Field(description="Hourly cost rate")] = None
+
+
+class Inventory(KatanaPydanticBase):
+    variant_id: Annotated[
+        int, Field(description="Unique identifier of the product variant")
+    ]
+    location_id: Annotated[
+        int,
+        Field(
+            description="Unique identifier of the location where inventory is stored"
+        ),
+    ]
+    safety_stock_level: Annotated[
+        str | None,
+        Field(
+            description="The quantity of a product or material which indicates an acceptable stock level for unexpected demand\nwithout overstocking\n"
+        ),
+    ] = None
+    reorder_point: Annotated[
+        str,
+        Field(
+            description="(Deprecated - use safety_stock_level instead) Queries the safety stock level"
+        ),
+    ]
+    average_cost: Annotated[
+        str, Field(description="Average cost per unit of this variant at this location")
+    ]
+    value_in_stock: Annotated[
+        str, Field(description="Total monetary value of current stock")
+    ]
+    quantity_in_stock: Annotated[
+        str, Field(description="Current physical quantity available at this location")
+    ]
+    quantity_committed: Annotated[
+        str,
+        Field(description="Quantity already allocated to orders but not yet shipped"),
+    ]
+    quantity_expected: Annotated[
+        str,
+        Field(description="Quantity expected to arrive from pending purchase orders"),
+    ]
+    quantity_missing_or_excess: Annotated[
+        str,
+        Field(
+            description="Difference between expected and actual stock (negative means missing, positive means excess)"
+        ),
+    ]
+    quantity_potential: Annotated[
+        str,
+        Field(
+            description="Total quantity that could be available (in stock + expected)"
+        ),
+    ]
+    variant: Annotated[
+        Variant | None,
+        Field(
+            description="Product variant details associated with this inventory record"
+        ),
+    ] = None
+    location: Annotated[
+        Location | None,
+        Field(description="Location details where this inventory is stored"),
+    ] = None
+    archived_at: Annotated[
+        AwareDatetime | None,
+        Field(description="Timestamp when this inventory record was archived"),
+    ] = None
+    default_storage_bin: Annotated[
+        VariantDefaultStorageBinLinkResponse | None,
+        Field(
+            description="Default storage bin for this variant at this location, when one has been linked via the variant default storage bin endpoints"
+        ),
+    ] = None
+
+
+class InventoryListResponse(KatanaPydanticBase):
+    data: Annotated[
+        list[Inventory],
+        Field(
+            description="Array of inventory records with current stock levels and location details"
+        ),
+    ]
 
 
 class CreateMaterialRequest(KatanaPydanticBase):

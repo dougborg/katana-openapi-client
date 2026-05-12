@@ -451,7 +451,12 @@ class CreateCustomerAddressRequest(KatanaPydanticBase):
     customer_id: Annotated[
         int, Field(description="ID of the customer this address belongs to")
     ]
-    entity_type: AddressEntityType
+    entity_type: Annotated[
+        AddressEntityType,
+        Field(
+            description="Whether this address is the shipping or billing address for the customer"
+        ),
+    ]
     first_name: Annotated[
         str | None,
         Field(description="First name for the contact person at this address"),
@@ -503,16 +508,42 @@ class PriceListCustomerListResponse(KatanaPydanticBase):
 
 
 class UpdateCustomerAddressRequest(KatanaPydanticBase):
-    first_name: str | None = None
-    last_name: str | None = None
-    company: str | None = None
-    phone: str | None = None
-    line_1: str | None = None
-    line_2: str | None = None
-    city: str | None = None
-    state: str | None = None
-    zip: str | None = None
-    country: str | None = None
+    first_name: Annotated[
+        str | None,
+        Field(description="Updated first name for the contact person at this address"),
+    ] = None
+    last_name: Annotated[
+        str | None,
+        Field(description="Updated last name for the contact person at this address"),
+    ] = None
+    company: Annotated[
+        str | None, Field(description="Updated company name for business addresses")
+    ] = None
+    phone: Annotated[
+        str | None, Field(description="Updated phone number for this address location")
+    ] = None
+    line_1: Annotated[
+        str | None,
+        Field(
+            description="Updated primary address line (street address, building number)"
+        ),
+    ] = None
+    line_2: Annotated[
+        str | None,
+        Field(description="Updated secondary address line (apartment, suite, floor)"),
+    ] = None
+    city: Annotated[str | None, Field(description="Updated city or locality name")] = (
+        None
+    )
+    state: Annotated[
+        str | None, Field(description="Updated state, province, or region")
+    ] = None
+    zip: Annotated[str | None, Field(description="Updated postal code or ZIP code")] = (
+        None
+    )
+    country: Annotated[
+        str | None, Field(description="Updated country name or country code")
+    ] = None
 
 
 class CreateSupplierRequest(KatanaPydanticBase):

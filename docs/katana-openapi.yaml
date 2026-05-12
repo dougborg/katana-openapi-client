@@ -2882,7 +2882,8 @@ components:
           format: date-time
           description: Timestamp when this inventory record was archived
         default_storage_bin:
-          description: Default storage bin for this inventory at this location
+          description: Default storage bin for this variant at this location, when one has been linked via the variant default storage bin endpoints
+          $ref: "#/components/schemas/VariantDefaultStorageBinLinkResponse"
       required:
         - variant_id
         - location_id
@@ -5068,6 +5069,7 @@ components:
           type: string
           description: Unique purchase order number for tracking and reference
         entity_type:
+          description: Whether this purchase order is regular procurement or an outsourced manufacturing order
           $ref: "#/components/schemas/PurchaseOrderEntityType"
         supplier_id:
           type: integer
@@ -5667,6 +5669,7 @@ components:
           minimum: 0
           description: Amount of the additional cost in the purchase order currency
         distribution_method:
+          description: How this additional cost is allocated across purchase order line items (e.g., by value or by quantity)
           $ref: "#/components/schemas/CostDistributionMethod"
       example:
         additional_cost_id: 1
@@ -5799,6 +5802,7 @@ components:
           maximum: 100000000000000000
           description: Updated amount of the additional cost in the purchase order currency
         distribution_method:
+          description: How this additional cost is allocated across purchase order line items (e.g., by value or by quantity)
           $ref: "#/components/schemas/CostDistributionMethod"
       example:
         additional_cost_id: 1
@@ -8711,6 +8715,7 @@ components:
           type: integer
           description: ID of the sales order this address belongs to
         entity_type:
+          description: Whether this address is the shipping or billing address for the sales order
           $ref: "#/components/schemas/AddressEntityType"
         first_name:
           type: string
@@ -11217,6 +11222,7 @@ components:
           type: integer
           description: ID of the customer this address belongs to
         entity_type:
+          description: Whether this address is the shipping or billing address for the customer
           $ref: "#/components/schemas/AddressEntityType"
         first_name:
           type:
@@ -11944,42 +11950,52 @@ components:
           type:
             - string
             - "null"
+          description: Updated first name for the contact person at this address
         last_name:
           type:
             - string
             - "null"
+          description: Updated last name for the contact person at this address
         company:
           type:
             - string
             - "null"
+          description: Updated company name for business addresses
         phone:
           type:
             - string
             - "null"
+          description: Updated phone number for this address location
         line_1:
           type:
             - string
             - "null"
+          description: Updated primary address line (street address, building number)
         line_2:
           type:
             - string
             - "null"
+          description: Updated secondary address line (apartment, suite, floor)
         city:
           type:
             - string
             - "null"
+          description: Updated city or locality name
         state:
           type:
             - string
             - "null"
+          description: Updated state, province, or region
         zip:
           type:
             - string
             - "null"
+          description: Updated postal code or ZIP code
         country:
           type:
             - string
             - "null"
+          description: Updated country name or country code
     CreateInventoryReorderPointRequest:
       description: Request payload for creating a new inventory reorder point
       type: object
@@ -12054,9 +12070,10 @@ components:
         - product_variant_id
       properties:
         product_variant_id:
-          type: number
+          type: integer
           minimum: 1
           maximum: 2147483647
+          description: ID of the product variant that this operation row applies to
         operation_id:
           description: If operation ID is used to map the operation, then operation_name is ignored.
           type: integer
@@ -12153,6 +12170,7 @@ components:
           type: array
           minItems: 1
           maxItems: 150
+          description: List of product operation rows to create in this bulk request (max 150 per call)
           items:
             $ref: "#/components/schemas/CreateProductOperationRowItem"
     UpdateProductOperationRowRequest:
@@ -12567,6 +12585,7 @@ components:
       properties:
         data:
           type: array
+          description: Array of locations returned by this page of the list response
           items:
             $ref: "#/components/schemas/Location"
     ProductOperationRowListResponse:
@@ -12575,6 +12594,7 @@ components:
       properties:
         data:
           type: array
+          description: Array of product operation rows returned by this page of the list response
           items:
             $ref: "#/components/schemas/ProductOperationRow"
     ReturnableItem:
@@ -12628,6 +12648,7 @@ components:
       properties:
         data:
           type: array
+          description: Array of unassigned batch transactions returned by this page of the list response
           items:
             $ref: "#/components/schemas/UnassignedBatchTransaction"
     SalesReturnReason:

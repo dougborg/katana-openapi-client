@@ -1113,11 +1113,21 @@ class ProductOperationRerank(KatanaPydanticBase):
 
 
 class LocationListResponse(KatanaPydanticBase):
-    data: list[Location] | None = None
+    data: Annotated[
+        list[Location] | None,
+        Field(
+            description="Array of locations returned by this page of the list response"
+        ),
+    ] = None
 
 
 class ProductOperationRowListResponse(KatanaPydanticBase):
-    data: list[ProductOperationRow] | None = None
+    data: Annotated[
+        list[ProductOperationRow] | None,
+        Field(
+            description="Array of product operation rows returned by this page of the list response"
+        ),
+    ] = None
 
 
 class OperatorListResponse(KatanaPydanticBase):

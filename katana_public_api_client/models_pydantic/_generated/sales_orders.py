@@ -293,7 +293,12 @@ class CreateSalesOrderAddressRequest(KatanaPydanticBase):
     sales_order_id: Annotated[
         int, Field(description="ID of the sales order this address belongs to")
     ]
-    entity_type: AddressEntityType
+    entity_type: Annotated[
+        AddressEntityType,
+        Field(
+            description="Whether this address is the shipping or billing address for the sales order"
+        ),
+    ]
     first_name: Annotated[
         str | None, Field(description="First name for the address contact")
     ] = None
@@ -941,7 +946,12 @@ class UnassignedBatchTransaction(KatanaPydanticBase):
 
 
 class UnassignedBatchTransactionListResponse(KatanaPydanticBase):
-    data: list[UnassignedBatchTransaction] | None = None
+    data: Annotated[
+        list[UnassignedBatchTransaction] | None,
+        Field(
+            description="Array of unassigned batch transactions returned by this page of the list response"
+        ),
+    ] = None
 
 
 class SalesReturnReason(KatanaPydanticBase):
