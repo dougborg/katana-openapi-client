@@ -13,6 +13,8 @@ from typing import Any
 
 import pytest
 from katana_mcp.tools.prefab_ui import (
+    PREVIEW_APPLY_COACHING,
+    PREVIEW_APPLY_DIRECT_COACHING,
     build_batch_recipe_update_ui,
     build_fulfill_preview_ui,
     build_fulfill_success_ui,
@@ -28,6 +30,7 @@ from katana_mcp.tools.prefab_ui import (
     build_search_results_ui,
     build_variant_details_ui,
     build_verification_ui,
+    with_preview_coaching,
 )
 from prefab_ui.app import PrefabApp
 from pydantic import BaseModel
@@ -2256,3 +2259,84 @@ class TestBuildModificationResultUI:
         assert any(t.endswith("Delete") for t in titles), (
             f"delete_* result title must end with 'Delete'; got {titles!r}"
         )
+
+
+class TestPreviewCoachingLeadsWithNoIframeFallback:
+    """Regression tests for #648 — the docstring coaching templates must
+    surface the non-iframe-host fallback prominently, not as a footnote.
+    Agents in Claude Code / plain CLI hosts can't click iframe buttons; the
+    previous coaching led with the iframe-happy path and agents silently
+    ended their turns waiting for clicks the user could not make.
+    """
+
+    @pytest.mark.parametrize(
+        "coaching",
+        [PREVIEW_APPLY_COACHING, PREVIEW_APPLY_DIRECT_COACHING],
+        ids=["sendmessage-rail", "direct-apply-rail"],
+    )
+    def test_no_iframe_scenario_appears_before_iframe_scenario(
+        self, coaching: str
+    ) -> None:
+        """The no-iframe path must be discussed BEFORE the iframe path so
+        agents whose host doesn't render Prefab cards don't miss the
+        fallback instructions."""
+        # Numbered scenarios — `1.` introduces no-iframe, `2.` iframe.
+        no_iframe_idx = coaching.find("does NOT render")
+        iframe_idx = coaching.find("DOES render")
+        assert no_iframe_idx != -1, (
+            "coaching must explicitly call out the no-iframe path "
+            f"(searched for 'does NOT render'); got:\n{coaching}"
+        )
+        assert iframe_idx != -1, (
+            "coaching must also explain the iframe path "
+            f"(searched for 'DOES render'); got:\n{coaching}"
+        )
+        assert no_iframe_idx < iframe_idx, (
+            "no-iframe scenario must appear FIRST so agents read it before "
+            "the iframe-happy path; reversing the order is exactly the "
+            "footgun #648 fixed."
+        )
+
+    @pytest.mark.parametrize(
+        "coaching",
+        [PREVIEW_APPLY_COACHING, PREVIEW_APPLY_DIRECT_COACHING],
+        ids=["sendmessage-rail", "direct-apply-rail"],
+    )
+    def test_mentions_content_channel_as_data_source(self, coaching: str) -> None:
+        """The no-iframe fallback path tells the agent to summarize from the
+        ``content`` channel — make sure the coaching points there explicitly
+        so agents don't claim "I don't have enough data" instead of reading
+        the JSON they were just handed."""
+        assert "``content``" in coaching, (
+            "coaching must direct the agent to the ``content`` channel for "
+            "the no-iframe summarize-then-confirm path; otherwise agents "
+            "may not realize the response data is already in context."
+        )
+
+    @pytest.mark.parametrize(
+        "coaching",
+        [PREVIEW_APPLY_COACHING, PREVIEW_APPLY_DIRECT_COACHING],
+        ids=["sendmessage-rail", "direct-apply-rail"],
+    )
+    def test_no_iframe_path_says_re_issue_with_preview_false(
+        self, coaching: str
+    ) -> None:
+        """The no-iframe fallback must spell out the apply mechanic
+        (``preview=False``) so the agent isn't left guessing how to apply."""
+        assert "preview=False" in coaching, (
+            "the no-iframe fallback must tell the agent to re-issue with "
+            "``preview=False``"
+        )
+
+    def test_with_preview_coaching_appends_to_existing_docstring(self) -> None:
+        """``with_preview_coaching`` should preserve the function's own
+        docstring AND append the new lead-with-no-iframe block — verifies
+        the rewrite didn't break the existing concatenation contract.
+        """
+
+        def fn() -> None:
+            """My tool's own purpose."""
+
+        result = with_preview_coaching(fn)
+        assert result.startswith("My tool's own purpose.")
+        assert "does NOT render" in result
