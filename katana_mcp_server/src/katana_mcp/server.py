@@ -12,13 +12,17 @@ Features:
 - Response caching for improved performance (FastMCP 2.13+)
 """
 
+import asyncio
 import os
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Literal, cast
 
 if TYPE_CHECKING:
     from fastmcp.server.auth import AuthProvider  # pragma: no cover
+
+    from katana_mcp.typed_cache import TypedCacheEngine  # pragma: no cover
 
 from dotenv import load_dotenv
 from fastmcp import FastMCP
@@ -42,6 +46,97 @@ _apply_patches()
 # Initialize structured logging
 setup_logging()
 logger = get_logger(__name__)
+
+
+async def _warm_caches_in_background(
+    client: KatanaClient,
+    typed_cache: "TypedCacheEngine",
+) -> None:
+    """Kick off ``ensure_<entity>_synced`` for every cache-backed entity.
+
+    Runs concurrently with the server accepting MCP requests so the gap
+    between Claude/MCP startup and the first user-facing tool call gets
+    used to warm the typed cache. Tool calls that arrive mid-warmup
+    serialize on each entity's ``cache.lock_for(...)`` — they wait the
+    same amount of time they would have waited without warmup, with the
+    warmup's incremental progress available on later calls (closes #500's
+    cold-cache window, the remaining mitigation for #463 after #592 and
+    #591).
+
+    Per-entity failures are swallowed and logged so a transient error on
+    one entity never blocks the others from warming and never crashes
+    the server. ``manufacturing_order_recipe_row`` is pulled implicitly
+    via ``MANUFACTURING_ORDER_SPEC.related_specs`` when MOs are warmed,
+    so it's intentionally absent from this list.
+    """
+    from katana_mcp.typed_cache import (
+        ensure_additional_costs_synced,
+        ensure_customers_synced,
+        ensure_factory_synced,
+        ensure_locations_synced,
+        ensure_manufacturing_orders_synced,
+        ensure_materials_synced,
+        ensure_operators_synced,
+        ensure_products_synced,
+        ensure_purchase_orders_synced,
+        ensure_sales_orders_synced,
+        ensure_services_synced,
+        ensure_stock_adjustments_synced,
+        ensure_stock_transfers_synced,
+        ensure_suppliers_synced,
+        ensure_tax_rates_synced,
+        ensure_variants_synced,
+    )
+
+    helpers = (
+        ensure_sales_orders_synced,
+        ensure_purchase_orders_synced,
+        ensure_manufacturing_orders_synced,
+        ensure_stock_adjustments_synced,
+        ensure_stock_transfers_synced,
+        ensure_customers_synced,
+        ensure_suppliers_synced,
+        ensure_locations_synced,
+        ensure_tax_rates_synced,
+        ensure_operators_synced,
+        ensure_additional_costs_synced,
+        ensure_variants_synced,
+        ensure_products_synced,
+        ensure_materials_synced,
+        ensure_services_synced,
+        ensure_factory_synced,
+    )
+
+    started = time.monotonic()
+    # ``return_exceptions=True`` keeps the gather alive when any one
+    # helper raises, so a transient API hiccup on one entity doesn't
+    # block the others from warming. ``CancelledError`` propagates
+    # through ``gather`` regardless of this flag, which is what we want
+    # on shutdown.
+    results = await asyncio.gather(
+        *(fn(client, typed_cache) for fn in helpers),
+        return_exceptions=True,
+    )
+    elapsed_s = round(time.monotonic() - started, 1)
+    failures = [
+        (fn.__name__, type(r).__name__, str(r))
+        for fn, r in zip(helpers, results, strict=True)
+        if isinstance(r, BaseException)
+    ]
+    if failures:
+        logger.warning(
+            "cache_warmup_partial",
+            elapsed_s=elapsed_s,
+            success_count=len(helpers) - len(failures),
+            failure_count=len(failures),
+            failures=failures,
+        )
+    else:
+        logger.info(
+            "cache_warmup_complete",
+            elapsed_s=elapsed_s,
+            entity_count=len(helpers),
+        )
 
 
 @asynccontextmanager
@@ -109,6 +204,20 @@ async def lifespan(server: FastMCP) -> AsyncIterator[Services]:
             typed_cache = TypedCacheEngine()
             await typed_cache.open()
             logger.info("typed_cache_initialized", db_path=str(typed_cache.db_path))
+
+            # Fire-and-forget background warm-up so the gap between
+            # MCP startup and the first user-facing tool call gets used
+            # to populate the typed cache. Default ON; set
+            # ``MCP_DISABLE_CACHE_WARMUP=1`` to skip (test runs do this
+            # via the autouse fixture in ``conftest.py``).
+            warmup_task: asyncio.Task[None] | None = None
+            if os.getenv("MCP_DISABLE_CACHE_WARMUP") != "1":
+                warmup_task = asyncio.create_task(
+                    _warm_caches_in_background(cast(KatanaClient, client), typed_cache),
+                    name="katana_cache_warmup",
+                )
+                logger.info("cache_warmup_started")
+
             try:
                 # The generated ``AuthenticatedClient.__aenter__`` is
                 # annotated to return its own class, dropping the
@@ -120,6 +229,31 @@ async def lifespan(server: FastMCP) -> AsyncIterator[Services]:
                 logger.info("server_ready", version=__version__)
                 yield context
             finally:
+                # Always await the warmup task on shutdown, regardless of
+                # done-state, so any exception it raised is consumed
+                # rather than emitted as an asyncio "Task exception was
+                # never retrieved" warning. If still running, cancel
+                # first so the await returns promptly. Awaiting before
+                # ``typed_cache.close()`` also prevents the warmup from
+                # writing against a closed engine.
+                if warmup_task is not None:
+                    if not warmup_task.done():
+                        warmup_task.cancel()
+                    try:
+                        await warmup_task
+                    except asyncio.CancelledError:
+                        logger.info("cache_warmup_cancelled")
+                    except Exception as exc:
+                        # ``_warm_caches_in_background`` already swallows
+                        # per-helper errors via ``return_exceptions=True``,
+                        # so reaching this branch means something
+                        # unexpected raised at the task scope (import
+                        # error, logging failure, programmer bug).
+                        logger.warning(
+                            "cache_warmup_task_raised",
+                            error_type=type(exc).__name__,
+                            error=str(exc),
+                        )
                 await typed_cache.close()
                 logger.info("typed_cache_closed")
 

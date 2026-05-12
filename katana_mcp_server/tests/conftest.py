@@ -1,10 +1,40 @@
 """Shared pytest fixtures for MCP server tests."""
 
 import os
+from collections.abc import Iterator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import pytest_asyncio
+
+
+@pytest.fixture(autouse=True)
+def _disable_cache_warmup_by_default(
+    request: pytest.FixtureRequest,
+) -> Iterator[None]:
+    """Skip the background cache warm-up unless a test explicitly opts in.
+
+    ``server.lifespan()`` schedules an ``asyncio.create_task`` that fans
+    out ``ensure_*_synced`` calls (closes #500 / #593). Tests that don't
+    intentionally exercise warmup don't want it kicking off against a
+    mock client — it produces noisy logs, racy task lifecycles, and
+    unintentional coverage of unrelated code. Tests that want to verify
+    warmup behavior opt in with ``@pytest.mark.cache_warmup_enabled``.
+    """
+    if "cache_warmup_enabled" in request.keywords:
+        # Test wants the real warmup path; let MCP_DISABLE_CACHE_WARMUP
+        # flow through unchanged (or be set by the test itself).
+        yield
+        return
+    prev = os.environ.get("MCP_DISABLE_CACHE_WARMUP")
+    os.environ["MCP_DISABLE_CACHE_WARMUP"] = "1"
+    try:
+        yield
+    finally:
+        if prev is None:
+            os.environ.pop("MCP_DISABLE_CACHE_WARMUP", None)
+        else:
+            os.environ["MCP_DISABLE_CACHE_WARMUP"] = prev
 
 
 @pytest_asyncio.fixture
