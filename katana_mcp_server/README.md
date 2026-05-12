@@ -1,5 +1,7 @@
 # Katana MCP Server
 
+[![PyPI](https://img.shields.io/pypi/v/katana-mcp-server.svg)](https://pypi.org/project/katana-mcp-server/)
+
 Model Context Protocol (MCP) server for Katana Manufacturing ERP.
 
 ## Features
@@ -7,14 +9,19 @@ Model Context Protocol (MCP) server for Katana Manufacturing ERP.
 - **Inventory Management**: Check stock, find low stock items, search items, get variant
   details
 - **Catalog Management**: Create products and materials
-- **Order Management**: Create and manage purchase orders, sales orders, and
-  manufacturing orders
+- **Order Management**: Create, modify, and fulfill purchase orders, sales orders, and
+  manufacturing orders; correct shipped builds
 - **Document Verification**: Verify supplier documents against purchase orders
-- **Two-Step Confirmation**: Preview operations before executing (elicitation pattern)
+- **Preview / Apply Pattern**: Two-step confirmation for every write operation — preview
+  returns a Prefab UI card with Confirm/Cancel; apply executes
 - **Environment-based Authentication**: Secure API key management
 - **Built-in Resilience**: Automatic retries, rate limiting, and pagination via Python
   client
 - **Type Safety**: Pydantic models for all requests and responses
+- **Typed SQLite Cache**: Local mirror of catalog _and_ transactional entities (items,
+  suppliers, customers, locations, sales / purchase / manufacturing orders, stock
+  transfers and adjustments) with FTS5 fuzzy search, soft-state filtering, and
+  cold-cache recovery — see [docs/typed_cache/](docs/typed_cache/README.md)
 
 ## Installation
 
@@ -110,143 +117,29 @@ export KATANA_API_KEY=your-api-key
 katana-mcp-server
 ```
 
-## Available Tools
+## Available Tools and Resources
 
-### check_inventory
+The server's tool surface covers inventory, catalog, orders (sales / purchase /
+manufacturing), stock movement, fulfillment, corrections, and reporting — plus resources
+for cached reference data and a built-in help system.
 
-Check stock levels for a specific product SKU.
+**The live, always-current tool and resource lists are exposed by the server itself:**
 
-**Parameters**:
+- **`katana://help`** — workflow overview and quick reference
+- **`katana://help/tools`** — every registered tool with its parameters and docstring
+- **`katana://help/resources`** — every registered resource
 
-- `sku` (string, required): Product SKU to check
+These resources are the authoritative source — reach for them rather than any
+hand-maintained list, which would drift on every release. From an MCP host (Claude
+Desktop, Claude.ai, etc.) the tool list also shows up in the host's UI once the server
+is connected, and `mcp inspect` / `fastmcp dev` give the same view from the command
+line.
 
-**Example Request**:
-
-```json
-{
-  "sku": "WIDGET-001"
-}
-```
-
-**Example Response**:
-
-```json
-{
-  "sku": "WIDGET-001",
-  "product_name": "Premium Widget",
-  "available_stock": 150,
-  "in_production": 50,
-  "committed": 75
-}
-```
-
-**Use Cases**:
-
-- "What's the current stock level for SKU WIDGET-001?"
-- "Check inventory for my best-selling product"
-- "How much stock do we have available for order fulfillment?"
-
-______________________________________________________________________
-
-### list_low_stock_items
-
-Find products below a specified stock threshold.
-
-**Parameters**:
-
-- `threshold` (integer, optional, default: 10): Stock level threshold
-- `limit` (integer, optional, default: 50): Maximum items to return
-
-**Example Request**:
-
-```json
-{
-  "threshold": 5,
-  "limit": 20
-}
-```
-
-**Example Response**:
-
-```json
-{
-  "items": [
-    {
-      "sku": "PART-123",
-      "product_name": "Component A",
-      "current_stock": 3,
-      "threshold": 5
-    },
-    {
-      "sku": "PART-456",
-      "product_name": "Component B",
-      "current_stock": 2,
-      "threshold": 5
-    }
-  ],
-  "total_count": 15
-}
-```
-
-**Use Cases**:
-
-- "Show me products with less than 10 units in stock"
-- "What items need reordering?"
-- "Find critical low stock items (below 5 units)"
-
-______________________________________________________________________
-
-### search_items
-
-Search for items (products, materials, services) by name or SKU.
-
-**Parameters**:
-
-- `query` (string, required): Search term (matches name or SKU)
-- `limit` (integer, optional, default: 20): Maximum results to return
-
-**Example Request**:
-
-```json
-{
-  "query": "widget",
-  "limit": 10
-}
-```
-
-**Example Response**:
-
-```json
-{
-  "items": [
-    {
-      "id": 12345,
-      "sku": "WIDGET-001",
-      "name": "Premium Widget",
-      "is_sellable": true,
-      "stock_level": null
-    },
-    {
-      "id": 12346,
-      "sku": "WIDGET-002",
-      "name": "Economy Widget",
-      "is_sellable": true,
-      "stock_level": null
-    }
-  ],
-  "total_count": 2
-}
-```
-
-**Note**: `stock_level` is always `null` for search results in the current
-implementation.
-
-**Use Cases**:
-
-- "Find all products containing 'widget'"
-- "Search for SKU PART-123"
-- "What items do we have for order creation?"
-- "Show me all sellable products vs internal materials"
+Every write tool follows the preview / apply pattern: calling with `preview=true` (the
+default) returns a Prefab UI card with Confirm/Cancel buttons; calling with
+`preview=false` executes. The destructive-hint annotation also signals to the host to
+ask the user before invocation. See [`docs/prefab/README.md`](docs/prefab/README.md) for
+the card pattern details.
 
 ## Configuration
 
@@ -412,8 +305,7 @@ uv run mcp-hmr src/katana_mcp/server.py:mcp
 - Hot reload requires Python >=3.12. For Python 3.11 users, use the production install
   method.
 
-See [DEVELOPMENT.md](../docs/mcp-server/DEVELOPMENT.md) for the complete development
-guide.
+See [docs/development.md](docs/development.md) for the complete development guide.
 
 ### Install from Source
 
@@ -443,45 +335,6 @@ uv build
 # Install with pipx
 pipx install --force dist/katana_mcp_server-*.whl
 ```
-
-## Version
-
-Current version: **0.33.0**
-
-### Available Tools
-
-**Inventory Tools:**
-
-- `check_inventory` - Check stock levels for a specific SKU
-- `list_low_stock_items` - Find products below stock threshold
-- `search_items` - Search for items by name or SKU
-- `get_variant_details` - Get detailed variant information
-
-**Catalog Tools:**
-
-- `create_product` - Create a new product
-- `create_material` - Create a new material
-
-**Order Tools:**
-
-- `create_purchase_order` - Create purchase orders with two-step confirmation
-- `receive_purchase_order` - Receive items from purchase orders
-- `verify_order_document` - Verify documents against purchase orders
-- `create_manufacturing_order` - Create manufacturing orders
-- `create_sales_order` - Create sales orders with two-step confirmation
-- `fulfill_order` - Fulfill manufacturing or sales orders
-
-### Available Resources
-
-Resources expose cached reference data (small, stable datasets). For transactional data
-(orders, stock movements), use the corresponding tools.
-
-- `katana://inventory/items` - Complete catalog of products, materials, services
-- `katana://suppliers` - Supplier directory with contact info
-- `katana://locations` - Warehouses and facilities
-- `katana://tax-rates` - Configured tax rates
-- `katana://operators` - Manufacturing operators
-- `katana://help` - Workflow guides and tool reference
 
 ## Links
 
