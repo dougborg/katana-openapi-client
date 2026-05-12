@@ -215,28 +215,27 @@ Before version 1.0.0, breaking changes still bump MINOR (not MAJOR):
 ## Schema and Generator Changes
 
 Edits to the OpenAPI spec (`docs/katana-openapi.yaml`) or to the generator scripts
-(`scripts/generate_pydantic_models.py`, `scripts/regenerate_client.py`) can ripple
-into the **public client surface** in ways that break consumers — even when each
-individual change reads as a "fix" or "chore". Those ripples must be captured in
-the commit message so the auto-generated changelog flags them.
+(`scripts/generate_pydantic_models.py`, `scripts/regenerate_client.py`) can ripple into
+the **public client surface** in ways that break consumers — even when each individual
+change reads as a "fix" or "chore". Those ripples must be captured in the commit message
+so the auto-generated changelog flags them.
 
 ### What counts as a breaking schema change
 
-Use `feat(client)!:` (or `fix(client)!:`) **with a `BREAKING CHANGE:` footer**
-whenever a spec or generator edit causes any of the following in the regenerated
-client output:
+Use `feat(client)!:` (or `fix(client)!:`) **with a `BREAKING CHANGE:` footer** whenever
+a spec or generator edit causes any of the following in the regenerated client output:
 
-- A previously-exported class **disappears** (e.g., a `StrEnum` was deduped into
-  a structurally identical sibling — see #414 / `OutsourcedRecipeIngredientAvailability`
+- A previously-exported class **disappears** (e.g., a `StrEnum` was deduped into a
+  structurally identical sibling — see #414 / `OutsourcedRecipeIngredientAvailability`
   collapsed into `OutsourcedPurchaseOrderIngredientAvailability`)
-- A field **type narrows** in a way that makes previously-valid values raise
-  (e.g., `type: string` → `$ref` to a `StrEnum` — see #410)
+- A field **type narrows** in a way that makes previously-valid values raise (e.g.,
+  `type: string` → `$ref` to a `StrEnum` — see #410)
 - A field is **renamed** or **removed** on a response or request schema
 - An endpoint path is **removed**
 - A required field becomes **optional** (changes parse semantics) or vice versa
 
-The footer must list the affected name(s) so a consumer searching the
-changelog for the broken import or attribute can find the change:
+The footer must list the affected name(s) so a consumer searching the changelog for the
+broken import or attribute can find the change:
 
 ```
 fix(client)!: dedupe collapses OutsourcedRecipeIngredientAvailability
@@ -256,24 +255,79 @@ Refs #409
 
 - Adding a new endpoint or field (purely additive)
 - Adding a value to an existing enum (parse stays tolerant; old values still work)
-- Generated-file diff is byte-identical (e.g., a docstring tweak in the generator
-  that doesn't change emitted code)
-- Internal-only refactors that don't change the surface (e.g., consolidating
-  generator config dicts — see #407)
+- Generated-file diff is byte-identical (e.g., a docstring tweak in the generator that
+  doesn't change emitted code)
+- Internal-only refactors that don't change the surface (e.g., consolidating generator
+  config dicts — see #407)
 
 ### Why this matters pre-1.0
 
-The package is pre-1.0, so breaking changes bump MINOR (per the
-"Pre-1.0 Special Rules" section above) — *not* MAJOR. That's a smaller
-version-number signal than a 1.x → 2.x bump, so the **changelog entry** carries
-the discoverability for affected consumers. Without the breaking-change footer,
-the change shows up in the changelog as a normal `fix:` line and consumers hit
-an `ImportError` (or `ValueError`, etc.) without a breadcrumb to follow.
+The package is pre-1.0, so breaking changes bump MINOR (per the "Pre-1.0 Special Rules"
+section above) — *not* MAJOR. That's a smaller version-number signal than a 1.x → 2.x
+bump, so the **changelog entry** carries the discoverability for affected consumers.
+Without the breaking-change footer, the change shows up in the changelog as a normal
+`fix:` line and consumers hit an `ImportError` (or `ValueError`, etc.) without a
+breadcrumb to follow.
 
-When in doubt, run `uv run poe regenerate-client && uv run poe generate-pydantic`
-and inspect `git diff katana_public_api_client/`. If the diff removes any
-top-level class, removes any `__all__` entry, or changes a field's type
-annotation in a non-additive way, use `!` and `BREAKING CHANGE:`.
+When in doubt, run `uv run poe regenerate-client && uv run poe generate-pydantic` and
+inspect `git diff katana_public_api_client/`. If the diff removes any top-level class,
+removes any `__all__` entry, or changes a field's type annotation in a non-additive way,
+use `!` and `BREAKING CHANGE:`.
+
+### Generator/spec edits must commit the regen in the same PR
+
+Whenever you edit a generator script or the OpenAPI spec, run the regen, run
+`uv run poe check` (or at minimum `agent-check` + `uv run poe test`), and commit the
+regenerated output **in the same PR**. The input and its output stay locked together at
+every commit so the cause-and-effect chain is reviewable.
+
+- Pushing a generator/spec change **without** its regen leaves CI green-but-stale until
+  the next time someone runs the generator.
+- Pushing regen output **without** the input change drifts in the other direction.
+
+Note the generated-file impact in the PR description (e.g., "byte-identical except X" or
+list affected files). Before editing the spec, audit upstream drift via the workflow in
+[`docs/upstream-specs/README.md`](../../../docs/upstream-specs/README.md)
+(`poe refresh-upstream-spec` → `poe audit-spec` → `poe validate-response-examples` →
+`poe validate-examples`).
+
+## Lockfile Drift
+
+When `uv.lock` shows up modified but you didn't touch dependencies (e.g., a
+sibling-package release on `main` bumped a workspace version), `git add uv.lock` and
+bundle it into your current commit.
+
+**Don't `git checkout -- uv.lock` to drop it**: pre-commit's auto-stash/restore fights
+with the lockfile being regenerated mid-hook (pytest's `uv run` re-syncs it), producing
+confusing "files were modified by this hook" failures where nothing was actually wrong
+with the staged content. The lockfile must stay in sync with `pyproject.toml` at every
+commit anyway, so bundling is always the right call.
+
+## First-Push Safety
+
+When a local branch was created via `git checkout -b <name> origin/main`, its upstream
+is set to `origin/main`. A subsequent `git push -u origin <name>` then resolves to its
+tracked upstream and **pushes the local tip straight to `main`** — bypassing PR review
+and triggering semantic-release.
+
+This actually happened: commit `30f3fd86` reached main + tagged `mcp-v0.44.1` +
+published to PyPI before the pipeline could be cancelled.
+
+**Always use the explicit destination ref for first-time pushes:**
+
+```bash
+# Wrong — pushes to whatever the local branch tracks (may be main)
+git push -u origin chore/foo
+
+# Right — explicit destination, creates the remote branch
+git push -u origin HEAD:refs/heads/chore/foo
+```
+
+A `pre-push` hook at `.pre-commit-config.yaml`'s `pre-push` stage enforces this for
+contributors who run pre-commit; **do not bypass with `--no-verify`**. The
+`Protect Main` ruleset has `bypass_mode: always` for the Admin role (required by
+semantic-release's PAT-based pushes); tightening that bypass is tracked in #429 (GitHub
+App migration). Until #429 lands, the local hook is the only mechanical guardrail.
 
 ## Multi-Package Changes
 
