@@ -35,6 +35,8 @@ from katana_mcp.tools._modification import (
 )
 from katana_mcp.tools._modification_dispatch import (
     ActionSpec,
+    CacheMerge,
+    EntityNaming,
     has_any_subpayload,
     make_delete_apply,
     make_patch_apply,
@@ -971,10 +973,26 @@ def _serial_number_info_from_attrs(sn: Any) -> SerialNumberInfo:
     )
 
 
-async def _fetch_mo_recipe_rows(
+async def _fetch_mo_recipe_row_attrs(
     services: Any, manufacturing_order_id: int
-) -> list[RecipeRowInfo]:
-    """Fetch every recipe row for the MO and enrich with cached SKU."""
+) -> list[Any]:
+    """Return raw attrs ``ManufacturingOrderRecipeRow`` list for an MO.
+
+    Thin wrapper used by ``modify_manufacturing_order``'s post-apply
+    cache merge: recipe rows live at the separate
+    ``/manufacturing_order_recipe_rows`` endpoint, NOT embedded in the
+    MO parent fetch, so the dispatcher's parent refetch alone can't
+    refresh them. Wired into ``CacheMerge.refetch_related`` so the merge
+    fans out and the next ``get_manufacturing_order_recipe`` /
+    ``list_blocking_ingredients`` read serves fresh data without a
+    manual ``rebuild_cache``.
+
+    Passes ``include_deleted=True`` so soft-deleted rows (tombstones)
+    come back in the response. Without it, a ``delete_recipe_row``
+    action would land at Katana but the cached row would persist as a
+    ghost until the next watermark sync — same trap the typed-cache
+    spec already documents on its row-watermark setup.
+    """
     from katana_public_api_client.api.manufacturing_order_recipe import (
         get_all_manufacturing_order_recipe_rows,
     )
@@ -984,8 +1002,16 @@ async def _fetch_mo_recipe_rows(
         client=services.client,
         manufacturing_order_id=manufacturing_order_id,
         limit=250,
+        include_deleted=True,
     )
-    raw_rows = unwrap_data(response, default=[])
+    return unwrap_data(response, default=[])
+
+
+async def _fetch_mo_recipe_rows(
+    services: Any, manufacturing_order_id: int
+) -> list[RecipeRowInfo]:
+    """Fetch every recipe row for the MO and enrich with cached SKU."""
+    raw_rows = await _fetch_mo_recipe_row_attrs(services, manufacturing_order_id)
 
     # One batched IN-clause SQLite read instead of one read per recipe row —
     # a full-bike Mayhem MO has ~30 rows, all looked up by variant_id.
@@ -3292,12 +3318,34 @@ async def _modify_manufacturing_order_impl(
 
     return await run_modify_plan(
         request=request,
-        entity_type="manufacturing_order",
-        entity_label=f"manufacturing order {request.id}",
-        tool_name="modify_manufacturing_order",
+        naming=EntityNaming(
+            entity_type="manufacturing_order",
+            entity_label=f"manufacturing order {request.id}",
+            tool_name="modify_manufacturing_order",
+        ),
         web_url_kind="manufacturing_order",
         existing=existing_mo,
         plan=plan,
+        cache_merge=CacheMerge(
+            cache=services.typed_cache,
+            refetch_for_merge=lambda eid: _fetch_manufacturing_order_attrs(
+                services, eid
+            ),
+            # Recipe rows live at the separate
+            # ``/manufacturing_order_recipe_rows`` endpoint (per
+            # ``MANUFACTURING_ORDER_SPEC.related_specs``), not embedded
+            # in the MO GET response. Without this fan-out, recipe-row
+            # modifications (add/update/delete) would land at Katana but
+            # leave ``CachedManufacturingOrderRecipeRow`` stale until
+            # the next sync — visible to ``get_manufacturing_order_recipe``
+            # and ``list_blocking_ingredients``.
+            refetch_related=(
+                (
+                    "manufacturing_order_recipe_row",
+                    lambda eid: _fetch_mo_recipe_row_attrs(services, eid),
+                ),
+            ),
+        ),
     )
 
 

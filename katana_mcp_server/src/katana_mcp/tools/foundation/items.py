@@ -26,6 +26,8 @@ from katana_mcp.tools._modification import (
 )
 from katana_mcp.tools._modification_dispatch import (
     ActionSpec,
+    CacheMerge,
+    EntityNaming,
     has_any_subpayload,
     make_delete_apply,
     make_patch_apply,
@@ -705,6 +707,34 @@ async def _fetch_item_attrs(services: Any, item_id: int, item_type: ItemType) ->
     )
 
 
+async def _safe_fetch_item_attrs(
+    services: Any, item_id: int, item_type: ItemType
+) -> Any | None:
+    """Best-effort variant of ``_fetch_item_attrs``: returns None on any error.
+
+    Used as ``CacheMerge.refetch_for_merge`` so the dispatcher's
+    ``_post_apply_cache_merge`` can short-circuit on fetch failure via
+    its ``if parent is None: return`` guard — instead of unwinding
+    through the outer best-effort handler with a misleading
+    ``AuthenticationError`` / ``APIError`` traceback. Mirrors how
+    ``safe_fetch_for_diff`` shields the existing diff-context path.
+    """
+    try:
+        return await _fetch_item_attrs(services, item_id, item_type)
+    except asyncio.CancelledError:
+        # Cooperative cancellation must propagate, not get swallowed by
+        # the best-effort handler — see the dispatcher's outer handler
+        # for the same convention.
+        raise
+    except Exception as exc:
+        logger.info(
+            f"Post-apply refetch of {item_type.value} {item_id} for cache "
+            f"merge failed: {type(exc).__name__}: {exc} — cache row may be "
+            f"stale until next sync. Does not affect the API write."
+        )
+        return None
+
+
 async def _get_item_impl(
     request: GetItemRequest, context: Context
 ) -> ItemDetailsResponse:
@@ -1330,12 +1360,28 @@ async def _modify_item_impl(
 
     response = await run_modify_plan(
         request=request,
-        entity_type=request.type.value,
-        entity_label=f"{cfg['label']} {request.id}",
-        tool_name="modify_item",
+        naming=EntityNaming(
+            entity_type=request.type.value,
+            entity_label=f"{cfg['label']} {request.id}",
+            tool_name="modify_item",
+        ),
         web_url_kind=cfg["web_url_kind"],
         existing=existing_item,
         plan=plan,
+        # ``_fetch_item_attrs`` calls ``unwrap()`` directly and raises on
+        # any 4xx/5xx (unlike ``safe_fetch_for_diff`` used by other modify
+        # tools). Wrap in a try/except so the ``refetch_for_merge``
+        # contract — ``returns Any | None`` — holds: a refetch failure
+        # returns ``None`` and the dispatcher's ``_post_apply_cache_merge``
+        # short-circuits cleanly instead of unwinding through the outer
+        # best-effort handler with a misleading traceback. Same data shape
+        # as before — ``extend=[SUPPLIER]`` is preserved.
+        cache_merge=CacheMerge(
+            cache=services.typed_cache,
+            refetch_for_merge=lambda eid: _safe_fetch_item_attrs(
+                services, eid, request.type
+            ),
+        ),
     )
 
     if not request.preview:
