@@ -4,11 +4,14 @@ Questions and inconsistencies discovered during P1-P4 OpenAPI spec alignment (Ka
 spec dated 2026-01-20, 104 paths). Each was originally investigated against the live API
 on 2026-02-07.
 
-**Doc state:** swept 2026-05-07 — entries cross-checked against the current local spec
-plus `docs/upstream-specs/live-gateway.yaml` and
-`docs/upstream-specs/readme-portal.yaml`. "Last verified" lines on each still-open entry
-note the date and method (spec-only vs live-API). Resolved entries moved to the Resolved
-Issues table at the bottom.
+**Doc state:** swept 2026-05-12 — purely-informational "CONFIRMED, no asks" entries
+(§2.2 ProductOperationRow PK naming, §5.1 `/demand_forecasts` non-CRUD shape) moved to
+the Resolved Issues table; nothing about Katana's behavior or our spec has changed,
+they're just more useful as a one-liner reference than a multi-paragraph open question.
+Previous sweep 2026-05-07 cross-checked the still-open entries against the current local
+spec plus `docs/upstream-specs/live-gateway.yaml` and
+`docs/upstream-specs/readme-portal.yaml`; "Last verified" lines on each remaining entry
+note the date and method (spec-only vs live-API).
 
 ______________________________________________________________________
 
@@ -103,29 +106,9 @@ The `name` vs `bin_name` portion of this question remains open.
 
 ### 2.2 `ProductOperationRow` uses `product_operation_row_id` instead of `id`
 
-**Status: CONFIRMED - intentionally different from other resources**
-
-Every other resource in the API uses `id` as its primary key field.
-`ProductOperationRow` uniquely uses `product_operation_row_id`.
-
-**Investigation:** `GET /product_operation_rows` returns records with
-`product_operation_row_id` as the identifier - no `id` field present. However, the
-related `ManufacturingOrderOperationRow` (from `/manufacturing_order_operation_rows`)
-does use a standard `id` field.
-
-The `ProductOperationRow` fields are: `product_operation_row_id`, `product_id`,
-`product_variant_id`, `operation_id`, `operation_name`, `type`, `resource_id`,
-`resource_name`, `cost_per_hour`, `cost_parameter`, `planned_cost_per_unit`,
-`planned_time_per_unit`, `planned_time_parameter`, `rank`, `group_boundary`,
-`created_at`, `updated_at`. No `deleted_at` despite having `created_at`/`updated_at`.
-
-**Conclusion:** This is confirmed as a real inconsistency in the Katana API - not a spec
-error on our side. The product operation row is the only resource that uses a
-non-standard primary key naming convention.
-
-**Last verified:** 2026-05-07 (spec-only — `product_operation_row_id` still appears as
-the key field in our local `ProductOperationRow` schema and as a query parameter in
-`live-gateway.yaml`).
+*Moved to the Resolved Issues table — confirmed real Katana inconsistency
+(`product_operation_row_id` instead of the standard `id` field), our local spec mirrors
+it, no follow-up needed.*
 
 ______________________________________________________________________
 
@@ -177,29 +160,9 @@ ______________________________________________________________________
 
 ### 5.1 `/demand_forecasts` doesn't follow any standard resource pattern
 
-**Status: CONFIRMED - intentionally different, more of a "calculation" than a resource**
-
-**Investigation:**
-
-- `GET /demand_forecasts` without params returns 400: "Required parameter variant_id is
-  missing!" - mandatory query params confirmed.
-- `GET /demand_forecasts?variant_id=X&location_id=Y` returns a single forecast object
-  (not a list) with `variant_id`, `location_id`, `in_stock`, and `periods` array. No
-  pagination headers. The response is a computed view, not a stored resource.
-- `POST /demand_forecasts` requires `variant_id`, `location_id`, and `periods` in the
-  request body.
-- `DELETE /demand_forecasts` also requires `variant_id`, `location_id`, and `periods` in
-  the request body (not just the resource identifier).
-
-**Conclusion:** This endpoint is fundamentally a *computation endpoint*, not a CRUD
-resource. It returns calculated demand forecast data for a specific variant+location
-combination. The POST "creates" forecast overrides for specific periods, and DELETE
-"clears" overrides for specific periods. This design makes sense when understood as a
-calculation API rather than a REST resource. No spec change needed, but worth
-documenting the different mental model.
-
-**Last verified:** 2026-05-07 (spec-only — `live-gateway.yaml` shows the same
-non-standard shape; no live-API re-test).
+*Moved to the Resolved Issues table — confirmed Katana design choice (computation
+endpoint, not CRUD resource); body requires `variant_id` + `location_id` + `periods` on
+POST and DELETE; our spec mirrors it, no follow-up needed.*
 
 ______________________________________________________________________
 
@@ -487,3 +450,5 @@ Issues discovered and fixed during P1-P4 alignment, documented here for referenc
 | §1.3 — MO ↔ SO linking via PATCH                                                   | API design: linking is one-way at MO creation via `POST /manufacturing_order_make_to_order`. No post-hoc link endpoint exists by design.                                 |
 | §1.4 — PO CREATE `status` only accepted `NOT_RECEIVED` (2026-02-07)                | Katana now accepts both `DRAFT` and `NOT_RECEIVED` (verified spec-only against `live-gateway.yaml` and our local `CreatePurchaseOrderInitialStatus` enum on 2026-05-07). |
 | §4.1 — Variant `lead_time` / `minimum_order_quantity` null semantics               | Clarified — `null` means "not set" (distinct from `0`). API correctly distinguishes.                                                                                     |
+| §2.2 — `ProductOperationRow` PK is `product_operation_row_id` (not `id`)           | Confirmed real Katana inconsistency vs every other resource. Our local spec mirrors it; no spec change needed.                                                           |
+| §5.1 — `/demand_forecasts` is a computation endpoint, not a CRUD resource          | POST and DELETE bodies both require `variant_id` + `location_id` + `periods` (not just an identifier). Mental model: it's a calculation API. Our spec mirrors it.        |
