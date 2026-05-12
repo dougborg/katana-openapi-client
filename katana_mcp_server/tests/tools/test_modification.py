@@ -10,11 +10,13 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import StrEnum
+from typing import cast
 from unittest.mock import MagicMock
 
 import pytest
 from katana_mcp.tools._modification import (
     ActionResult,
+    ConfirmableRequest,
     FieldChange,
     ModificationResponse,
     compute_field_diff,
@@ -24,11 +26,14 @@ from katana_mcp.tools._modification import (
 )
 from katana_mcp.tools._modification_dispatch import (
     ActionSpec,
+    CacheMerge,
+    EntityNaming,
     execute_plan,
     plan_to_preview_results,
+    run_modify_plan,
     serialize_for_prior_state,
 )
-from pydantic import BaseModel
+from katana_mcp.typed_cache import TypedCacheEngine
 
 from katana_public_api_client.client_types import UNSET
 
@@ -38,13 +43,13 @@ class _SampleEnum(StrEnum):
     DONE = "DONE"
 
 
-class _SampleRequest(BaseModel):
-    id: int
+class _SampleRequest(ConfirmableRequest):
     name: str | None = None
     qty: int | None = None
     when: datetime | None = None
     state: _SampleEnum | None = None
-    preview: bool = True
+    # ``preview: bool`` is inherited from ConfirmableRequest with default
+    # ``True``; no need to re-declare here.
 
 
 def test_compute_field_diff_skips_id_and_preview_by_default():
@@ -556,3 +561,388 @@ def test_serialize_for_prior_state_falls_back_to_model_dump():
 def test_serialize_for_prior_state_returns_none_for_unsupported():
     assert serialize_for_prior_state(None) is None
     assert serialize_for_prior_state("a string") is None
+
+
+# ============================================================================
+# run_modify_plan — post-apply cache write-through (Bug #2)
+#
+# After execute_plan succeeds, if ``cache`` + ``refetch_for_merge`` are
+# provided, the dispatcher must re-fetch the parent and merge it via
+# ``merge_filtered_fetch`` so the typed cache stays in sync without a
+# rebuild_cache. Pre-2026-05-12 the cache went stale until next sync.
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_run_modify_plan_post_apply_merge_fires_on_success(monkeypatch):
+    """When cache + refetch_for_merge are wired and the plan succeeds,
+    the dispatcher refetches the parent and calls merge_filtered_fetch
+    with the matching EntitySpec.
+    """
+    from katana_mcp.tools._modification_dispatch import run_modify_plan
+
+    captured: dict[str, object] = {}
+
+    async def fake_merge(cache, spec, attrs_objs):
+        captured["cache"] = cache
+        captured["spec_key"] = spec.entity_key
+        captured["attrs_objs"] = list(attrs_objs)
+
+    monkeypatch.setattr("katana_mcp.typed_cache.sync.merge_filtered_fetch", fake_merge)
+
+    refetched_parent = object()
+
+    async def fake_apply():
+        return object()
+
+    async def fake_refetch(eid: int):
+        captured["refetched_id"] = eid
+        return refetched_parent
+
+    request = _SampleRequest(id=42, name="x", preview=False)
+    plan = [
+        ActionSpec(
+            operation="update_header",
+            target_id=42,
+            diff=[FieldChange(field="status", old="DRAFT", new="DONE")],
+            apply=fake_apply,
+            verify=None,
+        )
+    ]
+
+    fake_cache = cast(TypedCacheEngine, object())
+    response = await run_modify_plan(
+        request=request,
+        naming=EntityNaming(
+            entity_type="purchase_order",
+            entity_label="purchase order 42",
+            tool_name="modify_purchase_order",
+        ),
+        web_url_kind=None,
+        existing=None,
+        plan=plan,
+        has_get_endpoint=False,
+        cache_merge=CacheMerge(cache=fake_cache, refetch_for_merge=fake_refetch),
+    )
+
+    assert response.is_preview is False
+    assert captured == {
+        "cache": fake_cache,
+        "spec_key": "purchase_order",
+        "attrs_objs": [refetched_parent],
+        "refetched_id": 42,
+    }
+
+
+@pytest.mark.asyncio
+async def test_run_modify_plan_no_merge_when_cache_or_refetch_missing(monkeypatch):
+    """The merge code path is gated on BOTH cache and refetch_for_merge
+    being non-None — either missing skips the merge silently. Lets tools
+    opt out without ceremony (e.g. stock_transfers, which lacks a GET).
+    """
+    from katana_mcp.tools._modification_dispatch import run_modify_plan
+
+    call_count = {"merge": 0}
+
+    async def fake_merge(_cache, _spec, _objs):
+        call_count["merge"] += 1
+
+    monkeypatch.setattr("katana_mcp.typed_cache.sync.merge_filtered_fetch", fake_merge)
+
+    async def fake_apply():
+        return None
+
+    plan = [ActionSpec(operation="add_row", target_id=1, apply=fake_apply, verify=None)]
+    request = _SampleRequest(id=1, name="x", preview=False)
+
+    # Neither wired (no cache_merge):
+    await run_modify_plan(
+        request=request,
+        naming=EntityNaming(
+            entity_type="purchase_order",
+            entity_label="purchase order 1",
+            tool_name="modify_purchase_order",
+        ),
+        web_url_kind=None,
+        existing=None,
+        plan=plan,
+        has_get_endpoint=False,
+    )
+
+    assert call_count["merge"] == 0
+
+
+@pytest.mark.asyncio
+async def test_run_modify_plan_no_merge_when_action_failed(monkeypatch):
+    """Cache merge must not fire if any action in the plan failed —
+    the partial post-state would corrupt the cache.
+    """
+    call_count = {"merge": 0}
+
+    async def fake_merge(_cache, _spec, _objs):
+        call_count["merge"] += 1
+
+    monkeypatch.setattr("katana_mcp.typed_cache.sync.merge_filtered_fetch", fake_merge)
+
+    async def bad_apply():
+        raise ValueError("apply failed")
+
+    async def fake_refetch(_eid: int):
+        return object()
+
+    plan = [ActionSpec(operation="add_row", target_id=1, apply=bad_apply, verify=None)]
+    request = _SampleRequest(id=1, name="x", preview=False)
+
+    await run_modify_plan(
+        request=request,
+        naming=EntityNaming(
+            entity_type="purchase_order",
+            entity_label="purchase order 1",
+            tool_name="modify_purchase_order",
+        ),
+        web_url_kind=None,
+        existing=None,
+        plan=plan,
+        has_get_endpoint=False,
+        cache_merge=CacheMerge(
+            cache=cast(TypedCacheEngine, object()),
+            refetch_for_merge=fake_refetch,
+        ),
+    )
+
+    assert call_count["merge"] == 0
+
+
+@pytest.mark.asyncio
+async def test_run_modify_plan_merge_skips_silently_for_uncached_entity(
+    monkeypatch,
+):
+    """If entity_type isn't in ENTITY_SPECS (e.g. a custom non-cached
+    entity), the merge step skips without raising. Tool's API write is
+    still authoritative.
+    """
+    call_count = {"merge": 0}
+
+    async def fake_merge(_cache, _spec, _objs):
+        call_count["merge"] += 1
+
+    monkeypatch.setattr("katana_mcp.typed_cache.sync.merge_filtered_fetch", fake_merge)
+
+    async def fake_apply():
+        return None
+
+    async def fake_refetch(_eid: int):
+        return object()
+
+    plan = [ActionSpec(operation="add_row", target_id=1, apply=fake_apply, verify=None)]
+    request = _SampleRequest(id=1, name="x", preview=False)
+
+    response = await run_modify_plan(
+        request=request,
+        naming=EntityNaming(
+            entity_type="not_a_real_entity",
+            entity_label="bogus 1",
+            tool_name="modify_bogus",
+        ),
+        web_url_kind=None,
+        existing=None,
+        plan=plan,
+        has_get_endpoint=False,
+        cache_merge=CacheMerge(
+            cache=cast(TypedCacheEngine, object()),
+            refetch_for_merge=fake_refetch,
+        ),
+    )
+
+    assert call_count["merge"] == 0
+    assert response.is_preview is False  # the modify response itself still succeeds
+
+
+@pytest.mark.asyncio
+async def test_run_modify_plan_merge_failure_does_not_break_response(monkeypatch):
+    """If the post-apply merge raises (e.g. cache lock contention,
+    transient DB error), the dispatcher logs and returns the successful
+    modify response — the API write already landed, the only loss is
+    cache freshness.
+    """
+
+    async def boom_merge(_cache, _spec, _objs):
+        raise RuntimeError("cache I/O failed")
+
+    monkeypatch.setattr("katana_mcp.typed_cache.sync.merge_filtered_fetch", boom_merge)
+
+    async def fake_apply():
+        return None
+
+    async def fake_refetch(_eid: int):
+        return object()
+
+    plan = [ActionSpec(operation="add_row", target_id=1, apply=fake_apply, verify=None)]
+    request = _SampleRequest(id=1, name="x", preview=False)
+
+    response = await run_modify_plan(
+        request=request,
+        naming=EntityNaming(
+            entity_type="purchase_order",
+            entity_label="purchase order 1",
+            tool_name="modify_purchase_order",
+        ),
+        web_url_kind=None,
+        existing=None,
+        plan=plan,
+        has_get_endpoint=False,
+        cache_merge=CacheMerge(
+            cache=cast(TypedCacheEngine, object()),
+            refetch_for_merge=fake_refetch,
+        ),
+    )
+
+    # Modify response still reports success — merge is best-effort.
+    assert response.is_preview is False
+    assert response.actions[0].succeeded is True
+
+
+@pytest.mark.asyncio
+async def test_run_modify_plan_preview_does_not_merge(monkeypatch):
+    """``preview=True`` must short-circuit before the cache merge — the
+    cache should never observe a planned-but-not-applied change.
+    Structural guarantee via the early return at the preview gate;
+    pinned here so a future refactor can't move the merge above it.
+    """
+    call_count = {"merge": 0, "refetch": 0}
+
+    async def fake_merge(_cache, _spec, _objs):
+        call_count["merge"] += 1
+
+    monkeypatch.setattr("katana_mcp.typed_cache.sync.merge_filtered_fetch", fake_merge)
+
+    async def fake_apply():
+        return None
+
+    async def fake_refetch(_eid: int):
+        call_count["refetch"] += 1
+        return object()
+
+    plan = [ActionSpec(operation="add_row", target_id=1, apply=fake_apply, verify=None)]
+    request = _SampleRequest(id=1, name="x", preview=True)
+
+    response = await run_modify_plan(
+        request=request,
+        naming=EntityNaming(
+            entity_type="purchase_order",
+            entity_label="purchase order 1",
+            tool_name="modify_purchase_order",
+        ),
+        web_url_kind=None,
+        existing=None,
+        plan=plan,
+        has_get_endpoint=False,
+        cache_merge=CacheMerge(
+            cache=cast(TypedCacheEngine, object()),
+            refetch_for_merge=fake_refetch,
+        ),
+    )
+
+    assert response.is_preview is True
+    assert call_count == {"merge": 0, "refetch": 0}
+
+
+@pytest.mark.asyncio
+async def test_run_modify_plan_refetch_related_fans_out_to_related_specs(monkeypatch):
+    """When a tool wires ``refetch_related``, the dispatcher refetches and
+    merges each related spec's rows after the parent merge. Closes the
+    MO recipe-row gap: ``MANUFACTURING_ORDER_SPEC.related_specs`` points
+    at ``manufacturing_order_recipe_row`` (separate endpoint, not
+    embedded in the MO parent fetch).
+    """
+    merges: list[str] = []
+
+    async def fake_merge(_cache, spec, attrs_objs):
+        merges.append(f"{spec.entity_key}:{len(list(attrs_objs))}")
+
+    monkeypatch.setattr("katana_mcp.typed_cache.sync.merge_filtered_fetch", fake_merge)
+
+    async def fake_apply():
+        return None
+
+    async def fake_refetch_parent(_eid: int):
+        return object()  # parent attrs (content irrelevant for this test)
+
+    async def fake_refetch_recipe_rows(_eid: int):
+        return [object(), object()]  # two recipe rows
+
+    plan = [ActionSpec(operation="add_row", target_id=1, apply=fake_apply, verify=None)]
+    request = _SampleRequest(id=1, name="x", preview=False)
+
+    await run_modify_plan(
+        request=request,
+        naming=EntityNaming(
+            entity_type="manufacturing_order",
+            entity_label="manufacturing order 1",
+            tool_name="modify_manufacturing_order",
+        ),
+        web_url_kind=None,
+        existing=None,
+        plan=plan,
+        has_get_endpoint=False,
+        cache_merge=CacheMerge(
+            cache=cast(TypedCacheEngine, object()),
+            refetch_for_merge=fake_refetch_parent,
+            refetch_related=(
+                ("manufacturing_order_recipe_row", fake_refetch_recipe_rows),
+            ),
+        ),
+    )
+
+    # Parent merged first, then related rows. Two recipe rows on the
+    # related-spec merge call.
+    assert merges == ["manufacturing_order:1", "manufacturing_order_recipe_row:2"]
+
+
+@pytest.mark.asyncio
+async def test_run_modify_plan_refetch_related_error_does_not_break(monkeypatch):
+    """A failure inside one ``refetch_related`` refetcher logs and is
+    skipped — it shouldn't roll back the parent merge or the modify
+    response.
+    """
+    merges: list[str] = []
+
+    async def fake_merge(_cache, spec, _objs):
+        merges.append(spec.entity_key)
+
+    monkeypatch.setattr("katana_mcp.typed_cache.sync.merge_filtered_fetch", fake_merge)
+
+    async def fake_apply():
+        return None
+
+    async def fake_refetch_parent(_eid: int):
+        return object()
+
+    async def bad_refetch_related(_eid: int):
+        raise RuntimeError("recipe-row fetch failed")
+
+    plan = [ActionSpec(operation="add_row", target_id=1, apply=fake_apply, verify=None)]
+    request = _SampleRequest(id=1, name="x", preview=False)
+
+    response = await run_modify_plan(
+        request=request,
+        naming=EntityNaming(
+            entity_type="manufacturing_order",
+            entity_label="manufacturing order 1",
+            tool_name="modify_manufacturing_order",
+        ),
+        web_url_kind=None,
+        existing=None,
+        plan=plan,
+        has_get_endpoint=False,
+        cache_merge=CacheMerge(
+            cache=cast(TypedCacheEngine, object()),
+            refetch_for_merge=fake_refetch_parent,
+            refetch_related=(("manufacturing_order_recipe_row", bad_refetch_related),),
+        ),
+    )
+
+    # Parent merge still fired; related merge skipped but no exception
+    # bubbled up. Modify response itself still succeeds.
+    assert merges == ["manufacturing_order"]
+    assert response.is_preview is False

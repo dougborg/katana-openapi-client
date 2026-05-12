@@ -34,6 +34,7 @@ from katana_mcp.tools._modification import (
 )
 from katana_mcp.tools._modification_dispatch import (
     ActionSpec,
+    EntityNaming,
     has_any_subpayload,
     make_patch_apply,
     run_delete_plan,
@@ -983,14 +984,19 @@ async def _modify_stock_transfer_impl(
 
     return await run_modify_plan(
         request=request,
-        entity_type="stock_transfer",
-        entity_label=f"stock transfer {request.id}",
-        tool_name="modify_stock_transfer",
+        naming=EntityNaming(
+            entity_type="stock_transfer",
+            entity_label=f"stock transfer {request.id}",
+            tool_name="modify_stock_transfer",
+        ),
         web_url_kind="stock_transfer",
         existing=None,
         plan=plan,
         # Katana exposes no GET /stock_transfers/{id}; ``existing=None`` is
         # the steady state, not a fetch failure — suppress the warning.
+        # The same lack of GET means we can't refetch for cache merge
+        # either — stock_transfers cache stays stale on modify until the
+        # next sync window.
         has_get_endpoint=False,
     )
 

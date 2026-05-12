@@ -53,9 +53,15 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    # ``TypedCacheEngine`` is the runtime type of ``CacheMerge.cache``.
+    # Top-level import would cycle through tool code; the ``TYPE_CHECKING``
+    # guard keeps IDE / pyright accurate without runtime overhead.
+    from katana_mcp.typed_cache import TypedCacheEngine
 
 from katana_mcp.logging import get_logger
 from katana_mcp.tools._derived_fields import (
@@ -87,6 +93,77 @@ ApplyCallable = Callable[[], Awaitable[Any]]
 # return ``(False, snapshot)`` rather than raising — the action itself
 # succeeded; the caller just needs the divergence visible.
 VerifyCallable = Callable[[Any], Awaitable[tuple[bool, dict[str, Any] | None]]]
+
+
+@dataclass(frozen=True)
+class EntityNaming:
+    """Entity-identifying strings used by ``run_modify_plan``.
+
+    Bundled into one record to keep ``run_modify_plan`` under its
+    8-argument PLR0913 budget after ``cache_merge`` was added. The three
+    strings move together — every per-tool impl computes them at the same
+    time. ``run_delete_plan`` was deliberately left with flat kwargs —
+    it doesn't take ``cache_merge`` so it stays under budget without the
+    bundle; a future migration for consistency is tracked separately.
+
+    - ``entity_type``: stable machine-readable tag (matches a key in
+      ``ENTITY_SPECS`` when the entity is cached). Used for the cache
+      merge spec lookup and as the response's ``entity_type`` field.
+    - ``entity_label``: human-readable noun including the id
+      (e.g. ``"purchase order 42"``). Used in messages and warnings.
+    - ``tool_name``: the calling tool's name (e.g.
+      ``"modify_purchase_order"``). Used in the manual-revert hint in
+      failure messages.
+    """
+
+    entity_type: str
+    entity_label: str
+    tool_name: str
+
+
+@dataclass(frozen=True)
+class CacheMerge:
+    """Plumbing for end-of-plan typed-cache write-through.
+
+    Before this hook existed, ``run_modify_plan`` had no cache awareness —
+    every successful modify left the typed cache stale until the next sync
+    (2026-05-12 SRAM PO-reconciliation session, where ``get_variant_details``
+    returned pre-modification ``supplier_item_codes`` 10+ minutes after a
+    confirmed apply). With ``cache_merge`` wired, ``run_modify_plan``
+    re-fetches the parent entity after the plan succeeds and merges it into
+    the cache via ``merge_filtered_fetch`` — which does not advance the
+    watermark, see ``typed_cache/sync.py:536``. The same refetch naturally
+    captures server-side cascades (e.g. PO header ``expected_arrival_date``
+    → row ``arrival_date`` cascade).
+
+    Fields:
+
+    - ``cache`` — the ``TypedCacheEngine`` from ``services.typed_cache``.
+      Imported under ``TYPE_CHECKING`` to avoid a top-level import cycle
+      through tool code; the annotation resolves at type-check time.
+    - ``refetch_for_merge(id)`` — returns the post-state parent attrs.
+      ``merge_filtered_fetch`` only writes through what the parent's
+      ``EntitySpec`` knows about: the parent row itself plus any nested
+      children declared via ``child_cls`` / ``rows_field`` (PO/SO rows are
+      embedded). Anything the spec lists in ``related_specs`` (separate
+      endpoints — MO recipe rows, PO/SO sibling row-watermarks) is NOT
+      covered by this single fetch.
+    - ``refetch_related`` — optional list of ``(entity_key, refetcher)``
+      tuples for any ``related_specs`` that need their own refetch after
+      a modify. Currently used by ``modify_manufacturing_order`` to
+      refresh recipe rows (separate ``/manufacturing_order_recipe_rows``
+      endpoint, not embedded in the MO GET response). Each refetcher
+      takes the parent entity id and returns the list of related-spec
+      attrs to merge.
+
+    Tools that lack a GET-by-id endpoint (stock_transfers) simply omit
+    ``cache_merge`` entirely — their cache stays stale on modify until
+    the next sync window.
+    """
+
+    cache: TypedCacheEngine
+    refetch_for_merge: Callable[[int], Awaitable[Any | None]]
+    refetch_related: tuple[tuple[str, Callable[[int], Awaitable[list[Any]]]], ...] = ()
 
 
 @dataclass
@@ -594,13 +671,12 @@ def summarize_delete_outcome(
 async def run_modify_plan(
     *,
     request: ConfirmableRequest,
-    entity_type: str,
-    entity_label: str,
-    tool_name: str,
+    naming: EntityNaming,
     web_url_kind: EntityKind | None,
     existing: Any | None,
     plan: list[ActionSpec],
     has_get_endpoint: bool = True,
+    cache_merge: CacheMerge | None = None,
 ) -> ModificationResponse:
     """Wrap a built plan in a preview-or-execute :class:`ModificationResponse`.
 
@@ -612,11 +688,8 @@ async def run_modify_plan(
 
     Args:
         request: The Pydantic request — must have ``id`` and ``preview`` fields.
-        entity_type: Stable machine-readable type tag (e.g. ``"purchase_order"``).
-        entity_label: Human-readable label including the id (e.g. ``"purchase
-            order 42"``). Used in messages and warnings.
-        tool_name: Tool name for the manual-revert hint in the failure path
-            (e.g. ``"modify_purchase_order"``).
+        naming: ``EntityNaming(entity_type, entity_label, tool_name)`` — see
+            its docstring for what each field carries.
         web_url_kind: Argument to :func:`katana_web_url`. Pass ``None`` for
             entities without a Katana web page (e.g. services); the response's
             ``katana_url`` will be ``None``.
@@ -628,7 +701,15 @@ async def run_modify_plan(
             warning about. ``False`` when the entity has no GET-by-id (e.g.
             stock transfer) and ``existing=None`` is the expected steady
             state — suppresses the spurious "could not fetch" warning.
+        cache_merge: When provided, the dispatcher refetches the parent
+            after the plan succeeds and merges it into the typed cache so
+            ``@cache_read`` tools see fresh data without ``rebuild_cache``.
+            Omit for tools without a GET-by-id (stock_transfers) — the
+            cache stays stale on modify until the next sync window.
     """
+    entity_type = naming.entity_type
+    entity_label = naming.entity_label
+    tool_name = naming.tool_name
     katana_url = katana_web_url(web_url_kind, request.id) if web_url_kind else None
     warnings = (
         [
@@ -702,6 +783,42 @@ async def run_modify_plan(
         actions, len(plan), entity_label=entity_label, tool_name=tool_name
     )
 
+    # Bug #2 (2026-05-12 SRAM session): the typed cache went stale after
+    # every modify because nothing wrote the post-state through. The next
+    # ``@cache_read`` (e.g. ``get_variant_details``, ``list_purchase_orders``)
+    # served pre-modification rows until a manual ``rebuild_cache`` ran.
+    #
+    # When the tool wires up ``cache`` + ``refetch_for_merge``, do a single
+    # post-apply parent fetch and merge it into the cache via the existing
+    # ``merge_filtered_fetch`` helper. The same fetch naturally captures
+    # server-side cascades (Bug #5 header-date → row-dates) — the cache
+    # reflects what Katana actually has, not what the agent thinks it has.
+    #
+    # Best-effort: failures are logged but do not change the tool's success
+    # response — the API write itself succeeded; cache staleness is
+    # recoverable on the next ensure_synced cycle.
+    if (
+        cache_merge is not None
+        and actions
+        and not any(a.succeeded is False for a in actions)
+    ):
+        try:
+            await _post_apply_cache_merge(
+                cache_merge=cache_merge,
+                entity_type=entity_type,
+                entity_id=request.id,
+            )
+        except asyncio.CancelledError:
+            # Cooperative cancellation (request timeout, shutdown) must
+            # propagate — never swallow it in the best-effort handler.
+            raise
+        except Exception as exc:
+            logger.warning(
+                f"Post-apply cache merge for {entity_label} failed: "
+                f"{type(exc).__name__}: {exc}. Cache may be stale until "
+                f"next sync — does not affect the API write."
+            )
+
     return ModificationResponse(
         entity_type=entity_type,
         entity_id=request.id,
@@ -713,6 +830,73 @@ async def run_modify_plan(
         katana_url=katana_url,
         message=message,
     )
+
+
+async def _post_apply_cache_merge(
+    *,
+    cache_merge: CacheMerge,
+    entity_type: str,
+    entity_id: int,
+) -> None:
+    """Re-fetch the modified entity from Katana and merge into the typed cache.
+
+    Looks up the ``EntitySpec`` by ``entity_type`` in ``ENTITY_SPECS`` —
+    entity types that aren't cached (no spec) skip silently. Returns
+    quietly if the parent refetch yields no entity (deleted, race, etc.).
+
+    For entities whose ``EntitySpec.related_specs`` reference data at
+    separate API endpoints (MO recipe rows, sibling row-watermarks), the
+    caller must wire ``CacheMerge.refetch_related`` to refresh those too
+    — the parent fetch alone doesn't cover them. See
+    ``CacheMerge.refetch_related`` for the contract.
+    """
+    # Late import: ``typed_cache`` imports the API client which imports
+    # tool code in a few places — top-level import would loop. The
+    # function-level import resolves the cycle cleanly.
+    from katana_mcp.typed_cache.sync import ENTITY_SPECS, merge_filtered_fetch
+
+    spec = ENTITY_SPECS.get(entity_type)
+    if spec is None:
+        return  # entity not cached — nothing to merge
+
+    parent = await cache_merge.refetch_for_merge(entity_id)
+    if parent is None:
+        return  # fetch returned nothing (e.g., the entity was deleted)
+
+    await merge_filtered_fetch(cache_merge.cache, spec, [parent])
+
+    # Fan out to related-spec refetches for entities whose children live
+    # at separate API endpoints (MO recipe rows; PO/SO sibling row-
+    # watermarks). Look up via the parent spec's ``related_specs`` —
+    # sibling row specs are NOT keyed in the top-level ``ENTITY_SPECS``
+    # registry (that one is for top-level entity types only). Each
+    # related refetcher is awaited independently — a failure on one
+    # doesn't block the others, and the parent merge above already
+    # succeeded.
+    related_by_key = {rs.entity_key: rs for rs in spec.related_specs}
+    for related_key, refetcher in cache_merge.refetch_related:
+        related_spec = related_by_key.get(related_key)
+        if related_spec is None:
+            logger.warning(
+                f"CacheMerge.refetch_related references {related_key!r} but "
+                f"it isn't in {entity_type!r}'s related_specs — skipping. "
+                f"Tool wiring is misconfigured."
+            )
+            continue
+        try:
+            related_rows = await refetcher(entity_id)
+        except asyncio.CancelledError:
+            # Propagate cancellation — see the outer handler's note.
+            raise
+        except Exception as exc:
+            logger.warning(
+                f"Refetch of related {related_key!r} for {entity_type} "
+                f"{entity_id} failed: {type(exc).__name__}: {exc}. "
+                f"Related cache table may be stale until next sync."
+            )
+            continue
+        if related_rows:
+            await merge_filtered_fetch(cache_merge.cache, related_spec, related_rows)
 
 
 async def run_delete_plan(

@@ -32,6 +32,8 @@ from katana_mcp.tools._modification import (
 )
 from katana_mcp.tools._modification_dispatch import (
     ActionSpec,
+    CacheMerge,
+    EntityNaming,
     has_any_subpayload,
     make_delete_apply,
     make_patch_apply,
@@ -2351,6 +2353,36 @@ async def _fetch_purchase_order_row(
     )
 
 
+async def _fetch_po_row_attrs_for_merge(
+    services: Any, purchase_order_id: int
+) -> list[Any]:
+    """Return raw attrs ``PurchaseOrderRow`` list for the cache merge fan-out.
+
+    The PO parent fetch (PATCH or GET /purchase_orders/{id}) returns
+    rows embedded in ``purchase_order_rows`` — but Katana hides
+    soft-deleted rows from that nested view even with
+    ``include_deleted=true`` at the parent level (the flag only affects
+    top-level inclusion). The sibling endpoint ``/purchase_order_rows``
+    exposes ``include_deleted`` for its own scope, so the typed-cache
+    schema syncs rows independently to catch tombstones. Mirror that
+    here for post-apply merge: a ``delete_row_id`` action would
+    otherwise land at Katana but leave the cached row as a ghost until
+    the next watermark sync.
+    """
+    from katana_public_api_client.api.purchase_order_row import (
+        get_all_purchase_order_rows,
+    )
+    from katana_public_api_client.utils import unwrap_data
+
+    response = await get_all_purchase_order_rows.asyncio_detailed(
+        client=services.client,
+        purchase_order_id=purchase_order_id,
+        include_deleted=True,
+        limit=250,
+    )
+    return unwrap_data(response, default=[])
+
+
 async def _fetch_po_additional_cost_row(
     services: Any, row_id: int
 ) -> PurchaseOrderAdditionalCostRow | None:
@@ -2824,12 +2856,30 @@ async def _modify_purchase_order_impl(
 
     return await run_modify_plan(
         request=request,
-        entity_type="purchase_order",
-        entity_label=f"purchase order {request.id}",
-        tool_name="modify_purchase_order",
+        naming=EntityNaming(
+            entity_type="purchase_order",
+            entity_label=f"purchase order {request.id}",
+            tool_name="modify_purchase_order",
+        ),
         web_url_kind="purchase_order",
         existing=existing_po,
         plan=plan,
+        cache_merge=CacheMerge(
+            cache=services.typed_cache,
+            refetch_for_merge=lambda eid: _fetch_purchase_order_attrs(services, eid),
+            # Soft-deleted rows are hidden from the parent fetch even
+            # when ``include_deleted=true`` is set on the PO endpoint
+            # (the flag only controls top-level inclusion). Fan out to
+            # the sibling ``/purchase_order_rows`` endpoint to capture
+            # tombstones — mirrors the typed-cache row-watermark
+            # rationale documented on ``_PURCHASE_ORDER_ROW_SPEC``.
+            refetch_related=(
+                (
+                    "purchase_order_row",
+                    lambda eid: _fetch_po_row_attrs_for_merge(services, eid),
+                ),
+            ),
+        ),
     )
 
 

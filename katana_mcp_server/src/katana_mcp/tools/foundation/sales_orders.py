@@ -34,6 +34,8 @@ from katana_mcp.tools._modification import (
 )
 from katana_mcp.tools._modification_dispatch import (
     ActionSpec,
+    CacheMerge,
+    EntityNaming,
     has_any_subpayload,
     make_delete_apply,
     make_patch_apply,
@@ -1605,6 +1607,34 @@ async def _fetch_so_row(services: Any, row_id: int) -> SalesOrderRow | None:
     )
 
 
+async def _fetch_so_row_attrs_for_merge(
+    services: Any, sales_order_id: int
+) -> list[Any]:
+    """Return raw attrs ``SalesOrderRow`` list for the cache merge fan-out.
+
+    Same rationale as the PO row fetcher: Katana hides soft-deleted SO
+    rows from the parent fetch even with ``include_deleted=true`` at
+    the parent level. The sibling ``/sales_order_rows`` endpoint
+    exposes ``include_deleted`` for its own scope, so the typed-cache
+    schema syncs rows independently to catch tombstones (see
+    ``_SALES_ORDER_ROW_SPEC`` in ``typed_cache/sync.py``). Wire this
+    into ``CacheMerge.refetch_related`` so ``modify_sales_order`` row
+    deletions write through to the cache immediately.
+    """
+    from katana_public_api_client.api.sales_order_row import (
+        get_all_sales_order_rows,
+    )
+    from katana_public_api_client.utils import unwrap_data
+
+    response = await get_all_sales_order_rows.asyncio_detailed(
+        client=services.client,
+        sales_order_ids=[sales_order_id],
+        include_deleted=True,
+        limit=250,
+    )
+    return unwrap_data(response, default=[])
+
+
 async def _fetch_so_fulfillment(
     services: Any, fulfillment_id: int
 ) -> SalesOrderFulfillment | None:
@@ -2297,12 +2327,29 @@ async def _modify_sales_order_impl(
 
     return await run_modify_plan(
         request=request,
-        entity_type="sales_order",
-        entity_label=f"sales order {request.id}",
-        tool_name="modify_sales_order",
+        naming=EntityNaming(
+            entity_type="sales_order",
+            entity_label=f"sales order {request.id}",
+            tool_name="modify_sales_order",
+        ),
         web_url_kind="sales_order",
         existing=existing_so,
         plan=plan,
+        cache_merge=CacheMerge(
+            cache=services.typed_cache,
+            refetch_for_merge=lambda eid: _fetch_sales_order_attrs(services, eid),
+            # Soft-deleted rows are hidden from the parent fetch even
+            # with ``include_deleted=true`` (parent-scope only). Fan
+            # out to the sibling ``/sales_order_rows`` endpoint with
+            # ``include_deleted=True`` to catch tombstones — mirrors
+            # ``_SALES_ORDER_ROW_SPEC``'s row-watermark rationale.
+            refetch_related=(
+                (
+                    "sales_order_row",
+                    lambda eid: _fetch_so_row_attrs_for_merge(services, eid),
+                ),
+            ),
+        ),
     )
 
 
