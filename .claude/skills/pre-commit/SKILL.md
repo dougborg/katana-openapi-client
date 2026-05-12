@@ -46,7 +46,7 @@ git diff --cached
 Look for:
 
 - Generated-file edits (`api/**/*.py`, `models/**/*.py`, `client.py`) without spec change
-- Anti-patterns from `CLAUDE.md` "Known Pitfalls" and "Anti-Patterns to Avoid"
+- Anti-patterns from `CLAUDE.md` "Known Pitfalls" and `katana_public_api_client/docs/guide.md` "Response Handling" section
 
 ### 3. Verify test coverage
 
