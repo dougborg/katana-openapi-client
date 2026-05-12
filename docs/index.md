@@ -15,18 +15,19 @@ This repository is a workspace with three published packages plus a shared MCP s
 For installation, current version, and a quick-start example for each, follow the link
 to the package README:
 
-- **[Python client](../katana_public_api_client/docs/README.md)** —
+- **[Python client](client/README.md)** —
   [`katana-openapi-client`](https://pypi.org/project/katana-openapi-client/) on PyPI.
   Sync + async API, transport-layer retries / rate-limiting / pagination, full pydantic
   models. Generated from `docs/katana-openapi.yaml`.
-- **[MCP server](../katana_mcp_server/README.md)** —
+- **[MCP server](mcp-server/index.md)** —
   [`katana-mcp-server`](https://pypi.org/project/katana-mcp-server/) on PyPI. Model
   Context Protocol server that wraps the Python client with high-level tools (search,
   modify, fulfill, verify, plus preview/apply pairs for write operations) for use with
   Claude Desktop, Cursor, and other MCP hosts.
-- **[TypeScript client](../packages/katana-client/README.md)** —
-  [`katana-openapi-client`](https://www.npmjs.com/package/katana-openapi-client) on npm.
-  Async API with the same resilience guarantees as the Python client; works in browsers.
+- **[TypeScript client](https://github.com/dougborg/katana-openapi-client/blob/main/packages/katana-client/README.md)**
+  — [`katana-openapi-client`](https://www.npmjs.com/package/katana-openapi-client) on
+  npm. Async API with the same resilience guarantees as the Python client; works in
+  browsers. (No docsite mirror — TS package docs live alongside the package source.)
 
 The
 [root `README.md`](https://github.com/dougborg/katana-openapi-client/blob/main/README.md)

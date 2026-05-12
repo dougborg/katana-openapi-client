@@ -143,7 +143,10 @@ The session-default workflow:
 
 1. **Make changes** → no validation.
 1. **Iterate** → `uv run poe quick-check` (Tier 1).
-1. **Commit** → `uv run poe agent-check` (Tier 2, also enforced by pre-commit).
+1. **Commit** → run `uv run poe agent-check` explicitly (Tier 2 — adds `ty` typecheck).
+   Pre-commit fires on the commit but only runs ruff format / ruff check / mdformat /
+   yamllint + `uv run poe test` (no typecheck), so it's not a substitute for Tier 2 if
+   you've changed type-relevant code.
 1. **Open PR** → `uv run poe check` (Tier 3) — **REQUIRED**.
 1. **Request review** → `uv run poe full-check` (Tier 4) if docs changed.
 

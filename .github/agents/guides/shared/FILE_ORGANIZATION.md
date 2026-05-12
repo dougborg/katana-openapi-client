@@ -225,8 +225,9 @@ from katana_public_api_client.api.sales_order import create_sales_order
 # Generated attrs models
 from katana_public_api_client.models import Product, SalesOrder
 
-# Generated pydantic models
-from katana_public_api_client.models_pydantic import PydanticProduct
+# Generated pydantic models — same schema names as the OpenAPI spec
+# (no `Pydantic` prefix; the namespace alone disambiguates from `models`)
+from katana_public_api_client.models_pydantic import Product, SalesOrder
 
 # Client types — use client_types, NOT types (avoids stdlib conflict)
 from katana_public_api_client.client_types import Response, UNSET

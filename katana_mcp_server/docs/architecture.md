@@ -9,10 +9,10 @@ not the encyclopedia.
 The MCP server exposes Katana Manufacturing ERP to AI assistants via the
 [Model Context Protocol](https://modelcontextprotocol.io). It is built on
 [FastMCP](https://github.com/jlowin/fastmcp) and consumes the Python
-[`katana-openapi-client`](../../katana_public_api_client/docs/README.md) package for
-HTTP. Resilience (retries, rate-limiting, smart pagination) lives in the client's
-transport layer — the MCP server inherits all of it for free, and **must not** wrap API
-calls with its own retry / rate-limit logic.
+[`katana-openapi-client`](../client/README.md) package for HTTP. Resilience (retries,
+rate-limiting, smart pagination) lives in the client's transport layer — the MCP server
+inherits all of it for free, and **must not** wrap API calls with its own retry /
+rate-limit logic.
 
 ## Layered structure
 
@@ -223,14 +223,13 @@ class — it pollutes the published client package for third-party users (see CL
 
 ## Client integration
 
-The MCP server depends on
-[`katana-openapi-client`](../../katana_public_api_client/docs/README.md) as a published
+The MCP server depends on [`katana-openapi-client`](../client/README.md) as a published
 package. All HTTP behavior — retries, rate limiting, smart pagination, observability
 hooks — lives in that client's transport layer (see
-[client ADR-0001](../../katana_public_api_client/docs/adr/0001-transport-layer-resilience.md)).
-The MCP server treats the client as a black box and **must not** wrap API methods with
-its own retry / rate-limit / pagination logic; doing so double-applies behavior and can
-introduce subtle desync between layers.
+[client ADR-0001](../client/adr/0001-transport-layer-resilience.md)). The MCP server
+treats the client as a black box and **must not** wrap API methods with its own retry /
+rate-limit / pagination logic; doing so double-applies behavior and can introduce subtle
+desync between layers.
 
 When a bug surfaces in the MCP server but originates in client-generated code (attrs,
 pydantic, `from_attrs`, generator output), fix it at the client/generator layer. The
@@ -274,10 +273,10 @@ This doc is the map; the deep-dives live alongside the code:
   (`include_archived` / `include_deleted` + `is_archived` / `is_deleted` derived bools),
   cross-entity ID-collision pitfall, and the API-pydantic / `Cached<Entity>` separation
   contract.
-- [Spec Authoring](../../katana_public_api_client/docs/spec-authoring.md) — OpenAPI 3.1
-  conventions, the generator/spec regen lockstep, breaking-change marker rules, and the
-  "fix bugs at the client/generator layer" rule that decides where a sync.py symptom
-  should actually be fixed.
+- [Spec Authoring](../client/spec-authoring.md) — OpenAPI 3.1 conventions, the
+  generator/spec regen lockstep, breaking-change marker rules, and the "fix bugs at the
+  client/generator layer" rule that decides where a sync.py symptom should actually be
+  fixed.
 
 ## References
 
@@ -285,10 +284,11 @@ The canonical, current list of MCP server ADRs is the [ADR index](adr/README.md)
 section does not enumerate (drift surface). Adjacent references that aren't in the ADR
 index:
 
-- [Client ADR-0001](../../katana_public_api_client/docs/adr/0001-transport-layer-resilience.md)
-  — transport-layer resilience pattern (read this once if you've never touched the
-  client retry/pagination layer)
-- [CLAUDE.md](../../CLAUDE.md) — repo-level conventions for AI assistants
+- [Client ADR-0001](../client/adr/0001-transport-layer-resilience.md) — transport-layer
+  resilience pattern (read this once if you've never touched the client retry/pagination
+  layer)
+- [CLAUDE.md](https://github.com/dougborg/katana-openapi-client/blob/main/CLAUDE.md) —
+  repo-level conventions for AI assistants
 - [Development guide](development.md) — local hot-reload workflow
 - [Deployment guide](deployment.md) — production deployment
 
