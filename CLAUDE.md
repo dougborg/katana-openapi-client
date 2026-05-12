@@ -182,6 +182,18 @@ fits topically — to one of the linked docs below if it's subsystem-scoped, or 
   worktree causes tool noise (e.g., `ty` scanning into it), exclude the path in the
   tool's config — never `rm -rf`.
 
+- **No hand-maintained drift-prone references in docs.** Versions, endpoint counts, tool
+  counts, ADR enumerations, "coming soon" callouts, and dated footers all drift the
+  moment they're written. Use shields.io badges for versions, link to the ADR index
+  `README.md` files instead of listing ADRs by name, link to `katana://help/tools`
+  instead of enumerating tools, and link to the
+  [project board](https://github.com/users/dougborg/projects/5) instead of citing issue
+  numbers as roadmap markers. Full rule + reasoning lives in
+  [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) "No hand-maintained drift-prone
+  references". This is the second time the README has gone significantly stale (#401
+  sweep → #569 sweep) — the structural fix is to remove the drift surface, not to be
+  more diligent about updating it.
+
 ### Topical — load the linked doc when working in that area
 
 Each row keys the topic and lists the most-greppable terms inside, so a `grep` of this
