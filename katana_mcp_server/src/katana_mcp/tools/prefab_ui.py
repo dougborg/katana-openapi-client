@@ -1140,7 +1140,7 @@ def build_inventory_check_ui(
             # Per-location breakdown — only when stock is actually split
             # across more than one warehouse (single-location case stays
             # quiet). Resolves #529's headline workflow ("where IS the
-            # demo bike?") in the single-SKU card path that
+            # demo item?") in the single-SKU card path that
             # check_inventory's most-common usage hits.
             if len(by_location) > 1:
                 Separator()

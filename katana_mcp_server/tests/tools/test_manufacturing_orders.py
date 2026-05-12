@@ -621,8 +621,8 @@ async def test_get_manufacturing_order_recipe():
         return_value={
             101: {
                 "id": 101,
-                "sku": "FORK-001",
-                "display_name": "Fox Float / 36mm / Black",
+                "sku": "PART-001",
+                "display_name": "Acme Float / 36mm / Black",
             },
             102: {"id": 102, "sku": "BOLT-004", "display_name": "M5 Bolt / 12mm"},
         }
@@ -665,11 +665,11 @@ async def test_get_manufacturing_order_recipe():
 
     assert result.total_count == 2
     assert result.rows[0].id == 5001
-    assert result.rows[0].sku == "FORK-001"
+    assert result.rows[0].sku == "PART-001"
     # ``display_name`` is lifted from CachedVariant so each rendered row
     # carries the canonical Katana-UI-format name, matching every other
     # variant-displaying surface (search_items, check_inventory, variant card).
-    assert result.rows[0].display_name == "Fox Float / 36mm / Black"
+    assert result.rows[0].display_name == "Acme Float / 36mm / Black"
     assert result.rows[1].sku == "BOLT-004"
     assert result.rows[1].display_name == "M5 Bolt / 12mm"
 
@@ -1950,7 +1950,7 @@ async def test_list_blocking_ingredients_aggregates_by_variant(
     from tests.factories import make_manufacturing_order_recipe_row
 
     context, _, typed_cache = context_with_typed_cache
-    _stub_variant_cache(context, {500: "WHEEL-29"})
+    _stub_variant_cache(context, {500: "WIDGET-29"})
 
     await seed_cache(
         typed_cache,
@@ -1995,7 +1995,7 @@ async def test_list_blocking_ingredients_aggregates_by_variant(
     assert result.by_variant is not None and len(result.by_variant) == 1
     rollup = result.by_variant[0]
     assert rollup.variant_id == 500
-    assert rollup.sku == "WHEEL-29"
+    assert rollup.sku == "WIDGET-29"
     assert rollup.affected_mo_count == 3
     assert sorted(rollup.affected_mo_order_nos) == ["MO-1", "MO-2", "MO-3"]
     assert rollup.total_remaining_quantity == 12.0
@@ -2014,7 +2014,7 @@ async def test_list_blocking_ingredients_excludes_in_stock_rows(
     from tests.factories import make_manufacturing_order_recipe_row
 
     context, _, typed_cache = context_with_typed_cache
-    _stub_variant_cache(context, {500: "WHEEL", 600: "FORK"})
+    _stub_variant_cache(context, {500: "WIDGET", 600: "PART"})
 
     await seed_cache(
         typed_cache,
@@ -2058,7 +2058,7 @@ async def test_list_blocking_ingredients_filters_by_status(
     from tests.factories import make_manufacturing_order_recipe_row
 
     context, _, typed_cache = context_with_typed_cache
-    _stub_variant_cache(context, {500: "WHEEL"})
+    _stub_variant_cache(context, {500: "WIDGET"})
 
     await seed_cache(
         typed_cache,
@@ -2101,7 +2101,7 @@ async def test_list_blocking_ingredients_excludes_deleted(
     from tests.factories import make_manufacturing_order_recipe_row
 
     context, _, typed_cache = context_with_typed_cache
-    _stub_variant_cache(context, {500: "WHEEL"})
+    _stub_variant_cache(context, {500: "WIDGET"})
 
     await seed_cache(
         typed_cache,
@@ -2149,7 +2149,7 @@ async def test_list_blocking_ingredients_groups_by_mo(
     from tests.factories import make_manufacturing_order_recipe_row
 
     context, _, typed_cache = context_with_typed_cache
-    _stub_variant_cache(context, {500: "WHEEL", 600: "FORK"})
+    _stub_variant_cache(context, {500: "WIDGET", 600: "PART"})
 
     await seed_cache(
         typed_cache,
@@ -2205,7 +2205,7 @@ async def test_list_blocking_ingredients_counts_mos_without_order_no(
     from tests.factories import make_manufacturing_order_recipe_row
 
     context, _, typed_cache = context_with_typed_cache
-    _stub_variant_cache(context, {500: "WHEEL"})
+    _stub_variant_cache(context, {500: "WIDGET"})
 
     mo_with_order_no = make_manufacturing_order(
         id=1, order_no="MO-NUMBERED", status="IN_PROGRESS"
@@ -2316,7 +2316,7 @@ async def test_list_blocking_ingredients_resolves_skus_only_for_kept_variants(
     from tests.factories import make_manufacturing_order_recipe_row
 
     context, _, typed_cache = context_with_typed_cache
-    _stub_variant_cache(context, {500: "WHEEL", 600: "FORK"})
+    _stub_variant_cache(context, {500: "WIDGET", 600: "PART"})
 
     await seed_cache(
         typed_cache,
@@ -2353,7 +2353,7 @@ async def test_list_blocking_ingredients_resolves_skus_only_for_kept_variants(
     # Only the higher-impact variant survives.
     assert result.by_variant is not None and len(result.by_variant) == 1
     assert result.by_variant[0].variant_id == 500
-    assert result.by_variant[0].sku == "WHEEL"
+    assert result.by_variant[0].sku == "WIDGET"
     # Catalog batch helper called exactly once with only the kept
     # variant ID — the dropped variant 600 never makes it to the catalog
     # cache, validating slice-then-resolve over fetch-then-trim.
@@ -2394,7 +2394,7 @@ async def test_list_blocking_ingredients_uses_filtered_fetch_without_global_sync
     )
 
     context, _, _typed_cache = context_with_typed_cache
-    _stub_variant_cache(context, {500: "WHEEL"})
+    _stub_variant_cache(context, {500: "WIDGET"})
 
     # Filtered recipe-row response varies by ``ingredient_availability``;
     # use a side_effect to dispatch by the kwarg the tool passes.

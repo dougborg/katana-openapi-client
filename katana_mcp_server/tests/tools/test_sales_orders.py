@@ -1332,7 +1332,7 @@ async def test_get_sales_order_enriches_row_sku_from_cache():
 
     # Cache returns a variant dict for variant_id 500; missing IDs are
     # absent from the result (per get_many_by_ids contract).
-    catalog = {500: {"id": 500, "sku": "BIKE-A", "display_name": "Bike A"}}
+    catalog = {500: {"id": 500, "sku": "WIDGET-A", "display_name": "Widget A"}}
 
     async def fake_get_many_by_ids(_entity_type, variant_ids, **_kw):
         return {vid: catalog[vid] for vid in variant_ids if vid in catalog}
@@ -1356,11 +1356,11 @@ async def test_get_sales_order_enriches_row_sku_from_cache():
     ):
         result = await _get_sales_order_impl(GetSalesOrderRequest(order_id=9), context)
 
-    assert result.rows[0].sku == "BIKE-A"  # cache hit
+    assert result.rows[0].sku == "WIDGET-A"  # cache hit
     # display_name is lifted from the same cache row, so each rendered
     # row carries the canonical Katana-UI name — matching the convention
     # used by every other variant-displaying surface.
-    assert result.rows[0].display_name == "Bike A"
+    assert result.rows[0].display_name == "Widget A"
     assert result.rows[1].sku is None  # cache miss
     assert result.rows[1].display_name is None  # cache miss → no name
 

@@ -54,7 +54,7 @@ absorbed.
 Each token becomes a prefix-match clause, ANDed:
 
 ```
-tokens = ["fox", "fork"]            →  "fox"* AND "fork"*
+tokens = ["acme", "part"]           →  "acme"* AND "part"*
 tokens = ["00", "7018", "581"]      →  "00"* AND "7018"* AND "581"*
 ```
 
@@ -258,10 +258,10 @@ surface live catalog only — and the kwargs are there for the rare exception (e
 
 ```python
 # Default: surface only live rows.
-variant = await catalog.get_by_sku("FOX-FORK-160")
+variant = await catalog.get_by_sku("PART-A1-160")
 
 # Opt in to archived parents (variant with archived product/material).
-variant = await catalog.get_by_sku("FOX-FORK-160", include_archived=True)
+variant = await catalog.get_by_sku("PART-A1-160", include_archived=True)
 
 # Opt in to soft-deleted customers.
 customer = await catalog.get_by_id(CachedCustomer, 42, include_deleted=True)
@@ -299,7 +299,7 @@ Reach for them when you change anything in `queries.py` or `fts.py`.
 
 ```python
 hits = await catalog.smart_search(CachedVariant, "710845916762")
-# → [CachedVariant(sku="FOX-FORK-FACTORY-29-160", registered_barcode="710845916762", ...)]
+# → [CachedVariant(sku="PART-A1-PRO-29-160", registered_barcode="710845916762", ...)]
 ```
 
 Tokenize: `["710845916762"]`. Match: `"710845916762"*`. Hits `variant_fts` via the
@@ -309,7 +309,7 @@ Tokenize: `["710845916762"]`. Match: `"710845916762"*`. Hits `variant_fts` via t
 
 ```python
 hits = await catalog.smart_search(CachedMaterial, "00.7018.581.003")
-# → [CachedMaterial(name="SRAM PG-1170 cassette", ...)]
+# → [CachedMaterial(name="Acme PG-1170 component", ...)]
 ```
 
 Tokenize: `["00", "7018", "581", "003"]`. Match:

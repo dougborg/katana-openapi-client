@@ -5,7 +5,7 @@ Pins the ``WireDatetime`` pydantic annotation in
 UTC before they reach the Katana attrs models, otherwise Katana's RFC
 3339 validator rejects the wire payload with a silent 422.
 
-Regression: 2026-05-12 SRAM PO-reconciliation session — 9 confirm clicks
+Regression: 2026-05-12 supplier PO-reconciliation session — 9 confirm clicks
 silently failed because ``arrival_date="2026-06-23T00:00:00"`` (naive)
 serialized as ``"2026-06-23T00:00:00"`` (no Z) and Katana refused the
 PATCH. Iframe error-handling (Bug #4 in the same session) hid the

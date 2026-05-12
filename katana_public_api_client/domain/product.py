@@ -265,7 +265,7 @@ class KatanaProduct(KatanaBaseModel):
             product.matches_search("knife")  # True
             product.matches_search("kitchen knife")  # True (multi-word)
             product.matches_search("knif")  # True (fuzzy)
-            product.matches_search("fork")  # False
+            product.matches_search("missing")  # False
             ```
         """
         from katana_public_api_client.helpers.search import score_match

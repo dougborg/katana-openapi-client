@@ -371,7 +371,7 @@ class TestBuildVariantDetailsUI:
             "sku": "SKU-001",
             "name": "Widget",
             "default_supplier_id": 1301979,
-            "default_supplier_name": "Enduro Bearings",
+            "default_supplier_name": "Acme Bearings",
         }
         app = build_variant_details_ui(variant)
         _assert_valid_prefab(app)
@@ -396,7 +396,7 @@ class TestBuildVariantDetailsUI:
             if isinstance(link.get("href"), str)
             and "/contacts/suppliers/" in link.get("href", "")
         ]
-        assert "Enduro Bearings" in supplier_link_contents
+        assert "Acme Bearings" in supplier_link_contents
 
     def test_supplier_renders_as_plain_text_when_id_missing(self):
         """With only ``default_supplier_name`` set (no id), the supplier
@@ -533,8 +533,8 @@ class TestBuildVariantDetailsUI:
             "id": 100,
             "sku": "SKU-001",
             "name": "Widget",
-            "display_name": "Enduro Bearings / 8mm",
-            "product_or_material_name": "Enduro Bearings",
+            "display_name": "Acme Bearings / 8mm",
+            "product_or_material_name": "Acme Bearings",
         }
         app = build_variant_details_ui(variant)
         _assert_valid_prefab(app)
@@ -1178,27 +1178,27 @@ class TestBuildBatchRecipeUpdateUI:
                     "manufacturing_order_id": 9999,
                     "recipe_row_id": 5001,
                     "variant_id": 100,
-                    "sku": "OLD-FORK",
+                    "sku": "OLD-PART",
                     "status": "pending",
-                    "group_label": "OLD-FORK → [NEW-FORK, AIR-SHAFT]",
+                    "group_label": "OLD-PART → [NEW-PART, INNER-PART]",
                 },
                 {
                     "op_type": "add",
                     "manufacturing_order_id": 9999,
                     "variant_id": 200,
-                    "sku": "NEW-FORK",
+                    "sku": "NEW-PART",
                     "planned_quantity_per_unit": 1.0,
                     "status": "pending",
-                    "group_label": "OLD-FORK → [NEW-FORK, AIR-SHAFT]",
+                    "group_label": "OLD-PART → [NEW-PART, INNER-PART]",
                 },
                 {
                     "op_type": "add",
                     "manufacturing_order_id": 9999,
                     "variant_id": 201,
-                    "sku": "AIR-SHAFT",
+                    "sku": "INNER-PART",
                     "planned_quantity_per_unit": 1.0,
                     "status": "pending",
-                    "group_label": "OLD-FORK → [NEW-FORK, AIR-SHAFT]",
+                    "group_label": "OLD-PART → [NEW-PART, INNER-PART]",
                 },
             ],
             "warnings": [],
@@ -1226,7 +1226,7 @@ class TestBuildBatchRecipeUpdateUI:
                     "op_type": "add",
                     "manufacturing_order_id": 9999,
                     "variant_id": 200,
-                    "sku": "NEW-FORK",
+                    "sku": "NEW-PART",
                     "planned_quantity_per_unit": 1.0,
                     "status": "success",
                     "group_label": "group1",
@@ -1275,11 +1275,11 @@ class TestBuildBatchRecipeUpdateUI:
                     "op_type": "add",
                     "manufacturing_order_id": 9999,
                     "variant_id": 200,
-                    "sku": "NEW-FORK",
+                    "sku": "NEW-PART",
                     "planned_quantity_per_unit": 1.0,
                     "status": "skipped",
                     "error": "Old variant not present in this MO",
-                    "group_label": "OLD-FORK → [NEW-FORK]",
+                    "group_label": "OLD-PART → [NEW-PART]",
                 },
             ],
             "warnings": ["MO 9999: old variant 100 not in recipe — skipping"],
@@ -1307,11 +1307,11 @@ class TestBuildBatchRecipeUpdateUI:
                     "op_type": "add",
                     "manufacturing_order_id": 9999,
                     "variant_id": 200,
-                    "sku": "NEW-FORK",
-                    "display_name": "Fox Float / 36mm / Black",
+                    "sku": "NEW-PART",
+                    "display_name": "Acme Float / 36mm / Black",
                     "planned_quantity_per_unit": 1.0,
                     "status": "pending",
-                    "group_label": "OLD-FORK → [NEW-FORK]",
+                    "group_label": "OLD-PART → [NEW-PART]",
                 },
             ],
             "warnings": [],
@@ -1324,9 +1324,9 @@ class TestBuildBatchRecipeUpdateUI:
         # canonical display name on its ``item`` column.
         state_rows = envelope["state"]["rows"]
         assert len(state_rows) == 1
-        assert state_rows[0]["item"] == "Fox Float / 36mm / Black"
+        assert state_rows[0]["item"] == "Acme Float / 36mm / Black"
         # SKU still flows through as its own column for ops/scripts.
-        assert state_rows[0]["sku"] == "NEW-FORK"
+        assert state_rows[0]["sku"] == "NEW-PART"
 
     def test_rows_fall_back_to_sku_when_display_name_absent(self):
         """Backward-compat: ops emitted by older code paths (or test fixtures

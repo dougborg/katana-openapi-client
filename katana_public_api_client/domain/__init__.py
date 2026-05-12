@@ -17,7 +17,7 @@ Example:
 
     async with KatanaClient() as client:
         # Helpers return domain models
-        variants = await client.variants.search("fox fork", limit=10)
+        variants = await client.variants.search("part a1", limit=10)
 
         # Use business methods
         for v in variants:

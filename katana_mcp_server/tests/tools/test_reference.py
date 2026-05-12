@@ -164,11 +164,15 @@ class TestListSuppliers:
 
     @pytest.mark.asyncio
     async def test_query_uses_smart_search_not_get_all(self):
-        matches = [_supplier(id=7, name="SRAM", email="kemmett@sram.com")]
+        matches = [
+            _supplier(
+                id=7, name="Acme Components", email="contact@acme-components.example"
+            )
+        ]
         context, lifespan_ctx = _make_context(smart_search=matches, get_all=[])
 
         result = await list_suppliers(
-            query="SRAM", limit=10, format="json", context=context
+            query="Acme Components", limit=10, format="json", context=context
         )
 
         # Query path must use FTS, not full-list dump
@@ -177,13 +181,13 @@ class TestListSuppliers:
         smart_call = lifespan_ctx.typed_cache.catalog.smart_search.await_args
         # First positional arg is the Cached* class, second is the query.
         assert smart_call.args[0] is CachedSupplier
-        assert smart_call.args[1] == "SRAM"
+        assert smart_call.args[1] == "Acme Components"
         assert smart_call.kwargs["limit"] == 10
 
         payload = json.loads(_extract_text(result))
         assert len(payload["suppliers"]) == 1
         assert payload["suppliers"][0]["id"] == 7
-        assert payload["query"] == "SRAM"
+        assert payload["query"] == "Acme Components"
 
     @pytest.mark.asyncio
     async def test_limit_caps_no_query_path(self):
@@ -272,11 +276,11 @@ class TestGetSupplier:
 
         record = _supplier(
             id=1302095,
-            name="SRAM",
-            email="kemmett@example.com",
+            name="Acme Components",
+            email="contact@acme-components.example",
             phone="555-0100",
             currency="USD",
-            comment="Primary drivetrain supplier.",
+            comment="Primary component supplier.",
             created_at=datetime(2024, 1, 1),
             updated_at=datetime(2026, 1, 15),
         )
@@ -290,7 +294,7 @@ class TestGetSupplier:
         assert await_args.args[1] == 1302095
         payload = json.loads(_extract_text(result))
         assert payload["id"] == 1302095
-        assert payload["name"] == "SRAM"
+        assert payload["name"] == "Acme Components"
         assert payload["currency"] == "USD"
         # Fields that the wire ``Supplier`` schema doesn't carry default to None.
         assert payload["default_payment_terms"] is None
@@ -513,7 +517,7 @@ class TestRequestModels:
     def test_extra_fields_forbidden(self):
         """``extra="forbid"`` keeps callers honest about parameter names."""
         with pytest.raises(ValueError):
-            ListSuppliersRequest.model_validate({"querystr": "SRAM"})
+            ListSuppliersRequest.model_validate({"querystr": "Acme Components"})
 
     def test_default_query_is_none_default_format_markdown(self):
         req = ListSuppliersRequest()

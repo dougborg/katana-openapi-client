@@ -117,27 +117,27 @@ async def test_top_selling_variants_sorts_by_units_and_applies_limit():
         return {
             100: {
                 "id": 100,
-                "sku": "BIKE-A",
-                "display_name": "Bike A",
+                "sku": "WIDGET-A",
+                "display_name": "Widget A",
                 "product_id": 10,
             },
             200: {
                 "id": 200,
-                "sku": "BIKE-B",
-                "display_name": "Bike B",
+                "sku": "WIDGET-B",
+                "display_name": "Widget B",
                 "product_id": 20,
             },
             300: {
                 "id": 300,
-                "sku": "HELMET-X",
-                "display_name": "Helmet X",
+                "sku": "GADGET-X",
+                "display_name": "Gadget X",
                 "product_id": 30,
             },
         }.get(variant_id)
 
     lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(side_effect=fake_get_by_id)
 
-    # Three variants: BIKE-B=10u/2000, BIKE-A=5u/3000, HELMET-X=15u/450
+    # Three variants: WIDGET-B=10u/2000, WIDGET-A=5u/3000, GADGET-X=15u/450
     orders = [
         _mock_so(
             id=1,
@@ -171,12 +171,12 @@ async def test_top_selling_variants_sorts_by_units_and_applies_limit():
         result = await _top_selling_variants_impl(request, context)
 
     assert len(result.rows) == 2
-    # HELMET-X has 15 units (highest), then BIKE-B with 10
-    assert result.rows[0].sku == "HELMET-X"
+    # GADGET-X has 15 units (highest), then WIDGET-B with 10
+    assert result.rows[0].sku == "GADGET-X"
     assert result.rows[0].units == 15
     assert result.rows[0].revenue == 450.0
     assert result.rows[0].order_count == 1
-    assert result.rows[1].sku == "BIKE-B"
+    assert result.rows[1].sku == "WIDGET-B"
     assert result.rows[1].units == 10
 
 
@@ -189,20 +189,20 @@ async def test_top_selling_variants_sort_by_revenue():
         return {
             100: {
                 "id": 100,
-                "sku": "BIKE-A",
-                "display_name": "Bike A",
+                "sku": "WIDGET-A",
+                "display_name": "Widget A",
                 "product_id": 10,
             },
             200: {
                 "id": 200,
-                "sku": "BIKE-B",
-                "display_name": "Bike B",
+                "sku": "WIDGET-B",
+                "display_name": "Widget B",
                 "product_id": 20,
             },
             300: {
                 "id": 300,
-                "sku": "HELMET-X",
-                "display_name": "Helmet X",
+                "sku": "GADGET-X",
+                "display_name": "Gadget X",
                 "product_id": 30,
             },
         }.get(variant_id)
@@ -234,10 +234,10 @@ async def test_top_selling_variants_sort_by_revenue():
     ):
         result = await _top_selling_variants_impl(request, context)
 
-    assert result.rows[0].sku == "BIKE-A"
+    assert result.rows[0].sku == "WIDGET-A"
     assert result.rows[0].revenue == 3000.0
-    assert result.rows[1].sku == "BIKE-B"
-    assert result.rows[2].sku == "HELMET-X"
+    assert result.rows[1].sku == "WIDGET-B"
+    assert result.rows[2].sku == "GADGET-X"
 
 
 @pytest.mark.asyncio
@@ -253,22 +253,22 @@ async def test_top_selling_variants_category_filter():
     variant_rows = {
         100: {
             "id": 100,
-            "sku": "BIKE-A",
-            "display_name": "Bike A",
+            "sku": "WIDGET-A",
+            "display_name": "Widget A",
             "type": "product",
             "product_id": 10,
         },
         300: {
             "id": 300,
-            "sku": "HELMET-X",
-            "display_name": "Helmet X",
+            "sku": "GADGET-X",
+            "display_name": "Gadget X",
             "type": "product",
             "product_id": 30,
         },
     }
     product_rows = {
-        10: {"id": 10, "name": "Bike A", "category_name": "bikes"},
-        30: {"id": 30, "name": "Helmet X", "category_name": "accessories"},
+        10: {"id": 10, "name": "Widget A", "category_name": "widgets"},
+        30: {"id": 30, "name": "Gadget X", "category_name": "accessories"},
     }
 
     async def fake_get_by_id(entity_type, entity_id, **_kw):
@@ -293,7 +293,7 @@ async def test_top_selling_variants_category_filter():
     request = TopSellingVariantsRequest(
         start_date=date(2026, 3, 1),
         end_date=date(2026, 3, 31),
-        category="bikes",
+        category="widgets",
     )
 
     with (
@@ -302,9 +302,9 @@ async def test_top_selling_variants_category_filter():
     ):
         result = await _top_selling_variants_impl(request, context)
 
-    # Only BIKE-A (category=bikes) should remain
+    # Only WIDGET-A (category=widgets) should remain
     assert len(result.rows) == 1
-    assert result.rows[0].sku == "BIKE-A"
+    assert result.rows[0].sku == "WIDGET-A"
 
 
 # ============================================================================
@@ -411,7 +411,7 @@ async def test_inventory_velocity_computes_avg_daily_and_days_of_cover():
     context, lifespan_ctx = create_mock_context()
 
     lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
-        return_value={"id": 500, "sku": "BIKE-MTB-01", "display_name": "Mountain Bike"}
+        return_value={"id": 500, "sku": "WIDGET-001", "display_name": "Premium Widget"}
     )
 
     # created_at=None means the safety-filter in
@@ -439,7 +439,7 @@ async def test_inventory_velocity_computes_avg_daily_and_days_of_cover():
     inv_items = [_mock_inv_item(400), _mock_inv_item(200)]  # sum = 600
 
     request = InventoryVelocityRequest(
-        sku_or_variant_id="BIKE-MTB-01",
+        sku_or_variant_id="WIDGET-001",
         period_days=90,
     )
 
@@ -455,7 +455,7 @@ async def test_inventory_velocity_computes_avg_daily_and_days_of_cover():
         result = await _inventory_velocity_impl(request, context)
 
     assert result.items[0].variant_id == 500
-    assert result.items[0].sku == "BIKE-MTB-01"
+    assert result.items[0].sku == "WIDGET-001"
     assert result.items[0].units_sold == 180
     assert result.items[0].units_consumed_by_mos == 0.0
     assert result.items[0].units_total == 180

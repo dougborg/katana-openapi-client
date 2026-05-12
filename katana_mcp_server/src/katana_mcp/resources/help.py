@@ -482,11 +482,11 @@ through hundreds of orders.
      "start_date": "2026-01-22",
      "end_date": "2026-04-22",
      "limit": 20,
-     "category": "bikes",
+     "category": "widgets",
      "order_by": "units"
    }
    ```
-   Returns the top 20 SKUs in the `bikes` category by units sold over the
+   Returns the top 20 SKUs in the `widgets` category by units sold over the
    last 90 days. Substitute `order_by="revenue"` to sort by dollar volume.
 
 2. **Group sales by time or dimension**
@@ -504,7 +504,7 @@ through hundreds of orders.
 3. **Check velocity and days-of-cover for a SKU**
    ```json
    Tool: inventory_velocity
-   Request: {"sku_or_variant_id": "BIKE-MTB-01", "period_days": 90}
+   Request: {"sku_or_variant_id": "WIDGET-001", "period_days": 90}
    ```
    Returns `{items: [{sku, variant_id, units_sold, units_consumed_by_mos,
    units_total, avg_daily, stock_on_hand, days_of_cover, ...}]}`. Use
@@ -1906,7 +1906,7 @@ aggregates DELIVERED sales orders in memory).
 - `start_date` (required): ISO-8601 date — window start (inclusive)
 - `end_date` (required): ISO-8601 date — window end (inclusive)
 - `limit` (optional, default 20, min 1): Max rows to return
-- `category` (optional): Item category name to filter by (e.g. "bikes")
+- `category` (optional): Item category name to filter by (e.g. "widgets")
 - `order_by` (optional, default "units"): "units" or "revenue"
 - `location_id` (optional): Filter to a single location
 - `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized

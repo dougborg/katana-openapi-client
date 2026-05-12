@@ -1032,7 +1032,7 @@ async def _fetch_mo_recipe_rows(
     raw_rows = await _fetch_mo_recipe_row_attrs(services, manufacturing_order_id)
 
     # One batched IN-clause SQLite read instead of one read per recipe row —
-    # a full-bike Mayhem MO has ~30 rows, all looked up by variant_id.
+    # a Mayhem MO has ~30 rows, all looked up by variant_id.
     variant_ids = {
         v_id
         for v_id in (unwrap_unset(row.variant_id, None) for row in raw_rows)

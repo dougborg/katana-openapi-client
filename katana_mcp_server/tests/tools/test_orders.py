@@ -359,8 +359,8 @@ async def test_fulfill_manufacturing_order_preview_lifts_display_name():
 
     cached_variant = MagicMock()
     cached_variant.id = 555
-    cached_variant.sku = "BIKE-MAYHEM"
-    cached_variant.display_name = "Mayhem Bike / Large / Black"
+    cached_variant.sku = "WIDGET-MAYHEM"
+    cached_variant.display_name = "Mayhem Widget / Large / Black"
     cached_variant.product_id = None
     cached_variant.material_id = None
     cached_variant.config_attributes = []
@@ -383,7 +383,7 @@ async def test_fulfill_manufacturing_order_preview_lifts_display_name():
     # Lead line surfaces the canonical display name (the prior line said
     # only "Manufacturing order completion will update inventory based on BOM",
     # which gave the user no signal what was being made).
-    assert any("Mayhem Bike / Large / Black" in u for u in result.inventory_updates)
+    assert any("Mayhem Widget / Large / Black" in u for u in result.inventory_updates)
 
 
 @pytest.mark.asyncio

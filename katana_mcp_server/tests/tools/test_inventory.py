@@ -2454,24 +2454,24 @@ async def test_check_inventory_per_location_breakdown_populated():
     # Cache returns location names for both warehouses (one bulk call —
     # impl uses get_many_by_ids to avoid an N+1 against the cache).
     lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
-        return_value={161114: {"name": "Demo"}, 160411: {"name": "Spot HQ"}}
+        return_value={2: {"name": "East Warehouse"}, 1: {"name": "Main Warehouse"}}
     )
 
-    inv_demo = MagicMock()
-    inv_demo.location_id = 161114
-    inv_demo.quantity_in_stock = "1.0"
-    inv_demo.quantity_committed = "0.0"
-    inv_demo.quantity_expected = "0.0"
+    inv_east = MagicMock()
+    inv_east.location_id = 2
+    inv_east.quantity_in_stock = "1.0"
+    inv_east.quantity_committed = "0.0"
+    inv_east.quantity_expected = "0.0"
 
     inv_main = MagicMock()
-    inv_main.location_id = 160411
+    inv_main.location_id = 1
     inv_main.quantity_in_stock = "10.0"
     inv_main.quantity_committed = "2.0"
     inv_main.quantity_expected = "5.0"
 
     with (
         patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_UNWRAP_DATA, return_value=[inv_demo, inv_main]),
+        patch(_UNWRAP_DATA, return_value=[inv_east, inv_main]),
     ):
         request = CheckInventoryRequest(skus_or_variant_ids=["WIDGET-001"])
         results = await _check_inventory_impl(request, context)
@@ -2483,12 +2483,12 @@ async def test_check_inventory_per_location_breakdown_populated():
     assert result.expected == 5.0
     # Per-location breakdown is populated, sorted desc by in_stock
     assert len(result.by_location) == 2
-    assert result.by_location[0].location_id == 160411  # Spot HQ has more stock
-    assert result.by_location[0].location_name == "Spot HQ"
+    assert result.by_location[0].location_id == 1  # Main Warehouse has more stock
+    assert result.by_location[0].location_name == "Main Warehouse"
     assert result.by_location[0].in_stock == 10.0
     assert result.by_location[0].available == 8.0  # 10 - 2
-    assert result.by_location[1].location_id == 161114
-    assert result.by_location[1].location_name == "Demo"
+    assert result.by_location[1].location_id == 2
+    assert result.by_location[1].location_name == "East Warehouse"
     assert result.by_location[1].in_stock == 1.0
 
 
@@ -2503,27 +2503,27 @@ async def test_check_inventory_location_filter_threads_to_api():
         return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
     )
     lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
-        return_value={161114: {"name": "Demo"}}
+        return_value={2: {"name": "East Warehouse"}}
     )
 
-    inv_demo = MagicMock()
-    inv_demo.location_id = 161114
-    inv_demo.quantity_in_stock = "1.0"
-    inv_demo.quantity_committed = "0.0"
-    inv_demo.quantity_expected = "0.0"
+    inv_east = MagicMock()
+    inv_east.location_id = 2
+    inv_east.quantity_in_stock = "1.0"
+    inv_east.quantity_committed = "0.0"
+    inv_east.quantity_expected = "0.0"
 
     with (
         patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
-        patch(_UNWRAP_DATA, return_value=[inv_demo]),
+        patch(_UNWRAP_DATA, return_value=[inv_east]),
     ):
         request = CheckInventoryRequest(
-            skus_or_variant_ids=["WIDGET-001"], location_id=161114
+            skus_or_variant_ids=["WIDGET-001"], location_id=2
         )
         await _check_inventory_impl(request, context)
 
-    # The API was called with location_id=161114 forwarded
+    # The API was called with location_id=2 forwarded
     assert mock_api.call_args is not None
-    assert mock_api.call_args.kwargs["location_id"] == 161114
+    assert mock_api.call_args.kwargs["location_id"] == 2
     assert mock_api.call_args.kwargs["variant_id"] == 3001
 
 
@@ -2594,9 +2594,9 @@ async def test_check_inventory_uses_bulk_cache_lookup_not_n_plus_one():
 
     bulk_mock = AsyncMock(
         return_value={
-            161114: {"name": "Demo"},
-            160411: {"name": "Spot HQ"},
-            161115: {"name": "R&D"},
+            2: {"name": "East Warehouse"},
+            1: {"name": "Main Warehouse"},
+            3: {"name": "R&D Warehouse"},
         }
     )
     lifespan_ctx.typed_cache.catalog.get_many_by_ids = bulk_mock
@@ -2605,7 +2605,7 @@ async def test_check_inventory_uses_bulk_cache_lookup_not_n_plus_one():
     lifespan_ctx.typed_cache.catalog.get_by_id = per_row_mock
 
     rows = []
-    for loc_id, qty in [(161114, "1.0"), (160411, "10.0"), (161115, "5.0")]:
+    for loc_id, qty in [(2, "1.0"), (1, "10.0"), (3, "5.0")]:
         inv = MagicMock()
         inv.location_id = loc_id
         inv.quantity_in_stock = qty
@@ -2625,7 +2625,7 @@ async def test_check_inventory_uses_bulk_cache_lookup_not_n_plus_one():
     per_row_mock.assert_not_awaited()
     # All 3 names resolved via the bulk dict.
     names = {ls.location_name for ls in results[0].by_location}
-    assert names == {"Demo", "Spot HQ", "R&D"}
+    assert names == {"East Warehouse", "Main Warehouse", "R&D Warehouse"}
 
 
 def test_inventory_check_card_renders_by_location_table_when_split():
@@ -2645,16 +2645,16 @@ def test_inventory_check_card_renders_by_location_table_when_split():
         "expected": 5.0,
         "by_location": [
             {
-                "location_id": 160411,
-                "location_name": "Spot HQ",
+                "location_id": 1,
+                "location_name": "Main Warehouse",
                 "in_stock": 10.0,
                 "committed": 2.0,
                 "expected": 5.0,
                 "available": 8.0,
             },
             {
-                "location_id": 161114,
-                "location_name": "Demo",
+                "location_id": 2,
+                "location_name": "East Warehouse",
                 "in_stock": 1.0,
                 "committed": 0.0,
                 "expected": 0.0,
@@ -2687,8 +2687,8 @@ def test_inventory_check_card_omits_by_location_table_when_single_location():
         "expected": 5.0,
         "by_location": [
             {
-                "location_id": 160411,
-                "location_name": "Spot HQ",
+                "location_id": 1,
+                "location_name": "Main Warehouse",
                 "in_stock": 10.0,
                 "committed": 2.0,
                 "expected": 5.0,

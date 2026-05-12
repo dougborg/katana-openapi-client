@@ -17,8 +17,8 @@ below describes a transient state that no longer exists. The "Scope 2" question
 ## Context
 
 Analytical workflows over Katana data were making large numbers of sequential API calls
-— the motivating example filed as #342 was a "top-selling bikes" analysis that took 123
-calls because every filter pass and every page of sales orders required a fresh API
+— the motivating example filed as #342 was a "top-selling product" analysis that took
+123 calls because every filter pass and every page of sales orders required a fresh API
 round-trip. A related bug (#341) showed that client-side filters on
 `list_stock_adjustments(variant_id=...)` could only scan the first server-returned page,
 silently truncating results.
@@ -121,7 +121,7 @@ unification) would block caching value behind months of refactoring.
 
 - Variant-id queries against sales orders, adjustments, and transfers become SQL over
   the cache, not paginated API calls — unblocks #341.
-- The "top-selling bikes" analysis (and any similar aggregation) should drop from ~123
+- The "top-selling product" analysis (and any similar aggregation) should drop from ~123
   API calls to ~1-2 per run.
 - Schema reads as documentation of the Katana API — no per-field guesswork about what's
   cached where.

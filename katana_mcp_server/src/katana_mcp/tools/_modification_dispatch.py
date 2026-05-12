@@ -127,7 +127,7 @@ class CacheMerge:
 
     Before this hook existed, ``run_modify_plan`` had no cache awareness —
     every successful modify left the typed cache stale until the next sync
-    (2026-05-12 SRAM PO-reconciliation session, where ``get_variant_details``
+    (2026-05-12 supplier PO-reconciliation session, where ``get_variant_details``
     returned pre-modification ``supplier_item_codes`` 10+ minutes after a
     confirmed apply). With ``cache_merge`` wired, ``run_modify_plan``
     re-fetches the parent entity after the plan succeeds and merges it into
@@ -783,7 +783,7 @@ async def run_modify_plan(
         actions, len(plan), entity_label=entity_label, tool_name=tool_name
     )
 
-    # Bug #2 (2026-05-12 SRAM session): the typed cache went stale after
+    # Bug #2 (2026-05-12 supplier session): the typed cache went stale after
     # every modify because nothing wrote the post-state through. The next
     # ``@cache_read`` (e.g. ``get_variant_details``, ``list_purchase_orders``)
     # served pre-modification rows until a manual ``rebuild_cache`` ran.

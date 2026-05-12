@@ -245,7 +245,7 @@ def _inventory_check_app() -> PrefabApp:
                 "expected": 60,
             },
             {
-                "location_name": "Brooklyn",
+                "location_name": "East Warehouse",
                 "location_id": 2,
                 "in_stock": 12,
                 "committed": 2,
@@ -365,7 +365,7 @@ def _stock_adjustment_response(*, is_preview: bool, n_rows: int = 3) -> dict:
     return {
         "id": None if is_preview else 9876,
         "is_preview": is_preview,
-        "location_id": 160411,
+        "location_id": 1,
         "message": (
             "Preview — call again with preview=false to create"
             if is_preview
@@ -389,7 +389,7 @@ def _stock_adjustment_update_response(*, is_preview: bool) -> dict:
         "is_preview": is_preview,
         "stock_adjustment_number": "SA-FY26-Q2-001",
         "stock_adjustment_date": "2026-05-08T12:00:00+00:00",
-        "location_id": 160411,
+        "location_id": 1,
         "reason": "Updated reason",
         "additional_info": None,
         "changes_summary": "stock_adjustment_number, reason",
@@ -408,7 +408,7 @@ def _stock_adjustment_delete_response(*, is_preview: bool) -> dict:
         "id": 9876,
         "is_preview": is_preview,
         "stock_adjustment_number": "SA-FY26-Q2-001",
-        "location_id": 160411,
+        "location_id": 1,
         "row_count": 3,
         "message": (
             "Preview — call again with preview=false to delete stock adjustment "

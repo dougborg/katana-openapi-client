@@ -568,10 +568,10 @@ class TestBuildVariantDisplayName:
         )
 
         result = build_variant_display_name(
-            "Enduro Bearings - 63802 LLU MAX",
+            "Acme Bearings - 63802 LLU MAX",
             [],
         )
-        assert result == "Enduro Bearings - 63802 LLU MAX"
+        assert result == "Acme Bearings - 63802 LLU MAX"
 
     def test_empty_parent_falls_back_to_sku(self) -> None:
         from katana_public_api_client.domain.variant import (
@@ -635,15 +635,15 @@ class TestBuildVariantDisplayName:
 
         variant = KatanaVariant(
             id=1,
-            sku="FOX-FORK-160",
-            product_or_material_name="Fox 36 Fork",
-            supplier_item_codes=["SUPP-FOX-001"],
-            config_attributes=[{"config_name": "Travel", "config_value": "160mm"}],
+            sku="PART-A1-160",
+            product_or_material_name="Acme 36 Part",
+            supplier_item_codes=["SUPP-ACM-001"],
+            config_attributes=[{"config_name": "Length", "config_value": "160mm"}],
         )
 
         # Should match SKU
-        assert variant.matches_search("fox") is True
-        assert variant.matches_search("FORK") is True
+        assert variant.matches_search("acme") is True
+        assert variant.matches_search("PART") is True
 
         # Should match product name
         assert variant.matches_search("36") is True
@@ -655,7 +655,7 @@ class TestBuildVariantDisplayName:
         assert variant.matches_search("160") is True
 
         # Should not match
-        assert variant.matches_search("shimano") is False
+        assert variant.matches_search("nonexistent") is False
 
     def test_product_to_csv_row(self) -> None:
         """Test KatanaProduct.to_csv_row()."""
