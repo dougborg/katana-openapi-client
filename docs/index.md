@@ -1,141 +1,113 @@
 # Katana OpenAPI Client Documentation
 
-Welcome to the **Katana OpenAPI Client** documentation. This is a modern, pythonic
-client for the Katana Manufacturing ERP API with automatic resilience features.
+Welcome to the documentation site for the **Katana OpenAPI Client** monorepo — a
+production-ready set of clients for the
+[Katana Manufacturing ERP API](https://help.katanamrp.com/api), with automatic
+resilience built in at the HTTP transport layer.
 
-## Features
+The site is generated from the per-package docs that live next to each package's source.
+Each section below links straight to the canonical doc for that area; the indexes
+themselves are the source of truth and stay current as features ship.
 
-- **Transport-layer resilience**: Automatic retries, rate limiting, and smart pagination
-  at the HTTP transport level
-- **Type-safe**: Full type hints and ty/mypy compatibility
-- **Async/await support**: Built on httpx for modern Python async patterns
-- **Production-ready**: Comprehensive error handling and logging
-- **Zero-wrapper philosophy**: All resilience features work transparently with the
-  generated API client
+## What's in the monorepo
 
-## Quick Start
+This repository is a workspace with three published packages plus a shared MCP server.
+For installation, current version, and a quick-start example for each, follow the link
+to the package README:
 
-```python
-from katana_public_api_client import KatanaClient
-from katana_public_api_client.api.product import get_all_products
+- **[Python client](../katana_public_api_client/docs/README.md)** —
+  [`katana-openapi-client`](https://pypi.org/project/katana-openapi-client/) on PyPI.
+  Sync + async API, transport-layer retries / rate-limiting / pagination, full pydantic
+  models. Generated from `docs/katana-openapi.yaml`.
+- **[MCP server](../katana_mcp_server/README.md)** —
+  [`katana-mcp-server`](https://pypi.org/project/katana-mcp-server/) on PyPI. Model
+  Context Protocol server that wraps the Python client with high-level tools (search,
+  modify, fulfill, verify, plus preview/apply pairs for write operations) for use with
+  Claude Desktop, Cursor, and other MCP hosts.
+- **[TypeScript client](../packages/katana-client/README.md)** —
+  [`katana-openapi-client`](https://www.npmjs.com/package/katana-openapi-client) on npm.
+  Async API with the same resilience guarantees as the Python client; works in browsers.
 
-async def main():
-    async with KatanaClient() as client:
-        # This call automatically gets retries, rate limiting, and pagination
-        response = await get_all_products.asyncio_detailed(
-            client=client,
-            limit=50  # Will auto-paginate if needed
-        )
+The
+[root `README.md`](https://github.com/dougborg/katana-openapi-client/blob/main/README.md)
+is the front door — it has the multi-package install table, a side-by-side feature
+comparison, and the cross-cutting setup steps. Read that first if you're new to the
+project.
 
-        if response.status_code == 200:
-            products = response.parsed
-            print(f"Found {len(products)} products")
-```
+## Architecture in one paragraph
 
-## Architecture
+Resilience (retries, rate limiting, pagination) is implemented **at the httpx transport
+layer**, not as a wrapper. Every generated API method gets it automatically — including
+new endpoints added by spec regeneration. No decorators, no method-by-method opt-in. See
+[ADR-0001](client/adr/0001-transport-layer-resilience.md) for the full rationale.
 
-The client uses a **transport-layer resilience** approach where all resilience features
-(retries, rate limiting, pagination) are implemented at the HTTP transport level rather
-than as decorators or wrapper methods. This means:
+## Documentation by package
 
-- All 150+ generated API methods automatically get resilience features
-- No code changes needed when the OpenAPI spec is updated
-- Type safety is preserved throughout the entire client
-- Performance is optimized by handling resilience at the lowest level
+### Python client
 
-## Documentation Structure
+- **[Guide](client/guide.md)** — installation, response unwrapping helpers
+  (`unwrap_data`, `unwrap_as`, `is_success`), pagination, retries, logging.
+- **[Cookbook](client/cookbook.md)** — task-oriented recipes.
+- **[Testing](client/testing.md)** — `httpx.MockTransport` patterns, conftest fixtures.
+- **[Spec authoring](client/spec-authoring.md)** — OpenAPI 3.1 conventions, generator /
+  regen lockstep, breaking-change markers.
+- **[Changelog](client/CHANGELOG.md)** — release notes.
+- **[ADRs](client/adr/README.md)** — client architectural decisions.
 
-```{toctree}
-:maxdepth: 2
-:caption: User Guides
+### MCP server
 
-client/guide
-client/cookbook
-client/testing
-CONTRIBUTING
-```
+- **[Overview](mcp-server/index.md)** — package landing page with the full doc index.
+- **[Architecture](mcp-server/architecture.md)** — design patterns and component layout.
+- **[Development](mcp-server/development.md)** — local dev workflow.
+- **[Deployment](mcp-server/deployment.md)** / **[Docker](mcp-server/docker.md)** —
+  production deploys.
+- **[ADRs](mcp-server/adr/README.md)** — MCP architectural decisions.
 
-```{toctree}
-:maxdepth: 2
-:caption: MCP Server
+The live MCP tool list is exposed at runtime via the `katana://help/tools` resource —
+that's the canonical inventory, not anything in this docsite.
 
-mcp-server/README
-mcp-server/architecture
-mcp-server/development
-mcp-server/deployment
-```
+### TypeScript client
 
-```{toctree}
-:maxdepth: 2
-:caption: API Reference
+The TS client docs live with the package source on GitHub —
+[`packages/katana-client/`](https://github.com/dougborg/katana-openapi-client/tree/main/packages/katana-client).
+The current published version is on the
+[npm page](https://www.npmjs.com/package/katana-openapi-client).
 
-autoapi/katana_public_api_client/index
-```
+## Reference
 
-```{toctree}
-:maxdepth: 2
-:caption: Development
+- **[OpenAPI specification](openapi-docs.md)** — interactive viewer for
+  `docs/katana-openapi.yaml`, the canonical endpoint surface that drives both generated
+  clients.
+- **[API reference](reference/)** — auto-generated from the Python source via
+  `mkdocstrings`; one page per module.
 
-RELEASE
-MONOREPO_SEMANTIC_RELEASE
-UV_USAGE
-PYPI_SETUP
-```
+## Process and contribution
 
-```{toctree}
-:maxdepth: 2
-:caption: Project Information
+- **[Contributing guide](CONTRIBUTING.md)** — development setup, code style, the "no
+  hand-maintained drift-prone references" rule, spec-maintenance workflow.
+- **[Release guide](RELEASE.md)** /
+  **[Monorepo semantic-release](MONOREPO_SEMANTIC_RELEASE.md)** — how the
+  conventional-commit → release pipeline drives per-package versioning.
+- **[uv usage](UV_USAGE.md)** — the `uv` package manager and `poe` task conventions this
+  repo uses.
+- **[Code of conduct](CODE_OF_CONDUCT.md)**.
 
-client/CHANGELOG
-CODE_OF_CONDUCT
-```
+## Architecture decision records
 
-## API Reference
+ADRs live next to the package they govern. Each directory has a `README.md` index
+listing every ADR with its current status — those indexes are the canonical list and
+stay current as ADRs are added or superseded.
 
-The API reference documentation is automatically generated from the source code
-docstrings and includes:
-
-- **Main Client Classes**: `KatanaClient`, `ResilientAsyncTransport`
-- **Logging Utilities**: `setup_logging`, `get_logger`
-- **Generated API Methods**: 150+ endpoint methods with full type annotations
-- **Data Models**: All request/response models with validation
-
-## Installation
-
-```bash
-pip install katana-openapi-client
-```
-
-## Configuration
-
-The client can be configured through environment variables or direct initialization:
-
-```python
-# Via environment variables (.env file)
-KATANA_API_KEY=your_api_key_here
-KATANA_BASE_URL=https://api.katanamrp.com  # Optional, defaults to production
-
-# Via direct initialization
-from katana_public_api_client import KatanaClient
-
-async with KatanaClient(
-    api_key="your_api_key_here",
-    base_url="https://api.katanamrp.com",
-    max_retries=5,
-    max_pages=100
-) as client:
-    # Use the client
-    pass
-```
+- **[Shared / monorepo ADRs](adr/README.md)** — cross-cutting decisions.
+- **[Python client ADRs](client/adr/README.md)** — client package decisions.
+- **[MCP server ADRs](mcp-server/adr/README.md)** — MCP package decisions.
 
 ## Support
 
-- **Documentation**: [GitHub Pages](https://dougborg.github.io/katana-openapi-client/)
 - **Issues**: [GitHub Issues](https://github.com/dougborg/katana-openapi-client/issues)
 - **Source**: [GitHub Repository](https://github.com/dougborg/katana-openapi-client)
+- **Project board**: [Rolling Backlog](https://github.com/users/dougborg/projects/5) —
+  what's actively in flight.
 
-## License
-
-MIT License - see
-[LICENSE](https://github.com/dougborg/katana-openapi-client/blob/main/LICENSE) for
-details.
+MIT licensed —
+[LICENSE](https://github.com/dougborg/katana-openapi-client/blob/main/LICENSE).

@@ -6,9 +6,8 @@ a request body, or a response. These examples are documentation, but
 silently — the spec engine doesn't enforce that the example actually matches
 the schema. So examples can drift: a refactor changes a schema enum but
 leaves the example alone, and the example then advertises a value the API
-will never accept (the bug ``audit-2026-04-28.md`` flagged with
-``refund_status: PROCESSED`` when the schema only allowed
-``[NOT_REFUNDED, REFUNDED, PARTIALLY_REFUNDED]``).
+will never accept (e.g. ``refund_status: PROCESSED`` when the schema only
+allows ``[NOT_REFUNDED, REFUNDED, PARTIALLY_REFUNDED]``).
 
 This script walks the local spec, locates every ``example:`` block, and
 validates it against the schema it's attached to using ``jsonschema``.
