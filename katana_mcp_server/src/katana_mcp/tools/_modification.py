@@ -43,7 +43,7 @@ def _ensure_tz_aware(value: datetime) -> datetime:
     # ``datetime.isoformat()`` — naive datetimes produce
     # ``"YYYY-MM-DDTHH:MM:SS"`` with no suffix and Katana rejects with
     # 422 ``Field 'arrivalDate' must match format: date-time``. This
-    # came up during the 2026-05-12 SRAM PO-reconciliation session,
+    # came up during the 2026-05-12 supplier PO-reconciliation session,
     # where 9 confirm clicks silently failed before the cause was
     # isolated.
     #

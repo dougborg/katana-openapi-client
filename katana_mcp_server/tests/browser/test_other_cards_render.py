@@ -55,7 +55,7 @@ class TestOtherCardsRender:
         # 2 locations + header.
         assert frame.locator("table tr").count() >= 3
         assert frame.locator("text=Main Warehouse").count() >= 1
-        assert frame.locator("text=Brooklyn").count() >= 1
+        assert frame.locator("text=East Warehouse").count() >= 1
 
     def test_verification_renders(self, render_scenario):
         """``build_verification_ui`` — two state-bound DataTables in one

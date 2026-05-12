@@ -166,7 +166,7 @@ class Products(Base):
             List of matching KatanaProduct domain model objects, sorted by relevance.
 
         Example:
-            >>> products = await client.products.search("fox fork", limit=10)
+            >>> products = await client.products.search("part a1", limit=10)
             >>> for product in products:
             ...     print(f"{product.id}: {product.name}")
         """

@@ -381,11 +381,11 @@ class KatanaVariant(KatanaBaseModel):
 
         Example:
             ```python
-            variant = KatanaVariant(id=1, sku="FOX-FORK-160", ...)
-            variant.matches_search("fox")        # True
-            variant.matches_search("fork 160")   # True (multi-word)
-            variant.matches_search("forks")      # True (fuzzy)
-            variant.matches_search("shimano")    # False
+            variant = KatanaVariant(id=1, sku="PART-A1-160", ...)
+            variant.matches_search("part")       # True
+            variant.matches_search("a1 160")     # True (multi-word)
+            variant.matches_search("parts")      # True (fuzzy)
+            variant.matches_search("missing")    # False
             ```
         """
         from katana_public_api_client.helpers.search import score_match

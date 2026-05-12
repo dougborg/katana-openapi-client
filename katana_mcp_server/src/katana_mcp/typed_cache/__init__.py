@@ -35,7 +35,7 @@ Public API::
     try:
         await ensure_variants_synced(client, engine)
         # Typed lookups via the CatalogQueries adapter on engine.catalog.
-        variant = await engine.catalog.get_by_sku("FOX-FORK-160")
+        variant = await engine.catalog.get_by_sku("PART-A1-160")
         results = await engine.catalog.smart_search(
             CachedVariant, "kitchen knife"
         )

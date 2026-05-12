@@ -3,7 +3,7 @@
 Read-only aggregation tools that compute rollups client-side from paginated
 sales-order data — and, for inventory velocity, from completed-MO recipe
 rows joined out of the typed cache. These exist to replace multi-call
-analytical workflows (e.g. "top 20 selling bikes over the last 90 days")
+analytical workflows (e.g. "top 20 selling widgets over the last 90 days")
 with a single tool call.
 
 Tools:
@@ -272,7 +272,7 @@ class TopSellingVariantsRequest(BaseModel):
     )
     category: str | None = Field(
         default=None,
-        description="Optional item category name to filter by (e.g. 'bikes')",
+        description="Optional item category name to filter by (e.g. 'widgets')",
     )
     order_by: Literal["units", "revenue"] = Field(
         default="units",

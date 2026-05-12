@@ -13,15 +13,15 @@ class TestScoreField:
     """Tests for individual field scoring."""
 
     def test_exact_match_gets_full_weight(self) -> None:
-        score = score_field(["fox-fork-160"], "fox-fork-160", "FOX-FORK-160", 100)
+        score = score_field(["part-a1-160"], "part-a1-160", "PART-A1-160", 100)
         assert score == 100
 
     def test_prefix_match_gets_80_percent(self) -> None:
-        score = score_field(["fox"], "fox", "FOX-FORK-160", 100)
+        score = score_field(["part"], "part", "PART-A1-160", 100)
         assert score == pytest.approx(80)
 
     def test_substring_match_gets_60_percent(self) -> None:
-        score = score_field(["fork", "160"], "fork 160", "FOX-FORK-160", 100)
+        score = score_field(["a1", "160"], "a1 160", "PART-A1-160", 100)
         assert score == pytest.approx(60)
 
     def test_fuzzy_match_returns_positive_score(self) -> None:
@@ -34,7 +34,7 @@ class TestScoreField:
         assert score == 0
 
     def test_empty_field_returns_zero(self) -> None:
-        score = score_field(["fox"], "fox", "", 100)
+        score = score_field(["part"], "part", "", 100)
         assert score == 0
 
     def test_multi_word_substring_all_tokens_must_match(self) -> None:
@@ -63,26 +63,26 @@ class TestScoreMatch:
 
     def test_exact_sku_scores_highest(self) -> None:
         score = score_match(
-            query="FOX-FORK-160",
+            query="PART-A1-160",
             fields={
-                "sku": ("FOX-FORK-160", 100),
-                "name": ("Fox 36 Factory Fork", 30),
+                "sku": ("PART-A1-160", 100),
+                "name": ("Acme 36 Premium Part", 30),
             },
         )
         assert score >= 100
 
     def test_name_match_adds_to_score(self) -> None:
         score_with_name = score_match(
-            query="fox",
+            query="part",
             fields={
-                "sku": ("FOX-FORK-160", 100),
-                "name": ("Fox 36 Factory Fork", 30),
+                "sku": ("PART-A1-160", 100),
+                "name": ("Acme 36 Premium Part", 30),
             },
         )
         score_without_name = score_match(
-            query="fox",
+            query="part",
             fields={
-                "sku": ("FOX-FORK-160", 100),
+                "sku": ("PART-A1-160", 100),
                 "name": ("", 30),
             },
         )
@@ -116,8 +116,8 @@ class TestScoreMatch:
 
     def test_case_insensitive(self) -> None:
         score = score_match(
-            query="FOX FORK",
-            fields={"name": ("fox fork suspension", 100)},
+            query="PART A1",
+            fields={"name": ("part a1 type", 100)},
         )
         assert score > 0
 
@@ -137,13 +137,13 @@ class TestSearchAndRank:
         assert "Carbon Steel Rod" in results
 
     def test_exact_match_ranked_first(self) -> None:
-        items = ["FOX-FORK-160", "FOX-SHOCK-200", "SHIMANO-XT"]
+        items = ["PART-A1-160", "PART-A2-200", "PART-B1-XT"]
         results = search_and_rank(
-            query="FOX-FORK-160",
+            query="PART-A1-160",
             items=items,
             field_extractor=lambda x: {"sku": (x, 100)},
         )
-        assert results[0] == "FOX-FORK-160"
+        assert results[0] == "PART-A1-160"
 
     def test_respects_limit(self) -> None:
         items = [f"Item {i}" for i in range(100)]

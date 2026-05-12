@@ -41,7 +41,7 @@ class Variants(Base):
         >>> async with KatanaClient() as client:
         ...     variants = await client.variants.list()
         ...     variant = await client.variants.get(123)
-        ...     results = await client.variants.search("fox fork")
+        ...     results = await client.variants.search("part a1")
     """
 
     async def list(self, **filters: Any) -> List[KatanaVariant]:
@@ -161,14 +161,14 @@ class Variants(Base):
         For cached/persistent search, use the MCP server's CatalogCache.
 
         Args:
-            query: Search query (e.g., "fox fork 160")
+            query: Search query (e.g., "part a1 160")
             limit: Maximum number of results to return
 
         Returns:
             List of matching Variant objects, sorted by relevance
 
         Example:
-            >>> variants = await client.variants.search("fox fork", limit=10)
+            >>> variants = await client.variants.search("part a1", limit=10)
             >>> for variant in variants:
             ...     print(f"{variant.sku}: {variant.product_or_material_name}")
         """

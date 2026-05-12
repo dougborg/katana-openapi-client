@@ -8,16 +8,16 @@ Usage:
 
     # Score a single item against a query
     score = score_match(
-        query="fox fork",
+        query="part a1",
         fields={
-            "sku": ("FOX-FORK-160", 100),
-            "name": ("Fox 36 Factory Fork", 30),
+            "sku": ("PART-A1-160", 100),
+            "name": ("Acme 36 Premium Part", 30),
         },
     )
 
     # Search and rank a collection
     results = search_and_rank(
-        query="fox fork",
+        query="part a1",
         items=variants,
         field_extractor=lambda v: {
             "sku": (v.sku or "", 100),
@@ -132,10 +132,10 @@ def score_match(
 
     Example:
         score = score_match(
-            query="fox fork",
+            query="part a1",
             fields={
-                "sku": ("FOX-FORK-160", 100),
-                "name": ("Fox 36 Factory Fork", 30),
+                "sku": ("PART-A1-160", 100),
+                "name": ("Acme 36 Premium Part", 30),
             },
         )
     """
@@ -177,7 +177,7 @@ def search_and_rank[T](
 
     Example:
         results = search_and_rank(
-            query="fox fork",
+            query="part a1",
             items=all_variants,
             field_extractor=lambda v: {
                 "sku": (v.sku or "", 100),

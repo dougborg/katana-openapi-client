@@ -1756,7 +1756,7 @@ async def test_receive_purchase_order_received_date_passthrough():
 
     mock_po = MagicMock(spec=RegularPurchaseOrder)
     mock_po.id = 2707171
-    mock_po.order_no = "SRAM-B2B-251824539"
+    mock_po.order_no = "ACME-B2B-100000001"
     mock_po.status = MagicMock()
     mock_po.status.value = "PARTIALLY_RECEIVED"
     mock_po.supplier_id = UNSET
@@ -2370,7 +2370,7 @@ def _make_mock_po(order_no: str = "PO-TEST") -> MagicMock:
     po.order_no = order_no
     po.status = UNSET
     po.supplier_id = 999
-    po.location_id = 160411
+    po.location_id = 1
     po.currency = "USD"
     po.expected_arrival_date = datetime(2026, 4, 15, tzinfo=UTC)
     po.total = 900.0
@@ -2409,7 +2409,7 @@ async def test_get_purchase_order_by_number():
     assert result.id == 12345
     assert result.order_no == "PO-1022"
     assert result.supplier_id == 999
-    assert result.location_id == 160411
+    assert result.location_id == 1
     assert result.total == 900.0
     assert len(result.purchase_order_rows) == 2
     assert result.purchase_order_rows[0].id == 7001
@@ -2513,7 +2513,7 @@ def _make_exhaustive_mock_po() -> MagicMock:
     po.expected_arrival_date = datetime(2026, 4, 15, tzinfo=UTC)
     po.order_created_date = datetime(2026, 1, 10, 9, 0, tzinfo=UTC)
     po.additional_info = "urgent delivery"
-    po.location_id = 160411
+    po.location_id = 1
     po.total = 900.0
     po.total_in_base_currency = 930.0
     po.billing_status = "NOT_BILLED"
@@ -2572,7 +2572,7 @@ async def test_get_purchase_order_full_field_coverage():
     assert result.default_group_id == 8080
     assert result.supplier_id == 999
     assert result.currency == "USD"
-    assert result.location_id == 160411
+    assert result.location_id == 1
     assert result.total == 900.0
     assert result.total_in_base_currency == 930.0
     assert result.billing_status == "NOT_BILLED"
@@ -2737,7 +2737,7 @@ async def test_get_purchase_order_markdown_uses_canonical_field_names():
         order_no="PO-1022",
         status="NOT_RECEIVED",
         supplier_id=999,
-        location_id=160411,
+        location_id=1,
         entity_type="regular",
         default_group_id=8080,
         currency="USD",
