@@ -279,7 +279,12 @@ class CreatePurchaseOrderAdditionalCostRowRequest(KatanaPydanticBase):
             le=1e17,
         ),
     ]
-    distribution_method: CostDistributionMethod | None = None
+    distribution_method: Annotated[
+        CostDistributionMethod | None,
+        Field(
+            description="How this additional cost is allocated across purchase order line items (e.g., by value or by quantity)"
+        ),
+    ] = None
 
 
 class PurchaseOrderAdditionalCostRow(DeletableEntity):
@@ -369,7 +374,12 @@ class UpdatePurchaseOrderAdditionalCostRowRequest(KatanaPydanticBase):
             le=1e17,
         ),
     ] = None
-    distribution_method: CostDistributionMethod | None = None
+    distribution_method: Annotated[
+        CostDistributionMethod | None,
+        Field(
+            description="How this additional cost is allocated across purchase order line items (e.g., by value or by quantity)"
+        ),
+    ] = None
 
 
 class PurchaseOrderReceiveRow(KatanaPydanticBase):
@@ -692,7 +702,12 @@ class CreatePurchaseOrderRequest(KatanaPydanticBase):
         str,
         Field(description="Unique purchase order number for tracking and reference"),
     ]
-    entity_type: PurchaseOrderEntityType | None = None
+    entity_type: Annotated[
+        PurchaseOrderEntityType | None,
+        Field(
+            description="Whether this purchase order is regular procurement or an outsourced manufacturing order"
+        ),
+    ] = None
     supplier_id: Annotated[
         int,
         Field(

@@ -15,6 +15,9 @@ from ..client_types import UNSET, Unset
 if TYPE_CHECKING:
     from ..models.location import Location
     from ..models.variant import Variant
+    from ..models.variant_default_storage_bin_link_response import (
+        VariantDefaultStorageBinLinkResponse,
+    )
 
 
 T = TypeVar("T", bound="Inventory")
@@ -45,7 +48,7 @@ class Inventory:
     variant: Variant | Unset = UNSET
     location: Location | Unset = UNSET
     archived_at: datetime.datetime | None | Unset = UNSET
-    default_storage_bin: Any | Unset = UNSET
+    default_storage_bin: VariantDefaultStorageBinLinkResponse | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -87,7 +90,9 @@ class Inventory:
         else:
             archived_at = self.archived_at
 
-        default_storage_bin = self.default_storage_bin
+        default_storage_bin: dict[str, Any] | Unset = UNSET
+        if not isinstance(self.default_storage_bin, Unset):
+            default_storage_bin = self.default_storage_bin.to_dict()
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -122,6 +127,9 @@ class Inventory:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.location import Location
         from ..models.variant import Variant
+        from ..models.variant_default_storage_bin_link_response import (
+            VariantDefaultStorageBinLinkResponse,
+        )
 
         d = dict(src_dict)
         variant_id = d.pop("variant_id")
@@ -177,7 +185,14 @@ class Inventory:
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
 
-        default_storage_bin = d.pop("default_storage_bin", UNSET)
+        _default_storage_bin = d.pop("default_storage_bin", UNSET)
+        default_storage_bin: VariantDefaultStorageBinLinkResponse | Unset
+        if isinstance(_default_storage_bin, Unset):
+            default_storage_bin = UNSET
+        else:
+            default_storage_bin = VariantDefaultStorageBinLinkResponse.from_dict(
+                _default_storage_bin
+            )
 
         inventory = cls(
             variant_id=variant_id,

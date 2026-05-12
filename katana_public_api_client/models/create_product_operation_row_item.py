@@ -15,7 +15,7 @@ T = TypeVar("T", bound="CreateProductOperationRowItem")
 class CreateProductOperationRowItem:
     """A single product operation row item in a bulk create request"""
 
-    product_variant_id: float
+    product_variant_id: int
     operation_id: int | Unset = UNSET
     operation_name: str | Unset = UNSET
     resource_id: int | Unset = UNSET
