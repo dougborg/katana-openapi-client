@@ -613,7 +613,9 @@ class TestCacheTables:
             SupplierAddress,
         )
 
-        now = datetime.now(tz=UTC)
+        # Frozen literal so the test is hermetic — any future value-equality
+        # check stays reproducible, and failure output is stable across runs.
+        now = datetime(2026, 1, 15, 12, 0, 0, tzinfo=UTC)
         api_supplier = PydanticSupplier(
             id=42,
             name="Acme Supplies",
@@ -660,6 +662,111 @@ class TestCacheTables:
             # present and string-shaped.
             assert isinstance(addr["created_at"], str)
             assert isinstance(addr["updated_at"], str)
+
+    @pytest.mark.asyncio
+    async def test_mo_serial_numbers_datetime_round_trip_via_bulk_upsert(
+        self, typed_cache_engine
+    ):
+        """Regression (#632): ``list_manufacturing_orders`` triggered
+        ``Object of type datetime is not JSON serializable`` during
+        ``_bulk_upsert`` whenever an MO in the fetched page carried a
+        ``SerialNumber`` with a populated ``transaction_date``.
+
+        ``CachedManufacturingOrder.serial_numbers: list[SerialNumber] |
+        None`` is a ``Column(PydanticJSON)`` column, and ``SerialNumber``
+        has a ``transaction_date: AwareDatetime | None`` field. The full
+        production path is:
+
+        1. ``_convert`` runs ``api_obj.model_dump()`` (mode="python") →
+           the nested SerialNumber becomes a plain dict whose
+           ``transaction_date`` leaf is a live ``datetime``.
+        2. ``cache_cls.model_validate(parent_data)`` reconstructs real
+           ``SerialNumber`` instances on the cache row (``Mapped`` is an
+           identity shim at runtime, so the effective field type is
+           ``list[SerialNumber] | None`` and pydantic happily parses the
+           dicts back). The ``transaction_date`` stays a live ``datetime``.
+        3. ``_bulk_upsert`` calls ``row.model_dump(include=column_names)``
+           (also mode="python"). The nested SerialNumbers are flattened
+           back to dicts; ``transaction_date`` remains a live ``datetime``
+           on the leaf. The list-of-dicts is then handed to
+           ``sqlite_insert(...).values(values)``.
+        4. SQLAlchemy binds the ``serial_numbers`` value to the
+           ``PydanticJSON`` column, which (post #659 / commit 1174c34c)
+           routes through ``to_jsonable_python`` and produces a JSON-safe
+           value before the stock ``json.dumps`` runs.
+
+        The fix landed in the client; this test pins the MO case
+        explicitly so the parallel CachedSupplier coverage above doesn't
+        accidentally regress only for MO-shape rows. The two tests are
+        kept separate rather than parametrized — distinct import paths
+        and field shapes (SupplierAddress vs SerialNumber) make a shared
+        fixture noisier than the duplication it would remove.
+        """
+        from datetime import UTC, datetime
+
+        from sqlalchemy import inspect as sqla_inspect
+        from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedManufacturingOrder,
+            ManufacturingOrder as PydanticManufacturingOrder,
+            ManufacturingOrderStatus,
+        )
+        from katana_public_api_client.models_pydantic._generated.stock import (
+            SerialNumber,
+        )
+
+        # Frozen literal so the test is hermetic. ``id`` and ``order_no``
+        # carry the SO ref + issue number from the #632 crash report as a
+        # breadcrumb back to the originating session.
+        now = datetime(2026, 1, 15, 12, 0, 0, tzinfo=UTC)
+        api_mo = PydanticManufacturingOrder(
+            id=44256191,
+            order_no="MFG-#632",
+            status=ManufacturingOrderStatus.in_progress,
+            order_created_date=now,
+            serial_numbers=[
+                SerialNumber(
+                    id=1,
+                    serial_number="SN-001",
+                    transaction_date=now,
+                    quantity_change=1,
+                ),
+            ],
+        )
+
+        # Mirror ``_convert``: model_dump → model_validate on the cache class.
+        cached = CachedManufacturingOrder.model_validate(api_mo.model_dump())
+
+        # Mirror ``_bulk_upsert``: include=column_names + dialect insert.
+        # ``_bulk_upsert`` also appends ``on_conflict_do_update`` for the
+        # upsert semantics, but the regression target is the bind-param
+        # path that runs before the conflict clause is even evaluated, so
+        # a plain INSERT is sufficient to exercise it.
+        mapper = sqla_inspect(CachedManufacturingOrder)
+        column_names = {col.name for col in mapper.columns}
+        values = [cached.model_dump(include=column_names)]
+        stmt = sqlite_insert(CachedManufacturingOrder).values(values)
+        async with typed_cache_engine.session() as session:
+            # Pre-fix: this raised ``TypeError: Object of type datetime is
+            # not JSON serializable`` and killed the whole 30-row page.
+            await session.exec(stmt)
+            await session.commit()
+
+        async with typed_cache_engine.session() as session:
+            stmt2 = select(CachedManufacturingOrder).where(
+                CachedManufacturingOrder.id == 44256191
+            )
+            result = await session.exec(stmt2)
+            fetched = result.one()
+            assert fetched.serial_numbers is not None
+            assert len(fetched.serial_numbers) == 1
+            sn = fetched.serial_numbers[0]
+            assert isinstance(sn, dict)
+            assert sn["serial_number"] == "SN-001"
+            # ``transaction_date`` survives the JSON round-trip as an
+            # ISO-8601 string (json.loads doesn't reconstruct datetimes).
+            assert isinstance(sn["transaction_date"], str)
 
     def test_pydantic_json_serializes_plain_dict_with_datetime(self):
         """Unit-level regression (#659): PydanticJSON's ``process_bind_param``
