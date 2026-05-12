@@ -69,9 +69,12 @@ uv run poe test-integration
 
 ### Code Style
 
-- We use [Ruff](https://docs.astral.sh/ruff/) for code formatting and linting
-- [ty](https://astral.sh/blog/ty) for type checking (Astral's fast Rust-based type
-  checker)
+- [Ruff](https://docs.astral.sh/ruff/) for code formatting and linting
+- [pyright](https://microsoft.github.io/pyright/) for type checking — **canonical**, per
+  [`pyrightconfig.json`](../pyrightconfig.json) and the LSP integration. Run via
+  `uv run pyright <path>` (the LSP can be stale; the CLI is the source of truth).
+- [ty](https://astral.sh/blog/ty) for type checking — secondary fast checker (Astral's
+  Rust-based). Both run in CI via `uv run poe lint`; both must pass.
 - [mdformat](https://mdformat.readthedocs.io/) for Markdown formatting
 
 All formatting is automated via `uv run poe format`.
@@ -158,22 +161,12 @@ See [docs/RELEASE.md](RELEASE.md) for complete release documentation
 
 ## Project Structure
 
-```text
-katana-openapi-client/
-├── katana_public_api_client/    # Main package
-│   ├── __init__.py
-│   ├── katana_client.py         # Main client implementation
-│   ├── client.py                # Base client classes
-│   ├── client_types.py          # Type definitions
-│   ├── errors.py                # Exception classes
-│   ├── log_setup.py             # Logging configuration
-│   ├── api/                     # Generated API methods (flattened)
-│   └── models/                  # Generated models (flattened)
-├── tests/                       # Test suite
-├── docs/                        # Documentation
-├── scripts/                     # Development scripts
-└── .github/                     # GitHub workflows
-```
+The repo is a 3-package monorepo (Python client, MCP server, TypeScript client). The
+canonical tree lives in the root
+[README.md → Project Structure](../README.md#project-structure); see also the linked
+package READMEs from that section. The structure isn't reproduced here — keeping the
+tree in two places is exactly the kind of drift-prone hand-maintained reference the rule
+below forbids.
 
 ## Architecture Guidelines
 
