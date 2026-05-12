@@ -24,17 +24,50 @@ from __future__ import annotations
 
 import json
 from collections.abc import Awaitable, Callable, Iterable
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from enum import Enum
-from typing import Any, ClassVar
+from typing import Annotated, Any, ClassVar
 
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
 from katana_mcp.tools.tool_result_utils import BLOCK_WARNING_PREFIX, make_tool_result
 from katana_public_api_client.client_types import UNSET, Unset
 from katana_public_api_client.domain.converters import unwrap_unset
+
+
+def _ensure_tz_aware(value: datetime) -> datetime:
+    # Katana's API requires RFC 3339 datetimes with a timezone offset
+    # (``Z`` or ``±HH:MM``). The attrs request models serialize via
+    # ``datetime.isoformat()`` — naive datetimes produce
+    # ``"YYYY-MM-DDTHH:MM:SS"`` with no suffix and Katana rejects with
+    # 422 ``Field 'arrivalDate' must match format: date-time``. This
+    # came up during the 2026-05-12 SRAM PO-reconciliation session,
+    # where 9 confirm clicks silently failed before the cause was
+    # isolated.
+    #
+    # Normalize naive→UTC at the pydantic validation boundary so every
+    # downstream callsite (``to_unset``, ``unset_dict``, direct attrs
+    # construction) gets a tz-aware datetime and serializes correctly.
+    # Tz-aware datetimes pass through unchanged so callers can pin a
+    # specific timezone (e.g. ``2026-06-23T00:00:00-08:00``).
+    #
+    # ``utcoffset() is None`` is the broader "naive" check: a datetime
+    # can have a non-None ``tzinfo`` (e.g. a custom ``tzinfo`` subclass)
+    # but still return ``None`` from ``utcoffset()``, and Python's
+    # ``isoformat()`` then drops the offset just like a fully-naive
+    # datetime. Treating both cases as "needs normalization" prevents
+    # that edge case from sneaking past validation.
+    if value.tzinfo is None or value.utcoffset() is None:
+        return value.replace(tzinfo=UTC)
+    return value
+
+
+# Use this in place of bare ``datetime`` for any pydantic field that
+# eventually serializes to Katana's wire. Pairs with ``| None`` and
+# ``Field(default=None, ...)`` for optional fields.
+WireDatetime = Annotated[datetime, AfterValidator(_ensure_tz_aware)]
 
 
 def patch_additional_info(

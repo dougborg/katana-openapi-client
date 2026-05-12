@@ -1148,6 +1148,14 @@ additional-cost rows in one call. Replaces the prior 8 separate
   skipped if the pre-edit GET fails, the existing value is empty, or
   the caller supplied an explicit override). See
   `docs/KATANA_API_QUESTIONS.md` section 6.1.
+  **Date cascade** — updating `expected_arrival_date` on the header
+  cascades server-side onto the row-level `arrival_date` of line items.
+  If you need specific rows to keep different dates, include them in
+  `update_rows` in the SAME modify call. Conversely, updating a single
+  row's `arrival_date` bumps the header to the latest row date if
+  applicable, but does not affect other rows. This came up during a
+  2026-05-12 PO reconciliation; the pattern likely applies to other
+  date fields with row/header duality.
 - `add_rows` — list of new line items. Each row:
   `variant_id` (int, required), `quantity` (float, required, >0),
   `price_per_unit` (float, required), `tax_rate_id` (int — see

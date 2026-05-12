@@ -27,6 +27,7 @@ from katana_mcp.services import get_services
 from katana_mcp.tools._modification import (
     ConfirmableRequest,
     ModificationResponse,
+    WireDatetime,
     compute_field_diff,
     make_response_verifier,
     patch_additional_info,
@@ -165,18 +166,21 @@ class CreateManufacturingOrderRequest(BaseModel):
         default=False,
         description="Make-to-order only: also create MOs for subassemblies. Ignored for standalone MOs.",
     )
-    order_created_date: datetime | None = Field(
+    order_created_date: WireDatetime | None = Field(
         default=None,
         description=(
-            "Order creation date (standalone mode only) — ISO 8601 date or "
-            "datetime (e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+            "Order creation date (standalone mode only) — ISO 8601 datetime "
+            "(e.g. '2026-05-08T14:30:00Z' or '2026-05-08T14:30:00-08:00'). "
+            "Naive datetimes (no timezone) are interpreted as UTC."
         ),
     )
-    production_deadline_date: datetime | None = Field(
+    production_deadline_date: WireDatetime | None = Field(
         default=None,
         description=(
-            "Production deadline date (standalone mode only) — ISO 8601 date "
-            "or datetime (e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+            "Production deadline date (standalone mode only) — ISO 8601 "
+            "datetime (e.g. '2026-05-08T14:30:00Z' or "
+            "'2026-05-08T14:30:00-08:00'). Naive datetimes (no timezone) "
+            "are interpreted as UTC."
         ),
     )
     additional_info: str | None = Field(
@@ -2680,21 +2684,23 @@ class MOHeaderPatch(BaseModel):
         ge=0,
         description="New actual produced quantity",
     )
-    order_created_date: datetime | None = Field(
+    order_created_date: WireDatetime | None = Field(
         default=None,
         description=(
             "New order created date — ISO 8601 date or datetime "
-            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+            "(e.g. '2026-05-08T14:30:00Z' or '2026-05-08T14:30:00-08:00'). "
+            "Naive datetimes (no timezone) are interpreted as UTC."
         ),
     )
-    production_deadline_date: datetime | None = Field(
+    production_deadline_date: WireDatetime | None = Field(
         default=None,
         description=(
             "New production deadline — ISO 8601 date or datetime "
-            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+            "(e.g. '2026-05-08T14:30:00Z' or '2026-05-08T14:30:00-08:00'). "
+            "Naive datetimes (no timezone) are interpreted as UTC."
         ),
     )
-    done_date: datetime | None = Field(
+    done_date: WireDatetime | None = Field(
         default=None,
         description=(
             "New completion timestamp (when MO was finished) — ISO 8601 date "
@@ -2897,7 +2903,7 @@ class MOProductionAdd(BaseModel):
     completed_quantity: float = Field(
         ..., description="Quantity produced in this production record", gt=0
     )
-    completed_date: datetime | None = Field(
+    completed_date: WireDatetime | None = Field(
         default=None,
         description=(
             "Completion timestamp (when production was finished) — ISO 8601 "
@@ -2919,11 +2925,12 @@ class MOProductionUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: int = Field(..., description="Production record ID")
-    production_date: datetime | None = Field(
+    production_date: WireDatetime | None = Field(
         default=None,
         description=(
             "When production happened — ISO 8601 date or datetime "
-            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+            "(e.g. '2026-05-08T14:30:00Z' or '2026-05-08T14:30:00-08:00'). "
+            "Naive datetimes (no timezone) are interpreted as UTC."
         ),
     )
 

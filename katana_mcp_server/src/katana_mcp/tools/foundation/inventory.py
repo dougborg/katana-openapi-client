@@ -18,7 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
-from katana_mcp.tools._modification import patch_additional_info
+from katana_mcp.tools._modification import WireDatetime, patch_additional_info
 from katana_mcp.tools.decorators import cache_read
 from katana_mcp.tools.list_coercion import CoercedIntListOpt, CoercedStrIntList
 from katana_mcp.tools.tool_result_utils import (
@@ -911,7 +911,7 @@ class CreateStockAdjustmentRequest(BaseModel):
             "system or you need a specific number."
         ),
     )
-    stock_adjustment_date: datetime | None = Field(
+    stock_adjustment_date: WireDatetime | None = Field(
         default=None,
         description=(
             "Date the adjustment occurred (ISO 8601). Leave None to stamp the "
@@ -1503,7 +1503,7 @@ class UpdateStockAdjustmentParams(BaseModel):
     stock_adjustment_number: str | None = Field(
         default=None, description="New adjustment number (optional)"
     )
-    stock_adjustment_date: datetime | None = Field(
+    stock_adjustment_date: WireDatetime | None = Field(
         default=None, description="New adjustment date (ISO-8601, optional)"
     )
     location_id: int | None = Field(
