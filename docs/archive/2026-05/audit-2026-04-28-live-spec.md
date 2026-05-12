@@ -1,5 +1,12 @@
 # Live-Spec Audit — 2026-04-28
 
+> **Archived 2026-05.** Point-in-time snapshot — preserved for historical context. For
+> the current spec-audit workflow that supersedes this manual report, see
+> [`docs/upstream-specs/README.md`](../../upstream-specs/README.md) and the "Spec
+> Maintenance" section of [`docs/CONTRIBUTING.md`](../../CONTRIBUTING.md). Run the
+> live-gateway comparison with `uv run poe audit-spec`. The text below is preserved
+> verbatim.
+
 Comparison of `docs/katana-openapi.yaml` (local) against the live OpenAPI document at
 `https://api.katanamrp.com/v1/openapi.json` (refreshed via
 `scripts/pull_upstream_specs.py` / `uv run poe refresh-upstream-spec`, which writes

@@ -75,7 +75,7 @@ What each step catches:
 Findings split into three buckets: real local-spec drift (fix in the spec),
 documentation artefact (Katana's docs are wrong, verify against live API and just record
 it), or needs verification (flag for a human to check against the live API). Past audit
-reports under `docs/audit-*.md` are good reference.
+reports under `docs/archive/2026-*/audit-*.md` are good reference.
 
 The spec-auditor agent (`.claude/agents/spec-auditor.md`) drives steps 1–5 and produces
 a triaged report; invoke it via the `Agent` tool when you want a fresh audit.

@@ -6,7 +6,7 @@ Where those tools surface *suspected* drift by comparing local YAML against
 upstream YAML / README.io examples, this script makes **live API calls** and
 reports what Katana actually puts on the wire — the ultimate source of truth.
 
-Each finding is keyed by an ID matching ``docs/audit-2026-05-06.md``
+Each finding is keyed by an ID matching ``docs/archive/2026-05/audit-2026-05-06.md``
 (F1, F2, …). Run a single finding by passing its ID, or ``--all`` for the
 full suite. Output is Markdown by default (paste-friendly for the audit doc
 and issue comments) or JSON via ``--json``; both write to stdout.
