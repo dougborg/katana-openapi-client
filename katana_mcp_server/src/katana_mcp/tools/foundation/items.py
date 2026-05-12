@@ -605,12 +605,11 @@ class ItemVariantSummary(BaseModel):
 
     id: int
     sku: str | None = None
-    """Variant SKU. ``None``-able to match Katana's wire contract — the
-    platform allows variants without a SKU (legacy NetSuite imports are
-    a common source, and there's no DB-level constraint that forces it
-    non-null). Display-side consumers should coalesce to ``""`` when
-    rendering; ``display_name`` below already provides a non-empty
-    title in the rare SKU-less case.
+    """Variant SKU. ``None``-able to match Katana's wire contract —
+    the platform has no DB-level constraint forcing SKU non-null, so
+    consumers must tolerate ``None``. Display-side consumers should
+    coalesce to ``""`` when rendering; ``display_name`` below already
+    provides a non-empty title in the rare SKU-less case.
     """
     sales_price: float | None = None
     purchase_price: float | None = None

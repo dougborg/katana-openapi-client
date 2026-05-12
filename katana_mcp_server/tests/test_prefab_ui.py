@@ -584,6 +584,306 @@ class TestBuildItemDetailUI:
         app = build_item_detail_ui({"id": 1, "name": "X"})
         _assert_valid_prefab(app)
 
+    def test_title_wraps_in_link_when_katana_url_set(self):
+        """Title becomes an external Link to the Katana page when
+        ``katana_url`` is set — same pattern as the variant card.
+        Items DO have direct Katana pages (unlike variants), so the
+        link goes straight to the item, not a parent."""
+        item = {
+            "id": 1,
+            "name": "Widget",
+            "type": "product",
+            "katana_url": "https://factory.katanamrp.com/product/1",
+        }
+        app = build_item_detail_ui(item)
+        _assert_valid_prefab(app)
+        envelope = app.to_json()
+        links = _find_components_by_type(envelope, "Link")
+        hrefs = [
+            link.get("href") for link in links if isinstance(link.get("href"), str)
+        ]
+        assert "https://factory.katanamrp.com/product/1" in hrefs
+
+    def test_title_bare_when_no_katana_url(self):
+        item = {"id": 1, "name": "Orphan Item", "type": "product"}
+        app = build_item_detail_ui(item)
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "Orphan Item" in rendered
+
+    def test_id_text_row_dropped(self):
+        """The previous "ID: <id>" raw-text row was dropped — IDs are
+        noise for human readers and ride on the JSON
+        ``structured_content`` channel for tooling."""
+        item = {"id": 12345, "name": "Widget", "type": "product"}
+        app = build_item_detail_ui(item)
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "ID: 12345" not in rendered
+
+    def test_status_pills_vary_by_subtype(self):
+        """Status pills appear conditionally per item type. Products
+        show producible / sellable, materials show batch_tracked /
+        serial_tracked, services show neither producible nor batch
+        flags."""
+        # Material with batch + serial tracking
+        material = {
+            "id": 1,
+            "name": "Steel",
+            "type": "material",
+            "is_sellable": False,
+            "batch_tracked": True,
+            "serial_tracked": True,
+        }
+        app = build_item_detail_ui(material)
+        envelope = app.to_json()
+        rendered = str(envelope)
+        assert "Not Sellable" in rendered
+        assert "Batch tracked" in rendered
+        assert "Serial tracked" in rendered
+        # Material isn't producible — no Producible/Not Producible badge
+        assert "Producible" not in rendered
+
+    def test_supplier_renders_as_external_link(self):
+        """Default supplier name → Katana ``/contacts/suppliers/{id}``
+        Link, matching the variant card convention. Supplier ID is
+        nested under ``supplier`` (not flat ``default_supplier_id``)."""
+        item = {
+            "id": 1,
+            "name": "Steel Bar",
+            "type": "material",
+            "supplier": {"id": 555, "name": "Acme Metals"},
+        }
+        app = build_item_detail_ui(item)
+        _assert_valid_prefab(app)
+        envelope = app.to_json()
+        links = _find_components_by_type(envelope, "Link")
+        supplier_links = [
+            link
+            for link in links
+            if isinstance(link.get("href"), str)
+            and "/contacts/suppliers/" in link.get("href", "")
+        ]
+        assert len(supplier_links) == 1
+        assert (
+            supplier_links[0].get("href")
+            == "https://factory.katanamrp.com/contacts/suppliers/555"
+        )
+        assert supplier_links[0].get("content") == "Acme Metals"
+
+    def test_supplier_falls_back_to_default_supplier_id_when_no_nested_supplier(
+        self,
+    ):
+        """Materials commonly have ``supplier=None`` while
+        ``default_supplier_id`` is set (Katana doesn't always embed the
+        full nested supplier even when the FK is populated). The card
+        must still render a clickable supplier reference using the flat
+        ID. Visible text is ``#<id>`` since no name is available; the
+        ``href`` still points at the supplier page so one click takes
+        you to the source of truth.
+        """
+        item = {
+            "id": 1,
+            "name": "Steel Bar",
+            "type": "material",
+            "supplier": None,
+            "default_supplier_id": 1301979,
+        }
+        app = build_item_detail_ui(item)
+        _assert_valid_prefab(app)
+        envelope = app.to_json()
+        links = _find_components_by_type(envelope, "Link")
+        supplier_links = [
+            link
+            for link in links
+            if isinstance(link.get("href"), str)
+            and "/contacts/suppliers/" in link.get("href", "")
+        ]
+        assert len(supplier_links) == 1
+        assert (
+            supplier_links[0].get("href")
+            == "https://factory.katanamrp.com/contacts/suppliers/1301979"
+        )
+        # Visible text is the ID with a # prefix since no name available.
+        assert supplier_links[0].get("content") == "#1301979"
+
+    def test_supplier_omitted_for_service(self):
+        """Services don't have a default supplier on the response model.
+        The card should skip the supplier line cleanly without any
+        spurious 'Default Supplier' rendering."""
+        item = {"id": 1, "name": "Assembly Service", "type": "service"}
+        app = build_item_detail_ui(item)
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "Default Supplier" not in rendered
+
+    def test_configs_render_as_axis_text_rows(self):
+        """Configuration axes render as ``"Axis: val1, val2, ..."`` text
+        rows — one per axis. Empty config list skips silently."""
+        item = {
+            "id": 1,
+            "name": "T-Shirt",
+            "type": "product",
+            "configs": [
+                {"id": 10, "name": "Color", "values": ["Red", "Blue", "Black"]},
+                {"id": 11, "name": "Size", "values": ["S", "M", "L"]},
+            ],
+        }
+        app = build_item_detail_ui(item)
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "Color: Red, Blue, Black" in rendered
+        assert "Size: S, M, L" in rendered
+
+    def test_variants_render_as_datatable_with_callTool_drilldown(self):
+        """Variants render as a DataTable; per-row click invokes
+        ``get_variant_details`` via ``CallTool`` (direct tool invocation,
+        not a SendMessage chat prompt). The CallTool arguments key off
+        the row's ``id`` (always present) — not ``sku`` — so SKU-less
+        variants stay clickable."""
+        item = {
+            "id": 1,
+            "name": "T-Shirt",
+            "type": "product",
+            "variants": [
+                {
+                    "id": 10,
+                    "sku": "TS-RED-S",
+                    "sales_price": 19.99,
+                    "purchase_price": 8.50,
+                },
+                {
+                    "id": 11,
+                    "sku": "TS-BLUE-M",
+                    "sales_price": 19.99,
+                    "purchase_price": 8.50,
+                },
+            ],
+        }
+        app = build_item_detail_ui(item)
+        _assert_valid_prefab(app)
+        envelope = app.to_json()
+        # DataTable component present
+        tables = _find_components_by_type(envelope, "DataTable")
+        assert len(tables) == 1
+        # Per-row click is a CallTool pointing at get_variant_details
+        on_row_click = tables[0].get("onRowClick")
+        assert isinstance(on_row_click, dict)
+        assert on_row_click.get("action") == "toolCall"
+        assert on_row_click.get("tool") == "get_variant_details"
+        # Argument keys off the row's ``id`` field, not ``sku``. Using
+        # ``id`` keeps SKU-less variants (legitimate per
+        # ``ItemVariantSummary.sku: str | None``) clickable.
+        args = on_row_click.get("arguments") or {}
+        assert args.get("variant_id") == "{{ id }}"
+        assert "sku" not in args
+
+    def test_variants_table_handles_sku_less_variants(self):
+        """A variant with ``sku=None`` still renders and stays clickable.
+        Regression test for the Copilot finding on PR #698: keying the
+        row-click off ``sku`` would have produced ``arguments={"sku": null}``
+        and the tool would reject the call. Using ``id`` (always present)
+        keeps the path working."""
+        item = {
+            "id": 1,
+            "name": "Legacy Import",
+            "type": "material",
+            "variants": [
+                {
+                    "id": 99,
+                    "sku": None,  # SKU-less, legitimate per Katana
+                    "sales_price": None,
+                    "purchase_price": 12.50,
+                }
+            ],
+        }
+        app = build_item_detail_ui(item)
+        _assert_valid_prefab(app)
+        envelope = app.to_json()
+        # Table renders despite the null SKU.
+        tables = _find_components_by_type(envelope, "DataTable")
+        assert len(tables) == 1
+        # Row-click args reference the variant id, not sku.
+        args = tables[0].get("onRowClick", {}).get("arguments") or {}
+        assert args == {"variant_id": "{{ id }}"}
+        # The variant count metric reflects the single row.
+        assert "Variants: 1" in str(envelope)
+
+    def test_variants_table_omitted_when_empty(self):
+        """Items with zero variants skip the table cleanly — defensive
+        path for cold-cache / unusual data."""
+        item = {"id": 1, "name": "X", "type": "service", "variants": []}
+        app = build_item_detail_ui(item)
+        _assert_valid_prefab(app)
+        envelope = app.to_json()
+        tables = _find_components_by_type(envelope, "DataTable")
+        assert tables == []
+        # The variant count metric row still appears with 0.
+        assert "Variants: 0" in str(envelope)
+
+    def test_material_footer_actions(self):
+        """Materials get Create PO + List MOs Using This + Modify Item."""
+        item = {"id": 100, "name": "Steel", "type": "material"}
+        app = build_item_detail_ui(item)
+        envelope = app.to_json()
+        assert len(_find_buttons_by_label(envelope, "Create Purchase Order")) == 1
+        assert len(_find_buttons_by_label(envelope, "List MOs Using This")) == 1
+        assert len(_find_buttons_by_label(envelope, "Modify Item")) == 1
+        # No Manufacturing Order action on a material
+        assert len(_find_buttons_by_label(envelope, "Create Manufacturing Order")) == 0
+        # No "View in Katana" footer button — title link replaces it
+        assert len(_find_buttons_by_label(envelope, "View in Katana")) == 0
+
+    def test_product_producible_footer_actions(self):
+        """Producible products get Create Manufacturing Order + Modify Item.
+        Non-producible products skip the MO action."""
+        item = {
+            "id": 100,
+            "name": "Bike",
+            "type": "product",
+            "is_producible": True,
+        }
+        app = build_item_detail_ui(item)
+        envelope = app.to_json()
+        assert len(_find_buttons_by_label(envelope, "Create Manufacturing Order")) == 1
+        assert len(_find_buttons_by_label(envelope, "Modify Item")) == 1
+        # No material-specific actions
+        assert len(_find_buttons_by_label(envelope, "Create Purchase Order")) == 0
+
+    def test_product_non_producible_skips_mo_action(self):
+        item = {
+            "id": 100,
+            "name": "Component",
+            "type": "product",
+            "is_producible": False,
+        }
+        app = build_item_detail_ui(item)
+        envelope = app.to_json()
+        assert len(_find_buttons_by_label(envelope, "Create Manufacturing Order")) == 0
+        # Modify Item is still there for all types
+        assert len(_find_buttons_by_label(envelope, "Modify Item")) == 1
+
+    def test_service_minimal_footer(self):
+        """Services don't have material or product-specific actions —
+        just Modify Item."""
+        item = {"id": 100, "name": "Assembly Service", "type": "service"}
+        app = build_item_detail_ui(item)
+        envelope = app.to_json()
+        assert len(_find_buttons_by_label(envelope, "Modify Item")) == 1
+        assert len(_find_buttons_by_label(envelope, "Create Purchase Order")) == 0
+        assert len(_find_buttons_by_label(envelope, "Create Manufacturing Order")) == 0
+        assert len(_find_buttons_by_label(envelope, "List MOs Using This")) == 0
+
+    def test_modify_item_message_falls_back_when_type_missing(self):
+        """When ``type`` is absent (minimal/partial dict), the Modify Item
+        SendMessage falls back to the generic "item" instead of leaking
+        "None" into the agent prompt."""
+        item = {"id": 1, "name": "X"}
+        app = build_item_detail_ui(item)
+        rendered = str(app.to_json())
+        assert "modify None" not in rendered
+        assert "modify item 1" in rendered
+
 
 class TestBuildInventoryCheckUI:
     def test_with_stock(self):
