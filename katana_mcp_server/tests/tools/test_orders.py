@@ -265,11 +265,125 @@ async def test_fulfill_sales_order_preview():
     assert result.status == "NOT_SHIPPED"
     assert result.is_preview is True
     # Preview now lists the rows that will ship — one entry per SO row.
+    # On cold cache (no display_name resolved) the line falls back to the
+    # ``variant {id}`` sentinel, same as the legacy contract.
     assert len(result.inventory_updates) == 2
     assert any("variant 100" in u for u in result.inventory_updates)
     assert any("variant 200" in u for u in result.inventory_updates)
     # Last next_action should mention preview=false.
     assert any("preview=false" in a for a in result.next_actions)
+
+
+@pytest.mark.asyncio
+async def test_fulfill_sales_order_preview_lifts_display_name():
+    """When the typed cache resolves each row's variant, the inventory-
+    update line leads with the canonical Katana-UI display name
+    (parent / value1 / value2) — matching every other variant-displaying
+    surface. Falls back to the ``variant {id}`` sentinel only on cache
+    miss + no parent.
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    mock_so = MagicMock(spec=SalesOrder)
+    mock_so.order_no = "SO-DISPLAY"
+    mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.sales_order_rows = [
+        _make_so_row(1, 100, 2.0),
+        _make_so_row(2, 200, 5.0),
+    ]
+
+    mock_response = MagicMock(status_code=200, parsed=mock_so)
+    from katana_public_api_client.api.sales_order import get_sales_order
+
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(return_value=mock_response)
+
+    # Seed the typed cache so each variant resolves to a canonical
+    # display_name (avoiding the parent-lookup branch — which is exercised
+    # by the verify-card test path instead).
+    def _mk_cached(vid, sku, display_name):
+        m = MagicMock()
+        m.id = vid
+        m.sku = sku
+        m.display_name = display_name
+        m.product_id = None
+        m.material_id = None
+        m.config_attributes = []
+        return m
+
+    async def _get_many(model_cls, ids, **_kw):
+        # Variant lookup: return per-variant cache rows. Product/Material
+        # lookups: empty (variants don't have parents in this fixture, so
+        # serial-tracked stays False, which is fine).
+        from katana_public_api_client.models_pydantic._generated import CachedVariant
+
+        if model_cls is CachedVariant:
+            data = {
+                100: _mk_cached(100, "WIDGET-100", "Big Widget / Red"),
+                200: _mk_cached(200, "WIDGET-200", "Small Widget / Blue"),
+            }
+            return {vid: data[vid] for vid in ids if vid in data}
+        return {}
+
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(side_effect=_get_many)
+
+    request = FulfillOrderRequest(order_id=5678, order_type="sales", preview=True)
+    result = await _fulfill_order_impl(request, context)
+
+    # Both lines lead with the canonical display name (parent / config1).
+    assert len(result.inventory_updates) == 2
+    assert any("Big Widget / Red" in u for u in result.inventory_updates)
+    assert any("Small Widget / Blue" in u for u in result.inventory_updates)
+
+
+@pytest.mark.asyncio
+async def test_fulfill_manufacturing_order_preview_lifts_display_name():
+    """The MO fulfillment summary surfaces the finished-good's canonical
+    display name in the "will produce X" line, matching the SO sibling.
+    Cold-cache fallback returns ``variant {id}`` (default behaviour pinned
+    by ``test_fulfill_manufacturing_order_preview``).
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    mock_mo = MagicMock(spec=ManufacturingOrder)
+    mock_mo.order_no = "MO-DISPLAY"
+    mock_mo.status = ManufacturingOrderStatus.IN_PROGRESS
+    mock_mo.variant_id = 555
+    mock_mo.actual_quantity = 2
+
+    mock_response = MagicMock(status_code=200, parsed=mock_mo)
+    from katana_public_api_client.api.manufacturing_order import get_manufacturing_order
+
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=mock_response
+    )
+
+    cached_variant = MagicMock()
+    cached_variant.id = 555
+    cached_variant.sku = "BIKE-MAYHEM"
+    cached_variant.display_name = "Mayhem Bike / Large / Black"
+    cached_variant.product_id = None
+    cached_variant.material_id = None
+    cached_variant.config_attributes = []
+
+    async def _get_many(model_cls, ids, **_kw):
+        from katana_public_api_client.models_pydantic._generated import CachedVariant
+
+        if model_cls is CachedVariant and 555 in set(ids):
+            return {555: cached_variant}
+        return {}
+
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(side_effect=_get_many)
+
+    request = FulfillOrderRequest(
+        order_id=9876, order_type="manufacturing", preview=True
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert result.is_preview is True
+    # Lead line surfaces the canonical display name (the prior line said
+    # only "Manufacturing order completion will update inventory based on BOM",
+    # which gave the user no signal what was being made).
+    assert any("Mayhem Bike / Large / Black" in u for u in result.inventory_updates)
 
 
 @pytest.mark.asyncio
