@@ -2189,12 +2189,19 @@ def build_batch_recipe_update_ui(
         label = op.get("group_label") or "Other"
         groups.setdefault(label, []).append(op)
 
-    # Augment each row with display-friendly fields (flatten nested structure)
+    # Augment each row with display-friendly fields (flatten nested structure).
+    # ``item`` column prefers the canonical ``display_name`` (Katana-UI format
+    # ``parent / value1 / value2`` built upstream via
+    # ``build_variant_display_name``), then SKU, then a ``variant {id}``
+    # fallback so the row always renders something meaningful even on
+    # cold-cache calls where neither is resolved.
     flat_rows: list[dict[str, Any]] = []
     for label, ops in groups.items():
         for op in ops:
-            sku_or_variant = op.get("sku") or (
-                f"variant {op['variant_id']}" if op.get("variant_id") else ""
+            display = (
+                op.get("display_name")
+                or op.get("sku")
+                or (f"variant {op['variant_id']}" if op.get("variant_id") else "")
             )
             flat_rows.append(
                 {
@@ -2202,7 +2209,8 @@ def build_batch_recipe_update_ui(
                     "mo_id": op.get("manufacturing_order_id"),
                     "action": (op.get("op_type") or "").upper(),
                     "row_id": op.get("recipe_row_id") or "(new)",
-                    "sku": sku_or_variant,
+                    "sku": op.get("sku") or "",
+                    "item": display,
                     "qty": op.get("planned_quantity_per_unit") or "",
                     "status": (op.get("status") or "pending").upper(),
                     "error": op.get("error") or "",
@@ -2257,13 +2265,17 @@ def build_batch_recipe_update_ui(
                 Metric(label="Failed", value=str(failed))
                 Metric(label="Skipped", value=str(skipped))
 
-        # One big table with all ops, grouped visually by the group column
+        # One big table with all ops, grouped visually by the group column.
+        # ``Item`` shows the canonical Katana-UI display name (parent / value1
+        # / value2) when the upstream caller resolved a variant; ``SKU`` keeps
+        # the raw SKU as a secondary identity column for ops + scripts.
         DataTable(
             columns=[
                 DataTableColumn(key="group", header="Group", sortable=True),
                 DataTableColumn(key="mo_id", header="MO", sortable=True),
                 DataTableColumn(key="action", header="Action"),
                 DataTableColumn(key="row_id", header="Row ID"),
+                DataTableColumn(key="item", header="Item"),
                 DataTableColumn(key="sku", header="SKU"),
                 DataTableColumn(key="qty", header="Qty", align="right"),
                 DataTableColumn(key="status", header="Status", sortable=True),
