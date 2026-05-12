@@ -125,8 +125,10 @@ Use **`/groom`** to surface drift between issues and project state — closed is
 in Todo, items in Done with open issues, P3 items stale for >90 days, P0/P1 sitting idle
 \>21 days, items missing Priority or Workstream. The skill reads the board, classifies
 items across five heuristic categories, and asks for per-category confirmation before
-applying any mutation. Don't re-derive the priority queue from `gh issue list` —
-`/groom` evolves the board forward.
+applying any mutation. **Destructive mutations (closures) require a second per-issue
+confirmation** — category-level approval is enough for status moves and priority shifts,
+but `/groom` won't bulk-close on a single OK. Don't re-derive the priority queue from
+`gh issue list` — `/groom` evolves the board forward.
 
 ## Continuous Improvement
 
