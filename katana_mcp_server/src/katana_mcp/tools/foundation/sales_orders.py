@@ -27,6 +27,7 @@ from katana_mcp.services import get_services
 from katana_mcp.tools._modification import (
     ConfirmableRequest,
     ModificationResponse,
+    WireDatetime,
     compute_field_diff,
     make_response_verifier,
     to_tool_result,
@@ -229,14 +230,15 @@ class CreateSalesOrderRequest(BaseModel):
             "Primary fulfillment location ID (optional). Look up via `list_locations`."
         ),
     )
-    delivery_date: datetime | None = Field(
+    delivery_date: WireDatetime | None = Field(
         default=None,
         description=(
             "Requested delivery date (optional) — ISO 8601 date or datetime "
-            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+            "(e.g. '2026-05-08T14:30:00Z' or '2026-05-08T14:30:00-08:00'). "
+            "Naive datetimes (no timezone) are interpreted as UTC."
         ),
     )
-    order_created_date: datetime | None = Field(
+    order_created_date: WireDatetime | None = Field(
         default=None,
         description=(
             "Date the order was placed. Leave None to let Katana stamp the "
@@ -1659,25 +1661,28 @@ class SOHeaderPatch(BaseModel):
     conversion_date: str | None = Field(
         default=None, description="New conversion date (ISO-8601)"
     )
-    order_created_date: datetime | None = Field(
+    order_created_date: WireDatetime | None = Field(
         default=None,
         description=(
             "New order created date — ISO 8601 date or datetime "
-            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+            "(e.g. '2026-05-08T14:30:00Z' or '2026-05-08T14:30:00-08:00'). "
+            "Naive datetimes (no timezone) are interpreted as UTC."
         ),
     )
-    delivery_date: datetime | None = Field(
+    delivery_date: WireDatetime | None = Field(
         default=None,
         description=(
             "New delivery date — ISO 8601 date or datetime "
-            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+            "(e.g. '2026-05-08T14:30:00Z' or '2026-05-08T14:30:00-08:00'). "
+            "Naive datetimes (no timezone) are interpreted as UTC."
         ),
     )
-    picked_date: datetime | None = Field(
+    picked_date: WireDatetime | None = Field(
         default=None,
         description=(
             "New picked date — ISO 8601 date or datetime "
-            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+            "(e.g. '2026-05-08T14:30:00Z' or '2026-05-08T14:30:00-08:00'). "
+            "Naive datetimes (no timezone) are interpreted as UTC."
         ),
     )
     additional_info: str | None = Field(
@@ -1789,22 +1794,24 @@ class SOFulfillmentAdd(BaseModel):
     sales_order_fulfillment_rows: list[SOFulfillmentRowInput] = Field(
         ..., description="Rows being fulfilled (variant + quantity)", min_length=1
     )
-    picked_date: datetime | None = Field(
+    picked_date: WireDatetime | None = Field(
         default=None,
         description=(
             "When items were picked — ISO 8601 date or datetime "
-            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+            "(e.g. '2026-05-08T14:30:00Z' or '2026-05-08T14:30:00-08:00'). "
+            "Naive datetimes (no timezone) are interpreted as UTC."
         ),
     )
     conversion_rate: float | None = Field(
         default=None,
         description="Currency conversion rate applied to the fulfillment",
     )
-    conversion_date: datetime | None = Field(
+    conversion_date: WireDatetime | None = Field(
         default=None,
         description=(
             "Conversion-rate fix date — ISO 8601 date or datetime "
-            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+            "(e.g. '2026-05-08T14:30:00Z' or '2026-05-08T14:30:00-08:00'). "
+            "Naive datetimes (no timezone) are interpreted as UTC."
         ),
     )
     tracking_number: str | None = Field(
@@ -1829,11 +1836,12 @@ class SOFulfillmentUpdate(BaseModel):
         default=None,
         description="New fulfillment status — DELIVERED or PACKED",
     )
-    picked_date: datetime | None = Field(
+    picked_date: WireDatetime | None = Field(
         default=None,
         description=(
             "New picked date — ISO 8601 date or datetime "
-            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+            "(e.g. '2026-05-08T14:30:00Z' or '2026-05-08T14:30:00-08:00'). "
+            "Naive datetimes (no timezone) are interpreted as UTC."
         ),
     )
     packer_id: int | None = Field(
@@ -1843,11 +1851,12 @@ class SOFulfillmentUpdate(BaseModel):
     conversion_rate: float | None = Field(
         default=None, description="New currency conversion rate"
     )
-    conversion_date: datetime | None = Field(
+    conversion_date: WireDatetime | None = Field(
         default=None,
         description=(
             "New conversion-rate fix date — ISO 8601 date or datetime "
-            "(e.g. '2026-05-08' or '2026-05-08T14:30:00Z')"
+            "(e.g. '2026-05-08T14:30:00Z' or '2026-05-08T14:30:00-08:00'). "
+            "Naive datetimes (no timezone) are interpreted as UTC."
         ),
     )
     tracking_number: str | None = Field(

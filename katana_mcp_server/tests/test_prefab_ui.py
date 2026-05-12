@@ -1047,6 +1047,23 @@ class TestConfirmButtonDirectApplyRail:
         toasts = [a for a in on_error if a.get("action") == "showToast"]
         assert len(toasts) == 1, f"Expected one error toast; got {toasts!r}"
 
+        # Bug #4 (2026-05-12 SRAM session): the iframe toast alone was
+        # invisible to the user during a live session where 9 confirm
+        # clicks silently failed against a Katana 422. The cancel-button
+        # rail uses SendMessage to surface back to chat; mirror that on
+        # error so users see a chat-visible message, not just an
+        # in-iframe toast.
+        send_messages = [a for a in on_error if a.get("action") == "sendMessage"]
+        assert len(send_messages) == 1, (
+            f"Expected one SendMessage on error so the failure surfaces in "
+            f"chat (not just the iframe toast); got {send_messages!r}"
+        )
+        send_content = send_messages[0].get("content", "")
+        assert "$error" in send_content, (
+            f"SendMessage on error must inline the $error reason so the user "
+            f"sees what went wrong; got {send_messages[0]!r}"
+        )
+
     def test_po_preview_direct_apply_double_click_is_guarded(self):
         """Confirm button binds ``pending`` so a double-click cannot fire
         two applies. Ensures (1) on_click sets pending=True before
