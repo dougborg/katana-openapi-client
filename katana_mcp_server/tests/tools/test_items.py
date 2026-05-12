@@ -596,6 +596,10 @@ _FULL_PRODUCT_DICT = {
             "type": "product",
             "sales_price": 299.99,
             "purchase_price": 150.0,
+            "config_attributes": [
+                {"config_name": "Piece Count", "config_value": "8-piece"},
+                {"config_name": "Handle Material", "config_value": "Steel"},
+            ],
         }
     ],
     "configs": [
@@ -730,6 +734,14 @@ async def test_get_item_product_surfaces_every_field():
     assert len(result.variants) == 1
     assert result.variants[0].sku == "KNF-PRO-8PC-STL"
     assert result.variants[0].sales_price == 299.99
+    # display_name follows the Katana-UI canonical format
+    # ``"{parent_name} / {config1} / {config2}"`` via
+    # ``build_variant_display_name`` — same formula as the typed cache's
+    # ``CachedVariant.display_name`` column and ``VariantDetailsResponse``.
+    assert (
+        result.variants[0].display_name
+        == "Professional Kitchen Knife Set / 8-piece / Steel"
+    )
     assert len(result.configs) == 1
     assert result.configs[0].name == "Piece Count"
     assert result.configs[0].values == ["8-piece", "12-piece"]
@@ -883,6 +895,49 @@ def test_variant_to_summary_falls_back_to_default_cost_when_purchase_price_absen
 
     assert summary is not None
     assert summary.purchase_price == 50.0
+
+
+def test_variant_to_summary_builds_canonical_display_name_with_parent_and_configs():
+    """``_variant_to_summary`` populates ``display_name`` via the canonical
+    helper (``parent / value1 / value2``) when a ``parent_name`` is supplied.
+    Mirrors how every other variant-displaying surface formats the name —
+    typed-cache ``CachedVariant.display_name``, ``VariantDetailsResponse.display_name``,
+    and ``KatanaVariant.get_display_name`` all delegate to
+    ``build_variant_display_name``, and the embedded variant summary must
+    match.
+    """
+    from katana_mcp.tools.foundation.items import _variant_to_summary
+
+    summary = _variant_to_summary(
+        {
+            "id": 7001,
+            "sku": "KNF-PRO-8PC-STL",
+            "sales_price": 299.99,
+            "type": "product",
+            "config_attributes": [
+                {"config_name": "Piece Count", "config_value": "8-piece"},
+                {"config_name": "Handle Material", "config_value": "Steel"},
+            ],
+        },
+        parent_name="Professional Kitchen Knife Set",
+    )
+
+    assert summary is not None
+    assert summary.display_name == "Professional Kitchen Knife Set / 8-piece / Steel"
+
+
+def test_variant_to_summary_display_name_falls_back_to_sku_without_parent():
+    """When no ``parent_name`` is supplied (helper called bare), the
+    Katana-UI display falls back to the SKU — matches
+    ``build_variant_display_name(None, [], sku)`` behaviour.
+    """
+    from katana_mcp.tools.foundation.items import _variant_to_summary
+
+    summary = _variant_to_summary({"id": 7002, "sku": "ORPHAN-1"})
+
+    assert summary is not None
+    # Empty parent → falls back to the SKU (canonical helper contract).
+    assert summary.display_name == "ORPHAN-1"
 
 
 # ============================================================================

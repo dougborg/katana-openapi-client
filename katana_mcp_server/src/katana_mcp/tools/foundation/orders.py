@@ -158,12 +158,20 @@ async def _fulfill_manufacturing_order(
     variant_id = unwrap_unset(mo.variant_id, None)
     actual_quantity = unwrap_unset(mo.actual_quantity, None)
 
-    is_serial_tracked, sku = await _resolve_variant_serial_info(services, variant_id)
+    is_serial_tracked, sku, display_name = await _resolve_variant_serial_info(
+        services, variant_id
+    )
 
+    # The MO header carries one variant — surface the canonical display
+    # name in the inventory-updates summary so the rendered fulfillment
+    # card matches the variant-naming convention used by every other
+    # surface. Falls back to SKU when the typed cache hasn't resolved a
+    # display name yet (cold cache / API fallback with no parent).
+    finished_good_label = display_name or sku
     inventory_updates = [
-        "Manufacturing order completion will update inventory based on BOM",
+        f"Manufacturing order completion will produce {finished_good_label}",
         "Finished goods will be added to stock",
-        "Raw materials will be consumed from inventory",
+        "Raw materials will be consumed from inventory based on BOM",
     ]
     if is_serial_tracked and request.serial_numbers:
         inventory_updates.append(
@@ -351,8 +359,9 @@ def _attr(obj: Any, name: str, default: Any = None) -> Any:
 
 async def _resolve_row_serial_info(
     services: Any, so_rows: list[Any]
-) -> tuple[dict[int, bool], dict[int, str]]:
-    """Return ``(serial_tracked_by_row, sku_by_row)`` from cache + API fallback.
+) -> tuple[dict[int, bool], dict[int, str], dict[int, str]]:
+    """Return ``(serial_tracked_by_row, sku_by_row, display_name_by_row)``
+    from cache + API fallback.
 
     The ``serial_tracked`` flag lives on the parent Product/Material, not on
     Variant — so we fan out variant-by-id, then group parent IDs by type
@@ -363,12 +372,20 @@ async def _resolve_row_serial_info(
     ``serial_tracked=False`` and ``"variant {id}"`` for SKUs (best-effort,
     same as if the entity didn't exist). The two parent maps are kept
     separate per CLAUDE.md "Cache IDs are not globally unique".
+
+    ``display_name_by_row`` lifts the typed cache's pre-computed
+    ``CachedVariant.display_name`` column (which delegates to
+    :func:`build_variant_display_name`). API-fallback rows don't carry the
+    column, so the helper computes it fresh from the parent name + config
+    attributes. Empty string when neither resolves (matches the
+    ``MISSING_IN_PO`` convention on the verify path).
     """
     if not so_rows:
-        return {}, {}
+        return {}, {}, {}
     from katana_public_api_client.api.material import get_material
     from katana_public_api_client.api.product import get_product
     from katana_public_api_client.api.variant import get_variant
+    from katana_public_api_client.domain.variant import build_variant_display_name
 
     variant_ids = {row.variant_id for row in so_rows if row.variant_id is not None}
     catalog = services.typed_cache.catalog
@@ -400,12 +417,14 @@ async def _resolve_row_serial_info(
 
     serial_tracked: dict[int, bool] = {}
     skus: dict[int, str] = {}
+    display_names: dict[int, str] = {}
     for row in so_rows:
         variant = variants_by_id.get(row.variant_id)
         sku = _attr(variant, "sku") if variant is not None else None
         skus[row.id] = sku or f"variant {row.variant_id}"
         if variant is None:
             serial_tracked[row.id] = False
+            display_names[row.id] = ""
             continue
         product_id = _attr(variant, "product_id")
         material_id = _attr(variant, "material_id")
@@ -416,27 +435,46 @@ async def _resolve_row_serial_info(
         else:
             parent = None
         serial_tracked[row.id] = bool(parent and _attr(parent, "serial_tracked"))
-    return serial_tracked, skus
+        # Prefer the typed cache's pre-computed display_name when present
+        # (cache hit). On the API-fallback path the attrs variant has no
+        # such column, so compute fresh from the resolved parent name +
+        # config_attributes — same formula every other surface uses.
+        cached_display = _attr(variant, "display_name")
+        if cached_display:
+            display_names[row.id] = cached_display
+        else:
+            parent_name = _attr(parent, "name") if parent is not None else None
+            display_names[row.id] = build_variant_display_name(
+                parent_name,
+                _attr(variant, "config_attributes") or [],
+                sku,
+            )
+    return serial_tracked, skus, display_names
 
 
 async def _resolve_variant_serial_info(
     services: Any, variant_id: int | None
-) -> tuple[bool, str]:
-    """Return ``(is_serial_tracked, sku)`` for a single variant.
+) -> tuple[bool, str, str]:
+    """Return ``(is_serial_tracked, sku, display_name)`` for a single variant.
 
     Single-variant counterpart to ``_resolve_row_serial_info`` used by the
     manufacturing-order path (MOs reference one variant, not per-row). Cache
     misses fall back to a per-ID API fetch so a cold / stale cache doesn't
     silently mis-classify a serial-tracked MO as "OK to mark DONE without
     serials" and surface the original Katana 422 on apply. If the variant
-    can't be resolved at all, returns ``(False, f"variant {id}")`` —
+    can't be resolved at all, returns ``(False, f"variant {id}", "")`` —
     best-effort, same as if the entity didn't exist.
+
+    ``display_name`` is the canonical Katana-UI-format name lifted from
+    the typed cache's ``CachedVariant.display_name`` column, or computed
+    fresh from the parent name + config attributes on the API-fallback path.
     """
     if variant_id is None:
-        return False, "variant ?"
+        return False, "variant ?", ""
     from katana_public_api_client.api.material import get_material
     from katana_public_api_client.api.product import get_product
     from katana_public_api_client.api.variant import get_variant
+    from katana_public_api_client.domain.variant import build_variant_display_name
 
     catalog = services.typed_cache.catalog
     variants_by_id: dict[int, Any] = await catalog.get_many_by_ids(
@@ -447,7 +485,7 @@ async def _resolve_variant_serial_info(
     sku_val = _attr(variant, "sku") if variant is not None else None
     sku = sku_val or f"variant {variant_id}"
     if variant is None:
-        return False, sku
+        return False, sku, ""
 
     product_id = _attr(variant, "product_id")
     material_id = _attr(variant, "material_id")
@@ -464,7 +502,18 @@ async def _resolve_variant_serial_info(
         )
         await _fetch_missing_from_api(services, materials, {material_id}, get_material)
         parent = materials.get(material_id)
-    return bool(parent and _attr(parent, "serial_tracked")), sku
+
+    cached_display = _attr(variant, "display_name")
+    if cached_display:
+        display_name = cached_display
+    else:
+        parent_name = _attr(parent, "name") if parent is not None else None
+        display_name = build_variant_display_name(
+            parent_name,
+            _attr(variant, "config_attributes") or [],
+            sku_val,
+        )
+    return bool(parent and _attr(parent, "serial_tracked")), sku, display_name
 
 
 def _build_mo_serial_warnings(
@@ -620,10 +669,17 @@ async def _fulfill_sales_order(
         if ovr.serial_numbers is not None
     }
 
-    serial_tracked_by_row, sku_by_row = await _resolve_row_serial_info(
-        services, so_rows
-    )
+    (
+        serial_tracked_by_row,
+        sku_by_row,
+        display_name_by_row,
+    ) = await _resolve_row_serial_info(services, so_rows)
 
+    # Inventory-update lines lead with the canonical Katana-UI display
+    # name (parent / value1 / value2) when the typed cache resolved the
+    # variant, falling back through SKU to ``variant {id}`` so each line
+    # always says something more useful than a bare numeric ID. Matches
+    # the resolution order used by the batch recipe update card.
     inventory_updates: list[str] = []
     for row in so_rows:
         rid = row.id
@@ -631,8 +687,9 @@ async def _fulfill_sales_order(
         qty = row.quantity
         serials = overrides_by_row.get(rid)
         suffix = f" with serials {serials}" if serials else ""
+        label = display_name_by_row.get(rid) or sku_by_row.get(rid) or f"variant {vid}"
         inventory_updates.append(
-            f"Row {rid}: ship {qty} of variant {vid} (full ordered quantity){suffix}"
+            f"Row {rid}: ship {qty} of {label} (full ordered quantity){suffix}"
         )
     if not inventory_updates:
         inventory_updates.append("(no rows on this sales order)")

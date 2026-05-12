@@ -814,6 +814,17 @@ class PurchaseOrderRowInfo(BaseModel):
     deleted_at: str | None = None
     quantity: float | None = None
     variant_id: int | None = None
+    sku: str | None = None
+    """SKU lifted from the typed cache via the row's ``variant_id``. Adds no
+    cost over the existing variant lookup ``_get_purchase_order_impl`` already
+    does for ``display_name``.
+    """
+    display_name: str | None = None
+    """Katana-UI-format human-readable name for this row's variant.
+
+    Lifted from the typed-cache ``CachedVariant.display_name`` column.
+    ``None`` when the variant can't be resolved (rare — deleted variant).
+    """
     tax_rate_id: int | None = None
     price_per_unit: float | None = None
     price_per_unit_in_base_currency: float | None = None
@@ -947,8 +958,19 @@ def _iso_optional(value: datetime | str | None) -> str | None:
     return value
 
 
-def _po_row_info(row: Any) -> PurchaseOrderRowInfo:
-    """Extract full row info from an attrs ``PurchaseOrderRow``."""
+def _po_row_info(
+    row: Any,
+    *,
+    sku: str | None = None,
+    display_name: str | None = None,
+) -> PurchaseOrderRowInfo:
+    """Extract full row info from an attrs ``PurchaseOrderRow``.
+
+    ``sku`` and ``display_name`` are looked up upstream in
+    ``_get_purchase_order_impl`` from the typed cache (one batched read for
+    every row's variant); pass them in so each rendered row carries the
+    canonical name without an extra API call per row.
+    """
     # batch_transactions items are attrs models — serialize them to dicts so
     # Pydantic can validate the list shape without cross-model coupling.
     raw_batch = unwrap_unset(row.batch_transactions, None) or []
@@ -966,6 +988,8 @@ def _po_row_info(row: Any) -> PurchaseOrderRowInfo:
         deleted_at=_iso_optional(unwrap_unset(row.deleted_at, None)),
         quantity=unwrap_unset(row.quantity, None),
         variant_id=unwrap_unset(row.variant_id, None),
+        sku=sku,
+        display_name=display_name,
         tax_rate_id=unwrap_unset(row.tax_rate_id, None),
         price_per_unit=unwrap_unset(row.price_per_unit, None),
         price_per_unit_in_base_currency=unwrap_unset(
@@ -1133,10 +1157,43 @@ def _build_get_purchase_order_response(
     *,
     additional_cost_rows: list[PurchaseOrderAdditionalCostRowInfo],
     accounting_metadata: list[PurchaseOrderAccountingMetadataInfo],
+    variants_by_id: dict[int, Any] | None = None,
 ) -> GetPurchaseOrderResponse:
-    """Build an exhaustive response from an attrs PO plus fetched side data."""
+    """Build an exhaustive response from an attrs PO plus fetched side data.
+
+    ``variants_by_id`` is the result of a batched typed-cache lookup for
+    every row's variant — passing it in lets each ``PurchaseOrderRowInfo``
+    carry the canonical SKU and Katana-UI ``display_name`` without any
+    extra API calls per row. Optional for callers that don't need the
+    enrichment (legacy code paths, fixture-driven tests); rows then surface
+    ``sku=None`` / ``display_name=None``.
+    """
+    variants_by_id = variants_by_id or {}
+
+    def _attr_or_none(v: Any, name: str) -> Any:
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            return v.get(name)
+        return getattr(v, name, None)
+
+    def _variant_for(row: Any) -> Any:
+        # ``variant_id`` may be ``None`` on stub rows; the typed-cache map
+        # only ever stores int keys, so guard against ``None`` lookups to
+        # keep ty/pyright satisfied (``dict.get(None)`` widens the value
+        # type and silently shadows hits).
+        vid = unwrap_unset(row.variant_id, None)
+        return variants_by_id.get(vid) if vid is not None else None
+
     raw_rows = unwrap_unset(po.purchase_order_rows, None) or []
-    rows = [_po_row_info(r) for r in raw_rows]
+    rows = [
+        _po_row_info(
+            r,
+            sku=_attr_or_none(_variant_for(r), "sku"),
+            display_name=_attr_or_none(_variant_for(r), "display_name"),
+        )
+        for r in raw_rows
+    ]
     supplier = _supplier_info(unwrap_unset(po.supplier, None))
 
     return GetPurchaseOrderResponse(
@@ -1224,10 +1281,31 @@ async def _get_purchase_order_impl(
         _fetch_po_accounting_metadata(services, po.id),
     )
 
+    # Enrich each row with its variant's SKU + canonical display_name from
+    # the typed cache — one batched IN-clause read instead of an API call
+    # per row. Cache misses simply yield ``None`` for both fields
+    # (consistent with the surface convention).
+    raw_rows = unwrap_unset(po.purchase_order_rows, None) or []
+    variant_ids: set[int] = {
+        vid
+        for vid in (unwrap_unset(r.variant_id, None) for r in raw_rows)
+        if vid is not None
+    }
+    from katana_public_api_client.models_pydantic._generated import CachedVariant
+
+    variants_by_id: dict[int, Any] = (
+        await services.typed_cache.catalog.get_many_by_ids(
+            CachedVariant, variant_ids, include_deleted=True
+        )
+        if variant_ids
+        else {}
+    )
+
     return _build_get_purchase_order_response(
         po,
         additional_cost_rows=additional_cost_rows,
         accounting_metadata=accounting_metadata,
+        variants_by_id=variants_by_id,
     )
 
 
@@ -1262,6 +1340,8 @@ _PO_SCALAR_FIELDS: tuple[str, ...] = (
 _PO_ROW_FIELDS: tuple[str, ...] = (
     "id",
     "variant_id",
+    "sku",
+    "display_name",
     "quantity",
     "price_per_unit",
     "price_per_unit_in_base_currency",
@@ -1517,6 +1597,18 @@ class MatchResult(BaseModel):
     """Result of matching a document item to a PO line."""
 
     sku: str = Field(..., description="Item SKU")
+    display_name: str = Field(
+        default="",
+        description=(
+            "Katana-UI-format human-readable name "
+            "(``{parent_name} / {config1} / ...``) — built via "
+            ":func:`build_variant_display_name` from the PO row's variant + "
+            "parent product/material lookup so the verification card shows "
+            "the same canonical name as every other variant-displaying "
+            "surface. Empty string when the variant can't be resolved "
+            "(rare — would mean the PO row references a deleted variant)."
+        ),
+    )
     quantity: float = Field(..., description="Matched quantity")
     unit_price: float | None = Field(default=None, description="Matched price")
     status: str = Field(
@@ -1537,6 +1629,16 @@ class Discrepancy(BaseModel):
     """A discrepancy found during verification."""
 
     sku: str = Field(..., description="Item SKU")
+    display_name: str = Field(
+        default="",
+        description=(
+            "Katana-UI-format human-readable name "
+            "(``{parent_name} / {config1} / ...``). Empty string for "
+            "``MISSING_IN_PO`` discrepancies (the document item's SKU "
+            "didn't match any PO row, so there's no variant to resolve "
+            "against)."
+        ),
+    )
     type: DiscrepancyType = Field(..., description="Type of discrepancy")
     expected: float | None = Field(default=None, description="Expected value (from PO)")
     actual: float | None = Field(
@@ -1649,16 +1751,15 @@ async def _verify_order_document_impl(
         # Build the exhaustive PO structured view — same shape as
         # get_purchase_order — so callers have full context on what was
         # compared against. Side-data fetches run concurrently via gather
-        # to avoid doubling latency on the verify path.
+        # to avoid doubling latency on the verify path. ``variants_by_id``
+        # is plumbed in below (built right after we have ``po_rows``) so
+        # each row in the embedded ``purchase_order`` response carries the
+        # canonical SKU + display_name from the same cache read the verify
+        # path already does.
         default_group_id = unwrap_unset(po.default_group_id, None)
         additional_cost_rows, accounting_metadata = await asyncio.gather(
             _fetch_po_additional_cost_rows(services, default_group_id),
             _fetch_po_accounting_metadata(services, po.id),
-        )
-        exhaustive_po = _build_get_purchase_order_response(
-            po,
-            additional_cost_rows=additional_cost_rows,
-            accounting_metadata=accounting_metadata,
         )
 
         # Extract order number safely using unwrap_unset
@@ -1666,6 +1767,118 @@ async def _verify_order_document_impl(
 
         # Get PO rows - use unwrap_unset for UNSET check
         po_rows_raw = unwrap_unset(po.purchase_order_rows, None)
+        po_rows = po_rows_raw or []
+
+        # Collect variant IDs and resolve SKU + canonical display_name in
+        # one batched cache read instead of an API call per row. The typed
+        # cache pre-computes ``CachedVariant.display_name`` via the variant
+        # postprocess hook (same Katana-UI formula used by every other
+        # surface — see ``build_variant_display_name``). API fallback covers
+        # cold-cache gaps so a fresh install doesn't silently lose
+        # verification rows. ``cached_variants`` also flows into
+        # ``_build_get_purchase_order_response`` so the embedded
+        # ``purchase_order`` response carries the same canonical names.
+        from katana_mcp.tools.foundation.items import _fetch_variant_by_id
+        from katana_public_api_client.domain.variant import (
+            build_variant_display_name,
+        )
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedMaterial,
+            CachedProduct,
+            CachedVariant,
+        )
+
+        variant_ids: list[int] = [
+            vid
+            for vid in (unwrap_unset(row.variant_id, None) for row in po_rows)
+            if vid is not None
+        ]
+
+        cached_variants: dict[
+            int, Any
+        ] = await services.typed_cache.catalog.get_many_by_ids(
+            CachedVariant, set(variant_ids), include_deleted=True
+        )
+
+        # Cold-cache fallback: any variant_id not in the cache gets a
+        # fresh API fetch. Dedup first (a PO can reference the same
+        # variant on multiple rows) and fire all fetches in parallel —
+        # the previous serial-await pattern added avoidable latency on
+        # POs with many cache misses.
+        missing_ids = list({vid for vid in variant_ids if vid not in cached_variants})
+        if missing_ids:
+            fallback_variants = await asyncio.gather(
+                *(_fetch_variant_by_id(services, vid) for vid in missing_ids)
+            )
+            # API-fallback ``Variant`` attrs don't carry the
+            # ``display_name`` field (the typed-cache postprocess
+            # computes it during sync, but cold-cache paths skip that).
+            # Bulk-resolve parents from the cache so each fallback can
+            # get a canonical display_name via the same helper every
+            # other surface uses — keeps verification rows readable
+            # without re-fetching at render time.
+            present_fallbacks = [v for v in fallback_variants if v is not None]
+            parent_product_ids = {
+                pid
+                for v in present_fallbacks
+                if (pid := unwrap_unset(getattr(v, "product_id", None), None))
+            }
+            parent_material_ids = {
+                mid
+                for v in present_fallbacks
+                if (mid := unwrap_unset(getattr(v, "material_id", None), None))
+            }
+            products_by_id, materials_by_id = await asyncio.gather(
+                services.typed_cache.catalog.get_many_by_ids(
+                    CachedProduct,
+                    parent_product_ids,
+                    include_archived=True,
+                    include_deleted=True,
+                ),
+                services.typed_cache.catalog.get_many_by_ids(
+                    CachedMaterial,
+                    parent_material_ids,
+                    include_archived=True,
+                    include_deleted=True,
+                ),
+            )
+            for vid, fallback in zip(missing_ids, fallback_variants, strict=True):
+                if fallback is None:
+                    continue
+                pid = unwrap_unset(getattr(fallback, "product_id", None), None)
+                mid = unwrap_unset(getattr(fallback, "material_id", None), None)
+                parent = None
+                if pid is not None:
+                    parent = products_by_id.get(pid)
+                elif mid is not None:
+                    parent = materials_by_id.get(mid)
+                parent_name = (
+                    getattr(parent, "name", None) if parent is not None else None
+                )
+                sku_value = unwrap_unset(getattr(fallback, "sku", None), None)
+                config_attrs = unwrap_unset(
+                    getattr(fallback, "config_attributes", None), []
+                )
+                display_name = build_variant_display_name(
+                    parent_name, config_attrs, sku_value
+                )
+                # Normalize to a dict so ``_sku_of`` / ``_display_name_of``
+                # below read uniformly — they already key off the
+                # ``isinstance(v, dict)`` branch for the cache-miss case.
+                cached_variants[vid] = {
+                    "sku": sku_value,
+                    "display_name": display_name,
+                    "product_id": pid,
+                    "material_id": mid,
+                }
+
+        exhaustive_po = _build_get_purchase_order_response(
+            po,
+            additional_cost_rows=additional_cost_rows,
+            accounting_metadata=accounting_metadata,
+            variants_by_id=cached_variants,
+        )
+
         if not po_rows_raw:
             return VerifyOrderDocumentResponse(
                 order_id=request.order_id,
@@ -1677,32 +1890,32 @@ async def _verify_order_document_impl(
                 message=f"Purchase order {order_no} has no line items",
             )
 
-        po_rows = po_rows_raw
+        def _sku_of(v: Any) -> str | None:
+            if v is None:
+                return None
+            if isinstance(v, dict):
+                return v.get("sku")
+            return getattr(v, "sku", None)
 
-        # Collect all variant IDs from PO rows using unwrap_unset
-        variant_ids = []
-        for row in po_rows:
-            variant_id = unwrap_unset(row.variant_id, None)
-            if variant_id is not None:
-                variant_ids.append(variant_id)
+        def _display_name_of(v: Any) -> str | None:
+            if v is None:
+                return None
+            if isinstance(v, dict):
+                return v.get("display_name")
+            return getattr(v, "display_name", None)
 
-        # Fetch only the needed variants by ID (API-level filtering)
-        try:
-            filtered_variants = await services.client.variants.list(ids=variant_ids)
-            variant_by_id = {v.id: v for v in filtered_variants}
-        except Exception as e:
-            logger.error(f"Failed to fetch variants: {e}")
-            raise
-
-        # Build a map of SKU -> PO row for matching
-        sku_to_row: dict[str, Any] = {}
+        # Build a map of SKU -> (PO row, display_name) for matching. The
+        # display_name is cached alongside the row so each MatchResult /
+        # Discrepancy can surface the canonical name without re-resolving.
+        sku_to_row: dict[str, tuple[Any, str]] = {}
         for row in po_rows:
             variant_id = unwrap_unset(row.variant_id, None)
             if variant_id is None:
                 continue
-            variant = variant_by_id.get(variant_id)
-            if variant and variant.sku:
-                sku_to_row[variant.sku] = row
+            variant = cached_variants.get(variant_id)
+            sku = _sku_of(variant)
+            if sku:
+                sku_to_row[sku] = (row, _display_name_of(variant) or "")
 
         # Now match document items to PO rows
         matches: list[MatchResult] = []
@@ -1714,6 +1927,8 @@ async def _verify_order_document_impl(
                 discrepancies.append(
                     Discrepancy(
                         sku=doc_item.sku,
+                        # MISSING_IN_PO has no variant to resolve against
+                        # — leave display_name empty (the model default).
                         type=DiscrepancyType.MISSING_IN_PO,
                         expected=None,
                         actual=doc_item.quantity,
@@ -1722,7 +1937,7 @@ async def _verify_order_document_impl(
                 )
                 continue
 
-            row = sku_to_row[doc_item.sku]
+            row, display_name = sku_to_row[doc_item.sku]
             row_qty = unwrap_unset(row.quantity, 0.0)
             row_price = unwrap_unset(row.price_per_unit, 0.0)
 
@@ -1738,6 +1953,7 @@ async def _verify_order_document_impl(
                 discrepancies.append(
                     Discrepancy(
                         sku=doc_item.sku,
+                        display_name=display_name,
                         type=DiscrepancyType.QUANTITY_MISMATCH,
                         expected=row_qty,
                         actual=doc_item.quantity,
@@ -1754,6 +1970,7 @@ async def _verify_order_document_impl(
                 discrepancies.append(
                     Discrepancy(
                         sku=doc_item.sku,
+                        display_name=display_name,
                         type=DiscrepancyType.PRICE_MISMATCH,
                         expected=row_price,
                         actual=doc_item.unit_price,
@@ -1775,6 +1992,7 @@ async def _verify_order_document_impl(
             matches.append(
                 MatchResult(
                     sku=doc_item.sku,
+                    display_name=display_name,
                     quantity=doc_item.quantity,
                     unit_price=doc_item.unit_price,
                     status=status,
@@ -1974,6 +2192,18 @@ class PurchaseOrderRowSummary(BaseModel):
 
     id: int | None = None
     variant_id: int | None = None
+    sku: str | None = None
+    """SKU from the variant, populated when the typed cache resolves the
+    row's ``variant_id``. ``None`` on cache miss — matches the convention
+    used by ``SalesOrderRowInfo``.
+    """
+    display_name: str | None = None
+    """Katana-UI-format human-readable name. Like ``sku``, lifted from
+    the typed cache when the row's variant is present. ``None`` on cache
+    miss. The list-tool path uses ``ensure_purchase_orders_synced`` so
+    these are typically populated in steady state; cold-cache callers may
+    see ``None`` until the next variant sync runs.
+    """
     quantity: float | None = None
     price_per_unit: float | None = None
     arrival_date: str | None = None
@@ -2167,6 +2397,41 @@ async def _list_purchase_orders_impl(
                 last_page=request.page >= total_pages,
             )
 
+    # When ``include_rows`` is set, collect every row's variant_id and do
+    # one batched cache read to lift SKU + canonical display_name onto each
+    # row summary. Adds one extra IN-clause read regardless of result-set
+    # size — much cheaper than the per-row API fallback the get path uses
+    # (the list path explicitly stays cache-only by design to keep the
+    # ``ensure_purchase_orders_synced`` + single-query win intact).
+    variant_lookup: dict[int, Any] = {}
+    if request.include_rows:
+        from katana_public_api_client.models_pydantic._generated import CachedVariant
+
+        variant_ids = {
+            r.variant_id
+            for po, _ in orders_with_counts
+            for r in po.purchase_order_rows
+            if r.variant_id is not None
+        }
+        if variant_ids:
+            variant_lookup = await services.typed_cache.catalog.get_many_by_ids(
+                CachedVariant, variant_ids, include_deleted=True
+            )
+
+    def _row_attr(v: Any, name: str) -> Any:
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            return v.get(name)
+        return getattr(v, name, None)
+
+    def _variant_for_row(row: Any) -> Any:
+        # Guard ``None`` lookups so the dict-get type stays narrow and
+        # ``CachedVariant`` rows without a variant_id don't silently shadow
+        # the empty-map default.
+        vid = row.variant_id
+        return variant_lookup.get(vid) if vid is not None else None
+
     summaries: list[PurchaseOrderSummary] = []
     for po, row_count in orders_with_counts:
         rows: list[PurchaseOrderRowSummary] | None = None
@@ -2175,6 +2440,8 @@ async def _list_purchase_orders_impl(
                 PurchaseOrderRowSummary(
                     id=r.id,
                     variant_id=r.variant_id,
+                    sku=_row_attr(_variant_for_row(r), "sku"),
+                    display_name=_row_attr(_variant_for_row(r), "display_name"),
                     quantity=r.quantity,
                     price_per_unit=r.price_per_unit,
                     arrival_date=iso_or_none(r.arrival_date),

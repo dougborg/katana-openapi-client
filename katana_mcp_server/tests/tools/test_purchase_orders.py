@@ -98,12 +98,33 @@ def create_mock_po_row(variant_id, quantity, price):
     )
 
 
-def create_mock_variant(variant_id: int, sku: str):
-    """Create a mock variant."""
+def create_mock_variant(variant_id: int, sku: str, display_name: str | None = None):
+    """Create a mock variant cache row carrying the canonical display name.
+
+    Mirrors the shape of a ``CachedVariant`` row — id, sku, and the
+    pre-computed Katana-UI display name. The verify path reads
+    ``display_name`` to surface the canonical name on each MatchResult /
+    Discrepancy, so test fixtures must populate the field. When
+    ``display_name`` is omitted, the helper synthesizes a sensible default
+    (``"Item / {sku}"``) so existing tests keep passing.
+    """
     variant = MagicMock()
     variant.id = variant_id
     variant.sku = sku
+    variant.display_name = display_name if display_name is not None else f"Item / {sku}"
     return variant
+
+
+def stub_variant_cache(lifespan_ctx, variants: list) -> None:
+    """Stub the typed cache's variant-by-id lookup used by the verify path.
+
+    Returns a ``{variant_id: variant_mock}`` dict for the typed cache's
+    ``get_many_by_ids(CachedVariant, ids)`` call. The verify impl falls
+    back to ``_fetch_variant_by_id`` on cache miss; this helper pins the
+    cache-hit branch.
+    """
+    by_id = {v.id: v for v in variants}
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(return_value=by_id)
 
 
 def create_mock_po(order_id: int, order_no: str, rows: list):
@@ -618,7 +639,7 @@ async def test_verify_order_document_perfect_match():
     cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
         return_value=mock_po_response
     )
-    lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
+    stub_variant_cache(lifespan_ctx, mock_variants)
 
     # Document items matching PO perfectly
     request = VerifyOrderDocumentRequest(
@@ -670,7 +691,7 @@ async def test_verify_order_document_quantity_mismatch():
     cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
         return_value=mock_po_response
     )
-    lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
+    stub_variant_cache(lifespan_ctx, mock_variants)
 
     # Document with different quantity
     request = VerifyOrderDocumentRequest(
@@ -727,7 +748,7 @@ async def test_verify_order_document_price_mismatch():
     cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
         return_value=mock_po_response
     )
-    lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
+    stub_variant_cache(lifespan_ctx, mock_variants)
 
     # Document with different price
     request = VerifyOrderDocumentRequest(
@@ -782,7 +803,7 @@ async def test_verify_order_document_missing_in_po():
     cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
         return_value=mock_po_response
     )
-    lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
+    stub_variant_cache(lifespan_ctx, mock_variants)
 
     # Document includes WIDGET-002 which is not in PO
     request = VerifyOrderDocumentRequest(
@@ -839,7 +860,7 @@ async def test_verify_order_document_extra_in_document():
     cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
         return_value=mock_po_response
     )
-    lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
+    stub_variant_cache(lifespan_ctx, mock_variants)
 
     # Document only has WIDGET-001 (missing WIDGET-002 from PO)
     request = VerifyOrderDocumentRequest(
@@ -887,7 +908,7 @@ async def test_verify_order_document_mixed_discrepancies():
     cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
         return_value=mock_po_response
     )
-    lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
+    stub_variant_cache(lifespan_ctx, mock_variants)
 
     # Document with: perfect match, quantity mismatch, missing item
     request = VerifyOrderDocumentRequest(
@@ -1024,7 +1045,7 @@ async def test_verify_order_document_unset_values():
     cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
         return_value=mock_po_response
     )
-    lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
+    stub_variant_cache(lifespan_ctx, mock_variants)
 
     request = VerifyOrderDocumentRequest(
         order_id=1234,
@@ -1064,7 +1085,7 @@ async def test_verify_order_document_no_price_in_document():
     cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
         return_value=mock_po_response
     )
-    lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
+    stub_variant_cache(lifespan_ctx, mock_variants)
 
     # Document without price
     request = VerifyOrderDocumentRequest(
@@ -1100,21 +1121,29 @@ async def test_verify_order_document_variant_not_found():
     mock_po_response.parsed = mock_po
 
     # Variants list doesn't include variant_id=1
-    mock_variants = []
+    mock_variants: list = []
 
     cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
         return_value=mock_po_response
     )
-    lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
+    stub_variant_cache(lifespan_ctx, mock_variants)
 
-    request = VerifyOrderDocumentRequest(
-        order_id=1234,
-        document_items=[
-            DocumentItem(sku="WIDGET-001", quantity=100.0, unit_price=25.50),
-        ],
-    )
+    # Verify path falls back to ``_fetch_variant_by_id`` on cache miss —
+    # patch it to ``None`` so the test exercises the "variant truly absent"
+    # branch (PO row points at a deleted/missing variant).
+    with patch(
+        "katana_mcp.tools.foundation.items._fetch_variant_by_id",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        request = VerifyOrderDocumentRequest(
+            order_id=1234,
+            document_items=[
+                DocumentItem(sku="WIDGET-001", quantity=100.0, unit_price=25.50),
+            ],
+        )
 
-    result = await _verify_order_document_impl(request, context)
+        result = await _verify_order_document_impl(request, context)
 
     # Should handle gracefully - SKU won't be found in mapping
     assert result.order_id == 1234
@@ -1125,6 +1154,117 @@ async def test_verify_order_document_variant_not_found():
     ]
     assert len(missing_disc) == 1
     assert missing_disc[0].sku == "WIDGET-001"
+
+
+@pytest.mark.asyncio
+async def test_verify_order_document_carries_canonical_display_name():
+    """Every MatchResult and Discrepancy on the verify response carries
+    the canonical Katana-UI ``display_name``, lifted from the typed cache's
+    ``CachedVariant.display_name`` column (which itself delegates to
+    :func:`build_variant_display_name`). The verification card surfaces it
+    as the leading ``Item`` column so the rendered table matches every other
+    variant-displaying surface (search_items, check_inventory, batch recipe
+    update card).
+
+    Pins both the match branch (display_name lifted) and the discrepancy
+    branches (qty / price mismatch — display_name carried through to the
+    discrepancy entry). MISSING_IN_PO is exercised separately below.
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    po_rows = [
+        create_mock_po_row(variant_id=1, quantity=100.0, price=25.50),
+        create_mock_po_row(variant_id=2, quantity=50.0, price=30.00),
+    ]
+    mock_po = create_mock_po(order_id=1234, order_no="PO-001", rows=po_rows)
+
+    mock_po_response = MagicMock()
+    mock_po_response.status_code = 200
+    mock_po_response.parsed = mock_po
+
+    mock_variants = [
+        create_mock_variant(
+            variant_id=1,
+            sku="WIDGET-001",
+            display_name="Acme Widget / Large / Red",
+        ),
+        create_mock_variant(
+            variant_id=2,
+            sku="WIDGET-002",
+            display_name="Acme Widget / Small / Blue",
+        ),
+    ]
+
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_po_response
+    )
+    stub_variant_cache(lifespan_ctx, mock_variants)
+
+    # WIDGET-001 matches perfectly; WIDGET-002 has a quantity mismatch.
+    request = VerifyOrderDocumentRequest(
+        order_id=1234,
+        document_items=[
+            DocumentItem(sku="WIDGET-001", quantity=100.0, unit_price=25.50),
+            DocumentItem(sku="WIDGET-002", quantity=45.0, unit_price=30.00),
+        ],
+    )
+
+    result = await _verify_order_document_impl(request, context)
+
+    # Both matches carry the canonical Katana-UI display name.
+    assert {(m.sku, m.display_name) for m in result.matches} == {
+        ("WIDGET-001", "Acme Widget / Large / Red"),
+        ("WIDGET-002", "Acme Widget / Small / Blue"),
+    }
+    # The quantity-mismatch discrepancy also carries display_name.
+    qty_disc = next(
+        d for d in result.discrepancies if d.type == DiscrepancyType.QUANTITY_MISMATCH
+    )
+    assert qty_disc.sku == "WIDGET-002"
+    assert qty_disc.display_name == "Acme Widget / Small / Blue"
+
+
+@pytest.mark.asyncio
+async def test_verify_order_document_missing_in_po_has_empty_display_name():
+    """MISSING_IN_PO discrepancies have no variant to resolve against —
+    ``display_name`` defaults to an empty string (the field default).
+    Pins the no-resolve branch so a future refactor can't silently make
+    this field required.
+    """
+    context, lifespan_ctx = create_mock_context()
+    po_rows = [create_mock_po_row(variant_id=1, quantity=100.0, price=25.50)]
+    mock_po = create_mock_po(order_id=1234, order_no="PO-001", rows=po_rows)
+
+    mock_po_response = MagicMock()
+    mock_po_response.status_code = 200
+    mock_po_response.parsed = mock_po
+
+    mock_variants = [
+        create_mock_variant(
+            variant_id=1, sku="WIDGET-001", display_name="Acme Widget / Large / Red"
+        ),
+    ]
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_po_response
+    )
+    stub_variant_cache(lifespan_ctx, mock_variants)
+
+    request = VerifyOrderDocumentRequest(
+        order_id=1234,
+        document_items=[
+            DocumentItem(sku="WIDGET-001", quantity=100.0, unit_price=25.50),
+            DocumentItem(sku="UNKNOWN-SKU", quantity=5.0, unit_price=10.0),
+        ],
+    )
+
+    result = await _verify_order_document_impl(request, context)
+
+    missing = next(
+        d for d in result.discrepancies if d.type == DiscrepancyType.MISSING_IN_PO
+    )
+    assert missing.sku == "UNKNOWN-SKU"
+    # No variant resolved → empty string (the field default).
+    assert missing.display_name == ""
 
 
 @pytest.mark.asyncio
@@ -1148,7 +1288,7 @@ async def test_verify_order_document_unset_order_no():
     cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
         return_value=mock_po_response
     )
-    lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
+    stub_variant_cache(lifespan_ctx, mock_variants)
 
     request = VerifyOrderDocumentRequest(
         order_id=1234,
@@ -1210,7 +1350,7 @@ async def test_verify_order_document_no_match():
     cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
         return_value=mock_po_response
     )
-    lifespan_ctx.client.variants.list = AsyncMock(return_value=mock_variants)
+    stub_variant_cache(lifespan_ctx, mock_variants)
 
     # Document with completely different items
     request = VerifyOrderDocumentRequest(
@@ -2469,6 +2609,42 @@ async def test_get_purchase_order_full_field_coverage():
     # Side-data default (autouse fixture returns [])
     assert result.additional_cost_rows == []
     assert result.accounting_metadata == []
+
+
+@pytest.mark.asyncio
+async def test_get_purchase_order_row_carries_canonical_display_name():
+    """Each row in the exhaustive ``get_purchase_order`` response surfaces
+    the canonical Katana-UI display name lifted from CachedVariant via a
+    single batched cache read. Matches the convention used by every other
+    variant-displaying surface (search_items, check_inventory, recipe
+    rows, verification card).
+    """
+    context, lifespan_ctx = create_mock_context()
+    mock_po = _make_exhaustive_mock_po()
+
+    # Seed the typed cache so the row's variant_id=100 resolves to a
+    # canonical SKU + display_name.
+    cached_variant = MagicMock()
+    cached_variant.id = 100
+    cached_variant.sku = "WIDGET-100"
+    cached_variant.display_name = "Acme Widget / Large / Red"
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
+        return_value={100: cached_variant}
+    )
+
+    with (
+        patch(f"{_PO_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP, return_value=mock_po),
+    ):
+        request = GetPurchaseOrderRequest(order_id=12345)
+        result = await _get_purchase_order_impl(request, context)
+
+    assert len(result.purchase_order_rows) == 1
+    row = result.purchase_order_rows[0]
+    assert row.variant_id == 100
+    # Both SKU and display_name lifted from the same cache read.
+    assert row.sku == "WIDGET-100"
+    assert row.display_name == "Acme Widget / Large / Red"
 
 
 @pytest.mark.asyncio

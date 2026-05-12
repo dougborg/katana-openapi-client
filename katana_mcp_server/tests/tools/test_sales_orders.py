@@ -1357,7 +1357,12 @@ async def test_get_sales_order_enriches_row_sku_from_cache():
         result = await _get_sales_order_impl(GetSalesOrderRequest(order_id=9), context)
 
     assert result.rows[0].sku == "BIKE-A"  # cache hit
+    # display_name is lifted from the same cache row, so each rendered
+    # row carries the canonical Katana-UI name — matching the convention
+    # used by every other variant-displaying surface.
+    assert result.rows[0].display_name == "Bike A"
     assert result.rows[1].sku is None  # cache miss
+    assert result.rows[1].display_name is None  # cache miss → no name
 
 
 # ============================================================================

@@ -604,10 +604,27 @@ class ItemVariantSummary(BaseModel):
     """Brief variant summary embedded in the product/material/service detail."""
 
     id: int
-    sku: str
+    sku: str | None = None
+    """Variant SKU. ``None``-able to match Katana's wire contract — the
+    platform allows variants without a SKU (legacy NetSuite imports are
+    a common source, and there's no DB-level constraint that forces it
+    non-null). Display-side consumers should coalesce to ``""`` when
+    rendering; ``display_name`` below already provides a non-empty
+    title in the rare SKU-less case.
+    """
     sales_price: float | None = None
     purchase_price: float | None = None
     type: str | None = None
+    display_name: str = ""
+    """Katana-UI-format human-readable name: ``"{parent_name} / {config1} / {config2}"``.
+
+    Built via :func:`katana_public_api_client.domain.variant.build_variant_display_name`
+    so it stays consistent with every other variant-displaying surface
+    (typed-cache ``CachedVariant.display_name``, ``KatanaVariant.get_display_name``,
+    ``VariantDetailsResponse.display_name``). The summary is embedded in the parent
+    ``ItemDetailsResponse`` so the parent name is known at build time — that means
+    ``display_name`` is always populated when the parent has variants.
+    """
 
 
 class ItemDetailsResponse(BaseModel):
@@ -701,14 +718,32 @@ def _config_to_info(raw: Any) -> ItemConfigInfo | None:
     )
 
 
-def _variant_to_summary(raw: Any) -> ItemVariantSummary | None:
-    """Convert a nested Variant/ServiceVariant attrs (or dict) to summary."""
+def _variant_to_summary(
+    raw: Any, *, parent_name: str | None = None
+) -> ItemVariantSummary | None:
+    """Convert a nested Variant/ServiceVariant attrs (or dict) to summary.
+
+    When ``parent_name`` is supplied, the helper computes the canonical
+    ``display_name`` (Katana-UI format ``"{parent_name} / {config1} / ..."``)
+    via :func:`build_variant_display_name` so the embedded summary is
+    consistent with every other variant-displaying surface. The summary
+    is built inside :func:`_get_item_impl`, where the parent's ``name``
+    is always available; callers in that path always pass it.
+    """
     d = raw.to_dict() if hasattr(raw, "to_dict") else raw
     if not isinstance(d, dict) or "id" not in d or "sku" not in d:
         return None
+    # ``sku`` may legitimately be ``None`` on the wire; coalesce only
+    # for the display-name fallback. The model field accepts ``None``.
+    raw_sku = d["sku"]
+    display_name = build_variant_display_name(
+        parent_name,
+        d.get("config_attributes") or [],
+        raw_sku or "",
+    )
     return ItemVariantSummary(
         id=d["id"],
-        sku=d["sku"],
+        sku=raw_sku,
         sales_price=d.get("sales_price"),
         # ServiceVariant uses default_cost; Variant uses purchase_price.
         # Explicit None-check — `or` would shadow a legitimate 0.0 price
@@ -719,6 +754,7 @@ def _variant_to_summary(raw: Any) -> ItemVariantSummary | None:
             else d.get("default_cost")
         ),
         type=d.get("type") or d.get("type_"),
+        display_name=display_name,
     )
 
 
@@ -814,8 +850,19 @@ async def _get_item_impl(
     item = await _fetch_item_attrs(services, request.id, request.type)
     d = _item_attrs_to_dict(item)
 
+    # Lift the parent's name into the variant summary builder so each
+    # variant's ``display_name`` follows the canonical Katana-UI format
+    # (parent / value1 / value2). Without this every nested variant
+    # would fall back to its SKU (the empty-parent branch in
+    # ``build_variant_display_name``).
+    parent_name = d.get("name") or ""
     variants = [
-        v for v in (_variant_to_summary(raw) for raw in d.get("variants") or []) if v
+        v
+        for v in (
+            _variant_to_summary(raw, parent_name=parent_name)
+            for raw in d.get("variants") or []
+        )
+        if v
     ]
     configs = [c for c in (_config_to_info(raw) for raw in d.get("configs") or []) if c]
     supplier = _supplier_to_info(d.get("supplier"))

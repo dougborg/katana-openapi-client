@@ -785,6 +785,46 @@ class TestBuildVerificationUI:
         app = build_verification_ui(response)
         _assert_valid_prefab(app)
 
+    def test_match_and_discrepancy_tables_include_item_column(self):
+        """Both tables expose ``Item`` as the leading sortable column so the
+        rendered card shows the canonical Katana-UI display name ahead of
+        the raw SKU — matching every other variant-displaying surface
+        (search_items, check_inventory, batch recipe update card).
+        """
+        response = {
+            "overall_status": "partial_match",
+            "order_id": 789,
+            "matches": [
+                {
+                    "sku": "WIDGET-001",
+                    "display_name": "Acme Widget / Large / Red",
+                    "quantity": 10,
+                    "unit_price": 5.0,
+                    "status": "perfect",
+                }
+            ],
+            "discrepancies": [
+                {
+                    "sku": "WIDGET-002",
+                    "display_name": "Acme Widget / Small / Blue",
+                    "type": "quantity_mismatch",
+                    "message": "Quantity off by 2",
+                }
+            ],
+        }
+        app = build_verification_ui(response)
+        envelope = app.to_json()
+
+        # Both DataTable nodes must have ``Item`` (display_name) as the
+        # first column, with ``SKU`` immediately after.
+        tables = _find_components_by_type(envelope, "DataTable")
+        assert len(tables) == 2  # matches + discrepancies
+        for table in tables:
+            cols = table.get("columns", [])
+            assert cols[0]["key"] == "display_name"
+            assert cols[0]["header"] == "Item"
+            assert cols[1]["key"] == "sku"
+
 
 class TestBuildItemMutationUI:
     @pytest.mark.parametrize("action", ["Created", "Updated", "Deleted"])
@@ -944,6 +984,88 @@ class TestBuildBatchRecipeUpdateUI:
         }
         app = build_batch_recipe_update_ui(response)
         _assert_valid_prefab(app)
+
+    def test_rows_carry_canonical_display_name_when_supplied(self):
+        """Each result op may carry ``display_name`` — the Katana-UI-format
+        ``parent / value1 / value2`` name built upstream via
+        ``build_variant_display_name``. The flattened ``rows`` state slot
+        surfaces it via the ``item`` column so the rendered DataTable shows
+        the same canonical name as every other variant-displaying surface
+        (search_items, check_inventory, variant card).
+        """
+        response = {
+            "is_preview": True,
+            "total_ops": 1,
+            "success_count": 0,
+            "failed_count": 0,
+            "skipped_count": 0,
+            "results": [
+                {
+                    "op_type": "add",
+                    "manufacturing_order_id": 9999,
+                    "variant_id": 200,
+                    "sku": "NEW-FORK",
+                    "display_name": "Fox Float / 36mm / Black",
+                    "planned_quantity_per_unit": 1.0,
+                    "status": "pending",
+                    "group_label": "OLD-FORK → [NEW-FORK]",
+                },
+            ],
+            "warnings": [],
+            "message": "Preview: 1 sub-op planned",
+        }
+        app = build_batch_recipe_update_ui(response)
+        envelope = app.to_json()
+
+        # The flattened state slot the DataTable binds to must carry the
+        # canonical display name on its ``item`` column.
+        state_rows = envelope["state"]["rows"]
+        assert len(state_rows) == 1
+        assert state_rows[0]["item"] == "Fox Float / 36mm / Black"
+        # SKU still flows through as its own column for ops/scripts.
+        assert state_rows[0]["sku"] == "NEW-FORK"
+
+    def test_rows_fall_back_to_sku_when_display_name_absent(self):
+        """Backward-compat: ops emitted by older code paths (or test fixtures
+        that don't compute display_name) fall through to SKU, then to the
+        ``variant {id}`` sentinel. Pins the resolution order: display_name >
+        sku > 'variant {id}' > empty string.
+        """
+        response = {
+            "is_preview": True,
+            "total_ops": 2,
+            "success_count": 0,
+            "failed_count": 0,
+            "skipped_count": 0,
+            "results": [
+                {
+                    "op_type": "add",
+                    "manufacturing_order_id": 9999,
+                    "variant_id": 300,
+                    "sku": "FALLBACK-SKU",
+                    "planned_quantity_per_unit": 1.0,
+                    "status": "pending",
+                    "group_label": "g1",
+                },
+                {
+                    "op_type": "add",
+                    "manufacturing_order_id": 9999,
+                    "variant_id": 301,
+                    "planned_quantity_per_unit": 1.0,
+                    "status": "pending",
+                    "group_label": "g1",
+                },
+            ],
+            "warnings": [],
+            "message": "Preview: 2 sub-ops planned",
+        }
+        app = build_batch_recipe_update_ui(response)
+        envelope = app.to_json()
+
+        state_rows = envelope["state"]["rows"]
+        assert state_rows[0]["item"] == "FALLBACK-SKU"
+        # Neither display_name nor sku — falls through to ``variant {id}``.
+        assert state_rows[1]["item"] == "variant 301"
 
 
 def _confirm_button_on_click(envelope: dict, label: str) -> list[dict]:

@@ -676,6 +676,14 @@ class SalesOrderRowInfo(BaseModel):
     id: int
     variant_id: int | None
     sku: str | None
+    display_name: str | None = None
+    """Katana-UI-format human-readable name lifted from the typed cache
+    in a single batched IN-clause read (one query regardless of result-set
+    size). ``None`` on cache miss; the list path stays cache-only by design
+    so the variant must be present in ``CachedVariant`` for the field to
+    populate. Matches the convention used by every other variant-displaying
+    surface (search_items, check_inventory, recipe rows, verify card).
+    """
     quantity: float | None
     price_per_unit: float | None
     linked_manufacturing_order_id: int | None
@@ -868,8 +876,40 @@ async def _list_sales_orders_impl(
                 last_page=request.page >= total_pages,
             )
 
-    # ``sku`` stays None — resolving it would require a variant lookup
-    # per row and defeat the single-query win.
+    # When ``include_rows`` is set, lift SKU + canonical display_name from
+    # the typed cache in one batched IN-clause read. Adds one extra query
+    # — much cheaper than the per-row API fallback the get path uses, and
+    # keeps the ``ensure_sales_orders_synced`` cache-only win for everything
+    # else.
+    variant_lookup: dict[int, Any] = {}
+    if request.include_rows:
+        from katana_public_api_client.models_pydantic._generated import CachedVariant
+
+        variant_ids = {
+            r.variant_id
+            for so, _ in orders_with_counts
+            for r in so.sales_order_rows
+            if r.variant_id is not None
+        }
+        if variant_ids:
+            variant_lookup = await services.typed_cache.catalog.get_many_by_ids(
+                CachedVariant, variant_ids, include_deleted=True
+            )
+
+    def _row_attr(v: Any, name: str) -> Any:
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            return v.get(name)
+        return getattr(v, name, None)
+
+    def _variant_for_row(row: Any) -> Any:
+        # Guard ``None`` lookups — keeps the dict-get type narrow and
+        # avoids silently shadowing the empty-map default for rows that
+        # legitimately carry ``variant_id=None``.
+        vid = row.variant_id
+        return variant_lookup.get(vid) if vid is not None else None
+
     orders: list[SalesOrderSummary] = []
     for so, row_count in orders_with_counts:
         row_infos: list[SalesOrderRowInfo] | None = None
@@ -878,7 +918,8 @@ async def _list_sales_orders_impl(
                 SalesOrderRowInfo(
                     id=r.id,
                     variant_id=r.variant_id,
-                    sku=None,
+                    sku=_row_attr(_variant_for_row(r), "sku"),
+                    display_name=_row_attr(_variant_for_row(r), "display_name"),
                     quantity=r.quantity,
                     price_per_unit=r.price_per_unit,
                     linked_manufacturing_order_id=r.linked_manufacturing_order_id,
@@ -1009,6 +1050,14 @@ class SalesOrderRowDetail(BaseModel):
     id: int
     variant_id: int | None = None
     sku: str | None = None
+    display_name: str | None = None
+    """Katana-UI-format human-readable name for this row's variant.
+
+    Lifted from the typed-cache ``CachedVariant.display_name`` column
+    (built via :func:`build_variant_display_name`) so the rendered name
+    stays consistent with every other variant-displaying surface. ``None``
+    when the variant can't be resolved from the cache.
+    """
     quantity: float | None = None
     sales_order_id: int | None = None
     tax_rate_id: int | None = None
@@ -1287,6 +1336,14 @@ async def _get_sales_order_impl(
             return v.get("sku")
         return getattr(v, "sku", None)
 
+    def _display_name_for(v: Any) -> str | None:
+        """Lift the typed cache's pre-computed display_name when available."""
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            return v.get("display_name")
+        return getattr(v, "display_name", None)
+
     row_details: list[SalesOrderRowDetail] = []
     for r in raw_rows:
         v_id = unwrap_unset(r.variant_id, None)
@@ -1296,6 +1353,7 @@ async def _get_sales_order_impl(
                 id=r.id,
                 variant_id=v_id,
                 sku=_sku_for(variant),
+                display_name=_display_name_for(variant),
                 quantity=unwrap_unset(r.quantity, None),
                 sales_order_id=unwrap_unset(r.sales_order_id, None),
                 tax_rate_id=unwrap_unset(r.tax_rate_id, None),
@@ -1433,8 +1491,11 @@ _ADDRESS_FIELDS: tuple[str, ...] = (
 )
 
 # Per-row fields rendered under a ``rows`` block. ``id`` + ``variant_id`` /
-# ``sku`` are emitted first as the row header; the rest are indented beneath.
-_ROW_HEADER_FIELDS: tuple[str, ...] = ("variant_id", "sku")
+# ``sku`` / ``display_name`` are emitted first as the row header; the rest
+# are indented beneath. ``display_name`` carries the canonical Katana-UI
+# name (parent / value1 / value2) so each row in the rendered output
+# matches the convention used by every other variant-displaying surface.
+_ROW_HEADER_FIELDS: tuple[str, ...] = ("variant_id", "sku", "display_name")
 _ROW_BODY_FIELDS: tuple[str, ...] = (
     "sales_order_id",
     "quantity",
