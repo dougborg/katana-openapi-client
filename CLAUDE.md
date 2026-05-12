@@ -119,6 +119,15 @@ gh project item-add 5 --owner @me --url <issue-or-pr-url>
 The field IDs / option IDs are stable;
 `gh project field-list 5 --owner @me --format json` prints them.
 
+### Grooming the board
+
+Use **`/groom`** to surface drift between issues and project state — closed issues still
+in Todo, items in Done with open issues, P3 items stale for >90 days, P0/P1 sitting idle
+\>21 days, items missing Priority or Workstream. The skill reads the board, classifies
+items across five heuristic categories, and asks for per-category confirmation before
+applying any mutation. Don't re-derive the priority queue from `gh issue list` —
+`/groom` evolves the board forward.
+
 ## Continuous Improvement
 
 This file is meant to evolve. Update it when you learn something that would help future
