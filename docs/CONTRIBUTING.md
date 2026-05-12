@@ -228,6 +228,38 @@ KATANA_BASE_URL=https://api.katanamrp.com/v1
 - Update the README.md if adding user-facing features
 - Include docstrings for all public methods
 
+### No hand-maintained drift-prone references
+
+When writing or updating documentation, **do not hard-code facts that have a
+source-of-truth elsewhere**. They drift on every release, every spec sync, every
+refactor, and every closed issue, and nobody can be expected to update both places. Rule
+of thumb: if a fact in a doc requires updating in two places when something changes, the
+fact is in the wrong place.
+
+Things that are guaranteed to drift if hand-maintained:
+
+- **Package version numbers** — use a shields.io PyPI/npm badge instead. The badge
+  fetches the live version at render time.
+- **Endpoint counts / tool counts / model counts** — either remove ("see the OpenAPI
+  spec for the canonical endpoint surface", "see `katana://help/tools` for the current
+  tool list") or generate from the source-of-truth via a `poe` task wired into
+  pre-commit.
+- **Hand-curated ADR lists** — link to the per-scope ADR `README.md` index instead. The
+  indexes are short, easy to keep current, and live next to the ADRs they list.
+- **Issue numbers cited as roadmap markers** — link to the
+  [project board](https://github.com/users/dougborg/projects/5) instead. The board
+  reflects current state; the issue number you cited may close, get renumbered, or
+  scope-creep.
+- **"Coming soon" / "planned" callouts** — either remove (git history is the answer) or
+  link to a specific issue (which the project board can surface).
+- **Dated "last updated" footers** — remove. Git history already records this.
+- **File paths inside generated trees** — point at the parent dir or the spec, not
+  individual files that move on regeneration.
+
+If you find yourself adding such a fact, that's the signal to invert the relationship:
+link out to where the fact lives instead of duplicating it. PRs that re-introduce
+hand-maintained drift-prone references will be asked to abstract them.
+
 ## Client Regeneration
 
 The OpenAPI client is automatically generated from `katana-openapi.yaml` using
@@ -266,14 +298,19 @@ uv run python scripts/regenerate_client.py
 - `client_types.py` - Type definitions (renamed from `types.py`)
 - `errors.py` - Exception definitions
 - `py.typed` - Type checking marker
-- `api/` - All API endpoint modules (137+ files)
-- `models/` - All data model classes (150+ files)
+- `api/` - All API endpoint modules
+- `models/` - All data model classes
+- `models_pydantic/_generated/` - Pydantic model surface
+- `models_pydantic/_auto_registry.py` - Generated registry
 
 **Preserved Files** (Custom Content):
 
 - `katana_client.py` - Our resilient client implementation
 - `log_setup.py` - Custom logging configuration
 - `__init__.py` - Custom exports (gets rewritten but preserves structure)
+- `models_pydantic/*.py` (except `_generated/` and `_auto_registry.py`) -
+  hand-maintained pydantic infrastructure (`_base.py`, `_mapped_shim.py`,
+  `_pydantic_json.py`, `_registry.py`, `converters.py`)
 
 ### Regeneration Features
 
