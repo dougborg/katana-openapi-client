@@ -1177,17 +1177,20 @@ def _build_get_purchase_order_response(
             return v.get(name)
         return getattr(v, name, None)
 
+    def _variant_for(row: Any) -> Any:
+        # ``variant_id`` may be ``None`` on stub rows; the typed-cache map
+        # only ever stores int keys, so guard against ``None`` lookups to
+        # keep ty/pyright satisfied (``dict.get(None)`` widens the value
+        # type and silently shadows hits).
+        vid = unwrap_unset(row.variant_id, None)
+        return variants_by_id.get(vid) if vid is not None else None
+
     raw_rows = unwrap_unset(po.purchase_order_rows, None) or []
     rows = [
         _po_row_info(
             r,
-            sku=_attr_or_none(
-                variants_by_id.get(unwrap_unset(r.variant_id, None)), "sku"
-            ),
-            display_name=_attr_or_none(
-                variants_by_id.get(unwrap_unset(r.variant_id, None)),
-                "display_name",
-            ),
+            sku=_attr_or_none(_variant_for(r), "sku"),
+            display_name=_attr_or_none(_variant_for(r), "display_name"),
         )
         for r in raw_rows
     ]
@@ -2422,6 +2425,13 @@ async def _list_purchase_orders_impl(
             return v.get(name)
         return getattr(v, name, None)
 
+    def _variant_for_row(row: Any) -> Any:
+        # Guard ``None`` lookups so the dict-get type stays narrow and
+        # ``CachedVariant`` rows without a variant_id don't silently shadow
+        # the empty-map default.
+        vid = row.variant_id
+        return variant_lookup.get(vid) if vid is not None else None
+
     summaries: list[PurchaseOrderSummary] = []
     for po, row_count in orders_with_counts:
         rows: list[PurchaseOrderRowSummary] | None = None
@@ -2430,10 +2440,8 @@ async def _list_purchase_orders_impl(
                 PurchaseOrderRowSummary(
                     id=r.id,
                     variant_id=r.variant_id,
-                    sku=_row_attr(variant_lookup.get(r.variant_id), "sku"),
-                    display_name=_row_attr(
-                        variant_lookup.get(r.variant_id), "display_name"
-                    ),
+                    sku=_row_attr(_variant_for_row(r), "sku"),
+                    display_name=_row_attr(_variant_for_row(r), "display_name"),
                     quantity=r.quantity,
                     price_per_unit=r.price_per_unit,
                     arrival_date=iso_or_none(r.arrival_date),

@@ -903,6 +903,13 @@ async def _list_sales_orders_impl(
             return v.get(name)
         return getattr(v, name, None)
 
+    def _variant_for_row(row: Any) -> Any:
+        # Guard ``None`` lookups — keeps the dict-get type narrow and
+        # avoids silently shadowing the empty-map default for rows that
+        # legitimately carry ``variant_id=None``.
+        vid = row.variant_id
+        return variant_lookup.get(vid) if vid is not None else None
+
     orders: list[SalesOrderSummary] = []
     for so, row_count in orders_with_counts:
         row_infos: list[SalesOrderRowInfo] | None = None
@@ -911,10 +918,8 @@ async def _list_sales_orders_impl(
                 SalesOrderRowInfo(
                     id=r.id,
                     variant_id=r.variant_id,
-                    sku=_row_attr(variant_lookup.get(r.variant_id), "sku"),
-                    display_name=_row_attr(
-                        variant_lookup.get(r.variant_id), "display_name"
-                    ),
+                    sku=_row_attr(_variant_for_row(r), "sku"),
+                    display_name=_row_attr(_variant_for_row(r), "display_name"),
                     quantity=r.quantity,
                     price_per_unit=r.price_per_unit,
                     linked_manufacturing_order_id=r.linked_manufacturing_order_id,
