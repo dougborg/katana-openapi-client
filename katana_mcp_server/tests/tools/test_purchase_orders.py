@@ -2612,6 +2612,42 @@ async def test_get_purchase_order_full_field_coverage():
 
 
 @pytest.mark.asyncio
+async def test_get_purchase_order_row_carries_canonical_display_name():
+    """Each row in the exhaustive ``get_purchase_order`` response surfaces
+    the canonical Katana-UI display name lifted from CachedVariant via a
+    single batched cache read. Matches the convention used by every other
+    variant-displaying surface (search_items, check_inventory, recipe
+    rows, verification card).
+    """
+    context, lifespan_ctx = create_mock_context()
+    mock_po = _make_exhaustive_mock_po()
+
+    # Seed the typed cache so the row's variant_id=100 resolves to a
+    # canonical SKU + display_name.
+    cached_variant = MagicMock()
+    cached_variant.id = 100
+    cached_variant.sku = "WIDGET-100"
+    cached_variant.display_name = "Acme Widget / Large / Red"
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
+        return_value={100: cached_variant}
+    )
+
+    with (
+        patch(f"{_PO_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP, return_value=mock_po),
+    ):
+        request = GetPurchaseOrderRequest(order_id=12345)
+        result = await _get_purchase_order_impl(request, context)
+
+    assert len(result.purchase_order_rows) == 1
+    row = result.purchase_order_rows[0]
+    assert row.variant_id == 100
+    # Both SKU and display_name lifted from the same cache read.
+    assert row.sku == "WIDGET-100"
+    assert row.display_name == "Acme Widget / Large / Red"
+
+
+@pytest.mark.asyncio
 async def test_get_purchase_order_fetches_additional_costs_and_accounting_metadata():
     """Side-data fetches run on the PO's default_group_id / id and surface
     into the exhaustive response (#346)."""
