@@ -9,15 +9,82 @@ leveraging its `from_attrs()` conversion while adding business-specific methods.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import Field
 
 from .base import KatanaBaseModel
+from .converters import unwrap_unset
 
 if TYPE_CHECKING:
     from ..models.variant import Variant as AttrsVariant
     from ..models_pydantic._generated.inventory import Variant as GeneratedVariant
+
+
+def build_variant_display_name(
+    parent_name: str | None,
+    config_attributes: Iterable[Any] | None,
+    fallback_sku: str | None = None,
+) -> str:
+    """Build a variant's display name in Katana UI format.
+
+    Format: ``"{parent_name} / {config_value_1} / {config_value_2} / ..."``.
+    Falls back to ``fallback_sku`` when ``parent_name`` is empty (a
+    defensive case — Katana always returns a non-empty parent name in
+    practice, but the legacy cache handled the empty case so we
+    preserve it).
+
+    Accepts ``config_attributes`` as an iterable of either dicts
+    (domain models, MCP response dicts) or attrs objects (raw API
+    objects via ``?extend=`` responses). Both routes converge on a
+    ``config_value`` field — the helper reads via ``dict.get`` for the
+    former and ``getattr`` + ``unwrap_unset`` for the latter. This is
+    the single source of truth for the formula; consumers in the
+    ``KatanaVariant`` domain class, the typed-cache postprocess hook,
+    and the MCP variant-details response all delegate to this function
+    so the rendered name stays consistent across the codebase.
+
+    Args:
+        parent_name: The parent Product or Material's ``name``. ``None``
+            or empty triggers the SKU fallback.
+        config_attributes: Iterable of variant config attribute records
+            (e.g. ``{"config_name": "Size", "config_value": "Large"}``).
+            Empty or ``None`` is fine — yields just the parent name.
+        fallback_sku: Returned (or empty string) when ``parent_name``
+            is empty.
+
+    Returns:
+        The formatted display name, or ``fallback_sku`` (or ``""``) on
+        the empty-parent path.
+
+    Example:
+        >>> build_variant_display_name(
+        ...     "Kitchen Knife",
+        ...     [
+        ...         {"config_name": "Size", "config_value": "8-inch"},
+        ...         {"config_name": "Color", "config_value": "Black"},
+        ...     ],
+        ... )
+        'Kitchen Knife / 8-inch / Black'
+        >>> build_variant_display_name(None, [], fallback_sku="KNF-001")
+        'KNF-001'
+    """
+    if not parent_name:
+        return fallback_sku or ""
+    parts: list[str] = [parent_name]
+    for attr in config_attributes or []:
+        # Dict shape (domain class, MCP response): direct .get.
+        # Attrs-object shape (raw API): getattr + unwrap_unset to strip
+        # the UNSET sentinel (which itself handles ``None`` and
+        # ``Unset`` uniformly via its default). Both yield ``str | None``.
+        if isinstance(attr, dict):
+            value = attr.get("config_value")
+        else:
+            value = unwrap_unset(getattr(attr, "config_value", None), None)
+        if isinstance(value, str) and value:
+            parts.append(value)
+    return " / ".join(parts)
 
 
 class KatanaVariant(KatanaBaseModel):
@@ -271,10 +338,12 @@ class KatanaVariant(KatanaBaseModel):
     def get_display_name(self) -> str:
         """Get formatted display name matching Katana UI format.
 
-        Format: "{Product/Material Name} / {Config Value 1} / {Config Value 2} / ..."
+        Delegates to :func:`build_variant_display_name` so the formula
+        stays consistent across the domain class, the typed-cache
+        postprocess hook, and the MCP variant-details response.
 
         Returns:
-            Formatted variant name, or SKU if no name available
+            Formatted variant name, or SKU if no parent name available.
 
         Example:
             ```python
@@ -291,17 +360,11 @@ class KatanaVariant(KatanaBaseModel):
             # "Kitchen Knife / 8-inch / Black"
             ```
         """
-        if not self.product_or_material_name:
-            return self.sku or ""
-
-        parts = [self.product_or_material_name]
-
-        # Append config attribute values
-        for attr in self.config_attributes:
-            if value := attr.get("config_value"):
-                parts.append(value)
-
-        return " / ".join(parts)
+        return build_variant_display_name(
+            self.product_or_material_name,
+            self.config_attributes,
+            self.sku,
+        )
 
     def matches_search(self, query: str) -> bool:
         """Check if variant matches search query with tokenization and fuzzy matching.

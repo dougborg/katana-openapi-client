@@ -23,6 +23,7 @@ EntityKind = Literal[
     "product",
     "material",
     "customer",
+    "supplier",
     "stock_transfer",
     "stock_adjustment",
 ]
@@ -38,6 +39,7 @@ _PATHS: dict[EntityKind, str] = {
     "product": "/product/{id}",
     "material": "/material/{id}",
     "customer": "/contacts/customers/{id}",
+    "supplier": "/contacts/suppliers/{id}",
     "stock_transfer": "/stocktransfer/{id}",
     "stock_adjustment": "/stockadjustment/{id}",
 }

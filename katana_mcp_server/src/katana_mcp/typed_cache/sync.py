@@ -61,6 +61,7 @@ from katana_public_api_client.api.supplier import get_all_suppliers
 from katana_public_api_client.api.tax_rate import get_all_tax_rates
 from katana_public_api_client.api.variant import get_all_variants
 from katana_public_api_client.domain.converters import unwrap_unset
+from katana_public_api_client.domain.variant import build_variant_display_name
 from katana_public_api_client.models.get_all_variants_extend_item import (
     GetAllVariantsExtendItem,
 )
@@ -754,20 +755,15 @@ def _variant_postprocess(attrs_obj: Any, cache_row: CachedVariant) -> None:
         parent_name = unwrap_unset(getattr(parent, "name", None), None)
         cache_row.parent_name = parent_name
 
-    # ``display_name`` mirrors the legacy synthesis: parent name (or SKU
-    # fallback) joined with each config attribute's value. The empty-
-    # parent-name fallback to SKU is defensive — Katana always returns
-    # a non-empty parent name in practice, but the legacy cache handled
-    # the empty case so we preserve it.
+    # ``display_name`` delegates to the shared ``build_variant_display_name``
+    # helper so the formula stays consistent with the domain class
+    # (``KatanaVariant.get_display_name``) and the MCP variant-details
+    # response. The helper accepts attrs-object config attributes
+    # directly — no manual unwrap_unset loop needed here.
     sku = unwrap_unset(getattr(attrs_obj, "sku", None), "") or ""
-    display_parts: list[str] = [parent_name] if parent_name else [sku] if sku else []
     config_attrs = unwrap_unset(getattr(attrs_obj, "config_attributes", None), [])
-    if config_attrs:
-        for attr in config_attrs:
-            value = unwrap_unset(getattr(attr, "config_value", None), None)
-            if value:
-                display_parts.append(value)
-    cache_row.display_name = " / ".join(display_parts) if display_parts else None
+    display_name = build_variant_display_name(parent_name, config_attrs, sku)
+    cache_row.display_name = display_name or None
 
     # ``supplier_item_codes_text``: FTS5's default tokenizer splits on
     # whitespace, so the cache-side text projection is a space-joined
