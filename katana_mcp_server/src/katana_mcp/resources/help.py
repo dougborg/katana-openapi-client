@@ -102,22 +102,46 @@ invoking. The server does not gate further.
 
 ### Agent guidance for preview→apply
 
-After returning a preview, **do not re-narrate the card or ask for
-confirmation in chat** — the buttons handle that. End your turn and wait
-for the user.
+The same preview card serves two host families, and the agent's
+end-of-turn behavior is different for each. The `content` channel of
+every preview response carries the response JSON, so the data is always
+available even if the card itself doesn't render.
 
-When the user clicks Confirm on a preview card, the iframe sends a chat
-message of the form:
+**1. Hosts that do NOT render MCP Apps iframes** (Claude Code, plain CLI
+clients). The Prefab card is invisible — the user can't click anything.
+Summarize the planned change in chat from the `content` JSON (what's
+changing, key field values), ask the user to confirm, and on yes
+re-issue the call with `preview=False` yourself. Do **not** end your
+turn waiting for a button click; there is none. Common signals that
+this is the case: the user says they can't see the card, or you have no
+prior evidence iframes have rendered in this session.
+
+**2. Hosts that DO render iframes** (Claude Desktop, Claude.ai, Cowork).
+The card has Confirm and Cancel buttons the user clicks. **Do not
+re-narrate the card or ask for confirmation in chat** — the buttons
+handle that. End your turn after the preview response. The Confirm-click
+behavior depends on which rail the tool is on:
+
+*SendMessage rail (ADR-0015) — default for tools that don't opt into
+direct-apply.* The iframe sends a chat message of the form:
 
     Apply: call <tool_name>(<arg>=<value>, ..., preview=False)
 
 Recognize the `Apply:` prefix and re-issue the tool call **exactly as
-written**, with all inlined arguments preserved. The agent's tool-calling
-loop is the only path that lets the agent see the structured apply
-response — the iframe-initiated call (which the spec routes back to the
-iframe, not to the agent) was the wrong rail; see ADR-0015.
+written**, with all inlined arguments preserved. Re-issuing through the
+agent's tool-calling loop is what lets the agent see the structured
+apply response on this rail; the iframe-initiated call alone routes its
+result back to the iframe, not to the agent.
 
-When the user clicks Cancel, the iframe sends:
+*Direct-apply rail (ADR-0016) — used by `create_purchase_order`,
+`create_sales_order`, `create_manufacturing_order`, the unified
+`modify_<entity>` / `delete_<entity>` family, the `correct_*` family,
+and the stock-adjustment write tools.* The Confirm click fires the
+apply `tools/call` directly and the iframe pushes the structured result
+back to the agent's model context via `ui/update-model-context`. The
+agent sees the apply response on its next turn without re-issuing.
+
+Cancel behavior is the same on both rails: the iframe sends
 
     Cancel: do not apply <description>.
 

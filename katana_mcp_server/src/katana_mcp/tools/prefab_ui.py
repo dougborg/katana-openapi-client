@@ -76,20 +76,35 @@ def _split_warnings(
     return blocks, regulars
 
 
-# Coaching text appended to every preview-mode write tool's description so
-# the agent (1) does not re-narrate or ask for chat-confirmation after a
-# preview returns (closes #544), and (2) knows to re-issue the call when it
-# sees an ``Apply: call ...`` SendMessage from a Confirm-button click. The
-# rationale lives in ADR-0015.
+# Coaching text appended to every preview-mode write tool's description.
+# The agent's host may or may not render MCP Apps iframes — lead with the
+# no-iframe path because it's the footgun: in iframe hosts the buttons
+# handle the UX with no agent help, but in non-iframe hosts an agent that
+# follows the iframe-happy-path coaching ends its turn waiting for clicks
+# that never come (see #648). Mention the iframe path second.
+#
+# The rationale for the chat-message rail lives in ADR-0015; the
+# Confirm-then-iframe-handles-everything UX in ADR-0016.
 PREVIEW_APPLY_COACHING = (
-    "Preview→apply: when ``preview=True`` (default), returns a Prefab card "
-    "with Confirm/Cancel buttons. Do NOT re-narrate the card or ask for "
-    "confirmation in chat — the buttons handle that. End your turn after "
-    "the preview response.\n\n"
-    "If you receive a chat message starting with ``Apply: call <tool>(...)`` "
-    "or ``Cancel: do not apply ...``, that is a button click from a previous "
-    "preview. For Apply, re-issue the tool call exactly as written. For "
-    "Cancel, acknowledge briefly without re-issuing."
+    "Preview→apply pattern: when ``preview=True`` (default) the tool returns "
+    "a Prefab card describing the planned change. The ``content`` channel of "
+    "the tool result carries the response JSON, so you always have the data "
+    "even if the card itself doesn't render. Handle both host scenarios:\n\n"
+    "1. If the host does NOT render MCP Apps iframes (Claude Code, plain CLI "
+    "clients, etc.) — common signal: the user says they can't see the card, "
+    "or you have no other evidence the card was rendered — the Prefab card "
+    "is invisible. Summarize the planned change in chat from the ``content`` "
+    "JSON (what's changing, key field values), ask the user to confirm, then "
+    "re-issue the call with ``preview=False`` yourself. Do NOT end your turn "
+    "waiting for a button click — there is none.\n\n"
+    "2. If the host DOES render iframes (Claude Desktop, Claude.ai, Cowork, "
+    "etc.), the card has Confirm/Cancel buttons the user clicks. Do NOT "
+    "re-narrate the card or ask for confirmation in chat — the buttons "
+    "handle that. End your turn after the preview response. If you later "
+    "receive a chat message starting with ``Apply: call <tool>(...)`` or "
+    "``Cancel: do not apply ...``, that is a button click from a previous "
+    "preview: for Apply re-issue the tool call exactly as written; for "
+    "Cancel acknowledge briefly without re-issuing."
 )
 
 
@@ -98,24 +113,32 @@ PREVIEW_APPLY_COACHING = (
 # ``ui/update-model-context``). The agent does not re-issue the call — it
 # receives the apply result automatically on its next turn. See
 # ``docs/adr/0016-direct-apply-confirm-button-rail.md`` (forthcoming).
+#
+# Same no-iframe-first lead as PREVIEW_APPLY_COACHING (see #648).
 PREVIEW_APPLY_DIRECT_COACHING = (
-    "Preview→apply: when ``preview=True`` (default) AND the host renders "
-    "MCP Apps iframes (Claude Desktop, Claude.ai, Cowork, etc.), returns a "
-    "Prefab card with Confirm/Cancel buttons. Do NOT re-narrate the card or "
-    "ask for confirmation in chat — the buttons handle that. End your turn "
-    "after the preview response.\n\n"
-    "When the user clicks Confirm in the iframe, the iframe fires the apply "
-    "call directly and morphs in place to a result card. The structured "
-    "apply response (id, status, etc.) arrives in your context on your next "
-    "turn via ``ui/update-model-context``. Treat it as you would any "
-    "tool-call result — acknowledge completion, suggest next steps. Do NOT "
-    "re-issue the call after the iframe already applied.\n\n"
-    "Non-iframe-host fallback: if the host does not render Prefab cards "
-    "(no iframe was shown to the user), there are no buttons. Ask the user "
-    "for confirmation in chat, then re-issue with ``preview=False`` "
-    "yourself.\n\n"
-    "If you receive a chat message starting with ``Cancel: do not apply ...``, "
-    "the user opted out — acknowledge briefly without re-issuing."
+    "Preview→apply pattern: when ``preview=True`` (default) the tool returns "
+    "a Prefab card describing the planned change. The ``content`` channel of "
+    "the tool result carries the response JSON, so you always have the data "
+    "even if the card itself doesn't render. Handle both host scenarios:\n\n"
+    "1. If the host does NOT render MCP Apps iframes (Claude Code, plain CLI "
+    "clients, etc.) — common signal: the user says they can't see the card, "
+    "or you have no other evidence the card was rendered — the Prefab card "
+    "is invisible. Summarize the planned change in chat from the ``content`` "
+    "JSON (what's changing, key field values), ask the user to confirm, then "
+    "re-issue the call with ``preview=False`` yourself. Do NOT end your turn "
+    "waiting for a button click — there is none.\n\n"
+    "2. If the host DOES render iframes (Claude Desktop, Claude.ai, Cowork, "
+    "etc.), the card has Confirm/Cancel buttons the user clicks. When the "
+    "user clicks Confirm in the iframe, the iframe fires the apply call "
+    "directly and morphs in place to a result card. The structured apply "
+    "response (id, status, etc.) arrives in your context on your next turn "
+    "via ``ui/update-model-context``. Treat it as you would any tool-call "
+    "result — acknowledge completion, suggest next steps. Do NOT re-narrate "
+    "the preview card, do NOT ask for confirmation in chat (the buttons "
+    "handle that), and Do NOT re-issue the call after the iframe already "
+    "applied. End your turn after the preview response. If you receive a "
+    "chat message starting with ``Cancel: do not apply ...``, the user "
+    "opted out — acknowledge briefly without re-issuing."
 )
 
 
