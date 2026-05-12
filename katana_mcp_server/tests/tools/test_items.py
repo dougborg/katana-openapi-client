@@ -23,7 +23,10 @@ from katana_mcp.tools.foundation.items import (
     get_item,
     get_variant_details,
 )
-from katana_mcp_server.tests.conftest import create_mock_context
+from katana_mcp_server.tests.conftest import (
+    create_mock_context,
+    mock_item as _mock_item,
+)
 from pydantic import ValidationError
 
 
@@ -247,6 +250,87 @@ async def test_get_variant_details_lifts_default_supplier_from_parent():
     assert result.default_supplier_name == "Acme Cutlery Co"
     assert result.uom == "set"
     assert result.is_batch_tracked is False
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_lifts_purchase_uom_from_parent():
+    """``purchase_uom`` and ``purchase_uom_conversion_rate`` live on the parent
+    product/material (item-header fields), not on the variant attrs model.
+    ``_dict_to_variant_details`` must lift them through so a single
+    ``get_variant_details`` call carries enough context to draft an accurate
+    PO without a follow-up parent lookup.
+    """
+    context, lifespan_ctx = create_mock_context()
+    variant = dict(_FULL_VARIANT_DICT)
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=variant)
+
+    parent_product = {
+        "id": 101,
+        "uom": "pcs",
+        "purchase_uom": "kit",
+        "purchase_uom_conversion_rate": 4.0,
+        "default_supplier_id": 555,
+        "batch_tracked": False,
+    }
+    supplier = {"id": 555, "name": "Industry Nine"}
+
+    async def _get_many_by_ids(entity_type, ids, **_kw):
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedProduct,
+            CachedSupplier,
+        )
+
+        if entity_type == CachedProduct:
+            return {101: parent_product} if 101 in set(ids) else {}
+        if entity_type == CachedSupplier:
+            return {555: supplier} if 555 in set(ids) else {}
+        return {}
+
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
+        side_effect=_get_many_by_ids
+    )
+
+    request = GetVariantDetailsRequest(sku="KNF-PRO-8PC-STL")
+    [result] = (await _get_variant_details_impl(request, context)).found
+
+    assert result.uom == "pcs"
+    assert result.purchase_uom == "kit"
+    assert result.purchase_uom_conversion_rate == 4.0
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_no_purchase_uom_when_parent_omits_it():
+    """The common case (purchase_uom == stock uom) — parent omits the fields,
+    response surfaces them as None so the Prefab UI card stays quiet."""
+    context, lifespan_ctx = create_mock_context()
+    variant = dict(_FULL_VARIANT_DICT)
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=variant)
+
+    parent_product = {
+        "id": 101,
+        "uom": "pcs",
+        "default_supplier_id": None,
+        "batch_tracked": False,
+    }
+
+    async def _get_many_by_ids(entity_type, ids, **_kw):
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedProduct,
+        )
+
+        if entity_type == CachedProduct:
+            return {101: parent_product} if 101 in set(ids) else {}
+        return {}
+
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
+        side_effect=_get_many_by_ids
+    )
+
+    request = GetVariantDetailsRequest(sku="KNF-PRO-8PC-STL")
+    [result] = (await _get_variant_details_impl(request, context)).found
+
+    assert result.purchase_uom is None
+    assert result.purchase_uom_conversion_rate is None
 
 
 # ============================================================================
@@ -945,9 +1029,7 @@ async def test_create_item_product_forwards_variant_fields():
     )
 
     context, lifespan_ctx = create_mock_context()
-    mock_product = MagicMock()
-    mock_product.id = 900
-    mock_product.name = "Variant Item"
+    mock_product = _mock_item(id=900, name="Variant Item")
     lifespan_ctx.client.products.create = AsyncMock(return_value=mock_product)
 
     request = CreateItemRequest(
@@ -986,9 +1068,7 @@ async def test_create_item_material_forwards_variant_fields():
     )
 
     context, lifespan_ctx = create_mock_context()
-    mock_material = MagicMock()
-    mock_material.id = 901
-    mock_material.name = "Variant Material"
+    mock_material = _mock_item(id=901, name="Variant Material")
     lifespan_ctx.client.materials.create = AsyncMock(return_value=mock_material)
 
     request = CreateItemRequest(
@@ -1020,9 +1100,7 @@ async def test_create_item_omits_unset_variant_fields():
     from katana_public_api_client.client_types import UNSET
 
     context, lifespan_ctx = create_mock_context()
-    mock_product = MagicMock()
-    mock_product.id = 902
-    mock_product.name = "Plain Item"
+    mock_product = _mock_item(id=902, name="Plain Item")
     lifespan_ctx.client.products.create = AsyncMock(return_value=mock_product)
 
     request = CreateItemRequest(type=ItemType.PRODUCT, name="Plain Item", sku="PI-001")
@@ -1038,6 +1116,106 @@ async def test_create_item_omits_unset_variant_fields():
 
 
 @pytest.mark.asyncio
+async def test_create_item_forwards_purchase_uom_for_product():
+    """purchase_uom + conversion_rate must land on the parent-level
+    CreateProductRequest, and be mirrored back on CreateItemResponse so the
+    mutation card can render the kit-size."""
+    from katana_mcp.tools.foundation.items import (
+        CreateItemRequest,
+        _create_item_impl,
+    )
+
+    context, lifespan_ctx = create_mock_context()
+    mock_product = _mock_item(id=910, name="Spoke (kit-purchased)")
+    mock_product.uom = "pcs"
+    mock_product.purchase_uom = "kit"
+    mock_product.purchase_uom_conversion_rate = 4.0
+    lifespan_ctx.client.products.create = AsyncMock(return_value=mock_product)
+
+    request = CreateItemRequest(
+        type=ItemType.PRODUCT,
+        name="Spoke (kit-purchased)",
+        sku="SP0502",
+        uom="pcs",
+        purchase_uom="kit",
+        purchase_uom_conversion_rate=4.0,
+    )
+    response = await _create_item_impl(request, context)
+
+    api_request = lifespan_ctx.client.products.create.call_args[0][0]
+    assert api_request.purchase_uom == "kit"
+    assert api_request.purchase_uom_conversion_rate == 4.0
+    assert response.uom == "pcs"
+    assert response.purchase_uom == "kit"
+    assert response.purchase_uom_conversion_rate == 4.0
+
+
+@pytest.mark.asyncio
+async def test_create_item_forwards_purchase_uom_for_material():
+    """Material flow — "box of 100" spoke nipples case."""
+    from katana_mcp.tools.foundation.items import (
+        CreateItemRequest,
+        _create_item_impl,
+    )
+
+    context, lifespan_ctx = create_mock_context()
+    mock_material = _mock_item(id=911, name="Spoke Nipples")
+    mock_material.uom = "pcs"
+    mock_material.purchase_uom = "box"
+    mock_material.purchase_uom_conversion_rate = 100.0
+    lifespan_ctx.client.materials.create = AsyncMock(return_value=mock_material)
+
+    request = CreateItemRequest(
+        type=ItemType.MATERIAL,
+        name="Spoke Nipples",
+        sku="SP7025",
+        uom="pcs",
+        purchase_uom="box",
+        purchase_uom_conversion_rate=100.0,
+    )
+    response = await _create_item_impl(request, context)
+
+    api_request = lifespan_ctx.client.materials.create.call_args[0][0]
+    assert api_request.purchase_uom == "box"
+    assert api_request.purchase_uom_conversion_rate == 100.0
+    assert response.purchase_uom == "box"
+    assert response.purchase_uom_conversion_rate == 100.0
+
+
+@pytest.mark.asyncio
+async def test_create_item_service_ignores_purchase_uom():
+    """Services don't model purchase_uom — the field must be silently dropped,
+    not crash, and not appear on the CreateServiceRequest. Response surfaces
+    None so the mutation card stays quiet for services.
+    """
+    from katana_mcp.tools.foundation.items import (
+        CreateItemRequest,
+        _create_item_impl,
+    )
+
+    context, lifespan_ctx = create_mock_context()
+    mock_service = MagicMock(spec=["id", "name"])
+    mock_service.id = 912
+    mock_service.name = "Consulting Service"
+    lifespan_ctx.client.services.create = AsyncMock(return_value=mock_service)
+
+    request = CreateItemRequest(
+        type=ItemType.SERVICE,
+        name="Consulting Service",
+        sku="SVC-002",
+        sales_price=150.0,
+        purchase_uom="kit",
+        purchase_uom_conversion_rate=4.0,
+    )
+    response = await _create_item_impl(request, context)
+
+    api_request = lifespan_ctx.client.services.create.call_args[0][0]
+    assert not hasattr(api_request, "purchase_uom")
+    assert response.purchase_uom is None
+    assert response.purchase_uom_conversion_rate is None
+
+
+@pytest.mark.asyncio
 async def test_create_item_service_ignores_variant_fields():
     """Services don't have variants in the same sense — pricing lives on the
     header. Variant-level fields supplied with type=service must not crash and
@@ -1048,7 +1226,10 @@ async def test_create_item_service_ignores_variant_fields():
     )
 
     context, lifespan_ctx = create_mock_context()
-    mock_service = MagicMock()
+    # spec= constrains attrs so getattr(result, "uom", None) returns None
+    # instead of auto-vivifying a MagicMock — services don't carry uom /
+    # purchase_uom, so this mirrors real-API behavior.
+    mock_service = MagicMock(spec=["id", "name"])
     mock_service.id = 903
     mock_service.name = "Consulting Service"
     lifespan_ctx.client.services.create = AsyncMock(return_value=mock_service)
@@ -1073,6 +1254,52 @@ async def test_create_item_service_ignores_variant_fields():
         or not getattr(service_variant, "internal_barcode", None)
         or service_variant.internal_barcode is None
     )
+
+
+# ============================================================================
+# CreateItemRequest — purchase_uom validator
+# ============================================================================
+
+
+def test_create_item_purchase_uom_requires_conversion_rate():
+    """Setting purchase_uom without a conversion rate is ambiguous and must
+    be caught at the MCP boundary, not silently forwarded to Katana."""
+    from katana_mcp.tools.foundation.items import CreateItemRequest
+
+    with pytest.raises(ValueError, match="purchase_uom_conversion_rate is required"):
+        CreateItemRequest(
+            type=ItemType.PRODUCT,
+            name="Spoke",
+            sku="SP-1",
+            purchase_uom="kit",
+        )
+
+
+def test_create_item_conversion_rate_requires_purchase_uom():
+    """Setting only the conversion rate is equally meaningless without a UoM."""
+    from katana_mcp.tools.foundation.items import CreateItemRequest
+
+    with pytest.raises(ValueError, match="purchase_uom is required"):
+        CreateItemRequest(
+            type=ItemType.PRODUCT,
+            name="Spoke",
+            sku="SP-1",
+            purchase_uom_conversion_rate=4.0,
+        )
+
+
+def test_create_item_purchase_uom_rate_must_be_positive():
+    """Zero or negative conversion rate has no meaningful interpretation."""
+    from katana_mcp.tools.foundation.items import CreateItemRequest
+
+    with pytest.raises(ValueError, match="must be greater than 0"):
+        CreateItemRequest(
+            type=ItemType.MATERIAL,
+            name="Box",
+            sku="BX-1",
+            purchase_uom="box",
+            purchase_uom_conversion_rate=0,
+        )
 
 
 # ============================================================================
@@ -1195,9 +1422,7 @@ async def test_modify_item_material_header_dispatches_to_materials_endpoint():
     )
 
     context, _ = create_mock_context()
-    mock_material = MagicMock()
-    mock_material.id = 99
-    mock_material.name = "Renamed Material"
+    mock_material = _mock_item(id=99, name="Renamed Material")
     with (
         patch(
             "katana_public_api_client.api.material.update_material.asyncio_detailed",

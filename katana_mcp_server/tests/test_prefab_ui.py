@@ -258,6 +258,71 @@ class TestBuildVariantDetailsUI:
         # No `/ <uom>` suffix on the bare price.
         assert "$10.00 /" not in rendered
 
+    def test_includes_purchase_uom_when_set_and_different_from_stock(self):
+        """Purchase UoM row renders the kit-size conversion when the item is
+        purchased in a different unit than it's stocked in (SP0502 case: stock
+        in pcs, buy as 4-pcs kits)."""
+        variant = {
+            "id": 100,
+            "sku": "SP0502",
+            "name": "Spoke (kit)",
+            "uom": "pcs",
+            "purchase_uom": "kit",
+            "purchase_uom_conversion_rate": 4.0,
+        }
+        app = build_variant_details_ui(variant)
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "Purchase UoM: kit (x4 pcs)" in rendered
+
+    def test_omits_purchase_uom_when_unset(self):
+        """The common case (purchase == stock UoM) leaves the row absent."""
+        variant = {
+            "id": 100,
+            "sku": "SKU-001",
+            "name": "Widget",
+            "uom": "pcs",
+        }
+        app = build_variant_details_ui(variant)
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "Purchase UoM:" not in rendered
+
+    def test_omits_purchase_uom_when_equals_stock_uom(self):
+        """Even if both fields are populated, omit the redundant row when
+        purchase and stock UoM match — the row would just say the same thing
+        twice."""
+        variant = {
+            "id": 100,
+            "sku": "SKU-001",
+            "name": "Widget",
+            "uom": "pcs",
+            "purchase_uom": "pcs",
+            "purchase_uom_conversion_rate": 1.0,
+        }
+        app = build_variant_details_ui(variant)
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "Purchase UoM:" not in rendered
+
+    def test_purchase_uom_without_conversion_rate_renders_label_only(self):
+        """If purchase_uom is set but conversion_rate is None, surface the
+        label without the ``(xN stock)`` parenthetical — better than dropping
+        the row entirely."""
+        variant = {
+            "id": 100,
+            "sku": "SKU-001",
+            "name": "Widget",
+            "uom": "pcs",
+            "purchase_uom": "kit",
+        }
+        app = build_variant_details_ui(variant)
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "Purchase UoM: kit" in rendered
+        # No conversion-factor parenthetical when rate is missing.
+        assert "Purchase UoM: kit (" not in rendered
+
     def test_includes_config_attributes_as_badges(self):
         """Config attributes should appear inline so the variant axes are visible."""
         variant = {
