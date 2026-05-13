@@ -55,8 +55,8 @@ from katana_mcp.tools.tool_result_utils import (
     apply_date_window_filters,
     coerce_enum,
     enum_to_str,
-    format_md_table,
     iso_or_none,
+    make_json_result,
     make_tool_result,
     parse_request_dates,
     resolve_entity_name,
@@ -660,15 +660,6 @@ class ListSalesOrdersRequest(BaseModel):
         ),
     )
 
-    # Output formatting
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data consumable by downstream tools/aggregations."
-        ),
-    )
-
 
 class SalesOrderRowInfo(BaseModel):
     """Summary of a sales order line item."""
@@ -978,44 +969,8 @@ async def list_sales_orders(
       None in list context; use `get_sales_order` for SKU-enriched rows on a
       specific order.
     """
-    from katana_mcp.tools.tool_result_utils import make_simple_result
-
     response = await _list_sales_orders_impl(request, context)
-
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-
-    if not response.orders:
-        md = "No sales orders match the given filters."
-    else:
-        table = format_md_table(
-            headers=["Order #", "Status", "Production", "Rows", "Total", "Created"],
-            rows=[
-                [
-                    o.order_no or o.id,
-                    o.status or "—",
-                    o.production_status or "—",
-                    o.row_count,
-                    f"{o.total:.2f} {o.currency or ''}" if o.total is not None else "—",
-                    o.created_at or "—",
-                ]
-                for o in response.orders
-            ],
-        )
-        md = f"## Sales Orders ({response.total_count})\n\n{table}"
-
-    if response.pagination is not None:
-        p = response.pagination
-        if p.page is not None and p.total_pages is not None:
-            summary = f"\n\nPage {p.page} of {p.total_pages}"
-            if p.total_records is not None:
-                summary += f" (total: {p.total_records} records)"
-            md += summary
-
-    return make_simple_result(md, structured_data=response.model_dump())
+    return make_json_result(response)
 
 
 # ============================================================================
@@ -1030,13 +985,6 @@ class GetSalesOrderRequest(BaseModel):
 
     order_no: str | None = Field(default=None, description="Sales order number")
     order_id: int | None = Field(default=None, description="Sales order ID")
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data consumable by downstream tools/aggregations."
-        ),
-    )
 
 
 class SalesOrderRowDetail(BaseModel):
@@ -1432,119 +1380,6 @@ async def _get_sales_order_impl(
     )
 
 
-# Scalar fields rendered in order at the top of the markdown response.
-# Labels use canonical Pydantic names so LLM consumers can't confuse a
-# rendered section header with the field name (see #346 follow-on).
-_GET_SO_SCALAR_FIELDS: tuple[str, ...] = (
-    "id",
-    "order_no",
-    "customer_id",
-    "location_id",
-    "source",
-    "status",
-    "production_status",
-    "invoicing_status",
-    "product_availability",
-    "product_expected_date",
-    "ingredient_availability",
-    "ingredient_expected_date",
-    "order_created_date",
-    "delivery_date",
-    "picked_date",
-    "currency",
-    "total",
-    "total_in_base_currency",
-    "conversion_rate",
-    "conversion_date",
-    "customer_ref",
-    "additional_info",
-    "tracking_number",
-    "tracking_number_url",
-    "billing_address_id",
-    "shipping_address_id",
-    "linked_manufacturing_order_id",
-    "ecommerce_order_type",
-    "ecommerce_store_name",
-    "ecommerce_order_id",
-    "created_at",
-    "updated_at",
-    "deleted_at",
-)
-
-# Per-address fields rendered (in order) under an ``addresses`` block.
-_ADDRESS_FIELDS: tuple[str, ...] = (
-    "sales_order_id",
-    "entity_type",
-    "first_name",
-    "last_name",
-    "company",
-    "phone",
-    "line_1",
-    "line_2",
-    "city",
-    "state",
-    "zip",
-    "country",
-    "created_at",
-    "updated_at",
-    "deleted_at",
-)
-
-# Per-row fields rendered under a ``rows`` block. ``id`` + ``variant_id`` /
-# ``sku`` / ``display_name`` are emitted first as the row header; the rest
-# are indented beneath. ``display_name`` carries the canonical Katana-UI
-# name (parent / value1 / value2) so each row in the rendered output
-# matches the convention used by every other variant-displaying surface.
-_ROW_HEADER_FIELDS: tuple[str, ...] = ("variant_id", "sku", "display_name")
-_ROW_BODY_FIELDS: tuple[str, ...] = (
-    "sales_order_id",
-    "quantity",
-    "price_per_unit",
-    "price_per_unit_in_base_currency",
-    "total",
-    "total_in_base_currency",
-    "total_discount",
-    "tax_rate_id",
-    "tax_rate",
-    "location_id",
-    "product_availability",
-    "product_expected_date",
-    "cogs_value",
-    "linked_manufacturing_order_id",
-    "conversion_rate",
-    "conversion_date",
-    "serial_numbers",
-    "created_at",
-    "updated_at",
-    "deleted_at",
-)
-
-
-def _render_address_md(addr: SalesOrderAddressInfo) -> str:
-    """Render one address as an indented multi-line block with canonical labels."""
-    lines = [f"  - **id**: {addr.id}"]
-    for fname in _ADDRESS_FIELDS:
-        val = getattr(addr, fname)
-        if val is None or val == "":
-            continue
-        lines.append(f"    **{fname}**: {val}")
-    return "\n".join(lines)
-
-
-def _render_row_md(row: SalesOrderRowDetail) -> str:
-    """Render one sales order row as an indented multi-line block with canonical labels."""
-    lines = [f"  - **id**: {row.id}"]
-    for fname in _ROW_HEADER_FIELDS + _ROW_BODY_FIELDS:
-        val = getattr(row, fname)
-        # Empty serial_numbers list is noise — skip it. Non-empty lists render
-        # with explicit [...] syntax so an LLM reading the output can tell
-        # the field is a list.
-        if val is None or val == "" or (isinstance(val, list) and not val):
-            continue
-        lines.append(f"    **{fname}**: {val}")
-    return "\n".join(lines)
-
-
 @observe_tool
 @unpack_pydantic_params
 async def get_sales_order(
@@ -1563,59 +1398,8 @@ async def get_sales_order(
     linked manufacturing order, batch tracking, serial numbers). Use with
     `list_sales_orders` for discovery; this is the single-call path to the rest.
     """
-    from katana_mcp.tools.tool_result_utils import make_simple_result
-
     response = await _get_sales_order_impl(request, context)
-
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-
-    # Labels use canonical Pydantic field names so LLM consumers can't
-    # confuse a section header with the field name (see #346 follow-on).
-    header = f"## Sales Order {response.order_no or response.id}"
-    md_lines: list[str] = [header]
-    for fname in _GET_SO_SCALAR_FIELDS:
-        val = getattr(response, fname)
-        if val is None or val == "":
-            continue
-        md_lines.append(f"**{fname}**: {val}")
-
-    # shipping_fee is a nested object — render its canonical fields inline.
-    if response.shipping_fee is not None:
-        md_lines.append("")
-        md_lines.append("**shipping_fee**:")
-        fee = response.shipping_fee
-        md_lines.append(f"  **id**: {fee.id}")
-        for fname in ("sales_order_id", "amount", "tax_rate_id", "description"):
-            fval = getattr(fee, fname)
-            if fval is None or fval == "":
-                continue
-            md_lines.append(f"  **{fname}**: {fval}")
-
-    # Addresses — explicit [] when empty, count + per-address blocks when populated.
-    md_lines.append("")
-    if response.addresses:
-        md_lines.append(f"**addresses** ({len(response.addresses)}):")
-        for addr in response.addresses:
-            md_lines.append(_render_address_md(addr))
-    else:
-        md_lines.append("**addresses**: []")
-
-    # Rows — same shape as addresses (explicit [] / count + per-row blocks).
-    md_lines.append("")
-    if response.rows:
-        md_lines.append(f"**rows** ({len(response.rows)}):")
-        for row in response.rows:
-            md_lines.append(_render_row_md(row))
-    else:
-        md_lines.append("**rows**: []")
-
-    return make_simple_result(
-        "\n".join(md_lines), structured_data=response.model_dump()
-    )
+    return make_json_result(response)
 
 
 # ============================================================================

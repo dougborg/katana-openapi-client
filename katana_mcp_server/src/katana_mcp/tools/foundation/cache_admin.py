@@ -36,7 +36,7 @@ from sqlmodel import SQLModel, func, select
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
-from katana_mcp.tools.tool_result_utils import format_md_table, make_simple_result
+from katana_mcp.tools.tool_result_utils import make_json_result
 from katana_mcp.typed_cache import (
     ENTITY_SPECS,
     EntitySpec,
@@ -107,13 +107,6 @@ class RebuildCacheRequest(BaseModel):
             "If true (default), reports current cache row counts and last-"
             "synced timestamps without modifying anything. If false, "
             "performs the destructive rebuild."
-        ),
-    )
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data."
         ),
     )
 
@@ -263,34 +256,6 @@ async def _rebuild_cache_impl(
 # ============================================================================
 
 
-def _format_markdown(response: RebuildCacheResponse) -> str:
-    state_label = "PREVIEW" if response.is_preview else "APPLIED"
-    headers = [
-        "Entity",
-        "Parents (before → after)",
-        "Children (before → after)",
-        "Last synced",
-    ]
-    rows = [
-        [
-            r.entity_type,
-            f"{r.parent_rows_before} → {r.parent_rows_after}",
-            f"{r.child_rows_before} → {r.child_rows_after}",
-            r.last_synced_before or "(never)",
-        ]
-        for r in response.results
-    ]
-    table = format_md_table(headers=headers, rows=rows)
-    if response.is_preview:
-        footer = (
-            "\n\nThis is a preview. Re-run with `preview=false` to truncate "
-            "the listed tables, clear watermarks, and re-fetch from Katana."
-        )
-    else:
-        footer = "\n\nRebuild complete."
-    return f"## Rebuild Cache — {state_label}\n\n{table}{footer}"
-
-
 @observe_tool
 @unpack_pydantic_params
 async def rebuild_cache(
@@ -343,16 +308,7 @@ async def rebuild_cache(
       entity A succeeded, A is already rebuilt.
     """
     response = await _rebuild_cache_impl(request, context)
-
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-
-    return make_simple_result(
-        _format_markdown(response), structured_data=response.model_dump()
-    )
+    return make_json_result(response)
 
 
 def register_tools(mcp: FastMCP) -> None:

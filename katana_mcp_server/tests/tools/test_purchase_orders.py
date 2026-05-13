@@ -2719,10 +2719,11 @@ async def test_get_purchase_order_fetches_additional_costs_and_accounting_metada
 
 
 @pytest.mark.asyncio
-async def test_get_purchase_order_markdown_uses_canonical_field_names():
-    """Markdown labels use Pydantic field names (not prettified headers)
-    so LLM consumers can't misread a section label as a different field
-    (motivation: #346 follow-on, supplier_item_codes misread)."""
+async def test_get_purchase_order_response_uses_canonical_field_names():
+    """JSON content keys off the Pydantic field names directly — same
+    motivation as the #346 canonical-name convention. Nested lists
+    serialize cleanly as JSON arrays keyed by their canonical names.
+    """
     from katana_mcp.tools.foundation.purchase_orders import (
         GetPurchaseOrderResponse,
         PurchaseOrderAccountingMetadataInfo,
@@ -2776,26 +2777,19 @@ async def test_get_purchase_order_markdown_uses_canonical_field_names():
     ):
         result = await get_purchase_order(order_id=12345, context=context)
 
-    text = _content_text(result)
-
-    # Scalar PO fields — canonical names appear as labels
-    assert "**order_no**: PO-1022" in text
-    assert "**status**: NOT_RECEIVED" in text
-    assert "**supplier_id**: 999" in text
-    assert "**default_group_id**: 8080" in text
-    assert "**billing_status**" not in text  # unset, should not appear
-
-    # List-shaped fields — count-labeled header, canonical key
-    assert "**purchase_order_rows** (1):" in text
-    assert "**variant_id**: 100" in text
-    assert "**additional_cost_rows** (1):" in text
-    assert "**name**: Shipping" in text
-    assert "**accounting_metadata** (1):" in text
-    assert "**bill_id**: BILL-2026-001" in text
-
-    # The canonical-name convention rules out these prettified labels:
-    assert "**Supplier ID**" not in text
-    assert "### Line Items" not in text
+    data = json.loads(_content_text(result))
+    # Scalar PO fields show up as JSON keys.
+    assert data["order_no"] == "PO-1022"
+    assert data["status"] == "NOT_RECEIVED"
+    assert data["supplier_id"] == 999
+    assert data["default_group_id"] == 8080
+    # Nested arrays use canonical keys.
+    assert len(data["purchase_order_rows"]) == 1
+    assert data["purchase_order_rows"][0]["variant_id"] == 100
+    assert len(data["additional_cost_rows"]) == 1
+    assert data["additional_cost_rows"][0]["name"] == "Shipping"
+    assert len(data["accounting_metadata"]) == 1
+    assert data["accounting_metadata"][0]["bill_id"] == "BILL-2026-001"
 
 
 @pytest.mark.asyncio
@@ -2830,10 +2824,9 @@ async def test_get_purchase_order_surfaces_embedded_supplier():
 
 
 @pytest.mark.asyncio
-async def test_get_purchase_order_markdown_renders_supplier_inline():
-    """Embedded supplier renders under a canonical ``**supplier**:`` block
-    with per-field labels, matching the convention used for rows and
-    accounting metadata."""
+async def test_get_purchase_order_content_renders_embedded_supplier():
+    """Embedded supplier serializes under the canonical ``supplier`` key
+    with all populated fields preserved on the JSON payload."""
     from katana_mcp.tools.foundation.purchase_orders import (
         GetPurchaseOrderResponse,
         SupplierInfo,
@@ -2857,19 +2850,18 @@ async def test_get_purchase_order_markdown_renders_supplier_inline():
         return_value=response,
     ):
         result = await get_purchase_order(order_id=12345, context=context)
-    text = _content_text(result)
+    data = json.loads(_content_text(result))
 
-    assert "**supplier**:" in text
-    assert "**name**: Acme Supplies" in text
-    assert "**email**: orders@acme.example" in text
-    assert "**default_address_id**: 7001" in text
+    assert data["supplier"]["name"] == "Acme Supplies"
+    assert data["supplier"]["email"] == "orders@acme.example"
+    assert data["supplier"]["default_address_id"] == 7001
 
 
 @pytest.mark.asyncio
-async def test_get_purchase_order_markdown_renders_null_supplier_explicitly():
-    """When the PO payload does not embed a supplier the canonical key
-    still appears as ``**supplier**: null`` so an LLM consumer sees a
-    concrete field value rather than a missing section."""
+async def test_get_purchase_order_content_renders_null_supplier_explicitly():
+    """When the PO payload doesn't embed a supplier the canonical key still
+    appears on the JSON payload as ``supplier: null`` — an LLM consumer
+    sees a concrete value rather than a missing key."""
     from katana_mcp.tools.foundation.purchase_orders import GetPurchaseOrderResponse
 
     context, _ = create_mock_context()
@@ -2882,7 +2874,8 @@ async def test_get_purchase_order_markdown_renders_null_supplier_explicitly():
     ):
         result = await get_purchase_order(order_id=12345, context=context)
 
-    assert "**supplier**: null" in _content_text(result)
+    data = json.loads(_content_text(result))
+    assert data["supplier"] is None
 
 
 @pytest.mark.asyncio
@@ -3312,7 +3305,7 @@ async def test_list_purchase_orders_format_json_returns_json():
         mock_impl.return_value = ListPurchaseOrdersResponse(
             orders=[], total_count=0, pagination=None
         )
-        result = await list_purchase_orders(format="json", context=context)
+        result = await list_purchase_orders(context=context)
 
     data = json.loads(_content_text(result))
     assert data["total_count"] == 0
@@ -3342,7 +3335,7 @@ async def test_get_purchase_order_format_json_returns_json():
             additional_cost_rows=[],
             accounting_metadata=[],
         )
-        result = await get_purchase_order(order_id=5, format="json", context=context)
+        result = await get_purchase_order(order_id=5, context=context)
 
     data = json.loads(_content_text(result))
     assert data["id"] == 5
@@ -3372,7 +3365,6 @@ async def test_verify_order_document_format_json_returns_json():
         result = await verify_order_document(
             order_id=5,
             document_items=[DocumentItem(sku="A", quantity=1, unit_price=1.0)],
-            format="json",
             context=context,
         )
 

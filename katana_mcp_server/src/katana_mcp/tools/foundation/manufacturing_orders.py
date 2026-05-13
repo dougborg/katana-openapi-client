@@ -60,9 +60,8 @@ from katana_mcp.tools.tool_result_utils import (
     apply_date_window_filters,
     coerce_enum,
     enum_to_str,
-    format_md_table,
     iso_or_none,
-    make_simple_result,
+    make_json_result,
     make_tool_result,
     none_coro,
     parse_request_dates,
@@ -542,13 +541,6 @@ class GetManufacturingOrderRequest(BaseModel):
         default=None, description="Order number to look up (e.g., '#WEB20082 / 1')"
     )
     order_id: int | None = Field(default=None, description="Manufacturing order ID")
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data consumable by downstream tools/aggregations."
-        ),
-    )
     include_rows: Literal["all", "blocking", "none"] = Field(
         default="blocking",
         description=(
@@ -1232,263 +1224,6 @@ async def _get_manufacturing_order_impl(
     return _build_mo_response(mo, recipe_rows, operation_rows, productions)
 
 
-def _render_mo_scalar_lines(
-    response: GetManufacturingOrderResponse, *, verbose: bool = True
-) -> list[str]:
-    """Render every scalar MO field as ``**field_name**: value`` lines.
-
-    Uses canonical Pydantic field names so LLM consumers can't confuse a
-    prettified label with a different field name (see #346 follow-on).
-    """
-    scalar_fields: tuple[str, ...] = (
-        "id",
-        "order_no",
-        "status",
-        "variant_id",
-        "planned_quantity",
-        "actual_quantity",
-        "completed_quantity",
-        "remaining_quantity",
-        "includes_partial_completions",
-        "location_id",
-        "order_created_date",
-        "production_deadline_date",
-        "done_date",
-        "additional_info",
-        "is_linked_to_sales_order",
-        "ingredient_availability",
-        "total_cost",
-        "total_actual_time",
-        "total_planned_time",
-        "sales_order_id",
-        "sales_order_row_id",
-        "sales_order_delivery_deadline",
-        "material_cost",
-        "subassemblies_cost",
-        "operations_cost",
-    )
-    if verbose:
-        scalar_fields += ("created_at", "updated_at", "deleted_at")
-    lines: list[str] = []
-    for fname in scalar_fields:
-        val = getattr(response, fname)
-        if val is None or val == "":
-            continue
-        lines.append(f"**{fname}**: {val}")
-    return lines
-
-
-def _render_list_field(label: str, items: list[Any], renderer: Any) -> list[str]:
-    """Render a list-shaped response field with canonical-name syntax.
-
-    Empty → ``**label**: []`` so presence-vs-absence is unambiguous.
-    Populated → ``**label** (N):`` followed by indented per-item blocks.
-    """
-    if not items:
-        return [f"**{label}**: []"]
-    lines = ["", f"**{label}** ({len(items)}):"]
-    for item in items:
-        lines.append(renderer(item))
-    return lines
-
-
-def _render_recipe_row_md(row: RecipeRowInfo, *, verbose: bool = True) -> str:
-    """Render a single recipe row as a compact multi-line block."""
-    lines = [f"  - **id**: {row.id}"]
-    scalar_fields: tuple[str, ...] = (
-        "manufacturing_order_id",
-        "variant_id",
-        "sku",
-        "display_name",
-        "notes",
-        "planned_quantity_per_unit",
-        "total_actual_quantity",
-        "total_consumed_quantity",
-        "total_remaining_quantity",
-        "ingredient_availability",
-        "ingredient_expected_date",
-        "cost",
-    )
-    if verbose:
-        scalar_fields += ("created_at", "updated_at", "deleted_at")
-    for fname in scalar_fields:
-        val = getattr(row, fname)
-        if val is None or val == "":
-            continue
-        lines.append(f"    **{fname}**: {val}")
-    if row.batch_transactions:
-        lines.append(f"    **batch_transactions** ({len(row.batch_transactions)}):")
-        for bt in row.batch_transactions:
-            lines.append(f"      - batch_id={bt.batch_id}, quantity={bt.quantity}")
-    elif verbose:
-        lines.append("    **batch_transactions**: []")
-    return "\n".join(lines)
-
-
-def _render_operation_row_md(row: OperationRowInfo, *, verbose: bool = True) -> str:
-    """Render a single operation row as a compact multi-line block."""
-    lines = [f"  - **id**: {row.id}"]
-    scalar_fields: tuple[str, ...] = (
-        "manufacturing_order_id",
-        "status",
-        "type_",
-        "rank",
-        "operation_id",
-        "operation_name",
-        "resource_id",
-        "resource_name",
-        "active_operator_id",
-        "planned_time_per_unit",
-        "planned_time_parameter",
-        "total_actual_time",
-        "total_consumed_time",
-        "total_remaining_time",
-        "planned_cost_per_unit",
-        "total_actual_cost",
-        "cost_per_hour",
-        "cost_parameter",
-        "group_boundary",
-        "is_status_actionable",
-        "completed_at",
-    )
-    if verbose:
-        scalar_fields += ("created_at", "updated_at", "deleted_at")
-    for fname in scalar_fields:
-        val = getattr(row, fname)
-        if val is None or val == "":
-            continue
-        lines.append(f"    **{fname}**: {val}")
-    for list_name in ("assigned_operators", "completed_by_operators"):
-        items = getattr(row, list_name)
-        if not items:
-            if verbose:
-                lines.append(f"    **{list_name}**: []")
-            continue
-        lines.append(f"    **{list_name}** ({len(items)}):")
-        for op in items:
-            lines.append(f"      - operator_id={op.operator_id}, name={op.name}")
-    return "\n".join(lines)
-
-
-def _render_production_md(prod: ProductionInfo, *, verbose: bool = True) -> str:
-    """Render a single production record as a compact multi-line block."""
-    lines = [f"  - **id**: {prod.id}"]
-    scalar_fields: tuple[str, ...] = (
-        "manufacturing_order_id",
-        "factory_id",
-        "quantity",
-        "production_date",
-    )
-    if verbose:
-        scalar_fields += ("created_at", "updated_at", "deleted_at")
-    for fname in scalar_fields:
-        val = getattr(prod, fname)
-        if val is None or val == "":
-            continue
-        lines.append(f"    **{fname}**: {val}")
-    lines.append(
-        f"    **ingredients** ({len(prod.ingredients)}):"
-        if prod.ingredients
-        else "    **ingredients**: []"
-    )
-    for ing in prod.ingredients:
-        lines.append(
-            f"      - id={ing.id}, variant_id={ing.variant_id}, "
-            f"quantity={ing.quantity}, cost={ing.cost}"
-        )
-    lines.append(
-        f"    **operations** ({len(prod.operations)}):"
-        if prod.operations
-        else "    **operations**: []"
-    )
-    for op in prod.operations:
-        lines.append(
-            f"      - id={op.id}, operation_id={op.manufacturing_order_operation_id}, "
-            f"time={op.time}, cost={op.cost}"
-        )
-    lines.append(
-        f"    **serial_numbers** ({len(prod.serial_numbers)}):"
-        if prod.serial_numbers
-        else "    **serial_numbers**: []"
-    )
-    for sn in prod.serial_numbers:
-        lines.append(f"      - serial_number={sn.serial_number}")
-    return "\n".join(lines)
-
-
-def _render_mo_list_fields_md(
-    response: GetManufacturingOrderResponse,
-    *,
-    verbose: bool = True,
-    include_rows: Literal["all", "blocking", "none"] = "all",
-    include_operation_rows: bool = True,
-    include_productions: bool = True,
-) -> list[str]:
-    """Render every list-shaped field with canonical names + explicit list syntax.
-
-    Empty lists render as ``**field**: []`` (motivation: #346 follow-on —
-    no bare section headers that could be misread as scalar values) when
-    ``verbose=True``. In compact mode, empty/omitted collections are
-    suppressed entirely so the response stays under inline tool-result
-    limits.
-    """
-    lines: list[str] = []
-    # MO-level batch_transactions
-    if response.batch_transactions:
-        lines.append("")
-        lines.append(f"**batch_transactions** ({len(response.batch_transactions)}):")
-        for bt in response.batch_transactions:
-            lines.append(f"  - batch_id={bt.batch_id}, quantity={bt.quantity}")
-    elif verbose:
-        lines.append("**batch_transactions**: []")
-    # MO-level serial_numbers
-    if response.serial_numbers:
-        lines.append("")
-        lines.append(f"**serial_numbers** ({len(response.serial_numbers)}):")
-        for sn in response.serial_numbers:
-            lines.append(
-                f"  - id={sn.id}, serial_number={sn.serial_number}, "
-                f"transaction_date={sn.transaction_date}"
-            )
-    elif verbose:
-        lines.append("**serial_numbers**: []")
-
-    # Render each collection with the canonical field-name label. In
-    # compact mode, an empty/omitted collection is suppressed entirely
-    # (no ``**field**: []`` placeholder) so the response stays small. The
-    # blocking-filter is surfaced as a sibling annotation rather than
-    # decorating the field name, so consumers parsing the markdown still
-    # see the canonical ``recipe_rows`` header.
-    if include_rows != "none" and (verbose or response.recipe_rows):
-        if include_rows == "blocking":
-            lines.append("")
-            lines.append("_recipe_rows filtered to blocking rows only_")
-        lines.extend(
-            _render_list_field(
-                "recipe_rows",
-                response.recipe_rows,
-                lambda r: _render_recipe_row_md(r, verbose=verbose),
-            )
-        )
-    if include_operation_rows and (verbose or response.operation_rows):
-        lines.extend(
-            _render_list_field(
-                "operation_rows",
-                response.operation_rows,
-                lambda r: _render_operation_row_md(r, verbose=verbose),
-            )
-        )
-    if include_productions and (verbose or response.productions):
-        lines.extend(
-            _render_list_field(
-                "productions",
-                response.productions,
-                lambda p: _render_production_md(p, verbose=verbose),
-            )
-        )
-    return lines
-
-
 @observe_tool
 @unpack_pydantic_params
 async def get_manufacturing_order(
@@ -1551,29 +1286,13 @@ async def get_manufacturing_order(
     if exclude:
         dump_kwargs["exclude"] = exclude
 
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2, **dump_kwargs),
-            structured_content=response.model_dump(**dump_kwargs),
-        )
-
-    # Labels use the canonical Pydantic field names so LLM consumers can't
-    # confuse a section header with the field name (see #346 follow-on).
-    md_lines = [f"## MO {response.order_no or response.id}"]
-    md_lines.extend(_render_mo_scalar_lines(response, verbose=request.verbose))
-    md_lines.extend(
-        _render_mo_list_fields_md(
-            response,
-            verbose=request.verbose,
-            include_rows=request.include_rows,
-            include_operation_rows=request.include_operation_rows,
-            include_productions=request.include_productions,
-        )
-    )
-
-    return make_simple_result(
-        "\n".join(md_lines),
-        structured_data=response.model_dump(**dump_kwargs),
+    # JSON content + dict structured_content (#567 — markdown dropped).
+    # ``dump_kwargs`` carries the field-exclusion logic for verbose=False
+    # and the include_* gates, so the payload shape still respects those
+    # toggles.
+    return ToolResult(
+        content=response.model_dump_json(indent=2, **dump_kwargs),
+        structured_content=response.model_dump(mode="json", **dump_kwargs),
     )
 
 
@@ -1588,13 +1307,6 @@ class GetManufacturingOrderRecipeRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     manufacturing_order_id: int = Field(..., description="Manufacturing order ID")
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data consumable by downstream tools/aggregations."
-        ),
-    )
 
 
 class GetManufacturingOrderRecipeResponse(BaseModel):
@@ -1639,30 +1351,8 @@ async def get_manufacturing_order_recipe(
     the resolved SKU. Use this before adding or deleting recipe rows so you
     can identify the rows to modify.
     """
-    from katana_mcp.tools.tool_result_utils import make_simple_result
-
     response = await _get_manufacturing_order_recipe_impl(request, context)
-
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-
-    # Labels use the canonical Pydantic field names so LLM consumers can't
-    # confuse a section header with the field name (see #346 follow-on).
-    if not response.rows:
-        md = f"## Recipe for MO {response.manufacturing_order_id}\n**rows**: []"
-    else:
-        md_lines = [
-            f"## Recipe for MO {response.manufacturing_order_id}",
-            f"**rows** ({response.total_count}):",
-        ]
-        for row in response.rows:
-            md_lines.append(_render_recipe_row_md(row))
-        md = "\n".join(md_lines)
-
-    return make_simple_result(md, structured_data=response.model_dump())
+    return make_json_result(response)
 
 
 # ============================================================================
@@ -1778,15 +1468,6 @@ class ListManufacturingOrdersRequest(BaseModel):
         description=(
             "ISO-8601 datetime upper bound on production_deadline_date — "
             "indexed SQL range filter against the cache."
-        ),
-    )
-
-    # Output formatting
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data consumable by downstream tools/aggregations."
         ),
     )
 
@@ -2043,52 +1724,7 @@ async def list_manufacturing_orders(
     For its recipe rows, use `get_manufacturing_order_recipe`.
     """
     response = await _list_manufacturing_orders_impl(request, context)
-
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-
-    if not response.orders:
-        md = "No manufacturing orders match the given filters."
-    else:
-        table = format_md_table(
-            headers=[
-                "Order #",
-                "Status",
-                "Ingredients",
-                "Variant",
-                "Planned",
-                "Actual",
-                "Deadline",
-                "Total Cost",
-            ],
-            rows=[
-                [
-                    o.order_no or o.id,
-                    o.status or "—",
-                    o.ingredient_availability or "—",
-                    o.variant_id if o.variant_id is not None else "—",
-                    o.planned_quantity if o.planned_quantity is not None else "—",
-                    o.actual_quantity if o.actual_quantity is not None else "—",
-                    o.production_deadline_date or "—",
-                    f"{o.total_cost:.2f}" if o.total_cost is not None else "—",
-                ]
-                for o in response.orders
-            ],
-        )
-        md = f"## Manufacturing Orders ({response.total_count})\n\n{table}"
-
-    if response.pagination is not None:
-        p = response.pagination
-        if p.page is not None and p.total_pages is not None:
-            summary = f"\n\nPage {p.page} of {p.total_pages}"
-            if p.total_records is not None:
-                summary += f" (total: {p.total_records} records)"
-            md += summary
-
-    return make_simple_result(md, structured_data=response.model_dump())
+    return make_json_result(response)
 
 
 # ============================================================================
@@ -2154,13 +1790,6 @@ class ListBlockingIngredientsRequest(BaseModel):
         ge=1,
         le=500,
         description="Max aggregate rows to return (default 100, max 500).",
-    )
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data."
-        ),
     )
 
 
@@ -2538,101 +2167,12 @@ async def list_blocking_ingredients(
     you need per-row detail (notes, exact remaining qty per row).
     """
     response = await _list_blocking_ingredients_impl(request, context)
-
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2, exclude_none=True),
-            structured_content=response.model_dump(exclude_none=True),
-        )
-
-    if request.group_by == "variant":
-        rows = response.by_variant or []
-        if not rows:
-            md = (
-                f"## Blocking Ingredients\n\nNo blocking recipe rows in scope "
-                f"(scanned {response.total_blocking_rows} blocking row(s) across "
-                f"{response.total_affected_mos} MO(s))."
-            )
-        else:
-            table = format_md_table(
-                headers=[
-                    "SKU",
-                    "Variant ID",
-                    "Affected MOs",
-                    "Total Planned",
-                    "Total Remaining",
-                    "Earliest Expected",
-                    "Order #s",
-                ],
-                rows=[
-                    [
-                        v.sku or "—",
-                        v.variant_id,
-                        v.affected_mo_count,
-                        f"{v.total_planned_quantity:g}",
-                        f"{v.total_remaining_quantity:g}",
-                        v.earliest_expected_date or "—",
-                        ", ".join(v.affected_mo_order_nos[:5])
-                        + (
-                            f" (+{len(v.affected_mo_order_nos) - 5} more)"
-                            if len(v.affected_mo_order_nos) > 5
-                            else ""
-                        ),
-                    ]
-                    for v in rows
-                ],
-            )
-            md = (
-                f"## Blocking Ingredients by Variant ({len(rows)} variant(s) "
-                f"across {response.total_affected_mos} affected MO(s), "
-                f"{response.total_blocking_rows} blocking row(s))\n\n{table}"
-            )
-    else:
-        mos = response.by_mo or []
-        if not mos:
-            md = "## Blocking Ingredients\n\nNo blocking recipe rows in scope."
-        else:
-            sections: list[str] = [
-                f"## Blocking Ingredients by MO ({len(mos)} MO(s), "
-                f"{response.total_blocking_rows} blocking row(s))"
-            ]
-            for entry in mos:
-                deadline = entry.production_deadline_date or "—"
-                sections.append(
-                    f"\n### {entry.order_no or entry.manufacturing_order_id} "
-                    f"(status: {entry.status or '—'}, deadline: {deadline})"
-                )
-                sections.append(
-                    format_md_table(
-                        headers=[
-                            "SKU",
-                            "Variant ID",
-                            "Per-Unit",
-                            "Remaining",
-                            "Availability",
-                            "Expected",
-                        ],
-                        rows=[
-                            [
-                                r.sku or "—",
-                                r.variant_id if r.variant_id is not None else "—",
-                                r.planned_quantity_per_unit
-                                if r.planned_quantity_per_unit is not None
-                                else "—",
-                                r.total_remaining_quantity
-                                if r.total_remaining_quantity is not None
-                                else "—",
-                                r.ingredient_availability or "—",
-                                r.ingredient_expected_date or "—",
-                            ]
-                            for r in entry.blocking_rows
-                        ],
-                    )
-                )
-            md = "\n".join(sections)
-
-    return make_simple_result(
-        md, structured_data=response.model_dump(exclude_none=True)
+    # ``exclude_none=True`` matches the prior JSON-branch contract: drop
+    # the unused per-row optional fields from the payload so consumers
+    # only see populated keys.
+    return ToolResult(
+        content=response.model_dump_json(indent=2, exclude_none=True),
+        structured_content=response.model_dump(mode="json", exclude_none=True),
     )
 
 

@@ -52,8 +52,7 @@ from katana_mcp.tools.decorators import cache_read
 from katana_mcp.tools.list_coercion import CoercedStrIntListOpt
 from katana_mcp.tools.tool_result_utils import (
     apply_date_window_filters,
-    format_md_table,
-    make_simple_result,
+    make_json_result,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.api.inventory import get_all_inventory_point
@@ -284,13 +283,6 @@ class TopSellingVariantsRequest(BaseModel):
             "Optional location ID to filter by. Look up via `list_locations`."
         ),
     )
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data consumable by downstream tools/aggregations."
-        ),
-    )
 
 
 class VariantSalesRow(BaseModel):
@@ -417,42 +409,7 @@ async def top_selling_variants(
     instead of paginating through orders client-side.
     """
     response = await _top_selling_variants_impl(request, context)
-
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-
-    if not response.rows:
-        md = (
-            f"No DELIVERED sales in window "
-            f"{response.window_start} - {response.window_end}."
-        )
-    else:
-        table = format_md_table(
-            headers=["SKU", "Variant", "Name", "Units", "Revenue", "Orders"],
-            rows=[
-                [
-                    r.sku or "-",
-                    r.variant_id,
-                    r.name or "-",
-                    f"{r.units:g}",
-                    f"{r.revenue:,.2f}",
-                    r.order_count,
-                ]
-                for r in response.rows
-            ],
-        )
-        md = (
-            f"## Top Selling Variants "
-            f"({response.window_start} - {response.window_end})\n\n"
-            f"{table}\n\n"
-            f"_{response.total_variants} variant(s) matched; "
-            f"showing top {len(response.rows)}._"
-        )
-
-    return make_simple_result(md, structured_data=response.model_dump())
+    return make_json_result(response)
 
 
 # ============================================================================
@@ -473,13 +430,6 @@ class SalesSummaryRequest(BaseModel):
     group_by: SalesGroupBy = Field(
         ...,
         description="Grouping key: day, week, month, variant, customer, or category",
-    )
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data consumable by downstream tools/aggregations."
-        ),
     )
 
 
@@ -633,37 +583,7 @@ async def sales_summary(
     count.
     """
     response = await _sales_summary_impl(request, context)
-
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-
-    if not response.rows:
-        md = (
-            f"No DELIVERED sales in window "
-            f"{response.window_start} - {response.window_end}."
-        )
-    else:
-        table = format_md_table(
-            headers=[response.group_by.title(), "Units", "Revenue", "Orders"],
-            rows=[
-                [
-                    r.group,
-                    f"{r.units:g}",
-                    f"{r.revenue:,.2f}",
-                    r.order_count,
-                ]
-                for r in response.rows
-            ],
-        )
-        md = (
-            f"## Sales Summary by {response.group_by} "
-            f"({response.window_start} - {response.window_end})\n\n{table}"
-        )
-
-    return make_simple_result(md, structured_data=response.model_dump())
+    return make_json_result(response)
 
 
 # ============================================================================
@@ -689,8 +609,8 @@ class InventoryVelocityRequest(BaseModel):
         description=(
             "Batch shape: JSON array of SKUs (strings) and/or variant IDs (integers), "
             'e.g. ["WS74001", "WS74002"] or [12345, 67890] (1-100 items). '
-            "Returns one row per item in a markdown table. "
-            "Use this for cross-variant reports."
+            "Returns one ``VelocityStats`` row per item in the JSON "
+            "``InventoryVelocityResponse`` envelope. Use this for cross-variant reports."
         ),
         min_length=1,
         max_length=100,
@@ -707,13 +627,6 @@ class InventoryVelocityRequest(BaseModel):
             "When true (default), units consumed as ingredients on completed "
             "MOs in the window are added to the velocity figure. "
             "Set false to match the legacy SO-only behavior."
-        ),
-    )
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data consumable by downstream tools/aggregations."
         ),
     )
 
@@ -1006,65 +919,6 @@ async def _inventory_velocity_impl(
     return InventoryVelocityResponse(items=items)
 
 
-def _format_velocity_card(stats: VelocityStats) -> str:
-    """Render a single variant's velocity as a rich markdown card."""
-    cover = (
-        f"{stats.days_of_cover:.1f} days"
-        if stats.days_of_cover is not None
-        else "N/A (no demand history in window)"
-    )
-    lines = [
-        f"## Inventory Velocity: {stats.sku or stats.variant_id}",
-        f"- **Variant ID**: {stats.variant_id}",
-        f"- **Window**: {stats.window_start} to {stats.window_end} "
-        f"({stats.period_days} days)",
-        f"- **Units Sold (SO)**: {stats.units_sold:g}",
-        f"- **Units Consumed (MO)**: {stats.units_consumed_by_mos:g}",
-        f"- **Total Demand**: {stats.units_total:g}",
-        f"- **Average Daily**: {stats.avg_daily:.2f}",
-        f"- **Stock on Hand**: {stats.stock_on_hand:g}",
-        f"- **Days of Cover**: {cover}",
-    ]
-    return "\n".join(lines)
-
-
-def _format_velocity_table(response: InventoryVelocityResponse) -> str:
-    """Render a batch velocity response as a markdown table."""
-    headers = [
-        "SKU",
-        "Variant ID",
-        "Units Sold (SO)",
-        "Units Consumed (MO)",
-        "Total",
-        "Avg/day",
-        "Stock",
-        "Days Cover",
-    ]
-    rows = []
-    for s in response.items:
-        cover = f"{s.days_of_cover:.1f}" if s.days_of_cover is not None else "N/A"
-        rows.append(
-            [
-                s.sku or "",
-                str(s.variant_id),
-                f"{s.units_sold:g}",
-                f"{s.units_consumed_by_mos:g}",
-                f"{s.units_total:g}",
-                f"{s.avg_daily:.2f}",
-                f"{s.stock_on_hand:g}",
-                cover,
-            ]
-        )
-    first = response.items[0] if response.items else None
-    title = (
-        f"## Inventory Velocity Report "
-        f"({first.window_start} to {first.window_end}, {first.period_days} days)"
-        if first
-        else "## Inventory Velocity Report"
-    )
-    return f"{title}\n\n{format_md_table(headers, rows)}"
-
-
 @observe_tool
 @unpack_pydantic_params
 async def inventory_velocity(
@@ -1077,25 +931,16 @@ async def inventory_velocity(
     divides by the period to get average daily demand, and pairs it with
     current stock-on-hand to produce a ``days_of_cover`` estimate.
 
-    Use ``sku_or_variant_id`` for a single-variant rich card, or
-    ``sku_or_variant_ids`` for a cross-variant batch table.
-    Set ``include_mo_consumption=false`` to use only SO-side numbers (legacy
-    behaviour). ``days_of_cover`` is ``None`` when average daily demand is 0.
+    Response is always the JSON ``InventoryVelocityResponse`` envelope
+    (``{items: [VelocityStats, ...]}``) — one row per requested variant, for
+    both the single-item (``sku_or_variant_id``) and batch
+    (``sku_or_variant_ids``) shapes. Use the batch shape for cross-variant
+    reports. Set ``include_mo_consumption=false`` to use only SO-side numbers
+    (legacy behaviour). ``days_of_cover`` is ``None`` when average daily
+    demand is 0.
     """
     response = await _inventory_velocity_impl(request, context)
-
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-
-    if request.is_batch or len(response.items) > 1:
-        md = _format_velocity_table(response)
-    else:
-        md = _format_velocity_card(response.items[0]) if response.items else ""
-
-    return make_simple_result(md, structured_data=response.model_dump())
+    return make_json_result(response)
 
 
 # ============================================================================

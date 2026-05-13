@@ -804,7 +804,7 @@ async def test_list_stock_transfers_format_json_returns_json():
         mock_impl.return_value = ListStockTransfersResponse(
             transfers=[], total_count=0, pagination=None
         )
-        result = await list_stock_transfers(format="json", context=context)
+        result = await list_stock_transfers(context=context)
 
     data = json.loads(_content_text(result))
     assert data["total_count"] == 0

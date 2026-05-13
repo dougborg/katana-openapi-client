@@ -148,9 +148,7 @@ class TestListSuppliers:
         ]
         context, lifespan_ctx = _make_context(get_all=cached)
 
-        result = await list_suppliers(
-            query=None, limit=50, format="json", context=context
-        )
+        result = await list_suppliers(query=None, limit=50, context=context)
 
         assert lifespan_ctx.typed_cache.catalog.get_all.await_count == 1
         # smart_search must NOT be called when query is None
@@ -172,7 +170,7 @@ class TestListSuppliers:
         context, lifespan_ctx = _make_context(smart_search=matches, get_all=[])
 
         result = await list_suppliers(
-            query="Acme Components", limit=10, format="json", context=context
+            query="Acme Components", limit=10, context=context
         )
 
         # Query path must use FTS, not full-list dump
@@ -194,9 +192,7 @@ class TestListSuppliers:
         cached = [_supplier(id=i, name=f"Supplier-{i}") for i in range(1, 21)]
         context, _ = _make_context(get_all=cached)
 
-        result = await list_suppliers(
-            query=None, limit=5, format="json", context=context
-        )
+        result = await list_suppliers(query=None, limit=5, context=context)
 
         payload = json.loads(_extract_text(result))
         assert len(payload["suppliers"]) == 5
@@ -204,28 +200,13 @@ class TestListSuppliers:
         assert payload["total_count"] == 20
 
     @pytest.mark.asyncio
-    async def test_markdown_format_renders_bounded_summary_not_giant_blob(self):
-        cached = [_supplier(id=1, name="Acme", email="a@acme.com", currency="USD")]
-        context, _ = _make_context(get_all=cached)
-
-        result = await list_suppliers(
-            query=None, limit=50, format="markdown", context=context
-        )
-
-        text = _extract_text(result)
-        assert "## Suppliers" in text
-        assert "Acme" in text
-        assert "ID: 1" in text
-        # Markdown output is bullet-list — must not be a JSON dump
-        assert not text.lstrip().startswith("{")
-
-    @pytest.mark.asyncio
     async def test_empty_result_no_query(self):
         context, _ = _make_context(get_all=[])
-        result = await list_suppliers(
-            query=None, limit=50, format="markdown", context=context
-        )
-        assert "No suppliers cached" in _extract_text(result)
+        result = await list_suppliers(query=None, limit=50, context=context)
+        payload = json.loads(_extract_text(result))
+        assert payload["suppliers"] == []
+        assert payload["total_count"] == 0
+        assert payload["query"] is None
 
     @pytest.mark.asyncio
     async def test_empty_result_with_query(self):
@@ -233,35 +214,32 @@ class TestListSuppliers:
         result = await list_suppliers(
             query="NoSuchSupplier",
             limit=10,
-            format="markdown",
             context=context,
         )
-        text = _extract_text(result)
-        assert "No suppliers found matching" in text
-        assert "NoSuchSupplier" in text
+        payload = json.loads(_extract_text(result))
+        assert payload["suppliers"] == []
+        assert payload["total_count"] == 0
+        assert payload["query"] == "NoSuchSupplier"
 
     @pytest.mark.asyncio
     async def test_whitespace_only_query_treated_as_no_query(self):
         """``query="   "`` falls through to ``get_all`` (not smart_search)
-        and ``response.query`` ends up ``None`` — so the markdown header
-        renders the no-query form, not "query `   `".
+        and ``response.query`` ends up ``None`` — pinning the
+        normalization that keeps the response shape consistent regardless
+        of input whitespace.
         """
         cached = [_supplier(id=1, name="Acme")]
         context, lifespan_ctx = _make_context(get_all=cached, smart_search=[])
 
-        result = await list_suppliers(
-            query="   ", limit=50, format="markdown", context=context
-        )
+        result = await list_suppliers(query="   ", limit=50, context=context)
 
         # Whitespace-only query must NOT trigger smart_search
         assert lifespan_ctx.typed_cache.catalog.smart_search.await_count == 0
         assert lifespan_ctx.typed_cache.catalog.get_all.await_count == 1
 
-        text = _extract_text(result)
-        # Header should be the no-query form ("## Suppliers (1 of 1)"),
-        # not "query `   `"
-        assert "query" not in text.lower()
-        assert "Acme" in text
+        payload = json.loads(_extract_text(result))
+        assert payload["query"] is None
+        assert any(s["name"] == "Acme" for s in payload["suppliers"])
 
 
 # ============================================================================
@@ -286,7 +264,7 @@ class TestGetSupplier:
         )
         context, lifespan_ctx = _make_context(get_by_id=record)
 
-        result = await get_supplier(supplier_id=1302095, format="json", context=context)
+        result = await get_supplier(supplier_id=1302095, context=context)
 
         # Adapter takes the Cached* class as the first positional arg.
         await_args = lifespan_ctx.typed_cache.catalog.get_by_id.await_args
@@ -308,17 +286,19 @@ class TestGetSupplier:
         context2, lifespan_ctx2 = create_mock_context()
         lifespan_ctx2.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
         with pytest.raises(ValueError, match="Supplier with ID 999 not found"):
-            await get_supplier(supplier_id=999, format="json", context=context2)
+            await get_supplier(supplier_id=999, context=context2)
 
     @pytest.mark.asyncio
-    async def test_markdown_format_renders_card(self):
+    async def test_content_is_indented_json_with_full_fields(self):
+        """get_supplier ``content`` is the JSON form of the full response —
+        callers parsing programmatically get every cached field by name."""
         record = _supplier(id=1, name="Acme", email="a@acme.com", currency="USD")
         context, _ = _make_context(get_by_id=record)
-        result = await get_supplier(supplier_id=1, format="markdown", context=context)
-        text = _extract_text(result)
-        assert "## Acme" in text
-        assert "**email**: a@acme.com" in text
-        assert "**currency**: USD" in text
+        result = await get_supplier(supplier_id=1, context=context)
+        payload = json.loads(_extract_text(result))
+        assert payload["name"] == "Acme"
+        assert payload["email"] == "a@acme.com"
+        assert payload["currency"] == "USD"
 
 
 # ============================================================================
@@ -348,9 +328,7 @@ class TestListLocations:
             is_primary=True,
         )
         context, lifespan_ctx = _make_context(smart_search=[loc])
-        result = await list_locations(
-            query="Main", limit=5, format="json", context=context
-        )
+        result = await list_locations(query="Main", limit=5, context=context)
         lifespan_ctx.typed_cache.catalog.smart_search.assert_awaited_once()
         payload = json.loads(_extract_text(result))
         loc_payload = payload["locations"][0]
@@ -365,28 +343,27 @@ class TestListLocations:
         }
 
     @pytest.mark.asyncio
-    async def test_markdown_renders_city_country_from_nested_address(self):
-        # Bypass pydantic validation on the JSON column — the helper's
-        # ``_address_from_obj`` accepts either ``LocationAddress`` or a
-        # raw dict, and it's the dict shape that exercises the partial-
-        # field path (a real wire ``LocationAddress`` would carry every
-        # required field).
+    async def test_partial_address_from_dict_shape(self):
+        """``_address_from_obj`` accepts either a ``LocationAddress`` or a
+        raw dict (legacy cache shape). Pin the partial-field dict path —
+        a real wire ``LocationAddress`` would carry every required field;
+        the dict shape exercises the partial case where only city /
+        country are set.
+        """
         loc = _location(id=24141, name="Goleta DC")
         object.__setattr__(loc, "address", {"city": "Goleta", "country": "US"})
         context, _ = _make_context(get_all=[loc])
-        result = await list_locations(
-            query=None, limit=50, format="markdown", context=context
-        )
-        text = _extract_text(result)
-        assert "Goleta DC" in text
-        assert "Goleta, US" in text
+        result = await list_locations(query=None, limit=50, context=context)
+        payload = json.loads(_extract_text(result))
+        loc_payload = payload["locations"][0]
+        assert loc_payload["name"] == "Goleta DC"
+        assert loc_payload["address"]["city"] == "Goleta"
+        assert loc_payload["address"]["country"] == "US"
 
     @pytest.mark.asyncio
     async def test_missing_address_yields_none(self):
         context, _ = _make_context(get_all=[_location(id=1, name="No-address site")])
-        result = await list_locations(
-            query=None, limit=50, format="json", context=context
-        )
+        result = await list_locations(query=None, limit=50, context=context)
         payload = json.loads(_extract_text(result))
         assert payload["locations"][0]["address"] is None
 
@@ -420,9 +397,7 @@ class TestListLocations:
             },
         )
         context, _ = _make_context(get_all=[loc])
-        result = await list_locations(
-            query=None, limit=50, format="json", context=context
-        )
+        result = await list_locations(query=None, limit=50, context=context)
         payload = json.loads(_extract_text(result))
         assert payload["locations"][0]["address"] == {
             "line_1": "1 Main St",
@@ -454,9 +429,7 @@ class TestSmallReferenceTools:
                 )
             ]
         )
-        result = await list_tax_rates(
-            query=None, limit=50, format="json", context=context
-        )
+        result = await list_tax_rates(query=None, limit=50, context=context)
         payload = json.loads(_extract_text(result))
         assert payload["tax_rates"][0]["rate"] == 8.5
         assert payload["tax_rates"][0]["is_default_sales"] is True
@@ -469,9 +442,7 @@ class TestSmallReferenceTools:
                 _operator(id=2, operator_name="Bob"),
             ]
         )
-        result = await list_operators(
-            query=None, limit=50, format="json", context=context
-        )
+        result = await list_operators(query=None, limit=50, context=context)
         payload = json.loads(_extract_text(result))
         assert {op["name"] for op in payload["operators"]} == {"Alice", "Bob"}
 
@@ -483,9 +454,7 @@ class TestSmallReferenceTools:
                 _additional_cost(id=2, name="Import Duty"),
             ]
         )
-        result = await list_additional_costs(
-            query=None, limit=50, format="json", context=context
-        )
+        result = await list_additional_costs(query=None, limit=50, context=context)
         payload = json.loads(_extract_text(result))
         assert {ac["name"] for ac in payload["additional_costs"]} == {
             "Shipping",
@@ -510,20 +479,21 @@ class TestRequestModels:
         with pytest.raises(ValueError):
             ListSuppliersRequest(limit=0)
 
-    def test_format_must_be_known(self):
+    def test_format_param_dropped(self):
+        """``format`` parameter was removed in #567 — passing it
+        should now be rejected by ``extra="forbid"``."""
         with pytest.raises(ValueError):
-            ListSuppliersRequest.model_validate({"format": "xml"})
+            ListSuppliersRequest.model_validate({"format": "json"})
 
     def test_extra_fields_forbidden(self):
         """``extra="forbid"`` keeps callers honest about parameter names."""
         with pytest.raises(ValueError):
             ListSuppliersRequest.model_validate({"querystr": "Acme Components"})
 
-    def test_default_query_is_none_default_format_markdown(self):
+    def test_default_query_is_none(self):
         req = ListSuppliersRequest()
         assert req.query is None
         assert req.limit == 50
-        assert req.format == "markdown"
 
     def test_get_supplier_requires_id(self):
         with pytest.raises(ValueError):
@@ -543,7 +513,6 @@ class TestRequestModels:
         req = model()
         assert req.query is None
         assert req.limit == 50
-        assert req.format == "markdown"
 
 
 # ============================================================================

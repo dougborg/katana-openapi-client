@@ -10,7 +10,7 @@ import asyncio
 import json
 import time
 from datetime import datetime
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
@@ -25,9 +25,8 @@ from katana_mcp.tools.tool_result_utils import (
     UI_META,
     PaginationMeta,
     apply_date_window_filters,
-    format_md_table,
     iso_or_none,
-    make_simple_result,
+    make_json_result,
     make_tool_result,
     parse_request_dates,
 )
@@ -80,7 +79,8 @@ class CheckInventoryRequest(BaseModel):
         description=(
             "JSON array of SKUs (strings) or variant IDs (integers) — mix freely. "
             'E.g., ["WS74001", 12345] or ["WS74001", "WS74002"]. '
-            "Pass one for a detailed stock card; pass many for a summary table. "
+            "Response is always the JSON `{items: [...]}` envelope (single OR batch); "
+            "single-item calls additionally attach a Prefab stock card for UI hosts. "
             "Batching N items in a single call beats N separate invocations. "
             "Output order matches input order."
         ),
@@ -91,13 +91,6 @@ class CheckInventoryRequest(BaseModel):
             "Filter to a single warehouse/facility. When set, the response "
             "totals and `by_location` only include this location. "
             "Look up via `list_locations`."
-        ),
-    )
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data consumable by downstream tools/aggregations."
         ),
     )
 
@@ -319,9 +312,11 @@ async def check_inventory(
     """Check current stock levels for one or more SKUs or variant IDs.
 
     Pass a list of SKUs (strings) or variant IDs (integers) — or mix both — to
-    ``skus_or_variant_ids``. A single item returns a rich stock card; multiple
-    items return a summary table. Batching N checks in one call is faster than
-    N separate invocations.
+    ``skus_or_variant_ids``. Returns the JSON ``{items: [...]}`` envelope for
+    every request shape — single OR batch — so programmatic consumers see one
+    stable contract. Single-item requests additionally attach a rich Prefab
+    stock card via ``structured_content`` for MCP-Apps hosts. Batching N
+    checks in one call is faster than N separate invocations.
 
     By default returns totals summed across every location the variant has
     stock at, plus a per-location ``by_location`` breakdown so callers can
@@ -338,73 +333,22 @@ async def check_inventory(
 
     results = await _check_inventory_impl(request, context)
 
-    if request.format == "json":
-        payload = {"items": [r.model_dump() for r in results]}
-        return ToolResult(
-            content=json.dumps(payload, indent=2, default=str),
-            structured_content=payload,
-        )
+    # JSON content always uses the ``{items: [...]}`` envelope — single
+    # OR batch — so programmatic consumers see one stable contract.
+    # Pre-#567 the format="json" branch already returned this envelope;
+    # the single-item bare-StockInfo content was markdown-only.
+    payload = {"items": [r.model_dump(mode="json") for r in results]}
+    content = json.dumps(payload, indent=2, default=str)
 
-    # Single-variant request: preserve the rich Prefab card output, plus
-    # append a per-location breakdown table whenever stock is split across
-    # more than one warehouse (single-location → no extra noise).
+    # Single-variant request: attach the rich Prefab card on top of the
+    # envelope content. The batch Prefab UI (tracked in #562) will read
+    # the same ``items`` key when it ships.
     is_single = len(results) == 1 and len(request.skus_or_variant_ids) == 1
     if is_single:
-        response = results[0]
-        ui = build_inventory_check_ui(response.model_dump())
-        return make_tool_result(response, ui=ui)
+        ui = build_inventory_check_ui(results[0].model_dump())
+        return ToolResult(content=content, structured_content=ui)
 
-    # Batch response: summary table + optional per-location breakdown
-    from katana_mcp.tools.tool_result_utils import format_md_table, make_simple_result
-
-    table = format_md_table(
-        headers=["SKU", "Product", "In Stock", "Committed", "Available", "Expected"],
-        rows=[
-            [
-                r.sku,
-                r.product_name[:40],
-                r.in_stock,
-                r.committed,
-                r.available_stock,
-                r.expected,
-            ]
-            for r in results
-        ],
-    )
-    md_parts = [f"## Inventory Check ({len(results)} items)\n\n{table}"]
-    # Surface per-location breakdown for any item that has stock at >1 location.
-    # Single-location items don't get a redundant breakdown table.
-    multi_location_results = [r for r in results if len(r.by_location) > 1]
-    if multi_location_results:
-        md_parts.append("\n## By Location")
-        for r in multi_location_results:
-            loc_table = format_md_table(
-                headers=[
-                    "Location",
-                    "ID",
-                    "In Stock",
-                    "Committed",
-                    "Available",
-                    "Expected",
-                ],
-                rows=[
-                    [
-                        ls.location_name or "(unknown)",
-                        ls.location_id,
-                        ls.in_stock,
-                        ls.committed,
-                        ls.available,
-                        ls.expected,
-                    ]
-                    for ls in r.by_location
-                ],
-            )
-            md_parts.append(f"\n### {r.sku}\n\n{loc_table}")
-    md = "\n".join(md_parts)
-    return make_simple_result(
-        md,
-        structured_data={"items": [r.model_dump() for r in results]},
-    )
+    return ToolResult(content=content, structured_content=payload)
 
 
 # ============================================================================
@@ -419,13 +363,6 @@ class LowStockRequest(BaseModel):
 
     threshold: int = Field(default=10, description="Stock threshold level")
     limit: int = Field(default=50, description="Maximum items to return")
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data consumable by downstream tools/aggregations."
-        ),
-    )
 
 
 class LowStockItem(BaseModel):
@@ -572,12 +509,6 @@ async def list_low_stock_items(
 
     response = await _list_low_stock_items_impl(request, context)
 
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-
     items_dicts = [item.model_dump() for item in response.items]
     ui = build_low_stock_ui(items_dicts, request.threshold, response.total_count)
 
@@ -596,13 +527,6 @@ class GetInventoryMovementsRequest(BaseModel):
 
     sku: str = Field(..., description="SKU to get movements for")
     limit: int = Field(default=50, description="Maximum movements to return")
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data consumable by downstream tools/aggregations."
-        ),
-    )
 
 
 class MovementInfo(BaseModel):
@@ -777,70 +701,7 @@ async def get_inventory_movements(
     changed over time. Default limit is 50 movements, ordered most recent first.
     """
     response = await _get_inventory_movements_impl(request, context)
-
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-
-    # Column headers use the canonical Pydantic field names so LLM consumers
-    # can't confuse a rendered header with a different field (see #346 follow-on).
-    if response.movements:
-        movements_md = format_md_table(
-            headers=[
-                "id",
-                "movement_date",
-                "variant_id",
-                "location_id",
-                "resource_type",
-                "resource_id",
-                "caused_by_order_no",
-                "caused_by_resource_id",
-                "quantity_change",
-                "balance_after",
-                "value_per_unit",
-                "value_in_stock_after",
-                "average_cost_after",
-                "rank",
-                "created_at",
-                "updated_at",
-            ],
-            rows=[
-                [
-                    m.id,
-                    m.movement_date,
-                    m.variant_id,
-                    m.location_id,
-                    m.resource_type,
-                    m.resource_id if m.resource_id is not None else "—",
-                    m.caused_by_order_no or "—",
-                    m.caused_by_resource_id
-                    if m.caused_by_resource_id is not None
-                    else "—",
-                    f"{m.quantity_change:+.4f}",
-                    f"{m.balance_after:.4f}",
-                    f"{m.value_per_unit:.4f}",
-                    f"{m.value_in_stock_after:.4f}",
-                    f"{m.average_cost_after:.4f}",
-                    m.rank if m.rank is not None else "—",
-                    m.created_at or "—",
-                    m.updated_at or "—",
-                ]
-                for m in response.movements
-            ],
-        )
-    else:
-        movements_md = "No movements found."
-
-    md = (
-        f"## Inventory Movements\n\n"
-        f"**sku**: {response.sku}\n"
-        f"**product_name**: {response.product_name}\n"
-        f"**total_count**: {response.total_count}\n\n"
-        f"{movements_md}"
-    )
-    return make_simple_result(md, structured_data=response.model_dump())
+    return make_json_result(response)
 
 
 # ============================================================================
@@ -1188,14 +1049,6 @@ class ListStockAdjustmentsRequest(BaseModel):
         description="When true, populate row-level detail on each summary",
     )
 
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data consumable by downstream tools/aggregations."
-        ),
-    )
-
 
 class StockAdjustmentRowInfo(BaseModel):
     """Summary of a stock adjustment line item."""
@@ -1460,33 +1313,7 @@ async def list_stock_adjustments(
       bounds on the corresponding columns.
     """
     response = await _list_stock_adjustments_impl(request, context)
-
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-
-    if not response.adjustments:
-        md = "No stock adjustments match the given filters."
-    else:
-        table = format_md_table(
-            headers=["ID", "Number", "Location", "Date", "Rows", "Reason"],
-            rows=[
-                [
-                    adj.id,
-                    adj.stock_adjustment_number,
-                    adj.location_id,
-                    adj.stock_adjustment_date or "—",
-                    adj.row_count,
-                    (adj.reason or "—")[:40],
-                ]
-                for adj in response.adjustments
-            ],
-        )
-        md = f"## Stock Adjustments ({response.total_count})\n\n{table}"
-
-    return make_simple_result(md, structured_data=response.model_dump())
+    return make_json_result(response)
 
 
 # ============================================================================

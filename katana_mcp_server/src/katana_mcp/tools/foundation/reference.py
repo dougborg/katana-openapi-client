@@ -1,14 +1,13 @@
 """Cache-backed search tools for stable reference data — suppliers,
 locations, tax rates, operators, and the additional-cost catalog. Each
 ``list_*`` tool accepts ``query`` (optional fuzzy name/code search,
-FTS5 with difflib fallback), ``limit`` (default 50, max 250), and
-``format`` (``"markdown"`` | ``"json"``). ``get_supplier(supplier_id)``
-returns the full single-supplier record.
+FTS5 with difflib fallback) and ``limit`` (default 50, max 250).
+``get_supplier(supplier_id)`` returns the full single-supplier record.
 """
 
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
@@ -18,7 +17,7 @@ from sqlmodel import SQLModel
 from katana_mcp.logging import observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.decorators import cache_read
-from katana_mcp.tools.tool_result_utils import make_simple_result
+from katana_mcp.tools.tool_result_utils import make_json_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.models_pydantic._generated import (
     CachedAdditionalCost,
@@ -37,9 +36,9 @@ def _normalize_query(query: str | None) -> str | None:
     """Strip whitespace and treat empty / whitespace-only input as no query.
 
     Caller-side normalization keeps a single canonical form flowing to the
-    cache, the response model, and the markdown header — otherwise
-    ``query="   "`` falls through to the no-query path but still renders
-    "query `   `" in the header because the raw value remains truthy.
+    cache and the response model — otherwise ``query="   "`` would fall
+    through to the no-query path but still surface a non-None ``query``
+    value on the response.
     """
     if query is None:
         return None
@@ -79,18 +78,6 @@ async def _fetch_rows(
     return raw[:limit], total
 
 
-def _list_header(title: str, query: str | None, returned: int, total: int) -> str:
-    if query:
-        return f"## {title} — query `{query}` ({returned} of {total})"
-    return f"## {title} ({returned} of {total})"
-
-
-def _empty_message(entity_label: str, query: str | None) -> str:
-    if query:
-        return f"No {entity_label} found matching `{query}`."
-    return f"No {entity_label} cached."
-
-
 # ============================================================================
 # Suppliers — list_suppliers + get_supplier
 # ============================================================================
@@ -111,13 +98,6 @@ class ListSuppliersRequest(BaseModel):
         ge=1,
         le=250,
         description="Maximum rows to return (default 50, max 250)",
-    )
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable bullets; "
-            "'json' for structured data consumable by downstream tools."
-        ),
     )
 
 
@@ -169,23 +149,6 @@ async def _list_suppliers_impl(
     )
 
 
-def _render_supplier_list_md(response: ListSuppliersResponse) -> str:
-    if not response.suppliers:
-        return _empty_message("suppliers", response.query)
-
-    lines = [
-        f"- **{s.name}** (ID: {s.id})"
-        + (f" — {s.email}" if s.email else "")
-        + (f" [{s.currency}]" if s.currency else "")
-        + (f" code:{s.code}" if s.code else "")
-        for s in response.suppliers
-    ]
-    header = _list_header(
-        "Suppliers", response.query, len(response.suppliers), response.total_count
-    )
-    return header + "\n\n" + "\n".join(lines)
-
-
 @observe_tool
 @unpack_pydantic_params
 async def list_suppliers(
@@ -200,22 +163,13 @@ async def list_suppliers(
     Use ``get_supplier(supplier_id)`` for the full-detail record.
     """
     response = await _list_suppliers_impl(request, context)
-
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-    return make_simple_result(
-        _render_supplier_list_md(response), structured_data=response.model_dump()
-    )
+    return make_json_result(response)
 
 
 class GetSupplierRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     supplier_id: int = Field(..., description="Supplier ID to look up")
-    format: Literal["markdown", "json"] = Field(default="markdown")
 
 
 class GetSupplierResponse(BaseModel):
@@ -292,34 +246,6 @@ async def _get_supplier_impl(
     )
 
 
-def _render_supplier_detail_md(response: GetSupplierResponse) -> str:
-    md_lines = [f"## {response.name}"]
-    fields = (
-        "id",
-        "email",
-        "phone",
-        "currency",
-        "code",
-        "default_payment_terms",
-        "address_line_1",
-        "address_line_2",
-        "city",
-        "state",
-        "zip",
-        "country",
-        "comment",
-        "created_at",
-        "updated_at",
-        "deleted_at",
-    )
-    for fname in fields:
-        val = getattr(response, fname)
-        if val is None or val == "":
-            continue
-        md_lines.append(f"**{fname}**: {val}")
-    return "\n".join(md_lines)
-
-
 @observe_tool
 @unpack_pydantic_params
 async def get_supplier(
@@ -333,15 +259,7 @@ async def get_supplier(
     tool is the single-call path to the rest.
     """
     response = await _get_supplier_impl(request, context)
-
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-    return make_simple_result(
-        _render_supplier_detail_md(response), structured_data=response.model_dump()
-    )
+    return make_json_result(response)
 
 
 # ============================================================================
@@ -354,7 +272,6 @@ class ListLocationsRequest(BaseModel):
 
     query: str | None = Field(default=None, description="Fuzzy search by location name")
     limit: int = Field(default=50, ge=1, le=250)
-    format: Literal["markdown", "json"] = Field(default="markdown")
 
 
 class AddressInfo(BaseModel):
@@ -439,28 +356,6 @@ async def _list_locations_impl(
     )
 
 
-def _render_location_md(response: ListLocationsResponse) -> str:
-    if not response.locations:
-        return _empty_message("locations", response.query)
-
-    def _city_country(loc: LocationInfo) -> str:
-        if not loc.address:
-            return ""
-        parts = [p for p in (loc.address.city, loc.address.country) if p]
-        return f" — {', '.join(parts)}" if parts else ""
-
-    lines = [
-        f"- **{loc.name}** (ID: {loc.id})"
-        + (" [primary]" if loc.is_primary else "")
-        + _city_country(loc)
-        for loc in response.locations
-    ]
-    header = _list_header(
-        "Locations", response.query, len(response.locations), response.total_count
-    )
-    return header + "\n\n" + "\n".join(lines)
-
-
 @observe_tool
 @unpack_pydantic_params
 async def list_locations(
@@ -476,14 +371,7 @@ async def list_locations(
     caps output at 50 rows.
     """
     response = await _list_locations_impl(request, context)
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-    return make_simple_result(
-        _render_location_md(response), structured_data=response.model_dump()
-    )
+    return make_json_result(response)
 
 
 # ============================================================================
@@ -496,7 +384,6 @@ class ListTaxRatesRequest(BaseModel):
 
     query: str | None = Field(default=None, description="Fuzzy search by tax-rate name")
     limit: int = Field(default=50, ge=1, le=250)
-    format: Literal["markdown", "json"] = Field(default="markdown")
 
 
 class TaxRateInfo(BaseModel):
@@ -538,26 +425,6 @@ async def _list_tax_rates_impl(
     )
 
 
-def _render_tax_rate_md(response: ListTaxRatesResponse) -> str:
-    if not response.tax_rates:
-        return _empty_message("tax rates", response.query)
-    lines = []
-    for tr in response.tax_rates:
-        flags = []
-        if tr.is_default_sales:
-            flags.append("default-sales")
-        if tr.is_default_purchases:
-            flags.append("default-purchases")
-        flag_str = f" [{', '.join(flags)}]" if flags else ""
-        rate_str = f" — {tr.rate}%" if tr.rate is not None else ""
-        display = f" ({tr.display_name})" if tr.display_name else ""
-        lines.append(f"- **{tr.name}** (ID: {tr.id}){display}{rate_str}{flag_str}")
-    header = _list_header(
-        "Tax Rates", response.query, len(response.tax_rates), response.total_count
-    )
-    return header + "\n\n" + "\n".join(lines)
-
-
 @observe_tool
 @unpack_pydantic_params
 async def list_tax_rates(
@@ -571,14 +438,7 @@ async def list_tax_rates(
     Pass ``query`` to fuzzy-match by name; omit to browse.
     """
     response = await _list_tax_rates_impl(request, context)
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-    return make_simple_result(
-        _render_tax_rate_md(response), structured_data=response.model_dump()
-    )
+    return make_json_result(response)
 
 
 # ============================================================================
@@ -591,7 +451,6 @@ class ListOperatorsRequest(BaseModel):
 
     query: str | None = Field(default=None, description="Fuzzy search by operator name")
     limit: int = Field(default=50, ge=1, le=250)
-    format: Literal["markdown", "json"] = Field(default="markdown")
 
 
 class OperatorInfo(BaseModel):
@@ -627,16 +486,6 @@ async def _list_operators_impl(
     )
 
 
-def _render_operator_md(response: ListOperatorsResponse) -> str:
-    if not response.operators:
-        return _empty_message("operators", response.query)
-    lines = [f"- **{op.name}** (ID: {op.id})" for op in response.operators]
-    header = _list_header(
-        "Operators", response.query, len(response.operators), response.total_count
-    )
-    return header + "\n\n" + "\n".join(lines)
-
-
 @observe_tool
 @unpack_pydantic_params
 async def list_operators(
@@ -649,14 +498,7 @@ async def list_operators(
     Pass ``query`` to fuzzy-match by name; omit to browse.
     """
     response = await _list_operators_impl(request, context)
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-    return make_simple_result(
-        _render_operator_md(response), structured_data=response.model_dump()
-    )
+    return make_json_result(response)
 
 
 # ============================================================================
@@ -671,7 +513,6 @@ class ListAdditionalCostsRequest(BaseModel):
         default=None, description="Fuzzy search by additional-cost name"
     )
     limit: int = Field(default=50, ge=1, le=250)
-    format: Literal["markdown", "json"] = Field(default="markdown")
 
 
 class AdditionalCostInfo(BaseModel):
@@ -702,19 +543,6 @@ async def _list_additional_costs_impl(
     )
 
 
-def _render_additional_cost_md(response: ListAdditionalCostsResponse) -> str:
-    if not response.additional_costs:
-        return _empty_message("additional costs", response.query)
-    lines = [f"- **{ac.name}** (ID: {ac.id})" for ac in response.additional_costs]
-    header = _list_header(
-        "Additional Costs",
-        response.query,
-        len(response.additional_costs),
-        response.total_count,
-    )
-    return header + "\n\n" + "\n".join(lines)
-
-
 @observe_tool
 @unpack_pydantic_params
 async def list_additional_costs(
@@ -728,14 +556,7 @@ async def list_additional_costs(
     Pass ``query`` to fuzzy-match by name; omit to browse.
     """
     response = await _list_additional_costs_impl(request, context)
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-    return make_simple_result(
-        _render_additional_cost_md(response), structured_data=response.model_dump()
-    )
+    return make_json_result(response)
 
 
 # ============================================================================

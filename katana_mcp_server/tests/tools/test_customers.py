@@ -212,10 +212,11 @@ async def test_get_customer_fetches_and_surfaces_addresses():
 
 
 @pytest.mark.asyncio
-async def test_get_customer_markdown_uses_canonical_field_names():
-    """Markdown labels use Pydantic field names (not prettified headers)
-    so LLM consumers can't misread a section label as a different field
-    (motivation: #346 follow-on, supplier_item_codes misread)."""
+async def test_get_customer_uses_canonical_field_names_in_content():
+    """Response content uses Pydantic field names (not prettified headers)
+    so LLM consumers can't misread a key as a different field — same
+    motivation as the #346 supplier_item_codes misread, now satisfied by
+    JSON content keying off the Pydantic field names directly."""
     context, lifespan_ctx = create_mock_context()
     lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(
         return_value=_make_cached_customer(
@@ -230,11 +231,11 @@ async def test_get_customer_markdown_uses_canonical_field_names():
         result = await get_customer(customer_id=42, context=context)
 
     text = result.content[0].text
-    assert "**reference_id**: WGT-2024-001" in text
-    assert "**discount_rate**: 5.0" in text
-    # Empty address list renders with explicit [] syntax, not a heading
-    # that a reader might mistake for a section:
-    assert "**addresses**: []" in text
+    # Field names appear as JSON keys; values appear next to them.
+    assert '"reference_id": "WGT-2024-001"' in text
+    assert '"discount_rate": 5.0' in text
+    # Empty address list serializes as the empty array, not a section header.
+    assert '"addresses": []' in text
 
 
 @pytest.mark.asyncio
@@ -249,7 +250,7 @@ async def test_get_customer_not_found():
 
 
 # ============================================================================
-# format=json / format=markdown
+# JSON content (#567 — markdown formatters dropped, JSON is the only mode)
 # ============================================================================
 
 
@@ -259,25 +260,10 @@ def _content_text(result) -> str:
 
 
 @pytest.mark.asyncio
-async def test_search_customers_format_json_returns_json():
-    """format='json' returns JSON-parseable content."""
-    context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.typed_cache.catalog.smart_search = AsyncMock(
-        return_value=[_make_cached_customer(id=1, name="Acme Corp", email="a@b.c")]
-    )
-
-    result = await search_customers(
-        query="acme", limit=20, format="json", context=context
-    )
-
-    data = json.loads(_content_text(result))
-    assert data["total_count"] == 1
-    assert data["customers"][0]["name"] == "Acme Corp"
-
-
-@pytest.mark.asyncio
-async def test_search_customers_format_markdown_default():
-    """Default markdown format produces markdown-ish content (not JSON)."""
+async def test_search_customers_content_is_indented_json():
+    """``content`` is the indented JSON form of the response model.
+    Programmatic consumers can ``json.loads`` it and get the same shape
+    as ``structured_content``."""
     context, lifespan_ctx = create_mock_context()
     lifespan_ctx.typed_cache.catalog.smart_search = AsyncMock(
         return_value=[_make_cached_customer(id=1, name="Acme Corp", email="a@b.c")]
@@ -285,15 +271,16 @@ async def test_search_customers_format_markdown_default():
 
     result = await search_customers(query="acme", limit=20, context=context)
 
-    text = _content_text(result)
-    assert "Acme Corp" in text
-    # Not JSON — should have markdown characters
-    assert "##" in text or "**" in text
+    data = json.loads(_content_text(result))
+    assert data["total_count"] == 1
+    assert data["customers"][0]["name"] == "Acme Corp"
+    # Structured content carries the same payload (per the #567 contract).
+    assert result.structured_content["total_count"] == 1
 
 
 @pytest.mark.asyncio
-async def test_get_customer_format_json_returns_json():
-    """format='json' returns JSON-parseable content."""
+async def test_get_customer_content_is_indented_json():
+    """get_customer ``content`` parses as JSON matching the response shape."""
     context, lifespan_ctx = create_mock_context()
     lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(
         return_value=_make_cached_customer(
@@ -302,7 +289,7 @@ async def test_get_customer_format_json_returns_json():
     )
 
     with patch(_FETCH_ADDR_PATH, AsyncMock(return_value=[])):
-        result = await get_customer(customer_id=42, format="json", context=context)
+        result = await get_customer(customer_id=42, context=context)
 
     data = json.loads(_content_text(result))
     assert data["id"] == 42
