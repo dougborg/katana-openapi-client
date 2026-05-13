@@ -344,7 +344,10 @@ def move_client_to_workspace(workspace_path: Path) -> bool:
                     shutil.copy2(source_item, target_item)
                     print(f"   📄 Updated file: {item_name}")
 
-        # Update main __init__.py with flattened imports (preserve any custom content)
+        # Overwrite main __init__.py with the flattened-import template below.
+        # Note: the file is rewritten verbatim, not merged — any hand-added exports
+        # will be lost on regen. Add custom re-exports to `katana_client.py` or to a
+        # new editable module instead.
         main_init = target_client_path / "__init__.py"
         init_content = '''"""Katana Public API Client - Python client for Katana Manufacturing ERP."""
 

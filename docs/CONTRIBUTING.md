@@ -86,8 +86,15 @@ All formatting is automated via `uv run poe format`.
 1. **Fork the repository** and create a feature branch
 
    ```bash
-   git checkout -b feature/your-feature-name
+   git checkout -b feat/your-feature-name
    ```
+
+   Branch names use the same **type** prefixes as conventional commits (see
+   [COMMIT_STANDARDS](../.github/agents/guides/shared/COMMIT_STANDARDS.md)) — `feat/`,
+   `fix/`, `docs/`, `chore/`, etc. — so the branch name signals the kind of change.
+   (Note: `feat`, `fix`, etc. are the conventional-commit *type*; the *scope* is the
+   package, e.g. `(client)` or `(mcp)`, applied to the commit message, not the branch
+   name.)
 
 1. **Make your changes** following the code style guidelines
 
@@ -114,6 +121,25 @@ All formatting is automated via `uv run poe format`.
    ```
 
 1. **Push to your fork** and create a pull request
+
+   For the first push of a new branch, use the explicit destination ref so the push
+   doesn't depend on `push.default`, upstream-tracking config, or shell habits:
+
+   ```bash
+   git push -u origin HEAD:refs/heads/feat/your-feature-name
+   ```
+
+   The form `HEAD:refs/heads/<name>` names both the source (current HEAD) and the
+   destination ref explicitly, so it's immune to git configs (e.g.
+   `push.default = upstream`) that can reroute an under-specified push to whatever the
+   branch tracks — which, if you created the branch via
+   `git checkout -b <name> origin/main`, is `main`. A pre-push hook
+   (`scripts/pre-push-guard.sh`) blocks the specific case where a non-`main` local ref
+   would land on `refs/heads/main`, so the originating incident can't recur — but the
+   hook doesn't reject every under-specified push, so the explicit refspec is the
+   contributor-facing rule. Never bypass with `--no-verify`. Full rationale + the
+   incident that prompted the rule live in
+   [COMMIT_STANDARDS "First-Push Safety"](../.github/agents/guides/shared/COMMIT_STANDARDS.md#first-push-safety).
 
 ### Commit Message Format
 
@@ -285,25 +311,27 @@ uv run python scripts/regenerate_client.py
 
 ### What Gets Regenerated
 
-**Replaced Files** (Generated Content):
+The canonical list of generated vs preserved paths lives in three places that stay in
+sync with the actual generators:
 
-- `client.py` - Base HTTP client classes
-- `client_types.py` - Type definitions (renamed from `types.py`)
-- `errors.py` - Exception definitions
-- `py.typed` - Type checking marker
-- `api/` - All API endpoint modules
-- `models/` - All data model classes
-- `models_pydantic/_generated/` - Pydantic model surface
-- `models_pydantic/_auto_registry.py` - Generated registry
+- The "Generated Files (DO NOT EDIT)" and "Editable Files (Can Modify)" sections of
+  [FILE_ORGANIZATION.md](../.github/agents/guides/shared/FILE_ORGANIZATION.md), which
+  describe the boundary in detail.
+- [`scripts/regenerate_client.py`](../scripts/regenerate_client.py) decides which
+  *attrs* files get rewritten — read the `generated_items` list inside
+  `move_client_to_workspace` for the exact list.
+- [`scripts/generate_pydantic_models.py`](../scripts/generate_pydantic_models.py)
+  decides which *pydantic* files get rewritten (the `_generated/` subtree and
+  `_auto_registry.py` under `models_pydantic/`).
 
-**Preserved Files** (Custom Content):
+If the docs and either script ever disagree, the script wins.
 
-- `katana_client.py` - Our resilient client implementation
-- `log_setup.py` - Custom logging configuration
-- `__init__.py` - Custom exports (gets rewritten but preserves structure)
-- `models_pydantic/*.py` (except `_generated/` and `_auto_registry.py`) -
-  hand-maintained pydantic infrastructure (`_base.py`, `_mapped_shim.py`,
-  `_pydantic_json.py`, `_registry.py`, `converters.py`)
+The high-level rule: anything under `api/`, `models/`, `client.py`, `client_types.py`,
+`errors.py`, `py.typed`, `__init__.py` (rewritten from a flattened-import template every
+regen — *not* preserved despite the inline comment in the script suggesting otherwise),
+and `models_pydantic/_generated/` (plus `_auto_registry.py`) is rewritten on every
+regen. Everything else under `katana_public_api_client/` (including the rest of
+`models_pydantic/` — hand-maintained pydantic infrastructure) is preserved.
 
 ### Regeneration Features
 

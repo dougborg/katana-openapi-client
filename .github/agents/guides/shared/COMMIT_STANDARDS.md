@@ -301,21 +301,40 @@ commit anyway, so bundling is always the right call.
 ## First-Push Safety
 
 When a local branch was created via `git checkout -b <name> origin/main`, its upstream
-is set to `origin/main`. A subsequent `git push -u origin <name>` then resolves to its
-tracked upstream and **pushes the local tip straight to `main`** — bypassing PR review
-and triggering semantic-release.
+is set to `origin/main`. A subsequent under-specified push (bare `git push`, or
+`git push -u origin` with no refspec, or commands implicitly affected by
+`push.default = upstream`) can resolve to that tracked upstream and **push the local tip
+straight to `main`** — bypassing PR review and triggering semantic-release.
 
-**Always use the explicit destination ref for first-time pushes:**
+Even though `git push -u origin <branch-name>` with an explicit branch-name refspec *is*
+safe by itself, relying on it requires every contributor's git config and push habits to
+stay consistent forever. One stray `git config --global push.default upstream` or a
+muscle-memory bare `git push` is all it takes.
+
+**Always use the fully explicit destination ref for first-time pushes:**
 
 ```bash
-# Wrong — pushes to whatever the local branch tracks (may be main)
+# DANGEROUS — under-specified pushes resolve to the tracked upstream (`main`)
+git push                       # no remote, no refspec
+git push -u origin             # no refspec
+git push origin HEAD           # depends on push.default
+
+# DISCOURAGED — safe today, but relies on push.default staying `simple` /
+# `current` and on the branch name being spelled correctly. One stray
+# `git config --global push.default upstream` defeats it.
 git push -u origin chore/foo
 
-# Right — explicit destination, creates the remote branch
+# REQUIRED — names both source (HEAD) and destination ref explicitly.
+# Immune to push.default, branch-tracking config, and bare-push habits.
 git push -u origin HEAD:refs/heads/chore/foo
 ```
 
-A `pre-push` hook enforces this; **do not bypass with `--no-verify`**.
+This actually happened: commit `30f3fd86` reached main + tagged `mcp-v0.44.1` +
+published to PyPI before the pipeline could be cancelled. A `pre-push` hook at
+`scripts/pre-push-guard.sh` now blocks any push that lands a non-`main` local ref on
+`refs/heads/main`, so the exact incident can't recur — but the hook only catches pushes
+that actually target main, *not* pushes that omit the explicit refspec. **Always use the
+explicit form, and do not bypass the hook with `--no-verify`.**
 
 ## Multi-Package Changes
 
