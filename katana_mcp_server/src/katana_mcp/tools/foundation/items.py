@@ -1813,14 +1813,32 @@ def _dict_to_variant_details(
     parent_url = katana_web_url("product", product_id) or katana_web_url(
         "material", material_id
     )
-    type_val = _attr(v, "type")
+    # Cache rows / dicts use ``type``; the generated attrs ``Variant``
+    # uses ``type_`` (trailing underscore — Python keyword collision in
+    # the OpenAPI generator's name-mangling). Read both so cache-hit and
+    # API-fallback paths produce the same response shape; otherwise the
+    # API-fallback response would carry ``type=None`` and the Prefab UI
+    # would silently drop the type badge.
+    type_val = _attr(v, "type") or _attr(v, "type_")
     type_str = type_val.value if hasattr(type_val, "value") else type_val
 
     def _dump_list(items: Any) -> list[Any]:
+        # Cache rows carry pydantic items (``ConfigAttribute`` /
+        # ``CustomField``); API-fallback variants carry attrs items
+        # (``VariantConfigAttributesItem`` / ``VariantCustomFieldsItem``).
+        # Both need to land as plain dicts on the response so the
+        # pydantic ``VariantDetailsResponse`` validator accepts them
+        # — attrs models expose ``to_dict()``, pydantic models expose
+        # ``model_dump()``.
         if not items:
             return []
         return [
-            item.model_dump() if hasattr(item, "model_dump") else item for item in items
+            item.model_dump()
+            if hasattr(item, "model_dump")
+            else item.to_dict()
+            if hasattr(item, "to_dict")
+            else item
+            for item in items
         ]
 
     parent_name_value = _attr(v, "parent_name") or _attr(parent, "name")
