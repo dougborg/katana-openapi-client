@@ -450,6 +450,181 @@ async def test_get_variant_details_api_fallback_derives_display_name_and_parent_
 
 
 @pytest.mark.asyncio
+async def test_get_variant_details_cache_hit_and_api_fallback_paths_match():
+    """The same logical variant must produce structurally identical
+    ``VariantDetailsResponse`` whether resolved via the cache-hit path
+    (``CachedVariant`` shape) or the API-fallback path (attrs ``Variant``
+    shape). Every field surfaced through ``_dict_to_variant_details``
+    needs to read off both shapes consistently.
+
+    This is the divergence-protection contract that #564 and the Copilot
+    review on PR #717 exposed two facets of:
+
+    - ``_dump_list`` only handled ``model_dump`` (pydantic), not
+      ``to_dict`` (attrs) — API-fallback variants with non-empty
+      ``config_attributes`` would fail pydantic validation
+    - ``_attr(v, "type")`` returned None on attrs because the field is
+      named ``type_`` (Python-keyword rename), dropping the type badge
+
+    Both bugs share the same root: cache rows and attrs models have
+    subtly divergent field shapes, and any helper that reads them with
+    a single attribute name will silently lose data on one side. The
+    only practical defense is exercising both paths with the same
+    logical input and asserting the responses match — catching a
+    broader class of latent divergence without enumerating every
+    possible field-shape difference.
+
+    Adding new fields to ``VariantDetailsResponse`` that read from the
+    variant: if the field's source differs between cache and attrs
+    shapes (different name, different type), this test will fail and
+    point at the divergence.
+    """
+    from katana_public_api_client.models.variant import Variant
+    from katana_public_api_client.models.variant_config_attributes_item import (
+        VariantConfigAttributesItem,
+    )
+    from katana_public_api_client.models.variant_custom_fields_item import (
+        VariantCustomFieldsItem,
+    )
+    from katana_public_api_client.models.variant_type import VariantType
+
+    # Logical variant + parent — same data, used to build both shapes.
+    # Pinned values rather than the existing ``_FULL_VARIANT_DICT`` so
+    # the test stays self-contained and the assertions read top-to-bottom.
+    parent_product = {
+        "id": 101,
+        "name": "Professional Kitchen Knife Set",
+        "uom": "set",
+        "default_supplier_id": 555,
+        "batch_tracked": False,
+        "purchase_uom": None,
+        "purchase_uom_conversion_rate": None,
+    }
+    supplier = {"id": 555, "name": "Acme Cutlery Co"}
+
+    # CachedVariant shape: dict with cache-only synthesized fields
+    # (``display_name``, ``parent_name``) precomputed at sync time.
+    cache_row = {
+        "id": 9001,
+        "sku": "KNF-PRO-8PC-STL",
+        "product_id": 101,
+        "material_id": None,
+        "sales_price": 299.99,
+        "purchase_price": 150.0,
+        "type": "product",
+        "internal_barcode": "INT-KNF-001",
+        "registered_barcode": "789123456789",
+        "supplier_item_codes": ["SUP-KNF-8PC-001"],
+        "lead_time": 7,
+        "minimum_order_quantity": 1,
+        "config_attributes": [
+            {"config_name": "Piece Count", "config_value": "8-piece"},
+            {"config_name": "Handle Material", "config_value": "Steel"},
+        ],
+        "custom_fields": [
+            {"field_name": "Warranty Period", "field_value": "5 years"},
+        ],
+        "display_name": ("Professional Kitchen Knife Set / 8-piece / Steel"),
+        "parent_name": "Professional Kitchen Knife Set",
+        "created_at": None,
+        "updated_at": None,
+        "deleted_at": None,
+    }
+
+    # attrs Variant shape: same logical data, no cache-only fields,
+    # ``type_`` trailing-underscore rename, attrs items for configs /
+    # custom fields. The fields ``Variant`` doesn't carry
+    # (display_name, parent_name) get recomputed at read time by
+    # ``_dict_to_variant_details`` from the enriched parent.
+    api_variant = Variant(
+        id=9001,
+        sku="KNF-PRO-8PC-STL",
+        product_id=101,
+        material_id=None,
+        sales_price=299.99,
+        purchase_price=150.0,
+        type_=VariantType.PRODUCT,
+        internal_barcode="INT-KNF-001",
+        registered_barcode="789123456789",
+        supplier_item_codes=["SUP-KNF-8PC-001"],
+        lead_time=7,
+        minimum_order_quantity=1,
+        config_attributes=[
+            VariantConfigAttributesItem(
+                config_name="Piece Count", config_value="8-piece"
+            ),
+            VariantConfigAttributesItem(
+                config_name="Handle Material", config_value="Steel"
+            ),
+        ],
+        custom_fields=[
+            VariantCustomFieldsItem(
+                field_name="Warranty Period", field_value="5 years"
+            ),
+        ],
+    )
+    # Sanity: the attrs shape genuinely lacks cache-only fields. If
+    # this changes the test stops proving what it claims to prove.
+    assert api_variant.lead_time == 7  # actually-set field surfaces
+    assert not hasattr(api_variant, "display_name")
+    assert not hasattr(api_variant, "parent_name")
+
+    async def _get_many_by_ids(entity_type, ids, **_kw):
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedProduct,
+            CachedSupplier,
+        )
+
+        if entity_type == CachedProduct:
+            return {101: parent_product} if 101 in set(ids) else {}
+        if entity_type == CachedSupplier:
+            return {555: supplier} if 555 in set(ids) else {}
+        return {}
+
+    async def _run_path(variant_lookup_returns: object) -> dict:
+        """Drive the impl with a single mocked variant return value; return
+        the response as a plain dict for cross-path comparison."""
+        context, lifespan_ctx = create_mock_context()
+        lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(
+            return_value=variant_lookup_returns
+        )
+        lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
+            side_effect=_get_many_by_ids
+        )
+        # API path: cache_by_id returns None, _fetch_variant_by_id falls
+        # through to its API call. Patch the inner call to return the
+        # attrs Variant directly without round-tripping through httpx.
+        if variant_lookup_returns is None:
+            with patch(
+                "katana_mcp.tools.foundation.items._fetch_variant_by_id",
+                new_callable=AsyncMock,
+                return_value=api_variant,
+            ):
+                request = GetVariantDetailsRequest(variant_id=9001)
+                response = (await _get_variant_details_impl(request, context)).found[0]
+        else:
+            request = GetVariantDetailsRequest(variant_id=9001)
+            response = (await _get_variant_details_impl(request, context)).found[0]
+        return response.model_dump()
+
+    cache_response = await _run_path(cache_row)
+    api_response = await _run_path(None)
+
+    # Path equivalence — every user-facing field on
+    # ``VariantDetailsResponse`` must produce the same value from either
+    # path. A diff here is a divergence bug.
+    assert cache_response == api_response, (
+        "Cache-hit and API-fallback paths produced different responses. "
+        "Diff (cache - api):\n"
+        + "\n".join(
+            f"  {k}: cache={cache_response.get(k)!r} api={api_response.get(k)!r}"
+            for k in sorted(set(cache_response) | set(api_response))
+            if cache_response.get(k) != api_response.get(k)
+        )
+    )
+
+
+@pytest.mark.asyncio
 async def test_get_variant_details_no_purchase_uom_when_parent_omits_it():
     """The common case (purchase_uom == stock uom) — parent omits the fields,
     response surfaces them as None so the Prefab UI card stays quiet."""
