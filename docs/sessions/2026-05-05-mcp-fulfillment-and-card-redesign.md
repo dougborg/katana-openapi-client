@@ -13,7 +13,7 @@ Two parallel objectives:
 1. Ship the first card-redesign delivery (#538 — `get_variant_details`) as a working
    template for the rest of the umbrella (#537).
 1. Test the MCP-backed shop-floor agent on a real Shopify→Katana sales-order fulfillment
-   flow (SO #WEB20387, Carbon Rocker v2 / variant 33331882).
+   flow (SO #WEB1001, Premium Widget v2 / variant 1001).
 
 ## What happened (chronological)
 
@@ -48,7 +48,7 @@ now in CLAUDE.md "Known Pitfalls."
 
 ### Afternoon: live fulfillment session — bugs cascade
 
-User ran a real fulfillment for SO #WEB20387 against the dev MCP server. The session
+User ran a real fulfillment for SO #WEB1001 against the dev MCP server. The session
 produced a chain of issues, each compounding the next:
 
 1. **`search_items` iframe stuck on "Waiting for content…"** — happens both during AND
@@ -67,14 +67,14 @@ produced a chain of issues, each compounding the next:
    the user takes. Filed as #544.
 
 1. **Confirm-button apply errors are opaque** — user clicked Confirm, apply failed with
-   a 422, toast said only "Fulfillment for #WEB20387 failed" with no reason. The actual
+   a 422, toast said only "Fulfillment for #WEB1001 failed" with no reason. The actual
    `UnprocessableEntityError: sum of serial number quantity (current: 0) must match fulfillment row quantity (expected: 1)`
    was visible only via tooltip on a small warning icon. Filed as #545.
 
-1. **`fulfill_order` can't ship serial-tracked variants** — Rocker v2 is serial-tracked;
-   tool has no `serial_numbers` parameter; agent diagnosed correctly and bailed to the
-   browser. Filed as #547 with a 2-phase fix proposal (preview-time block warning +
-   per-row override).
+1. **`fulfill_order` can't ship serial-tracked variants** — Premium Widget v2 is
+   serial-tracked; tool has no `serial_numbers` parameter; agent diagnosed correctly and
+   bailed to the browser. Filed as #547 with a 2-phase fix proposal (preview-time block
+   warning + per-row override).
 
 ### Evening: backlog groom
 

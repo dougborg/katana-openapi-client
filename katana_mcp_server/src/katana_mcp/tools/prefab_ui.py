@@ -2652,7 +2652,7 @@ def build_apply_success_ui(
 ) -> PrefabApp:
     """Generic success card for an applied (non-preview) write operation.
 
-    ``title`` is the card title (e.g. ``"Sales order #WEB20387 fulfilled"``).
+    ``title`` is the card title (e.g. ``"Sales order #WEB1001 fulfilled"``).
     ``summary_lines`` are rendered verbatim as ``Text`` rows in the card
     body. ``katana_url``, when set, surfaces a "View in Katana" link button
     in the footer.
@@ -2687,7 +2687,7 @@ def build_apply_error_ui(
     Surfaces the actual error reason verbatim — closes #545 by ensuring
     the apply error is never swallowed by a static "failed" string.
     ``operation`` is a human-readable phrase like
-    ``"Fulfilling sales order #WEB20387"``. ``hint``, when set, renders
+    ``"Fulfilling sales order #WEB1001"``. ``hint``, when set, renders
     a remediation suggestion (e.g. ``"Check the supplier ID"``).
     """
     with PrefabApp(state={}, css_class="p-4") as app, Card():

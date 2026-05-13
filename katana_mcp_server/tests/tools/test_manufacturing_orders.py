@@ -1632,7 +1632,7 @@ def _mk_recipe_row(
 async def test_get_manufacturing_order_default_filters_to_blocking_rows():
     """Default include_rows='blocking' drops IN_STOCK and other non-blocking rows.
 
-    Procurement triage view: a Mayhem-140 build has dozens of IN_STOCK rows,
+    Procurement triage view: a multi-row build has dozens of IN_STOCK rows,
     a few NOT_AVAILABLE/EXPECTED rows. Only the blocking ones survive.
     """
     from katana_mcp.tools.foundation.manufacturing_orders import (

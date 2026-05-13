@@ -231,7 +231,7 @@ class TestBuildVariantDetailsUI:
         variant = {
             "id": 100,
             "sku": "SEAL-250",
-            "name": "Tubeless Sealant",
+            "name": "General Sealant",
             "uom": "ml",
             "sales_price": 12.99,
         }
@@ -2044,12 +2044,12 @@ class TestBuildApplyResultUIs:
         from katana_mcp.tools.prefab_ui import build_apply_success_ui
 
         app = build_apply_success_ui(
-            title="Sales order #WEB20387 fulfilled",
+            title="Sales order #WEB1001 fulfilled",
             summary_lines=[
-                "Item: Carbon Rocker v2 (RGRD24LG5AXSTBK) qty 1",
-                "Inventory: -1 of variant 33331882",
+                "Item: Premium Widget v2 (WDG-LG-BK-001) qty 1",
+                "Inventory: -1 of variant 1001",
             ],
-            katana_url="https://factory.katanamrp.com/salesorder/43264353",
+            katana_url="https://factory.katanamrp.com/salesorder/1234",
         )
         envelope = app.to_json()
         # Title appears verbatim somewhere in the rendered card
@@ -2067,17 +2067,17 @@ class TestBuildApplyResultUIs:
 
         collect(envelope)
         joined = "\n".join(text_nodes)
-        assert "Sales order #WEB20387 fulfilled" in joined
-        assert "Carbon Rocker v2" in joined
-        assert "Inventory: -1 of variant 33331882" in joined
+        assert "Sales order #WEB1001 fulfilled" in joined
+        assert "Premium Widget v2" in joined
+        assert "Inventory: -1 of variant 1001" in joined
 
     def test_apply_error_surfaces_actual_error_message(self):
         """Closes #545 — the actual error string is not swallowed."""
         from katana_mcp.tools.prefab_ui import build_apply_error_ui
 
         app = build_apply_error_ui(
-            operation="Fulfilling sales order #WEB20387",
-            error_message="Katana API 422: row 108462734 already shipped",
+            operation="Fulfilling sales order #WEB1001",
+            error_message="Katana API 422: row 5001 already shipped",
             hint="Check the SO's current production_status before retrying.",
         )
         envelope = app.to_json()
@@ -2095,11 +2095,11 @@ class TestBuildApplyResultUIs:
 
         collect(envelope)
         joined = "\n".join(text_nodes)
-        assert "Fulfilling sales order #WEB20387 failed" in joined
+        assert "Fulfilling sales order #WEB1001 failed" in joined
         # The actual error string must be visible — the whole point of
         # this builder vs. the static-string toast/SendMessage from the
         # old preview→apply codepath.
-        assert "Katana API 422: row 108462734 already shipped" in joined
+        assert "Katana API 422: row 5001 already shipped" in joined
         assert "Check the SO's current production_status" in joined
 
 

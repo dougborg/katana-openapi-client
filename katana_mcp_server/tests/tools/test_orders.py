@@ -359,8 +359,8 @@ async def test_fulfill_manufacturing_order_preview_lifts_display_name():
 
     cached_variant = MagicMock()
     cached_variant.id = 555
-    cached_variant.sku = "WIDGET-MAYHEM"
-    cached_variant.display_name = "Mayhem Widget / Large / Black"
+    cached_variant.sku = "WIDGET-X1"
+    cached_variant.display_name = "Premium Widget / Large / Black"
     cached_variant.product_id = None
     cached_variant.material_id = None
     cached_variant.config_attributes = []
@@ -383,7 +383,7 @@ async def test_fulfill_manufacturing_order_preview_lifts_display_name():
     # Lead line surfaces the canonical display name (the prior line said
     # only "Manufacturing order completion will update inventory based on BOM",
     # which gave the user no signal what was being made).
-    assert any("Mayhem Widget / Large / Black" in u for u in result.inventory_updates)
+    assert any("Premium Widget / Large / Black" in u for u in result.inventory_updates)
 
 
 @pytest.mark.asyncio
@@ -625,7 +625,7 @@ def _wire_serial_tracked_cache(
 async def test_fulfill_sales_order_preview_blocks_serial_tracked_without_override():
     """Serial-tracked variant + no rows override → BLOCK warning naming the SKU."""
     context, lifespan_ctx = create_mock_context()
-    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="ROCKER-V2")
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="WIDGET-V2")
 
     mock_so = MagicMock(spec=SalesOrder)
     mock_so.order_no = "SO-SN-1"
@@ -643,7 +643,7 @@ async def test_fulfill_sales_order_preview_blocks_serial_tracked_without_overrid
     block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
     assert len(block_warnings) == 1
     assert "serial-tracked" in block_warnings[0]
-    assert "ROCKER-V2" in block_warnings[0]
+    assert "WIDGET-V2" in block_warnings[0]
     assert "Resolve the issue" in result.next_actions[0]
 
 
@@ -651,7 +651,7 @@ async def test_fulfill_sales_order_preview_blocks_serial_tracked_without_overrid
 async def test_fulfill_sales_order_preview_accepts_serial_override():
     """Serial-tracked variant + matching override → no BLOCK warning, serials in preview."""
     context, lifespan_ctx = create_mock_context()
-    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="ROCKER-V2")
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="WIDGET-V2")
 
     mock_so = MagicMock(spec=SalesOrder)
     mock_so.order_no = "SO-SN-2"
@@ -679,7 +679,7 @@ async def test_fulfill_sales_order_preview_accepts_serial_override():
 async def test_fulfill_sales_order_apply_passes_serials_to_api():
     """Apply with override → POST body row carries serial_numbers."""
     context, lifespan_ctx = create_mock_context()
-    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="ROCKER-V2")
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="WIDGET-V2")
 
     mock_so = MagicMock(spec=SalesOrder)
     mock_so.order_no = "SO-SN-3"
@@ -726,7 +726,7 @@ async def test_fulfill_sales_order_apply_passes_serials_to_api():
 async def test_fulfill_sales_order_apply_refuses_serial_tracked_without_override():
     """Direct apply (preview=False) without override → refusal, no API call."""
     context, lifespan_ctx = create_mock_context()
-    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="ROCKER-V2")
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="WIDGET-V2")
 
     mock_so = MagicMock(spec=SalesOrder)
     mock_so.order_no = "SO-SN-4"
@@ -758,7 +758,7 @@ async def test_fulfill_sales_order_apply_refuses_serial_tracked_without_override
 async def test_fulfill_sales_order_blocks_quantity_serials_mismatch():
     """len(serial_numbers) != quantity → BLOCK warning."""
     context, lifespan_ctx = create_mock_context()
-    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="ROCKER-V2")
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="WIDGET-V2")
 
     mock_so = MagicMock(spec=SalesOrder)
     mock_so.order_no = "SO-SN-5"
@@ -838,7 +838,7 @@ async def test_fulfill_sales_order_serial_tracked_detection_falls_back_to_api():
     # of the legacy ``to_dict`` shim.
     variant_obj = MagicMock()
     variant_obj.id = 100
-    variant_obj.sku = "ROCKER-V2"
+    variant_obj.sku = "WIDGET-V2"
     variant_obj.product_id = 9100
     variant_obj.material_id = None
     mock_get_variant_response = MagicMock(status_code=200, parsed=variant_obj)
@@ -866,7 +866,7 @@ async def test_fulfill_sales_order_serial_tracked_detection_falls_back_to_api():
     result = await _fulfill_order_impl(request, context)
 
     block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
-    assert any("serial-tracked" in w and "ROCKER-V2" in w for w in block_warnings)
+    assert any("serial-tracked" in w and "WIDGET-V2" in w for w in block_warnings)
     # Verify both API endpoints were hit.
     cast(Any, get_variant.asyncio_detailed).assert_called_once()
     cast(Any, get_product.asyncio_detailed).assert_called_once()
@@ -880,7 +880,7 @@ async def test_fulfill_sales_order_blocks_duplicate_row_override():
     override (last-key-wins), hiding conflicting input from the caller.
     """
     context, lifespan_ctx = create_mock_context()
-    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="ROCKER-V2")
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="WIDGET-V2")
 
     mock_so = MagicMock(spec=SalesOrder)
     mock_so.order_no = "SO-SN-DUP"
@@ -918,7 +918,7 @@ async def test_fulfill_sales_order_blocks_serial_tracked_non_integer_quantity():
     truncated 1.5 → 1 and could mask genuine mismatches.
     """
     context, lifespan_ctx = create_mock_context()
-    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="ROCKER-V2")
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="WIDGET-V2")
 
     mock_so = MagicMock(spec=SalesOrder)
     mock_so.order_no = "SO-SN-FRAC"
@@ -1035,7 +1035,7 @@ def _make_serial_tracked_mo(
 async def test_fulfill_manufacturing_order_preview_blocks_serial_tracked_without_serials():
     """Serial-tracked MO + no serial_numbers → BLOCK warning naming the SKU."""
     context, lifespan_ctx = create_mock_context()
-    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="ROCKER-V2")
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="WIDGET-V2")
 
     mock_mo = _make_serial_tracked_mo(order_no="MO-SN-1", actual_quantity=1.0)
     mock_response = MagicMock(status_code=200, parsed=mock_mo)
@@ -1054,7 +1054,7 @@ async def test_fulfill_manufacturing_order_preview_blocks_serial_tracked_without
     block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
     assert len(block_warnings) == 1
     assert "serial-tracked" in block_warnings[0]
-    assert "ROCKER-V2" in block_warnings[0]
+    assert "WIDGET-V2" in block_warnings[0]
     assert "Resolve the issue" in result.next_actions[0]
 
 
@@ -1062,7 +1062,7 @@ async def test_fulfill_manufacturing_order_preview_blocks_serial_tracked_without
 async def test_fulfill_manufacturing_order_preview_accepts_serial_numbers():
     """Serial-tracked MO + matching serial_numbers → no BLOCK, serials in preview."""
     context, lifespan_ctx = create_mock_context()
-    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="ROCKER-V2")
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="WIDGET-V2")
 
     mock_mo = _make_serial_tracked_mo(order_no="MO-SN-2", actual_quantity=1.0)
     mock_response = MagicMock(status_code=200, parsed=mock_mo)
@@ -1091,7 +1091,7 @@ async def test_fulfill_manufacturing_order_preview_accepts_serial_numbers():
 async def test_fulfill_manufacturing_order_apply_passes_serials_to_api():
     """Apply with serial_numbers → update_manufacturing_order body carries them."""
     context, lifespan_ctx = create_mock_context()
-    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="ROCKER-V2")
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="WIDGET-V2")
 
     mock_mo = _make_serial_tracked_mo(order_no="MO-SN-3", actual_quantity=2.0)
     mock_get_response = MagicMock(status_code=200, parsed=mock_mo)
@@ -1132,7 +1132,7 @@ async def test_fulfill_manufacturing_order_apply_passes_serials_to_api():
 async def test_fulfill_manufacturing_order_apply_refuses_serial_tracked_without_serials():
     """Direct apply (preview=False) without serial_numbers → refusal, no API call."""
     context, lifespan_ctx = create_mock_context()
-    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="ROCKER-V2")
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="WIDGET-V2")
 
     mock_mo = _make_serial_tracked_mo(order_no="MO-SN-4", actual_quantity=1.0)
     mock_response = MagicMock(status_code=200, parsed=mock_mo)
@@ -1164,7 +1164,7 @@ async def test_fulfill_manufacturing_order_apply_refuses_serial_tracked_without_
 async def test_fulfill_manufacturing_order_blocks_quantity_serials_mismatch():
     """len(serial_numbers) != actual_quantity → BLOCK warning."""
     context, lifespan_ctx = create_mock_context()
-    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="ROCKER-V2")
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="WIDGET-V2")
 
     # actual_quantity=2 but only 1 serial provided.
     mock_mo = _make_serial_tracked_mo(order_no="MO-SN-5", actual_quantity=2.0)
@@ -1198,7 +1198,7 @@ async def test_fulfill_manufacturing_order_blocks_serial_tracked_non_integer_qua
     is incompatible with serial tracking.
     """
     context, lifespan_ctx = create_mock_context()
-    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="ROCKER-V2")
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="WIDGET-V2")
 
     mock_mo = _make_serial_tracked_mo(order_no="MO-SN-FRAC", actual_quantity=1.5)
     mock_response = MagicMock(status_code=200, parsed=mock_mo)
@@ -1250,7 +1250,7 @@ async def test_fulfill_manufacturing_order_serial_tracked_detection_falls_back_t
     # of the legacy ``to_dict`` shim.
     variant_obj = MagicMock()
     variant_obj.id = 100
-    variant_obj.sku = "ROCKER-V2"
+    variant_obj.sku = "WIDGET-V2"
     variant_obj.product_id = 9100
     variant_obj.material_id = None
     mock_get_variant_response = MagicMock(status_code=200, parsed=variant_obj)
@@ -1280,7 +1280,7 @@ async def test_fulfill_manufacturing_order_serial_tracked_detection_falls_back_t
     result = await _fulfill_order_impl(request, context)
 
     block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
-    assert any("serial-tracked" in w and "ROCKER-V2" in w for w in block_warnings)
+    assert any("serial-tracked" in w and "WIDGET-V2" in w for w in block_warnings)
     # Verify both API endpoints were hit.
     cast(Any, get_variant.asyncio_detailed).assert_called_once()
     cast(Any, get_product.asyncio_detailed).assert_called_once()
