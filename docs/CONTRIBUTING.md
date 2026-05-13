@@ -122,17 +122,20 @@ All formatting is automated via `uv run poe format`.
 
 1. **Push to your fork** and create a pull request
 
-   For the first push of a new branch, use the explicit destination ref to avoid a bare
-   `git push -u origin <name>` resolving to the local branch's tracked upstream (which
-   may still be `main` if you created the branch via
-   `git checkout -b <name> origin/main`) and pushing your tip straight to `main`:
+   For the first push of a new branch, use the explicit destination ref so the push
+   doesn't depend on `push.default`, upstream-tracking config, or shell habits:
 
    ```bash
    git push -u origin HEAD:refs/heads/feat/your-feature-name
    ```
 
-   A pre-push hook enforces this; never bypass with `--no-verify`. Full rationale + the
-   incident that prompted the rule live in
+   The form `HEAD:refs/heads/<name>` names both the source (current HEAD) and the
+   destination ref explicitly, so it's immune to git configs (e.g.
+   `push.default = upstream`) that can reroute an under-specified push to whatever the
+   branch tracks — which, if you created the branch via
+   `git checkout -b <name> origin/main`, is `main`. A pre-push hook enforces the
+   explicit form; never bypass with `--no-verify`. Full rationale + the incident that
+   prompted the rule live in
    [COMMIT_STANDARDS "First-Push Safety"](../.github/agents/guides/shared/COMMIT_STANDARDS.md#first-push-safety).
 
 ### Commit Message Format
@@ -321,9 +324,11 @@ sync with the actual generators:
 If the docs and either script ever disagree, the script wins.
 
 The high-level rule: anything under `api/`, `models/`, `client.py`, `client_types.py`,
-`errors.py`, `py.typed`, and `models_pydantic/_generated/` (plus `_auto_registry.py`) is
-rewritten on every regen. Everything else under `katana_public_api_client/` (including
-the rest of `models_pydantic/` — hand-maintained pydantic infrastructure) is preserved.
+`errors.py`, `py.typed`, `__init__.py` (rewritten from a flattened-import template every
+regen — *not* preserved despite the inline comment in the script suggesting otherwise),
+and `models_pydantic/_generated/` (plus `_auto_registry.py`) is rewritten on every
+regen. Everything else under `katana_public_api_client/` (including the rest of
+`models_pydantic/` — hand-maintained pydantic infrastructure) is preserved.
 
 ### Regeneration Features
 
