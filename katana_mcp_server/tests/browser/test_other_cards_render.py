@@ -15,9 +15,22 @@ asserts a positive count of rendered rows.
 
 from __future__ import annotations
 
+import json
+import tempfile
+import time
+from pathlib import Path
+
 import pytest
 
 pytestmark = pytest.mark.browser
+
+# Pinned to match ``render_test_server.GET_VARIANT_DETAILS_RECORD_PATH``
+# so the test process and the dev-server subprocess agree on where the
+# stub writes its received args. If the constant moves, both sides need
+# to update.
+_GET_VARIANT_DETAILS_RECORD_PATH = (
+    Path(tempfile.gettempdir()) / "katana_test_get_variant_details_received.json"
+)
 
 
 class TestOtherCardsRender:
@@ -84,3 +97,137 @@ class TestOtherCardsRender:
         assert frame.locator("table tr").count() >= 6
         # SKU strings from the test fixture.
         assert frame.locator("text=SKU-OLD-0").count() >= 1
+
+
+class TestDataTableRowClickBinding:
+    """Verify DataTable ``onRowClick`` ``{{ field }}`` per-row bindings
+    actually resolve client-side against the clicked row's data (#494).
+
+    Background: #491 found that the MCP host silently dropped Mustache
+    ``{{ request.<field> }}`` arguments in CallTool actions (host-state
+    substitution). The fix in #493 inlined values at preview-build time
+    for the order/receipt/batch/fulfill builders, but deliberately left
+    the DataTable per-row ``{{ sku }}`` and ``{{ id }}`` bindings alone
+    because those expand via the DataTable component's own row-context
+    machinery (``$event`` is the row dict per the component docstring)
+    — a different code path. These tests prove that path actually works
+    end-to-end through the iframe.
+
+    Both card builders' row-click handlers route to a stub
+    ``get_variant_details`` (defined in ``render_test_server.py``) that
+    echoes back whichever argument the host actually delivered. The
+    on_success ``SetState("detail", RESULT)`` then renders the echoed
+    card in a ``Slot(name="detail")``. The test asserts the echoed text
+    matches the clicked row's data — proving substitution worked.
+
+    Failure modes the tests catch:
+    - Host drops the binding silently → echo shows ``None`` → fail
+    - Host emits the literal Mustache string → echo shows ``"{{ sku }}"``
+      → fail
+    - on_error fires (host rejects the call upfront) → toast appears
+      but the detail slot never populates → fail (wait_for times out)
+    """
+
+    def _wait_and_read_record(self, timeout_s: float = 15.0) -> dict:
+        """Poll the cross-process record file until the stub writes to it,
+        then parse + return its contents."""
+        deadline = time.monotonic() + timeout_s
+        while time.monotonic() < deadline:
+            if _GET_VARIANT_DETAILS_RECORD_PATH.exists():
+                return json.loads(_GET_VARIANT_DETAILS_RECORD_PATH.read_text())
+            time.sleep(0.25)
+        raise AssertionError(
+            f"Stub never wrote to {_GET_VARIANT_DETAILS_RECORD_PATH} within "
+            f"{timeout_s}s — the row-click never reached the server. Either "
+            "the host dropped the CallTool, or the click target didn't fire "
+            "onRowClick."
+        )
+
+    @pytest.fixture(autouse=True)
+    def _clear_record(self):
+        """Wipe the cross-process record file before each test so a stale
+        write from a prior test can't masquerade as a fresh substitution."""
+        _GET_VARIANT_DETAILS_RECORD_PATH.unlink(missing_ok=True)
+        yield
+        _GET_VARIANT_DETAILS_RECORD_PATH.unlink(missing_ok=True)
+
+    def test_search_results_row_click_passes_clicked_sku(self, render_scenario):
+        """``build_search_results_ui`` DataTable: clicking row N fires
+        ``get_variant_details(sku="SKU-NNNN")`` with the row's own SKU.
+
+        Picks "SKU-0003" — far enough from the first row that a
+        first-row-only binding would also be caught. Clicks a ``<td>``
+        cell within the row because the Prefab DataTable renderer
+        currently attaches the click listener at the cell level (verified
+        empirically — ``tr.click()`` and ``tr.dispatchEvent("click")``
+        do not fire the handler, but a click on a contained ``<td>``
+        does).
+        """
+        frame = render_scenario("search_results")
+        # Click the SKU cell within the row whose SKU is "SKU-0003".
+        frame.locator("td.pf-table-cell").filter(has_text="SKU-0003").first.click()
+
+        record = self._wait_and_read_record()
+        # Substitution must have resolved the {{ sku }} binding against
+        # the clicked row's data — not None, not the literal Mustache
+        # string, not some other row's SKU.
+        assert record["received_sku"] == "SKU-0003", (
+            f"Expected received_sku='SKU-0003' (the clicked row's SKU). "
+            f"Got: {record!r}. If 'received_sku' is None the host silently "
+            f"dropped the binding. If it's '{{ sku }}' the host emitted the "
+            f"literal template. Either is the #491-class failure mode."
+        )
+        # search_results binds only {{ sku }}, not {{ id }} — variant_id
+        # should be absent.
+        assert record["received_variant_id"] is None
+
+    def test_item_detail_variant_row_click_passes_clicked_variant_id(
+        self, render_scenario
+    ):
+        """``build_item_detail_ui`` variants DataTable: clicking variant
+        row N fires ``get_variant_details(variant_id=N)`` with the row's
+        own id. Pins the #494 fix path for the card landed in #698.
+
+        Picks variant_id=700002 (the middle row) so first-row-only and
+        last-row-only bugs would both fail this test. The middle row's
+        SKU is "VAR-B" — click that cell to drive the row-click.
+        """
+        frame = render_scenario("item_detail")
+        frame.locator("td.pf-table-cell").filter(has_text="VAR-B").first.click()
+
+        record = self._wait_and_read_record()
+        assert record["received_variant_id"] == 700002, (
+            f"Expected received_variant_id=700002 (the clicked row's id). "
+            f"Got: {record!r}. The item_detail variants DataTable binds "
+            f"{{ id }} via on_row_click — a None or wrong-row value here "
+            f"means the row-context substitution is broken."
+        )
+        # item_detail binds only {{ id }}, not {{ sku }}.
+        assert record["received_sku"] is None
+
+    def test_search_results_row_click_populates_detail_slot(self, render_scenario):
+        """End-to-end drill-down: clicking a row not only fires the
+        CallTool with the right SKU, but the returned card actually
+        renders inside the ``Slot(name="detail")``.
+
+        The Slot-side fix paired with the substitution fix: a bare
+        ``SetState("detail", RESULT)`` would put the PrefabApp envelope
+        (``{$prefab, view, defs, state}``) into state, which the Slot
+        can't render because it checks ``"type" in D`` on the stored
+        value. ``RESULT.view`` (``{{ $result.view }}``) extracts the
+        root view component, which DOES have ``type``, so the Slot
+        renders the response card.
+        """
+        frame = render_scenario("search_results")
+        # Pre-click: fallback content is visible; echoed card is not.
+        assert frame.locator("text=Click a row to see").count() >= 1
+        assert frame.locator("text=Echoed Variant Details").count() == 0
+
+        frame.locator("td.pf-table-cell").filter(has_text="SKU-0007").first.click()
+
+        # The echoed response card appears in the detail slot.
+        frame.locator("text=Echoed Variant Details").wait_for(
+            state="visible", timeout=15000
+        )
+        # And it shows the clicked row's SKU echoed back.
+        assert frame.locator("text=received_sku='SKU-0007'").count() >= 1

@@ -773,9 +773,12 @@ class TestBuildItemDetailUI:
         assert on_row_click.get("tool") == "get_variant_details"
         # Argument keys off the row's ``id`` field, not ``sku``. Using
         # ``id`` keeps SKU-less variants (legitimate per
-        # ``ItemVariantSummary.sku: str | None``) clickable.
+        # ``ItemVariantSummary.sku: str | None``) clickable. The template
+        # uses ``$event.id`` (not bare ``id``) because the renderer
+        # spreads the row dict at ``$event``, not into the scope's top
+        # level (#494, verified via browser test).
         args = on_row_click.get("arguments") or {}
-        assert args.get("variant_id") == "{{ id }}"
+        assert args.get("variant_id") == "{{ $event.id }}"
         assert "sku" not in args
 
     def test_variants_table_handles_sku_less_variants(self):
@@ -805,7 +808,7 @@ class TestBuildItemDetailUI:
         assert len(tables) == 1
         # Row-click args reference the variant id, not sku.
         args = tables[0].get("onRowClick", {}).get("arguments") or {}
-        assert args == {"variant_id": "{{ id }}"}
+        assert args == {"variant_id": "{{ $event.id }}"}
         # The variant count metric reflects the single row.
         assert "Variants: 1" in str(envelope)
 
