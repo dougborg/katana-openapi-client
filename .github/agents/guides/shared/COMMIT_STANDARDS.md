@@ -314,16 +314,27 @@ muscle-memory bare `git push` is all it takes.
 **Always use the fully explicit destination ref for first-time pushes:**
 
 ```bash
-# Risky — depends on push.default, branch tracking, and contributor habits
+# DANGEROUS — under-specified pushes resolve to the tracked upstream (`main`)
+git push                       # no remote, no refspec
+git push -u origin             # no refspec
+git push origin HEAD           # depends on push.default
+
+# DISCOURAGED — safe today, but relies on push.default staying `simple` /
+# `current` and on the branch name being spelled correctly. One stray
+# `git config --global push.default upstream` defeats it.
 git push -u origin chore/foo
 
-# Safe — names both source (HEAD) and destination ref explicitly
+# REQUIRED — names both source (HEAD) and destination ref explicitly.
+# Immune to push.default, branch-tracking config, and bare-push habits.
 git push -u origin HEAD:refs/heads/chore/foo
 ```
 
 This actually happened: commit `30f3fd86` reached main + tagged `mcp-v0.44.1` +
-published to PyPI before the pipeline could be cancelled. A `pre-push` hook now enforces
-the explicit form on every contributor's machine; **do not bypass with `--no-verify`**.
+published to PyPI before the pipeline could be cancelled. A `pre-push` hook at
+`scripts/pre-push-guard.sh` now blocks any push that lands a non-`main` local ref on
+`refs/heads/main`, so the exact incident can't recur — but the hook only catches pushes
+that actually target main, *not* pushes that omit the explicit refspec. **Always use the
+explicit form, and do not bypass the hook with `--no-verify`.**
 
 ## Multi-Package Changes
 
