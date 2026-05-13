@@ -57,9 +57,9 @@ Tools live under `katana_mcp/tools/` and split into two sublayers:
   [ADR-0016](adr/0016-tool-interface-pattern.md) and
   [ADR-0019](adr/0019-tool-description-batch-conventions.md). The canonical list of
   modules is the directory itself
-  ([`tools/foundation/`](../src/katana_mcp/tools/foundation/)) and the live tool surface
-  is exposed at the `katana://help/tools` resource — both stay current; this doc does
-  not enumerate.
+  ([`tools/foundation/`](https://github.com/dougborg/katana-openapi-client/tree/main/katana_mcp_server/src/katana_mcp/tools/foundation))
+  and the live tool surface is exposed at the `katana://help/tools` resource — both stay
+  current; this doc does not enumerate.
 - **Workflows** (`tools/workflows/`) — a planned extension layer for future multi-step
   compositions built on top of foundation tools. This directory is currently a stub:
   `register_all_workflow_tools` is a no-op and there are no concrete workflow tool
@@ -176,11 +176,11 @@ The cache is split into two tiers:
   SQL `WHERE` clauses; no FTS sidecar — these tables don't carry free-text fields.
 
 The canonical entity list lives in
-[`typed_cache/sync.py`](../src/katana_mcp/typed_cache/sync.py) (the `EntitySpec`
-literals); enumerating it here would drift on every new entity. For the soft-state
-filtering rules (`include_archived` / `include_deleted` opt-ins, `is_archived` /
-`is_deleted` derived bools, cross-entity ID collision pitfalls) and the `Cached<Entity>`
-/ API-pydantic-don't-pollute contract, see
+[`typed_cache/sync.py`](https://github.com/dougborg/katana-openapi-client/blob/main/katana_mcp_server/src/katana_mcp/typed_cache/sync.py)
+(the `EntitySpec` literals); enumerating it here would drift on every new entity. For
+the soft-state filtering rules (`include_archived` / `include_deleted` opt-ins,
+`is_archived` / `is_deleted` derived bools, cross-entity ID collision pitfalls) and the
+`Cached<Entity>` / API-pydantic-don't-pollute contract, see
 [Typed Cache — Patterns and Pitfalls](typed_cache/README.md).
 
 ### EntitySpec — the generic sync driver
