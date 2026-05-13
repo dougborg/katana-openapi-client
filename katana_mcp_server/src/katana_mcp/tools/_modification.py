@@ -14,10 +14,12 @@ A modification tool follows this shape:
 4. If ``preview=False`` call the API, then return
    :class:`ModificationResponse` with ``is_preview=False``.
 
-Use :func:`render_modification_md` (or :func:`to_tool_result`) to produce the
-markdown for the :class:`ToolResult` content. Markdown rendering is the only
-output channel today; Prefab UI for diff visualization can layer on later by
-operating on the same response model.
+Use :func:`to_tool_result` to produce the :class:`ToolResult` — it emits the
+response as JSON ``content`` (via :func:`make_tool_result`) and attaches the
+Prefab preview / apply card via ``structured_content`` for MCP-Apps hosts.
+:func:`render_modification_md` remains in the module as a test helper that
+produces a human-readable markdown summary of the diff (no longer used as a
+production output channel since #567).
 """
 
 from __future__ import annotations

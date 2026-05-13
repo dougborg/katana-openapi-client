@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from enum import StrEnum
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
@@ -44,8 +44,6 @@ from katana_mcp.tools.decorators import cache_read
 from katana_mcp.tools.list_coercion import CoercedIntListOpt, CoercedStrListOpt
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
-    format_md_table,
-    make_simple_result,
     make_tool_result,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
@@ -156,13 +154,6 @@ class SearchItemsRequest(BaseModel):
             'with {"update_header": {"is_archived": false}}.'
         ),
     )
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data consumable by downstream tools/aggregations."
-        ),
-    )
 
 
 class ItemInfo(BaseModel):
@@ -187,21 +178,30 @@ class SearchItemsResponse(BaseModel):
 def _search_response_to_tool_result(
     response: SearchItemsResponse, query: str
 ) -> ToolResult:
-    """Convert SearchItemsResponse to ToolResult with the Prefab UI."""
+    """Convert SearchItemsResponse to ToolResult with the Prefab UI.
+
+    The Prefab DataTable row-click drill-down requires a SKU (the on-row
+    binding is ``{{ $event.sku }}`` per #714), so SKU-less variants are
+    filtered OUT of the rendered table — clicking them would otherwise
+    invoke ``get_variant_details(sku=None)`` and fail. **But JSON content
+    keeps every variant**, including SKU-less rows. Programmatic consumers
+    deserve the full result set; only the interactive UI hides rows it
+    can't make actionable. The two surfaces diverge intentionally here.
+    """
     from katana_mcp.tools.prefab_ui import build_search_results_ui
 
-    # Drill-down (CallTool on row click) requires a SKU. Filter once and emit
-    # the filtered set to BOTH the LLM (via content JSON) and the UI, so the
-    # model and user see the same data — otherwise the model could reference
-    # an item the user can't see in the table.
-    filtered_items = [item for item in response.items if item.sku]
-    filtered_response = SearchItemsResponse(
-        items=filtered_items, total_count=len(filtered_items)
-    )
-    items_dicts = [item.model_dump() for item in filtered_items]
-    ui = build_search_results_ui(items_dicts, query, len(items_dicts))
+    # UI: filter out SKU-less variants (row-click drill-down needs sku).
+    ui_items = [item.model_dump() for item in response.items if item.sku]
+    ui = build_search_results_ui(ui_items, query, len(ui_items))
 
-    return make_tool_result(filtered_response, ui=ui)
+    # ``content`` carries the full response (every variant, sku or no sku) so
+    # JSON consumers don't silently lose data. ``structured_content`` carries
+    # the Prefab UI envelope with the filtered row set for MCP-Apps hosts —
+    # the two surfaces diverge intentionally per the docstring above.
+    return ToolResult(
+        content=response.model_dump_json(indent=2),
+        structured_content=ui,
+    )
 
 
 @cache_read(CachedVariant)
@@ -267,11 +267,6 @@ async def search_items(
     Query must not be empty. Default limit is 20 results.
     """
     response = await _search_items_impl(request, context)
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
     return _search_response_to_tool_result(response, request.query)
 
 
@@ -567,13 +562,6 @@ class GetItemRequest(BaseModel):
 
     id: int = Field(..., description="Item ID")
     type: ItemType = Field(..., description="Type of item (product, material, service)")
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data consumable by downstream tools/aggregations."
-        ),
-    )
 
 
 class ItemSupplierInfo(BaseModel):
@@ -940,13 +928,6 @@ async def get_item(
     codes, custom fields), follow up with ``get_variant_details``.
     """
     response = await _get_item_impl(request, context)
-
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-
     return _item_details_to_tool_result(response)
 
 
@@ -1626,13 +1607,6 @@ class GetVariantDetailsRequest(BaseModel):
         default=None,
         description="Batch lookup: JSON array of variant IDs, e.g. [12345, 67890].",
     )
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data consumable by downstream tools/aggregations."
-        ),
-    )
 
 
 class VariantDetailsResponse(BaseModel):
@@ -1721,9 +1695,8 @@ class VariantNotFound(BaseModel):
     :func:`_get_variant_details_impl` so batch callers can see the gaps
     without parsing exception text. The XOR is enforced at validation
     time so invalid shapes (both set, both unset) can't leak into the
-    JSON / markdown rendering paths — e.g., the markdown miss line
-    formats ``#{variant_id}`` whenever ``sku is None``, so a both-None
-    instance would render ``#None``.
+    JSON envelope — every miss must carry a single identifying field so
+    callers can match it back to the request.
     """
 
     sku: str | None = None
@@ -1752,22 +1725,6 @@ class GetVariantDetailsResult(BaseModel):
 
     found: list[VariantDetailsResponse] = Field(default_factory=list)
     not_found: list[VariantNotFound] = Field(default_factory=list)
-
-
-def _variant_details_to_tool_result(response: VariantDetailsResponse) -> ToolResult:
-    """Convert VariantDetailsResponse to ToolResult.
-
-    content carries the raw response as JSON for the LLM (no UI tree noise);
-    structured_content carries the Prefab envelope rendered in the iframe on
-    UI-capable hosts (per MCP Apps spec, #422).
-    """
-    from katana_mcp.tools.prefab_ui import build_variant_details_ui
-
-    ui = build_variant_details_ui(response.model_dump())
-    return ToolResult(
-        content=response.model_dump_json(),
-        structured_content=ui,
-    )
 
 
 def _iso_or_none(value: Any) -> str | None:
@@ -2123,10 +2080,12 @@ async def get_variant_details(
     """Get comprehensive variant details by SKU(s) or variant ID(s).
 
     Pass one or more values via ``skus`` / ``variant_ids`` (or the singular
-    ``sku`` / ``variant_id``). When exactly one variant resolves and there are
-    no misses, the response is a rich detail card; otherwise it's a summary
-    table (and a ``Not found`` section is appended when the batch had misses).
-    Batching N lookups in one call beats N separate invocations.
+    ``sku`` / ``variant_id``). Response is always the JSON
+    ``{variants: [...], not_found: [...]}`` envelope for every request shape
+    (single OR batch). When exactly one variant resolves and there are no
+    misses, a rich Prefab detail card is additionally attached via
+    ``structured_content`` for UI hosts. Batching N lookups in one call beats
+    N separate invocations.
 
     Returns pricing, barcodes, supplier codes, and more.
 
@@ -2144,23 +2103,28 @@ async def get_variant_details(
     found = result.found
     not_found = result.not_found
 
-    if request.format == "json":
-        payload = {
-            "variants": [r.model_dump() for r in found],
-            "not_found": [n.model_dump(exclude_none=True) for n in not_found],
-        }
-        import json as _json
+    # JSON ``content`` is the stable contract: the ``{variants, not_found}``
+    # envelope is returned for every request shape — single OR batch — so
+    # programmatic consumers see one parseable shape (#567 — no per-tool
+    # markdown). ``structured_content`` then differs by shape: a Prefab card
+    # for single requests (see below), or the envelope dict for batch.
+    # Pre-#567 the format="json" branch already returned this envelope; the
+    # single-item bare-VariantDetailsResponse shape was markdown-only.
+    import json as _json
 
-        return ToolResult(
-            content=_json.dumps(payload, indent=2, default=str),
-            structured_content=payload,
-        )
+    payload = {
+        "variants": [r.model_dump(mode="json") for r in found],
+        "not_found": [n.model_dump(mode="json", exclude_none=True) for n in not_found],
+    }
+    content = _json.dumps(payload, indent=2, default=str)
 
-    # If a single-variant request, return the single-variant markdown + UI.
-    # Treat a single-element batch list (skus=[X] or variant_ids=[X]) the same
-    # as the singular form to honor the docstring's "single item" promise —
-    # but only when there are no misses; with misses we fall through to the
-    # batch renderer so the "Not found" section still surfaces.
+    # Single-variant request → rich Prefab card alongside the envelope.
+    # Treat a single-element batch list (skus=[X] or variant_ids=[X]) the
+    # same as the singular form to honor the docstring's "single item"
+    # promise — but only when there are no misses; with misses we fall
+    # through to the bare envelope so the ``not_found`` array still
+    # surfaces in structured_content without a Prefab card stealing
+    # the slot.
     is_single = (
         len(found) == 1
         and not not_found
@@ -2172,45 +2136,12 @@ async def get_variant_details(
         )
     )
     if is_single:
-        return _variant_details_to_tool_result(found[0])
+        from katana_mcp.tools.prefab_ui import build_variant_details_ui
 
-    # Batch response: summary + table (+ a "Not found" section when the
-    # batch had misses, so callers see the gaps at a glance without
-    # reaching into structured_content).
-    if found:
-        table = format_md_table(
-            headers=["ID", "SKU", "Name", "Sales Price", "Purchase Price"],
-            rows=[
-                [
-                    v.id,
-                    v.sku,
-                    v.name,
-                    f"${v.sales_price:,.2f}" if v.sales_price is not None else "N/A",
-                    f"${v.purchase_price:,.2f}"
-                    if v.purchase_price is not None
-                    else "N/A",
-                ]
-                for v in found
-            ],
-        )
-        markdown = f"## Variant Details ({len(found)} variants)\n\n{table}"
-    else:
-        markdown = "## Variant Details (0 variants)\n\nNo variants resolved."
+        ui = build_variant_details_ui(found[0].model_dump())
+        return ToolResult(content=content, structured_content=ui)
 
-    if not_found:
-        misses = ", ".join(
-            f"`{n.sku}`" if n.sku is not None else f"`#{n.variant_id}`"
-            for n in not_found
-        )
-        markdown += f"\n\n**Not found ({len(not_found)}):** {misses}"
-
-    return make_simple_result(
-        markdown,
-        structured_data={
-            "variants": [v.model_dump() for v in found],
-            "not_found": [n.model_dump(exclude_none=True) for n in not_found],
-        },
-    )
+    return ToolResult(content=content, structured_content=payload)
 
 
 def register_tools(mcp: FastMCP) -> None:

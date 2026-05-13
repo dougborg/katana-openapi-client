@@ -1176,7 +1176,7 @@ async def test_list_manufacturing_orders_format_json_returns_json():
         mock_impl.return_value = ListManufacturingOrdersResponse(
             orders=[], total_count=0, pagination=None
         )
-        result = await list_manufacturing_orders(format="json", context=context)
+        result = await list_manufacturing_orders(context=context)
 
     data = json.loads(_content_text(result))
     assert data["total_count"] == 0
@@ -1199,9 +1199,7 @@ async def test_get_manufacturing_order_format_json_returns_json():
             order_no="MO-2024-001",
             status="IN_PROGRESS",
         )
-        result = await get_manufacturing_order(
-            order_id=1, format="json", context=context
-        )
+        result = await get_manufacturing_order(order_id=1, context=context)
 
     data = json.loads(_content_text(result))
     assert data["id"] == 3001
@@ -1231,7 +1229,7 @@ async def test_get_manufacturing_order_recipe_format_json_returns_json():
             manufacturing_order_id=7, rows=[], total_count=0
         )
         result = await get_manufacturing_order_recipe(
-            manufacturing_order_id=7, format="json", context=context
+            manufacturing_order_id=7, context=context
         )
 
     data = json.loads(_content_text(result))
@@ -1471,10 +1469,12 @@ async def test_get_manufacturing_order_fetches_related_resources():
 
 
 @pytest.mark.asyncio
-async def test_get_manufacturing_order_markdown_uses_canonical_field_names():
-    """Markdown labels use Pydantic field names (not prettified headers) so
-    LLM consumers can't misread a section label as a different field
-    (motivation: #346 follow-on, supplier_item_codes misread)."""
+async def test_get_manufacturing_order_response_uses_canonical_field_names():
+    """JSON content keys off the Pydantic field names directly — same
+    motivation as the #346 canonical-name convention. Verbose-mode
+    response surfaces every empty list explicitly (as ``[]``) so a
+    consumer parsing the payload can tell presence-vs-absence.
+    """
     from katana_mcp.tools.foundation.manufacturing_orders import (
         GetManufacturingOrderResponse,
     )
@@ -1496,10 +1496,6 @@ async def test_get_manufacturing_order_markdown_uses_canonical_field_names():
             subassemblies_cost=2250.0,
             sales_order_row_id=2501,
         )
-        # Verbose-mode rendering pins the explicit-empty-list contract.
-        # Compact mode (the default) suppresses ``**field**: []`` placeholders
-        # to keep the response small — that surface is exercised by separate
-        # compact-mode tests below.
         result = await get_manufacturing_order(
             order_id=3001,
             include_rows="all",
@@ -1509,21 +1505,18 @@ async def test_get_manufacturing_order_markdown_uses_canonical_field_names():
             context=context,
         )
 
-    text = result.content[0].text
-    # Canonical scalar labels — the prettified versions the old impl used
-    # (e.g. "**Deadline**:", "**Total Cost**:") are gone. These pin the
-    # new convention:
-    assert "**production_deadline_date**: 2024-01-25T17:00:00+00:00" in text
-    assert "**total_cost**: 12500.0" in text
-    assert "**subassemblies_cost**: 2250.0" in text
-    assert "**sales_order_row_id**: 2501" in text
-    # Empty list fields render with explicit [] syntax, not bare headers
-    # that a reader might mistake for a section:
-    assert "**recipe_rows**: []" in text
-    assert "**operation_rows**: []" in text
-    assert "**productions**: []" in text
-    assert "**batch_transactions**: []" in text
-    assert "**serial_numbers**: []" in text
+    data = json.loads(result.content[0].text)
+    # Canonical scalar field names appear as JSON keys.
+    assert data["production_deadline_date"] == "2024-01-25T17:00:00+00:00"
+    assert data["total_cost"] == 12500.0
+    assert data["subassemblies_cost"] == 2250.0
+    assert data["sales_order_row_id"] == 2501
+    # Verbose mode surfaces every collection key with an empty array.
+    assert data["recipe_rows"] == []
+    assert data["operation_rows"] == []
+    assert data["productions"] == []
+    assert data["batch_transactions"] == []
+    assert data["serial_numbers"] == []
 
 
 @pytest.mark.asyncio
@@ -1767,9 +1760,7 @@ async def test_get_manufacturing_order_compact_json_strips_row_metadata():
                 _mk_recipe_row(id=1, availability="NOT_AVAILABLE"),
             ],
         )
-        result = await get_manufacturing_order(
-            order_id=3001, format="json", context=context
-        )
+        result = await get_manufacturing_order(order_id=3001, context=context)
 
     data = json.loads(_content_text(result))
     row = data["recipe_rows"][0]
@@ -1802,7 +1793,7 @@ async def test_get_manufacturing_order_verbose_json_keeps_row_metadata():
             ],
         )
         result = await get_manufacturing_order(
-            order_id=3001, format="json", verbose=True, context=context
+            order_id=3001, verbose=True, context=context
         )
 
     data = json.loads(_content_text(result))
@@ -1812,9 +1803,10 @@ async def test_get_manufacturing_order_verbose_json_keeps_row_metadata():
 
 
 @pytest.mark.asyncio
-async def test_get_manufacturing_order_compact_markdown_omits_empty_lists():
-    """Compact markdown does not emit ``**field**: []`` placeholders for
-    suppressed/empty collections."""
+async def test_get_manufacturing_order_compact_omits_unset_collections():
+    """Compact mode (verbose=False) drops suppressed/empty collections from
+    the JSON payload rather than emitting them as empty arrays. Keeps the
+    response small for inline tool-result limits."""
     from katana_mcp.tools.foundation.manufacturing_orders import (
         GetManufacturingOrderResponse,
     )
@@ -1832,21 +1824,14 @@ async def test_get_manufacturing_order_compact_markdown_omits_empty_lists():
         )
         result = await get_manufacturing_order(order_id=3001, context=context)
 
-    text = result.content[0].text
-    # No bracketed-empty placeholders in compact mode.
-    assert "**recipe_rows**: []" not in text
-    assert "**operation_rows**: []" not in text
-    assert "**productions**: []" not in text
-    assert "**batch_transactions**: []" not in text
-    assert "**serial_numbers**: []" not in text
-    # Suppressed collections do not appear at all (no canonical-name header,
-    # no decorated label, no annotation note).
-    assert "**recipe_rows**" not in text
-    assert "**operation_rows**" not in text
-    assert "**productions**" not in text
-    assert "filtered to blocking rows only" not in text
-    # Scalar header is still rendered.
-    assert "**status**: IN_PROGRESS" in text
+    data = json.loads(result.content[0].text)
+    # Suppressed collections are absent from the payload (default
+    # include_rows="blocking" + include_operation_rows=False +
+    # include_productions=False drops those keys).
+    assert "operation_rows" not in data
+    assert "productions" not in data
+    # Scalar fields still surface.
+    assert data["status"] == "IN_PROGRESS"
 
 
 # ============================================================================
@@ -2259,7 +2244,7 @@ async def test_list_blocking_ingredients_omits_recipe_rows_in_compact_json():
             id=3001, order_no="MO-X", status="IN_PROGRESS"
         )
         result = await get_manufacturing_order(
-            order_id=3001, format="json", include_rows="none", context=context
+            order_id=3001, include_rows="none", context=context
         )
 
     data = json.loads(_content_text(result))

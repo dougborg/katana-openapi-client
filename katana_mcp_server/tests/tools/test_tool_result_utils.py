@@ -11,11 +11,13 @@ JSON dump of the response so the LLM can act on the data.
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
+    make_json_result,
     make_tool_result,
     resolve_entity_name,
 )
@@ -77,6 +79,67 @@ def test_ui_meta_is_the_opt_in_marker_for_prefab_rendering():
     # full _meta.ui = {"resourceUri": "ui://prefab/renderer.html", "csp": ...}
     # shape required by MCP Apps and registers the renderer resource.
     assert UI_META == {"ui": True}
+
+
+# ============================================================================
+# make_json_result — non-UI tools (sibling of make_tool_result)
+# ============================================================================
+
+
+class _DatedResponse(BaseModel):
+    id: int
+    label: str
+    created_at: datetime
+
+
+def test_make_json_result_emits_indented_json_in_content():
+    """``content`` carries ``indent=2`` JSON for LLM context and eyeball
+    debugging. Indentation is the contract that distinguishes this helper
+    from ``make_tool_result``, which emits compact JSON content."""
+    response = _DatedResponse(
+        id=42, label="hello", created_at=datetime(2026, 5, 14, 12, 0, tzinfo=UTC)
+    )
+
+    result = make_json_result(response)
+
+    assert result.content
+    from mcp.types import TextContent
+
+    first = result.content[0]
+    assert isinstance(first, TextContent)
+    # Indentation: the JSON wraps with newlines per top-level key.
+    assert "\n  " in first.text
+    parsed = json.loads(first.text)
+    assert parsed == {
+        "id": 42,
+        "label": "hello",
+        "created_at": "2026-05-14T12:00:00Z",
+    }
+
+
+def test_make_json_result_emits_response_dict_as_structured_content():
+    """``structured_content`` is ``response.model_dump(mode="json")`` — a
+    plain dict consumable by programmatic callers without re-parsing the
+    content text. ``mode="json"`` serializes datetime to ISO-8601 string
+    (not a ``datetime`` object), so structured_content is JSON-roundtrip
+    safe."""
+    response = _DatedResponse(
+        id=42, label="hello", created_at=datetime(2026, 5, 14, 12, 0, tzinfo=UTC)
+    )
+
+    result = make_json_result(response)
+
+    structured = result.structured_content
+    assert structured == {
+        "id": 42,
+        "label": "hello",
+        "created_at": "2026-05-14T12:00:00Z",
+    }
+    # The datetime is serialized as a string, not left as a datetime
+    # instance — otherwise hosts that JSON-encode structured_content
+    # would fail.
+    assert structured is not None
+    assert isinstance(structured["created_at"], str)
 
 
 # ============================================================================

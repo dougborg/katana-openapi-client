@@ -41,7 +41,7 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **search_items** - Find products, materials, services by name/SKU
 - **get_item** / **modify_item** / **delete_item** - Full CRUD on items (products / materials / services). `modify_item` carries header + variant CRUD in one call via typed sub-payload slots.
 - **get_variant_details** - Get full details for a specific item
-- **check_inventory** - Check stock levels for one or more SKUs or variant IDs (pass a list for a summary table)
+- **check_inventory** - Check stock levels for one or more SKUs or variant IDs
 - **list_low_stock_items** - Find items needing reorder
 - **create_stock_adjustment / list_stock_adjustments / update_stock_adjustment / delete_stock_adjustment** - Full CRUD for manual inventory adjustments
 
@@ -77,12 +77,12 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **delete_stock_transfer** - Delete a transfer
 
 ### Reference Data
-- **list_locations** - List or fuzzy-search warehouses and facilities (id, name, address, primary flag). Use for `location_id` lookups on orders and inventory queries. Supports `query`, `limit`, `format`.
-- **list_suppliers** - List or fuzzy-search suppliers by name/code (id, name, email, phone, currency, code). Use for `supplier_id` / `default_supplier_id` on POs and materials. Supports `query`, `limit`, `format`.
+- **list_locations** - List or fuzzy-search warehouses and facilities (id, name, address, primary flag). Use for `location_id` lookups on orders and inventory queries. Supports `query`, `limit`
+- **list_suppliers** - List or fuzzy-search suppliers by name/code (id, name, email, phone, currency, code). Use for `supplier_id` / `default_supplier_id` on POs and materials. Supports `query`, `limit`
 - **get_supplier** - Full-detail supplier record by id (contact info, address, payment terms). Pair with `list_suppliers(query=...)`.
-- **list_tax_rates** - List or fuzzy-search configured tax rates (id, rate, defaults). Use for `tax_rate_id` on order line items. Supports `query`, `limit`, `format`.
-- **list_operators** - List or fuzzy-search manufacturing operators (id, name). Use for `operator_id` / `packer_id` on MO operations and SO fulfillments. Supports `query`, `limit`, `format`.
-- **list_additional_costs** - List or fuzzy-search the additional-cost catalog (freight, duties, handling). Use for `additional_cost_id` on `modify_purchase_order`. Supports `query`, `limit`, `format`.
+- **list_tax_rates** - List or fuzzy-search configured tax rates (id, rate, defaults). Use for `tax_rate_id` on order line items. Supports `query`, `limit`
+- **list_operators** - List or fuzzy-search manufacturing operators (id, name). Use for `operator_id` / `packer_id` on MO operations and SO fulfillments. Supports `query`, `limit`
+- **list_additional_costs** - List or fuzzy-search the additional-cost catalog (freight, duties, handling). Use for `additional_cost_id` on `modify_purchase_order`. Supports `query`, `limit`
 
 ### Cache Administration
 - **rebuild_cache** - Force-rebuild the local typed cache for one or more cached entity types. Covers transactional entities (PO, SO, MO, stock adjustment, stock transfer) and catalog entities (variant, product, material, service, customer, supplier, location, tax_rate, operator, factory, additional_cost). Truncates the cache table(s), clears the sync watermark, and re-fetches from Katana. Use when the cache has phantom rows (entities present locally but missing from Katana). Destructive; preview/apply.
@@ -238,14 +238,16 @@ RECEIVED transfers as-is).
 
 ## Output Format
 
-Every list/get/search and reporting tool accepts a shared `format` parameter:
+**Programmatic consumers should always read `content`.** Every tool emits
+its response as JSON in the `content` channel — `json.loads(...)` the
+content text directly to get the response payload. LLM consumers read the
+JSON natively without a markdown rendering layer in between.
 
-- `format="markdown"` (default) — human-readable markdown tables / sections.
-- `format="json"` — structured JSON matching the tool's Pydantic response,
-  for programmatic consumers that would otherwise have to re-parse markdown.
-
-Default behavior is unchanged. Pass `format="json"` when chaining tool calls
-or feeding output into downstream aggregation / filtering.
+`structured_content` is the surface used by MCP-Apps UI hosts. Its shape
+varies by tool — sometimes a parsed copy of the response, sometimes a
+Prefab card envelope, sometimes a hybrid — so treat it as opaque
+rendering hints rather than a typed response surface. If you need
+typed data, parse `content`.
 
 ## Linking to Katana
 
@@ -533,7 +535,6 @@ you can unarchive it via `modify_item`), pass `include_archived=true`.
 - `include_archived` (optional, default false): When true, archived items
   are included in results. Each row carries an `is_archived` flag so the
   UI / caller can distinguish active vs archived rows.
-- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Examples:**
 
@@ -583,7 +584,6 @@ invocations.
 - `variant_id` (optional): Single variant ID to look up directly
 - `skus` (optional): Batch — list of SKUs to look up
 - `variant_ids` (optional): Batch — list of variant IDs to look up
-- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Examples:**
 ```json
@@ -608,21 +608,18 @@ requested.
 (`{"sku": "..."}` / `{"variant_id": ...}`) raise an error if the variant
 isn't found. Batch requests (`{"skus": [...]}` / `{"variant_ids": [...]}`,
 or any mixed form) never short-circuit — the response carries every variant
-that resolved plus a `not_found` list of the missing identifiers. JSON
-payloads expose this as
-`{"variants": [...], "not_found": [{"sku": ...}, ...]}`; markdown appends
-a `**Not found (n):** ...` section after the table when there are
-misses. This makes batching safe for receiving-flow lookups where one
-bad SKU on a packing slip shouldn't lose the rest of the batch.
+that resolved plus a `not_found` list of the missing identifiers. Response
+shape: `{"variants": [...], "not_found": [{"sku": ...}, ...]}`. This makes
+batching safe for receiving-flow lookups where one bad SKU on a packing
+slip shouldn't lose the rest of the batch.
 
 ---
 
 ### check_inventory
-Check current stock levels for one or more SKUs or variant IDs — pass a list for a summary table, one item for a detailed card.
+Check current stock levels for one or more SKUs or variant IDs.
 
 **Parameters:**
-- `skus_or_variant_ids` (required, min 1): List of SKUs (strings) or variant IDs (integers) — mix freely. Pass one for a stock card, many for a summary table.
-- `format` (optional, default "markdown"): "markdown" | "json"
+- `skus_or_variant_ids` (required, min 1): List of SKUs (strings) or variant IDs (integers) — mix freely.
 
 **Examples:**
 ```json
@@ -631,7 +628,10 @@ Check current stock levels for one or more SKUs or variant IDs — pass a list f
 {"skus_or_variant_ids": ["WIDGET-001", 12345]}
 ```
 
-**Returns:** Stock levels (in_stock, available_stock, committed, expected) per variant.
+**Returns:** JSON `{items: [...]}` envelope for every request shape (single OR
+batch), with stock levels (`in_stock`, `available_stock`, `committed`, `expected`)
+plus a per-location `by_location` breakdown per variant. Single-item calls
+additionally attach a Prefab stock card via `structured_content` for UI hosts.
 
 ---
 
@@ -641,7 +641,6 @@ Find items that are below their reorder threshold.
 **Parameters:**
 - `threshold` (optional): Stock threshold level (default: 10)
 - `limit` (optional): Maximum items to return (default: 50)
-- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** List of items needing reorder with current stock vs threshold.
 
@@ -656,13 +655,12 @@ timestamps, and rank) so no follow-up lookups are needed for standard fields.
 **Parameters:**
 - `sku` (required): SKU to get movements for
 - `limit` (optional): Maximum movements to return (default: 50)
-- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Movement history with `id`, `variant_id`, `location_id`, `resource_type`,
 `resource_id`, `caused_by_order_no`, `caused_by_resource_id`, `movement_date`,
 `quantity_change`, `balance_after`, `value_per_unit`, `value_in_stock_after`,
-`average_cost_after`, `rank`, `created_at`, `updated_at`. Markdown render uses
-canonical Pydantic field names as column headers.
+`average_cost_after`, `rank`, `created_at`, `updated_at` — emitted as JSON
+content with canonical Pydantic field names.
 
 ---
 
@@ -707,7 +705,6 @@ how many adjustments precede them.
 - `variant_id` (optional): Only adjustments whose rows touch this variant — runs as an EXISTS subquery against the indexed FK on the rows table
 - `reason` (optional): Case-insensitive substring match on the `reason` field (SQL ILIKE)
 - `include_rows` (optional, default false): When true, populate row-level details on each summary
-- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Summary rows with `id`, `stock_adjustment_number`, `location_id`, dates,
 `reason`, and row count (plus per-row detail when `include_rows=true`), plus optional
@@ -780,7 +777,6 @@ run as indexed SQL against the typed cache.
 - `production_deadline_after` / `production_deadline_before`: bounds on
   `production_deadline_date`
 
-- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Summary rows with id, order_no, status, ingredient_availability,
 variant_id, planned/actual qty, location_id, order_created_date,
@@ -802,7 +798,6 @@ metadata stripped, operation rows and production records omitted.
 **Parameters:**
 - `order_no` (optional): Order number (e.g., '#WEB20082 / 1')
 - `order_id` (optional): Manufacturing order ID
-- `format` (optional, default "markdown"): "markdown" | "json"
 - `include_rows` (optional, default `"blocking"`): Recipe-row projection.
   - `"blocking"` — only rows with `ingredient_availability` in {NOT_AVAILABLE, EXPECTED}.
   - `"all"` — every recipe row.
@@ -848,14 +843,13 @@ are excluded by design — they don't represent actionable procurement work.
     desc, then total_remaining_quantity desc. The procurement-priority view.
   - `"mo"` — one block per MO, sorted by deadline. Preserves per-row detail.
 - `limit` (optional, default 100, max 500): Max aggregate rows.
-- `format` (optional, default "markdown").
 
 **Returns:** When `group_by="variant"`: rows with variant_id, sku,
-affected_mo_count, affected_mo_order_nos (truncated to 5 in markdown),
-total_planned_quantity (per-unit times MO planned_quantity, summed),
-total_remaining_quantity, earliest_expected_date. When `group_by="mo"`: per-MO
-sections with id, order_no, status, deadline, and the blocking recipe rows
-nested. Top-level `total_blocking_rows` and `total_affected_mos` are always
+affected_mo_count, affected_mo_order_nos, total_planned_quantity
+(per-unit times MO planned_quantity, summed), total_remaining_quantity,
+earliest_expected_date. When `group_by="mo"`: per-MO entries with id,
+order_no, status, deadline, and the blocking recipe rows nested.
+Top-level `total_blocking_rows` and `total_affected_mos` are always
 populated.
 
 **Cache freshness:** every list/rollup tool re-syncs from Katana via an
@@ -905,7 +899,6 @@ polymorphic Product / Material / Service record, plus nested `variants`
 **Parameters:**
 - `id` (required): Item ID
 - `type` (required): "product" | "material" | "service"
-- `format` (optional, default "markdown"): "markdown" | "json"
 
 For per-variant detail (barcodes, supplier codes, custom fields), follow
 up with `get_variant_details`.
@@ -1042,7 +1035,6 @@ Verify a supplier document (invoice, packing slip) against a PO.
 **Parameters:**
 - `order_id` (required): Purchase order ID to verify against
 - `document_items` (required): Array of items from document with sku, quantity, unit_price
-- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Match status, discrepancies, suggested actions, and the full
 `purchase_order` in the same exhaustive shape as `get_purchase_order` —
@@ -1085,7 +1077,6 @@ field is hoisted onto the row so it's queryable across both subtypes.
 
 - `include_rows` (optional, default false): Populate per-PO line item detail
   (variant_id, quantity, price, arrival).
-- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Summary rows with id, order_no, status, billing_status,
 entity_type, supplier_id, location_id, currency, created_date,
@@ -1097,13 +1088,12 @@ expected_arrival_date, total, row_count. When `page` is set, also returns
 ### get_purchase_order
 Look up a purchase order by order number or ID — exhaustive detail.
 For multiple purchase orders at once, use `list_purchase_orders(ids=[...],
-include_rows=True)` — it returns a summary table and supports all the
+include_rows=True)` — it returns a JSON list response and supports all the
 same filters in a single call.
 
 **Parameters:**
 - `order_no` (optional): PO number (e.g., "PO-1022")
 - `order_id` (optional): PO ID
-- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Every field Katana exposes on the PO record — status, billing
 status, supplier, location, totals (including `total_in_base_currency`),
@@ -1233,7 +1223,6 @@ Search customers by name or email.
 **Parameters:**
 - `query` (required): Search term
 - `limit` (optional): Maximum results (default: 20)
-- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** List of customers with id, name, email, phone, currency.
 
@@ -1244,7 +1233,6 @@ Get full details for a customer by ID.
 
 **Parameters:**
 - `customer_id` (required): Customer ID
-- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Full customer details (name, email, phone, currency, category, comment).
 
@@ -1257,7 +1245,6 @@ it returns recipe rows inline (there is no batch shape for this tool).
 
 **Parameters:**
 - `manufacturing_order_id` (required): MO ID
-- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Every field Katana exposes on each `ManufacturingOrderRecipeRow`
 (notes, planned/actual/consumed/remaining quantities, ingredient availability
@@ -1430,7 +1417,6 @@ List sales orders with filters. All filters run as indexed SQL against the typed
   context — use `get_sales_order` for SKU-enriched rows on a specific order.
 
 **Other:**
-- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Summary rows with order_no, status, production_status, row_count,
 total, currency, created_at, delivery_date. When `page` is set, the response
@@ -1443,13 +1429,12 @@ also carries a `rows` list.
 ### get_sales_order
 Look up a single sales order by order number or ID with exhaustive detail.
 For multiple sales orders at once, use `list_sales_orders(ids=[...],
-include_rows=True)` — it returns a summary table and supports all the
+include_rows=True)` — it returns a JSON list response and supports all the
 same filters in a single call.
 
 **Parameters:**
 - `order_no` (optional): SO number (e.g., "#WEB20394")
 - `order_id` (optional): SO ID
-- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Every field Katana exposes on the sales order record —
 identifiers (id, order_no, customer_id, location_id, source), status flags
@@ -1701,7 +1686,6 @@ SQL against the typed cache.
 - `created_after` / `created_before` (optional): ISO-8601 datetime bounds on
   created_at — indexed SQL range filter
 - `include_rows` (optional, default false): Populate per-transfer row details
-- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** Summary rows (id, number, status, source/destination, row_count,
 expected_arrival). `pagination` metadata is populated when `page` is set.
@@ -1749,10 +1733,9 @@ Delete a stock transfer. Destructive — the transfer record is removed.
 ## Reference Data Tools
 
 Parameterized search tools backed by the local cache (FTS5 with difflib
-fallback). Each `list_*` tool accepts `query` (optional fuzzy search),
-`limit` (default 50, max 250), and `format` (`"markdown"` | `"json"`).
-Outputs are bounded — passing `limit` keeps even large reference catalogs
-from flooding agent context.
+fallback). Each `list_*` tool accepts `query` (optional fuzzy search) and
+`limit` (default 50, max 250). Outputs are bounded — passing `limit`
+keeps even large reference catalogs from flooding agent context.
 
 ### list_locations
 List or fuzzy-search warehouses and facilities by name. Returns id, name,
@@ -1763,7 +1746,6 @@ orders or filtering inventory queries.
 **Parameters:**
 - `query` (optional): Fuzzy match by name.
 - `limit` (optional, default 50, max 250): Cap on rows returned.
-- `format` (optional, default "markdown"): "markdown" | "json".
 
 **Returns:** `ListLocationsResponse` with `locations: [{id, name,
 address: {line_1, line_2, city, state, zip, country} | null,
@@ -1780,7 +1762,6 @@ for the full-detail record.
 **Parameters:**
 - `query` (optional): Fuzzy match by name or code.
 - `limit` (optional, default 50, max 250).
-- `format` (optional, default "markdown"): "markdown" | "json".
 
 **Returns:** `ListSuppliersResponse` with `suppliers: [{id, name, email,
 phone, currency, code}]`, `total_count`, `query`.
@@ -1793,7 +1774,6 @@ info, address, currency, payment terms, comment, and timestamps.
 
 **Parameters:**
 - `supplier_id` (required): Supplier id.
-- `format` (optional, default "markdown"): "markdown" | "json".
 
 **Returns:** `GetSupplierResponse` with id, name, email, phone, currency,
 code, comment, default_payment_terms, address fields (line_1, line_2,
@@ -1810,7 +1790,6 @@ with explicit tax assignments.
 **Parameters:**
 - `query` (optional): Fuzzy match by name.
 - `limit` (optional, default 50, max 250).
-- `format` (optional, default "markdown"): "markdown" | "json".
 
 **Returns:** `ListTaxRatesResponse` with `tax_rates: [{id, name, rate,
 display_name, is_default_sales, is_default_purchases}]`, `total_count`,
@@ -1826,7 +1805,6 @@ operation rows or naming the packer on a sales order.
 **Parameters:**
 - `query` (optional): Fuzzy match by name.
 - `limit` (optional, default 50, max 250).
-- `format` (optional, default "markdown"): "markdown" | "json".
 
 **Returns:** `ListOperatorsResponse` with `operators: [{id, name}]`,
 `total_count`, `query`.
@@ -1842,7 +1820,6 @@ Pair with `list_tax_rates` for the matching `tax_rate_id`.
 **Parameters:**
 - `query` (optional): Fuzzy match by name.
 - `limit` (optional, default 50, max 250).
-- `format` (optional, default "markdown"): "markdown" | "json".
 
 **Returns:** `ListAdditionalCostsResponse` with `additional_costs: [{id,
 name}]`, `total_count`, `query`.
@@ -1877,7 +1854,6 @@ For each requested entity type, the rebuild:
 - `preview` (optional, default true): true = report current row counts and
   last-synced timestamps without modifying anything; false = perform the
   destructive rebuild.
-- `format` (optional, default "markdown"): "markdown" | "json".
 
 **Returns:** `RebuildCacheResponse` with `is_preview` and a `results` list
 carrying per-entity `parent_rows_before/after`, `child_rows_before/after`,
@@ -1909,7 +1885,6 @@ aggregates DELIVERED sales orders in memory).
 - `category` (optional): Item category name to filter by (e.g. "widgets")
 - `order_by` (optional, default "units"): "units" or "revenue"
 - `location_id` (optional): Filter to a single location
-- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** List of `{sku, variant_id, name, units, revenue, order_count}`
 sorted by the `order_by` key descending.
@@ -1924,7 +1899,6 @@ Grouped sales totals for DELIVERED orders in a window.
 - `end_date` (required): ISO-8601 date — window end (inclusive)
 - `group_by` (required): one of `day`, `week`, `month`, `variant`,
   `customer`, `category`
-- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** List of `{group, units, revenue, order_count}`. Time groups
 (`day`/`week`/`month`) sort ascending; dimension groups sort by revenue
@@ -1945,13 +1919,11 @@ sales-order demand and manufacturing-order ingredient consumption. Use
 - `period_days` (optional, default 90, max 365): Rolling window size
 - `include_mo_consumption` (optional, default true): Include units consumed as
   ingredients on completed MOs. Set false for SO-only numbers (legacy behavior).
-- `format` (optional, default "markdown"): "markdown" | "json" — "json" returns the Pydantic response serialized
 
 **Returns:** `{items: [{sku, variant_id, units_sold, units_consumed_by_mos,
 units_total, avg_daily, stock_on_hand, days_of_cover, period_days,
 window_start, window_end}]}`. `days_of_cover` is `null` when `avg_daily` is 0
-(no demand in window). Single-item calls return a rich card; batch calls return
-a markdown table.
+(no demand in window).
 """
 
 HELP_RESOURCES = """

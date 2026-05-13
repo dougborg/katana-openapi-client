@@ -330,29 +330,6 @@ async def none_coro() -> None:
     return None
 
 
-def format_md_table(
-    headers: list[str],
-    rows: list[list[Any]],
-) -> str:
-    """Format a simple markdown table from headers and row data.
-
-    Each row cell is rendered via str(); use "—" or "" for missing values.
-    Returns an empty string if `rows` is empty.
-
-    Example:
-        format_md_table(
-            ["Name", "Qty"],
-            [["Apple", 3], ["Banana", 5]],
-        )
-    """
-    if not rows:
-        return ""
-    header_line = "| " + " | ".join(headers) + " |"
-    sep_line = "|" + "|".join("---" for _ in headers) + "|"
-    body_lines = ["| " + " | ".join(str(cell) for cell in row) + " |" for row in rows]
-    return "\n".join([header_line, sep_line, *body_lines])
-
-
 def make_tool_result(response: BaseModel, *, ui: PrefabApp) -> ToolResult:
     """Create a ToolResult for a UI-emitting tool.
 
@@ -375,22 +352,31 @@ def make_tool_result(response: BaseModel, *, ui: PrefabApp) -> ToolResult:
     )
 
 
-def make_simple_result(
-    message: str,
-    structured_data: dict[str, Any] | None = None,
-) -> ToolResult:
-    """Create a simple ToolResult with a message.
+def make_json_result(response: BaseModel) -> ToolResult:
+    """Create a ToolResult for a tool with no Prefab UI.
 
-    For simple responses where a full template isn't needed.
+    Use this for tools whose response is purely data — no rich card layer.
+    Sibling of ``make_tool_result(response, ui=...)`` (which handles the
+    UI-emitting case). Historical context: these tools used to maintain a
+    parallel hand-written markdown ``content`` channel plus a
+    ``format: Literal["markdown", "json"]`` parameter; both were dropped
+    in #567 in favor of JSON content matching the MCP-Apps reference
+    servers and structurally eliminating the drift surface (#565).
 
-    Args:
-        message: The message to display
-        structured_data: Optional structured data dict
+    ``content`` carries the response as ``indent=2`` JSON for LLM context
+    and eyeball-debug. ``structured_content`` carries the same payload as
+    a plain dict so programmatic consumers can branch on response shape
+    without re-parsing the content text.
 
-    Returns:
-        ToolResult with message as content
+    **Shape contrast with ``make_tool_result``**: ``make_tool_result``
+    emits the response as compact JSON content (no indent) and puts the
+    ``PrefabApp`` envelope in ``structured_content`` for UI-Apps hosts to
+    render. The two helpers differ in both the ``content`` formatting
+    and the ``structured_content`` payload type, so don't assume the
+    helpers are interchangeable when migrating between UI and non-UI
+    tools.
     """
     return ToolResult(
-        content=message,
-        structured_content=structured_data or {},
+        content=response.model_dump_json(indent=2),
+        structured_content=response.model_dump(mode="json"),
     )

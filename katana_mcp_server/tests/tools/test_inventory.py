@@ -29,10 +29,12 @@ from katana_mcp.tools.foundation.inventory import (
 )
 from katana_mcp.tools.foundation.items import (
     GetVariantDetailsRequest,
+    ItemInfo,
     SearchItemsRequest,
+    SearchItemsResponse,
     _get_variant_details_impl,
     _search_items_impl,
-    get_variant_details,
+    _search_response_to_tool_result,
     search_items,
 )
 from katana_mcp_server.tests.conftest import create_mock_context, patch_typed_cache_sync
@@ -522,6 +524,65 @@ async def test_search_items_multiple_results():
     assert result.items[1].is_sellable is False
 
 
+def test_search_response_to_tool_result_keeps_sku_less_rows_in_content_only():
+    """Pins the intentional UI/content divergence on SKU-less variants.
+
+    Katana allows variants without SKUs (legacy NetSuite imports, etc.).
+    The Prefab DataTable's row-click drill-down binds to ``{{ $event.sku }}``
+    and would invoke ``get_variant_details(sku=None)`` and fail, so the UI
+    filters SKU-less variants OUT of the rendered table. **But ``content``
+    keeps every row** — programmatic consumers shouldn't silently lose data
+    just because the interactive UI can't drill into a row.
+
+    Regression guard: a future refactor that collapses the two surfaces
+    (e.g. dumping ``ui_items`` to both ``content`` and the UI) would
+    re-introduce the silent drop. This test pins the divergence.
+    """
+    response = SearchItemsResponse(
+        items=[
+            ItemInfo(
+                id=1,
+                sku="WIDGET-001",
+                name="Sellable widget",
+                item_type="product",
+                is_sellable=True,
+            ),
+            ItemInfo(
+                id=2,
+                sku="",  # SKU-less variant — legacy import shape.
+                name="Legacy unmapped variant",
+                item_type="material",
+                is_sellable=False,
+            ),
+        ],
+        total_count=2,
+    )
+
+    result = _search_response_to_tool_result(response, query="widget")
+
+    # ``content`` carries every variant, sku or no sku.
+    assert result.content
+    from mcp.types import TextContent
+
+    first = result.content[0]
+    assert isinstance(first, TextContent)
+    content_payload = json.loads(first.text)
+    skus_in_content = [item["sku"] for item in content_payload["items"]]
+    assert skus_in_content == ["WIDGET-001", ""]
+    assert content_payload["total_count"] == 2
+
+    # ``structured_content`` is the Prefab UI envelope — DataTable rows
+    # live under ``state``. Walk the envelope, pulling out anything that
+    # looks like a row, and assert the SKU-less row is absent. (We pin
+    # the absence rather than the exact envelope shape to stay robust
+    # against Prefab-internal restructuring.)
+    envelope = result.structured_content
+    assert envelope is not None
+    envelope_json = json.dumps(envelope)
+    assert "WIDGET-001" in envelope_json
+    assert "Legacy unmapped variant" not in envelope_json
+
+
 # ============================================================================
 # get_inventory_movements Tests
 # ============================================================================
@@ -651,11 +712,11 @@ async def test_get_inventory_movements_full_field_coverage():
 
 
 @pytest.mark.asyncio
-async def test_get_inventory_movements_markdown_uses_canonical_names():
-    """Markdown render uses canonical Pydantic field names as column headers.
-
-    Pins the #346 follow-on convention so a future refactor can't silently
-    swap back to friendly-name labels like ``Date`` or ``Change``.
+async def test_get_inventory_movements_response_uses_canonical_field_names():
+    """Response model surfaces every movement field by its canonical Pydantic
+    name — pins the #346 follow-on convention. JSON keys (and the
+    iframe-rendered Prefab table) read directly off those names, so a
+    silent rename would surface as a key-not-found everywhere at once.
     """
     from katana_mcp.tools.foundation.inventory import (
         InventoryMovementsResponse,
@@ -695,15 +756,11 @@ async def test_get_inventory_movements_markdown_uses_canonical_names():
         context, _ = create_mock_context()
         result = await get_inventory_movements(sku="WIDGET-001", context=context)
 
-    md = _content_text(result)
-    # Parse the header row directly and assert the exact column names.
-    # Substring checks like `"id" in md` are too weak: they pass even if the
-    # `id` column is missing, because `variant_id` / `resource_id` also contain
-    # "id". Pinning on the exact column sequence catches silent reorderings
-    # and drops.
-    header_line = next(line for line in md.splitlines() if line.startswith("| id |"))
-    columns = [c.strip() for c in header_line.split("|")[1:-1]]
-    assert columns == [
+    payload = json.loads(_content_text(result))
+    movement = payload["movements"][0]
+    # Every canonical field name from the response model surfaces on
+    # the wire payload. A silent rename would drop one of these keys.
+    expected_keys = {
         "id",
         "movement_date",
         "variant_id",
@@ -720,17 +777,12 @@ async def test_get_inventory_movements_markdown_uses_canonical_names():
         "rank",
         "created_at",
         "updated_at",
-    ]
-    # And the header labels too
-    assert "**sku**: WIDGET-001" in md
-    assert "**product_name**: Test Widget" in md
-    assert "**total_count**: 1" in md
-    # Should NOT contain the old friendly labels
-    assert "| Date |" not in md
-    assert "| Change |" not in md
-    assert "| Balance |" not in md
-    assert "| Type |" not in md
-    assert "| Order |" not in md
+    }
+    assert expected_keys.issubset(movement.keys())
+    # Identity fields surface on the top level too.
+    assert payload["sku"] == "WIDGET-001"
+    assert payload["product_name"] == "Test Widget"
+    assert payload["total_count"] == 1
 
 
 # ============================================================================
@@ -2107,60 +2159,16 @@ async def test_search_items_format_json_returns_json():
         return_value=[{"id": 1, "sku": "WIDGET-1", "display_name": "Widget"}]
     )
 
-    result = await search_items(
-        query="widget", limit=10, format="json", context=context
-    )
+    result = await search_items(query="widget", limit=10, context=context)
 
     data = json.loads(_content_text(result))
     assert data["total_count"] == 1
     assert data["items"][0]["sku"] == "WIDGET-1"
 
 
-@pytest.mark.asyncio
-async def test_get_variant_details_format_json_returns_json():
-    """format='json' returns JSON-parseable content."""
-    context, lifespan_ctx = create_mock_context()
-    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(
-        return_value={
-            "id": 42,
-            "sku": "VAR-42",
-            "product_id": 100,
-            "type": "product",
-        }
-    )
-    # Mock _get_variant_details_impl via patching the cache lookup chain
-    # is complex; patch the impl directly.
-    with patch(
-        "katana_mcp.tools.foundation.items._get_variant_details_impl",
-        new_callable=AsyncMock,
-    ) as mock_impl:
-        from katana_mcp.tools.foundation.items import (
-            GetVariantDetailsResult,
-            VariantDetailsResponse,
-        )
-
-        mock_impl.return_value = GetVariantDetailsResult(
-            found=[
-                VariantDetailsResponse(
-                    id=42,
-                    sku="VAR-42",
-                    name="Test Variant",
-                    product_id=100,
-                    type="product",
-                    sales_price=10.0,
-                    purchase_price=5.0,
-                )
-            ],
-            not_found=[],
-        )
-
-        result = await get_variant_details(
-            variant_id=42, format="json", context=context
-        )
-
-    data = json.loads(_content_text(result))
-    assert data["variants"][0]["id"] == 42
-    assert data["variants"][0]["sku"] == "VAR-42"
+# (get_variant_details JSON-content behavior is exhaustively covered by
+# the items.py test suite; this file no longer carries a cross-file
+# duplicate.)
 
 
 # ============================================================================
@@ -2198,9 +2206,7 @@ async def test_check_inventory_format_json_returns_json():
             ),
         ]
         context, _ = create_mock_context()
-        result = await check_inventory(
-            skus_or_variant_ids=["A", "B"], format="json", context=context
-        )
+        result = await check_inventory(skus_or_variant_ids=["A", "B"], context=context)
 
     data = json.loads(_content_text(result))
     assert len(data["items"]) == 2
@@ -2231,7 +2237,7 @@ async def test_list_low_stock_items_format_json_returns_json():
             total_count=1,
         )
         context, _ = create_mock_context()
-        result = await list_low_stock_items(format="json", context=context)
+        result = await list_low_stock_items(context=context)
 
     data = json.loads(_content_text(result))
     assert data["total_count"] == 1
@@ -2254,9 +2260,7 @@ async def test_get_inventory_movements_format_json_returns_json():
             total_count=0,
         )
         context, _ = create_mock_context()
-        result = await get_inventory_movements(
-            sku="MOVE-1", format="json", context=context
-        )
+        result = await get_inventory_movements(sku="MOVE-1", context=context)
 
     data = json.loads(_content_text(result))
     assert data["sku"] == "MOVE-1"
@@ -2278,7 +2282,7 @@ async def test_list_stock_adjustments_format_json_returns_json():
             pagination=None,
         )
         context, _ = create_mock_context()
-        result = await list_stock_adjustments(format="json", context=context)
+        result = await list_stock_adjustments(context=context)
 
     data = json.loads(_content_text(result))
     assert data["total_count"] == 0

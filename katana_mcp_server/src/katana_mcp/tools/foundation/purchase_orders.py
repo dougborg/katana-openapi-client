@@ -54,9 +54,8 @@ from katana_mcp.tools.tool_result_utils import (
     apply_date_window_filters,
     coerce_enum,
     enum_to_str,
-    format_md_table,
     iso_or_none,
-    make_simple_result,
+    make_json_result,
     make_tool_result,
     parse_request_dates,
     resolve_entity_name,
@@ -793,13 +792,6 @@ class GetPurchaseOrderRequest(BaseModel):
         default=None, description="Purchase order number (e.g., 'PO-1022')"
     )
     order_id: int | None = Field(default=None, description="Purchase order ID")
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data consumable by downstream tools/aggregations."
-        ),
-    )
 
 
 class PurchaseOrderRowInfo(BaseModel):
@@ -1310,235 +1302,6 @@ async def _get_purchase_order_impl(
 
 
 # ----------------------------------------------------------------------------
-# Markdown rendering — canonical Pydantic field names as labels so an LLM
-# consumer can't misread a section header as a differently-named field
-# (motivation: #346 follow-on).
-# ----------------------------------------------------------------------------
-
-_PO_SCALAR_FIELDS: tuple[str, ...] = (
-    "id",
-    "order_no",
-    "status",
-    "billing_status",
-    "entity_type",
-    "supplier_id",
-    "location_id",
-    "tracking_location_id",
-    "default_group_id",
-    "currency",
-    "total",
-    "total_in_base_currency",
-    "expected_arrival_date",
-    "order_created_date",
-    "last_document_status",
-    "additional_info",
-    "created_at",
-    "updated_at",
-    "deleted_at",
-)
-
-_PO_ROW_FIELDS: tuple[str, ...] = (
-    "id",
-    "variant_id",
-    "sku",
-    "display_name",
-    "quantity",
-    "price_per_unit",
-    "price_per_unit_in_base_currency",
-    "total",
-    "total_in_base_currency",
-    "purchase_uom",
-    "purchase_uom_conversion_rate",
-    "tax_rate_id",
-    "currency",
-    "conversion_rate",
-    "conversion_date",
-    "arrival_date",
-    "received_date",
-    "purchase_order_id",
-    "landed_cost",
-    "group_id",
-    "created_at",
-    "updated_at",
-    "deleted_at",
-)
-
-_PO_ADDITIONAL_COST_FIELDS: tuple[str, ...] = (
-    "id",
-    "additional_cost_id",
-    "group_id",
-    "name",
-    "distribution_method",
-    "price",
-    "price_in_base",
-    "currency",
-    "currency_conversion_rate",
-    "currency_conversion_rate_fix_date",
-    "tax_rate_id",
-    "tax_rate",
-    "created_at",
-    "updated_at",
-    "deleted_at",
-)
-
-_PO_ACCOUNTING_META_FIELDS: tuple[str, ...] = (
-    "id",
-    "purchase_order_id",
-    "received_items_group_id",
-    "integration_type",
-    "bill_id",
-    "created_at",
-)
-
-
-def _render_po_row_md(row: PurchaseOrderRowInfo) -> list[str]:
-    """Render a PO row as a multi-line block under ``purchase_order_rows``."""
-    lines = [f"  - **id**: {row.id}"]
-    for fname in _PO_ROW_FIELDS:
-        if fname == "id":
-            continue
-        val = getattr(row, fname, None)
-        if val is None or val == "":
-            continue
-        lines.append(f"    **{fname}**: {val}")
-    if row.batch_transactions:
-        lines.append(
-            f"    **batch_transactions** ({len(row.batch_transactions)}): "
-            f"{row.batch_transactions}"
-        )
-    else:
-        lines.append("    **batch_transactions**: []")
-    return lines
-
-
-def _render_po_additional_cost_row_md(
-    row: PurchaseOrderAdditionalCostRowInfo,
-) -> list[str]:
-    """Render an additional cost row under ``additional_cost_rows``."""
-    lines = [f"  - **id**: {row.id}"]
-    for fname in _PO_ADDITIONAL_COST_FIELDS:
-        if fname == "id":
-            continue
-        val = getattr(row, fname, None)
-        if val is None or val == "":
-            continue
-        lines.append(f"    **{fname}**: {val}")
-    return lines
-
-
-def _render_po_accounting_metadata_md(
-    meta: PurchaseOrderAccountingMetadataInfo,
-) -> list[str]:
-    """Render an accounting metadata entry under ``accounting_metadata``."""
-    lines = [f"  - **id**: {meta.id}"]
-    for fname in _PO_ACCOUNTING_META_FIELDS:
-        if fname == "id":
-            continue
-        val = getattr(meta, fname, None)
-        if val is None or val == "":
-            continue
-        lines.append(f"    **{fname}**: {val}")
-    return lines
-
-
-_SUPPLIER_FIELDS: tuple[str, ...] = (
-    "id",
-    "name",
-    "email",
-    "phone",
-    "currency",
-    "comment",
-    "default_address_id",
-    "created_at",
-    "updated_at",
-    "deleted_at",
-)
-
-
-def _render_supplier_md(supplier: SupplierInfo) -> list[str]:
-    """Render an embedded supplier under ``**supplier**:`` using canonical
-    field names, matching the scheme used for rows and accounting metadata.
-    """
-    lines: list[str] = []
-    for fname in _SUPPLIER_FIELDS:
-        val = getattr(supplier, fname, None)
-        if val is None or val == "":
-            continue
-        lines.append(f"  **{fname}**: {val}")
-    if supplier.addresses:
-        lines.append(
-            f"  **addresses** ({len(supplier.addresses)}): {supplier.addresses}"
-        )
-    else:
-        lines.append("  **addresses**: []")
-    return lines
-
-
-def _render_get_purchase_order_md(
-    response: GetPurchaseOrderResponse, *, embed: bool = False
-) -> str:
-    """Render an exhaustive PO response as canonical-labeled markdown.
-
-    When ``embed=True`` the top-level ``## PO …`` heading is omitted —
-    used when the PO is rendered as a nested block under another response
-    (e.g., ``verify_order_document``) where an indented markdown heading
-    would still be parsed as a top-level heading and break intended
-    nesting (copilot feedback on #357).
-    """
-    md_lines: list[str] = []
-    if not embed:
-        md_lines.append(f"## PO {response.order_no or response.id}")
-
-    for fname in _PO_SCALAR_FIELDS:
-        val = getattr(response, fname)
-        if val is None or val == "":
-            continue
-        md_lines.append(f"**{fname}**: {val}")
-
-    # supplier: inline block under the canonical key so the LLM can trace
-    # every embedded supplier field without a separate lookup.
-    if response.supplier is not None:
-        md_lines.append("")
-        md_lines.append("**supplier**:")
-        md_lines.extend(_render_supplier_md(response.supplier))
-    else:
-        md_lines.append("**supplier**: null")
-
-    # purchase_order_rows: explicit list syntax so empty lists render as `[]`
-    # rather than a dangling section header an LLM could misread (#346).
-    if response.purchase_order_rows:
-        md_lines.append("")
-        md_lines.append(
-            f"**purchase_order_rows** ({len(response.purchase_order_rows)}):"
-        )
-        for row in response.purchase_order_rows:
-            md_lines.extend(_render_po_row_md(row))
-    else:
-        md_lines.append("**purchase_order_rows**: []")
-
-    if response.additional_cost_rows:
-        md_lines.append("")
-        md_lines.append(
-            f"**additional_cost_rows** ({len(response.additional_cost_rows)}):"
-        )
-        for row in response.additional_cost_rows:
-            md_lines.extend(_render_po_additional_cost_row_md(row))
-    else:
-        md_lines.append("**additional_cost_rows**: []")
-
-    if response.accounting_metadata:
-        md_lines.append("")
-        md_lines.append(
-            f"**accounting_metadata** ({len(response.accounting_metadata)}):"
-        )
-        for meta in response.accounting_metadata:
-            md_lines.extend(_render_po_accounting_metadata_md(meta))
-    else:
-        md_lines.append("**accounting_metadata**: []")
-
-    return "\n".join(md_lines)
-
-
 @observe_tool
 @unpack_pydantic_params
 async def get_purchase_order(
@@ -1547,7 +1310,7 @@ async def get_purchase_order(
     """Look up a purchase order by order number or ID — exhaustive detail.
 
     For multiple purchase orders at once, use ``list_purchase_orders(ids=[...])`` —
-    it returns a summary table and supports all the same filters.
+    it returns a JSON list response and supports all the same filters.
 
     Returns every field Katana exposes on the PO record: status, billing
     status, supplier, location, totals (including base-currency total),
@@ -1565,17 +1328,7 @@ async def get_purchase_order(
     Provide either order_no (e.g., 'PO-1022') or order_id.
     """
     response = await _get_purchase_order_impl(request, context)
-
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-
-    return make_simple_result(
-        _render_get_purchase_order_md(response),
-        structured_data=response.model_dump(),
-    )
+    return make_json_result(response)
 
 
 # ============================================================================
@@ -1655,13 +1408,6 @@ class VerifyOrderDocumentRequest(BaseModel):
     order_id: int = Field(..., description="Purchase order ID")
     document_items: list[DocumentItem] = Field(
         ..., description="Items from the document to verify", min_length=1
-    )
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data consumable by downstream tools/aggregations."
-        ),
     )
 
 
@@ -2051,11 +1797,6 @@ async def verify_order_document(
     to validate a delivery. No changes are made to orders or inventory.
     """
     response = await _verify_order_document_impl(request, context)
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
     return _verify_response_to_tool_result(response)
 
 
@@ -2174,15 +1915,6 @@ class ListPurchaseOrdersRequest(BaseModel):
         description=(
             "When true, populate row-level detail (variant_id, quantity, "
             "price, arrival date) on each summary."
-        ),
-    )
-
-    # Output formatting
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data consumable by downstream tools/aggregations."
         ),
     )
 
@@ -2509,50 +2241,7 @@ async def list_purchase_orders(
     For full details on a specific PO, use `get_purchase_order`.
     """
     response = await _list_purchase_orders_impl(request, context)
-
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-
-    if not response.orders:
-        md = "No purchase orders match the given filters."
-    else:
-        table = format_md_table(
-            headers=[
-                "Order #",
-                "Status",
-                "Supplier",
-                "Location",
-                "Rows",
-                "Total",
-                "Expected Arrival",
-            ],
-            rows=[
-                [
-                    o.order_no or o.id,
-                    o.status or "—",
-                    o.supplier_id if o.supplier_id is not None else "—",
-                    o.location_id if o.location_id is not None else "—",
-                    o.row_count,
-                    f"{o.total:.2f} {o.currency or ''}" if o.total is not None else "—",
-                    o.expected_arrival_date or "—",
-                ]
-                for o in response.orders
-            ],
-        )
-        md = f"## Purchase Orders ({response.total_count})\n\n{table}"
-
-    if response.pagination is not None:
-        p = response.pagination
-        if p.page is not None and p.total_pages is not None:
-            summary = f"\n\nPage {p.page} of {p.total_pages}"
-            if p.total_records is not None:
-                summary += f" (total: {p.total_records} records)"
-            md += summary
-
-    return make_simple_result(md, structured_data=response.model_dump())
+    return make_json_result(response)
 
 
 # ============================================================================
