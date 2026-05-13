@@ -75,7 +75,7 @@ from prefab_ui.components import (
 )
 from prefab_ui.components.control_flow import Elif, Else, If
 from prefab_ui.components.slot import Slot
-from prefab_ui.rx import RESULT, Rx
+from prefab_ui.rx import EVENT, RESULT, Rx
 from pydantic import BaseModel
 
 from katana_mcp.tools.tool_result_utils import BLOCK_WARNING_PREFIX
@@ -526,18 +526,25 @@ def build_search_results_ui(
             search=True,
             paginated=True,
             pageSize=20,
-            # NOTE: ``{{ sku }}`` and ``{{ $error }}`` here are *per-row /
-            # event-context* bindings provided by the DataTable component
-            # itself, NOT the iframe-state substitution that broke in #491.
-            # The DataTable renderer expands these client-side from the
-            # clicked row's data and the action's error payload, so they
-            # do not depend on the host-side Mustache-from-state mechanism
-            # that silently dropped args. Reliability is owned by the
-            # DataTable component; verification is tracked in #494.
+            # Per-row binding via ``$event``: the renderer spreads the
+            # clicked row's dict into the action-scope as ``$event``, so
+            # ``{{ $event.sku }}`` resolves to the row's SKU. The naive
+            # form ``{{ sku }}`` does NOT work — only top-level scope keys
+            # ($event, $result, $error, state keys) are direct lookups;
+            # the row dict itself is not spread (#494, verified by browser
+            # test ``test_search_results_row_click_passes_clicked_sku``).
+            # ``{{ $error }}`` works because $error IS a top-level key.
+            #
+            # ``RESULT.view`` (not bare ``RESULT``) on the success path:
+            # the tool returns a full PrefabApp envelope
+            # (``{$prefab, view, defs, state}``) and the Slot renderer
+            # expects a single component dict with a top-level ``type``.
+            # Setting ``state.detail = $result.view`` extracts the
+            # root view component so the Slot can render it (#494).
             onRowClick=CallTool(
                 "get_variant_details",
-                arguments={"sku": "{{ sku }}"},
-                on_success=SetState("detail", RESULT),
+                arguments={"sku": str(EVENT.sku)},
+                on_success=SetState("detail", RESULT.view),
                 on_error=ShowToast("{{ $error }}", variant="error"),
             ),
         )
@@ -963,18 +970,18 @@ def _item_variants_table(item: dict[str, Any]) -> None:
         # Per-row click invokes get_variant_details using the row's
         # variant id, not its SKU. ``ItemVariantSummary.sku`` is
         # nullable (Katana allows variants without a SKU on the wire),
-        # so a click on a SKU-less row would otherwise produce
-        # ``arguments={"sku": null}`` and the tool would reject the
-        # call with "must provide at least one of: sku, variant_id,
-        # skus, variant_ids". ``id`` is always present on the
+        # so binding by SKU would reject every SKU-less row with the
+        # tool's "must provide at least one of: sku, variant_id, skus,
+        # variant_ids" error. ``id`` is always present on the
         # ``ItemVariantSummary`` shape, so this path stays clickable
-        # for every row. DataTable's per-row ``{{ id }}`` binding
-        # expands client-side from row data (not iframe state) so it
-        # doesn't hit the #491 state-binding failure mode.
+        # for every row. Per-row substitution uses ``EVENT.id`` (which
+        # compiles to ``{{ $event.id }}``) because the row dict isn't
+        # spread into scope — see the comment on the search_results
+        # DataTable for the full reasoning (#494).
         onRowClick=CallTool(
             "get_variant_details",
-            arguments={"variant_id": "{{ id }}"},
-            on_success=SetState("detail", RESULT),
+            arguments={"variant_id": str(EVENT.id)},
+            on_success=SetState("detail", RESULT.view),
             on_error=ShowToast("{{ $error }}", variant="error"),
         ),
     )

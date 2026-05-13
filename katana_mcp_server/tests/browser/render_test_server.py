@@ -12,7 +12,10 @@ to exercise the live-tick path without hitting the real Katana API.
 
 from __future__ import annotations
 
+import json
+import tempfile
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 from fastmcp import FastMCP
@@ -25,6 +28,7 @@ from katana_mcp.tools._modification import (
 from katana_mcp.tools.prefab_ui import (
     build_batch_recipe_update_ui,
     build_inventory_check_ui,
+    build_item_detail_ui,
     build_modification_preview_ui,
     build_modification_result_ui,
     build_search_results_ui,
@@ -284,6 +288,42 @@ def _verification_app() -> PrefabApp:
     return build_verification_ui(response)
 
 
+def _item_detail_app() -> PrefabApp:
+    """build_item_detail_ui with 3 variants — exercises the variants
+    DataTable's per-row ``onRowClick=CallTool(get_variant_details,
+    arguments={"variant_id": "{{ id }}"})`` binding (#494).
+    """
+    item = {
+        "id": 9001,
+        "name": "Test Product",
+        "type": "product",
+        "uom": "pcs",
+        "is_sellable": True,
+        "is_producible": True,
+        "variants": [
+            {
+                "id": 700001,
+                "sku": "VAR-A",
+                "sales_price": 10.00,
+                "purchase_price": 4.00,
+            },
+            {
+                "id": 700002,
+                "sku": "VAR-B",
+                "sales_price": 20.00,
+                "purchase_price": 8.00,
+            },
+            {
+                "id": 700003,
+                "sku": "VAR-C",
+                "sales_price": 30.00,
+                "purchase_price": 12.00,
+            },
+        ],
+    }
+    return build_item_detail_ui(item)
+
+
 def _batch_recipe_update_app() -> PrefabApp:
     """build_batch_recipe_update_ui with 5 sub-ops — exercises rows='{{ rows }}'."""
     response = {
@@ -405,6 +445,7 @@ SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
     # Audit coverage: post-mustache-fix render checks for every other
     # state-bound DataTable card.
     "search_results": _search_results_app,
+    "item_detail": _item_detail_app,
     "inventory_check": _inventory_check_app,
     "verification": _verification_app,
     "batch_recipe_update": _batch_recipe_update_app,
@@ -534,6 +575,61 @@ async def modify_manufacturing_order(
     ui = build_modification_result_ui(
         response_dict, tool_name="modify_manufacturing_order"
     )
+    return make_tool_result(response, ui=ui)
+
+
+class _EchoVariantDetails(BaseModel):
+    """Echoes back the arguments the host actually passed to
+    ``get_variant_details`` — used by the #494 row-click tests to verify
+    DataTable per-row ``{{ field }}`` substitution resolved against the
+    clicked row's data (not null, not the literal Mustache string).
+    """
+
+    received_sku: str | None = None
+    received_variant_id: int | None = None
+
+
+# Fixed cross-process path so the browser-test subprocess and the
+# pytest process agree on where the stub writes its received args.
+# Cleared before each row-click test and read back after the click.
+GET_VARIANT_DETAILS_RECORD_PATH = (
+    Path(tempfile.gettempdir()) / "katana_test_get_variant_details_received.json"
+)
+
+
+@mcp.tool(meta={"ui": True})
+async def get_variant_details(
+    sku: str | None = None,
+    variant_id: int | None = None,
+) -> ToolResult:
+    """Echo stub for #494 row-click binding tests.
+
+    The two row-click drill-downs that exercise per-row binding:
+
+    - ``build_search_results_ui``: ``arguments={"sku": "{{ sku }}"}``
+    - ``build_item_detail_ui`` variants table: ``arguments={"variant_id":
+      "{{ id }}"}``
+
+    A correctly-substituting host calls this with the clicked row's
+    actual value. A broken host calls it with ``None`` (silent drop), the
+    literal string ``"{{ sku }}"``, or fires ``on_error``. The stub
+    records whichever value the host actually delivered to a cross-process
+    file at :data:`GET_VARIANT_DETAILS_RECORD_PATH` so the browser test
+    can read it back after the click — the response card itself can't
+    be used as the assertion target because the Slot/RESULT envelope
+    mismatch (separately filed) prevents the response from rendering in
+    the ``detail`` slot.
+    """
+    received = {"received_sku": sku, "received_variant_id": variant_id}
+    GET_VARIANT_DETAILS_RECORD_PATH.write_text(json.dumps(received))
+    response = _EchoVariantDetails(received_sku=sku, received_variant_id=variant_id)
+    from prefab_ui.components import Card, CardContent, CardTitle, Text
+
+    with PrefabApp(state={}, css_class="p-4") as ui, Card():
+        CardTitle(content="Echoed Variant Details")
+        with CardContent():
+            Text(content=f"received_sku={sku!r}")
+            Text(content=f"received_variant_id={variant_id!r}")
     return make_tool_result(response, ui=ui)
 
 
