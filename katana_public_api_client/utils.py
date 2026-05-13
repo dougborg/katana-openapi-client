@@ -616,7 +616,7 @@ def get_variant_display_name(variant: "VariantResponse") -> str:
 
     Format: "{Product/Material Name} / {Config Value 1} / {Config Value 2} / ..."
 
-    Example: "Mayhem 140 / Liquid Black / Large / 5 Star"
+    Example: "Premium 140 / Glossy Black / Large / Type A"
 
     Takes a `VariantResponse` (the discriminated-union variant schema with
     typed `product_or_material: Material | Product | Unset`). Variants returned
@@ -648,7 +648,7 @@ def get_variant_display_name(variant: "VariantResponse") -> str:
             )
             for variant in unwrap_data(response):
                 print(get_variant_display_name(variant))
-                # e.g. "Mayhem 140 / Liquid Black / Large / 5 Star"
+                # e.g. "Premium 140 / Glossy Black / Large / Type A"
         ```
     """
     product_or_material = unwrap_unset(variant.product_or_material, None)
