@@ -11,9 +11,10 @@ themselves are the source of truth and stay current as features ship.
 
 ## What's in the monorepo
 
-This repository is a workspace with three published packages plus a shared MCP server.
-For installation, current version, and a quick-start example for each, follow the link
-to the package README:
+This repository is a workspace with three published packages — a Python API client, a
+TypeScript API client, and the MCP server that wraps the Python client. For
+installation, current version, and a quick-start example for each, follow the link to
+the package's docs:
 
 - **[Python client](client/README.md)** —
   [`katana-openapi-client`](https://pypi.org/project/katana-openapi-client/) on PyPI.
