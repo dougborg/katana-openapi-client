@@ -299,6 +299,157 @@ async def test_get_variant_details_lifts_purchase_uom_from_parent():
 
 
 @pytest.mark.asyncio
+async def test_get_variant_details_api_fallback_derives_display_name_and_parent_name():
+    """API-fallback path (variant absent from cache, fetched fresh from
+    ``GET /variants/{id}``) still produces a complete response.
+
+    The raw ``Variant`` attrs model has neither ``display_name`` nor
+    ``parent_name`` — those are cache-only synthesized fields written
+    by the typed-cache sync postprocess hook. Without explicit fallback
+    logic the response would render with just a bare SKU and no
+    "Part of: …" line. ``_dict_to_variant_details`` handles this via:
+
+    - ``parent_name_value = _attr(v, 'parent_name') or _attr(parent, 'name')``
+      — falls back to the enriched parent's ``name`` when the variant
+      itself has no precomputed field
+    - ``display_name_value = _attr(v, 'display_name') or
+      build_variant_display_name(parent_name_value, configs, sku)`` —
+      recomputes the canonical display name from parent + configs
+
+    This test exercises the path with an actual ``Variant`` attrs
+    model (no cache-only fields) plus a parent product in the enriched
+    cache, and asserts both names land correctly on the response.
+    Regression test for #564.
+    """
+    from katana_public_api_client.client_types import UNSET
+    from katana_public_api_client.models.variant import Variant
+    from katana_public_api_client.models.variant_config_attributes_item import (
+        VariantConfigAttributesItem,
+    )
+    from katana_public_api_client.models.variant_custom_fields_item import (
+        VariantCustomFieldsItem,
+    )
+    from katana_public_api_client.models.variant_type import VariantType
+
+    context, lifespan_ctx = create_mock_context()
+    # The variant lookup misses the cache and falls through to the API.
+    # The API returns a generated attrs ``Variant`` — no ``display_name``
+    # or ``parent_name`` keys, because those are cache-synthesized fields.
+    # NB: the attrs model's discriminator is ``type_`` (trailing underscore
+    # — Python keyword collision in the generator), NOT ``type``. Pin
+    # that in the fixture so the read-side fallback (``_attr(v, "type")
+    # or _attr(v, "type_")``) gets exercised end-to-end.
+    #
+    # ``custom_fields`` is also populated alongside ``config_attributes``
+    # so both attrs-item shapes round-trip through ``_dump_list``. The
+    # ``_dump_list`` ``to_dict`` branch handles both lists, but only
+    # exercising one would leave the other path uncovered.
+    api_variant = Variant(
+        id=9001,
+        sku="KNF-PRO-8PC-STL",
+        product_id=101,
+        material_id=None,
+        sales_price=299.99,
+        purchase_price=150.0,
+        type_=VariantType.PRODUCT,
+        config_attributes=[
+            VariantConfigAttributesItem(
+                config_name="Piece Count", config_value="8-piece"
+            ),
+            VariantConfigAttributesItem(
+                config_name="Handle Material", config_value="Steel"
+            ),
+        ],
+        custom_fields=[
+            VariantCustomFieldsItem(
+                field_name="Warranty Period", field_value="5 years"
+            ),
+        ],
+    )
+    # The fixture deliberately leaves ``lead_time`` unset on the attrs
+    # model so the test verifies optional-field omission round-trips
+    # cleanly (UNSET on the attrs side → ``None`` on the response).
+    # Mirrors a real API response shape where the seller hasn't
+    # populated lead_time.
+    assert api_variant.lead_time is UNSET, (
+        "Fixture must leave lead_time as UNSET to mimic an API response "
+        "where the optional field wasn't populated. If this fails the "
+        "fixture has drifted, not the prod code."
+    )
+
+    # Cache miss for the variant; parent product + supplier ARE in cache
+    # (the @cache_read decorator synced them before the call).
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
+    parent_product = {
+        "id": 101,
+        "name": "Professional Kitchen Knife Set",
+        "uom": "set",
+        "default_supplier_id": 555,
+        "batch_tracked": False,
+    }
+    supplier = {"id": 555, "name": "Acme Cutlery Co"}
+
+    async def _get_many_by_ids(entity_type, ids, **_kw):
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedProduct,
+            CachedSupplier,
+        )
+
+        if entity_type == CachedProduct:
+            return {101: parent_product} if 101 in set(ids) else {}
+        if entity_type == CachedSupplier:
+            return {555: supplier} if 555 in set(ids) else {}
+        return {}
+
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
+        side_effect=_get_many_by_ids
+    )
+
+    with patch(
+        "katana_mcp.tools.foundation.items._fetch_variant_by_id",
+        new_callable=AsyncMock,
+        return_value=api_variant,
+    ):
+        request = GetVariantDetailsRequest(variant_id=9001)
+        [result] = (await _get_variant_details_impl(request, context)).found
+
+    # parent_name lifted from the enriched parent product
+    assert result.product_or_material_name == "Professional Kitchen Knife Set"
+    # display_name recomputed from parent_name + configs (parent + Piece
+    # Count + Handle Material). Confirms ``build_variant_display_name``
+    # is called on the API-fallback path, not just the cache-hit path.
+    assert result.display_name is not None
+    assert "Professional Kitchen Knife Set" in result.display_name
+    assert "8-piece" in result.display_name
+    assert "Steel" in result.display_name
+    # Lifted parent context — the bits that would silently null on a
+    # broken fallback path.
+    assert result.uom == "set"
+    assert result.default_supplier_id == 555
+    assert result.default_supplier_name == "Acme Cutlery Co"
+    # Variant-level fields still surface from the attrs model.
+    assert result.sku == "KNF-PRO-8PC-STL"
+    assert result.sales_price == 299.99
+    # Both attrs-item lists ``_dump_list`` handles — config_attributes
+    # AND custom_fields — round-trip into plain dicts on the response.
+    # Pre-fix this assertion would have failed with a pydantic
+    # ValidationError when ``_dump_list`` left the attrs items
+    # unconverted.
+    assert result.config_attributes == [
+        {"config_name": "Piece Count", "config_value": "8-piece"},
+        {"config_name": "Handle Material", "config_value": "Steel"},
+    ]
+    assert result.custom_fields == [
+        {"field_name": "Warranty Period", "field_value": "5 years"},
+    ]
+    # ``type`` comes through the ``type_`` → ``type`` rename — pinned
+    # because attrs models name the discriminator ``type_`` to avoid the
+    # Python keyword collision, and a naive ``_attr(v, "type")`` would
+    # silently return None on this path.
+    assert result.type == "product"
+
+
+@pytest.mark.asyncio
 async def test_get_variant_details_no_purchase_uom_when_parent_omits_it():
     """The common case (purchase_uom == stock uom) — parent omits the fields,
     response surfaces them as None so the Prefab UI card stays quiet."""
