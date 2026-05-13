@@ -86,8 +86,12 @@ All formatting is automated via `uv run poe format`.
 1. **Fork the repository** and create a feature branch
 
    ```bash
-   git checkout -b feature/your-feature-name
+   git checkout -b feat/your-feature-name
    ```
+
+   Use the scope prefixes from
+   [COMMIT_STANDARDS](../.github/agents/guides/shared/COMMIT_STANDARDS.md) — `feat/`,
+   `fix/`, `docs/`, `chore/`, etc. — so the branch name signals the kind of change.
 
 1. **Make your changes** following the code style guidelines
 
@@ -114,6 +118,19 @@ All formatting is automated via `uv run poe format`.
    ```
 
 1. **Push to your fork** and create a pull request
+
+   For the first push of a new branch, use the explicit destination ref to avoid a bare
+   `git push -u origin <name>` resolving to the local branch's tracked upstream (which
+   may still be `main` if you created the branch via
+   `git checkout -b <name> origin/main`) and pushing your tip straight to `main`:
+
+   ```bash
+   git push -u origin HEAD:refs/heads/feat/your-feature-name
+   ```
+
+   A pre-push hook enforces this; never bypass with `--no-verify`. Full rationale + the
+   incident that prompted the rule live in
+   [COMMIT_STANDARDS "First-Push Safety"](../.github/agents/guides/shared/COMMIT_STANDARDS.md#first-push-safety).
 
 ### Commit Message Format
 
@@ -285,25 +302,20 @@ uv run python scripts/regenerate_client.py
 
 ### What Gets Regenerated
 
-**Replaced Files** (Generated Content):
+The canonical list of generated vs preserved paths lives in two places that stay in sync
+with the actual generator:
 
-- `client.py` - Base HTTP client classes
-- `client_types.py` - Type definitions (renamed from `types.py`)
-- `errors.py` - Exception definitions
-- `py.typed` - Type checking marker
-- `api/` - All API endpoint modules
-- `models/` - All data model classes
-- `models_pydantic/_generated/` - Pydantic model surface
-- `models_pydantic/_auto_registry.py` - Generated registry
+- The "Generated Files (DO NOT EDIT)" and "Editable Files (Can Modify)" sections of
+  [FILE_ORGANIZATION.md](../.github/agents/guides/shared/FILE_ORGANIZATION.md), which
+  describe the boundary in detail.
+- [`scripts/regenerate_client.py`](../scripts/regenerate_client.py) itself, which is
+  what actually decides which paths get rewritten — read the `REPLACE_PATTERNS` /
+  `PRESERVE_PATTERNS` constants if the docs and the script ever disagree.
 
-**Preserved Files** (Custom Content):
-
-- `katana_client.py` - Our resilient client implementation
-- `log_setup.py` - Custom logging configuration
-- `__init__.py` - Custom exports (gets rewritten but preserves structure)
-- `models_pydantic/*.py` (except `_generated/` and `_auto_registry.py`) -
-  hand-maintained pydantic infrastructure (`_base.py`, `_mapped_shim.py`,
-  `_pydantic_json.py`, `_registry.py`, `converters.py`)
+The high-level rule: anything under `api/`, `models/`, `client.py`, `client_types.py`,
+`errors.py`, `py.typed`, and `models_pydantic/_generated/` (plus `_auto_registry.py`) is
+rewritten on every regen. Everything else under `katana_public_api_client/` (including
+the rest of `models_pydantic/` — hand-maintained pydantic infrastructure) is preserved.
 
 ### Regeneration Features
 

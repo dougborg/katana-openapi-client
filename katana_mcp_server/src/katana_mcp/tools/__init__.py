@@ -1,26 +1,26 @@
 """MCP tools for Katana Manufacturing ERP.
 
-This module contains tool implementations organized into foundation and workflow layers.
+Tools are organized into two layers:
 
-Tool Organization:
------------------
-- **Foundation tools** (tools/foundation/): Low-level operations mapping to API endpoints
-  - items.py: Search and manage items (variants, products, materials, services)
-  - inventory.py: Stock checking, low stock alerts, inventory operations
+- **Foundation** (``tools/foundation/``) — thin, single-purpose tools organized by
+  Katana domain (catalog, items, inventory, orders, purchase / sales / manufacturing
+  orders, stock transfers, customers, reference data, reporting, corrections, cache
+  admin). See the directory listing for the canonical surface; the live tool list
+  is also exposed at the ``katana://help/tools`` resource.
+- **Workflows** (``tools/workflows/``) — planned extension layer for multi-step
+  intent-based compositions on top of foundation tools. Currently a stub
+  (``register_all_workflow_tools`` is a no-op).
 
-- **Workflow tools** (tools/workflows/): High-level intent-based operations
-  - Coming in Phase 3
+Cross-cutting tool infrastructure lives directly under ``tools/`` — ``prefab_ui.py``,
+``tool_result_utils.py``, ``decorators.py``, and the ``_modification`` / ``_reopen``
+/ ``_derived_fields`` / ``list_coercion`` helpers consumed by foundation modules.
 
-Tool Registration Pattern:
---------------------------
-Each tool module exports a register_tools(mcp) function that registers its tools
-with the FastMCP instance. This avoids circular imports.
-
-When adding new tool modules:
-1. Create the new module (e.g., foundation/purchase_orders.py)
-2. Define tools as regular async functions (no decorators)
-3. Add a register_tools(mcp: FastMCP) function that calls mcp.tool() on each function
-4. Import and call the registration function from foundation/__init__.py or workflows/__init__.py
+Each foundation/workflow module exports a ``register_tools(mcp)`` function that
+registers its tools with the FastMCP instance (avoids circular imports). For the
+tool interface pattern (pydantic ``Request`` / ``Response`` models, the
+``@unpack_pydantic_params`` decorator, the preview/apply elicitation flow), see
+[ADR-0016](../../../docs/adr/0016-tool-interface-pattern.md) and the architecture
+guide at ``katana_mcp_server/docs/architecture.md``.
 """
 
 from fastmcp import FastMCP
