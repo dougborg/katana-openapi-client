@@ -89,9 +89,12 @@ All formatting is automated via `uv run poe format`.
    git checkout -b feat/your-feature-name
    ```
 
-   Use the scope prefixes from
-   [COMMIT_STANDARDS](../.github/agents/guides/shared/COMMIT_STANDARDS.md) — `feat/`,
+   Branch names use the same **type** prefixes as conventional commits (see
+   [COMMIT_STANDARDS](../.github/agents/guides/shared/COMMIT_STANDARDS.md)) — `feat/`,
    `fix/`, `docs/`, `chore/`, etc. — so the branch name signals the kind of change.
+   (Note: `feat`, `fix`, etc. are the conventional-commit *type*; the *scope* is the
+   package, e.g. `(client)` or `(mcp)`, applied to the commit message, not the branch
+   name.)
 
 1. **Make your changes** following the code style guidelines
 
@@ -302,15 +305,20 @@ uv run python scripts/regenerate_client.py
 
 ### What Gets Regenerated
 
-The canonical list of generated vs preserved paths lives in two places that stay in sync
-with the actual generator:
+The canonical list of generated vs preserved paths lives in three places that stay in
+sync with the actual generators:
 
 - The "Generated Files (DO NOT EDIT)" and "Editable Files (Can Modify)" sections of
   [FILE_ORGANIZATION.md](../.github/agents/guides/shared/FILE_ORGANIZATION.md), which
   describe the boundary in detail.
-- [`scripts/regenerate_client.py`](../scripts/regenerate_client.py) itself, which is
-  what actually decides which paths get rewritten — read the `REPLACE_PATTERNS` /
-  `PRESERVE_PATTERNS` constants if the docs and the script ever disagree.
+- [`scripts/regenerate_client.py`](../scripts/regenerate_client.py) decides which
+  *attrs* files get rewritten — read the `generated_items` list inside
+  `move_client_to_workspace` for the exact list.
+- [`scripts/generate_pydantic_models.py`](../scripts/generate_pydantic_models.py)
+  decides which *pydantic* files get rewritten (the `_generated/` subtree and
+  `_auto_registry.py` under `models_pydantic/`).
+
+If the docs and either script ever disagree, the script wins.
 
 The high-level rule: anything under `api/`, `models/`, `client.py`, `client_types.py`,
 `errors.py`, `py.typed`, and `models_pydantic/_generated/` (plus `_auto_registry.py`) is
