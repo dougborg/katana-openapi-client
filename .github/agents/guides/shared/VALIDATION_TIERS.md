@@ -128,7 +128,9 @@ ______________________________________________________________________
 
 Pre-commit is configured in `.pre-commit-config.yaml` and installs both `pre-commit` and
 `pre-push` hook types via `default_install_hook_types`. The hooks run ruff format + ruff
-check, mdformat, yamllint, the full test suite (`uv run poe test`), and the
+check, mdformat, yamllint, the default unit-test suite (`uv run poe test` — which
+excludes `docs`, `schema_validation`, `integration`, and `browser` markers; run
+`uv run poe test-browser` separately for Prefab UI render tests), and the
 `block-push-to-main` guard.
 
 **Worktrees:** re-run `uv run pre-commit install` after `git worktree add` — pre-commit
@@ -145,8 +147,9 @@ The session-default workflow:
 1. **Iterate** → `uv run poe quick-check` (Tier 1).
 1. **Commit** → run `uv run poe agent-check` explicitly (Tier 2 — adds `ty` typecheck).
    Pre-commit fires on the commit but only runs ruff format / ruff check / mdformat /
-   yamllint + `uv run poe test` (no typecheck), so it's not a substitute for Tier 2 if
-   you've changed type-relevant code.
+   yamllint + the default unit-test suite (no `ty` typecheck, no browser /
+   schema-validation / integration tests), so it's not a substitute for Tier 2 if you've
+   changed type-relevant code.
 1. **Open PR** → `uv run poe check` (Tier 3) — **REQUIRED**.
 1. **Request review** → `uv run poe full-check` (Tier 4) if docs changed.
 
