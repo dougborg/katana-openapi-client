@@ -1278,7 +1278,7 @@ wheels = [
 
 [[package]]
 name = "katana-mcp-server"
-version = "0.75.0"
+version = "0.75.1"
 source = { editable = "katana_mcp_server" }
 dependencies = [
     { name = "aiosqlite" },
