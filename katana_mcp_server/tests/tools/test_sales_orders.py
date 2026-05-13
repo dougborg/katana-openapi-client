@@ -1602,14 +1602,11 @@ async def test_get_sales_order_fetches_and_surfaces_addresses():
 
 
 @pytest.mark.asyncio
-async def test_get_sales_order_markdown_uses_canonical_field_names():
-    """Markdown labels use Pydantic field names (not prettified headers)
-    so LLM consumers can't misread a section label as a different field.
-
-    Pins the #346 canonical-name convention: scalar lines render as
-    ``**field_name**: value``, empty lists render as ``**field_name**: []``,
-    and non-empty lists render as ``**field_name** (N):`` with indented
-    per-item blocks.
+async def test_get_sales_order_response_uses_canonical_field_names():
+    """JSON content keys off the Pydantic field names directly — same
+    motivation as the #346 canonical-name convention (LLM readers can't
+    misread a key as a different field). Empty collections serialize as
+    ``[]``, populated ones as JSON arrays of objects.
     """
     context, lifespan_ctx = create_mock_context()
     lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
@@ -1618,7 +1615,6 @@ async def test_get_sales_order_markdown_uses_canonical_field_names():
         order_no="SO-2001",
         rows=[_make_mock_row(id=10, variant_id=500, quantity=1, price_per_unit=99.0)],
     )
-    # Stamp distinctive values on fields whose labels we want to pin:
     mock_so.customer_ref = "CUST-REF-001"
     mock_so.tracking_number = "UPS1234567890"
 
@@ -1629,16 +1625,14 @@ async def test_get_sales_order_markdown_uses_canonical_field_names():
     ):
         result = await get_sales_order(order_id=2001, context=context)
 
-    text = result.content[0].text
-    # Canonical-name scalar labels (not "Delivery", not "Tracking", etc.):
-    assert "**delivery_date**:" in text
-    assert "**customer_ref**: CUST-REF-001" in text
-    assert "**tracking_number**: UPS1234567890" in text
-    # Empty collections render with explicit [] so readers can't mistake
-    # the heading for a section:
-    assert "**addresses**: []" in text
-    # Non-empty rows render with a count header:
-    assert "**rows** (1):" in text
+    data = json.loads(result.content[0].text)
+    # Canonical field names show up as JSON keys:
+    assert "delivery_date" in data
+    assert data["customer_ref"] == "CUST-REF-001"
+    assert data["tracking_number"] == "UPS1234567890"
+    # Empty/populated collections serialize cleanly:
+    assert data["addresses"] == []
+    assert len(data["rows"]) == 1
 
 
 # ============================================================================
@@ -1659,26 +1653,16 @@ async def test_list_sales_orders_format_json_returns_json(
     context, _, typed_cache = context_with_typed_cache
     await seed_cache(typed_cache, [make_sales_order(id=1, order_no="SO-1")])
 
-    result = await list_sales_orders(format="json", context=context)
+    result = await list_sales_orders(context=context)
 
     data = json.loads(_content_text(result))
     assert data["total_count"] == 1
     assert data["orders"][0]["order_no"] == "SO-1"
 
 
-@pytest.mark.asyncio
-async def test_list_sales_orders_format_markdown_default(
-    context_with_typed_cache, no_sync
-):
-    """Default markdown format produces a table."""
-    context, _, typed_cache = context_with_typed_cache
-    await seed_cache(typed_cache, [make_sales_order(id=1, order_no="SO-1")])
-
-    result = await list_sales_orders(context=context)
-
-    text = _content_text(result)
-    assert "|" in text  # markdown table
-    assert "SO-1" in text
+# list_sales_orders default content is the same JSON shape as the prior
+# format="json" path (#567 dropped the markdown alternative); the
+# coverage above already pins that.
 
 
 @pytest.mark.asyncio
@@ -1693,7 +1677,7 @@ async def test_get_sales_order_format_json_returns_json():
         patch(_SO_UNWRAP_AS, return_value=mock_so),
         patch(_FETCH_ADDR_PATH, AsyncMock(return_value=[])),
     ):
-        result = await get_sales_order(order_id=9, format="json", context=context)
+        result = await get_sales_order(order_id=9, context=context)
 
     data = json.loads(_content_text(result))
     assert data["id"] == 9

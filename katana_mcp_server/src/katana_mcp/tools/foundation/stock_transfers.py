@@ -47,9 +47,8 @@ from katana_mcp.tools.tool_result_utils import (
     PaginationMeta,
     apply_date_window_filters,
     enum_to_str,
-    format_md_table,
     iso_or_none,
-    make_simple_result,
+    make_json_result,
     parse_request_dates,
     resolve_entity_name,
 )
@@ -458,51 +457,7 @@ async def create_stock_transfer(
     `batch_transactions` on the row.
     """
     response = await _create_stock_transfer_impl(request, context)
-
-    lines = [
-        f"## Stock Transfer ({'PREVIEW' if response.is_preview else 'CREATED'})",
-        f"- **Message**: {response.message}",
-    ]
-    if response.id is not None:
-        lines.append(f"- **ID**: {response.id}")
-    if response.stock_transfer_number:
-        lines.append(f"- **Number**: {response.stock_transfer_number}")
-    if response.source_location_id is not None:
-        src_label = (
-            f"{response.source_location_name} (ID: {response.source_location_id})"
-            if response.source_location_name
-            else str(response.source_location_id)
-        )
-        lines.append(f"- **Source Location**: {src_label}")
-    if response.target_location_id is not None:
-        dst_label = (
-            f"{response.target_location_name} (ID: {response.target_location_id})"
-            if response.target_location_name
-            else str(response.target_location_id)
-        )
-        lines.append(f"- **Destination Location**: {dst_label}")
-    if response.item_count is not None:
-        lines.append(f"- **Rows**: {response.item_count}")
-    if response.expected_arrival_date:
-        lines.append(f"- **Expected Arrival**: {response.expected_arrival_date}")
-    if response.status:
-        lines.append(f"- **Status**: {response.status}")
-    if response.katana_url:
-        lines.append(f"- **Katana URL**: {response.katana_url}")
-    if response.warnings:
-        lines.append("")
-        lines.append("### Warnings")
-        for w in response.warnings:
-            is_block = w.startswith(BLOCK_WARNING_PREFIX)
-            display = w.removeprefix(BLOCK_WARNING_PREFIX).lstrip() if is_block else w
-            prefix = "**[BLOCKED]** " if is_block else ""
-            lines.append(f"- {prefix}{display}")
-    if response.next_actions:
-        lines.append("")
-        lines.append("### Next Actions")
-        lines.extend(f"- {action}" for action in response.next_actions)
-
-    return make_simple_result("\n".join(lines), structured_data=response.model_dump())
+    return make_json_result(response)
 
 
 # ============================================================================
@@ -559,15 +514,6 @@ class ListStockTransfersRequest(BaseModel):
     include_rows: bool = Field(
         default=False,
         description="When true, populate row-level detail on each summary.",
-    )
-
-    # Output formatting
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data consumable by downstream tools/aggregations."
-        ),
     )
 
 
@@ -771,42 +717,7 @@ async def list_stock_transfers(
     Pass `include_rows=True` to populate per-transfer line items.
     """
     response = await _list_stock_transfers_impl(request, context)
-
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-
-    if not response.transfers:
-        md = "No stock transfers match the given filters."
-    else:
-        table = format_md_table(
-            headers=[
-                "ID",
-                "Number",
-                "Status",
-                "Source",
-                "Destination",
-                "Rows",
-                "Expected Arrival",
-            ],
-            rows=[
-                [
-                    t.id,
-                    t.stock_transfer_number or "—",
-                    t.status or "—",
-                    t.source_location_id if t.source_location_id is not None else "—",
-                    t.target_location_id if t.target_location_id is not None else "—",
-                    t.row_count,
-                    t.expected_arrival_date or "—",
-                ]
-                for t in response.transfers
-            ],
-        )
-        md = f"## Stock Transfers ({response.total_count})\n\n{table}"
-
-    return make_simple_result(md, structured_data=response.model_dump())
+    return make_json_result(response)
 
 
 # ============================================================================

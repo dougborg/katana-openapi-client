@@ -83,19 +83,20 @@ class TestMCPParameterPassing:
 
         This test verifies that the Unpack decorator successfully transforms the
         signature from nested request objects to individual flat parameters.
+        The ``format`` parameter (markdown/json) was dropped repo-wide in
+        #567 — tools now return JSON content unconditionally.
         """
         # Check list_low_stock_items signature
         sig = inspect.signature(list_low_stock_items)
         params = list(sig.parameters.keys())
 
-        assert params == ["threshold", "limit", "format", "context"], (
-            "list_low_stock_items has flattened params: threshold, limit, format, context"
+        assert params == ["threshold", "limit", "context"], (
+            "list_low_stock_items has flattened params: threshold, limit, context"
         )
         assert sig.parameters["threshold"].annotation is int
         assert sig.parameters["limit"].annotation is int
         assert sig.parameters["threshold"].default == 10
         assert sig.parameters["limit"].default == 50
-        assert sig.parameters["format"].default == "markdown"
 
         # Check check_inventory signature
         sig2 = inspect.signature(check_inventory)
@@ -104,17 +105,15 @@ class TestMCPParameterPassing:
         assert params2 == [
             "skus_or_variant_ids",
             "location_id",
-            "format",
             "context",
         ], (
             "check_inventory has flattened params: "
-            "skus_or_variant_ids, location_id, format, context"
+            "skus_or_variant_ids, location_id, context"
         )
         # skus_or_variant_ids is required (no default) so the MCP schema marks
         # it required; the min_length=1 Pydantic constraint also rejects [].
         assert sig2.parameters["skus_or_variant_ids"].default is inspect.Parameter.empty
         assert sig2.parameters["location_id"].default is None
-        assert sig2.parameters["format"].default == "markdown"
         from katana_mcp.tools.foundation.inventory import CheckInventoryRequest
         from pydantic import ValidationError as PydanticValidationError
 

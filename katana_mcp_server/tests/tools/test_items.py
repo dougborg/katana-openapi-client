@@ -155,19 +155,20 @@ async def test_get_variant_details_surfaces_every_variant_field():
 
 
 @pytest.mark.asyncio
-async def test_get_variant_details_format_json_includes_deleted_at():
-    """format='json' round-trips deleted_at (the pre-#346 drop)."""
+async def test_get_variant_details_content_includes_deleted_at():
+    """JSON content round-trips ``deleted_at`` (the pre-#346 drop). Every
+    request shape — single or batch — returns the ``{variants, not_found}``
+    envelope so callers see one stable contract (#567 PR #719 review)."""
     context, lifespan_ctx = create_mock_context()
     variant = dict(_FULL_VARIANT_DICT)
     variant["deleted_at"] = "2024-09-01T12:00:00+00:00"
     lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=variant)
 
-    result = await get_variant_details(
-        sku="KNF-PRO-8PC-STL", format="json", context=context
-    )
+    result = await get_variant_details(sku="KNF-PRO-8PC-STL", context=context)
 
     data = json.loads(_content_text(result))
     assert data["variants"][0]["deleted_at"] == "2024-09-01T12:00:00+00:00"
+    assert data["not_found"] == []
 
 
 @pytest.mark.asyncio
@@ -797,10 +798,11 @@ async def test_get_variant_details_mixed_skus_and_variant_ids_partial():
 
 
 @pytest.mark.asyncio
-async def test_get_variant_details_batch_markdown_lists_not_found_section():
-    """Public tool's markdown rendering surfaces a ``Not found`` section
-    when a batch had misses, so callers see the gaps without parsing the
-    structured payload."""
+async def test_get_variant_details_batch_content_surfaces_misses_in_json():
+    """Batch JSON content carries a ``not_found`` array next to
+    ``variants`` so callers see the gaps without a separate side-channel.
+    Replaces the prior markdown-`Not found`-section test (#567 dropped
+    the markdown layer)."""
     context, lifespan_ctx = create_mock_context()
     by_sku = {
         "WIDGET-B": {"id": 2, "sku": "WIDGET-B", "display_name": "Widget B"},
@@ -811,10 +813,9 @@ async def test_get_variant_details_batch_markdown_lists_not_found_section():
 
     result = await get_variant_details(skus=["MISSING-A", "WIDGET-B"], context=context)
 
-    text = _content_text(result)
-    assert "WIDGET-B" in text
-    assert "Not found" in text
-    assert "MISSING-A" in text
+    data = json.loads(_content_text(result))
+    assert {v["sku"] for v in data["variants"]} == {"WIDGET-B"}
+    assert {n["sku"] for n in data["not_found"]} == {"MISSING-A"}
 
 
 @pytest.mark.asyncio
@@ -829,9 +830,7 @@ async def test_get_variant_details_batch_json_includes_not_found():
         side_effect=lambda sku, **_kw: by_sku.get(sku)
     )
 
-    result = await get_variant_details(
-        skus=["MISSING-A", "WIDGET-B"], format="json", context=context
-    )
+    result = await get_variant_details(skus=["MISSING-A", "WIDGET-B"], context=context)
 
     payload = json.loads(_content_text(result))
     assert [v["sku"] for v in payload["variants"]] == ["WIDGET-B"]
@@ -1168,7 +1167,7 @@ async def test_get_item_format_json_round_trips_nested():
     attrs_product = _make_attrs(_FULL_PRODUCT_DICT)
 
     with patch(_FETCH_ITEM_PATH, AsyncMock(return_value=attrs_product)):
-        result = await get_item(id=101, type="product", format="json", context=context)
+        result = await get_item(id=101, type="product", context=context)
 
     data = json.loads(_content_text(result))
     assert data["id"] == 101

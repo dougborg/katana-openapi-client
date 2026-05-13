@@ -7,7 +7,7 @@ rather than exposed as a resource.
 
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
@@ -16,7 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from katana_mcp.logging import observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.decorators import cache_read
-from katana_mcp.tools.tool_result_utils import make_simple_result
+from katana_mcp.tools.tool_result_utils import make_json_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_mcp.web_urls import katana_web_url
 from katana_public_api_client.models_pydantic._generated import CachedCustomer
@@ -33,13 +33,6 @@ class SearchCustomersRequest(BaseModel):
 
     query: str = Field(..., description="Search query (name or email)")
     limit: int = Field(default=20, description="Maximum results to return")
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data consumable by downstream tools/aggregations."
-        ),
-    )
 
 
 class CustomerInfo(BaseModel):
@@ -119,29 +112,7 @@ async def search_customers(
     Query must not be empty. Default limit is 20 results.
     """
     response = await _search_customers_impl(request, context)
-
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-
-    if response.customers:
-        lines = [
-            f"- **{c.name}** (ID: {c.id})"
-            + (f" — {c.email}" if c.email else "")
-            + (f" [{c.currency}]" if c.currency else "")
-            for c in response.customers
-        ]
-        md = (
-            f"## Customer Search Results\n\n"
-            f"Query: `{request.query}` — {response.total_count} results\n\n"
-            + "\n".join(lines)
-        )
-    else:
-        md = f"No customers found matching `{request.query}`."
-
-    return make_simple_result(md, structured_data=response.model_dump())
+    return make_json_result(response)
 
 
 # ============================================================================
@@ -155,13 +126,6 @@ class GetCustomerRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     customer_id: int = Field(..., description="Customer ID to look up")
-    format: Literal["markdown", "json"] = Field(
-        default="markdown",
-        description=(
-            "Output format: 'markdown' (default) for human-readable tables; "
-            "'json' for structured data consumable by downstream tools/aggregations."
-        ),
-    )
 
 
 class CustomerAddressInfo(BaseModel):
@@ -344,33 +308,6 @@ async def _get_customer_impl(
     )
 
 
-def _render_address_md(addr: CustomerAddressInfo) -> str:
-    """Render a single address as a compact multi-line block.
-
-    Uses canonical field names so an LLM consuming the markdown can't mistake
-    a rendered value for a differently-labeled field.
-    """
-    lines = [f"  - **id**: {addr.id}"]
-    for fname in (
-        "entity_type",
-        "default",
-        "first_name",
-        "last_name",
-        "company",
-        "phone",
-        "line_1",
-        "line_2",
-        "city",
-        "state",
-        "zip",
-        "country",
-    ):
-        val = getattr(addr, fname)
-        if val is not None and val != "":
-            lines.append(f"    **{fname}**: {val}")
-    return "\n".join(lines)
-
-
 @observe_tool
 @unpack_pydantic_params
 async def get_customer(
@@ -385,51 +322,7 @@ async def get_customer(
     single-call path to the rest.
     """
     response = await _get_customer_impl(request, context)
-
-    if request.format == "json":
-        return ToolResult(
-            content=response.model_dump_json(indent=2),
-            structured_content=response.model_dump(),
-        )
-
-    # Labels use the canonical Pydantic field names so LLM consumers can't
-    # confuse a section header with the field name (see #346 follow-on).
-    md_lines = [f"## {response.name}"]
-    scalar_fields = (
-        "id",
-        "first_name",
-        "last_name",
-        "company",
-        "email",
-        "phone",
-        "currency",
-        "reference_id",
-        "category",
-        "discount_rate",
-        "default_billing_id",
-        "default_shipping_id",
-        "comment",
-        "created_at",
-        "updated_at",
-        "deleted_at",
-    )
-    for fname in scalar_fields:
-        val = getattr(response, fname)
-        if val is None or val == "":
-            continue
-        md_lines.append(f"**{fname}**: {val}")
-
-    if response.addresses:
-        md_lines.append("")
-        md_lines.append(f"**addresses** ({len(response.addresses)}):")
-        for addr in response.addresses:
-            md_lines.append(_render_address_md(addr))
-    else:
-        md_lines.append("**addresses**: []")
-
-    return make_simple_result(
-        "\n".join(md_lines), structured_data=response.model_dump()
-    )
+    return make_json_result(response)
 
 
 def register_tools(mcp: FastMCP) -> None:

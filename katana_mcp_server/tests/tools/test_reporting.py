@@ -756,7 +756,6 @@ async def test_top_selling_variants_format_json_returns_json():
         result = await top_selling_variants(
             start_date=date(2026, 1, 1),
             end_date=date(2026, 1, 31),
-            format="json",
             context=context,
         )
 
@@ -784,7 +783,6 @@ async def test_sales_summary_format_json_returns_json():
             start_date=date(2026, 1, 1),
             end_date=date(2026, 1, 31),
             group_by="day",
-            format="json",
             context=context,
         )
 
@@ -821,7 +819,6 @@ async def test_inventory_velocity_format_json_returns_json():
         result = await inventory_velocity(
             sku_or_variant_id="V-1",
             period_days=10,
-            format="json",
             context=context,
         )
 
