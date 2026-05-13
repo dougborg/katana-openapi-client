@@ -133,9 +133,12 @@ All formatting is automated via `uv run poe format`.
    destination ref explicitly, so it's immune to git configs (e.g.
    `push.default = upstream`) that can reroute an under-specified push to whatever the
    branch tracks — which, if you created the branch via
-   `git checkout -b <name> origin/main`, is `main`. A pre-push hook enforces the
-   explicit form; never bypass with `--no-verify`. Full rationale + the incident that
-   prompted the rule live in
+   `git checkout -b <name> origin/main`, is `main`. A pre-push hook
+   (`scripts/pre-push-guard.sh`) blocks the specific case where a non-`main` local ref
+   would land on `refs/heads/main`, so the originating incident can't recur — but the
+   hook doesn't reject every under-specified push, so the explicit refspec is the
+   contributor-facing rule. Never bypass with `--no-verify`. Full rationale + the
+   incident that prompted the rule live in
    [COMMIT_STANDARDS "First-Push Safety"](../.github/agents/guides/shared/COMMIT_STANDARDS.md#first-push-safety).
 
 ### Commit Message Format
