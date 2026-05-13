@@ -194,17 +194,17 @@ The project follows [Semantic Versioning](https://semver.org/): **MAJOR.MINOR.PA
 
 ### Pre-1.0 Special Rules
 
-Both Python packages are pre-1.0. Before 1.0.0, breaking changes still bump MINOR (not
-MAJOR):
+Both Python packages are pre-1.0. Before 1.0.0, breaking changes (`feat!:` *and* `fix!:`
+— both are gated on `major_on_zero = false`) still bump MINOR, not MAJOR:
 
-- `feat!:` while `0.x.y` → MINOR bump
-- `feat!:` after `1.0.0` → MAJOR bump
+- `feat!:` / `fix!:` while `0.x.y` → MINOR bump
+- `feat!:` / `fix!:` after `1.0.0` → MAJOR bump
 
-This means `feat(client)!:` on a 0.x.y client behaves like a normal `feat:` from a
-version-number perspective. The breaking-change signal then has to come from the
-**changelog entry** (the `BREAKING CHANGE:` footer is what surfaces it). See "Schema and
-Generator Changes" below for the rule that requires the marker even on small
-spec/generator edits.
+This means `feat(client)!:` (or `fix(client)!:`) on a 0.x.y client behaves like a normal
+`feat:` / `fix:` from a version-number perspective. The breaking-change signal then has
+to come from the **changelog entry** (the `BREAKING CHANGE:` footer is what surfaces
+it). See "Schema and Generator Changes" below for the rule that requires the marker even
+on small spec/generator edits.
 
 ## Best Practices
 
