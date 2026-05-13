@@ -9,10 +9,10 @@ not the encyclopedia.
 The MCP server exposes Katana Manufacturing ERP to AI assistants via the
 [Model Context Protocol](https://modelcontextprotocol.io). It is built on
 [FastMCP](https://github.com/jlowin/fastmcp) and consumes the Python
-[`katana-openapi-client`](../../katana_public_api_client/docs/README.md) package for
-HTTP. Resilience (retries, rate-limiting, smart pagination) lives in the client's
-transport layer — the MCP server inherits all of it for free, and **must not** wrap API
-calls with its own retry / rate-limit logic.
+[`katana-openapi-client`](../client/README.md) package for HTTP. Resilience (retries,
+rate-limiting, smart pagination) lives in the client's transport layer — the MCP server
+inherits all of it for free, and **must not** wrap API calls with its own retry /
+rate-limit logic.
 
 ## Layered structure
 
@@ -21,12 +21,14 @@ calls with its own retry / rate-limit logic.
 │  FastMCP entry (server.py)                                 │
 │   - registers tools / resources / prompts                  │
 │   - hot-reload + HTTP/STDIO transports                     │
+│   - middleware/ (request-side coercion shims)              │
 ├────────────────────────────────────────────────────────────┤
 │  Tools           Resources         Prompts                 │
 │  tools/          resources/        prompts/                │
 │   foundation/     help.py           workflows.py           │
 │   workflows/      inventory.py                             │
-│                   reference.py                             │
+│   prefab_ui.py                                             │
+│   decorators.py                                            │
 ├────────────────────────────────────────────────────────────┤
 │  Services / dependencies (services/dependencies.py)        │
 │   get_services(context) → KatanaClient + caches            │
@@ -48,17 +50,32 @@ calls with its own retry / rate-limit logic.
 Tools live under `katana_mcp/tools/` and split into two sublayers:
 
 - **Foundation tools** (`tools/foundation/`) — thin, single-purpose tools organized by
-  Katana domain: `catalog.py`, `customers.py`, `inventory.py`, `items.py`,
-  `manufacturing_orders.py`, `orders.py`, `purchase_orders.py`, `reporting.py`,
-  `sales_orders.py`, `stock_transfers.py`. Each module exposes the `get_*` / `list_*` /
-  `create_*` / `update_*` operations for its domain and follows the conventions in
+  Katana domain. Each module exposes the standard CRUD operations for its domain
+  (`get_*` / `list_*` / `create_*` / `update_*` / `modify_*` / `delete_*`) plus
+  domain-specific operations like `correct_*` for after-the-fact fixes; see the
+  directory listing for the canonical surface. Tools follow the conventions in
   [ADR-0016](adr/0016-tool-interface-pattern.md) and
-  [ADR-0019](adr/0019-tool-description-batch-conventions.md).
+  [ADR-0019](adr/0019-tool-description-batch-conventions.md). The canonical list of
+  modules is the directory itself
+  ([`tools/foundation/`](https://github.com/dougborg/katana-openapi-client/tree/main/katana_mcp_server/src/katana_mcp/tools/foundation))
+  and the live tool surface is exposed at the `katana://help/tools` resource — both stay
+  current; this doc does not enumerate.
 - **Workflows** (`tools/workflows/`) — a planned extension layer for future multi-step
   compositions built on top of foundation tools. This directory is currently a stub:
   `register_all_workflow_tools` is a no-op and there are no concrete workflow tool
   modules yet. Add fulfilment / production-planning examples here only once real
   workflow tools exist.
+
+Cross-cutting tool infrastructure also lives directly under `tools/`:
+
+- `prefab_ui.py` — Prefab card builders + `register_preview_tool` helper (preview/apply
+  pattern). See [Prefab UI — Rendering Pitfalls](prefab/README.md) for the contracts the
+  JS renderer enforces.
+- `tool_result_utils.py` — `make_tool_result(...)` and the `UI_META` opt-in marker that
+  links a tool to the auto-registered widget.
+- `decorators.py` — `@cache_read(CachedEntity, ...)` for typed-cache-aware reads.
+- `_modification.py` / `_modification_dispatch.py` / `_reopen.py` / `_derived_fields.py`
+  / `list_coercion.py` — internal helpers consumed by the foundation tools.
 
 ### Tool interface pattern (ADR-0016)
 
@@ -95,12 +112,22 @@ or modified entity is picked up automatically by the next read. The legacy `cach
 
 ## Resources
 
-Resources expose read-only context to the AI:
+Resources expose read-only context to the AI. The current set is small:
 
-- `resources/help.py` — tool reference and conventions
+- `resources/help.py` — tool reference and conventions, registered at `katana://help`,
+  `katana://help/workflows`, `katana://help/tools`, `katana://help/resources`
   ([ADR-0019](adr/0019-tool-description-batch-conventions.md))
-- `resources/inventory.py` — current inventory snapshots
-- `resources/reference.py` — Katana taxonomy and lookup tables
+- `resources/inventory.py` — summary catalog index at `katana://inventory/items`
+  (products, materials, services as id / name / type plus capability flags `is_sellable`
+  / `is_producible` / `is_purchasable` and per-type counts — *not* the full per-item
+  field set), backed by the typed cache. For rich item details, use the `get_item` /
+  `get_variant_details` tools.
+
+Reference data (suppliers, locations, tax rates, operators, additional costs) is
+**tools-only** — see `tools/foundation/reference.py`. The previous bulk-list resources
+for those entities dumped every row as a single JSON blob and flooded agent context;
+parameterized tools (FTS-backed `query` + bounded `limit`) replaced them. Transactional
+data (sales / manufacturing / purchase orders, stock movements) is also tools-only.
 
 ## Prompts
 
@@ -135,18 +162,26 @@ SQLModel-backed per-entity tables for every cached type. Each entity has its own
 with proper FK relationships and JSON columns; nested rows (sales-order rows, MO recipe
 rows, ...) become child tables with FKs back to the parent.
 
-**Catalog tier** (11 entity types): variants, products, materials, services, suppliers,
-customers, locations, tax rates, operators, factories, additional costs. Search via
-per-entity FTS5 sidecar tables (`<entity>_fts`) wired through a `CatalogQueries` adapter
-exposed at `services.typed_cache.catalog`. The adapter provides typed `get_by_id` /
-`get_by_sku` / `get_many_by_ids` / `get_all` / `smart_search` / `search_fuzzy` methods
-that return `Cached*` SQLModel instances directly (not dict shims), with default
-`include_archived=False` / `include_deleted=False` filters.
+The cache is split into two tiers:
 
-**Transactional tier** (10 entity types counting child rows): sales orders,
-manufacturing orders (+ recipe rows), purchase orders (+ rows), stock adjustments (+
-rows), stock transfers (+ rows). Searched via SQL `WHERE` clauses; no FTS sidecar —
-these tables don't carry free-text fields.
+- **Catalog tier** — variants, products, materials, services, and the per-domain
+  reference taxonomies. Search via per-entity FTS5 sidecar tables (`<entity>_fts`) wired
+  through a `CatalogQueries` adapter exposed at `services.typed_cache.catalog`. The
+  adapter provides typed `get_by_id` / `get_by_sku` / `get_many_by_ids` / `get_all` /
+  `smart_search` / `search_fuzzy` methods that return `Cached*` SQLModel instances
+  directly (not dict shims), with default `include_archived=False` /
+  `include_deleted=False` filters.
+- **Transactional tier** — sales orders, manufacturing orders (+ recipe rows), purchase
+  orders (+ rows), stock adjustments (+ rows), stock transfers (+ rows). Searched via
+  SQL `WHERE` clauses; no FTS sidecar — these tables don't carry free-text fields.
+
+The canonical entity list lives in
+[`typed_cache/sync.py`](https://github.com/dougborg/katana-openapi-client/blob/main/katana_mcp_server/src/katana_mcp/typed_cache/sync.py)
+(the `EntitySpec` literals); enumerating it here would drift on every new entity. For
+the soft-state filtering rules (`include_archived` / `include_deleted` opt-ins,
+`is_archived` / `is_deleted` derived bools, cross-entity ID collision pitfalls) and the
+`Cached<Entity>` / API-pydantic-don't-pollute contract, see
+[Typed Cache — Patterns and Pitfalls](typed_cache/README.md).
 
 ### EntitySpec — the generic sync driver
 
@@ -188,14 +223,13 @@ class — it pollutes the published client package for third-party users (see CL
 
 ## Client integration
 
-The MCP server depends on
-[`katana-openapi-client`](../../katana_public_api_client/docs/README.md) as a published
+The MCP server depends on [`katana-openapi-client`](../client/README.md) as a published
 package. All HTTP behavior — retries, rate limiting, smart pagination, observability
 hooks — lives in that client's transport layer (see
-[client ADR-0001](../../katana_public_api_client/docs/adr/0001-transport-layer-resilience.md)).
-The MCP server treats the client as a black box and **must not** wrap API methods with
-its own retry / rate-limit / pagination logic; doing so double-applies behavior and can
-introduce subtle desync between layers.
+[client ADR-0001](../client/adr/0001-transport-layer-resilience.md)). The MCP server
+treats the client as a black box and **must not** wrap API methods with its own retry /
+rate-limit / pagination logic; doing so double-applies behavior and can introduce subtle
+desync between layers.
 
 When a bug surfaces in the MCP server but originates in client-generated code (attrs,
 pydantic, `from_attrs`, generator output), fix it at the client/generator layer. The
@@ -228,17 +262,33 @@ bugs at the client/generator layer").
 1. **Add tests:** unit tests for the request/response shape; integration tests if cache
    sync is involved.
 
+## Subsystem deep-dives
+
+This doc is the map; the deep-dives live alongside the code:
+
+- [Prefab UI — Rendering Pitfalls](prefab/README.md) — JSON-envelope contracts the JS
+  renderer enforces (`DataTable.rows` mustache binding, `register_preview_tool` +
+  `meta=UI_META` symmetry, browser-test wire-shape parity, help-resource drift).
+- [Typed Cache — Patterns and Pitfalls](typed_cache/README.md) — soft-state filtering
+  (`include_archived` / `include_deleted` + `is_archived` / `is_deleted` derived bools),
+  cross-entity ID-collision pitfall, and the API-pydantic / `Cached<Entity>` separation
+  contract.
+- [Spec Authoring](../client/spec-authoring.md) — OpenAPI 3.1 conventions, the
+  generator/spec regen lockstep, breaking-change marker rules, and the "fix bugs at the
+  client/generator layer" rule that decides where a sync.py symptom should actually be
+  fixed.
+
 ## References
 
-- [ADR-0010](adr/0010-katana-mcp-server.md) — original MCP server scope
-- [ADR-0016](adr/0016-tool-interface-pattern.md) — tool interface pattern
-- [ADR-0017](adr/0017-automated-tool-documentation.md) — automated tool documentation
-- [ADR-0018](adr/0018-sqlmodel-typed-cache.md) — SQLModel typed cache
-- [ADR-0019](adr/0019-tool-description-batch-conventions.md) — tool description and
-  batch-field conventions
-- [Client ADR-0001](../../katana_public_api_client/docs/adr/0001-transport-layer-resilience.md)
-  — transport-layer resilience pattern
-- [CLAUDE.md](../../CLAUDE.md) — repo-level conventions for AI assistants
+The canonical, current list of MCP server ADRs is the [ADR index](adr/README.md) — this
+section does not enumerate (drift surface). Adjacent references that aren't in the ADR
+index:
+
+- [Client ADR-0001](../client/adr/0001-transport-layer-resilience.md) — transport-layer
+  resilience pattern (read this once if you've never touched the client retry/pagination
+  layer)
+- [CLAUDE.md](https://github.com/dougborg/katana-openapi-client/blob/main/CLAUDE.md) —
+  repo-level conventions for AI assistants
 - [Development guide](development.md) — local hot-reload workflow
 - [Deployment guide](deployment.md) — production deployment
 

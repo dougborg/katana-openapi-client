@@ -3,238 +3,191 @@
 This project uses a four-tier validation system. Choose the right tier for your workflow
 stage to balance speed and thoroughness.
 
-## Quick Reference
+The canonical command + timing table lives in [CLAUDE.md](../../../../CLAUDE.md) under
+"Essential Commands" — that table is what agents see on session start. This guide
+explains **what each tier runs** and **why**, so you know which one to reach for and
+what to expect when something fails.
 
-| Tier       | Command                  | Duration | Use When                      | What It Runs               |
-| ---------- | ------------------------ | -------- | ----------------------------- | -------------------------- |
-| **Tier 1** | `uv run poe quick-check` | ~5-10s   | During development iterations | Format + Lint              |
-| **Tier 2** | `uv run poe agent-check` | ~8-12s   | Before committing             | Format + Lint + Type check |
-| **Tier 3** | `uv run poe check`       | ~30s     | **Before opening PR**         | All of Tier 2 + Tests      |
-| **Tier 4** | `uv run poe full-check`  | ~40s     | Before requesting review      | All of Tier 3 + Docs       |
+## At a glance
+
+| Tier       | Command                  | Use When                      | Adds                     |
+| ---------- | ------------------------ | ----------------------------- | ------------------------ |
+| **Tier 1** | `uv run poe quick-check` | During development iterations | Format-check + ruff lint |
+| **Tier 2** | `uv run poe agent-check` | Before committing             | Tier 1 + type-check      |
+| **Tier 3** | `uv run poe check`       | **Before opening PR**         | Tier 2 + tests + browser |
+| **Tier 4** | `uv run poe full-check`  | Before requesting review      | Tier 3 + docs build      |
+
+For current wall-clock timings (which drift as the test/lint surface grows), see the
+Essential Commands table in [CLAUDE.md](../../../../CLAUDE.md). The exact compositions
+are defined in `[tool.poe.tasks]` in `pyproject.toml` — that's the single source of
+truth if you're trying to reason about what runs when.
 
 ## Detailed Breakdown
 
-### Tier 1: Quick Check (~5-10 seconds)
+### Tier 1: `quick-check`
 
-**Command:** `uv run poe quick-check`
+**Use during:** active development, frequent iterations.
 
-**Use during:** Active development, frequent iterations
+**Runs:** `format-check` (ruff format) + `lint-ruff` (ruff check).
 
-**Runs:**
+**Purpose:** fast feedback while coding. Catches style and obvious lint issues
+immediately without waiting on type-check or tests.
 
-- `ruff format` - Code formatting
-- `ruff check` - Linting rules
-
-**Purpose:** Fast feedback loop while coding. Catches style issues immediately.
-
-**Skip if:** You're just exploring code or reading files.
+**Skip if:** you're just exploring code or reading files.
 
 ______________________________________________________________________
 
-### Tier 2: Agent Check (~8-12 seconds)
+### Tier 2: `agent-check`
 
-**Command:** `uv run poe agent-check`
+**Use before:** creating commits, pushing changes.
 
-**Use before:** Creating commits, pushing changes
+**Runs:** Tier 1 + `typecheck` (`ty` — Astral's fast Rust-based type checker).
 
-**Runs:**
+**Purpose:** ensure code quality before committing. Catches type errors that ruff alone
+won't see.
 
-- Everything in Tier 1
-- `mypy` - Type checking
-
-**Purpose:** Ensure code quality before committing. Catches type errors and maintains
-type safety.
-
-**Required for:** All commits (enforced by pre-commit hooks in some configurations).
+**Note:** Tier 2 deliberately does **not** run pyright — pyright is the secondary
+type-check (catches things `ty` doesn't yet, e.g., generic-invariance on `Response[T]`),
+and lives in Tier 3+ via `lint`. The faster `ty`-only pass is the agent default.
 
 ______________________________________________________________________
 
-### Tier 3: Full Check (~30 seconds)
+### Tier 3: `check`
 
-**Command:** `uv run poe check`
+**Use before:** opening pull requests.
 
-**Use before:** Opening pull requests
+**Runs:** `format-check` + `lint` (ruff + ty + pyright + yamllint) + `test` (parallel
+pytest) + `test-browser` (headless Chromium Prefab UI render tests).
 
-**Runs:**
+**Purpose:** comprehensive validation that all tests pass and Prefab cards actually
+render in a real browser. **REQUIRED before opening any PR.**
 
-- Everything in Tier 2
-- `pytest` - Full test suite (parallel execution with pytest-xdist)
+**First-time browser setup:** `uv run playwright install chromium` (one-time, ~250 MB).
 
-**Purpose:** Comprehensive validation that all tests pass. **REQUIRED before opening any
-PR.**
-
-**Critical:** Tests run in parallel with 4 workers (~16s). NEVER cancel early.
+**Critical:** tests run in parallel with 4 workers, browser tests run sequentially
+(single MCP-port pair). NEVER cancel early — see "Command Timeouts" below.
 
 ______________________________________________________________________
 
-### Tier 4: Full Check with Docs (~40 seconds)
+### Tier 4: `full-check`
 
-**Command:** `uv run poe full-check`
+**Use before:** requesting PR review, final pre-merge validation.
 
-**Use before:** Requesting PR review, final pre-merge validation
+**Runs:** Tier 3 + `docs-build` (MkDocs).
 
-**Runs:**
-
-- Everything in Tier 3
-- Documentation builds and validation
-
-**Purpose:** Complete project validation including documentation integrity.
-
-**Note:** This is the most thorough check. Use when you want absolute confidence.
+**Purpose:** complete project validation including the documentation build. Use when you
+want absolute confidence — particularly if you touched docstrings, ADRs, or
+mkdocstrings-driven content.
 
 ______________________________________________________________________
 
 ## Individual Commands
 
-If you need to run specific checks:
-
-### Formatting
+`pyproject.toml`'s `[tool.poe.tasks]` is the source of truth; `uv run poe help` lists
+the current set. The most commonly invoked individually:
 
 ```bash
 uv run poe format          # Auto-format code with ruff
-```
+uv run poe format-check    # Check formatting without modifying
+uv run poe lint            # Full lint pass (ruff + ty + pyright + yamllint)
+uv run poe lint-ruff       # Just ruff
+uv run poe typecheck       # Just ty
+uv run poe typecheck-pyright  # Just pyright
+uv run poe fix             # Auto-fix lint issues (format + ruff --fix)
 
-### Linting
-
-```bash
-uv run poe lint            # Run ruff linting (11s, NEVER CANCEL)
-uv run poe fix             # Auto-fix linting issues
-```
-
-### Type Checking
-
-```bash
-# Type checking is part of agent-check, no standalone command
-```
-
-### Testing
-
-```bash
-uv run poe test                    # Parallel tests (4 workers, ~16s)
-uv run poe test-sequential         # Sequential tests (~25s)
-uv run poe test-coverage           # Tests with coverage (~22s)
+uv run poe test                    # Parallel tests (4 workers)
+uv run poe test-sequential         # Sequential (debugging parallel issues)
+uv run poe test-coverage           # With coverage
 uv run poe test-unit               # Unit tests only
-uv run poe test-integration        # Integration tests (requires KATANA_API_KEY)
+uv run poe test-integration        # Requires KATANA_API_KEY
 uv run poe test-schema             # Schema validation tests
+uv run poe test-browser            # Headless Prefab UI render tests
 ```
 
-### Documentation
+For OpenAPI / generator workflows (`regenerate-client`, `audit-spec`, etc.), see
+[`katana_public_api_client/docs/spec-authoring.md`](../../../../katana_public_api_client/docs/spec-authoring.md).
 
-```bash
-uv run poe docs-build      # Build documentation (2.5 min, NEVER CANCEL)
-uv run poe docs-serve      # Serve docs locally
-uv run poe docs-clean      # Clean docs artifacts
-```
-
-### OpenAPI Client
-
-```bash
-uv run poe validate-openapi           # Validate OpenAPI spec
-uv run poe regenerate-client          # Regenerate client (2+ min, NEVER CANCEL)
-uv run poe validate-openapi-redocly   # Validate with Redocly
-```
+For documentation tasks (`docs-build`, `docs-serve`, `docs-autobuild`), the targets are
+defined in `pyproject.toml`.
 
 ______________________________________________________________________
 
 ## Command Timeouts (CRITICAL)
 
-**NEVER CANCEL** these commands before their typical runtime:
+**NEVER CANCEL** long-running commands — they may appear to hang but are processing.
+Generous timeouts prevent false failures.
 
-| Command                        | Typical Runtime | Timeout Setting |
-| ------------------------------ | --------------- | --------------- |
-| `uv sync --all-extras`         | 5-10s           | 30+ minutes     |
-| `uv run poe lint`              | 11s             | 15+ minutes     |
-| `uv run poe test`              | 16s             | 30+ minutes     |
-| `uv run poe test-coverage`     | 22s             | 45+ minutes     |
-| `uv run poe check`             | 30s             | 60+ minutes     |
-| `uv run poe docs-build`        | 2.5 min         | 60+ minutes     |
-| `uv run poe regenerate-client` | 2+ min          | 60+ minutes     |
+The slowest commands (`regenerate-client`, `docs-build`) take 2+ minutes. Leave them.
 
-These commands may appear to hang but are actually processing. Generous timeouts prevent
-false failures.
+For exact current timings, see the Essential Commands table in
+[CLAUDE.md](../../../../CLAUDE.md) — kept up to date as the test surface evolves.
 
 ______________________________________________________________________
 
 ## Pre-Commit Hooks
 
-The project uses pre-commit hooks that run validation automatically:
+Pre-commit is configured in `.pre-commit-config.yaml` and installs both `pre-commit` and
+`pre-push` hook types via `default_install_hook_types`. The hooks run ruff format + ruff
+check, mdformat, yamllint, the default unit-test suite (`uv run poe test` — which
+excludes `docs`, `schema_validation`, `integration`, and `browser` markers; run
+`uv run poe test-browser` separately for Prefab UI render tests), and the
+`block-push-to-main` guard.
 
-**Standard hook** (`.pre-commit-config.yaml`):
-
-- Runs `quick-check` (Tier 1)
-- Fast iteration for most work
-
-**Full hook** (`.pre-commit-config-full.yaml`):
-
-- Runs `agent-check` (Tier 2)
-- More thorough validation
-
-Switch between them:
-
-```bash
-# Standard (fast)
-ln -sf .pre-commit-config.yaml .git/hooks/pre-commit
-
-# Full (thorough)
-ln -sf .pre-commit-config-full.yaml .git/hooks/pre-commit
-```
+**Worktrees:** re-run `uv run pre-commit install` after `git worktree add` — pre-commit
+hooks aren't shared across worktrees. The `pre-push-guard.sh` that blocks unintended
+pushes to `main` only fires when the hook is installed in the worktree's `.git/hooks/`.
 
 ______________________________________________________________________
 
 ## Workflow Recommendations
 
-### Typical Development Cycle
+The session-default workflow:
 
-1. **Make changes** → No validation
-1. **Test changes** → `uv run poe quick-check` (Tier 1)
-1. **Commit changes** → `uv run poe agent-check` (Tier 2, or auto via pre-commit)
-1. **Open PR** → `uv run poe check` (Tier 3) ← **REQUIRED**
-1. **Request review** → `uv run poe full-check` (Tier 4)
+1. **Make changes** → no validation.
+1. **Iterate** → `uv run poe quick-check` (Tier 1).
+1. **Commit** → run `uv run poe agent-check` explicitly (Tier 2 — adds `ty` typecheck).
+   Pre-commit fires on the commit but only runs ruff format / ruff check / mdformat /
+   yamllint + the default unit-test suite (no `ty` typecheck, no browser /
+   schema-validation / integration tests), so it's not a substitute for Tier 2 if you've
+   changed type-relevant code.
+1. **Open PR** → `uv run poe check` (Tier 3) — **REQUIRED**.
+1. **Request review** → `uv run poe full-check` (Tier 4) if docs changed.
 
-### CI/CD Pipeline
-
-The CI pipeline runs Tier 3+ validation on all PRs:
-
-- Format check
-- Lint check
-- Type check
-- Full test suite
-- Security scans
-
-**Important:** Don't rely solely on CI. Run `uv run poe check` locally before pushing to
-catch issues early.
+CI runs Tier 3+ on every PR (format check, lint, type check, full test suite, security
+scans). Don't rely solely on CI — the local Tier 3 catches issues earlier in the loop.
 
 ______________________________________________________________________
 
 ## Troubleshooting
 
-### Tests Fail Locally But Pass in CI
+### Tests fail locally but pass in CI
 
-- Ensure you're using the correct Python version (3.11, 3.12, or 3.13)
-- Run `uv sync --all-extras` to update dependencies
-- Check for environment-specific issues (.env file, API keys)
+- Ensure you're using a supported Python version — `pyproject.toml` declares which.
+- Run `uv sync --all-extras` to refresh dependencies.
+- Check for environment-specific issues (`.env` file, API keys).
 
-### Commands Seem Slow
+### Commands seem slow
 
-- This is normal for comprehensive validation
-- Use lower tiers during development for faster feedback
-- Never cancel long-running commands (see timeouts above)
+- Normal for comprehensive validation — see the timeouts note above.
+- Use lower tiers during development for faster feedback.
+- Never cancel long-running commands.
 
-### Pre-Commit Hook Failures
+### Pre-commit hook failures
 
-- Network restrictions can cause package download timeouts
-- Run commands manually if hooks fail: `uv run poe agent-check`
-- Consider switching to lite pre-commit config
+- Network restrictions can cause package download timeouts.
+- Run commands manually if hooks fail: `uv run poe agent-check`.
+- The repo uses **local hooks** (run via `uv` with project deps) so download flakes are
+  rare — see `.pre-commit-config.yaml`'s comment header for the rationale.
 
 ______________________________________________________________________
 
 ## Summary
 
-**Remember:** Use the right tier for the right stage:
+Right tier for the right stage:
 
-- 🏃 **Tier 1** (`quick-check`) - Fast development iterations
-- 🔍 **Tier 2** (`agent-check`) - Before commits
-- ✅ **Tier 3** (`check`) - **Before PRs (REQUIRED)**
-- 🎯 **Tier 4** (`full-check`) - Before reviews
+- **Tier 1** (`quick-check`) — fast development iterations
+- **Tier 2** (`agent-check`) — before commits
+- **Tier 3** (`check`) — **before PRs (REQUIRED)**
+- **Tier 4** (`full-check`) — before reviews
 
 This tiered approach balances development speed with code quality assurance.

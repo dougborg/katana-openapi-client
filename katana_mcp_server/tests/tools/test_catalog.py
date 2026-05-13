@@ -11,6 +11,7 @@ from katana_mcp.tools.foundation.catalog import (
     _create_product_impl,
 )
 from katana_mcp.tools.foundation.items import VariantConfigAttributePatch
+from katana_mcp_server.tests.conftest import mock_item as _mock_item
 
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models import (
@@ -46,9 +47,7 @@ async def test_create_product_minimal():
     context, lifespan_ctx = create_mock_context()
 
     # Mock Product response
-    mock_product = MagicMock()
-    mock_product.id = 123
-    mock_product.name = "Test Product"
+    mock_product = _mock_item(id=123, name="Test Product")
 
     lifespan_ctx.client.products.create = AsyncMock(return_value=mock_product)
 
@@ -75,9 +74,7 @@ async def test_create_product_full_fields():
     context, lifespan_ctx = create_mock_context()
 
     # Mock Product response
-    mock_product = MagicMock()
-    mock_product.id = 456
-    mock_product.name = "Widget Pro"
+    mock_product = _mock_item(id=456, name="Widget Pro")
 
     lifespan_ctx.client.products.create = AsyncMock(return_value=mock_product)
 
@@ -121,9 +118,7 @@ async def test_create_product_default_values():
     context, lifespan_ctx = create_mock_context()
 
     # Mock Product response
-    mock_product = MagicMock()
-    mock_product.id = 789
-    mock_product.name = "Default Product"
+    mock_product = _mock_item(id=789, name="Default Product")
 
     lifespan_ctx.client.products.create = AsyncMock(return_value=mock_product)
 
@@ -145,13 +140,13 @@ async def test_create_product_default_values():
 
 @pytest.mark.asyncio
 async def test_create_product_handles_none_name():
-    """Test create_product handles None product name in response."""
+    """Test create_product handles None product name in response by falling
+    back to the request name — keeps the success message readable instead
+    of showing literal ``None``."""
     context, lifespan_ctx = create_mock_context()
 
     # Mock Product with None name
-    mock_product = MagicMock()
-    mock_product.id = 999
-    mock_product.name = None
+    mock_product = _mock_item(id=999, name=None)
 
     lifespan_ctx.client.products.create = AsyncMock(return_value=mock_product)
 
@@ -161,8 +156,12 @@ async def test_create_product_handles_none_name():
     )
     result = await _create_product_impl(request, context)
 
-    assert result.name == ""  # Converts None to empty string
+    # Falls back to the request-supplied name so neither the response field
+    # nor the message string carries a literal "None".
+    assert result.name == "Test"
     assert result.id == 999
+    assert "None" not in result.message
+    assert "Test" in result.message
 
 
 @pytest.mark.asyncio
@@ -197,9 +196,7 @@ async def test_create_product_forwards_variant_fields():
     """
     context, lifespan_ctx = create_mock_context()
 
-    mock_product = MagicMock()
-    mock_product.id = 700
-    mock_product.name = "Variant Pro"
+    mock_product = _mock_item(id=700, name="Variant Pro")
     lifespan_ctx.client.products.create = AsyncMock(return_value=mock_product)
 
     request = CreateProductRequest(
@@ -244,9 +241,7 @@ async def test_create_product_omits_unset_variant_fields():
     """
     context, lifespan_ctx = create_mock_context()
 
-    mock_product = MagicMock()
-    mock_product.id = 701
-    mock_product.name = "Plain"
+    mock_product = _mock_item(id=701, name="Plain")
     lifespan_ctx.client.products.create = AsyncMock(return_value=mock_product)
 
     request = CreateProductRequest(name="Plain", sku="PLN-001")
@@ -266,9 +261,7 @@ async def test_create_material_forwards_variant_fields():
     """Mirror of test_create_product_forwards_variant_fields for materials."""
     context, lifespan_ctx = create_mock_context()
 
-    mock_material = MagicMock()
-    mock_material.id = 800
-    mock_material.name = "Steel Rod"
+    mock_material = _mock_item(id=800, name="Steel Rod")
     lifespan_ctx.client.materials.create = AsyncMock(return_value=mock_material)
 
     request = CreateMaterialRequest(
@@ -301,9 +294,7 @@ async def test_create_material_omits_unset_variant_fields():
     """Mirror of test_create_product_omits_unset_variant_fields for materials."""
     context, lifespan_ctx = create_mock_context()
 
-    mock_material = MagicMock()
-    mock_material.id = 801
-    mock_material.name = "Plain Material"
+    mock_material = _mock_item(id=801, name="Plain Material")
     lifespan_ctx.client.materials.create = AsyncMock(return_value=mock_material)
 
     request = CreateMaterialRequest(name="Plain Material", sku="PLN-MAT-001")
@@ -318,6 +309,110 @@ async def test_create_material_omits_unset_variant_fields():
     assert variant.config_attributes is UNSET
 
 
+@pytest.mark.asyncio
+async def test_create_product_forwards_purchase_uom():
+    """purchase_uom + purchase_uom_conversion_rate must land on the parent-level
+    CreateProductRequest (item-header fields, not variant fields). The reporter's
+    SP0502 case: stock in pcs, purchased in 4-pcs kits.
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    mock_product = _mock_item(id=720, name="SP0502")
+    mock_product.uom = "pcs"
+    mock_product.purchase_uom = "kit"
+    mock_product.purchase_uom_conversion_rate = 4.0
+    lifespan_ctx.client.products.create = AsyncMock(return_value=mock_product)
+
+    request = CreateProductRequest(
+        name="SP0502",
+        sku="SP0502",
+        uom="pcs",
+        purchase_uom="kit",
+        purchase_uom_conversion_rate=4.0,
+    )
+    response = await _create_product_impl(request, context)
+
+    api_request = lifespan_ctx.client.products.create.call_args[0][0]
+    assert api_request.purchase_uom == "kit"
+    assert api_request.purchase_uom_conversion_rate == 4.0
+    # Response mirrors the created entity so the mutation card can render it.
+    assert response.uom == "pcs"
+    assert response.purchase_uom == "kit"
+    assert response.purchase_uom_conversion_rate == 4.0
+
+
+@pytest.mark.asyncio
+async def test_create_product_omits_unset_purchase_uom():
+    """Without purchase_uom/conversion_rate, the API request must keep them
+    UNSET so the wire body omits the keys (preventing null serialization).
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    mock_product = _mock_item(id=721, name="Plain Product")
+    mock_product.uom = "pcs"
+    mock_product.purchase_uom = UNSET
+    mock_product.purchase_uom_conversion_rate = UNSET
+    lifespan_ctx.client.products.create = AsyncMock(return_value=mock_product)
+
+    request = CreateProductRequest(name="Plain Product", sku="PLN-001")
+    response = await _create_product_impl(request, context)
+
+    api_request = lifespan_ctx.client.products.create.call_args[0][0]
+    assert api_request.purchase_uom is UNSET
+    assert api_request.purchase_uom_conversion_rate is UNSET
+    assert response.purchase_uom is None
+    assert response.purchase_uom_conversion_rate is None
+
+
+@pytest.mark.asyncio
+async def test_create_material_forwards_purchase_uom():
+    """purchase_uom flow for materials — e.g. "Box of 100" spoke nipples."""
+    context, lifespan_ctx = create_mock_context()
+
+    mock_material = _mock_item(id=820, name="Spoke Nipples")
+    mock_material.uom = "pcs"
+    mock_material.purchase_uom = "box"
+    mock_material.purchase_uom_conversion_rate = 100.0
+    lifespan_ctx.client.materials.create = AsyncMock(return_value=mock_material)
+
+    request = CreateMaterialRequest(
+        name="Spoke Nipples",
+        sku="SP7025",
+        uom="pcs",
+        purchase_uom="box",
+        purchase_uom_conversion_rate=100.0,
+    )
+    response = await _create_material_impl(request, context)
+
+    api_request = lifespan_ctx.client.materials.create.call_args[0][0]
+    assert api_request.purchase_uom == "box"
+    assert api_request.purchase_uom_conversion_rate == 100.0
+    assert response.uom == "pcs"
+    assert response.purchase_uom == "box"
+    assert response.purchase_uom_conversion_rate == 100.0
+
+
+@pytest.mark.asyncio
+async def test_create_material_omits_unset_purchase_uom():
+    """Materials without purchase_uom must keep the API fields UNSET."""
+    context, lifespan_ctx = create_mock_context()
+
+    mock_material = _mock_item(id=821, name="Plain Material")
+    mock_material.uom = "pcs"
+    mock_material.purchase_uom = UNSET
+    mock_material.purchase_uom_conversion_rate = UNSET
+    lifespan_ctx.client.materials.create = AsyncMock(return_value=mock_material)
+
+    request = CreateMaterialRequest(name="Plain Material", sku="PLN-MAT-001")
+    response = await _create_material_impl(request, context)
+
+    api_request = lifespan_ctx.client.materials.create.call_args[0][0]
+    assert api_request.purchase_uom is UNSET
+    assert api_request.purchase_uom_conversion_rate is UNSET
+    assert response.purchase_uom is None
+    assert response.purchase_uom_conversion_rate is None
+
+
 # ============================================================================
 # Unit Tests (with mocks) - create_material
 # ============================================================================
@@ -329,9 +424,7 @@ async def test_create_material_minimal():
     context, lifespan_ctx = create_mock_context()
 
     # Mock Material response
-    mock_material = MagicMock()
-    mock_material.id = 200
-    mock_material.name = "Steel Rod"
+    mock_material = _mock_item(id=200, name="Steel Rod")
 
     lifespan_ctx.client.materials.create = AsyncMock(return_value=mock_material)
 
@@ -358,9 +451,7 @@ async def test_create_material_full_fields():
     context, lifespan_ctx = create_mock_context()
 
     # Mock Material response
-    mock_material = MagicMock()
-    mock_material.id = 201
-    mock_material.name = "Aluminum Sheet"
+    mock_material = _mock_item(id=201, name="Aluminum Sheet")
 
     lifespan_ctx.client.materials.create = AsyncMock(return_value=mock_material)
 
@@ -399,9 +490,7 @@ async def test_create_material_default_values():
     context, lifespan_ctx = create_mock_context()
 
     # Mock Material response
-    mock_material = MagicMock()
-    mock_material.id = 202
-    mock_material.name = "Basic Material"
+    mock_material = _mock_item(id=202, name="Basic Material")
 
     lifespan_ctx.client.materials.create = AsyncMock(return_value=mock_material)
 
@@ -421,13 +510,12 @@ async def test_create_material_default_values():
 
 @pytest.mark.asyncio
 async def test_create_material_handles_none_name():
-    """Test create_material handles None material name in response."""
+    """Test create_material handles None material name by falling back to
+    the request name — same readability contract as create_product."""
     context, lifespan_ctx = create_mock_context()
 
     # Mock Material with None name
-    mock_material = MagicMock()
-    mock_material.id = 203
-    mock_material.name = None
+    mock_material = _mock_item(id=203, name=None)
 
     lifespan_ctx.client.materials.create = AsyncMock(return_value=mock_material)
 
@@ -437,7 +525,9 @@ async def test_create_material_handles_none_name():
     )
     result = await _create_material_impl(request, context)
 
-    assert result.name == ""  # Converts None to empty string
+    assert result.name == "Test Material"
+    assert "None" not in result.message
+    assert "Test Material" in result.message
     assert result.id == 203
 
 
@@ -487,6 +577,50 @@ def test_create_material_requires_sku():
     """Test create_material requires sku field."""
     with pytest.raises(ValueError):
         CreateMaterialRequest.model_validate({"name": "Test Material"})
+
+
+def test_create_product_purchase_uom_requires_conversion_rate():
+    """purchase_uom without purchase_uom_conversion_rate is ambiguous —
+    callers must supply both. Catch at the MCP boundary so the validation
+    error is clear instead of hitting Katana's 422."""
+    with pytest.raises(ValueError, match="purchase_uom_conversion_rate is required"):
+        CreateProductRequest(name="X", sku="X-1", purchase_uom="kit")
+
+
+def test_create_product_conversion_rate_requires_purchase_uom():
+    """Setting only conversion_rate is equally meaningless without a UoM."""
+    with pytest.raises(ValueError, match="purchase_uom is required"):
+        CreateProductRequest(name="X", sku="X-1", purchase_uom_conversion_rate=4.0)
+
+
+def test_create_product_purchase_uom_rate_must_be_positive():
+    """Zero or negative conversion rate has no meaningful interpretation."""
+    with pytest.raises(ValueError, match="must be greater than 0"):
+        CreateProductRequest(
+            name="X", sku="X-1", purchase_uom="kit", purchase_uom_conversion_rate=0
+        )
+    with pytest.raises(ValueError, match="must be greater than 0"):
+        CreateProductRequest(
+            name="X", sku="X-1", purchase_uom="kit", purchase_uom_conversion_rate=-1.0
+        )
+
+
+def test_create_material_purchase_uom_requires_conversion_rate():
+    """Mirror of the product validator on materials."""
+    with pytest.raises(ValueError, match="purchase_uom_conversion_rate is required"):
+        CreateMaterialRequest(name="X", sku="MAT-1", purchase_uom="box")
+
+
+def test_create_material_conversion_rate_requires_purchase_uom():
+    with pytest.raises(ValueError, match="purchase_uom is required"):
+        CreateMaterialRequest(name="X", sku="MAT-1", purchase_uom_conversion_rate=100.0)
+
+
+def test_create_material_purchase_uom_rate_must_be_positive():
+    with pytest.raises(ValueError, match="must be greater than 0"):
+        CreateMaterialRequest(
+            name="X", sku="MAT-1", purchase_uom="box", purchase_uom_conversion_rate=0
+        )
 
 
 # ============================================================================

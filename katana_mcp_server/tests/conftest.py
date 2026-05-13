@@ -131,6 +131,29 @@ def create_mock_context():
     return context, mock_lifespan_context
 
 
+def mock_item(*, id: int, name: str | None) -> MagicMock:
+    """Build a Product/Material/Service MagicMock for create-tool tests.
+
+    The MCP create-tool impls read item-header fields off the returned attrs
+    entity to populate their response models. A bare ``MagicMock()``
+    auto-vivifies those attributes to nested MagicMocks, which then fail
+    pydantic validation — so this helper sets ``uom``, ``purchase_uom``, and
+    ``purchase_uom_conversion_rate`` to ``UNSET`` (the typical wire shape
+    when Katana omits a field), matching real-API behavior. Override the
+    sentinels by reassigning after the call when a test needs specific
+    values.
+    """
+    from katana_public_api_client.client_types import UNSET
+
+    mock = MagicMock()
+    mock.id = id
+    mock.name = name
+    mock.uom = UNSET
+    mock.purchase_uom = UNSET
+    mock.purchase_uom_conversion_rate = UNSET
+    return mock
+
+
 @pytest.fixture
 def mock_context():
     """Fixture providing a mock FastMCP context.

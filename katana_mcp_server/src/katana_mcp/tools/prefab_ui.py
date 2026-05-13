@@ -75,7 +75,7 @@ from prefab_ui.components import (
 )
 from prefab_ui.components.control_flow import Elif, Else, If
 from prefab_ui.components.slot import Slot
-from prefab_ui.rx import RESULT, Rx
+from prefab_ui.rx import EVENT, RESULT, Rx
 from pydantic import BaseModel
 
 from katana_mcp.tools.tool_result_utils import BLOCK_WARNING_PREFIX
@@ -526,18 +526,25 @@ def build_search_results_ui(
             search=True,
             paginated=True,
             pageSize=20,
-            # NOTE: ``{{ sku }}`` and ``{{ $error }}`` here are *per-row /
-            # event-context* bindings provided by the DataTable component
-            # itself, NOT the iframe-state substitution that broke in #491.
-            # The DataTable renderer expands these client-side from the
-            # clicked row's data and the action's error payload, so they
-            # do not depend on the host-side Mustache-from-state mechanism
-            # that silently dropped args. Reliability is owned by the
-            # DataTable component; verification is tracked in #494.
+            # Per-row binding via ``$event``: the renderer spreads the
+            # clicked row's dict into the action-scope as ``$event``, so
+            # ``{{ $event.sku }}`` resolves to the row's SKU. The naive
+            # form ``{{ sku }}`` does NOT work — only top-level scope keys
+            # ($event, $result, $error, state keys) are direct lookups;
+            # the row dict itself is not spread (#494, verified by browser
+            # test ``test_search_results_row_click_passes_clicked_sku``).
+            # ``{{ $error }}`` works because $error IS a top-level key.
+            #
+            # ``RESULT.view`` (not bare ``RESULT``) on the success path:
+            # the tool returns a full PrefabApp envelope
+            # (``{$prefab, view, defs, state}``) and the Slot renderer
+            # expects a single component dict with a top-level ``type``.
+            # Setting ``state.detail = $result.view`` extracts the
+            # root view component so the Slot can render it (#494).
             onRowClick=CallTool(
                 "get_variant_details",
-                arguments={"sku": "{{ sku }}"},
-                on_success=SetState("detail", RESULT),
+                arguments={"sku": str(EVENT.sku)},
+                on_success=SetState("detail", RESULT.view),
                 on_error=ShowToast("{{ $error }}", variant="error"),
             ),
         )
@@ -642,6 +649,30 @@ def _variant_barcode_line(variant: dict[str, Any]) -> None:
         Text(content=f"Barcodes: {', '.join(parts)}")
 
 
+def _variant_purchase_uom_line(variant: dict[str, Any]) -> None:
+    """Render the purchase-UoM conversion row when it differs from the stock UoM.
+
+    Stays quiet in the common case (purchase and stock UoM match) so the
+    card doesn't carry a noisy redundant row. Surfaces ``"Purchase UoM:
+    kit (x4 pcs)"`` when an item is purchased in packs (kits, boxes,
+    cases) and stocked as individual units — the conversion factor is
+    the actionable bit for anyone drafting a PO.
+    """
+    purchase_uom = variant.get("purchase_uom")
+    if not purchase_uom:
+        return
+    stock_uom = variant.get("uom")
+    if purchase_uom == stock_uom:
+        return
+    rate = variant.get("purchase_uom_conversion_rate")
+    if rate is None:
+        Text(content=f"Purchase UoM: {purchase_uom}")
+        return
+    rate_str = f"{rate:g}"
+    suffix = f" {stock_uom}" if stock_uom else ""
+    Text(content=f"Purchase UoM: {purchase_uom} (x{rate_str}{suffix})")
+
+
 def _variant_supplier_codes_line(variant: dict[str, Any]) -> None:
     """Render supplier codes inline using monospace ``Code`` chips.
 
@@ -674,6 +705,7 @@ def _variant_reference_section(variant: dict[str, Any]) -> None:
     """
     if variant.get("uom"):
         Text(content=f"UoM: {variant['uom']}")
+    _variant_purchase_uom_line(variant)
     _variant_supplier_line(variant)
     if variant.get("lead_time") is not None:
         Text(content=f"Lead Time: {variant['lead_time']} days")
@@ -753,50 +785,325 @@ def build_variant_details_ui(
     return app
 
 
+def _item_header_section(item: dict[str, Any]) -> None:
+    """Render item card header: title (linked to Katana page), type badge,
+    and status pills.
+
+    Title wraps in a real ``Link`` to ``katana_url`` so clicking opens
+    the Katana product / material / service page directly — same
+    convention as the variant card (see module docstring on linking
+    Katana entities).
+
+    Status badges vary by sub-type:
+    - Sellable / Not Sellable (all types)
+    - Producible / Not Producible (Product only)
+    - Batch tracked (Product / Material)
+    - Serial tracked (Product / Material)
+    - Archived (all types when ``is_archived`` is True)
+    """
+    katana_url = item.get("katana_url")
+    title_content = item.get("name", "Unknown")
+    item_type = item.get("type", "")
+
+    with Row(gap=2):
+        with CardTitle():
+            if katana_url:
+                Link(content=title_content, href=katana_url, target="_blank")
+            else:
+                Text(content=title_content)
+        if item_type:
+            Badge(label=str(item_type), variant="secondary")
+        if item.get("is_archived"):
+            Badge(label="Archived", variant="secondary")
+
+    # Status pills row. Order chosen to match the agent's typical
+    # decision sequence — sellable first (can this be sold?), then
+    # producible (can this be made?), then tracking flags (will I
+    # need to specify a batch / serial when transacting?).
+    with Row(gap=2):
+        if item.get("is_sellable") is not None:
+            Badge(
+                label="Sellable" if item["is_sellable"] else "Not Sellable",
+                variant="default" if item["is_sellable"] else "secondary",
+            )
+        if item.get("is_producible") is not None:
+            Badge(
+                label="Producible" if item["is_producible"] else "Not Producible",
+                variant="default" if item["is_producible"] else "secondary",
+            )
+        if item.get("batch_tracked"):
+            Badge(label="Batch tracked", variant="secondary")
+        if item.get("serial_tracked"):
+            Badge(label="Serial tracked", variant="secondary")
+
+
+def _item_metrics_section(item: dict[str, Any]) -> None:
+    """Render Tier 2 — decision metrics as text rows (not Metric components).
+
+    Items typically have ≤3 numeric facts (variant count, lead time, MOQ),
+    so the Metric layout would be visually heavy for a sparse row. Plain
+    text rows still give the agent the facts without competing visually
+    with the more important variants table below.
+    """
+    variants = item.get("variants") or []
+    Text(content=f"Variants: {len(variants)}")
+    if item.get("lead_time") is not None:
+        Text(content=f"Lead Time: {item['lead_time']} days")
+    if item.get("minimum_order_quantity") is not None:
+        Text(content=f"Min Order Qty: {item['minimum_order_quantity']}")
+
+
+def _item_supplier_line(item: dict[str, Any]) -> None:
+    """Render the default supplier — preferring the nested ``supplier``
+    dict (carries name + id), falling back to the flat
+    ``default_supplier_id`` field when the nested record is absent.
+
+    Real materials commonly have ``supplier=None`` while
+    ``default_supplier_id`` is set (see ``_FULL_MATERIAL_DICT`` in the
+    test fixtures) — Katana only embeds the nested object when the
+    relationship is fully populated. Without this fallback the card
+    would silently omit any supplier reference for a common shape.
+
+    Render hierarchy:
+
+    1. Nested ``supplier`` with both ``name`` and ``id`` → ``Link``
+       (name as visible text, href to ``/contacts/suppliers/{id}``).
+    2. Nested ``supplier`` with only ``name`` → plain text.
+    3. Flat ``default_supplier_id`` only → ``Link`` using ``#<id>`` as
+       the visible text (no name available, but the ID is the
+       authoritative identifier and the link still works).
+
+    Supplier appears on Products and Materials (not Services).
+    """
+    supplier = item.get("supplier")
+    nested_name = supplier.get("name") if isinstance(supplier, dict) else None
+    nested_id = supplier.get("id") if isinstance(supplier, dict) else None
+
+    if nested_name and nested_id:
+        supplier_url = katana_web_url("supplier", nested_id)
+        if supplier_url:
+            with Row(gap=1):
+                Text(content="Default Supplier:")
+                Link(content=nested_name, href=supplier_url, target="_blank")
+        else:
+            Text(content=f"Default Supplier: {nested_name}")
+        return
+    if nested_name:
+        Text(content=f"Default Supplier: {nested_name}")
+        return
+
+    # No nested supplier dict (or it lacks both fields) — fall back to
+    # the flat top-level default_supplier_id. Common for materials
+    # where Katana doesn't embed the supplier object even though the
+    # FK is set.
+    fallback_sid = item.get("default_supplier_id")
+    if fallback_sid:
+        supplier_url = katana_web_url("supplier", fallback_sid)
+        if supplier_url:
+            with Row(gap=1):
+                Text(content="Default Supplier:")
+                Link(
+                    content=f"#{fallback_sid}",
+                    href=supplier_url,
+                    target="_blank",
+                )
+        else:
+            Text(content=f"Default Supplier ID: {fallback_sid}")
+
+
+def _item_configs_section(item: dict[str, Any]) -> None:
+    """Render configuration axis definitions as ``"Axis: val1, val2, val3"``
+    text rows — one per axis. Only Product / Material items have
+    configs; Services skip silently. Drops when the list is empty.
+    """
+    configs = item.get("configs") or []
+    for cfg in configs:
+        if not isinstance(cfg, dict):
+            continue
+        name = cfg.get("name") or ""
+        values = cfg.get("values") or []
+        if name and values:
+            joined = ", ".join(str(v) for v in values)
+            Text(content=f"{name}: {joined}")
+
+
+def _item_variants_table(item: dict[str, Any]) -> None:
+    """Render the nested-variants DataTable.
+
+    Per-row click invokes ``get_variant_details`` directly via
+    ``CallTool`` (mirrors ``build_search_results_ui``) — Katana has no
+    per-variant page so a Link isn't an option, but ``CallTool`` is
+    cleaner than ``SendMessage`` here because the action is fully
+    deterministic ("show me variant Y") and doesn't need agent
+    composition. The variant card it triggers will show the same
+    canonical ``display_name`` rendering, with its own Link back to
+    the parent.
+
+    ``ItemVariantSummary`` carries id / sku / sales_price / purchase_price
+    / type. The DataTable renders cells as plain strings — custom
+    per-column formatting (monospace SKUs, currency-prefixed prices)
+    is a follow-up if the Prefab component grows a per-column renderer
+    hook. Hidden when the item has no variants (defensive — Katana
+    always returns at least one variant per item in practice).
+    """
+    variants = item.get("variants") or []
+    if not variants:
+        return
+    DataTable(
+        columns=[
+            DataTableColumn(key="sku", header="SKU", sortable=True),
+            DataTableColumn(
+                key="sales_price",
+                header="Sales Price",
+                sortable=True,
+            ),
+            DataTableColumn(
+                key="purchase_price",
+                header="Purchase Price",
+                sortable=True,
+            ),
+        ],
+        rows="{{ item.variants }}",
+        search=True,
+        paginated=True,
+        pageSize=20,
+        # Per-row click invokes get_variant_details using the row's
+        # variant id, not its SKU. ``ItemVariantSummary.sku`` is
+        # nullable (Katana allows variants without a SKU on the wire),
+        # so binding by SKU would reject every SKU-less row with the
+        # tool's "must provide at least one of: sku, variant_id, skus,
+        # variant_ids" error. ``id`` is always present on the
+        # ``ItemVariantSummary`` shape, so this path stays clickable
+        # for every row. Per-row substitution uses ``EVENT.id`` (which
+        # compiles to ``{{ $event.id }}``) because the row dict isn't
+        # spread into scope — see the comment on the search_results
+        # DataTable for the full reasoning (#494).
+        onRowClick=CallTool(
+            "get_variant_details",
+            arguments={"variant_id": str(EVENT.id)},
+            on_success=SetState("detail", RESULT.view),
+            on_error=ShowToast("{{ $error }}", variant="error"),
+        ),
+    )
+    with Slot(name="detail"):
+        Muted(content="Click a row to see variant details")
+
+
+def _item_reference_section(item: dict[str, Any]) -> None:
+    """Render Tier 3 reference data: UoM, category, purchase UoM,
+    default supplier (Linked), configs, additional info, and the
+    nested variants table.
+    """
+    if item.get("uom"):
+        Text(content=f"UoM: {item['uom']}")
+    if item.get("category_name"):
+        Text(content=f"Category: {item['category_name']}")
+    _variant_purchase_uom_line(item)
+    _item_supplier_line(item)
+    _item_configs_section(item)
+    additional_info = item.get("additional_info")
+    if additional_info:
+        Text(content=f"Notes: {additional_info}")
+    _item_variants_table(item)
+
+
+def _item_footer_section(item: dict[str, Any]) -> None:
+    """Render Tier 4 action buttons keyed off item type.
+
+    All buttons emit ``SendMessage`` invocations of other tools —
+    correct use of the agent-prompt rail per the module docstring
+    convention (composes context the agent fills in, vs. a deterministic
+    URL which would be a Link). The title's external Link already covers
+    "open in Katana", so no footer button for that.
+    """
+    item_id = item.get("id")
+    item_type = item.get("type") or "item"
+    if item_id is None:
+        return
+
+    if item_type == "material":
+        Button(
+            label="Create Purchase Order",
+            variant="outline",
+            on_click=SendMessage(f"Draft a purchase order for material_id {item_id}"),
+        )
+        Button(
+            label="List MOs Using This",
+            variant="outline",
+            on_click=SendMessage(
+                f"List manufacturing orders that use material_id {item_id}"
+            ),
+        )
+    elif item_type == "product" and item.get("is_producible"):
+        Button(
+            label="Create Manufacturing Order",
+            variant="outline",
+            on_click=SendMessage(
+                f"Draft a manufacturing order for product_id {item_id}"
+            ),
+        )
+
+    Button(
+        label="Modify Item",
+        variant="outline",
+        on_click=SendMessage(
+            f"I want to modify {item_type} {item_id} — what should I change?"
+        ),
+    )
+
+
 def build_item_detail_ui(
     item: dict[str, Any],
 ) -> PrefabApp:
-    """Build a detail card for an item (product/material/service)."""
-    with PrefabApp(state={"item": item}, css_class="p-4") as app, Card():
-        with CardHeader(), Row(gap=2):
-            CardTitle(content=item.get("name", "Unknown"))
-            Badge(label=item.get("type", ""), variant="secondary")
+    """Build a detail card for an item (product / material / service).
 
-        with CardContent(), Column(gap=2):
-            Text(content=f"ID: {item.get('id', 'N/A')}")
-            if item.get("uom"):
-                Text(content=f"Unit of Measure: {item['uom']}")
-            if item.get("category_name"):
-                Text(content=f"Category: {item['category_name']}")
+    Implements the four-tier framework from #537 with sub-type variance
+    in the metrics, reference, and footer sections:
 
-            with Row(gap=2):
-                if item.get("is_sellable") is not None:
-                    Badge(
-                        label="Sellable" if item["is_sellable"] else "Not Sellable",
-                        variant="default" if item["is_sellable"] else "secondary",
-                    )
-                if item.get("is_producible") is not None:
-                    Badge(
-                        label="Producible"
-                        if item["is_producible"]
-                        else "Not Producible",
-                        variant="default" if item["is_producible"] else "secondary",
-                    )
-                if item.get("is_archived"):
-                    Badge(label="Archived", variant="secondary")
+    - **Tier 1 — Identity**: title as external ``Link`` to the Katana
+      product / material / service page (no per-variant page in
+      Katana's web app — items DO have one); type badge; status pills
+      that vary by sub-type (sellable / producible / batch /
+      serial / archived).
+    - **Tier 2 — Decision metrics**: variant count (always), lead time
+      and MOQ (Product only). Text rows, not Metric components —
+      items have too few numeric facts to warrant the visual weight.
+    - **Tier 3 — Reference**: UoM, category, purchase UoM (P/M),
+      default supplier (P/M, rendered as Link to the Katana supplier
+      page), config-axis definitions (P/M), additional info, and the
+      nested variants table — a DataTable with per-row CallTool
+      drilling into ``get_variant_details``.
+    - **Tier 4 — Actions**: sub-type-specific SendMessage buttons:
+      ``Create Purchase Order`` + ``List MOs Using This`` (materials),
+      ``Create Manufacturing Order`` (producible products),
+      ``Modify Item`` (all). No "View in Katana" footer button —
+      the title link replaces it.
+
+    Reference example: the variant card (#542 / #696) established the
+    same shape on a single-row entity; this card extends the pattern
+    to a parent entity with embedded children.
+    """
+    # ``detail: None`` is seeded for the variants DataTable's
+    # ``Slot(name="detail")`` + ``on_success=SetState("detail", RESULT)``
+    # pattern. Without an explicit None seed the slot binds to an
+    # undefined key, which works in current Prefab renderers but matches
+    # the explicit-is-better-than-implicit contract from
+    # ``build_search_results_ui``'s state init and avoids edge cases
+    # around missing keys.
+    with (
+        PrefabApp(state={"item": item, "detail": None}, css_class="p-4") as app,
+        Card(),
+    ):
+        with CardHeader(), Column(gap=2):
+            _item_header_section(item)
+
+        with CardContent(), Column(gap=3):
+            _item_metrics_section(item)
+            Separator()
+            _item_reference_section(item)
 
         with CardFooter(), Row(gap=2):
-            if item.get("sku"):
-                Button(
-                    label="Get Variant Details",
-                    variant="outline",
-                    on_click=SendMessage(f"Get variant details for SKU {item['sku']}"),
-                )
-                Button(
-                    label="Check Inventory",
-                    variant="outline",
-                    on_click=SendMessage(f"Check inventory for SKU {item['sku']}"),
-                )
+            _item_footer_section(item)
     return app
 
 
@@ -2056,6 +2363,7 @@ def build_item_mutation_ui(
             Text(content=f"Name: {item.get('name', 'N/A')}")
             if item.get("sku"):
                 Text(content=f"SKU: {item['sku']}")
+            _variant_purchase_uom_line(item)
             if item.get("message"):
                 Text(content=item["message"])
 
