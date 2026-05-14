@@ -11,6 +11,7 @@ from attrs import (
 from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
+from ..models.abc_classification import AbcClassification
 from ..models.variant_type import VariantType
 
 if TYPE_CHECKING:
@@ -33,8 +34,8 @@ class Variant:
             '789123456789', 'supplier_item_codes': ['SUP-KNF-8PC-001'], 'lead_time': 7, 'minimum_order_quantity': 1,
             'custom_fields': [{'field_name': 'Warranty Period', 'field_value': '5 years'}], 'config_attributes':
             [{'config_name': 'Piece Count', 'config_value': '8-piece'}, {'config_name': 'Handle Material', 'config_value':
-            'Steel'}], 'created_at': '2024-01-15T08:00:00.000Z', 'updated_at': '2024-08-20T14:45:00.000Z', 'deleted_at':
-            None}
+            'Steel'}], 'abc_classification': 'A', 'created_at': '2024-01-15T08:00:00.000Z', 'updated_at':
+            '2024-08-20T14:45:00.000Z', 'deleted_at': None}
     """
 
     id: int
@@ -54,6 +55,7 @@ class Variant:
     minimum_order_quantity: float | None | Unset = UNSET
     custom_fields: list[VariantCustomFieldsType0Item] | None | Unset = UNSET
     config_attributes: list[VariantConfigAttributesType0Item] | None | Unset = UNSET
+    abc_classification: AbcClassification | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -156,6 +158,14 @@ class Variant:
         else:
             config_attributes = self.config_attributes
 
+        abc_classification: None | str | Unset
+        if isinstance(self.abc_classification, Unset):
+            abc_classification = UNSET
+        elif isinstance(self.abc_classification, AbcClassification):
+            abc_classification = self.abc_classification.value
+        else:
+            abc_classification = self.abc_classification
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -194,6 +204,8 @@ class Variant:
             field_dict["custom_fields"] = custom_fields
         if config_attributes is not UNSET:
             field_dict["config_attributes"] = config_attributes
+        if abc_classification is not UNSET:
+            field_dict["abc_classification"] = abc_classification
 
         return field_dict
 
@@ -385,6 +397,25 @@ class Variant:
 
         config_attributes = _parse_config_attributes(d.pop("config_attributes", UNSET))
 
+        def _parse_abc_classification(data: object) -> AbcClassification | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                abc_classification_type_0 = AbcClassification(data)
+
+                return abc_classification_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(AbcClassification | None | Unset, data)
+
+        abc_classification = _parse_abc_classification(
+            d.pop("abc_classification", UNSET)
+        )
+
         variant = cls(
             id=id,
             sku=sku,
@@ -403,6 +434,7 @@ class Variant:
             minimum_order_quantity=minimum_order_quantity,
             custom_fields=custom_fields,
             config_attributes=config_attributes,
+            abc_classification=abc_classification,
         )
 
         variant.additional_properties = d

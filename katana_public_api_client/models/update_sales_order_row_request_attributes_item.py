@@ -15,20 +15,20 @@ T = TypeVar("T", bound="UpdateSalesOrderRowRequestAttributesItem")
 
 @_attrs_define
 class UpdateSalesOrderRowRequestAttributesItem:
-    name: str | Unset = UNSET
+    key: str | Unset = UNSET
     value: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        name = self.name
+        key = self.key
 
         value = self.value
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
-        if name is not UNSET:
-            field_dict["name"] = name
+        if key is not UNSET:
+            field_dict["key"] = key
         if value is not UNSET:
             field_dict["value"] = value
 
@@ -37,12 +37,12 @@ class UpdateSalesOrderRowRequestAttributesItem:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        name = d.pop("name", UNSET)
+        key = d.pop("key", UNSET)
 
         value = d.pop("value", UNSET)
 
         update_sales_order_row_request_attributes_item = cls(
-            name=name,
+            key=key,
             value=value,
         )
 

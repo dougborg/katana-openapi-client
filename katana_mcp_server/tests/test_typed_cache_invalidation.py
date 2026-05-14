@@ -391,7 +391,7 @@ class TestMergeFilteredFetch:
                 "manufacturing_order_id": 5001,
                 "variant_id": 9001,
                 "ingredient_availability": "NOT_AVAILABLE",
-                "planned_quantity_per_unit": 2.0,
+                "planned_quantity_per_unit": "2.0",
                 "total_remaining_quantity": 4.0,
             }
         )
@@ -428,7 +428,7 @@ class TestMergeFilteredFetch:
                     "manufacturing_order_id": 5001,
                     "variant_id": 9000 + i,
                     "ingredient_availability": "NOT_AVAILABLE",
-                    "planned_quantity_per_unit": float(i),
+                    "planned_quantity_per_unit": str(float(i)),
                     "total_remaining_quantity": float(i * 2),
                 }
             )
@@ -620,7 +620,7 @@ class TestBulkUpsert:
                     "id": i,
                     "manufacturing_order_id": 1,
                     "variant_id": 100 + i,
-                    "planned_quantity_per_unit": 1.0,
+                    "planned_quantity_per_unit": "1.0",
                     "total_actual_quantity": 0.0,
                     "cost": 0.0,
                 }

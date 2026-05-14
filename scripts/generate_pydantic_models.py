@@ -267,7 +267,12 @@ CACHE_TABLES: dict[str, CacheTableSpec] = {
         json_columns=("shipping_fee", "addresses"),
     ),
     "SalesOrderRow": CacheTableSpec(
-        json_columns=("attributes", "batch_transactions", "serial_numbers"),
+        json_columns=(
+            "attributes",
+            "batch_transactions",
+            "serial_numbers",
+            "serial_number_transactions",
+        ),
     ),
     "StockAdjustment": CacheTableSpec(),
     "StockAdjustmentRow": CacheTableSpec(json_columns=("batch_transactions",)),

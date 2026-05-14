@@ -7,6 +7,7 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
+from ...models.abc_classification import AbcClassification
 from ...models.error_response import ErrorResponse
 from ...models.get_all_variants_extend_item import GetAllVariantsExtendItem
 from ...models.variant_list_response import VariantListResponse
@@ -23,6 +24,7 @@ def _get_kwargs(
     internal_barcode: str | Unset = UNSET,
     registered_barcode: str | Unset = UNSET,
     supplier_item_codes: list[str] | Unset = UNSET,
+    abc_classification: AbcClassification | Unset = UNSET,
     extend: list[GetAllVariantsExtendItem] | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     include_archived: bool | Unset = UNSET,
@@ -65,6 +67,12 @@ def _get_kwargs(
         json_supplier_item_codes = supplier_item_codes
 
     params["supplier_item_codes"] = json_supplier_item_codes
+
+    json_abc_classification: str | Unset = UNSET
+    if not isinstance(abc_classification, Unset):
+        json_abc_classification = abc_classification.value
+
+    params["abc_classification"] = json_abc_classification
 
     json_extend: list[str] | Unset = UNSET
     if not isinstance(extend, Unset):
@@ -166,6 +174,7 @@ def sync_detailed(
     internal_barcode: str | Unset = UNSET,
     registered_barcode: str | Unset = UNSET,
     supplier_item_codes: list[str] | Unset = UNSET,
+    abc_classification: AbcClassification | Unset = UNSET,
     extend: list[GetAllVariantsExtendItem] | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     include_archived: bool | Unset = UNSET,
@@ -191,6 +200,9 @@ def sync_detailed(
         internal_barcode (str | Unset):
         registered_barcode (str | Unset):
         supplier_item_codes (list[str] | Unset):
+        abc_classification (AbcClassification | Unset): ABC inventory classification of the
+            variant. Categorizes items by relative
+            value and consumption importance.
         extend (list[GetAllVariantsExtendItem] | Unset):
         include_deleted (bool | Unset):
         include_archived (bool | Unset):
@@ -220,6 +232,7 @@ def sync_detailed(
         internal_barcode=internal_barcode,
         registered_barcode=registered_barcode,
         supplier_item_codes=supplier_item_codes,
+        abc_classification=abc_classification,
         extend=extend,
         include_deleted=include_deleted,
         include_archived=include_archived,
@@ -250,6 +263,7 @@ def sync(
     internal_barcode: str | Unset = UNSET,
     registered_barcode: str | Unset = UNSET,
     supplier_item_codes: list[str] | Unset = UNSET,
+    abc_classification: AbcClassification | Unset = UNSET,
     extend: list[GetAllVariantsExtendItem] | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     include_archived: bool | Unset = UNSET,
@@ -275,6 +289,9 @@ def sync(
         internal_barcode (str | Unset):
         registered_barcode (str | Unset):
         supplier_item_codes (list[str] | Unset):
+        abc_classification (AbcClassification | Unset): ABC inventory classification of the
+            variant. Categorizes items by relative
+            value and consumption importance.
         extend (list[GetAllVariantsExtendItem] | Unset):
         include_deleted (bool | Unset):
         include_archived (bool | Unset):
@@ -305,6 +322,7 @@ def sync(
         internal_barcode=internal_barcode,
         registered_barcode=registered_barcode,
         supplier_item_codes=supplier_item_codes,
+        abc_classification=abc_classification,
         extend=extend,
         include_deleted=include_deleted,
         include_archived=include_archived,
@@ -329,6 +347,7 @@ async def asyncio_detailed(
     internal_barcode: str | Unset = UNSET,
     registered_barcode: str | Unset = UNSET,
     supplier_item_codes: list[str] | Unset = UNSET,
+    abc_classification: AbcClassification | Unset = UNSET,
     extend: list[GetAllVariantsExtendItem] | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     include_archived: bool | Unset = UNSET,
@@ -354,6 +373,9 @@ async def asyncio_detailed(
         internal_barcode (str | Unset):
         registered_barcode (str | Unset):
         supplier_item_codes (list[str] | Unset):
+        abc_classification (AbcClassification | Unset): ABC inventory classification of the
+            variant. Categorizes items by relative
+            value and consumption importance.
         extend (list[GetAllVariantsExtendItem] | Unset):
         include_deleted (bool | Unset):
         include_archived (bool | Unset):
@@ -383,6 +405,7 @@ async def asyncio_detailed(
         internal_barcode=internal_barcode,
         registered_barcode=registered_barcode,
         supplier_item_codes=supplier_item_codes,
+        abc_classification=abc_classification,
         extend=extend,
         include_deleted=include_deleted,
         include_archived=include_archived,
@@ -411,6 +434,7 @@ async def asyncio(
     internal_barcode: str | Unset = UNSET,
     registered_barcode: str | Unset = UNSET,
     supplier_item_codes: list[str] | Unset = UNSET,
+    abc_classification: AbcClassification | Unset = UNSET,
     extend: list[GetAllVariantsExtendItem] | Unset = UNSET,
     include_deleted: bool | Unset = UNSET,
     include_archived: bool | Unset = UNSET,
@@ -436,6 +460,9 @@ async def asyncio(
         internal_barcode (str | Unset):
         registered_barcode (str | Unset):
         supplier_item_codes (list[str] | Unset):
+        abc_classification (AbcClassification | Unset): ABC inventory classification of the
+            variant. Categorizes items by relative
+            value and consumption importance.
         extend (list[GetAllVariantsExtendItem] | Unset):
         include_deleted (bool | Unset):
         include_archived (bool | Unset):
@@ -467,6 +494,7 @@ async def asyncio(
             internal_barcode=internal_barcode,
             registered_barcode=registered_barcode,
             supplier_item_codes=supplier_item_codes,
+            abc_classification=abc_classification,
             extend=extend,
             include_deleted=include_deleted,
             include_archived=include_archived,

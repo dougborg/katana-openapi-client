@@ -33,11 +33,12 @@ class CreatePurchaseOrderRequest:
             'purchase_uom': 'pieces', 'purchase_uom_conversion_rate': 1.0, 'arrival_date': '2024-08-20T14:45:00Z'}]}
 
     Attributes:
-        order_no (str): Unique purchase order number for tracking and reference
         supplier_id (int): Unique identifier of the supplier providing the materials or services
         location_id (int): Primary location where the purchased items will be received and stored
         purchase_order_rows (list[PurchaseOrderRowRequest]): List of line items being ordered, including quantities and
             pricing
+        order_no (str | Unset): Unique purchase order number for tracking and reference. Optional —
+            Katana auto-generates a sequential ``PO-N`` value when omitted.
         entity_type (PurchaseOrderEntityType | Unset): Type of purchase order - regular for materials or outsourced for
             subcontracted work
         currency (str | Unset): Active ISO 4217 currency code (e.g. USD, EUR).
@@ -48,10 +49,10 @@ class CreatePurchaseOrderRequest:
         tracking_location_id (int | Unset): Location ID for tracking outsourced orders
     """
 
-    order_no: str
     supplier_id: int
     location_id: int
     purchase_order_rows: list[PurchaseOrderRowRequest]
+    order_no: str | Unset = UNSET
     entity_type: PurchaseOrderEntityType | Unset = UNSET
     currency: str | Unset = UNSET
     status: CreatePurchaseOrderInitialStatus | Unset = UNSET
@@ -61,8 +62,6 @@ class CreatePurchaseOrderRequest:
     tracking_location_id: int | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        order_no = self.order_no
-
         supplier_id = self.supplier_id
 
         location_id = self.location_id
@@ -71,6 +70,8 @@ class CreatePurchaseOrderRequest:
         for purchase_order_rows_item_data in self.purchase_order_rows:
             purchase_order_rows_item = purchase_order_rows_item_data.to_dict()
             purchase_order_rows.append(purchase_order_rows_item)
+
+        order_no = self.order_no
 
         entity_type: str | Unset = UNSET
         if not isinstance(self.entity_type, Unset):
@@ -98,12 +99,13 @@ class CreatePurchaseOrderRequest:
 
         field_dict.update(
             {
-                "order_no": order_no,
                 "supplier_id": supplier_id,
                 "location_id": location_id,
                 "purchase_order_rows": purchase_order_rows,
             }
         )
+        if order_no is not UNSET:
+            field_dict["order_no"] = order_no
         if entity_type is not UNSET:
             field_dict["entity_type"] = entity_type
         if currency is not UNSET:
@@ -126,8 +128,6 @@ class CreatePurchaseOrderRequest:
         from ..models.purchase_order_row_request import PurchaseOrderRowRequest
 
         d = dict(src_dict)
-        order_no = d.pop("order_no")
-
         supplier_id = d.pop("supplier_id")
 
         location_id = d.pop("location_id")
@@ -140,6 +140,8 @@ class CreatePurchaseOrderRequest:
             )
 
             purchase_order_rows.append(purchase_order_rows_item)
+
+        order_no = d.pop("order_no", UNSET)
 
         _entity_type = d.pop("entity_type", UNSET)
         entity_type: PurchaseOrderEntityType | Unset
@@ -176,10 +178,10 @@ class CreatePurchaseOrderRequest:
         tracking_location_id = d.pop("tracking_location_id", UNSET)
 
         create_purchase_order_request = cls(
-            order_no=order_no,
             supplier_id=supplier_id,
             location_id=location_id,
             purchase_order_rows=purchase_order_rows,
+            order_no=order_no,
             entity_type=entity_type,
             currency=currency,
             status=status,

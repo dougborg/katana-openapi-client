@@ -18,6 +18,9 @@ if TYPE_CHECKING:
     from ..models.sales_order_row_batch_transactions_item import (
         SalesOrderRowBatchTransactionsItem,
     )
+    from ..models.sales_order_row_serial_number_transactions_item import (
+        SalesOrderRowSerialNumberTransactionsItem,
+    )
 
 
 T = TypeVar("T", bound="SalesOrderRow")
@@ -30,12 +33,12 @@ class SalesOrderRow:
 
         Example:
             {'id': 2501, 'quantity': 2, 'variant_id': 2101, 'tax_rate_id': 301, 'location_id': 1, 'product_availability':
-                'IN_STOCK', 'product_expected_date': None, 'price_per_unit': 599.99, 'price_per_unit_in_base_currency': 599.99,
-                'total': 1199.98, 'total_in_base_currency': 1199.98, 'cogs_value': 400.0, 'attributes': [{'key': 'engrave_text',
-                'value': "Johnson's Kitchen"}, {'key': 'gift_wrap', 'value': 'true'}], 'batch_transactions': [{'batch_id': 1801,
-                'quantity': 2.0}], 'serial_numbers': [10001, 10002], 'linked_manufacturing_order_id': None, 'conversion_rate':
-                1.0, 'conversion_date': '2024-01-15T10:00:00Z', 'created_at': '2024-01-15T10:00:00Z', 'updated_at':
-                '2024-01-15T10:00:00Z'}
+                'IN_STOCK', 'product_expected_date': None, 'price_per_unit': '599.9900000000',
+                'price_per_unit_in_base_currency': 599.99, 'total': 1199.98, 'total_in_base_currency': 1199.98, 'cogs_value':
+                '400.0000000000', 'attributes': [{'key': 'engrave_text', 'value': "Johnson's Kitchen"}, {'key': 'gift_wrap',
+                'value': 'true'}], 'batch_transactions': [{'batch_id': 1801, 'quantity': 2.0}], 'serial_numbers': [10001,
+                10002], 'linked_manufacturing_order_id': None, 'conversion_rate': 1.0, 'conversion_date':
+                '2024-01-15T10:00:00Z', 'created_at': '2024-01-15T10:00:00Z', 'updated_at': '2024-01-15T10:00:00Z'}
 
         Attributes:
             id (int): Unique identifier for the sales order row
@@ -52,16 +55,21 @@ class SalesOrderRow:
                 order row
             product_expected_date (datetime.datetime | None | Unset): Expected date when the product will be available if
                 not currently in stock
-            price_per_unit (float | Unset): Selling price per unit in the order currency
+            price_per_unit (str | Unset): Selling price per unit in the order currency
             price_per_unit_in_base_currency (float | Unset): Selling price per unit converted to the base company currency
             total (float | Unset): Total line amount (quantity * price_per_unit) in order currency
             total_in_base_currency (float | Unset): Total line amount converted to the base company currency
             total_discount (None | str | Unset): Discount amount applied to this line item
-            cogs_value (float | None | Unset): Cost of goods sold value for this line item
+            cogs_value (None | str | Unset): Cost of goods sold value for this line item, null when not yet computed
             attributes (list[SalesOrderRowAttributesItem] | Unset): Custom attributes associated with this sales order row
             batch_transactions (list[SalesOrderRowBatchTransactionsItem] | Unset): Batch allocations for this order row when
                 using batch tracking
             serial_numbers (list[int] | Unset): Serial numbers allocated to this order row for serialized products
+            serial_number_transactions (list[SalesOrderRowSerialNumberTransactionsItem] | Unset): Audit trail of serial-
+                number actions on this row. Each entry records
+                whether a serial number was added (``quantity: 1``) or removed
+                (``quantity: 0``). Use this for incremental updates; ``serial_numbers``
+                reflects the resulting current state.
             linked_manufacturing_order_id (int | None | Unset): ID of the manufacturing order linked to this sales order row
                 for make-to-order items
             conversion_rate (float | None | Unset): Currency conversion rate used for this row
@@ -80,15 +88,18 @@ class SalesOrderRow:
     location_id: int | None | Unset = UNSET
     product_availability: None | ProductAvailability | Unset = UNSET
     product_expected_date: datetime.datetime | None | Unset = UNSET
-    price_per_unit: float | Unset = UNSET
+    price_per_unit: str | Unset = UNSET
     price_per_unit_in_base_currency: float | Unset = UNSET
     total: float | Unset = UNSET
     total_in_base_currency: float | Unset = UNSET
     total_discount: None | str | Unset = UNSET
-    cogs_value: float | None | Unset = UNSET
+    cogs_value: None | str | Unset = UNSET
     attributes: list[SalesOrderRowAttributesItem] | Unset = UNSET
     batch_transactions: list[SalesOrderRowBatchTransactionsItem] | Unset = UNSET
     serial_numbers: list[int] | Unset = UNSET
+    serial_number_transactions: (
+        list[SalesOrderRowSerialNumberTransactionsItem] | Unset
+    ) = UNSET
     linked_manufacturing_order_id: int | None | Unset = UNSET
     conversion_rate: float | None | Unset = UNSET
     conversion_date: datetime.datetime | None | Unset = UNSET
@@ -167,7 +178,7 @@ class SalesOrderRow:
         else:
             total_discount = self.total_discount
 
-        cogs_value: float | None | Unset
+        cogs_value: None | str | Unset
         if isinstance(self.cogs_value, Unset):
             cogs_value = UNSET
         else:
@@ -190,6 +201,15 @@ class SalesOrderRow:
         serial_numbers: list[int] | Unset = UNSET
         if not isinstance(self.serial_numbers, Unset):
             serial_numbers = self.serial_numbers
+
+        serial_number_transactions: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.serial_number_transactions, Unset):
+            serial_number_transactions = []
+            for serial_number_transactions_item_data in self.serial_number_transactions:
+                serial_number_transactions_item = (
+                    serial_number_transactions_item_data.to_dict()
+                )
+                serial_number_transactions.append(serial_number_transactions_item)
 
         linked_manufacturing_order_id: int | None | Unset
         if isinstance(self.linked_manufacturing_order_id, Unset):
@@ -258,6 +278,8 @@ class SalesOrderRow:
             field_dict["batch_transactions"] = batch_transactions
         if serial_numbers is not UNSET:
             field_dict["serial_numbers"] = serial_numbers
+        if serial_number_transactions is not UNSET:
+            field_dict["serial_number_transactions"] = serial_number_transactions
         if linked_manufacturing_order_id is not UNSET:
             field_dict["linked_manufacturing_order_id"] = linked_manufacturing_order_id
         if conversion_rate is not UNSET:
@@ -272,6 +294,9 @@ class SalesOrderRow:
         from ..models.sales_order_row_attributes_item import SalesOrderRowAttributesItem
         from ..models.sales_order_row_batch_transactions_item import (
             SalesOrderRowBatchTransactionsItem,
+        )
+        from ..models.sales_order_row_serial_number_transactions_item import (
+            SalesOrderRowSerialNumberTransactionsItem,
         )
 
         d = dict(src_dict)
@@ -402,12 +427,12 @@ class SalesOrderRow:
 
         total_discount = _parse_total_discount(d.pop("total_discount", UNSET))
 
-        def _parse_cogs_value(data: object) -> float | None | Unset:
+        def _parse_cogs_value(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(None | str | Unset, data)
 
         cogs_value = _parse_cogs_value(d.pop("cogs_value", UNSET))
 
@@ -434,6 +459,21 @@ class SalesOrderRow:
                 batch_transactions.append(batch_transactions_item)
 
         serial_numbers = cast(list[int], d.pop("serial_numbers", UNSET))
+
+        _serial_number_transactions = d.pop("serial_number_transactions", UNSET)
+        serial_number_transactions: (
+            list[SalesOrderRowSerialNumberTransactionsItem] | Unset
+        ) = UNSET
+        if _serial_number_transactions is not UNSET:
+            serial_number_transactions = []
+            for serial_number_transactions_item_data in _serial_number_transactions:
+                serial_number_transactions_item = (
+                    SalesOrderRowSerialNumberTransactionsItem.from_dict(
+                        cast(Mapping[str, Any], serial_number_transactions_item_data)
+                    )
+                )
+
+                serial_number_transactions.append(serial_number_transactions_item)
 
         def _parse_linked_manufacturing_order_id(data: object) -> int | None | Unset:
             if data is None:
@@ -494,6 +534,7 @@ class SalesOrderRow:
             attributes=attributes,
             batch_transactions=batch_transactions,
             serial_numbers=serial_numbers,
+            serial_number_transactions=serial_number_transactions,
             linked_manufacturing_order_id=linked_manufacturing_order_id,
             conversion_rate=conversion_rate,
             conversion_date=conversion_date,

@@ -728,6 +728,13 @@ components:
           type: string
           minLength: 1
       in: query
+    abc_classification:
+      name: abc_classification
+      required: false
+      description: Filters variants by ABC inventory classification.
+      schema:
+        $ref: "#/components/schemas/AbcClassification"
+      in: query
     url:
       name: url
       required: false
@@ -1710,6 +1717,16 @@ components:
         - service
       description: Type classification of a variant
 
+    AbcClassification:
+      type: string
+      enum:
+        - A
+        - B
+        - C
+      description: |-
+        ABC inventory classification of the variant. Categorizes items by relative
+        value and consumption importance.
+
     AddressEntityType:
       type: string
       enum:
@@ -2655,6 +2672,13 @@ components:
                   config_value:
                     type: string
                     description: Value for this configuration attribute (e.g., Blue, Large)
+            abc_classification:
+              description: |-
+                ABC inventory classification of this variant. ``null`` when the
+                variant has not been classified.
+              anyOf:
+                - $ref: "#/components/schemas/AbcClassification"
+                - type: "null"
           required:
             - sku
         - $ref: "#/components/schemas/DeletableEntity"
@@ -2680,6 +2704,7 @@ components:
             config_value: 8-piece
           - config_name: Handle Material
             config_value: Steel
+        abc_classification: A
         created_at: "2024-01-15T08:00:00.000Z"
         updated_at: "2024-08-20T14:45:00.000Z"
         deleted_at: null
@@ -2899,6 +2924,7 @@ components:
       required:
         - variant_id
         - location_id
+        - safety_stock_level
         - reorder_point
         - average_cost
         - value_in_stock
@@ -2938,6 +2964,7 @@ components:
             quantity_on_hand: 150.0
             quantity_allocated: 25.0
             quantity_available: 125.0
+            safety_stock_level: "25.0"
             reorder_point: "25.0"
             average_cost: "25.5"
             value_in_stock: "3825.0"
@@ -2955,6 +2982,7 @@ components:
             quantity_on_hand: 75.0
             quantity_allocated: 10.0
             quantity_available: 65.0
+            safety_stock_level: "30.0"
             reorder_point: "30.0"
             average_cost: "45.0"
             value_in_stock: "3375.0"
@@ -3599,19 +3627,20 @@ components:
               type: number
               description: ID of the currently active operator working on this operation
             planned_time_per_unit:
-              type: number
-              description: Planned time per unit for this operation
+              type: string
+              deprecated: true
+              description: Planned time per unit for this operation (deprecated — use ``planned_time_parameter`` instead)
             planned_time_parameter:
-              type: number
+              type: string
               description: Parameter for calculating planned time
             total_actual_time:
-              type: number
+              type: string
               description: Total actual time spent on this operation
             planned_cost_per_unit:
-              type: number
+              type: string
               description: Planned cost per unit for this operation
             total_actual_cost:
-              type: number
+              type: string
               description: Total actual cost incurred for this operation
             total_consumed_time:
               type: number
@@ -3621,7 +3650,8 @@ components:
               description: Remaining time estimated for this operation
             cost_per_hour:
               type: number
-              description: Hourly cost rate for this operation
+              deprecated: true
+              description: Hourly cost rate for this operation (deprecated — use ``cost_parameter`` instead)
             cost_parameter:
               type: number
               description: Parameter for calculating operation costs
@@ -3662,11 +3692,11 @@ components:
             resource_id: 501
         completed_by_operators: []
         active_operator_id: 101
-        planned_time_per_unit: 15.0
-        planned_time_parameter: 1.0
-        total_actual_time: 12.5
-        planned_cost_per_unit: 45.0
-        total_actual_cost: 37.5
+        planned_time_per_unit: "15.0"
+        planned_time_parameter: "1.0"
+        total_actual_time: "12.5"
+        planned_cost_per_unit: "45.0"
+        total_actual_cost: "37.5"
         cost_per_hour: 180.0
         cost_parameter: 1.0
         group_boundary: 0
@@ -3707,13 +3737,15 @@ components:
           description: Parameter for calculating planned time
         planned_time_per_unit:
           type: number
-          description: Planned time per unit of output
+          deprecated: true
+          description: Planned time per unit of output (deprecated — use ``planned_time_parameter`` instead)
         cost_parameter:
           type: number
           description: Parameter for calculating operation cost
         cost_per_hour:
           type: number
-          description: Hourly cost rate for this operation
+          deprecated: true
+          description: Hourly cost rate for this operation (deprecated — use ``cost_parameter`` instead)
         status:
           type: string
           enum:
@@ -3741,7 +3773,13 @@ components:
     UpdateManufacturingOrderOperationRowRequest:
       description: Request payload for updating a manufacturing order operation row with actual completion data
       type: object
+      required:
+        - manufacturing_order_id
+        - status
       properties:
+        manufacturing_order_id:
+          type: integer
+          description: ID of the manufacturing order this operation row belongs to
         operation_id:
           type: integer
           description: ID of the operation being performed
@@ -3762,7 +3800,8 @@ components:
           description: Parameter for calculating planned time
         planned_time_per_unit:
           type: number
-          description: Planned time per unit of output
+          deprecated: true
+          description: Planned time per unit of output (deprecated — use ``planned_time_parameter`` instead)
         total_actual_time:
           type: number
           description: Actual time taken in minutes for this operation
@@ -3771,7 +3810,8 @@ components:
           description: Parameter for calculating operation cost
         cost_per_hour:
           type: number
-          description: Hourly cost rate for this operation
+          deprecated: true
+          description: Hourly cost rate for this operation (deprecated — use ``cost_parameter`` instead)
         status:
           description: Current status of the operation
           $ref: "#/components/schemas/ManufacturingOperationStatus"
@@ -3786,6 +3826,7 @@ components:
           items:
             $ref: "#/components/schemas/Operator"
       example:
+        manufacturing_order_id: 1001
         operation_name: Assembly
         total_actual_time: 52.3
         status: COMPLETED
@@ -3933,7 +3974,7 @@ components:
               type: string
               description: Additional notes about this ingredient or special handling instructions
             planned_quantity_per_unit:
-              type: number
+              type: string
               description: Planned quantity of this ingredient needed per unit produced
             total_actual_quantity:
               type: number
@@ -3974,7 +4015,7 @@ components:
         manufacturing_order_id: 3001
         variant_id: 3201
         notes: Use only grade 304 material
-        planned_quantity_per_unit: 2.5
+        planned_quantity_per_unit: "2.5000000000"
         total_actual_quantity: 125.0
         ingredient_availability: IN_STOCK
         batch_transactions:
@@ -4000,7 +4041,7 @@ components:
             manufacturing_order_id: 3001
             variant_id: 3201
             notes: Use only grade 304 material
-            planned_quantity_per_unit: 2.5
+            planned_quantity_per_unit: "2.5000000000"
             total_actual_quantity: 125.0
             ingredient_availability: IN_STOCK
             batch_transactions:
@@ -4194,7 +4235,7 @@ components:
             manufacturing_order_id: 1001
             operation_id: 201
             time: 45.5
-            total_actual_time: 52.3
+            total_actual_time: "52.3"
             completed_by_operators:
               - operator_id: 101
                 name: John Smith
@@ -4885,6 +4926,12 @@ components:
             type: object
             additionalProperties: false
             properties:
+              id:
+                type: integer
+                description: |
+                  ID of the existing config to update. When set, the server
+                  matches by ID instead of by ``name`` — required if you want
+                  to rename a config.
               name:
                 type: string
                 description: Name of the configuration attribute (e.g., Size, Color)
@@ -5072,14 +5119,15 @@ components:
       type: object
       additionalProperties: false
       required:
-        - order_no
         - supplier_id
         - location_id
         - purchase_order_rows
       properties:
         order_no:
           type: string
-          description: Unique purchase order number for tracking and reference
+          description: |
+            Unique purchase order number for tracking and reference. Optional —
+            Katana auto-generates a sequential ``PO-N`` value when omitted.
         entity_type:
           description: Whether this purchase order is regular procurement or an outsourced manufacturing order
           $ref: "#/components/schemas/PurchaseOrderEntityType"
@@ -5465,7 +5513,7 @@ components:
               description: ID of tax added to price per unit.
             price_per_unit:
               type: number
-              description: The sales price of one unit (excluding taxes) in sales order currency.
+              description: The purchase price of one unit (excluding taxes) in purchase order currency.
             price_per_unit_in_base_currency:
               type: number
               description: Unit price converted to the base currency
@@ -6540,8 +6588,7 @@ components:
           description: Internal barcode for warehouse scanning and tracking
         registered_barcode:
           type: string
-          minLength: 3
-          maxLength: 40
+          maxLength: 120
           description: Official registered barcode (UPC, EAN, etc.) for retail use
         lead_time:
           type:
@@ -7187,7 +7234,12 @@ components:
               description: Optional human-readable description of this webhook's purpose
             subscribed_events:
               type: array
-              description: List of event types that will trigger this webhook
+              description: |-
+                List of event types that will trigger this webhook. Known
+                values are listed in the ``WebhookEvent`` enum (enforced on
+                Create / Update request DTOs), but the read shape stays an
+                open string list so newly-released server events deserialize
+                without breaking older clients.
               items:
                 type: string
         - $ref: "#/components/schemas/UpdatableEntity"
@@ -7201,8 +7253,8 @@ components:
         subscribed_events:
           - sales_order.created
           - sales_order.updated
-          - inventory.stock_adjustment
-          - manufacturing_order.completed
+          - manufacturing_order.done
+          - purchase_order.received
         created_at: "2024-01-10T09:00:00Z"
         updated_at: "2024-01-15T11:30:00Z"
     WebhookListResponse:
@@ -7641,7 +7693,7 @@ components:
           description: Period end date in ISO 8601 format (inclusive)
         in_stock:
           type: string
-          description: In-stock quantity at the start of the period
+          description: Calculated stock level at the end of the period
         expected:
           type: string
           description: Expected incoming quantity during the period
@@ -8365,11 +8417,11 @@ components:
             location_id: 1
             product_availability: IN_STOCK
             product_expected_date: null
-            price_per_unit: 599.99
+            price_per_unit: "599.9900000000"
             price_per_unit_in_base_currency: 599.99
             total: 1199.98
             total_in_base_currency: 1199.98
-            cogs_value: 400.0
+            cogs_value: "400.0000000000"
             created_at: "2024-01-15T10:00:00Z"
             updated_at: "2024-01-15T10:00:00Z"
         ecommerce_order_type: standard
@@ -8444,7 +8496,7 @@ components:
               format: date-time
               description: Expected date when the product will be available if not currently in stock
             price_per_unit:
-              type: number
+              type: string
               description: Selling price per unit in the order currency
             price_per_unit_in_base_currency:
               type: number
@@ -8462,9 +8514,9 @@ components:
               description: Discount amount applied to this line item
             cogs_value:
               type:
-                - number
+                - string
                 - "null"
-              description: Cost of goods sold value for this line item
+              description: Cost of goods sold value for this line item, null when not yet computed
             attributes:
               type: array
               description: Custom attributes associated with this sales order row
@@ -8494,6 +8546,27 @@ components:
               description: Serial numbers allocated to this order row for serialized products
               items:
                 type: integer
+            serial_number_transactions:
+              type: array
+              description: |-
+                Audit trail of serial-number actions on this row. Each entry records
+                whether a serial number was added (``quantity: 1``) or removed
+                (``quantity: 0``). Use this for incremental updates; ``serial_numbers``
+                reflects the resulting current state.
+              items:
+                type: object
+                properties:
+                  serial_number_id:
+                    type: integer
+                    description: ID of the serial number for the fulfilled item
+                  quantity:
+                    type: integer
+                    enum:
+                      - 0
+                      - 1
+                    description: "1 to add the serial number, 0 to remove it"
+                required:
+                  - serial_number_id
             linked_manufacturing_order_id:
               type:
                 - integer
@@ -8523,11 +8596,11 @@ components:
         location_id: 1
         product_availability: IN_STOCK
         product_expected_date: null
-        price_per_unit: 599.99
+        price_per_unit: "599.9900000000"
         price_per_unit_in_base_currency: 599.99
         total: 1199.98
         total_in_base_currency: 1199.98
-        cogs_value: 400.0
+        cogs_value: "400.0000000000"
         attributes:
           - key: engrave_text
             value: Johnson's Kitchen
@@ -8658,10 +8731,12 @@ components:
           items:
             type: object
             properties:
-              name:
+              key:
                 type: string
+                description: Attribute name/key
               value:
                 type: string
+                description: Attribute value
         total_discount:
           type: number
           description: Total discount amount applied to this line item
@@ -8716,13 +8791,69 @@ components:
           items:
             type: object
             properties:
-              name:
+              key:
                 type: string
+                description: Attribute name/key
               value:
                 type: string
+                description: Attribute value
       example:
         quantity: 3
         price_per_unit: 549.99
+    SearchFilterRequest:
+      description: |-
+        LoopBack-style filter envelope used by POST search endpoints. The
+        ``filter`` body supports pagination (``limit`` / ``page`` / ``skip``),
+        ordering, and a ``where`` clause with comparison operators
+        (``eq`` / ``neq`` / ``gt`` / ``gte`` / ``lt`` / ``lte`` / ``like`` /
+        ``ilike`` / ``inq`` / ``nin`` / ``between`` / ``regexp`` / ``exists``)
+        plus ``and`` / ``or`` composition. Where clause values are
+        intentionally left as free-form because Katana's filter grammar is
+        the same regardless of which field is being filtered.
+      type: object
+      additionalProperties: false
+      properties:
+        filter:
+          type: object
+          additionalProperties: false
+          properties:
+            limit:
+              type: integer
+              minimum: 0
+              description: Maximum number of results to return
+            page:
+              type: integer
+              minimum: 1
+              description: Page number, 1-indexed
+            skip:
+              type: integer
+              minimum: 0
+              description: Number of results to skip before returning the first row
+            order:
+              description: |-
+                Sort order, either a single ``"field DIR"`` string or an array
+                of such strings to break ties between multiple fields.
+              oneOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+            where:
+              type: object
+              additionalProperties: true
+              description: |-
+                Filter predicates keyed by field name. Each value is either a
+                scalar (for equality matching) or an operator object such as
+                ``{"gt": 10}`` or ``{"inq": [1, 2, 3]}``. Use the ``and`` and
+                ``or`` keys at the top level of ``where`` to compose multiple
+                predicates.
+      example:
+        filter:
+          limit: 50
+          where:
+            sales_order_id:
+              inq: [1, 2, 3]
+          order: created_at DESC
     CreateSalesOrderAddressRequest:
       description: Request payload for creating a new sales order address
       type: object
@@ -8863,7 +8994,9 @@ components:
       properties:
         order_no:
           type: string
-          description: Unique order number for tracking and reference
+          description: |
+            Unique order number for tracking and reference. Optional — Katana
+            auto-generates a sequential ``SO-N`` value when omitted.
         customer_id:
           type: integer
           description: ID of the customer placing the order
@@ -8991,7 +9124,6 @@ components:
           items:
             $ref: "#/components/schemas/CustomFieldValue"
       required:
-        - order_no
         - customer_id
         - sales_order_rows
       example:
@@ -9219,6 +9351,7 @@ components:
       properties:
         stock_adjustment_number:
           type: string
+          minLength: 1
           description: Human-readable reference number for tracking and audit purposes
         stock_adjustment_date:
           type: string
@@ -9282,6 +9415,7 @@ components:
       properties:
         stock_adjustment_number:
           type: string
+          minLength: 1
           description: Human-readable reference number for tracking and audit purposes
         stock_adjustment_date:
           type: string
@@ -9807,7 +9941,8 @@ components:
           type:
             - number
             - "null"
-          description: Cost per hour for this operation
+          deprecated: true
+          description: Cost per hour for this operation (deprecated — use ``cost_parameter`` instead)
         cost_parameter:
           type:
             - number
@@ -9824,7 +9959,8 @@ components:
           type:
             - number
             - "null"
-          description: Planned time per unit
+          deprecated: true
+          description: Planned time per unit (deprecated — use ``planned_time_parameter`` instead)
         planned_time_parameter:
           type:
             - number
@@ -11124,11 +11260,11 @@ components:
             location_id: 1
             product_availability: IN_STOCK
             product_expected_date: null
-            price_per_unit: 599.99
+            price_per_unit: "599.9900000000"
             price_per_unit_in_base_currency: 599.99
             total: 1199.98
             total_in_base_currency: 1199.98
-            cogs_value: 400.0
+            cogs_value: "400.0000000000"
             attributes:
               - key: engrave_text
                 value: Johnson's Kitchen
@@ -12296,9 +12432,11 @@ components:
           description: Date of currency conversion
         tracking_number:
           type: string
+          maxLength: 256
           description: Shipment tracking number
         tracking_url:
           type: string
+          maxLength: 2048
           description: URL for tracking the shipment
         tracking_carrier:
           type: string
@@ -12335,9 +12473,11 @@ components:
           description: Date of currency conversion
         tracking_number:
           type: string
+          maxLength: 256
           description: Shipment tracking number
         tracking_url:
           type: string
+          maxLength: 2048
           description: URL for tracking the shipment
         tracking_carrier:
           type: string
@@ -12363,25 +12503,6 @@ components:
         tax_rate_id:
           type: integer
           description: ID of the tax rate to apply to the shipping fee
-    SalesOrderSearchRequest:
-      description: |
-        Request payload for searching sales orders with arbitrary filter
-        criteria. The ``filter`` object accepts free-form key-value pairs
-        — supported keys are documented in the Katana API reference
-        (matches POST /sales_orders/search behaviour).
-      type: object
-      additionalProperties: false
-      properties:
-        filter:
-          type: object
-          additionalProperties: true
-          description: |
-            Free-form filter criteria. Keys map to sales-order fields the
-            API supports searching on.
-      example:
-        filter:
-          customer_id: 1501
-          status: PACKED
     UpdateSalesOrderRequest:
       description: Request payload for updating a sales order
       type: object
@@ -12488,7 +12609,9 @@ components:
       type: object
       additionalProperties: false
       required:
+        - resource_type
         - resource_id
+        - serial_numbers
       properties:
         resource_type:
           description: Resource type
@@ -12553,6 +12676,7 @@ components:
       properties:
         stock_transfer_number:
           type: string
+          minLength: 1
           description: Unique stock transfer number for tracking
         source_location_id:
           type: integer
@@ -13963,11 +14087,11 @@ paths:
                     deleted_at: null
                 completed_by_operators: []
                 active_operator_id: 1
-                planned_time_per_unit: 1
-                planned_time_parameter: 1
-                total_actual_time: 1
-                planned_cost_per_unit: 1
-                total_actual_cost: 1
+                planned_time_per_unit: "1"
+                planned_time_parameter: "1"
+                total_actual_time: "1"
+                planned_cost_per_unit: "1"
+                total_actual_cost: "1"
                 cost_per_hour: 1
                 cost_parameter: 1
                 group_boundary: 1000
@@ -14035,11 +14159,11 @@ paths:
                         deleted_at: null
                     completed_by_operators: []
                     active_operator_id: 1
-                    planned_time_per_unit: 1
-                    planned_time_parameter: 1
-                    total_actual_time: 1
-                    planned_cost_per_unit: 1
-                    total_actual_cost: 1
+                    planned_time_per_unit: "1"
+                    planned_time_parameter: "1"
+                    total_actual_time: "1"
+                    planned_cost_per_unit: "1"
+                    total_actual_cost: "1"
                     cost_per_hour: 1
                     cost_parameter: 1
                     group_boundary: 1000
@@ -14093,11 +14217,11 @@ paths:
                     deleted_at: null
                 completed_by_operators: []
                 active_operator_id: 1
-                planned_time_per_unit: 1
-                planned_time_parameter: 1
-                total_actual_time: 1
-                planned_cost_per_unit: 1
-                total_actual_cost: 1
+                planned_time_per_unit: "1"
+                planned_time_parameter: "1"
+                total_actual_time: "1"
+                planned_cost_per_unit: "1"
+                total_actual_cost: "1"
                 cost_per_hour: 1
                 cost_parameter: 1
                 group_boundary: 1000
@@ -14160,11 +14284,11 @@ paths:
                     deleted_at: null
                 completed_by_operators: []
                 active_operator_id: 1
-                planned_time_per_unit: 1
-                planned_time_parameter: 1
-                total_actual_time: 1
-                planned_cost_per_unit: 1
-                total_actual_cost: 1
+                planned_time_per_unit: "1"
+                planned_time_parameter: "1"
+                total_actual_time: "1"
+                planned_cost_per_unit: "1"
+                total_actual_cost: "1"
                 cost_per_hour: 1
                 cost_parameter: 1
                 group_boundary: 1000
@@ -14233,7 +14357,7 @@ paths:
                 manufacturing_order_id: 1
                 variant_id: 1
                 notes: Pay close attention to this
-                planned_quantity_per_unit: 1.2
+                planned_quantity_per_unit: "1.2000000000"
                 total_actual_quantity: 12
                 ingredient_availability: IN_STOCK
                 ingredient_expected_date: "2021-03-18T12:33:39.957Z"
@@ -14295,7 +14419,7 @@ paths:
                     manufacturing_order_id: 1
                     variant_id: 1
                     notes: Pay close attention to this
-                    planned_quantity_per_unit: 1.2
+                    planned_quantity_per_unit: "1.2000000000"
                     total_actual_quantity: 12
                     ingredient_availability: IN_STOCK
                     ingredient_expected_date: "2021-03-18T12:33:39.957Z"
@@ -14342,7 +14466,7 @@ paths:
                 manufacturing_order_id: 1
                 variant_id: 1
                 notes: Pay close attention to this
-                planned_quantity_per_unit: 1.2
+                planned_quantity_per_unit: "1.2000000000"
                 total_actual_quantity: 12
                 ingredient_availability: IN_STOCK
                 ingredient_expected_date: "2021-03-18T12:33:39.957Z"
@@ -14398,7 +14522,7 @@ paths:
                 manufacturing_order_id: 1
                 variant_id: 1
                 notes: Pay close attention to this
-                planned_quantity_per_unit: 1.2
+                planned_quantity_per_unit: "1.2000000000"
                 total_actual_quantity: 12
                 ingredient_availability: IN_STOCK
                 ingredient_expected_date: "2021-03-18T12:33:39.957Z"
@@ -16762,6 +16886,7 @@ paths:
         - $ref: "#/components/parameters/internal_barcode"
         - $ref: "#/components/parameters/registered_barcode"
         - $ref: "#/components/parameters/supplier_item_codes"
+        - $ref: "#/components/parameters/abc_classification"
         - $ref: "#/components/parameters/extend_variant"
         - $ref: "#/components/parameters/include_deleted"
         - $ref: "#/components/parameters/include_archived"
@@ -18431,12 +18556,12 @@ paths:
         ``SalesOrder`` records.
       operationId: searchSalesOrders
       requestBody:
-        description: Search filter criteria
+        description: LoopBack-style filter envelope
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/SalesOrderSearchRequest"
+              $ref: "#/components/schemas/SearchFilterRequest"
       responses:
         "200":
           description: Matching sales orders
@@ -19187,6 +19312,46 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SalesOrderRow"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /sales_order_rows/search:
+    post:
+      summary: Search sales order rows
+      tags:
+        - Sales order row
+      description: |-
+        Search sales order rows using a LoopBack-style filter body. Unlike
+        ``GET /sales_order_rows`` (which uses simple query parameters), this
+        endpoint accepts a rich ``filter`` object with comparison operators,
+        boolean composition, and explicit pagination.
+      operationId: searchSalesOrderRows
+      requestBody:
+        description: LoopBack-style filter envelope
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchFilterRequest"
+      responses:
+        "200":
+          description: Matching sales order rows
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesOrderRowListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "422":

@@ -1049,7 +1049,6 @@ components:
           maximum: 2147483647
           type: integer
       required:
-      - order_no
       - supplier_id
       - location_id
       - purchase_order_rows
@@ -1284,6 +1283,10 @@ components:
                   type: object
                 nullable: false
                 type: array
+              custom_fields:
+                additionalProperties: true
+                nullable: true
+                type: object
               location_id:
                 maximum: 2147483647
                 minimum: 1
@@ -1338,7 +1341,6 @@ components:
           nullable: true
           type: string
       required:
-      - order_no
       - customer_id
       - sales_order_rows
       title: CreateSalesOrderDto
@@ -1455,6 +1457,10 @@ components:
             type: object
           nullable: false
           type: array
+        custom_fields:
+          additionalProperties: true
+          nullable: true
+          type: object
         location_id:
           maximum: 2147483647
           minimum: 1
@@ -3572,6 +3578,10 @@ components:
             type: object
           nullable: false
           type: array
+        custom_fields:
+          additionalProperties: true
+          nullable: true
+          type: object
         location_id:
           maximum: 2147483647
           minimum: 1
@@ -7708,6 +7718,22 @@ paths:
       - SalesOrderRowController
       x-controller-name: SalesOrderRowController
       x-operation-name: createSalesOrderRow
+  /sales_order_rows/search:
+    post:
+      operationId: SalesOrderRowController.searchSalesOrderRows
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchFilterDto'
+        required: true
+      responses:
+        '200':
+          description: Return value of SalesOrderRowController.searchSalesOrderRows
+      tags:
+      - SalesOrderRowController
+      x-controller-name: SalesOrderRowController
+      x-operation-name: searchSalesOrderRows
   /sales_order_rows/{id}:
     delete:
       operationId: SalesOrderRowController.deleteSalesOrderRow

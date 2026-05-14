@@ -29,8 +29,8 @@ class ManufacturingOrderRecipeRow:
 
         Example:
             {'id': 4001, 'manufacturing_order_id': 3001, 'variant_id': 3201, 'notes': 'Use only grade 304 material',
-                'planned_quantity_per_unit': 2.5, 'total_actual_quantity': 125.0, 'ingredient_availability': 'IN_STOCK',
-                'batch_transactions': [{'batch_id': 1201, 'quantity': 125.0}], 'cost': 437.5, 'created_at':
+                'planned_quantity_per_unit': '2.5000000000', 'total_actual_quantity': 125.0, 'ingredient_availability':
+                'IN_STOCK', 'batch_transactions': [{'batch_id': 1201, 'quantity': 125.0}], 'cost': 437.5, 'created_at':
                 '2024-01-15T08:00:00Z', 'updated_at': '2024-01-20T14:30:00Z', 'deleted_at': None}
     """
 
@@ -41,7 +41,7 @@ class ManufacturingOrderRecipeRow:
     manufacturing_order_id: int | Unset = UNSET
     variant_id: int | Unset = UNSET
     notes: str | Unset = UNSET
-    planned_quantity_per_unit: float | Unset = UNSET
+    planned_quantity_per_unit: str | Unset = UNSET
     total_actual_quantity: float | Unset = UNSET
     ingredient_availability: IngredientAvailability | Unset = UNSET
     ingredient_expected_date: datetime.datetime | None | Unset = UNSET

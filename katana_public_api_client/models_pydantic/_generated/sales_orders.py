@@ -8,7 +8,7 @@ To regenerate, run:
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Any, Optional
+from typing import Annotated, Optional
 
 from pydantic import AnyUrl, AwareDatetime, ConfigDict, Field
 from sqlalchemy import Column
@@ -26,7 +26,6 @@ from .common import (
     AccountingIntegrationType,
     AddressEntityType,
     Attribute,
-    Attribute1,
     Attribute3,
     CustomFieldValue,
     ProductAvailability,
@@ -39,6 +38,7 @@ from .stock import (
     BatchTransaction9,
     BatchTransactionRequest,
     SerialNumberTransaction,
+    SerialNumberTransaction1,
 )
 
 
@@ -129,7 +129,7 @@ class SalesOrderRow(DeletableEntity):
         ),
     ] = None
     price_per_unit: Annotated[
-        float | None, Field(description="Selling price per unit in the order currency")
+        str | None, Field(description="Selling price per unit in the order currency")
     ] = None
     price_per_unit_in_base_currency: Annotated[
         float | None,
@@ -151,7 +151,10 @@ class SalesOrderRow(DeletableEntity):
         str | None, Field(description="Discount amount applied to this line item")
     ] = None
     cogs_value: Annotated[
-        float | None, Field(description="Cost of goods sold value for this line item")
+        str | None,
+        Field(
+            description="Cost of goods sold value for this line item, null when not yet computed"
+        ),
     ] = None
     attributes: Annotated[
         list[Attribute] | None,
@@ -167,6 +170,12 @@ class SalesOrderRow(DeletableEntity):
         list[int] | None,
         Field(
             description="Serial numbers allocated to this order row for serialized products"
+        ),
+    ] = None
+    serial_number_transactions: Annotated[
+        list[SerialNumberTransaction] | None,
+        Field(
+            description="Audit trail of serial-number actions on this row. Each entry records\nwhether a serial number was added (``quantity: 1``) or removed\n(``quantity: 0``). Use this for incremental updates; ``serial_numbers``\nreflects the resulting current state."
         ),
     ] = None
     linked_manufacturing_order_id: Annotated[
@@ -239,7 +248,7 @@ class CreateSalesOrderRowRequest(KatanaPydanticBase):
         Field(description="Location where the product should be picked from"),
     ] = None
     attributes: Annotated[
-        list[Attribute1] | None,
+        list[Attribute] | None,
         Field(description="Custom attributes for this line item"),
     ] = None
     total_discount: Annotated[
@@ -277,11 +286,11 @@ class UpdateSalesOrderRowRequest(KatanaPydanticBase):
         Field(description="Batch transactions for inventory tracking"),
     ] = None
     serial_number_transactions: Annotated[
-        list[SerialNumberTransaction] | None,
+        list[SerialNumberTransaction1] | None,
         Field(description="Serial number transactions for tracking"),
     ] = None
     attributes: Annotated[
-        list[Attribute1] | None,
+        list[Attribute] | None,
         Field(description="Custom attributes for this line item"),
     ] = None
 
@@ -717,10 +726,10 @@ class CreateSalesOrderFulfillmentRequest(KatanaPydanticBase):
         AwareDatetime | None, Field(description="Date of currency conversion")
     ] = None
     tracking_number: Annotated[
-        str | None, Field(description="Shipment tracking number")
+        str | None, Field(description="Shipment tracking number", max_length=256)
     ] = None
     tracking_url: Annotated[
-        str | None, Field(description="URL for tracking the shipment")
+        str | None, Field(description="URL for tracking the shipment", max_length=2048)
     ] = None
     tracking_carrier: Annotated[
         str | None, Field(description="Shipping carrier name")
@@ -754,10 +763,10 @@ class UpdateSalesOrderFulfillmentRequest(KatanaPydanticBase):
         AwareDatetime | None, Field(description="Date of currency conversion")
     ] = None
     tracking_number: Annotated[
-        str | None, Field(description="Shipment tracking number")
+        str | None, Field(description="Shipment tracking number", max_length=256)
     ] = None
     tracking_url: Annotated[
-        str | None, Field(description="URL for tracking the shipment")
+        str | None, Field(description="URL for tracking the shipment", max_length=2048)
     ] = None
     tracking_carrier: Annotated[
         str | None, Field(description="Shipping carrier name")
@@ -782,18 +791,6 @@ class UpdateSalesOrderShippingFeeRequest(KatanaPydanticBase):
     ]
     tax_rate_id: Annotated[
         int | None, Field(description="ID of the tax rate to apply to the shipping fee")
-    ] = None
-
-
-class SalesOrderSearchRequest(KatanaPydanticBase):
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    filter: Annotated[
-        dict[str, Any] | None,
-        Field(
-            description="Free-form filter criteria. Keys map to sales-order fields the\nAPI supports searching on.\n"
-        ),
     ] = None
 
 
@@ -1125,8 +1122,11 @@ class SalesOrderListResponse(KatanaPydanticBase):
 
 class CreateSalesOrderRequest(KatanaPydanticBase):
     order_no: Annotated[
-        str, Field(description="Unique order number for tracking and reference")
-    ]
+        str | None,
+        Field(
+            description="Unique order number for tracking and reference. Optional — Katana\nauto-generates a sequential ``SO-N`` value when omitted.\n"
+        ),
+    ] = None
     customer_id: Annotated[
         int, Field(description="ID of the customer placing the order")
     ]
@@ -1332,7 +1332,7 @@ class CachedSalesOrderRow(DeletableEntity, table=True):
         ),
     ] = None
     price_per_unit: Annotated[
-        Mapped[float | None],
+        Mapped[str | None],
         Field(description="Selling price per unit in the order currency"),
     ] = None
     price_per_unit_in_base_currency: Annotated[
@@ -1356,8 +1356,10 @@ class CachedSalesOrderRow(DeletableEntity, table=True):
         Field(description="Discount amount applied to this line item"),
     ] = None
     cogs_value: Annotated[
-        Mapped[float | None],
-        Field(description="Cost of goods sold value for this line item"),
+        Mapped[str | None],
+        Field(
+            description="Cost of goods sold value for this line item, null when not yet computed"
+        ),
     ] = None
     attributes: Annotated[
         Mapped[list[Attribute] | None],
@@ -1378,6 +1380,13 @@ class CachedSalesOrderRow(DeletableEntity, table=True):
         SQLField(
             sa_column=Column(PydanticJSON),
             description="Serial numbers allocated to this order row for serialized products",
+        ),
+    ] = None
+    serial_number_transactions: Annotated[
+        Mapped[list[SerialNumberTransaction] | None],
+        SQLField(
+            sa_column=Column(PydanticJSON),
+            description="Audit trail of serial-number actions on this row. Each entry records\nwhether a serial number was added (``quantity: 1``) or removed\n(``quantity: 0``). Use this for incremental updates; ``serial_numbers``\nreflects the resulting current state.",
         ),
     ] = None
     linked_manufacturing_order_id: Annotated[

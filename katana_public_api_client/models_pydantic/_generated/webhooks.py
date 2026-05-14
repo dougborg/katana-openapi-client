@@ -225,7 +225,9 @@ class Webhook(UpdatableEntity):
     ] = None
     subscribed_events: Annotated[
         list[str] | None,
-        Field(description="List of event types that will trigger this webhook"),
+        Field(
+            description="List of event types that will trigger this webhook. Known\nvalues are listed in the ``WebhookEvent`` enum (enforced on\nCreate / Update request DTOs), but the read shape stays an\nopen string list so newly-released server events deserialize\nwithout breaking older clients."
+        ),
     ] = None
 
 

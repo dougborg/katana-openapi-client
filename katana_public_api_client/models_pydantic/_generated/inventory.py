@@ -27,6 +27,7 @@ from .base import (
     UpdatableEntity,
 )
 from .common import (
+    AbcClassification,
     Config,
     Config1,
     Config2,
@@ -215,6 +216,12 @@ class Variant(UpdatableEntity, DeletableEntity):
         list[ConfigAttribute] | None,
         Field(
             description="Configuration attribute values that define this variant (color, size, etc.)"
+        ),
+    ] = None
+    abc_classification: Annotated[
+        AbcClassification | None,
+        Field(
+            description="ABC inventory classification of this variant. ``null`` when the\nvariant has not been classified.",
         ),
     ] = None
 
@@ -527,8 +534,7 @@ class CreateVariantRequest(KatanaPydanticBase):
         str | None,
         Field(
             description="Official registered barcode (UPC, EAN, etc.) for retail use",
-            max_length=40,
-            min_length=3,
+            max_length=120,
         ),
     ] = None
     lead_time: Annotated[
@@ -859,11 +865,11 @@ class Inventory(KatanaPydanticBase):
         ),
     ]
     safety_stock_level: Annotated[
-        str | None,
+        str,
         Field(
             description="The quantity of a product or material which indicates an acceptable stock level for unexpected demand\nwithout overstocking\n"
         ),
-    ] = None
+    ]
     reorder_point: Annotated[
         str,
         Field(
@@ -1545,6 +1551,12 @@ class CachedVariant(UpdatableEntity, DeletableEntity, table=True):
         SQLField(
             sa_column=Column(PydanticJSON),
             description="Configuration attribute values that define this variant (color, size, etc.)",
+        ),
+    ] = None
+    abc_classification: Annotated[
+        Mapped[AbcClassification | None],
+        Field(
+            description="ABC inventory classification of this variant. ``null`` when the\nvariant has not been classified.",
         ),
     ] = None
     parent_archived_at: Annotated[

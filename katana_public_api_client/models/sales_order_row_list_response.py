@@ -23,9 +23,9 @@ class SalesOrderRowListResponse:
 
     Example:
         {'data': [{'id': 2501, 'quantity': 2, 'variant_id': 2101, 'tax_rate_id': 301, 'location_id': 1,
-            'product_availability': 'IN_STOCK', 'product_expected_date': None, 'price_per_unit': 599.99,
+            'product_availability': 'IN_STOCK', 'product_expected_date': None, 'price_per_unit': '599.9900000000',
             'price_per_unit_in_base_currency': 599.99, 'total': 1199.98, 'total_in_base_currency': 1199.98, 'cogs_value':
-            400.0, 'attributes': [{'key': 'engrave_text', 'value': "Johnson's Kitchen"}], 'batch_transactions':
+            '400.0000000000', 'attributes': [{'key': 'engrave_text', 'value': "Johnson's Kitchen"}], 'batch_transactions':
             [{'batch_id': 1801, 'quantity': 2.0}], 'serial_numbers': [10001, 10002], 'linked_manufacturing_order_id': None,
             'conversion_rate': 1.0, 'conversion_date': '2024-01-15T10:00:00Z', 'created_at': '2024-01-15T10:00:00Z',
             'updated_at': '2024-01-15T10:00:00Z'}]}

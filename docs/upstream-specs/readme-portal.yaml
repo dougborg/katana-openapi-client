@@ -1854,6 +1854,899 @@ paths:
       summary: Update a BOM row
       tags:
       - BOM row
+  /custom_field_definitions:
+    get:
+      description: Returns a list of custom field definitions in the factory, optionally filtered by label, field type, or entity type.
+      operationId: getAllCustomFieldDefinitions
+      parameters:
+      - description: Filters by exact label match.
+        in: query
+        name: label
+        required: false
+        schema:
+          type: string
+      - description: Filters by field type.
+        in: query
+        name: field_type
+        required: false
+        schema:
+          enum:
+          - shortText
+          - number
+          - singleSelect
+          - date
+          - boolean
+          - url
+          type: string
+      - description: Filters by entity type.
+        in: query
+        name: entity_type
+        required: false
+        schema:
+          enum:
+          - SalesOrder
+          type: string
+      - description: Used for pagination (default is 50)
+        in: query
+        name: limit
+        required: false
+        schema:
+          type: string
+      - description: Used for pagination (default is 1)
+        in: query
+        name: page
+        required: false
+        schema:
+          type: string
+      - description: Minimum value for created_at range. Must be compatible with ISO 8601 format
+        in: query
+        name: created_at_min
+        required: false
+        schema:
+          type: string
+      - description: Maximum value for created_at range. Must be compatible with ISO 8601 format
+        in: query
+        name: created_at_max
+        required: false
+        schema:
+          type: string
+      - description: Minimum value for updated_at range. Must be compatible with ISO 8601 format
+        in: query
+        name: updated_at_min
+        required: false
+        schema:
+          type: string
+      - description: Maximum value for updated_at range. Must be compatible with ISO 8601 format
+        in: query
+        name: updated_at_max
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              example:
+                data:
+                - created_at: '2026-05-14T10:00:00.000Z'
+                  deleted_at: null
+                  description: null
+                  entity_type: SalesOrder
+                  field_type: singleSelect
+                  id: 0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef
+                  label: Channel
+                  options:
+                    choices:
+                    - id: 1
+                      label: Online
+                    - id: 2
+                      label: Retail
+                    - id: 3
+                      label: Wholesale
+                  source: your-integration
+                  updated_at: '2026-05-14T10:00:00.000Z'
+                - created_at: '2026-05-14T10:05:00.000Z'
+                  deleted_at: null
+                  description: Numeric priority used for fulfillment ordering.
+                  entity_type: SalesOrder
+                  field_type: number
+                  id: 7a214c83-9f10-46d2-bf52-5d8a4b1c0123
+                  label: Priority
+                  options: null
+                  source: your-integration
+                  updated_at: '2026-05-14T10:05:00.000Z'
+          description: List of custom field definitions
+          headers:
+            X-Pagination:
+              description: Pagination metadata
+              schema:
+                properties:
+                  first_page:
+                    type: boolean
+                  last_page:
+                    type: boolean
+                  offset:
+                    type: number
+                  page:
+                    type: number
+                  total_pages:
+                    type: number
+                  total_records:
+                    type: number
+                type: object
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+        '401':
+          content:
+            application/json:
+              example:
+                message: Unauthorized
+                name: UnauthorizedError
+                statusCode: 401
+          description: Make sure you've entered your API token correctly.
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+        '429':
+          content:
+            application/json:
+              example:
+                message: Too Many Requests
+                name: TooManyRequests
+                statusCode: 429
+          description: The rate limit has been reached. Please try again later.
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+        '500':
+          content:
+            application/json:
+              example:
+                message: Internal Server Error
+                name: InternalServerError
+                statusCode: 500
+          description: The server encountered an error. If this persists, please contact support
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+      summary: List all custom field definitions
+      tags:
+      - Custom Field Definition
+    post:
+      description: Creates a new custom field definition for a given entity type. A factory may have at most 50 definitions.
+      operationId: createCustomFieldDefinition
+      requestBody:
+        content:
+          application/json:
+            examples:
+              shortText:
+                summary: Plain short-text field
+                value:
+                  entity_type: SalesOrder
+                  field_type: shortText
+                  label: PO reference
+                  source: your-integration
+              singleSelect:
+                summary: Single-select with choices
+                value:
+                  entity_type: SalesOrder
+                  field_type: singleSelect
+                  label: Channel
+                  options:
+                    choices:
+                    - label: Online
+                    - label: Retail
+                    - label: Wholesale
+                  source: your-integration
+            schema:
+              additionalProperties: false
+              properties:
+                description:
+                  description: Optional free-text description shown alongside the field in Katana.
+                  nullable: true
+                  type: string
+                entity_type:
+                  description: Entity the custom field applies to. Currently only `SalesOrder` is supported via the public API. Immutable after creation.
+                  enum:
+                  - SalesOrder
+                  type: string
+                field_type:
+                  description: 'Type of value the field stores. Immutable after creation.
+
+                    - `shortText` — string
+
+                    - `number` — number
+
+                    - `singleSelect` — integer choice id (requires `options.choices`)
+
+                    - `date` — `YYYY-MM-DD` string
+
+                    - `boolean` — true / false
+
+                    - `url` — string'
+                  enum:
+                  - shortText
+                  - number
+                  - singleSelect
+                  - date
+                  - boolean
+                  - url
+                  type: string
+                label:
+                  description: Human-readable label of the custom field.
+                  maxLength: 255
+                  type: string
+                options:
+                  additionalProperties: false
+                  description: Only meaningful when `field_type` is `singleSelect`. Omit (or send `null`) for other types.
+                  nullable: true
+                  properties:
+                    choices:
+                      description: Allowed choices. On create, send each choice with just a `label`; the server assigns each one an integer `id` and returns the resolved array in the response. Use that `id` when setting a value on a sales order.
+                      items:
+                        additionalProperties: false
+                        properties:
+                          label:
+                            description: Human-readable label for the choice.
+                            type: string
+                        required:
+                        - label
+                        type: object
+                      type: array
+                  type: object
+                source:
+                  description: Caller-provided identifier of the integration that owns the field — for example your application slug. Used to namespace and audit field definitions.
+                  maxLength: 255
+                  type: string
+              required:
+              - label
+              - field_type
+              - entity_type
+              - source
+              type: object
+        description: New custom field definition details
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              example:
+                created_at: '2026-05-14T10:00:00.000Z'
+                deleted_at: null
+                description: null
+                entity_type: SalesOrder
+                field_type: singleSelect
+                id: 0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef
+                label: Channel
+                options:
+                  choices:
+                  - id: 1
+                    label: Online
+                  - id: 2
+                    label: Retail
+                  - id: 3
+                    label: Wholesale
+                source: your-integration
+                updated_at: '2026-05-14T10:00:00.000Z'
+          description: Custom field definition created
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+        '401':
+          content:
+            application/json:
+              example:
+                message: Unauthorized
+                name: UnauthorizedError
+                statusCode: 401
+          description: Make sure you've entered your API token correctly.
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+        '422':
+          content:
+            application/json:
+              example:
+                code: VALIDATION_FAILED
+                details:
+                - code: maxLength
+                  info:
+                    limit: 10
+                  message: should NOT be longer than 10 characters
+                  path: .name
+                message: The request body is invalid. See error object `details` property for more info.
+                name: UnprocessableEntityError
+                statusCode: 422
+          description: Check the details property for a specific error message.
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+        '429':
+          content:
+            application/json:
+              example:
+                message: Too Many Requests
+                name: TooManyRequests
+                statusCode: 429
+          description: The rate limit has been reached. Please try again later.
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+        '500':
+          content:
+            application/json:
+              example:
+                message: Internal Server Error
+                name: InternalServerError
+                statusCode: 500
+          description: The server encountered an error. If this persists, please contact support
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+      summary: Create a custom field definition
+      tags:
+      - Custom Field Definition
+  /custom_field_definitions/{id}:
+    delete:
+      description: Deletes a custom field definition by id.
+      operationId: deleteCustomFieldDefinition
+      parameters:
+      - description: Custom field definition id (UUID).
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: Custom field definition deleted successfully
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+        '401':
+          content:
+            application/json:
+              example:
+                message: Unauthorized
+                name: UnauthorizedError
+                statusCode: 401
+          description: Make sure you've entered your API token correctly.
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+        '404':
+          content:
+            application/json:
+              example:
+                message: Not found
+                name: NotFoundError
+                statusCode: 404
+          description: Make sure data is correct
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+        '429':
+          content:
+            application/json:
+              example:
+                message: Too Many Requests
+                name: TooManyRequests
+                statusCode: 429
+          description: The rate limit has been reached. Please try again later.
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+        '500':
+          content:
+            application/json:
+              example:
+                message: Internal Server Error
+                name: InternalServerError
+                statusCode: 500
+          description: The server encountered an error. If this persists, please contact support
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+      summary: Delete a custom field definition
+      tags:
+      - Custom Field Definition
+    get:
+      description: Retrieves a custom field definition by id.
+      operationId: getCustomFieldDefinition
+      parameters:
+      - description: Custom field definition id (UUID).
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              example:
+                created_at: '2026-05-14T10:00:00.000Z'
+                deleted_at: null
+                description: null
+                entity_type: SalesOrder
+                field_type: singleSelect
+                id: 0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef
+                label: Channel
+                options:
+                  choices:
+                  - id: 1
+                    label: Online
+                  - id: 2
+                    label: Retail
+                  - id: 3
+                    label: Wholesale
+                source: your-integration
+                updated_at: '2026-05-14T10:00:00.000Z'
+          description: Custom field definition
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+        '401':
+          content:
+            application/json:
+              example:
+                message: Unauthorized
+                name: UnauthorizedError
+                statusCode: 401
+          description: Make sure you've entered your API token correctly.
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+        '404':
+          content:
+            application/json:
+              example:
+                message: Not found
+                name: NotFoundError
+                statusCode: 404
+          description: Make sure data is correct
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+        '429':
+          content:
+            application/json:
+              example:
+                message: Too Many Requests
+                name: TooManyRequests
+                statusCode: 429
+          description: The rate limit has been reached. Please try again later.
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+        '500':
+          content:
+            application/json:
+              example:
+                message: Internal Server Error
+                name: InternalServerError
+                statusCode: 500
+          description: The server encountered an error. If this persists, please contact support
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+      summary: Retrieve a custom field definition
+      tags:
+      - Custom Field Definition
+    patch:
+      description: Updates the `label`, `description`, or `options` of a custom field definition. Other properties (`field_type`, `entity_type`, `source`) are immutable.
+      operationId: updateCustomFieldDefinition
+      parameters:
+      - description: Custom field definition id (UUID).
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            examples:
+              addAndSoftDeleteChoices:
+                summary: Add a new choice and soft-delete an existing one
+                value:
+                  options:
+                    choices:
+                    - id: 1
+                      label: Online
+                    - deleted: true
+                      id: 2
+                      label: Retail
+                    - id: 3
+                      label: Wholesale
+                    - label: B2B
+              renameLabel:
+                summary: Rename the field
+                value:
+                  label: Sales channel
+            schema:
+              additionalProperties: false
+              description: Only `label`, `description`, and `options` may be updated. `field_type`, `entity_type`, and `source` are immutable.
+              properties:
+                description:
+                  nullable: true
+                  type: string
+                label:
+                  maxLength: 255
+                  type: string
+                options:
+                  additionalProperties: false
+                  description: 'Only meaningful when the field is a `singleSelect`. Send the **full** `choices` array — every existing choice must be included and identified by its server-assigned `id`. Omit a choice and it is removed from history (use `deleted: true` instead to soft-delete it and keep historical values resolvable). New choices in the array are created without an `id`.'
+                  nullable: true
+                  properties:
+                    choices:
+                      items:
+                        additionalProperties: false
+                        properties:
+                          deleted:
+                            description: Set to `true` to soft-delete an existing choice. Soft-deleted choices remain in the array so historical values stay resolvable.
+                            type: boolean
+                          id:
+                            description: Server-assigned. Required to identify an existing choice. Omit on a brand-new choice — the server assigns one.
+                            type: integer
+                          label:
+                            description: Human-readable label for the choice.
+                            type: string
+                        required:
+                        - label
+                        type: object
+                      type: array
+                  type: object
+              type: object
+        description: Custom field definition fields to update
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              example:
+                created_at: '2026-05-14T10:00:00.000Z'
+                deleted_at: null
+                description: null
+                entity_type: SalesOrder
+                field_type: singleSelect
+                id: 0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef
+                label: Sales channel
+                options:
+                  choices:
+                  - id: 1
+                    label: Online
+                  - deleted: true
+                    id: 2
+                    label: Retail
+                  - id: 3
+                    label: Wholesale
+                  - id: 4
+                    label: B2B
+                source: your-integration
+                updated_at: '2026-05-14T10:15:00.000Z'
+          description: Custom field definition updated
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+        '401':
+          content:
+            application/json:
+              example:
+                message: Unauthorized
+                name: UnauthorizedError
+                statusCode: 401
+          description: Make sure you've entered your API token correctly.
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+        '404':
+          content:
+            application/json:
+              example:
+                message: Not found
+                name: NotFoundError
+                statusCode: 404
+          description: Make sure data is correct
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+        '422':
+          content:
+            application/json:
+              example:
+                code: VALIDATION_FAILED
+                details:
+                - code: maxLength
+                  info:
+                    limit: 10
+                  message: should NOT be longer than 10 characters
+                  path: .name
+                message: The request body is invalid. See error object `details` property for more info.
+                name: UnprocessableEntityError
+                statusCode: 422
+          description: Check the details property for a specific error message.
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+        '429':
+          content:
+            application/json:
+              example:
+                message: Too Many Requests
+                name: TooManyRequests
+                statusCode: 429
+          description: The rate limit has been reached. Please try again later.
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+        '500':
+          content:
+            application/json:
+              example:
+                message: Internal Server Error
+                name: InternalServerError
+                statusCode: 500
+          description: The server encountered an error. If this persists, please contact support
+          headers:
+            X-Ratelimit-Limit:
+              description: Number of requests available for this application.
+              schema:
+                type: number
+            X-Ratelimit-Remaining:
+              description: Number of requests remaining in quota.
+              schema:
+                type: number
+            X-Ratelimit-Reset:
+              description: The timestamp when the quota will reset.
+              schema:
+                type: number
+      summary: Update a custom field definition
+      tags:
+      - Custom Field Definition
   /custom_fields_collections:
     get:
       description: Retrieves a list of custom fields collections
@@ -16955,6 +17848,7 @@ paths:
                   type: array
                 status:
                   enum:
+                  - DRAFT
                   - NOT_RECEIVED
                   type: string
                 supplier_id:
@@ -16965,7 +17859,6 @@ paths:
                   maximum: 2147483647
                   type: integer
               required:
-              - order_no
               - supplier_id
               - location_id
               - purchase_order_rows
@@ -20016,6 +20909,8 @@ paths:
                   conversion_date: '2020-10-23T10:37:05.085Z'
                   conversion_rate: 2
                   created_at: '2020-10-23T10:37:05.085Z'
+                  custom_fields:
+                    37460d24-ea57-416d-888e-bea7c0505642: note for picker
                   deleted_at: null
                   id: 1
                   linked_manufacturing_order_id: 1
@@ -20170,6 +21065,11 @@ paths:
                     - value
                     type: object
                   type: array
+                custom_fields:
+                  additionalProperties: true
+                  description: _Behind feature flag — contact support@katanamrp.com to enable._ Custom field values keyed by custom field definition ID (UUID). Each value matches the definition’s `field_type` — string for `shortText`/`url`, number for `number`, boolean for `boolean`, `YYYY-MM-DD` string for `date`, or the integer choice `id` for `singleSelect`.
+                  nullable: true
+                  type: object
                 location_id:
                   maximum: 2147483647
                   type: integer
@@ -20208,6 +21108,8 @@ paths:
                 conversion_date: null
                 conversion_rate: null
                 created_at: '2020-10-23T10:37:05.085Z'
+                custom_fields:
+                  37460d24-ea57-416d-888e-bea7c0505642: note for picker
                 deleted_at: null
                 id: 1
                 linked_manufacturing_order_id: null
@@ -20475,6 +21377,8 @@ paths:
                 conversion_date: '2020-10-23T10:37:05.085Z'
                 conversion_rate: 2
                 created_at: '2020-10-23T10:37:05.085Z'
+                custom_fields:
+                  37460d24-ea57-416d-888e-bea7c0505642: note for picker
                 deleted_at: null
                 id: 1
                 linked_manufacturing_order_id: 1
@@ -20656,6 +21560,11 @@ paths:
                         type: number
                     type: object
                   type: array
+                custom_fields:
+                  additionalProperties: true
+                  description: _Behind feature flag — contact support@katanamrp.com to enable._ Custom field values keyed by custom field definition ID (UUID). Each value matches the definition’s `field_type` — string for `shortText`/`url`, number for `number`, boolean for `boolean`, `YYYY-MM-DD` string for `date`, or the integer choice `id` for `singleSelect`. Merged with existing values — omit a key to leave it unchanged. Set the whole field to `null` to clear every custom field value on this row.
+                  nullable: true
+                  type: object
                 location_id:
                   description: Updatable only when sales order row status is NOT_SHIPPED or PENDING and sales order row is not linked to a manufacturing order (linked_manufacturing_order_id is null).
                   type: integer
@@ -20704,6 +21613,8 @@ paths:
                 - batch_id: 1
                   quantity: 10
                 created_at: '2020-10-23T10:37:05.085Z'
+                custom_fields:
+                  37460d24-ea57-416d-888e-bea7c0505642: note for picker
                 deleted_at: null
                 id: 1
                 linked_manufacturing_order_id: 1
@@ -21635,6 +22546,9 @@ paths:
                   conversion_rate: 2
                   created_at: '2020-10-23T10:37:05.085Z'
                   currency: USD
+                  custom_fields:
+                    37460d24-ea57-416d-888e-bea7c0505642: PO-1234
+                    6afe78d2-2b95-4d71-92f5-1bc2be852afe: 5
                   customer_id: 1
                   customer_ref: my customer reference
                   delivery_date: '2020-10-23T10:37:05.085Z'
@@ -21847,6 +22761,11 @@ paths:
                 currency:
                   description: E.g. USD, EUR. All currently active currency codes in ISO 4217 format.
                   type: string
+                custom_fields:
+                  additionalProperties: true
+                  description: _Behind feature flag — contact support@katanamrp.com to enable._ Custom field values keyed by custom field definition ID (UUID). Each value matches the definition’s `field_type` — string for `shortText`/`url`, number for `number`, boolean for `boolean`, `YYYY-MM-DD` string for `date`, or the integer choice `id` for `singleSelect`.
+                  nullable: true
+                  type: object
                 customer_id:
                   maximum: 2147483647
                   type: integer
@@ -21925,7 +22844,6 @@ paths:
                   nullable: true
                   type: string
               required:
-              - order_no
               - customer_id
               - sales_order_rows
               type: object
@@ -21973,6 +22891,9 @@ paths:
                 conversion_rate: 2
                 created_at: '2020-10-23T10:37:05.085Z'
                 currency: USD
+                custom_fields:
+                  37460d24-ea57-416d-888e-bea7c0505642: PO-1234
+                  6afe78d2-2b95-4d71-92f5-1bc2be852afe: 5
                 customer_id: 1
                 customer_ref: my customer reference
                 deleted_at: null
@@ -22289,6 +23210,9 @@ paths:
                 conversion_rate: 2
                 created_at: '2020-10-23T10:37:05.085Z'
                 currency: USD
+                custom_fields:
+                  37460d24-ea57-416d-888e-bea7c0505642: PO-1234
+                  6afe78d2-2b95-4d71-92f5-1bc2be852afe: 5
                 customer_id: 1
                 customer_ref: my customer reference
                 delivery_date: '2020-10-23T10:37:05.085Z'
@@ -22455,6 +23379,11 @@ paths:
                 currency:
                   description: "E.g. USD, EUR. All currently active currency codes in ISO 4217 format.\n        Updatable only when sales order status is NOT_SHIPPED or PENDING."
                   type: string
+                custom_fields:
+                  additionalProperties: true
+                  description: _Behind feature flag — contact support@katanamrp.com to enable._ Custom field values keyed by custom field definition ID (UUID). Each value matches the definition’s `field_type` — string for `shortText`/`url`, number for `number`, boolean for `boolean`, `YYYY-MM-DD` string for `date`, or the integer choice `id` for `singleSelect`. Merged with existing values — omit a key to leave it unchanged. Set the whole field to `null` to clear every custom field value on this sales order.
+                  nullable: true
+                  type: object
                 customer_id:
                   description: Updatable only when sales order status is NOT_SHIPPED or PENDING.
                   maximum: 2147483647
@@ -22540,6 +23469,9 @@ paths:
                 conversion_rate: 0.7
                 created_at: '2020-10-23T10:37:05.085Z'
                 currency: USD
+                custom_fields:
+                  37460d24-ea57-416d-888e-bea7c0505642: PO-1234
+                  6afe78d2-2b95-4d71-92f5-1bc2be852afe: 5
                 customer_id: 1
                 customer_ref: my customer reference
                 deleted_at: null

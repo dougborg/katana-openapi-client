@@ -22,7 +22,7 @@ from katana_public_api_client.models_pydantic._mapped_shim import Mapped
 from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON
 
 from .base import DeletableEntity, UpdatableEntity
-from .common import Transaction
+from .common import Quantity, Transaction
 
 
 class StocktakeStatus(StrEnum):
@@ -303,6 +303,15 @@ class BatchTransaction6(KatanaPydanticBase):
 
 
 class SerialNumberTransaction(KatanaPydanticBase):
+    serial_number_id: Annotated[
+        int, Field(description="ID of the serial number for the fulfilled item")
+    ]
+    quantity: Annotated[
+        Quantity | None, Field(description="1 to add the serial number, 0 to remove it")
+    ] = None
+
+
+class SerialNumberTransaction1(KatanaPydanticBase):
     serial_number_id: int | None = None
     quantity: float | None = None
 
@@ -422,7 +431,8 @@ class CreateStockAdjustmentRequest(KatanaPydanticBase):
     stock_adjustment_number: Annotated[
         str,
         Field(
-            description="Human-readable reference number for tracking and audit purposes"
+            description="Human-readable reference number for tracking and audit purposes",
+            min_length=1,
         ),
     ]
     stock_adjustment_date: Annotated[
@@ -456,7 +466,8 @@ class UpdateStockAdjustmentRequest(KatanaPydanticBase):
     stock_adjustment_number: Annotated[
         str | None,
         Field(
-            description="Human-readable reference number for tracking and audit purposes"
+            description="Human-readable reference number for tracking and audit purposes",
+            min_length=1,
         ),
     ] = None
     stock_adjustment_date: Annotated[
@@ -772,12 +783,12 @@ class CreateSerialNumbersRequest(KatanaPydanticBase):
         extra="forbid",
     )
     resource_type: Annotated[
-        CreateSerialNumberResourceType | None, Field(description="Resource type")
-    ] = None
+        CreateSerialNumberResourceType, Field(description="Resource type")
+    ]
     resource_id: Annotated[int, Field(description="Resource ID")]
     serial_numbers: Annotated[
-        list[str] | None, Field(description="List of serial numbers to create")
-    ] = None
+        list[str], Field(description="List of serial numbers to create")
+    ]
 
 
 class DeleteSerialNumbersRequest(KatanaPydanticBase):
@@ -806,7 +817,8 @@ class CreateStockTransferRequest(KatanaPydanticBase):
         extra="forbid",
     )
     stock_transfer_number: Annotated[
-        str, Field(description="Unique stock transfer number for tracking")
+        str,
+        Field(description="Unique stock transfer number for tracking", min_length=1),
     ]
     source_location_id: Annotated[
         int, Field(description="Source location ID where items are transferred from")

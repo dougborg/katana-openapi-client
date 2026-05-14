@@ -36,6 +36,7 @@ class Inventory:
 
     variant_id: int
     location_id: int
+    safety_stock_level: str
     reorder_point: str
     average_cost: str
     value_in_stock: str
@@ -44,7 +45,6 @@ class Inventory:
     quantity_expected: str
     quantity_missing_or_excess: str
     quantity_potential: None | str
-    safety_stock_level: str | Unset = UNSET
     variant: Variant | Unset = UNSET
     location: Location | Unset = UNSET
     archived_at: datetime.datetime | None | Unset = UNSET
@@ -59,6 +59,8 @@ class Inventory:
         variant_id = self.variant_id
 
         location_id = self.location_id
+
+        safety_stock_level = self.safety_stock_level
 
         reorder_point = self.reorder_point
 
@@ -76,8 +78,6 @@ class Inventory:
 
         quantity_potential: None | str
         quantity_potential = self.quantity_potential
-
-        safety_stock_level = self.safety_stock_level
 
         variant: dict[str, Any] | Unset = UNSET
         if not isinstance(self.variant, Unset):
@@ -109,6 +109,7 @@ class Inventory:
             {
                 "variant_id": variant_id,
                 "location_id": location_id,
+                "safety_stock_level": safety_stock_level,
                 "reorder_point": reorder_point,
                 "average_cost": average_cost,
                 "value_in_stock": value_in_stock,
@@ -119,8 +120,6 @@ class Inventory:
                 "quantity_potential": quantity_potential,
             }
         )
-        if safety_stock_level is not UNSET:
-            field_dict["safety_stock_level"] = safety_stock_level
         if variant is not UNSET:
             field_dict["variant"] = variant
         if location is not UNSET:
@@ -145,6 +144,8 @@ class Inventory:
 
         location_id = d.pop("location_id")
 
+        safety_stock_level = d.pop("safety_stock_level")
+
         reorder_point = d.pop("reorder_point")
 
         average_cost = d.pop("average_cost")
@@ -165,8 +166,6 @@ class Inventory:
             return cast(None | str, data)
 
         quantity_potential = _parse_quantity_potential(d.pop("quantity_potential"))
-
-        safety_stock_level = d.pop("safety_stock_level", UNSET)
 
         _variant = d.pop("variant", UNSET)
         variant: Variant | Unset
@@ -230,6 +229,7 @@ class Inventory:
         inventory = cls(
             variant_id=variant_id,
             location_id=location_id,
+            safety_stock_level=safety_stock_level,
             reorder_point=reorder_point,
             average_cost=average_cost,
             value_in_stock=value_in_stock,
@@ -238,7 +238,6 @@ class Inventory:
             quantity_expected=quantity_expected,
             quantity_missing_or_excess=quantity_missing_or_excess,
             quantity_potential=quantity_potential,
-            safety_stock_level=safety_stock_level,
             variant=variant,
             location=location,
             archived_at=archived_at,
