@@ -1825,11 +1825,13 @@ def _dict_to_variant_details(
     def _dump_list(items: Any) -> list[Any]:
         # Cache rows carry pydantic items (``ConfigAttribute`` /
         # ``CustomField``); API-fallback variants carry attrs items
-        # (``VariantConfigAttributesItem`` / ``VariantCustomFieldsItem``).
-        # Both need to land as plain dicts on the response so the
-        # pydantic ``VariantDetailsResponse`` validator accepts them
-        # — attrs models expose ``to_dict()``, pydantic models expose
-        # ``model_dump()``.
+        # (``VariantConfigAttributesType0Item`` /
+        # ``VariantCustomFieldsType0Item`` — the generator suffix
+        # ``Type0`` reflects the array-side of the nullable union
+        # type, see #727). Both need to land as plain dicts on the
+        # response so the pydantic ``VariantDetailsResponse`` validator
+        # accepts them — attrs models expose ``to_dict()``, pydantic
+        # models expose ``model_dump()``.
         if not items:
             return []
         return [
