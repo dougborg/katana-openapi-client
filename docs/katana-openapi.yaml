@@ -1108,6 +1108,36 @@ components:
             statusCode: 400
             name: BadRequest
             message: Bad Request
+    PreconditionFailedError:
+      description: |-
+        Precondition failed - the resource cannot be modified or deleted in its
+        current state. Typically returned when a delete is blocked by linked
+        child records (e.g. a sales order with attached return orders, or a
+        purchase order with received stock).
+
+        Note: 412 responses observed on these endpoints arrive wrapped in
+        Katana's nested ``{"error": {...}}`` envelope (see example). The
+        ``ErrorResponse`` schema describes the inner object; the wire payload
+        nests it under an ``error`` key. The client's ``unwrap()`` helper
+        handles both shapes transparently. Callers inspecting the raw
+        payload directly (via ``sync_detailed()`` / ``asyncio_detailed()``
+        and ``Response.content``) should expect the wrapped form.
+      headers:
+        X-Ratelimit-Limit:
+          $ref: "#/components/headers/X-Ratelimit-Limit"
+        X-Ratelimit-Remaining:
+          $ref: "#/components/headers/X-Ratelimit-Remaining"
+        X-Ratelimit-Reset:
+          $ref: "#/components/headers/X-Ratelimit-Reset"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              statusCode: 412
+              name: PreconditionFailedError
+              message: Cannot delete sales orders as sales orders have return orders.
   schemas:
     ErrorResponse:
       type: object
@@ -13571,6 +13601,8 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "404":
           $ref: "#/components/responses/NotFoundError"
+        "412":
+          $ref: "#/components/responses/PreconditionFailedError"
         "422":
           $ref: "#/components/responses/UnprocessableEntityError"
         "429":
@@ -15728,6 +15760,8 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "404":
           $ref: "#/components/responses/NotFoundError"
+        "412":
+          $ref: "#/components/responses/PreconditionFailedError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
@@ -18541,6 +18575,8 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "404":
           $ref: "#/components/responses/NotFoundError"
+        "412":
+          $ref: "#/components/responses/PreconditionFailedError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
