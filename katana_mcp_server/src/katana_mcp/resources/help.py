@@ -250,11 +250,11 @@ markdown rendering layer in between.
   surface works for programmatic consumers.
 
 - **UI tools** (the `meta={"ui": True}` set — `get_variant_details`,
-  `check_inventory` single-item, `inventory_velocity` single-variant,
-  modification previews, etc.) — `structured_content` carries a Prefab
-  card envelope rendered by MCP-Apps hosts. The response payload lives
-  *only* in `content` on these tools; programmatic consumers must read
-  `content` (don't expect response-shaped JSON in `structured_content`).
+  `check_inventory` single-item, modification previews, etc.) —
+  `structured_content` carries a Prefab card envelope rendered by
+  MCP-Apps hosts. The response payload lives *only* in `content` on
+  these tools; programmatic consumers must read `content` (don't expect
+  response-shaped JSON in `structured_content`).
 
 ## Linking to Katana
 

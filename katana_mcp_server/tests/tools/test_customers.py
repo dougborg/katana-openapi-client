@@ -230,12 +230,12 @@ async def test_get_customer_uses_canonical_field_names_in_content():
     with patch(_FETCH_ADDR_PATH, AsyncMock(return_value=[])):
         result = await get_customer(customer_id=42, context=context)
 
-    text = result.content[0].text
-    # Field names appear as JSON keys; values appear next to them.
-    assert '"reference_id": "WGT-2024-001"' in text
-    assert '"discount_rate": 5.0' in text
+    data = json.loads(result.content[0].text)
+    # Field names appear as JSON keys (not prettified headers).
+    assert data["reference_id"] == "WGT-2024-001"
+    assert data["discount_rate"] == 5.0
     # Empty address list serializes as the empty array, not a section header.
-    assert '"addresses": []' in text
+    assert data["addresses"] == []
 
 
 @pytest.mark.asyncio

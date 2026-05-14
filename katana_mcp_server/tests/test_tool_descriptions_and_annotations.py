@@ -53,7 +53,7 @@ def registered_tools() -> dict[str, Any]:
 
 # Tools currently using the direct-apply rail (per ADR-0016 spike).
 DIRECT_APPLY_TOOLS = [
-    # Order creates that route through build_order_preview_ui.
+    # Order creates that route through per-entity build_<po|so|mo>_create_ui.
     "create_purchase_order",
     "create_sales_order",
     "create_manufacturing_order",

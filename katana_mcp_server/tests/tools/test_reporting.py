@@ -729,7 +729,7 @@ def test_inventory_velocity_rejects_batch_too_large():
 
 
 # ============================================================================
-# format=json (reporting tools)
+# JSON content envelope (reporting tools)
 # ============================================================================
 
 
@@ -738,7 +738,7 @@ def _content_text(result) -> str:
 
 
 @pytest.mark.asyncio
-async def test_top_selling_variants_format_json_returns_json():
+async def test_top_selling_variants_content_is_json():
     from katana_mcp.tools.foundation.reporting import TopSellingVariantsResponse
 
     context, _ = create_mock_context()
@@ -764,7 +764,7 @@ async def test_top_selling_variants_format_json_returns_json():
 
 
 @pytest.mark.asyncio
-async def test_sales_summary_format_json_returns_json():
+async def test_sales_summary_content_is_json():
     from katana_mcp.tools.foundation.reporting import SalesSummaryResponse
 
     context, _ = create_mock_context()
@@ -791,7 +791,7 @@ async def test_sales_summary_format_json_returns_json():
 
 
 @pytest.mark.asyncio
-async def test_inventory_velocity_format_json_returns_json():
+async def test_inventory_velocity_content_is_json():
 
     context, _ = create_mock_context()
 

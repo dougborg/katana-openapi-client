@@ -781,7 +781,7 @@ async def test_delete_stock_transfer_confirm_success():
 
 
 # ============================================================================
-# format=json (stock_transfers read tool)
+# JSON content envelope (stock_transfers read tool)
 # ============================================================================
 
 
@@ -790,7 +790,7 @@ def _content_text(result) -> str:
 
 
 @pytest.mark.asyncio
-async def test_list_stock_transfers_format_json_returns_json():
+async def test_list_stock_transfers_content_is_json():
     from katana_mcp.tools.foundation.stock_transfers import (
         ListStockTransfersResponse,
     )

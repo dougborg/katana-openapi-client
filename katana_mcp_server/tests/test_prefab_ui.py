@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any
+from typing import Any, ClassVar
 
 import pytest
 from katana_mcp.tools.prefab_ui import (
@@ -22,14 +22,16 @@ from katana_mcp.tools.prefab_ui import (
     build_item_detail_ui,
     build_item_mutation_ui,
     build_low_stock_ui,
+    build_mo_create_ui,
     build_modification_preview_ui,
     build_modification_result_ui,
-    build_order_created_ui,
-    build_order_preview_ui,
+    build_po_create_ui,
     build_receipt_ui,
     build_search_results_ui,
+    build_so_create_ui,
     build_variant_details_ui,
     build_verification_ui,
+    status_badge_variant,
     with_preview_coaching,
 )
 from prefab_ui.app import PrefabApp
@@ -989,52 +991,305 @@ class TestBuildLowStockUI:
         )
 
 
-class TestBuildOrderPreviewUI:
-    def test_purchase_order(self):
-        order = {
-            "order_number": "PO-001",
-            "status": "PENDING",
-            "supplier_id": 1,
-            "location_id": 2,
-            "total": 1500.0,
-            "currency": "USD",
-        }
-        app = build_order_preview_ui(
-            order,
-            "Purchase Order",
+class TestBuildPOCreateUI:
+    """``build_po_create_ui`` handles both preview and applied states for
+    create_purchase_order. Each test below pins one state's smoke
+    properties; the dual-state nature of the builder means the same
+    Prefab tree handles both — only the initial ``state.applied`` flag
+    seeded in ``_init_create_card_state`` differs."""
+
+    # Preview-shaped fixture: matches what ``_create_purchase_order_impl``
+    # returns on the preview branch — no ``id``, no ``katana_url`` (those
+    # only exist after Katana assigns an ID on apply). Applied-state tests
+    # below merge in ``id`` / ``katana_url`` / ``is_preview=False``.
+    _PO_RESPONSE: ClassVar[dict[str, Any]] = {
+        "order_number": "PO-001",
+        "supplier_id": 1,
+        "supplier_name": "Acme",
+        "location_id": 2,
+        "location_name": "Brooklyn",
+        "status": "NOT_RECEIVED",
+        "entity_type": "regular",
+        "total_cost": 1500.0,
+        "currency": "USD",
+        "item_count": 3,
+        "notes": "Rush order",
+        "is_preview": True,
+        "warnings": [],
+        "next_actions": [],
+        "message": "Preview",
+    }
+
+    _PO_APPLIED: ClassVar[dict[str, Any]] = {
+        "id": 12345,
+        "katana_url": "https://factory.katanamrp.com/purchaseorder/12345",
+        "is_preview": False,
+    }
+
+    def test_smoke_preview(self):
+        app = build_po_create_ui(
+            dict(self._PO_RESPONSE),
             confirm_request=_StubRequest(),
             confirm_tool="create_purchase_order",
         )
         _assert_valid_prefab(app)
 
-    def test_sales_order(self):
-        order = {
-            "order_number": "SO-001",
-            "status": "PENDING",
-            "customer_id": 1,
-            "total": 500.0,
-            "currency": "EUR",
-        }
-        app = build_order_preview_ui(
+    def test_smoke_applied(self):
+        order = dict(self._PO_RESPONSE, **self._PO_APPLIED)
+        app = build_po_create_ui(
             order,
-            "Sales Order",
+            confirm_request=_StubRequest(),
+            confirm_tool="create_purchase_order",
+        )
+        _assert_valid_prefab(app)
+        assert app.state is not None
+        assert app.state["applied"] is True
+
+    def test_preview_state_seeds_applied_false(self):
+        app = build_po_create_ui(
+            dict(self._PO_RESPONSE),
+            confirm_request=_StubRequest(),
+            confirm_tool="create_purchase_order",
+        )
+        assert app.state is not None
+        assert app.state["applied"] is False
+
+    def test_applied_state_seeds_result_from_response(self):
+        """The standalone-applied entry path seeds ``state.result`` from
+        the response so the applied-state Buttons (which bind to
+        ``{{ result.id }}`` and ``{{ result.katana_url }}``) resolve. On
+        the in-place morph path, the on_success chain in
+        ``_build_apply_action_direct`` writes the same key."""
+        order = dict(self._PO_RESPONSE, **self._PO_APPLIED)
+        app = build_po_create_ui(
+            order,
+            confirm_request=_StubRequest(),
+            confirm_tool="create_purchase_order",
+        )
+        assert app.state is not None
+        result = app.state.get("result")
+        assert isinstance(result, dict)
+        assert result["id"] == 12345
+        assert (
+            result["katana_url"] == "https://factory.katanamrp.com/purchaseorder/12345"
+        )
+
+    def test_applied_buttons_bind_to_result_template(self):
+        """Applied-state Buttons must use ``{{ result.X }}`` interpolation,
+        not Python f-strings — the preview-branch response has no ``id`` /
+        ``katana_url``, so f-strings would bake ``None`` into the closure
+        and render an empty button row after the in-place morph fires.
+        """
+        app = build_po_create_ui(
+            dict(self._PO_RESPONSE),
+            confirm_request=_StubRequest(),
+            confirm_tool="create_purchase_order",
+        )
+        rendered = str(app.to_json())
+        assert "{{ result.id }}" in rendered
+        assert "{{ result.katana_url }}" in rendered
+        # And the f-string-interpolated literal must NOT appear — a regression
+        # would re-introduce "Receive items for purchase order None".
+        assert "purchase order None" not in rendered
+
+    def test_outsourced_entity_type_renders_extra_badge(self):
+        order = dict(self._PO_RESPONSE, entity_type="outsourced")
+        app = build_po_create_ui(
+            order,
+            confirm_request=_StubRequest(),
+            confirm_tool="create_purchase_order",
+        )
+        rendered = str(app.to_json())
+        assert "outsourced" in rendered
+
+    def test_supplier_renders_as_link_to_katana(self):
+        app = build_po_create_ui(
+            dict(self._PO_RESPONSE),
+            confirm_request=_StubRequest(),
+            confirm_tool="create_purchase_order",
+        )
+        rendered = str(app.to_json())
+        # Supplier name surfaces inside a Link, with href pointing at the
+        # Katana supplier page — matches the module's "link Katana
+        # entities wherever possible" convention.
+        assert "/contacts/suppliers/1" in rendered
+        assert "Acme" in rendered
+
+
+class TestBuildSOCreateUI:
+    """``build_so_create_ui`` — same dual-state shape as PO; SO response
+    has no ``location_name`` or ``notes`` and adds ``delivery_date``."""
+
+    _SO_RESPONSE: ClassVar[dict[str, Any]] = {
+        "order_number": "SO-001",
+        "customer_id": 1,
+        "customer_name": "Buyer Co",
+        "location_id": 2,
+        "status": "NOT_SHIPPED",
+        "total": 500.0,
+        "currency": "EUR",
+        "delivery_date": "2026-06-01",
+        "item_count": 2,
+        "is_preview": True,
+        "warnings": [],
+        "next_actions": [],
+        "message": "Preview",
+    }
+
+    _SO_APPLIED: ClassVar[dict[str, Any]] = {
+        "id": 12346,
+        "katana_url": "https://factory.katanamrp.com/salesorder/12346",
+        "is_preview": False,
+    }
+
+    def test_smoke_preview(self):
+        app = build_so_create_ui(
+            dict(self._SO_RESPONSE),
             confirm_request=_StubRequest(),
             confirm_tool="create_sales_order",
         )
         _assert_valid_prefab(app)
 
-
-class TestBuildOrderCreatedUI:
-    def test_created(self):
-        order = {
-            "order_number": "PO-001",
-            "order_id": 123,
-            "status": "OPEN",
-            "total": 1500.0,
-            "currency": "USD",
-        }
-        app = build_order_created_ui(order, "Purchase Order")
+    def test_smoke_applied(self):
+        order = dict(self._SO_RESPONSE, **self._SO_APPLIED)
+        app = build_so_create_ui(
+            order,
+            confirm_request=_StubRequest(),
+            confirm_tool="create_sales_order",
+        )
         _assert_valid_prefab(app)
+        assert app.state is not None
+        assert app.state["applied"] is True
+        result = app.state.get("result")
+        assert isinstance(result, dict)
+        assert result["id"] == 12346
+
+    def test_renders_delivery_date_metric(self):
+        app = build_so_create_ui(
+            dict(self._SO_RESPONSE),
+            confirm_request=_StubRequest(),
+            confirm_tool="create_sales_order",
+        )
+        rendered = str(app.to_json())
+        assert "2026-06-01" in rendered
+
+    def test_customer_renders_as_link_to_katana(self):
+        app = build_so_create_ui(
+            dict(self._SO_RESPONSE),
+            confirm_request=_StubRequest(),
+            confirm_tool="create_sales_order",
+        )
+        rendered = str(app.to_json())
+        assert "/contacts/customers/1" in rendered
+        assert "Buyer Co" in rendered
+
+
+class TestBuildMOCreateUI:
+    """``build_mo_create_ui`` — MO response uses ``order_no`` (not
+    ``order_number``) and ``additional_info`` (not ``notes``)."""
+
+    _MO_RESPONSE: ClassVar[dict[str, Any]] = {
+        "order_no": "MO-001",
+        "variant_id": 555,
+        "sku": "WIDGET-42",
+        "planned_quantity": 100.0,
+        "location_id": 2,
+        "status": "NOT_STARTED",
+        "order_created_date": "2026-05-13T10:00:00+00:00",
+        "production_deadline_date": "2026-06-01T17:00:00+00:00",
+        "additional_info": "Priority run",
+        "is_preview": True,
+        "warnings": [],
+        "next_actions": [],
+        "message": "Preview",
+    }
+
+    _MO_APPLIED: ClassVar[dict[str, Any]] = {
+        "id": 12347,
+        "katana_url": "https://factory.katanamrp.com/manufacturingorder/12347",
+        "is_preview": False,
+    }
+
+    def test_smoke_preview(self):
+        app = build_mo_create_ui(
+            dict(self._MO_RESPONSE),
+            confirm_request=_StubRequest(),
+            confirm_tool="create_manufacturing_order",
+        )
+        _assert_valid_prefab(app)
+
+    def test_smoke_applied(self):
+        order = dict(self._MO_RESPONSE, **self._MO_APPLIED)
+        app = build_mo_create_ui(
+            order,
+            confirm_request=_StubRequest(),
+            confirm_tool="create_manufacturing_order",
+        )
+        _assert_valid_prefab(app)
+        assert app.state is not None
+        assert app.state["applied"] is True
+        result = app.state.get("result")
+        assert isinstance(result, dict)
+        assert result["id"] == 12347
+
+    def test_renders_variant_and_deadline(self):
+        app = build_mo_create_ui(
+            dict(self._MO_RESPONSE),
+            confirm_request=_StubRequest(),
+            confirm_tool="create_manufacturing_order",
+        )
+        rendered = str(app.to_json())
+        # MO carries the variant in tier 3 as "Variant: WIDGET-42 (ID: 555)"
+        assert "WIDGET-42" in rendered
+        assert "555" in rendered
+        # Deadline metric uses the date portion only.
+        assert "2026-06-01" in rendered
+
+    def test_uses_order_no_field_not_order_number(self):
+        """MO response uses ``order_no``; verify the badge reads that
+        (not ``order_number`` which doesn't exist on MO response)."""
+        app = build_mo_create_ui(
+            dict(self._MO_RESPONSE),
+            confirm_request=_StubRequest(),
+            confirm_tool="create_manufacturing_order",
+        )
+        rendered = str(app.to_json())
+        assert "MO-001" in rendered
+
+
+class TestStatusBadgeVariant:
+    """``status_badge_variant`` buckets each entity's status into one of
+    four Prefab Badge variants. Pins the per-entity mapping so a future
+    contributor adding a new entity can't accidentally collapse the
+    success/active/blocked distinctions."""
+
+    @pytest.mark.parametrize(
+        "entity,status,expected",
+        [
+            # success bucket
+            ("purchase_order", "RECEIVED", "default"),
+            ("sales_order", "DELIVERED", "default"),
+            ("manufacturing_order", "DONE", "default"),
+            ("stock_transfer", "RECEIVED", "default"),
+            # active bucket
+            ("purchase_order", "PARTIALLY_RECEIVED", "secondary"),
+            ("sales_order", "PARTIALLY_SHIPPED", "secondary"),
+            ("sales_order", "PACKED", "secondary"),
+            ("manufacturing_order", "IN_PROGRESS", "secondary"),
+            ("manufacturing_order", "PARTIALLY_COMPLETED", "secondary"),
+            ("stock_transfer", "IN_TRANSIT", "secondary"),
+            # blocked bucket — only MO has one today
+            ("manufacturing_order", "BLOCKED", "destructive"),
+            # neutral bucket (unstarted statuses + None + unknown entity)
+            ("purchase_order", "NOT_RECEIVED", "outline"),
+            ("sales_order", "NOT_SHIPPED", "outline"),
+            ("manufacturing_order", "NOT_STARTED", "outline"),
+            ("purchase_order", None, "outline"),
+            ("unknown_entity", "WHATEVER", "outline"),
+        ],
+    )
+    def test_bucket_lookup(self, entity, status, expected):
+        assert status_badge_variant(entity, status) == expected
 
 
 class TestBuildFulfillPreviewUI:
@@ -1426,42 +1681,6 @@ class TestConfirmButtonEmitsApplyMessage:
         )
         return apply_msgs[0]
 
-    def test_order_preview_confirm_emits_apply_send_message(self):
-        from katana_mcp.tools.foundation.purchase_orders import (
-            CreatePurchaseOrderRequest,
-            PurchaseOrderItem,
-        )
-
-        request = CreatePurchaseOrderRequest(
-            supplier_id=2,
-            location_id=3,
-            order_number="PO-1",
-            items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.0)],
-        )
-        app = build_order_preview_ui(
-            {
-                "id": 1,
-                "order_number": "PO-1",
-                "supplier_id": 2,
-                "location_id": 3,
-                "status": "NOT_RECEIVED",
-                "warnings": [],
-            },
-            "Purchase Order",
-            confirm_request=request,
-            confirm_tool="create_purchase_order",
-        )
-        envelope = app.to_json()
-
-        on_click = _confirm_button_on_click(envelope, "Confirm & Create Purchase Order")
-        msg = self._assert_apply_actions(on_click, "create_purchase_order")
-        # Args inlined into the SendMessage text so the agent re-issues
-        # with the exact preview values; preview=False is overridden last
-        # so the apply path is selected.
-        assert "supplier_id=2" in msg["content"]
-        assert "location_id=3" in msg["content"]
-        assert "preview=False" in msg["content"]
-
     def test_fulfill_preview_confirm_emits_apply_send_message(self):
         app = build_fulfill_preview_ui(
             {
@@ -1593,7 +1812,7 @@ class TestConfirmButtonDirectApplyRail:
             order_number="PO-1",
             items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.0)],
         )
-        app = build_order_preview_ui(
+        app = build_po_create_ui(
             {
                 "id": 1,
                 "order_number": "PO-1",
@@ -1602,10 +1821,8 @@ class TestConfirmButtonDirectApplyRail:
                 "status": "NOT_RECEIVED",
                 "warnings": [],
             },
-            "Purchase Order",
             confirm_request=request,
             confirm_tool="create_purchase_order",
-            direct_apply=True,
         )
         envelope = app.to_json()
         on_click = self._confirm_action(envelope, "Confirm & Create Purchase Order")
@@ -1638,7 +1855,7 @@ class TestConfirmButtonDirectApplyRail:
             order_number="PO-1",
             items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.0)],
         )
-        app = build_order_preview_ui(
+        app = build_po_create_ui(
             {
                 "id": 1,
                 "order_number": "PO-1",
@@ -1647,10 +1864,8 @@ class TestConfirmButtonDirectApplyRail:
                 "status": "NOT_RECEIVED",
                 "warnings": [],
             },
-            "Purchase Order",
             confirm_request=request,
             confirm_tool="create_purchase_order",
-            direct_apply=True,
         )
         envelope = app.to_json()
         on_click = self._confirm_action(envelope, "Confirm & Create Purchase Order")
@@ -1692,7 +1907,7 @@ class TestConfirmButtonDirectApplyRail:
             order_number="PO-1",
             items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.0)],
         )
-        app = build_order_preview_ui(
+        app = build_po_create_ui(
             {
                 "id": 1,
                 "order_number": "PO-1",
@@ -1701,10 +1916,8 @@ class TestConfirmButtonDirectApplyRail:
                 "status": "NOT_RECEIVED",
                 "warnings": [],
             },
-            "Purchase Order",
             confirm_request=request,
             confirm_tool="create_purchase_order",
-            direct_apply=True,
         )
         envelope = app.to_json()
         on_click = self._confirm_action(envelope, "Confirm & Create Purchase Order")
@@ -1746,7 +1959,7 @@ class TestConfirmButtonDirectApplyRail:
             order_number="PO-1",
             items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.0)],
         )
-        app = build_order_preview_ui(
+        app = build_po_create_ui(
             {
                 "id": 1,
                 "order_number": "PO-1",
@@ -1755,10 +1968,8 @@ class TestConfirmButtonDirectApplyRail:
                 "status": "NOT_RECEIVED",
                 "warnings": [],
             },
-            "Purchase Order",
             confirm_request=request,
             confirm_tool="create_purchase_order",
-            direct_apply=True,
         )
         envelope = app.to_json()
 
@@ -1842,9 +2053,8 @@ class TestCancelButtonEmitsCancelMessage:
             order_number="PO-CANCEL-1",
             items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.0)],
         )
-        app = build_order_preview_ui(
+        app = build_po_create_ui(
             {"order_number": "PO-CANCEL-1", "warnings": []},
-            "Purchase Order",
             confirm_request=request,
             confirm_tool="create_purchase_order",
         )
@@ -1894,13 +2104,12 @@ class TestPreviewCardSeedsPendingState:
             order_number="PO-STATE-1",
             items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.0)],
         )
-        app = build_order_preview_ui(
+        app = build_po_create_ui(
             {"order_number": "PO-STATE-1", "warnings": []},
-            "Purchase Order",
             confirm_request=request,
             confirm_tool="create_purchase_order",
         )
-        self._assert_seeds_state(app.to_json(), "build_order_preview_ui")
+        self._assert_seeds_state(app.to_json(), "build_po_create_ui")
 
     def test_fulfill_preview(self):
         app = build_fulfill_preview_ui(
@@ -2189,9 +2398,8 @@ class TestBlockWarningSuppressesConfirm:
                 "BLOCK: sales_order_row 99 already linked to MO 88",
             ],
         }
-        app = build_order_preview_ui(
+        app = build_mo_create_ui(
             order,
-            "Manufacturing Order",
             confirm_request=_StubRequest(),
             confirm_tool="create_manufacturing_order",
         )
@@ -2217,9 +2425,8 @@ class TestBlockWarningSuppressesConfirm:
             "planned_quantity": 5,
             "warnings": ["No production_deadline_date specified"],  # not BLOCK:
         }
-        app = build_order_preview_ui(
+        app = build_mo_create_ui(
             order,
-            "Manufacturing Order",
             confirm_request=_StubRequest(),
             confirm_tool="create_manufacturing_order",
         )
@@ -2294,9 +2501,8 @@ class TestBlockWarningSuppressesConfirm:
             "order_number": "MO-1",
             "warnings": ["BLOCK: this is the diagnostic message"],
         }
-        app = build_order_preview_ui(
+        app = build_mo_create_ui(
             order,
-            "Manufacturing Order",
             confirm_request=_StubRequest(),
             confirm_tool="create_manufacturing_order",
         )
