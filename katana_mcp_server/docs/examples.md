@@ -146,25 +146,40 @@ Sales order fulfillment:
 
 ## Response Format
 
-All tools return dual-format responses:
+Every tool returns an MCP `ToolResult`. `content` is a list of `ContentBlock`s — for
+this server, always a single text block whose `text` field carries the response
+serialized as JSON (programmatic consumers `json.loads(result.content[0].text)`).
+`structured_content` is one of two shapes depending on what the tool *actually emitted*
+(not its registration metadata):
 
-1. **Markdown Content** - Human-readable formatted output for display
-1. **Structured Data** - JSON data for programmatic processing
+- **Data-only response** (any tool returning `make_json_result(response)` — or an inline
+  `ToolResult(...)` when the tool needs custom dump kwargs, like
+  `get_manufacturing_order` threading its include/verbose flags through `model_dump`
+  selectors, or the batch branches of UI-meta tools like `check_inventory` /
+  `get_variant_details`) — `structured_content` is the response payload as a plain dict,
+  so programmatic consumers can branch on response shape without re-parsing `content`.
+- **UI-emitting response** (any tool returning `make_tool_result(response, ui=app)`) —
+  `structured_content` carries the Prefab card envelope (a `PrefabApp` serialized dict)
+  for MCP-Apps hosts to render. The response payload lives only in `content` on these
+  responses.
 
-Example response structure:
+Some tools (`check_inventory`, `get_variant_details`) are registered with
+`meta={"ui": True}` but pick between the two shapes per-request: a single-item request
+attaches the rich Prefab card; a batch request returns the payload dict. The
+`structured_content` shape is what programmatic consumers should branch on.
 
-```json
-{
-  "content": "# Purchase Order Created\n\n**Order**: PO-2024-001...",
-  "structured_content": {
-    "order_id": 1234,
-    "order_number": "PO-2024-001",
-    "status": "open",
-    "is_preview": false,
-    "line_items": [...]
-  }
-}
+Sketch of a data-only response (pseudo-JSON; `content` is actually a list of one text
+block):
+
+```text
+ToolResult(
+    content=[TextContent(text='{"order_id": 1234, "order_number": "PO-2024-001", ...}')],
+    structured_content={"order_id": 1234, "order_number": "PO-2024-001", ...},
+)
 ```
+
+The `format: "markdown" | "json"` parameter was removed in #719; see `katana://help` for
+the current contract.
 
 ## Resources
 
@@ -216,5 +231,9 @@ The server is designed to minimize token usage:
 1. **Minimal Instructions** - Server instructions are brief; use `katana://help` for
    details
 1. **Progressive Discovery** - Load help resources on-demand as needed
-1. **Structured Responses** - Dual markdown/JSON format avoids redundant formatting
-1. **Template System** - Consistent, compact response formatting
+1. **JSON-only content** - Every tool returns its response as a JSON text block in
+   `content` (`json.loads(result.content[0].text)` for programmatic consumers; LLM
+   consumers read the JSON natively). Responses that emit Prefab UI carry the card
+   envelope in `structured_content` for iframe-rendering hosts (see the Response Format
+   section above for the per-shape contract). The `format: "markdown" | "json"`
+   parameter was removed in #719.
