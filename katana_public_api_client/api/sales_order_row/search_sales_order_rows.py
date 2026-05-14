@@ -8,7 +8,7 @@ from ...client import AuthenticatedClient, Client
 from ...client_types import Response
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
-from ...models.sales_order_list_response import SalesOrderListResponse
+from ...models.sales_order_row_list_response import SalesOrderRowListResponse
 from ...models.search_filter_request import SearchFilterRequest
 
 
@@ -20,7 +20,7 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "post",
-        "url": "/sales_orders/search",
+        "url": "/sales_order_rows/search",
     }
 
     _kwargs["json"] = body.to_dict()
@@ -33,16 +33,11 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> DetailedErrorResponse | ErrorResponse | SalesOrderListResponse | None:
+) -> DetailedErrorResponse | ErrorResponse | SalesOrderRowListResponse | None:
     if response.status_code == 200:
-        response_200 = SalesOrderListResponse.from_dict(response.json())
+        response_200 = SalesOrderRowListResponse.from_dict(response.json())
 
         return response_200
-
-    if response.status_code == 400:
-        response_400 = ErrorResponse.from_dict(response.json())
-
-        return response_400
 
     if response.status_code == 401:
         response_401 = ErrorResponse.from_dict(response.json())
@@ -72,7 +67,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[DetailedErrorResponse | ErrorResponse | SalesOrderListResponse]:
+) -> Response[DetailedErrorResponse | ErrorResponse | SalesOrderRowListResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -85,12 +80,13 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: SearchFilterRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | SalesOrderListResponse]:
-    """Search sales orders
+) -> Response[DetailedErrorResponse | ErrorResponse | SalesOrderRowListResponse]:
+    """Search sales order rows
 
-     Searches sales orders using arbitrary filter criteria. Returns the
-    same shape as ``GET /sales_orders`` — paginated list of
-    ``SalesOrder`` records.
+     Search sales order rows using a LoopBack-style filter body. Unlike
+    ``GET /sales_order_rows`` (which uses simple query parameters), this
+    endpoint accepts a rich ``filter`` object with comparison operators,
+    boolean composition, and explicit pagination.
 
     Args:
         body (SearchFilterRequest): LoopBack-style filter envelope used by POST search endpoints.
@@ -110,7 +106,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[DetailedErrorResponse | ErrorResponse | SalesOrderListResponse]
+        Response[DetailedErrorResponse | ErrorResponse | SalesOrderRowListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -128,12 +124,13 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: SearchFilterRequest,
-) -> DetailedErrorResponse | ErrorResponse | SalesOrderListResponse | None:
-    """Search sales orders
+) -> DetailedErrorResponse | ErrorResponse | SalesOrderRowListResponse | None:
+    """Search sales order rows
 
-     Searches sales orders using arbitrary filter criteria. Returns the
-    same shape as ``GET /sales_orders`` — paginated list of
-    ``SalesOrder`` records.
+     Search sales order rows using a LoopBack-style filter body. Unlike
+    ``GET /sales_order_rows`` (which uses simple query parameters), this
+    endpoint accepts a rich ``filter`` object with comparison operators,
+    boolean composition, and explicit pagination.
 
     Args:
         body (SearchFilterRequest): LoopBack-style filter envelope used by POST search endpoints.
@@ -153,7 +150,7 @@ def sync(
 
 
     Returns:
-        DetailedErrorResponse | ErrorResponse | SalesOrderListResponse
+        DetailedErrorResponse | ErrorResponse | SalesOrderRowListResponse
     """
 
     return sync_detailed(
@@ -166,12 +163,13 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: SearchFilterRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | SalesOrderListResponse]:
-    """Search sales orders
+) -> Response[DetailedErrorResponse | ErrorResponse | SalesOrderRowListResponse]:
+    """Search sales order rows
 
-     Searches sales orders using arbitrary filter criteria. Returns the
-    same shape as ``GET /sales_orders`` — paginated list of
-    ``SalesOrder`` records.
+     Search sales order rows using a LoopBack-style filter body. Unlike
+    ``GET /sales_order_rows`` (which uses simple query parameters), this
+    endpoint accepts a rich ``filter`` object with comparison operators,
+    boolean composition, and explicit pagination.
 
     Args:
         body (SearchFilterRequest): LoopBack-style filter envelope used by POST search endpoints.
@@ -191,7 +189,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[DetailedErrorResponse | ErrorResponse | SalesOrderListResponse]
+        Response[DetailedErrorResponse | ErrorResponse | SalesOrderRowListResponse]
     """
 
     kwargs = _get_kwargs(
@@ -207,12 +205,13 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: SearchFilterRequest,
-) -> DetailedErrorResponse | ErrorResponse | SalesOrderListResponse | None:
-    """Search sales orders
+) -> DetailedErrorResponse | ErrorResponse | SalesOrderRowListResponse | None:
+    """Search sales order rows
 
-     Searches sales orders using arbitrary filter criteria. Returns the
-    same shape as ``GET /sales_orders`` — paginated list of
-    ``SalesOrder`` records.
+     Search sales order rows using a LoopBack-style filter body. Unlike
+    ``GET /sales_order_rows`` (which uses simple query parameters), this
+    endpoint accepts a rich ``filter`` object with comparison operators,
+    boolean composition, and explicit pagination.
 
     Args:
         body (SearchFilterRequest): LoopBack-style filter envelope used by POST search endpoints.
@@ -232,7 +231,7 @@ async def asyncio(
 
 
     Returns:
-        DetailedErrorResponse | ErrorResponse | SalesOrderListResponse
+        DetailedErrorResponse | ErrorResponse | SalesOrderRowListResponse
     """
 
     return (

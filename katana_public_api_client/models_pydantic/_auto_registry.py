@@ -476,9 +476,6 @@ from katana_public_api_client.models.sales_order_row import (
 from katana_public_api_client.models.sales_order_row_list_response import (
     SalesOrderRowListResponse as AttrsSalesOrderRowListResponse,
 )
-from katana_public_api_client.models.sales_order_search_request import (
-    SalesOrderSearchRequest as AttrsSalesOrderSearchRequest,
-)
 from katana_public_api_client.models.sales_order_shipping_fee import (
     SalesOrderShippingFee as AttrsSalesOrderShippingFee,
 )
@@ -497,6 +494,9 @@ from katana_public_api_client.models.sales_return_row import (
 )
 from katana_public_api_client.models.sales_return_row_list_response import (
     SalesReturnRowListResponse as AttrsSalesReturnRowListResponse,
+)
+from katana_public_api_client.models.search_filter_request import (
+    SearchFilterRequest as AttrsSearchFilterRequest,
 )
 from katana_public_api_client.models.serial_number import (
     SerialNumber as AttrsSerialNumber,
@@ -775,6 +775,7 @@ from ._generated.common import (
     ProductOperationRerankRequest as PydanticProductOperationRerankRequest,
     ProductOperationRow as PydanticProductOperationRow,
     ProductOperationRowListResponse as PydanticProductOperationRowListResponse,
+    SearchFilterRequest as PydanticSearchFilterRequest,
     TaxRate as PydanticTaxRate,
     TaxRateListResponse as PydanticTaxRateListResponse,
     UnlinkVariantBinLocationRequest as PydanticUnlinkVariantBinLocationRequest,
@@ -955,7 +956,6 @@ from ._generated.sales_orders import (
     SalesOrderListResponse as PydanticSalesOrderListResponse,
     SalesOrderRow as PydanticSalesOrderRow,
     SalesOrderRowListResponse as PydanticSalesOrderRowListResponse,
-    SalesOrderSearchRequest as PydanticSalesOrderSearchRequest,
     SalesOrderShippingFee as PydanticSalesOrderShippingFee,
     SalesOrderShippingFeeListResponse as PydanticSalesOrderShippingFeeListResponse,
     SalesReturn as PydanticSalesReturn,
@@ -1298,7 +1298,6 @@ def register_all_models() -> None:
     register(AttrsSalesOrderListResponse, PydanticSalesOrderListResponse)
     register(AttrsSalesOrderRow, PydanticSalesOrderRow)
     register(AttrsSalesOrderRowListResponse, PydanticSalesOrderRowListResponse)
-    register(AttrsSalesOrderSearchRequest, PydanticSalesOrderSearchRequest)
     register(AttrsSalesOrderShippingFee, PydanticSalesOrderShippingFee)
     register(
         AttrsSalesOrderShippingFeeListResponse,
@@ -1309,6 +1308,7 @@ def register_all_models() -> None:
     register(AttrsSalesReturnReason, PydanticSalesReturnReason)
     register(AttrsSalesReturnRow, PydanticSalesReturnRow)
     register(AttrsSalesReturnRowListResponse, PydanticSalesReturnRowListResponse)
+    register(AttrsSearchFilterRequest, PydanticSearchFilterRequest)
     register(AttrsSerialNumber, PydanticSerialNumber)
     register(AttrsSerialNumberListResponse, PydanticSerialNumberListResponse)
     register(AttrsSerialNumberStock, PydanticSerialNumberStock)

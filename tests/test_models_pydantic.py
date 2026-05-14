@@ -471,6 +471,7 @@ class TestWireNullTolerance:
             {
                 "variant_id": 1,
                 "location_id": 1,
+                "safety_stock_level": "0",
                 "reorder_point": 0,
                 "average_cost": 0,
                 "value_in_stock": 0,
@@ -500,6 +501,7 @@ class TestWireNullTolerance:
             {
                 "variant_id": 1,
                 "location_id": 1,
+                "safety_stock_level": "0",
                 "reorder_point": 0,
                 "average_cost": 0,
                 "value_in_stock": 0,

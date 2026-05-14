@@ -120,7 +120,7 @@ class PurchaseOrderRow(DeletableEntity):
     price_per_unit: Annotated[
         float | None,
         Field(
-            description="The sales price of one unit (excluding taxes) in sales order currency."
+            description="The purchase price of one unit (excluding taxes) in purchase order currency."
         ),
     ] = None
     price_per_unit_in_base_currency: Annotated[
@@ -699,9 +699,11 @@ class CreatePurchaseOrderRequest(KatanaPydanticBase):
         extra="forbid",
     )
     order_no: Annotated[
-        str,
-        Field(description="Unique purchase order number for tracking and reference"),
-    ]
+        str | None,
+        Field(
+            description="Unique purchase order number for tracking and reference. Optional —\nKatana auto-generates a sequential ``PO-N`` value when omitted.\n"
+        ),
+    ] = None
     entity_type: Annotated[
         PurchaseOrderEntityType | None,
         Field(
@@ -909,7 +911,7 @@ class CachedPurchaseOrderRow(DeletableEntity, table=True):
     price_per_unit: Annotated[
         Mapped[float | None],
         Field(
-            description="The sales price of one unit (excluding taxes) in sales order currency."
+            description="The purchase price of one unit (excluding taxes) in purchase order currency."
         ),
     ] = None
     price_per_unit_in_base_currency: Annotated[

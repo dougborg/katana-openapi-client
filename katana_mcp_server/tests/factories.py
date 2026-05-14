@@ -126,16 +126,20 @@ def make_sales_order_row(
     sales_order_id: int,
     variant_id: int,
     quantity: float = 1.0,
-    price_per_unit: float | None = None,
+    price_per_unit: float | str | None = None,
     linked_manufacturing_order_id: int | None = None,
 ) -> CachedSalesOrderRow:
-    """Build a ``CachedSalesOrderRow`` for direct cache insertion."""
+    """Build a ``CachedSalesOrderRow`` for direct cache insertion.
+
+    Float ``price_per_unit`` inputs are stringified — the cache column is
+    typed ``str`` to mirror Katana's wire format.
+    """
     return CachedSalesOrderRow(
         id=id,
         sales_order_id=sales_order_id,
         variant_id=variant_id,
         quantity=quantity,
-        price_per_unit=price_per_unit,
+        price_per_unit=(str(price_per_unit) if price_per_unit is not None else None),
         linked_manufacturing_order_id=linked_manufacturing_order_id,
     )
 
@@ -276,7 +280,7 @@ def make_manufacturing_order_recipe_row(
     id: int,
     manufacturing_order_id: int,
     variant_id: int,
-    planned_quantity_per_unit: float | None = None,
+    planned_quantity_per_unit: float | str | None = None,
     total_actual_quantity: float | None = None,
     total_consumed_quantity: float | None = None,
     total_remaining_quantity: float | None = None,
@@ -293,6 +297,9 @@ def make_manufacturing_order_recipe_row(
     to build parent-child fixtures for tools that join MOs to recipe rows
     (e.g., ``inventory_velocity``'s MO-consumption path,
     ``list_blocking_ingredients``'s availability rollup).
+
+    Float ``planned_quantity_per_unit`` inputs are stringified — the cache
+    column is typed ``str`` to mirror Katana's wire format.
     """
     from katana_public_api_client.models_pydantic._generated import (
         OutsourcedPurchaseOrderIngredientAvailability,
@@ -308,7 +315,11 @@ def make_manufacturing_order_recipe_row(
         id=id,
         manufacturing_order_id=manufacturing_order_id,
         variant_id=variant_id,
-        planned_quantity_per_unit=planned_quantity_per_unit,
+        planned_quantity_per_unit=(
+            str(planned_quantity_per_unit)
+            if planned_quantity_per_unit is not None
+            else None
+        ),
         total_actual_quantity=total_actual_quantity,
         total_consumed_quantity=total_consumed_quantity,
         total_remaining_quantity=total_remaining_quantity,

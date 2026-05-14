@@ -7,7 +7,7 @@ To regenerate, run:
 """
 
 from datetime import datetime
-from enum import StrEnum
+from enum import IntEnum, StrEnum
 from typing import Annotated, Any
 
 from pydantic import AwareDatetime, ConfigDict, Field, RootModel
@@ -43,6 +43,12 @@ class VariantType(StrEnum):
     product = "product"
     material = "material"
     service = "service"
+
+
+class AbcClassification(StrEnum):
+    a = "A"
+    b = "B"
+    c = "C"
 
 
 class AddressEntityType(StrEnum):
@@ -278,6 +284,12 @@ class Config2(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
+    id: Annotated[
+        int | None,
+        Field(
+            description="ID of the existing config to update. When set, the server\nmatches by ID instead of by ``name`` — required if you want\nto rename a config.\n"
+        ),
+    ] = None
     name: Annotated[
         str | None,
         Field(description="Name of the configuration attribute (e.g., Size, Color)"),
@@ -612,7 +624,7 @@ class DemandForecastPeriod(KatanaPydanticBase):
         Field(description="Period end date in ISO 8601 format (inclusive)"),
     ]
     in_stock: Annotated[
-        str | None, Field(description="In-stock quantity at the start of the period")
+        str | None, Field(description="Calculated stock level at the end of the period")
     ] = None
     expected: Annotated[
         str | None, Field(description="Expected incoming quantity during the period")
@@ -730,9 +742,46 @@ class Attribute(KatanaPydanticBase):
     value: Annotated[str | None, Field(description="Attribute value")] = None
 
 
-class Attribute1(KatanaPydanticBase):
-    name: str | None = None
-    value: str | None = None
+class Quantity(IntEnum):
+    integer_0 = 0
+    integer_1 = 1
+
+
+class Filter(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    limit: Annotated[
+        int | None, Field(description="Maximum number of results to return", ge=0)
+    ] = None
+    page: Annotated[int | None, Field(description="Page number, 1-indexed", ge=1)] = (
+        None
+    )
+    skip: Annotated[
+        int | None,
+        Field(
+            description="Number of results to skip before returning the first row", ge=0
+        ),
+    ] = None
+    order: Annotated[
+        str | list[str] | None,
+        Field(
+            description='Sort order, either a single ``"field DIR"`` string or an array\nof such strings to break ties between multiple fields.',
+        ),
+    ] = None
+    where: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description='Filter predicates keyed by field name. Each value is either a\nscalar (for equality matching) or an operator object such as\n``{"gt": 10}`` or ``{"inq": [1, 2, 3]}``. Use the ``and`` and\n``or`` keys at the top level of ``where`` to compose multiple\npredicates.'
+        ),
+    ] = None
+
+
+class SearchFilterRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    filter: Filter | None = None
 
 
 class Attribute3(KatanaPydanticBase):
@@ -765,7 +814,11 @@ class ProductOperationRow(KatanaPydanticBase):
         str | None, Field(description="Name of the assigned resource")
     ] = None
     cost_per_hour: Annotated[
-        float | None, Field(description="Cost per hour for this operation")
+        float | None,
+        Field(
+            deprecated=True,
+            description="Cost per hour for this operation (deprecated — use ``cost_parameter`` instead)",
+        ),
     ] = None
     cost_parameter: Annotated[
         float | None,
@@ -777,7 +830,11 @@ class ProductOperationRow(KatanaPydanticBase):
         float | None, Field(description="Planned cost per unit")
     ] = None
     planned_time_per_unit: Annotated[
-        float | None, Field(description="Planned time per unit")
+        float | None,
+        Field(
+            deprecated=True,
+            description="Planned time per unit (deprecated — use ``planned_time_parameter`` instead)",
+        ),
     ] = None
     planned_time_parameter: Annotated[
         float | None,

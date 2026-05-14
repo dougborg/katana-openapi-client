@@ -55,6 +55,7 @@ from katana_mcp.tools.tool_result_utils import (
     apply_date_window_filters,
     coerce_enum,
     enum_to_str,
+    float_or_none,
     iso_or_none,
     make_json_result,
     make_tool_result,
@@ -903,7 +904,7 @@ async def _list_sales_orders_impl(
                     sku=_row_attr(_variant_for_row(r), "sku"),
                     display_name=_row_attr(_variant_for_row(r), "display_name"),
                     quantity=r.quantity,
-                    price_per_unit=r.price_per_unit,
+                    price_per_unit=float_or_none(r.price_per_unit),
                     linked_manufacturing_order_id=r.linked_manufacturing_order_id,
                 )
                 for r in so.sales_order_rows
@@ -1304,14 +1305,14 @@ async def _get_sales_order_impl(
                 product_expected_date=iso_or_none(
                     unwrap_unset(r.product_expected_date, None)
                 ),
-                price_per_unit=unwrap_unset(r.price_per_unit, None),
+                price_per_unit=float_or_none(unwrap_unset(r.price_per_unit, None)),
                 price_per_unit_in_base_currency=unwrap_unset(
                     r.price_per_unit_in_base_currency, None
                 ),
                 total=unwrap_unset(r.total, None),
                 total_in_base_currency=unwrap_unset(r.total_in_base_currency, None),
                 total_discount=unwrap_unset(r.total_discount, None),
-                cogs_value=unwrap_unset(r.cogs_value, None),
+                cogs_value=float_or_none(unwrap_unset(r.cogs_value, None)),
                 linked_manufacturing_order_id=unwrap_unset(
                     r.linked_manufacturing_order_id, None
                 ),

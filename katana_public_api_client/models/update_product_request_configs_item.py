@@ -12,10 +12,13 @@ T = TypeVar("T", bound="UpdateProductRequestConfigsItem")
 
 @_attrs_define
 class UpdateProductRequestConfigsItem:
+    id: int | Unset = UNSET
     name: str | Unset = UNSET
     values: list[str] | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
+        id = self.id
+
         name = self.name
 
         values: list[str] | Unset = UNSET
@@ -25,6 +28,8 @@ class UpdateProductRequestConfigsItem:
         field_dict: dict[str, Any] = {}
 
         field_dict.update({})
+        if id is not UNSET:
+            field_dict["id"] = id
         if name is not UNSET:
             field_dict["name"] = name
         if values is not UNSET:
@@ -35,11 +40,14 @@ class UpdateProductRequestConfigsItem:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
+        id = d.pop("id", UNSET)
+
         name = d.pop("name", UNSET)
 
         values = cast(list[str], d.pop("values", UNSET))
 
         update_product_request_configs_item = cls(
+            id=id,
             name=name,
             values=values,
         )

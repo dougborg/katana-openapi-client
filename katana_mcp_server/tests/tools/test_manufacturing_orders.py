@@ -1549,7 +1549,7 @@ async def test_get_manufacturing_order_recipe_full_field_coverage():
         manufacturing_order_id=3001,
         variant_id=3201,
         notes="Use only grade 304 material",
-        planned_quantity_per_unit=2.5,
+        planned_quantity_per_unit="2.5",
         total_actual_quantity=125.0,
         ingredient_availability=IngredientAvailability.IN_STOCK,
         ingredient_expected_date=datetime(2024, 1, 18, 0, 0, 0, tzinfo=UTC),
@@ -2389,7 +2389,7 @@ async def test_list_blocking_ingredients_uses_filtered_fetch_without_global_sync
             "manufacturing_order_id": 101,
             "variant_id": 500,
             "ingredient_availability": "NOT_AVAILABLE",
-            "planned_quantity_per_unit": 2.0,
+            "planned_quantity_per_unit": "2.0",
             "total_remaining_quantity": 4.0,
         }
     )
@@ -2399,7 +2399,7 @@ async def test_list_blocking_ingredients_uses_filtered_fetch_without_global_sync
             "manufacturing_order_id": 102,
             "variant_id": 500,
             "ingredient_availability": "EXPECTED",
-            "planned_quantity_per_unit": 1.0,
+            "planned_quantity_per_unit": "1.0",
             "total_remaining_quantity": 3.0,
         }
     )

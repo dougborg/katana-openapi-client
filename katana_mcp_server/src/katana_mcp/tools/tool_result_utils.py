@@ -145,6 +145,18 @@ def iso_or_none(dt: datetime | None) -> str | None:
     return dt.isoformat() if dt else None
 
 
+def float_or_none(value: Any) -> float | None:
+    """Coerce a wire-format decimal string or number to ``float | None``.
+
+    Returns ``None`` for ``None`` or empty string. Propagates ``ValueError``
+    (unparseable string) or ``TypeError`` (non-string, non-numeric input) —
+    a malformed wire payload should surface, not silently degrade.
+    """
+    if value is None or value == "":
+        return None
+    return float(value)
+
+
 def parse_iso_datetime(value: str, field_name: str) -> datetime:
     """Parse an ISO-8601 datetime string, raising ValueError with field context.
 

@@ -43,10 +43,11 @@ class CreateSalesOrderRequest:
             'ecommerce_order_id': 'B2B-7891-2024'}
 
     Attributes:
-        order_no (str): Unique order number for tracking and reference
         customer_id (int): ID of the customer placing the order
         sales_order_rows (list[CreateSalesOrderRequestSalesOrderRowsItem]): List of products and quantities being
             ordered
+        order_no (str | Unset): Unique order number for tracking and reference. Optional — Katana
+            auto-generates a sequential ``SO-N`` value when omitted.
         tracking_number (None | str | Unset): Shipping tracking number if already known
         tracking_number_url (None | str | Unset): URL for tracking shipment status
         addresses (list[SalesOrderAddress] | Unset): Billing and shipping addresses for the order
@@ -66,9 +67,9 @@ class CreateSalesOrderRequest:
             type (see ``GET /custom_fields_collections``).
     """
 
-    order_no: str
     customer_id: int
     sales_order_rows: list[CreateSalesOrderRequestSalesOrderRowsItem]
+    order_no: str | Unset = UNSET
     tracking_number: None | str | Unset = UNSET
     tracking_number_url: None | str | Unset = UNSET
     addresses: list[SalesOrderAddress] | Unset = UNSET
@@ -86,14 +87,14 @@ class CreateSalesOrderRequest:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        order_no = self.order_no
-
         customer_id = self.customer_id
 
         sales_order_rows = []
         for sales_order_rows_item_data in self.sales_order_rows:
             sales_order_rows_item = sales_order_rows_item_data.to_dict()
             sales_order_rows.append(sales_order_rows_item)
+
+        order_no = self.order_no
 
         tracking_number: None | str | Unset
         if isinstance(self.tracking_number, Unset):
@@ -183,11 +184,12 @@ class CreateSalesOrderRequest:
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "order_no": order_no,
                 "customer_id": customer_id,
                 "sales_order_rows": sales_order_rows,
             }
         )
+        if order_no is not UNSET:
+            field_dict["order_no"] = order_no
         if tracking_number is not UNSET:
             field_dict["tracking_number"] = tracking_number
         if tracking_number_url is not UNSET:
@@ -228,8 +230,6 @@ class CreateSalesOrderRequest:
         from ..models.sales_order_address import SalesOrderAddress
 
         d = dict(src_dict)
-        order_no = d.pop("order_no")
-
         customer_id = d.pop("customer_id")
 
         sales_order_rows = []
@@ -240,6 +240,8 @@ class CreateSalesOrderRequest:
             )
 
             sales_order_rows.append(sales_order_rows_item)
+
+        order_no = d.pop("order_no", UNSET)
 
         def _parse_tracking_number(data: object) -> None | str | Unset:
             if data is None:
@@ -389,9 +391,9 @@ class CreateSalesOrderRequest:
                 custom_fields.append(custom_fields_item)
 
         create_sales_order_request = cls(
-            order_no=order_no,
             customer_id=customer_id,
             sales_order_rows=sales_order_rows,
+            order_no=order_no,
             tracking_number=tracking_number,
             tracking_number_url=tracking_number_url,
             addresses=addresses,

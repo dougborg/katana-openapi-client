@@ -1,5 +1,6 @@
 """Contains all the data models used in inputs/outputs"""
 
+from .abc_classification import AbcClassification
 from .accounting_integration_type import AccountingIntegrationType
 from .additional_cost import AdditionalCost
 from .additional_cost_list_response import AdditionalCostListResponse
@@ -390,8 +391,12 @@ from .sales_order_row import SalesOrderRow
 from .sales_order_row_attributes_item import SalesOrderRowAttributesItem
 from .sales_order_row_batch_transactions_item import SalesOrderRowBatchTransactionsItem
 from .sales_order_row_list_response import SalesOrderRowListResponse
-from .sales_order_search_request import SalesOrderSearchRequest
-from .sales_order_search_request_filter import SalesOrderSearchRequestFilter
+from .sales_order_row_serial_number_transactions_item import (
+    SalesOrderRowSerialNumberTransactionsItem,
+)
+from .sales_order_row_serial_number_transactions_item_quantity import (
+    SalesOrderRowSerialNumberTransactionsItemQuantity,
+)
 from .sales_order_shipping_fee import SalesOrderShippingFee
 from .sales_order_shipping_fee_list_response import SalesOrderShippingFeeListResponse
 from .sales_order_status import SalesOrderStatus
@@ -405,6 +410,9 @@ from .sales_return_row_batch_transactions_item import (
 )
 from .sales_return_row_list_response import SalesReturnRowListResponse
 from .sales_return_status import SalesReturnStatus
+from .search_filter_request import SearchFilterRequest
+from .search_filter_request_filter import SearchFilterRequestFilter
+from .search_filter_request_filter_where import SearchFilterRequestFilterWhere
 from .serial_number import SerialNumber
 from .serial_number_list_response import SerialNumberListResponse
 from .serial_number_resource_type import SerialNumberResourceType
@@ -556,6 +564,7 @@ from .webhook_logs_export_request import WebhookLogsExportRequest
 from .webhook_logs_export_request_event import WebhookLogsExportRequestEvent
 
 __all__ = (
+    "AbcClassification",
     "AccountingIntegrationType",
     "AdditionalCost",
     "AdditionalCostListResponse",
@@ -844,8 +853,8 @@ __all__ = (
     "SalesOrderRowAttributesItem",
     "SalesOrderRowBatchTransactionsItem",
     "SalesOrderRowListResponse",
-    "SalesOrderSearchRequest",
-    "SalesOrderSearchRequestFilter",
+    "SalesOrderRowSerialNumberTransactionsItem",
+    "SalesOrderRowSerialNumberTransactionsItemQuantity",
     "SalesOrderShippingFee",
     "SalesOrderShippingFeeListResponse",
     "SalesOrderStatus",
@@ -857,6 +866,9 @@ __all__ = (
     "SalesReturnRowBatchTransactionsItem",
     "SalesReturnRowListResponse",
     "SalesReturnStatus",
+    "SearchFilterRequest",
+    "SearchFilterRequestFilter",
+    "SearchFilterRequestFilterWhere",
     "SerialNumber",
     "SerialNumberListResponse",
     "SerialNumberResourceType",

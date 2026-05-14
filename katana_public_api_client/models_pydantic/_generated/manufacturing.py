@@ -260,7 +260,7 @@ class ManufacturingOrderRecipeRow(DeletableEntity):
         ),
     ] = None
     planned_quantity_per_unit: Annotated[
-        float | None,
+        str | None,
         Field(
             description="Planned quantity of this ingredient needed per unit produced"
         ),
@@ -772,19 +772,23 @@ class ManufacturingOrderOperationRow(DeletableEntity):
         ),
     ] = None
     planned_time_per_unit: Annotated[
-        float | None, Field(description="Planned time per unit for this operation")
+        str | None,
+        Field(
+            deprecated=True,
+            description="Planned time per unit for this operation (deprecated — use ``planned_time_parameter`` instead)",
+        ),
     ] = None
     planned_time_parameter: Annotated[
-        float | None, Field(description="Parameter for calculating planned time")
+        str | None, Field(description="Parameter for calculating planned time")
     ] = None
     total_actual_time: Annotated[
-        float | None, Field(description="Total actual time spent on this operation")
+        str | None, Field(description="Total actual time spent on this operation")
     ] = None
     planned_cost_per_unit: Annotated[
-        float | None, Field(description="Planned cost per unit for this operation")
+        str | None, Field(description="Planned cost per unit for this operation")
     ] = None
     total_actual_cost: Annotated[
-        float | None, Field(description="Total actual cost incurred for this operation")
+        str | None, Field(description="Total actual cost incurred for this operation")
     ] = None
     total_consumed_time: Annotated[
         float | None, Field(description="Total time consumed so far for this operation")
@@ -793,7 +797,11 @@ class ManufacturingOrderOperationRow(DeletableEntity):
         float | None, Field(description="Remaining time estimated for this operation")
     ] = None
     cost_per_hour: Annotated[
-        float | None, Field(description="Hourly cost rate for this operation")
+        float | None,
+        Field(
+            deprecated=True,
+            description="Hourly cost rate for this operation (deprecated — use ``cost_parameter`` instead)",
+        ),
     ] = None
     cost_parameter: Annotated[
         float | None, Field(description="Parameter for calculating operation costs")
@@ -843,13 +851,21 @@ class CreateManufacturingOrderOperationRowRequest(KatanaPydanticBase):
         float | None, Field(description="Parameter for calculating planned time")
     ] = None
     planned_time_per_unit: Annotated[
-        float | None, Field(description="Planned time per unit of output")
+        float | None,
+        Field(
+            deprecated=True,
+            description="Planned time per unit of output (deprecated — use ``planned_time_parameter`` instead)",
+        ),
     ] = None
     cost_parameter: Annotated[
         float | None, Field(description="Parameter for calculating operation cost")
     ] = None
     cost_per_hour: Annotated[
-        float | None, Field(description="Hourly cost rate for this operation")
+        float | None,
+        Field(
+            deprecated=True,
+            description="Hourly cost rate for this operation (deprecated — use ``cost_parameter`` instead)",
+        ),
     ] = None
     status: Annotated[
         Status,
@@ -864,6 +880,12 @@ class CreateManufacturingOrderOperationRowRequest(KatanaPydanticBase):
 
 
 class UpdateManufacturingOrderOperationRowRequest(KatanaPydanticBase):
+    manufacturing_order_id: Annotated[
+        int,
+        Field(
+            description="ID of the manufacturing order this operation row belongs to"
+        ),
+    ]
     operation_id: Annotated[
         int | None, Field(description="ID of the operation being performed")
     ] = None
@@ -889,7 +911,11 @@ class UpdateManufacturingOrderOperationRowRequest(KatanaPydanticBase):
         float | None, Field(description="Parameter for calculating planned time")
     ] = None
     planned_time_per_unit: Annotated[
-        float | None, Field(description="Planned time per unit of output")
+        float | None,
+        Field(
+            deprecated=True,
+            description="Planned time per unit of output (deprecated — use ``planned_time_parameter`` instead)",
+        ),
     ] = None
     total_actual_time: Annotated[
         float | None,
@@ -899,12 +925,16 @@ class UpdateManufacturingOrderOperationRowRequest(KatanaPydanticBase):
         float | None, Field(description="Parameter for calculating operation cost")
     ] = None
     cost_per_hour: Annotated[
-        float | None, Field(description="Hourly cost rate for this operation")
+        float | None,
+        Field(
+            deprecated=True,
+            description="Hourly cost rate for this operation (deprecated — use ``cost_parameter`` instead)",
+        ),
     ] = None
     status: Annotated[
-        ManufacturingOperationStatus | None,
+        ManufacturingOperationStatus,
         Field(description="Current status of the operation"),
-    ] = None
+    ]
     assigned_operators: Annotated[
         list[Operator] | None,
         Field(description="Operators assigned to perform this operation"),
@@ -997,7 +1027,7 @@ class CachedManufacturingOrderRecipeRow(DeletableEntity, table=True):
         ),
     ] = None
     planned_quantity_per_unit: Annotated[
-        Mapped[float | None],
+        Mapped[str | None],
         Field(
             description="Planned quantity of this ingredient needed per unit produced"
         ),
