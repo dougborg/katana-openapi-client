@@ -276,7 +276,7 @@ class RegularPurchaseOrder:
             purchase_order_rows = []
             for purchase_order_rows_item_data in _purchase_order_rows:
                 purchase_order_rows_item = PurchaseOrderRow.from_dict(
-                    purchase_order_rows_item_data
+                    cast(Mapping[str, Any], purchase_order_rows_item_data)
                 )
 
                 purchase_order_rows.append(purchase_order_rows_item)

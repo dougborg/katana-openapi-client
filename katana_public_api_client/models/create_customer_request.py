@@ -251,7 +251,7 @@ class CreateCustomerRequest:
             addresses = []
             for addresses_item_data in _addresses:
                 addresses_item = CreateCustomerRequestAddressesItem.from_dict(
-                    addresses_item_data
+                    cast(Mapping[str, Any], addresses_item_data)
                 )
 
                 addresses.append(addresses_item)

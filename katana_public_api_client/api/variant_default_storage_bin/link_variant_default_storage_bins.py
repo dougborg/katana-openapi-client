@@ -1,5 +1,6 @@
+from collections.abc import Mapping
 from http import HTTPStatus
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -46,7 +47,7 @@ def _parse_response(
         _response_200 = response.json()
         for response_200_item_data in _response_200:
             response_200_item = VariantDefaultStorageBinLinkResponse.from_dict(
-                response_200_item_data
+                cast(Mapping[str, Any], response_200_item_data)
             )
 
             response_200.append(response_200_item)

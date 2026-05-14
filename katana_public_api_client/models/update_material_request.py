@@ -138,7 +138,7 @@ class UpdateMaterialRequest:
             configs = []
             for configs_item_data in _configs:
                 configs_item = UpdateMaterialRequestConfigsItem.from_dict(
-                    configs_item_data
+                    cast(Mapping[str, Any], configs_item_data)
                 )
 
                 configs.append(configs_item)

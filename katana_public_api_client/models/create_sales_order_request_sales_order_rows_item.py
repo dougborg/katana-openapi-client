@@ -145,7 +145,7 @@ class CreateSalesOrderRequestSalesOrderRowsItem:
             for attributes_item_data in _attributes:
                 attributes_item = (
                     CreateSalesOrderRequestSalesOrderRowsItemAttributesItem.from_dict(
-                        attributes_item_data
+                        cast(Mapping[str, Any], attributes_item_data)
                     )
                 )
 

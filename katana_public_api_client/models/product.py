@@ -340,7 +340,9 @@ class Product:
         if _variants is not UNSET:
             variants = []
             for variants_item_data in _variants:
-                variants_item = Variant.from_dict(variants_item_data)
+                variants_item = Variant.from_dict(
+                    cast(Mapping[str, Any], variants_item_data)
+                )
 
                 variants.append(variants_item)
 
@@ -349,7 +351,9 @@ class Product:
         if _configs is not UNSET:
             configs = []
             for configs_item_data in _configs:
-                configs_item = ItemConfig.from_dict(configs_item_data)
+                configs_item = ItemConfig.from_dict(
+                    cast(Mapping[str, Any], configs_item_data)
+                )
 
                 configs.append(configs_item)
 

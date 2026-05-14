@@ -192,7 +192,7 @@ class ServiceVariant:
             custom_fields = []
             for custom_fields_item_data in _custom_fields:
                 custom_fields_item = ServiceVariantCustomFieldsItem.from_dict(
-                    custom_fields_item_data
+                    cast(Mapping[str, Any], custom_fields_item_data)
                 )
 
                 custom_fields.append(custom_fields_item)

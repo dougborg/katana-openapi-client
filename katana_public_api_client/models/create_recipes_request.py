@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
@@ -56,7 +56,9 @@ class CreateRecipesRequest:
         rows = []
         _rows = d.pop("rows")
         for rows_item_data in _rows:
-            rows_item = CreateRecipesRequestRowsItem.from_dict(rows_item_data)
+            rows_item = CreateRecipesRequestRowsItem.from_dict(
+                cast(Mapping[str, Any], rows_item_data)
+            )
 
             rows.append(rows_item)
 

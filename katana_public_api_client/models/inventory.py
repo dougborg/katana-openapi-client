@@ -43,15 +43,19 @@ class Inventory:
     quantity_committed: str
     quantity_expected: str
     quantity_missing_or_excess: str
-    quantity_potential: str
+    quantity_potential: None | str
     safety_stock_level: str | Unset = UNSET
     variant: Variant | Unset = UNSET
     location: Location | Unset = UNSET
     archived_at: datetime.datetime | None | Unset = UNSET
-    default_storage_bin: VariantDefaultStorageBinLinkResponse | Unset = UNSET
+    default_storage_bin: None | Unset | VariantDefaultStorageBinLinkResponse = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.variant_default_storage_bin_link_response import (
+            VariantDefaultStorageBinLinkResponse,
+        )
+
         variant_id = self.variant_id
 
         location_id = self.location_id
@@ -70,6 +74,7 @@ class Inventory:
 
         quantity_missing_or_excess = self.quantity_missing_or_excess
 
+        quantity_potential: None | str
         quantity_potential = self.quantity_potential
 
         safety_stock_level = self.safety_stock_level
@@ -90,9 +95,13 @@ class Inventory:
         else:
             archived_at = self.archived_at
 
-        default_storage_bin: dict[str, Any] | Unset = UNSET
-        if not isinstance(self.default_storage_bin, Unset):
+        default_storage_bin: dict[str, Any] | None | Unset
+        if isinstance(self.default_storage_bin, Unset):
+            default_storage_bin = UNSET
+        elif isinstance(self.default_storage_bin, VariantDefaultStorageBinLinkResponse):
             default_storage_bin = self.default_storage_bin.to_dict()
+        else:
+            default_storage_bin = self.default_storage_bin
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -150,7 +159,12 @@ class Inventory:
 
         quantity_missing_or_excess = d.pop("quantity_missing_or_excess")
 
-        quantity_potential = d.pop("quantity_potential")
+        def _parse_quantity_potential(data: object) -> None | str:
+            if data is None:
+                return data
+            return cast(None | str, data)
+
+        quantity_potential = _parse_quantity_potential(d.pop("quantity_potential"))
 
         safety_stock_level = d.pop("safety_stock_level", UNSET)
 
@@ -185,14 +199,33 @@ class Inventory:
 
         archived_at = _parse_archived_at(d.pop("archived_at", UNSET))
 
-        _default_storage_bin = d.pop("default_storage_bin", UNSET)
-        default_storage_bin: VariantDefaultStorageBinLinkResponse | Unset
-        if isinstance(_default_storage_bin, Unset):
-            default_storage_bin = UNSET
-        else:
-            default_storage_bin = VariantDefaultStorageBinLinkResponse.from_dict(
-                _default_storage_bin
-            )
+        def _parse_default_storage_bin(
+            data: object,
+        ) -> None | Unset | VariantDefaultStorageBinLinkResponse:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                default_storage_bin_type_0 = (
+                    VariantDefaultStorageBinLinkResponse.from_dict(
+                        cast(Mapping[str, Any], data)
+                    )
+                )
+
+                return default_storage_bin_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(None | Unset | VariantDefaultStorageBinLinkResponse, data)
+
+        default_storage_bin = _parse_default_storage_bin(
+            d.pop("default_storage_bin", UNSET)
+        )
 
         inventory = cls(
             variant_id=variant_id,

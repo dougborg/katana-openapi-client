@@ -187,12 +187,14 @@ class Variant(UpdatableEntity, DeletableEntity):
     type: VariantType | None = None
     internal_barcode: Annotated[
         str | None,
-        Field(description="Internal barcode for warehouse scanning and tracking"),
+        Field(
+            description="Internal barcode for warehouse scanning and tracking. The wire\ndelivers ``null`` for variants that don't have one assigned;\nours-vs-Katana spec gap — Katana's published spec marks this\nnon-nullable but the live API returns null on most rows. See #727."
+        ),
     ] = None
     registered_barcode: Annotated[
         str | None,
         Field(
-            description="Official registered barcode (UPC, EAN, etc.) for retail use"
+            description="Official registered barcode (UPC, EAN, etc.) for retail use.\nNullable per live-wire behavior — see ``internal_barcode``."
         ),
     ] = None
     supplier_item_codes: Annotated[
@@ -209,12 +211,14 @@ class Variant(UpdatableEntity, DeletableEntity):
     ] = None
     custom_fields: Annotated[
         list[CustomField] | None,
-        Field(description="Custom field values specific to this variant"),
+        Field(
+            description='Custom field values specific to this variant. The wire delivers\n``null`` (not an empty array) when no custom fields are set —\nsee #727. Consumers should treat ``null`` and ``[]`` as\nequivalent ("no custom fields").'
+        ),
     ] = None
     config_attributes: Annotated[
         list[ConfigAttribute] | None,
         Field(
-            description="Configuration attribute values that define this variant (color, size, etc.)"
+            description="Configuration attribute values that define this variant (color,\nsize, etc.). Marked nullable defensively (mirrors\n``custom_fields`` shape) so a future wire change to ``null``\ndoesn't crash the generated parser — current wire always\ndelivers an array, even if empty."
         ),
     ] = None
 
@@ -894,9 +898,9 @@ class Inventory(KatanaPydanticBase):
         ),
     ]
     quantity_potential: Annotated[
-        str,
+        str | None,
         Field(
-            description="Total quantity that could be available (in stock + expected)"
+            description="Total quantity that could be available (in stock + expected).\nWire delivers ``null`` on the typical row (observed 100% on a\n50-row sample). The field is still ``required`` because Katana\nships the key on every row — it's the *value* that may be null,\nnot the key. See #727."
         ),
     ]
     variant: Annotated[
@@ -916,7 +920,7 @@ class Inventory(KatanaPydanticBase):
     default_storage_bin: Annotated[
         VariantDefaultStorageBinLinkResponse | None,
         Field(
-            description="Default storage bin for this variant at this location, when one has been linked via the variant default storage bin endpoints"
+            description="Default storage bin for this variant at this location, when one has\nbeen linked via the variant default storage bin endpoints. The wire\ndelivers ``null`` when no bin is linked (the typical case) — see\n#727.",
         ),
     ] = None
 
@@ -1420,12 +1424,14 @@ class VariantResponse(DeletableEntity):
     type: VariantType | None = None
     internal_barcode: Annotated[
         str | None,
-        Field(description="Internal barcode for warehouse scanning and tracking"),
+        Field(
+            description="Internal barcode for warehouse scanning and tracking. The wire\ndelivers ``null`` for variants without one assigned — ours-vs-\nKatana spec gap; see ``Variant.internal_barcode`` for the\nrationale."
+        ),
     ] = None
     registered_barcode: Annotated[
         str | None,
         Field(
-            description="Official registered barcode (UPC, EAN, etc.) for retail use"
+            description="Official registered barcode (UPC, EAN, etc.) for retail use.\nNullable per live-wire behavior — see ``internal_barcode``."
         ),
     ] = None
     supplier_item_codes: Annotated[
@@ -1442,11 +1448,15 @@ class VariantResponse(DeletableEntity):
     ] = None
     config_attributes: Annotated[
         list[ConfigAttribute2] | None,
-        Field(description="Configuration attribute values that define this variant"),
+        Field(
+            description="Configuration attribute values that define this variant. Marked\nnullable to mirror ``custom_fields`` and the inline ``Variant``\nschema — see #727."
+        ),
     ] = None
     custom_fields: Annotated[
         list[CustomField3] | None,
-        Field(description="Custom field values specific to this variant"),
+        Field(
+            description="Custom field values specific to this variant. The wire delivers\n``null`` (not ``[]``) when no custom fields are set — see #727."
+        ),
     ] = None
     product_or_material: Annotated[
         Product | Material | None,
@@ -1510,12 +1520,14 @@ class CachedVariant(UpdatableEntity, DeletableEntity, table=True):
     type: Mapped[VariantType | None] = None
     internal_barcode: Annotated[
         Mapped[str | None],
-        Field(description="Internal barcode for warehouse scanning and tracking"),
+        Field(
+            description="Internal barcode for warehouse scanning and tracking. The wire\ndelivers ``null`` for variants that don't have one assigned;\nours-vs-Katana spec gap — Katana's published spec marks this\nnon-nullable but the live API returns null on most rows. See #727."
+        ),
     ] = None
     registered_barcode: Annotated[
         Mapped[str | None],
         Field(
-            description="Official registered barcode (UPC, EAN, etc.) for retail use"
+            description="Official registered barcode (UPC, EAN, etc.) for retail use.\nNullable per live-wire behavior — see ``internal_barcode``."
         ),
     ] = None
     supplier_item_codes: Annotated[
@@ -1537,14 +1549,14 @@ class CachedVariant(UpdatableEntity, DeletableEntity, table=True):
         Mapped[list[CustomField] | None],
         SQLField(
             sa_column=Column(PydanticJSON),
-            description="Custom field values specific to this variant",
+            description='Custom field values specific to this variant. The wire delivers\n``null`` (not an empty array) when no custom fields are set —\nsee #727. Consumers should treat ``null`` and ``[]`` as\nequivalent ("no custom fields").',
         ),
     ] = None
     config_attributes: Annotated[
         Mapped[list[ConfigAttribute] | None],
         SQLField(
             sa_column=Column(PydanticJSON),
-            description="Configuration attribute values that define this variant (color, size, etc.)",
+            description="Configuration attribute values that define this variant (color,\nsize, etc.). Marked nullable defensively (mirrors\n``custom_fields`` shape) so a future wire change to ``null``\ndoesn't crash the generated parser — current wire always\ndelivers an array, even if empty.",
         ),
     ] = None
     parent_archived_at: Annotated[

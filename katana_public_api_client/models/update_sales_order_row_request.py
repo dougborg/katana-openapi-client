@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
@@ -129,7 +129,7 @@ class UpdateSalesOrderRowRequest:
             batch_transactions = []
             for batch_transactions_item_data in _batch_transactions:
                 batch_transactions_item = BatchTransaction.from_dict(
-                    batch_transactions_item_data
+                    cast(Mapping[str, Any], batch_transactions_item_data)
                 )
 
                 batch_transactions.append(batch_transactions_item)
@@ -143,7 +143,7 @@ class UpdateSalesOrderRowRequest:
             for serial_number_transactions_item_data in _serial_number_transactions:
                 serial_number_transactions_item = (
                     UpdateSalesOrderRowRequestSerialNumberTransactionsItem.from_dict(
-                        serial_number_transactions_item_data
+                        cast(Mapping[str, Any], serial_number_transactions_item_data)
                     )
                 )
 
@@ -155,7 +155,7 @@ class UpdateSalesOrderRowRequest:
             attributes = []
             for attributes_item_data in _attributes:
                 attributes_item = UpdateSalesOrderRowRequestAttributesItem.from_dict(
-                    attributes_item_data
+                    cast(Mapping[str, Any], attributes_item_data)
                 )
 
                 attributes.append(attributes_item)

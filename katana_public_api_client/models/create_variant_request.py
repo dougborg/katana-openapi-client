@@ -184,7 +184,7 @@ class CreateVariantRequest:
             for config_attributes_item_data in _config_attributes:
                 config_attributes_item = (
                     CreateVariantRequestConfigAttributesItem.from_dict(
-                        config_attributes_item_data
+                        cast(Mapping[str, Any], config_attributes_item_data)
                     )
                 )
 
@@ -196,7 +196,7 @@ class CreateVariantRequest:
             custom_fields = []
             for custom_fields_item_data in _custom_fields:
                 custom_fields_item = CreateVariantRequestCustomFieldsItem.from_dict(
-                    custom_fields_item_data
+                    cast(Mapping[str, Any], custom_fields_item_data)
                 )
 
                 custom_fields.append(custom_fields_item)

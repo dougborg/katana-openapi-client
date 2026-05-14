@@ -141,7 +141,7 @@ class CreateManufacturingOrderProductionRequest:
             ingredients = []
             for ingredients_item_data in _ingredients:
                 ingredients_item = ManufacturingOrderProductionIngredient.from_dict(
-                    ingredients_item_data
+                    cast(Mapping[str, Any], ingredients_item_data)
                 )
 
                 ingredients.append(ingredients_item)
@@ -152,7 +152,7 @@ class CreateManufacturingOrderProductionRequest:
             operations = []
             for operations_item_data in _operations:
                 operations_item = ManufacturingOrderOperationRow.from_dict(
-                    operations_item_data
+                    cast(Mapping[str, Any], operations_item_data)
                 )
 
                 operations.append(operations_item)

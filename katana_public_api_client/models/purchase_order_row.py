@@ -329,7 +329,7 @@ class PurchaseOrderRow:
             for batch_transactions_item_data in _batch_transactions:
                 batch_transactions_item = (
                     PurchaseOrderRowBatchTransactionsItem.from_dict(
-                        batch_transactions_item_data
+                        cast(Mapping[str, Any], batch_transactions_item_data)
                     )
                 )
 

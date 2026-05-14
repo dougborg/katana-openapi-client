@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from dateutil.parser import isoparse
@@ -136,7 +136,7 @@ class CreatePurchaseOrderRequest:
         _purchase_order_rows = d.pop("purchase_order_rows")
         for purchase_order_rows_item_data in _purchase_order_rows:
             purchase_order_rows_item = PurchaseOrderRowRequest.from_dict(
-                purchase_order_rows_item_data
+                cast(Mapping[str, Any], purchase_order_rows_item_data)
             )
 
             purchase_order_rows.append(purchase_order_rows_item)

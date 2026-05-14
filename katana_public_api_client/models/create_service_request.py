@@ -86,7 +86,9 @@ class CreateServiceRequest:
         variants = []
         _variants = d.pop("variants")
         for variants_item_data in _variants:
-            variants_item = CreateServiceVariantRequest.from_dict(variants_item_data)
+            variants_item = CreateServiceVariantRequest.from_dict(
+                cast(Mapping[str, Any], variants_item_data)
+            )
 
             variants.append(variants_item)
 

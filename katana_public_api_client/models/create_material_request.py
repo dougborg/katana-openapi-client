@@ -121,7 +121,9 @@ class CreateMaterialRequest:
         variants = []
         _variants = d.pop("variants")
         for variants_item_data in _variants:
-            variants_item = CreateVariantRequest.from_dict(variants_item_data)
+            variants_item = CreateVariantRequest.from_dict(
+                cast(Mapping[str, Any], variants_item_data)
+            )
 
             variants.append(variants_item)
 
@@ -146,7 +148,9 @@ class CreateMaterialRequest:
         if _configs is not UNSET:
             configs = []
             for configs_item_data in _configs:
-                configs_item = MaterialConfig.from_dict(configs_item_data)
+                configs_item = MaterialConfig.from_dict(
+                    cast(Mapping[str, Any], configs_item_data)
+                )
 
                 configs.append(configs_item)
 

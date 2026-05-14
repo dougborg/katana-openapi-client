@@ -417,7 +417,7 @@ class SalesOrderRow:
             attributes = []
             for attributes_item_data in _attributes:
                 attributes_item = SalesOrderRowAttributesItem.from_dict(
-                    attributes_item_data
+                    cast(Mapping[str, Any], attributes_item_data)
                 )
 
                 attributes.append(attributes_item)
@@ -428,7 +428,7 @@ class SalesOrderRow:
             batch_transactions = []
             for batch_transactions_item_data in _batch_transactions:
                 batch_transactions_item = SalesOrderRowBatchTransactionsItem.from_dict(
-                    batch_transactions_item_data
+                    cast(Mapping[str, Any], batch_transactions_item_data)
                 )
 
                 batch_transactions.append(batch_transactions_item)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -59,7 +59,7 @@ class InventoryListResponse:
         data = []
         _data = d.pop("data")
         for data_item_data in _data:
-            data_item = Inventory.from_dict(data_item_data)
+            data_item = Inventory.from_dict(cast(Mapping[str, Any], data_item_data))
 
             data.append(data_item)
 

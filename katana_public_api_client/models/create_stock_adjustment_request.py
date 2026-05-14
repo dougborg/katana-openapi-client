@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from dateutil.parser import isoparse
@@ -87,7 +87,7 @@ class CreateStockAdjustmentRequest:
         for stock_adjustment_rows_item_data in _stock_adjustment_rows:
             stock_adjustment_rows_item = (
                 CreateStockAdjustmentRequestStockAdjustmentRowsItem.from_dict(
-                    stock_adjustment_rows_item_data
+                    cast(Mapping[str, Any], stock_adjustment_rows_item_data)
                 )
             )
 

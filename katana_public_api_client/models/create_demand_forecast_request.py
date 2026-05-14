@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
@@ -64,7 +64,7 @@ class CreateDemandForecastRequest:
         _periods = d.pop("periods")
         for periods_item_data in _periods:
             periods_item = CreateDemandForecastRequestPeriodsItem.from_dict(
-                periods_item_data
+                cast(Mapping[str, Any], periods_item_data)
             )
 
             periods.append(periods_item)

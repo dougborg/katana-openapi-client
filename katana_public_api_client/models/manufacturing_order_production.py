@@ -201,7 +201,7 @@ class ManufacturingOrderProduction:
             ingredients = []
             for ingredients_item_data in _ingredients:
                 ingredients_item = ManufacturingOrderProductionIngredient.from_dict(
-                    ingredients_item_data
+                    cast(Mapping[str, Any], ingredients_item_data)
                 )
 
                 ingredients.append(ingredients_item)
@@ -212,7 +212,7 @@ class ManufacturingOrderProduction:
             operations = []
             for operations_item_data in _operations:
                 operations_item = ManufacturingOrderOperationProduction.from_dict(
-                    operations_item_data
+                    cast(Mapping[str, Any], operations_item_data)
                 )
 
                 operations.append(operations_item)
@@ -222,7 +222,9 @@ class ManufacturingOrderProduction:
         if _serial_numbers is not UNSET:
             serial_numbers = []
             for serial_numbers_item_data in _serial_numbers:
-                serial_numbers_item = SerialNumber.from_dict(serial_numbers_item_data)
+                serial_numbers_item = SerialNumber.from_dict(
+                    cast(Mapping[str, Any], serial_numbers_item_data)
+                )
 
                 serial_numbers.append(serial_numbers_item)
 

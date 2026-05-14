@@ -340,7 +340,9 @@ class Customer:
         if _addresses is not UNSET:
             addresses = []
             for addresses_item_data in _addresses:
-                addresses_item = CustomerAddress.from_dict(addresses_item_data)
+                addresses_item = CustomerAddress.from_dict(
+                    cast(Mapping[str, Any], addresses_item_data)
+                )
 
                 addresses.append(addresses_item)
 

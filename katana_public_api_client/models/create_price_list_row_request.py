@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
@@ -58,7 +58,7 @@ class CreatePriceListRowRequest:
         _price_list_rows = d.pop("price_list_rows")
         for price_list_rows_item_data in _price_list_rows:
             price_list_rows_item = CreatePriceListRowRequestPriceListRowsItem.from_dict(
-                price_list_rows_item_data
+                cast(Mapping[str, Any], price_list_rows_item_data)
             )
 
             price_list_rows.append(price_list_rows_item)

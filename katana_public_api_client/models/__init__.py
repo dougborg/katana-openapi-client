@@ -531,16 +531,20 @@ from .user import User
 from .user_info import UserInfo
 from .user_list_response import UserListResponse
 from .variant import Variant
-from .variant_config_attributes_item import VariantConfigAttributesItem
-from .variant_custom_fields_item import VariantCustomFieldsItem
+from .variant_config_attributes_type_0_item import VariantConfigAttributesType0Item
+from .variant_custom_fields_type_0_item import VariantCustomFieldsType0Item
 from .variant_default_storage_bin_link import VariantDefaultStorageBinLink
 from .variant_default_storage_bin_link_response import (
     VariantDefaultStorageBinLinkResponse,
 )
 from .variant_list_response import VariantListResponse
 from .variant_response import VariantResponse
-from .variant_response_config_attributes_item import VariantResponseConfigAttributesItem
-from .variant_response_custom_fields_item import VariantResponseCustomFieldsItem
+from .variant_response_config_attributes_type_0_item import (
+    VariantResponseConfigAttributesType0Item,
+)
+from .variant_response_custom_fields_type_0_item import (
+    VariantResponseCustomFieldsType0Item,
+)
 from .variant_type import VariantType
 from .webhook import Webhook
 from .webhook_event import WebhookEvent
@@ -951,14 +955,14 @@ __all__ = (
     "UserInfo",
     "UserListResponse",
     "Variant",
-    "VariantConfigAttributesItem",
-    "VariantCustomFieldsItem",
+    "VariantConfigAttributesType0Item",
+    "VariantCustomFieldsType0Item",
     "VariantDefaultStorageBinLink",
     "VariantDefaultStorageBinLinkResponse",
     "VariantListResponse",
     "VariantResponse",
-    "VariantResponseConfigAttributesItem",
-    "VariantResponseCustomFieldsItem",
+    "VariantResponseConfigAttributesType0Item",
+    "VariantResponseCustomFieldsType0Item",
     "VariantType",
     "Webhook",
     "WebhookEvent",

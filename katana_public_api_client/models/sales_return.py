@@ -343,7 +343,7 @@ class SalesReturn:
             sales_return_rows = []
             for sales_return_rows_item_data in _sales_return_rows:
                 sales_return_rows_item = SalesReturnRow.from_dict(
-                    sales_return_rows_item_data
+                    cast(Mapping[str, Any], sales_return_rows_item_data)
                 )
 
                 sales_return_rows.append(sales_return_rows_item)
