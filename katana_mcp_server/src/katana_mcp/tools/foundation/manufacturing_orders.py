@@ -483,24 +483,15 @@ async def create_manufacturing_order(
 
     Two-step flow: preview=true (default) to preview, preview=false to create.
     """
-    from katana_mcp.tools.prefab_ui import (
-        build_order_created_ui,
-        build_order_preview_ui,
-    )
+    from katana_mcp.tools.prefab_ui import build_mo_create_ui
 
     response = await _create_manufacturing_order_impl(request, context)
 
-    order_dict = response.model_dump()
-    if response.is_preview:
-        ui = build_order_preview_ui(
-            order_dict,
-            "Manufacturing Order",
-            confirm_request=request,
-            confirm_tool="create_manufacturing_order",
-            direct_apply=True,
-        )
-    else:
-        ui = build_order_created_ui(order_dict, "Manufacturing Order")
+    ui = build_mo_create_ui(
+        response.model_dump(mode="json"),
+        confirm_request=request,
+        confirm_tool="create_manufacturing_order",
+    )
 
     return make_tool_result(response, ui=ui)
 

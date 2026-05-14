@@ -580,29 +580,31 @@ def test_po_response_to_tool_result_apply_renders_enriched_fields():
 
     tool_result = _po_response_to_tool_result(response, request=request)
 
-    # Walk the Prefab envelope, collecting Text content strings, and assert
-    # the enriched fields show up. The preview card already renders these
-    # via the shared ``_render_order_fields`` helper; the regression #618
-    # was the apply card silently losing them.
+    # Walk the Prefab envelope, collecting every string property
+    # (``content`` for Text, ``label``/``value`` for Metric, etc.), and
+    # assert the enriched fields show up. The preview card already renders
+    # these via ``build_po_create_ui``; the regression #618 was the apply
+    # card silently losing them.
     envelope = tool_result.structured_content
     assert envelope is not None
-    text_nodes: list[str] = []
+    strings: list[str] = []
 
     def collect(o):
         if isinstance(o, dict):
-            if isinstance(o.get("content"), str):
-                text_nodes.append(o["content"])
             for v in o.values():
-                collect(v)
+                if isinstance(v, str):
+                    strings.append(v)
+                else:
+                    collect(v)
         elif isinstance(o, list):
             for v in o:
                 collect(v)
 
     collect(envelope)
-    joined = "\n".join(text_nodes)
+    joined = "\n".join(strings)
     assert "Acme Supply Co" in joined
     assert "Main Warehouse" in joined
-    assert "Items: 2" in joined
+    assert "Line Items" in joined
     assert "Net-30 terms" in joined
 
 

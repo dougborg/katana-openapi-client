@@ -9,8 +9,9 @@ Usage::
     from katana_mcp.tools.prefab_ui import (
         build_search_results_ui,
         build_item_detail_ui,
-        build_order_preview_ui,
-        build_order_created_ui,
+        build_po_create_ui,
+        build_so_create_ui,
+        build_mo_create_ui,
     )
 
     # In a tool's *_to_tool_result function:
@@ -49,6 +50,7 @@ from typing import Any, Literal
 
 from prefab_ui.actions import Action, SetState, ShowToast
 from prefab_ui.actions.mcp import CallTool, SendMessage, UpdateContext
+from prefab_ui.actions.navigation import OpenLink
 from prefab_ui.app import PrefabApp
 from prefab_ui.components import (
     H3,
@@ -79,7 +81,7 @@ from prefab_ui.rx import EVENT, RESULT, Rx
 from pydantic import BaseModel
 
 from katana_mcp.tools.tool_result_utils import BLOCK_WARNING_PREFIX
-from katana_mcp.web_urls import katana_web_url
+from katana_mcp.web_urls import EntityKind, katana_web_url
 
 
 def _split_warnings(
@@ -101,6 +103,68 @@ def _split_warnings(
         else:
             regulars.append(w)
     return blocks, regulars
+
+
+# Status-bucket mapping per entity. Each entity's terminal-success / active
+# (in-progress) / blocked statuses go in their respective sets; statuses
+# absent from every set fall through to "neutral" (the not-started bucket).
+_StatusBucket = Literal["success", "active", "blocked", "neutral"]
+_STATUS_BUCKETS: dict[str, dict[_StatusBucket, set[str]]] = {
+    "purchase_order": {
+        "success": {"RECEIVED"},
+        "active": {"PARTIALLY_RECEIVED"},
+        "blocked": set(),
+        "neutral": set(),
+    },
+    "sales_order": {
+        "success": {"DELIVERED"},
+        "active": {"PARTIALLY_SHIPPED", "PACKED"},
+        "blocked": set(),
+        "neutral": set(),
+    },
+    "manufacturing_order": {
+        "success": {"DONE"},
+        "active": {"IN_PROGRESS", "PARTIALLY_COMPLETED"},
+        "blocked": {"BLOCKED"},
+        "neutral": set(),
+    },
+    "stock_transfer": {
+        "success": {"RECEIVED"},
+        "active": {"IN_TRANSIT"},
+        "blocked": set(),
+        "neutral": set(),
+    },
+}
+_BUCKET_TO_VARIANT: dict[_StatusBucket, str] = {
+    "success": "default",  # green — terminal happy path
+    "active": "secondary",  # gray — in progress
+    "blocked": "destructive",  # red — needs attention
+    "neutral": "outline",  # neutral — not yet started
+}
+
+
+def status_badge_variant(entity: str, status: str | None) -> str:
+    """Return the Prefab ``Badge`` variant string for an entity's status.
+
+    Generic buckets:
+    - ``default`` (green) — terminal-success states (PO RECEIVED, SO DELIVERED,
+      MO DONE).
+    - ``secondary`` (gray) — active / in-progress states (PARTIALLY_*, PACKED,
+      IN_PROGRESS).
+    - ``destructive`` (red) — blocked / problem states (MO BLOCKED).
+    - ``outline`` (neutral) — unstarted / unknown statuses (NOT_RECEIVED,
+      NOT_SHIPPED, NOT_STARTED, ``None``, unknown entity).
+
+    Used by every preview/apply card's Tier 1 status badge. Follow-up card
+    families extend ``_STATUS_BUCKETS`` with their entity's statuses.
+    """
+    if status is None:
+        return "outline"
+    buckets = _STATUS_BUCKETS.get(entity, {})
+    for bucket_name, members in buckets.items():
+        if status in members:
+            return _BUCKET_TO_VARIANT[bucket_name]
+    return "outline"
 
 
 # Coaching text appended to every preview-mode write tool's description.
@@ -342,8 +406,13 @@ def _build_apply_action_direct(
     on_success: list[Action] = [
         *(extra_on_success or []),
         SetState("pending", False),
-        SetState("applied", True),
+        # ``result`` MUST land before ``applied`` flips — the applied-state
+        # tree binds Buttons to ``{{ result.id }}`` / ``{{ result.katana_url }}``
+        # templates (see ``_render_preview_footer``). Setting ``applied=True``
+        # first would let the iframe render the morph with empty bindings
+        # before ``result`` arrives.
         SetState("result", RESULT),
+        SetState("applied", True),
         UpdateContext(content=RESULT),
     ]
     return [
@@ -1270,6 +1339,18 @@ def _format_cost(cost: float | int | None) -> str:
     return f"{cost:.2f}"
 
 
+def _iso_date_only(value: object) -> str:
+    """Trim a serialized ISO datetime to its ``YYYY-MM-DD`` prefix.
+
+    ``model_dump(mode="json")`` renders ``datetime`` fields as ISO strings.
+    The user-facing card surfaces them as dates; the time component is
+    noise.
+    """
+    if isinstance(value, str):
+        return value.split("T")[0]
+    return str(value)
+
+
 # Initial state slots written by the direct-apply rail's Confirm/Cancel
 # action chains. Builders that opt into the rail seed these to ``False`` /
 # ``None`` so the iframe's If/Elif blocks have something to bind to before
@@ -1562,224 +1643,439 @@ def build_stock_adjustment_delete_ui(
 # Order UIs (Preview + Created)
 # ============================================================================
 
-OrderType = Literal["Purchase Order", "Sales Order", "Manufacturing Order"]
+
+def _render_preview_header(
+    *,
+    title_prefix: str,
+    entity: str,
+    order_number: str,
+    status: str | None,
+    extra_badges: tuple[tuple[str, str], ...] = (),
+) -> None:
+    """Tier 1: CardHeader for a preview/apply card.
+
+    Renders the title (toggles ``"X Preview"`` ↔ ``"X Created"`` on
+    ``state.applied``), an order-number Badge, a PREVIEW/CREATED state
+    Badge (toggle on ``state.applied``), the entity status Badge with the
+    bucket-driven variant from ``status_badge_variant``, and any
+    caller-provided extras (e.g. ``[("outsourced", "outline")]`` for PO).
+
+    Must be called inside ``with PrefabApp(...) as app, Card():`` —
+    the helper does NOT open the Card; it only adds the CardHeader row.
+    """
+    with CardHeader(), Row(gap=2):
+        with If("applied"):
+            CardTitle(content=f"{title_prefix} Created")
+        with Else():
+            CardTitle(content=f"{title_prefix} Preview")
+        Badge(label=order_number, variant="outline")
+        with If("applied"):
+            Badge(label="CREATED", variant="default")
+        with Else():
+            Badge(label="PREVIEW", variant="secondary")
+        if status:
+            Badge(label=status, variant=status_badge_variant(entity, status))
+        for label, variant in extra_badges:
+            Badge(label=label, variant=variant)
+
+
+def _render_warnings_block(warnings: list[str] | None) -> list[str]:
+    """Render the warnings section of Tier 3 and return the block-warning list.
+
+    Block warnings render as destructive Badges (the ``BLOCK:`` prefix is
+    stripped); regular warnings render as secondary Badges. A ``Separator``
+    precedes the badges only when at least one warning exists.
+
+    Returns the unprefixed block-warning list so the caller can pass it to
+    ``_render_apply_button_row(disabled=bool(block_warnings))`` — block
+    warnings gate the Confirm button (and the Tier-4 message swaps from
+    "preview" to "cannot proceed" accordingly).
+
+    Must be called inside the ``CardContent`` column block.
+    """
+    block_warnings, regular_warnings = _split_warnings(warnings)
+    if block_warnings or regular_warnings:
+        Separator()
+        for w in block_warnings:
+            Badge(label=w, variant="destructive")
+        for w in regular_warnings:
+            Badge(label=w, variant="secondary")
+    return block_warnings
+
+
+def _render_preview_footer(
+    *,
+    title_prefix: str,
+    block_warnings: list[str],
+    confirm_label: str,
+    apply_action: list[Action] | None,
+    cancel_action: list[Action],
+    next_action_buttons: tuple[tuple[str, str], ...] = (),
+) -> None:
+    """Tier 4: CardFooter for a preview/apply card.
+
+    The applied-state View-in-Katana link and the per-entity next-action
+    SendMessage buttons bind to ``{{ result.<field> }}`` templates so they
+    work in both entry paths:
+
+    - In-place morph: the preview response has no ``id`` / ``katana_url``,
+      but the direct-apply rail's on_success chain writes the apply
+      response into ``state.result`` before flipping ``applied=True``, so
+      the buttons resolve correctly at render time.
+    - Standalone-applied (``is_preview=False``): :func:`_init_create_card_state`
+      pre-seeds ``state.result`` from the response, so the same templates
+      resolve there too.
+
+    The View-in-Katana button is gated by ``If("result.katana_url")`` so
+    it hides when the apply response carries no URL (defensive — every
+    create_* tool sets one today).
+
+    Must be called inside ``with PrefabApp(...) as app, Card():``.
+    """
+    with CardFooter(), Column(gap=2):
+        if block_warnings:
+            Muted(
+                content="Cannot proceed — see warnings above. No changes have been made."
+            )
+            _render_apply_button_row(
+                confirm_label=confirm_label,
+                apply_action=None,
+                cancel_action=cancel_action,
+                disabled=True,
+                direct_apply=True,
+            )
+            return
+        with If("applied"):
+            Muted(content=f"{title_prefix} created.")
+            with Row(gap=2):
+                with If("result.katana_url"):
+                    Button(
+                        label="View in Katana",
+                        variant="outline",
+                        on_click=OpenLink(url="{{ result.katana_url }}"),
+                    )
+                for label, send_text in next_action_buttons:
+                    Button(
+                        label=label,
+                        variant="outline",
+                        on_click=SendMessage(send_text),
+                    )
+        with Elif("error"):
+            Muted(content="Apply failed — see error above.")
+        with Elif("cancelled"):
+            Muted(content="Cancelled. No changes were made.")
+        with Else():
+            Muted(content="This is a preview. No changes have been made.")
+            _render_apply_button_row(
+                confirm_label=confirm_label,
+                apply_action=apply_action,
+                cancel_action=cancel_action,
+                direct_apply=True,
+            )
+
+
 ItemAction = Literal["Created", "Updated", "Deleted"]
 
 
-def _extract_order_fields(order: dict[str, Any]) -> dict[str, Any]:
-    """Extract common display fields from an order dict."""
-    total_cost = order.get("total_cost")
-    return {
-        "order_number": order.get("order_number") or order.get("order_no", "N/A"),
-        "order_id": order.get("id", "N/A"),
-        "total": total_cost if total_cost is not None else order.get("total"),
-        "currency": order.get("currency", "USD"),
-        "status": order.get("status", "CREATED"),
-    }
+def _init_create_card_state(response: dict[str, Any]) -> dict[str, Any]:
+    """Seed iframe state for a create card.
 
+    The direct-apply rail flips ``applied=True`` (and optionally
+    ``error="…"``) on Confirm success/failure; the in-place morph
+    re-renders the same Prefab tree against the new state. When the
+    response enters with ``is_preview=False`` (the standalone post-apply
+    path), we seed ``applied=True`` at construction time so the same
+    builder serves both entry paths.
 
-def _render_order_fields(order: dict[str, Any], *, total: Any, currency: str) -> None:
-    """Render shared order content fields (supplier/customer/location + total).
-
-    Prefers human-readable names when present (``customer_name``,
-    ``supplier_name``, ``location_name``) and falls back to bare IDs. If the
-    order dict carries a non-empty ``notes`` key, it renders below the entity
-    lines so the user can visually verify the value persisted on the apply
-    card — matching the preview's information density (#618). Today only
-    ``create_purchase_order``'s response model surfaces ``notes``; the other
-    order responses expose the field as ``additional_info`` and don't feed it
-    here, so the line is silently skipped for those tools.
+    ``state.result`` carries the apply-response data used by the
+    applied-state Buttons (``{{ result.katana_url }}`` etc.). On the
+    standalone-applied path we seed it from the response here; on the
+    in-place morph path the on_success chain in
+    :func:`_build_apply_action_direct` populates it via
+    ``SetState("result", RESULT)`` before flipping ``applied=True``.
     """
-    if total is not None:
-        Metric(label="Total", value=f"${total:,.2f} {currency}")
-
-    if order.get("supplier_id"):
-        name = order.get("supplier_name")
-        Text(
-            content=f"Supplier: {name} (ID: {order['supplier_id']})"
-            if name
-            else f"Supplier ID: {order['supplier_id']}"
-        )
-    if order.get("customer_id"):
-        name = order.get("customer_name")
-        Text(
-            content=f"Customer: {name} (ID: {order['customer_id']})"
-            if name
-            else f"Customer ID: {order['customer_id']}"
-        )
-    if order.get("location_id"):
-        name = order.get("location_name")
-        Text(
-            content=f"Location: {name} (ID: {order['location_id']})"
-            if name
-            else f"Location ID: {order['location_id']}"
-        )
-    if order.get("item_count") is not None:
-        Text(content=f"Items: {order['item_count']}")
-    notes = order.get("notes")
-    if notes:
-        Text(content=f"Notes: {notes}")
+    applied = not response.get("is_preview", True)
+    state: dict[str, Any] = {
+        "applied": applied,
+        "pending": False,
+        "cancelled": False,
+        "error": None,
+    }
+    if applied:
+        state["result"] = response
+    return state
 
 
-def build_order_preview_ui(
-    order: dict[str, Any],
-    order_type: OrderType,
+def _render_party_line(
+    label: str,
+    *,
+    name: str | None,
+    entity_id: int | None,
+    entity_kind: EntityKind | None = None,
+) -> None:
+    """Render a 'Supplier:' / 'Customer:' / 'Location:' line.
+
+    When ``entity_kind`` resolves to a Katana web URL and a ``name`` is
+    present, renders ``<label>: <Link name>`` so users can click through
+    to the source-of-truth entity (mirrors the variant card's parent and
+    default-supplier link pattern; matches this module's "Link Katana
+    entities wherever possible" convention). Falls back to plain text
+    otherwise. Skips entirely when ``entity_id`` is None.
+    """
+    if entity_id is None:
+        return
+    url = katana_web_url(entity_kind, entity_id) if entity_kind else None
+    if name and url:
+        with Row(gap=1):
+            Text(content=f"{label}:")
+            Link(content=name, href=url, target="_blank")
+    elif name:
+        Text(content=f"{label}: {name} (ID: {entity_id})")
+    else:
+        Text(content=f"{label} ID: {entity_id}")
+
+
+def build_po_create_ui(
+    response: dict[str, Any],
     *,
     confirm_request: BaseModel,
     confirm_tool: str,
-    direct_apply: bool = False,
 ) -> PrefabApp:
-    """Build an order preview card with confirm/cancel buttons.
+    """Build the create-purchase-order card. Handles both preview
+    (``is_preview=True`` → PREVIEW Badge + Confirm/Cancel + direct-apply
+    morph) and applied (``is_preview=False`` → CREATED Badge + View in
+    Katana + next-action buttons) states. Reads
+    ``PurchaseOrderResponse.model_dump()`` directly.
 
-    Pass the original Pydantic ``confirm_request`` and matching
-    ``confirm_tool`` name. Two apply rails:
-
-    - ``direct_apply=False`` (default) — Confirm fires a SendMessage chat
-      hint and the agent re-issues the call. See ADR-0015.
-    - ``direct_apply=True`` — Confirm fires ``tools/call`` directly, the
-      iframe morphs in place to a result view, and the structured response
-      is pushed to the agent via ``ui/update-model-context``. See ADR-0016
-      (forthcoming). Currently opted into by ``create_purchase_order``;
-      rolling out across the rest of the write tools after Cowork
-      verification.
+    Four-tier framework (#537):
+    - Tier 1 — Identity: title, order_number badge, PREVIEW/CREATED state
+      badge, status badge, entity_type badge (regular/outsourced).
+    - Tier 2 — Decision metrics: Total ($X.XX <currency>), Line Items.
+    - Tier 3 — Reference: supplier, location, notes, plus warnings.
+    - Tier 4 — Actions: Confirm + Cancel via the direct-apply rail
+      (Confirm fires ``tools/call`` directly and pushes the structured
+      apply response back via ``ui/update-model-context``); applied state
+      surfaces View in Katana + Receive Items + Verify Document buttons.
     """
-    fields = _extract_order_fields(order)
-    apply_action: list[Action] | CallTool | None
-    if direct_apply:
-        apply_action = _build_apply_action_direct(confirm_tool, confirm_request)
-    else:
-        apply_action = _build_apply_action(confirm_tool, confirm_request)
-    cancel_action = _build_cancel_action(f"that {order_type.lower()}")
-    state: dict[str, Any] = {"order": order, "pending": False, "cancelled": False}
-    if direct_apply:
-        # Initial state for the morph; on apply success the iframe sets
-        # `applied=True` and stashes the structured response in `result`.
-        state["applied"] = False
-        state["error"] = None
-        state["result"] = None
+    order_number = response.get("order_number") or "N/A"
+    status = response.get("status")
+    entity_type = response.get("entity_type")
+    total_cost = response.get("total_cost")
+    currency = response.get("currency") or "USD"
+    item_count = response.get("item_count")
 
-    with PrefabApp(state=state, css_class="p-4") as app, Card():
-        with CardHeader(), Row(gap=2):
-            CardTitle(content=f"{order_type} Preview")
-            Badge(label=fields["order_number"], variant="outline")
-            Badge(label="PREVIEW", variant="secondary")
+    apply_action = _build_apply_action_direct(confirm_tool, confirm_request)
+    cancel_action = _build_cancel_action("that purchase order")
+    extra_badges: tuple[tuple[str, str], ...] = (
+        ((entity_type, "outline"),) if entity_type and entity_type != "regular" else ()
+    )
 
+    with (
+        PrefabApp(state=_init_create_card_state(response), css_class="p-4") as app,
+        Card(),
+    ):
+        _render_preview_header(
+            title_prefix="Purchase Order",
+            entity="purchase_order",
+            order_number=order_number,
+            status=status,
+            extra_badges=extra_badges,
+        )
         with CardContent(), Column(gap=3):
-            _render_order_fields(
-                order, total=fields["total"], currency=fields["currency"]
+            if total_cost is not None or item_count is not None:
+                with Row(gap=4):
+                    if total_cost is not None:
+                        Metric(label="Total", value=f"${total_cost:,.2f} {currency}")
+                    if item_count is not None:
+                        Metric(label="Line Items", value=str(item_count))
+            _render_party_line(
+                "Supplier",
+                name=response.get("supplier_name"),
+                entity_id=response.get("supplier_id"),
+                entity_kind="supplier",
             )
-            if order.get("variant_id"):
-                Text(content=f"Variant ID: {order['variant_id']}")
-            if order.get("planned_quantity"):
-                Text(content=f"Planned Quantity: {order['planned_quantity']}")
-
-            block_warnings, regular_warnings = _split_warnings(order.get("warnings"))
-            if block_warnings or regular_warnings:
-                Separator()
-                for warning in block_warnings:
-                    Badge(label=warning, variant="destructive")
-                for warning in regular_warnings:
-                    Badge(label=warning, variant="secondary")
-
-            if direct_apply:
-                # Direct-apply morph: success/error blocks render in place
-                # of the preview footer messaging when the iframe state
-                # flips. The agent has already received the structured
-                # result via ui/update-model-context — these blocks are
-                # for the user, not the agent.
-                with If("applied"):
-                    Separator()
-                    Text(content=f"{order_type} created.")
-                    Muted(
-                        content=(
-                            "The structured result has been pushed to the "
-                            "assistant's context."
-                        )
-                    )
-                with Elif("error"):
-                    Separator()
-                    with Alert(variant="destructive", icon="circle-alert"):
-                        AlertTitle(content="Apply failed")
-                        AlertDescription(content="{{ error }}")
-
-        with CardFooter():
-            if block_warnings:
-                Muted(
-                    content="Cannot proceed — see warnings above. No changes have been made."
-                )
-            elif direct_apply:
-                # Footer message tracks the iframe state — once applied or
-                # errored, "This is a preview" is no longer true and would
-                # confuse the user.
-                with If("applied"):
-                    Muted(content=f"{order_type} created.")
-                with Elif("error"):
-                    Muted(content="Apply failed — see error above.")
-                with Elif("cancelled"):
-                    Muted(content="Cancelled. No changes were made.")
-                with Else():
-                    Muted(content="This is a preview. No changes have been made.")
-            else:
-                Muted(content="This is a preview. No changes have been made.")
-
-            _render_apply_button_row(
-                confirm_label=f"Confirm & Create {order_type}",
-                apply_action=apply_action,
-                cancel_action=cancel_action,
-                disabled=bool(block_warnings),
-                direct_apply=direct_apply,
+            _render_party_line(
+                "Location",
+                name=response.get("location_name"),
+                entity_id=response.get("location_id"),
             )
+            notes = response.get("notes")
+            if notes:
+                Text(content=f"Notes: {notes}")
+            block_warnings = _render_warnings_block(response.get("warnings"))
+        _render_preview_footer(
+            title_prefix="Purchase Order",
+            block_warnings=block_warnings,
+            confirm_label="Confirm & Create Purchase Order",
+            apply_action=apply_action,
+            cancel_action=cancel_action,
+            next_action_buttons=(
+                (
+                    "Receive Items",
+                    "Receive items for purchase order {{ result.id }}",
+                ),
+                (
+                    "Verify Document",
+                    "Verify a supplier document against PO {{ result.id }}",
+                ),
+            ),
+        )
     return app
 
 
-def build_order_created_ui(
-    order: dict[str, Any],
-    order_type: OrderType,
+def build_so_create_ui(
+    response: dict[str, Any],
+    *,
+    confirm_request: BaseModel,
+    confirm_tool: str,
 ) -> PrefabApp:
-    """Build a success card for a created order."""
-    fields = _extract_order_fields(order)
-    order_id = fields["order_id"]
+    """Build the create-sales-order card. Handles both preview and
+    applied states (see ``build_po_create_ui`` for the dual-state shape).
+    Reads ``SalesOrderResponse.model_dump()`` directly.
 
-    with PrefabApp(state={"order": order}, css_class="p-4") as app, Card():
-        with CardHeader(), Row(gap=2):
-            CardTitle(content=f"{order_type} Created")
-            Badge(label=fields["order_number"], variant="outline")
-            Badge(label=fields["status"], variant="default")
+    Four-tier content:
+    - Tier 1: title, order_number, PREVIEW/CREATED, status (variant from
+      ``status_badge_variant("sales_order", status)``).
+    - Tier 2: Total, Line Items, Delivery date.
+    - Tier 3: customer, location (ID-only — SO response has no
+      ``location_name``), warnings.
+    - Tier 4: Confirm/Cancel (preview) or View in Katana + Fulfill Order
+      (applied).
+    """
+    order_number = response.get("order_number") or "N/A"
+    status = response.get("status")
+    total = response.get("total")
+    currency = response.get("currency") or "USD"
+    item_count = response.get("item_count")
+    delivery_date = response.get("delivery_date")
 
-        with CardContent(), Column(gap=2):
-            Text(content=f"Order ID: {order_id}")
-            _render_order_fields(
-                order, total=fields["total"], currency=fields["currency"]
+    apply_action = _build_apply_action_direct(confirm_tool, confirm_request)
+    cancel_action = _build_cancel_action("that sales order")
+
+    with (
+        PrefabApp(state=_init_create_card_state(response), css_class="p-4") as app,
+        Card(),
+    ):
+        _render_preview_header(
+            title_prefix="Sales Order",
+            entity="sales_order",
+            order_number=order_number,
+            status=status,
+        )
+        with CardContent(), Column(gap=3):
+            if total is not None or item_count is not None or delivery_date:
+                with Row(gap=4):
+                    if total is not None:
+                        Metric(label="Total", value=f"${total:,.2f} {currency}")
+                    if item_count is not None:
+                        Metric(label="Line Items", value=str(item_count))
+                    if delivery_date:
+                        Metric(label="Delivery", value=str(delivery_date))
+            _render_party_line(
+                "Customer",
+                name=response.get("customer_name"),
+                entity_id=response.get("customer_id"),
+                entity_kind="customer",
             )
+            _render_party_line(
+                "Location",
+                name=None,  # SalesOrderResponse has no location_name
+                entity_id=response.get("location_id"),
+            )
+            block_warnings = _render_warnings_block(response.get("warnings"))
+        _render_preview_footer(
+            title_prefix="Sales Order",
+            block_warnings=block_warnings,
+            confirm_label="Confirm & Create Sales Order",
+            apply_action=apply_action,
+            cancel_action=cancel_action,
+            next_action_buttons=(
+                ("Fulfill Order", "Fulfill sales order {{ result.id }}"),
+            ),
+        )
+    return app
 
-        with CardFooter(), Row(gap=2):
-            if order_type == "Purchase Order":
-                Button(
-                    label="Receive Items",
-                    variant="outline",
-                    on_click=SendMessage(
-                        f"Receive items for purchase order {order_id}"
-                    ),
-                )
-                Button(
-                    label="Verify Document",
-                    variant="outline",
-                    on_click=SendMessage(
-                        f"Verify a supplier document against PO {order_id}"
-                    ),
-                )
-            elif order_type == "Sales Order":
-                Button(
-                    label="Fulfill Order",
-                    variant="outline",
-                    on_click=SendMessage(f"Fulfill sales order {order_id}"),
-                )
-            elif order_type == "Manufacturing Order":
-                Button(
-                    label="Complete Order",
-                    variant="outline",
-                    on_click=SendMessage(f"Complete manufacturing order {order_id}"),
-                )
+
+def build_mo_create_ui(
+    response: dict[str, Any],
+    *,
+    confirm_request: BaseModel,
+    confirm_tool: str,
+) -> PrefabApp:
+    """Build the create-manufacturing-order card. Handles both preview and
+    applied states. Reads ``ManufacturingOrderResponse.model_dump()`` —
+    note that MO uses ``order_no`` (NOT ``order_number``) and
+    ``additional_info`` (NOT ``notes``).
+
+    Four-tier content:
+    - Tier 1: title, order_no badge, PREVIEW/CREATED, status (variant from
+      ``status_badge_variant("manufacturing_order", status)``).
+    - Tier 2: Planned Qty, Deadline.
+    - Tier 3: variant (sku + id), location ID, created date, notes
+      (additional_info), warnings.
+    - Tier 4: Confirm/Cancel (preview) or View in Katana + Complete Order
+      (applied).
+    """
+    order_number = response.get("order_no") or "N/A"
+    status = response.get("status")
+    variant_id = response.get("variant_id")
+    sku = response.get("sku")
+    planned_quantity = response.get("planned_quantity")
+    location_id = response.get("location_id")
+    order_created_date = response.get("order_created_date")
+    production_deadline_date = response.get("production_deadline_date")
+    additional_info = response.get("additional_info")
+
+    apply_action = _build_apply_action_direct(confirm_tool, confirm_request)
+    cancel_action = _build_cancel_action("that manufacturing order")
+
+    with (
+        PrefabApp(state=_init_create_card_state(response), css_class="p-4") as app,
+        Card(),
+    ):
+        _render_preview_header(
+            title_prefix="Manufacturing Order",
+            entity="manufacturing_order",
+            order_number=order_number,
+            status=status,
+        )
+        with CardContent(), Column(gap=3):
+            if planned_quantity is not None or production_deadline_date:
+                with Row(gap=4):
+                    if planned_quantity is not None:
+                        Metric(label="Planned Qty", value=str(planned_quantity))
+                    if production_deadline_date:
+                        Metric(
+                            label="Deadline",
+                            value=_iso_date_only(production_deadline_date),
+                        )
+            if variant_id is not None or sku:
+                if sku and variant_id is not None:
+                    Text(content=f"Variant: {sku} (ID: {variant_id})")
+                elif sku:
+                    Text(content=f"Variant: {sku}")
+                else:
+                    Text(content=f"Variant ID: {variant_id}")
+            if location_id is not None:
+                Text(content=f"Location ID: {location_id}")
+            if order_created_date:
+                Text(content=f"Created: {_iso_date_only(order_created_date)}")
+            if additional_info:
+                Text(content=f"Notes: {additional_info}")
+            block_warnings = _render_warnings_block(response.get("warnings"))
+        _render_preview_footer(
+            title_prefix="Manufacturing Order",
+            block_warnings=block_warnings,
+            confirm_label="Confirm & Create Manufacturing Order",
+            apply_action=apply_action,
+            cancel_action=cancel_action,
+            next_action_buttons=(
+                (
+                    "Complete Order",
+                    "Complete manufacturing order {{ result.id }}",
+                ),
+            ),
+        )
     return app
 
 

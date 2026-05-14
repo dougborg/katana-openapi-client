@@ -246,22 +246,13 @@ def _po_response_to_tool_result(
     result to the agent via ``ui/update-model-context``). This is the spike
     for the rail described in ADR-0016 (forthcoming, supersedes ADR-0015).
     """
-    from katana_mcp.tools.prefab_ui import (
-        build_order_created_ui,
-        build_order_preview_ui,
-    )
+    from katana_mcp.tools.prefab_ui import build_po_create_ui
 
-    order_dict = response.model_dump()
-    if response.is_preview:
-        ui = build_order_preview_ui(
-            order_dict,
-            "Purchase Order",
-            confirm_request=request,
-            confirm_tool="create_purchase_order",
-            direct_apply=True,
-        )
-    else:
-        ui = build_order_created_ui(order_dict, "Purchase Order")
+    ui = build_po_create_ui(
+        response.model_dump(mode="json"),
+        confirm_request=request,
+        confirm_tool="create_purchase_order",
+    )
 
     return make_tool_result(response, ui=ui)
 

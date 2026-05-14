@@ -534,24 +534,15 @@ async def create_sales_order(
     variant_id and quantity. Supports optional pricing overrides, discounts,
     delivery dates, and billing/shipping addresses.
     """
-    from katana_mcp.tools.prefab_ui import (
-        build_order_created_ui,
-        build_order_preview_ui,
-    )
+    from katana_mcp.tools.prefab_ui import build_so_create_ui
 
     response = await _create_sales_order_impl(request, context)
 
-    order_dict = response.model_dump()
-    if response.is_preview:
-        ui = build_order_preview_ui(
-            order_dict,
-            "Sales Order",
-            confirm_request=request,
-            confirm_tool="create_sales_order",
-            direct_apply=True,
-        )
-    else:
-        ui = build_order_created_ui(order_dict, "Sales Order")
+    ui = build_so_create_ui(
+        response.model_dump(mode="json"),
+        confirm_request=request,
+        confirm_tool="create_sales_order",
+    )
 
     return make_tool_result(response, ui=ui)
 
