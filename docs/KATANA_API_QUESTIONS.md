@@ -159,6 +159,44 @@ ______________________________________________________________________
 endpoint, not CRUD resource); body requires `variant_id` + `location_id` + `periods` on
 POST and DELETE; our spec mirrors it, no follow-up needed.*
 
+### 5.2 `GET /sales_returns?sales_order_id=N` silently ignores the filter
+
+**Status: CONFIRMED via live API on 2026-05-14**
+
+The `sales_order_id` query parameter on `GET /sales_returns` is declared in the spec and
+accepted by the server with a 200 response, but the filter is not applied — the endpoint
+returns every sales return in the account regardless of the value passed.
+
+**Investigation (2026-05-14):** While investigating why `DELETE /sales_orders/{id}`
+returned 412 for SO 40190868, we listed sales returns with
+`GET /sales_returns?sales_order_id=40190868`. The endpoint returned 43 records, but
+inspection of the response payload showed only 2 actually had
+`sales_order_id == 40190868` — the other 41 were unrelated. A second call without the
+filter parameter returned an identical 43-record list (same IDs, same order), proving
+the server treats `sales_order_id=N` as a no-op.
+
+```
+# With filter
+GET /sales_returns?sales_order_id=40190868&limit=100 → 200, 43 records returned
+# Without filter
+GET /sales_returns?limit=100 → 200, 43 records returned (same set)
+# Client-side filter after the fact
+[sr for sr in records if sr["sales_order_id"] == 40190868] → 2 records
+```
+
+**Conclusion:** Either the upstream `GET /sales_returns` doesn't honor `sales_order_id`
+as a filter, or it honors a different parameter name. Until this is resolved upstream,
+callers must fetch the full list and filter client-side — which also defeats pagination
+if the account has more than `limit` sales returns. The same caution likely applies to
+any consumer of this filter, and other declared filter parameters on this endpoint
+should be re-verified.
+
+**Cross-reference:** Surfaced during investigation tracked in #740 (MCP returns-gap).
+Needs an upstream report to Katana — our spec correctly documents the filter parameter;
+the gap is in upstream behavior, not our client.
+
+**Last verified:** 2026-05-14 (live API, against production tenant).
+
 ______________________________________________________________________
 
 ## 6. PATCH Asymmetric Field-Wipe Behavior
