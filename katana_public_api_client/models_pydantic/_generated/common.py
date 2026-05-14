@@ -852,10 +852,16 @@ class Factory(KatanaPydanticBase):
     display_name: Annotated[str, Field(description="Display name of the company")]
     base_currency_code: Annotated[str, Field(description="Base currency code")]
     default_so_delivery_time: Annotated[
-        str | None, Field(description="Default sales order delivery time")
+        str | None,
+        Field(
+            description='Default sales order delivery time. Note: Katana\'s upstream\nexample shows an ISO-8601 datetime, but the live wire delivers\neither ``null`` or an opaque short string (e.g. ``"14"`` for\ndays). ``format: date-time`` is intentionally omitted.'
+        ),
     ] = None
     default_po_lead_time: Annotated[
-        str | None, Field(description="Default purchase order lead time")
+        str | None,
+        Field(
+            description="Default purchase order lead time. Same shape as\n``default_so_delivery_time`` — wire delivers ``null`` or an\nopaque short string, not a datetime. ``format: date-time``\nintentionally omitted."
+        ),
     ] = None
     default_manufacturing_location_id: Annotated[
         int | None, Field(description="Default manufacturing location ID")
@@ -1308,10 +1314,16 @@ class CachedFactory(KatanaPydanticBase, table=True):
     ]
     base_currency_code: Annotated[Mapped[str], Field(description="Base currency code")]
     default_so_delivery_time: Annotated[
-        Mapped[str | None], Field(description="Default sales order delivery time")
+        Mapped[str | None],
+        Field(
+            description='Default sales order delivery time. Note: Katana\'s upstream\nexample shows an ISO-8601 datetime, but the live wire delivers\neither ``null`` or an opaque short string (e.g. ``"14"`` for\ndays). ``format: date-time`` is intentionally omitted.'
+        ),
     ] = None
     default_po_lead_time: Annotated[
-        Mapped[str | None], Field(description="Default purchase order lead time")
+        Mapped[str | None],
+        Field(
+            description="Default purchase order lead time. Same shape as\n``default_so_delivery_time`` — wire delivers ``null`` or an\nopaque short string, not a datetime. ``format: date-time``\nintentionally omitted."
+        ),
     ] = None
     default_manufacturing_location_id: Annotated[
         Mapped[int | None], Field(description="Default manufacturing location ID")
