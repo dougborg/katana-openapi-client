@@ -817,8 +817,32 @@ def fix_ty_type_errors(workspace_path: Path) -> None:
                 content,
             )
 
-            # Ensure cast and Mapping are imported
-            if "cast(Mapping[str, Any], data)" in content:
+            # Pattern 3: union-aware loop-item calls (post-#727).
+            # When a property is typed as ``[array, "null"]``, the generator emits
+            # ``for X_item_data in <data>: Y.from_dict(X_item_data)`` inside a
+            # ``try / except`` block. ``X_item_data`` is inferred as ``object``
+            # by ty (the outer ``data`` is ``object``; ``isinstance(data, list)``
+            # narrows to ``list`` but items stay ``object``), so ``from_dict``
+            # rejects the argument. Cast at the call site — pre-existing
+            # ``data``-named pattern (#1, #2) had the same root cause but used a
+            # short fixed name. Match any ``..._data`` variable; the variable
+            # naming is the generator's convention for loop items in this
+            # union-aware path.
+            content = re.sub(
+                r"(\w+)\.from_dict\((\w+_data)\)",
+                r"\1.from_dict(cast(Mapping[str, Any], \2))",
+                content,
+            )
+            # Same for the multi-line variant (the inner expression often wraps).
+            content = re.sub(
+                r"(\w+)\.from_dict\(\s*\n(\s+)(\w+_data)\s*\n(\s*)\)",
+                r"\1.from_dict(\n\2cast(Mapping[str, Any], \3)\n\4)",
+                content,
+            )
+
+            # Ensure cast and Mapping are imported (covers all four patterns
+            # above since they all emit ``cast(Mapping[str, Any], ...)``).
+            if "cast(Mapping[str, Any]," in content:
                 # Check if cast is already imported from typing
                 if not re.search(r"from typing import.*\bcast\b", content):
                     # Find the from typing import line and add cast at the end

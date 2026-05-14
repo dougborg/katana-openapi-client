@@ -15,6 +15,7 @@ Features:
 import asyncio
 import os
 import time
+import traceback
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Literal, cast
@@ -124,12 +125,26 @@ async def _warm_caches_in_background(
         if isinstance(r, BaseException)
     ]
     if failures:
+        # Capture full tracebacks per-failure so the next regression is one-shot
+        # diagnosable. Without these the user-facing tool error surfaces only
+        # the bare ``str(exc)`` via ``observe_tool`` — agents waste a turn
+        # guessing at root cause when the stack frame would have been
+        # definitive. See #727 for the originating incident (4-day silent
+        # ``ensure_factory_synced`` crash + matching variants regression).
+        tracebacks = {
+            fn.__name__: "".join(
+                traceback.format_exception(type(r), r, r.__traceback__)
+            )
+            for fn, r in zip(helpers, results, strict=True)
+            if isinstance(r, BaseException)
+        }
         logger.warning(
             "cache_warmup_partial",
             elapsed_s=elapsed_s,
             success_count=len(helpers) - len(failures),
             failure_count=len(failures),
             failures=failures,
+            tracebacks=tracebacks,
         )
     else:
         logger.info(

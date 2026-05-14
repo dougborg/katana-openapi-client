@@ -282,11 +282,28 @@ def _convert_nested_value(value: Any, registry: Any) -> Any:
         pydantic_class = registry.get_pydantic_class(type(value))
         if pydantic_class:
             return pydantic_class.from_attrs(value)
-        # Warn about unregistered attrs classes
+        # No registered pydantic class — happens when the OpenAPI spec
+        # declares the field as a bare ``type: object`` (no $ref, no
+        # inline properties), so the pydantic generator emits
+        # ``dict[str, Any]`` while the attrs generator still synthesizes
+        # a concrete class (e.g. ``FactoryLegalAddress``). The pydantic
+        # model expects a dict, so fall back to ``to_dict()`` when the
+        # attrs side exposes it. This also recovers the previous-
+        # behavior path for ``Variant.config_attributes`` /
+        # ``custom_fields`` item classes whose names changed under the
+        # type-union regen (e.g. ``VariantConfigAttributesItem`` →
+        # ``VariantConfigAttributesType0Item``) — the registry doesn't
+        # know about the new names yet, but the attrs ``to_dict`` shape
+        # matches what pydantic accepts.
+        if hasattr(value, "to_dict"):
+            return value.to_dict()
+        # Last resort: warn and pass through. Pydantic validation will
+        # surface the type mismatch loudly enough.
         logger = logging.getLogger(__name__)
         logger.warning(
-            "Nested attrs class %s is not registered in the pydantic registry. "
-            "Conversion may fail or produce unexpected results.",
+            "Nested attrs class %s is not registered in the pydantic registry "
+            "and has no ``to_dict`` fallback. Conversion may fail or produce "
+            "unexpected results.",
             type(value).__name__,
         )
 

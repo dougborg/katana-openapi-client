@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
@@ -75,7 +75,7 @@ class CreateOutsourcedPurchaseOrderRecipeRowRequest:
             batch_transactions = []
             for batch_transactions_item_data in _batch_transactions:
                 batch_transactions_item = BatchTransactionRequest.from_dict(
-                    batch_transactions_item_data
+                    cast(Mapping[str, Any], batch_transactions_item_data)
                 )
 
                 batch_transactions.append(batch_transactions_item)

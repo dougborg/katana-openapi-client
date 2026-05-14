@@ -852,10 +852,16 @@ class Factory(KatanaPydanticBase):
     display_name: Annotated[str, Field(description="Display name of the company")]
     base_currency_code: Annotated[str, Field(description="Base currency code")]
     default_so_delivery_time: Annotated[
-        AwareDatetime | None, Field(description="Default sales order delivery time")
+        str | None,
+        Field(
+            description="Default sales order delivery time. Schema gap: Katana's upstream\nexample shows an ISO-8601 datetime, but the live wire delivers\neither ``null`` or an opaque short string (e.g. ``\"14\"`` for\ndays-lead-time). We deliberately drop ``format: date-time`` here\nbecause the wire doesn't honor it. See #727."
+        ),
     ] = None
     default_po_lead_time: Annotated[
-        AwareDatetime | None, Field(description="Default purchase order lead time")
+        str | None,
+        Field(
+            description='Default purchase order lead time. Schema gap: same shape as\n``default_so_delivery_time`` — Katana\'s upstream example shows an\nISO-8601 datetime, but the live wire delivers ``null`` or an\nopaque short string (e.g. ``"14"`` for days). ``format: date-time``\nomitted intentionally. See #727.'
+        ),
     ] = None
     default_manufacturing_location_id: Annotated[
         int | None, Field(description="Default manufacturing location ID")
@@ -867,7 +873,10 @@ class Factory(KatanaPydanticBase):
         int | None, Field(description="Default sales location ID")
     ] = None
     inventory_closing_date: Annotated[
-        AwareDatetime | None, Field(description="Inventory closing date")
+        AwareDatetime | None,
+        Field(
+            description="Inventory closing date. Marked nullable defensively — current\nwire returns a valid ISO-8601 datetime, but the Factory schema\nis sparsely documented and other date-time fields here\n(``default_so_delivery_time`` / ``default_po_lead_time``) have\nbeen observed delivering ``null``. See #727."
+        ),
     ] = None
 
 
@@ -1308,10 +1317,16 @@ class CachedFactory(KatanaPydanticBase, table=True):
     ]
     base_currency_code: Annotated[Mapped[str], Field(description="Base currency code")]
     default_so_delivery_time: Annotated[
-        Mapped[datetime | None], Field(description="Default sales order delivery time")
+        Mapped[str | None],
+        Field(
+            description="Default sales order delivery time. Schema gap: Katana's upstream\nexample shows an ISO-8601 datetime, but the live wire delivers\neither ``null`` or an opaque short string (e.g. ``\"14\"`` for\ndays-lead-time). We deliberately drop ``format: date-time`` here\nbecause the wire doesn't honor it. See #727."
+        ),
     ] = None
     default_po_lead_time: Annotated[
-        Mapped[datetime | None], Field(description="Default purchase order lead time")
+        Mapped[str | None],
+        Field(
+            description='Default purchase order lead time. Schema gap: same shape as\n``default_so_delivery_time`` — Katana\'s upstream example shows an\nISO-8601 datetime, but the live wire delivers ``null`` or an\nopaque short string (e.g. ``"14"`` for days). ``format: date-time``\nomitted intentionally. See #727.'
+        ),
     ] = None
     default_manufacturing_location_id: Annotated[
         Mapped[int | None], Field(description="Default manufacturing location ID")
@@ -1323,7 +1338,10 @@ class CachedFactory(KatanaPydanticBase, table=True):
         Mapped[int | None], Field(description="Default sales location ID")
     ] = None
     inventory_closing_date: Annotated[
-        Mapped[datetime | None], Field(description="Inventory closing date")
+        Mapped[datetime | None],
+        Field(
+            description="Inventory closing date. Marked nullable defensively — current\nwire returns a valid ISO-8601 datetime, but the Factory schema\nis sparsely documented and other date-time fields here\n(``default_so_delivery_time`` / ``default_po_lead_time``) have\nbeen observed delivering ``null``. See #727."
+        ),
     ] = None
 
 

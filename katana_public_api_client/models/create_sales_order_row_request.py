@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
@@ -103,7 +103,7 @@ class CreateSalesOrderRowRequest:
             attributes = []
             for attributes_item_data in _attributes:
                 attributes_item = CreateSalesOrderRowRequestAttributesItem.from_dict(
-                    attributes_item_data
+                    cast(Mapping[str, Any], attributes_item_data)
                 )
 
                 attributes.append(attributes_item)

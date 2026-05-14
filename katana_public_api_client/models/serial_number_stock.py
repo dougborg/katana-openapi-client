@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -69,7 +69,7 @@ class SerialNumberStock:
         _transactions = d.pop("transactions")
         for transactions_item_data in _transactions:
             transactions_item = SerialNumberStockTransactionsItem.from_dict(
-                transactions_item_data
+                cast(Mapping[str, Any], transactions_item_data)
             )
 
             transactions.append(transactions_item)

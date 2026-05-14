@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
@@ -89,7 +89,9 @@ class CreateSupplierRequest:
         if _addresses is not UNSET:
             addresses = []
             for addresses_item_data in _addresses:
-                addresses_item = SupplierAddressRequest.from_dict(addresses_item_data)
+                addresses_item = SupplierAddressRequest.from_dict(
+                    cast(Mapping[str, Any], addresses_item_data)
+                )
 
                 addresses.append(addresses_item)
 

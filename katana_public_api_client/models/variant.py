@@ -14,8 +14,10 @@ from ..client_types import UNSET, Unset
 from ..models.variant_type import VariantType
 
 if TYPE_CHECKING:
-    from ..models.variant_config_attributes_item import VariantConfigAttributesItem
-    from ..models.variant_custom_fields_item import VariantCustomFieldsItem
+    from ..models.variant_config_attributes_type_0_item import (
+        VariantConfigAttributesType0Item,
+    )
+    from ..models.variant_custom_fields_type_0_item import VariantCustomFieldsType0Item
 
 
 T = TypeVar("T", bound="Variant")
@@ -45,13 +47,13 @@ class Variant:
     material_id: int | None | Unset = UNSET
     purchase_price: float | Unset = UNSET
     type_: VariantType | Unset = UNSET
-    internal_barcode: str | Unset = UNSET
-    registered_barcode: str | Unset = UNSET
+    internal_barcode: None | str | Unset = UNSET
+    registered_barcode: None | str | Unset = UNSET
     supplier_item_codes: list[str] | Unset = UNSET
     lead_time: int | None | Unset = UNSET
     minimum_order_quantity: float | None | Unset = UNSET
-    custom_fields: list[VariantCustomFieldsItem] | Unset = UNSET
-    config_attributes: list[VariantConfigAttributesItem] | Unset = UNSET
+    custom_fields: list[VariantCustomFieldsType0Item] | None | Unset = UNSET
+    config_attributes: list[VariantConfigAttributesType0Item] | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -100,9 +102,17 @@ class Variant:
         if not isinstance(self.type_, Unset):
             type_ = self.type_.value
 
-        internal_barcode = self.internal_barcode
+        internal_barcode: None | str | Unset
+        if isinstance(self.internal_barcode, Unset):
+            internal_barcode = UNSET
+        else:
+            internal_barcode = self.internal_barcode
 
-        registered_barcode = self.registered_barcode
+        registered_barcode: None | str | Unset
+        if isinstance(self.registered_barcode, Unset):
+            registered_barcode = UNSET
+        else:
+            registered_barcode = self.registered_barcode
 
         supplier_item_codes: list[str] | Unset = UNSET
         if not isinstance(self.supplier_item_codes, Unset):
@@ -120,19 +130,31 @@ class Variant:
         else:
             minimum_order_quantity = self.minimum_order_quantity
 
-        custom_fields: list[dict[str, Any]] | Unset = UNSET
-        if not isinstance(self.custom_fields, Unset):
+        custom_fields: list[dict[str, Any]] | None | Unset
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(self.custom_fields, list):
             custom_fields = []
-            for custom_fields_item_data in self.custom_fields:
-                custom_fields_item = custom_fields_item_data.to_dict()
-                custom_fields.append(custom_fields_item)
+            for custom_fields_type_0_item_data in self.custom_fields:
+                custom_fields_type_0_item = custom_fields_type_0_item_data.to_dict()
+                custom_fields.append(custom_fields_type_0_item)
 
-        config_attributes: list[dict[str, Any]] | Unset = UNSET
-        if not isinstance(self.config_attributes, Unset):
+        else:
+            custom_fields = self.custom_fields
+
+        config_attributes: list[dict[str, Any]] | None | Unset
+        if isinstance(self.config_attributes, Unset):
+            config_attributes = UNSET
+        elif isinstance(self.config_attributes, list):
             config_attributes = []
-            for config_attributes_item_data in self.config_attributes:
-                config_attributes_item = config_attributes_item_data.to_dict()
-                config_attributes.append(config_attributes_item)
+            for config_attributes_type_0_item_data in self.config_attributes:
+                config_attributes_type_0_item = (
+                    config_attributes_type_0_item_data.to_dict()
+                )
+                config_attributes.append(config_attributes_type_0_item)
+
+        else:
+            config_attributes = self.config_attributes
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -177,8 +199,12 @@ class Variant:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.variant_config_attributes_item import VariantConfigAttributesItem
-        from ..models.variant_custom_fields_item import VariantCustomFieldsItem
+        from ..models.variant_config_attributes_type_0_item import (
+            VariantConfigAttributesType0Item,
+        )
+        from ..models.variant_custom_fields_type_0_item import (
+            VariantCustomFieldsType0Item,
+        )
 
         d = dict(src_dict)
         id = d.pop("id")
@@ -257,9 +283,25 @@ class Variant:
         else:
             type_ = VariantType(_type_)
 
-        internal_barcode = d.pop("internal_barcode", UNSET)
+        def _parse_internal_barcode(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
 
-        registered_barcode = d.pop("registered_barcode", UNSET)
+        internal_barcode = _parse_internal_barcode(d.pop("internal_barcode", UNSET))
+
+        def _parse_registered_barcode(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        registered_barcode = _parse_registered_barcode(
+            d.pop("registered_barcode", UNSET)
+        )
 
         supplier_item_codes = cast(list[str], d.pop("supplier_item_codes", UNSET))
 
@@ -283,27 +325,65 @@ class Variant:
             d.pop("minimum_order_quantity", UNSET)
         )
 
-        _custom_fields = d.pop("custom_fields", UNSET)
-        custom_fields: list[VariantCustomFieldsItem] | Unset = UNSET
-        if _custom_fields is not UNSET:
-            custom_fields = []
-            for custom_fields_item_data in _custom_fields:
-                custom_fields_item = VariantCustomFieldsItem.from_dict(
-                    custom_fields_item_data
-                )
+        def _parse_custom_fields(
+            data: object,
+        ) -> list[VariantCustomFieldsType0Item] | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, list):
+                    raise TypeError()
+                custom_fields_type_0 = []
+                _custom_fields_type_0 = data
+                for custom_fields_type_0_item_data in _custom_fields_type_0:
+                    custom_fields_type_0_item = VariantCustomFieldsType0Item.from_dict(
+                        cast(Mapping[str, Any], custom_fields_type_0_item_data)
+                    )
 
-                custom_fields.append(custom_fields_item)
+                    custom_fields_type_0.append(custom_fields_type_0_item)
 
-        _config_attributes = d.pop("config_attributes", UNSET)
-        config_attributes: list[VariantConfigAttributesItem] | Unset = UNSET
-        if _config_attributes is not UNSET:
-            config_attributes = []
-            for config_attributes_item_data in _config_attributes:
-                config_attributes_item = VariantConfigAttributesItem.from_dict(
-                    config_attributes_item_data
-                )
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(list[VariantCustomFieldsType0Item] | None | Unset, data)
 
-                config_attributes.append(config_attributes_item)
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
+
+        def _parse_config_attributes(
+            data: object,
+        ) -> list[VariantConfigAttributesType0Item] | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, list):
+                    raise TypeError()
+                config_attributes_type_0 = []
+                _config_attributes_type_0 = data
+                for config_attributes_type_0_item_data in _config_attributes_type_0:
+                    config_attributes_type_0_item = (
+                        VariantConfigAttributesType0Item.from_dict(
+                            cast(Mapping[str, Any], config_attributes_type_0_item_data)
+                        )
+                    )
+
+                    config_attributes_type_0.append(config_attributes_type_0_item)
+
+                return config_attributes_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(list[VariantConfigAttributesType0Item] | None | Unset, data)
+
+        config_attributes = _parse_config_attributes(d.pop("config_attributes", UNSET))
 
         variant = cls(
             id=id,

@@ -157,7 +157,9 @@ class UpdateServiceRequest:
         if _custom_fields is not UNSET:
             custom_fields = []
             for custom_fields_item_data in _custom_fields:
-                custom_fields_item = CustomFieldValue.from_dict(custom_fields_item_data)
+                custom_fields_item = CustomFieldValue.from_dict(
+                    cast(Mapping[str, Any], custom_fields_item_data)
+                )
 
                 custom_fields.append(custom_fields_item)
 

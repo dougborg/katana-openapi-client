@@ -354,7 +354,7 @@ class ManufacturingOrder:
             batch_transactions = []
             for batch_transactions_item_data in _batch_transactions:
                 batch_transactions_item = BatchTransaction.from_dict(
-                    batch_transactions_item_data
+                    cast(Mapping[str, Any], batch_transactions_item_data)
                 )
 
                 batch_transactions.append(batch_transactions_item)
@@ -459,7 +459,9 @@ class ManufacturingOrder:
         if _serial_numbers is not UNSET:
             serial_numbers = []
             for serial_numbers_item_data in _serial_numbers:
-                serial_numbers_item = SerialNumber.from_dict(serial_numbers_item_data)
+                serial_numbers_item = SerialNumber.from_dict(
+                    cast(Mapping[str, Any], serial_numbers_item_data)
+                )
 
                 serial_numbers.append(serial_numbers_item)
 

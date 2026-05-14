@@ -1,5 +1,6 @@
+from collections.abc import Mapping
 from http import HTTPStatus
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -27,7 +28,9 @@ def _parse_response(
         response_200 = []
         _response_200 = response.json()
         for response_200_item_data in _response_200:
-            response_200_item = SalesReturnReason.from_dict(response_200_item_data)
+            response_200_item = SalesReturnReason.from_dict(
+                cast(Mapping[str, Any], response_200_item_data)
+            )
 
             response_200.append(response_200_item)
 

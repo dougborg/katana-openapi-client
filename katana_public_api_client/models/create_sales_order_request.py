@@ -236,7 +236,7 @@ class CreateSalesOrderRequest:
         _sales_order_rows = d.pop("sales_order_rows")
         for sales_order_rows_item_data in _sales_order_rows:
             sales_order_rows_item = CreateSalesOrderRequestSalesOrderRowsItem.from_dict(
-                sales_order_rows_item_data
+                cast(Mapping[str, Any], sales_order_rows_item_data)
             )
 
             sales_order_rows.append(sales_order_rows_item)
@@ -266,7 +266,9 @@ class CreateSalesOrderRequest:
         if _addresses is not UNSET:
             addresses = []
             for addresses_item_data in _addresses:
-                addresses_item = SalesOrderAddress.from_dict(addresses_item_data)
+                addresses_item = SalesOrderAddress.from_dict(
+                    cast(Mapping[str, Any], addresses_item_data)
+                )
 
                 addresses.append(addresses_item)
 
@@ -380,7 +382,9 @@ class CreateSalesOrderRequest:
         if _custom_fields is not UNSET:
             custom_fields = []
             for custom_fields_item_data in _custom_fields:
-                custom_fields_item = CustomFieldValue.from_dict(custom_fields_item_data)
+                custom_fields_item = CustomFieldValue.from_dict(
+                    cast(Mapping[str, Any], custom_fields_item_data)
+                )
 
                 custom_fields.append(custom_fields_item)
 

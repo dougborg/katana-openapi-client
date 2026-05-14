@@ -102,7 +102,7 @@ class CreateServiceVariantRequest:
             for custom_fields_item_data in _custom_fields:
                 custom_fields_item = (
                     CreateServiceVariantRequestCustomFieldsItem.from_dict(
-                        custom_fields_item_data
+                        cast(Mapping[str, Any], custom_fields_item_data)
                     )
                 )
 

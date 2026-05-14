@@ -578,7 +578,7 @@ class SalesOrder:
             sales_order_rows = []
             for sales_order_rows_item_data in _sales_order_rows:
                 sales_order_rows_item = SalesOrderRow.from_dict(
-                    sales_order_rows_item_data
+                    cast(Mapping[str, Any], sales_order_rows_item_data)
                 )
 
                 sales_order_rows.append(sales_order_rows_item)
@@ -799,7 +799,9 @@ class SalesOrder:
         if _addresses is not UNSET:
             addresses = []
             for addresses_item_data in _addresses:
-                addresses_item = SalesOrderAddress.from_dict(addresses_item_data)
+                addresses_item = SalesOrderAddress.from_dict(
+                    cast(Mapping[str, Any], addresses_item_data)
+                )
 
                 addresses.append(addresses_item)
 

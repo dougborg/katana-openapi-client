@@ -396,6 +396,167 @@ class TestVariantNullSku:
         assert pydantic_product.variants[1].sku is None
 
 
+class TestWireNullTolerance:
+    """Generated ``from_dict`` parsers must tolerate ``null`` for spec-nullable fields.
+
+    Pins the wire-vs-spec gaps fixed for #727, one case per affected field:
+    ``Variant`` / ``VariantResponse`` ``custom_fields`` and
+    ``config_attributes``, ``Variant.internal_barcode``,
+    ``Inventory.default_storage_bin`` and ``quantity_potential``, and
+    ``Factory.default_so_delivery_time`` / ``default_po_lead_time`` (the
+    latter also covering the non-datetime ``"14"`` opaque-string shape).
+    Each one was a live-API payload shape that crashed our generated
+    client because the OpenAPI spec declared the field as non-nullable
+    but Katana's actual API returns ``null`` (often unconditionally).
+    The test inputs mirror real responses captured against the live API
+    on 2026-05-14; if a future spec regen re-tightens these to
+    non-nullable, the relevant ``from_dict`` will raise
+    ``TypeError: 'NoneType' object is not iterable`` (or
+    ``has no len()``) and the test will fail.
+    """
+
+    def test_variant_from_dict_with_null_custom_fields(self) -> None:
+        """``Variant.custom_fields = null`` (observed on 100% of variants).
+
+        Crash site: ``for custom_fields_item_data in _custom_fields`` in the
+        generated parser, when the wire delivers ``null`` instead of ``[]``
+        or omission.
+        """
+        from katana_public_api_client.models import Variant as AttrsVariant
+
+        attrs_variant = AttrsVariant.from_dict(
+            {"id": 1, "sku": "TEST-SKU", "custom_fields": None}
+        )
+        # ``UNSET`` and ``None`` both mean "no custom fields"; the parser
+        # must accept the wire's literal null without raising.
+        assert attrs_variant.id == 1
+
+    def test_variant_from_dict_with_null_config_attributes(self) -> None:
+        """``Variant.config_attributes = null`` — defensive sibling case."""
+        from katana_public_api_client.models import Variant as AttrsVariant
+
+        attrs_variant = AttrsVariant.from_dict(
+            {"id": 1, "sku": "TEST-SKU", "config_attributes": None}
+        )
+        assert attrs_variant.id == 1
+
+    def test_variant_response_from_dict_with_null_custom_fields(self) -> None:
+        """``VariantResponse.custom_fields = null`` (single-variant endpoint)."""
+        from katana_public_api_client.models import VariantResponse as AttrsVR
+
+        attrs_variant = AttrsVR.from_dict(
+            {"id": 1, "sku": "TEST-SKU", "custom_fields": None}
+        )
+        assert attrs_variant.id == 1
+
+    def test_variant_from_dict_with_null_internal_barcode(self) -> None:
+        """``Variant.internal_barcode = null`` (observed on 41/50 variants)."""
+        from katana_public_api_client.models import Variant as AttrsVariant
+
+        attrs_variant = AttrsVariant.from_dict(
+            {"id": 1, "sku": "TEST-SKU", "internal_barcode": None}
+        )
+        assert attrs_variant.id == 1
+
+    def test_inventory_from_dict_with_null_default_storage_bin(self) -> None:
+        """``Inventory.default_storage_bin = null`` (observed on 100% of rows).
+
+        Crash site: ``VariantDefaultStorageBinLinkResponse.from_dict(None)``
+        → ``dict(None)`` in the generated parser. The wire delivers ``null``
+        whenever no bin has been linked (the typical case).
+        """
+        from katana_public_api_client.models import Inventory as AttrsInventory
+
+        attrs_inv = AttrsInventory.from_dict(
+            {
+                "variant_id": 1,
+                "location_id": 1,
+                "reorder_point": 0,
+                "average_cost": 0,
+                "value_in_stock": 0,
+                "quantity_in_stock": "0",
+                "quantity_committed": "0",
+                "quantity_expected": "0",
+                "quantity_missing_or_excess": "0",
+                # ``quantity_potential`` is required on the wire (Katana always
+                # ships the key) and may be ``null`` — see the sibling
+                # ``test_inventory_quantity_potential_nullable`` case.
+                "quantity_potential": None,
+                "default_storage_bin": None,
+            }
+        )
+        assert attrs_inv.variant_id == 1
+
+    def test_inventory_quantity_potential_nullable(self) -> None:
+        """``Inventory.quantity_potential = null`` (observed on 100% of rows).
+
+        Spec quirk: the field stays in ``required`` because Katana always
+        ships the key, but the value is ``null`` on the typical row. The
+        generated parser must accept ``null`` without raising.
+        """
+        from katana_public_api_client.models import Inventory as AttrsInventory
+
+        attrs_inv = AttrsInventory.from_dict(
+            {
+                "variant_id": 1,
+                "location_id": 1,
+                "reorder_point": 0,
+                "average_cost": 0,
+                "value_in_stock": 0,
+                "quantity_in_stock": "0",
+                "quantity_committed": "0",
+                "quantity_expected": "0",
+                "quantity_missing_or_excess": "0",
+                "quantity_potential": None,
+            }
+        )
+        assert attrs_inv.variant_id == 1
+        assert attrs_inv.quantity_potential is None
+
+    def test_factory_from_dict_with_null_default_so_delivery_time(self) -> None:
+        """``Factory.default_so_delivery_time = null`` (live wire ships null).
+
+        Crash site: ``isoparse(_default_so_delivery_time)`` →
+        ``len(None)`` inside dateutil. Schema gap with Katana's upstream
+        spec, which documents the field as ``date-time`` (their example
+        shows a valid datetime) but the live wire delivers ``null`` or an
+        opaque short string. See #727.
+        """
+        from katana_public_api_client.models import Factory as AttrsFactory
+
+        attrs_factory = AttrsFactory.from_dict(
+            {
+                "display_name": "Test Factory",
+                "base_currency_code": "USD",
+                "default_so_delivery_time": None,
+                "default_po_lead_time": None,
+            }
+        )
+        assert attrs_factory.display_name == "Test Factory"
+
+    def test_factory_from_dict_with_opaque_po_lead_time(self) -> None:
+        """``Factory.default_po_lead_time = "14"`` (live wire ships opaque short string).
+
+        Sibling of the null case — the field is declared as a plain string
+        (no ``format: date-time``) because the wire actually delivers
+        days-as-string ("14") rather than a datetime, contrary to Katana's
+        upstream example.
+        """
+        from katana_public_api_client.models import Factory as AttrsFactory
+
+        attrs_factory = AttrsFactory.from_dict(
+            {
+                "display_name": "Test Factory",
+                "base_currency_code": "USD",
+                "default_po_lead_time": "14",
+            }
+        )
+        assert attrs_factory.display_name == "Test Factory"
+        # The parser keeps the opaque string verbatim — it's the caller's
+        # job to interpret the format.
+        assert attrs_factory.default_po_lead_time == "14"
+
+
 class TestRequestModels:
     """Tests for request model instantiation."""
 

@@ -283,7 +283,7 @@ class ManufacturingOrderOperationRow:
             assigned_operators = []
             for assigned_operators_item_data in _assigned_operators:
                 assigned_operators_item = AssignedOperator.from_dict(
-                    assigned_operators_item_data
+                    cast(Mapping[str, Any], assigned_operators_item_data)
                 )
 
                 assigned_operators.append(assigned_operators_item)
@@ -294,7 +294,7 @@ class ManufacturingOrderOperationRow:
             completed_by_operators = []
             for completed_by_operators_item_data in _completed_by_operators:
                 completed_by_operators_item = AssignedOperator.from_dict(
-                    completed_by_operators_item_data
+                    cast(Mapping[str, Any], completed_by_operators_item_data)
                 )
 
                 completed_by_operators.append(completed_by_operators_item)

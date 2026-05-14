@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
@@ -66,7 +66,7 @@ class CreateStocktakeRowRequest:
             for stocktake_rows_item_data in _stocktake_rows:
                 stocktake_rows_item = (
                     CreateStocktakeRowRequestStocktakeRowsItem.from_dict(
-                        stocktake_rows_item_data
+                        cast(Mapping[str, Any], stocktake_rows_item_data)
                     )
                 )
 

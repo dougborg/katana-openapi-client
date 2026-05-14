@@ -189,7 +189,7 @@ class StockAdjustment:
             stock_adjustment_rows = []
             for stock_adjustment_rows_item_data in _stock_adjustment_rows:
                 stock_adjustment_rows_item = StockAdjustmentRow.from_dict(
-                    stock_adjustment_rows_item_data
+                    cast(Mapping[str, Any], stock_adjustment_rows_item_data)
                 )
 
                 stock_adjustment_rows.append(stock_adjustment_rows_item)

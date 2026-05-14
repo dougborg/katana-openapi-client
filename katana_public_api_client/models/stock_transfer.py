@@ -247,7 +247,7 @@ class StockTransfer:
             stock_transfer_rows = []
             for stock_transfer_rows_item_data in _stock_transfer_rows:
                 stock_transfer_rows_item = StockTransferRow.from_dict(
-                    stock_transfer_rows_item_data
+                    cast(Mapping[str, Any], stock_transfer_rows_item_data)
                 )
 
                 stock_transfer_rows.append(stock_transfer_rows_item)

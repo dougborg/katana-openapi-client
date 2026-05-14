@@ -323,11 +323,11 @@ async def test_get_variant_details_api_fallback_derives_display_name_and_parent_
     """
     from katana_public_api_client.client_types import UNSET
     from katana_public_api_client.models.variant import Variant
-    from katana_public_api_client.models.variant_config_attributes_item import (
-        VariantConfigAttributesItem,
+    from katana_public_api_client.models.variant_config_attributes_type_0_item import (
+        VariantConfigAttributesType0Item,
     )
-    from katana_public_api_client.models.variant_custom_fields_item import (
-        VariantCustomFieldsItem,
+    from katana_public_api_client.models.variant_custom_fields_type_0_item import (
+        VariantCustomFieldsType0Item,
     )
     from katana_public_api_client.models.variant_type import VariantType
 
@@ -353,15 +353,15 @@ async def test_get_variant_details_api_fallback_derives_display_name_and_parent_
         purchase_price=150.0,
         type_=VariantType.PRODUCT,
         config_attributes=[
-            VariantConfigAttributesItem(
+            VariantConfigAttributesType0Item(
                 config_name="Piece Count", config_value="8-piece"
             ),
-            VariantConfigAttributesItem(
+            VariantConfigAttributesType0Item(
                 config_name="Handle Material", config_value="Steel"
             ),
         ],
         custom_fields=[
-            VariantCustomFieldsItem(
+            VariantCustomFieldsType0Item(
                 field_name="Warranty Period", field_value="5 years"
             ),
         ],
@@ -480,11 +480,11 @@ async def test_get_variant_details_cache_hit_and_api_fallback_paths_match():
     point at the divergence.
     """
     from katana_public_api_client.models.variant import Variant
-    from katana_public_api_client.models.variant_config_attributes_item import (
-        VariantConfigAttributesItem,
+    from katana_public_api_client.models.variant_config_attributes_type_0_item import (
+        VariantConfigAttributesType0Item,
     )
-    from katana_public_api_client.models.variant_custom_fields_item import (
-        VariantCustomFieldsItem,
+    from katana_public_api_client.models.variant_custom_fields_type_0_item import (
+        VariantCustomFieldsType0Item,
     )
     from katana_public_api_client.models.variant_type import VariantType
 
@@ -550,15 +550,15 @@ async def test_get_variant_details_cache_hit_and_api_fallback_paths_match():
         lead_time=7,
         minimum_order_quantity=1,
         config_attributes=[
-            VariantConfigAttributesItem(
+            VariantConfigAttributesType0Item(
                 config_name="Piece Count", config_value="8-piece"
             ),
-            VariantConfigAttributesItem(
+            VariantConfigAttributesType0Item(
                 config_name="Handle Material", config_value="Steel"
             ),
         ],
         custom_fields=[
-            VariantCustomFieldsItem(
+            VariantCustomFieldsType0Item(
                 field_name="Warranty Period", field_value="5 years"
             ),
         ],

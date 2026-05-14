@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from dateutil.parser import isoparse
@@ -106,7 +106,7 @@ class CreateSalesOrderFulfillmentRequest:
         for sales_order_fulfillment_rows_item_data in _sales_order_fulfillment_rows:
             sales_order_fulfillment_rows_item = (
                 SalesOrderFulfillmentRowRequest.from_dict(
-                    sales_order_fulfillment_rows_item_data
+                    cast(Mapping[str, Any], sales_order_fulfillment_rows_item_data)
                 )
             )
 

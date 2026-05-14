@@ -331,7 +331,7 @@ class SalesOrderFulfillment:
             for sales_order_fulfillment_rows_item_data in _sales_order_fulfillment_rows:
                 sales_order_fulfillment_rows_item = (
                     SalesOrderFulfillmentSalesOrderFulfillmentRowsItem.from_dict(
-                        sales_order_fulfillment_rows_item_data
+                        cast(Mapping[str, Any], sales_order_fulfillment_rows_item_data)
                     )
                 )
 

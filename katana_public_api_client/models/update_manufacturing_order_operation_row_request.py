@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import (
     define as _attrs_define,
@@ -160,7 +160,7 @@ class UpdateManufacturingOrderOperationRowRequest:
             assigned_operators = []
             for assigned_operators_item_data in _assigned_operators:
                 assigned_operators_item = Operator.from_dict(
-                    assigned_operators_item_data
+                    cast(Mapping[str, Any], assigned_operators_item_data)
                 )
 
                 assigned_operators.append(assigned_operators_item)
@@ -171,7 +171,7 @@ class UpdateManufacturingOrderOperationRowRequest:
             completed_by_operators = []
             for completed_by_operators_item_data in _completed_by_operators:
                 completed_by_operators_item = Operator.from_dict(
-                    completed_by_operators_item_data
+                    cast(Mapping[str, Any], completed_by_operators_item_data)
                 )
 
                 completed_by_operators.append(completed_by_operators_item)

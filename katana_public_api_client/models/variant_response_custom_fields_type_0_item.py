@@ -10,44 +10,44 @@ from attrs import (
 
 from ..client_types import UNSET, Unset
 
-T = TypeVar("T", bound="VariantConfigAttributesItem")
+T = TypeVar("T", bound="VariantResponseCustomFieldsType0Item")
 
 
 @_attrs_define
-class VariantConfigAttributesItem:
-    config_name: str | Unset = UNSET
-    config_value: str | Unset = UNSET
+class VariantResponseCustomFieldsType0Item:
+    field_name: str | Unset = UNSET
+    field_value: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        config_name = self.config_name
+        field_name = self.field_name
 
-        config_value = self.config_value
+        field_value = self.field_value
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
-        if config_name is not UNSET:
-            field_dict["config_name"] = config_name
-        if config_value is not UNSET:
-            field_dict["config_value"] = config_value
+        if field_name is not UNSET:
+            field_dict["field_name"] = field_name
+        if field_value is not UNSET:
+            field_dict["field_value"] = field_value
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        config_name = d.pop("config_name", UNSET)
+        field_name = d.pop("field_name", UNSET)
 
-        config_value = d.pop("config_value", UNSET)
+        field_value = d.pop("field_value", UNSET)
 
-        variant_config_attributes_item = cls(
-            config_name=config_name,
-            config_value=config_value,
+        variant_response_custom_fields_type_0_item = cls(
+            field_name=field_name,
+            field_value=field_value,
         )
 
-        variant_config_attributes_item.additional_properties = d
-        return variant_config_attributes_item
+        variant_response_custom_fields_type_0_item.additional_properties = d
+        return variant_response_custom_fields_type_0_item
 
     @property
     def additional_keys(self) -> list[str]:

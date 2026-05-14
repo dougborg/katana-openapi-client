@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from dateutil.parser import isoparse
@@ -91,7 +91,7 @@ class CreateStockTransferRequest:
         _stock_transfer_rows = d.pop("stock_transfer_rows")
         for stock_transfer_rows_item_data in _stock_transfer_rows:
             stock_transfer_rows_item = StockTransferRowRequest.from_dict(
-                stock_transfer_rows_item_data
+                cast(Mapping[str, Any], stock_transfer_rows_item_data)
             )
 
             stock_transfer_rows.append(stock_transfer_rows_item)

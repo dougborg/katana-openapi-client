@@ -225,7 +225,9 @@ class Service:
         if _variants is not UNSET:
             variants = []
             for variants_item_data in _variants:
-                variants_item = ServiceVariant.from_dict(variants_item_data)
+                variants_item = ServiceVariant.from_dict(
+                    cast(Mapping[str, Any], variants_item_data)
+                )
 
                 variants.append(variants_item)
 
