@@ -292,9 +292,13 @@ def _convert_nested_value(value: Any, registry: Any) -> Any:
         # inline properties), so the pydantic generator emits
         # ``dict[str, Any]`` while the attrs generator still synthesizes
         # a concrete class. The pydantic model expects a dict, so fall
-        # back to ``to_dict()`` when the attrs side exposes it.
-        if hasattr(value, "to_dict"):
-            return value.to_dict()
+        # back to ``to_dict()`` when the attrs side exposes it as a
+        # callable (``callable`` rather than ``hasattr`` guards against
+        # an exotic non-callable ``to_dict`` attribute, which would
+        # otherwise raise ``TypeError`` at call time).
+        to_dict_fn = getattr(value, "to_dict", None)
+        if callable(to_dict_fn):
+            return to_dict_fn()
         # Last resort: warn and pass through. Pydantic validation will
         # surface the type mismatch loudly enough.
         logger = logging.getLogger(__name__)
