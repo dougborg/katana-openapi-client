@@ -207,8 +207,23 @@ tracker), referenced from each umbrella issue.
 - **Bigger maintained surface.** Going from "modify is consistent" to "the whole surface
   is consistent" means more tools, more tests, more help-resource entries. The
   discipline is to keep them mechanically uniform — same param shapes (especially
-  `ids: CoercedIntListOpt`, `format: "markdown" | "json"`, `limit` / `page` semantics),
-  same response shapes, same empty-state UX.
+  `ids: CoercedIntListOpt`, `limit` / `page` semantics), same response shapes, same
+  empty-state UX. The `format: "markdown" | "json"` parameter that originally appeared
+  here was removed in #719 — every tool now returns JSON-only content. When a response
+  emits a Prefab card, `structured_content` carries the `PrefabApp` envelope (built via
+  `make_tool_result(response, ui=app)`); when a response is data-only,
+  `structured_content` carries the payload dict — typically built via
+  `make_json_result(response)`, or an inline `ToolResult(...)` when the tool needs to
+  thread request-driven kwargs through `model_dump_json` / `model_dump` (e.g.,
+  `get_manufacturing_order` composes an `exclude={...}` selector + `exclude_none=True`
+  from its include/verbose flags; the batch branches of `check_inventory` and
+  `get_variant_details` build `ToolResult` inline to share the JSON content text with
+  their single-item Prefab path). The `meta=UI_META` registration flag advertises that a
+  tool *may* emit a Prefab card — not that it always does (e.g., `check_inventory` and
+  `get_variant_details` attach Prefab on single-item requests and return a payload dict
+  on batches). Promising a card via `meta=UI_META` and then never emitting one crashes
+  MCP-Apps hosts looking for the widget they were advertised; the contract is the
+  runtime payload, not the registration flag.
 - **Cache migration is a multi-week lift on the most-used cache entity.** Variants are
   touched by every `search_items` / `get_variant_details` / `check_inventory` call.
   Migration risk is real — incremental rollout per entity with fallback to legacy until
