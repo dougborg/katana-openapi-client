@@ -2,6 +2,188 @@
 
 <!-- version list -->
 
+## v0.64.0 (2026-05-14)
+
+### Bug Fixes
+
+- **client**: Guard \_convert_nested_value to_dict fallback with callable()
+  ([`4a47e4c`](https://github.com/dougborg/katana-openapi-client/commit/4a47e4cb451d8dc4a5996d04603b7b0ff85a5bc6))
+
+- **client**: Relax non-nullable spec fields to match live Katana wire
+  ([#727](https://github.com/dougborg/katana-openapi-client/pull/727),
+  [`cfe6fef`](https://github.com/dougborg/katana-openapi-client/commit/cfe6fef86e19662dcd118109bffcbdbf5ce58307))
+
+- **harness**: Address review findings from #689 on /groom (#683 follow-up)
+  ([#690](https://github.com/dougborg/katana-openapi-client/pull/690),
+  [`4341cce`](https://github.com/dougborg/katana-openapi-client/commit/4341cced2ba0b9e9c0e9e63086247013a3018cf3))
+
+- **mcp**: \_dump_list supports attrs models on API-fallback variant path
+  ([`0eb57f6`](https://github.com/dougborg/katana-openapi-client/commit/0eb57f69c86673d6d88a23322cbb0f6ef94b898c))
+
+- **mcp**: Guard variant_lookup against None variant_id lookups
+  ([`0ffa191`](https://github.com/dougborg/katana-openapi-client/commit/0ffa19102fb61370a80401ed59c8717ec2e24e89))
+
+- **mcp**: Repair DataTable onRowClick per-row binding + Slot/RESULT envelope
+  ([`b4c8bcc`](https://github.com/dougborg/katana-openapi-client/commit/b4c8bcc899d532f8f5b5d027237d01352bfbc3dd))
+
+- **mcp**: Repair modify-tool feedback loop after SRAM PO reconciliation
+  ([`9574f24`](https://github.com/dougborg/katana-openapi-client/commit/9574f2410bce1637098b32a188aeea2e974b221f))
+
+- **mcp**: Write modified entity through to typed cache on apply
+  ([`52cfbc8`](https://github.com/dougborg/katana-openapi-client/commit/52cfbc894893c1e68b4107e26fd12adcc61a3770))
+
+### Chores
+
+- Bundle uv.lock drift from rebase
+  ([`808566f`](https://github.com/dougborg/katana-openapi-client/commit/808566f685f77a54fa58e5b00ed884ffedcb23c2))
+
+- Bundle uv.lock drift from rebase onto main
+  ([`6df7ffb`](https://github.com/dougborg/katana-openapi-client/commit/6df7ffb0a4ba27df095c796aef302c338cf971c2))
+
+- Bundle uv.lock drift from rebase onto main
+  ([`a5949ce`](https://github.com/dougborg/katana-openapi-client/commit/a5949cec9725665659b6156e0923aabae14383f7))
+
+- Scrub customer-specific data from tests, docs, and help text
+  ([`bf43901`](https://github.com/dougborg/katana-openapi-client/commit/bf4390197ecd62641c43b366f014c25bdd2e5d3c))
+
+- Scrub second-pass Spot Bikes leakage (Mayhem, Rocker, Liquid Black, real IDs)
+  ([`8b6b45f`](https://github.com/dougborg/katana-openapi-client/commit/8b6b45fa88c0b60dfe9d6c3a88dab6e54e256312))
+
+- **harness**: Require rebased-on-target-branch in /open-pr and /review-pr
+  ([#692](https://github.com/dougborg/katana-openapi-client/pull/692),
+  [`c5cf718`](https://github.com/dougborg/katana-openapi-client/commit/c5cf7182016818434681867796c5640ab719b12a))
+
+- **mcp**: Update client dependency to v0.63.0
+  ([`0c9a2df`](https://github.com/dougborg/katana-openapi-client/commit/0c9a2df1f8753c3f563f588a2a1642158a1c62b6))
+
+- **release**: Mcp v0.71.0
+  ([`609fd2d`](https://github.com/dougborg/katana-openapi-client/commit/609fd2d67d215dd162783e3c1a74eb99225d9376))
+
+- **release**: Mcp v0.71.1
+  ([`0c6fde7`](https://github.com/dougborg/katana-openapi-client/commit/0c6fde7a0eccb34b12b5824c79798a129426e724))
+
+- **release**: Mcp v0.72.0
+  ([`1edb0b6`](https://github.com/dougborg/katana-openapi-client/commit/1edb0b61ddb5347b0e2f465fe1de2cba5a8bbca3))
+
+- **release**: Mcp v0.73.0
+  ([`8a1cd56`](https://github.com/dougborg/katana-openapi-client/commit/8a1cd56852f5b564e539fbb3dfa563a3eb7f4603))
+
+- **release**: Mcp v0.74.0
+  ([`86d8881`](https://github.com/dougborg/katana-openapi-client/commit/86d8881cf9937dabbf84df667ba75dda65ea72cf))
+
+- **release**: Mcp v0.75.0
+  ([`7688267`](https://github.com/dougborg/katana-openapi-client/commit/7688267e2d80ee8ccd703531fface52ebceabf18))
+
+- **release**: Mcp v0.75.1
+  ([`421f720`](https://github.com/dougborg/katana-openapi-client/commit/421f7200a312bfd1e90a9c164c9e648ddcdc5db1))
+
+- **release**: Mcp v0.75.2
+  ([`d8f2e7d`](https://github.com/dougborg/katana-openapi-client/commit/d8f2e7dca63e764f01fdaaf4e6544b3ad420200c))
+
+### Documentation
+
+- Add npm badge to TS README and cross-refs to new subsystem docs
+  ([`e3ceacb`](https://github.com/dougborg/katana-openapi-client/commit/e3ceacb64b60848e562e417042ce42c896412e6d))
+
+- Add subsystem-local docs for progressive-discovery refactor
+  ([`2434876`](https://github.com/dougborg/katana-openapi-client/commit/24348769246afbb4ae141d14aadb3dc666420f9e))
+
+- Address Copilot review on #716 — accurate generator pointer + type/scope wording
+  ([`0835a80`](https://github.com/dougborg/katana-openapi-client/commit/0835a80b6a27eaba5d94d178d6f985f5138bf61b))
+
+- Address Copilot review on Tier 2-4 PR
+  ([#712](https://github.com/dougborg/katana-openapi-client/pull/712),
+  [`339b203`](https://github.com/dougborg/katana-openapi-client/commit/339b203f2b2235faeb2905c3b4d07e799a729fd0))
+
+- Address second Copilot review on #716 — __init__.py + accurate git push behavior
+  ([`a4669e8`](https://github.com/dougborg/katana-openapi-client/commit/a4669e8b824880c2ff24f59afa616ea9a7d91074))
+
+- Address second Copilot review on #729
+  ([`fc7de8b`](https://github.com/dougborg/katana-openapi-client/commit/fc7de8be4ac20288c2b0723a23f172e9b81ef6a6))
+
+- Address second Copilot review on Tier 2-4 PR
+  ([#712](https://github.com/dougborg/katana-openapi-client/pull/712),
+  [`8c68ba5`](https://github.com/dougborg/katana-openapi-client/commit/8c68ba5a8b23b7450eb8960f8d463a2bd25eb4ed))
+
+- Address third Copilot review on Tier 2-4 PR
+  ([#712](https://github.com/dougborg/katana-openapi-client/pull/712),
+  [`a7bd305`](https://github.com/dougborg/katana-openapi-client/commit/a7bd305ae53fc5853744ad376909a79f31524944))
+
+- Address three #569 follow-up drifts surfaced during #712 audit
+  ([`5fa1fcf`](https://github.com/dougborg/katana-openapi-client/commit/5fa1fcff43f55d4b0f54af448be5e1e45d401ad9))
+
+- Codify the no-hand-maintained-drift-prone-refs rule
+  ([`7496b29`](https://github.com/dougborg/katana-openapi-client/commit/7496b29de9e0843972f1f4939c8a3eae49f60d16))
+
+- Make root README drift-resistant
+  ([`f759d97`](https://github.com/dougborg/katana-openapi-client/commit/f759d97bddb4a0182221760efbafcc1772e307bc))
+
+- Slim CLAUDE.md to a spine + topical pointer table
+  ([`ac858db`](https://github.com/dougborg/katana-openapi-client/commit/ac858dbee88221a27df4caf19c424c6a5922a31b))
+
+- Tier 2 process-doc sweep — CONTRIBUTING + MCP architecture
+  ([`a43c015`](https://github.com/dougborg/katana-openapi-client/commit/a43c0158c9f5f995cafea3ec9e3c096e546b2ba6))
+
+- Tier 3 reference/archive cleanup
+  ([`31052ba`](https://github.com/dougborg/katana-openapi-client/commit/31052ba6e4a34c1b0a727317af8ee15aa04bb810))
+
+- Trim spec descriptions per code review
+  ([`043acd9`](https://github.com/dougborg/katana-openapi-client/commit/043acd99e4b779c297bec6582551a24b5750bdb3))
+
+- **claude**: Document cross-worktree LSP bleed + workaround
+  ([`42003b4`](https://github.com/dougborg/katana-openapi-client/commit/42003b41c5d66bc19dce1741a08c0b62e3bd6b41))
+
+- **harness**: Tier 4 shared guides drift sweep + cross-cutting cleanup
+  ([`ce92dd2`](https://github.com/dougborg/katana-openapi-client/commit/ce92dd2d5430c59433ac6669aafc9bd15b8dde0a))
+
+- **harness**: Wire the Rolling Backlog board into the daily workflow (#568 Phase 1)
+  ([#686](https://github.com/dougborg/katana-openapi-client/pull/686),
+  [`81497ea`](https://github.com/dougborg/katana-openapi-client/commit/81497eaa7dd4968cac057e7f5f6e5a0f51308bb7))
+
+- **mcp**: Make MCP server README drift-resistant
+  ([`93fdece`](https://github.com/dougborg/katana-openapi-client/commit/93fdece0dad837f5aa5308d6079159d7f3cb0a2f))
+
+- **mcp**: Update \_dump_list comment to reference Type0Item class names
+  ([`eb7df9f`](https://github.com/dougborg/katana-openapi-client/commit/eb7df9f4cfcf6611a485f7b1b1d82f541e0eb3e9))
+
+### Features
+
+- **harness**: /groom skill — board hygiene via observed drift, not re-derivation (#683)
+  ([#689](https://github.com/dougborg/katana-openapi-client/pull/689),
+  [`6b9bb87`](https://github.com/dougborg/katana-openapi-client/commit/6b9bb87d7d8a5152301a5c5ae0e6ba9d568da9ee))
+
+- **mcp**: Expose item-level purchase_uom on catalog create tools
+  ([`29de49b`](https://github.com/dougborg/katana-openapi-client/commit/29de49b8ac7f1f3ad4273e5b889ed90908225c53))
+
+- **mcp**: Redesign build_item_detail_ui per #537 four-tier framework
+  ([`79d6361`](https://github.com/dougborg/katana-openapi-client/commit/79d63610f0bec49ca59f5d3e6a1e2befc36bd782))
+
+- **mcp**: Rev 2 of variant card + canonical display_name
+  ([`151a924`](https://github.com/dougborg/katana-openapi-client/commit/151a9243d5fbff5718a3dc7856d0199237e0a595))
+
+- **mcp**: Surface canonical display_name on ItemVariantSummary
+  ([`a4e5563`](https://github.com/dougborg/katana-openapi-client/commit/a4e55639026d714f2f8f391eb38d5e9c6e9a4bef))
+
+- **mcp**: Surface display_name in fulfill_order inventory updates
+  ([`293b5a9`](https://github.com/dougborg/katana-openapi-client/commit/293b5a9406ecd3e3fa6add757472bcf40cb20070))
+
+- **mcp**: Surface display_name on list\_\*/MO summary models
+  ([`7529ea3`](https://github.com/dougborg/katana-openapi-client/commit/7529ea38ddd21fb21cdefaf9cb8fa1715fa0514a))
+
+- **mcp**: Surface display_name on MO recipe rows + batch update UI
+  ([`33b63b0`](https://github.com/dougborg/katana-openapi-client/commit/33b63b09d44b66117e55ec829b347fabf927228b))
+
+- **mcp**: Surface display_name on PO/SO get-row models
+  ([`0f24d64`](https://github.com/dougborg/katana-openapi-client/commit/0f24d64052ae775f0910567aae286ccec2687a49))
+
+- **mcp**: Surface display_name on verify_order_document results
+  ([`c1f9303`](https://github.com/dougborg/katana-openapi-client/commit/c1f93039a8742d16645e477a91f8c52218deed45))
+
+### Testing
+
+- **mcp**: Parity test for cache-hit vs API-fallback variant details path
+  ([`2f1490c`](https://github.com/dougborg/katana-openapi-client/commit/2f1490c85acf1f3f7463178a66ca04339d284979))
+
 ## v0.63.0 (2026-05-12)
 
 ### Bug Fixes
