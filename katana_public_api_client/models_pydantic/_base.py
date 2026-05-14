@@ -286,15 +286,8 @@ def _convert_nested_value(value: Any, registry: Any) -> Any:
         # declares the field as a bare ``type: object`` (no $ref, no
         # inline properties), so the pydantic generator emits
         # ``dict[str, Any]`` while the attrs generator still synthesizes
-        # a concrete class (e.g. ``FactoryLegalAddress``). The pydantic
-        # model expects a dict, so fall back to ``to_dict()`` when the
-        # attrs side exposes it. This also recovers the previous-
-        # behavior path for ``Variant.config_attributes`` /
-        # ``custom_fields`` item classes whose names changed under the
-        # type-union regen (e.g. ``VariantConfigAttributesItem`` →
-        # ``VariantConfigAttributesType0Item``) — the registry doesn't
-        # know about the new names yet, but the attrs ``to_dict`` shape
-        # matches what pydantic accepts.
+        # a concrete class. The pydantic model expects a dict, so fall
+        # back to ``to_dict()`` when the attrs side exposes it.
         if hasattr(value, "to_dict"):
             return value.to_dict()
         # Last resort: warn and pass through. Pydantic validation will

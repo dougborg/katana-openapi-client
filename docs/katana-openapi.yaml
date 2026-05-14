@@ -2606,18 +2606,12 @@ components:
               type:
                 - string
                 - "null"
-              description: |-
-                Internal barcode for warehouse scanning and tracking. The wire
-                delivers ``null`` for variants that don't have one assigned;
-                ours-vs-Katana spec gap — Katana's published spec marks this
-                non-nullable but the live API returns null on most rows. See #727.
+              description: Internal barcode for warehouse scanning and tracking
             registered_barcode:
               type:
                 - string
                 - "null"
-              description: |-
-                Official registered barcode (UPC, EAN, etc.) for retail use.
-                Nullable per live-wire behavior — see ``internal_barcode``.
+              description: Official registered barcode (UPC, EAN, etc.) for retail use
             supplier_item_codes:
               type: array
               description: Supplier-specific part numbers or SKUs for purchasing
@@ -2637,11 +2631,7 @@ components:
               type:
                 - array
                 - "null"
-              description: |-
-                Custom field values specific to this variant. The wire delivers
-                ``null`` (not an empty array) when no custom fields are set —
-                see #727. Consumers should treat ``null`` and ``[]`` as
-                equivalent ("no custom fields").
+              description: Custom field values specific to this variant
               items:
                 type: object
                 properties:
@@ -2655,12 +2645,7 @@ components:
               type:
                 - array
                 - "null"
-              description: |-
-                Configuration attribute values that define this variant (color,
-                size, etc.). Marked nullable defensively (mirrors
-                ``custom_fields`` shape) so a future wire change to ``null``
-                doesn't crash the generated parser — current wire always
-                delivers an array, even if empty.
+              description: Configuration attribute values that define this variant (color, size, etc.)
               items:
                 type: object
                 properties:
@@ -2893,12 +2878,7 @@ components:
           type:
             - string
             - "null"
-          description: |-
-            Total quantity that could be available (in stock + expected).
-            Wire delivers ``null`` on the typical row (observed 100% on a
-            50-row sample). The field is still ``required`` because Katana
-            ships the key on every row — it's the *value* that may be null,
-            not the key. See #727.
+          description: Total quantity that could be available (in stock + expected)
         variant:
           $ref: "#/components/schemas/Variant"
           description: Product variant details associated with this inventory record
@@ -2912,11 +2892,7 @@ components:
           format: date-time
           description: Timestamp when this inventory record was archived
         default_storage_bin:
-          description: |-
-            Default storage bin for this variant at this location, when one has
-            been linked via the variant default storage bin endpoints. The wire
-            delivers ``null`` when no bin is linked (the typical case) — see
-            #727.
+          description: Default storage bin for this variant at this location, when one has been linked via the variant default storage bin endpoints
           anyOf:
             - $ref: "#/components/schemas/VariantDefaultStorageBinLinkResponse"
             - type: "null"
@@ -6675,18 +6651,12 @@ components:
               type:
                 - string
                 - "null"
-              description: |-
-                Internal barcode for warehouse scanning and tracking. The wire
-                delivers ``null`` for variants without one assigned — ours-vs-
-                Katana spec gap; see ``Variant.internal_barcode`` for the
-                rationale.
+              description: Internal barcode for warehouse scanning and tracking
             registered_barcode:
               type:
                 - string
                 - "null"
-              description: |-
-                Official registered barcode (UPC, EAN, etc.) for retail use.
-                Nullable per live-wire behavior — see ``internal_barcode``.
+              description: Official registered barcode (UPC, EAN, etc.) for retail use
             supplier_item_codes:
               type: array
               description: Supplier-specific part numbers or SKUs for purchasing
@@ -6706,10 +6676,7 @@ components:
               type:
                 - array
                 - "null"
-              description: |-
-                Configuration attribute values that define this variant. Marked
-                nullable to mirror ``custom_fields`` and the inline ``Variant``
-                schema — see #727.
+              description: Configuration attribute values that define this variant
               items:
                 type: object
                 properties:
@@ -6723,9 +6690,7 @@ components:
               type:
                 - array
                 - "null"
-              description: |-
-                Custom field values specific to this variant. The wire delivers
-                ``null`` (not ``[]``) when no custom fields are set — see #727.
+              description: Custom field values specific to this variant
               items:
                 type: object
                 properties:
@@ -10225,26 +10190,20 @@ components:
         base_currency_code:
           type: string
           description: Base currency code
+        # Schema gap: Katana's upstream example shows these as ISO-8601 datetimes,
+        # but the live wire delivers either ``null`` or an opaque short string
+        # (e.g. ``"14"`` for days-lead-time). ``format: date-time`` is omitted
+        # because the wire doesn't honor it.
         default_so_delivery_time:
           type:
             - string
             - "null"
-          description: |-
-            Default sales order delivery time. Schema gap: Katana's upstream
-            example shows an ISO-8601 datetime, but the live wire delivers
-            either ``null`` or an opaque short string (e.g. ``"14"`` for
-            days-lead-time). We deliberately drop ``format: date-time`` here
-            because the wire doesn't honor it. See #727.
+          description: Default sales order delivery time
         default_po_lead_time:
           type:
             - string
             - "null"
-          description: |-
-            Default purchase order lead time. Schema gap: same shape as
-            ``default_so_delivery_time`` — Katana's upstream example shows an
-            ISO-8601 datetime, but the live wire delivers ``null`` or an
-            opaque short string (e.g. ``"14"`` for days). ``format: date-time``
-            omitted intentionally. See #727.
+          description: Default purchase order lead time
         default_manufacturing_location_id:
           type: integer
           description: Default manufacturing location ID
@@ -10259,12 +10218,7 @@ components:
             - string
             - "null"
           format: date-time
-          description: |-
-            Inventory closing date. Marked nullable defensively — current
-            wire returns a valid ISO-8601 datetime, but the Factory schema
-            is sparsely documented and other date-time fields here
-            (``default_so_delivery_time`` / ``default_po_lead_time``) have
-            been observed delivering ``null``. See #727.
+          description: Inventory closing date
       required:
         - display_name
         - base_currency_code
