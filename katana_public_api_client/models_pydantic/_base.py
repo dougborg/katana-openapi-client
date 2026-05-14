@@ -253,9 +253,14 @@ def _convert_nested_value(value: Any, registry: Any) -> Any:
         The converted value suitable for a Pydantic model.
 
     Note:
-        If an attrs object is not registered in the registry, a warning is logged
-        and the original attrs object is returned as-is. This may cause issues
-        with Pydantic validation.
+        For attrs objects without a registered pydantic class, falls back
+        to ``value.to_dict()`` when the attrs side exposes that method —
+        covers the OpenAPI ``type: object`` (no $ref / no inline properties)
+        case where the pydantic generator emits ``dict[str, Any]`` while
+        the attrs generator still synthesizes a concrete class. When the
+        attrs object also has no ``to_dict``, the value is returned as-is
+        with a warning; pydantic validation will surface the mismatch
+        downstream.
     """
     import logging
 

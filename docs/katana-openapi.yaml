@@ -10190,20 +10190,24 @@ components:
         base_currency_code:
           type: string
           description: Base currency code
-        # Schema gap: Katana's upstream example shows these as ISO-8601 datetimes,
-        # but the live wire delivers either ``null`` or an opaque short string
-        # (e.g. ``"14"`` for days-lead-time). ``format: date-time`` is omitted
-        # because the wire doesn't honor it.
         default_so_delivery_time:
           type:
             - string
             - "null"
-          description: Default sales order delivery time
+          description: |-
+            Default sales order delivery time. Note: Katana's upstream
+            example shows an ISO-8601 datetime, but the live wire delivers
+            either ``null`` or an opaque short string (e.g. ``"14"`` for
+            days). ``format: date-time`` is intentionally omitted.
         default_po_lead_time:
           type:
             - string
             - "null"
-          description: Default purchase order lead time
+          description: |-
+            Default purchase order lead time. Same shape as
+            ``default_so_delivery_time`` — wire delivers ``null`` or an
+            opaque short string, not a datetime. ``format: date-time``
+            intentionally omitted.
         default_manufacturing_location_id:
           type: integer
           description: Default manufacturing location ID
