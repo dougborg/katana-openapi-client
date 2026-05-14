@@ -53,9 +53,12 @@ import asyncio
 import html
 import json
 import logging
+import re
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import aiohttp
 import yaml
@@ -77,6 +80,15 @@ README_CONFIG_PAGE = f"{README_PORTAL_URL}/reference/api-introduction"
 # embed the OAS as of 2026-04-28; widely-implemented endpoints across
 # typical API projects, so unlikely to disappear simultaneously.
 README_FALLBACK_SLUGS = ("list-all-customers", "list-all-products", "getallrecipes")
+
+# README.io's standard LLM index — a complete listing of every doc page
+# in the project with `.md` URLs that return raw markdown source. Used
+# to discover the full reference-page tree without scraping the SPA.
+README_LLMS_INDEX_URL = f"{README_PORTAL_URL}/llms.txt"
+README_REFERENCE_DIR_NAME = "readme-reference"
+README_MD_FETCH_CONCURRENCY = 4
+README_MD_FETCH_RETRIES = 3
+README_MD_FETCH_BACKOFF_SECONDS = 1.5
 
 # Browser-shaped headers — the README.io CDN serves an empty/tiny
 # payload for plain ``python-requests`` user agents, so we mimic Chrome.
@@ -297,6 +309,182 @@ async def fetch_readme_oas(
 
 
 # ----------------------------------------------------------------------------
+# README.io reference-page markdown crawl
+# ----------------------------------------------------------------------------
+#
+# The OAS embedded in README.io's ssr-props (above) lags the human-curated
+# per-object reference pages (e.g. ``the-variant-object`` documents
+# ``abc_classification`` even though it's absent from the OAS Variant
+# schema). We crawl the markdown source so our drift audit can compare
+# the local OpenAPI schema against what Katana's docs team actually
+# documents — catching field-level drift the OAS audit can't see.
+#
+# README.io serves a raw markdown export at ``<url>.md`` for every doc
+# page, and publishes the full project tree at ``/llms.txt`` in a
+# stable LLM-index format. We use ``llms.txt`` as the discovery source
+# (slug-agnostic, no scraping) and the ``.md`` URL trick for the bodies.
+
+
+# Matches a single llms.txt list entry, e.g.:
+#   - [The variant object](https://developer.katanamrp.com/reference/the-variant-object.md): description
+# The description suffix is optional — index-style pages have no description.
+_LLMS_LINE_RE = re.compile(
+    r"^- \[(?P<title>.*?)\]\((?P<url>https?://[^)]+\.md)\)"
+    r"(?:\s*:\s*(?P<desc>.+))?$"
+)
+
+
+@dataclass(frozen=True)
+class ReadmePage:
+    """A single README.io page discovered from ``llms.txt``."""
+
+    section: str  # H2 from llms.txt: "Guides" / "API Reference" / "Pages" / "Changelog"
+    url: str
+    title: str
+    description: str | None
+    relative_path: str  # URL path with leading slash stripped, e.g. "reference/foo.md"
+
+
+def _parse_llms_index(text: str) -> list[ReadmePage]:
+    """Parse README.io's ``llms.txt`` into a flat list of pages."""
+    pages: list[ReadmePage] = []
+    current_section = ""
+    for raw_line in text.splitlines():
+        line = raw_line.rstrip()
+        if line.startswith("## "):
+            current_section = line[3:].strip()
+            continue
+        match = _LLMS_LINE_RE.match(line)
+        if match is None:
+            continue
+        url = match.group("url")
+        path = urlparse(url).path.lstrip("/")
+        pages.append(
+            ReadmePage(
+                section=current_section,
+                url=url,
+                title=match.group("title"),
+                description=match.group("desc"),
+                relative_path=path,
+            )
+        )
+    return pages
+
+
+def _write_if_changed(path: Path, content: str) -> None:
+    """Write ``content`` only if the file is missing or differs.
+
+    Keeps mtimes stable across no-op refreshes so downstream watchers
+    (git, regen pipelines) don't trigger on every run.
+    """
+    if path.exists() and path.read_text(encoding="utf-8") == content:
+        return
+    path.write_text(content, encoding="utf-8")
+
+
+async def _fetch_with_retry(session: aiohttp.ClientSession, url: str) -> str | None:
+    """Fetch with linear backoff. README.io rate-limits at the CDN edge."""
+    for attempt in range(README_MD_FETCH_RETRIES):
+        body = await _fetch_text(session, url)
+        if body is not None:
+            return body
+        if attempt + 1 < README_MD_FETCH_RETRIES:
+            await asyncio.sleep(README_MD_FETCH_BACKOFF_SECONDS * (attempt + 1))
+    return None
+
+
+async def _fetch_markdown_page(
+    session: aiohttp.ClientSession,
+    page: ReadmePage,
+    output_dir: Path,
+    sem: asyncio.Semaphore,
+) -> bool:
+    """Fetch one ``.md`` page and write it to ``output_dir/<relative_path>``.
+
+    Returns True on success, False on any fetch/write failure.
+
+    Handles a known README.io ``llms.txt`` inconsistency: entries under
+    the ``Pages`` section list their URL at the root (e.g.
+    ``/setting-up-oauth.md``) but the actual page is served at
+    ``/page/<slug>.md``. When a root-level URL has no path segment, we
+    retry with a ``page/`` prefix and remap the on-disk target so the
+    layout stays predictable.
+    """
+    async with sem:
+        body = await _fetch_with_retry(session, page.url)
+        relative_path = page.relative_path
+        # Retry root-level URLs under /page/ if the original 404s.
+        if body is None and "/" not in page.relative_path:
+            fallback_url = f"{README_PORTAL_URL}/page/{page.relative_path}"
+            body = await _fetch_with_retry(session, fallback_url)
+            if body is not None:
+                relative_path = f"page/{page.relative_path}"
+    if body is None:
+        logger.warning(f"  ✗ {page.relative_path} — fetch failed")
+        return False
+    target = output_dir / relative_path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    _write_if_changed(target, body)
+    return True
+
+
+async def fetch_readme_reference_markdown(
+    session: aiohttp.ClientSession, output_dir: Path
+) -> bool:
+    """Pull every README.io reference / docs / changelog page as raw markdown.
+
+    Strategy:
+
+    1. Fetch ``/llms.txt`` to discover the full set of doc pages.
+    2. For each page, fetch its ``.md`` export with bounded concurrency.
+    3. Write each body to ``<output_dir>/<url_path>`` so the on-disk
+       layout mirrors the URL structure (``reference/<slug>.md`` etc.).
+    4. Drop a copy of ``llms.txt`` at the root for category lookup —
+       it's the only place section headers (``API Reference`` vs
+       ``Guides``) are preserved.
+
+    Returns True if at least one page was written. Existing files in
+    ``output_dir`` are cleared at the start of the run so upstream
+    removals are reflected on disk.
+    """
+    logger.info(f"📥 Fetching README.io index: {README_LLMS_INDEX_URL}")
+    text = await _fetch_text(session, README_LLMS_INDEX_URL)
+    if text is None:
+        logger.error("  could not fetch llms.txt index")
+        return False
+    pages = _parse_llms_index(text)
+    sections = {p.section for p in pages}
+    logger.info(f"  ✓ {len(pages)} pages across {len(sections)} sections")
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    _write_if_changed(output_dir / "llms.txt", text)
+
+    sem = asyncio.Semaphore(README_MD_FETCH_CONCURRENCY)
+    results = await asyncio.gather(
+        *(_fetch_markdown_page(session, p, output_dir, sem) for p in pages)
+    )
+    written = sum(results)
+    logger.info(
+        f"  ✓ {written}/{len(pages)} pages written to "
+        f"{output_dir.relative_to(REPO_ROOT)}"
+    )
+
+    # Reap ``.md`` files no longer in the upstream index so removed pages
+    # don't linger. Run after the fetch so a transient network failure
+    # never leaves the tree empty.
+    expected = {output_dir / "llms.txt"}
+    for page in pages:
+        expected.add(output_dir / page.relative_path)
+        if "/" not in page.relative_path:
+            expected.add(output_dir / "page" / page.relative_path)
+    for stale in output_dir.rglob("*.md"):
+        if stale not in expected:
+            stale.unlink()
+
+    return written > 0
+
+
+# ----------------------------------------------------------------------------
 # Output
 # ----------------------------------------------------------------------------
 
@@ -341,14 +529,16 @@ def save_spec(spec: dict[str, Any], path: Path) -> None:
 
 
 async def refresh(output_dir: Path) -> int:
-    """Fetch both upstream specs, save them. Returns 0 on full success."""
+    """Fetch all upstream artefacts, save them. Returns 0 on full success."""
     output_dir.mkdir(parents=True, exist_ok=True)
+    readme_reference_dir = output_dir / README_REFERENCE_DIR_NAME
     async with aiohttp.ClientSession(
         timeout=aiohttp.ClientTimeout(total=60)
     ) as session:
-        live, readme = await asyncio.gather(
+        live, readme, reference_ok = await asyncio.gather(
             fetch_live_openapi_spec(session),
             fetch_readme_oas(session),
+            fetch_readme_reference_markdown(session, readme_reference_dir),
         )
 
     rc = 0
@@ -361,6 +551,12 @@ async def refresh(output_dir: Path) -> int:
         save_spec(readme, output_dir / "readme-portal.yaml")
     else:
         logger.error("README.io fetch failed — leaving readme-portal.yaml untouched")
+        rc = 1
+    if not reference_ok:
+        logger.error(
+            "README.io reference-page crawl produced no output — "
+            f"leaving {readme_reference_dir.relative_to(REPO_ROOT)}/ stale"
+        )
         rc = 1
     return rc
 
@@ -400,4 +596,11 @@ if __name__ == "__main__":
     sys.exit(main())
 
 
-__all__ = ["LIVE_OPENAPI_SPEC_URL", "fetch_live_openapi_spec", "fetch_readme_oas"]
+__all__ = [
+    "LIVE_OPENAPI_SPEC_URL",
+    "README_LLMS_INDEX_URL",
+    "README_REFERENCE_DIR_NAME",
+    "fetch_live_openapi_spec",
+    "fetch_readme_oas",
+    "fetch_readme_reference_markdown",
+]

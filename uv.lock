@@ -1278,7 +1278,7 @@ wheels = [
 
 [[package]]
 name = "katana-mcp-server"
-version = "0.75.2"
+version = "0.76.0"
 source = { editable = "katana_mcp_server" }
 dependencies = [
     { name = "aiosqlite" },
@@ -1366,6 +1366,7 @@ docs = [
 dev = [
     { name = "aiofiles" },
     { name = "aiohttp" },
+    { name = "beautifulsoup4" },
     { name = "brotli" },
     { name = "poethepoet" },
     { name = "pyright" },
@@ -1426,6 +1427,7 @@ provides-extras = ["dev", "docs"]
 dev = [
     { name = "aiofiles", specifier = ">=25.1.0" },
     { name = "aiohttp", specifier = ">=3.13.3" },
+    { name = "beautifulsoup4", specifier = ">=4.14.3" },
     { name = "brotli", specifier = ">=1.2.0" },
     { name = "poethepoet", specifier = ">=0.37.0" },
     { name = "pyright", specifier = ">=1.1.400" },

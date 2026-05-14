@@ -1,0 +1,246 @@
+# Katana API Documentation
+
+## Guides
+- [Getting started with Katana API](https://developer.katanamrp.com/docs/getting-started.md): Learn how you can use our open API to develop integrations with Katana.
+
+## API Reference
+- [Introduction](https://developer.katanamrp.com/reference/api-introduction.md)
+- [Rate limiting](https://developer.katanamrp.com/reference/api-rate-limiting.md)
+- [List all additional costs](https://developer.katanamrp.com/reference/getadditionalcosts.md): Returns a list of additional costs you’ve previously created.
+- [Create a batch](https://developer.katanamrp.com/reference/createbatch.md): Creates a batch object.
+- [List current batch stock](https://developer.katanamrp.com/reference/getbatchstock.md): Returns a list for current batch stock.   The inventory is returned in sorted order, base on location_id ASC, variant_id ASC, batch_id DESC.
+- [Update batch details](https://developer.katanamrp.com/reference/updatebatchstock.md): Updates the specified batch details by setting the values of the parameters passed.   Any parameters not provided will be left unchanged.
+- [Create a BOM row](https://developer.katanamrp.com/reference/batchcreatebomrows.md): Create a new BOM row for a product.
+- [Create many BOM rows](https://developer.katanamrp.com/reference/createbomrow.md): Create BOM rows for a product.
+- [Delete a BOM row](https://developer.katanamrp.com/reference/deletebomrow.md): Deletes a BOM row by id.
+- [List all BOM rows](https://developer.katanamrp.com/reference/getallbomrows.md): Returns a list of BOM (Bill of Materials) rows you've previously created.     Product variant BOM consists of ingredient variants and their quantities.
+- [BOM row](https://developer.katanamrp.com/reference/bom-row.md)
+- [The BOM row object](https://developer.katanamrp.com/reference/the-bom-row-object.md)
+- [Update a BOM row](https://developer.katanamrp.com/reference/updatebomrow.md): Updates the specified BOM row by setting the values of the parameters passed.     Any parameters not provided will be left unchanged.
+- [Create a custom field definition](https://developer.katanamrp.com/reference/createcustomfielddefinition.md): Creates a new custom field definition for a given entity type. A factory may have at most 50 definitions.
+- [Delete a custom field definition](https://developer.katanamrp.com/reference/deletecustomfielddefinition.md): Deletes a custom field definition by id.
+- [List all custom field definitions](https://developer.katanamrp.com/reference/getallcustomfielddefinitions.md): Returns a list of custom field definitions in the factory, optionally filtered by label, field type, or entity type.
+- [Retrieve a custom field definition](https://developer.katanamrp.com/reference/getcustomfielddefinition.md): Retrieves a custom field definition by id.
+- [Custom Field Definition](https://developer.katanamrp.com/reference/custom-field-definition.md)
+- [Update a custom field definition](https://developer.katanamrp.com/reference/updatecustomfielddefinition.md): Updates the `label`, `description`, or `options` of a custom field definition. Other properties (`field_type`, `entity_type`, `source`) are immutable.
+- [List all custom fields collections](https://developer.katanamrp.com/reference/getcustomfieldscollections.md): Retrieves a list of custom fields collections
+- [Create a customer address](https://developer.katanamrp.com/reference/createcustomeraddress.md): Add an address to an existing customer. A Customer can have one billing address   and multiple shipping addresses. If the new address is the first of its type, it is assigned as the default.
+- [Delete a customer address](https://developer.katanamrp.com/reference/deletecustomeraddress.md): Deletes a customer address by id.
+- [List all customer addresses](https://developer.katanamrp.com/reference/getcustomeraddresses.md): Returns a list of customer addresses you’ve previously created.    The customer addresses are returned in sorted order, with the most recent customer addresses appearing first.
+- [Update a customer address](https://developer.katanamrp.com/reference/updatecustomeraddress.md): Updates the specified customer address by setting the values of the parameters passed.     Any parameters not provided will be left unchanged.
+- [Create a customer](https://developer.katanamrp.com/reference/create-customer.md): Creates a new customer object.
+- [Delete a customer](https://developer.katanamrp.com/reference/deletecustomer.md): Deletes a customer by id.
+- [List all customers](https://developer.katanamrp.com/reference/list-all-customers.md): Returns a list of customers you’ve previously created. The customers are returned in sorted order,     with the most recent customers appearing first.
+- [The customer object](https://developer.katanamrp.com/reference/the-customer-object.md)
+- [Update a customer](https://developer.katanamrp.com/reference/updatecustomer.md): Updates the specified customer by setting the values of the parameters passed.     Any parameters not provided will be left unchanged.
+- [Add planned demand forecast to variant.](https://developer.katanamrp.com/reference/createdemandforecast.md): Add planned demand forecast for a variant in location for the specified periods.
+- [Clear planned demand forecast to variant.](https://developer.katanamrp.com/reference/deletedemandforecast.md): Clears planned demand forecast for a variant in location for the specified periods.
+- [Demand forecast object](https://developer.katanamrp.com/reference/demand-forecast-object.md)
+- [List planned demand forecast for variant in location](https://developer.katanamrp.com/reference/getdemandforecasts.md): Returns planned forecasted demand for a variant in given location.
+- [Demand forecast](https://developer.katanamrp.com/reference/demand-forecast.md): Endpoint to view and update demand plan forecast.
+- [Retrieve the current factory](https://developer.katanamrp.com/reference/getfactory.md): Returns the general information about the factory.
+- [List all inventory movements](https://developer.katanamrp.com/reference/list-all-inventory-movements.md): Returns a list of inventory movements created by your Katana resources.    The inventory movements are returned in sorted order, with the most recent movements appearing first.
+- [Update the safety stock level](https://developer.katanamrp.com/reference/createinventorysafetystocklevel.md): Update an item’s safety stock level within a certain location and variant combination.
+- [List all variants with negative stock](https://developer.katanamrp.com/reference/getallnegativestock.md): Returns a list of variants with negative stock balance.   Each variant has a date of the latest stock movement that resulted in negative stock balance.
+- [List current inventory](https://developer.katanamrp.com/reference/list-current-inventory.md): Returns a list for current inventory. The inventory is returned in sorted order,     with the oldest locations appearing first.
+- [The inventory object](https://developer.katanamrp.com/reference/the-inventory-object.md)
+- [Update the reorder point](https://developer.katanamrp.com/reference/update-reorder-point.md): (Endpoint deprecation, we recommend using safety_stock instead) Updates an item’s safety stock level in a certain location and variant combination.
+- [Retrieve a location](https://developer.katanamrp.com/reference/getlocation.md): Retrieves the details of an existing location based on ID.
+- [List all locations](https://developer.katanamrp.com/reference/list-all-locations.md): Returns a list of locations you’ve previously created. The locations are returned in sorted order,     with the most recent locations appearing first.
+- [The location object](https://developer.katanamrp.com/reference/the-location-object.md)
+- [Create a manufacturing order operation row](https://developer.katanamrp.com/reference/createmanufacturingorderoperationrow.md): Add an operation row to an existing manufacturing order. Operation rows cannot be added when the   manufacturing order status is DONE.
+- [Delete a manufacturing order operation row](https://developer.katanamrp.com/reference/deletemanufacturingorderoperationrow.md): Deletes a single manufacturing order operation row by id.
+- [List all manufacturing order operation rows](https://developer.katanamrp.com/reference/getallmanufacturingorderoperationrows.md): Returns a list of manufacturing order operation rows you’ve previously created.   The manufacturing order operation rows are returned in sorted order,    with the most recent manufacturing order operation rows appearing first.
+- [Retrieve a manufacturing order operation row](https://developer.katanamrp.com/reference/getmanufacturingorderoperationrow.md): Retrieves the details of an existing manufacturing order operation row.
+- [The manufacturing order operation row object](https://developer.katanamrp.com/reference/the-manufacturing-order-operation-row-object.md)
+- [Update a manufacturing order operation row](https://developer.katanamrp.com/reference/updatemanufacturingorderoperationrow.md): Updates the specified manufacturing order operation row by setting the values of the parameters passed.     Any parameters not provided will be left unchanged. Only completed_by_operators and total_actual_time can be     updated when the manufacturing order status is DONE
+- [Update a manufacturing order production ingredient](https://developer.katanamrp.com/reference/updatemanufacturingorderproductioningredient.md): Updates the specified manufacturing order production ingredient by setting the values of the parameters passed.   Any parameters not provided will be left unchanged. Manufacturing order production ingredient cannot be updated when   the manufacturing order status is DONE.
+- [Create a manufacturing order production](https://developer.katanamrp.com/reference/createmanufacturingorderproduction.md): Creates a new manufacturing order production (partial completion).  **Ingredient and Operation Consumption Behavior:**  The following behavior applies independently to the 'ingredients' and 'operations' arrays:  - **When an array is provided with data**: Records the specified consumption values. - **When an array is provided but empty ([])**: Records production but no consumption for that array. - **When an array is omitted**: Automatically creates consumption based on the manufacturing order plan.  This allows flexible reporting: explicit values, no consumption, or auto-calculated from plan.
+- [Delete a manufacturing order production](https://developer.katanamrp.com/reference/deletemanufacturingorderproduction.md): Deletes a single manufacturing order production by id.
+- [Retrieve a manufacturing order production](https://developer.katanamrp.com/reference/getmanufacturingorderproduction.md): Retrieves the details of an existing manufacturing order production based on ID.
+- [Update a manufacturing order production](https://developer.katanamrp.com/reference/updatemanufacturingorderproduction.md): Updates the specified manufacturing order production by setting the values of the parameters passed.   Any parameters not provided will be left unchanged.
+- [Create a manufacturing order recipe row](https://developer.katanamrp.com/reference/createmanufacturingorderreciperows.md): Add a recipe row to an existing manufacturing order.   Recipe rows cannot be added when the manufacturing order status is DONE.
+- [Delete a manufacturing order recipe row](https://developer.katanamrp.com/reference/deletemanufacturingorderreciperow.md): Deletes a single manufacturing order recipe row by id.
+- [List all manufacturing order recipe rows](https://developer.katanamrp.com/reference/getallmanufacturingorderreciperows.md): Returns a list of manufacturing order recipe rows you’ve previously created. The manufacturing order   recipe rows are returned in sorted order, with the most recent manufacturing order recipe rows appearing first.
+- [Retrieve a manufacturing order recipe row](https://developer.katanamrp.com/reference/getmanufacturingorderreciperow.md): Retrieves the details of an existing manufacturing order recipe row.
+- [Update a manufacturing order recipe row](https://developer.katanamrp.com/reference/updatemanufacturingorderreciperows.md): Updates the specified manufacturing order recipe row by setting the values of the parameters passed.   Any parameters not provided will be left unchanged. Recipe rows cannot be updated when   the manufacturing order status is DONE.
+- [Create a manufacturing order](https://developer.katanamrp.com/reference/createmanufacturingorder.md): Creates a new manufacturing order object. Manufacturing order recipe and   operation rows are created automatically based on the product recipe and operations.
+- [Delete a manufacturing order](https://developer.katanamrp.com/reference/deletemanufacturingorder.md): Deletes a single manufacturing order by id.
+- [List all manufacturing orders](https://developer.katanamrp.com/reference/getallmanufacturingorderproductions.md): Returns a list of manufacturing orders you’ve previously created.   The manufacturing orders are returned in sorted order, with the most recent manufacturing orders appearing first.
+- [List all manufacturing orders](https://developer.katanamrp.com/reference/getallmanufacturingorders.md): Returns a list of manufacturing orders you’ve previously created.   The manufacturing orders are returned in sorted order, with the most recent manufacturing orders appearing first.
+- [Retrieve a manufacturing order](https://developer.katanamrp.com/reference/getmanufacturingorder.md): Retrieves the details of an existing manufacturing order based on ID.
+- [Create a make-to-order manufacturing order](https://developer.katanamrp.com/reference/maketoordermanufacturingorder.md): Creates a new manufacturing order object that is linked to a specific sales order row.
+- [Unlink a manufacturing order from sales order row](https://developer.katanamrp.com/reference/unlinkmanufacturingorder.md): Unlinks the manufacturing order from a particular sales order row.
+- [Update a manufacturing order](https://developer.katanamrp.com/reference/updatemanufacturingorder.md): Updates the specified manufacturing order by setting the values of the parameters passed.   Any parameters not provided will be left unchanged.
+- [Create a material](https://developer.katanamrp.com/reference/creatematerial.md): Creates a material object.
+- [Delete a material](https://developer.katanamrp.com/reference/deletematerial.md): Deletes a material by id.
+- [List all materials](https://developer.katanamrp.com/reference/getallmaterials.md): Returns a list of materials you’ve previously created. The materials are returned in sorted order,     with the most recent materials appearing first.
+- [Retrieve a material](https://developer.katanamrp.com/reference/getmaterial.md): Retrieves the details of an existing material based on ID.
+- [The material object](https://developer.katanamrp.com/reference/the-material-object.md)
+- [Update a material](https://developer.katanamrp.com/reference/updatematerial.md): Updates the specified material by setting the values of the parameters passed.     Any parameters not provided will be left unchanged.
+- [Get all operators](https://developer.katanamrp.com/reference/getoperators.md): Retrieves a list of operators based on the provided filters.
+- [Create an outsourced purchase order recipe row](https://developer.katanamrp.com/reference/createpurchaseorderreciperow.md): Add a recipe row to an existing outsourced purchase order.     Recipe rows cannot be added when the order status is RECEIVED.
+- [Delete outsourced purchase order recipe row](https://developer.katanamrp.com/reference/deletepurchaseorderreciperow.md): Deletes a single outsourced purchase order recipe row by id.     Recipe rows cannot be deleted when the order status is RECEIVED.
+- [List all outsourced purchase order recipe rows](https://developer.katanamrp.com/reference/getallpurchaseorderreciperows.md): Returns a list of outsourced purchase order recipe rows you’ve previously created.     The recipe rows are returned in sorted order, with the most recent rows appearing first.
+- [Retrieve an outsourced purchase order recipe row](https://developer.katanamrp.com/reference/getpurchaseorderreciperow.md): Retrieves the details of an existing outsourced purchase order recipe row.
+- [Update an outsourced purchase order recipe row](https://developer.katanamrp.com/reference/updatepurchaseorderreciperow.md): Updates the specified outsourced purchase order recipe row by setting the values of the parameters passed.     Any parameters not provided will be left unchanged.
+- [Create price list customers](https://developer.katanamrp.com/reference/createpricelistcustomer.md): Add customers to a price list.
+- [Delete a price list customer](https://developer.katanamrp.com/reference/deletepricelistcustomer.md): Deletes a single price list customer by id.
+- [List all price list customers](https://developer.katanamrp.com/reference/getallpricelistcustomers.md): Returns a list of price list customers you’ve previously created.   The price list customers are returned in a sorted order,     with the most recent price list customers appearing first.
+- [Retrieve a price list customer](https://developer.katanamrp.com/reference/getpricelistcustomer.md): Retrieves the details of an existing price list customer based on ID
+- [Update a price list customer](https://developer.katanamrp.com/reference/updatepricelistcustomer.md): Updates the specified price list customer by setting the values of the parameters passed.     Any parameters not provided will be left unchanged.
+- [Create price list rows](https://developer.katanamrp.com/reference/createpricelistrow.md): Add variants to a price list.
+- [Delete price list row](https://developer.katanamrp.com/reference/deletepricelistrow.md): Deletes a single price list row by id.
+- [List all price list rows](https://developer.katanamrp.com/reference/getallpricelistrows.md): Returns a list of price list rows you’ve previously created.   The price list rows are returned in a sorted order,     with the most recent price list rows appearing first.
+- [Retrieve a price list row](https://developer.katanamrp.com/reference/getpricelistrow.md): Retrieves the details of an existing price list row based on ID
+- [Update a price list row](https://developer.katanamrp.com/reference/updatepricelistrow.md): Updates the specified price list row by setting the values of the parameters passed.     Any parameters not provided will be left unchanged.
+- [Create a price list](https://developer.katanamrp.com/reference/createpricelist.md): Creates a new price list.
+- [Delete a price list](https://developer.katanamrp.com/reference/deletepricelist.md): Deletes a single price list by id.
+- [List all price lists](https://developer.katanamrp.com/reference/getallpricelists.md): Returns a list of price lists you’ve previously created.   The price lists are returned in a sorted order,     with the most recent price lists appearing first.
+- [Retrieve a price list](https://developer.katanamrp.com/reference/getpricelist.md): Retrieves the details of an existing price list based on ID
+- [Update a price list](https://developer.katanamrp.com/reference/updatepricelist.md): Updates the specified price list by setting the values of the parameters passed.     Any parameters not provided will be left unchanged.
+- [Create product operations](https://developer.katanamrp.com/reference/createproductoperationrows.md): Create one or many new product operation rows for a product.     The endpoint accepts up to 150 product operation rows and processes them in bulk.     If rows are successfully created, 204 is returned.
+- [Delete a product operation row](https://developer.katanamrp.com/reference/deleteproductoperationrow.md): Deletes a product operation row by product_operation_row_id.     If one product operation row applies to multiple product variants then all of them are deleted.
+- [List all product operations](https://developer.katanamrp.com/reference/getallproductoperationrows.md): Returns a list of product operation rows you’ve previously created.
+- [Change the product operation's rank](https://developer.katanamrp.com/reference/rerankproductoperation.md): Use this endpoint to rearrange product operations.     This endpoint supports the changing of a single product operation's rank in relation to other product operations.     After repositioning, the rank attribute for all operations of the same product will be recalculated.
+- [The product operation object](https://developer.katanamrp.com/reference/the-product-operation-object.md)
+- [Update a product operation row](https://developer.katanamrp.com/reference/updateproductoperationrow.md): Updates the specified product operation row by setting the values of the parameters passed.   Any parameters not provided will be left unchanged. Since one product operation row can apply to multiple product   variants, updating the row will apply to all objects with the same product_operation_row_id.
+- [Create a product](https://developer.katanamrp.com/reference/create-product.md): Creates a product object.
+- [Delete a product](https://developer.katanamrp.com/reference/deleteproduct.md): Deletes a product by id.
+- [Retrieve a product](https://developer.katanamrp.com/reference/getproduct.md): Retrieves the details of an existing product based on ID.
+- [List all products](https://developer.katanamrp.com/reference/list-all-products.md): Returns a list of products you’ve previously created. The products are returned in sorted order,     with the most recent products appearing first.
+- [The product object](https://developer.katanamrp.com/reference/the-product-object.md)
+- [Update a product](https://developer.katanamrp.com/reference/updateproduct.md): Updates the specified product by setting the values of the parameters passed.     Any parameters not provided will be left unchanged.
+- [List all purchase order accounting metadata](https://developer.katanamrp.com/reference/getallpurchaseorderaccountingmetadata.md): Returns a list of purchase order accounting metadata entries.
+- [Create a purchase order additional cost row](https://developer.katanamrp.com/reference/createpoadditionalcostrow.md): Add a purchase order additional cost row to an existing group.
+- [Delete a purchase order additional cost row](https://developer.katanamrp.com/reference/deletepoadditionalcost.md): Deletes a purchase order additional cost row by id.
+- [Retrieve a purchase order additional cost row](https://developer.katanamrp.com/reference/getpoadditionalcostrow.md): Retrieves the details of an existing purchase order additional cost row based on ID
+- [List all purchase order additional cost rows](https://developer.katanamrp.com/reference/getpurchaseorderadditionalcostrows.md): Returns a list of purchase order additional cost rows you’ve previously created.
+- [Update a purchase order additional cost row](https://developer.katanamrp.com/reference/updateadditionalcostrow.md): Updates the specified purchase order additional cost row by setting the values of the parameters passed.     Any parameters not provided will be left unchanged.
+- [Create a purchase order row](https://developer.katanamrp.com/reference/createpurchaseorderrow.md): Creates a new purchase order row object.
+- [Delete purchase order row](https://developer.katanamrp.com/reference/deletepurchaseorderrow.md): Deletes a single purchase order row by id.
+- [List all purchase order rows](https://developer.katanamrp.com/reference/getallpurchaseorderrows.md): Returns a list of purchase order rows you’ve previously created.   The purchase order rows are returned in sorted order, with the most recent rows appearing first.
+- [Retrieve a purchase order row](https://developer.katanamrp.com/reference/getpurchaseorderrow.md): Retrieves the details of an existing purchase order row based on ID
+- [The purchase order row object](https://developer.katanamrp.com/reference/the-purchase-order-row-object.md)
+- [Update a purchase order row](https://developer.katanamrp.com/reference/updatepurchaseorderrow.md): Updates the specified purchase order row by setting the values of the parameters passed.     Any parameters not provided will be left unchanged.
+- [Create a purchase order](https://developer.katanamrp.com/reference/createpurchaseorder.md): Creates a new purchase order object.
+- [Delete purchase order](https://developer.katanamrp.com/reference/deletepurchaseorder.md): Deletes a single purchase order by id.
+- [List all purchase orders](https://developer.katanamrp.com/reference/findpurchaseorders.md): Returns a list of purchase orders you’ve previously created. The purchase orders are returned in sorted     order, with the most recent purchase orders appearing first.
+- [Retrieve a purchase order](https://developer.katanamrp.com/reference/getpurchaseorder.md): Retrieves the details of an existing purchase order based on ID
+- [Receive a purchase order](https://developer.katanamrp.com/reference/receivepurchaseorder.md): If you receive the items on the purchase order, you can mark the purchase order as received.     This will update the existing purchase order rows quantities to the quantities left unreceived and     create a new rows with the received quantities and dates. If you want to mark all rows as received and     the order doesn’t contain batch tracked items, you can use PATCH /purchase_orders/id endpoint.     Reverting the receive must also be done through that endpoint.
+- [The purchase order object](https://developer.katanamrp.com/reference/the-purchase-order-object.md)
+- [Update a purchase order](https://developer.katanamrp.com/reference/updatepurchaseorder.md): Updates the specified purchase order by setting the values of the parameters passed.     Any parameters not provided will be left unchanged.
+- [Create recipes](https://developer.katanamrp.com/reference/createrecipes.md): (This endpoint is deprecated in favor of BOM rows)     Create one or many new recipe rows for a product.     The endpoint accepts up to 150 recipe rows and processes them in bulk.     If rows are successfully created, 204 is returned.
+- [Delete a recipe row](https://developer.katanamrp.com/reference/deletereciperow.md): (This endpoint is deprecated in favor of BOM rows)     Deletes a recipes row by recipe_row_id.     If one recipe row applies to multiple product variants then all of them are deleted.
+- [List all recipes](https://developer.katanamrp.com/reference/getallrecipes.md): (This endpoint is deprecated in favor of BOM rows)     Returns a list of recipe (bill of materials) rows you’ve previously created.     Product variant recipe consists of ingredient variants and their quantities.
+- [Recipe](https://developer.katanamrp.com/reference/recipe.md)
+- [The recipe / BOM object](https://developer.katanamrp.com/reference/the-recipe-bom-object.md)
+- [Update a recipe row](https://developer.katanamrp.com/reference/updatereciperow.md): (This endpoint is deprecated in favor of BOM rows)     Updates the specified recipe row by setting the values of the parameters passed.     Any parameters not provided will be left unchanged. Since one recipe row can apply to multiple product variants,     updating the row will apply to all objects with the same recipe_row_id.
+- [List all sales order accounting metadata](https://developer.katanamrp.com/reference/getallsalesorderaccountingmetadata.md): Returns a list of sales order accounting metadata entries.
+- [Create a sales order address](https://developer.katanamrp.com/reference/create-sales-order-address.md): Creates a new sales order address object.
+- [Delete sales order address](https://developer.katanamrp.com/reference/delete-sales-order-address.md): Deletes a single sales order address by id.
+- [List all sales order addresses](https://developer.katanamrp.com/reference/getsalesorderaddresses.md): Returns a list of sales order addresses you’ve previously created.    The sales order addresses are returned in sorted order, with the most recent sales order addresses appearing first.
+- [Update a sales order address](https://developer.katanamrp.com/reference/update-sales-order-address.md): Updates the specified sales order address by setting the values of the parameters passed.   Any parameters not provided will be left unchanged.
+- [Create a sales order fulfillment](https://developer.katanamrp.com/reference/create-sales-order-fulfillment.md): Creates a new fulfillment for an existing sales order.
+- [Delete a sales order fulfillment](https://developer.katanamrp.com/reference/delete-sales-order-fulfillment.md): Deletes a single sales order fulfillment by id.
+- [List all sales order fulfillments](https://developer.katanamrp.com/reference/list-all-sales-order-fulfillments.md): Returns a list of sales order fulfillments you’ve previously created.   The sales order fulfillments are returned in a sorted order,     with the most recent sales order fulfillments appearing first.
+- [Retrieve a sales order fulfillment](https://developer.katanamrp.com/reference/retrieve-sales-order-fulfillment.md): Retrieves the details of an existing sales order fulfillment based on ID
+- [The sales order fulfillment object](https://developer.katanamrp.com/reference/the-sales-order-fulfillment-object.md)
+- [Update a sales order fulfillment](https://developer.katanamrp.com/reference/update-sales-order-fulfillment.md): Updates the specified sales order fulfillment by setting the values of the parameters passed.   Any parameters not provided will be left unchanged.
+- [Create a sales order row](https://developer.katanamrp.com/reference/create-sales-order-row.md): Add a sales order row to an existing sales order.     Rows can be added only when the sales order status is NOT_SHIPPED or PENDING.
+- [Delete sales order row](https://developer.katanamrp.com/reference/delete-sales-order-row.md): Deletes a single sales order row by id.     Rows can be deleted only when the sales order row status is NOT_SHIPPED or PENDING
+- [List all sales order rows](https://developer.katanamrp.com/reference/getallsalesorderrows.md): Returns a list of sales order rows you’ve previously created.   The sales order rows are returned in a sorted order,     with the most recent sales order rows appearing first.
+- [Retrieve a sales order row](https://developer.katanamrp.com/reference/retrieve-sales-order-row.md): Retrieves the details of an existing sales order row.
+- [The sales order row object](https://developer.katanamrp.com/reference/the-sales-order-row-object.md)
+- [Update a sales order row](https://developer.katanamrp.com/reference/update-sales-order-row.md): Updates the specified sales order row by setting the values of the parameters passed.   Any parameters not provided will be left unchanged.
+- [Creates a sales order shipping fee and add it to sales order](https://developer.katanamrp.com/reference/addshippingfee.md): Creates a sales order shipping fee and add it to sales order.
+- [Deletes shipping fee, also removes it from attached sales order.](https://developer.katanamrp.com/reference/deleteshippingfee.md): Deletes shipping fee, also removes it from attached sales order
+- [List all shipping fees](https://developer.katanamrp.com/reference/getallshippingfees.md): Returns a list of shipping fees you’ve previously created.
+- [Retrieve a shipping fee](https://developer.katanamrp.com/reference/getshippingfee.md): Retrieves the details of an existing shipping fee based on ID
+- [Update a shipping fee](https://developer.katanamrp.com/reference/updateshippingfee.md): Updates the specified shipping fee by setting the values of the parameters passed.   Any parameters not provided will be left unchanged.
+- [Create a sales order](https://developer.katanamrp.com/reference/create-sales-order.md): Creates a new sales order object.
+- [Delete sales order](https://developer.katanamrp.com/reference/delete-sales-order.md): Deletes a single sales order by id.
+- [Get returnable items](https://developer.katanamrp.com/reference/getreturnableitems.md): Get returnable items for a sales order
+- [List all sales orders](https://developer.katanamrp.com/reference/list-all-sales-orders.md): Returns a list of sales orders you’ve previously created.   The sales orders are returned in a sorted order,     with the most recent sales orders appearing first.
+- [Retrieve a sales order](https://developer.katanamrp.com/reference/retrieve-sales-order.md): Retrieves the details of an existing sales order based on ID
+- [The sales order object](https://developer.katanamrp.com/reference/the-sales-order-object.md)
+- [Update a sales order](https://developer.katanamrp.com/reference/update-sales-order.md): Updates the specified sales order by setting the values of the parameters passed.   Any parameters not provided will be left unchanged.
+- [Create a sales return row](https://developer.katanamrp.com/reference/createsalesreturnrow.md): Creates a new sales return row object.
+- [Delete sales return row](https://developer.katanamrp.com/reference/deletesalesreturnrow.md): Deletes a single sales return row by id.
+- [List all sales return rows](https://developer.katanamrp.com/reference/getallsalesreturnrows.md): Returns a list of sales return rows you've previously created.   The sales return rows are returned in a sorted order,     with the most recent sales return row appearing first.
+- [Retrieve a sales return row](https://developer.katanamrp.com/reference/getsalesreturnrow.md): Retrieves the details of an existing sales return row based on ID
+- [Retrieve unassigned batch transactions for a sales return row](https://developer.katanamrp.com/reference/getsalesreturnrowunassignedbatchtransactions.md): Retrieves the unassigned batch transactions for a sales return row based on sales return row id
+- [The sales return row object](https://developer.katanamrp.com/reference/the-sales-return-row-object.md)
+- [Update a sales return row](https://developer.katanamrp.com/reference/updatesalesreturnrow.md): Updates the specified sales return row by setting the values of the parameters passed.   Any parameters not provided will be left unchanged.
+- [Create a sales return](https://developer.katanamrp.com/reference/createsalesreturn.md): Creates a new sales return object.
+- [Delete sales return](https://developer.katanamrp.com/reference/deletesalesreturn.md): Deletes a single sales return by id.
+- [List all sales returns](https://developer.katanamrp.com/reference/getallsalesreturns.md): Returns a list of sales returns you've previously created.   The sales returns are returned in a sorted order,     with the most recent sales return appearing first.
+- [Get return reasons](https://developer.katanamrp.com/reference/getreturnreasons.md): Get return reasons
+- [Retrieve a sales return](https://developer.katanamrp.com/reference/getsalesreturn.md): Retrieves the details of an existing sales return based on ID
+- [The sales return object](https://developer.katanamrp.com/reference/the-sales-return-object.md)
+- [Update a sales return](https://developer.katanamrp.com/reference/updatesalesreturn.md): Updates the specified sales return by setting the values of the parameters passed.   Any parameters not provided will be left unchanged.
+- [Returns a list of in-stock serial numbers](https://developer.katanamrp.com/reference/getserialnumberstock.md): Return a list of serial numbers with in-stock status which references to the linked resources
+- [Assign serial numbers to a resource](https://developer.katanamrp.com/reference/createserialnumbers.md): Assigns the provided list of serial numbers to the specified resource.
+- [Unassign serial numbers from a resource](https://developer.katanamrp.com/reference/deleteserialnumbers.md): Unassigns serial numbers from a resource
+- [Returns a list of serial numbers](https://developer.katanamrp.com/reference/getserialnumbers.md): Returns a list of serial numbers linked to the specified resource, sorted alphabetically.
+- [Create a service](https://developer.katanamrp.com/reference/createservice.md): Creates a service object.
+- [Delete a service](https://developer.katanamrp.com/reference/deleteservice.md): Deletes a service by id.
+- [List all services](https://developer.katanamrp.com/reference/getallservices.md): Returns a list of services you’ve previously created. The services are returned in sorted order, with the most recent services appearing first.
+- [Retrieve a service](https://developer.katanamrp.com/reference/getservice.md): Retrieves the details of an existing service based on ID.
+- [The service object](https://developer.katanamrp.com/reference/the-service-object.md)
+- [Update a service](https://developer.katanamrp.com/reference/updateservice.md): Updates the specified service by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+- [Create a stock adjustment](https://developer.katanamrp.com/reference/createstockadjustment.md): Creates a stock adjustment object.
+- [Delete a stock adjustment](https://developer.katanamrp.com/reference/deletestockadjustment.md): Deletes a single stock adjustment by id.
+- [List all stock adjustments](https://developer.katanamrp.com/reference/findstockadjustments.md): Returns a list of stock adjustments you’ve previously created.     The stock adjustments are returned in sorted order, with the most recent     stock adjustments appearing first.
+- [Update a stock adjustment](https://developer.katanamrp.com/reference/updatestockadjustment.md): Updates the specified stock adjustment by setting the values of the parameters passed.   Any parameters not provided will be left unchanged.
+- [Create a stock transfer](https://developer.katanamrp.com/reference/createstocktransfer.md): Creates a stock transfer object.
+- [Delete a stock transfer](https://developer.katanamrp.com/reference/deletestocktransfer.md): Deletes a single stock transfer by id.
+- [List all stock transfers](https://developer.katanamrp.com/reference/findstocktransfers.md): Returns a list of stock transfers you’ve previously created.     The stock transfers are returned in sorted order, with the most recent     stock transfers appearing first.
+- [Update a stock transfer](https://developer.katanamrp.com/reference/updatestocktransfer.md): Updates the specified stock transfer by setting the values of     the parameters passed. Any parameters not provided will be left unchanged.
+- [Update stock transfers status](https://developer.katanamrp.com/reference/updatestocktransferstatus.md): Updates the specified stock transfers status.
+- [Create stocktake rows](https://developer.katanamrp.com/reference/createstocktakerows.md): Add one or many new rows for a stocktake. The endpoint accepts up to 250 stocktake rows.
+- [Delete a stocktake row](https://developer.katanamrp.com/reference/deletestocktakerowbyid.md): Deletes a stocktake row by id.
+- [List all stocktake rows](https://developer.katanamrp.com/reference/findstocktakerows.md): Returns a list of stocktake rows you’ve previously created.   The stocktake rows are returned in sorted order, with the most recent stocktake rows appearing first.
+- [Update a stocktake row](https://developer.katanamrp.com/reference/updatestocktakerowbyid.md): Updates the specified stocktake row by setting the values of the parameters passed.   Any parameters not provided will be left unchanged.
+- [Create a stocktake](https://developer.katanamrp.com/reference/createstocktake.md): Create a new stocktake object.
+- [Delete a stocktake](https://developer.katanamrp.com/reference/deletestocktakebyid.md): Deletes a single stocktake by id.
+- [List all stocktakes](https://developer.katanamrp.com/reference/findstocktakes.md): Returns a list of stocktakes you’ve previously created. The stocktakes are returned in sorted order,   with the most recent stocktakes appearing first.
+- [Update a stocktake](https://developer.katanamrp.com/reference/updatestocktakebyid.md): Updates the specified stocktake by setting the values of the parameters passed.     Any parameters not provided will be left unchanged. Status updates can take a long time so 204 is returned.     If you need to continue with updates on same entity or its rows,     you need to poll if status update has ended (status_update_in_progress) and continue after that.
+- [Delete a storage bin](https://developer.katanamrp.com/reference/deletestoragebin.md): Deletes a storage bin by id.
+- [List all storage bins](https://developer.katanamrp.com/reference/getallstoragebins.md): Returns a list of storage bins you’ve previously created.    The storage bins are returned in sorted order, with the most recent storage bin appearing first.
+- [Update a storage bin](https://developer.katanamrp.com/reference/updatedefaultstoragebin.md): Updates the specified storage bin by setting the values of the parameters passed.     Any parameters not provided will be left unchanged.
+- [Create a supplier address](https://developer.katanamrp.com/reference/createsupplieraddress.md): Add an address to an existing supplier. If the new address is the first one, it is assigned as   the default. (A Supplier can have only one address for now)
+- [Delete a supplier address](https://developer.katanamrp.com/reference/deletesupplieraddress.md): Deletes a supplier address by id.
+- [List all supplier addresses](https://developer.katanamrp.com/reference/getsupplieraddresses.md): Returns a list of supplier addresses you’ve previously created.    The supplier addresses are returned in sorted order, with the most recent supplier addresses appearing first.
+- [Update a supplier address](https://developer.katanamrp.com/reference/updatesupplieraddress.md): Updates the specified supplier address by setting the values of the parameters passed.     Any parameters not provided will be left unchanged.
+- [Create a supplier](https://developer.katanamrp.com/reference/create-supplier.md): Creates a new supplier object.
+- [Delete a supplier](https://developer.katanamrp.com/reference/deletesupplier.md): Deletes a supplier by id.
+- [List all suppliers](https://developer.katanamrp.com/reference/list-all-suppliers.md): Returns a list of suppliers you’ve previously created. The suppliers are returned in sorted order,     with the most recent suppliers appearing first.
+- [Update a supplier](https://developer.katanamrp.com/reference/updatesupplier.md): Updates the specified supplier by setting the values of the parameters passed.     Any parameters not provided will be left unchanged.
+- [Create a tax rate](https://developer.katanamrp.com/reference/create-tax-rate.md): Creates a new tax rate object.
+- [List all tax rates](https://developer.katanamrp.com/reference/list-all-tax-rates.md): Returns a list of tax rate you’ve previously created.     The tax rate are returned in sorted order, with the most recent tax rate appearing first.
+- [List all users](https://developer.katanamrp.com/reference/getallusers.md): Returns a list of users active users in your account.
+- [Link variant default storage bins](https://developer.katanamrp.com/reference/linkvariantdefaultstoragebins.md): Bulk operation for linking variants with the default storage bins.    In case the default storage bin doesn't yet exist, it will be created and linked to the variant.    This endpoint can also be used for changing existing links of the variants to different storage bins.      The endpoint accepts up to 500 variant storage bin objects.
+- [Unlink variant default storage bins](https://developer.katanamrp.com/reference/unlinkvariantdefaultstoragebins.md): Bulk operation for unlinking variants from the default storage bins available in a specific location.   The endpoint accepts up to 500 variant bin location objects.
+- [Create a variant](https://developer.katanamrp.com/reference/create-variant.md): Creates a new variant object. Note that you can create variants for both products and materials.     In order for Katana to know which one you are creating,     you have to specify either product_id or material_id, not both.
+- [Delete a variant](https://developer.katanamrp.com/reference/deletevariant.md): Deletes a variant by id.
+- [Retrieve a variant](https://developer.katanamrp.com/reference/getvariant.md): Retrieves the details of an existing variant based on ID.
+- [List all variants](https://developer.katanamrp.com/reference/list-all-variants.md): Returns a list of variants you've previously created. The variants are returned in sorted order,     with the most recent variants appearing first.
+- [The variant object](https://developer.katanamrp.com/reference/the-variant-object.md)
+- [Update a variant](https://developer.katanamrp.com/reference/updatevariant.md): Updates the specified variant by setting the values of the parameters passed.     Any parameters not provided will be left unchanged.
+- [Export webhook logs](https://developer.katanamrp.com/reference/export-webhook-logs.md): Use the endpoint to export your webhook logs and troubleshoot any issues.       Webhook logs are filtered by the provided parameters and exported into a CSV file.       The response contains an URL to the CSV file.
+- [Create a webhook](https://developer.katanamrp.com/reference/createwebhook.md): Creates a new webhook object.
+- [Delete webhook](https://developer.katanamrp.com/reference/deletewebhook.md): Deletes a single webhook by id.
+- [List all webhooks](https://developer.katanamrp.com/reference/getallwebhooks.md): Returns a list of webhooks you’ve previously created. The entries are returned in a sorted order,     with the most recent ones appearing first.
+- [Retrieve a webhook](https://developer.katanamrp.com/reference/getwebhook.md): Retrieves the details of an existing webhook based on ID
+- [Update a webhook](https://developer.katanamrp.com/reference/updatewebhook.md): Updates the specified webhook by setting the values of the parameters passed.   Any parameters not provided will be left unchanged.
+
+## Pages
+- [Setting up OAuth 2.0](https://developer.katanamrp.com/setting-up-oauth.md)
+
+## Changelog
+- [Unbatched stock is now represented as batch_id: null in Purchase Order rows and Purchase Order recipe rows](https://developer.katanamrp.com/changelog/unbatched-stock-is-now-represented-as-batch_id-null-in-purchase-order-rows-and-purchase-order-recipe-rows.md)
+- [Unbatched stock is now represented as batch_id: null in Stock Adjustments](https://developer.katanamrp.com/changelog/unbatched-stock-is-now-represented-as-batch_id-null-in-stock-adjustments.md)
+- [Services](https://developer.katanamrp.com/changelog/services.md)
+- [Sales Return](https://developer.katanamrp.com/changelog/sales-return.md)
+- [BOM row model added](https://developer.katanamrp.com/changelog/bom-row-model-added.md)
