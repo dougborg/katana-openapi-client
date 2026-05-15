@@ -71,7 +71,7 @@ ______________________________________________________________________
 `register_preview_tool` auto-appends "Preview→apply: ... returns a Prefab card with
 Confirm/Cancel buttons" to the tool's docstring. Hosts read that promise and look for a
 widget. If the tool is registered with `register_preview_tool` but **without**
-`meta=UI_META` (or it returns via `make_simple_result` with no Prefab envelope), the
+`meta=UI_META` (or it returns via `make_json_result` with no Prefab envelope), the
 host's widget-fetch fails — Claude Desktop crashes its internal `read_widget_context`
 with `tool_name=undefined` because no widget exists for the tool the host believed was
 emitting one. The tool result still returns successfully, but the iframe renders
@@ -82,8 +82,13 @@ The contract is bidirectional:
 - Every `register_preview_tool` call **must** pair `meta=UI_META` with a real Prefab
   card (built via `make_tool_result(response, ui=...)`) — never the docstring without
   the card.
-- Conversely, tools that emit no UI must use plain `mcp.tool(...)`, **not**
-  `register_preview_tool` — the docstring promise has to match reality.
+- Conversely, tools that emit no UI must use plain `mcp.tool(...)` and return a JSON
+  `ToolResult` — prefer `make_json_result(response)` when the default dump works; build
+  `ToolResult(...)` inline when the tool needs to thread request-driven kwargs through
+  `model_dump_json` / `model_dump` (e.g., `get_manufacturing_order` composes an
+  `exclude={...}` selector from `include_rows` / `include_operation_rows` /
+  `include_productions` and adds `exclude_none=True` when `verbose=False`). Either way,
+  **not** `register_preview_tool` — the docstring promise has to match reality.
 
 Caught via a live Claude Desktop session against `create_stock_adjustment` (fixed in
 #649); the same misregistration still applies to `create_stock_transfer` — tracked in
