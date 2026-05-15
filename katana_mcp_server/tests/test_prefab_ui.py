@@ -287,6 +287,66 @@ class TestBuildVariantDetailsUI:
         # No `/ <uom>` suffix on the bare price.
         assert "$10.00 /" not in rendered
 
+    def test_price_uses_factory_base_currency_eur(self):
+        """#751 — variant prices render with the tenant's base currency.
+
+        Pre-#751 the builder hardcoded USD; an EUR-base tenant saw
+        ``$12.99`` instead of ``€12.99``. The caller now threads
+        ``base_currency_code`` (resolved once per batch via
+        :func:`resolve_factory_base_currency`) into the variant dict
+        before building the card.
+        """
+        variant = {
+            "id": 100,
+            "sku": "WIDGET-EU",
+            "name": "Widget (EU)",
+            "sales_price": 12.99,
+            "purchase_price": 7.50,
+            "base_currency_code": "EUR",
+        }
+        app = build_variant_details_ui(variant)
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "€12.99" in rendered  # EUR symbol
+        assert "€7.50" in rendered
+        # USD must not leak in when the base is non-USD.
+        assert "$12.99" not in rendered
+
+    def test_price_uses_factory_base_currency_jpy_no_decimals(self):
+        """#751 — JPY tenants get ``\xa51,500`` (no decimals) per ISO 4217.
+
+        Verifies Babel's per-ISO decimal-digit rule round-trips through
+        the variant builder, not just the standalone ``_format_money``
+        helper.
+        """
+        variant = {
+            "id": 100,
+            "sku": "WIDGET-JP",
+            "name": "Widget (JP)",
+            "sales_price": 1500.0,
+            "base_currency_code": "JPY",
+        }
+        app = build_variant_details_ui(variant)
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "\xa51,500" in rendered  # JPY yen symbol, no decimals
+        assert "\xa51,500.00" not in rendered  # Babel drops the decimals
+
+    def test_price_falls_back_to_usd_when_base_currency_missing(self):
+        """Cold-cache / pre-#751 fixtures: missing ``base_currency_code``
+        falls back to USD so the card still renders cleanly."""
+        variant = {
+            "id": 100,
+            "sku": "SKU-001",
+            "name": "Widget",
+            "sales_price": 10.0,
+            # No base_currency_code field.
+        }
+        app = build_variant_details_ui(variant)
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "$10.00" in rendered
+
     def test_includes_purchase_uom_when_set_and_different_from_stock(self):
         """Purchase UoM row renders the kit-size conversion when the item is
         purchased in a different unit than it's stocked in (SP0502 case: stock

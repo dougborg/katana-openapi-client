@@ -1036,6 +1036,88 @@ async def test_get_variant_details():
 
 
 @pytest.mark.asyncio
+async def test_get_variant_details_plumbs_factory_base_currency():
+    """#751 — ``_get_variant_details_impl`` resolves
+    ``Factory.base_currency_code`` from the typed cache and stamps it
+    onto :class:`VariantDetailsResponse.base_currency_code` so the
+    variant card can render prices with the correct currency symbol
+    (not the USD fallback)."""
+    context, lifespan_ctx = create_mock_context()
+
+    cached_variant = {
+        "id": 123,
+        "sku": "WIDGET-EU",
+        "type": "product",
+        "display_name": "Widget EU",
+        "sales_price": 12.99,
+        "purchase_price": 7.50,
+    }
+
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=cached_variant)
+    # Factory singleton (id=1) returns an EUR-base tenant. The shape
+    # mirrors a real CachedFactory row — a stub object with the
+    # ``base_currency_code`` attribute, as the cache helper accepts
+    # either SQLModel rows or dicts.
+
+    class _StubFactory:
+        base_currency_code = "EUR"
+
+    async def _get_by_id(cls, entity_id, **_kwargs):
+        # Only the factory lookup uses get_by_id in this impl; everything
+        # else goes through get_by_sku / get_many_by_ids.
+        if entity_id == 1:
+            return _StubFactory()
+        return None
+
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(side_effect=_get_by_id)
+
+    request = GetVariantDetailsRequest(sku="WIDGET-EU")
+    _var_results = await _get_variant_details_impl(request, context)
+    result = _var_results.found[0]
+
+    assert result.base_currency_code == "EUR"
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_tolerates_missing_factory():
+    """Cold-cache path: when the factory record isn't synced yet, the
+    impl still returns the variant with ``base_currency_code=None`` so
+    the card render falls back to USD via :func:`_format_money` rather
+    than blowing up."""
+    context, lifespan_ctx = create_mock_context()
+
+    cached_variant = {
+        "id": 123,
+        "sku": "WIDGET-001",
+        "type": "product",
+        "display_name": "Widget",
+        "sales_price": 29.99,
+    }
+
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=cached_variant)
+    # Replace get_by_id with a spy that returns None — pins both the
+    # "cold cache → None resolution" behavior AND the (CachedFactory, 1)
+    # singleton-lookup contract, so a future refactor that drops the
+    # factory call or changes the id wouldn't slip through silently.
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
+
+    request = GetVariantDetailsRequest(sku="WIDGET-001")
+    _var_results = await _get_variant_details_impl(request, context)
+    result = _var_results.found[0]
+
+    assert result.base_currency_code is None
+    # Verify the factory lookup actually fired with the singleton id.
+    factory_calls = [
+        call
+        for call in lifespan_ctx.typed_cache.catalog.get_by_id.call_args_list
+        if len(call.args) >= 2 and call.args[1] == 1
+    ]
+    assert factory_calls, (
+        "expected resolve_factory_base_currency to call get_by_id(CachedFactory, 1)"
+    )
+
+
+@pytest.mark.asyncio
 async def test_get_variant_details_case_insensitive():
     """Test get_variant_details with case-insensitive SKU matching."""
     context, lifespan_ctx = create_mock_context()

@@ -45,6 +45,7 @@ from katana_mcp.tools.list_coercion import CoercedIntListOpt, CoercedStrListOpt
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
     make_tool_result,
+    resolve_factory_base_currency,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_mcp.web_urls import EntityKind, katana_web_url
@@ -92,6 +93,7 @@ from katana_public_api_client.models import (
     Variant,
 )
 from katana_public_api_client.models_pydantic._generated import (
+    CachedFactory,
     CachedMaterial,
     CachedProduct,
     CachedSupplier,
@@ -1647,6 +1649,18 @@ class VariantDetailsResponse(BaseModel):
     # Pricing
     sales_price: float | None = None
     purchase_price: float | None = None
+    base_currency_code: str | None = None
+    """Tenant-wide base currency (``Factory.base_currency_code``).
+
+    Variant prices don't carry a per-record currency on the wire —
+    they're denominated in the tenant's base currency. Plumbed through
+    from :func:`resolve_factory_base_currency` so the card builder can
+    render the price symbol/decimals correctly (``$1,500.00`` for USD
+    tenants, ``€1,500.00`` for EUR tenants, ``¥1,500`` for JPY tenants
+    with no decimals) instead of falling back to ``USD``. ``None`` when
+    the factory record isn't cached yet — callers fall back to ``USD``
+    via :func:`_format_money`.
+    """
 
     # Classification
     type: str | None = None
@@ -1742,6 +1756,7 @@ def _dict_to_variant_details(
     *,
     parent: Any | None = None,
     supplier: Any | None = None,
+    base_currency_code: str | None = None,
 ) -> VariantDetailsResponse:
     """Build a VariantDetailsResponse from a variant cache row or attrs model.
 
@@ -1750,6 +1765,12 @@ def _dict_to_variant_details(
     ``is_batch_tracked``) when ``parent`` and/or ``supplier`` rows are
     supplied. Both are optional; missing parents/suppliers (cold cache,
     miss) gracefully degrade to ``None`` for those fields.
+
+    ``base_currency_code`` is the tenant's ``Factory.base_currency_code``;
+    pass it from the caller (resolved once per batch via
+    :func:`resolve_factory_base_currency`) so the variant card renders
+    the price symbol correctly. ``None`` falls back to ``USD`` in the
+    UI layer.
 
     Accepts either a ``CachedVariant`` SQLModel (the cache hit path)
     or a generated ``Variant`` attrs model (the API-fallback path)
@@ -1821,6 +1842,7 @@ def _dict_to_variant_details(
         display_name=display_name_value,
         sales_price=_attr(v, "sales_price"),
         purchase_price=_attr(v, "purchase_price"),
+        base_currency_code=base_currency_code,
         type=type_str,
         product_id=product_id,
         material_id=material_id,
@@ -2006,6 +2028,7 @@ def _partition_variant_lookups(
     CachedProduct,
     CachedMaterial,
     CachedSupplier,
+    CachedFactory,
 )
 async def _get_variant_details_impl(
     request: GetVariantDetailsRequest, context: Context
@@ -2050,10 +2073,15 @@ async def _get_variant_details_impl(
 
     # Bulk-fetch parents + suppliers once for the whole batch so the
     # response includes UoM, default supplier name, and batch-tracked
-    # status without a per-variant follow-up call (#538).
-    products, materials, supplier_by_id = await _enrich_variants_with_parent(
-        services, hits
+    # status without a per-variant follow-up call (#538). The factory
+    # base-currency lookup goes alongside so the variant card renders
+    # prices with the right symbol/decimals (#751) — variants don't
+    # carry a per-record currency on the wire.
+    enrichment, base_currency_code = await asyncio.gather(
+        _enrich_variants_with_parent(services, hits),
+        resolve_factory_base_currency(catalog),
     )
+    products, materials, supplier_by_id = enrichment
     found: list[VariantDetailsResponse] = []
     for v in hits:
         # Pick the parent map by which ID the variant carries — product
@@ -2068,7 +2096,14 @@ async def _get_variant_details_impl(
             parent = None
         sup_id = _attr(parent, "default_supplier_id")
         supplier = supplier_by_id.get(sup_id) if sup_id else None
-        found.append(_dict_to_variant_details(v, parent=parent, supplier=supplier))
+        found.append(
+            _dict_to_variant_details(
+                v,
+                parent=parent,
+                supplier=supplier,
+                base_currency_code=base_currency_code,
+            )
+        )
 
     return GetVariantDetailsResult(found=found, not_found=not_found)
 

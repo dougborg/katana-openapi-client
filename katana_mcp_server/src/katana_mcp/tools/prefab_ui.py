@@ -824,19 +824,23 @@ def build_variant_details_ui(
     needs first (UoM, default supplier, batch tracking, config
     attributes), with raw IDs deprioritized to a footer-style row. See
     #538 for the design rationale.
+
+    Variant prices (``sales_price`` / ``purchase_price``) are tenant-wide
+    and don't carry a per-record currency on the wire — they're
+    denominated in ``Factory.base_currency_code``. The caller threads
+    the resolved value through ``variant["base_currency_code"]`` (see
+    :func:`resolve_factory_base_currency`); the card falls back to USD
+    when the field is missing (cold cache / pre-#751 fixtures), so
+    rendering stays robust.
     """
     uom = variant.get("uom")
+    base_currency = variant.get("base_currency_code")
 
     def _price_display(p: float | None) -> str:
         if p is None:
             return "N/A"
         suffix = f" / {uom}" if uom and uom not in ("pcs", "ea") else ""
-        # Variant prices are tenant-wide and don't carry a per-record
-        # currency on the wire; they're denominated in
-        # ``Factory.base_currency_code``. The factory record isn't
-        # plumbed into this builder yet, so the format falls back to
-        # USD via :func:`_format_money` — wiring tracked in #751.
-        return f"{_format_money(p, None)}{suffix}"
+        return f"{_format_money(p, base_currency)}{suffix}"
 
     with PrefabApp(state={"variant": variant}, css_class="p-4") as app, Card():
         with CardHeader(), Column(gap=1):
@@ -1339,7 +1343,21 @@ def _format_qty_change(qty: float) -> str:
 
 
 def _format_cost(cost: float | int | None) -> str:
-    """Format a per-unit cost; ``—`` when omitted."""
+    """Format a per-unit cost; ``—`` when omitted.
+
+    Intentionally bare-decimal — no currency symbol, no ISO code. This
+    is the per-row DataTable cell formatter (Stock Adjustment rows,
+    PO/SO/MO rows in cards), where the column header already conveys
+    "Cost / unit" and the parent card carries the currency. Adding
+    Babel-aware formatting here would clutter dense rows with
+    repeated symbols (``$437.50``, ``$5.10``, ``$92.00`` x N rows) and
+    duplicate information the header already provides.
+
+    Per #751 acceptance criterion 5: revisit only if multi-currency
+    mixing within a single table causes confusion. The Metric-level
+    "Total" still uses :func:`_format_money` for the parent-card
+    aggregate, so the currency stays visible at the right granularity.
+    """
     if cost is None:
         return "—"
     return f"{cost:.2f}"
