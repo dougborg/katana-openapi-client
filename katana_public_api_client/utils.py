@@ -4,9 +4,10 @@ This module provides convenient helpers for unwrapping API responses,
 handling errors, extracting data, and formatting display values.
 """
 
+import json
 from collections.abc import Callable
 from http import HTTPStatus
-from typing import TYPE_CHECKING, Any, Literal, overload
+from typing import TYPE_CHECKING, Any, Literal, NoReturn, overload
 
 from .client_types import Response, Unset
 from .domain.converters import unwrap_unset
@@ -266,65 +267,156 @@ def unwrap[T](
         ```
     """
     if response.parsed is None:
-        if raise_on_error:
-            raise APIError(
-                f"No parsed response data for status {response.status_code}",
-                response.status_code,
-            )
-        return None
+        if not raise_on_error:
+            return None
+        name, message, parsed_error = _try_parse_error_body(response.content)
+        _raise_for_status(response.status_code, name, message, parsed_error)
 
     # Check if it's an error response — assign to local for type narrowing
     parsed = response.parsed
     if isinstance(parsed, ErrorResponse | DetailedErrorResponse):
         if not raise_on_error:
             return None
-
-        parsed_error = parsed
-
-        error_name = (
-            parsed_error.name if not isinstance(parsed_error.name, Unset) else "Unknown"
-        )
-        error_message = (
-            parsed_error.message
-            if not isinstance(parsed_error.message, Unset)
-            else "No error message provided"
-        )
-
-        # Handle nested error format — Katana wraps errors in {"error": {...}}
-        nested = parsed_error.additional_properties
-        if isinstance(nested, dict) and "error" in nested:
-            nested_error = nested["error"]
-            if isinstance(nested_error, dict):
-                error_name = str(nested_error.get("name", error_name))
-                error_message = str(nested_error.get("message", error_message))
-                # Re-parse as DetailedErrorResponse to capture details
-                if "details" in nested_error:
-                    parsed_error = DetailedErrorResponse.from_dict(nested_error)
-
-        message = f"{error_name}: {error_message}"
-
-        if response.status_code == HTTPStatus.UNAUTHORIZED:
-            raise AuthenticationError(message, response.status_code, parsed_error)
-        elif response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY:
-            # ValidationError expects DetailedErrorResponse, but parsed_error could be ErrorResponse
-            detailed_error = (
-                parsed_error
-                if isinstance(parsed_error, DetailedErrorResponse)
-                else None
-            )
-            raise ValidationError(
-                message,
-                response.status_code,
-                detailed_error,
-            )
-        elif response.status_code == HTTPStatus.TOO_MANY_REQUESTS:
-            raise RateLimitError(message, response.status_code, parsed_error)
-        elif 500 <= response.status_code < 600:
-            raise ServerError(message, response.status_code, parsed_error)
-        else:
-            raise APIError(message, response.status_code, parsed_error)
+        name, message, parsed_error = _extract_error_fields(parsed)
+        _raise_for_status(response.status_code, name, message, parsed_error)
 
     return response.parsed
+
+
+def _try_parse_error_body(
+    content: bytes,
+) -> tuple[str, str, ErrorResponse | DetailedErrorResponse | None]:
+    """Best-effort parse of an unrecognized response body.
+
+    Used when ``response.parsed`` is None because the OpenAPI spec didn't
+    document the status code — the body bytes are still available on the
+    Response object, and they're usually a Katana ``ErrorResponse``-shaped
+    payload. Returns ``(name, message, error_response)``: when parsing
+    succeeds the typed model is included for callers that inspect it; when
+    it doesn't, ``message`` falls back to a truncated body snippet so the
+    caller still sees something actionable.
+    """
+    if not content:
+        return ("UnexpectedResponse", "<empty response body>", None)
+
+    try:
+        body = json.loads(content)
+    except (json.JSONDecodeError, ValueError, TypeError, UnicodeDecodeError):
+        # TypeError covers callers (notably test mocks) that pass non-bytes
+        # content; UnicodeDecodeError covers bytes that aren't valid UTF-8/16/32
+        # (json.loads detects encoding from BOM but raises during decode for
+        # invalid sequences). Fall back to a stringified snippet so we still
+        # surface something rather than crashing the unwrap path.
+        try:
+            snippet = content.decode("utf-8", errors="replace").strip()
+        except (AttributeError, UnicodeDecodeError):
+            snippet = str(content)[:200]
+        return (
+            "UnexpectedResponse",
+            _truncate(snippet) or "<empty response body>",
+            None,
+        )
+
+    # Katana wraps errors in {"error": {...}} on some endpoints
+    if isinstance(body, dict) and "error" in body and isinstance(body["error"], dict):
+        body = body["error"]
+
+    if not isinstance(body, dict):
+        return ("UnexpectedResponse", _truncate(json.dumps(body)), None)
+
+    name_raw = body.get("name")
+    message_raw = body.get("message")
+
+    # Body parsed as a dict but didn't carry ErrorResponse fields — fall back
+    # to surfacing the JSON snippet so the caller can see what Katana sent
+    # instead of an opaque "<no error message>" placeholder.
+    if name_raw is None and message_raw is None:
+        if not body:
+            return ("UnexpectedResponse", "<empty response body>", None)
+        return ("UnexpectedResponse", _truncate(json.dumps(body)), None)
+
+    name = str(name_raw) if name_raw is not None else "UnexpectedResponse"
+    message = (
+        str(message_raw) if message_raw is not None else _truncate(json.dumps(body))
+    )
+
+    try:
+        if "details" in body:
+            parsed_error: ErrorResponse | DetailedErrorResponse | None = (
+                DetailedErrorResponse.from_dict(body)
+            )
+        else:
+            parsed_error = ErrorResponse.from_dict(body)
+    except Exception:
+        parsed_error = None
+
+    return (name, message, parsed_error)
+
+
+def _truncate(snippet: str, limit: int = 200) -> str:
+    """Truncate a snippet at ``limit`` chars with an ellipsis marker."""
+    if len(snippet) > limit:
+        return snippet[:limit] + "…"
+    return snippet
+
+
+def _extract_error_fields(
+    parsed: ErrorResponse | DetailedErrorResponse,
+) -> tuple[str, str, ErrorResponse | DetailedErrorResponse]:
+    """Pull (name, message, parsed_error) from a parsed Katana error.
+
+    Handles the nested-under-``"error"`` wrapping that some Katana endpoints
+    use — when present, name/message come from the inner object and the
+    returned parsed_error is also re-parsed from the inner object so callers
+    inspecting ``APIError.error_response`` see the actual structured fields
+    instead of an outer envelope where everything is UNSET.
+    """
+    name = parsed.name if not isinstance(parsed.name, Unset) else "Unknown"
+    message = (
+        parsed.message
+        if not isinstance(parsed.message, Unset)
+        else "No error message provided"
+    )
+
+    nested = parsed.additional_properties
+    if isinstance(nested, dict) and "error" in nested:
+        nested_error = nested["error"]
+        if isinstance(nested_error, dict):
+            name = str(nested_error.get("name", name))
+            message = str(nested_error.get("message", message))
+            # Re-parse the inner object so error_response carries the real
+            # name/message/statusCode rather than the UNSET-everything outer
+            # envelope. Use DetailedErrorResponse when "details" is present
+            # so validation details survive the unwrap.
+            if "details" in nested_error:
+                parsed = DetailedErrorResponse.from_dict(nested_error)
+            else:
+                parsed = ErrorResponse.from_dict(nested_error)
+
+    return (name, message, parsed)
+
+
+def _raise_for_status(
+    status_code: int,
+    name: str,
+    message: str,
+    parsed_error: ErrorResponse | DetailedErrorResponse | None,
+) -> NoReturn:
+    """Raise the right APIError subclass for this status code."""
+    full_message = f"{name}: {message}"
+
+    if status_code == HTTPStatus.UNAUTHORIZED:
+        raise AuthenticationError(full_message, status_code, parsed_error)
+    if status_code == HTTPStatus.UNPROCESSABLE_ENTITY:
+        detailed = (
+            parsed_error if isinstance(parsed_error, DetailedErrorResponse) else None
+        )
+        raise ValidationError(full_message, status_code, detailed)
+    if status_code == HTTPStatus.TOO_MANY_REQUESTS:
+        raise RateLimitError(full_message, status_code, parsed_error)
+    if 500 <= status_code < 600:
+        raise ServerError(full_message, status_code, parsed_error)
+    raise APIError(full_message, status_code, parsed_error)
 
 
 @overload

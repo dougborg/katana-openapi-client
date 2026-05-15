@@ -36,10 +36,13 @@ class TestUnwrap:
         assert isinstance(result, WebhookListResponse)
 
     def test_unwrap_with_none_parsed_raises_error(self):
-        """Test that unwrap raises APIError when parsed is None."""
+        """Test that unwrap raises APIError when parsed is None.
+
+        Empty body falls back to the "<empty response body>" placeholder.
+        """
         response: Response[Any] = Response(
             status_code=HTTPStatus.OK,
-            content=b"{}",
+            content=b"",
             headers={},
             parsed=None,
         )
@@ -49,7 +52,7 @@ class TestUnwrap:
 
         error = exc_info.value
         assert isinstance(error, utils.APIError)
-        assert "No parsed response data" in str(error)
+        assert "<empty response body>" in str(error)
         assert error.status_code == 200
 
     def test_unwrap_with_none_parsed_returns_none_when_not_raising(self):
@@ -64,6 +67,160 @@ class TestUnwrap:
         result = utils.unwrap(response, raise_on_error=False)
 
         assert result is None
+
+    def test_unwrap_undocumented_status_surfaces_body(self):
+        """Undocumented status codes (e.g. 412) parse the raw body and surface
+        Katana's actual error name/message in the raised exception.
+
+        412 has no dedicated APIError subclass (subclassing only kicks in for
+        401/422/429/5xx), so the base ``APIError`` is raised — but with the
+        body's name/message populated and ``error_response`` re-parsed from
+        the nested-under-``"error"`` envelope.
+        """
+        body = (
+            b'{"error":{"statusCode":412,"name":"PreconditionFailedError",'
+            b'"message":"Cannot delete sales orders as sales orders have return orders."}}'
+        )
+        response: Response[Any] = Response(
+            status_code=HTTPStatus(412),
+            content=body,
+            headers={},
+            parsed=None,
+        )
+
+        with pytest.raises(utils.APIError) as exc_info:
+            utils.unwrap(response)
+
+        error = exc_info.value
+        assert type(error) is utils.APIError  # base class, not a subclass
+        assert error.status_code == 412
+        assert "PreconditionFailedError" in str(error)
+        assert "Cannot delete sales orders" in str(error)
+        assert isinstance(error.error_response, ErrorResponse)
+
+    def test_unwrap_undocumented_status_routes_to_subclass(self):
+        """When status code matches a known bucket (e.g. 503), the routing
+        helper still picks the right APIError subclass even for undocumented
+        statuses."""
+        body = b'{"name":"ServiceUnavailable","message":"upstream down"}'
+        response: Response[Any] = Response(
+            status_code=HTTPStatus(503),
+            content=body,
+            headers={},
+            parsed=None,
+        )
+
+        with pytest.raises(utils.ServerError) as exc_info:
+            utils.unwrap(response)
+
+        assert "upstream down" in str(exc_info.value)
+
+    def test_unwrap_undocumented_status_with_non_json_body(self):
+        """When the body isn't JSON, fall back to a truncated snippet so the
+        caller still sees what Katana sent."""
+        response: Response[Any] = Response(
+            status_code=HTTPStatus(502),
+            content=b"<html><body>nginx 502 bad gateway</body></html>",
+            headers={},
+            parsed=None,
+        )
+
+        with pytest.raises(utils.ServerError) as exc_info:
+            utils.unwrap(response)
+
+        msg = str(exc_info.value)
+        assert "UnexpectedResponse" in msg
+        assert "nginx 502 bad gateway" in msg
+
+    def test_unwrap_undocumented_status_with_long_body_truncates(self):
+        """Long non-JSON bodies are truncated to keep the error readable."""
+        response: Response[Any] = Response(
+            status_code=HTTPStatus(418),
+            content=b"x" * 1000,
+            headers={},
+            parsed=None,
+        )
+
+        with pytest.raises(utils.APIError) as exc_info:
+            utils.unwrap(response)
+
+        msg = str(exc_info.value)
+        assert "…" in msg  # truncation marker
+        # 200-char limit on snippet + the "UnexpectedResponse: " prefix + "…"
+        assert len(msg) < 300
+
+    def test_unwrap_undocumented_status_with_invalid_utf8_body(self):
+        """Bytes that aren't valid UTF-8 raise ``UnicodeDecodeError`` from
+        ``json.loads`` (not ``JSONDecodeError``). The fallback must catch
+        that and still produce an ``APIError`` with a body snippet."""
+        # 0xc3 0x28 is a classic invalid UTF-8 continuation byte sequence
+        response: Response[Any] = Response(
+            status_code=HTTPStatus(502),
+            content=b"\xc3\x28 bad gateway garbage",
+            headers={},
+            parsed=None,
+        )
+
+        with pytest.raises(utils.ServerError) as exc_info:
+            utils.unwrap(response)
+
+        msg = str(exc_info.value)
+        assert "UnexpectedResponse" in msg
+        # decode(errors="replace") substitutes U+FFFD for invalid bytes
+        assert "bad gateway garbage" in msg
+
+    def test_unwrap_undocumented_status_with_empty_json_object(self):
+        """A JSON body of ``{}`` falls back to the empty-body placeholder
+        rather than the misleading ``<no error message>`` default."""
+        response: Response[Any] = Response(
+            status_code=HTTPStatus(412),
+            content=b"{}",
+            headers={},
+            parsed=None,
+        )
+
+        with pytest.raises(utils.APIError) as exc_info:
+            utils.unwrap(response)
+
+        msg = str(exc_info.value)
+        assert "<empty response body>" in msg
+        assert "<no error message>" not in msg
+
+    def test_unwrap_undocumented_status_with_unknown_dict_shape(self):
+        """A JSON body that parses as a dict but doesn't carry name/message
+        surfaces the JSON snippet instead of an opaque placeholder."""
+        response: Response[Any] = Response(
+            status_code=HTTPStatus(412),
+            content=b'{"foo":"bar","baz":42}',
+            headers={},
+            parsed=None,
+        )
+
+        with pytest.raises(utils.APIError) as exc_info:
+            utils.unwrap(response)
+
+        msg = str(exc_info.value)
+        assert '"foo"' in msg
+        assert '"bar"' in msg
+        assert "<no error message>" not in msg
+
+    def test_unwrap_undocumented_status_with_name_but_no_message(self):
+        """When only ``name`` is present, ``message`` falls back to the body
+        snippet so no detail is lost."""
+        response: Response[Any] = Response(
+            status_code=HTTPStatus(412),
+            content=b'{"name":"PreconditionFailedError","reason":"check upstream"}',
+            headers={},
+            parsed=None,
+        )
+
+        with pytest.raises(utils.APIError) as exc_info:
+            utils.unwrap(response)
+
+        msg = str(exc_info.value)
+        assert "PreconditionFailedError" in msg
+        assert "check upstream" in msg
+        assert "<no error message>" not in msg
 
     def test_unwrap_401_raises_authentication_error(self):
         """Test that 401 status raises AuthenticationError."""
@@ -273,6 +430,35 @@ class TestUnwrap:
             utils.unwrap(response)
 
         assert "BadRequestError: Invalid parameter" in str(exc_info.value)
+
+    def test_unwrap_nested_error_reparses_into_error_response(self):
+        """When the body uses the nested ``{"error": {...}}`` shape, the
+        ``error_response`` attached to the raised exception must be re-parsed
+        from the inner object so callers see the actual name/message/
+        statusCode instead of the UNSET-everything outer envelope."""
+        outer = ErrorResponse(name=UNSET, message=UNSET)
+        outer.additional_properties = {
+            "error": {
+                "statusCode": 412,
+                "name": "PreconditionFailedError",
+                "message": "Cannot delete sales orders as sales orders have return orders.",
+            }
+        }
+        response: Response[Any] = Response(
+            status_code=HTTPStatus(412),
+            content=b"{}",
+            headers={},
+            parsed=outer,
+        )
+
+        with pytest.raises(utils.APIError) as exc_info:
+            utils.unwrap(response)
+
+        err_resp = exc_info.value.error_response
+        assert isinstance(err_resp, ErrorResponse)
+        # Re-parsed from the inner dict, so these fields are now real
+        assert err_resp.name == "PreconditionFailedError"
+        assert "Cannot delete" in str(err_resp.message)
 
 
 @pytest.mark.unit

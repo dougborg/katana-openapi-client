@@ -2,6 +2,26 @@
 
 <!-- version list -->
 
+## v0.65.1 (2026-05-15)
+
+### Bug Fixes
+
+- **client**: Document 412 PreconditionFailedError on DELETE endpoints
+  ([`f08bf15`](https://github.com/dougborg/katana-openapi-client/commit/f08bf1573a980333720e9fcd2e031d8b28a6f4a9))
+
+- **client**: Surface undocumented-status response bodies in APIError
+  ([`88589e8`](https://github.com/dougborg/katana-openapi-client/commit/88589e813c18fd3fe98ebe896c60b584788608a8))
+
+### Chores
+
+- **mcp**: Update client dependency to v0.65.0
+  ([`3a319ba`](https://github.com/dougborg/katana-openapi-client/commit/3a319badd6390f524d0e6076437a518be843b805))
+
+### Documentation
+
+- Note Katana /sales_returns sales_order_id filter is ignored upstream
+  ([`64c1538`](https://github.com/dougborg/katana-openapi-client/commit/64c1538efb1258518f7bde52052979762294d4ed))
+
 ## v0.65.0 (2026-05-15)
 
 ### Chores
