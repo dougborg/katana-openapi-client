@@ -266,8 +266,10 @@ class ManufacturingOrderRecipeRow(DeletableEntity):
         ),
     ] = None
     total_actual_quantity: Annotated[
-        float | None,
-        Field(description="Total actual quantity of this ingredient consumed"),
+        str | None,
+        Field(
+            description='Total actual quantity of this ingredient consumed. Returned as a fixed-precision\ndecimal string (e.g. ``"125.0000000000"``).\n'
+        ),
     ] = None
     ingredient_availability: Annotated[
         OutsourcedPurchaseOrderIngredientAvailability | None,
@@ -286,8 +288,10 @@ class ManufacturingOrderRecipeRow(DeletableEntity):
         ),
     ] = None
     cost: Annotated[
-        float | None,
-        Field(description="Total cost of this ingredient for the manufacturing order"),
+        str | None,
+        Field(
+            description='Total cost of this ingredient for the manufacturing order. Returned as a fixed-precision\ndecimal string (e.g. ``"437.5000000000"``).\n'
+        ),
     ] = None
     total_consumed_quantity: Annotated[
         float | None,
@@ -1033,8 +1037,10 @@ class CachedManufacturingOrderRecipeRow(DeletableEntity, table=True):
         ),
     ] = None
     total_actual_quantity: Annotated[
-        Mapped[float | None],
-        Field(description="Total actual quantity of this ingredient consumed"),
+        Mapped[str | None],
+        Field(
+            description='Total actual quantity of this ingredient consumed. Returned as a fixed-precision\ndecimal string (e.g. ``"125.0000000000"``).\n'
+        ),
     ] = None
     ingredient_availability: Annotated[
         Mapped[OutsourcedPurchaseOrderIngredientAvailability | None],
@@ -1054,8 +1060,10 @@ class CachedManufacturingOrderRecipeRow(DeletableEntity, table=True):
         ),
     ] = None
     cost: Annotated[
-        Mapped[float | None],
-        Field(description="Total cost of this ingredient for the manufacturing order"),
+        Mapped[str | None],
+        Field(
+            description='Total cost of this ingredient for the manufacturing order. Returned as a fixed-precision\ndecimal string (e.g. ``"437.5000000000"``).\n'
+        ),
     ] = None
     total_consumed_quantity: Annotated[
         Mapped[float | None],

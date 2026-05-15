@@ -20,7 +20,7 @@ class Webhook:
     """Webhook subscription configuration for real-time event notifications to external systems
 
     Example:
-        {'id': 1, 'url': 'https://api.customer.com/webhooks/katana', 'token': 'whk_live_abc123def456', 'enabled': True,
+        {'id': 1, 'url': 'https://api.customer.com/webhooks/katana', 'token': '46aec160c0efe1d6', 'enabled': True,
             'description': 'ERP integration webhook for inventory sync', 'subscribed_events': ['sales_order.created',
             'sales_order.updated', 'manufacturing_order.done', 'purchase_order.received'], 'created_at':
             '2024-01-10T09:00:00Z', 'updated_at': '2024-01-15T11:30:00Z'}

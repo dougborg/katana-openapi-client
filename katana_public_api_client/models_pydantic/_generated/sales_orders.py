@@ -88,6 +88,12 @@ class SalesOrderFulfillmentInvoiceStatus(StrEnum):
     partially_invoiced = "PARTIALLY_INVOICED"
 
 
+class SalesOrderInvoicingStatus(StrEnum):
+    not_invoiced = "notInvoiced"
+    partially_invoiced = "partiallyInvoiced"
+    invoiced = "invoiced"
+
+
 class UpdateSalesOrderStatus(StrEnum):
     not_shipped = "NOT_SHIPPED"
     pending = "PENDING"
@@ -493,31 +499,31 @@ class UpdateSalesReturnRequest(KatanaPydanticBase):
     return_date: Annotated[
         AwareDatetime | None,
         Field(
-            description="Date of the return. Updatable only when current return status is not restockedAll."
+            description="Date of the return. Updatable only when current return status is not RESTOCKED_ALL."
         ),
     ] = None
     order_created_date: Annotated[
         AwareDatetime | None,
         Field(
-            description="Creation date of the return. Updatable only when current return status is not restockedAll."
+            description="Creation date of the return. Updatable only when current return status is not RESTOCKED_ALL."
         ),
     ] = None
     return_location_id: Annotated[
         int | None,
         Field(
-            description="ID of the location where items are being returned to. Updatable only when current return status is not restockedAll."
+            description="ID of the location where items are being returned to. Updatable only when current return status is not RESTOCKED_ALL."
         ),
     ] = None
     order_no: Annotated[
         str | None,
         Field(
-            description="Return order reference number. Updatable only when current return status is not restockedAll."
+            description="Return order reference number. Updatable only when current return status is not RESTOCKED_ALL."
         ),
     ] = None
     additional_info: Annotated[
         str | None,
         Field(
-            description="Additional information about the return. Updatable only when current return status is not restockedAll."
+            description="Additional information about the return. Updatable only when current return status is not RESTOCKED_ALL."
         ),
     ] = None
     tracking_number: Annotated[
@@ -825,7 +831,7 @@ class UpdateSalesOrderRequest(KatanaPydanticBase):
     picked_date: Annotated[
         AwareDatetime | None,
         Field(
-            description="Updatable only when sales order status is NOT_SHIPPED or PENDING."
+            description="Sales-order-level pick date. Updatable only when sales order status\nis ``NOT_SHIPPED`` or ``PENDING``.\n\n**Cascading update:** patching this field rewrites ``picked_date``\non **every** linked fulfillment to match. For per-fulfillment pick\ndates, patch\n``/sales_order_fulfillments/{id}`` directly instead.\n"
         ),
     ] = None
     location_id: Annotated[
@@ -1012,8 +1018,10 @@ class SalesOrder(DeletableEntity):
         Field(description="Date when the currency conversion rate was applied"),
     ] = None
     invoicing_status: Annotated[
-        str | None,
-        Field(description="Current invoicing status indicating billing progress"),
+        SalesOrderInvoicingStatus | None,
+        Field(
+            description="Order-level invoicing status, rolled up from the underlying\nfulfillment-level statuses. Uses camelCase wire values\n(``notInvoiced`` / ``partiallyInvoiced`` / ``invoiced``) —\n**not** the SCREAMING_SNAKE_CASE values used by\n``SalesOrderFulfillment.invoice_status``. ``null`` when the\norder has no fulfillments yet.\n",
+        ),
     ] = None
     total: Annotated[
         float | None, Field(description="Total order amount in the order currency")
@@ -1472,8 +1480,10 @@ class CachedSalesOrder(DeletableEntity, table=True):
         Field(description="Date when the currency conversion rate was applied"),
     ] = None
     invoicing_status: Annotated[
-        Mapped[str | None],
-        Field(description="Current invoicing status indicating billing progress"),
+        Mapped[SalesOrderInvoicingStatus | None],
+        Field(
+            description="Order-level invoicing status, rolled up from the underlying\nfulfillment-level statuses. Uses camelCase wire values\n(``notInvoiced`` / ``partiallyInvoiced`` / ``invoiced``) —\n**not** the SCREAMING_SNAKE_CASE values used by\n``SalesOrderFulfillment.invoice_status``. ``null`` when the\norder has no fulfillments yet.\n",
+        ),
     ] = None
     total: Annotated[
         Mapped[float | None],

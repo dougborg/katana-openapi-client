@@ -13,6 +13,7 @@ from dateutil.parser import isoparse
 from ..client_types import UNSET, Unset
 from ..models.ingredient_availability import IngredientAvailability
 from ..models.product_availability import ProductAvailability
+from ..models.sales_order_invoicing_status import SalesOrderInvoicingStatus
 from ..models.sales_order_production_status import SalesOrderProductionStatus
 from ..models.sales_order_status import SalesOrderStatus
 
@@ -33,7 +34,7 @@ class SalesOrder:
         {'id': 2001, 'customer_id': 1501, 'order_no': 'SO-2024-001', 'source': 'Shopify', 'order_created_date':
             '2024-01-15T10:00:00Z', 'delivery_date': '2024-01-22T14:00:00Z', 'picked_date': None, 'location_id': 1,
             'status': 'PACKED', 'currency': 'USD', 'conversion_rate': 1.0, 'conversion_date': '2024-01-15T10:00:00Z',
-            'invoicing_status': 'INVOICED', 'total': 1250.0, 'total_in_base_currency': 1250.0, 'additional_info': 'Customer
+            'invoicing_status': 'invoiced', 'total': 1250.0, 'total_in_base_currency': 1250.0, 'additional_info': 'Customer
             requested expedited delivery', 'customer_ref': 'CUST-REF-2024-001', 'sales_order_rows': [{'id': 2501,
             'quantity': 2, 'variant_id': 2101, 'tax_rate_id': 301, 'location_id': 1, 'product_availability': 'IN_STOCK',
             'product_expected_date': None, 'price_per_unit': '599.9900000000', 'price_per_unit_in_base_currency': 599.99,
@@ -69,7 +70,13 @@ class SalesOrder:
         currency (str | Unset): Currency code for the order pricing (ISO 4217 format)
         conversion_rate (float | None | Unset): Exchange rate used to convert order currency to base company currency
         conversion_date (datetime.datetime | None | Unset): Date when the currency conversion rate was applied
-        invoicing_status (None | str | Unset): Current invoicing status indicating billing progress
+        invoicing_status (None | SalesOrderInvoicingStatus | Unset): Order-level invoicing status, rolled up from the
+            underlying
+            fulfillment-level statuses. Uses camelCase wire values
+            (``notInvoiced`` / ``partiallyInvoiced`` / ``invoiced``) —
+            **not** the SCREAMING_SNAKE_CASE values used by
+            ``SalesOrderFulfillment.invoice_status``. ``null`` when the
+            order has no fulfillments yet.
         total (float | Unset): Total order amount in the order currency
         total_in_base_currency (float | Unset): Total order amount converted to the company's base currency
         additional_info (None | str | Unset): Additional notes or instructions for the sales order
@@ -113,7 +120,7 @@ class SalesOrder:
     currency: str | Unset = UNSET
     conversion_rate: float | None | Unset = UNSET
     conversion_date: datetime.datetime | None | Unset = UNSET
-    invoicing_status: None | str | Unset = UNSET
+    invoicing_status: None | SalesOrderInvoicingStatus | Unset = UNSET
     total: float | Unset = UNSET
     total_in_base_currency: float | Unset = UNSET
     additional_info: None | str | Unset = UNSET
@@ -210,6 +217,8 @@ class SalesOrder:
         invoicing_status: None | str | Unset
         if isinstance(self.invoicing_status, Unset):
             invoicing_status = UNSET
+        elif isinstance(self.invoicing_status, SalesOrderInvoicingStatus):
+            invoicing_status = self.invoicing_status.value
         else:
             invoicing_status = self.invoicing_status
 
@@ -541,12 +550,22 @@ class SalesOrder:
 
         conversion_date = _parse_conversion_date(d.pop("conversion_date", UNSET))
 
-        def _parse_invoicing_status(data: object) -> None | str | Unset:
+        def _parse_invoicing_status(
+            data: object,
+        ) -> None | SalesOrderInvoicingStatus | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                invoicing_status_type_0 = SalesOrderInvoicingStatus(data)
+
+                return invoicing_status_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(None | SalesOrderInvoicingStatus | Unset, data)
 
         invoicing_status = _parse_invoicing_status(d.pop("invoicing_status", UNSET))
 

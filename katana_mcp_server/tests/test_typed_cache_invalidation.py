@@ -621,8 +621,8 @@ class TestBulkUpsert:
                     "manufacturing_order_id": 1,
                     "variant_id": 100 + i,
                     "planned_quantity_per_unit": "1.0",
-                    "total_actual_quantity": 0.0,
-                    "cost": 0.0,
+                    "total_actual_quantity": "0.0",
+                    "cost": "0.0",
                 }
             )
             for i in range(1, 251)
