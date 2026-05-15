@@ -2,6 +2,54 @@
 
 <!-- version list -->
 
+## v0.65.0 (2026-05-15)
+
+### Chores
+
+- **deps**: Bump gitpython, python-multipart, cryptography for CVE fixes
+  ([`70c9ce4`](https://github.com/dougborg/katana-openapi-client/commit/70c9ce47eadf26a84540bc507446ef53e8fe134d))
+
+- **mcp**: Update client dependency to v0.64.0
+  ([`d24ed23`](https://github.com/dougborg/katana-openapi-client/commit/d24ed2373a57122a737130a0956d0bfa8117387e))
+
+- **release**: Mcp v0.76.0
+  ([`89bee51`](https://github.com/dougborg/katana-openapi-client/commit/89bee511fcc83b88f33697b9c997a2107fa1611a))
+
+### Documentation
+
+- Pull README.io reference markdown corpus via llms.txt
+  ([`f87dcbc`](https://github.com/dougborg/katana-openapi-client/commit/f87dcbc703a1c5f50a6846410f713e3c99f1a950))
+
+- **mcp**: Purge stale markdown/format references after #719
+  ([`f93c838`](https://github.com/dougborg/katana-openapi-client/commit/f93c83810018ed4076e8acce109fccc11c6d076f))
+
+### Features
+
+- **client**: 2026-05-14 spec drift sweep + CVE bumps
+  ([`7f32a2d`](https://github.com/dougborg/katana-openapi-client/commit/7f32a2d0ddaafd0c212c45c3621399e24dae1fcd))
+
+- **mcp**: Per-entity create-order Prefab cards (PO/SO/MO) — #551
+  ([`c93e5ca`](https://github.com/dougborg/katana-openapi-client/commit/c93e5caca13a045c44af1f053b41e54586f9566b))
+
+### Refactoring
+
+- **mcp**: Drop hand-written markdown formatters; content is JSON
+  ([`93c14cc`](https://github.com/dougborg/katana-openapi-client/commit/93c14cc3dfb5680ccdbe8168e29291c944d3ea84))
+
+### Breaking Changes
+
+- **client**: Multiple field types narrowed from `number` to `string` on read schemas
+  (`SalesOrderRow.price_per_unit` / `cogs_value`,
+  `ManufacturingOrderRecipeRow.planned_quantity_per_unit`,
+  `ManufacturingOrderOperationRow.planned_time_per_unit` / `planned_time_parameter` /
+  `total_actual_time` / `planned_cost_per_unit` / `total_actual_cost`). Consumers doing
+  arithmetic on these need to parse them (e.g., `float(row.price_per_unit)` or
+  `decimal.Decimal(row.price_per_unit)`); pydantic clients in lax mode will continue to
+  auto-coerce. The `SalesOrderSearchRequest` / `SalesOrderSearchRequestFilter` classes
+  are removed — callers of `POST /sales_orders/search` should switch to
+  `SearchFilterRequest`. `SalesOrderRow`'s `attributes.items` request field is renamed
+  `name` → `key` on Create / Update DTOs (matches the read shape).
+
 ## v0.64.0 (2026-05-14)
 
 ### Bug Fixes
