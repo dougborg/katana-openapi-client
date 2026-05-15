@@ -146,6 +146,8 @@ from .custom_field_collection_resource_type import CustomFieldCollectionResource
 from .custom_field_definition import CustomFieldDefinition
 from .custom_field_definition_list_response import CustomFieldDefinitionListResponse
 from .custom_field_definition_options_type_0 import CustomFieldDefinitionOptionsType0
+from .custom_field_entity_type import CustomFieldEntityType
+from .custom_field_type import CustomFieldType
 from .custom_field_value import CustomFieldValue
 from .custom_fields_collection import CustomFieldsCollection
 from .custom_fields_collection_list_response import CustomFieldsCollectionListResponse
@@ -663,6 +665,8 @@ __all__ = (
     "CustomFieldDefinition",
     "CustomFieldDefinitionListResponse",
     "CustomFieldDefinitionOptionsType0",
+    "CustomFieldEntityType",
+    "CustomFieldType",
     "CustomFieldValue",
     "CustomFieldsCollection",
     "CustomFieldsCollectionListResponse",

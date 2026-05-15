@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 from attrs import define as _attrs_define
 
 from ..client_types import UNSET, Unset
+from ..models.custom_field_entity_type import CustomFieldEntityType
+from ..models.custom_field_type import CustomFieldType
 
 if TYPE_CHECKING:
     from ..models.create_custom_field_definition_request_options_type_0 import (
@@ -21,13 +23,13 @@ class CreateCustomFieldDefinitionRequest:
     """Request payload for creating a new custom field definition.
 
     Example:
-        {'label': 'Quality Grade', 'field_type': 'select', 'entity_type': 'product', 'source': 'user', 'description':
-            'Customer-facing quality classification', 'options': {'values': ['A', 'B', 'C']}}
+        {'label': 'Channel', 'field_type': 'shortText', 'entity_type': 'SalesOrder', 'source': 'your-integration',
+            'description': 'Customer-facing sales channel classification'}
     """
 
     label: str
-    field_type: str
-    entity_type: str
+    field_type: CustomFieldType
+    entity_type: CustomFieldEntityType
     source: str
     description: None | str | Unset = UNSET
     options: CreateCustomFieldDefinitionRequestOptionsType0 | None | Unset = UNSET
@@ -39,9 +41,9 @@ class CreateCustomFieldDefinitionRequest:
 
         label = self.label
 
-        field_type = self.field_type
+        field_type = self.field_type.value
 
-        entity_type = self.entity_type
+        entity_type = self.entity_type.value
 
         source = self.source
 
@@ -85,9 +87,9 @@ class CreateCustomFieldDefinitionRequest:
         d = dict(src_dict)
         label = d.pop("label")
 
-        field_type = d.pop("field_type")
+        field_type = CustomFieldType(d.pop("field_type"))
 
-        entity_type = d.pop("entity_type")
+        entity_type = CustomFieldEntityType(d.pop("entity_type"))
 
         source = d.pop("source")
 

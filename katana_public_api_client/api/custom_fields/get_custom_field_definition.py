@@ -1,6 +1,7 @@
 from http import HTTPStatus
 from typing import Any
 from urllib.parse import quote
+from uuid import UUID
 
 import httpx
 
@@ -12,7 +13,7 @@ from ...models.error_response import ErrorResponse
 
 
 def _get_kwargs(
-    id: int,
+    id: UUID,
 ) -> dict[str, Any]:
 
     _kwargs: dict[str, Any] = {
@@ -71,7 +72,7 @@ def _build_response(
 
 
 def sync_detailed(
-    id: int,
+    id: UUID,
     *,
     client: AuthenticatedClient | Client,
 ) -> Response[CustomFieldDefinition | ErrorResponse]:
@@ -80,7 +81,7 @@ def sync_detailed(
      Retrieves a single custom field definition by ID.
 
     Args:
-        id (int):
+        id (UUID):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -103,7 +104,7 @@ def sync_detailed(
 
 
 def sync(
-    id: int,
+    id: UUID,
     *,
     client: AuthenticatedClient | Client,
 ) -> CustomFieldDefinition | ErrorResponse | None:
@@ -112,7 +113,7 @@ def sync(
      Retrieves a single custom field definition by ID.
 
     Args:
-        id (int):
+        id (UUID):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -130,7 +131,7 @@ def sync(
 
 
 async def asyncio_detailed(
-    id: int,
+    id: UUID,
     *,
     client: AuthenticatedClient | Client,
 ) -> Response[CustomFieldDefinition | ErrorResponse]:
@@ -139,7 +140,7 @@ async def asyncio_detailed(
      Retrieves a single custom field definition by ID.
 
     Args:
-        id (int):
+        id (UUID):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -160,7 +161,7 @@ async def asyncio_detailed(
 
 
 async def asyncio(
-    id: int,
+    id: UUID,
     *,
     client: AuthenticatedClient | Client,
 ) -> CustomFieldDefinition | ErrorResponse | None:
@@ -169,7 +170,7 @@ async def asyncio(
      Retrieves a single custom field definition by ID.
 
     Args:
-        id (int):
+        id (UUID):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

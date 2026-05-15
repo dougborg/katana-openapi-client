@@ -18,7 +18,7 @@ class StockTransferRowRequest:
     """A stock transfer row item specifying which variant and quantity to transfer"""
 
     variant_id: int | Unset = UNSET
-    quantity: float | Unset = UNSET
+    quantity: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

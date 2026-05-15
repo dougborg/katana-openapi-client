@@ -94,9 +94,9 @@ def sync_detailed(
 
     Args:
         body (CreateCustomFieldDefinitionRequest): Request payload for creating a new custom field
-            definition. Example: {'label': 'Quality Grade', 'field_type': 'select', 'entity_type':
-            'product', 'source': 'user', 'description': 'Customer-facing quality classification',
-            'options': {'values': ['A', 'B', 'C']}}.
+            definition. Example: {'label': 'Channel', 'field_type': 'shortText', 'entity_type':
+            'SalesOrder', 'source': 'your-integration', 'description': 'Customer-facing sales channel
+            classification'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -129,9 +129,9 @@ def sync(
 
     Args:
         body (CreateCustomFieldDefinitionRequest): Request payload for creating a new custom field
-            definition. Example: {'label': 'Quality Grade', 'field_type': 'select', 'entity_type':
-            'product', 'source': 'user', 'description': 'Customer-facing quality classification',
-            'options': {'values': ['A', 'B', 'C']}}.
+            definition. Example: {'label': 'Channel', 'field_type': 'shortText', 'entity_type':
+            'SalesOrder', 'source': 'your-integration', 'description': 'Customer-facing sales channel
+            classification'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -159,9 +159,9 @@ async def asyncio_detailed(
 
     Args:
         body (CreateCustomFieldDefinitionRequest): Request payload for creating a new custom field
-            definition. Example: {'label': 'Quality Grade', 'field_type': 'select', 'entity_type':
-            'product', 'source': 'user', 'description': 'Customer-facing quality classification',
-            'options': {'values': ['A', 'B', 'C']}}.
+            definition. Example: {'label': 'Channel', 'field_type': 'shortText', 'entity_type':
+            'SalesOrder', 'source': 'your-integration', 'description': 'Customer-facing sales channel
+            classification'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -192,9 +192,9 @@ async def asyncio(
 
     Args:
         body (CreateCustomFieldDefinitionRequest): Request payload for creating a new custom field
-            definition. Example: {'label': 'Quality Grade', 'field_type': 'select', 'entity_type':
-            'product', 'source': 'user', 'description': 'Customer-facing quality classification',
-            'options': {'values': ['A', 'B', 'C']}}.
+            definition. Example: {'label': 'Channel', 'field_type': 'shortText', 'entity_type':
+            'SalesOrder', 'source': 'your-integration', 'description': 'Customer-facing sales channel
+            classification'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

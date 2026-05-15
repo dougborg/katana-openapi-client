@@ -17,7 +17,7 @@ from ...models.variant_default_storage_bin_link_response import (
 
 def _get_kwargs(
     *,
-    body: VariantDefaultStorageBinLink,
+    body: list[VariantDefaultStorageBinLink],
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -26,7 +26,10 @@ def _get_kwargs(
         "url": "/variant_bin_locations",
     }
 
-    _kwargs["json"] = body.to_dict()
+    _kwargs["json"] = []
+    for body_item_data in body:
+        body_item = body_item_data.to_dict()
+        _kwargs["json"].append(body_item)
 
     headers["Content-Type"] = "application/json"
 
@@ -96,7 +99,7 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: VariantDefaultStorageBinLink,
+    body: list[VariantDefaultStorageBinLink],
 ) -> Response[
     DetailedErrorResponse | ErrorResponse | list[VariantDefaultStorageBinLinkResponse]
 ]:
@@ -107,12 +110,10 @@ def sync_detailed(
     This endpoint can also be used for changing existing links of the variants to different storage
     bins.
 
-    The endpoint accepts up to 500 variant storage bin objects.
+    The request body is always an array, even when linking a single variant.
 
     Args:
-        body (VariantDefaultStorageBinLink): Link defining the default storage bin assignment for
-            a specific variant to optimize warehouse picking and storage Example: {'location_id': 1,
-            'variant_id': 3001, 'bin_name': 'A-01-SHELF-1'}.
+        body (list[VariantDefaultStorageBinLink]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -137,7 +138,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    body: VariantDefaultStorageBinLink,
+    body: list[VariantDefaultStorageBinLink],
 ) -> (
     DetailedErrorResponse
     | ErrorResponse
@@ -151,12 +152,10 @@ def sync(
     This endpoint can also be used for changing existing links of the variants to different storage
     bins.
 
-    The endpoint accepts up to 500 variant storage bin objects.
+    The request body is always an array, even when linking a single variant.
 
     Args:
-        body (VariantDefaultStorageBinLink): Link defining the default storage bin assignment for
-            a specific variant to optimize warehouse picking and storage Example: {'location_id': 1,
-            'variant_id': 3001, 'bin_name': 'A-01-SHELF-1'}.
+        body (list[VariantDefaultStorageBinLink]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -176,7 +175,7 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: VariantDefaultStorageBinLink,
+    body: list[VariantDefaultStorageBinLink],
 ) -> Response[
     DetailedErrorResponse | ErrorResponse | list[VariantDefaultStorageBinLinkResponse]
 ]:
@@ -187,12 +186,10 @@ async def asyncio_detailed(
     This endpoint can also be used for changing existing links of the variants to different storage
     bins.
 
-    The endpoint accepts up to 500 variant storage bin objects.
+    The request body is always an array, even when linking a single variant.
 
     Args:
-        body (VariantDefaultStorageBinLink): Link defining the default storage bin assignment for
-            a specific variant to optimize warehouse picking and storage Example: {'location_id': 1,
-            'variant_id': 3001, 'bin_name': 'A-01-SHELF-1'}.
+        body (list[VariantDefaultStorageBinLink]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -215,7 +212,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    body: VariantDefaultStorageBinLink,
+    body: list[VariantDefaultStorageBinLink],
 ) -> (
     DetailedErrorResponse
     | ErrorResponse
@@ -229,12 +226,10 @@ async def asyncio(
     This endpoint can also be used for changing existing links of the variants to different storage
     bins.
 
-    The endpoint accepts up to 500 variant storage bin objects.
+    The request body is always an array, even when linking a single variant.
 
     Args:
-        body (VariantDefaultStorageBinLink): Link defining the default storage bin assignment for
-            a specific variant to optimize warehouse picking and storage Example: {'location_id': 1,
-            'variant_id': 3001, 'bin_name': 'A-01-SHELF-1'}.
+        body (list[VariantDefaultStorageBinLink]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

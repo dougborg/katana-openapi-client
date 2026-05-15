@@ -22,9 +22,9 @@ class CustomFieldDefinitionListResponse:
     """List of custom field definitions
 
     Example:
-        {'data': [{'id': 42, 'label': 'Quality Grade', 'field_type': 'select', 'entity_type': 'product', 'source':
-            'user', 'description': 'Customer-facing quality classification', 'options': {'values': ['A', 'B', 'C']},
-            'created_at': '2024-01-08T10:00:00Z', 'updated_at': '2024-01-12T15:30:00Z'}]}
+        {'data': [{'id': '0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef', 'label': 'Channel', 'field_type': 'shortText',
+            'entity_type': 'SalesOrder', 'source': 'your-integration', 'description': 'Customer-facing sales channel
+            classification', 'options': None, 'created_at': '2026-05-14T10:00:00Z', 'updated_at': '2026-05-14T10:00:00Z'}]}
     """
 
     data: list[CustomFieldDefinition] | Unset = UNSET

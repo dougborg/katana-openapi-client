@@ -20,9 +20,7 @@ T = TypeVar("T", bound="MaxLengthValidationError")
 @_attrs_define
 class MaxLengthValidationError:
     """Ajv ``maxLength`` keyword: the string exceeds its maximum length.
-    Confirmed wire shape from Katana's official 422 docs example and
-    ``docs/upstream-specs/readme-portal.yaml`` — the limit lives in
-    ``info.limit`` (not as a sibling of ``code``).
+    The limit lives in ``info.limit`` (not as a sibling of ``code``).
     """
 
     path: str
