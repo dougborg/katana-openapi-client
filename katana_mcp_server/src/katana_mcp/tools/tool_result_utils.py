@@ -49,6 +49,49 @@ UI_META: dict[str, Any] = {"ui": True}
 BLOCK_WARNING_PREFIX = "BLOCK:"
 
 
+async def resolve_factory_base_currency(catalog: Any) -> str | None:
+    """Look up the tenant's ``Factory.base_currency_code`` from the typed cache.
+
+    Katana's factory record is a singleton (``GET /factory``) — the typed
+    cache stores it under ``CachedFactory.id == 1`` (synthesized by the
+    sync pipeline since the wire shape carries no ``id``). This helper
+    centralizes the lookup so callers can plumb the tenant's base
+    currency through to UI builders without re-deriving the singleton
+    convention each time.
+
+    Returns ``None`` (rather than raising) when the cache is cold,
+    unhealthy, or the record is missing — callers should treat it as
+    "currency unknown" and fall back to a default (most card builders
+    fall back to ``USD`` via :func:`_format_money`). The MCP layer's
+    other resolvers (``resolve_entity_name``) follow the same
+    best-effort shape; the live API stays the authority for correctness.
+
+    Use this when formatting amounts denominated in the tenant's base
+    currency: variant ``sales_price`` / ``purchase_price`` and any
+    ``*_in_base_currency`` field on transactional responses. Transaction
+    currency (``SalesOrder.currency``, ``PurchaseOrder.currency``) is
+    per-record and should be read off the response directly — don't
+    confuse the two.
+    """
+    from katana_public_api_client.models_pydantic._generated import CachedFactory
+
+    try:
+        row = await catalog.get_by_id(
+            CachedFactory, 1, include_archived=True, include_deleted=True
+        )
+    except Exception as exc:
+        logger.warning(
+            "resolve_factory_base_currency: cache lookup failed",
+            error=str(exc),
+        )
+        return None
+    if row is None:
+        return None
+    if isinstance(row, dict):
+        return row.get("base_currency_code") or None
+    return getattr(row, "base_currency_code", None) or None
+
+
 async def resolve_entity_name(
     catalog: Any,
     cached_cls: Any,
