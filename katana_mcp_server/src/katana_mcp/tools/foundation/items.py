@@ -1902,6 +1902,21 @@ async def _enrich_variants_with_parent(
             CachedMaterial, material_ids, include_archived=True, include_deleted=True
         ),
     )
+    # Cold-cache fallback: API-fetched variants come back with
+    # ``extend=[PRODUCT_OR_MATERIAL]`` set, so the parent attrs payload
+    # rides on the variant. When the typed-cache lookup misses (cold
+    # cache, just-synced variant whose parent hasn't been pulled yet),
+    # graft the nested parent into the lookup map so enrichment still
+    # surfaces ``uom`` / ``default_supplier_id`` instead of silently
+    # dropping them.
+    for v in variants:
+        nested = _attr(v, "product_or_material")
+        if nested is None:
+            continue
+        if (pid := _attr(v, "product_id")) and products.get(pid) is None:
+            products[pid] = nested
+        elif (mid := _attr(v, "material_id")) and materials.get(mid) is None:
+            materials[mid] = nested
     # Pull supplier IDs from both parent rows, then bulk-resolve
     # supplier names — usually a small unique set even for big variant lists.
     supplier_ids = {
@@ -1918,11 +1933,16 @@ async def _enrich_variants_with_parent(
 async def _fetch_variant_by_id(services: Any, variant_id: int) -> Any | None:
     """Look up a variant by ID — cache first, then API fallback.
 
-    Returns either a ``CachedVariant`` (cache hit) or a ``Variant``
+    Returns either a ``CachedVariant`` (cache hit) or a ``VariantResponse``
     attrs model (API fallback), or ``None`` if neither path turned
     up the row. Both shapes share the field names callers read
     (``id``, ``sku``, ``product_id``, ``material_id``, ...), so
     callers use ``_attr`` to access them uniformly.
+
+    The API fallback extends with ``product_or_material`` so a cold
+    cache that misses both the variant *and* its parent can still
+    recover ``uom`` / ``default_supplier_id`` from the nested parent
+    payload — see ``_enrich_variants_with_parent``.
 
     Uses ``raise_on_error=False`` so a 404 (or an ErrorResponse body)
     becomes ``None`` instead of a raw ``APIError``, which is what
@@ -1938,10 +1958,14 @@ async def _fetch_variant_by_id(services: Any, variant_id: int) -> Any | None:
         return v
     # Cache miss — fetch from API
     from katana_public_api_client.api.variant import get_variant
-    from katana_public_api_client.models import ErrorResponse
+    from katana_public_api_client.models import ErrorResponse, GetVariantExtendItem
     from katana_public_api_client.utils import unwrap
 
-    response = await get_variant.asyncio_detailed(id=variant_id, client=services.client)
+    response = await get_variant.asyncio_detailed(
+        id=variant_id,
+        client=services.client,
+        extend=[GetVariantExtendItem.PRODUCT_OR_MATERIAL],
+    )
     variant_obj = unwrap(response, raise_on_error=False)
     if variant_obj is None or isinstance(variant_obj, ErrorResponse):
         return None

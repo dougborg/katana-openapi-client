@@ -169,9 +169,6 @@ def test_read_only_tools_do_not_have_coaching(
         "list_stock_adjustments",
         "list_stock_transfers",
         "get_inventory_movements",
-        "sales_summary",
-        "top_selling_variants",
-        "inventory_velocity",
     }
     for name in read_only_tools:
         if name not in registered_tools:
@@ -249,4 +246,41 @@ def test_destructive_hint_matches_policy(
         f"ADR-0015 requires {expected}, got {actual}. "
         f"Update the tool's registration to match policy or update the "
         f"policy table in this test (and the ADR) if the tool's role changed."
+    )
+
+
+# ----------------------------------------------------------------------
+# Section 3: removed-tools regression guard
+# ----------------------------------------------------------------------
+
+# Tools that were intentionally removed in #757 (commit message:
+# "drop derived reporting tools"). Pin their absence so an accidental
+# re-registration — e.g. a sloppy revert of `foundation/__init__.py`
+# or a sub-issue's import that re-pulls `reporting.py` from history —
+# fails this test loudly instead of silently bringing back the derived
+# analytics surface that Katana's own forecasting work supersedes.
+REMOVED_TOOLS = [
+    "inventory_velocity",
+    "top_selling_variants",
+    "sales_summary",
+]
+
+
+@pytest.mark.parametrize("tool_name", REMOVED_TOOLS)
+def test_removed_reporting_tools_stay_unregistered(
+    registered_tools: dict[str, Any],
+    tool_name: str,
+) -> None:
+    """Pin the removal of the derived analytics tools (#757).
+
+    These were dropped because Katana is shipping native forecasting
+    and replenishment features; surfacing our derived approximations
+    alongside their authoritative numbers would confuse anyone
+    comparing the two. If you're re-adding one of these, update this
+    list and document the reasoning in a follow-up ADR.
+    """
+    assert tool_name not in registered_tools, (
+        f"{tool_name} was intentionally removed in #757 but is registered "
+        f"again. If this is a deliberate restoration, update REMOVED_TOOLS "
+        f"and add an ADR explaining why we're back in this space."
     )

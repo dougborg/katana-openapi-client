@@ -4,9 +4,9 @@ Tools are organized into two layers:
 
 - **Foundation** (``tools/foundation/``) — thin, single-purpose tools organized by
   Katana domain (catalog, items, inventory, orders, purchase / sales / manufacturing
-  orders, stock transfers, customers, reference data, reporting, corrections, cache
-  admin). See the directory listing for the canonical surface; the live tool list
-  is also exposed at the ``katana://help/tools`` resource.
+  orders, stock transfers, customers, reference data, corrections, cache admin).
+  See the directory listing for the canonical surface; the live tool list is also
+  exposed at the ``katana://help/tools`` resource.
 - **Workflows** (``tools/workflows/``) — planned extension layer for multi-step
   intent-based compositions on top of foundation tools. Currently a stub
   (``register_all_workflow_tools`` is a no-op).

@@ -120,8 +120,8 @@ katana-mcp-server
 ## Available Tools and Resources
 
 The server's tool surface covers inventory, catalog, orders (sales / purchase /
-manufacturing), stock movement, fulfillment, corrections, and reporting — plus resources
-for cached reference data and a built-in help system.
+manufacturing), stock movement, fulfillment, and corrections — plus resources for cached
+reference data and a built-in help system.
 
 **The live, always-current tool and resource lists are exposed by the server itself:**
 

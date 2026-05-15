@@ -771,17 +771,15 @@ def _variant_header_section(variant: dict[str, Any]) -> None:
                     Badge(label=f"{label}: {value}", variant="outline")
 
 
-def _variant_supplier_line(variant: dict[str, Any]) -> None:
-    """Render the default-supplier text row when name and/or id is set.
+def _default_supplier_line(name: str | None, sid: int | None) -> None:
+    """Render a "Default Supplier:" row.
 
-    The supplier name renders as an external ``Link`` to the Katana
-    supplier page when the id is known — same pattern as the title's
-    parent link. Falls back to plain ``Text`` when only one of name/id
-    is set. The supplier ID parenthetical was dropped; ID-as-text is
-    available via ``structured_content`` for tooling.
+    The name links to the Katana supplier page when the id is known —
+    same external-link pattern the variant card title uses for its
+    parent product / material. The supplier ID parenthetical was
+    dropped; ID-as-text is available via ``structured_content`` for
+    tooling.
     """
-    name = variant.get("default_supplier_name")
-    sid = variant.get("default_supplier_id")
     if name and sid:
         supplier_url = katana_web_url("supplier", sid)
         if supplier_url:
@@ -794,6 +792,13 @@ def _variant_supplier_line(variant: dict[str, Any]) -> None:
         Text(content=f"Default Supplier: {name}")
     elif sid:
         Text(content=f"Default Supplier ID: {sid}")
+
+
+def _variant_supplier_line(variant: dict[str, Any]) -> None:
+    _default_supplier_line(
+        variant.get("default_supplier_name"),
+        variant.get("default_supplier_id"),
+    )
 
 
 def _variant_barcode_line(variant: dict[str, Any]) -> None:
@@ -1279,64 +1284,208 @@ def build_item_detail_ui(
 # ============================================================================
 
 
+# Per-location reorder status, written by `_annotate_location_rows` and read by
+# both the per-row DataTable column and the header low-stock badge.
+_STATUS_BELOW_REORDER = "Below reorder"
+_STATUS_AT_REORDER = "At reorder"
+_STATUS_HEALTHY = "Healthy"
+
+
+_LOW_STOCK_STATUSES = frozenset({_STATUS_BELOW_REORDER, _STATUS_AT_REORDER})
+
+
+def _inventory_below_reorder(stock: dict[str, Any]) -> bool:
+    """True when any location's annotated status hits the reorder threshold.
+
+    Reads the per-row status that ``_annotate_location_rows`` wrote, so
+    the header badge and the per-row Status column never disagree.
+    Reorder-point semantics fire when ``available <= reorder_point`` —
+    both ``Below reorder`` (strictly less) and ``At reorder`` (exact
+    equality) need the same headline alert.
+    """
+    return any(
+        isinstance(loc, dict) and loc.get("status_label") in _LOW_STOCK_STATUSES
+        for loc in stock.get("by_location") or []
+    )
+
+
+def _inventory_header_section(stock: dict[str, Any]) -> None:
+    """Tier 1 — title (linked to parent when ``katana_url`` is set), SKU, UoM,
+    low-stock badge, multi-location count.
+
+    Title links through to the parent product / material page rather
+    than the variant — variants don't have their own page in Katana's
+    web app.
+    """
+    katana_url = stock.get("katana_url")
+    title_content = stock.get("product_name") or stock.get("sku") or "Unknown"
+    by_location = stock.get("by_location") or []
+    uom = stock.get("uom")
+    with Row(gap=2):
+        with CardTitle():
+            if katana_url:
+                Link(content=title_content, href=katana_url, target="_blank")
+            else:
+                Text(content=title_content)
+        if stock.get("sku"):
+            Badge(label=stock["sku"], variant="outline")
+        if uom:
+            Badge(label=uom, variant="outline")
+        if _inventory_below_reorder(stock):
+            Badge(label="Low Stock", variant="destructive")
+        if len(by_location) > 1:
+            Badge(
+                label=f"{len(by_location)} locations",
+                variant="secondary",
+            )
+
+
+def _inventory_metrics_section(stock: dict[str, Any]) -> None:
+    with Row(gap=4):
+        Metric(label="In Stock", value=str(stock.get("in_stock", 0)))
+        Metric(label="Available", value=str(stock.get("available_stock", 0)))
+        Metric(label="Committed", value=str(stock.get("committed", 0)))
+        Metric(label="Expected", value=str(stock.get("expected", 0)))
+
+
+def _inventory_supplier_line(stock: dict[str, Any]) -> None:
+    _default_supplier_line(
+        stock.get("default_supplier_name"),
+        stock.get("default_supplier_id"),
+    )
+
+
+def _inventory_reference_section(stock: dict[str, Any]) -> None:
+    """Tier 3 — per-location breakdown DataTable + default-supplier line.
+
+    Single-location is the common case; rendering a one-row table just
+    repeats the metrics. Skip it and let the supplier line carry the
+    reference data.
+    """
+    by_location = stock.get("by_location") or []
+    if len(by_location) > 1:
+        Separator()
+        Muted(content="By location:")
+        DataTable(
+            columns=[
+                DataTableColumn(key="location_name", header="Location"),
+                # ``location_name`` is allowed to be ``None`` when the
+                # location-cache lookup misses; the ID column stays as
+                # an always-present fallback so rows are never
+                # unidentifiable. Same shape the pre-#549 card had.
+                DataTableColumn(key="location_id", header="ID", align="right"),
+                DataTableColumn(key="in_stock", header="In Stock", align="right"),
+                DataTableColumn(key="available", header="Available", align="right"),
+                DataTableColumn(key="committed", header="Committed", align="right"),
+                DataTableColumn(key="expected", header="Expected", align="right"),
+                DataTableColumn(
+                    key="reorder_point", header="Reorder Pt", align="right"
+                ),
+                DataTableColumn(key="status_label", header="Status"),
+            ],
+            rows="{{ stock.by_location }}",
+        )
+    _inventory_supplier_line(stock)
+
+
+def _inventory_footer_section(stock: dict[str, Any]) -> None:
+    """Tier 4 — [Create PO] + [View Variant Details].
+
+    Variants can have a null SKU (legacy NetSuite imports are a common
+    source — see CLAUDE.md "Variants can have null SKUs"); fall back to
+    ``variant_id`` for both prompts and the button-render gate so
+    SKU-less rows still get actionable buttons instead of degrading to
+    a broken "for SKU " prompt.
+
+    The "List MOs Using This" button (still on the variant card at
+    ``_variant_footer_section``) was not carried over here because no
+    available tool answers "what MOs consume this material" in a single
+    call: ``list_manufacturing_orders.variant_ids`` filters finished
+    goods (the MO produces these), and ``list_blocking_ingredients``
+    has no per-variant filter. Tracked in #758 — re-add once a proper
+    filter ships. Parent-page link lives on the title (Tier 1), not as
+    a separate footer button.
+    """
+    # ``StockInfo.is_found=False`` stubs echo the input back in ``sku`` /
+    # ``variant_id`` so the JSON envelope still names the missing row,
+    # but actionable buttons must NOT render — they would target a
+    # variant the server already told us does not exist. Default to
+    # found-true so legacy callers / dict fixtures that omit the flag
+    # keep working.
+    if not stock.get("is_found", True):
+        return
+    sku = stock.get("sku")
+    variant_id = stock.get("variant_id")
+    # Identity for the agent prompts: prefer SKU (human-friendly), fall
+    # back to variant_id, render nothing if neither is set.
+    if sku:
+        identity = f"SKU {sku}"
+    elif variant_id:
+        identity = f"variant_id {variant_id}"
+    else:
+        return
+    Button(
+        label="Create PO",
+        variant="outline",
+        on_click=SendMessage(f"Draft a purchase order for {identity}"),
+    )
+    Button(
+        label="View Variant Details",
+        variant="outline",
+        on_click=SendMessage(f"Get variant details for {identity}"),
+    )
+
+
+def _annotate_location_rows(stock: dict[str, Any]) -> None:
+    """Mutate ``stock['by_location']`` to add ``status_label`` per row.
+
+    The DataTable templates against the state dict — per-row badge text
+    has to live on the row itself, since the template engine can't
+    derive it at render time. Empty string when no threshold is set on
+    that location (a missing threshold is a missing signal, not a
+    license to flag every warehouse).
+    """
+    for loc in stock.get("by_location") or []:
+        if not isinstance(loc, dict):
+            continue
+        rp = loc.get("reorder_point")
+        if rp is None:
+            loc["status_label"] = ""
+            continue
+        available = loc.get("available") or 0
+        if available < rp:
+            loc["status_label"] = _STATUS_BELOW_REORDER
+        elif available == rp:
+            loc["status_label"] = _STATUS_AT_REORDER
+        else:
+            loc["status_label"] = _STATUS_HEALTHY
+
+
 def build_inventory_check_ui(
     stock: dict[str, Any],
 ) -> PrefabApp:
-    """Build an inventory check card."""
-    by_location = stock.get("by_location") or []
+    """Build an inventory check card.
+
+    Designed for the "do I need to order more / where is it / who's the
+    supplier" decisions. Surfaces parent-derived UoM in the header so
+    unit-of-measure questions answer themselves; the per-location
+    DataTable carries reorder thresholds so warehouse-level reorder
+    decisions don't need a separate ``get_item`` call. The "what MOs
+    consume this" affordance is intentionally absent — see #758 and the
+    note on ``_inventory_footer_section`` — because no supported
+    tool answers that in a single call today. See #549.
+    """
+    _annotate_location_rows(stock)
     with PrefabApp(state={"stock": stock}, css_class="p-4") as app, Card():
-        with CardHeader(), Row(gap=2):
-            CardTitle(content=stock.get("product_name", "Unknown"))
-            Badge(label=stock.get("sku", ""), variant="outline")
-            # When stock is split across multiple warehouses, surface the
-            # count up front so the agent knows to look at the breakdown
-            # below — the headline number alone hides where the stock is.
-            if len(by_location) > 1:
-                Badge(
-                    label=f"{len(by_location)} locations",
-                    variant="secondary",
-                )
+        with CardHeader():
+            _inventory_header_section(stock)
 
         with CardContent(), Column(gap=3):
-            with Row(gap=4):
-                Metric(label="In Stock", value=str(stock.get("in_stock", 0)))
-                Metric(label="Available", value=str(stock.get("available_stock", 0)))
-                Metric(label="Committed", value=str(stock.get("committed", 0)))
-                Metric(label="Expected", value=str(stock.get("expected", 0)))
-
-            # Per-location breakdown — only when stock is actually split
-            # across more than one warehouse (single-location case stays
-            # quiet). Resolves #529's headline workflow ("where IS the
-            # demo item?") in the single-SKU card path that
-            # check_inventory's most-common usage hits.
-            if len(by_location) > 1:
-                Separator()
-                Muted(content="By location:")
-                DataTable(
-                    columns=[
-                        DataTableColumn(key="location_name", header="Location"),
-                        DataTableColumn(key="location_id", header="ID"),
-                        DataTableColumn(key="in_stock", header="In Stock"),
-                        DataTableColumn(key="committed", header="Committed"),
-                        DataTableColumn(key="available", header="Available"),
-                        DataTableColumn(key="expected", header="Expected"),
-                    ],
-                    rows="{{ stock.by_location }}",
-                )
+            _inventory_metrics_section(stock)
+            _inventory_reference_section(stock)
 
         with CardFooter(), Row(gap=2):
-            Button(
-                label="Reorder",
-                variant="outline",
-                on_click=SendMessage(
-                    f"Draft a purchase order to reorder SKU {stock.get('sku', '')}"
-                ),
-            )
-            Button(
-                label="View Low Stock",
-                variant="outline",
-                on_click=SendMessage("List all items with low stock levels"),
-            )
+            _inventory_footer_section(stock)
     return app
 
 
