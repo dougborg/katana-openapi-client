@@ -174,7 +174,7 @@ class ActionSpec:
     """
 
     operation: str
-    target_id: int | None
+    target_id: int | str | None
     diff: list[FieldChange] = field(default_factory=list)
     apply: ApplyCallable | None = None
     verify: VerifyCallable | None = None

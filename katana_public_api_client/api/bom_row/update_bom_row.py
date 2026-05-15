@@ -1,6 +1,7 @@
 from http import HTTPStatus
 from typing import Any
 from urllib.parse import quote
+from uuid import UUID
 
 import httpx
 
@@ -14,7 +15,7 @@ from ...models.update_bom_row_request import UpdateBomRowRequest
 
 
 def _get_kwargs(
-    id: int,
+    id: UUID,
     *,
     body: UpdateBomRowRequest,
 ) -> dict[str, Any]:
@@ -86,7 +87,7 @@ def _build_response(
 
 
 def sync_detailed(
-    id: int,
+    id: UUID,
     *,
     client: AuthenticatedClient | Client,
     body: UpdateBomRowRequest,
@@ -98,7 +99,7 @@ def sync_detailed(
     be left unchanged.
 
     Args:
-        id (int):
+        id (UUID):
         body (UpdateBomRowRequest): Request payload for updating an existing BOM row. Only
             provided fields will be updated. Example: {'quantity': 3.0, 'notes': 'Updated quantity
             based on new specifications'}.
@@ -125,7 +126,7 @@ def sync_detailed(
 
 
 def sync(
-    id: int,
+    id: UUID,
     *,
     client: AuthenticatedClient | Client,
     body: UpdateBomRowRequest,
@@ -137,7 +138,7 @@ def sync(
     be left unchanged.
 
     Args:
-        id (int):
+        id (UUID):
         body (UpdateBomRowRequest): Request payload for updating an existing BOM row. Only
             provided fields will be updated. Example: {'quantity': 3.0, 'notes': 'Updated quantity
             based on new specifications'}.
@@ -159,7 +160,7 @@ def sync(
 
 
 async def asyncio_detailed(
-    id: int,
+    id: UUID,
     *,
     client: AuthenticatedClient | Client,
     body: UpdateBomRowRequest,
@@ -171,7 +172,7 @@ async def asyncio_detailed(
     be left unchanged.
 
     Args:
-        id (int):
+        id (UUID):
         body (UpdateBomRowRequest): Request payload for updating an existing BOM row. Only
             provided fields will be updated. Example: {'quantity': 3.0, 'notes': 'Updated quantity
             based on new specifications'}.
@@ -196,7 +197,7 @@ async def asyncio_detailed(
 
 
 async def asyncio(
-    id: int,
+    id: UUID,
     *,
     client: AuthenticatedClient | Client,
     body: UpdateBomRowRequest,
@@ -208,7 +209,7 @@ async def asyncio(
     be left unchanged.
 
     Args:
-        id (int):
+        id (UUID):
         body (UpdateBomRowRequest): Request payload for updating an existing BOM row. Only
             provided fields will be updated. Example: {'quantity': 3.0, 'notes': 'Updated quantity
             based on new specifications'}.

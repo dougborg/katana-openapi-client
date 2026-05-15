@@ -855,6 +855,14 @@ components:
       description: Resource identifier
       schema:
         type: integer
+    bom_row_id:
+      name: id
+      in: path
+      required: true
+      description: BOM row identifier (UUID)
+      schema:
+        type: string
+        format: uuid
     sales_order_id:
       name: sales_order_id
       in: query
@@ -20668,7 +20676,7 @@ paths:
         be left unchanged.
       operationId: updateBomRow
       parameters:
-        - $ref: "#/components/parameters/id"
+        - $ref: "#/components/parameters/bom_row_id"
       requestBody:
         description: BOM row update details
         required: true
@@ -20707,7 +20715,7 @@ paths:
       description: Deletes a BOM row by id.
       operationId: deleteBomRow
       parameters:
-        - $ref: "#/components/parameters/id"
+        - $ref: "#/components/parameters/bom_row_id"
       responses:
         "204":
           description: BOM row deleted successfully
