@@ -554,25 +554,40 @@ def to_tool_result(
 ) -> ToolResult:
     """Build a :class:`ToolResult` with a Prefab UI from a ModificationResponse.
 
-    Preview branch: emits ``build_modification_preview_ui`` with the
-    direct-apply rail (Confirm fires ``tools/call`` directly + iframe
-    pushes the structured result back via ``ui/update-model-context``).
-    Non-preview branch: emits ``build_modification_result_ui`` summarizing
-    each action's terminal status.
+    Dispatches by ``response.entity_type`` to a per-entity builder that
+    handles BOTH preview and applied states (one entrypoint per entity,
+    matching the create-card pattern in #728 and the modify-card design
+    in #721). Each per-entity builder shares its entity-view renderer
+    with its create-card sibling (e.g. ``_render_po_entity_view``) —
+    create cards call it with no diff overlay; modify cards pass the
+    per-field diff lookup built from ``response.actions[*].changes``.
 
-    ``confirm_request`` is the original Pydantic request (its ``preview``
-    field flips to ``False`` when the iframe re-issues for apply);
-    ``confirm_tool`` is the registered MCP tool name to re-call. The
-    preview branch wires both into the Confirm-button CallTool; the
-    result branch uses ``confirm_tool`` to derive the title verb so a
-    delete reads "Product Delete" instead of "Product Modification".
+    Entities not yet migrated fall back to ``build_modification_preview_ui``
+    / ``build_modification_result_ui`` — the legacy single-entrypoint pair
+    today's modify/delete/correct tools render through. Removed once
+    every #721 child PR has shipped.
     """
     from katana_mcp.tools.prefab_ui import (
         build_modification_preview_ui,
         build_modification_result_ui,
+        build_po_modify_ui,
     )
 
     response_dict = response.model_dump()
+
+    # Per-entity dispatch — PO migrated in #722; remaining entities
+    # (SO, MO, stock_transfer, item) fall through to the legacy
+    # builders until their respective child PRs land.
+    if response.entity_type == "purchase_order":
+        ui = build_po_modify_ui(
+            response_dict,
+            confirm_request=confirm_request,
+            confirm_tool=confirm_tool,
+        )
+        return make_tool_result(response, ui=ui)
+
+    # Legacy path — preserves today's behavior for not-yet-migrated
+    # entity types so #722 can land without cross-entity test churn.
     if response.is_preview:
         ui = build_modification_preview_ui(
             response_dict,

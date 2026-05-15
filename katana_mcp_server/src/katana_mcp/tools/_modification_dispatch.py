@@ -762,12 +762,23 @@ async def run_modify_plan(
             )
         raise ValueError(msg)
 
+    # ``prior_state`` populated on BOTH branches: apply path uses it for
+    # the revert reference; preview path uses it for renderer-side entity
+    # view (the modify-card design in #721 wants the unchanged header /
+    # reference fields to render as context around the diff-decorated
+    # changing fields — without prior_state, the card would show only the
+    # changed fields and a mostly-empty header). ``existing`` may be None
+    # if the diff fetch failed; ``serialize_for_prior_state`` tolerates
+    # that and returns ``None`` so the renderer sees no snapshot.
+    prior_state = serialize_for_prior_state(existing)
+
     if request.preview:
         return ModificationResponse(
             entity_type=entity_type,
             entity_id=request.id,
             is_preview=True,
             actions=plan_to_preview_results(plan),
+            prior_state=prior_state,
             warnings=warnings,
             next_actions=[
                 f"Review {len(plan)} planned action(s)",
@@ -777,7 +788,6 @@ async def run_modify_plan(
             message=f"Preview: {len(plan)} action(s) planned for {entity_label}",
         )
 
-    prior_state = serialize_for_prior_state(existing)
     actions = await execute_plan(plan)
     message, next_actions = summarize_modify_outcome(
         actions, len(plan), entity_label=entity_label, tool_name=tool_name

@@ -578,6 +578,14 @@ async def _correct_manufacturing_order_impl(
     close_phase = _build_close_mo_actions(request.id, snapshot, services)
     phases = [revert_phase, edit_phase, recreate_phase, close_phase]
 
+    # ``prior_state`` populated on BOTH branches: apply path uses it for
+    # the revert reference; preview path uses it for renderer-side entity
+    # view (#721 modify-card design — without prior_state, the rendered
+    # card has only the changed-field diffs and an almost-empty header).
+    prior_state = _augment_prior_state_with_snapshot(
+        serialize_for_prior_state(existing_mo), snapshot
+    )
+
     if request.preview:
         full_plan = [action for phase in phases for action in phase]
         return ModificationResponse(
@@ -585,6 +593,7 @@ async def _correct_manufacturing_order_impl(
             entity_id=request.id,
             is_preview=True,
             actions=plan_to_preview_results(full_plan),
+            prior_state=prior_state,
             warnings=_close_state_warnings_mo(snapshot),
             next_actions=[
                 f"Review {len(full_plan)} planned action(s) for MO {request.id}",
@@ -600,10 +609,6 @@ async def _correct_manufacturing_order_impl(
                 f"({len(full_plan)} action(s))"
             ),
         )
-
-    prior_state = _augment_prior_state_with_snapshot(
-        serialize_for_prior_state(existing_mo), snapshot
-    )
     aggregated, failed = await _run_phases_until_failure(phases)
     if failed:
         return _build_failure_response(
@@ -1097,6 +1102,13 @@ async def _correct_sales_order_impl(
     close_phase = [_build_close_so_action(request.id, services)]
     phases = [delete_phase, revert_phase, edit_phase, recreate_phase, close_phase]
 
+    # See #722 note on the MO correction above — prior_state populated
+    # on both branches so the per-entity modify card can render the
+    # unchanged-field context around the diff overlay on preview too.
+    prior_state = _augment_prior_state_with_snapshot(
+        serialize_for_prior_state(existing_so), snapshot
+    )
+
     if request.preview:
         full_plan = [action for phase in phases for action in phase]
         return ModificationResponse(
@@ -1104,6 +1116,7 @@ async def _correct_sales_order_impl(
             entity_id=request.id,
             is_preview=True,
             actions=plan_to_preview_results(full_plan),
+            prior_state=prior_state,
             warnings=_close_state_warnings_so(snapshot),
             next_actions=[
                 f"Review {len(full_plan)} planned action(s) for SO {request.id}",
@@ -1118,10 +1131,6 @@ async def _correct_sales_order_impl(
                 f"{request.id} ({len(full_plan)} action(s))"
             ),
         )
-
-    prior_state = _augment_prior_state_with_snapshot(
-        serialize_for_prior_state(existing_so), snapshot
-    )
     aggregated, failed = await _run_phases_until_failure(phases)
     if failed:
         return _build_failure_response(
@@ -1537,6 +1546,11 @@ async def _correct_purchase_order_impl(
     ]
     phases = [revert_phase, edit_phase, receive_phase]
 
+    # See #722 note on the MO / SO correction above.
+    prior_state = _augment_prior_state_with_snapshot(
+        serialize_for_prior_state(existing_po), snapshot
+    )
+
     if request.preview:
         full_plan = [action for phase in phases for action in phase]
         return ModificationResponse(
@@ -1544,6 +1558,7 @@ async def _correct_purchase_order_impl(
             entity_id=request.id,
             is_preview=True,
             actions=plan_to_preview_results(full_plan),
+            prior_state=prior_state,
             warnings=_close_state_warnings_po(snapshot),
             next_actions=[
                 f"Review {len(full_plan)} planned action(s) for PO {request.id}",
@@ -1557,10 +1572,6 @@ async def _correct_purchase_order_impl(
                 f"{request.id} ({len(full_plan)} action(s))"
             ),
         )
-
-    prior_state = _augment_prior_state_with_snapshot(
-        serialize_for_prior_state(existing_po), snapshot
-    )
     aggregated, failed = await _run_phases_until_failure(phases)
     if failed:
         return _build_failure_response(
