@@ -47,6 +47,10 @@ dependencies = [
     # context for the DB driver. Declared explicitly for the #342 typed
     # cache; without it, async session operations raise at runtime.
     "greenlet>=3.0.0",
+    # ISO 4217 currency-aware money formatting (Prefab UI ``Total`` metrics).
+    # Picks per-currency symbol, decimal digits, and separators so non-USD
+    # orders render correctly (€1,500.00, ¥1500 with no decimals, etc.).
+    "babel>=2.17",
 ]
 
 # Note: Development dependencies like mcp-hmr require Python >=3.12

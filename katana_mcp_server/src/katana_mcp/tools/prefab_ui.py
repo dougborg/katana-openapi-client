@@ -48,6 +48,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
+from babel.numbers import format_currency
 from prefab_ui.actions import Action, SetState, ShowToast
 from prefab_ui.actions.mcp import CallTool, SendMessage, UpdateContext
 from prefab_ui.actions.navigation import OpenLink
@@ -830,7 +831,12 @@ def build_variant_details_ui(
         if p is None:
             return "N/A"
         suffix = f" / {uom}" if uom and uom not in ("pcs", "ea") else ""
-        return f"${p:,.2f}{suffix}"
+        # Variant prices are tenant-wide and don't carry a per-record
+        # currency on the wire; they're denominated in
+        # ``Factory.base_currency_code``. The factory record isn't
+        # plumbed into this builder yet, so the format falls back to
+        # USD via :func:`_format_money` — wiring tracked in #751.
+        return f"{_format_money(p, None)}{suffix}"
 
     with PrefabApp(state={"variant": variant}, css_class="p-4") as app, Card():
         with CardHeader(), Column(gap=1):
@@ -1337,6 +1343,36 @@ def _format_cost(cost: float | int | None) -> str:
     if cost is None:
         return "—"
     return f"{cost:.2f}"
+
+
+def _format_money(amount: float | int | None, currency: str | None) -> str:
+    """Format a Metric ``Total`` value using ISO 4217 currency-aware rules.
+
+    Delegates to :func:`babel.numbers.format_currency` so the rendered string
+    picks up the right symbol, decimal-digit count, and grouping for the
+    currency (``$1,500.00`` for USD, ``€1,500.00`` for EUR, ``¥1,500`` for
+    JPY with no decimals). Integer ``amount`` is passed through unchanged
+    — Babel handles ``int`` and ``float`` identically.
+
+    Katana has two currency concepts:
+
+    - **Transaction currency** — ``SalesOrder.currency`` / ``PurchaseOrder.currency``;
+      the currency the line totals (``total``, ``total_cost``, ``price_per_unit``)
+      are denominated in. Pass this when formatting per-order amounts.
+    - **Factory base currency** — ``Factory.base_currency_code``; the tenant's
+      home currency. Pass this when formatting ``*_in_base_currency`` amounts
+      (converted totals).
+
+    Falls back to ``USD`` when ``currency`` is missing so the widget reads
+    cleanly even on the path where the response hasn't populated the field.
+    Unlike :func:`_format_cost`, never returns ``—`` — every Total-style
+    metric has a value to show (``$0.00`` for unset).
+    """
+    return format_currency(
+        0 if amount is None else amount,
+        currency or "USD",
+        locale="en_US",
+    )
 
 
 def _iso_date_only(value: object) -> str:
@@ -1850,7 +1886,9 @@ def build_po_create_ui(
     Four-tier framework (#537):
     - Tier 1 — Identity: title, order_number badge, PREVIEW/CREATED state
       badge, status badge, entity_type badge (regular/outsourced).
-    - Tier 2 — Decision metrics: Total ($X.XX <currency>), Line Items.
+    - Tier 2 — Decision metrics: Total (formatted per
+      ``response["currency"]`` via :func:`_format_money` — symbol + decimal
+      precision picked by Babel from the ISO 4217 code), Line Items.
     - Tier 3 — Reference: supplier, location, notes, plus warnings.
     - Tier 4 — Actions: Confirm + Cancel via the direct-apply rail
       (Confirm fires ``tools/call`` directly and pushes the structured
@@ -1861,7 +1899,7 @@ def build_po_create_ui(
     status = response.get("status")
     entity_type = response.get("entity_type")
     total_cost = response.get("total_cost")
-    currency = response.get("currency") or "USD"
+    currency = response.get("currency")
     item_count = response.get("item_count")
 
     apply_action = _build_apply_action_direct(confirm_tool, confirm_request)
@@ -1885,7 +1923,7 @@ def build_po_create_ui(
             if total_cost is not None or item_count is not None:
                 with Row(gap=4):
                     if total_cost is not None:
-                        Metric(label="Total", value=f"${total_cost:,.2f} {currency}")
+                        Metric(label="Total", value=_format_money(total_cost, currency))
                     if item_count is not None:
                         Metric(label="Line Items", value=str(item_count))
             _render_party_line(
@@ -1945,7 +1983,7 @@ def build_so_create_ui(
     order_number = response.get("order_number") or "N/A"
     status = response.get("status")
     total = response.get("total")
-    currency = response.get("currency") or "USD"
+    currency = response.get("currency")
     item_count = response.get("item_count")
     delivery_date = response.get("delivery_date")
 
@@ -1966,7 +2004,7 @@ def build_so_create_ui(
             if total is not None or item_count is not None or delivery_date:
                 with Row(gap=4):
                     if total is not None:
-                        Metric(label="Total", value=f"${total:,.2f} {currency}")
+                        Metric(label="Total", value=_format_money(total, currency))
                     if item_count is not None:
                         Metric(label="Line Items", value=str(item_count))
                     if delivery_date:
@@ -2736,7 +2774,9 @@ def build_receipt_ui(
             if response.get("total_cost") is not None:
                 Metric(
                     label="PO Total",
-                    value=f"${response['total_cost']:,.2f} {response.get('currency') or 'USD'}",
+                    value=_format_money(
+                        response["total_cost"], response.get("currency")
+                    ),
                 )
 
             block_warnings, regular_warnings = _split_warnings(response.get("warnings"))

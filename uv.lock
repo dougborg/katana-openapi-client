@@ -1282,6 +1282,7 @@ version = "0.76.0"
 source = { editable = "katana_mcp_server" }
 dependencies = [
     { name = "aiosqlite" },
+    { name = "babel" },
     { name = "fastmcp" },
     { name = "greenlet" },
     { name = "katana-openapi-client" },
@@ -1295,6 +1296,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "aiosqlite", specifier = ">=0.20.0" },
+    { name = "babel", specifier = ">=2.17" },
     { name = "fastmcp", specifier = ">=3.0" },
     { name = "greenlet", specifier = ">=3.0.0" },
     { name = "katana-openapi-client", editable = "." },
