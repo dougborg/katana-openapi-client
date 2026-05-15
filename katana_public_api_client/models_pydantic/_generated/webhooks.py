@@ -208,7 +208,8 @@ class Webhook(UpdatableEntity):
     token: Annotated[
         str | None,
         Field(
-            description="Authentication token included in webhook request headers for security verification"
+            description='Server-generated verification token included with every webhook\ndelivery so subscribers can authenticate the payload. Returned as\na 16-character lowercase hexadecimal string (e.g.\n``"46aec160c0efe1d6"``).\n',
+            pattern="^[0-9a-f]{16}$",
         ),
     ] = None
     enabled: Annotated[

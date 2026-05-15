@@ -385,6 +385,7 @@ from .sales_order_fulfillment_sales_order_fulfillment_rows_item_batch_transactio
     SalesOrderFulfillmentSalesOrderFulfillmentRowsItemBatchTransactionsItem,
 )
 from .sales_order_fulfillment_status import SalesOrderFulfillmentStatus
+from .sales_order_invoicing_status import SalesOrderInvoicingStatus
 from .sales_order_list_response import SalesOrderListResponse
 from .sales_order_production_status import SalesOrderProductionStatus
 from .sales_order_row import SalesOrderRow
@@ -847,6 +848,7 @@ __all__ = (
     "SalesOrderFulfillmentSalesOrderFulfillmentRowsItem",
     "SalesOrderFulfillmentSalesOrderFulfillmentRowsItemBatchTransactionsItem",
     "SalesOrderFulfillmentStatus",
+    "SalesOrderInvoicingStatus",
     "SalesOrderListResponse",
     "SalesOrderProductionStatus",
     "SalesOrderRow",
