@@ -60,6 +60,7 @@ from katana_mcp.tools.tool_result_utils import (
     apply_date_window_filters,
     coerce_enum,
     enum_to_str,
+    float_or_none,
     iso_or_none,
     make_json_result,
     make_tool_result,
@@ -838,8 +839,12 @@ def _recipe_row_info_from_attrs(
         sku=sku,
         display_name=display_name,
         notes=unwrap_unset(row.notes, None),
-        planned_quantity_per_unit=unwrap_unset(row.planned_quantity_per_unit, None),
-        total_actual_quantity=unwrap_unset(row.total_actual_quantity, None),
+        planned_quantity_per_unit=float_or_none(
+            unwrap_unset(row.planned_quantity_per_unit, None)
+        ),
+        total_actual_quantity=float_or_none(
+            unwrap_unset(row.total_actual_quantity, None)
+        ),
         total_consumed_quantity=unwrap_unset(row.total_consumed_quantity, None),
         total_remaining_quantity=unwrap_unset(row.total_remaining_quantity, None),
         ingredient_availability=unwrap_unset(row.ingredient_availability, None),
@@ -847,7 +852,7 @@ def _recipe_row_info_from_attrs(
             unwrap_unset(row.ingredient_expected_date, None)
         ),
         batch_transactions=batch_infos,
-        cost=unwrap_unset(row.cost, None),
+        cost=float_or_none(unwrap_unset(row.cost, None)),
         created_at=iso_or_none(unwrap_unset(row.created_at, None)),
         updated_at=iso_or_none(unwrap_unset(row.updated_at, None)),
         deleted_at=iso_or_none(unwrap_unset(row.deleted_at, None)),
@@ -885,13 +890,19 @@ def _operation_row_info_from_attrs(row: Any) -> OperationRowInfo:
         assigned_operators=assigned,
         completed_by_operators=completed,
         active_operator_id=unwrap_unset(row.active_operator_id, None),
-        planned_time_per_unit=unwrap_unset(row.planned_time_per_unit, None),
-        planned_time_parameter=unwrap_unset(row.planned_time_parameter, None),
-        total_actual_time=unwrap_unset(row.total_actual_time, None),
+        planned_time_per_unit=float_or_none(
+            unwrap_unset(row.planned_time_per_unit, None)
+        ),
+        planned_time_parameter=float_or_none(
+            unwrap_unset(row.planned_time_parameter, None)
+        ),
+        total_actual_time=float_or_none(unwrap_unset(row.total_actual_time, None)),
         total_consumed_time=unwrap_unset(row.total_consumed_time, None),
         total_remaining_time=unwrap_unset(row.total_remaining_time, None),
-        planned_cost_per_unit=unwrap_unset(row.planned_cost_per_unit, None),
-        total_actual_cost=unwrap_unset(row.total_actual_cost, None),
+        planned_cost_per_unit=float_or_none(
+            unwrap_unset(row.planned_cost_per_unit, None)
+        ),
+        total_actual_cost=float_or_none(unwrap_unset(row.total_actual_cost, None)),
         cost_per_hour=unwrap_unset(row.cost_per_hour, None),
         cost_parameter=unwrap_unset(row.cost_parameter, None),
         group_boundary=unwrap_unset(row.group_boundary, None),

@@ -917,7 +917,7 @@ async def _list_sales_orders_impl(
                 location_id=so.location_id,
                 status=enum_to_str(so.status),
                 production_status=enum_to_str(so.production_status),
-                invoicing_status=so.invoicing_status,
+                invoicing_status=enum_to_str(so.invoicing_status),
                 created_at=iso_or_none(so.created_at),
                 delivery_date=iso_or_none(so.delivery_date),
                 total=so.total,
@@ -1335,7 +1335,7 @@ async def _get_sales_order_impl(
         order_created_date=iso_or_none(unwrap_unset(so.order_created_date, None)),
         status=enum_to_str(unwrap_unset(so.status, None)),
         production_status=enum_to_str(unwrap_unset(so.production_status, None)),
-        invoicing_status=unwrap_unset(so.invoicing_status, None),
+        invoicing_status=enum_to_str(unwrap_unset(so.invoicing_status, None)),
         product_availability=enum_to_str(unwrap_unset(so.product_availability, None)),
         product_expected_date=iso_or_none(unwrap_unset(so.product_expected_date, None)),
         ingredient_availability=enum_to_str(
