@@ -102,7 +102,7 @@ def check_derived_fields(
     *,
     entity_type: str,
     operation: str,
-    target_id: int | None,
+    target_id: int | str | None,
     diff: Iterable[FieldChange],
 ) -> None:
     """Raise :class:`DerivedFieldError` if ``diff`` references derived fields.

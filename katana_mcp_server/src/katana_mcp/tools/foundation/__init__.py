@@ -5,6 +5,8 @@ They provide granular control and are the building blocks for workflow tools.
 
 Organization:
 - items.py: Search and manage items (variants, products, materials, services)
+- bom.py: Product-level BOM (Bill of Materials) read + modify on a
+  producible product variant
 - inventory.py: Stock checking, low stock alerts, inventory operations
 - customers.py: Search and look up customers
 - purchase_orders.py: Create, receive, and verify purchase orders
@@ -19,6 +21,7 @@ Organization:
 
 from fastmcp import FastMCP
 
+from .bom import register_tools as register_bom_tools
 from .cache_admin import register_tools as register_cache_admin_tools
 from .catalog import register_tools as register_catalog_tools
 from .corrections import register_tools as register_corrections_tools
@@ -53,6 +56,7 @@ def register_all_foundation_tools(mcp: FastMCP) -> None:
     register_reporting_tools(mcp)
     register_cache_admin_tools(mcp)
     register_corrections_tools(mcp)
+    register_bom_tools(mcp)
 
 
 __all__ = [

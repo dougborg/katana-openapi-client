@@ -41,6 +41,7 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **search_items** - Find products, materials, services by name/SKU
 - **get_item** / **modify_item** / **delete_item** - Full CRUD on items (products / materials / services). `modify_item` carries header + variant CRUD in one call via typed sub-payload slots.
 - **get_variant_details** - Get full details for a specific item
+- **get_product_bom** / **manage_product_bom** - Read and edit a producible variant's BOM (Bill of Materials) — the master recipe future manufacturing orders are copied from. `manage_product_bom` supports add / update / delete BOM rows in one call (preview/apply). Distinct from `modify_manufacturing_order`'s recipe-row sub-payloads, which edit a single MO's snapshot.
 - **check_inventory** - Check stock levels for one or more SKUs or variant IDs (pass a list for a summary table)
 - **list_low_stock_items** - Find items needing reorder
 - **create_stock_adjustment / list_stock_adjustments / update_stock_adjustment / delete_stock_adjustment** - Full CRUD for manual inventory adjustments
@@ -977,6 +978,65 @@ Delete an item. Destructive — Katana cascades child variants server-side.
 - `id` (required): Item ID
 - `type` (required): "product" | "material" | "service"
 - `preview` (optional, default true): true=preview, false=delete
+
+---
+
+### get_product_bom
+List the BOM (Bill of Materials) rows for a producible product variant —
+the master recipe future manufacturing orders are copied from. Distinct
+from `get_manufacturing_order_recipe`, which reads a single MO's recipe
+snapshot.
+
+BOM rows are **variant-scoped** — a producible product with multiple
+variants has a separate recipe per variant. Pass the specific
+`product_variant_id`. For multi-variant products, call once per variant.
+
+**Parameters:**
+- `product_variant_id` (required): Variant ID whose BOM rows to fetch
+
+**Returns:** Each row carries every field on the underlying `BomRow`
+(id (UUID string), product_item_id, product_variant_id,
+ingredient_variant_id, quantity, notes, rank) plus the resolved
+ingredient SKU and Katana-UI display_name (looked up from the typed
+cache). Empty `rows` is a clean response, not an error — variants
+without a recipe and unknown variant IDs both surface as
+`total_count: 0`. Pair with `get_variant_details` first to confirm
+`is_producible`.
+
+---
+
+### manage_product_bom
+Add / update / delete BOM rows on a producible product variant
+(preview/apply). Edits the master recipe; existing MOs are unaffected,
+but future MOs created from this variant pick up the new recipe.
+
+For per-MO recipe edits (a one-off change to one work order), use
+`modify_manufacturing_order` instead — its `add_recipe_rows` /
+`update_recipe_rows` / `delete_recipe_row_ids` sub-payloads target a
+specific MO's snapshot.
+
+**Parameters:**
+- `id` (required): Parent product variant ID (BOM rows are
+  variant-scoped, not product-scoped)
+- `add_bom_rows` (optional): list of new rows, each
+  `{ingredient_variant_id, quantity?, notes?}`. The tool resolves the
+  parent `product_item_id` automatically from the typed cache.
+- `update_bom_rows` (optional): patches to existing rows. Each:
+  `{id (UUID), ingredient_variant_id?, quantity?, notes?}`. Look up
+  the row id with `get_product_bom`. `rank` is server-managed and not
+  patchable.
+- `delete_bom_row_ids` (optional): UUIDs of rows to remove
+- `preview` (optional, default true): true=preview, false=execute
+
+**Behavior notes:**
+- Actions execute in canonical order (adds → updates → deletes).
+  Fail-fast on the first error — later actions are not attempted.
+- Update diffs are marked `is_unknown_prior=true` because BOM rows have
+  no individual GET-by-id endpoint. Call `get_product_bom` after
+  applying to see the post-state.
+- Errors when the parent variant isn't in the catalog cache (call
+  `search_items` or `get_variant_details` first), or when the variant
+  has neither a product nor material parent.
 
 ---
 

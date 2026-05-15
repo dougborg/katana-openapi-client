@@ -182,7 +182,7 @@ class ActionResult(BaseModel):
     """
 
     operation: str
-    target_id: int | None = None
+    target_id: int | str | None = None
     changes: list[FieldChange] = Field(default_factory=list)
     succeeded: bool | None = None
     error: str | None = None
