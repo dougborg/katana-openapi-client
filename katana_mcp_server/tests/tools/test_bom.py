@@ -18,7 +18,7 @@ from katana_mcp.tools.foundation.bom import (
 from katana_mcp_server.tests.conftest import create_mock_context
 from pydantic import ValidationError
 
-from katana_public_api_client.client_types import UNSET
+from katana_public_api_client.client_types import UNSET, Unset
 
 # ============================================================================
 # Helpers
@@ -31,9 +31,9 @@ def _bom_row(
     product_item_id: int = 100,
     product_variant_id: int = 200,
     ingredient_variant_id: int = 300,
-    quantity: float | object = 2.0,
-    notes: str | object = UNSET,
-    rank: int | object = 10000,
+    quantity: float | Unset = 2.0,
+    notes: str | Unset = UNSET,
+    rank: int | Unset = 10000,
 ) -> MagicMock:
     """Build a generated-style ``BomRow`` MagicMock with all wire fields set."""
     row = MagicMock()
