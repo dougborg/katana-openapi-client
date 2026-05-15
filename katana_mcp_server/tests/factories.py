@@ -37,6 +37,7 @@ from katana_public_api_client.models_pydantic._generated import (
     PurchaseOrderBillingStatus,
     PurchaseOrderEntityType,
     PurchaseOrderStatus,
+    SalesOrderInvoicingStatus,
     SalesOrderProductionStatus,
     SalesOrderStatus,
 )
@@ -68,7 +69,7 @@ def make_sales_order(
     location_id: int = 1,
     status: SalesOrderStatus | str | None = None,
     production_status: SalesOrderProductionStatus | str | None = "NONE",
-    invoicing_status: str | None = None,
+    invoicing_status: SalesOrderInvoicingStatus | str | None = None,
     created_at: datetime | None = None,
     delivery_date: datetime | None = None,
     updated_at: datetime | None = None,
@@ -98,6 +99,11 @@ def make_sales_order(
         if isinstance(production_status, str)
         else production_status
     )
+    resolved_invoicing_status = (
+        SalesOrderInvoicingStatus(invoicing_status)
+        if isinstance(invoicing_status, str)
+        else invoicing_status
+    )
 
     cached = CachedSalesOrder(
         id=id,
@@ -106,7 +112,7 @@ def make_sales_order(
         location_id=location_id,
         status=resolved_status,
         production_status=resolved_prod_status,
-        invoicing_status=invoicing_status,
+        invoicing_status=resolved_invoicing_status,
         created_at=naive_utc(created_at) or datetime(2026, 4, 1),
         updated_at=naive_utc(updated_at),
         delivery_date=naive_utc(delivery_date),
@@ -281,25 +287,19 @@ def make_manufacturing_order_recipe_row(
     manufacturing_order_id: int,
     variant_id: int,
     planned_quantity_per_unit: float | str | None = None,
-    total_actual_quantity: float | None = None,
+    total_actual_quantity: float | str | None = None,
     total_consumed_quantity: float | None = None,
     total_remaining_quantity: float | None = None,
-    cost: float | None = None,
+    cost: float | str | None = None,
     ingredient_availability: str | None = None,
     ingredient_expected_date: datetime | None = None,
     deleted_at: datetime | None = None,
 ) -> CachedManufacturingOrderRecipeRow:
     """Build a ``CachedManufacturingOrderRecipeRow`` for direct cache insertion.
 
-    Mirrors :func:`make_stock_adjustment_row`'s shape — the row carries an
-    FK back to its parent ``CachedManufacturingOrder.id`` via
-    ``manufacturing_order_id``. Use alongside :func:`make_manufacturing_order`
-    to build parent-child fixtures for tools that join MOs to recipe rows
-    (e.g., ``inventory_velocity``'s MO-consumption path,
-    ``list_blocking_ingredients``'s availability rollup).
-
-    Float ``planned_quantity_per_unit`` inputs are stringified — the cache
-    column is typed ``str`` to mirror Katana's wire format.
+    Float ``planned_quantity_per_unit`` / ``total_actual_quantity`` / ``cost``
+    inputs are stringified — the cache columns are typed ``str`` to mirror
+    Katana's wire format.
     """
     from katana_public_api_client.models_pydantic._generated import (
         OutsourcedPurchaseOrderIngredientAvailability,
@@ -320,10 +320,12 @@ def make_manufacturing_order_recipe_row(
             if planned_quantity_per_unit is not None
             else None
         ),
-        total_actual_quantity=total_actual_quantity,
+        total_actual_quantity=(
+            str(total_actual_quantity) if total_actual_quantity is not None else None
+        ),
         total_consumed_quantity=total_consumed_quantity,
         total_remaining_quantity=total_remaining_quantity,
-        cost=cost,
+        cost=str(cost) if cost is not None else None,
         ingredient_availability=resolved_availability,
         ingredient_expected_date=naive_utc(ingredient_expected_date),
         deleted_at=naive_utc(deleted_at),

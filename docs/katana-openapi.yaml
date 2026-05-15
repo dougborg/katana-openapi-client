@@ -1991,6 +1991,19 @@ components:
         - PARTIALLY_INVOICED
       description: Invoice status of a sales order fulfillment
 
+    SalesOrderInvoicingStatus:
+      type: string
+      enum:
+        - notInvoiced
+        - partiallyInvoiced
+        - invoiced
+      description: |
+        Sales-order-level invoicing status, rolled up across the order's
+        fulfillments. The wire format differs from
+        ``SalesOrderFulfillmentInvoiceStatus``: the order-level field uses
+        camelCase (``invoiced``) while the fulfillment-level field uses
+        SCREAMING_SNAKE_CASE (``INVOICED``).
+
     UpdateSalesOrderStatus:
       type: string
       enum:
@@ -4015,8 +4028,12 @@ components:
               type: string
               description: Planned quantity of this ingredient needed per unit produced
             total_actual_quantity:
-              type: number
-              description: Total actual quantity of this ingredient consumed
+              type:
+                - string
+                - "null"
+              description: |
+                Total actual quantity of this ingredient consumed. Returned as a fixed-precision
+                decimal string (e.g. ``"125.0000000000"``).
             ingredient_availability:
               description: Current availability status of this ingredient
               $ref: "#/components/schemas/IngredientAvailability"
@@ -4039,8 +4056,12 @@ components:
                     type: number
                     description: Quantity consumed from this batch
             cost:
-              type: number
-              description: Total cost of this ingredient for the manufacturing order
+              type:
+                - string
+                - "null"
+              description: |
+                Total cost of this ingredient for the manufacturing order. Returned as a fixed-precision
+                decimal string (e.g. ``"437.5000000000"``).
             total_consumed_quantity:
               type: number
               description: Total quantity consumed so far from this ingredient
@@ -4054,12 +4075,12 @@ components:
         variant_id: 3201
         notes: Use only grade 304 material
         planned_quantity_per_unit: "2.5000000000"
-        total_actual_quantity: 125.0
+        total_actual_quantity: "125.0000000000"
         ingredient_availability: IN_STOCK
         batch_transactions:
           - batch_id: 1201
             quantity: 125.0
-        cost: 437.5
+        cost: "437.5000000000"
         created_at: "2024-01-15T08:00:00Z"
         updated_at: "2024-01-20T14:30:00Z"
         deleted_at: null
@@ -4080,12 +4101,12 @@ components:
             variant_id: 3201
             notes: Use only grade 304 material
             planned_quantity_per_unit: "2.5000000000"
-            total_actual_quantity: 125.0
+            total_actual_quantity: "125.0000000000"
             ingredient_availability: IN_STOCK
             batch_transactions:
               - batch_id: 1201
                 quantity: 125.0
-            cost: 437.5
+            cost: "437.5000000000"
             created_at: "2024-01-15T08:00:00Z"
             updated_at: "2024-01-20T14:30:00Z"
             deleted_at: null
@@ -6583,7 +6604,11 @@ components:
             updated_at: "2024-01-15T09:35:00Z"
     CreateVariantRequest:
       description: |
-        Request payload for creating a new product or material variant with specific SKU and configuration attributes
+        Request payload for creating a new product or material variant with specific SKU and configuration attributes.
+
+        **Parent reference:** specify **exactly one** of ``product_id`` or
+        ``material_id``, never both — variants are scoped to a single parent
+        item.
       type: object
       additionalProperties: false
       properties:
@@ -6605,13 +6630,17 @@ components:
             - integer
             - "null"
           maximum: 2147483647
-          description: ID of the parent product if this variant belongs to a finished good
+          description: |
+            ID of the parent product if this variant belongs to a finished
+            good. Mutually exclusive with ``material_id``.
         material_id:
           type:
             - integer
             - "null"
           maximum: 2147483647
-          description: ID of the parent material if this variant belongs to a raw material
+          description: |
+            ID of the parent material if this variant belongs to a raw
+            material. Mutually exclusive with ``product_id``.
         supplier_item_codes:
           type: array
           description: Supplier-specific part numbers or SKUs for purchasing this variant
@@ -7261,7 +7290,12 @@ components:
               description: HTTPS endpoint URL where webhook events will be sent
             token:
               type: string
-              description: Authentication token included in webhook request headers for security verification
+              description: |
+                Server-generated verification token included with every webhook
+                delivery so subscribers can authenticate the payload. Returned as
+                a 16-character lowercase hexadecimal string (e.g.
+                ``"46aec160c0efe1d6"``).
+              pattern: "^[0-9a-f]{16}$"
             enabled:
               type: boolean
               description: Whether this webhook subscription is active and will receive events
@@ -7285,7 +7319,7 @@ components:
       example:
         id: 1
         url: https://api.customer.com/webhooks/katana
-        token: whk_live_abc123def456
+        token: 46aec160c0efe1d6
         enabled: true
         description: ERP integration webhook for inventory sync
         subscribed_events:
@@ -7308,7 +7342,7 @@ components:
         data:
           - id: 1
             url: https://api.customer.com/webhooks/katana
-            token: whk_live_abc123def456
+            token: 46aec160c0efe1d6
             enabled: true
             description: ERP integration webhook for inventory sync
             subscribed_events:
@@ -7319,7 +7353,7 @@ components:
             updated_at: "2024-01-15T11:30:00Z"
           - id: 2
             url: https://reporting.company.com/katana-events
-            token: whk_live_xyz789
+            token: 73f82127d57a2cea
             enabled: false
             description: Business intelligence reporting
             subscribed_events:
@@ -8323,10 +8357,16 @@ components:
               format: date-time
               description: Date when the currency conversion rate was applied
             invoicing_status:
-              type:
-                - string
-                - "null"
-              description: Current invoicing status indicating billing progress
+              anyOf:
+                - $ref: "#/components/schemas/SalesOrderInvoicingStatus"
+                - type: "null"
+              description: |
+                Order-level invoicing status, rolled up from the underlying
+                fulfillment-level statuses. Uses camelCase wire values
+                (``notInvoiced`` / ``partiallyInvoiced`` / ``invoiced``) —
+                **not** the SCREAMING_SNAKE_CASE values used by
+                ``SalesOrderFulfillment.invoice_status``. ``null`` when the
+                order has no fulfillments yet.
             total:
               type: number
               description: Total order amount in the order currency
@@ -8442,7 +8482,7 @@ components:
         currency: USD
         conversion_rate: 1.0
         conversion_date: "2024-01-15T10:00:00Z"
-        invoicing_status: INVOICED
+        invoicing_status: invoiced
         total: 1250.0
         total_in_base_currency: 1250.0
         additional_info: Customer requested expedited delivery
@@ -9009,7 +9049,7 @@ components:
             currency: USD
             conversion_rate: 1.0
             conversion_date: "2024-01-15T10:00:00Z"
-            invoicing_status: INVOICED
+            invoicing_status: invoiced
             total: 1250.0
             total_in_base_currency: 1250.0
             additional_info: Customer requested expedited delivery
@@ -11109,22 +11149,22 @@ components:
         return_date:
           type: string
           format: date-time
-          description: Date of the return. Updatable only when current return status is not restockedAll.
+          description: Date of the return. Updatable only when current return status is not RESTOCKED_ALL.
         order_created_date:
           type: string
           format: date-time
-          description: Creation date of the return. Updatable only when current return status is not restockedAll.
+          description: Creation date of the return. Updatable only when current return status is not RESTOCKED_ALL.
         return_location_id:
           type: integer
-          description: ID of the location where items are being returned to. Updatable only when current return status is not restockedAll.
+          description: ID of the location where items are being returned to. Updatable only when current return status is not RESTOCKED_ALL.
         order_no:
           type: string
-          description: Return order reference number. Updatable only when current return status is not restockedAll.
+          description: Return order reference number. Updatable only when current return status is not RESTOCKED_ALL.
         additional_info:
           type:
             - string
             - "null"
-          description: Additional information about the return. Updatable only when current return status is not restockedAll.
+          description: Additional information about the return. Updatable only when current return status is not RESTOCKED_ALL.
         tracking_number:
           type:
             - string
@@ -12565,7 +12605,14 @@ components:
         picked_date:
           type: string
           format: date-time
-          description: Updatable only when sales order status is NOT_SHIPPED or PENDING.
+          description: |
+            Sales-order-level pick date. Updatable only when sales order status
+            is ``NOT_SHIPPED`` or ``PENDING``.
+
+            **Cascading update:** patching this field rewrites ``picked_date``
+            on **every** linked fulfillment to match. For per-fulfillment pick
+            dates, patch
+            ``/sales_order_fulfillments/{id}`` directly instead.
         location_id:
           type: integer
           description: Updatable only when sales order status is NOT_SHIPPED or PENDING.
@@ -14398,7 +14445,7 @@ paths:
                 variant_id: 1
                 notes: Pay close attention to this
                 planned_quantity_per_unit: "1.2000000000"
-                total_actual_quantity: 12
+                total_actual_quantity: "12.0000000000"
                 ingredient_availability: IN_STOCK
                 ingredient_expected_date: "2021-03-18T12:33:39.957Z"
                 batch_transactions:
@@ -14406,7 +14453,7 @@ paths:
                     quantity: 7.4
                   - batch_id: 12
                     quantity: 4.6
-                cost: 50.4
+                cost: "50.4000000000"
                 created_at: "2021-02-18T12:33:39.957Z"
                 updated_at: "2021-02-18T12:33:39.957Z"
                 deleted_at: null
@@ -14460,7 +14507,7 @@ paths:
                     variant_id: 1
                     notes: Pay close attention to this
                     planned_quantity_per_unit: "1.2000000000"
-                    total_actual_quantity: 12
+                    total_actual_quantity: "12.0000000000"
                     ingredient_availability: IN_STOCK
                     ingredient_expected_date: "2021-03-18T12:33:39.957Z"
                     batch_transactions:
@@ -14468,7 +14515,7 @@ paths:
                         quantity: 7.4
                       - batch_id: 12
                         quantity: 4.6
-                    cost: 50.4
+                    cost: "50.4000000000"
                     created_at: "2021-02-18T12:33:39.957Z"
                     updated_at: "2021-02-18T12:33:39.957Z"
                     deleted_at: null
@@ -14507,7 +14554,7 @@ paths:
                 variant_id: 1
                 notes: Pay close attention to this
                 planned_quantity_per_unit: "1.2000000000"
-                total_actual_quantity: 12
+                total_actual_quantity: "12.0000000000"
                 ingredient_availability: IN_STOCK
                 ingredient_expected_date: "2021-03-18T12:33:39.957Z"
                 batch_transactions:
@@ -14515,7 +14562,7 @@ paths:
                     quantity: 7.4
                   - batch_id: 12
                     quantity: 4.6
-                cost: 50.4
+                cost: "50.4000000000"
                 created_at: "2021-02-18T12:33:39.957Z"
                 updated_at: "2021-02-18T12:33:39.957Z"
                 deleted_at: null
@@ -14563,7 +14610,7 @@ paths:
                 variant_id: 1
                 notes: Pay close attention to this
                 planned_quantity_per_unit: "1.2000000000"
-                total_actual_quantity: 12
+                total_actual_quantity: "12.0000000000"
                 ingredient_availability: IN_STOCK
                 ingredient_expected_date: "2021-03-18T12:33:39.957Z"
                 batch_transactions:
@@ -14571,7 +14618,7 @@ paths:
                     quantity: 7.4
                   - batch_id: 12
                     quantity: 4.6
-                cost: 50.4
+                cost: "50.4000000000"
                 created_at: "2021-02-18T12:33:39.957Z"
                 updated_at: "2021-02-18T12:33:39.957Z"
                 deleted_at: null

@@ -505,14 +505,14 @@ class CreateVariantRequest(KatanaPydanticBase):
     product_id: Annotated[
         int | None,
         Field(
-            description="ID of the parent product if this variant belongs to a finished good",
+            description="ID of the parent product if this variant belongs to a finished\ngood. Mutually exclusive with ``material_id``.\n",
             le=2147483647,
         ),
     ] = None
     material_id: Annotated[
         int | None,
         Field(
-            description="ID of the parent material if this variant belongs to a raw material",
+            description="ID of the parent material if this variant belongs to a raw\nmaterial. Mutually exclusive with ``product_id``.\n",
             le=2147483647,
         ),
     ] = None

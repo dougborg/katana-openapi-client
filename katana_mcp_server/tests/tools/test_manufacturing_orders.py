@@ -1550,7 +1550,7 @@ async def test_get_manufacturing_order_recipe_full_field_coverage():
         variant_id=3201,
         notes="Use only grade 304 material",
         planned_quantity_per_unit="2.5",
-        total_actual_quantity=125.0,
+        total_actual_quantity="125.0",
         ingredient_availability=IngredientAvailability.IN_STOCK,
         ingredient_expected_date=datetime(2024, 1, 18, 0, 0, 0, tzinfo=UTC),
         batch_transactions=[
@@ -1558,7 +1558,7 @@ async def test_get_manufacturing_order_recipe_full_field_coverage():
                 batch_id=1201, quantity=125.0
             )
         ],
-        cost=437.5,
+        cost="437.5",
         total_consumed_quantity=100.0,
         total_remaining_quantity=25.0,
     )

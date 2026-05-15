@@ -89,7 +89,11 @@ def sync_detailed(
 
     Args:
         body (CreateVariantRequest): Request payload for creating a new product or material
-            variant with specific SKU and configuration attributes
+            variant with specific SKU and configuration attributes.
+
+            **Parent reference:** specify **exactly one** of ``product_id`` or
+            ``material_id``, never both — variants are scoped to a single parent
+            item.
              Example: {'sku': 'KNF-PRO-12PC-WD', 'sales_price': 399.99, 'purchase_price': 200.0,
             'product_id': 101, 'material_id': None, 'supplier_item_codes': ['SUP-KNF-12PC-002'],
             'internal_barcode': 'INT-KNF-002', 'registered_barcode': '789123456790', 'lead_time': 10,
@@ -131,7 +135,11 @@ def sync(
 
     Args:
         body (CreateVariantRequest): Request payload for creating a new product or material
-            variant with specific SKU and configuration attributes
+            variant with specific SKU and configuration attributes.
+
+            **Parent reference:** specify **exactly one** of ``product_id`` or
+            ``material_id``, never both — variants are scoped to a single parent
+            item.
              Example: {'sku': 'KNF-PRO-12PC-WD', 'sales_price': 399.99, 'purchase_price': 200.0,
             'product_id': 101, 'material_id': None, 'supplier_item_codes': ['SUP-KNF-12PC-002'],
             'internal_barcode': 'INT-KNF-002', 'registered_barcode': '789123456790', 'lead_time': 10,
@@ -168,7 +176,11 @@ async def asyncio_detailed(
 
     Args:
         body (CreateVariantRequest): Request payload for creating a new product or material
-            variant with specific SKU and configuration attributes
+            variant with specific SKU and configuration attributes.
+
+            **Parent reference:** specify **exactly one** of ``product_id`` or
+            ``material_id``, never both — variants are scoped to a single parent
+            item.
              Example: {'sku': 'KNF-PRO-12PC-WD', 'sales_price': 399.99, 'purchase_price': 200.0,
             'product_id': 101, 'material_id': None, 'supplier_item_codes': ['SUP-KNF-12PC-002'],
             'internal_barcode': 'INT-KNF-002', 'registered_barcode': '789123456790', 'lead_time': 10,
@@ -208,7 +220,11 @@ async def asyncio(
 
     Args:
         body (CreateVariantRequest): Request payload for creating a new product or material
-            variant with specific SKU and configuration attributes
+            variant with specific SKU and configuration attributes.
+
+            **Parent reference:** specify **exactly one** of ``product_id`` or
+            ``material_id``, never both — variants are scoped to a single parent
+            item.
              Example: {'sku': 'KNF-PRO-12PC-WD', 'sales_price': 399.99, 'purchase_price': 200.0,
             'product_id': 101, 'material_id': None, 'supplier_item_codes': ['SUP-KNF-12PC-002'],
             'internal_barcode': 'INT-KNF-002', 'registered_barcode': '789123456790', 'lead_time': 10,

@@ -22,13 +22,13 @@ class WebhookListResponse:
     """List of webhook subscriptions configured for event notifications
 
     Example:
-        {'data': [{'id': 1, 'url': 'https://api.customer.com/webhooks/katana', 'token': 'whk_live_abc123def456',
-            'enabled': True, 'description': 'ERP integration webhook for inventory sync', 'subscribed_events':
-            ['sales_order.created', 'sales_order.updated', 'current_inventory.product_updated'], 'created_at':
-            '2024-01-10T09:00:00Z', 'updated_at': '2024-01-15T11:30:00Z'}, {'id': 2, 'url':
-            'https://reporting.company.com/katana-events', 'token': 'whk_live_xyz789', 'enabled': False, 'description':
-            'Business intelligence reporting', 'subscribed_events': ['manufacturing_order.done', 'purchase_order.received'],
-            'created_at': '2024-01-12T14:00:00Z', 'updated_at': '2024-01-14T16:45:00Z'}]}
+        {'data': [{'id': 1, 'url': 'https://api.customer.com/webhooks/katana', 'token': '46aec160c0efe1d6', 'enabled':
+            True, 'description': 'ERP integration webhook for inventory sync', 'subscribed_events': ['sales_order.created',
+            'sales_order.updated', 'current_inventory.product_updated'], 'created_at': '2024-01-10T09:00:00Z', 'updated_at':
+            '2024-01-15T11:30:00Z'}, {'id': 2, 'url': 'https://reporting.company.com/katana-events', 'token':
+            '73f82127d57a2cea', 'enabled': False, 'description': 'Business intelligence reporting', 'subscribed_events':
+            ['manufacturing_order.done', 'purchase_order.received'], 'created_at': '2024-01-12T14:00:00Z', 'updated_at':
+            '2024-01-14T16:45:00Z'}]}
     """
 
     data: list[Webhook] | Unset = UNSET

@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v0.66.0 (2026-05-15)
+
+### Chores
+
+- **mcp**: Update client dependency to v0.65.1
+  ([`e4b7e62`](https://github.com/dougborg/katana-openapi-client/commit/e4b7e62ee068d1f7253a8091553806ecab85ef1f))
+
+### Features
+
+- **client**: Live-verified spec drift sweep (MO recipe, invoicing, webhook)
+  ([`76951db`](https://github.com/dougborg/katana-openapi-client/commit/76951db43ebfdf766212fb9df1093f2e81be3a0a))
+
+### Breaking Changes
+
+- **client**: `ManufacturingOrderRecipeRow.cost` and `total_actual_quantity` change from
+  `number` to `string`; the `SalesOrder.invoicing_status` field now references the new
+  `SalesOrderInvoicingStatus` enum instead of free-form string.
+
 ## v0.65.1 (2026-05-15)
 
 ### Bug Fixes

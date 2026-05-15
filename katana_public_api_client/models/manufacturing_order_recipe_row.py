@@ -29,9 +29,10 @@ class ManufacturingOrderRecipeRow:
 
         Example:
             {'id': 4001, 'manufacturing_order_id': 3001, 'variant_id': 3201, 'notes': 'Use only grade 304 material',
-                'planned_quantity_per_unit': '2.5000000000', 'total_actual_quantity': 125.0, 'ingredient_availability':
-                'IN_STOCK', 'batch_transactions': [{'batch_id': 1201, 'quantity': 125.0}], 'cost': 437.5, 'created_at':
-                '2024-01-15T08:00:00Z', 'updated_at': '2024-01-20T14:30:00Z', 'deleted_at': None}
+                'planned_quantity_per_unit': '2.5000000000', 'total_actual_quantity': '125.0000000000',
+                'ingredient_availability': 'IN_STOCK', 'batch_transactions': [{'batch_id': 1201, 'quantity': 125.0}], 'cost':
+                '437.5000000000', 'created_at': '2024-01-15T08:00:00Z', 'updated_at': '2024-01-20T14:30:00Z', 'deleted_at':
+                None}
     """
 
     id: int
@@ -42,13 +43,13 @@ class ManufacturingOrderRecipeRow:
     variant_id: int | Unset = UNSET
     notes: str | Unset = UNSET
     planned_quantity_per_unit: str | Unset = UNSET
-    total_actual_quantity: float | Unset = UNSET
+    total_actual_quantity: None | str | Unset = UNSET
     ingredient_availability: IngredientAvailability | Unset = UNSET
     ingredient_expected_date: datetime.datetime | None | Unset = UNSET
     batch_transactions: (
         list[ManufacturingOrderRecipeRowBatchTransactionsItem] | Unset
     ) = UNSET
-    cost: float | Unset = UNSET
+    cost: None | str | Unset = UNSET
     total_consumed_quantity: float | Unset = UNSET
     total_remaining_quantity: float | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -80,7 +81,11 @@ class ManufacturingOrderRecipeRow:
 
         planned_quantity_per_unit = self.planned_quantity_per_unit
 
-        total_actual_quantity = self.total_actual_quantity
+        total_actual_quantity: None | str | Unset
+        if isinstance(self.total_actual_quantity, Unset):
+            total_actual_quantity = UNSET
+        else:
+            total_actual_quantity = self.total_actual_quantity
 
         ingredient_availability: str | Unset = UNSET
         if not isinstance(self.ingredient_availability, Unset):
@@ -101,7 +106,11 @@ class ManufacturingOrderRecipeRow:
                 batch_transactions_item = batch_transactions_item_data.to_dict()
                 batch_transactions.append(batch_transactions_item)
 
-        cost = self.cost
+        cost: None | str | Unset
+        if isinstance(self.cost, Unset):
+            cost = UNSET
+        else:
+            cost = self.cost
 
         total_consumed_quantity = self.total_consumed_quantity
 
@@ -193,7 +202,16 @@ class ManufacturingOrderRecipeRow:
 
         planned_quantity_per_unit = d.pop("planned_quantity_per_unit", UNSET)
 
-        total_actual_quantity = d.pop("total_actual_quantity", UNSET)
+        def _parse_total_actual_quantity(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        total_actual_quantity = _parse_total_actual_quantity(
+            d.pop("total_actual_quantity", UNSET)
+        )
 
         _ingredient_availability = d.pop("ingredient_availability", UNSET)
         ingredient_availability: IngredientAvailability | Unset
@@ -238,7 +256,14 @@ class ManufacturingOrderRecipeRow:
 
                 batch_transactions.append(batch_transactions_item)
 
-        cost = d.pop("cost", UNSET)
+        def _parse_cost(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        cost = _parse_cost(d.pop("cost", UNSET))
 
         total_consumed_quantity = d.pop("total_consumed_quantity", UNSET)
 

@@ -15,6 +15,7 @@ import pytest
 from katana_mcp.tools.prefab_ui import (
     PREVIEW_APPLY_COACHING,
     PREVIEW_APPLY_DIRECT_COACHING,
+    _format_money,
     build_batch_recipe_update_ui,
     build_fulfill_preview_ui,
     build_fulfill_success_ui,
@@ -110,6 +111,32 @@ def _assert_valid_prefab(app: PrefabApp) -> None:
     # produced that pydantic_core wouldn't accept downstream.
     json.dumps(result)
     _assert_state_bindings_resolve(result)
+
+
+class TestFormatMoney:
+    """``_format_money`` delegates to Babel for currency-aware rendering."""
+
+    def test_usd_amount(self):
+        assert _format_money(1500.0, "USD") == "$1,500.00"
+
+    def test_eur_uses_euro_symbol(self):
+        assert _format_money(1500.0, "EUR") == "€1,500.00"
+
+    def test_jpy_has_no_decimals(self):
+        # JPY's ISO definition has zero decimal places — Babel drops them
+        # automatically; a hand-rolled formatter would render "¥1500.00".
+        assert _format_money(1500, "JPY") == "¥1,500"
+
+    def test_missing_currency_falls_back_to_usd(self):
+        assert _format_money(1500.0, None) == "$1,500.00"
+
+    def test_none_amount_renders_as_zero(self):
+        assert _format_money(None, "USD") == "$0.00"
+
+    def test_unknown_currency_keeps_code_prefix(self):
+        # Babel gracefully handles unknown ISO codes by prefixing the code
+        # instead of raising — keeps the helper total over partial.
+        assert _format_money(1500.0, "XYZ") == "XYZ1,500.00"
 
 
 class TestBuildSearchResultsUI:
