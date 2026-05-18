@@ -190,7 +190,7 @@ class SalesOrderAddress(BaseModel):
 
     Field names mirror the wire format — ``zip`` (not ``zip_code``) matches
     what ``get_sales_order`` returns and what the Katana API accepts on
-    inline create. The attrs-side wire field is ``zip_`` (Python-keyword
+    inline create. The attrs-side wire field is ``zip_`` (builtin-name
     avoidance, JSON name ``zip``); the field name here intentionally shadows
     the ``zip()`` builtin within this model scope to keep the JSON contract
     transparent for callers.
