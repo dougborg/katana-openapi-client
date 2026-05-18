@@ -196,7 +196,10 @@ def observe_tool[F: Callable[..., Any]](func: F) -> F:
 
     @wraps(func)
     async def wrapper(*args: Any, **kwargs: Any) -> Any:
-        tool_name = func.__name__
+        # `Callable[..., Any]` doesn't statically guarantee __name__ (partials,
+        # method objects), even though every real function we decorate has one.
+        # `getattr` keeps the type-narrow happy and stays accurate at runtime.
+        tool_name = getattr(func, "__name__", "anonymous_tool")
         start_time = time.perf_counter()
 
         # Get logger
