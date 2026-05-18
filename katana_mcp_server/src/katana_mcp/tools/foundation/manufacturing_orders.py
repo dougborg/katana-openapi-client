@@ -3015,9 +3015,12 @@ async def _modify_manufacturing_order_impl(
         )
     )
 
-    # Locking-status transitions (e.g. → DONE) must land after all row edits,
-    # otherwise Katana rejects them with "You can not modify manufacturing
-    # order with status done" and the operator gets a partial apply (#773).
+    # Locking-status transitions (e.g. → DONE) must land after all row edits.
+    # The header transition itself succeeds, but it closes/locks the MO — so
+    # any subsequent row/operation/production edits get rejected with "You
+    # can not modify manufacturing order with status done", leaving the
+    # operator with a partial apply (#773). Sequencing the locking transition
+    # last keeps the row edits landing while the MO is still editable.
     if header_action is not None and header_phase is _HeaderPhase.LAST:
         plan.append(header_action)
 
