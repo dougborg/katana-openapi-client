@@ -546,9 +546,11 @@ def _patch_movements_call(lifespan_ctx):
     ``AsyncMock`` so tests can assert on ``.call_args.kwargs`` to inspect
     forwarded API params *and* the ``extensions`` row cap.
 
-    Also stubs ``_build_response`` so the (mocked, status-less) httpx
-    response never reaches the real parser — tests that care about the
-    final result patch ``unwrap_data`` instead.
+    ``_build_response`` is **not** stubbed — it still runs as production
+    code against the fake ``httpx.Response`` returned here. The response
+    is a well-formed ``200`` with ``{"data": []}``, so ``_build_response``
+    parses cleanly; tests that care about the final list of movements
+    patch ``unwrap_data`` instead to inject mock results.
     """
     import httpx
 
