@@ -37,6 +37,9 @@ from katana_mcp.tools.foundation.items import (
 from katana_mcp_server.tests.conftest import create_mock_context, patch_typed_cache_sync
 from pydantic import ValidationError
 
+from katana_public_api_client.api.inventory_movements import (
+    get_all_inventory_movements as _movements_api,
+)
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models_pydantic._generated import CachedLocation
 from tests.factories import (
@@ -531,6 +534,30 @@ _MOVEMENTS_API = (
 )
 
 
+def _patch_movements_call(lifespan_ctx):
+    """Stub the httpx call inside ``_get_inventory_movements_impl``.
+
+    The impl bypasses ``asyncio_detailed`` and goes through ``_get_kwargs`` +
+    ``client.get_async_httpx_client().request(...)`` so it can pass an
+    ``extensions={"max_items": N}`` row cap to the auto-pagination transport
+    (issue #771). The MagicMock ``services.client`` returns non-awaitable
+    MagicMocks from ``get_async_httpx_client().request(...)`` by default —
+    swap in an ``AsyncMock`` so tests can ``await`` it. Returns the
+    ``AsyncMock`` so tests can assert on ``.call_args.kwargs`` to inspect
+    forwarded API params *and* the ``extensions`` row cap.
+
+    Also stubs ``_build_response`` so the (mocked, status-less) httpx
+    response never reaches the real parser — tests that care about the
+    final result patch ``unwrap_data`` instead.
+    """
+    import httpx
+
+    fake_httpx_response = httpx.Response(200, json={"data": []})
+    request_mock = AsyncMock(return_value=fake_httpx_response)
+    lifespan_ctx.client.get_async_httpx_client.return_value.request = request_mock
+    return request_mock
+
+
 @pytest.mark.asyncio
 async def test_get_inventory_movements():
     """Test get_inventory_movements with mocked API."""
@@ -558,10 +585,8 @@ async def test_get_inventory_movements():
     mock_movement.created_at = UNSET
     mock_movement.updated_at = UNSET
 
-    with (
-        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_UNWRAP_DATA, return_value=[mock_movement]),
-    ):
+    _patch_movements_call(lifespan_ctx)
+    with patch(_UNWRAP_DATA, return_value=[mock_movement]):
         request = GetInventoryMovementsRequest(sku="WIDGET-001")
         result = await _get_inventory_movements_impl(request, context)
 
@@ -622,10 +647,8 @@ async def test_get_inventory_movements_full_field_coverage():
     mock_movement.created_at = created_at
     mock_movement.updated_at = updated_at
 
-    with (
-        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock),
-        patch(_UNWRAP_DATA, return_value=[mock_movement]),
-    ):
+    _patch_movements_call(lifespan_ctx)
+    with patch(_UNWRAP_DATA, return_value=[mock_movement]):
         request = GetInventoryMovementsRequest(sku="WIDGET-001")
         result = await _get_inventory_movements_impl(request, context)
 
@@ -3114,14 +3137,17 @@ async def test_get_inventory_movements_forwards_location_id():
         return_value={"id": 3001, "sku": "W-1", "display_name": "Widget"}
     )
 
+    _patch_movements_call(lifespan_ctx)
     with (
-        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
+        patch(
+            f"{_MOVEMENTS_API}._get_kwargs", wraps=_movements_api._get_kwargs
+        ) as mock_kwargs,
         patch(_UNWRAP_DATA, return_value=[]),
     ):
         request = GetInventoryMovementsRequest(sku="W-1", location_id=42)
         await _get_inventory_movements_impl(request, context)
 
-    assert mock_api.call_args.kwargs["location_id"] == 42
+    assert mock_kwargs.call_args.kwargs["location_id"] == 42
 
 
 @pytest.mark.asyncio
@@ -3132,14 +3158,17 @@ async def test_get_inventory_movements_omits_unset_filters():
         return_value={"id": 3001, "sku": "W-1", "display_name": "Widget"}
     )
 
+    _patch_movements_call(lifespan_ctx)
     with (
-        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
+        patch(
+            f"{_MOVEMENTS_API}._get_kwargs", wraps=_movements_api._get_kwargs
+        ) as mock_kwargs,
         patch(_UNWRAP_DATA, return_value=[]),
     ):
         request = GetInventoryMovementsRequest(sku="W-1")
         await _get_inventory_movements_impl(request, context)
 
-    kw = mock_api.call_args.kwargs
+    kw = mock_kwargs.call_args.kwargs
     assert kw["location_id"] is UNSET
     assert kw["resource_type"] is UNSET
     assert kw["created_at_min"] is UNSET
@@ -3160,8 +3189,11 @@ async def test_get_inventory_movements_forwards_resource_type_enum():
         return_value={"id": 3001, "sku": "W-1", "display_name": "Widget"}
     )
 
+    _patch_movements_call(lifespan_ctx)
     with (
-        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
+        patch(
+            f"{_MOVEMENTS_API}._get_kwargs", wraps=_movements_api._get_kwargs
+        ) as mock_kwargs,
         patch(_UNWRAP_DATA, return_value=[]),
     ):
         # Pydantic v2 coerces JSON string values into StrEnum members at
@@ -3174,7 +3206,7 @@ async def test_get_inventory_movements_forwards_resource_type_enum():
         await _get_inventory_movements_impl(request, context)
 
     assert (
-        mock_api.call_args.kwargs["resource_type"]
+        mock_kwargs.call_args.kwargs["resource_type"]
         == GetAllInventoryMovementsResourceType.STOCKADJUSTMENTROW
     )
 
@@ -3199,8 +3231,11 @@ async def test_get_inventory_movements_forwards_date_filters():
         return_value={"id": 3001, "sku": "W-1", "display_name": "Widget"}
     )
 
+    _patch_movements_call(lifespan_ctx)
     with (
-        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
+        patch(
+            f"{_MOVEMENTS_API}._get_kwargs", wraps=_movements_api._get_kwargs
+        ) as mock_kwargs,
         patch(_UNWRAP_DATA, return_value=[]),
     ):
         request = GetInventoryMovementsRequest(
@@ -3212,7 +3247,7 @@ async def test_get_inventory_movements_forwards_date_filters():
         )
         await _get_inventory_movements_impl(request, context)
 
-    kw = mock_api.call_args.kwargs
+    kw = mock_kwargs.call_args.kwargs
     assert kw["created_at_min"] == datetime(2026, 1, 1, 0, 0, 0)
     assert kw["created_at_max"] == datetime(2026, 4, 1, 0, 0, 0)
     assert kw["updated_at_min"] == datetime(2026, 2, 1, 0, 0, 0)
@@ -3230,6 +3265,108 @@ async def test_get_inventory_movements_rejects_bad_iso_string():
     request = GetInventoryMovementsRequest(sku="W-1", created_at_min="not-a-datetime")
     with pytest.raises(ValueError, match="created_at_min"):
         await _get_inventory_movements_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_get_inventory_movements_forwards_max_items_extension():
+    """``request.limit`` lands on the httpx extensions as ``max_items``.
+
+    Regression for #771: without the ``max_items`` extension, the
+    auto-pagination transport treats ``limit`` as page size and walks every
+    page, so passing ``limit=N`` would still return the full history. The
+    fix forwards ``request.limit`` as ``extensions={"max_items": N}`` so the
+    transport caps the merged result at N rows.
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "W-1", "display_name": "Widget"}
+    )
+
+    request_mock = _patch_movements_call(lifespan_ctx)
+    with patch(_UNWRAP_DATA, return_value=[]):
+        request = GetInventoryMovementsRequest(sku="W-1", limit=5)
+        await _get_inventory_movements_impl(request, context)
+
+    # The httpx call must carry the row-cap extension matching request.limit.
+    extensions = request_mock.call_args.kwargs["extensions"]
+    assert extensions == {"max_items": 5}
+
+
+@pytest.mark.asyncio
+async def test_get_inventory_movements_caps_rows_via_transport():
+    """End-to-end: ``limit=N`` returns exactly N movements even when the
+    API has more pages.
+
+    Drives a real :class:`KatanaClient` against an ``httpx.MockTransport``
+    wrapped by the :class:`PaginationTransport` (so the ``max_items``
+    extension is honored end-to-end). When the user passes ``transport=`` to
+    ``KatanaClient`` directly the resilient transport chain is bypassed, so
+    we re-create the pagination layer manually to mirror the production
+    stack. The MCP requests ``limit=3`` — without the fix the transport
+    would walk every page and return all movements; with the fix the
+    ``max_items=3`` extension caps the merged result at 3.
+    """
+    import httpx
+
+    from katana_public_api_client import KatanaClient
+    from katana_public_api_client.katana_client import PaginationTransport
+
+    pages_served: list[int] = []
+
+    def _movement(idx: int) -> dict:
+        return {
+            "id": idx,
+            "variant_id": 3001,
+            "location_id": 1,
+            "resource_type": "PurchaseOrderRow",
+            "movement_date": "2026-04-01T12:00:00+00:00",
+            "quantity_change": 1.0,
+            "balance_after": float(idx),
+            "value_per_unit": 1.0,
+            "value_in_stock_after": float(idx),
+            "average_cost_after": 1.0,
+            "created_at": "2026-04-01T12:00:00+00:00",
+            "updated_at": "2026-04-01T12:00:00+00:00",
+        }
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        page = int(req.url.params.get("page", 1))
+        pages_served.append(page)
+        # Always serve 5 rows per page regardless of the requested limit so
+        # the transport must enforce the row cap itself; pretend 3 total
+        # pages exist so an uncapped walk would consume all 15.
+        data = [_movement(idx) for idx in range((page - 1) * 5 + 1, page * 5 + 1)]
+        return httpx.Response(
+            200,
+            json={
+                "data": data,
+                "pagination": {"page": page, "total_pages": 3, "page_size": 5},
+            },
+        )
+
+    paginated_transport = PaginationTransport(
+        wrapped_transport=httpx.MockTransport(handler),
+        max_pages=5,
+    )
+    async with KatanaClient(
+        api_key="test-key",
+        base_url="https://api.example.com",
+        transport=paginated_transport,
+    ) as client:
+        context, lifespan_ctx = create_mock_context()
+        lifespan_ctx.client = client
+        lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+            return_value={"id": 3001, "sku": "W-1", "display_name": "Widget"}
+        )
+
+        request = GetInventoryMovementsRequest(sku="W-1", limit=3)
+        result = await _get_inventory_movements_impl(request, context)
+
+    assert result.total_count == 3
+    assert len(result.movements) == 3
+    # The transport should have stopped after the first page since
+    # max_items=3 was satisfied on page 1 (which served 5 candidates).
+    assert pages_served == [1]
 
 
 # ============================================================================
