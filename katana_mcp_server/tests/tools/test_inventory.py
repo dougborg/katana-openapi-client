@@ -2725,3 +2725,652 @@ def test_inventory_check_card_omits_by_location_table_when_single_location():
     rendered = _json.dumps(build_inventory_check_ui(stock).to_json())
     assert "DataTable" not in rendered
     assert "locations" not in rendered  # No "N locations" badge either
+
+
+# ============================================================================
+# get_inventory_movements: filter pass-through (Phase 1 of #761)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_get_inventory_movements_forwards_location_id():
+    """location_id reaches the API call kwargs verbatim."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "W-1", "display_name": "Widget"}
+    )
+
+    with (
+        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
+        patch(_UNWRAP_DATA, return_value=[]),
+    ):
+        request = GetInventoryMovementsRequest(sku="W-1", location_id=42)
+        await _get_inventory_movements_impl(request, context)
+
+    assert mock_api.call_args.kwargs["location_id"] == 42
+
+
+@pytest.mark.asyncio
+async def test_get_inventory_movements_omits_unset_filters():
+    """Unset optional filters land as UNSET so the URL doesn't carry empty params."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "W-1", "display_name": "Widget"}
+    )
+
+    with (
+        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
+        patch(_UNWRAP_DATA, return_value=[]),
+    ):
+        request = GetInventoryMovementsRequest(sku="W-1")
+        await _get_inventory_movements_impl(request, context)
+
+    kw = mock_api.call_args.kwargs
+    assert kw["location_id"] is UNSET
+    assert kw["resource_type"] is UNSET
+    assert kw["created_at_min"] is UNSET
+    assert kw["created_at_max"] is UNSET
+    assert kw["updated_at_min"] is UNSET
+    assert kw["updated_at_max"] is UNSET
+
+
+@pytest.mark.asyncio
+async def test_get_inventory_movements_forwards_resource_type_enum():
+    """Valid resource_type string is coerced to the enum and forwarded."""
+    from katana_public_api_client.models.get_all_inventory_movements_resource_type import (
+        GetAllInventoryMovementsResourceType,
+    )
+
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "W-1", "display_name": "Widget"}
+    )
+
+    with (
+        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
+        patch(_UNWRAP_DATA, return_value=[]),
+    ):
+        # Pydantic v2 coerces JSON string values into StrEnum members at
+        # request construction; pass the enum directly so pyright is happy
+        # in the test code itself.
+        request = GetInventoryMovementsRequest(
+            sku="W-1",
+            resource_type=GetAllInventoryMovementsResourceType.STOCKADJUSTMENTROW,
+        )
+        await _get_inventory_movements_impl(request, context)
+
+    assert (
+        mock_api.call_args.kwargs["resource_type"]
+        == GetAllInventoryMovementsResourceType.STOCKADJUSTMENTROW
+    )
+
+
+def test_get_inventory_movements_rejects_invalid_resource_type():
+    """Invalid resource_type surfaces as a Pydantic ValidationError naming the field.
+
+    Uses ``model_validate`` to mirror the real MCP path — caller-supplied
+    JSON arrives as raw dict values, not pre-typed kwargs.
+    """
+    with pytest.raises(ValidationError, match="resource_type"):
+        GetInventoryMovementsRequest.model_validate(
+            {"sku": "W-1", "resource_type": "NotARealType"}
+        )
+
+
+@pytest.mark.asyncio
+async def test_get_inventory_movements_forwards_date_filters():
+    """Date strings parse into naive UTC datetimes on the API kwargs."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "W-1", "display_name": "Widget"}
+    )
+
+    with (
+        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
+        patch(_UNWRAP_DATA, return_value=[]),
+    ):
+        request = GetInventoryMovementsRequest(
+            sku="W-1",
+            created_at_min="2026-01-01T00:00:00Z",
+            created_at_max="2026-04-01T00:00:00Z",
+            updated_at_min="2026-02-01T00:00:00Z",
+            updated_at_max="2026-03-01T00:00:00Z",
+        )
+        await _get_inventory_movements_impl(request, context)
+
+    kw = mock_api.call_args.kwargs
+    assert kw["created_at_min"] == datetime(2026, 1, 1, 0, 0, 0)
+    assert kw["created_at_max"] == datetime(2026, 4, 1, 0, 0, 0)
+    assert kw["updated_at_min"] == datetime(2026, 2, 1, 0, 0, 0)
+    assert kw["updated_at_max"] == datetime(2026, 3, 1, 0, 0, 0)
+
+
+@pytest.mark.asyncio
+async def test_get_inventory_movements_rejects_bad_iso_string():
+    """Malformed ISO datetime surfaces with the field name in the error."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "W-1", "display_name": "Widget"}
+    )
+
+    request = GetInventoryMovementsRequest(sku="W-1", created_at_min="not-a-datetime")
+    with pytest.raises(ValueError, match="created_at_min"):
+        await _get_inventory_movements_impl(request, context)
+
+
+# ============================================================================
+# inventory_at: point-in-time balance reconstruction (Phase 2 of #761)
+# ============================================================================
+
+
+def _make_movement(
+    *,
+    movement_id: int,
+    variant_id: int,
+    location_id: int,
+    movement_date: datetime,
+    balance_after: float = 0.0,
+    value_in_stock_after: float = 0.0,
+    average_cost_after: float = 0.0,
+) -> MagicMock:
+    """Build a movement mock carrying only the fields _inventory_at_impl reads."""
+    m = MagicMock()
+    m.id = movement_id
+    m.variant_id = variant_id
+    m.location_id = location_id
+    m.movement_date = movement_date
+    m.balance_after = balance_after
+    m.value_in_stock_after = value_in_stock_after
+    m.average_cost_after = average_cost_after
+    return m
+
+
+@pytest.mark.asyncio
+async def test_inventory_at_single_sku_resolution():
+    """Resolves a single SKU and returns the latest pre-as_of balance per location."""
+    from katana_mcp.tools.foundation.inventory import (
+        InventoryAtRequest,
+        _inventory_at_impl,
+    )
+
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "W-1", "display_name": "Widget"}
+    )
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
+        return_value={1: {"id": 1, "name": "Main"}}
+    )
+
+    movements = [
+        _make_movement(
+            movement_id=1,
+            variant_id=3001,
+            location_id=1,
+            movement_date=datetime(2026, 1, 5, 12, 0, 0, tzinfo=UTC),
+            balance_after=50.0,
+            value_in_stock_after=2500.0,
+            average_cost_after=50.0,
+        ),
+        _make_movement(
+            movement_id=2,
+            variant_id=3001,
+            location_id=1,
+            movement_date=datetime(2026, 3, 1, 12, 0, 0, tzinfo=UTC),
+            balance_after=80.0,
+            value_in_stock_after=4000.0,
+            average_cost_after=50.0,
+        ),
+    ]
+
+    with (
+        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=movements),
+    ):
+        request = InventoryAtRequest(
+            skus_or_variant_ids=["W-1"], as_of="2026-04-01T00:00:00Z"
+        )
+        response = await _inventory_at_impl(request, context)
+
+    assert response.as_of == "2026-04-01T00:00:00Z"
+    assert response.not_found == []
+    assert len(response.items) == 1
+    item = response.items[0]
+    assert item.sku == "W-1"
+    assert item.variant_id == 3001
+    assert len(item.by_location) == 1
+    loc = item.by_location[0]
+    assert loc.location_id == 1
+    assert loc.location_name == "Main"
+    assert loc.balance_at == 80.0  # latest pre-as_of
+    assert loc.last_movement_id == 2
+    assert item.total_balance == 80.0
+    assert item.total_value == 4000.0
+
+
+@pytest.mark.asyncio
+async def test_inventory_at_resolves_variant_id_directly():
+    """Integer inputs go through _fetch_variant_by_id, not get_by_sku."""
+    from katana_mcp.tools.foundation.inventory import (
+        InventoryAtRequest,
+        _inventory_at_impl,
+    )
+
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=None)
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(return_value={})
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.items._fetch_variant_by_id",
+            new_callable=AsyncMock,
+        ) as mock_by_id,
+        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[]),
+    ):
+        mock_by_id.return_value = {
+            "id": 12345,
+            "sku": "BY-ID",
+            "display_name": "By ID",
+        }
+        request = InventoryAtRequest(
+            skus_or_variant_ids=[12345], as_of="2026-04-01T00:00:00Z"
+        )
+        response = await _inventory_at_impl(request, context)
+
+    assert response.not_found == []
+    assert response.items[0].variant_id == 12345
+    assert response.items[0].sku == "BY-ID"
+    mock_by_id.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_inventory_at_unresolved_inputs_land_in_not_found():
+    """SKUs and IDs that can't be resolved are reported via not_found."""
+    from katana_mcp.tools.foundation.inventory import (
+        InventoryAtRequest,
+        _inventory_at_impl,
+    )
+
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=None)
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(return_value={})
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.items._fetch_variant_by_id",
+            new_callable=AsyncMock,
+            return_value=None,
+        ),
+        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[]),
+    ):
+        request = InventoryAtRequest(
+            skus_or_variant_ids=["GHOST", 99999],
+            as_of="2026-04-01T00:00:00Z",
+        )
+        response = await _inventory_at_impl(request, context)
+
+    assert response.items == []
+    assert set(response.not_found) == {"GHOST", 99999}
+
+
+@pytest.mark.asyncio
+async def test_inventory_at_multi_location_grouping():
+    """Each location gets its own row; totals roll up across locations."""
+    from katana_mcp.tools.foundation.inventory import (
+        InventoryAtRequest,
+        _inventory_at_impl,
+    )
+
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "W-1", "display_name": "Widget"}
+    )
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
+        return_value={
+            1: {"id": 1, "name": "Main"},
+            2: {"id": 2, "name": "Annex"},
+        }
+    )
+
+    movements = [
+        _make_movement(
+            movement_id=1,
+            variant_id=3001,
+            location_id=1,
+            movement_date=datetime(2026, 2, 1, tzinfo=UTC),
+            balance_after=10.0,
+            value_in_stock_after=100.0,
+        ),
+        _make_movement(
+            movement_id=2,
+            variant_id=3001,
+            location_id=2,
+            movement_date=datetime(2026, 2, 5, tzinfo=UTC),
+            balance_after=25.0,
+            value_in_stock_after=250.0,
+        ),
+    ]
+
+    with (
+        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=movements),
+    ):
+        request = InventoryAtRequest(
+            skus_or_variant_ids=["W-1"], as_of="2026-04-01T00:00:00Z"
+        )
+        response = await _inventory_at_impl(request, context)
+
+    item = response.items[0]
+    assert {loc.location_id for loc in item.by_location} == {1, 2}
+    assert item.total_balance == 35.0
+    assert item.total_value == 350.0
+
+
+@pytest.mark.asyncio
+async def test_inventory_at_picks_latest_movement_per_location():
+    """When multiple movements precede as_of, the most recent (by date, id) wins."""
+    from katana_mcp.tools.foundation.inventory import (
+        InventoryAtRequest,
+        _inventory_at_impl,
+    )
+
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "W-1", "display_name": "Widget"}
+    )
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(return_value={})
+
+    # Three movements at the same location, same day, different times + ids.
+    # The id-7 row has the latest movement_date — it should win.
+    movements = [
+        _make_movement(
+            movement_id=5,
+            variant_id=3001,
+            location_id=1,
+            movement_date=datetime(2026, 3, 1, 8, 0, tzinfo=UTC),
+            balance_after=10.0,
+        ),
+        _make_movement(
+            movement_id=7,
+            variant_id=3001,
+            location_id=1,
+            movement_date=datetime(2026, 3, 1, 14, 0, tzinfo=UTC),
+            balance_after=20.0,
+        ),
+        _make_movement(
+            movement_id=6,
+            variant_id=3001,
+            location_id=1,
+            movement_date=datetime(2026, 3, 1, 11, 0, tzinfo=UTC),
+            balance_after=15.0,
+        ),
+    ]
+
+    with (
+        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=movements),
+    ):
+        request = InventoryAtRequest(
+            skus_or_variant_ids=["W-1"], as_of="2026-04-01T00:00:00Z"
+        )
+        response = await _inventory_at_impl(request, context)
+
+    loc = response.items[0].by_location[0]
+    assert loc.balance_at == 20.0
+    assert loc.last_movement_id == 7
+
+
+@pytest.mark.asyncio
+async def test_inventory_at_id_breaks_ties_when_dates_identical():
+    """If movement_date ties, higher id wins (deterministic output)."""
+    from katana_mcp.tools.foundation.inventory import (
+        InventoryAtRequest,
+        _inventory_at_impl,
+    )
+
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "W-1", "display_name": "Widget"}
+    )
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(return_value={})
+
+    same_dt = datetime(2026, 3, 1, 12, 0, tzinfo=UTC)
+    movements = [
+        _make_movement(
+            movement_id=5,
+            variant_id=3001,
+            location_id=1,
+            movement_date=same_dt,
+            balance_after=10.0,
+        ),
+        _make_movement(
+            movement_id=7,
+            variant_id=3001,
+            location_id=1,
+            movement_date=same_dt,
+            balance_after=20.0,
+        ),
+    ]
+
+    with (
+        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=movements),
+    ):
+        request = InventoryAtRequest(
+            skus_or_variant_ids=["W-1"], as_of="2026-04-01T00:00:00Z"
+        )
+        response = await _inventory_at_impl(request, context)
+
+    assert response.items[0].by_location[0].last_movement_id == 7
+
+
+@pytest.mark.asyncio
+async def test_inventory_at_skips_movements_after_as_of():
+    """Movements with movement_date > as_of_dt are excluded from the reduction."""
+    from katana_mcp.tools.foundation.inventory import (
+        InventoryAtRequest,
+        _inventory_at_impl,
+    )
+
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "W-1", "display_name": "Widget"}
+    )
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(return_value={})
+
+    movements = [
+        _make_movement(
+            movement_id=1,
+            variant_id=3001,
+            location_id=1,
+            movement_date=datetime(2026, 1, 1, tzinfo=UTC),
+            balance_after=10.0,
+        ),
+        _make_movement(
+            movement_id=2,
+            variant_id=3001,
+            location_id=1,
+            movement_date=datetime(2026, 5, 1, tzinfo=UTC),  # AFTER as_of
+            balance_after=999.0,
+        ),
+    ]
+
+    with (
+        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=movements),
+    ):
+        request = InventoryAtRequest(
+            skus_or_variant_ids=["W-1"], as_of="2026-03-01T00:00:00Z"
+        )
+        response = await _inventory_at_impl(request, context)
+
+    assert response.items[0].by_location[0].balance_at == 10.0
+    assert response.items[0].by_location[0].last_movement_id == 1
+
+
+@pytest.mark.asyncio
+async def test_inventory_at_empty_by_location_when_no_movements_before():
+    """as_of earlier than every movement → by_location is empty (no history)."""
+    from katana_mcp.tools.foundation.inventory import (
+        InventoryAtRequest,
+        _inventory_at_impl,
+    )
+
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "W-1", "display_name": "Widget"}
+    )
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(return_value={})
+
+    movements = [
+        _make_movement(
+            movement_id=1,
+            variant_id=3001,
+            location_id=1,
+            movement_date=datetime(2026, 6, 1, tzinfo=UTC),
+            balance_after=10.0,
+        )
+    ]
+
+    with (
+        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=movements),
+    ):
+        request = InventoryAtRequest(
+            skus_or_variant_ids=["W-1"], as_of="2026-01-01T00:00:00Z"
+        )
+        response = await _inventory_at_impl(request, context)
+
+    assert response.items[0].by_location == []
+    assert response.items[0].total_balance == 0.0
+
+
+@pytest.mark.asyncio
+async def test_inventory_at_forwards_location_id_filter():
+    """Optional location_id flows to the inventory_movements API call."""
+    from katana_mcp.tools.foundation.inventory import (
+        InventoryAtRequest,
+        _inventory_at_impl,
+    )
+
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "W-1", "display_name": "Widget"}
+    )
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(return_value={})
+
+    with (
+        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
+        patch(_UNWRAP_DATA, return_value=[]),
+    ):
+        request = InventoryAtRequest(
+            skus_or_variant_ids=["W-1"],
+            as_of="2026-04-01T00:00:00Z",
+            location_id=42,
+        )
+        await _inventory_at_impl(request, context)
+
+    assert mock_api.call_args.kwargs["location_id"] == 42
+
+
+@pytest.mark.asyncio
+async def test_inventory_at_tolerates_null_sku():
+    """variant_id input where the variant has sku=None resolves cleanly (sku in
+    response is null; lookup never hits the SKU index)."""
+    from katana_mcp.tools.foundation.inventory import (
+        InventoryAtRequest,
+        _inventory_at_impl,
+    )
+
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=None)
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(return_value={})
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.items._fetch_variant_by_id",
+            new_callable=AsyncMock,
+        ) as mock_by_id,
+        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[]),
+    ):
+        # Variant exists in cache but has no SKU (legacy NetSuite import).
+        mock_by_id.return_value = {
+            "id": 555,
+            "sku": None,
+            "display_name": "Mystery Widget",
+        }
+        request = InventoryAtRequest(
+            skus_or_variant_ids=[555], as_of="2026-04-01T00:00:00Z"
+        )
+        response = await _inventory_at_impl(request, context)
+
+    assert response.items[0].sku is None
+    assert response.items[0].variant_id == 555
+    assert response.items[0].display_name == "Mystery Widget"
+
+
+@pytest.mark.asyncio
+async def test_inventory_at_batch_mix_of_sku_and_id():
+    """A list with strings and ints resolves both, preserving input order."""
+    from katana_mcp.tools.foundation.inventory import (
+        InventoryAtRequest,
+        _inventory_at_impl,
+    )
+
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "W-1", "display_name": "Widget One"}
+    )
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(return_value={})
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.items._fetch_variant_by_id",
+            new_callable=AsyncMock,
+        ) as mock_by_id,
+        patch(f"{_MOVEMENTS_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[]),
+    ):
+        mock_by_id.return_value = {
+            "id": 2002,
+            "sku": "W-2",
+            "display_name": "Widget Two",
+        }
+        request = InventoryAtRequest(
+            skus_or_variant_ids=["W-1", 2002], as_of="2026-04-01T00:00:00Z"
+        )
+        response = await _inventory_at_impl(request, context)
+
+    assert [item.variant_id for item in response.items] == [3001, 2002]
+
+
+@pytest.mark.asyncio
+async def test_inventory_at_rejects_blank_sku():
+    """Whitespace-only SKU surfaces as ValueError."""
+    from katana_mcp.tools.foundation.inventory import (
+        InventoryAtRequest,
+        _inventory_at_impl,
+    )
+
+    context, _ = create_mock_context()
+    request = InventoryAtRequest(
+        skus_or_variant_ids=["   "], as_of="2026-04-01T00:00:00Z"
+    )
+    with pytest.raises(ValueError, match="SKU cannot be empty"):
+        await _inventory_at_impl(request, context)
+
+
+@pytest.mark.asyncio
+async def test_inventory_at_rejects_bad_as_of():
+    """Malformed as_of surfaces with the field name in the error."""
+    from katana_mcp.tools.foundation.inventory import (
+        InventoryAtRequest,
+        _inventory_at_impl,
+    )
+
+    context, _ = create_mock_context()
+    request = InventoryAtRequest(skus_or_variant_ids=["W-1"], as_of="not-a-datetime")
+    with pytest.raises(ValueError, match="as_of"):
+        await _inventory_at_impl(request, context)

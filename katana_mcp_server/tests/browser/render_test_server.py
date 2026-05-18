@@ -27,6 +27,7 @@ from katana_mcp.tools._modification import (
 )
 from katana_mcp.tools.prefab_ui import (
     build_batch_recipe_update_ui,
+    build_inventory_at_ui,
     build_inventory_check_ui,
     build_item_detail_ui,
     build_modification_preview_ui,
@@ -257,6 +258,113 @@ def _inventory_check_app() -> PrefabApp:
     return build_inventory_check_ui(stock)
 
 
+def _inventory_at_single_app() -> PrefabApp:
+    """build_inventory_at_ui with one variant across two locations —
+    exercises the single-item layout (SKU/Item columns hidden, variant
+    info in the header)."""
+    items = [
+        {
+            "variant_id": 3001,
+            "sku": "SKU-WIDGET",
+            "display_name": "Widget",
+            "by_location": [
+                {
+                    "location_id": 1,
+                    "location_name": "Main Warehouse",
+                    "balance_at": 100.0,
+                    "value_in_stock_at": 5000.0,
+                    "average_cost_at": 50.0,
+                    "last_movement_date": "2026-03-15T12:00:00+00:00",
+                    "last_movement_id": 9001,
+                },
+                {
+                    "location_id": 2,
+                    "location_name": "East Warehouse",
+                    "balance_at": 40.0,
+                    "value_in_stock_at": 2000.0,
+                    "average_cost_at": 50.0,
+                    "last_movement_date": "2026-03-10T08:30:00+00:00",
+                    "last_movement_id": 9002,
+                },
+            ],
+            "total_balance": 140.0,
+            "total_value": 7000.0,
+        },
+    ]
+    return build_inventory_at_ui(
+        items=items, as_of="2026-04-01T00:00:00Z", location_id=None
+    )
+
+
+def _inventory_at_batch_app() -> PrefabApp:
+    """build_inventory_at_ui with multiple variants — exercises batch
+    layout (SKU/Item columns visible) plus a not_found entry and a
+    variant with no movement history (empty by_location → placeholder row).
+    """
+    items = [
+        {
+            "variant_id": 3001,
+            "sku": "SKU-A",
+            "display_name": "Widget A",
+            "by_location": [
+                {
+                    "location_id": 1,
+                    "location_name": "Main",
+                    "balance_at": 50.0,
+                    "value_in_stock_at": 2500.0,
+                    "average_cost_at": 50.0,
+                    "last_movement_date": "2026-03-01T00:00:00+00:00",
+                    "last_movement_id": 1,
+                },
+            ],
+            "total_balance": 50.0,
+            "total_value": 2500.0,
+        },
+        {
+            "variant_id": 3002,
+            "sku": "SKU-B",
+            "display_name": "Widget B",
+            "by_location": [
+                {
+                    "location_id": 1,
+                    "location_name": "Main",
+                    "balance_at": 25.0,
+                    "value_in_stock_at": 1250.0,
+                    "average_cost_at": 50.0,
+                    "last_movement_date": "2026-02-15T00:00:00+00:00",
+                    "last_movement_id": 2,
+                },
+                {
+                    "location_id": 2,
+                    "location_name": "Annex",
+                    "balance_at": 10.0,
+                    "value_in_stock_at": 500.0,
+                    "average_cost_at": 50.0,
+                    "last_movement_date": "2026-02-20T00:00:00+00:00",
+                    "last_movement_id": 3,
+                },
+            ],
+            "total_balance": 35.0,
+            "total_value": 1750.0,
+        },
+        {
+            # Empty by_location — placeholder row in the table.
+            "variant_id": 3003,
+            "sku": "SKU-C",
+            "display_name": "Widget C",
+            "by_location": [],
+            "total_balance": 0.0,
+            "total_value": 0.0,
+        },
+    ]
+    return build_inventory_at_ui(
+        items=items,
+        as_of="2026-04-01T00:00:00Z",
+        location_id=None,
+        not_found=["GHOST-SKU"],
+    )
+
+
 def _verification_app() -> PrefabApp:
     """build_verification_ui with matches + discrepancies — exercises both
     rows='{{ matches }}' and rows='{{ discrepancies }}'."""
@@ -447,6 +555,8 @@ SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
     "search_results": _search_results_app,
     "item_detail": _item_detail_app,
     "inventory_check": _inventory_check_app,
+    "inventory_at_single": _inventory_at_single_app,
+    "inventory_at_batch": _inventory_at_batch_app,
     "verification": _verification_app,
     "batch_recipe_update": _batch_recipe_update_app,
     # Stock-adjustment family (preview + result for each of create/update/delete).

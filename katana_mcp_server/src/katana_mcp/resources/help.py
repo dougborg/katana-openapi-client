@@ -43,6 +43,8 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **get_variant_details** - Get full details for a specific item
 - **get_product_bom** / **manage_product_bom** - Read and edit a producible variant's BOM (Bill of Materials) — the master recipe future manufacturing orders are copied from. `manage_product_bom` supports add / update / delete BOM rows in one call (preview/apply). Distinct from `modify_manufacturing_order`'s recipe-row sub-payloads, which edit a single MO's snapshot.
 - **check_inventory** - Check stock levels for one or more SKUs or variant IDs (pass a list for a summary table)
+- **inventory_at** - Reconstruct historical balance: walks `inventory_movements` and returns per-location stock, value, and average cost as of an ISO-8601 `as_of` instant. Use for audit / point-in-time reconstruction; use `check_inventory` for current state.
+- **get_inventory_movements** - Stream of every stock change with dates, causes, and valuation. Filterable by location, resource type, and `created_at`/`updated_at` windows.
 - **list_low_stock_items** - Find items needing reorder
 - **create_stock_adjustment / list_stock_adjustments / update_stock_adjustment / delete_stock_adjustment** - Full CRUD for manual inventory adjustments
 
@@ -660,12 +662,52 @@ timestamps, and rank) so no follow-up lookups are needed for standard fields.
 **Parameters:**
 - `sku` (required): SKU to get movements for
 - `limit` (optional): Maximum movements to return (default: 50)
+- `location_id` (optional): Filter to a single warehouse/facility
+- `resource_type` (optional): Filter by what caused the movement. One of
+  `SalesOrderRow`, `ManufacturingOrder`, `ManufacturingOrderRecipeRow`,
+  `ProductionIngredient`, `PurchaseOrderRow`, `PurchaseOrderRecipeRow`,
+  `StockAdjustmentRow`, `StockTransferRow`, `SystemGenerated`
+- `created_at_min` / `created_at_max` (optional, ISO-8601): Audit-trail window
+  on when the movement record was first written
+- `updated_at_min` / `updated_at_max` (optional, ISO-8601): When the record was
+  last modified — useful for incremental sync
 
 **Returns:** Movement history with `id`, `variant_id`, `location_id`, `resource_type`,
 `resource_id`, `caused_by_order_no`, `caused_by_resource_id`, `movement_date`,
 `quantity_change`, `balance_after`, `value_per_unit`, `value_in_stock_after`,
 `average_cost_after`, `rank`, `created_at`, `updated_at`. Markdown render uses
 canonical Pydantic field names as column headers.
+
+For point-in-time balance reconstruction (e.g., "what was on hand on 2026-03-15"),
+prefer `inventory_at` — it walks movements and returns the resolved snapshot.
+
+---
+
+### inventory_at
+Reconstruct inventory balance at a specific point in time by walking movement history.
+The Katana `/inventory` endpoint is snapshot-only; this tool walks the
+`/inventory_movements` ledger, filters to `movement_date <= as_of`, and per location
+picks the most recent matching row — reading its `balance_after`,
+`value_in_stock_after`, and `average_cost_after` as the as-of snapshot.
+
+**Parameters:**
+- `skus_or_variant_ids` (required, min 1, max 100): List of SKUs (strings) or variant
+  IDs (integers) — mix freely. Output order matches input order.
+- `as_of` (required, ISO-8601): The instant to reconstruct. Movements after this
+  point are ignored.
+- `location_id` (optional): Filter to a single warehouse/facility — only movements
+  at that location are considered.
+
+**Returns:** `{as_of, items, not_found}`. Each item carries `variant_id`, `sku`,
+`display_name`, per-location rows (`location_id`, `location_name`, `balance_at`,
+`value_in_stock_at`, `average_cost_at`, `last_movement_date`, `last_movement_id`),
+and the totals across locations. Variants with no movements before `as_of` return
+an empty `by_location` list — they had no stock at that moment.
+
+**When to use which:**
+- `check_inventory` → current state (single direct call, fastest).
+- `inventory_at` → historical state (walks movements; for audits & reconstruction).
+- `get_inventory_movements` → the raw delta stream (every change in order).
 
 ---
 
