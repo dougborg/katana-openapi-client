@@ -11,6 +11,9 @@ if TYPE_CHECKING:
     from ..models.create_sales_order_row_request_attributes_item import (
         CreateSalesOrderRowRequestAttributesItem,
     )
+    from ..models.create_sales_order_row_request_custom_fields_type_0 import (
+        CreateSalesOrderRowRequestCustomFieldsType0,
+    )
 
 
 T = TypeVar("T", bound="CreateSalesOrderRowRequest")
@@ -33,8 +36,13 @@ class CreateSalesOrderRowRequest:
     location_id: int | Unset = UNSET
     attributes: list[CreateSalesOrderRowRequestAttributesItem] | Unset = UNSET
     total_discount: float | Unset = UNSET
+    custom_fields: CreateSalesOrderRowRequestCustomFieldsType0 | None | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.create_sales_order_row_request_custom_fields_type_0 import (
+            CreateSalesOrderRowRequestCustomFieldsType0,
+        )
+
         sales_order_id = self.sales_order_id
 
         variant_id = self.variant_id
@@ -56,6 +64,16 @@ class CreateSalesOrderRowRequest:
 
         total_discount = self.total_discount
 
+        custom_fields: dict[str, Any] | None | Unset
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(
+            self.custom_fields, CreateSalesOrderRowRequestCustomFieldsType0
+        ):
+            custom_fields = self.custom_fields.to_dict()
+        else:
+            custom_fields = self.custom_fields
+
         field_dict: dict[str, Any] = {}
 
         field_dict.update(
@@ -75,6 +93,8 @@ class CreateSalesOrderRowRequest:
             field_dict["attributes"] = attributes
         if total_discount is not UNSET:
             field_dict["total_discount"] = total_discount
+        if custom_fields is not UNSET:
+            field_dict["custom_fields"] = custom_fields
 
         return field_dict
 
@@ -82,6 +102,9 @@ class CreateSalesOrderRowRequest:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.create_sales_order_row_request_attributes_item import (
             CreateSalesOrderRowRequestAttributesItem,
+        )
+        from ..models.create_sales_order_row_request_custom_fields_type_0 import (
+            CreateSalesOrderRowRequestCustomFieldsType0,
         )
 
         d = dict(src_dict)
@@ -110,6 +133,34 @@ class CreateSalesOrderRowRequest:
 
         total_discount = d.pop("total_discount", UNSET)
 
+        def _parse_custom_fields(
+            data: object,
+        ) -> CreateSalesOrderRowRequestCustomFieldsType0 | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_0 = (
+                    CreateSalesOrderRowRequestCustomFieldsType0.from_dict(
+                        cast(Mapping[str, Any], data)
+                    )
+                )
+
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(
+                CreateSalesOrderRowRequestCustomFieldsType0 | None | Unset, data
+            )
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
+
         create_sales_order_row_request = cls(
             sales_order_id=sales_order_id,
             variant_id=variant_id,
@@ -119,6 +170,7 @@ class CreateSalesOrderRowRequest:
             location_id=location_id,
             attributes=attributes,
             total_discount=total_discount,
+            custom_fields=custom_fields,
         )
 
         return create_sales_order_row_request

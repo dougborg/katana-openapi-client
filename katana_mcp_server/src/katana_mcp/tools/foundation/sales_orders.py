@@ -103,12 +103,12 @@ from katana_public_api_client.models import (
     CreateSalesOrderAddressRequest as APICreateSOAddressRequest,
     CreateSalesOrderFulfillmentRequest as APICreateSOFulfillmentRequest,
     CreateSalesOrderRequest as APICreateSalesOrderRequest,
+    CreateSalesOrderRequestCustomFieldsType0 as APISOCustomFieldsMap,
     CreateSalesOrderRequestSalesOrderRowsItem,
     CreateSalesOrderRequestSalesOrderRowsItemAttributesItem as APISORowAttributeItem,
     CreateSalesOrderRowRequest as APICreateSORowRequest,
     CreateSalesOrderShippingFeeRequest as APICreateSOShippingFeeRequest,
     CreateSalesOrderStatus,
-    CustomFieldValue as APICustomFieldValue,
     SalesOrder,
     SalesOrderAddress as APISalesOrderAddress,
     SalesOrderFulfillment,
@@ -150,19 +150,6 @@ class SalesOrderRowAttribute(BaseModel):
 
     key: str = Field(..., description="Attribute key")
     value: str = Field(..., description="Attribute value")
-
-
-class SalesOrderCustomField(BaseModel):
-    """A custom-field value attached to the sales order header.
-
-    Names must already exist on the SO custom-field collection (configured
-    via Katana's UI). Sending an unknown name yields a 422 from Katana.
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    field_name: str = Field(..., description="Custom field name")
-    field_value: str = Field(..., description="Custom field value")
 
 
 class SalesOrderItem(BaseModel):
@@ -294,13 +281,14 @@ class CreateSalesOrderRequest(BaseModel):
             "cross-reference the Katana SO back to the storefront record."
         ),
     )
-    custom_fields: list[SalesOrderCustomField] | None = Field(
+    custom_fields: dict[str, Any] | None = Field(
         default=None,
         description=(
-            "Custom-field values attached to the sales order header. Names "
-            "must already exist on the SO custom-field collection (configured "
-            "via Katana's UI). Use a list-of-objects shape: "
-            "`[{field_name: 'PO Reference', field_value: 'PO-12345'}]`."
+            "Custom-field values attached to the sales order header, keyed by "
+            "configured field name (e.g. `{'PO Reference': 'PO-12345'}`). "
+            "Names must already exist on the SO custom-field collection "
+            "(configured via Katana's UI) and value types must match each "
+            "field's configured type."
         ),
     )
     preview: bool = Field(
@@ -455,14 +443,9 @@ async def _create_sales_order_impl(
         # datetime.now(UTC) hardcode silently overwrote any caller intent and
         # blocked back-fills, mirroring the create_purchase_order regression
         # that #605 / #627 fixed.
-        custom_fields_list: list[APICustomFieldValue] | Unset = UNSET
+        custom_fields_map: APISOCustomFieldsMap | Unset = UNSET
         if request.custom_fields is not None:
-            custom_fields_list = [
-                APICustomFieldValue(
-                    field_name=cf.field_name, field_value=cf.field_value
-                )
-                for cf in request.custom_fields
-            ]
+            custom_fields_map = APISOCustomFieldsMap.from_dict(request.custom_fields)
 
         api_request = APICreateSalesOrderRequest(
             order_no=request.order_number,
@@ -480,7 +463,7 @@ async def _create_sales_order_impl(
             ecommerce_order_type=to_unset(request.ecommerce_order_type),
             ecommerce_store_name=to_unset(request.ecommerce_store_name),
             ecommerce_order_id=to_unset(request.ecommerce_order_id),
-            custom_fields=custom_fields_list,
+            custom_fields=custom_fields_map,
             status=CreateSalesOrderStatus.PENDING,
         )
 

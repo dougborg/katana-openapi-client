@@ -220,7 +220,6 @@ async def test_create_sales_order_forwards_new_header_and_row_fields():
     (#627 — write-side parity sweep).
     """
     from katana_mcp.tools.foundation.sales_orders import (
-        SalesOrderCustomField,
         SalesOrderRowAttribute,
     )
 
@@ -264,11 +263,7 @@ async def test_create_sales_order_forwards_new_header_and_row_fields():
             ecommerce_order_type="shopify_order",
             ecommerce_store_name="Acme Online Store",
             ecommerce_order_id="store-order-12345",
-            custom_fields=[
-                SalesOrderCustomField(
-                    field_name="PO Reference", field_value="PO-12345"
-                ),
-            ],
+            custom_fields={"PO Reference": "PO-12345"},
             preview=False,
         )
         await _create_sales_order_impl(request, context)
@@ -287,9 +282,7 @@ async def test_create_sales_order_forwards_new_header_and_row_fields():
     assert api_body.ecommerce_order_type == "shopify_order"
     assert api_body.ecommerce_store_name == "Acme Online Store"
     assert api_body.ecommerce_order_id == "store-order-12345"
-    assert len(api_body.custom_fields) == 1
-    assert api_body.custom_fields[0].field_name == "PO Reference"
-    assert api_body.custom_fields[0].field_value == "PO-12345"
+    assert api_body.custom_fields.to_dict() == {"PO Reference": "PO-12345"}
 
     # Row-level attributes
     row = api_body.sales_order_rows[0]
