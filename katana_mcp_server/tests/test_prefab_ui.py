@@ -19,6 +19,7 @@ from katana_mcp.tools.prefab_ui import (
     build_batch_recipe_update_ui,
     build_fulfill_preview_ui,
     build_fulfill_success_ui,
+    build_inventory_check_batch_ui,
     build_inventory_check_ui,
     build_item_detail_ui,
     build_item_mutation_ui,
@@ -2687,6 +2688,283 @@ class TestBuildReceiptUI:
         }
         app = build_receipt_ui(response)
         _assert_valid_prefab(app)
+
+
+class TestBuildInventoryCheckBatchUI:
+    """Pin the batch ``check_inventory`` card shape (#562). The single-item
+    path is covered by ``TestBuildInventoryCheckUI``; this class covers
+    the multi-row path that previously had no Prefab builder at all."""
+
+    def _multi_item_payload(self) -> list[dict[str, Any]]:
+        """Four rows covering every distinct render branch:
+        - split across two locations (multi-location sub-table)
+        - single-location (no sub-table)
+        - not-found by SKU (sku echoed, variant_id None)
+        - not-found by variant_id (sku empty, variant_id echoed)
+        The fourth row pins the regression Copilot flagged in #769 R2:
+        a variant-id miss must remain identifiable in the summary
+        table even though SKU and Product columns are blank."""
+        return [
+            {
+                "sku": "WIDGET-001",
+                "product_name": "Test Widget",
+                "variant_id": 100,
+                "in_stock": 15.0,
+                "available_stock": 13.0,
+                "committed": 2.0,
+                "expected": 5.0,
+                "uom": "pcs",
+                "is_found": True,
+                "by_location": [
+                    {
+                        "location_id": 1,
+                        "location_name": "Main",
+                        "in_stock": 10.0,
+                        "committed": 2.0,
+                        "expected": 5.0,
+                        "available": 8.0,
+                    },
+                    {
+                        "location_id": 2,
+                        "location_name": "East",
+                        "in_stock": 5.0,
+                        "committed": 0.0,
+                        "expected": 0.0,
+                        "available": 5.0,
+                    },
+                ],
+            },
+            {
+                "sku": "WIDGET-002",
+                "product_name": "Single-Location Widget",
+                "variant_id": 101,
+                "in_stock": 4.0,
+                "available_stock": 4.0,
+                "committed": 0.0,
+                "expected": 0.0,
+                "uom": "pcs",
+                "is_found": True,
+                "by_location": [
+                    {
+                        "location_id": 1,
+                        "location_name": "Main",
+                        "in_stock": 4.0,
+                        "committed": 0.0,
+                        "expected": 0.0,
+                        "available": 4.0,
+                    },
+                ],
+            },
+            {
+                "sku": "MISSING-SKU",
+                "product_name": "",
+                "variant_id": None,
+                "in_stock": 0.0,
+                "available_stock": 0.0,
+                "committed": 0.0,
+                "expected": 0.0,
+                "is_found": False,
+            },
+            {
+                "sku": "",
+                "product_name": "",
+                "variant_id": 99999,
+                "in_stock": 0.0,
+                "available_stock": 0.0,
+                "committed": 0.0,
+                "expected": 0.0,
+                "is_found": False,
+            },
+        ]
+
+    def test_renders_summary_table_with_all_rows(self):
+        items = self._multi_item_payload()
+        app = build_inventory_check_batch_ui(items)
+        _assert_valid_prefab(app)
+        rendered = json.dumps(app.to_json())
+        # Header carries the row count.
+        assert "4 items" in rendered
+        # Top-level DataTable is the summary surface.
+        assert "DataTable" in rendered
+        # All input identities land in state.
+        assert "WIDGET-001" in rendered
+        assert "WIDGET-002" in rendered
+        assert "MISSING-SKU" in rendered
+        # The variant-id not-found row has no SKU — its identity must
+        # still be discoverable in the table. The variant_id column
+        # carries the echoed ID.
+        assert "99999" in rendered
+
+    def test_negative_in_stock_renders_as_out_of_stock(self):
+        """Negative ``in_stock`` totals are real — adjustments,
+        backorders, and accounting fixes can drive the sum below zero.
+        A negative balance is "no stock available" for any decision the
+        card supports, so the status badge must surface "Out of stock"
+        rather than the default "In stock" for ``in_stock > 0``."""
+        items = [
+            {
+                "sku": "BACKORDER-1",
+                "product_name": "Oversold Item",
+                "variant_id": 200,
+                "in_stock": -5.0,
+                "available_stock": -7.0,
+                "committed": 2.0,
+                "expected": 0.0,
+                "is_found": True,
+                "by_location": [],
+            }
+        ]
+        app = build_inventory_check_batch_ui(items)
+        # The annotator wrote the status onto the row in place.
+        assert items[0]["status_label"] == "Out of stock"
+        # And the label flows through to the rendered envelope.
+        rendered = json.dumps(app.to_json())
+        assert "Out of stock" in rendered
+
+    def test_state_items_omits_by_location_to_avoid_duplication(self):
+        """The summary table never reads ``by_location`` — only the
+        sub-tables do. State carries each item's by-location list under
+        a dedicated ``by_location_<i>`` slot, so leaving it inside
+        ``state['items']`` too would double the wire payload for
+        multi-location variants. Pin the slim contract."""
+        items = self._multi_item_payload()
+        app = build_inventory_check_batch_ui(items)
+        state = app.to_json().get("state") or {}
+        state_items = state.get("items") or []
+        # Every entry under ``items`` must be stripped of ``by_location``.
+        for row in state_items:
+            assert "by_location" not in row, (
+                f"state['items'] row leaked by_location: {row.get('sku')!r}"
+            )
+        # The multi-location variant's by-location data still surfaces
+        # via its dedicated slot (the sub-table needs it).
+        assert "by_location_0" in state
+        assert len(state["by_location_0"]) == 2
+
+    def test_per_location_sub_table_carries_reorder_columns(self):
+        """Column parity with the single-item card: the per-location
+        sub-table must surface ``reorder_point`` and ``status_label``
+        so users get the same warehouse-level reorder signal in batch
+        responses they'd see for a single-item check. Status labels
+        come from ``_annotate_location_rows`` (shared with the
+        single-item card)."""
+        items = self._multi_item_payload()
+        # Wire reorder thresholds onto the multi-location variant so the
+        # annotator has something to evaluate.
+        items[0]["by_location"][0]["reorder_point"] = 5.0
+        items[0]["by_location"][1]["reorder_point"] = 10.0
+        app = build_inventory_check_batch_ui(items)
+        # Find the per-location DataTable — the summary table also
+        # carries an ``in_stock`` column, so disambiguate by checking
+        # for the ``location_name`` column that's unique to the
+        # sub-table.
+        sub_table = None
+        for node in _walk_view_tree(app.to_json().get("view")):
+            if node.get("type") != "DataTable":
+                continue
+            keys = [c.get("key") for c in node.get("columns") or []]
+            if "location_name" in keys:
+                sub_table = node
+                break
+        assert sub_table is not None, "per-location sub-table not found"
+        column_keys = [c["key"] for c in sub_table["columns"]]
+        assert "reorder_point" in column_keys
+        assert "status_label" in column_keys
+        # The annotator wrote labels back onto each location row in
+        # state — verify they made it through. WIDGET-001 has 8.0
+        # available at Main with reorder 5.0 (Healthy) and 5.0 at East
+        # with reorder 10.0 (Below reorder).
+        locations = items[0]["by_location"]
+        assert locations[0]["status_label"] == "Healthy"
+        assert locations[1]["status_label"] == "Below reorder"
+
+    def test_renders_per_location_sub_table_only_for_multi_location(self):
+        """Single-location and not-found variants must NOT get their own
+        by-location sub-table — the summary row already says everything,
+        and not-found rows have no locations at all."""
+        items = self._multi_item_payload()
+        app = build_inventory_check_batch_ui(items)
+        rendered = json.dumps(app.to_json())
+        # Exactly one per-variant sub-table marker: only WIDGET-001 is
+        # multi-location. Match the inline label, not the heading prefix,
+        # so we don't double-count if the rendering inserts the SKU in
+        # multiple places.
+        assert rendered.count("by location (") == 1
+        # The multi-location variant gets its own state slot — the
+        # builder allocates ``by_location_<i>`` keyed on the variant's
+        # index in the input list (WIDGET-001 is index 0).
+        assert "by_location_0" in rendered
+
+    def test_not_found_row_renders_status_badge(self):
+        items = self._multi_item_payload()
+        app = build_inventory_check_batch_ui(items)
+        rendered = json.dumps(app.to_json())
+        # Header badge: SKU-miss + variant-id-miss = 2 not-found rows.
+        assert "2 not found" in rendered
+        # Row-level status label is on the table row.
+        assert "Not found" in rendered
+
+    def test_variant_id_column_renders_for_not_found_variant_id_row(self):
+        """A not-found stub from a variant-id lookup has empty SKU and
+        empty product_name; without the variant_id column the row is
+        completely unidentifiable. The Variant ID column must render
+        and the column key must point at the right state field."""
+        items = self._multi_item_payload()
+        app = build_inventory_check_batch_ui(items)
+        # Walk the rendered tree and find the summary DataTable —
+        # match it by the SKU column key, then assert the Variant ID
+        # column is present.
+        summary_table = None
+        for node in _walk_view_tree(app.to_json().get("view")):
+            if node.get("type") != "DataTable":
+                continue
+            cols = node.get("columns") or []
+            keys = [c.get("key") for c in cols]
+            if "sku" in keys:
+                summary_table = node
+                break
+        assert summary_table is not None, "summary DataTable not found"
+        column_keys = [c["key"] for c in summary_table["columns"]]
+        assert "variant_id" in column_keys
+        # Echoed ID is in the rendered state — the column will resolve
+        # it at render time on the host.
+        assert "99999" in json.dumps(app.to_json())
+
+    def test_empty_batch_renders_friendly_message(self):
+        """Zero rows must not render a DataTable — the table would
+        display an empty grid with no rows, which reads as an error.
+        Drop straight to a hint instead."""
+        app = build_inventory_check_batch_ui([])
+        _assert_valid_prefab(app)
+        rendered = json.dumps(app.to_json())
+        assert "0 items" in rendered
+        assert "No items in this batch" in rendered
+        # No DataTable on the empty path.
+        assert "DataTable" not in rendered
+
+    def test_aggregate_metrics_exclude_not_found_rows(self):
+        """The summary metrics ('In Stock', 'Available', ...) must sum
+        only over found rows. A not-found stub carries zeroed totals
+        and would otherwise dilute the average if we ever surfaced one
+        — exclude them so the top-line totals match the table sums."""
+        items = self._multi_item_payload()
+        app = build_inventory_check_batch_ui(items)
+        # Pluck the Metric components from the rendered tree and assert
+        # their values directly — substring matches on "19" / "17" pass
+        # by accident via collision with location IDs / page numbers /
+        # any digit-rich field in the envelope.
+        metrics: dict[str, str] = {}
+        for node in _walk_view_tree(app.to_json().get("view")):
+            if node.get("type") == "Metric":
+                metrics[node["label"]] = node["value"]
+        # WIDGET-001 (15) + WIDGET-002 (4) = 19; not-found row contributes 0.
+        assert metrics["In Stock"] == "19.0"
+        # Available: 13 + 4 = 17.
+        assert metrics["Available"] == "17.0"
+        # Committed: only WIDGET-001 commits stock; WIDGET-002 / not-found are 0.
+        assert metrics["Committed"] == "2.0"
+        # Expected: only WIDGET-001 expects stock.
+        assert metrics["Expected"] == "5.0"
 
 
 class TestBuildBatchRecipeUpdateUI:

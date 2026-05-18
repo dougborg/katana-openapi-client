@@ -1290,6 +1290,14 @@ _STATUS_BELOW_REORDER = "Below reorder"
 _STATUS_AT_REORDER = "At reorder"
 _STATUS_HEALTHY = "Healthy"
 
+# Per-variant status used by the batch inventory card, written by
+# ``_annotate_batch_summary_row``. Kept separate from the per-location
+# reorder buckets above — the batch row reports presence + zero-stock,
+# not reorder thresholds.
+_STATUS_NOT_FOUND = "Not found"
+_STATUS_OUT_OF_STOCK = "Out of stock"
+_STATUS_IN_STOCK = "In stock"
+
 
 _LOW_STOCK_STATUSES = frozenset({_STATUS_BELOW_REORDER, _STATUS_AT_REORDER})
 
@@ -1486,6 +1494,204 @@ def build_inventory_check_ui(
 
         with CardFooter(), Row(gap=2):
             _inventory_footer_section(stock)
+    return app
+
+
+def _annotate_batch_summary_row(item: dict[str, Any]) -> None:
+    """Mutate a batch summary row in place with derived presentation fields.
+
+    ``location_count`` and ``status_label`` aren't on the ``StockInfo``
+    wire shape — they're presentation-only — so compute them here rather
+    than pushing them onto the response model. Status uses the
+    ``is_found`` flag (added in #549) to distinguish echoed not-found
+    stubs from real zero-stock variants; without the explicit
+    indicator the two collapse to "0 in stock" in the table.
+    """
+    item["location_count"] = len(item.get("by_location") or [])
+    if not item.get("is_found", True):
+        item["status_label"] = _STATUS_NOT_FOUND
+    elif (item.get("in_stock") or 0) <= 0:
+        # ``<= 0`` not ``== 0`` — Katana sums inventory points directly,
+        # and adjustments / backorders / accounting fixes can drive the
+        # total negative. A negative balance is "no stock available" for
+        # any decision the card supports, so collapse it into the same
+        # out-of-stock bucket rather than masquerading as "In stock".
+        item["status_label"] = _STATUS_OUT_OF_STOCK
+    else:
+        item["status_label"] = _STATUS_IN_STOCK
+
+
+_BATCH_METRIC_KEYS: tuple[str, ...] = (
+    "in_stock",
+    "available_stock",
+    "committed",
+    "expected",
+)
+
+
+def build_inventory_check_batch_ui(
+    items: list[dict[str, Any]],
+) -> PrefabApp:
+    """Build a batch inventory-check card with summary metrics + per-variant table.
+
+    Mirrors :func:`build_batch_recipe_update_ui`: flat top table with one
+    row per variant, plus an inline by-location sub-table for each
+    variant whose stock is split across more than one warehouse. Each
+    sub-table binds to its own state slot (``by_location_<i>``) rather
+    than a bracket-indexed mustache path (``items[i].by_location``) —
+    Prefab's mustache resolver rejects bracket subscripts, and the
+    state-validation harness fails the build if one slips in.
+
+    Single-location variants don't render a sub-table (the row in the
+    summary table already carries everything). Not-found stubs
+    (``is_found == False``) surface as a "Not found" status badge so the
+    table doesn't silently collapse them into zero-stock rows.
+
+    Empty input renders a "no items" hint. Mutates each ``item`` in
+    place via ``_annotate_batch_summary_row`` — callers must pass
+    throwaway dicts (e.g. ``model_dump()`` output). See #562.
+    """
+    # Single pass: annotate + aggregate + count not-found in one loop
+    # rather than four genexps over the same list. Sums only count
+    # found rows so a not-found stub (zeroed totals) doesn't dilute
+    # per-found averages if we ever surface them. ``_annotate_location_rows``
+    # is reused from the single-item card so per-warehouse status labels
+    # (Below reorder / At reorder / Healthy) stay consistent across both
+    # surfaces.
+    not_found_count = 0
+    totals: dict[str, float] = dict.fromkeys(_BATCH_METRIC_KEYS, 0.0)
+    for item in items:
+        _annotate_batch_summary_row(item)
+        _annotate_location_rows(item)
+        if not item.get("is_found", True):
+            not_found_count += 1
+            continue
+        for key in _BATCH_METRIC_KEYS:
+            totals[key] += float(item.get(key) or 0)
+    total_items = len(items)
+
+    # Per-variant by-location sub-tables need their own state keys so
+    # the validator (and the JS renderer) can resolve the mustache path
+    # without bracket-indexing into ``items[i]`` — the harness rejects
+    # bracket subscripts because Prefab's runtime can't traverse them.
+    # The render loop emits a Separator + label above each slot's
+    # DataTable so the sub-tables visually attach to the right variant.
+    #
+    # The summary table only reads top-level item fields, never
+    # ``by_location``. Slim each row down before putting it in state so
+    # the by-location data doesn't get serialized twice (once under
+    # ``items[i].by_location``, once under ``by_location_<i>``) — wire
+    # payload would otherwise scale with N*L for multi-location batches.
+    summary_items = [
+        {k: v for k, v in item.items() if k != "by_location"} for item in items
+    ]
+    state: dict[str, Any] = {"items": summary_items}
+    multi_location_slots: list[tuple[str, dict[str, Any]]] = []
+    for i, item in enumerate(items):
+        if len(item.get("by_location") or []) > 1:
+            slot = f"by_location_{i}"
+            state[slot] = item["by_location"]
+            multi_location_slots.append((slot, item))
+
+    with (
+        PrefabApp(state=state, css_class="p-4") as app,
+        Column(gap=4),
+    ):
+        with Row(gap=2):
+            H3(content="Inventory Check")
+            Badge(label=f"{total_items} items", variant="outline")
+            if not_found_count:
+                Badge(
+                    label=f"{not_found_count} not found",
+                    variant="destructive",
+                )
+
+        if total_items == 0:
+            Muted(content="No items in this batch.")
+            return app
+
+        with Row(gap=4):
+            Metric(label="In Stock", value=str(totals["in_stock"]))
+            Metric(label="Available", value=str(totals["available_stock"]))
+            Metric(label="Committed", value=str(totals["committed"]))
+            Metric(label="Expected", value=str(totals["expected"]))
+
+        DataTable(
+            columns=[
+                DataTableColumn(key="sku", header="SKU", sortable=True),
+                # Variant ID is the row's other primary identifier. A
+                # not-found stub from a variant-ID lookup has empty SKU
+                # and empty product_name — without this column the row
+                # has no visible identity at all and the user can't tell
+                # which input was missing. SKU-bearing rows also get to
+                # show their variant_id so downstream tools (which key
+                # on variant_id) can copy it directly off the table.
+                DataTableColumn(
+                    key="variant_id", header="Variant ID", sortable=True, align="right"
+                ),
+                DataTableColumn(key="product_name", header="Product", sortable=True),
+                DataTableColumn(key="uom", header="UoM"),
+                DataTableColumn(
+                    key="in_stock", header="In Stock", sortable=True, align="right"
+                ),
+                DataTableColumn(
+                    key="available_stock",
+                    header="Available",
+                    sortable=True,
+                    align="right",
+                ),
+                DataTableColumn(
+                    key="committed", header="Committed", sortable=True, align="right"
+                ),
+                DataTableColumn(
+                    key="expected", header="Expected", sortable=True, align="right"
+                ),
+                DataTableColumn(
+                    key="location_count",
+                    header="Locations",
+                    sortable=True,
+                    align="right",
+                ),
+                DataTableColumn(key="status_label", header="Status", sortable=True),
+            ],
+            rows="{{ items }}",
+            search=True,
+            paginated=True,
+            pageSize=25,
+        )
+
+        for slot, item in multi_location_slots:
+            Separator()
+            label = (
+                item.get("sku")
+                or item.get("product_name")
+                or (
+                    f"variant_id {item['variant_id']}"
+                    if item.get("variant_id")
+                    else "(unknown)"
+                )
+            )
+            Muted(content=f"{label} — by location ({len(item['by_location'])}):")
+            DataTable(
+                columns=[
+                    DataTableColumn(key="location_name", header="Location"),
+                    DataTableColumn(key="location_id", header="ID", align="right"),
+                    DataTableColumn(key="in_stock", header="In Stock", align="right"),
+                    DataTableColumn(key="available", header="Available", align="right"),
+                    DataTableColumn(key="committed", header="Committed", align="right"),
+                    DataTableColumn(key="expected", header="Expected", align="right"),
+                    # Column parity with ``_inventory_reference_section``
+                    # in the single-item card — batch users need the same
+                    # warehouse-level reorder signal when a variant spans
+                    # multiple locations. ``status_label`` is populated by
+                    # ``_annotate_location_rows`` above.
+                    DataTableColumn(
+                        key="reorder_point", header="Reorder Pt", align="right"
+                    ),
+                    DataTableColumn(key="status_label", header="Status"),
+                ],
+                rows=f"{{{{ {slot} }}}}",
+            )
     return app
 
 
