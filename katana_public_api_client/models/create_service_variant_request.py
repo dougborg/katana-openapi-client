@@ -25,7 +25,7 @@ class CreateServiceVariantRequest:
             'field_value': 'Expert'}]}
     """
 
-    sku: str
+    sku: str | Unset = UNSET
     sales_price: float | None | Unset = UNSET
     default_cost: float | None | Unset = UNSET
     custom_fields: list[CreateServiceVariantRequestCustomFieldsItem] | Unset = UNSET
@@ -54,11 +54,9 @@ class CreateServiceVariantRequest:
 
         field_dict: dict[str, Any] = {}
 
-        field_dict.update(
-            {
-                "sku": sku,
-            }
-        )
+        field_dict.update({})
+        if sku is not UNSET:
+            field_dict["sku"] = sku
         if sales_price is not UNSET:
             field_dict["sales_price"] = sales_price
         if default_cost is not UNSET:
@@ -75,7 +73,7 @@ class CreateServiceVariantRequest:
         )
 
         d = dict(src_dict)
-        sku = d.pop("sku")
+        sku = d.pop("sku", UNSET)
 
         def _parse_sales_price(data: object) -> float | None | Unset:
             if data is None:

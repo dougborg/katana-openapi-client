@@ -1,6 +1,7 @@
 from http import HTTPStatus
 from typing import Any
 from urllib.parse import quote
+from uuid import UUID
 
 import httpx
 
@@ -16,7 +17,7 @@ from ...models.update_custom_field_definition_request import (
 
 
 def _get_kwargs(
-    id: int,
+    id: UUID,
     *,
     body: UpdateCustomFieldDefinitionRequest,
 ) -> dict[str, Any]:
@@ -93,7 +94,7 @@ def _build_response(
 
 
 def sync_detailed(
-    id: int,
+    id: UUID,
     *,
     client: AuthenticatedClient | Client,
     body: UpdateCustomFieldDefinitionRequest,
@@ -103,7 +104,7 @@ def sync_detailed(
      Updates an existing custom field definition.
 
     Args:
-        id (int):
+        id (UUID):
         body (UpdateCustomFieldDefinitionRequest): Request payload for updating an existing custom
             field definition. Example: {'label': 'Quality Grade (revised)', 'description': 'Updated
             customer-facing quality classification'}.
@@ -130,7 +131,7 @@ def sync_detailed(
 
 
 def sync(
-    id: int,
+    id: UUID,
     *,
     client: AuthenticatedClient | Client,
     body: UpdateCustomFieldDefinitionRequest,
@@ -140,7 +141,7 @@ def sync(
      Updates an existing custom field definition.
 
     Args:
-        id (int):
+        id (UUID):
         body (UpdateCustomFieldDefinitionRequest): Request payload for updating an existing custom
             field definition. Example: {'label': 'Quality Grade (revised)', 'description': 'Updated
             customer-facing quality classification'}.
@@ -162,7 +163,7 @@ def sync(
 
 
 async def asyncio_detailed(
-    id: int,
+    id: UUID,
     *,
     client: AuthenticatedClient | Client,
     body: UpdateCustomFieldDefinitionRequest,
@@ -172,7 +173,7 @@ async def asyncio_detailed(
      Updates an existing custom field definition.
 
     Args:
-        id (int):
+        id (UUID):
         body (UpdateCustomFieldDefinitionRequest): Request payload for updating an existing custom
             field definition. Example: {'label': 'Quality Grade (revised)', 'description': 'Updated
             customer-facing quality classification'}.
@@ -197,7 +198,7 @@ async def asyncio_detailed(
 
 
 async def asyncio(
-    id: int,
+    id: UUID,
     *,
     client: AuthenticatedClient | Client,
     body: UpdateCustomFieldDefinitionRequest,
@@ -207,7 +208,7 @@ async def asyncio(
      Updates an existing custom field definition.
 
     Args:
-        id (int):
+        id (UUID):
         body (UpdateCustomFieldDefinitionRequest): Request payload for updating an existing custom
             field definition. Example: {'label': 'Quality Grade (revised)', 'description': 'Updated
             customer-facing quality classification'}.

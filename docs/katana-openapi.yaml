@@ -863,6 +863,14 @@ components:
       schema:
         type: string
         format: uuid
+    custom_field_definition_id:
+      name: id
+      in: path
+      required: true
+      description: Custom field definition identifier (UUID)
+      schema:
+        type: string
+        format: uuid
     sales_order_id:
       name: sales_order_id
       in: query
@@ -1403,9 +1411,7 @@ components:
     FormatValidationError:
       description: |
         Ajv ``format`` keyword (e.g. ``email``, ``date-time``, ``uri``). The
-        expected format name lives in ``info.format``. Confirmed wire shape
-        from captured fixture in ``tests/test_katana_client.py:218-223``:
-        ``{path: ".email", code: "format", message: "should match format \"email\"", info: {format: "email"}}``.
+        expected format name lives in ``info.format``.
       allOf:
         - $ref: "#/components/schemas/BaseValidationError"
         - type: object
@@ -1450,9 +1456,7 @@ components:
     MaxLengthValidationError:
       description: |
         Ajv ``maxLength`` keyword: the string exceeds its maximum length.
-        Confirmed wire shape from Katana's official 422 docs example and
-        ``docs/upstream-specs/readme-portal.yaml`` — the limit lives in
-        ``info.limit`` (not as a sibling of ``code``).
+        The limit lives in ``info.limit`` (not as a sibling of ``code``).
       allOf:
         - $ref: "#/components/schemas/BaseValidationError"
         - type: object
@@ -1952,10 +1956,8 @@ components:
         - DELIVERED
       description: |
         Fulfillment status of a sales order. ``PENDING`` is the initial
-        status Katana assigns to newly-created sales orders before they
-        progress to ``NOT_SHIPPED`` (per the live API behavior — see
-        also the ``UpdateSalesOrderStatus`` enum which already lists it
-        as a settable value). The ``PARTIALLY_*`` states are
+        status assigned to newly-created sales orders before they
+        progress to ``NOT_SHIPPED``. The ``PARTIALLY_*`` states are
         server-computed; clients should not attempt to set them.
 
     SalesOrderProductionStatus:
@@ -2020,9 +2022,7 @@ components:
         - received
         - inTransit
       description: |
-        Status of a stock transfer. Values match the live API at
-        ``PATCH /stock_transfers/{id}/status`` (verified 2026-04-28). Note
-        the camelCase ``inTransit``.
+        Status of a stock transfer. Note the camelCase ``inTransit``.
 
     InventoryMovementResourceType:
       type: string
@@ -3124,9 +3124,9 @@ components:
           enum:
             - NOT_STARTED
           description: |
-            Initial production status of the manufacturing order. The live API
-            only accepts NOT_STARTED on create; further transitions go through
-            PATCH /manufacturing_orders/{id}.
+            Initial production status. ``NOT_STARTED`` is the only value
+            accepted on create; transition to other statuses via
+            ``PATCH /manufacturing_orders/{id}``.
         order_no:
           type: string
           description: Custom manufacturing order number for tracking and reference
@@ -7635,12 +7635,10 @@ components:
       description: Request payload for creating a service variant with pricing and custom fields
       type: object
       additionalProperties: false
-      required:
-        - sku
       properties:
         sku:
           type: string
-          description: A unique service code
+          description: Optional unique service code
         sales_price:
           type:
             - number
@@ -10658,75 +10656,115 @@ components:
                   - COD
             created_at: "2024-01-10T11:00:00Z"
             updated_at: "2024-01-14T09:15:00Z"
+    CustomFieldType:
+      type: string
+      enum:
+        - shortText
+        - number
+        - singleSelect
+        - date
+        - boolean
+        - url
+      description: |
+        Field input type for a ``CustomFieldDefinition`` — determines
+        how Katana renders and validates the field's stored values.
+        Immutable after creation.
+
+    CustomFieldEntityType:
+      type: string
+      enum:
+        - SalesOrder
+        - SalesOrderRow
+        - SalesRecipeRow
+        - SalesOrderFulfillmentRow
+        - ManufacturingOrder
+        - ManufacturingOrderRecipeRow
+        - PurchaseOrder
+        - PurchaseOrderRow
+        - PurchaseOrderRecipeRow
+        - OutsourcedPurchaseOrderRow
+        - StockAdjustment
+        - StockAdjustmentRow
+        - StockTransferRow
+        - Production
+        - ProductionIngredient
+        - Customer
+        - ProductVariant
+        - MaterialVariant
+        - ServiceVariant
+      description: |
+        Resource type a ``CustomFieldDefinition`` applies to. Many
+        resources accept custom fields even when their request DTOs
+        don't explicitly document the ``custom_fields`` property — the
+        field is universally available on the entities listed here.
+        Immutable after creation.
+
     CustomFieldDefinition:
       description: |
         A configured custom field definition that callers can attach to a
         resource (sales order, service, product, etc.) via the resource's
         ``custom_fields`` property. Definitions are scoped to a specific
         ``entity_type`` and shape what values consumers can store.
-      allOf:
-        - type: object
-          properties:
-            id:
-              type: integer
-              description: Unique identifier for the custom field definition
-            label:
-              type: string
-              maxLength: 255
-              description: Display label shown in the Katana UI
-            field_type:
-              type: string
-              maxLength: 50
-              description: |
-                Field input type (e.g. ``text``, ``number``, ``date``,
-                ``select``). Drives how Katana renders and validates the
-                field's values.
-            entity_type:
-              type: string
-              maxLength: 50
-              description: |
-                Resource type the definition applies to (matches the
-                resource's ``custom_fields`` API field — e.g.
-                ``sales_order``, ``service``, ``product``).
-            source:
-              type: string
-              maxLength: 255
-              description: Origin / namespace of the definition (e.g. ``katana``, ``user``).
-            description:
-              type:
-                - string
-                - "null"
-              description: Optional long-form description of the field's purpose
-            options:
-              type:
-                - object
-                - "null"
-              additionalProperties: true
-              description: |
-                Free-form configuration object — shape varies per
-                ``field_type`` (e.g., select fields carry the option list
-                here).
-          required:
-            - id
-            - label
-            - field_type
-            - entity_type
-            - source
-        - $ref: "#/components/schemas/UpdatableEntity"
-      example:
-        id: 42
-        label: Quality Grade
-        field_type: select
-        entity_type: product
-        source: user
-        description: Customer-facing quality classification
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Server-assigned UUID identifier
+        label:
+          type: string
+          maxLength: 255
+          description: Display label shown in the Katana UI
+        field_type:
+          $ref: "#/components/schemas/CustomFieldType"
+          description: Field input type. Immutable after creation.
+        entity_type:
+          $ref: "#/components/schemas/CustomFieldEntityType"
+          description: Resource type the definition applies to. Immutable after creation.
+        source:
+          type: string
+          maxLength: 255
+          description: Origin / namespace of the definition (e.g. ``katana``, ``user``).
+        description:
+          type:
+            - string
+            - "null"
+          description: Optional long-form description of the field's purpose
         options:
-          values:
-            - A
-            - B
-            - C
-        created_at: "2024-01-08T10:00:00Z"
-        updated_at: "2024-01-12T15:30:00Z"
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: |
+            Configuration object. Only meaningful when ``field_type`` is
+            ``singleSelect`` — option choices are carried here.
+            The internal shape is unspecified here; see the README
+            reference's per-``field_type`` semantics.
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the definition was created
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the definition was last updated
+      required:
+        - id
+        - label
+        - field_type
+        - entity_type
+        - source
+      example:
+        id: "0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef"
+        label: Channel
+        field_type: shortText
+        entity_type: SalesOrder
+        source: your-integration
+        description: Customer-facing sales channel classification
+        options: null
+        created_at: "2026-05-14T10:00:00Z"
+        updated_at: "2026-05-14T10:00:00Z"
     CreateCustomFieldDefinitionRequest:
       description: Request payload for creating a new custom field definition.
       type: object
@@ -10742,17 +10780,15 @@ components:
           maxLength: 255
           description: Display label shown in the Katana UI
         field_type:
-          type: string
-          maxLength: 50
-          description: Field input type (text, number, date, select, etc.)
+          $ref: "#/components/schemas/CustomFieldType"
+          description: Field input type. Immutable after creation.
         entity_type:
-          type: string
-          maxLength: 50
-          description: Resource type the definition applies to
+          $ref: "#/components/schemas/CustomFieldEntityType"
+          description: Resource type the definition applies to. Immutable after creation.
         source:
           type: string
           maxLength: 255
-          description: Origin / namespace of the definition
+          description: Origin / namespace of the definition.
         description:
           type:
             - string
@@ -10763,18 +10799,17 @@ components:
             - object
             - "null"
           additionalProperties: true
-          description: Free-form configuration object — shape varies per ``field_type``
+          description: |
+            Configuration object. Only meaningful when ``field_type`` is
+            ``singleSelect``; omit (or send ``null``) for other types.
+            The internal shape is unspecified here; see the README
+            reference's per-``field_type`` semantics.
       example:
-        label: Quality Grade
-        field_type: select
-        entity_type: product
-        source: user
-        description: Customer-facing quality classification
-        options:
-          values:
-            - A
-            - B
-            - C
+        label: Channel
+        field_type: shortText
+        entity_type: SalesOrder
+        source: your-integration
+        description: Customer-facing sales channel classification
     UpdateCustomFieldDefinitionRequest:
       description: Request payload for updating an existing custom field definition.
       type: object
@@ -10809,19 +10844,15 @@ components:
             $ref: "#/components/schemas/CustomFieldDefinition"
       example:
         data:
-          - id: 42
-            label: Quality Grade
-            field_type: select
-            entity_type: product
-            source: user
-            description: Customer-facing quality classification
-            options:
-              values:
-                - A
-                - B
-                - C
-            created_at: "2024-01-08T10:00:00Z"
-            updated_at: "2024-01-12T15:30:00Z"
+          - id: "0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef"
+            label: Channel
+            field_type: shortText
+            entity_type: SalesOrder
+            source: your-integration
+            description: Customer-facing sales channel classification
+            options: null
+            created_at: "2026-05-14T10:00:00Z"
+            updated_at: "2026-05-14T10:00:00Z"
     Stocktake:
       description: Physical inventory count process for reconciling actual stock levels with system records
       allOf:
@@ -12747,8 +12778,10 @@ components:
           type: integer
           description: Product variant ID
         quantity:
-          type: number
-          description: Quantity to transfer
+          type: string
+          description: |
+            Quantity to transfer, as a fixed-precision decimal string
+            (e.g. ``"1.0000000000"``).
     CreateStockTransferRequest:
       description: Request payload for creating a new stock transfer
       type: object
@@ -17252,7 +17285,7 @@ paths:
         In case the default storage bin doesn't yet exist, it will be created and linked to the variant.
         This endpoint can also be used for changing existing links of the variants to different storage bins.
 
-        The endpoint accepts up to 500 variant storage bin objects.
+        The request body is always an array, even when linking a single variant.
       operationId: linkVariantDefaultStorageBins
       requestBody:
         description: Linked variant default storage bin details
@@ -17260,7 +17293,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/VariantDefaultStorageBinLink"
+              type: array
+              minItems: 1
+              items:
+                $ref: "#/components/schemas/VariantDefaultStorageBinLink"
       responses:
         "200":
           description: Linked variant default storage bin order
@@ -21444,7 +21480,7 @@ paths:
       description: Retrieves a single custom field definition by ID.
       operationId: getCustomFieldDefinition
       parameters:
-        - $ref: "#/components/parameters/id"
+        - $ref: "#/components/parameters/custom_field_definition_id"
       responses:
         "200":
           description: Custom field definition retrieved successfully
@@ -21474,7 +21510,7 @@ paths:
       description: Updates an existing custom field definition.
       operationId: updateCustomFieldDefinition
       parameters:
-        - $ref: "#/components/parameters/id"
+        - $ref: "#/components/parameters/custom_field_definition_id"
       requestBody:
         description: Custom field definition update details
         required: true
@@ -21515,7 +21551,7 @@ paths:
       description: Deletes an existing custom field definition.
       operationId: deleteCustomFieldDefinition
       parameters:
-        - $ref: "#/components/parameters/id"
+        - $ref: "#/components/parameters/custom_field_definition_id"
       responses:
         "204":
           description: Custom field definition deleted successfully

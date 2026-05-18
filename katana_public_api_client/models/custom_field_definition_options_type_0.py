@@ -13,9 +13,10 @@ T = TypeVar("T", bound="CustomFieldDefinitionOptionsType0")
 
 @_attrs_define
 class CustomFieldDefinitionOptionsType0:
-    """Free-form configuration object — shape varies per
-    ``field_type`` (e.g., select fields carry the option list
-    here).
+    """Configuration object. Only meaningful when ``field_type`` is
+    ``singleSelect`` — option choices are carried here.
+    The internal shape is unspecified here; see the README
+    reference's per-``field_type`` semantics.
 
     """
 

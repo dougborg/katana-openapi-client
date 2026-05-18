@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import datetime as _datetime
 from datetime import UTC, datetime
+from decimal import Decimal
 from enum import StrEnum
 from typing import Annotated, Any, Literal
 
@@ -289,9 +290,17 @@ def _build_row_requests(
     """Convert pydantic row inputs to attrs request rows."""
     out: list[StockTransferRowRequest] = []
     for row in rows:
+        # ``StockTransferRowRequest.quantity`` is a wire-format string
+        # (fixed-precision decimal) per the spec; the MCP input is a
+        # pydantic ``float`` so emit a non-exponent decimal string at
+        # the boundary. Going through ``Decimal(str(float))`` preserves
+        # the shortest round-trip representation that ``str(float)``
+        # uses, then ``format(..., "f")`` on the Decimal emits decimal
+        # form (no exponent) at full precision — unlike
+        # ``format(float, "f")`` which silently rounds to 6 digits.
         api_row = StockTransferRowRequest(
             variant_id=row.variant_id,
-            quantity=row.quantity,
+            quantity=format(Decimal(str(row.quantity)), "f"),
         )
         if row.batch_transactions:
             api_row.additional_properties = {

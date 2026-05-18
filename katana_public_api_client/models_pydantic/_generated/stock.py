@@ -809,7 +809,12 @@ class DeleteSerialNumbersRequest(KatanaPydanticBase):
 
 class StockTransferRowRequest(KatanaPydanticBase):
     variant_id: Annotated[int | None, Field(description="Product variant ID")] = None
-    quantity: Annotated[float | None, Field(description="Quantity to transfer")] = None
+    quantity: Annotated[
+        str | None,
+        Field(
+            description='Quantity to transfer, as a fixed-precision decimal string\n(e.g. ``"1.0000000000"``).\n'
+        ),
+    ] = None
 
 
 class CreateStockTransferRequest(KatanaPydanticBase):

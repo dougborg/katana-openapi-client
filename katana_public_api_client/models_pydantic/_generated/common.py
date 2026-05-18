@@ -9,6 +9,7 @@ To regenerate, run:
 from datetime import datetime
 from enum import IntEnum, StrEnum
 from typing import Annotated, Any
+from uuid import UUID
 
 from pydantic import AwareDatetime, ConfigDict, Field, RootModel
 from sqlalchemy import Column
@@ -985,25 +986,53 @@ class CustomFieldModel(KatanaPydanticBase):
     ] = None
 
 
-class CustomFieldDefinition(UpdatableEntity):
-    id: Annotated[
-        int, Field(description="Unique identifier for the custom field definition")
-    ]
+class CustomFieldType(StrEnum):
+    short_text = "shortText"
+    number = "number"
+    single_select = "singleSelect"
+    date = "date"
+    boolean = "boolean"
+    url = "url"
+
+
+class CustomFieldEntityType(StrEnum):
+    sales_order = "SalesOrder"
+    sales_order_row = "SalesOrderRow"
+    sales_recipe_row = "SalesRecipeRow"
+    sales_order_fulfillment_row = "SalesOrderFulfillmentRow"
+    manufacturing_order = "ManufacturingOrder"
+    manufacturing_order_recipe_row = "ManufacturingOrderRecipeRow"
+    purchase_order = "PurchaseOrder"
+    purchase_order_row = "PurchaseOrderRow"
+    purchase_order_recipe_row = "PurchaseOrderRecipeRow"
+    outsourced_purchase_order_row = "OutsourcedPurchaseOrderRow"
+    stock_adjustment = "StockAdjustment"
+    stock_adjustment_row = "StockAdjustmentRow"
+    stock_transfer_row = "StockTransferRow"
+    production = "Production"
+    production_ingredient = "ProductionIngredient"
+    customer = "Customer"
+    product_variant = "ProductVariant"
+    material_variant = "MaterialVariant"
+    service_variant = "ServiceVariant"
+
+
+class CustomFieldDefinition(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    id: Annotated[UUID, Field(description="Server-assigned UUID identifier")]
     label: Annotated[
         str, Field(description="Display label shown in the Katana UI", max_length=255)
     ]
     field_type: Annotated[
-        str,
-        Field(
-            description="Field input type (e.g. ``text``, ``number``, ``date``,\n``select``). Drives how Katana renders and validates the\nfield's values.\n",
-            max_length=50,
-        ),
+        CustomFieldType,
+        Field(description="Field input type. Immutable after creation."),
     ]
     entity_type: Annotated[
-        str,
+        CustomFieldEntityType,
         Field(
-            description="Resource type the definition applies to (matches the\nresource's ``custom_fields`` API field — e.g.\n``sales_order``, ``service``, ``product``).\n",
-            max_length=50,
+            description="Resource type the definition applies to. Immutable after creation."
         ),
     ]
     source: Annotated[
@@ -1020,8 +1049,16 @@ class CustomFieldDefinition(UpdatableEntity):
     options: Annotated[
         dict[str, Any] | None,
         Field(
-            description="Free-form configuration object — shape varies per\n``field_type`` (e.g., select fields carry the option list\nhere).\n"
+            description="Configuration object. Only meaningful when ``field_type`` is\n``singleSelect`` — option choices are carried here.\nThe internal shape is unspecified here; see the README\nreference's per-``field_type`` semantics.\n"
         ),
+    ] = None
+    created_at: Annotated[
+        AwareDatetime | None,
+        Field(description="Timestamp when the definition was created"),
+    ] = None
+    updated_at: Annotated[
+        AwareDatetime | None,
+        Field(description="Timestamp when the definition was last updated"),
     ] = None
 
 
@@ -1033,17 +1070,17 @@ class CreateCustomFieldDefinitionRequest(KatanaPydanticBase):
         str, Field(description="Display label shown in the Katana UI", max_length=255)
     ]
     field_type: Annotated[
-        str,
-        Field(
-            description="Field input type (text, number, date, select, etc.)",
-            max_length=50,
-        ),
+        CustomFieldType,
+        Field(description="Field input type. Immutable after creation."),
     ]
     entity_type: Annotated[
-        str, Field(description="Resource type the definition applies to", max_length=50)
+        CustomFieldEntityType,
+        Field(
+            description="Resource type the definition applies to. Immutable after creation."
+        ),
     ]
     source: Annotated[
-        str, Field(description="Origin / namespace of the definition", max_length=255)
+        str, Field(description="Origin / namespace of the definition.", max_length=255)
     ]
     description: Annotated[
         str | None, Field(description="Optional long-form description")
@@ -1051,7 +1088,7 @@ class CreateCustomFieldDefinitionRequest(KatanaPydanticBase):
     options: Annotated[
         dict[str, Any] | None,
         Field(
-            description="Free-form configuration object — shape varies per ``field_type``"
+            description="Configuration object. Only meaningful when ``field_type`` is\n``singleSelect``; omit (or send ``null``) for other types.\nThe internal shape is unspecified here; see the README\nreference's per-``field_type`` semantics.\n"
         ),
     ] = None
 

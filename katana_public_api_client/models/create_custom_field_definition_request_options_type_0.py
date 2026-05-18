@@ -13,7 +13,12 @@ T = TypeVar("T", bound="CreateCustomFieldDefinitionRequestOptionsType0")
 
 @_attrs_define
 class CreateCustomFieldDefinitionRequestOptionsType0:
-    """Free-form configuration object — shape varies per ``field_type``"""
+    """Configuration object. Only meaningful when ``field_type`` is
+    ``singleSelect``; omit (or send ``null``) for other types.
+    The internal shape is unspecified here; see the README
+    reference's per-``field_type`` semantics.
+
+    """
 
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

@@ -53,7 +53,7 @@ class CreateManufacturingOrderRequest(KatanaPydanticBase):
     status: Annotated[
         Status | None,
         Field(
-            description="Initial production status of the manufacturing order. The live API\nonly accepts NOT_STARTED on create; further transitions go through\nPATCH /manufacturing_orders/{id}.\n"
+            description="Initial production status. ``NOT_STARTED`` is the only value\naccepted on create; transition to other statuses via\n``PATCH /manufacturing_orders/{id}``.\n"
         ),
     ] = None
     order_no: Annotated[

@@ -19,18 +19,8 @@ T = TypeVar("T", bound="FormatValidationError")
 
 @_attrs_define
 class FormatValidationError:
-    r"""Ajv ``format`` keyword (e.g. ``email``, ``date-time``, ``uri``). The
-    expected format name lives in ``info.format``. Confirmed wire shape
-    from captured fixture in ``tests/test_katana_client.py:218-223``:
-    ``{path: ".email", code: "format", message: "should match format \"email\"", info: {format: "email"}}``.
-
-        Attributes:
-            path (str): JSON path to the field with the error (Ajv's ``instancePath``).
-                Format depends on Ajv config: leading ``/`` for JSON Pointer style
-                or leading ``.`` / dotted style for legacy ``dataPath``.
-            code (FormatValidationErrorCode): Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)
-            message (str): Human-readable validation error message
-            info (FormatValidationErrorInfo): Keyword-specific metadata for ``format``
+    """Ajv ``format`` keyword (e.g. ``email``, ``date-time``, ``uri``). The
+    expected format name lives in ``info.format``.
     """
 
     path: str

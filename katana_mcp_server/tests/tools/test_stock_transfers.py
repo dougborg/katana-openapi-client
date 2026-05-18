@@ -23,6 +23,7 @@ from katana_mcp.tools.foundation.stock_transfers import (
     StockTransferHeaderPatch,
     StockTransferRowInput,
     StockTransferStatusPatch,
+    _build_row_requests,
     _create_stock_transfer_impl,
     _delete_stock_transfer_impl,
     _list_stock_transfers_impl,
@@ -372,6 +373,76 @@ async def test_create_stock_transfer_rejects_empty_rows():
             rows=[],
             preview=True,
         )
+
+
+# ----------------------------------------------------------------------
+# _build_row_requests — quantity float → wire-decimal-string boundary
+# ----------------------------------------------------------------------
+#
+# StockTransferRowRequest.quantity is a wire-format string per the spec
+# (decimal, no scientific notation, no silent rounding). The MCP input
+# is a pydantic float, so the boundary must:
+#   1. Avoid exponent notation for small/large values (str(1e-7) ==
+#      '1e-07', format(1e-7, 'f') == '0.000000', neither acceptable).
+#   2. Preserve the shortest round-trip representation Python's str()
+#      gives, without rounding past the default 6 fractional digits
+#      that format(float, 'f') silently applies.
+
+
+@pytest.mark.parametrize(
+    "quantity, expected",
+    [
+        # Whole numbers — Python float ``1.0`` carries the trailing
+        # ``.0`` through ``str()`` and ``Decimal``; the live API
+        # accepts either form so we just pin the deterministic output.
+        (1.0, "1.0"),
+        (100.0, "100.0"),
+        # Common fractional values
+        (1.5, "1.5"),
+        (0.25, "0.25"),
+        # High-precision input — must NOT round to 6 decimals
+        (0.123456789, "0.123456789"),
+        # Very small value — must NOT use exponent notation OR
+        # silently round to "0.000000"
+        (1e-7, "0.0000001"),
+        # Large value (well-formed)
+        (1_000_000.5, "1000000.5"),
+    ],
+)
+def test_build_row_requests_quantity_serialization(
+    quantity: float, expected: str
+) -> None:
+    """``_build_row_requests`` emits decimal-form strings without
+    scientific notation or 6-digit rounding (live API rejects both)."""
+    rows = _build_row_requests(
+        [StockTransferRowInput(variant_id=42, quantity=quantity)]
+    )
+    assert len(rows) == 1
+    quantity_str = rows[0].quantity
+    assert isinstance(quantity_str, str)
+    assert quantity_str == expected
+    assert "e" not in quantity_str.lower()
+
+
+def test_build_row_requests_preserves_batch_transactions() -> None:
+    """Batch transactions ride along in ``additional_properties``
+    untouched (the quantity-string conversion only affects the row's
+    own ``quantity`` field)."""
+    rows = _build_row_requests(
+        [
+            StockTransferRowInput(
+                variant_id=42,
+                quantity=0.1,
+                batch_transactions=[
+                    StockTransferBatchTransactionInput(batch_id=7, quantity=0.1),
+                ],
+            )
+        ]
+    )
+    assert rows[0].quantity == "0.1"
+    batch = rows[0].additional_properties["batch_transactions"]
+    assert batch[0]["batch_id"] == 7
+    assert batch[0]["quantity"] == 0.1  # type stays as float in batch payload
 
 
 # ============================================================================

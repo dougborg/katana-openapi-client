@@ -688,7 +688,7 @@ class CreateServiceVariantRequest(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    sku: Annotated[str, Field(description="A unique service code")]
+    sku: Annotated[str | None, Field(description="Optional unique service code")] = None
     sales_price: Annotated[
         float | None,
         Field(
