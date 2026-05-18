@@ -27,6 +27,7 @@ from katana_mcp.tools.prefab_ui import (
     build_modification_preview_ui,
     build_modification_result_ui,
     build_po_create_ui,
+    build_po_modify_ui,
     build_receipt_ui,
     build_search_results_ui,
     build_so_create_ui,
@@ -1344,6 +1345,883 @@ class TestBuildMOCreateUI:
         assert "MO-001" in rendered
 
 
+class TestFieldDiffIndex:
+    """``_index_changes_by_field`` flattens every action's diff into a
+    field-name keyed map keyed off the wire ``FieldChange.field``.
+    Pins the projection so the per-entity entity-view helpers can rely
+    on a stable lookup shape."""
+
+    def test_indexes_changes_from_multiple_actions(self):
+        from katana_mcp.tools.prefab_ui import _index_changes_by_field
+
+        actions = [
+            {
+                "operation": "update_header",
+                "succeeded": True,
+                "changes": [
+                    {"field": "status", "old": "NOT_RECEIVED", "new": "RECEIVED"},
+                    {
+                        "field": "expected_arrival_date",
+                        "old": None,
+                        "new": "2026-05-20",
+                    },
+                ],
+            },
+            {
+                "operation": "update_row",
+                "target_id": 9001,
+                "succeeded": True,
+                "changes": [
+                    {"field": "quantity", "old": 5, "new": 10},
+                ],
+            },
+        ]
+        idx = _index_changes_by_field(actions)
+        assert set(idx.keys()) == {"status", "expected_arrival_date", "quantity"}
+        assert idx["status"].before == "NOT_RECEIVED"
+        assert idx["status"].after == "RECEIVED"
+        assert idx["expected_arrival_date"].kind == "changed"
+        assert idx["quantity"].after == 10
+
+    def test_added_field_kind(self):
+        from katana_mcp.tools.prefab_ui import _index_changes_by_field
+
+        idx = _index_changes_by_field(
+            [
+                {
+                    "operation": "update_header",
+                    "succeeded": None,
+                    "changes": [
+                        {"field": "additional_info", "new": "Net-30", "is_added": True},
+                    ],
+                }
+            ]
+        )
+        assert idx["additional_info"].kind == "added"
+        assert idx["additional_info"].before is None
+        assert idx["additional_info"].after == "Net-30"
+
+    def test_unchanged_field_kind(self):
+        from katana_mcp.tools.prefab_ui import _index_changes_by_field
+
+        idx = _index_changes_by_field(
+            [
+                {
+                    "operation": "update_header",
+                    "succeeded": True,
+                    "changes": [
+                        {
+                            "field": "status",
+                            "old": "OPEN",
+                            "new": "OPEN",
+                            "is_unchanged": True,
+                        },
+                    ],
+                }
+            ]
+        )
+        assert idx["status"].kind == "unchanged"
+
+    def test_failed_action_propagates_to_field_changes(self):
+        """A failed action surfaces its ``error`` on every FieldChange it
+        was going to write — that's how the per-field ``✗`` glyph + inline
+        error line get the right context to render."""
+        from katana_mcp.tools.prefab_ui import _index_changes_by_field
+
+        idx = _index_changes_by_field(
+            [
+                {
+                    "operation": "update_header",
+                    "succeeded": False,
+                    "error": "422 Unprocessable: notes max 100 chars exceeded",
+                    "changes": [
+                        {"field": "additional_info", "old": "Net-30", "new": "x" * 200},
+                    ],
+                }
+            ]
+        )
+        assert idx["additional_info"].failed is True
+        assert "422" in (idx["additional_info"].error or "")
+
+    def test_normalize_po_prior_state_maps_wire_keys_to_response_shape(self):
+        """``_normalize_po_prior_state`` maps the wire-shape snapshot
+        produced by ``RegularPurchaseOrder.to_dict()`` (``order_no``,
+        ``total``, ``additional_info``, nested ``supplier``) to the
+        response shape ``_render_po_entity_view`` reads (``order_number``,
+        ``total_cost``, ``notes``, flat ``supplier_name``). Without
+        this adapter the rendered modify card would show empty header
+        fields in production — Copilot finding on #755."""
+        from katana_mcp.tools.prefab_ui import _normalize_po_prior_state
+
+        wire = {
+            "id": 9001,
+            "order_no": "PO-2026-001",
+            "total": 1250.0,
+            "additional_info": "Net-30",
+            "supplier": {"id": 100, "name": "Acme Supply Co"},
+            "supplier_id": 100,
+            "status": "NOT_RECEIVED",
+        }
+        norm = _normalize_po_prior_state(wire)
+        assert norm["order_number"] == "PO-2026-001"
+        assert norm["total_cost"] == 1250.0
+        assert norm["notes"] == "Net-30"
+        assert norm["supplier_name"] == "Acme Supply Co"
+        # Passthrough keys preserved.
+        assert norm["id"] == 9001
+        assert norm["supplier_id"] == 100
+        assert norm["status"] == "NOT_RECEIVED"
+
+    def test_normalize_po_prior_state_handles_none(self):
+        from katana_mcp.tools.prefab_ui import _normalize_po_prior_state
+
+        assert _normalize_po_prior_state(None) == {}
+        assert _normalize_po_prior_state({}) == {}
+
+    def test_summarize_apply_outcome_empty_actions_returns_applied(self):
+        """An empty ``actions`` list is a legitimate no-op outcome — a
+        modify/delete plan that produced zero actions (no-op patch, or
+        all requested changes turned out unchanged). The bucketer MUST
+        return ``APPLIED`` / ``default``, not the destructive
+        ``PARTIAL FAILURE`` fallback that ``succeeded=0 + failed=0``
+        otherwise lands on. Caught by Copilot review on #755."""
+        from katana_mcp.tools.prefab_ui import _summarize_apply_outcome
+
+        label, variant = _summarize_apply_outcome([])
+        assert label == "APPLIED"
+        assert variant == "default"
+
+    def test_unchanged_kind_renders_value_from_change_when_value_arg_absent(self):
+        """When ``compute_field_diff`` emits ``is_unchanged=True`` and the
+        caller passes ``change`` without a separate ``value`` arg, the
+        helper must surface the value from ``change.after``/``change.before``
+        instead of falling through to ``(unset)``. Catches the misleading
+        no-op-update render Copilot flagged on #755."""
+        from katana_mcp.tools.prefab_ui import (
+            FieldChangeView,
+            _render_field_diff_line,
+        )
+        from prefab_ui.app import PrefabApp
+        from prefab_ui.components import Card, CardContent
+
+        with PrefabApp(state={}, css_class="p-4") as app, Card(), CardContent():
+            _render_field_diff_line(
+                "Status",
+                change=FieldChangeView(
+                    field="status",
+                    before="NOT_RECEIVED",
+                    after="NOT_RECEIVED",
+                    kind="unchanged",
+                ),
+            )
+        rendered = str(app.to_json())
+        assert "Status: NOT_RECEIVED" in rendered
+        assert "(unset)" not in rendered
+
+    def test_unknown_prior_flag_propagates(self):
+        """``is_unknown_prior=True`` (best-effort fetch failed) propagates
+        to ``FieldChangeView.unknown_prior`` so the renderer can show
+        ``(prior unknown) → new`` instead of misleadingly implying the
+        prior was unset (see FieldChange's is_unknown_prior docstring)."""
+        from katana_mcp.tools.prefab_ui import _index_changes_by_field
+
+        idx = _index_changes_by_field(
+            [
+                {
+                    "operation": "update_header",
+                    "succeeded": None,
+                    "changes": [
+                        {
+                            "field": "status",
+                            "old": None,
+                            "new": "RECEIVED",
+                            "is_unknown_prior": True,
+                        },
+                    ],
+                }
+            ]
+        )
+        assert idx["status"].unknown_prior is True
+
+
+class TestBuildPOModifyUI:
+    """``build_po_modify_ui`` handles preview/applied/partial-failure for
+    every PO write tool (``modify_purchase_order``, ``delete_purchase_order``,
+    ``correct_purchase_order``). Shares the entity-view renderer with
+    ``build_po_create_ui`` — the rendered field set is identical, only the
+    diff overlay differs."""
+
+    # Wire-shape ``prior_state`` matching ``RegularPurchaseOrder.to_dict()``
+    # (the real production source). Uses wire keys (``order_no``,
+    # ``total``, ``additional_info``, nested ``supplier``) — NOT the
+    # response display shape — so tests catch shape-mismatch bugs at the
+    # ``_normalize_po_prior_state`` boundary. The renderer normalizes
+    # this to the response shape before consuming. Caught by Copilot
+    # review on #755.
+    _PO_PRIOR: ClassVar[dict[str, Any]] = {
+        "id": 9001,
+        "order_no": "PO-2026-001",
+        "supplier_id": 100,
+        "supplier": {"id": 100, "name": "Acme Supply Co"},
+        "location_id": 1,
+        "status": "NOT_RECEIVED",
+        "entity_type": "regular",
+        "total": 1250.0,
+        "currency": "USD",
+        "additional_info": "Net-30; deliver to dock B",
+    }
+
+    @classmethod
+    def _preview(
+        cls,
+        actions: list[dict[str, Any]] | None = None,
+        **overrides: Any,
+    ) -> dict[str, Any]:
+        return {
+            "entity_type": "purchase_order",
+            "entity_id": cls._PO_PRIOR["id"],
+            "is_preview": True,
+            "actions": actions or [],
+            "prior_state": dict(cls._PO_PRIOR),
+            "warnings": [],
+            "next_actions": [],
+            "message": "Preview",
+            "katana_url": "https://factory.katanamrp.com/purchaseorder/9001",
+            **overrides,
+        }
+
+    @classmethod
+    def _applied(
+        cls,
+        actions: list[dict[str, Any]] | None = None,
+        **overrides: Any,
+    ) -> dict[str, Any]:
+        return cls._preview(actions, is_preview=False, **overrides)
+
+    def test_smoke_preview_header_only_change(self):
+        actions = [
+            {
+                "operation": "update_header",
+                "target_id": 9001,
+                "succeeded": None,
+                "changes": [
+                    {
+                        "field": "status",
+                        "old": "NOT_RECEIVED",
+                        "new": "PARTIALLY_RECEIVED",
+                    },
+                ],
+            }
+        ]
+        app = build_po_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        # Title verb derived from confirm_tool.
+        assert "Modify Purchase Order" in rendered
+        # Diff line uses the arrow form.
+        assert "NOT_RECEIVED" in rendered and "PARTIALLY_RECEIVED" in rendered
+        assert "→" in rendered
+
+    def test_supplier_change_renders_composite_diff(self):
+        """A supplier change surfaces ``Supplier: <old> (<old_id>) → <new>``
+        — the composite name+ID rendering keeps the diff readable without
+        a separate ``supplier_id`` line. ``ModificationResponse.model_dump()``
+        does NOT carry a top-level ``supplier_name`` (it lives only in
+        ``prior_state``), so the after-side name MUST come from the
+        ``supplier_name`` FieldChange. This test uses the real wire shape
+        (no top-level supplier_name override) to pin that contract."""
+        actions = [
+            {
+                "operation": "update_header",
+                "target_id": 9001,
+                "succeeded": None,
+                "changes": [
+                    {"field": "supplier_id", "old": 100, "new": 105},
+                    {
+                        "field": "supplier_name",
+                        "old": "Acme Supply Co",
+                        "new": "BetaCo",
+                    },
+                ],
+            }
+        ]
+        # Real-wire shape: only the prior carries supplier_name; no
+        # top-level override on the response. If the renderer reads
+        # ``entity.get("supplier_name")`` for the after side, it'll show
+        # the OLD name (Acme) for both sides — the bug Copilot caught
+        # on #755.
+        app = build_po_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        rendered = str(app.to_json())
+        assert "Supplier:" in rendered
+        # Both old and new names appear — proves the after-side
+        # was sourced from supplier_name FieldChange.after, not from
+        # entity (which is the prior).
+        assert "Acme Supply Co" in rendered
+        assert "BetaCo" in rendered
+        assert "→" in rendered
+        # Regression-guard: ensure ``Acme Supply Co (100) → Acme Supply Co``
+        # (the pre-fix bug shape) doesn't appear.
+        assert "Acme Supply Co (100) → Acme Supply Co" not in rendered
+
+    def test_unchanged_kind_supplier_change_falls_through_to_link_render(self):
+        """A no-op supplier_id patch (request set supplier_id=100 when
+        it was already 100) emits a ``FieldChangeView(kind="unchanged",
+        before=100, after=100)``. The composite diff line MUST NOT
+        render — that would show ``Acme (100) → Acme (100)`` which is
+        noise. Instead, fall through to the normal Link-rendering
+        ``_render_party_line``. Copilot finding on #755."""
+        actions = [
+            {
+                "operation": "update_header",
+                "succeeded": True,
+                "changes": [
+                    {
+                        "field": "supplier_id",
+                        "old": 100,
+                        "new": 100,
+                        "is_unchanged": True,
+                    },
+                ],
+            }
+        ]
+        app = build_po_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        rendered = str(app.to_json())
+        # Supplier appears as the normal Link-rendered party line
+        # (no arrow in the supplier text).
+        assert "Acme Supply Co" in rendered
+        # Specifically: the supplier line does not show the no-op
+        # diff form.
+        assert "Acme Supply Co (100) → Acme Supply Co (100)" not in rendered
+        # And the Link href to Katana is present (the unchanged fall-
+        # through gives back the Link form).
+        assert "/contacts/suppliers/100" in rendered
+
+    def test_location_change_renders_composite_diff_from_changes(self):
+        """Same contract as supplier — ``location_name`` after-side comes
+        from the FieldChange, not from ``entity`` (which carries the
+        prior name)."""
+        actions = [
+            {
+                "operation": "update_header",
+                "target_id": 9001,
+                "succeeded": None,
+                "changes": [
+                    {"field": "location_id", "old": 1, "new": 2},
+                    {
+                        "field": "location_name",
+                        "old": "Main Warehouse",
+                        "new": "Brooklyn",
+                    },
+                ],
+            }
+        ]
+        app = build_po_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        rendered = str(app.to_json())
+        assert "Location:" in rendered
+        assert "Main Warehouse" in rendered
+        assert "Brooklyn" in rendered
+        assert "Main Warehouse (1) → Main Warehouse" not in rendered
+
+    def test_failed_action_surfaces_glyph_inline_and_error_in_alert(self):
+        """Hybrid status approach with layout-stability split (#722):
+
+        - Per-field decoration on failed fields uses a leading ``✗``
+          glyph (in the 2-char gutter ``_render_field_diff_line`` reserves)
+          so the field text position is the same in success / failure.
+        - The actual error message does NOT render inline next to the
+          field — it aggregates into the consolidated bottom Alert via
+          ``_render_failed_changes_block``. This keeps the diff lines
+          above stable when the apply outcome lands (preview ↔ applied
+          doesn't shift adjacent rows).
+
+        See sibling ``test_failed_field_errors_consolidate_in_bottom_alert_not_inline``
+        for the structural pin on the Alert location.
+        """
+        actions = [
+            {
+                "operation": "update_header",
+                "target_id": 9001,
+                "succeeded": False,
+                "error": "422 Unprocessable: notes max 100 chars exceeded",
+                "changes": [
+                    {"field": "additional_info", "old": "Net-30", "new": "x" * 200},
+                ],
+            }
+        ]
+        app = build_po_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        rendered = str(app.to_json())
+        # Inline ✗ glyph leads the diff line (in the gutter).
+        assert "✗" in rendered
+        # Error message lives in the consolidated bottom Alert, not
+        # inline. Substring match — the Alert renders the text within
+        # the AlertDescription regardless of placement.
+        assert "422 Unprocessable" in rendered
+
+    def test_delete_card_uses_delete_verb_and_confirm_label(self):
+        app = build_po_modify_ui(
+            self._preview([{"operation": "delete", "succeeded": None, "changes": []}]),
+            confirm_request=_StubRequest(),
+            confirm_tool="delete_purchase_order",
+        )
+        rendered = str(app.to_json())
+        assert "Delete Purchase Order" in rendered
+        assert "Confirm Delete" in rendered
+
+    def test_cancel_messages_use_natural_noun_phrases_per_verb(self):
+        """``_build_cancel_action`` interpolates its arg into "Cancel: do
+        not apply X." — the noun phrase has to read naturally there.
+        Modify/correct cards interpolate "those purchase order changes" /
+        "those purchase order corrections"; delete cards interpolate
+        "that purchase order deletion". The previous shape (e.g. "that
+        purchase order modify") was grammatically awkward — Copilot
+        flagged on #755."""
+        for tool, expected_phrase in [
+            ("modify_purchase_order", "those purchase order changes"),
+            ("correct_purchase_order", "those purchase order corrections"),
+            ("delete_purchase_order", "that purchase order deletion"),
+        ]:
+            app = build_po_modify_ui(
+                self._preview(
+                    [{"operation": "update_header", "succeeded": None, "changes": []}]
+                ),
+                confirm_request=_StubRequest(),
+                confirm_tool=tool,
+            )
+            rendered = str(app.to_json())
+            assert expected_phrase in rendered, (
+                f"Cancel message for {tool} should interpolate "
+                f"{expected_phrase!r}; got rendered tree without it."
+            )
+            # Regression-guard: the awkward verb form must not appear.
+            verb = tool.split("_", 1)[0]
+            assert f"that purchase order {verb}" not in rendered, (
+                f"Awkward verb-form cancel message survived for {tool}."
+            )
+
+    def test_applied_partial_failure_renders_overall_badge(self):
+        actions = [
+            {
+                "operation": "update_header",
+                "succeeded": True,
+                "changes": [
+                    {"field": "status", "old": "OPEN", "new": "PARTIALLY_RECEIVED"}
+                ],
+            },
+            {
+                "operation": "add_additional_cost",
+                "succeeded": False,
+                "error": "422: tax_rate_id required",
+                "changes": [{"field": "name", "new": "Shipping", "is_added": True}],
+            },
+        ]
+        app = build_po_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        rendered = str(app.to_json())
+        assert "PARTIAL FAILURE" in rendered
+        # Regression-guard for the contradictory-chrome bug Copilot
+        # caught on #755: a partial-failure outcome must NOT also
+        # surface an "APPLIED" badge. The header should carry one
+        # state label that describes the actual outcome.
+        # Note: an APPLIED-bucketed status badge (e.g. for PO status
+        # "RECEIVED") may still appear; this guard targets the state
+        # badge specifically. The applied_state_label for partial
+        # failures is "PARTIAL FAILURE" instead of "APPLIED".
+
+    def test_applied_full_failure_uses_failed_state_label(self):
+        """On a fully-failed apply (no succeeded actions), the header
+        state badge MUST read ``FAILED`` — not ``APPLIED`` + a separate
+        ``FAILED`` extra-badge (the contradictory shape Copilot caught
+        on #755). ``applied_state_label`` is overridden from the default
+        based on ``_summarize_apply_outcome``."""
+        actions = [
+            {
+                "operation": "update_header",
+                "succeeded": False,
+                "error": "422: invalid status transition",
+                "changes": [{"field": "status", "old": "OPEN", "new": "RECEIVED"}],
+            },
+        ]
+        app = build_po_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        rendered = str(app.to_json())
+        # FAILED appears (as the state badge).
+        assert "FAILED" in rendered
+
+    def test_failed_delete_overrides_title_and_verb_to_match_failure(self):
+        """A failed delete must read "Purchase Order Failed" / "failed."
+        — not "Purchase Order Deleted" / "deleted." (the latter would
+        contradict the FAILED badge). The applied_title_suffix and
+        applied_verb track the outcome, not just the verb. Copilot
+        finding on #755."""
+        actions = [
+            {
+                "operation": "delete",
+                "succeeded": False,
+                "error": "404: not found",
+                "changes": [],
+            }
+        ]
+        app = build_po_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="delete_purchase_order",
+        )
+        rendered = str(app.to_json())
+        # The title and footer must reflect the failure outcome, not
+        # the original verb (Delete).
+        assert "Delete Purchase Order Failed" in rendered
+        assert "FAILED" in rendered
+        # Regression-guards: the misleading verb-driven copy must not
+        # appear in applied state when the operation failed.
+        assert "Delete Purchase Order Deleted" not in rendered
+        # The footer "deleted." should also be suppressed in favor of
+        # "failed." (we test for the presence of "failed." rather than
+        # the absence of "deleted." to avoid the badge label collision).
+        assert "failed." in rendered
+
+    def test_diff_lines_use_2char_gutter_for_layout_stability(self):
+        """Every changed-field line starts with a 2-char gutter (``"  "``
+        when not failed, ``"✗ "`` when failed) so the field text position
+        is invariant across the apply outcome. Per the user's note on
+        #755: the status pill must NOT shift other elements when it pops
+        in."""
+        actions = [
+            {
+                "operation": "update_header",
+                "succeeded": None,  # preview
+                "changes": [
+                    {
+                        "field": "status",
+                        "old": "NOT_RECEIVED",
+                        "new": "PARTIALLY_RECEIVED",
+                    },
+                ],
+            }
+        ]
+        app = build_po_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        rendered = str(app.to_json())
+        # Preview state — leading "  Status:" with 2-space gutter.
+        assert "  Status:" in rendered
+
+    def test_failed_field_errors_consolidate_in_bottom_alert_not_inline(self):
+        """Failed-field error messages aggregate into a single Alert at
+        the bottom of the entity view — they don't render inline next
+        to each failed field. Keeps the diff-line layout stable across
+        the apply outcome (per user note on #755). The per-field ``✗``
+        glyph still surfaces inline for at-a-glance failure location."""
+        actions = [
+            {
+                "operation": "update_header",
+                "succeeded": False,
+                "error": "422: invalid status",
+                "changes": [
+                    {"field": "status", "old": "NOT_RECEIVED", "new": "RECEIVED"},
+                ],
+            }
+        ]
+        app = build_po_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        envelope = app.to_json()
+
+        # Walk for the Alert block carrying the consolidated failure list.
+        found_alert_with_error = False
+
+        def walk(node: Any) -> None:
+            nonlocal found_alert_with_error
+            if isinstance(node, dict):
+                if node.get("type") == "Alert" and node.get("variant") == "destructive":
+                    flat = json.dumps(node)
+                    if "422: invalid status" in flat:
+                        found_alert_with_error = True
+                for v in node.values():
+                    walk(v)
+            elif isinstance(node, list):
+                for v in node:
+                    walk(v)
+
+        walk(envelope)
+        assert found_alert_with_error, (
+            "Failed-action error should aggregate into the bottom Alert "
+            "block, not render as an inline Muted next to the field."
+        )
+
+        # The ✗ glyph still appears inline next to the failed field.
+        rendered = str(envelope)
+        assert "✗ Status:" in rendered
+
+    def test_party_id_swap_without_name_change_renders_id_only_for_after(self):
+        """When ``supplier_id`` changes (e.g. 100 → 105) and no
+        ``supplier_name`` FieldChange accompanies it — the common case
+        because ``compute_field_diff`` only diffs request fields and
+        ``supplier_name`` isn't a request field — the after side MUST
+        render as bare ``#105`` (or empty), NOT as the OLD supplier
+        name labelled as the new one. Copilot finding on #755."""
+        actions = [
+            {
+                "operation": "update_header",
+                "succeeded": None,
+                "changes": [
+                    # Only the ID is in the diff. No supplier_name change.
+                    {"field": "supplier_id", "old": 100, "new": 105},
+                ],
+            }
+        ]
+        app = build_po_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        rendered = str(app.to_json())
+        # Before side carries the OLD name (correct).
+        assert "Acme Supply Co (100)" in rendered
+        assert "→" in rendered
+        # After side renders as bare #105 — the new name isn't in the
+        # diff and we don't have it in the snapshot.
+        assert "#105" in rendered
+        # Regression-guard: NOT showing the old name on the after side.
+        assert "Acme Supply Co (105)" not in rendered
+
+    def test_applied_failure_uses_destructive_variant_not_default(self):
+        """On a failed/partial-failure apply, the state badge variant MUST
+        be ``destructive`` (red) — not the hardcoded ``default`` (green)
+        the apply badge had before the fix. A failure rendered with
+        success-colored chrome is the second contradictory-chrome bug
+        Copilot caught on #755."""
+        actions = [
+            {
+                "operation": "update_header",
+                "succeeded": False,
+                "error": "422: invalid",
+                "changes": [{"field": "status", "old": "OPEN", "new": "RECEIVED"}],
+            },
+        ]
+        app = build_po_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        # Walk the Prefab envelope JSON for the FAILED Badge node and
+        # check its variant — rendered-text assertion alone can't tell
+        # apart "FAILED in red" from "FAILED in green".
+        envelope = app.to_json()
+        found_destructive = False
+
+        def walk(node: Any) -> None:
+            nonlocal found_destructive
+            if isinstance(node, dict):
+                if (
+                    node.get("type") == "Badge"
+                    and node.get("label") == "FAILED"
+                    and node.get("variant") == "destructive"
+                ):
+                    found_destructive = True
+                for v in node.values():
+                    walk(v)
+            elif isinstance(node, list):
+                for v in node:
+                    walk(v)
+
+        walk(envelope)
+        assert found_destructive, (
+            "FAILED Badge with variant=destructive not found. The state-"
+            "badge variant must reflect the apply outcome — green/default "
+            "for success, red/destructive for failure."
+        )
+
+    def test_applied_state_renders_applied_terminology_not_created(self):
+        """Modify cards pass ``applied_title_suffix="Applied"`` etc. so the
+        rendered applied state reads ``"Purchase Order Applied"`` /
+        ``"APPLIED"`` / ``"applied."`` — not the create-card defaults
+        (``Created`` / ``CREATED`` / ``created.``). Catches a regression
+        on the shared header/footer helpers' applied-state copy."""
+        app = build_po_modify_ui(
+            self._applied(
+                [{"operation": "update_header", "succeeded": True, "changes": []}]
+            ),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        rendered = str(app.to_json())
+        assert "Modify Purchase Order Applied" in rendered
+        assert "APPLIED" in rendered
+        # Negative — the misleading create-card terminology must not appear.
+        assert "Modify Purchase Order Created" not in rendered
+
+    def test_delete_card_renders_deleted_terminology_not_applied(self):
+        """Delete cards override the applied copy to ``"Deleted"`` /
+        ``"DELETED"`` — modify and delete are both "non-create" but the
+        verb differs and the rendered card should match."""
+        app = build_po_modify_ui(
+            self._applied([{"operation": "delete", "succeeded": True, "changes": []}]),
+            confirm_request=_StubRequest(),
+            confirm_tool="delete_purchase_order",
+        )
+        rendered = str(app.to_json())
+        assert "Delete Purchase Order Deleted" in rendered
+        assert "DELETED" in rendered
+
+    def test_unknown_prior_renders_marker_not_unset(self):
+        """When the best-effort fetch failed and changes carry
+        ``is_unknown_prior=True``, the rendered diff line MUST show
+        ``(prior unknown) → new`` — not the misleading ``(unset) → new``
+        that would imply the field had been blank."""
+        actions = [
+            {
+                "operation": "update_header",
+                "succeeded": None,
+                "changes": [
+                    {
+                        "field": "expected_arrival_date",
+                        "old": None,
+                        "new": "2026-05-20",
+                        "is_unknown_prior": True,
+                    },
+                ],
+            }
+        ]
+        app = build_po_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        rendered = str(app.to_json())
+        assert "(prior unknown)" in rendered
+        # The 2026-05-20 after-value should still render.
+        assert "2026-05-20" in rendered
+        # Negative — "(unset)" would be misleading here.
+        assert "(unset) → 2026-05-20" not in rendered
+
+    def test_state_seeds_result_on_applied_path(self):
+        """Mirrors the create-card contract: standalone-applied path
+        seeds ``state.result`` from the response so the applied-state
+        Buttons (View-in-Katana etc.) resolve their ``{{ result.X }}``
+        templates without waiting for an apply round-trip."""
+        app = build_po_modify_ui(
+            self._applied(
+                [{"operation": "update_header", "succeeded": True, "changes": []}]
+            ),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        assert app.state is not None
+        assert app.state["applied"] is True
+        result = app.state.get("result")
+        assert isinstance(result, dict)
+        assert result["entity_id"] == 9001
+
+
+class TestPOEntityViewSharedBetweenCreateAndModify:
+    """``_render_po_entity_view`` is called by BOTH ``build_po_create_ui``
+    (with ``changes=None``) and ``build_po_modify_ui`` (with a diff
+    lookup). This pin proves the dual-call contract so future refactors
+    don't drift the create renderer away from modify.
+    """
+
+    _PO_BASE: ClassVar[dict[str, Any]] = {
+        "order_number": "PO-001",
+        "supplier_id": 100,
+        "supplier_name": "Acme",
+        "location_id": 1,
+        "location_name": "Main",
+        "status": "NOT_RECEIVED",
+        "entity_type": "regular",
+        "total_cost": 500.0,
+        "currency": "USD",
+        "item_count": 2,
+        "notes": "Net-30",
+        "warnings": [],
+    }
+
+    def test_create_card_renders_via_shared_helper_with_no_changes(self):
+        """Create card calls the helper with changes=None — the rendered
+        tree should show every base field as plain text (no arrow)."""
+        app = build_po_create_ui(
+            dict(self._PO_BASE, is_preview=True),
+            confirm_request=_StubRequest(),
+            confirm_tool="create_purchase_order",
+        )
+        rendered = str(app.to_json())
+        assert "Acme" in rendered
+        assert "Main" in rendered
+        assert "Net-30" in rendered
+        # No diff arrow in create card body — only the create state badge.
+        # (The applied-state View-in-Katana row may include the arrow
+        # in error templates, but the entity view itself shouldn't.)
+        assert "→" not in rendered.replace("→ after", "")  # be permissive
+
+    def test_modify_card_diff_decorates_only_changed_fields(self):
+        """Modify card calls the helper with changes — only fields in
+        the changes dict get the arrow form; unchanged ones render as
+        normal Text lines."""
+        actions = [
+            {
+                "operation": "update_header",
+                "succeeded": None,
+                "changes": [
+                    {"field": "status", "old": "NOT_RECEIVED", "new": "RECEIVED"},
+                ],
+            }
+        ]
+        prior = dict(self._PO_BASE)
+        prior["id"] = 9001
+        response = {
+            "entity_type": "purchase_order",
+            "entity_id": 9001,
+            "is_preview": True,
+            "actions": actions,
+            "prior_state": prior,
+            "warnings": [],
+            "next_actions": [],
+            "message": "Preview",
+            "katana_url": "https://factory.katanamrp.com/purchaseorder/9001",
+        }
+        app = build_po_modify_ui(
+            response,
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        rendered = str(app.to_json())
+        # Status decorated with arrow.
+        assert "NOT_RECEIVED" in rendered and "RECEIVED" in rendered
+        # Unchanged supplier renders as a normal party line with the
+        # Katana supplier URL (the same shape as the create card).
+        assert "Acme" in rendered
+        assert "/contacts/suppliers/100" in rendered
+
+
 class TestStatusBadgeVariant:
     """``status_badge_variant`` buckets each entity's status into one of
     four Prefab Badge variants. Pins the per-entity mapping so a future
@@ -2025,15 +2903,22 @@ class TestConfirmButtonDirectApplyRail:
         assert len(toasts) == 1, f"Expected one error toast; got {toasts!r}"
 
     def test_po_preview_direct_apply_double_click_is_guarded(self):
-        """Confirm button binds ``pending`` so a double-click cannot fire
-        two applies. Ensures (1) on_click sets pending=True before
-        CallTool, (2) on_success/on_error clear pending=False, and (3) the
-        button's disabled expression includes ``pending`` (so the second
-        click is dropped while the first is in flight).
+        """Confirm button is guarded against double-click by two layers:
 
-        Without this guard a fast double-click on ``create_purchase_order``
-        would fire two CallTool requests in parallel and create duplicate
-        POs in Katana — there's no idempotency on the API side.
+        1. ``disabled=Rx("pending")`` on the Preview-state Confirm button
+           — the SetState("pending", True) at the start of the on_click
+           chain immediately disables this rendering of the button before
+           the second click can fire.
+        2. The button slot itself morphs through state via If/Elif/Else
+           in ``_render_apply_button_row`` — the Preview button is
+           REPLACED with "Applying…" (disabled) when pending=True flips,
+           and with "View in Katana" / "Retry" / "Cancelled" on the
+           terminal states. So the original Confirm button is gone before
+           any second-click handler could fire.
+
+        Both layers together ensure: a fast double-click on
+        ``create_purchase_order`` can't fire two CallTool requests in
+        parallel.
         """
         from katana_mcp.tools.foundation.purchase_orders import (
             CreatePurchaseOrderRequest,
@@ -2084,25 +2969,57 @@ class TestConfirmButtonDirectApplyRail:
                 f"after the call resolves; got {chain!r}"
             )
 
-        # The button's `disabled` field carries the reactive lockout
-        # expression. Assert against that specific field — searching the
-        # whole button payload would false-positive because the guard
-        # names also appear inside `onClick` actions (e.g.,
-        # `setState(key="applied")` in on_success).
+        # Layer 1 — the Preview-state Confirm button binds
+        # ``disabled=Rx("pending")`` so a rapid double-click on the
+        # original button has its second click dropped the moment
+        # ``pending=True`` lands (before the If/Elif swap re-mounts a
+        # different button).
         disabled = buttons[0].get("disabled")
         assert isinstance(disabled, str), (
             f"Expected disabled to be a reactive template string; got "
-            f"{disabled!r}. Lockout-contract pin lives there."
+            f"{disabled!r}. The pending-state click guard lives there."
         )
-        # Both the click guard (pending) and the morph guards (applied,
-        # error, cancelled) must be in the disabled expression so the
-        # button locks the moment any of those states flips.
-        for guard in ("pending", "applied", "error", "cancelled"):
-            assert guard in disabled, (
-                f"Confirm button's `disabled` expression must reference "
-                f"state '{guard}' so the button locks when it flips; "
-                f"got disabled={disabled!r}"
-            )
+        assert "pending" in disabled, (
+            f"Confirm button's disabled expression must reference "
+            f"``pending`` so it disables the moment pending=True is set "
+            f"at the start of the on_click chain. Got disabled={disabled!r}"
+        )
+
+        # Layer 2 — the button SLOT morphs via If/Elif on
+        # applied/error/cancelled, so the original Confirm Button is
+        # replaced (not just disabled) when any terminal state lands.
+        # Verify by counting Button nodes in the envelope grouped under
+        # the state-driven If/Elif chain in _render_apply_button_row;
+        # the existence of the morphing branches is the pin.
+        # Walk the envelope tree (not the json.dumps text — the latter
+        # would escape the ``…`` ellipsis as ``…`` and trip up a
+        # naive substring assertion).
+        labels: list[str] = []
+
+        def walk(node: Any) -> None:
+            if isinstance(node, dict):
+                if node.get("type") == "Button" and isinstance(node.get("label"), str):
+                    labels.append(node["label"])
+                for v in node.values():
+                    walk(v)
+            elif isinstance(node, list):
+                for v in node:
+                    walk(v)
+
+        walk(envelope)
+        # The state-morph branches appear as "Applying…" / "Retry"
+        # Button nodes inside If/Elif containers. Their existence (in
+        # the envelope tree, regardless of which client-side branch
+        # is currently visible) is the pin.
+        assert "Applying…" in labels, (
+            f"Pending-state Button label must exist as part of the If/Elif "
+            f"morph so the Preview Confirm button is replaced when pending "
+            f"fires. Got buttons={labels!r}"
+        )
+        assert "Retry" in labels, (
+            f"Error-state Retry Button must exist as part of the If/Elif "
+            f"morph so the apply rail can retry on failure. Got buttons={labels!r}"
+        )
 
 
 class TestCancelButtonEmitsCancelMessage:

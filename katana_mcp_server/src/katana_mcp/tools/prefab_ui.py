@@ -497,39 +497,127 @@ def _render_apply_button_row(
             )
         return
 
-    if direct_apply:
-        # `pending` is the in-flight guard — set on click before CallTool
-        # fires, cleared in on_success/on_error. Including it in `locked`
-        # is what prevents double-click from firing two applies.
-        locked = Rx("pending") | Rx("applied") | Rx("error") | Rx("cancelled")
-    else:
-        locked = Rx("pending") | Rx("cancelled")
+    # The primary button slot morphs through the state machine — same
+    # DOM position across all states (layout-stable), but the label /
+    # variant / on_click change to reflect what action is relevant for
+    # the current state. Header Badge keeps showing the overall card
+    # state (PREVIEW / APPLIED / FAILED) separately; the button is
+    # specifically about "what action ran or can run next."
+    #
+    # State machine (direct-apply rail):
+    # - Preview:           ``Confirm Changes`` (default, + loader icon
+    #                      ``loader`` on the pending replacement) →
+    #                      fires apply
+    # - Pending:           ``Applying…`` (default + ``loader`` icon,
+    #                      disabled)
+    # - Applied + url:     ``View in Katana`` (success + ``external-link``
+    #                      icon) → opens URL
+    # - Applied no url:    ``Applied`` (success + ``check`` icon,
+    #                      disabled) — successful delete nulls
+    #                      katana_url
+    # - Error:             ``Retry`` (warning + ``rotate-cw`` icon) →
+    #                      re-fires apply; warning (amber) not
+    #                      destructive (red) per the /ui-review audit —
+    #                      destructive variant implies "this will
+    #                      delete data" which is semantically wrong
+    #                      for a retry affordance
+    # - Cancelled:         ``Cancelled`` (outline, disabled)
+    #
+    # The SendMessage-rail (``direct_apply=False``) variant only
+    # transitions Preview → Pending; the agent re-issue replaces the
+    # card so applied/error/cancelled are out-of-process.
     with Row(gap=2):
         if direct_apply:
             with If("pending"):
-                Badge(label="Applying…", variant="secondary")
+                # Loader icon + spinner-style label conveys in-flight
+                # state more clearly than the bare "Applying…" text.
+                Button(
+                    label="Applying…",
+                    variant="default",
+                    icon="loader",
+                    disabled=True,
+                )
             with Elif("applied"):
-                Badge(label="Applied", variant="default")
+                with If("result.katana_url"):
+                    # Success variant (green) + external-link icon —
+                    # primary affordance on a successful apply is to
+                    # see the result in Katana.
+                    Button(
+                        label="View in Katana",
+                        variant="success",
+                        icon="external-link",
+                        on_click=OpenLink(url="{{ result.katana_url }}"),
+                    )
+                with Else():
+                    # No URL (typically a successful delete) — keep
+                    # the success variant + check icon so the user
+                    # gets unambiguous confirmation the action ran.
+                    Button(
+                        label="Applied",
+                        variant="success",
+                        icon="check",
+                        disabled=True,
+                    )
             with Elif("error"):
-                Badge(label="Error", variant="destructive")
+                # Warning variant (amber) + rotate icon signals "the
+                # previous attempt failed, click to redo." Destructive
+                # variant (red) would imply "this will delete data" —
+                # semantically wrong for a retry affordance (per the
+                # /ui-review audit). The action re-fires apply_action,
+                # which resets the rail via SetState("error", None) and
+                # restarts the apply chain.
+                Button(
+                    label="Retry",
+                    variant="warning",
+                    icon="rotate-cw",
+                    on_click=apply_action,
+                )
             with Elif("cancelled"):
-                Badge(label="Cancelled", variant="secondary")
+                Button(label="Cancelled", variant="outline", disabled=True)
+            with Else():
+                # Preview state — explicit ``disabled=Rx("pending")`` is
+                # the belt-and-suspenders double-click guard: the
+                # SetState("pending", True) at the start of the on_click
+                # chain disables the button before If/Elif has a chance
+                # to swap it. Both layers protect against rapid
+                # double-click firing two CallTools.
+                Button(
+                    label=confirm_label,
+                    variant="default",
+                    on_click=apply_action,
+                    disabled=Rx("pending"),
+                )
         else:
+            # SendMessage rail — simpler state machine, only
+            # Preview ↔ Pending ↔ Cancelled visible (agent re-issue
+            # replaces the card for terminal apply outcomes).
             with If("pending"):
-                Badge(label="Pending…", variant="secondary")
+                Button(
+                    label="Pending…",
+                    variant="default",
+                    icon="loader",
+                    disabled=True,
+                )
             with Elif("cancelled"):
-                Badge(label="Cancelled", variant="secondary")
-        Button(
-            label=confirm_label,
-            variant="default",
-            on_click=apply_action,
-            disabled=locked,
-        )
+                Button(label="Cancelled", variant="outline", disabled=True)
+            with Else():
+                Button(
+                    label=confirm_label,
+                    variant="default",
+                    on_click=apply_action,
+                    disabled=Rx("pending") | Rx("cancelled"),
+                )
+        # Cancel button — disabled in all terminal states so the row
+        # width stays constant (two buttons always visible). Cancel
+        # only does anything in Preview.
+        cancel_locked: Any = Rx("pending") | Rx("cancelled")
+        if direct_apply:
+            cancel_locked = cancel_locked | Rx("applied") | Rx("error")
         Button(
             label="Cancel",
             variant="outline",
             on_click=cancel_action,
-            disabled=locked,
+            disabled=cancel_locked,
         )
 
 
@@ -1405,6 +1493,197 @@ def _iso_date_only(value: object) -> str:
     return str(value)
 
 
+# ============================================================================
+# Field-level diff helpers — shared between create and modify cards (#722).
+# ============================================================================
+#
+# Modify cards render the same entity view as create cards (#728), with three
+# overlays: before→after for changed fields, leading ✗ + inline error line for
+# failed fields, +/- prefixes for added/removed nested rows. The card-level
+# header Badge carries the all-applied / partial-failure status; per-field
+# decoration only appears when it carries information (the changed fields and
+# the failed ones).
+#
+# The wire shape is ``ActionResult.changes: list[FieldChange]`` (server side,
+# in ``_modification.py``). ``FieldChangeView`` is the renderer-facing
+# projection — it pre-resolves the bookkeeping the renderer needs without
+# leaking the wire shape into the entity view's render code.
+
+
+class FieldChangeView(BaseModel):
+    """Per-field diff projection scoped to the modify-card renderer.
+
+    Pre-resolves ``ActionResult.changes`` items into the shape the entity-view
+    helpers consume: a side-by-side ``before`` / ``after`` plus a ``kind``
+    discriminator and a ``failed`` flag that drives the leading ``✗`` glyph
+    + trailing error line on failed actions.
+
+    ``unknown_prior`` carries the wire's ``FieldChange.is_unknown_prior``
+    forward — set when the best-effort fetch for the prior entity state
+    failed, so the renderer should display ``(prior unknown) → new``
+    rather than ``(unset) → new`` (the latter would imply the field had
+    been blank, which we can't actually attest to).
+
+    ``label`` is unused by the renderer today (the entity view picks the
+    user-facing label per field) but carries the human-readable name for
+    test assertions and any future generic renderer that doesn't know the
+    field-name-to-label mapping at build time.
+    """
+
+    field: str
+    before: Any | None = None
+    after: Any | None = None
+    kind: Literal["changed", "added", "removed", "unchanged"] = "changed"
+    failed: bool = False
+    error: str | None = None
+    unknown_prior: bool = False
+    label: str | None = None
+
+
+def _index_changes_by_field(
+    actions: list[dict[str, Any]],
+) -> dict[str, FieldChangeView]:
+    """Flatten ``ActionResult.changes`` lists into a field-name keyed map.
+
+    Each ActionResult carries a ``changes: list[FieldChange]`` (wire shape).
+    The modify-card renderer wants a single lookup by field name so each
+    entity-view line can ask ``changes.get("expected_arrival_date")`` and
+    decorate inline.
+
+    Maps each ``FieldChange`` to a ``FieldChangeView``, propagating the
+    parent action's ``succeeded`` / ``error`` so failed actions surface
+    per-field on every field they were going to write. A field appearing
+    in two actions (rare) takes the last write — the iteration order
+    matches the action plan's execution order, so the last write is the
+    one that ran (or would have run) most recently.
+    """
+    out: dict[str, FieldChangeView] = {}
+    for action in actions:
+        succeeded = action.get("succeeded")
+        action_error = action.get("error")
+        # ``succeeded`` is None during preview, True/False after apply.
+        # A failed action's writes never landed — render the field's
+        # intended change with the ✗ glyph + error.
+        failed = succeeded is False
+        for change in action.get("changes") or []:
+            if not isinstance(change, dict):
+                continue
+            field = change.get("field")
+            if not isinstance(field, str):
+                continue
+            is_added = bool(change.get("is_added"))
+            is_unchanged = bool(change.get("is_unchanged"))
+            unknown_prior = bool(change.get("is_unknown_prior"))
+            new_val = change.get("new")
+            old_val = change.get("old")
+            kind: Literal["changed", "added", "removed", "unchanged"]
+            if is_unchanged:
+                kind = "unchanged"
+            elif is_added:
+                kind = "added"
+            elif new_val is None and old_val is not None:
+                # No explicit "is_removed" flag today — see the
+                # FieldChange docstring; a None new with non-None old
+                # only appears in synthesized reverts.
+                kind = "removed"
+            else:
+                kind = "changed"
+            out[field] = FieldChangeView(
+                field=field,
+                before=old_val,
+                after=new_val,
+                kind=kind,
+                failed=failed,
+                error=action_error if failed else None,
+                unknown_prior=unknown_prior,
+            )
+    return out
+
+
+def _format_diff_value(value: Any) -> str:
+    """Coerce a diff-side value (old or new) to display text.
+
+    Wire shape allows None, str, int, float, bool, list, dict; the entity
+    view renders each as text. Strings, numbers, and booleans render
+    directly; lists/dicts fall back to ``repr`` (rare — the diff producer
+    avoids nested types). None renders as ``(unset)`` so a transition
+    from blank to populated reads naturally as ``(unset) → Net-30``.
+    """
+    if value is None:
+        return "(unset)"
+    if isinstance(value, bool):
+        return "yes" if value else "no"
+    if isinstance(value, (int, float, str)):
+        return str(value)
+    return repr(value)
+
+
+def _render_field_diff_line(
+    label: str,
+    *,
+    value: Any = None,
+    change: FieldChangeView | None = None,
+) -> None:
+    """Render one field row.
+
+    Output modes:
+
+    - ``change`` is None → ``Label: value``. The create-card path, plus
+      modify-card lines for fields that aren't changing.
+    - ``change.kind == "unchanged"`` → same as ``change=None``, but the
+      display value comes from ``change.after``/``change.before`` if the
+      caller didn't pass ``value`` (no-op diffs from ``compute_field_diff``
+      carry the field's current value on the change itself).
+    - ``change`` set, not failed → ``  Label: before → after`` (leading
+      2-char gutter so the failed-state ``✗ `` glyph doesn't shift the
+      field text position; see ``_render_apply_button_row`` layout-
+      stability note).
+    - ``change.failed`` is True → ``✗ Label: before → after``. The
+      actual error message is NOT rendered inline — it aggregates into
+      the consolidated bottom Alert via ``_render_failed_changes_block``
+      so the diff lines above don't reflow when the apply outcome lands.
+    - ``change.unknown_prior`` is True → the before side renders as
+      ``(prior unknown)`` instead of the formatted before value.
+      Distinguishes "we couldn't read the prior" from "the prior was
+      unset" — see FieldChange's ``is_unknown_prior`` docstring.
+
+    The leading ``✗`` glyph is the only inline per-field status marker.
+    Successful applies render exactly like preview (no badges, no glyphs)
+    because the card-level header Badge already carries that signal —
+    avoids the visual chatter of a status pill on every changed field.
+    """
+    if change is None or change.kind == "unchanged":
+        # When ``compute_field_diff`` emits ``is_unchanged=True``, the
+        # field's current value rides on the change itself (before ==
+        # after). Prefer that over ``value=None`` so a no-op update
+        # doesn't mislead the user with ``(unset)`` when the field
+        # actually has a value — the caller would otherwise need to
+        # thread the entity value alongside ``change`` just to avoid
+        # this case.
+        display: Any = value
+        if display is None and change is not None and change.kind == "unchanged":
+            display = change.after if change.after is not None else change.before
+        Text(
+            content=f"{label}: "
+            f"{_format_diff_value(display) if display is not None else '(unset)'}"
+        )
+        return
+    before_txt = (
+        "(prior unknown)" if change.unknown_prior else _format_diff_value(change.before)
+    )
+    after_txt = _format_diff_value(change.after)
+    # Always reserve a 2-char gutter on the leading edge so a failure-state
+    # ``✗ `` glyph doesn't shift the field text position when the apply
+    # outcome lands. Non-failed lines use two spaces; failed lines swap to
+    # the glyph + space — same horizontal offset either way.
+    prefix = "✗ " if change.failed else "  "
+    Text(content=f"{prefix}{label}: {before_txt} → {after_txt}")
+    # Per-field error line is NOT rendered inline — errors aggregate
+    # into a consolidated block at the bottom of the entity view (see
+    # ``_render_failed_changes_block``) so the diff lines above don't
+    # reflow when an apply fails.
+
+
 # Initial state slots written by the direct-apply rail's Confirm/Cancel
 # action chains. Builders that opt into the rail seed these to ``False`` /
 # ``None`` so the iframe's If/Elif blocks have something to bind to before
@@ -1705,28 +1984,63 @@ def _render_preview_header(
     order_number: str,
     status: str | None,
     extra_badges: tuple[tuple[str, str], ...] = (),
+    applied_title_suffix: str = "Created",
+    applied_state_label: str = "CREATED",
+    applied_state_variant: str = "default",
 ) -> None:
     """Tier 1: CardHeader for a preview/apply card.
 
-    Renders the title (toggles ``"X Preview"`` ↔ ``"X Created"`` on
-    ``state.applied``), an order-number Badge, a PREVIEW/CREATED state
-    Badge (toggle on ``state.applied``), the entity status Badge with the
-    bucket-driven variant from ``status_badge_variant``, and any
-    caller-provided extras (e.g. ``[("outsourced", "outline")]`` for PO).
+    Renders the title (toggles ``"X Preview"`` ↔ ``"X {applied_title_suffix}"``
+    on ``state.applied``), an order-number Badge, a PREVIEW/{applied_state_label}
+    state Badge (toggle on ``state.applied``), the entity status Badge with
+    the bucket-driven variant from ``status_badge_variant``, and any
+    caller-provided extras (e.g. ``[("outsourced", "outline")]`` for PO
+    entity_type).
+
+    Create cards default to ``"Created"`` / ``"CREATED"`` with the
+    ``"default"`` (green) variant. Modify / delete / correct cards should
+    pass ``applied_title_suffix="Applied"`` and ``applied_state_label="APPLIED"``
+    so the rendered copy matches the actual operation.
+
+    Partial-failure / failure outcomes on the standalone-applied path
+    (where the response payload tells us the outcome at build time)
+    override ``applied_state_label`` to ``"FAILED"`` / ``"PARTIAL FAILURE"``
+    AND pass ``applied_state_variant="destructive"`` so the rendered chrome
+    is single, internally consistent, and visually matches the outcome.
+    The in-place morph path can't predict failure at build time and so
+    keeps the defaults — failed actions surface there via the per-field
+    ``✗`` glyphs ``_render_field_diff_line`` emits.
+
+    ``extra_badges`` is reserved for orthogonal entity-shape signals
+    (e.g. ``[("outsourced", "outline")]`` for a PO with
+    ``entity_type="outsourced"``) — NOT for apply-outcome status, which
+    goes on ``applied_state_label`` / ``applied_state_variant``.
 
     Must be called inside ``with PrefabApp(...) as app, Card():`` —
     the helper does NOT open the Card; it only adds the CardHeader row.
     """
+    # Reserve a fixed-width slot for the state Badge so the in-place
+    # morph (PREVIEW → APPLIED / FAILED / PARTIAL FAILURE) doesn't reflow
+    # the rest of the header — order-number badge, status badge, and
+    # extra badges to the right of the state Badge stay put across the
+    # state transition. ``min-w-32`` ≈ 8rem, comfortable for the longest
+    # current label "PARTIAL FAILURE"; ``text-center`` keeps shorter
+    # labels centered within the slot.
+    _state_badge_css = "min-w-32 text-center"
     with CardHeader(), Row(gap=2):
         with If("applied"):
-            CardTitle(content=f"{title_prefix} Created")
+            CardTitle(content=f"{title_prefix} {applied_title_suffix}")
         with Else():
             CardTitle(content=f"{title_prefix} Preview")
         Badge(label=order_number, variant="outline")
         with If("applied"):
-            Badge(label="CREATED", variant="default")
+            Badge(
+                label=applied_state_label,
+                variant=applied_state_variant,
+                css_class=_state_badge_css,
+            )
         with Else():
-            Badge(label="PREVIEW", variant="secondary")
+            Badge(label="PREVIEW", variant="secondary", css_class=_state_badge_css)
         if status:
             Badge(label=status, variant=status_badge_variant(entity, status))
         for label, variant in extra_badges:
@@ -1765,8 +2079,14 @@ def _render_preview_footer(
     apply_action: list[Action] | None,
     cancel_action: list[Action],
     next_action_buttons: tuple[tuple[str, str], ...] = (),
+    applied_verb: str = "created",
 ) -> None:
     """Tier 4: CardFooter for a preview/apply card.
+
+    ``applied_verb`` controls the muted body line in applied state — create
+    cards default to ``"created"`` ("Purchase Order created."); modify cards
+    should pass ``"applied"`` ("Purchase Order Modify applied.") so the user-
+    visible copy matches the actual operation.
 
     The applied-state View-in-Katana link and the per-entity next-action
     SendMessage buttons bind to ``{{ result.<field> }}`` templates so they
@@ -1782,7 +2102,7 @@ def _render_preview_footer(
 
     The View-in-Katana button is gated by ``If("result.katana_url")`` so
     it hides when the apply response carries no URL (defensive — every
-    create_* tool sets one today).
+    create_* tool sets one today; successful deletes null it out upstream).
 
     Must be called inside ``with PrefabApp(...) as app, Card():``.
     """
@@ -1800,7 +2120,7 @@ def _render_preview_footer(
             )
             return
         with If("applied"):
-            Muted(content=f"{title_prefix} created.")
+            Muted(content=f"{title_prefix} {applied_verb}.")
             with Row(gap=2):
                 with If("result.katana_url"):
                     Button(
@@ -1889,6 +2209,298 @@ def _render_party_line(
         Text(content=f"{label} ID: {entity_id}")
 
 
+def _render_party_diff_line(
+    label: str,
+    *,
+    id_change: FieldChangeView,
+    name_change: FieldChangeView | None,
+    prior_name: str | None,
+) -> None:
+    """Render the composite ``<label>: <before-name> (<before-id>) → <after-name> (<after-id>)``
+    line for a party (supplier / customer / location) whose linked entity
+    is changing.
+
+    Hides the create-card-style Link decoration on diff lines — once a
+    field is changing, the user's attention is on what's changing, not
+    on click-through to the source. The Link form returns when the field
+    is unchanged (see :func:`_render_party_line`).
+
+    Before/after name resolution:
+
+    - **before**: prefer ``name_change.before``; fall back to ``prior_name``
+      (= ``entity.get("<field>_name")`` sourced from ``prior_state``).
+      The prior is correct for the before side regardless of whether
+      the name itself appears in the diff.
+    - **after**: prefer ``name_change.after``. When ``name_change`` is
+      absent AND the ID genuinely swapped (``id_change.before !=
+      id_change.after``), the after-side name is **unknown** at render
+      time — fall through to the bare ``#<id>`` form rather than reusing
+      ``prior_name``, which would show the OLD supplier's name labelled
+      as the new one (the second-order bug Copilot caught on #755). The
+      common case where ``compute_field_diff`` emits only ``supplier_id``
+      changes (because ``supplier_name`` isn't a request field) lands
+      here.
+    - **synthesized no-op ID diff** (``before == after``): use
+      ``prior_name`` for both sides.
+    """
+    if id_change.unknown_prior:
+        before_label = "(prior unknown)"
+    else:
+        before_name = name_change.before if name_change is not None else prior_name
+        before_label = (
+            f"{before_name} ({id_change.before})"
+            if before_name
+            else f"#{id_change.before}"
+        )
+    if name_change is not None:
+        after_name: str | None = name_change.after
+    elif id_change.before == id_change.after:
+        after_name = prior_name
+    else:
+        after_name = None
+    after_label = (
+        f"{after_name} ({id_change.after})" if after_name else f"#{id_change.after}"
+    )
+    # 2-char gutter — same rationale as ``_render_field_diff_line``;
+    # error messages aggregate into the bottom block, not inline.
+    prefix = "✗ " if id_change.failed else "  "
+    Text(content=f"{prefix}{label}: {before_label} → {after_label}")
+
+
+def _render_failed_changes_block(
+    changes: dict[str, FieldChangeView],
+    *,
+    field_label_overrides: dict[str, str] | None = None,
+) -> None:
+    """Render a consolidated Alert block listing every failed field and
+    its error, at the bottom of the entity view.
+
+    Per the layout-stability design: per-field ``✗`` glyphs surface
+    inline next to each failed field (via the 2-char gutter in
+    ``_render_field_diff_line``), but the actual error message is NOT
+    rendered inline — it lives here, in a single Alert at the bottom of
+    the card body. This way a failed apply doesn't push the unchanged
+    diff lines around when the in-place morph fires: the diff lines
+    stay put, an Alert appears below.
+
+    ``field_label_overrides`` lets the caller map wire field names to
+    user-facing labels (e.g. ``"additional_info"`` → ``"Notes"``,
+    ``"supplier_id"`` → ``"Supplier"``) so the block reads as
+    user-facing labels instead of wire names. Falls back to the
+    ``FieldChangeView.label`` then the bare field name.
+
+    Renders nothing when no failed changes are present, so the bottom
+    of the card stays compact in the success case.
+    """
+    overrides = field_label_overrides or {}
+    failed = [c for c in changes.values() if c.failed and c.error]
+    if not failed:
+        return
+    with Alert(variant="destructive", icon="circle-alert"):
+        n = len(failed)
+        AlertTitle(content=f"{n} failed change{'s' if n != 1 else ''}")
+        for change in failed:
+            label = (
+                overrides.get(change.field)
+                or change.label
+                or change.field.replace("_", " ").title()
+            )
+            # Word prefix "Failed — " instead of a bare ``✗`` glyph: the
+            # Alert already carries the failure semantic via its
+            # destructive variant + circle-alert icon, and a word prefix
+            # reads cleanly aloud (per the /ui-review audit — the
+            # ``✗`` glyph would announce as "ballot x" or be skipped
+            # entirely by some screen readers).
+            AlertDescription(content=f"Failed — {label}: {change.error}")
+
+
+def _normalize_po_prior_state(prior_state: dict[str, Any] | None) -> dict[str, Any]:
+    """Map a PO ``prior_state`` snapshot from the wire shape produced by
+    ``RegularPurchaseOrder.to_dict()`` (server-side) to the response shape
+    ``_render_po_entity_view`` consumes.
+
+    The two shapes differ on key names because ``ModificationResponse.prior_state``
+    is the raw entity snapshot (for revert reference) while the response
+    payload uses friendlier display-oriented names:
+
+    - ``order_no`` (wire) → ``order_number`` (response shape)
+    - ``total`` (wire) → ``total_cost`` (response shape)
+    - ``additional_info`` (wire) → ``notes`` (response shape)
+    - ``supplier`` nested object → flat ``supplier_name`` (the looked-up
+      display value the response-layer adds)
+
+    ``item_count`` (response-only) is not derivable from the snapshot at
+    the entity level — the row count would require descending into
+    ``purchase_order_rows`` which the renderer doesn't need today.
+
+    Without this adapter the modify card renders mostly-empty header
+    rows in production: ``entity.get("order_number")`` falls through to
+    ``None`` because the wire-shape snapshot only has ``order_no``.
+    Caught by Copilot review on #755.
+    """
+    if not prior_state:
+        return {}
+    # Pass through fields whose names already match (id, supplier_id,
+    # location_id, status, entity_type, currency, expected_arrival_date,
+    # warnings — though warnings is response-only and won't be in the
+    # snapshot). Then map renamed fields explicitly.
+    out = dict(prior_state)
+    if "order_no" in prior_state and "order_number" not in out:
+        out["order_number"] = prior_state["order_no"]
+    if "total" in prior_state and "total_cost" not in out:
+        out["total_cost"] = prior_state["total"]
+    if "additional_info" in prior_state and "notes" not in out:
+        out["notes"] = prior_state["additional_info"]
+    # Nested supplier object → flat supplier_name. ``to_dict()`` on the
+    # nested attrs Supplier produces a dict (or UNSET sentinel when not
+    # populated); ``supplier_name`` already in out wins.
+    supplier_obj = prior_state.get("supplier")
+    if (
+        isinstance(supplier_obj, dict)
+        and "name" in supplier_obj
+        and "supplier_name" not in out
+    ):
+        out["supplier_name"] = supplier_obj["name"]
+    return out
+
+
+def _render_po_entity_view(
+    entity: dict[str, Any],
+    *,
+    changes: dict[str, FieldChangeView] | None = None,
+) -> list[str]:
+    """Render the purchase-order entity view (Tier 2 metrics + Tier 3
+    reference fields + warnings).
+
+    Shared between ``build_po_create_ui`` (no diff overlay) and
+    ``build_po_modify_ui`` (diff overlay via ``changes``). Returns the
+    block-warning list so callers can gate the Confirm button.
+
+    Diff-decoration rules (when ``changes`` is set):
+    - Each rendered field line looks up ``changes.get("<wire_field>")``
+      and, if present, swaps its rendering for the before→after form.
+    - Unchanged fields render the same as the create card.
+    - The Total Metric uses the post-change ``total_cost`` from the
+      response payload — line-item adds/removes already propagated into
+      the response's recomputed total by the dispatcher.
+
+    Must be called inside ``with PrefabApp(...) as app, Card(): with
+    CardContent(), Column(gap=3):``.
+    """
+    changes = changes or {}
+    total_cost = entity.get("total_cost")
+    currency = entity.get("currency")
+    item_count = entity.get("item_count")
+
+    # Tier 2 — Decision metrics. Metrics stay un-decorated; the bottom
+    # entity-view rows surface the actual before→after for changed
+    # fields. Showing two diffs of total_cost (Metric + line) would
+    # double-count visual weight.
+    if total_cost is not None or item_count is not None:
+        with Row(gap=4):
+            if total_cost is not None:
+                Metric(label="Total", value=_format_money(total_cost, currency))
+            if item_count is not None:
+                Metric(label="Line Items", value=str(item_count))
+
+    # Tier 3 — Reference fields. Each line looks up its wire-field
+    # change; missing entries render as unchanged.
+
+    # Supplier / Location — composite lines pull both _id and _name
+    # changes; today the supplier_id change is the trigger (the name
+    # follows from the lookup), so we key off supplier_id but show the
+    # name in the decorated form. ``ModificationResponse.model_dump()``
+    # does not carry the post-change ``supplier_name`` / ``location_name``
+    # at top level — ``entity`` is composed from ``prior_state``, so
+    # ``entity.get("supplier_name")`` is the OLD name. The after-side
+    # name MUST come from the ``supplier_name`` FieldChange when the
+    # supplier swaps; only fall back to entity (= prior) when the diff
+    # didn't include a name change (rare — name unchanged means before
+    # == after, so the prior is the right value for both sides).
+    # ``kind="unchanged"`` is treated identically to "no change present" —
+    # a no-op id patch (request set supplier_id=100 when it was already
+    # 100) shouldn't surface a "Acme (100) → Acme (100)" diff line; fall
+    # through to the regular party-line Link rendering instead.
+    supplier_change = changes.get("supplier_id")
+    prior_supplier_name = entity.get("supplier_name")
+    if supplier_change is not None and supplier_change.kind != "unchanged":
+        _render_party_diff_line(
+            "Supplier",
+            id_change=supplier_change,
+            name_change=changes.get("supplier_name"),
+            prior_name=prior_supplier_name,
+        )
+    else:
+        _render_party_line(
+            "Supplier",
+            name=prior_supplier_name,
+            entity_id=entity.get("supplier_id"),
+            entity_kind="supplier",
+        )
+
+    location_change = changes.get("location_id")
+    prior_location_name = entity.get("location_name")
+    if location_change is not None and location_change.kind != "unchanged":
+        _render_party_diff_line(
+            "Location",
+            id_change=location_change,
+            name_change=changes.get("location_name"),
+            prior_name=prior_location_name,
+        )
+    else:
+        _render_party_line(
+            "Location",
+            name=prior_location_name,
+            entity_id=entity.get("location_id"),
+        )
+
+    # Scalar header fields rendered via the shared field-diff helper.
+    # ``additional_info`` is the wire name; the request schema exposes it
+    # as ``notes`` for create, but modify's FieldChange surfaces the wire
+    # name. Look up under both so a card built from a create-shape
+    # response decorates the right line too.
+    notes_change = changes.get("additional_info") or changes.get("notes")
+    notes_value = entity.get("notes") or entity.get("additional_info")
+    if notes_change is not None or notes_value:
+        _render_field_diff_line("Notes", value=notes_value, change=notes_change)
+
+    expected_arrival_change = changes.get("expected_arrival_date")
+    if expected_arrival_change is not None:
+        _render_field_diff_line(
+            "Expected arrival",
+            change=expected_arrival_change,
+        )
+
+    status_change = changes.get("status")
+    if status_change is not None:
+        # Status changes already surface in the Tier 1 header Badge, but
+        # decorate the diff line for explicitness — the badge shows
+        # "after" only; the body line shows "before → after" so the
+        # transition is unambiguous.
+        _render_field_diff_line("Status", change=status_change)
+
+    # Trailer — consolidated failure block (only renders when any field
+    # failed; the per-field ✗ glyphs above carry the inline signal).
+    # Field-name → user-facing label map keeps the failure block reading
+    # in card vocabulary, not wire vocabulary.
+    _render_failed_changes_block(
+        changes,
+        field_label_overrides={
+            "supplier_id": "Supplier",
+            "location_id": "Location",
+            "additional_info": "Notes",
+            "notes": "Notes",
+            "expected_arrival_date": "Expected arrival",
+            "order_no": "Order #",
+            "order_number": "Order #",
+        },
+    )
+
+    # Trailer — warnings (returns the block-warning list for the caller
+    # to gate Confirm).
+    return _render_warnings_block(entity.get("warnings"))
+
+
 def build_po_create_ui(
     response: dict[str, Any],
     *,
@@ -1904,10 +2516,10 @@ def build_po_create_ui(
     Four-tier framework (#537):
     - Tier 1 — Identity: title, order_number badge, PREVIEW/CREATED state
       badge, status badge, entity_type badge (regular/outsourced).
-    - Tier 2 — Decision metrics: Total (formatted per
-      ``response["currency"]`` via :func:`_format_money` — symbol + decimal
-      precision picked by Babel from the ISO 4217 code), Line Items.
-    - Tier 3 — Reference: supplier, location, notes, plus warnings.
+    - Tier 2 + 3 — content from ``_render_po_entity_view`` (shared with
+      ``build_po_modify_ui``; create cards pass ``changes=None`` so no
+      diff overlay). Total Metric formats via :func:`_format_money` —
+      Babel picks the symbol + decimal precision from the ISO 4217 code.
     - Tier 4 — Actions: Confirm + Cancel via the direct-apply rail
       (Confirm fires ``tools/call`` directly and pushes the structured
       apply response back via ``ui/update-model-context``); applied state
@@ -1916,9 +2528,6 @@ def build_po_create_ui(
     order_number = response.get("order_number") or "N/A"
     status = response.get("status")
     entity_type = response.get("entity_type")
-    total_cost = response.get("total_cost")
-    currency = response.get("currency")
-    item_count = response.get("item_count")
 
     apply_action = _build_apply_action_direct(confirm_tool, confirm_request)
     cancel_action = _build_cancel_action("that purchase order")
@@ -1938,27 +2547,7 @@ def build_po_create_ui(
             extra_badges=extra_badges,
         )
         with CardContent(), Column(gap=3):
-            if total_cost is not None or item_count is not None:
-                with Row(gap=4):
-                    if total_cost is not None:
-                        Metric(label="Total", value=_format_money(total_cost, currency))
-                    if item_count is not None:
-                        Metric(label="Line Items", value=str(item_count))
-            _render_party_line(
-                "Supplier",
-                name=response.get("supplier_name"),
-                entity_id=response.get("supplier_id"),
-                entity_kind="supplier",
-            )
-            _render_party_line(
-                "Location",
-                name=response.get("location_name"),
-                entity_id=response.get("location_id"),
-            )
-            notes = response.get("notes")
-            if notes:
-                Text(content=f"Notes: {notes}")
-            block_warnings = _render_warnings_block(response.get("warnings"))
+            block_warnings = _render_po_entity_view(response)
         _render_preview_footer(
             title_prefix="Purchase Order",
             block_warnings=block_warnings,
@@ -1975,6 +2564,226 @@ def build_po_create_ui(
                     "Verify a supplier document against PO {{ result.id }}",
                 ),
             ),
+        )
+    return app
+
+
+def _summarize_apply_outcome(
+    actions: list[dict[str, Any]],
+) -> tuple[str, str]:
+    """Bucket a modify response's action outcomes for the header Badge.
+
+    Returns ``(state_label, badge_variant)``. Variants align with the
+    create-card Tier 1 vocabulary (``default`` / ``secondary`` /
+    ``destructive`` / ``outline``).
+
+    - **Empty actions**: ``APPLIED`` / default. A modify/delete plan
+      can legitimately produce zero actions (no-op patch, or all
+      requested changes turned out to be unchanged). The card has
+      nothing to "fail" — render success chrome, not destructive.
+    - **All succeeded** (any ``verified`` value): ``APPLIED`` / default.
+      Note: per the agreed design, verification mismatch is surfaced
+      at the card-level header alone; per-field decoration ignores
+      ``verified`` because most users don't differentiate.
+    - **All failed**: ``FAILED`` / destructive.
+    - **Mixed**: ``PARTIAL FAILURE`` / destructive.
+    """
+    if not actions:
+        return "APPLIED", "default"
+    succeeded = sum(1 for a in actions if a.get("succeeded") is True)
+    failed = sum(1 for a in actions if a.get("succeeded") is False)
+    if failed == 0 and succeeded > 0:
+        return "APPLIED", "default"
+    if succeeded == 0 and failed > 0:
+        return "FAILED", "destructive"
+    return "PARTIAL FAILURE", "destructive"
+
+
+def _init_modify_card_state(response: dict[str, Any]) -> dict[str, Any]:
+    """Seed iframe state for a modify card.
+
+    Mirrors :func:`_init_create_card_state` but adds nothing extra — the
+    modify card uses the same applied/pending/cancelled/error booleans
+    and the same ``result`` slot on the standalone-applied path so the
+    direct-apply on_success chain (``SetState("result", RESULT)``)
+    populates the post-apply data uniformly.
+    """
+    return _init_create_card_state(response)
+
+
+def build_po_modify_ui(
+    response: dict[str, Any],
+    *,
+    confirm_request: BaseModel,
+    confirm_tool: str,
+) -> PrefabApp:
+    """Build the modify-/delete-/correct-purchase-order card.
+
+    Handles every PO write path that returns a :class:`ModificationResponse`:
+    ``modify_purchase_order``, ``delete_purchase_order``,
+    ``correct_purchase_order``. Title verb derives from ``confirm_tool``
+    via :func:`_verb_label` (``Modify`` / ``Delete`` / ``Correct``).
+
+    Shares ``_render_po_entity_view`` with ``build_po_create_ui`` — the
+    entity-view content (Tier 2 metrics + Tier 3 reference fields +
+    warnings) is identical between the two surfaces. Modify cards pass
+    a ``changes`` dict keyed by field name (flattened from every
+    ``ActionResult.changes`` via :func:`_index_changes_by_field`); each
+    field-level line looks up its wire-name and decorates with
+    ``before → after`` plus a leading ``✗`` glyph + inline error on
+    failed actions. The card-level state Badge in the header carries
+    the all-applied / partial-failure / etc. status.
+
+    Source of unchanged-field values: the response itself (which
+    carries the post-change state when applied) supplemented by
+    ``response["prior_state"]`` for any field absent from the top-level
+    response payload (rare — `ModificationResponse` keeps the full
+    pre-change snapshot for revert reference and for renderer use).
+    """
+    actions = response.get("actions") or []
+    is_preview = bool(response.get("is_preview", True))
+    entity_id = response.get("entity_id")
+    # ``prior_state`` arrives in the wire shape from ``serialize_for_prior_state``
+    # (``RegularPurchaseOrder.to_dict()`` etc.) — ``order_no``, ``total``,
+    # ``additional_info``, nested ``supplier``. Normalize to the response
+    # shape the entity-view renderer reads so unchanged-field rows
+    # surface real values in the rendered card.
+    prior_state = _normalize_po_prior_state(response.get("prior_state"))
+    # Note: katana_url is read from RESULT via the Prefab template
+    # ``{{ result.katana_url }}`` in _render_preview_footer's
+    # applied-state View-in-Katana button — no need to pass it through
+    # the Python layer here. ``response["katana_url"]`` is None on
+    # successful delete (entity gone) which the template handles via
+    # the If("result.katana_url") gate.
+
+    verb_label = _verb_label(confirm_tool)
+    # Compose the entity view's source-of-truth dict by overlaying the
+    # response on top of the normalized prior_state. Preview: prior_state
+    # is the full pre-change snapshot; response-level scalars (warnings,
+    # katana_url) win. Applied: the response carries the post-change
+    # scalars too — the same overlay yields the post-change entity,
+    # modulo nested collections which the dispatcher already updated.
+    entity = {**prior_state, **{k: v for k, v in response.items() if v is not None}}
+    # ``entity_id`` from the response is the PO's identity; surface it
+    # under the same key the create-card pattern uses so the header
+    # Badge picks it up regardless of which payload populated it.
+    if entity_id is not None:
+        entity.setdefault("id", entity_id)
+
+    # NOTE: in-place-morph apply-outcome rendering limitation (#760).
+    # ``changes_by_field`` is computed ONCE at server build time from
+    # ``response.actions``. On the preview→Confirm→apply path, the
+    # response we build from has ``actions[*].succeeded=None`` (preview
+    # state), so ``failed`` flags in the indexed view are all False —
+    # even if the apply returns failures. After the iframe morphs
+    # (``state.applied=True``, ``state.result=RESULT``), the entity
+    # view's ✗ glyphs / consolidated failure Alert / header outcome
+    # badge are static from the preview render and DON'T surface the
+    # apply outcome. The agent's chat does (via ``UpdateContext`` push)
+    # and the Confirm button morphs to Retry on error, but the card
+    # body itself stays optimistic. Fixing this properly needs either
+    # Prefab Rx-bound rendering of every field-level decision from
+    # ``state.result.actions`` or a rebuild-on-morph primitive. Tracked
+    # at #760 — see issue for design options.
+    changes_by_field = _index_changes_by_field(actions)
+
+    apply_action = _build_apply_action_direct(confirm_tool, confirm_request)
+    # ``_build_cancel_action`` interpolates its arg into "Cancel: do not
+    # apply X.", so the noun phrase has to read naturally there. Verb
+    # forms like ``"that purchase order modify"`` (the previous shape)
+    # are grammatically awkward; map to noun-shaped phrases instead.
+    if verb_label == "Delete":
+        cancel_operation_label = "that purchase order deletion"
+    elif verb_label == "Correct":
+        cancel_operation_label = "those purchase order corrections"
+    else:
+        cancel_operation_label = "those purchase order changes"
+    cancel_action = _build_cancel_action(cancel_operation_label)
+
+    # State-badge label depends on the entry path: preview enters with
+    # PREVIEW, standalone-applied (is_preview=False) enters with the
+    # outcome summary, which we set as ``applied_state_label`` below.
+    # The in-place morph flips applied=True via the rail's on_success;
+    # the rendered state-badge in Tier 1 is the create-card-style
+    # PREVIEW → APPLIED (or DELETED / FAILED / PARTIAL FAILURE) switch.
+
+    with (
+        PrefabApp(state=_init_modify_card_state(response), css_class="p-4") as app,
+        Card(),
+    ):
+        # Delete: applied-state copy reads "Deleted" / "deleted"; modify
+        # and correct read "Applied" / "applied". The verb_label drives
+        # the title-suffix mapping so e.g. ``"Purchase Order Modify"``
+        # title in preview becomes ``"Purchase Order Applied"`` in the
+        # rendered applied state — not the misleading "Created" the
+        # shared helpers default to.
+        if verb_label == "Delete":
+            applied_title_suffix = "Deleted"
+            applied_state_label = "DELETED"
+            applied_verb = "deleted"
+        else:
+            applied_title_suffix = "Applied"
+            applied_state_label = "APPLIED"
+            applied_verb = "applied"
+        applied_state_variant = "default"
+
+        # On the standalone-applied path (is_preview=False), let the
+        # actual outcome drive both the state label AND the badge
+        # variant — so a fully-failed apply reads "FAILED" with the
+        # destructive (red) variant, not "APPLIED" with the success
+        # (green) variant. Partial failures also surface in the
+        # destructive variant. The title suffix and footer verb track
+        # the outcome too — a failed delete reads "Purchase Order
+        # Failed" / "failed.", NOT "Purchase Order Deleted" / "deleted."
+        # which would contradict the FAILED badge.
+        if not is_preview:
+            outcome_label, outcome_variant = _summarize_apply_outcome(actions)
+            if outcome_label != "APPLIED":
+                applied_state_label = outcome_label
+                applied_state_variant = outcome_variant
+                if outcome_label == "FAILED":
+                    applied_title_suffix = "Failed"
+                    applied_verb = "failed"
+                else:  # PARTIAL FAILURE
+                    applied_title_suffix = "Partially Applied"
+                    applied_verb = "partially applied"
+
+        _render_preview_header(
+            title_prefix=f"{verb_label} Purchase Order",
+            entity="purchase_order",
+            order_number=str(entity.get("order_number") or entity_id or "N/A"),
+            status=entity.get("status"),
+            applied_title_suffix=applied_title_suffix,
+            applied_state_label=applied_state_label,
+            applied_state_variant=applied_state_variant,
+        )
+        with CardContent(), Column(gap=3):
+            if response.get("message"):
+                Muted(content=response["message"])
+            block_warnings = _render_po_entity_view(entity, changes=changes_by_field)
+        # Confirm label scales with the number of planned actions —
+        # ``Confirm 4 changes`` is more informative than the generic
+        # form. Delete cards say "Delete" not "Confirm" to mirror the
+        # destructive-affordance pattern from the modification rail.
+        n_actions = len(actions)
+        if verb_label == "Delete":
+            confirm_label = "Confirm Delete"
+        elif n_actions > 1:
+            confirm_label = f"Confirm {n_actions} changes"
+        else:
+            confirm_label = "Confirm Changes"
+        _render_preview_footer(
+            title_prefix=f"Purchase Order {verb_label}",
+            block_warnings=block_warnings,
+            confirm_label=confirm_label,
+            apply_action=apply_action,
+            cancel_action=cancel_action,
+            # No next-action buttons on modify cards by default — the
+            # user already had the PO they wanted to change; surfacing
+            # "Receive Items" here would be noise. Delete operations
+            # also have nothing useful to suggest (the PO is gone).
+            next_action_buttons=(),
+            applied_verb=applied_verb,
         )
     return app
 

@@ -73,15 +73,34 @@ class TestModificationCardRender:
 
     def test_apply_button_morphs_card_to_applied_state(self, render_scenario):
         """Click-through: Confirm fires the apply call, the on_success
-        chain flips ``state.applied=True``, and the footer/badge row
-        morphs to its applied state.
+        chain flips ``state.applied=True``, and the button morphs from
+        ``Confirm Changes`` into the applied-state primary button — per
+        the button-state-machine design in ``_render_apply_button_row``
+        (#755 "fold status into button"):
 
-        The pinned-here behavior is the conservative apply UX — the row
-        cells stay PLANNED because ``$result.actions`` doesn't resolve
-        in the on_success Rx context (see in-code comment in
-        ``build_modification_preview_ui``). A live-tick UX where rows
-        transition PLANNED → APPLIED in place is tracked as a follow-up
-        once the right Rx path is identified.
+        - Preview: ``Confirm Changes`` (default variant, fires apply)
+        - Applied + ``result.katana_url`` truthy: ``View in Katana``
+          (success variant, opens link)
+        - Applied no url: ``Applied`` (success variant, disabled)
+        - Error: ``Retry`` (warning variant, re-fires apply)
+
+        Pre-existing limitation: ``$result`` in the on_success Rx
+        context resolves to the apply tool's ``structured_content`` (a
+        PrefabApp wire envelope keyed by ``$prefab``/``view``/``state``),
+        NOT the raw ``ModificationResponse``. So
+        ``If("result.katana_url")`` evaluates against the envelope dict
+        and finds no ``katana_url`` field — the Else branch fires and
+        we get the "Applied" Button, not "View in Katana". This is the
+        same Rx-context limitation that prevents ``RESULT.actions``
+        from driving live-tick row morphs (see in-code comment in
+        ``build_modification_preview_ui``). Both gaps will lift if/when
+        the rail can extract the raw response payload from the apply.
+
+        The test pins the *current* behavior: post-Confirm, the Confirm
+        button is replaced with a post-apply Button — either "View in
+        Katana" (when the envelope happens to expose a katana_url, which
+        no production tool does today) or "Applied" (the fallback).
+        Either pass the morph contract; both fail the morph regression.
 
         The stub ``modify_manufacturing_order`` tool in
         ``render_test_server.py`` matches production wire shape via
@@ -90,21 +109,32 @@ class TestModificationCardRender:
         """
         frame = render_scenario("modify_mo_12_actions_preview")
 
-        # Pre-state: 12 PLANNED, 0 APPLIED, "Applying..." badge absent,
-        # "Applied" footer pill absent.
+        # Pre-state: 12 PLANNED actions, Confirm button visible, neither
+        # post-apply primary visible.
         assert frame.locator("td").filter(has_text="PLANNED").count() == 12
-        assert frame.locator("text=Applied").count() == 0
+        assert frame.locator("button").filter(has_text="Confirm").first.is_visible()
+        assert frame.locator("button").filter(has_text="View in Katana").count() == 0
+        # Use exact-match locator for "Applied" to avoid matching the
+        # "Applied" inside the "Modification Applied" Muted footer text
+        # that legacy ``build_modification_preview_ui`` renders.
+        assert frame.locator("button[role='button']", has_text="Applied").count() == 0
 
         # Fire the Confirm button.
         frame.locator("button").filter(has_text="Confirm").first.click()
 
-        # Wait for the applied-state morph: the "Applied" pill in the
-        # button row appears once on_success fires. ``wait_for`` polls
-        # with a 30s timeout — completes fast when the apply succeeds,
-        # fails deterministically if the on_success chain is broken.
-        frame.locator("text=Applied").first.wait_for(state="visible", timeout=30000)
+        # Wait for the applied-state morph: the Confirm button is
+        # REPLACED with a post-apply primary Button. Whether the morph
+        # lands on "View in Katana" or "Applied" depends on whether the
+        # on_success Rx context exposes ``result.katana_url`` (today's
+        # rail wraps the response in a PrefabApp envelope, so the
+        # Else/"Applied" branch fires — but either button is acceptable
+        # for "the morph succeeded").
+        frame.locator(
+            "button:has-text('View in Katana'), button:has-text('Applied')"
+        ).first.wait_for(state="visible", timeout=30000)
 
-        # The Confirm button is now disabled (state.applied gates it via
-        # the ``locked`` Rx in ``_render_apply_button_row``).
-        confirm = frame.locator("button").filter(has_text="Confirm").first
-        assert confirm.is_disabled()
+        # After the morph, the original Confirm button is gone — the
+        # If/Elif/Else state machine swapped the button slot to a
+        # post-apply primary. (Cancel stays visible-but-disabled in
+        # all terminal states so the row width stays stable.)
+        assert frame.locator("button").filter(has_text="Confirm").count() == 0
