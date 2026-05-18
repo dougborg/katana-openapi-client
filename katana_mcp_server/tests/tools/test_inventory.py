@@ -3295,6 +3295,39 @@ async def test_get_inventory_movements_forwards_max_items_extension():
 
 
 @pytest.mark.asyncio
+async def test_get_inventory_movements_clamps_per_page_limit_to_katana_max():
+    """Per-page ``?limit`` is clamped to Katana's documented max of 250.
+
+    Regression for the #771 follow-up review: ``request.limit`` is the
+    user-facing row cap, but Katana's documented max page size is 250
+    (see ``docs/katana-openapi.yaml`` lines 21-24). Threading the raw
+    ``request.limit=500`` straight into the API ``?limit=`` query param
+    would make Katana reject the request instead of paginating up to a
+    500-row cap. The fix clamps the per-page query limit to 250 while
+    leaving ``max_items`` at the user-requested cap; the transport
+    paginates additional pages as needed.
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "W-1", "display_name": "Widget"}
+    )
+
+    request_mock = _patch_movements_call(lifespan_ctx)
+    with patch(_UNWRAP_DATA, return_value=[]):
+        request = GetInventoryMovementsRequest(sku="W-1", limit=500)
+        await _get_inventory_movements_impl(request, context)
+
+    # The underlying httpx request must carry ?limit=250 (clamped), not 500.
+    # ``_get_kwargs`` threads ``limit`` into the ``params`` dict.
+    params = request_mock.call_args.kwargs["params"]
+    assert params["limit"] == 250
+
+    # ``max_items`` must remain at the user-requested row cap (uncapped at 250).
+    extensions = request_mock.call_args.kwargs["extensions"]
+    assert extensions == {"max_items": 500}
+
+
+@pytest.mark.asyncio
 async def test_get_inventory_movements_caps_rows_via_transport():
     """End-to-end: ``limit=N`` returns exactly N movements even when the
     API has more pages.

@@ -885,9 +885,17 @@ async def _get_inventory_movements_impl(
         # ``_get_kwargs`` / ``_build_response`` helpers directly so we can
         # pass ``extensions`` into the underlying httpx request and cap the
         # merged result at ``request.limit`` rows.
+        #
+        # Decouple page-size from row-cap: the per-page ``limit`` query param
+        # must be clamped to Katana's documented max of 250 (see
+        # ``docs/katana-openapi.yaml`` lines 21-24 — "Max page size: 250
+        # records per request"). Otherwise ``request.limit=500`` would be sent
+        # as ``?limit=500`` and Katana rejects it. The transport paginates
+        # additional pages as needed up to ``max_items``.
+        per_page_limit = min(request.limit, 250)
         kwargs = get_all_inventory_movements._get_kwargs(
             variant_ids=[variant_id],
-            limit=request.limit,
+            limit=per_page_limit,
             location_id=to_unset(request.location_id),
             resource_type=to_unset(request.resource_type),
             created_at_min=to_unset(parsed_dates["created_at_min"]),
