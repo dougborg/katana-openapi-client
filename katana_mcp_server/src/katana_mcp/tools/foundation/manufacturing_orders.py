@@ -2876,7 +2876,8 @@ async def _modify_manufacturing_order_impl(
     # edits return 422. Landing the header first would close the MO before
     # the row edits run, causing partial failure with potential data loss
     # (#773). Conversely, reopening (closed → IN_PROGRESS) must happen first
-    # so the subsequent row edits can take effect. See ``_status_lock_phase``.
+    # so the subsequent row edits can take effect. See ``_classify_status_transition``
+    # and ``_HeaderPhase``.
     header_action: ActionSpec | None = None
     header_phase: _HeaderPhase = _HeaderPhase.FIRST
     if request.update_header is not None:
