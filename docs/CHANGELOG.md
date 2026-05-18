@@ -2,6 +2,38 @@
 
 <!-- version list -->
 
+## v0.68.0 (2026-05-18)
+
+### Chores
+
+- Sync uv.lock to katana-mcp-server v0.81.0
+  ([#770](https://github.com/dougborg/katana-openapi-client/pull/770),
+  [`8f2fac0`](https://github.com/dougborg/katana-openapi-client/commit/8f2fac0bb0a3ba023b766c39d94d3b3c30f711a6))
+
+- **deps**: Batch upgrade dev + runtime locks; defensive func.__name__ for ty 0.0.37
+  ([#768](https://github.com/dougborg/katana-openapi-client/pull/768),
+  [`5c84753`](https://github.com/dougborg/katana-openapi-client/commit/5c84753a582efc1626ef476aa0f0ed9fcb25f7f1))
+
+- **release**: Mcp v0.80.0
+  ([`6c8cf33`](https://github.com/dougborg/katana-openapi-client/commit/6c8cf33c1855f470fc4c4f3df37aca36af51fc25))
+
+- **release**: Mcp v0.81.0
+  ([`fe54b3a`](https://github.com/dougborg/katana-openapi-client/commit/fe54b3a21f28e4c31fd17882a1fccf67dee8d18a))
+
+### Features
+
+- **client**: Align SalesOrder custom_fields with live API dict shape
+  ([#770](https://github.com/dougborg/katana-openapi-client/pull/770),
+  [`8f2fac0`](https://github.com/dougborg/katana-openapi-client/commit/8f2fac0bb0a3ba023b766c39d94d3b3c30f711a6))
+
+- **mcp**: Drop derived reporting tools; redesign check_inventory card with native
+  Katana fields ([#757](https://github.com/dougborg/katana-openapi-client/pull/757),
+  [`94e112f`](https://github.com/dougborg/katana-openapi-client/commit/94e112fde00a4e3a314c8388f7f6be95759d1052))
+
+- **mcp**: Point-in-time inventory via inventory_at + filter pass-through
+  ([#762](https://github.com/dougborg/katana-openapi-client/pull/762),
+  [`06d1997`](https://github.com/dougborg/katana-openapi-client/commit/06d1997eb19d4b12a9d47a118c05c1d1a5e266e3))
+
 ## v0.67.0 (2026-05-18)
 
 ### Chores
