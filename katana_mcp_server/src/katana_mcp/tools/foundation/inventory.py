@@ -10,6 +10,7 @@ import asyncio
 import json
 import time
 from datetime import datetime
+from itertools import batched
 from typing import Annotated, Any
 
 from fastmcp import Context, FastMCP
@@ -28,6 +29,8 @@ from katana_mcp.tools.tool_result_utils import (
     iso_or_none,
     make_json_result,
     make_tool_result,
+    naive_utc,
+    parse_iso_datetime,
     parse_request_dates,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
@@ -35,6 +38,9 @@ from katana_mcp.web_urls import katana_web_url
 from katana_public_api_client.api.stock_adjustment import get_all_stock_adjustments
 from katana_public_api_client.client_types import UNSET, Unset
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
+from katana_public_api_client.models.get_all_inventory_movements_resource_type import (
+    GetAllInventoryMovementsResourceType,
+)
 from katana_public_api_client.models_pydantic._generated import (
     CachedLocation,
     CachedVariant,
@@ -42,6 +48,16 @@ from katana_public_api_client.models_pydantic._generated import (
 from katana_public_api_client.utils import unwrap_data
 
 logger = get_logger(__name__)
+
+
+def _iso_str(val: Any) -> str:
+    """Return ``val.isoformat()`` when possible, else ``str(val)``.
+
+    The Katana attrs models type ``movement_date`` / ``created_at`` /
+    ``updated_at`` as ``datetime``, but unit tests fixture them as strings
+    via ``MagicMock`` — accept both so call sites stay shape-agnostic.
+    """
+    return val.isoformat() if hasattr(val, "isoformat") else str(val)
 
 
 def _attr(obj: Any, name: str, default: Any = None) -> Any:
@@ -527,6 +543,45 @@ class GetInventoryMovementsRequest(BaseModel):
 
     sku: str = Field(..., description="SKU to get movements for")
     limit: int = Field(default=50, description="Maximum movements to return")
+    location_id: int | None = Field(
+        default=None,
+        description=(
+            "Filter movements to a single warehouse/facility. "
+            "Look up via `list_locations`."
+        ),
+    )
+    resource_type: GetAllInventoryMovementsResourceType | None = Field(
+        default=None,
+        description=(
+            "Filter movements by what caused them. Accepts one of: "
+            "`SalesOrderRow`, `ManufacturingOrder`, "
+            "`ManufacturingOrderRecipeRow`, `ProductionIngredient`, "
+            "`PurchaseOrderRow`, `PurchaseOrderRecipeRow`, "
+            "`StockAdjustmentRow`, `StockTransferRow`, `SystemGenerated`."
+        ),
+    )
+    created_at_min: str | None = Field(
+        default=None,
+        description=(
+            "ISO-8601 lower bound on `created_at` — when the movement "
+            "record was first written. Useful as an audit-trail filter."
+        ),
+    )
+    created_at_max: str | None = Field(
+        default=None,
+        description="ISO-8601 upper bound on `created_at`.",
+    )
+    updated_at_min: str | None = Field(
+        default=None,
+        description=(
+            "ISO-8601 lower bound on `updated_at` — when the movement "
+            "record was last modified. Useful for incremental sync."
+        ),
+    )
+    updated_at_max: str | None = Field(
+        default=None,
+        description="ISO-8601 upper bound on `updated_at`.",
+    )
 
 
 class MovementInfo(BaseModel):
@@ -570,6 +625,14 @@ class InventoryMovementsResponse(BaseModel):
     total_count: int
 
 
+_INVENTORY_MOVEMENTS_DATE_FIELDS = (
+    "created_at_min",
+    "created_at_max",
+    "updated_at_min",
+    "updated_at_max",
+)
+
+
 async def _get_inventory_movements_impl(
     request: GetInventoryMovementsRequest, context: Context
 ) -> InventoryMovementsResponse:
@@ -584,6 +647,8 @@ async def _get_inventory_movements_impl(
         raise ValueError("SKU cannot be empty")
     if request.limit <= 0:
         raise ValueError("Limit must be positive")
+
+    parsed_dates = parse_request_dates(request, _INVENTORY_MOVEMENTS_DATE_FIELDS)
 
     start_time = time.monotonic()
     logger.info("inventory_movements_started", sku=request.sku)
@@ -620,16 +685,14 @@ async def _get_inventory_movements_impl(
             client=services.client,
             variant_ids=[variant_id],
             limit=request.limit,
+            location_id=to_unset(request.location_id),
+            resource_type=to_unset(request.resource_type),
+            created_at_min=to_unset(parsed_dates["created_at_min"]),
+            created_at_max=to_unset(parsed_dates["created_at_max"]),
+            updated_at_min=to_unset(parsed_dates["updated_at_min"]),
+            updated_at_max=to_unset(parsed_dates["updated_at_max"]),
         )
         attrs_list = unwrap_data(response)
-
-        def _iso(val: Any) -> str:
-            return val.isoformat() if hasattr(val, "isoformat") else str(val)
-
-        def _iso_opt(val: Any) -> str | None:
-            if val is None:
-                return None
-            return val.isoformat() if hasattr(val, "isoformat") else str(val)
 
         movements = [
             MovementInfo(
@@ -642,15 +705,15 @@ async def _get_inventory_movements_impl(
                 resource_id=unwrap_unset(m.resource_id, None),
                 caused_by_order_no=unwrap_unset(m.caused_by_order_no, None),
                 caused_by_resource_id=unwrap_unset(m.caused_by_resource_id, None),
-                movement_date=_iso(m.movement_date),
+                movement_date=_iso_str(m.movement_date),
                 quantity_change=m.quantity_change,
                 balance_after=m.balance_after,
                 value_per_unit=m.value_per_unit,
                 value_in_stock_after=m.value_in_stock_after,
                 average_cost_after=m.average_cost_after,
                 rank=unwrap_unset(m.rank, None),
-                created_at=_iso(m.created_at),
-                updated_at=_iso(m.updated_at),
+                created_at=_iso_str(m.created_at),
+                updated_at=_iso_str(m.updated_at),
             )
             for m in attrs_list
         ]
@@ -699,13 +762,327 @@ async def get_inventory_movements(
     timestamps, rank) so callers don't need follow-up lookups for standard
     fields. Use to investigate stock discrepancies or trace how inventory levels
     changed over time. Default limit is 50 movements, ordered most recent first.
+
+    Filter via optional ``location_id`` (single warehouse), ``resource_type``
+    (one of ``SalesOrderRow``, ``ManufacturingOrder``,
+    ``ManufacturingOrderRecipeRow``, ``ProductionIngredient``,
+    ``PurchaseOrderRow``, ``PurchaseOrderRecipeRow``, ``StockAdjustmentRow``,
+    ``StockTransferRow``, ``SystemGenerated``), and
+    ``created_at_min``/``created_at_max``/``updated_at_min``/``updated_at_max``
+    (ISO-8601 datetimes — audit-trail windows). For point-in-time inventory
+    reconstruction, prefer ``inventory_at`` which walks movements and returns
+    the balance ``as_of`` a specific moment.
     """
     response = await _get_inventory_movements_impl(request, context)
     return make_json_result(response)
 
 
 # ============================================================================
-# Tool 4: create_stock_adjustment
+# Tool 4: inventory_at — point-in-time balance reconstruction
+# ============================================================================
+
+
+class InventoryAtRequest(BaseModel):
+    """Request model for point-in-time inventory reconstruction."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    skus_or_variant_ids: CoercedStrIntList = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description=(
+            "JSON array of SKUs (strings) or variant IDs (integers) — mix freely. "
+            'E.g., ["WS74001", 12345] or ["WS74001", "WS74002"]. '
+            "Output order matches input order. Max 100 items per call."
+        ),
+    )
+    as_of: str = Field(
+        ...,
+        description=(
+            "ISO-8601 datetime. Returns the balance as of this moment by "
+            "walking inventory movements and picking the most recent "
+            "movement at-or-before `as_of` per location."
+        ),
+    )
+    location_id: int | None = Field(
+        default=None,
+        description=(
+            "Filter to a single warehouse/facility. When set, only "
+            "movements at this location are considered."
+        ),
+    )
+
+
+class InventoryAtLocation(BaseModel):
+    """Per-location balance snapshot at `as_of`."""
+
+    location_id: int
+    location_name: str | None = None
+    balance_at: float
+    value_in_stock_at: float
+    average_cost_at: float
+    last_movement_date: str
+    last_movement_id: int
+
+
+class InventoryAtItem(BaseModel):
+    """Per-variant point-in-time balance with location breakdown.
+
+    `sku` may be ``None`` — Katana allows variants without SKUs
+    (legacy NetSuite imports are a common source). See the documented
+    invariant in CLAUDE.md.
+    """
+
+    variant_id: int
+    sku: str | None
+    display_name: str
+    by_location: list[InventoryAtLocation] = Field(default_factory=list)
+    total_balance: float = 0.0
+    total_value: float = 0.0
+
+
+class InventoryAtResponse(BaseModel):
+    """Response containing point-in-time balances per variant."""
+
+    as_of: str
+    items: list[InventoryAtItem]
+    not_found: list[str | int] = Field(default_factory=list)
+
+
+_INVENTORY_AT_CHUNK_SIZE = 20  # variant_ids per movements-fetch call
+
+
+async def _inventory_at_impl(
+    request: InventoryAtRequest, context: Context
+) -> InventoryAtResponse:
+    """Reconstruct inventory balance at a specific point in time.
+
+    The Katana ``/inventory`` endpoint is snapshot-only. To answer "what
+    was the balance on date X", walk ``/inventory_movements`` for each
+    variant, filter to ``movement_date <= as_of``, then per location pick
+    the most recent matching row and read its ``balance_after`` /
+    ``value_in_stock_after`` / ``average_cost_after`` fields (the running
+    totals Katana computes as each movement lands).
+
+    Movements are fetched in chunks of variant_ids — the auto-paginating
+    transport collects multiple pages, capped at 25k movements per call,
+    so a chunk size of 20 keeps headroom for variants with high movement
+    velocity.
+    """
+    from katana_mcp.tools.foundation.items import _fetch_variant_by_id
+    from katana_public_api_client.api.inventory_movements import (
+        get_all_inventory_movements,
+    )
+    from katana_public_api_client.utils import unwrap_data
+
+    parsed_as_of = parse_iso_datetime(request.as_of, "as_of")
+    as_of_dt = naive_utc(parsed_as_of)
+    assert as_of_dt is not None  # parse_iso_datetime always returns datetime
+
+    items: list[str | int] = []
+    for raw in request.skus_or_variant_ids:
+        if isinstance(raw, str):
+            normalized = raw.strip()
+            if not normalized:
+                raise ValueError("SKU cannot be empty")
+            items.append(normalized)
+        else:
+            items.append(raw)
+
+    start_time = time.monotonic()
+    sku_count = sum(1 for item in items if isinstance(item, str))
+    logger.info(
+        "inventory_at_started",
+        sku_count=sku_count,
+        variant_id_count=len(items) - sku_count,
+        as_of=request.as_of,
+    )
+
+    try:
+        services = get_services(context)
+
+        async def _resolve(item: str | int) -> tuple[str | int, Any | None]:
+            if isinstance(item, str):
+                v = await services.typed_cache.catalog.get_by_sku(
+                    item, include_archived=True, include_deleted=True
+                )
+            else:
+                v = await _fetch_variant_by_id(services, item)
+            return (item, v)
+
+        resolved_pairs = list(await asyncio.gather(*(_resolve(i) for i in items)))
+
+        not_found: list[str | int] = []
+        # dict preserves first-seen input order; duplicate inputs collapse
+        # to one entry naturally without a separate dedup set.
+        input_to_variant: dict[str | int, tuple[int, str | None, str]] = {}
+        for item, variant in resolved_pairs:
+            if item in input_to_variant:
+                continue
+            vid = _attr(variant, "id") if variant is not None else None
+            if vid is None:
+                not_found.append(item)
+                continue
+            sku = _attr(variant, "sku")
+            display_name = _attr(variant, "display_name") or sku or ""
+            input_to_variant[item] = (vid, sku, display_name)
+
+        # Chunk variant_ids so we don't blow through the 25k-movement
+        # auto-pagination cap. 20 ids x ~1k movements/variant keeps headroom.
+        # Chunks fetch concurrently — independent network I/O dominates.
+        unique_vids = {vid for vid, _, _ in input_to_variant.values()}
+        chunks = list(batched(sorted(unique_vids), _INVENTORY_AT_CHUNK_SIZE))
+
+        async def _fetch_chunk(chunk: tuple[int, ...]) -> list[Any]:
+            response = await get_all_inventory_movements.asyncio_detailed(
+                client=services.client,
+                variant_ids=list(chunk),
+                location_id=to_unset(request.location_id),
+            )
+            return list(unwrap_data(response))
+
+        chunk_results = await asyncio.gather(*(_fetch_chunk(c) for c in chunks))
+        all_movements: list[Any] = [m for batch in chunk_results for m in batch]
+
+        # Reduce: for each (variant_id, location_id), keep the movement
+        # with max (movement_date, id) among those <= as_of_dt. The id
+        # tie-break ensures deterministic output when multiple movements
+        # share a back-dated timestamp.
+        latest: dict[tuple[int, int], Any] = {}
+        for m in all_movements:
+            md = naive_utc(m.movement_date)
+            if md is None or md > as_of_dt:
+                continue
+            key = (m.variant_id, m.location_id)
+            existing = latest.get(key)
+            if existing is None:
+                latest[key] = m
+                continue
+            existing_md = naive_utc(existing.movement_date)
+            if existing_md is None or (md, m.id) > (existing_md, existing.id):
+                latest[key] = m
+
+        unique_loc_ids = {loc_id for _, loc_id in latest}
+        loc_names: dict[int, str | None] = {}
+        if unique_loc_ids:
+            loc_lookups = await services.typed_cache.catalog.get_many_by_ids(
+                CachedLocation, unique_loc_ids
+            )
+            loc_names = {
+                lid: _attr(loc_lookups.get(lid), "name") for lid in unique_loc_ids
+            }
+
+        result_items: list[InventoryAtItem] = []
+        for _input, (vid, sku, display_name) in input_to_variant.items():
+            by_loc_rows: list[InventoryAtLocation] = []
+            total_balance = 0.0
+            total_value = 0.0
+            for (m_vid, loc_id), m in latest.items():
+                if m_vid != vid:
+                    continue
+                balance = float(m.balance_after)
+                value = float(m.value_in_stock_after)
+                by_loc_rows.append(
+                    InventoryAtLocation(
+                        location_id=loc_id,
+                        location_name=loc_names.get(loc_id),
+                        balance_at=balance,
+                        value_in_stock_at=value,
+                        average_cost_at=float(m.average_cost_after),
+                        last_movement_date=_iso_str(m.movement_date),
+                        last_movement_id=m.id,
+                    )
+                )
+                total_balance += balance
+                total_value += value
+            by_loc_rows.sort(key=lambda r: r.balance_at, reverse=True)
+            result_items.append(
+                InventoryAtItem(
+                    variant_id=vid,
+                    sku=sku,
+                    display_name=display_name,
+                    by_location=by_loc_rows,
+                    total_balance=total_balance,
+                    total_value=total_value,
+                )
+            )
+
+        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+        logger.info(
+            "inventory_at_completed",
+            items=len(result_items),
+            not_found_count=len(not_found),
+            duration_ms=duration_ms,
+        )
+        return InventoryAtResponse(
+            as_of=request.as_of,
+            items=result_items,
+            not_found=not_found,
+        )
+
+    except Exception as e:
+        duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+        logger.error(
+            "inventory_at_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            duration_ms=duration_ms,
+            exc_info=True,
+        )
+        raise
+
+
+@observe_tool
+@unpack_pydantic_params
+async def inventory_at(
+    request: Annotated[InventoryAtRequest, Unpack()], context: Context
+) -> ToolResult:
+    """Reconstruct inventory balance at a specific point in time by walking
+    movement history.
+
+    Pass a list of SKUs and/or variant IDs (mix freely), plus an ISO-8601
+    ``as_of`` datetime, to get the on-hand quantity, total value, and rolling
+    average cost as they stood at that moment — per location. Optionally
+    filter to a single ``location_id``.
+
+    Walks the variant's ``inventory_movements`` ledger, picks the most recent
+    movement at-or-before ``as_of`` per location, and returns the snapshot
+    fields (``balance_after`` / ``value_in_stock_after`` / ``average_cost_after``)
+    that movement left behind. Variants with no movements before ``as_of``
+    return an empty ``by_location`` list (no stock at that moment).
+
+    Use for historical reconstruction and audit. For current state, use
+    ``check_inventory`` — that's a single direct call against ``/inventory``
+    and is faster when you only need "now". Use ``get_inventory_movements``
+    to see the underlying delta stream.
+
+    Returns a card UI plus the JSON envelope ``{as_of, items, not_found}``.
+    Unresolved SKUs/IDs land in ``not_found``.
+    """
+    from katana_mcp.tools.prefab_ui import build_inventory_at_ui
+
+    response = await _inventory_at_impl(request, context)
+
+    items_dump = [item.model_dump(mode="json") for item in response.items]
+    payload = {
+        "as_of": response.as_of,
+        "items": items_dump,
+        "not_found": response.not_found,
+    }
+    content = json.dumps(payload, indent=2, default=str)
+
+    ui = build_inventory_at_ui(
+        items=items_dump,
+        as_of=response.as_of,
+        location_id=request.location_id,
+        not_found=list(response.not_found),
+    )
+    return ToolResult(content=content, structured_content=ui)
+
+
+# ============================================================================
+# Tool 5: create_stock_adjustment
 # ============================================================================
 
 
@@ -1702,6 +2079,7 @@ def register_tools(mcp: FastMCP) -> None:
         list_low_stock_items
     )
     mcp.tool(tags={"inventory", "read"}, annotations=_read)(get_inventory_movements)
+    mcp.tool(tags={"inventory", "read"}, annotations=_read, meta=UI_META)(inventory_at)
     mcp.tool(tags={"inventory", "read"}, annotations=_read)(list_stock_adjustments)
     register_preview_tool(
         mcp,

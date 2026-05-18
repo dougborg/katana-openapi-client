@@ -1407,6 +1407,199 @@ def build_low_stock_ui(
     return app
 
 
+def _inventory_at_table_rows(
+    items: list[dict[str, Any]],
+    currency: str | None,
+) -> list[dict[str, Any]]:
+    """Flatten the response shape into one row per (variant, location).
+
+    Variants with empty ``by_location`` (no movements before ``as_of``)
+    render a single row with location ``"—"`` and zeroed values so the
+    user sees they were checked but had no history. The table groups
+    naturally by SKU when sorted on it.
+    """
+    rows: list[dict[str, Any]] = []
+    for item in items:
+        sku = item.get("sku") or ""
+        display_name = item.get("display_name", "")
+        variant_id = item.get("variant_id")
+        by_location = item.get("by_location") or []
+        if not by_location:
+            rows.append(
+                {
+                    "sku": sku,
+                    "display_name": display_name,
+                    "variant_id": variant_id,
+                    "location_name": "—",
+                    "balance_label": "—",
+                    "value_label": "—",
+                    "cost_label": "—",
+                    "last_movement_date": "—",
+                }
+            )
+            continue
+        for loc in by_location:
+            rows.append(
+                {
+                    "sku": sku,
+                    "display_name": display_name,
+                    "variant_id": variant_id,
+                    "location_name": loc.get("location_name")
+                    or f"Location {loc.get('location_id')}",
+                    "balance_label": f"{float(loc.get('balance_at', 0)):.2f}",
+                    "value_label": _format_money(
+                        loc.get("value_in_stock_at"), currency
+                    ),
+                    "cost_label": _format_money(loc.get("average_cost_at"), currency),
+                    "last_movement_date": _iso_date_only(
+                        loc.get("last_movement_date", "")
+                    ),
+                }
+            )
+    return rows
+
+
+def build_inventory_at_ui(
+    items: list[dict[str, Any]],
+    as_of: str,
+    location_id: int | None = None,
+    not_found: list[str | int] | None = None,
+    currency: str | None = None,
+) -> PrefabApp:
+    """Build the point-in-time inventory card.
+
+    Header surfaces the ``as_of`` instant + item count and (when scoped)
+    the location filter. The body is a flat DataTable with one row per
+    (variant, location); variants with no history before ``as_of`` get a
+    single row with ``"—"`` placeholders so the caller sees they were
+    checked. Totals strip aggregates across all items.
+
+    Mirrors the ``check_inventory`` card's structural conventions: header
+    badges, conditional Muted "not found" hint, action buttons that
+    surface the obvious next-step tools.
+    """
+    not_found_list = list(not_found or [])
+    rows = _inventory_at_table_rows(items, currency)
+    total_balance = sum(
+        float(loc.get("balance_at", 0))
+        for item in items
+        for loc in (item.get("by_location") or [])
+    )
+    total_value = sum(
+        float(loc.get("value_in_stock_at", 0))
+        for item in items
+        for loc in (item.get("by_location") or [])
+    )
+
+    is_single = len(items) == 1
+    as_of_date = _iso_date_only(as_of)
+
+    with (
+        PrefabApp(state={"rows": rows}, css_class="p-4") as app,
+        Card(),
+    ):
+        with CardHeader(), Row(gap=2):
+            CardTitle(content=f"Inventory as of {as_of_date}")
+            Badge(
+                label=f"{len(items)} item{'s' if len(items) != 1 else ''}",
+                variant="secondary",
+            )
+            if location_id is not None:
+                Badge(label=f"Location {location_id}", variant="outline")
+            if is_single and items:
+                only = items[0]
+                Badge(label=only.get("sku") or "(no SKU)", variant="outline")
+
+        with CardContent(), Column(gap=3):
+            with Row(gap=4):
+                Metric(label="Total Balance", value=f"{total_balance:.2f}")
+                Metric(
+                    label="Total Value",
+                    value=_format_money(total_value, currency),
+                )
+
+            if not rows:
+                Muted(
+                    content=("No items resolved — every input is in `not_found` below.")
+                )
+            else:
+                Separator()
+                # Single-variant: drop SKU/Item columns (already in header).
+                # Batch: include them so the table reads as a flat ledger.
+                columns: list[DataTableColumn] = []
+                if not is_single:
+                    columns.append(
+                        DataTableColumn(key="sku", header="SKU", sortable=True)
+                    )
+                    columns.append(
+                        DataTableColumn(
+                            key="display_name", header="Item", sortable=True
+                        )
+                    )
+                columns.extend(
+                    [
+                        DataTableColumn(
+                            key="location_name", header="Location", sortable=True
+                        ),
+                        DataTableColumn(
+                            key="balance_label",
+                            header="Balance",
+                            align="right",
+                            sortable=True,
+                        ),
+                        DataTableColumn(
+                            key="value_label", header="Value", align="right"
+                        ),
+                        DataTableColumn(
+                            key="cost_label", header="Avg Cost", align="right"
+                        ),
+                        DataTableColumn(
+                            key="last_movement_date",
+                            header="Last Movement",
+                            sortable=True,
+                        ),
+                    ]
+                )
+                DataTable(columns=columns, rows="{{ rows }}")
+
+            if not_found_list:
+                Separator()
+                Muted(
+                    content=(
+                        f"Could not resolve {len(not_found_list)} "
+                        f"input{'s' if len(not_found_list) != 1 else ''}: "
+                        f"{', '.join(str(x) for x in not_found_list)}"
+                    )
+                )
+
+        with CardFooter(), Row(gap=2):
+            # First resolved SKU drives both follow-up actions; falls back
+            # to variant_id when the variant has no SKU (per the documented
+            # null-SKU invariant).
+            first_handle: str | int = ""
+            if items:
+                first_handle = items[0].get("sku") or items[0].get("variant_id") or ""
+            Button(
+                label="Check Current Inventory",
+                variant="outline",
+                on_click=SendMessage(
+                    f"Check current inventory for {first_handle}"
+                    if first_handle
+                    else "Check current inventory"
+                ),
+            )
+            Button(
+                label="View Movements",
+                variant="outline",
+                on_click=SendMessage(
+                    f"Show inventory movements for SKU {first_handle}"
+                    if first_handle
+                    else "Show recent inventory movements"
+                ),
+            )
+    return app
+
+
 # ============================================================================
 # Stock Adjustment UIs (Create / Update / Delete)
 # ============================================================================

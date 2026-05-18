@@ -55,6 +55,7 @@ _OUTPUT_SUFFIXES = ("Response", "Info", "Summary", "Detail", "Stats")
 _EXEMPT_CLASSES: frozenset[str] = frozenset(
     {
         "LowStockItem",  # nested in LowStockResponse
+        "InventoryAtItem",  # nested in InventoryAtResponse
         "BlockingRow",  # nested in BlockingIngredientByMO/Variant
         "VariantSalesRow",  # nested in TopSellingVariantsResponse / InventoryVelocityResponse
         "SummaryRow",  # nested in SalesSummaryResponse

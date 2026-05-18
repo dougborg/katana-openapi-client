@@ -70,6 +70,48 @@ class TestOtherCardsRender:
         assert frame.locator("text=Main Warehouse").count() >= 1
         assert frame.locator("text=East Warehouse").count() >= 1
 
+    def test_inventory_at_single_renders(self, render_scenario):
+        """``build_inventory_at_ui`` single-item layout — variant info in the
+        header, per-location DataTable below.
+
+        Pins the path-expression form (``rows='{{ rows }}'``) for the
+        flattened (variant, location) row list. Single-item layout drops
+        the SKU/Item columns from the table — header carries them via a
+        Badge.
+        """
+        frame = render_scenario("inventory_at_single")
+        # Header chrome: "Inventory as of YYYY-MM-DD" title + SKU badge.
+        assert frame.locator("text=Inventory as of 2026-04-01").count() >= 1
+        assert frame.locator("text=SKU-WIDGET").count() >= 1
+        # Table with header + 2 location rows.
+        assert frame.locator("table").count() == 1
+        assert frame.locator("table tr").count() >= 3
+        assert frame.locator("text=Main Warehouse").count() >= 1
+        assert frame.locator("text=East Warehouse").count() >= 1
+
+    def test_inventory_at_batch_renders(self, render_scenario):
+        """``build_inventory_at_ui`` batch layout — SKU/Item columns visible,
+        flat (variant, location) row list, empty-history placeholder, and
+        a "not found" Muted footer.
+
+        Pins three things at once: the columns conditionally added in
+        batch mode, the empty by_location placeholder row, and the
+        not_found surfacing.
+        """
+        frame = render_scenario("inventory_at_batch")
+        # 3 items x locations: SKU-A (1 loc) + SKU-B (2 locs) + SKU-C
+        # (1 empty placeholder row) = 4 data rows + header = 5+ rows.
+        assert frame.locator("table").count() == 1
+        assert frame.locator("table tr").count() >= 5
+        # Batch layout includes SKU column rows.
+        assert frame.locator("text=SKU-A").count() >= 1
+        assert frame.locator("text=SKU-B").count() >= 1
+        assert frame.locator("text=SKU-C").count() >= 1  # placeholder row
+        # Annex appears in only one row (SKU-B), Main in two rows (A + B).
+        assert frame.locator("text=Annex").count() >= 1
+        # not_found footer surfaces the ghost SKU.
+        assert frame.locator("text=GHOST-SKU").count() >= 1
+
     def test_verification_renders(self, render_scenario):
         """``build_verification_ui`` — two state-bound DataTables in one
         card (rows='{{ matches }}' and rows='{{ discrepancies }}').
