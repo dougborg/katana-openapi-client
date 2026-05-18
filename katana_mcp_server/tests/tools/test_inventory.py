@@ -38,6 +38,7 @@ from katana_mcp_server.tests.conftest import create_mock_context, patch_typed_ca
 from pydantic import ValidationError
 
 from katana_public_api_client.client_types import UNSET
+from katana_public_api_client.models_pydantic._generated import CachedLocation
 from tests.factories import (
     make_stock_adjustment,
     make_stock_adjustment_row,
@@ -2644,12 +2645,385 @@ async def test_check_inventory_uses_bulk_cache_lookup_not_n_plus_one():
         request = CheckInventoryRequest(skus_or_variant_ids=["WIDGET-001"])
         results = await _check_inventory_impl(request, context)
 
-    # Bulk lookup called once for all 3 location IDs; per-row helper untouched.
-    bulk_mock.assert_awaited_once()
+    # Per-row fan-out forbidden — the N+1 invariant. Bulk path may fire
+    # multiple times now (#549 added parent + supplier enrichment via
+    # additional bulk calls), but each call must be O(1) in the number
+    # of variants, not O(N).
     per_row_mock.assert_not_awaited()
+    # The location-name bulk lookup specifically must happen in a single
+    # call covering all unique location IDs — bare ``await_count >= 1``
+    # would pass even with a per-location bulk call (one bulk per ID).
+    location_calls = [
+        call
+        for call in bulk_mock.await_args_list
+        if call.args and call.args[0] is CachedLocation
+    ]
+    assert len(location_calls) == 1, (
+        f"Location lookup must happen in exactly one bulk call; "
+        f"got {len(location_calls)}: {location_calls!r}"
+    )
+    requested_loc_ids = set(location_calls[0].args[1])
+    assert requested_loc_ids == {1, 2, 3}, (
+        f"Bulk location lookup must request all 3 IDs at once; "
+        f"got {requested_loc_ids!r}"
+    )
     # All 3 names resolved via the bulk dict.
     names = {ls.location_name for ls in results[0].by_location}
     assert names == {"East Warehouse", "Main Warehouse", "R&D Warehouse"}
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_surfaces_per_location_thresholds():
+    """#549 — per-location reorder_point / safety_stock_level / value /
+    average_cost on the inventory point pull through to LocationStock so
+    the card can render the threshold-aware per-warehouse breakdown
+    without a follow-up call."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={"id": 4001, "sku": "MAT-001", "display_name": "Sealant"}
+    )
+
+    inv = MagicMock()
+    inv.location_id = 1
+    inv.quantity_in_stock = "100.0"
+    inv.quantity_committed = "20.0"
+    inv.quantity_expected = "30.0"
+    inv.reorder_point = "50.0"
+    inv.safety_stock_level = "25.0"
+    inv.value_in_stock = "1500.0"
+    inv.average_cost = "15.00"
+
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[inv]),
+    ):
+        request = CheckInventoryRequest(skus_or_variant_ids=["MAT-001"])
+        results = await _check_inventory_impl(request, context)
+
+    assert len(results) == 1
+    loc = results[0].by_location[0]
+    assert loc.reorder_point == 50.0
+    assert loc.safety_stock_level == 25.0
+    assert loc.value_in_stock == 1500.0
+    assert loc.average_cost == 15.00
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_thresholds_default_to_none_when_unset():
+    """A missing threshold (UNSET / None on the wire) must surface as
+    ``None`` on LocationStock — not silently coerce to ``0.0``, which
+    would flip the 'below reorder' check on every empty-threshold row."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={"id": 4002, "sku": "NEW-001", "display_name": "Untracked"}
+    )
+
+    inv = MagicMock()
+    inv.location_id = 1
+    inv.quantity_in_stock = "10.0"
+    inv.quantity_committed = "0.0"
+    inv.quantity_expected = "0.0"
+    inv.reorder_point = UNSET
+    inv.safety_stock_level = UNSET
+    inv.value_in_stock = UNSET
+    inv.average_cost = UNSET
+
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[inv]),
+    ):
+        request = CheckInventoryRequest(skus_or_variant_ids=["NEW-001"])
+        results = await _check_inventory_impl(request, context)
+
+    loc = results[0].by_location[0]
+    assert loc.reorder_point is None
+    assert loc.safety_stock_level is None
+    assert loc.value_in_stock is None
+    assert loc.average_cost is None
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_populates_parent_enrichment_fields():
+    """End-to-end: ``_enrich_stock_info_with_parent`` actually writes
+    ``uom``, supplier, ``parent_type``, and ``katana_url`` onto the
+    response when the cache returns a variant + parent + supplier.
+
+    Without this, all the enrichment plumbing could regress (e.g. wrong
+    parent_id key, missed write, narrowed condition) and only the UI
+    tests — which pass enrichment fields *directly* into the card —
+    would still pass green.
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={
+            "id": 6001,
+            "sku": "WIDGET-001",
+            "display_name": "Test Widget",
+            "product_id": 700,
+            "material_id": None,
+        }
+    )
+
+    # Inventory point + bulk lookups for variants / products / suppliers.
+    # `get_many_by_ids` is the single path enrichment fans out through —
+    # return per-class rows keyed by ID so the dispatcher in
+    # `_enrich_stock_info_with_parent` finds product 700 and supplier 42.
+    inv = MagicMock()
+    inv.location_id = 1
+    inv.quantity_in_stock = "5.0"
+    inv.quantity_committed = "0.0"
+    inv.quantity_expected = "0.0"
+    inv.reorder_point = "10.0"
+    inv.safety_stock_level = "5.0"
+    inv.value_in_stock = "50.0"
+    inv.average_cost = "10.0"
+
+    async def _bulk(cls, ids, **_kwargs):
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedMaterial,
+            CachedProduct,
+            CachedSupplier,
+            CachedVariant,
+        )
+
+        # MagicMock's ``name`` constructor arg sets the *repr* name, not
+        # the attribute — use post-construction assignment so the mock's
+        # ``.name`` actually returns a plain string for pydantic.
+        if cls is CachedLocation:
+            loc = MagicMock()
+            loc.name = "Main"
+            return {1: loc}
+        if cls is CachedVariant:
+            v = MagicMock()
+            v.id = 6001
+            v.product_id = 700
+            v.material_id = None
+            return {6001: v}
+        if cls is CachedProduct:
+            p = MagicMock()
+            p.id = 700
+            p.uom = "pcs"
+            p.default_supplier_id = 42
+            return {700: p}
+        if cls is CachedMaterial:
+            return {}
+        if cls is CachedSupplier:
+            s = MagicMock()
+            s.id = 42
+            s.name = "Acme Inc."
+            return {42: s}
+        return {}
+
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(side_effect=_bulk)
+
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[inv]),
+    ):
+        request = CheckInventoryRequest(skus_or_variant_ids=["WIDGET-001"])
+        results = await _check_inventory_impl(request, context)
+
+    r = results[0]
+    assert r.uom == "pcs"
+    assert r.default_supplier_id == 42
+    assert r.default_supplier_name == "Acme Inc."
+    assert r.parent_type == "product"
+    # `katana_url` is built from the (entity_kind, parent_id) pair —
+    # the path template lives in web_urls.py so we just assert the
+    # parent_id appears in the URL rather than pinning the full string.
+    assert r.katana_url is not None and "/product/700" in r.katana_url
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_variant_id_cold_cache_recovers_parent_from_extend():
+    """Cold-cache variant_id path must NOT silently drop ``uom`` /
+    ``default_supplier_id`` when the parent is also absent from the
+    cache. ``_fetch_variant_by_id`` extends with ``PRODUCT_OR_MATERIAL``
+    so the nested parent rides on the API-fallback response, and
+    ``_enrich_variants_with_parent`` grafts it into the lookup map when
+    the bulk cache query misses."""
+    from katana_public_api_client.models import Product, VariantResponse
+    from katana_public_api_client.models.product_type import ProductType
+
+    context, lifespan_ctx = create_mock_context()
+
+    # Variant cache miss → API fallback. VariantResponse carries the
+    # extended ``product_or_material`` payload as a real ``Product``
+    # attrs model with ``uom`` and ``default_supplier_id`` set.
+    parent = Product(
+        id=700,
+        name="Widget 42",
+        type_=ProductType.PRODUCT,
+        uom="pcs",
+        default_supplier_id=42,
+    )
+    variant_response = VariantResponse(
+        id=42,
+        sku="WIDGET-42",
+        product_id=700,
+        product_or_material=parent,
+    )
+
+    # Bulk cache lookups all return empty — parent product 700 and
+    # variant 42 are both absent. Supplier 42 is also absent (the
+    # cold-cache test ensures the nested parent is enough to surface
+    # ``uom`` / ``default_supplier_id`` even when supplier name lookup
+    # also misses).
+    async def _bulk(_cls, _ids, **_kwargs):
+        return {}
+
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(side_effect=_bulk)
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
+
+    inv = MagicMock()
+    inv.location_id = 1
+    inv.quantity_in_stock = "5.0"
+    inv.quantity_committed = "0.0"
+    inv.quantity_expected = "0.0"
+    inv.reorder_point = UNSET
+    inv.safety_stock_level = UNSET
+    inv.value_in_stock = UNSET
+    inv.average_cost = UNSET
+
+    with (
+        patch(
+            "katana_public_api_client.api.variant.get_variant.asyncio_detailed",
+            new_callable=AsyncMock,
+        ) as mock_get_variant,
+        patch(
+            "katana_public_api_client.utils.unwrap",
+            return_value=variant_response,
+        ),
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[inv]),
+    ):
+        request = CheckInventoryRequest(skus_or_variant_ids=[42])
+        results = await _check_inventory_impl(request, context)
+
+    r = results[0]
+    # Critical assertions: enrichment recovers uom + default_supplier_id
+    # from the nested parent even though the parent cache lookup missed.
+    assert r.uom == "pcs"
+    assert r.default_supplier_id == 42
+    assert r.parent_type == "product"
+    assert r.katana_url is not None and "/product/700" in r.katana_url
+    # SKU is non-null here; the ordering is display_name → sku → parent.name,
+    # so product_name resolves to the SKU. The parent-name fallback covers
+    # the null-SKU path — see ``test_..._null_sku_uses_parent_name``.
+    assert r.product_name == "WIDGET-42"
+    assert r.is_found is True
+    # Pin the API contract: the call MUST request ``PRODUCT_OR_MATERIAL``
+    # via ``extend`` — without that, the live API returns a stripped
+    # ``VariantResponse`` and cold-cache enrichment silently loses uom /
+    # default_supplier (the unwrap mock above hides the regression).
+    from katana_public_api_client.models import GetVariantExtendItem
+
+    mock_get_variant.assert_awaited_once()
+    await_args = mock_get_variant.await_args
+    assert await_args is not None
+    assert await_args.kwargs.get("extend") == [GetVariantExtendItem.PRODUCT_OR_MATERIAL]
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_variant_id_cold_cache_null_sku_uses_parent_name():
+    """SKU-less + cold-cache variant_id path must surface the parent's
+    name as ``product_name`` — the API-fallback ``VariantResponse`` has
+    no ``display_name`` field and ``Variant.sku`` is nullable, so
+    without the parent fallback the card title would degrade to
+    "Unknown" for an entirely valid variant."""
+    from katana_public_api_client.models import Product, VariantResponse
+    from katana_public_api_client.models.product_type import ProductType
+
+    context, lifespan_ctx = create_mock_context()
+
+    # Variant carries a null SKU (the documented legacy NetSuite case)
+    # and no display_name. The extended parent payload supplies the name.
+    parent = Product(id=701, name="Legacy NetSuite Widget", type_=ProductType.PRODUCT)
+    variant_response = VariantResponse(
+        id=43, sku=None, product_id=701, product_or_material=parent
+    )
+
+    async def _bulk(_cls, _ids, **_kwargs):
+        return {}
+
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(side_effect=_bulk)
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
+
+    inv = MagicMock()
+    inv.location_id = 1
+    inv.quantity_in_stock = "0.0"
+    inv.quantity_committed = "0.0"
+    inv.quantity_expected = "0.0"
+    inv.reorder_point = UNSET
+    inv.safety_stock_level = UNSET
+    inv.value_in_stock = UNSET
+    inv.average_cost = UNSET
+
+    with (
+        patch(
+            "katana_public_api_client.api.variant.get_variant.asyncio_detailed",
+            new_callable=AsyncMock,
+        ),
+        patch(
+            "katana_public_api_client.utils.unwrap",
+            return_value=variant_response,
+        ),
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[inv]),
+    ):
+        request = CheckInventoryRequest(skus_or_variant_ids=[43])
+        results = await _check_inventory_impl(request, context)
+
+    r = results[0]
+    assert r.is_found is True
+    assert r.product_name == "Legacy NetSuite Widget"
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_not_found_marks_is_found_false():
+    """Not-found stubs echo the input back in ``sku``/``variant_id`` but
+    must set ``is_found=False`` so the UI footer can suppress actionable
+    buttons that would otherwise target a non-existent variant."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=None)
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
+
+    with patch(
+        "katana_mcp.tools.foundation.items._fetch_variant_by_id",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        request = CheckInventoryRequest(skus_or_variant_ids=["MISSING-SKU", 99999])
+        results = await _check_inventory_impl(request, context)
+
+    assert len(results) == 2
+    # SKU stub: echoed back, but flagged not-found.
+    assert results[0].sku == "MISSING-SKU"
+    assert results[0].is_found is False
+    # variant_id stub: echoed back, but flagged not-found.
+    assert results[1].variant_id == 99999
+    assert results[1].is_found is False
+
+
+def test_inventory_check_footer_suppresses_buttons_when_not_found():
+    """``is_found=False`` must hide Create PO / View Variant Details so
+    the agent does not chase a variant the server reported missing."""
+    from katana_mcp.tools.prefab_ui import build_inventory_check_ui
+
+    stock = {
+        "sku": "MISSING-SKU",
+        "product_name": "",
+        "in_stock": 0,
+        "available_stock": 0,
+        "committed": 0,
+        "expected": 0,
+        "is_found": False,
+    }
+    import json as _json
+
+    rendered = _json.dumps(build_inventory_check_ui(stock).to_json())
+    assert "Create PO" not in rendered
+    assert "View Variant Details" not in rendered
 
 
 def test_inventory_check_card_renders_by_location_table_when_split():

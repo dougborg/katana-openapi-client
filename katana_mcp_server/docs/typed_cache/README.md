@@ -62,8 +62,7 @@ Don't add a new opt-in flag without the matching derived bool, and vice versa.
 **Known gaps** (filed for follow-up):
 
 - `list_stock_transfers` lacks `include_deleted` parity (#484).
-- `check_inventory` and the inventory reporting tools lack `include_archived` and the
-  `is_archived` row field (#539).
+- `check_inventory` lacks `include_archived` and the `is_archived` row field (#539).
 - Transactional response models lack the `is_deleted` derived bool (#540).
 
 ______________________________________________________________________

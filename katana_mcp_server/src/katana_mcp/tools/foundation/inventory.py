@@ -11,7 +11,7 @@ import json
 import time
 from datetime import datetime
 from itertools import batched
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal, NamedTuple
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
@@ -112,7 +112,14 @@ class CheckInventoryRequest(BaseModel):
 
 
 class LocationStock(BaseModel):
-    """Per-location stock breakdown for a single variant."""
+    """Per-location stock breakdown for a single variant.
+
+    Threshold fields (``reorder_point``, ``safety_stock_level``) come from
+    the per-(variant, location) inventory point — Katana stores reorder
+    thresholds per warehouse, not globally. ``value_in_stock`` and
+    ``average_cost`` round out the per-location picture so callers can see
+    capital exposure per warehouse.
+    """
 
     location_id: int
     location_name: str | None = None
@@ -120,13 +127,24 @@ class LocationStock(BaseModel):
     committed: float
     expected: float
     available: float
+    reorder_point: float | None = None
+    safety_stock_level: float | None = None
+    value_in_stock: float | None = None
+    average_cost: float | None = None
 
 
 class StockInfo(BaseModel):
     """Stock information for a variant. Totals are sums across locations
     (or a single location when ``location_id`` was supplied on the
     request); ``by_location`` carries the per-warehouse breakdown so
-    callers can see where stock actually is without a follow-up query."""
+    callers can see where stock actually is without a follow-up query.
+
+    Parent-derived context (``uom``, ``default_supplier_*``,
+    ``parent_type``, ``katana_url``) is folded in from the parent
+    product/material via the typed cache so the agent doesn't need a
+    separate ``get_item`` call to know what unit they're looking at or
+    where to place a follow-up PO.
+    """
 
     variant_id: int | None = None
     sku: str
@@ -136,6 +154,37 @@ class StockInfo(BaseModel):
     expected: float
     in_stock: float
     by_location: list[LocationStock] = Field(default_factory=list)
+    # ``False`` for not-found stubs — ``_check_inventory_impl`` echoes
+    # the input back in ``sku`` / ``variant_id`` so the JSON envelope
+    # still names the row, but actionable UI affordances (Create PO,
+    # View Variant Details) must be gated on this flag rather than
+    # presence of ``sku`` / ``variant_id`` alone.
+    is_found: bool = True
+
+    # Parent-derived context (lifted from parent product/material via cache)
+    uom: str | None = None
+    default_supplier_id: int | None = None
+    default_supplier_name: str | None = None
+    parent_type: Literal["product", "material"] | None = None
+    katana_url: str | None = None  # deep-link to parent page
+
+
+class _InventoryRow(NamedTuple):
+    """Per-location inventory-point fields, parsed from the API response.
+
+    Intermediate shape between the wire envelope and ``LocationStock`` —
+    keeps the row-extraction loop terse and makes the comprehension that
+    builds ``by_location`` readable without an 8-tuple positional unpack.
+    """
+
+    location_id: int
+    in_stock: float
+    committed: float
+    expected: float
+    reorder_point: float | None
+    safety_stock_level: float | None
+    value_in_stock: float | None
+    average_cost: float | None
 
 
 async def _fetch_stock_for_variant(
@@ -162,8 +211,11 @@ async def _fetch_stock_for_variant(
     response = await get_all_inventory_point.asyncio_detailed(**api_kwargs)
     inventory_items = unwrap_data(response)
 
-    # First pass: extract numbers + collect unique location IDs.
-    rows: list[tuple[int, float, float, float]] = []
+    # First pass: extract numbers + collect unique location IDs. Threshold
+    # and value fields live on the inventory point per-location too — pull
+    # them through so the card can render reorder-point bands and capital
+    # exposure without a follow-up call.
+    rows: list[_InventoryRow] = []
     total_in_stock = 0.0
     total_committed = 0.0
     total_expected = 0.0
@@ -177,14 +229,27 @@ async def _fetch_stock_for_variant(
         total_in_stock += in_stock
         total_committed += committed
         total_expected += expected
-        rows.append((loc_id, in_stock, committed, expected))
+        rows.append(
+            _InventoryRow(
+                location_id=loc_id,
+                in_stock=in_stock,
+                committed=committed,
+                expected=expected,
+                reorder_point=_opt_float(unwrap_unset(inv.reorder_point, None)),
+                safety_stock_level=_opt_float(
+                    unwrap_unset(inv.safety_stock_level, None)
+                ),
+                value_in_stock=_opt_float(unwrap_unset(inv.value_in_stock, None)),
+                average_cost=_opt_float(unwrap_unset(inv.average_cost, None)),
+            )
+        )
 
     # Batch the location-name lookups via the cache's bulk helper —
     # one query for N IDs instead of N round trips. Cache misses are
     # non-fatal (location_id alone is still useful to the caller).
     loc_names: dict[int, str | None] = {}
     if rows:
-        unique_loc_ids = {loc_id for loc_id, _, _, _ in rows}
+        unique_loc_ids = {row.location_id for row in rows}
         loc_lookups = await services.typed_cache.catalog.get_many_by_ids(
             CachedLocation, unique_loc_ids
         )
@@ -192,14 +257,18 @@ async def _fetch_stock_for_variant(
 
     by_location = [
         LocationStock(
-            location_id=loc_id,
-            location_name=loc_names.get(loc_id),
-            in_stock=in_stock,
-            committed=committed,
-            expected=expected,
-            available=in_stock - committed,
+            location_id=row.location_id,
+            location_name=loc_names.get(row.location_id),
+            in_stock=row.in_stock,
+            committed=row.committed,
+            expected=row.expected,
+            available=row.in_stock - row.committed,
+            reorder_point=row.reorder_point,
+            safety_stock_level=row.safety_stock_level,
+            value_in_stock=row.value_in_stock,
+            average_cost=row.average_cost,
         )
-        for loc_id, in_stock, committed, expected in rows
+        for row in rows
     ]
     by_location.sort(key=lambda ls: ls.in_stock, reverse=True)
     return StockInfo(
@@ -212,6 +281,97 @@ async def _fetch_stock_for_variant(
         in_stock=total_in_stock,
         by_location=by_location,
     )
+
+
+async def _enrich_stock_info_with_parent(
+    services: Any,
+    results: list[StockInfo],
+    *,
+    variants_by_id: dict[int, Any] | None = None,
+) -> None:
+    """Mutate each :class:`StockInfo` in place with parent-derived context.
+
+    ``variants_by_id`` carries the variants the caller already resolved
+    (cache hit or API fallback). When provided, enrichment uses those
+    rows directly — critical for the cold-cache variant-id path, where
+    re-resolving from the cache alone would silently drop the
+    just-fetched API row and lose UoM, supplier, parent type, and
+    katana_url on the response.
+
+    When the map is omitted, falls back to a bulk cache lookup with the
+    archived/deleted flags so direct lookups in ``_check_inventory_impl``
+    don't lose enrichment for soft-deleted rows.
+
+    Bulk-loads parent products / materials / default suppliers via
+    :func:`_enrich_variants_with_parent`. Variants without a
+    ``variant_id`` (not-found stubs) are skipped silently. Cache misses
+    on parent / supplier degrade gracefully — fields stay ``None`` and
+    the card omits the corresponding lines.
+    """
+    from katana_mcp.tools.foundation.items import _enrich_variants_with_parent
+
+    enrichable = [r for r in results if r.variant_id is not None]
+    if not enrichable:
+        return
+
+    if variants_by_id is not None:
+        variants: dict[int, Any] = variants_by_id
+    else:
+        variant_ids = [r.variant_id for r in enrichable if r.variant_id is not None]
+        variants = await services.typed_cache.catalog.get_many_by_ids(
+            CachedVariant,
+            variant_ids,
+            include_archived=True,
+            include_deleted=True,
+        )
+    cache_variants = [v for v in variants.values() if v is not None]
+
+    (
+        products_by_id,
+        materials_by_id,
+        supplier_by_id,
+    ) = await _enrich_variants_with_parent(services, cache_variants)
+
+    parent_lookup: dict[Literal["product", "material"], dict[int, Any]] = {
+        "product": products_by_id,
+        "material": materials_by_id,
+    }
+    for r in enrichable:
+        if r.variant_id is None:
+            continue
+        variant = variants.get(r.variant_id)
+        # Variants carry exactly one of product_id / material_id; pick whichever
+        # is set so the right parent map and URL kind get used.
+        kind: Literal["product", "material"] | None
+        if pid := _attr(variant, "product_id"):
+            kind, parent_id = "product", pid
+        elif mid := _attr(variant, "material_id"):
+            kind, parent_id = "material", mid
+        else:
+            continue
+        r.parent_type = kind
+        r.katana_url = katana_web_url(kind, parent_id)
+        parent = parent_lookup[kind].get(parent_id)
+        if parent is None:
+            continue
+        r.uom = _attr(parent, "uom")
+        sup_id = _attr(parent, "default_supplier_id")
+        if sup_id:
+            r.default_supplier_id = sup_id
+            supplier = supplier_by_id.get(sup_id)
+            r.default_supplier_name = _attr(supplier, "name")
+
+
+def _opt_float(value: Any) -> float | None:
+    """Coerce a string / number / None to ``float`` or ``None``.
+
+    Optional inventory-point thresholds must surface as ``None`` when
+    unset, never ``0.0`` — a coerced zero would silently flip the
+    "below reorder point" check on every threshold-less row.
+    """
+    if value is None or value == "":
+        return None
+    return float(value)
 
 
 async def _check_inventory_impl(
@@ -248,7 +408,11 @@ async def _check_inventory_impl(
         # cold cache doesn't silently return empty stock.
         from katana_mcp.tools.foundation.items import _fetch_variant_by_id
 
-        async def _fetch(item: str | int) -> StockInfo:
+        async def _fetch(item: str | int) -> tuple[StockInfo, Any | None]:
+            """Returns ``(StockInfo, variant_or_None)`` so the variant we
+            already resolved (cache hit or API fallback) can be reused
+            during enrichment without a redundant lookup that would also
+            silently drop API-fallback rows on a cold cache."""
             if isinstance(item, str):
                 # ``get_by_sku`` defaults filter archived parents and
                 # soft-deleted variants; pass ``include_*=True`` so
@@ -261,44 +425,74 @@ async def _check_inventory_impl(
                 )
                 if not variant:
                     logger.warning("inventory_check_not_found", sku=item)
-                    return StockInfo(
-                        sku=item,
-                        product_name="",
-                        available_stock=0,
-                        committed=0,
-                        expected=0,
-                        in_stock=0,
+                    return (
+                        StockInfo(
+                            sku=item,
+                            product_name="",
+                            available_stock=0,
+                            committed=0,
+                            expected=0,
+                            in_stock=0,
+                            is_found=False,
+                        ),
+                        None,
                     )
-                return await _fetch_stock_for_variant(
+                stock = await _fetch_stock_for_variant(
                     services,
                     _attr(variant, "id"),
                     item,
                     _attr(variant, "display_name") or _attr(variant, "sku") or "",
                     location_id=request.location_id,
                 )
+                return stock, variant
 
             variant = await _fetch_variant_by_id(services, item)
             if not variant:
                 logger.warning("inventory_check_not_found", variant_id=item)
-                return StockInfo(
-                    variant_id=item,
-                    sku="",
-                    product_name="",
-                    available_stock=0,
-                    committed=0,
-                    expected=0,
-                    in_stock=0,
+                return (
+                    StockInfo(
+                        variant_id=item,
+                        sku="",
+                        product_name="",
+                        available_stock=0,
+                        committed=0,
+                        expected=0,
+                        in_stock=0,
+                        is_found=False,
+                    ),
+                    None,
                 )
             sku = _attr(variant, "sku") or ""
-            return await _fetch_stock_for_variant(
-                services,
-                item,
-                sku,
-                _attr(variant, "display_name") or sku or "",
-                location_id=request.location_id,
+            # ``VariantResponse`` (API fallback) has no ``display_name`` and
+            # SKU can be null; fall back to the nested parent's name (set by
+            # ``extend=[PRODUCT_OR_MATERIAL]``) so the card title surfaces
+            # the product/material name instead of degrading to "Unknown".
+            parent = _attr(variant, "product_or_material")
+            product_name = (
+                _attr(variant, "display_name") or sku or _attr(parent, "name") or ""
             )
+            stock = await _fetch_stock_for_variant(
+                services, item, sku, product_name, location_id=request.location_id
+            )
+            return stock, variant
 
-        results = list(await asyncio.gather(*(_fetch(item) for item in items)))
+        pairs = await asyncio.gather(*(_fetch(item) for item in items))
+        results = [stock for stock, _ in pairs]
+        # Reuse the variants we just resolved (whether from cache or via
+        # the API-fallback path) so enrichment never goes back to a
+        # cache-only lookup that would silently drop cold-cache rows.
+        variants_by_id: dict[int, Any] = {
+            stock.variant_id: variant
+            for stock, variant in pairs
+            if variant is not None and stock.variant_id is not None
+        }
+
+        # Fold parent-derived context (UoM, default supplier, parent type,
+        # katana_url) into each result so the card surfaces decision-critical
+        # facts without forcing the agent to chain a ``get_item`` call.
+        await _enrich_stock_info_with_parent(
+            services, results, variants_by_id=variants_by_id
+        )
 
         duration_ms = round((time.monotonic() - start_time) * 1000, 2)
         logger.info(

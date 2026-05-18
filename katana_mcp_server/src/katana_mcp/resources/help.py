@@ -292,19 +292,6 @@ previews already know the id and return a populated `katana_url`.
 4. **Create production**: search_items → create_manufacturing_order
 
 Use `katana://help/workflows` for detailed step-by-step guides.
-
-## Reporting & Analytics
-
-Aggregation tools compute rollups in one MCP call instead of paginating
-through hundreds of sales orders client-side. All read-only, no `preview` flag.
-
-- **top_selling_variants** — top-N variants by units or revenue over a
-  date window. Filters: category, location.
-- **sales_summary** — group sales by day/week/month, variant, customer,
-  or category over a window.
-- **inventory_velocity** — units sold (SO), units consumed by completed MOs,
-  avg-daily, stock-on-hand, and days-of-cover for one SKU or a batch of SKUs.
-  Use ``sku_or_variant_ids`` for cross-variant reports in a single call.
 """
 
 HELP_WORKFLOWS = """
@@ -477,51 +464,6 @@ Detailed step-by-step guides for common manufacturing ERP workflows.
    ```
    Returns current stock levels and availability.
 
----
-
-## Workflow 6: Sales Analytics & Velocity
-
-**Goal:** Answer analytical questions ("top sellers", "sales by month", "how
-fast is this SKU moving?") in a single tool call instead of paginating
-through hundreds of orders.
-
-### Steps
-
-1. **Find top sellers for a category and period**
-   ```json
-   Tool: top_selling_variants
-   Request: {
-     "start_date": "2026-01-22",
-     "end_date": "2026-04-22",
-     "limit": 20,
-     "category": "widgets",
-     "order_by": "units"
-   }
-   ```
-   Returns the top 20 SKUs in the `widgets` category by units sold over the
-   last 90 days. Substitute `order_by="revenue"` to sort by dollar volume.
-
-2. **Group sales by time or dimension**
-   ```json
-   Tool: sales_summary
-   Request: {
-     "start_date": "2026-01-01",
-     "end_date": "2026-03-31",
-     "group_by": "month"
-   }
-   ```
-   Supports `group_by` of `day`, `week` (ISO weeks), `month`, `variant`,
-   `customer`, or `category`.
-
-3. **Check velocity and days-of-cover for a SKU**
-   ```json
-   Tool: inventory_velocity
-   Request: {"sku_or_variant_id": "WIDGET-001", "period_days": 90}
-   ```
-   Returns `{items: [{sku, variant_id, units_sold, units_consumed_by_mos,
-   units_total, avg_daily, stock_on_hand, days_of_cover, ...}]}`. Use
-   ``sku_or_variant_ids`` for a batch cross-variant report in one call.
-   `days_of_cover` is `null` when average daily demand is 0 (no history).
 """
 
 HELP_TOOLS = """
@@ -1976,60 +1918,6 @@ carrying per-entity `parent_rows_before/after`, `child_rows_before/after`,
 - Bandwidth cost equals one full cold-start sync per entity type
   (paginated via the auto-pagination transport).
 
----
-
-## Reporting & Analytics Tools
-
-### top_selling_variants
-Top-selling variants over a date window (single call; auto-paginates and
-aggregates DELIVERED sales orders in memory).
-
-**Parameters:**
-- `start_date` (required): ISO-8601 date — window start (inclusive)
-- `end_date` (required): ISO-8601 date — window end (inclusive)
-- `limit` (optional, default 20, min 1): Max rows to return
-- `category` (optional): Item category name to filter by (e.g. "widgets")
-- `order_by` (optional, default "units"): "units" or "revenue"
-- `location_id` (optional): Filter to a single location
-
-**Returns:** List of `{sku, variant_id, name, units, revenue, order_count}`
-sorted by the `order_by` key descending.
-
----
-
-### sales_summary
-Grouped sales totals for DELIVERED orders in a window.
-
-**Parameters:**
-- `start_date` (required): ISO-8601 date — window start (inclusive)
-- `end_date` (required): ISO-8601 date — window end (inclusive)
-- `group_by` (required): one of `day`, `week`, `month`, `variant`,
-  `customer`, `category`
-
-**Returns:** List of `{group, units, revenue, order_count}`. Time groups
-(`day`/`week`/`month`) sort ascending; dimension groups sort by revenue
-descending.
-
----
-
-### inventory_velocity
-Velocity stats and days-of-cover for one or more SKUs/variants. Includes both
-sales-order demand and manufacturing-order ingredient consumption. Use
-``sku_or_variant_ids`` for cross-variant batch reports in a single call.
-
-**Parameters:**
-- `sku_or_variant_id` (required for single): SKU (string) or variant_id (int)
-- `sku_or_variant_ids` (required for batch): list of SKUs and/or variant IDs
-  (max 100). Exactly one of `sku_or_variant_id` or `sku_or_variant_ids` must
-  be provided.
-- `period_days` (optional, default 90, max 365): Rolling window size
-- `include_mo_consumption` (optional, default true): Include units consumed as
-  ingredients on completed MOs. Set false for SO-only numbers (legacy behavior).
-
-**Returns:** `{items: [{sku, variant_id, units_sold, units_consumed_by_mos,
-units_total, avg_daily, stock_on_hand, days_of_cover, period_days,
-window_start, window_end}]}`. `days_of_cover` is `null` when `avg_daily` is 0
-(no demand in window).
 """
 
 HELP_RESOURCES = """

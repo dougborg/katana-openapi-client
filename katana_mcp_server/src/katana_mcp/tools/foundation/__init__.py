@@ -17,6 +17,12 @@ Organization:
 - reference.py: Thin tool wrappers for reference-data resources
   (locations, suppliers, tax rates, operators, additional costs)
 - cache_admin.py: Cache administration (rebuild_cache for typed cache)
+
+Reporting / forecasting tools (top_selling_variants, sales_summary,
+inventory_velocity) were removed in favor of Katana's own forecasting
+and replenishment work — those features are part of Katana's roadmap
+and surfacing our derived approximations would drift from their
+authoritative numbers.
 """
 
 from fastmcp import FastMCP
@@ -32,7 +38,6 @@ from .manufacturing_orders import register_tools as register_manufacturing_order
 from .orders import register_tools as register_order_tools
 from .purchase_orders import register_tools as register_purchase_order_tools
 from .reference import register_tools as register_reference_tools
-from .reporting import register_tools as register_reporting_tools
 from .sales_orders import register_tools as register_sales_order_tools
 from .stock_transfers import register_tools as register_stock_transfer_tools
 
@@ -53,7 +58,6 @@ def register_all_foundation_tools(mcp: FastMCP) -> None:
     register_order_tools(mcp)
     register_stock_transfer_tools(mcp)
     register_reference_tools(mcp)
-    register_reporting_tools(mcp)
     register_cache_admin_tools(mcp)
     register_corrections_tools(mcp)
     register_bom_tools(mcp)

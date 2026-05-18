@@ -1003,6 +1003,311 @@ class TestBuildInventoryCheckUI:
         app = build_inventory_check_ui(stock)
         _assert_valid_prefab(app)
 
+    def test_uom_badge_renders_when_set(self):
+        """#549 — parent-derived UoM should appear as a header badge."""
+        stock = {
+            "sku": "LU2313",
+            "product_name": "Tubeless Sealant",
+            "uom": "ml",
+            "in_stock": 250,
+            "available_stock": 250,
+            "committed": 0,
+            "expected": 0,
+        }
+        envelope = build_inventory_check_ui(stock).to_json()
+        badges = _find_components_by_type(envelope, "Badge")
+        labels = [b.get("label") for b in badges]
+        assert "ml" in labels, f"UoM badge missing; got {labels!r}"
+
+    def test_low_stock_badge_when_any_location_below_reorder(self):
+        """#549 — destructive Low Stock badge fires when any location's
+        available is at or below its reorder_point. Multi-location +
+        per-location threshold is the canonical Katana shape."""
+        stock = {
+            "sku": "SKU-LOW",
+            "product_name": "Almost Out",
+            "in_stock": 12,
+            "available_stock": 12,
+            "committed": 0,
+            "expected": 0,
+            "by_location": [
+                {
+                    "location_id": 1,
+                    "location_name": "Main",
+                    "in_stock": 5,
+                    "committed": 0,
+                    "expected": 0,
+                    "available": 5,
+                    "reorder_point": 10,
+                },
+                {
+                    "location_id": 2,
+                    "location_name": "Backup",
+                    "in_stock": 7,
+                    "committed": 0,
+                    "expected": 0,
+                    "available": 7,
+                    "reorder_point": 5,
+                },
+            ],
+        }
+        envelope = build_inventory_check_ui(stock).to_json()
+        badges = _find_components_by_type(envelope, "Badge")
+        labels = [b.get("label") for b in badges]
+        assert "Low Stock" in labels, f"Expected Low Stock badge; got {labels!r}"
+
+    def test_low_stock_badge_when_available_equals_reorder_point(self):
+        """Reorder semantics fire at ``available <= reorder_point``, so the
+        equality case (``available == reorder_point``) must trigger the
+        badge too — not just strictly-below. Pinning explicitly because the
+        per-row Status column splits this case off as ``At reorder``, and
+        the header badge has to honor that as a low-stock state.
+        """
+        stock = {
+            "sku": "SKU-EQ",
+            "product_name": "At Threshold",
+            "in_stock": 10,
+            "available_stock": 10,
+            "committed": 0,
+            "expected": 0,
+            "by_location": [
+                {
+                    "location_id": 1,
+                    "location_name": "Main",
+                    "in_stock": 10,
+                    "committed": 0,
+                    "expected": 0,
+                    "available": 10,
+                    "reorder_point": 10,
+                },
+            ],
+        }
+        envelope = build_inventory_check_ui(stock).to_json()
+        badges = _find_components_by_type(envelope, "Badge")
+        labels = [b.get("label") for b in badges]
+        assert "Low Stock" in labels, (
+            f"Available equal to reorder point must trigger Low Stock badge; "
+            f"got {labels!r}"
+        )
+
+    def test_no_low_stock_badge_when_all_above_threshold(self):
+        """Symmetric to the badge test — no destructive badge when every
+        location is above its reorder point."""
+        stock = {
+            "sku": "SKU-OK",
+            "product_name": "Healthy",
+            "in_stock": 100,
+            "available_stock": 100,
+            "committed": 0,
+            "expected": 0,
+            "by_location": [
+                {
+                    "location_id": 1,
+                    "location_name": "Main",
+                    "in_stock": 100,
+                    "committed": 0,
+                    "expected": 0,
+                    "available": 100,
+                    "reorder_point": 10,
+                },
+            ],
+        }
+        envelope = build_inventory_check_ui(stock).to_json()
+        badges = _find_components_by_type(envelope, "Badge")
+        labels = [b.get("label") for b in badges]
+        assert "Low Stock" not in labels, (
+            f"Healthy stock should not show Low Stock badge; got {labels!r}"
+        )
+
+    def test_no_low_stock_badge_when_no_thresholds_set(self):
+        """A missing reorder_point is a missing signal — never flag."""
+        stock = {
+            "sku": "SKU-UNK",
+            "product_name": "No Thresholds",
+            "in_stock": 0,
+            "available_stock": 0,
+            "committed": 0,
+            "expected": 0,
+            "by_location": [
+                {
+                    "location_id": 1,
+                    "location_name": "Main",
+                    "in_stock": 0,
+                    "committed": 0,
+                    "expected": 0,
+                    "available": 0,
+                    "reorder_point": None,
+                },
+            ],
+        }
+        envelope = build_inventory_check_ui(stock).to_json()
+        badges = _find_components_by_type(envelope, "Badge")
+        labels = [b.get("label") for b in badges]
+        assert "Low Stock" not in labels
+
+    def test_footer_includes_create_po_and_view_variant_for_product(self):
+        """Tier 4 — product variant gets [Create PO] + [View Variant
+        Details], no [List MOs]."""
+        stock = {
+            "sku": "SKU-PROD",
+            "product_name": "Sellable Product",
+            "in_stock": 10,
+            "available_stock": 10,
+            "committed": 0,
+            "expected": 0,
+            "parent_type": "product",
+            "variant_id": 999,
+        }
+        envelope = build_inventory_check_ui(stock).to_json()
+        assert len(_find_buttons_by_label(envelope, "Create PO")) == 1
+        assert len(_find_buttons_by_label(envelope, "View Variant Details")) == 1
+        assert len(_find_buttons_by_label(envelope, "List MOs Using This")) == 0
+
+    def test_footer_omits_list_mos_button(self):
+        """The "List MOs Using This" action was removed in #757 / #758 —
+        no available tool answers "what MOs consume this material" in
+        a single call (``list_manufacturing_orders.variant_ids`` filters
+        finished goods; ``list_blocking_ingredients`` has no per-variant
+        filter). Pin the absence so re-adding the button without the
+        upstream filter regresses this test, not production UX.
+        """
+        stock = {
+            "sku": "MAT-001",
+            "product_name": "Sealant",
+            "in_stock": 10,
+            "available_stock": 10,
+            "committed": 0,
+            "expected": 0,
+            "parent_type": "material",
+            "variant_id": 12345,
+        }
+        envelope = build_inventory_check_ui(stock).to_json()
+        assert len(_find_buttons_by_label(envelope, "Create PO")) == 1
+        assert len(_find_buttons_by_label(envelope, "List MOs Using This")) == 0
+
+    def test_title_links_to_katana_when_url_set(self):
+        """#549 — title becomes a Link to the parent Katana page when
+        ``katana_url`` is on the response."""
+        stock = {
+            "sku": "SKU-LINK",
+            "product_name": "Linked",
+            "in_stock": 10,
+            "available_stock": 10,
+            "committed": 0,
+            "expected": 0,
+            "katana_url": "https://factory.katanamrp.com/product/123",
+        }
+        envelope = build_inventory_check_ui(stock).to_json()
+        links = _find_components_by_type(envelope, "Link")
+        hrefs = [link.get("href") for link in links]
+        assert any("/product/123" in (h or "") for h in hrefs), (
+            f"Title link missing; got hrefs {hrefs!r}"
+        )
+
+    def test_per_location_table_carries_reorder_and_status_columns(self):
+        """#549 — Tier 3 DataTable now carries reorder_point + status_label
+        columns derived from per-row threshold comparison."""
+        stock = {
+            "sku": "SKU-MULTI",
+            "product_name": "Multi-warehouse",
+            "in_stock": 30,
+            "available_stock": 30,
+            "committed": 0,
+            "expected": 0,
+            "by_location": [
+                {
+                    "location_id": 1,
+                    "location_name": "A",
+                    "in_stock": 5,
+                    "committed": 0,
+                    "expected": 0,
+                    "available": 5,
+                    "reorder_point": 10,
+                },
+                {
+                    "location_id": 2,
+                    "location_name": "B",
+                    "in_stock": 25,
+                    "committed": 0,
+                    "expected": 0,
+                    "available": 25,
+                    "reorder_point": 10,
+                },
+            ],
+        }
+        envelope = build_inventory_check_ui(stock).to_json()
+        tables = _find_components_by_type(envelope, "DataTable")
+        assert len(tables) == 1, (
+            f"Expected one per-location DataTable; got {len(tables)}"
+        )
+        column_keys = [c.get("key") for c in tables[0].get("columns", [])]
+        assert "reorder_point" in column_keys
+        assert "status_label" in column_keys
+        # ``location_id`` must be present as an always-rendered fallback
+        # for the multi-location case where ``location_name`` may be
+        # ``None`` on a cache miss — without it the row is unidentifiable.
+        assert "location_id" in column_keys, (
+            f"Per-location table must keep location_id as a fallback identifier; "
+            f"got columns {column_keys!r}"
+        )
+        # Ensure the builder annotated the rows in state with status_label
+        rows_state = envelope.get("state", {}).get("stock", {}).get("by_location", [])
+        labels = [r.get("status_label") for r in rows_state]
+        assert "Below reorder" in labels, f"Got status labels {labels!r}"
+        assert "Healthy" in labels
+
+    def test_footer_uses_variant_id_when_sku_is_null(self):
+        """Variants can have a null SKU (CLAUDE.md "Variants can have null
+        SKUs — never assume ``Variant.sku`` is non-null"). The footer
+        actions must fall back to ``variant_id`` so SKU-less rows still
+        get actionable buttons instead of producing a broken
+        "for SKU " prompt or silently dropping the View Variant Details
+        button.
+        """
+        stock = {
+            "sku": None,
+            "variant_id": 9999,
+            "product_name": "Legacy NetSuite Import",
+            "in_stock": 10,
+            "available_stock": 10,
+            "committed": 0,
+            "expected": 0,
+            "parent_type": "product",
+        }
+        envelope = build_inventory_check_ui(stock).to_json()
+        # Both buttons render
+        assert len(_find_buttons_by_label(envelope, "Create PO")) == 1
+        assert len(_find_buttons_by_label(envelope, "View Variant Details")) == 1
+        # Prompt text uses variant_id, not "SKU "
+        # Walk the JSON for the SendMessage payload strings
+        import json as _json
+
+        rendered = _json.dumps(envelope)
+        assert "variant_id 9999" in rendered, (
+            f"Expected variant_id fallback in agent prompts; rendered: {rendered[:500]!r}"
+        )
+        assert "for SKU " not in rendered, (
+            f"Null-SKU footer must not produce broken 'for SKU ' prompts; "
+            f"rendered: {rendered[:500]!r}"
+        )
+
+    def test_footer_omits_buttons_when_no_identity(self):
+        """Defensive — if both sku and variant_id are missing (truly
+        anonymous row), drop the buttons entirely rather than emit
+        prompts with no target."""
+        stock = {
+            "sku": None,
+            "variant_id": None,
+            "product_name": "Mystery",
+            "in_stock": 0,
+            "available_stock": 0,
+            "committed": 0,
+            "expected": 0,
+        }
+        envelope = build_inventory_check_ui(stock).to_json()
+        assert len(_find_buttons_by_label(envelope, "Create PO")) == 0
+        assert len(_find_buttons_by_label(envelope, "View Variant Details")) == 0
+
 
 class TestBuildLowStockUI:
     def test_with_items(self):
