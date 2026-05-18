@@ -2,6 +2,65 @@
 
 <!-- version list -->
 
+## v0.67.0 (2026-05-18)
+
+### Chores
+
+- **mcp**: Update client dependency to v0.66.0
+  ([`8c3c69c`](https://github.com/dougborg/katana-openapi-client/commit/8c3c69c71684ae3d3d60c6da86a9b20dc2e4ba3e))
+
+- **release**: Mcp v0.77.0
+  ([`aa79747`](https://github.com/dougborg/katana-openapi-client/commit/aa79747f63c3ea6ecbc0c42ddee0f20861401437))
+
+- **release**: Mcp v0.78.0
+  ([`96d467e`](https://github.com/dougborg/katana-openapi-client/commit/96d467ee1e79778c742925bf0006246d1210dd42))
+
+- **release**: Mcp v0.79.0
+  ([`f4e9004`](https://github.com/dougborg/katana-openapi-client/commit/f4e9004c40710df3429d6e98ef0973d59fd177b0))
+
+### Features
+
+- **client**: Live-verified spec drift batch + verification harness
+  ([#756](https://github.com/dougborg/katana-openapi-client/pull/756),
+  [`2f5d5b4`](https://github.com/dougborg/katana-openapi-client/commit/2f5d5b405877867ffa0ccf765f5d7f4d4270ca41))
+
+- **mcp**: Per-entity PO modify card with field-level diff overlay — #722
+  ([#755](https://github.com/dougborg/katana-openapi-client/pull/755),
+  [`5713459`](https://github.com/dougborg/katana-openapi-client/commit/5713459fce23976d04d925db11a9c1992c5de608))
+
+- **mcp**: Product-level BOM tooling (#747)
+  ([#748](https://github.com/dougborg/katana-openapi-client/pull/748),
+  [`4b6d23a`](https://github.com/dougborg/katana-openapi-client/commit/4b6d23a544e0a70d921a9a6fb8fab1172792495a))
+
+- **mcp**: Product-level BOM tooling (get_product_bom, manage_product_bom)
+  ([#748](https://github.com/dougborg/katana-openapi-client/pull/748),
+  [`4b6d23a`](https://github.com/dougborg/katana-openapi-client/commit/4b6d23a544e0a70d921a9a6fb8fab1172792495a))
+
+- **mcp**: Wire Factory.base_currency_code through variant details card
+  ([#753](https://github.com/dougborg/katana-openapi-client/pull/753),
+  [`0e7127e`](https://github.com/dougborg/katana-openapi-client/commit/0e7127e70bf031a2319193f2ff1d1d6a8cb3eef7))
+
+### Refactoring
+
+- **mcp**: Extract \_format_money helper + standardize currency rendering
+  ([#752](https://github.com/dougborg/katana-openapi-client/pull/752),
+  [`b5f149d`](https://github.com/dougborg/katana-openapi-client/commit/b5f149d2febb2ca68af6090b26f33b2d8e7ec14e))
+
+### Testing
+
+- **mcp**: Type test_bom fixture defaults as `T | Unset`, not `T | object`
+  ([#748](https://github.com/dougborg/katana-openapi-client/pull/748),
+  [`4b6d23a`](https://github.com/dougborg/katana-openapi-client/commit/4b6d23a544e0a70d921a9a6fb8fab1172792495a))
+
+### Breaking Changes
+
+- **client**: `CustomFieldDefinition.id` becomes a UUID string (was integer);
+  `field_type` / `entity_type` become enums; `CreateServiceVariantRequest.sku` is no
+  longer required (callers omitting it will continue to work, but `required` removal is
+  a schema-level breaking change); `StockTransferRowRequest.quantity` becomes a string.
+  The MCP `stock_transfers` boundary already stringifies the input float so MCP callers
+  don't have to.
+
 ## v0.66.0 (2026-05-15)
 
 ### Chores
