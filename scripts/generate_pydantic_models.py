@@ -262,9 +262,10 @@ class CacheTableSpec:
 CACHE_TABLES: dict[str, CacheTableSpec] = {
     "SalesOrder": CacheTableSpec(
         # ``shipping_fee`` is a single nested object; ``addresses`` is a
-        # list of nested ``SalesOrderAddress``. Both stay JSON because
+        # list of nested ``SalesOrderAddress``. ``custom_fields`` is a
+        # tenant-keyed dict (see #734). All three stay JSON because
         # they're low-signal for the cache's filter workload.
-        json_columns=("shipping_fee", "addresses"),
+        json_columns=("shipping_fee", "addresses", "custom_fields"),
     ),
     "SalesOrderRow": CacheTableSpec(
         json_columns=(
@@ -272,6 +273,7 @@ CACHE_TABLES: dict[str, CacheTableSpec] = {
             "batch_transactions",
             "serial_numbers",
             "serial_number_transactions",
+            "custom_fields",
         ),
     ),
     "StockAdjustment": CacheTableSpec(),

@@ -12,6 +12,9 @@ if TYPE_CHECKING:
     from ..models.update_sales_order_row_request_attributes_item import (
         UpdateSalesOrderRowRequestAttributesItem,
     )
+    from ..models.update_sales_order_row_request_custom_fields_type_0 import (
+        UpdateSalesOrderRowRequestCustomFieldsType0,
+    )
     from ..models.update_sales_order_row_request_serial_number_transactions_item import (
         UpdateSalesOrderRowRequestSerialNumberTransactionsItem,
     )
@@ -39,8 +42,13 @@ class UpdateSalesOrderRowRequest:
         list[UpdateSalesOrderRowRequestSerialNumberTransactionsItem] | Unset
     ) = UNSET
     attributes: list[UpdateSalesOrderRowRequestAttributesItem] | Unset = UNSET
+    custom_fields: None | Unset | UpdateSalesOrderRowRequestCustomFieldsType0 = UNSET
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.update_sales_order_row_request_custom_fields_type_0 import (
+            UpdateSalesOrderRowRequestCustomFieldsType0,
+        )
+
         variant_id = self.variant_id
 
         quantity = self.quantity
@@ -76,6 +84,16 @@ class UpdateSalesOrderRowRequest:
                 attributes_item = attributes_item_data.to_dict()
                 attributes.append(attributes_item)
 
+        custom_fields: dict[str, Any] | None | Unset
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(
+            self.custom_fields, UpdateSalesOrderRowRequestCustomFieldsType0
+        ):
+            custom_fields = self.custom_fields.to_dict()
+        else:
+            custom_fields = self.custom_fields
+
         field_dict: dict[str, Any] = {}
 
         field_dict.update({})
@@ -97,6 +115,8 @@ class UpdateSalesOrderRowRequest:
             field_dict["serial_number_transactions"] = serial_number_transactions
         if attributes is not UNSET:
             field_dict["attributes"] = attributes
+        if custom_fields is not UNSET:
+            field_dict["custom_fields"] = custom_fields
 
         return field_dict
 
@@ -105,6 +125,9 @@ class UpdateSalesOrderRowRequest:
         from ..models.batch_transaction import BatchTransaction
         from ..models.update_sales_order_row_request_attributes_item import (
             UpdateSalesOrderRowRequestAttributesItem,
+        )
+        from ..models.update_sales_order_row_request_custom_fields_type_0 import (
+            UpdateSalesOrderRowRequestCustomFieldsType0,
         )
         from ..models.update_sales_order_row_request_serial_number_transactions_item import (
             UpdateSalesOrderRowRequestSerialNumberTransactionsItem,
@@ -160,6 +183,34 @@ class UpdateSalesOrderRowRequest:
 
                 attributes.append(attributes_item)
 
+        def _parse_custom_fields(
+            data: object,
+        ) -> None | Unset | UpdateSalesOrderRowRequestCustomFieldsType0:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_0 = (
+                    UpdateSalesOrderRowRequestCustomFieldsType0.from_dict(
+                        cast(Mapping[str, Any], data)
+                    )
+                )
+
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(
+                None | Unset | UpdateSalesOrderRowRequestCustomFieldsType0, data
+            )
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
+
         update_sales_order_row_request = cls(
             variant_id=variant_id,
             quantity=quantity,
@@ -170,6 +221,7 @@ class UpdateSalesOrderRowRequest:
             batch_transactions=batch_transactions,
             serial_number_transactions=serial_number_transactions,
             attributes=attributes,
+            custom_fields=custom_fields,
         )
 
         return update_sales_order_row_request

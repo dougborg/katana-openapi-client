@@ -96,15 +96,24 @@ from .create_recipes_request_rows_item import CreateRecipesRequestRowsItem
 from .create_sales_order_address_request import CreateSalesOrderAddressRequest
 from .create_sales_order_fulfillment_request import CreateSalesOrderFulfillmentRequest
 from .create_sales_order_request import CreateSalesOrderRequest
+from .create_sales_order_request_custom_fields_type_0 import (
+    CreateSalesOrderRequestCustomFieldsType0,
+)
 from .create_sales_order_request_sales_order_rows_item import (
     CreateSalesOrderRequestSalesOrderRowsItem,
 )
 from .create_sales_order_request_sales_order_rows_item_attributes_item import (
     CreateSalesOrderRequestSalesOrderRowsItemAttributesItem,
 )
+from .create_sales_order_request_sales_order_rows_item_custom_fields_type_0 import (
+    CreateSalesOrderRequestSalesOrderRowsItemCustomFieldsType0,
+)
 from .create_sales_order_row_request import CreateSalesOrderRowRequest
 from .create_sales_order_row_request_attributes_item import (
     CreateSalesOrderRowRequestAttributesItem,
+)
+from .create_sales_order_row_request_custom_fields_type_0 import (
+    CreateSalesOrderRowRequestCustomFieldsType0,
 )
 from .create_sales_order_shipping_fee_request import CreateSalesOrderShippingFeeRequest
 from .create_sales_order_status import CreateSalesOrderStatus
@@ -376,6 +385,7 @@ from .sales_order_accounting_metadata_list_response import (
 )
 from .sales_order_address import SalesOrderAddress
 from .sales_order_address_list_response import SalesOrderAddressListResponse
+from .sales_order_custom_fields_type_0 import SalesOrderCustomFieldsType0
 from .sales_order_fulfillment import SalesOrderFulfillment
 from .sales_order_fulfillment_invoice_status import SalesOrderFulfillmentInvoiceStatus
 from .sales_order_fulfillment_list_response import SalesOrderFulfillmentListResponse
@@ -393,6 +403,7 @@ from .sales_order_production_status import SalesOrderProductionStatus
 from .sales_order_row import SalesOrderRow
 from .sales_order_row_attributes_item import SalesOrderRowAttributesItem
 from .sales_order_row_batch_transactions_item import SalesOrderRowBatchTransactionsItem
+from .sales_order_row_custom_fields_type_0 import SalesOrderRowCustomFieldsType0
 from .sales_order_row_list_response import SalesOrderRowListResponse
 from .sales_order_row_serial_number_transactions_item import (
     SalesOrderRowSerialNumberTransactionsItem,
@@ -511,9 +522,15 @@ from .update_recipe_row_request import UpdateRecipeRowRequest
 from .update_sales_order_address_request import UpdateSalesOrderAddressRequest
 from .update_sales_order_fulfillment_request import UpdateSalesOrderFulfillmentRequest
 from .update_sales_order_request import UpdateSalesOrderRequest
+from .update_sales_order_request_custom_fields_type_0 import (
+    UpdateSalesOrderRequestCustomFieldsType0,
+)
 from .update_sales_order_row_request import UpdateSalesOrderRowRequest
 from .update_sales_order_row_request_attributes_item import (
     UpdateSalesOrderRowRequestAttributesItem,
+)
+from .update_sales_order_row_request_custom_fields_type_0 import (
+    UpdateSalesOrderRowRequestCustomFieldsType0,
 )
 from .update_sales_order_row_request_serial_number_transactions_item import (
     UpdateSalesOrderRowRequestSerialNumberTransactionsItem,
@@ -633,10 +650,13 @@ __all__ = (
     "CreateSalesOrderAddressRequest",
     "CreateSalesOrderFulfillmentRequest",
     "CreateSalesOrderRequest",
+    "CreateSalesOrderRequestCustomFieldsType0",
     "CreateSalesOrderRequestSalesOrderRowsItem",
     "CreateSalesOrderRequestSalesOrderRowsItemAttributesItem",
+    "CreateSalesOrderRequestSalesOrderRowsItemCustomFieldsType0",
     "CreateSalesOrderRowRequest",
     "CreateSalesOrderRowRequestAttributesItem",
+    "CreateSalesOrderRowRequestCustomFieldsType0",
     "CreateSalesOrderShippingFeeRequest",
     "CreateSalesOrderStatus",
     "CreateSalesReturnRequest",
@@ -845,6 +865,7 @@ __all__ = (
     "SalesOrderAccountingMetadataListResponse",
     "SalesOrderAddress",
     "SalesOrderAddressListResponse",
+    "SalesOrderCustomFieldsType0",
     "SalesOrderFulfillment",
     "SalesOrderFulfillmentInvoiceStatus",
     "SalesOrderFulfillmentListResponse",
@@ -858,6 +879,7 @@ __all__ = (
     "SalesOrderRow",
     "SalesOrderRowAttributesItem",
     "SalesOrderRowBatchTransactionsItem",
+    "SalesOrderRowCustomFieldsType0",
     "SalesOrderRowListResponse",
     "SalesOrderRowSerialNumberTransactionsItem",
     "SalesOrderRowSerialNumberTransactionsItemQuantity",
@@ -950,8 +972,10 @@ __all__ = (
     "UpdateSalesOrderAddressRequest",
     "UpdateSalesOrderFulfillmentRequest",
     "UpdateSalesOrderRequest",
+    "UpdateSalesOrderRequestCustomFieldsType0",
     "UpdateSalesOrderRowRequest",
     "UpdateSalesOrderRowRequestAttributesItem",
+    "UpdateSalesOrderRowRequestCustomFieldsType0",
     "UpdateSalesOrderRowRequestSerialNumberTransactionsItem",
     "UpdateSalesOrderShippingFeeRequest",
     "UpdateSalesOrderStatus",

@@ -11,7 +11,9 @@ from ..client_types import UNSET, Unset
 from ..models.update_sales_order_status import UpdateSalesOrderStatus
 
 if TYPE_CHECKING:
-    from ..models.custom_field_value import CustomFieldValue
+    from ..models.update_sales_order_request_custom_fields_type_0 import (
+        UpdateSalesOrderRequestCustomFieldsType0,
+    )
 
 
 T = TypeVar("T", bound="UpdateSalesOrderRequest")
@@ -35,9 +37,13 @@ class UpdateSalesOrderRequest:
     customer_ref: None | str | Unset = UNSET
     tracking_number: None | str | Unset = UNSET
     tracking_number_url: None | str | Unset = UNSET
-    custom_fields: list[CustomFieldValue] | Unset = UNSET
+    custom_fields: None | Unset | UpdateSalesOrderRequestCustomFieldsType0 = UNSET
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.update_sales_order_request_custom_fields_type_0 import (
+            UpdateSalesOrderRequestCustomFieldsType0,
+        )
+
         order_no = self.order_no
 
         customer_id = self.customer_id
@@ -90,12 +96,13 @@ class UpdateSalesOrderRequest:
         else:
             tracking_number_url = self.tracking_number_url
 
-        custom_fields: list[dict[str, Any]] | Unset = UNSET
-        if not isinstance(self.custom_fields, Unset):
-            custom_fields = []
-            for custom_fields_item_data in self.custom_fields:
-                custom_fields_item = custom_fields_item_data.to_dict()
-                custom_fields.append(custom_fields_item)
+        custom_fields: dict[str, Any] | None | Unset
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(self.custom_fields, UpdateSalesOrderRequestCustomFieldsType0):
+            custom_fields = self.custom_fields.to_dict()
+        else:
+            custom_fields = self.custom_fields
 
         field_dict: dict[str, Any] = {}
 
@@ -135,7 +142,9 @@ class UpdateSalesOrderRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.custom_field_value import CustomFieldValue
+        from ..models.update_sales_order_request_custom_fields_type_0 import (
+            UpdateSalesOrderRequestCustomFieldsType0,
+        )
 
         d = dict(src_dict)
         order_no = d.pop("order_no", UNSET)
@@ -216,16 +225,31 @@ class UpdateSalesOrderRequest:
             d.pop("tracking_number_url", UNSET)
         )
 
-        _custom_fields = d.pop("custom_fields", UNSET)
-        custom_fields: list[CustomFieldValue] | Unset = UNSET
-        if _custom_fields is not UNSET:
-            custom_fields = []
-            for custom_fields_item_data in _custom_fields:
-                custom_fields_item = CustomFieldValue.from_dict(
-                    cast(Mapping[str, Any], custom_fields_item_data)
+        def _parse_custom_fields(
+            data: object,
+        ) -> None | Unset | UpdateSalesOrderRequestCustomFieldsType0:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_0 = (
+                    UpdateSalesOrderRequestCustomFieldsType0.from_dict(
+                        cast(Mapping[str, Any], data)
+                    )
                 )
 
-                custom_fields.append(custom_fields_item)
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(None | Unset | UpdateSalesOrderRequestCustomFieldsType0, data)
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
 
         update_sales_order_request = cls(
             order_no=order_no,

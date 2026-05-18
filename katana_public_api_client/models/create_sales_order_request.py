@@ -14,10 +14,12 @@ from ..client_types import UNSET, Unset
 from ..models.create_sales_order_status import CreateSalesOrderStatus
 
 if TYPE_CHECKING:
+    from ..models.create_sales_order_request_custom_fields_type_0 import (
+        CreateSalesOrderRequestCustomFieldsType0,
+    )
     from ..models.create_sales_order_request_sales_order_rows_item import (
         CreateSalesOrderRequestSalesOrderRowsItem,
     )
-    from ..models.custom_field_value import CustomFieldValue
     from ..models.sales_order_address import SalesOrderAddress
 
 
@@ -62,9 +64,17 @@ class CreateSalesOrderRequest:
         ecommerce_order_type (None | str | Unset): Type of ecommerce order if applicable
         ecommerce_store_name (None | str | Unset): Name of the ecommerce store if order originated from online
         ecommerce_order_id (None | str | Unset): Original order ID from the ecommerce platform
-        custom_fields (list[CustomFieldValue] | Unset): Custom field values to attach to the sales order. Field names
-            must match those configured for the ``sales_order`` resource
-            type (see ``GET /custom_fields_collections``).
+        custom_fields (CreateSalesOrderRequestCustomFieldsType0 | None | Unset): Custom field values for the sales
+            order, keyed by configured
+            field name. Keys correspond to fields defined for the
+            ``SalesOrder`` entity type on the tenant's
+            ``custom_field_collection`` (see
+            ``GET /custom_fields_collections``). Each value matches the
+            corresponding field's ``CustomFieldType`` (``shortText`` /
+            ``number`` / ``singleSelect`` / ``date`` / ``boolean`` /
+            ``url``). The valid key set is tenant-specific runtime
+            config, so the schema declares ``additionalProperties: true``
+            rather than enumerating keys.
     """
 
     customer_id: int
@@ -83,10 +93,14 @@ class CreateSalesOrderRequest:
     ecommerce_order_type: None | str | Unset = UNSET
     ecommerce_store_name: None | str | Unset = UNSET
     ecommerce_order_id: None | str | Unset = UNSET
-    custom_fields: list[CustomFieldValue] | Unset = UNSET
+    custom_fields: CreateSalesOrderRequestCustomFieldsType0 | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.create_sales_order_request_custom_fields_type_0 import (
+            CreateSalesOrderRequestCustomFieldsType0,
+        )
+
         customer_id = self.customer_id
 
         sales_order_rows = []
@@ -173,12 +187,13 @@ class CreateSalesOrderRequest:
         else:
             ecommerce_order_id = self.ecommerce_order_id
 
-        custom_fields: list[dict[str, Any]] | Unset = UNSET
-        if not isinstance(self.custom_fields, Unset):
-            custom_fields = []
-            for custom_fields_item_data in self.custom_fields:
-                custom_fields_item = custom_fields_item_data.to_dict()
-                custom_fields.append(custom_fields_item)
+        custom_fields: dict[str, Any] | None | Unset
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(self.custom_fields, CreateSalesOrderRequestCustomFieldsType0):
+            custom_fields = self.custom_fields.to_dict()
+        else:
+            custom_fields = self.custom_fields
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -223,10 +238,12 @@ class CreateSalesOrderRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.create_sales_order_request_custom_fields_type_0 import (
+            CreateSalesOrderRequestCustomFieldsType0,
+        )
         from ..models.create_sales_order_request_sales_order_rows_item import (
             CreateSalesOrderRequestSalesOrderRowsItem,
         )
-        from ..models.custom_field_value import CustomFieldValue
         from ..models.sales_order_address import SalesOrderAddress
 
         d = dict(src_dict)
@@ -379,16 +396,31 @@ class CreateSalesOrderRequest:
             d.pop("ecommerce_order_id", UNSET)
         )
 
-        _custom_fields = d.pop("custom_fields", UNSET)
-        custom_fields: list[CustomFieldValue] | Unset = UNSET
-        if _custom_fields is not UNSET:
-            custom_fields = []
-            for custom_fields_item_data in _custom_fields:
-                custom_fields_item = CustomFieldValue.from_dict(
-                    cast(Mapping[str, Any], custom_fields_item_data)
+        def _parse_custom_fields(
+            data: object,
+        ) -> CreateSalesOrderRequestCustomFieldsType0 | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_0 = (
+                    CreateSalesOrderRequestCustomFieldsType0.from_dict(
+                        cast(Mapping[str, Any], data)
+                    )
                 )
 
-                custom_fields.append(custom_fields_item)
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(CreateSalesOrderRequestCustomFieldsType0 | None | Unset, data)
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
 
         create_sales_order_request = cls(
             customer_id=customer_id,

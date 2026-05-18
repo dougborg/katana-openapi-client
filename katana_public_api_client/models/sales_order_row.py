@@ -18,6 +18,9 @@ if TYPE_CHECKING:
     from ..models.sales_order_row_batch_transactions_item import (
         SalesOrderRowBatchTransactionsItem,
     )
+    from ..models.sales_order_row_custom_fields_type_0 import (
+        SalesOrderRowCustomFieldsType0,
+    )
     from ..models.sales_order_row_serial_number_transactions_item import (
         SalesOrderRowSerialNumberTransactionsItem,
     )
@@ -74,6 +77,18 @@ class SalesOrderRow:
                 for make-to-order items
             conversion_rate (float | None | Unset): Currency conversion rate used for this row
             conversion_date (datetime.datetime | None | Unset): Date when the currency conversion rate was applied
+            custom_fields (None | SalesOrderRowCustomFieldsType0 | Unset): Row-level custom field values, keyed by
+                configured field
+                name. ``null`` when no values are set on the row; ``{}``
+                when a collection is bound but no values are set. Keys
+                correspond to fields defined for the ``SalesOrderRow``
+                entity type (``GET /custom_fields_collections``); each
+                value matches the corresponding field's
+                ``CustomFieldType`` (``shortText`` / ``number`` /
+                ``singleSelect`` / ``date`` / ``boolean`` / ``url``).
+                The valid key set is tenant-specific runtime config, so
+                the schema declares ``additionalProperties: true``
+                rather than enumerating keys.
     """
 
     id: int
@@ -103,9 +118,14 @@ class SalesOrderRow:
     linked_manufacturing_order_id: int | None | Unset = UNSET
     conversion_rate: float | None | Unset = UNSET
     conversion_date: datetime.datetime | None | Unset = UNSET
+    custom_fields: None | SalesOrderRowCustomFieldsType0 | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.sales_order_row_custom_fields_type_0 import (
+            SalesOrderRowCustomFieldsType0,
+        )
+
         id = self.id
 
         quantity = self.quantity
@@ -231,6 +251,14 @@ class SalesOrderRow:
         else:
             conversion_date = self.conversion_date
 
+        custom_fields: dict[str, Any] | None | Unset
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(self.custom_fields, SalesOrderRowCustomFieldsType0):
+            custom_fields = self.custom_fields.to_dict()
+        else:
+            custom_fields = self.custom_fields
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -286,6 +314,8 @@ class SalesOrderRow:
             field_dict["conversion_rate"] = conversion_rate
         if conversion_date is not UNSET:
             field_dict["conversion_date"] = conversion_date
+        if custom_fields is not UNSET:
+            field_dict["custom_fields"] = custom_fields
 
         return field_dict
 
@@ -294,6 +324,9 @@ class SalesOrderRow:
         from ..models.sales_order_row_attributes_item import SalesOrderRowAttributesItem
         from ..models.sales_order_row_batch_transactions_item import (
             SalesOrderRowBatchTransactionsItem,
+        )
+        from ..models.sales_order_row_custom_fields_type_0 import (
+            SalesOrderRowCustomFieldsType0,
         )
         from ..models.sales_order_row_serial_number_transactions_item import (
             SalesOrderRowSerialNumberTransactionsItem,
@@ -512,6 +545,30 @@ class SalesOrderRow:
 
         conversion_date = _parse_conversion_date(d.pop("conversion_date", UNSET))
 
+        def _parse_custom_fields(
+            data: object,
+        ) -> None | SalesOrderRowCustomFieldsType0 | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_0 = SalesOrderRowCustomFieldsType0.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(None | SalesOrderRowCustomFieldsType0 | Unset, data)
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
+
         sales_order_row = cls(
             id=id,
             quantity=quantity,
@@ -538,6 +595,7 @@ class SalesOrderRow:
             linked_manufacturing_order_id=linked_manufacturing_order_id,
             conversion_rate=conversion_rate,
             conversion_date=conversion_date,
+            custom_fields=custom_fields,
         )
 
         sales_order_row.additional_properties = d

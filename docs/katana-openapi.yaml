@@ -8461,6 +8461,24 @@ components:
               description: Complete address information for billing and shipping
               items:
                 $ref: "#/components/schemas/SalesOrderAddress"
+            custom_fields:
+              type:
+                - object
+                - "null"
+              additionalProperties: true
+              description: |
+                Custom field values for the sales order, keyed by
+                configured field name. ``null`` when the order's
+                ``custom_field_collection`` is unset; ``{}`` when a
+                collection is bound but no values are set. Keys
+                correspond to fields defined for the ``SalesOrder``
+                entity type (``GET /custom_fields_collections``); each
+                value matches the corresponding field's
+                ``CustomFieldType`` (``shortText`` / ``number`` /
+                ``singleSelect`` / ``date`` / ``boolean`` / ``url``).
+                The valid key set is tenant-specific runtime config, so
+                the schema declares ``additionalProperties: true``
+                rather than enumerating keys.
           required:
             - customer_id
             - order_no
@@ -8659,6 +8677,23 @@ components:
                 - "null"
               format: date-time
               description: Date when the currency conversion rate was applied
+            custom_fields:
+              type:
+                - object
+                - "null"
+              additionalProperties: true
+              description: |
+                Row-level custom field values, keyed by configured field
+                name. ``null`` when no values are set on the row; ``{}``
+                when a collection is bound but no values are set. Keys
+                correspond to fields defined for the ``SalesOrderRow``
+                entity type (``GET /custom_fields_collections``); each
+                value matches the corresponding field's
+                ``CustomFieldType`` (``shortText`` / ``number`` /
+                ``singleSelect`` / ``date`` / ``boolean`` / ``url``).
+                The valid key set is tenant-specific runtime config, so
+                the schema declares ``additionalProperties: true``
+                rather than enumerating keys.
           required:
             - id
             - quantity
@@ -8816,6 +8851,22 @@ components:
         total_discount:
           type: number
           description: Total discount amount applied to this line item
+        custom_fields:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: |
+            Row-level custom field values, keyed by configured field
+            name. Keys correspond to fields defined for the
+            ``SalesOrderRow`` entity type on the tenant's
+            ``custom_field_collection`` (see
+            ``GET /custom_fields_collections``). Each value matches the
+            corresponding field's ``CustomFieldType`` (``shortText`` /
+            ``number`` / ``singleSelect`` / ``date`` / ``boolean`` /
+            ``url``). The valid key set is tenant-specific runtime
+            config, so the schema declares ``additionalProperties: true``
+            rather than enumerating keys.
       example:
         sales_order_id: 2001
         variant_id: 2101
@@ -8873,6 +8924,22 @@ components:
               value:
                 type: string
                 description: Attribute value
+        custom_fields:
+          type:
+            - object
+            - "null"
+          additionalProperties: true
+          description: |
+            Row-level custom field values, keyed by configured field
+            name. Keys correspond to fields defined for the
+            ``SalesOrderRow`` entity type on the tenant's
+            ``custom_field_collection`` (see
+            ``GET /custom_fields_collections``). Each value matches the
+            corresponding field's ``CustomFieldType`` (``shortText`` /
+            ``number`` / ``singleSelect`` / ``date`` / ``boolean`` /
+            ``url``). The valid key set is tenant-specific runtime
+            config, so the schema declares ``additionalProperties: true``
+            rather than enumerating keys.
       example:
         quantity: 3
         price_per_unit: 549.99
@@ -9121,6 +9188,23 @@ components:
                     value:
                       type: string
                       description: Attribute value
+              custom_fields:
+                type:
+                  - object
+                  - "null"
+                additionalProperties: true
+                description: |
+                  Row-level custom field values, keyed by configured field
+                  name. Keys correspond to fields defined for the
+                  ``SalesOrderRow`` entity type on the tenant's
+                  ``custom_field_collection`` (see
+                  ``GET /custom_fields_collections``). Each value matches
+                  the corresponding field's ``CustomFieldType``
+                  (``shortText`` / ``number`` / ``singleSelect`` /
+                  ``date`` / ``boolean`` / ``url``). The valid key set is
+                  tenant-specific runtime config, so the schema declares
+                  ``additionalProperties: true`` rather than enumerating
+                  keys.
             required:
               - quantity
               - variant_id
@@ -9191,14 +9275,21 @@ components:
             - "null"
           description: Original order ID from the ecommerce platform
         custom_fields:
-          type: array
-          maxItems: 3
+          type:
+            - object
+            - "null"
+          additionalProperties: true
           description: |
-            Custom field values to attach to the sales order. Field names
-            must match those configured for the ``sales_order`` resource
-            type (see ``GET /custom_fields_collections``).
-          items:
-            $ref: "#/components/schemas/CustomFieldValue"
+            Custom field values for the sales order, keyed by configured
+            field name. Keys correspond to fields defined for the
+            ``SalesOrder`` entity type on the tenant's
+            ``custom_field_collection`` (see
+            ``GET /custom_fields_collections``). Each value matches the
+            corresponding field's ``CustomFieldType`` (``shortText`` /
+            ``number`` / ``singleSelect`` / ``date`` / ``boolean`` /
+            ``url``). The valid key set is tenant-specific runtime
+            config, so the schema declares ``additionalProperties: true``
+            rather than enumerating keys.
       required:
         - customer_id
         - sales_order_rows
@@ -12692,14 +12783,21 @@ components:
           description: URL link to track the shipment on carrier website
           maxLength: 2048
         custom_fields:
-          type: array
-          maxItems: 3
+          type:
+            - object
+            - "null"
+          additionalProperties: true
           description: |
-            Custom field values to attach to the sales order. Field names
-            must match those configured for the ``sales_order`` resource
-            type (see ``GET /custom_fields_collections``).
-          items:
-            $ref: "#/components/schemas/CustomFieldValue"
+            Custom field values for the sales order, keyed by configured
+            field name. Keys correspond to fields defined for the
+            ``SalesOrder`` entity type on the tenant's
+            ``custom_field_collection`` (see
+            ``GET /custom_fields_collections``). Each value matches the
+            corresponding field's ``CustomFieldType`` (``shortText`` /
+            ``number`` / ``singleSelect`` / ``date`` / ``boolean`` /
+            ``url``). The valid key set is tenant-specific runtime
+            config, so the schema declares ``additionalProperties: true``
+            rather than enumerating keys.
     UpdateSalesReturnRowRequest:
       description: Request payload for updating a sales return row
       type: object

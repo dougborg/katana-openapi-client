@@ -14,6 +14,9 @@ if TYPE_CHECKING:
     from ..models.create_sales_order_request_sales_order_rows_item_attributes_item import (
         CreateSalesOrderRequestSalesOrderRowsItemAttributesItem,
     )
+    from ..models.create_sales_order_request_sales_order_rows_item_custom_fields_type_0 import (
+        CreateSalesOrderRequestSalesOrderRowsItemCustomFieldsType0,
+    )
 
 
 T = TypeVar("T", bound="CreateSalesOrderRequestSalesOrderRowsItem")
@@ -30,9 +33,16 @@ class CreateSalesOrderRequestSalesOrderRowsItem:
     attributes: (
         list[CreateSalesOrderRequestSalesOrderRowsItemAttributesItem] | Unset
     ) = UNSET
+    custom_fields: (
+        CreateSalesOrderRequestSalesOrderRowsItemCustomFieldsType0 | None | Unset
+    ) = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.create_sales_order_request_sales_order_rows_item_custom_fields_type_0 import (
+            CreateSalesOrderRequestSalesOrderRowsItemCustomFieldsType0,
+        )
+
         quantity = self.quantity
 
         variant_id = self.variant_id
@@ -68,6 +78,17 @@ class CreateSalesOrderRequestSalesOrderRowsItem:
                 attributes_item = attributes_item_data.to_dict()
                 attributes.append(attributes_item)
 
+        custom_fields: dict[str, Any] | None | Unset
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(
+            self.custom_fields,
+            CreateSalesOrderRequestSalesOrderRowsItemCustomFieldsType0,
+        ):
+            custom_fields = self.custom_fields.to_dict()
+        else:
+            custom_fields = self.custom_fields
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -86,6 +107,8 @@ class CreateSalesOrderRequestSalesOrderRowsItem:
             field_dict["total_discount"] = total_discount
         if attributes is not UNSET:
             field_dict["attributes"] = attributes
+        if custom_fields is not UNSET:
+            field_dict["custom_fields"] = custom_fields
 
         return field_dict
 
@@ -93,6 +116,9 @@ class CreateSalesOrderRequestSalesOrderRowsItem:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.create_sales_order_request_sales_order_rows_item_attributes_item import (
             CreateSalesOrderRequestSalesOrderRowsItemAttributesItem,
+        )
+        from ..models.create_sales_order_request_sales_order_rows_item_custom_fields_type_0 import (
+            CreateSalesOrderRequestSalesOrderRowsItemCustomFieldsType0,
         )
 
         d = dict(src_dict)
@@ -151,6 +177,32 @@ class CreateSalesOrderRequestSalesOrderRowsItem:
 
                 attributes.append(attributes_item)
 
+        def _parse_custom_fields(
+            data: object,
+        ) -> CreateSalesOrderRequestSalesOrderRowsItemCustomFieldsType0 | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_0 = CreateSalesOrderRequestSalesOrderRowsItemCustomFieldsType0.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(
+                CreateSalesOrderRequestSalesOrderRowsItemCustomFieldsType0
+                | None
+                | Unset,
+                data,
+            )
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
+
         create_sales_order_request_sales_order_rows_item = cls(
             quantity=quantity,
             variant_id=variant_id,
@@ -159,6 +211,7 @@ class CreateSalesOrderRequestSalesOrderRowsItem:
             price_per_unit=price_per_unit,
             total_discount=total_discount,
             attributes=attributes,
+            custom_fields=custom_fields,
         )
 
         create_sales_order_request_sales_order_rows_item.additional_properties = d

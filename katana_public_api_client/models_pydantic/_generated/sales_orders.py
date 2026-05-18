@@ -8,7 +8,7 @@ To regenerate, run:
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Optional
+from typing import Annotated, Any, Optional
 
 from pydantic import AnyUrl, AwareDatetime, ConfigDict, Field
 from sqlalchemy import Column
@@ -27,7 +27,6 @@ from .common import (
     AddressEntityType,
     Attribute,
     Attribute3,
-    CustomFieldValue,
     ProductAvailability,
 )
 from .purchase_orders import OutsourcedPurchaseOrderIngredientAvailability
@@ -197,6 +196,12 @@ class SalesOrderRow(DeletableEntity):
         AwareDatetime | None,
         Field(description="Date when the currency conversion rate was applied"),
     ] = None
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Row-level custom field values, keyed by configured field\nname. ``null`` when no values are set on the row; ``{}``\nwhen a collection is bound but no values are set. Keys\ncorrespond to fields defined for the ``SalesOrderRow``\nentity type (``GET /custom_fields_collections``); each\nvalue matches the corresponding field's\n``CustomFieldType`` (``shortText`` / ``number`` /\n``singleSelect`` / ``date`` / ``boolean`` / ``url``).\nThe valid key set is tenant-specific runtime config, so\nthe schema declares ``additionalProperties: true``\nrather than enumerating keys.\n"
+        ),
+    ] = None
 
 
 class SalesOrderAddress(DeletableEntity):
@@ -261,6 +266,12 @@ class CreateSalesOrderRowRequest(KatanaPydanticBase):
         float | None,
         Field(description="Total discount amount applied to this line item"),
     ] = None
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Row-level custom field values, keyed by configured field\nname. Keys correspond to fields defined for the\n``SalesOrderRow`` entity type on the tenant's\n``custom_field_collection`` (see\n``GET /custom_fields_collections``). Each value matches the\ncorresponding field's ``CustomFieldType`` (``shortText`` /\n``number`` / ``singleSelect`` / ``date`` / ``boolean`` /\n``url``). The valid key set is tenant-specific runtime\nconfig, so the schema declares ``additionalProperties: true``\nrather than enumerating keys.\n"
+        ),
+    ] = None
 
 
 class UpdateSalesOrderRowRequest(KatanaPydanticBase):
@@ -298,6 +309,12 @@ class UpdateSalesOrderRowRequest(KatanaPydanticBase):
     attributes: Annotated[
         list[Attribute] | None,
         Field(description="Custom attributes for this line item"),
+    ] = None
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Row-level custom field values, keyed by configured field\nname. Keys correspond to fields defined for the\n``SalesOrderRow`` entity type on the tenant's\n``custom_field_collection`` (see\n``GET /custom_fields_collections``). Each value matches the\ncorresponding field's ``CustomFieldType`` (``shortText`` /\n``number`` / ``singleSelect`` / ``date`` / ``boolean`` /\n``url``). The valid key set is tenant-specific runtime\nconfig, so the schema declares ``additionalProperties: true``\nrather than enumerating keys.\n"
+        ),
     ] = None
 
 
@@ -378,10 +395,89 @@ class SalesOrderRow1(KatanaPydanticBase):
         list[Attribute3] | None,
         Field(description="Custom attributes for the order line"),
     ] = None
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Row-level custom field values, keyed by configured field\nname. Keys correspond to fields defined for the\n``SalesOrderRow`` entity type on the tenant's\n``custom_field_collection`` (see\n``GET /custom_fields_collections``). Each value matches\nthe corresponding field's ``CustomFieldType``\n(``shortText`` / ``number`` / ``singleSelect`` /\n``date`` / ``boolean`` / ``url``). The valid key set is\ntenant-specific runtime config, so the schema declares\n``additionalProperties: true`` rather than enumerating\nkeys.\n"
+        ),
+    ] = None
 
 
 class Address1(SalesOrderAddress):
     pass
+
+
+class CreateSalesOrderRequest(KatanaPydanticBase):
+    order_no: Annotated[
+        str | None,
+        Field(
+            description="Unique order number for tracking and reference. Optional — Katana\nauto-generates a sequential ``SO-N`` value when omitted.\n"
+        ),
+    ] = None
+    customer_id: Annotated[
+        int, Field(description="ID of the customer placing the order")
+    ]
+    sales_order_rows: Annotated[
+        list[SalesOrderRow1],
+        Field(
+            description="List of products and quantities being ordered", min_length=1
+        ),
+    ]
+    tracking_number: Annotated[
+        str | None, Field(description="Shipping tracking number if already known")
+    ] = None
+    tracking_number_url: Annotated[
+        AnyUrl | None, Field(description="URL for tracking shipment status")
+    ] = None
+    addresses: Annotated[
+        list[Address1] | None,
+        Field(description="Billing and shipping addresses for the order"),
+    ] = None
+    order_created_date: Annotated[
+        AwareDatetime | None,
+        Field(
+            description="Date when the order was originally created (defaults to current time)"
+        ),
+    ] = None
+    delivery_date: Annotated[
+        AwareDatetime | None, Field(description="Requested delivery date")
+    ] = None
+    currency: Annotated[
+        str | None,
+        Field(
+            description="Currency code for the order (defaults to company base currency)"
+        ),
+    ] = None
+    location_id: Annotated[
+        int | None, Field(description="Primary fulfillment location for the order")
+    ] = None
+    status: Annotated[
+        CreateSalesOrderStatus | None, Field(description="Initial status of the order")
+    ] = None
+    additional_info: Annotated[
+        str | None, Field(description="Additional notes or instructions for the order")
+    ] = None
+    customer_ref: Annotated[
+        str | None, Field(description="Customer's internal reference number")
+    ] = None
+    ecommerce_order_type: Annotated[
+        str | None, Field(description="Type of ecommerce order if applicable")
+    ] = None
+    ecommerce_store_name: Annotated[
+        str | None,
+        Field(
+            description="Name of the ecommerce store if order originated from online"
+        ),
+    ] = None
+    ecommerce_order_id: Annotated[
+        str | None, Field(description="Original order ID from the ecommerce platform")
+    ] = None
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Custom field values for the sales order, keyed by configured\nfield name. Keys correspond to fields defined for the\n``SalesOrder`` entity type on the tenant's\n``custom_field_collection`` (see\n``GET /custom_fields_collections``). Each value matches the\ncorresponding field's ``CustomFieldType`` (``shortText`` /\n``number`` / ``singleSelect`` / ``date`` / ``boolean`` /\n``url``). The valid key set is tenant-specific runtime\nconfig, so the schema declares ``additionalProperties: true``\nrather than enumerating keys.\n"
+        ),
+    ] = None
 
 
 class SalesOrderFulfillmentRow(KatanaPydanticBase):
@@ -891,10 +987,9 @@ class UpdateSalesOrderRequest(KatanaPydanticBase):
         ),
     ] = None
     custom_fields: Annotated[
-        list[CustomFieldValue] | None,
+        dict[str, Any] | None,
         Field(
-            description="Custom field values to attach to the sales order. Field names\nmust match those configured for the ``sales_order`` resource\ntype (see ``GET /custom_fields_collections``).\n",
-            max_length=3,
+            description="Custom field values for the sales order, keyed by configured\nfield name. Keys correspond to fields defined for the\n``SalesOrder`` entity type on the tenant's\n``custom_field_collection`` (see\n``GET /custom_fields_collections``). Each value matches the\ncorresponding field's ``CustomFieldType`` (``shortText`` /\n``number`` / ``singleSelect`` / ``date`` / ``boolean`` /\n``url``). The valid key set is tenant-specific runtime\nconfig, so the schema declares ``additionalProperties: true``\nrather than enumerating keys.\n"
         ),
     ] = None
 
@@ -1117,6 +1212,12 @@ class SalesOrder(DeletableEntity):
         list[SalesOrderAddress] | None,
         Field(description="Complete address information for billing and shipping"),
     ] = None
+    custom_fields: Annotated[
+        dict[str, Any] | None,
+        Field(
+            description="Custom field values for the sales order, keyed by\nconfigured field name. ``null`` when the order's\n``custom_field_collection`` is unset; ``{}`` when a\ncollection is bound but no values are set. Keys\ncorrespond to fields defined for the ``SalesOrder``\nentity type (``GET /custom_fields_collections``); each\nvalue matches the corresponding field's\n``CustomFieldType`` (``shortText`` / ``number`` /\n``singleSelect`` / ``date`` / ``boolean`` / ``url``).\nThe valid key set is tenant-specific runtime config, so\nthe schema declares ``additionalProperties: true``\nrather than enumerating keys.\n"
+        ),
+    ] = None
 
 
 class SalesOrderListResponse(KatanaPydanticBase):
@@ -1124,80 +1225,6 @@ class SalesOrderListResponse(KatanaPydanticBase):
         list[SalesOrder] | None,
         Field(
             description="Array of sales orders with complete order details and status information"
-        ),
-    ] = None
-
-
-class CreateSalesOrderRequest(KatanaPydanticBase):
-    order_no: Annotated[
-        str | None,
-        Field(
-            description="Unique order number for tracking and reference. Optional — Katana\nauto-generates a sequential ``SO-N`` value when omitted.\n"
-        ),
-    ] = None
-    customer_id: Annotated[
-        int, Field(description="ID of the customer placing the order")
-    ]
-    sales_order_rows: Annotated[
-        list[SalesOrderRow1],
-        Field(
-            description="List of products and quantities being ordered", min_length=1
-        ),
-    ]
-    tracking_number: Annotated[
-        str | None, Field(description="Shipping tracking number if already known")
-    ] = None
-    tracking_number_url: Annotated[
-        AnyUrl | None, Field(description="URL for tracking shipment status")
-    ] = None
-    addresses: Annotated[
-        list[Address1] | None,
-        Field(description="Billing and shipping addresses for the order"),
-    ] = None
-    order_created_date: Annotated[
-        AwareDatetime | None,
-        Field(
-            description="Date when the order was originally created (defaults to current time)"
-        ),
-    ] = None
-    delivery_date: Annotated[
-        AwareDatetime | None, Field(description="Requested delivery date")
-    ] = None
-    currency: Annotated[
-        str | None,
-        Field(
-            description="Currency code for the order (defaults to company base currency)"
-        ),
-    ] = None
-    location_id: Annotated[
-        int | None, Field(description="Primary fulfillment location for the order")
-    ] = None
-    status: Annotated[
-        CreateSalesOrderStatus | None, Field(description="Initial status of the order")
-    ] = None
-    additional_info: Annotated[
-        str | None, Field(description="Additional notes or instructions for the order")
-    ] = None
-    customer_ref: Annotated[
-        str | None, Field(description="Customer's internal reference number")
-    ] = None
-    ecommerce_order_type: Annotated[
-        str | None, Field(description="Type of ecommerce order if applicable")
-    ] = None
-    ecommerce_store_name: Annotated[
-        str | None,
-        Field(
-            description="Name of the ecommerce store if order originated from online"
-        ),
-    ] = None
-    ecommerce_order_id: Annotated[
-        str | None, Field(description="Original order ID from the ecommerce platform")
-    ] = None
-    custom_fields: Annotated[
-        list[CustomFieldValue] | None,
-        Field(
-            description="Custom field values to attach to the sales order. Field names\nmust match those configured for the ``sales_order`` resource\ntype (see ``GET /custom_fields_collections``).\n",
-            max_length=3,
         ),
     ] = None
 
@@ -1411,6 +1438,13 @@ class CachedSalesOrderRow(DeletableEntity, table=True):
         Mapped[datetime | None],
         Field(description="Date when the currency conversion rate was applied"),
     ] = None
+    custom_fields: Annotated[
+        Mapped[dict[str, Any] | None],
+        SQLField(
+            sa_column=Column(PydanticJSON),
+            description="Row-level custom field values, keyed by configured field\nname. ``null`` when no values are set on the row; ``{}``\nwhen a collection is bound but no values are set. Keys\ncorrespond to fields defined for the ``SalesOrderRow``\nentity type (``GET /custom_fields_collections``); each\nvalue matches the corresponding field's\n``CustomFieldType`` (``shortText`` / ``number`` /\n``singleSelect`` / ``date`` / ``boolean`` / ``url``).\nThe valid key set is tenant-specific runtime config, so\nthe schema declares ``additionalProperties: true``\nrather than enumerating keys.\n",
+        ),
+    ] = None
     sales_order: Mapped[Optional["CachedSalesOrder"]] = Relationship(
         back_populates="sales_order_rows"
     )
@@ -1579,5 +1613,12 @@ class CachedSalesOrder(DeletableEntity, table=True):
         SQLField(
             sa_column=Column(PydanticJSON),
             description="Complete address information for billing and shipping",
+        ),
+    ] = None
+    custom_fields: Annotated[
+        Mapped[dict[str, Any] | None],
+        SQLField(
+            sa_column=Column(PydanticJSON),
+            description="Custom field values for the sales order, keyed by\nconfigured field name. ``null`` when the order's\n``custom_field_collection`` is unset; ``{}`` when a\ncollection is bound but no values are set. Keys\ncorrespond to fields defined for the ``SalesOrder``\nentity type (``GET /custom_fields_collections``); each\nvalue matches the corresponding field's\n``CustomFieldType`` (``shortText`` / ``number`` /\n``singleSelect`` / ``date`` / ``boolean`` / ``url``).\nThe valid key set is tenant-specific runtime config, so\nthe schema declares ``additionalProperties: true``\nrather than enumerating keys.\n",
         ),
     ] = None

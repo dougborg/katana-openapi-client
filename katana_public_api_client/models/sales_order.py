@@ -19,6 +19,7 @@ from ..models.sales_order_status import SalesOrderStatus
 
 if TYPE_CHECKING:
     from ..models.sales_order_address import SalesOrderAddress
+    from ..models.sales_order_custom_fields_type_0 import SalesOrderCustomFieldsType0
     from ..models.sales_order_row import SalesOrderRow
     from ..models.sales_order_shipping_fee import SalesOrderShippingFee
 
@@ -101,6 +102,18 @@ class SalesOrder:
             associated production
         shipping_fee (None | SalesOrderShippingFee | Unset): Shipping fee details for this sales order
         addresses (list[SalesOrderAddress] | Unset): Complete address information for billing and shipping
+        custom_fields (None | SalesOrderCustomFieldsType0 | Unset): Custom field values for the sales order, keyed by
+            configured field name. ``null`` when the order's
+            ``custom_field_collection`` is unset; ``{}`` when a
+            collection is bound but no values are set. Keys
+            correspond to fields defined for the ``SalesOrder``
+            entity type (``GET /custom_fields_collections``); each
+            value matches the corresponding field's
+            ``CustomFieldType`` (``shortText`` / ``number`` /
+            ``singleSelect`` / ``date`` / ``boolean`` / ``url``).
+            The valid key set is tenant-specific runtime config, so
+            the schema declares ``additionalProperties: true``
+            rather than enumerating keys.
     """
 
     id: int
@@ -139,9 +152,13 @@ class SalesOrder:
     linked_manufacturing_order_id: int | None | Unset = UNSET
     shipping_fee: None | SalesOrderShippingFee | Unset = UNSET
     addresses: list[SalesOrderAddress] | Unset = UNSET
+    custom_fields: None | SalesOrderCustomFieldsType0 | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.sales_order_custom_fields_type_0 import (
+            SalesOrderCustomFieldsType0,
+        )
         from ..models.sales_order_shipping_fee import SalesOrderShippingFee
 
         id = self.id
@@ -346,6 +363,14 @@ class SalesOrder:
                 addresses_item = addresses_item_data.to_dict()
                 addresses.append(addresses_item)
 
+        custom_fields: dict[str, Any] | None | Unset
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(self.custom_fields, SalesOrderCustomFieldsType0):
+            custom_fields = self.custom_fields.to_dict()
+        else:
+            custom_fields = self.custom_fields
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -419,12 +444,17 @@ class SalesOrder:
             field_dict["shipping_fee"] = shipping_fee
         if addresses is not UNSET:
             field_dict["addresses"] = addresses
+        if custom_fields is not UNSET:
+            field_dict["custom_fields"] = custom_fields
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.sales_order_address import SalesOrderAddress
+        from ..models.sales_order_custom_fields_type_0 import (
+            SalesOrderCustomFieldsType0,
+        )
         from ..models.sales_order_row import SalesOrderRow
         from ..models.sales_order_shipping_fee import SalesOrderShippingFee
 
@@ -822,6 +852,30 @@ class SalesOrder:
 
                 addresses.append(addresses_item)
 
+        def _parse_custom_fields(
+            data: object,
+        ) -> None | SalesOrderCustomFieldsType0 | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                custom_fields_type_0 = SalesOrderCustomFieldsType0.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(None | SalesOrderCustomFieldsType0 | Unset, data)
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
+
         sales_order = cls(
             id=id,
             customer_id=customer_id,
@@ -859,6 +913,7 @@ class SalesOrder:
             linked_manufacturing_order_id=linked_manufacturing_order_id,
             shipping_fee=shipping_fee,
             addresses=addresses,
+            custom_fields=custom_fields,
         )
 
         sales_order.additional_properties = d
