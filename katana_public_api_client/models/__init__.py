@@ -96,6 +96,9 @@ from .create_recipes_request_rows_item import CreateRecipesRequestRowsItem
 from .create_sales_order_address_request import CreateSalesOrderAddressRequest
 from .create_sales_order_fulfillment_request import CreateSalesOrderFulfillmentRequest
 from .create_sales_order_request import CreateSalesOrderRequest
+from .create_sales_order_request_addresses_item import (
+    CreateSalesOrderRequestAddressesItem,
+)
 from .create_sales_order_request_custom_fields_type_0 import (
     CreateSalesOrderRequestCustomFieldsType0,
 )
@@ -650,6 +653,7 @@ __all__ = (
     "CreateSalesOrderAddressRequest",
     "CreateSalesOrderFulfillmentRequest",
     "CreateSalesOrderRequest",
+    "CreateSalesOrderRequestAddressesItem",
     "CreateSalesOrderRequestCustomFieldsType0",
     "CreateSalesOrderRequestSalesOrderRowsItem",
     "CreateSalesOrderRequestSalesOrderRowsItemAttributesItem",

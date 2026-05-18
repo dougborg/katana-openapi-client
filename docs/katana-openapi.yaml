@@ -9221,11 +9221,51 @@ components:
           description: URL for tracking shipment status
         addresses:
           type: array
-          description: Billing and shipping addresses for the order
+          description: |
+            Billing and shipping addresses for the order. Inline-create shape —
+            ``sales_order_id`` is implicit (set by the parent sales-order create)
+            and server-assigned fields (``id`` / ``sales_order_id``) are rejected
+            by the live API on this endpoint. For the standalone create endpoint
+            (``POST /sales_order_addresses``) see ``CreateSalesOrderAddressRequest``.
           items:
-            $ref: "#/components/schemas/SalesOrderAddress"
+            type: object
+            additionalProperties: false
             required:
               - entity_type
+            properties:
+              entity_type:
+                description: Whether this address is the shipping or billing address for the sales order
+                $ref: "#/components/schemas/AddressEntityType"
+              first_name:
+                type: string
+                description: First name for the address contact
+              last_name:
+                type: string
+                description: Last name for the address contact
+              company:
+                type: string
+                description: Company name for the address
+              line_1:
+                type: string
+                description: Primary address line
+              line_2:
+                type: string
+                description: Secondary address line
+              city:
+                type: string
+                description: City name
+              state:
+                type: string
+                description: State or province
+              zip:
+                type: string
+                description: Postal code
+              country:
+                type: string
+                description: Country code
+              phone:
+                type: string
+                description: Contact phone number
         order_created_date:
           type:
             - string
@@ -9311,9 +9351,7 @@ components:
         tracking_number: null
         tracking_number_url: null
         addresses:
-          - id: 1
-            sales_order_id: 2001
-            entity_type: billing
+          - entity_type: billing
             first_name: David
             last_name: Wilson
             company: Wilson's Catering
@@ -9322,9 +9360,7 @@ components:
             state: WA
             zip: "98101"
             country: US
-          - id: 2
-            sales_order_id: 2001
-            entity_type: shipping
+          - entity_type: shipping
             first_name: David
             last_name: Wilson
             company: Wilson's Catering
