@@ -103,6 +103,7 @@ from katana_public_api_client.models import (
     CreateSalesOrderAddressRequest as APICreateSOAddressRequest,
     CreateSalesOrderFulfillmentRequest as APICreateSOFulfillmentRequest,
     CreateSalesOrderRequest as APICreateSalesOrderRequest,
+    CreateSalesOrderRequestAddressesItem as APICreateSORequestAddressesItem,
     CreateSalesOrderRequestCustomFieldsType0 as APISOCustomFieldsMap,
     CreateSalesOrderRequestSalesOrderRowsItem,
     CreateSalesOrderRequestSalesOrderRowsItemAttributesItem as APISORowAttributeItem,
@@ -185,7 +186,15 @@ class SalesOrderItem(BaseModel):
 
 
 class SalesOrderAddress(BaseModel):
-    """Billing or shipping address for a sales order."""
+    """Billing or shipping address for a sales order.
+
+    Field names mirror the wire format — ``zip`` (not ``zip_code``) matches
+    what ``get_sales_order`` returns and what the Katana API accepts on
+    inline create. The attrs-side wire field is ``zip_`` (builtin-name
+    avoidance, JSON name ``zip``); the field name here intentionally shadows
+    the ``zip()`` builtin within this model scope to keep the JSON contract
+    transparent for callers.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -200,7 +209,7 @@ class SalesOrderAddress(BaseModel):
     line_2: str | None = Field(default=None, description="Secondary address line")
     city: str | None = Field(default=None, description="City")
     state: str | None = Field(default=None, description="State or province")
-    zip_code: str | None = Field(default=None, description="Postal/ZIP code")
+    zip: str | None = Field(default=None, description="Postal/ZIP code")
     country: str | None = Field(
         default=None, description="Country code (e.g., US, CA, GB)"
     )
@@ -416,14 +425,14 @@ async def _create_sales_order_impl(
             )
             so_rows.append(row)
 
-        # Build addresses if provided
-        addresses_list: list[APISalesOrderAddress] | Unset = UNSET
+        # Build addresses if provided. Use the inline write-shaped DTO (no
+        # ``id`` / ``sales_order_id`` — those are server-assigned and rejected
+        # by the live API on inline create). See #772.
+        addresses_list: list[APICreateSORequestAddressesItem] | Unset = UNSET
         if request.addresses:
             addresses_list = []
             for addr in request.addresses:
-                api_addr = APISalesOrderAddress(
-                    id=0,  # Will be assigned by API
-                    sales_order_id=0,  # Will be assigned by API
+                api_addr = APICreateSORequestAddressesItem(
                     entity_type=AddressEntityType(addr.entity_type),
                     first_name=to_unset(addr.first_name),
                     last_name=to_unset(addr.last_name),
@@ -433,7 +442,7 @@ async def _create_sales_order_impl(
                     line_2=to_unset(addr.line_2),
                     city=to_unset(addr.city),
                     state=to_unset(addr.state),
-                    zip_=to_unset(addr.zip_code),
+                    zip_=to_unset(addr.zip),
                     country=to_unset(addr.country),
                 )
                 addresses_list.append(api_addr)

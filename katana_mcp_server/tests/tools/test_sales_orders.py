@@ -383,7 +383,7 @@ async def test_create_sales_order_with_addresses():
                     line_1="123 Main St",
                     city="Portland",
                     state="OR",
-                    zip_code="97201",
+                    zip="97201",
                     country="US",
                 ),
                 SalesOrderAddress(
@@ -393,7 +393,7 @@ async def test_create_sales_order_with_addresses():
                     line_1="456 Oak Ave",
                     city="Seattle",
                     state="WA",
-                    zip_code="98101",
+                    zip="98101",
                     country="US",
                 ),
             ],
@@ -411,6 +411,20 @@ async def test_create_sales_order_with_addresses():
         api_request = call_kwargs["body"]
         assert not isinstance(api_request.addresses, type(UNSET))
         assert len(api_request.addresses) == 2
+
+        # Outbound wire body must serialize ``zip`` (not ``zip_code``) and
+        # must NOT contain server-assigned ``id`` / ``sales_order_id`` fields
+        # — those are rejected by the live API on inline create (#772).
+        api_body_dict = api_request.to_dict()
+        for addr_dict in api_body_dict["addresses"]:
+            assert "zip" in addr_dict, "wire field must be 'zip', not 'zip_code'"
+            assert "zip_code" not in addr_dict
+            assert "id" not in addr_dict, "server-assigned 'id' must not be sent"
+            assert "sales_order_id" not in addr_dict, (
+                "server-assigned 'sales_order_id' must not be sent"
+            )
+        assert api_body_dict["addresses"][0]["zip"] == "97201"
+        assert api_body_dict["addresses"][1]["zip"] == "98101"
     finally:
         create_so_module.asyncio_detailed = original_asyncio_detailed
 

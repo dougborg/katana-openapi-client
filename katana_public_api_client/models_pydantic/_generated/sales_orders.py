@@ -403,8 +403,32 @@ class SalesOrderRow1(KatanaPydanticBase):
     ] = None
 
 
-class Address1(SalesOrderAddress):
-    pass
+class Address1(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    entity_type: Annotated[
+        AddressEntityType,
+        Field(
+            description="Whether this address is the shipping or billing address for the sales order"
+        ),
+    ]
+    first_name: Annotated[
+        str | None, Field(description="First name for the address contact")
+    ] = None
+    last_name: Annotated[
+        str | None, Field(description="Last name for the address contact")
+    ] = None
+    company: Annotated[
+        str | None, Field(description="Company name for the address")
+    ] = None
+    line_1: Annotated[str | None, Field(description="Primary address line")] = None
+    line_2: Annotated[str | None, Field(description="Secondary address line")] = None
+    city: Annotated[str | None, Field(description="City name")] = None
+    state: Annotated[str | None, Field(description="State or province")] = None
+    zip: Annotated[str | None, Field(description="Postal code")] = None
+    country: Annotated[str | None, Field(description="Country code")] = None
+    phone: Annotated[str | None, Field(description="Contact phone number")] = None
 
 
 class CreateSalesOrderRequest(KatanaPydanticBase):
@@ -431,7 +455,9 @@ class CreateSalesOrderRequest(KatanaPydanticBase):
     ] = None
     addresses: Annotated[
         list[Address1] | None,
-        Field(description="Billing and shipping addresses for the order"),
+        Field(
+            description="Billing and shipping addresses for the order. Inline-create shape —\n``sales_order_id`` is implicit (set by the parent sales-order create)\nand server-assigned fields (``id`` / ``sales_order_id``) are rejected\nby the live API on this endpoint. For the standalone create endpoint\n(``POST /sales_order_addresses``) see ``CreateSalesOrderAddressRequest``.\n"
+        ),
     ] = None
     order_created_date: Annotated[
         AwareDatetime | None,

@@ -14,13 +14,15 @@ from ..client_types import UNSET, Unset
 from ..models.create_sales_order_status import CreateSalesOrderStatus
 
 if TYPE_CHECKING:
+    from ..models.create_sales_order_request_addresses_item import (
+        CreateSalesOrderRequestAddressesItem,
+    )
     from ..models.create_sales_order_request_custom_fields_type_0 import (
         CreateSalesOrderRequestCustomFieldsType0,
     )
     from ..models.create_sales_order_request_sales_order_rows_item import (
         CreateSalesOrderRequestSalesOrderRowsItem,
     )
-    from ..models.sales_order_address import SalesOrderAddress
 
 
 T = TypeVar("T", bound="CreateSalesOrderRequest")
@@ -34,15 +36,14 @@ class CreateSalesOrderRequest:
         {'order_no': 'SO-2024-002', 'customer_id': 1501, 'sales_order_rows': [{'quantity': 3, 'variant_id': 2101,
             'tax_rate_id': 301, 'location_id': 1, 'price_per_unit': 599.99, 'total_discount': 50.0, 'attributes': [{'key':
             'engrave_text', 'value': 'Professional Kitchen'}, {'key': 'rush_order', 'value': 'true'}]}], 'tracking_number':
-            None, 'tracking_number_url': None, 'addresses': [{'id': 1, 'sales_order_id': 2001, 'entity_type': 'billing',
-            'first_name': 'David', 'last_name': 'Wilson', 'company': "Wilson's Catering", 'line_1': '456 Commerce Ave',
-            'city': 'Seattle', 'state': 'WA', 'zip': '98101', 'country': 'US'}, {'id': 2, 'sales_order_id': 2001,
-            'entity_type': 'shipping', 'first_name': 'David', 'last_name': 'Wilson', 'company': "Wilson's Catering",
-            'line_1': '789 Industrial Blvd', 'city': 'Seattle', 'state': 'WA', 'zip': '98102', 'country': 'US'}],
-            'order_created_date': '2024-01-16T09:00:00Z', 'delivery_date': '2024-01-23T15:00:00Z', 'currency': 'USD',
-            'location_id': 1, 'status': 'PENDING', 'additional_info': 'Customer prefers morning delivery', 'customer_ref':
-            'WC-ORDER-2024-003', 'ecommerce_order_type': 'wholesale', 'ecommerce_store_name': 'B2B Portal',
-            'ecommerce_order_id': 'B2B-7891-2024'}
+            None, 'tracking_number_url': None, 'addresses': [{'entity_type': 'billing', 'first_name': 'David', 'last_name':
+            'Wilson', 'company': "Wilson's Catering", 'line_1': '456 Commerce Ave', 'city': 'Seattle', 'state': 'WA', 'zip':
+            '98101', 'country': 'US'}, {'entity_type': 'shipping', 'first_name': 'David', 'last_name': 'Wilson', 'company':
+            "Wilson's Catering", 'line_1': '789 Industrial Blvd', 'city': 'Seattle', 'state': 'WA', 'zip': '98102',
+            'country': 'US'}], 'order_created_date': '2024-01-16T09:00:00Z', 'delivery_date': '2024-01-23T15:00:00Z',
+            'currency': 'USD', 'location_id': 1, 'status': 'PENDING', 'additional_info': 'Customer prefers morning
+            delivery', 'customer_ref': 'WC-ORDER-2024-003', 'ecommerce_order_type': 'wholesale', 'ecommerce_store_name':
+            'B2B Portal', 'ecommerce_order_id': 'B2B-7891-2024'}
 
     Attributes:
         customer_id (int): ID of the customer placing the order
@@ -52,7 +53,12 @@ class CreateSalesOrderRequest:
             auto-generates a sequential ``SO-N`` value when omitted.
         tracking_number (None | str | Unset): Shipping tracking number if already known
         tracking_number_url (None | str | Unset): URL for tracking shipment status
-        addresses (list[SalesOrderAddress] | Unset): Billing and shipping addresses for the order
+        addresses (list[CreateSalesOrderRequestAddressesItem] | Unset): Billing and shipping addresses for the order.
+            Inline-create shape —
+            ``sales_order_id`` is implicit (set by the parent sales-order create)
+            and server-assigned fields (``id`` / ``sales_order_id``) are rejected
+            by the live API on this endpoint. For the standalone create endpoint
+            (``POST /sales_order_addresses``) see ``CreateSalesOrderAddressRequest``.
         order_created_date (datetime.datetime | None | Unset): Date when the order was originally created (defaults to
             current time)
         delivery_date (datetime.datetime | None | Unset): Requested delivery date
@@ -82,7 +88,7 @@ class CreateSalesOrderRequest:
     order_no: str | Unset = UNSET
     tracking_number: None | str | Unset = UNSET
     tracking_number_url: None | str | Unset = UNSET
-    addresses: list[SalesOrderAddress] | Unset = UNSET
+    addresses: list[CreateSalesOrderRequestAddressesItem] | Unset = UNSET
     order_created_date: datetime.datetime | None | Unset = UNSET
     delivery_date: datetime.datetime | None | Unset = UNSET
     currency: None | str | Unset = UNSET
@@ -238,13 +244,15 @@ class CreateSalesOrderRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.create_sales_order_request_addresses_item import (
+            CreateSalesOrderRequestAddressesItem,
+        )
         from ..models.create_sales_order_request_custom_fields_type_0 import (
             CreateSalesOrderRequestCustomFieldsType0,
         )
         from ..models.create_sales_order_request_sales_order_rows_item import (
             CreateSalesOrderRequestSalesOrderRowsItem,
         )
-        from ..models.sales_order_address import SalesOrderAddress
 
         d = dict(src_dict)
         customer_id = d.pop("customer_id")
@@ -281,11 +289,11 @@ class CreateSalesOrderRequest:
         )
 
         _addresses = d.pop("addresses", UNSET)
-        addresses: list[SalesOrderAddress] | Unset = UNSET
+        addresses: list[CreateSalesOrderRequestAddressesItem] | Unset = UNSET
         if _addresses is not UNSET:
             addresses = []
             for addresses_item_data in _addresses:
-                addresses_item = SalesOrderAddress.from_dict(
+                addresses_item = CreateSalesOrderRequestAddressesItem.from_dict(
                     cast(Mapping[str, Any], addresses_item_data)
                 )
 
