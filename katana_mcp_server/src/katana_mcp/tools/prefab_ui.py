@@ -3518,6 +3518,115 @@ def _render_inventory_updates(
             Text(content=f"  {update}")
 
 
+def _build_fulfill_row_display(row: dict[str, Any]) -> dict[str, Any]:
+    """Flatten one ``FulfilledRowInfo`` dict into DataTable-ready strings.
+
+    Parallel to ``_build_receipt_row_display`` (#556 / PR #793): the
+    iframe template renders pure strings, so the builder owns money /
+    qty / serial / batch formatting. Display rules:
+
+    - ``quantity`` renders via ``:g`` so ``5.0 -> '5'`` while preserving
+      ``2.5``.
+    - ``serial_numbers`` collapses the list to its count when it grows
+      past 5 (``[1, 2, ..., 99]`` would blow out the column width); short
+      lists render verbatim so the operator can sanity-check the IDs.
+    - ``row_total`` renders through :func:`_format_money` (USD fallback)
+      so the column stays consistent across currencies. Empty string when
+      the row carries no price (MO branch).
+    """
+
+    def _serials_display() -> str:
+        serials = row.get("serial_numbers") or []
+        if not serials:
+            return ""
+        if len(serials) <= 5:
+            return ", ".join(str(s) for s in serials)
+        return f"{len(serials)} serial(s)"
+
+    row_total = row.get("row_total")
+    qty = row.get("quantity")
+    return {
+        "display_name": row.get("display_name") or "",
+        "sku": row.get("sku") or "",
+        "quantity": f"{qty:g}" if isinstance(qty, int | float) else "",
+        "serials": _serials_display(),
+        "batch_summary": row.get("batch_summary") or "",
+        "row_total": (
+            _format_money(row_total, row.get("currency"))
+            if row_total is not None
+            else ""
+        ),
+    }
+
+
+def _render_fulfill_metrics(response: dict[str, Any]) -> None:
+    """Render the Tier 2 metric row for the fulfill card (#553).
+
+    Three metrics:
+    - **Rows** — count of rows being fulfilled (always present, never zero
+      on a real response — the MO branch synthesizes a single-row entry).
+    - **Total Qty** — sum of quantities across rows, rendered via ``:g``.
+    - **Total Value** — sum of ``row_total`` across rows, formatted via
+      babel. Omitted when no row carries a price (MO branch — MOs track
+      cost, not price; the cost ledger lives on a separate surface).
+
+    Skipped entirely when the response carries no enrichment
+    (back-compat with older payloads that pre-dated #553).
+    """
+    rows_count = response.get("rows_count")
+    if rows_count is None:
+        return
+    total_qty = response.get("total_quantity")
+    total_value = response.get("total_value")
+    currency = response.get("currency")
+    with Row(gap=4):
+        Metric(label="Rows", value=str(rows_count))
+        if isinstance(total_qty, int | float):
+            Metric(label="Total Qty", value=f"{total_qty:g}")
+        if total_value is not None:
+            Metric(label="Total Value", value=_format_money(total_value, currency))
+
+
+def _render_fulfill_per_row_table(
+    fulfilled_rows_display: list[dict[str, Any]],
+    *,
+    order_type: str,
+    is_preview: bool,
+) -> None:
+    """Render the Tier 3 per-row DataTable for the fulfill card (#553).
+
+    Skipped when ``fulfilled_rows_display`` is empty (back-compat for older
+    payloads that pre-dated this enrichment).
+
+    The column set varies by order type:
+    - **Sales** orders carry a Line Total column (price * qty in the
+      order currency) — the operator's most-asked decision context is
+      "what does this fulfillment commit to".
+    - **Manufacturing** orders drop the Line Total column (MOs track
+      cost on a separate surface) and re-allocate that space to the
+      serials column for the serial-tracked-finished-good case.
+    """
+    if not fulfilled_rows_display:
+        return
+    Separator()
+    if is_preview:
+        Muted(content="Rows being fulfilled:")
+    else:
+        Muted(content="Rows fulfilled:")
+    columns: list[Any] = [
+        DataTableColumn(key="display_name", header="Item", sortable=True),
+        DataTableColumn(key="sku", header="SKU", sortable=True),
+        DataTableColumn(key="quantity", header="Qty", align="right"),
+        DataTableColumn(key="serials", header="Serials"),
+        DataTableColumn(key="batch_summary", header="Batch"),
+    ]
+    if order_type == "sales":
+        columns.append(
+            DataTableColumn(key="row_total", header="Line Total", align="right")
+        )
+    DataTable(columns=columns, rows="{{ fulfilled_rows }}")
+
+
 def build_fulfill_preview_ui(
     response: dict[str, Any],
 ) -> PrefabApp:
@@ -3526,6 +3635,16 @@ def build_fulfill_preview_ui(
     The "Confirm Fulfillment" button re-invokes ``fulfill_order`` with
     ``preview=False`` and the original ``order_id`` / ``order_type``
     inlined from the response. No LLM round-trip.
+
+    Layout follows the #537 four-tier framework (#553):
+
+    - **Tier 1** — title + order number badge + status badge.
+    - **Tier 2** — Metric row: Rows / Total Qty / Total Value. Skipped on
+      back-compat payloads that lack ``rows_count``.
+    - **Tier 3** — per-row DataTable (Item / SKU / Qty / Serials / Batch
+      [/ Line Total]). Skipped when ``fulfilled_rows`` is empty.
+    - **Tier 4** — Confirm / Cancel button rail (driven by ``BLOCK:``
+      warnings — disabled when any are present).
     """
     from katana_mcp.tools.foundation.orders import FulfillOrderRequest
 
@@ -3549,7 +3668,18 @@ def build_fulfill_preview_ui(
     cancel_action = _build_cancel_action(
         f"the {raw_order_type} order {order_number} fulfillment"
     )
-    state = {"response": response, "pending": False, "cancelled": False}
+
+    # Pre-flatten per-row rendering into state so the iframe template
+    # never sees raw floats / lists — see #553 / PR #793.
+    fulfilled_rows = response.get("fulfilled_rows") or []
+    fulfilled_rows_display = [_build_fulfill_row_display(r) for r in fulfilled_rows]
+
+    state = {
+        "response": response,
+        "fulfilled_rows": fulfilled_rows_display,
+        "pending": False,
+        "cancelled": False,
+    }
 
     with PrefabApp(state=state, css_class="p-4") as app, Card():
         with CardHeader(), Row(gap=2):
@@ -3558,7 +3688,13 @@ def build_fulfill_preview_ui(
             Badge(label=status, variant="secondary")
 
         with CardContent(), Column(gap=2):
+            _render_fulfill_metrics(response)
             _render_inventory_updates(response)
+            _render_fulfill_per_row_table(
+                fulfilled_rows_display,
+                order_type=raw_order_type,
+                is_preview=True,
+            )
 
             if block_warnings or regular_warnings:
                 Separator()
@@ -3580,10 +3716,33 @@ def build_fulfill_preview_ui(
 def build_fulfill_success_ui(
     response: dict[str, Any],
 ) -> PrefabApp:
-    """Build a fulfillment success card."""
-    order_type, order_number, status = _extract_fulfill_fields(response)
+    """Build a fulfillment success card.
 
-    with PrefabApp(state={"response": response}, css_class="p-4") as app, Card():
+    Mirrors :func:`build_fulfill_preview_ui` minus the Confirm/Cancel
+    rail, plus an expanded Tier 4 action set (#553):
+
+    - **View in Katana** — deep-links to the order via ``katana_url``
+      (omitted when the response carries no URL).
+    - **Check Inventory** — the legacy follow-up; remains the default
+      next action when no URL is available.
+    """
+    order_type, order_number, status = _extract_fulfill_fields(response)
+    raw_order_type = response.get("order_type", "sales")
+    katana_url = response.get("katana_url")
+
+    # Pre-flatten the per-row rendering into state, same as the preview
+    # path — the success card surfaces *what landed* on the wire, which
+    # answers the agent's next-most-likely question ("did the right
+    # serials attach?") without forcing a second tool call.
+    fulfilled_rows = response.get("fulfilled_rows") or []
+    fulfilled_rows_display = [_build_fulfill_row_display(r) for r in fulfilled_rows]
+
+    state: dict[str, Any] = {
+        "response": response,
+        "fulfilled_rows": fulfilled_rows_display,
+    }
+
+    with PrefabApp(state=state, css_class="p-4") as app, Card():
         with CardHeader(), Row(gap=2):
             CardTitle(content=f"{order_type} Order Fulfilled")
             Badge(label=order_number, variant="outline")
@@ -3592,11 +3751,27 @@ def build_fulfill_success_ui(
         with CardContent(), Column(gap=2):
             if response.get("message"):
                 Text(content=response["message"])
+            _render_fulfill_metrics(response)
             if response.get("inventory_updates"):
                 Separator()
             _render_inventory_updates(response, label="Inventory Updates:")
+            _render_fulfill_per_row_table(
+                fulfilled_rows_display,
+                order_type=raw_order_type,
+                is_preview=False,
+            )
 
-        with CardFooter():
+        with CardFooter(), Row(gap=2):
+            # Tier 4 actions (#553): two follow-ups. View in Katana wins
+            # the primary slot when a deep-link is available (operator's
+            # most common next move on a successful fulfill is to verify
+            # in the web UI); inventory check stays the secondary action.
+            if katana_url:
+                Button(
+                    label="View in Katana",
+                    variant="default",
+                    on_click=SendMessage(f"Open {katana_url} in the Katana web UI"),
+                )
             Button(
                 label="Check Inventory",
                 variant="outline",

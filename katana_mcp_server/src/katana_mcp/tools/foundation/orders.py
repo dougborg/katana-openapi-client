@@ -25,6 +25,7 @@ from katana_mcp.tools.tool_result_utils import (
     make_tool_result,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
+from katana_mcp.web_urls import katana_web_url
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
     ManufacturingOrder,
@@ -117,6 +118,56 @@ class FulfillOrderRequest(BaseModel):
     )
 
 
+class FulfilledRowInfo(BaseModel):
+    """Per-row fulfillment detail surfaced on the fulfill card (#553).
+
+    Joins the row's identity (variant SKU + ``display_name`` from the
+    typed cache) with the fulfillment payload (quantity, serial numbers,
+    batch transactions, line total) so the agent can verify *what* is
+    being shipped before confirming. Mirrors ``ReceivedItemInfo`` from
+    ``foundation/purchase_orders.py``.
+
+    The shape is intentionally uniform across the sales + manufacturing
+    branches — the manufacturing branch fills a single row representing
+    the MO's finished good, with ``row_id`` set to ``None`` (an MO has
+    no row IDs the way an SO does) and ``quantity`` populated from the
+    MO's ``actual_quantity``.
+    """
+
+    row_id: int | None = Field(
+        default=None,
+        description=(
+            "Sales-order-row ID for SO fulfillments. ``None`` for MO "
+            "fulfillments (the MO header carries one variant, not a row)."
+        ),
+    )
+    variant_id: int | None = None
+    sku: str | None = None
+    display_name: str | None = None
+    quantity: float
+    serial_numbers: list[int] = Field(
+        default_factory=list,
+        description=(
+            "SerialNumber IDs being attached on this fulfillment "
+            "(serial-tracked rows only)."
+        ),
+    )
+    batch_summary: str | None = Field(
+        default=None,
+        description=(
+            "Pre-formatted batch allocations (e.g., 'batch 42x30, batch 51x22') "
+            "for batch-tracked variants. ``None`` when the row carries no "
+            "batch transactions."
+        ),
+    )
+    price_per_unit: float | None = None
+    row_total: float | None = Field(
+        default=None,
+        description="quantity * price_per_unit in the order currency.",
+    )
+    currency: str | None = None
+
+
 class FulfillOrderResponse(BaseModel):
     """Response from fulfilling an order."""
 
@@ -133,6 +184,50 @@ class FulfillOrderResponse(BaseModel):
         default_factory=list, description="Suggested next steps"
     )
     message: str
+
+    # ---- Tier 2 metrics + Tier 3 per-row breakdown (#553) ----
+    fulfilled_rows: list[FulfilledRowInfo] = Field(
+        default_factory=list,
+        description=(
+            "Per-row breakdown of what's being fulfilled — variant identity, "
+            "quantity, serials, batch allocations. Drives the Tier 3 "
+            "DataTable on the fulfillment card."
+        ),
+    )
+    rows_count: int = Field(
+        default=0,
+        description=(
+            "Count of rows being fulfilled. For sales orders this is the "
+            "number of SO rows; for manufacturing orders it's always 1 "
+            "(the MO's finished good)."
+        ),
+    )
+    total_quantity: float = Field(
+        default=0.0,
+        description=(
+            "Sum of quantities across all fulfilled rows. Surfaced as a "
+            "Tier 2 metric on the card."
+        ),
+    )
+    total_value: float | None = Field(
+        default=None,
+        description=(
+            "Sum of ``row_total`` across all fulfilled rows (in the "
+            "order's currency). ``None`` when no row carries a price "
+            "(e.g., manufacturing orders — MOs track cost, not price)."
+        ),
+    )
+    currency: str | None = Field(
+        default=None,
+        description="ISO 4217 currency code (sales orders only).",
+    )
+    katana_url: str | None = Field(
+        default=None,
+        description=(
+            "Deep link to the order in the Katana web UI. Drives the "
+            "Tier 4 'View in Katana' action on the success card."
+        ),
+    )
 
 
 def _fulfill_response_to_tool_result(response: FulfillOrderResponse) -> ToolResult:
@@ -223,6 +318,24 @@ async def _fulfill_manufacturing_order(
         )
     )
 
+    # Tier 3 enrichment (#553): single row representing the MO's finished
+    # good. Built before the preview/apply branches so both surfaces share
+    # the same payload — the success card's table shouldn't differ from
+    # the preview's except for the date timestamp the API stamped.
+    mo_batch_transactions = unwrap_unset(getattr(mo, "batch_transactions", None), None)
+    fulfilled_rows = [
+        _build_fulfilled_row_manufacturing(
+            variant_id=variant_id,
+            sku=sku,
+            display_name=display_name,
+            actual_quantity=actual_quantity,
+            serial_numbers=request.serial_numbers,
+            batch_transactions=mo_batch_transactions,
+        )
+    ]
+    rows_count, total_qty, total_value = _summarize_fulfilled_rows(fulfilled_rows)
+    katana_url = katana_web_url("manufacturing_order", request.order_id)
+
     if request.preview:
         has_block = any(w.startswith(BLOCK_WARNING_PREFIX) for w in warnings)
         if current_status == "DONE":
@@ -247,6 +360,11 @@ async def _fulfill_manufacturing_order(
             warnings=warnings,
             next_actions=next_actions,
             message=f"Preview: Would mark manufacturing order {order_number} as DONE (currently {current_status})",
+            fulfilled_rows=fulfilled_rows,
+            rows_count=rows_count,
+            total_quantity=total_qty,
+            total_value=total_value,
+            katana_url=katana_url,
         )
 
     # Refuse on apply if any BLOCK warning is present — the preview would have
@@ -264,6 +382,7 @@ async def _fulfill_manufacturing_order(
             warnings=warnings,
             next_actions=["Order is already completed"],
             message=f"Manufacturing order {order_number} is already completed",
+            katana_url=katana_url,
         )
     if has_block:
         return FulfillOrderResponse(
@@ -282,6 +401,7 @@ async def _fulfill_manufacturing_order(
                 f"{sum(1 for w in warnings if w.startswith(BLOCK_WARNING_PREFIX))} "
                 "issue(s); no status change made."
             ),
+            katana_url=katana_url,
         )
 
     from katana_public_api_client.api.manufacturing_order_production import (
@@ -335,6 +455,29 @@ async def _fulfill_manufacturing_order(
     if request.completed_at is not None:
         next_actions.insert(1, f"done_date set to {request.completed_at.isoformat()}")
 
+    # Rebuild the row from the *final* MO so the success card reflects the
+    # post-mutation ``actual_quantity`` Katana stamped (matters when the
+    # MO had no prior production and Katana wrote ``actual_quantity =
+    # completed_quantity``). batch_transactions also lift from the final
+    # MO so any production-time batch allocations surface on the card.
+    final_actual_quantity = unwrap_unset(final_mo.actual_quantity, None)
+    final_batch_transactions = unwrap_unset(
+        getattr(final_mo, "batch_transactions", None), None
+    )
+    success_rows = [
+        _build_fulfilled_row_manufacturing(
+            variant_id=variant_id,
+            sku=sku,
+            display_name=display_name,
+            actual_quantity=final_actual_quantity,
+            serial_numbers=request.serial_numbers,
+            batch_transactions=final_batch_transactions,
+        )
+    ]
+    success_rows_count, success_total_qty, success_total_value = (
+        _summarize_fulfilled_rows(success_rows)
+    )
+
     logger.info(f"Successfully marked manufacturing order {order_number} as DONE")
     return FulfillOrderResponse(
         order_id=request.order_id,
@@ -346,6 +489,11 @@ async def _fulfill_manufacturing_order(
         warnings=warnings,
         next_actions=next_actions,
         message=f"Successfully marked manufacturing order {order_number} as DONE",
+        fulfilled_rows=success_rows,
+        rows_count=success_rows_count,
+        total_quantity=success_total_qty,
+        total_value=success_total_value,
+        katana_url=katana_url,
     )
 
 
@@ -569,6 +717,160 @@ async def _resolve_variant_serial_info(
     return bool(parent and _attr(parent, "serial_tracked")), sku, display_name
 
 
+def _format_batch_summary(batch_transactions: Any) -> str | None:
+    """Render a list of ``BatchTransaction``-like objects as a one-line
+    summary (e.g., ``"batch 42x30, batch 51x20"``).
+
+    Returns ``None`` when the input is empty / UNSET so the card column
+    renders as blank rather than a literal string ``"None"``. Uses ASCII
+    ``"x"`` (not the multiplication sign) so ruff's RUF001 (ambiguous-
+    unicode) stays clean — matches the convention pinned by the receipt
+    card (#556 / PR #793).
+    """
+    txs = unwrap_unset(batch_transactions, None) or []
+    if not txs:
+        return None
+    parts: list[str] = []
+    for tx in txs:
+        batch_id = unwrap_unset(getattr(tx, "batch_id", None), None)
+        qty = unwrap_unset(getattr(tx, "quantity", None), None)
+        if batch_id is None or qty is None:
+            continue
+        parts.append(f"batch {batch_id}x{qty:g}")
+    return ", ".join(parts) if parts else None
+
+
+def _build_fulfilled_rows_sales(
+    so_rows: list[Any],
+    *,
+    overrides_by_row: dict[int, list[int]],
+    sku_by_row: dict[int, str],
+    display_name_by_row: dict[int, str],
+    currency: str | None,
+) -> list[FulfilledRowInfo]:
+    """Build per-row ``FulfilledRowInfo`` entries for a sales-order fulfillment.
+
+    Pulls identity from the resolved SKU + display_name maps (which the
+    sales branch already builds for serial-tracking detection — no extra
+    cache round-trip needed) and pulls the receive payload (qty, batch
+    transactions, serial overrides) from each SO row. Price comes from
+    ``row.price_per_unit`` (stringly-typed in the wire model; cast to
+    float when present so the card can compute ``row_total`` cleanly).
+    """
+    rows: list[FulfilledRowInfo] = []
+    for row in so_rows:
+        rid = row.id
+        vid = row.variant_id
+        qty = row.quantity
+        serials = overrides_by_row.get(rid) or []
+        batch_summary = _format_batch_summary(getattr(row, "batch_transactions", None))
+        # ``price_per_unit`` is ``str | UNSET`` on the wire model — coerce
+        # to float so the card can multiply for the line total. Skip the
+        # row total when no price is present (rare on a sales order; safe
+        # for non-priced rows like free samples).
+        raw_ppu = unwrap_unset(getattr(row, "price_per_unit", None), None)
+        ppu: float | None
+        try:
+            ppu = float(raw_ppu) if raw_ppu is not None else None
+        except (TypeError, ValueError):
+            ppu = None
+        # Defensive coerce: qty should be a float on the wire, but test
+        # fixtures occasionally leave it as the default MagicMock.
+        qty_f: float = float(qty) if isinstance(qty, int | float) else 0.0
+        row_total = ppu * qty_f if ppu is not None else None
+        # Coerce non-string identity fields to None — a MagicMock leaking
+        # through ``_resolve_row_serial_info`` (test fixtures that don't
+        # set ``variant.display_name``) would otherwise trip the Pydantic
+        # validator. The card falls back to SKU / variant id in that case.
+        sku_raw = sku_by_row.get(rid)
+        display_raw = display_name_by_row.get(rid)
+        rows.append(
+            FulfilledRowInfo(
+                row_id=rid if isinstance(rid, int) else None,
+                variant_id=vid if isinstance(vid, int) else None,
+                sku=sku_raw if isinstance(sku_raw, str) else None,
+                display_name=display_raw
+                if isinstance(display_raw, str) and display_raw
+                else None,
+                quantity=qty_f,
+                serial_numbers=serials,
+                batch_summary=batch_summary,
+                price_per_unit=ppu,
+                row_total=row_total,
+                currency=currency,
+            )
+        )
+    return rows
+
+
+def _build_fulfilled_row_manufacturing(
+    *,
+    variant_id: int | None,
+    sku: str,
+    display_name: str,
+    actual_quantity: float | None,
+    serial_numbers: list[int] | None,
+    batch_transactions: Any,
+) -> FulfilledRowInfo:
+    """Build the single ``FulfilledRowInfo`` for a manufacturing-order
+    completion.
+
+    An MO header carries one variant, not a row list — so we synthesize
+    one fulfilled-row entry with ``row_id=None``. Quantity falls back to
+    ``1`` to match the apply path's ``completed_quantity`` default
+    (``actual_quantity or 1``) so the card's Tier 2 "total qty" metric
+    matches what's actually being produced.
+
+    ``price_per_unit`` / ``row_total`` are deliberately left ``None`` —
+    MOs track cost, not price, and the cost ledger lives on a separate
+    surface. The card hides the Line Total column for MO branches.
+    """
+    qty_f: float = (
+        float(actual_quantity) if isinstance(actual_quantity, int | float) else 1.0
+    )
+    # SKU resolution already coerces to ``f"variant {id}"`` on miss — keep
+    # the same sentinel here so the column doesn't show a bare integer.
+    # Defensive coerce on string fields: test fixtures that miss the SKU
+    # / display_name setup leak MagicMocks through ``_resolve_variant_
+    # serial_info``; Pydantic's validator rejects those, so coerce to
+    # None and let the card fall back to ``variant {id}`` rendering.
+    sku_safe = sku if isinstance(sku, str) and not sku.startswith("variant ") else None
+    display_safe = (
+        display_name if isinstance(display_name, str) and display_name else None
+    )
+    return FulfilledRowInfo(
+        row_id=None,
+        variant_id=variant_id if isinstance(variant_id, int) else None,
+        sku=sku_safe,
+        display_name=display_safe,
+        quantity=qty_f,
+        serial_numbers=list(serial_numbers or []),
+        batch_summary=_format_batch_summary(batch_transactions),
+        price_per_unit=None,
+        row_total=None,
+        currency=None,
+    )
+
+
+def _summarize_fulfilled_rows(
+    rows: list[FulfilledRowInfo],
+) -> tuple[int, float, float | None]:
+    """Return ``(rows_count, total_quantity, total_value)`` for the card's
+    Tier 2 metrics row.
+
+    ``total_value`` is ``None`` when *no* row carries a ``row_total``
+    (e.g., MO fulfillment — no price) so the card can render a 2-metric
+    row instead of a "—"-filled third metric. When at least one row has
+    a total, missing values are treated as ``0`` (the sum represents
+    "what's priced is X", not "every row priced").
+    """
+    rows_count = len(rows)
+    total_qty = sum(r.quantity for r in rows)
+    priced = [r.row_total for r in rows if r.row_total is not None]
+    total_value: float | None = sum(priced) if priced else None
+    return rows_count, total_qty, total_value
+
+
 def _build_mo_serial_warnings(
     *,
     order_number: str,
@@ -773,6 +1075,26 @@ async def _fulfill_sales_order(
         )
     )
 
+    # Tier 3 enrichment (#553): per-row breakdown for the card so the
+    # operator can verify *what* is being shipped without reading the raw
+    # tool-call blob. Reuses the SKU + display_name maps that the
+    # serial-tracking detection already built — no extra cache round-trip.
+    raw_currency = unwrap_unset(so.currency, None)
+    # Defensive: ``unwrap_unset`` only filters the UNSET sentinel — a test
+    # fixture that forgot to stub ``.currency`` leaks a MagicMock through,
+    # which Pydantic rejects on ``FulfilledRowInfo.currency``. Coerce
+    # anything non-string to ``None`` so the response model validates.
+    currency = raw_currency if isinstance(raw_currency, str) else None
+    fulfilled_rows = _build_fulfilled_rows_sales(
+        so_rows,
+        overrides_by_row=overrides_by_row,
+        sku_by_row=sku_by_row,
+        display_name_by_row=display_name_by_row,
+        currency=currency,
+    )
+    rows_count, total_qty, total_value = _summarize_fulfilled_rows(fulfilled_rows)
+    katana_url = katana_web_url("sales_order", request.order_id)
+
     if request.preview:
         has_block = any(w.startswith(BLOCK_WARNING_PREFIX) for w in warnings)
         next_actions = (
@@ -796,6 +1118,12 @@ async def _fulfill_sales_order(
                 f"Preview: Would fulfill sales order {order_number} "
                 f"({len(so_rows)} row(s), currently {current_status})"
             ),
+            fulfilled_rows=fulfilled_rows,
+            rows_count=rows_count,
+            total_quantity=total_qty,
+            total_value=total_value,
+            currency=currency,
+            katana_url=katana_url,
         )
 
     # Refuse on apply if any BLOCK warning is present — the preview would have
@@ -816,6 +1144,7 @@ async def _fulfill_sales_order(
                 f"Sales order {order_number} is already {current_status}; refusing "
                 "to create a duplicate fulfillment"
             ),
+            katana_url=katana_url,
         )
     if not so_rows:
         return FulfillOrderResponse(
@@ -831,6 +1160,7 @@ async def _fulfill_sales_order(
                 f"Refused: Sales order {order_number} has no rows to fulfill; "
                 "no fulfillment created."
             ),
+            katana_url=katana_url,
         )
     if has_block:
         return FulfillOrderResponse(
@@ -849,6 +1179,7 @@ async def _fulfill_sales_order(
                 f"{sum(1 for w in warnings if w.startswith(BLOCK_WARNING_PREFIX))} "
                 "issue(s); no fulfillment created."
             ),
+            katana_url=katana_url,
         )
 
     from katana_public_api_client.api.sales_order_fulfillment import (
@@ -902,6 +1233,12 @@ async def _fulfill_sales_order(
             f"Successfully fulfilled sales order {order_number} "
             f"({len(fulfill_rows)} row(s), fulfillment id={fulfillment.id})"
         ),
+        fulfilled_rows=fulfilled_rows,
+        rows_count=rows_count,
+        total_quantity=total_qty,
+        total_value=total_value,
+        currency=currency,
+        katana_url=katana_url,
     )
 
 

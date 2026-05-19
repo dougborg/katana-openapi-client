@@ -2589,6 +2589,284 @@ class TestBuildFulfillSuccessUI:
         _assert_valid_prefab(app)
 
 
+class TestBuildFulfillUI:
+    """Tier 2 metrics + Tier 3 per-row breakdown + Tier 4 actions on the
+    fulfillment card (#553). Mirrors :class:`TestBuildReceiptUI` for the
+    receipt-card sibling that landed in #556 / PR #793.
+    """
+
+    def _so_response(
+        self,
+        *,
+        is_preview: bool = True,
+        with_rows: bool = True,
+        with_metrics: bool = True,
+        currency: str | None = "USD",
+    ) -> dict[str, Any]:
+        """Minimal SO fulfillment response covering the full Tier 2 + Tier 3
+        rendering path. Tests opt rows / metrics in or out to exercise the
+        empty-state branches."""
+        response: dict[str, Any] = {
+            "order_type": "sales",
+            "order_number": "SO-001",
+            "order_id": 123,
+            "status": "NOT_SHIPPED" if is_preview else "DELIVERED",
+            "message": "Preview" if is_preview else "Fulfilled",
+            "is_preview": is_preview,
+            "katana_url": "https://factory.katanamrp.com/salesorder/123",
+        }
+        if with_rows:
+            response["fulfilled_rows"] = [
+                {
+                    "row_id": 501,
+                    "variant_id": 100,
+                    "sku": "WIDGET-100",
+                    "display_name": "Big Widget / Red",
+                    "quantity": 5.0,
+                    "serial_numbers": [],
+                    "batch_summary": None,
+                    "price_per_unit": 10.0,
+                    "row_total": 50.0,
+                    "currency": currency,
+                },
+                {
+                    "row_id": 502,
+                    "variant_id": 200,
+                    "sku": "WIDGET-200",
+                    "display_name": "Small Widget / Blue",
+                    "quantity": 2.0,
+                    "serial_numbers": [9001, 9002],
+                    "batch_summary": None,
+                    "price_per_unit": 25.0,
+                    "row_total": 50.0,
+                    "currency": currency,
+                },
+            ]
+        if with_metrics:
+            response["rows_count"] = 2 if with_rows else 0
+            response["total_quantity"] = 7.0 if with_rows else 0.0
+            response["total_value"] = 100.0 if with_rows else None
+            response["currency"] = currency
+        return response
+
+    # ------------------------------------------------------------------
+    # Back-compat: legacy payloads without enrichment must keep working
+    # ------------------------------------------------------------------
+
+    def test_preview_back_compat_no_rows_omits_table(self):
+        """Older payloads predating #553 (no ``fulfilled_rows`` /
+        ``rows_count``) must NOT render an empty per-row DataTable.
+        Same back-compat shape as ``TestBuildReceiptUI``."""
+        response = {
+            "order_type": "sales",
+            "order_number": "SO-001",
+            "order_id": 123,
+            "status": "NOT_SHIPPED",
+            "message": "Ready to fulfill",
+            "is_preview": True,
+        }
+        envelope = build_fulfill_preview_ui(response).to_json()
+        assert not _has_node_of_type(envelope, "DataTable"), (
+            "Empty fulfilled_rows must NOT emit a DataTable."
+        )
+
+    def test_success_back_compat_no_rows_omits_table(self):
+        """Symmetric back-compat for the success card."""
+        response = {
+            "order_type": "sales",
+            "order_number": "SO-001",
+            "status": "DELIVERED",
+            "message": "Order fulfilled",
+            "is_preview": False,
+        }
+        envelope = build_fulfill_success_ui(response).to_json()
+        assert not _has_node_of_type(envelope, "DataTable")
+
+    # ------------------------------------------------------------------
+    # Tier 2 metrics
+    # ------------------------------------------------------------------
+
+    def test_preview_renders_tier2_metrics(self):
+        """Three-Metric row: Rows / Total Qty / Total Value.
+
+        Pinned by #553: the operator's most-asked decision context is
+        "what's the commitment". Each Metric is its own component so a
+        future card rearrangement can drop one without disturbing the
+        others.
+        """
+        envelope = build_fulfill_preview_ui(self._so_response()).to_json()
+        metrics = _find_components_by_type(envelope, "Metric")
+        labels = [m.get("label") for m in metrics]
+        assert "Rows" in labels
+        assert "Total Qty" in labels
+        assert "Total Value" in labels
+
+    def test_mo_response_omits_total_value(self):
+        """Manufacturing orders track cost, not price — the card must
+        skip the Total Value metric when no row carries a price (the
+        ``total_value=None`` signal from the backend)."""
+        response = {
+            "order_type": "manufacturing",
+            "order_number": "MO-001",
+            "order_id": 456,
+            "status": "IN_PROGRESS",
+            "message": "Preview",
+            "is_preview": True,
+            "rows_count": 1,
+            "total_quantity": 3.0,
+            "total_value": None,
+            "currency": None,
+            "fulfilled_rows": [
+                {
+                    "row_id": None,
+                    "variant_id": 555,
+                    "sku": "FG-001",
+                    "display_name": "Finished Good",
+                    "quantity": 3.0,
+                    "serial_numbers": [],
+                    "batch_summary": None,
+                    "price_per_unit": None,
+                    "row_total": None,
+                    "currency": None,
+                }
+            ],
+        }
+        envelope = build_fulfill_preview_ui(response).to_json()
+        metrics = _find_components_by_type(envelope, "Metric")
+        labels = [m.get("label") for m in metrics]
+        assert "Rows" in labels
+        assert "Total Qty" in labels
+        assert "Total Value" not in labels, (
+            "MO branch must not render Total Value — MOs don't track price."
+        )
+
+    # ------------------------------------------------------------------
+    # Tier 3 per-row table
+    # ------------------------------------------------------------------
+
+    def test_preview_renders_tier3_table_with_expected_columns(self):
+        """Sales-order DataTable surfaces six columns:
+        Item / SKU / Qty / Serials / Batch / Line Total. Manufacturing
+        skips Line Total (covered by ``test_mo_card_drops_line_total``).
+        """
+        envelope = build_fulfill_preview_ui(self._so_response()).to_json()
+        tables = _find_components_by_type(envelope, "DataTable")
+        assert len(tables) == 1
+        headers = [c.get("header") for c in tables[0].get("columns", [])]
+        assert headers == [
+            "Item",
+            "SKU",
+            "Qty",
+            "Serials",
+            "Batch",
+            "Line Total",
+        ]
+
+    def test_mo_card_drops_line_total(self):
+        """MO branch table drops the Line Total column (no price on the
+        MO surface). Pinned so a future "always show all 6 columns" edit
+        breaks loudly instead of silently rendering a blank column."""
+        response = {
+            "order_type": "manufacturing",
+            "order_number": "MO-001",
+            "order_id": 456,
+            "status": "IN_PROGRESS",
+            "is_preview": True,
+            "rows_count": 1,
+            "total_quantity": 1.0,
+            "total_value": None,
+            "fulfilled_rows": [
+                {
+                    "row_id": None,
+                    "variant_id": 555,
+                    "sku": "FG-001",
+                    "display_name": "Finished Good",
+                    "quantity": 1.0,
+                    "serial_numbers": [],
+                    "batch_summary": None,
+                    "price_per_unit": None,
+                    "row_total": None,
+                    "currency": None,
+                }
+            ],
+        }
+        envelope = build_fulfill_preview_ui(response).to_json()
+        tables = _find_components_by_type(envelope, "DataTable")
+        headers = [c.get("header") for c in tables[0].get("columns", [])]
+        assert "Line Total" not in headers
+        # Identity columns + qty/serials/batch are still present.
+        assert headers == ["Item", "SKU", "Qty", "Serials", "Batch"]
+
+    def test_per_row_table_flattens_strings_into_state(self):
+        """``DataTable.rows`` is a state-bound mustache reference. Builder
+        must pre-format the per-row dicts (qty via ``:g``, money via
+        babel, serials list collapsed) so the iframe template only sees
+        strings. See :func:`_build_fulfill_row_display`.
+        """
+        envelope = build_fulfill_preview_ui(self._so_response()).to_json()
+        state = envelope.get("state") or envelope.get("$prefab", {}).get("state", {})
+        rows = state.get("fulfilled_rows")
+        assert isinstance(rows, list) and len(rows) == 2
+        row_a, row_b = rows
+        assert row_a["display_name"] == "Big Widget / Red"
+        assert row_a["sku"] == "WIDGET-100"
+        assert row_a["quantity"] == "5"  # :g trims trailing .0
+        assert row_a["serials"] == ""  # empty list -> empty string
+        assert row_a["row_total"] == "$50.00"
+        # Row B has serial overrides — short list renders verbatim.
+        assert row_b["serials"] == "9001, 9002"
+
+    def test_long_serial_list_collapses_to_count(self):
+        """A row attaching more than 5 serials would blow out the column
+        width; the builder collapses to ``"N serial(s)"`` so the card
+        stays readable.
+        """
+        response = self._so_response()
+        response["fulfilled_rows"][0]["serial_numbers"] = list(range(1, 11))
+        envelope = build_fulfill_preview_ui(response).to_json()
+        state = envelope.get("state") or envelope.get("$prefab", {}).get("state", {})
+        assert state["fulfilled_rows"][0]["serials"] == "10 serial(s)"
+
+    def test_batch_summary_renders_pre_formatted(self):
+        """Batch-tracked rows surface the batch allocation in human-
+        readable form, paralleling the receipt card (#556)."""
+        response = self._so_response()
+        response["fulfilled_rows"][0]["batch_summary"] = "batch 42x30, batch 51x20"
+        envelope = build_fulfill_preview_ui(response).to_json()
+        state = envelope.get("state") or envelope.get("$prefab", {}).get("state", {})
+        assert state["fulfilled_rows"][0]["batch_summary"] == "batch 42x30, batch 51x20"
+
+    # ------------------------------------------------------------------
+    # Tier 4 success-side actions
+    # ------------------------------------------------------------------
+
+    def test_success_renders_view_in_katana_when_url_present(self):
+        """Tier 4 expansion (#553): the success card now offers two
+        follow-ups instead of the legacy single Check Inventory button.
+        View in Katana wins the primary slot when a deep-link is present.
+        """
+        envelope = build_fulfill_success_ui(
+            self._so_response(is_preview=False)
+        ).to_json()
+        buttons = _find_components_by_type(envelope, "Button")
+        labels = [b.get("label") for b in buttons]
+        assert "View in Katana" in labels
+        assert "Check Inventory" in labels
+
+    def test_success_omits_view_in_katana_when_url_missing(self):
+        """No ``katana_url`` on the response (older payload) → fall back
+        to the legacy single Check Inventory button. Pinned for
+        back-compat with previous test fixtures that don't include the
+        URL field."""
+        response = self._so_response(is_preview=False)
+        response.pop("katana_url", None)
+        envelope = build_fulfill_success_ui(response).to_json()
+        buttons = _find_components_by_type(envelope, "Button")
+        labels = [b.get("label") for b in buttons]
+        assert "View in Katana" not in labels
+        assert "Check Inventory" in labels
+
+
 class TestBuildVerificationUI:
     def test_match(self):
         response = {
