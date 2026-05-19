@@ -189,6 +189,13 @@ class ActionResult(BaseModel):
     verified: bool | None = None
     actual_after: dict[str, Any] | None = None
 
+    # Internal-only carrier for the PATCH/POST response body so the
+    # dispatcher can overlay fresh-by-construction field values onto the
+    # cache-merge GET refetch (defeats Katana's read-replica lag, see
+    # ``_post_apply_cache_merge``). Excluded from serialization so it
+    # never reaches Prefab clients or test snapshots.
+    apply_outcome: Any = Field(default=None, exclude=True, repr=False)
+
     # Derived display fields — computed from succeeded/verified/changes/operation
     # so client renderers (Prefab cards) bind directly without recomputing.
     # Travels with every preview AND apply response, so the live-tick path

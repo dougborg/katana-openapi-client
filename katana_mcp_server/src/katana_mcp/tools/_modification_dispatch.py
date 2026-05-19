@@ -77,10 +77,17 @@ from katana_mcp.tools._modification import (
     make_response_verifier,
 )
 from katana_mcp.web_urls import EntityKind, katana_web_url
+from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.domain.converters import to_unset
 from katana_public_api_client.utils import is_success, unwrap, unwrap_as
 
 logger = get_logger(__name__)
+
+
+# Sentinel for "attribute not present on this object" — distinguishes a
+# missing attribute from a present-but-None value in attribute walks over
+# generated attrs models that may have diverging PATCH/GET shapes.
+_MISSING: Any = object()
 
 
 # ``apply`` callable: returns whatever the API call yields (typically the
@@ -260,6 +267,7 @@ async def execute_plan(plan: list[ActionSpec]) -> list[ActionResult]:
                 succeeded=True,
                 verified=verified,
                 actual_after=actual_after,
+                apply_outcome=outcome,
             )
         )
 
@@ -831,11 +839,13 @@ async def run_modify_plan(
         and actions
         and not any(a.succeeded is False for a in actions)
     ):
+        parent_field_overlay = _collect_parent_field_overlay(actions, request.id)
         try:
             await _post_apply_cache_merge(
                 cache_merge=cache_merge,
                 entity_type=entity_type,
                 entity_id=request.id,
+                parent_field_overlay=parent_field_overlay,
             )
         except asyncio.CancelledError:
             # Cooperative cancellation (request timeout, shutdown) must
@@ -861,17 +871,62 @@ async def run_modify_plan(
     )
 
 
+def _collect_parent_field_overlay(
+    actions: list[ActionResult],
+    entity_id: int | str,
+) -> dict[str, Any]:
+    """Build the {field: fresh_value} overlay for ``_post_apply_cache_merge``.
+
+    Bug #2b (2026-05-18): the post-apply parent refetch can hit a Katana
+    read replica that lags behind the writer, returning pre-modify values
+    for fields we *just* asked to change. Merging that response would
+    overwrite the cache with stale data even though the write landed. The
+    PATCH response body is fresh by construction, so for each
+    parent-targeted action's diff field we read the value off
+    ``apply_outcome`` and feed it into the overlay. The merge step layers
+    these values onto the GET refetch right before writing through.
+
+    Parent-only: actions whose ``target_id`` does not match ``entity_id``
+    are skipped — their fields belong on a different (row) class. UNSET
+    values are skipped so we never clobber a non-UNSET GET value with a
+    sentinel.
+    """
+    overlay: dict[str, Any] = {}
+    for action in actions:
+        if action.succeeded is not True:
+            continue
+        if action.target_id != entity_id:
+            continue
+        outcome = action.apply_outcome
+        if outcome is None:
+            continue
+        for change in action.changes:
+            value = getattr(outcome, change.field, _MISSING)
+            if value is _MISSING or value is UNSET:
+                continue
+            overlay[change.field] = value
+    return overlay
+
+
 async def _post_apply_cache_merge(
     *,
     cache_merge: CacheMerge,
     entity_type: str,
     entity_id: int,
+    parent_field_overlay: dict[str, Any] | None = None,
 ) -> None:
     """Re-fetch the modified entity from Katana and merge into the typed cache.
 
     Looks up the ``EntitySpec`` by ``entity_type`` in ``ENTITY_SPECS`` —
     entity types that aren't cached (no spec) skip silently. Returns
     quietly if the parent refetch yields no entity (deleted, race, etc.).
+
+    ``parent_field_overlay`` carries field values pulled from the PATCH
+    response body — fresh-by-construction, used to defeat read-replica
+    lag where the refetch GET would otherwise return pre-modify values
+    for fields we just asked to change. See the call-site comment in
+    ``run_modify_plan`` for the full reasoning. Empty/None means no
+    overlay; the unmodified GET result merges through.
 
     For entities whose ``EntitySpec.related_specs`` reference data at
     separate API endpoints (MO recipe rows, sibling row-watermarks), the
@@ -891,6 +946,14 @@ async def _post_apply_cache_merge(
     parent = await cache_merge.refetch_for_merge(entity_id)
     if parent is None:
         return  # fetch returned nothing (e.g., the entity was deleted)
+
+    # Overlay fresh PATCH-response values onto the (possibly stale) GET
+    # refetch. Generated attrs models are mutable (no ``frozen=True``);
+    # the ``_MISSING`` sentinel tolerates future PATCH/GET shape divergence.
+    if parent_field_overlay:
+        for field_name, fresh_value in parent_field_overlay.items():
+            if getattr(parent, field_name, _MISSING) is not _MISSING:
+                setattr(parent, field_name, fresh_value)
 
     await merge_filtered_fetch(cache_merge.cache, spec, [parent])
 
