@@ -1,5 +1,6 @@
 """Tests for order fulfillment MCP tools."""
 
+from datetime import UTC, datetime
 from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock
 
@@ -582,6 +583,35 @@ async def test_fulfill_manufacturing_order_api_error():
 # ============================================================================
 # Sales Order — Serial-Tracked Variant Tests (#547)
 # ============================================================================
+
+
+def _wire_non_serial_tracked_cache(lifespan_ctx, *, variant_id: int, sku: str) -> None:
+    """Configure the cache so a row's variant resolves as non-serial-tracked.
+
+    Prevents test ordering from accidentally routing variant lookups through
+    leftover ``get_variant.asyncio_detailed`` mocks (which earlier tests in
+    the file set to return a serial-tracked product) and surfacing a spurious
+    BLOCK warning. Use whenever a fresh-context test references a variant ID
+    that another test in the file has already wired into the cache.
+    """
+    parent_id = 9000 + variant_id
+    variant_row = CachedVariant(id=variant_id, sku=sku, product_id=parent_id)
+    parent_row = CachedProduct(
+        id=parent_id,
+        name="Parent",
+        type=InventoryItemType.product,
+        serial_tracked=False,
+    )
+
+    async def _get_many(cls, ids, **_kw):
+        ids = list(ids or [])
+        if cls is CachedVariant and variant_id in ids:
+            return {variant_id: variant_row}
+        if cls is CachedProduct and parent_id in ids:
+            return {parent_id: parent_row}
+        return {}
+
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(side_effect=_get_many)
 
 
 def _wire_serial_tracked_cache(
@@ -1341,3 +1371,465 @@ async def test_fulfill_manufacturing_order_non_serial_tracked_no_change():
     from katana_public_api_client.client_types import UNSET
 
     assert sent_body.serial_numbers is UNSET
+
+
+# ============================================================================
+# completed_at Backdating Tests (#778)
+# ============================================================================
+#
+# Hybrid surface: ``FulfillOrderRequest.completed_at`` maps to two different
+# wire shapes depending on the order type.
+#
+# - SO: forwarded as ``picked_date`` on the single
+#   ``POST /sales_order_fulfillments`` call (one round-trip).
+# - MO: requires a two-call PATCH chase (Katana 422s if ``done_date`` and
+#   ``status=DONE`` ship in the same body — see corrections.py).
+
+
+@pytest.mark.asyncio
+async def test_fulfill_mo_with_completed_at_two_call_succeeds():
+    """MO apply with completed_at: two PATCHes fire (status then done_date)."""
+    context, _lifespan_ctx = create_mock_context()
+
+    mock_mo = MagicMock(spec=ManufacturingOrder)
+    mock_mo.order_no = "MO-CA-1"
+    mock_mo.status = ManufacturingOrderStatus.IN_PROGRESS
+    mock_mo.variant_id = None
+    mock_mo.actual_quantity = None
+
+    mock_get_response = MagicMock(status_code=200, parsed=mock_mo)
+
+    mock_updated_mo = MagicMock(spec=ManufacturingOrder)
+    mock_updated_mo.order_no = "MO-CA-1"
+    mock_updated_mo.status = ManufacturingOrderStatus.DONE
+    mock_status_response = MagicMock(status_code=200, parsed=mock_updated_mo)
+
+    # Second PATCH (done_date) — Katana returns the mutated MO on success.
+    mock_dated_mo = MagicMock(spec=ManufacturingOrder)
+    mock_dated_mo.order_no = "MO-CA-1"
+    mock_dated_mo.status = ManufacturingOrderStatus.DONE
+    mock_date_response = MagicMock(status_code=200, parsed=mock_dated_mo)
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+        update_manufacturing_order,
+    )
+
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+    update_mock = AsyncMock(side_effect=[mock_status_response, mock_date_response])
+    cast(Any, update_manufacturing_order).asyncio_detailed = update_mock
+
+    completed = datetime(2026, 5, 1, 20, 30, tzinfo=UTC)
+    request = FulfillOrderRequest(
+        order_id=1234,
+        order_type="manufacturing",
+        preview=False,
+        completed_at=completed,
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert result.is_preview is False
+    assert result.status == "DONE"
+    # Two PATCH calls fired in order.
+    assert update_mock.call_count == 2
+    first_body = update_mock.call_args_list[0].kwargs["body"]
+    second_body = update_mock.call_args_list[1].kwargs["body"]
+    # First call: status=DONE (no done_date — Katana would 422 otherwise).
+    assert first_body.status == ManufacturingOrderStatus.DONE
+    from katana_public_api_client.client_types import UNSET
+
+    assert first_body.done_date is UNSET
+    # Second call: done_date set, status UNSET.
+    assert second_body.done_date == completed
+    assert second_body.status is UNSET
+    # next_actions surfaces the backdate confirmation.
+    assert any("backdated" in a for a in result.next_actions)
+    assert any(completed.isoformat() in a for a in result.next_actions)
+
+
+@pytest.mark.asyncio
+async def test_fulfill_mo_without_completed_at_is_single_call():
+    """No completed_at: only the status PATCH fires; no spurious second call.
+
+    Regression guard — if the second PATCH is fired with an empty body it
+    would clear ``done_date`` to None on success (Katana wipe-on-omit).
+    """
+    context, _lifespan_ctx = create_mock_context()
+
+    mock_mo = MagicMock(spec=ManufacturingOrder)
+    mock_mo.order_no = "MO-CA-2"
+    mock_mo.status = ManufacturingOrderStatus.IN_PROGRESS
+    mock_mo.variant_id = None
+    mock_mo.actual_quantity = None
+
+    mock_get_response = MagicMock(status_code=200, parsed=mock_mo)
+
+    mock_updated_mo = MagicMock(spec=ManufacturingOrder)
+    mock_updated_mo.order_no = "MO-CA-2"
+    mock_updated_mo.status = ManufacturingOrderStatus.DONE
+    mock_update_response = MagicMock(status_code=200, parsed=mock_updated_mo)
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+        update_manufacturing_order,
+    )
+
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+    update_mock = AsyncMock(return_value=mock_update_response)
+    cast(Any, update_manufacturing_order).asyncio_detailed = update_mock
+
+    request = FulfillOrderRequest(
+        order_id=1234, order_type="manufacturing", preview=False
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert result.is_preview is False
+    assert result.status == "DONE"
+    update_mock.assert_called_once()
+    # No backdate next-action when completed_at is absent.
+    assert not any("backdated" in a for a in result.next_actions)
+
+
+@pytest.mark.asyncio
+async def test_fulfill_mo_completed_at_second_patch_422_surfaces_warning():
+    """Second PATCH 422: MO is DONE, warning surfaces, no exception bubbles.
+
+    Per the WS-H umbrella: Katana isn't transactional across endpoints; fail
+    forward with diagnostic context rather than rolling back inventory. The
+    user's primary intent (close the MO) landed; the backdate failure is a
+    secondary concern.
+    """
+    context, _lifespan_ctx = create_mock_context()
+
+    mock_mo = MagicMock(spec=ManufacturingOrder)
+    mock_mo.order_no = "MO-CA-3"
+    mock_mo.status = ManufacturingOrderStatus.IN_PROGRESS
+    mock_mo.variant_id = None
+    mock_mo.actual_quantity = None
+
+    mock_get_response = MagicMock(status_code=200, parsed=mock_mo)
+
+    mock_updated_mo = MagicMock(spec=ManufacturingOrder)
+    mock_updated_mo.order_no = "MO-CA-3"
+    mock_updated_mo.status = ManufacturingOrderStatus.DONE
+    mock_status_response = MagicMock(status_code=200, parsed=mock_updated_mo)
+
+    # Second PATCH 422s — no parsed body so unwrap(raise_on_error=False)
+    # returns None.
+    mock_422 = MagicMock(status_code=422, parsed=None)
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+        update_manufacturing_order,
+    )
+
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+    update_mock = AsyncMock(side_effect=[mock_status_response, mock_422])
+    cast(Any, update_manufacturing_order).asyncio_detailed = update_mock
+
+    request = FulfillOrderRequest(
+        order_id=1234,
+        order_type="manufacturing",
+        preview=False,
+        completed_at=datetime(2026, 5, 1, 20, 30, tzinfo=UTC),
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    # MO is still DONE — the close landed even though the backdate didn't.
+    assert result.is_preview is False
+    assert result.status == "DONE"
+    # Warning surfaces with the HTTP code and the actionable hint.
+    assert any("completed_at was not applied" in w for w in result.warnings)
+    assert any("HTTP 422" in w for w in result.warnings)
+    # No BLOCK prefix — this is a soft warning, not a refusal.
+    assert not any(w.startswith("BLOCK:") for w in result.warnings)
+    # next_actions doesn't claim the backdate succeeded.
+    assert not any("backdated" in a for a in result.next_actions)
+
+
+@pytest.mark.asyncio
+async def test_fulfill_mo_completed_at_naive_datetime_coerced_to_utc():
+    """Naive datetime passed at the Pydantic boundary lands as tz-aware UTC.
+
+    Mirrors the ``WireDatetime`` validator coverage in stock_transfers — the
+    Katana wire requires a timezone offset; a naive datetime would 422.
+    """
+    request = FulfillOrderRequest(
+        order_id=1,
+        order_type="manufacturing",
+        completed_at=datetime(2026, 5, 1, 20, 30),  # naive
+    )
+    assert request.completed_at is not None
+    assert request.completed_at.tzinfo is not None
+    assert (
+        request.completed_at.utcoffset() == datetime(2026, 1, 1, tzinfo=UTC).utcoffset()
+    )
+
+
+@pytest.mark.asyncio
+async def test_fulfill_mo_preview_with_completed_at_surfaces_in_inventory_updates():
+    """Preview path adds a planned-backdating line to inventory_updates."""
+    context, _lifespan_ctx = create_mock_context()
+
+    mock_mo = MagicMock(spec=ManufacturingOrder)
+    mock_mo.order_no = "MO-CA-PREVIEW"
+    mock_mo.status = ManufacturingOrderStatus.IN_PROGRESS
+    mock_mo.variant_id = None
+    mock_mo.actual_quantity = None
+
+    mock_response = MagicMock(status_code=200, parsed=mock_mo)
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=mock_response
+    )
+
+    completed = datetime(2026, 5, 1, 20, 30, tzinfo=UTC)
+    request = FulfillOrderRequest(
+        order_id=1234,
+        order_type="manufacturing",
+        preview=True,
+        completed_at=completed,
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert result.is_preview is True
+    assert any(
+        "done_date will be set to" in u and completed.isoformat() in u
+        for u in result.inventory_updates
+    )
+
+
+@pytest.mark.asyncio
+async def test_fulfill_so_with_completed_at_one_call():
+    """SO apply with completed_at: single POST carries picked_date in body."""
+    context, lifespan_ctx = create_mock_context()
+    # Wire the cache so variant 100 resolves to a non-serial-tracked product —
+    # this also defeats the API-fallback path that earlier tests in this file
+    # left mocked (test ordering would otherwise route variant lookups through
+    # ``get_variant.asyncio_detailed`` AsyncMock leftovers and surface a
+    # spurious serial-tracked BLOCK warning).
+    _wire_non_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="PLAIN-CA")
+
+    mock_so = MagicMock(spec=SalesOrder)
+    mock_so.order_no = "SO-CA-1"
+    mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.sales_order_rows = [_make_so_row(1, 100, 2.0)]
+
+    mock_get_response = MagicMock(status_code=200, parsed=mock_so)
+
+    from katana_public_api_client.api.sales_order import get_sales_order
+    from katana_public_api_client.api.sales_order_fulfillment import (
+        create_sales_order_fulfillment,
+    )
+    from katana_public_api_client.models import SalesOrderFulfillment
+
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+    fulfillment_obj = MagicMock(spec=SalesOrderFulfillment)
+    fulfillment_obj.id = 11111
+    mock_create_response = MagicMock(status_code=201, parsed=fulfillment_obj)
+    create_mock = AsyncMock(return_value=mock_create_response)
+    cast(Any, create_sales_order_fulfillment).asyncio_detailed = create_mock
+
+    completed = datetime(2026, 5, 1, 20, 30, tzinfo=UTC)
+    request = FulfillOrderRequest(
+        order_id=5678,
+        order_type="sales",
+        preview=False,
+        completed_at=completed,
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert result.is_preview is False
+    assert result.status == "DELIVERED"
+    create_mock.assert_called_once()
+    sent_body = create_mock.call_args.kwargs["body"]
+    assert sent_body.picked_date == completed
+
+
+@pytest.mark.asyncio
+async def test_fulfill_so_without_completed_at_omits_picked_date():
+    """No completed_at: picked_date stays UNSET (regression guard).
+
+    Forwarding ``None`` directly would set ``picked_date=null`` on the wire
+    and Katana would 422; ``to_unset(None) is UNSET`` keeps the field off
+    the wire entirely.
+    """
+    context, lifespan_ctx = create_mock_context()
+    _wire_non_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="PLAIN-CA")
+
+    mock_so = MagicMock(spec=SalesOrder)
+    mock_so.order_no = "SO-CA-2"
+    mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.sales_order_rows = [_make_so_row(1, 100, 2.0)]
+
+    mock_get_response = MagicMock(status_code=200, parsed=mock_so)
+
+    from katana_public_api_client.api.sales_order import get_sales_order
+    from katana_public_api_client.api.sales_order_fulfillment import (
+        create_sales_order_fulfillment,
+    )
+    from katana_public_api_client.client_types import UNSET
+    from katana_public_api_client.models import SalesOrderFulfillment
+
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+    fulfillment_obj = MagicMock(spec=SalesOrderFulfillment)
+    fulfillment_obj.id = 22222
+    mock_create_response = MagicMock(status_code=201, parsed=fulfillment_obj)
+    create_mock = AsyncMock(return_value=mock_create_response)
+    cast(Any, create_sales_order_fulfillment).asyncio_detailed = create_mock
+
+    request = FulfillOrderRequest(order_id=5678, order_type="sales", preview=False)
+    result = await _fulfill_order_impl(request, context)
+
+    assert result.is_preview is False
+    sent_body = create_mock.call_args.kwargs["body"]
+    assert sent_body.picked_date is UNSET
+
+
+@pytest.mark.asyncio
+async def test_fulfill_so_completed_at_with_row_overrides():
+    """completed_at + rows= coexist cleanly on the same apply call.
+
+    Uses a serial-tracked variant so the row override is exercised end-to-end
+    (the override is the *only* way to satisfy the serial-tracked BLOCK
+    warning on apply).
+    """
+    context, lifespan_ctx = create_mock_context()
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="WIDGET-CA")
+
+    mock_so = MagicMock(spec=SalesOrder)
+    mock_so.order_no = "SO-CA-3"
+    mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.sales_order_rows = [_make_so_row(1, 100, 1.0)]
+
+    mock_get_response = MagicMock(status_code=200, parsed=mock_so)
+
+    from katana_public_api_client.api.sales_order import get_sales_order
+    from katana_public_api_client.api.sales_order_fulfillment import (
+        create_sales_order_fulfillment,
+    )
+    from katana_public_api_client.models import SalesOrderFulfillment
+
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+    fulfillment_obj = MagicMock(spec=SalesOrderFulfillment)
+    fulfillment_obj.id = 33333
+    mock_create_response = MagicMock(status_code=201, parsed=fulfillment_obj)
+    create_mock = AsyncMock(return_value=mock_create_response)
+    cast(Any, create_sales_order_fulfillment).asyncio_detailed = create_mock
+
+    completed = datetime(2026, 5, 1, 20, 30, tzinfo=UTC)
+    request = FulfillOrderRequest(
+        order_id=5678,
+        order_type="sales",
+        preview=False,
+        rows=[FulfillRowOverride(sales_order_row_id=1, serial_numbers=[501])],
+        completed_at=completed,
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert result.is_preview is False
+    assert result.status == "DELIVERED"
+    create_mock.assert_called_once()
+    sent_body = create_mock.call_args.kwargs["body"]
+    # Both knobs land — picked_date on the header, serial_numbers on the row.
+    assert sent_body.picked_date == completed
+    assert sent_body.sales_order_fulfillment_rows[0].serial_numbers == [501]
+
+
+@pytest.mark.asyncio
+async def test_completed_at_validator_rejects_invalid_string():
+    """Pydantic validator rejects non-ISO strings before the tool runs.
+
+    Goes through ``model_validate`` so the test stays type-clean — the raw
+    string is a runtime concern (MCP clients pass JSON), not a static-type
+    one.
+    """
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        FulfillOrderRequest.model_validate(
+            {
+                "order_id": 1,
+                "order_type": "manufacturing",
+                "completed_at": "not-a-datetime",
+            }
+        )
+
+
+@pytest.mark.asyncio
+async def test_fulfill_mo_completed_at_propagates_to_serial_transaction_date():
+    """Integration-style: the second PATCH carrying ``done_date`` is the same
+    timestamp the Traceability column's ``SerialNumber.transaction_date`` is
+    derived from.
+
+    This test pins the **emitter side**: the tool sends Katana exactly one
+    ``done_date`` value via the second PATCH. The **consumer side** (Katana
+    deriving ``SerialNumber.transaction_date`` from ``done_date``) is
+    asserted in the issue body (#778) against a live-API observation
+    (WEB20387) and can only be verified live — flagged as a known-unknown
+    in the PR body. If Katana ever changes that derivation, the symptom
+    surfaces in production, not here.
+    """
+    context, lifespan_ctx = create_mock_context()
+    _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="WIDGET-SN")
+
+    mock_mo = _make_serial_tracked_mo(order_no="MO-CA-SN", actual_quantity=1.0)
+    mock_get_response = MagicMock(status_code=200, parsed=mock_mo)
+
+    mock_updated_mo = MagicMock(spec=ManufacturingOrder)
+    mock_updated_mo.order_no = "MO-CA-SN"
+    mock_updated_mo.status = ManufacturingOrderStatus.DONE
+    mock_status_response = MagicMock(status_code=200, parsed=mock_updated_mo)
+
+    mock_dated_mo = MagicMock(spec=ManufacturingOrder)
+    mock_dated_mo.order_no = "MO-CA-SN"
+    mock_dated_mo.status = ManufacturingOrderStatus.DONE
+    mock_date_response = MagicMock(status_code=200, parsed=mock_dated_mo)
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+        update_manufacturing_order,
+    )
+
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+    update_mock = AsyncMock(side_effect=[mock_status_response, mock_date_response])
+    cast(Any, update_manufacturing_order).asyncio_detailed = update_mock
+
+    completed = datetime(2026, 5, 1, 20, 30, tzinfo=UTC)
+    request = FulfillOrderRequest(
+        order_id=42,
+        order_type="manufacturing",
+        preview=False,
+        serial_numbers=[501],
+        completed_at=completed,
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert result.is_preview is False
+    assert update_mock.call_count == 2
+    # First PATCH carries serials (per the existing #586 contract).
+    first_body = update_mock.call_args_list[0].kwargs["body"]
+    assert first_body.serial_numbers == [501]
+    # Second PATCH carries the exact done_date Katana derives
+    # transaction_date from. This is the value that lands on the
+    # serial via the Katana-side derivation.
+    second_body = update_mock.call_args_list[1].kwargs["body"]
+    assert second_body.done_date == completed
