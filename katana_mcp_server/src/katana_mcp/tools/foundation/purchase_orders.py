@@ -537,6 +537,48 @@ class ReceivePurchaseOrderRequest(BaseModel):
     )
 
 
+class ReceivedItemInfo(BaseModel):
+    """Per-row receipt detail surfaced on the receipt card (#556).
+
+    Pairs the row identity (variant SKU + display_name, looked up from the
+    typed cache) with the receive payload (quantity, received_date, batch
+    allocations) so the agent can verify *what* is being received before
+    confirming — replacing the prior items_received *count*-only summary
+    that left the agent reading the raw ``items=[...]`` blob below the card.
+    """
+
+    purchase_order_row_id: int
+    variant_id: int | None = None
+    sku: str | None = None
+    display_name: str | None = None
+    quantity: float
+    quantity_ordered: float | None = Field(
+        default=None,
+        description=(
+            "Total quantity on this PO row, lifted from the PO. Lets the "
+            "card show 'receiving X of Y' for partial receives."
+        ),
+    )
+    received_date: str | None = Field(
+        default=None,
+        description="ISO 8601 received timestamp (caller-supplied or default).",
+    )
+    batch_summary: str | None = Field(
+        default=None,
+        description=(
+            "Pre-formatted batch allocations (e.g., 'batch 42x30, batch 51x22') "
+            "for batch-tracked materials. None when the row carries no batch "
+            "transactions."
+        ),
+    )
+    price_per_unit: float | None = None
+    row_total: float | None = Field(
+        default=None,
+        description="quantity * price_per_unit in the PO currency.",
+    )
+    currency: str | None = None
+
+
 class ReceivePurchaseOrderResponse(BaseModel):
     """Response from receiving purchase order items."""
 
@@ -548,6 +590,14 @@ class ReceivePurchaseOrderResponse(BaseModel):
     currency: str | None = None
     total_cost: float | None = None
     items_received: int = 0
+    received_items: list[ReceivedItemInfo] = Field(
+        default_factory=list,
+        description=(
+            "Per-row breakdown of what's being received — variant identity, "
+            "quantity, received_date, batch allocations. Drives the Tier 3 "
+            "DataTable on the receipt card."
+        ),
+    )
     is_preview: bool = True
     warnings: list[str] = Field(
         default_factory=list,
@@ -584,6 +634,108 @@ def _receive_response_to_tool_result(
     else:
         ui = build_receipt_ui(response.model_dump())
     return make_tool_result(response, ui=ui)
+
+
+async def _enrich_received_items(
+    services: Any,
+    request_items: list[ReceiveItemRequest],
+    po: Any,
+    *,
+    currency: str | None,
+    default_received_date: datetime | None,
+) -> list[ReceivedItemInfo]:
+    """Build per-row ``ReceivedItemInfo`` entries for the receipt card.
+
+    Joins three sources of data so the rendered table can show variant
+    identity alongside the receive payload without forcing the agent to
+    parse the raw ``items=[...]`` blob:
+
+    - **The PO row** (matched by ``purchase_order_row_id``) for ordered
+      qty + price_per_unit + variant_id.
+    - **The typed cache** (one batched ``get_many_by_ids`` over the row
+      variants) for SKU + canonical ``display_name``.
+    - **The request** itself for quantity / received_date / batch
+      transactions — what the user is asking to land.
+
+    ``default_received_date`` is the fallback used by the confirm path when
+    the request omitted ``received_date``. Pass ``None`` on the preview
+    path so the rendered cell shows '—' instead of misrepresenting a
+    timestamp the API hasn't actually assigned yet.
+    """
+    raw_rows = unwrap_unset(po.purchase_order_rows, None) or []
+    po_rows_by_id: dict[int, Any] = {}
+    for r in raw_rows:
+        rid = unwrap_unset(getattr(r, "id", None), None)
+        if rid is not None:
+            po_rows_by_id[int(rid)] = r
+
+    variant_ids: set[int] = set()
+    for item in request_items:
+        po_row = po_rows_by_id.get(item.purchase_order_row_id)
+        if po_row is not None:
+            vid = unwrap_unset(po_row.variant_id, None)
+            if vid is not None:
+                variant_ids.add(int(vid))
+
+    from katana_public_api_client.models_pydantic._generated import CachedVariant
+
+    variants_by_id: dict[int, Any] = (
+        await services.typed_cache.catalog.get_many_by_ids(
+            CachedVariant, variant_ids, include_deleted=True
+        )
+        if variant_ids
+        else {}
+    )
+
+    received: list[ReceivedItemInfo] = []
+    for item in request_items:
+        po_row = po_rows_by_id.get(item.purchase_order_row_id)
+        vid = unwrap_unset(po_row.variant_id, None) if po_row is not None else None
+        variant = variants_by_id.get(int(vid)) if vid is not None else None
+
+        ppu: float | None = (
+            unwrap_unset(po_row.price_per_unit, None) if po_row is not None else None
+        )
+        ordered: float | None = (
+            unwrap_unset(po_row.quantity, None) if po_row is not None else None
+        )
+
+        batch_summary: str | None = None
+        if item.batch_transactions:
+            # ASCII "x" so ruff's RUF001 (ambiguous-unicode) stays clean;
+            # rendered card text reads naturally as "batch 42x30".
+            batch_summary = ", ".join(
+                f"batch {bt.batch_id}x{bt.quantity:g}" for bt in item.batch_transactions
+            )
+
+        # Preview: leave received_date as ``None`` when the caller didn't
+        # supply one — the card renders '—'. Confirm: substitute the
+        # default the API wire body will use so the rendered timestamp
+        # matches what actually lands.
+        effective_received: datetime | None = (
+            item.received_date or default_received_date
+        )
+
+        received.append(
+            ReceivedItemInfo(
+                purchase_order_row_id=item.purchase_order_row_id,
+                variant_id=int(vid) if vid is not None else None,
+                sku=getattr(variant, "sku", None) if variant is not None else None,
+                display_name=(
+                    getattr(variant, "display_name", None)
+                    if variant is not None
+                    else None
+                ),
+                quantity=item.quantity,
+                quantity_ordered=ordered,
+                received_date=_iso_optional(effective_received),
+                batch_summary=batch_summary,
+                price_per_unit=ppu,
+                row_total=(ppu * item.quantity) if ppu is not None else None,
+                currency=currency,
+            )
+        )
+    return received
 
 
 async def _receive_purchase_order_impl(
@@ -659,6 +811,17 @@ async def _receive_purchase_order_impl(
                 )
                 next_actions = ["No action needed — order is already fully received."]
 
+            # Preview path: pass ``default_received_date=None`` so missing
+            # ``received_date`` renders as '—' instead of misrepresenting a
+            # timestamp the API hasn't actually assigned yet.
+            received_items_info = await _enrich_received_items(
+                services,
+                request.items,
+                po,
+                currency=currency,
+                default_received_date=None,
+            )
+
             return ReceivePurchaseOrderResponse(
                 order_id=request.order_id,
                 order_number=order_no,
@@ -668,6 +831,7 @@ async def _receive_purchase_order_impl(
                 currency=currency,
                 total_cost=total_cost,
                 items_received=len(request.items),
+                received_items=received_items_info,
                 is_preview=True,
                 warnings=warnings,
                 next_actions=next_actions,
@@ -731,10 +895,25 @@ async def _receive_purchase_order_impl(
         logger.info(
             f"Successfully received {len(request.items)} items for PO {order_no}"
         )
+        # Confirm path: same per-row enrichment, but pass the effective
+        # ``default_received_date`` we just wrote to the wire body so the
+        # rendered timestamp matches what actually landed.
+        received_items_info = await _enrich_received_items(
+            services,
+            request.items,
+            po,
+            currency=currency,
+            default_received_date=default_received_date,
+        )
         return ReceivePurchaseOrderResponse(
             order_id=request.order_id,
             order_number=order_no,
+            status=po_status,
+            supplier_id=supplier_id,
+            currency=currency,
+            total_cost=total_cost,
             items_received=len(request.items),
+            received_items=received_items_info,
             is_preview=False,
             next_actions=[
                 f"Received {len(request.items)} items",

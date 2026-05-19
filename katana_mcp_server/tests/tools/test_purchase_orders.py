@@ -1398,6 +1398,7 @@ async def test_receive_purchase_order_preview():
     mock_po.supplier_id = UNSET
     mock_po.currency = UNSET
     mock_po.total = UNSET
+    mock_po.purchase_order_rows = UNSET
 
     mock_get_response = MagicMock()
     mock_get_response.status_code = 200
@@ -1448,6 +1449,10 @@ async def test_receive_purchase_order_confirm_success():
     mock_po.order_no = "PO-2024-001"
     mock_po.status = MagicMock()
     mock_po.status.value = "PARTIALLY_RECEIVED"
+    mock_po.supplier_id = UNSET
+    mock_po.currency = UNSET
+    mock_po.total = UNSET
+    mock_po.purchase_order_rows = UNSET
 
     mock_get_response = MagicMock()
     mock_get_response.status_code = 200
@@ -1518,6 +1523,10 @@ async def test_receive_purchase_order_single_item():
     mock_po.order_no = "PO-2024-002"
     mock_po.status = MagicMock()
     mock_po.status.value = "NOT_RECEIVED"
+    mock_po.supplier_id = UNSET
+    mock_po.currency = UNSET
+    mock_po.total = UNSET
+    mock_po.purchase_order_rows = UNSET
 
     mock_get_response = MagicMock()
     mock_get_response.status_code = 200
@@ -1603,6 +1612,7 @@ async def test_receive_purchase_order_receive_api_fails():
     mock_po.supplier_id = UNSET
     mock_po.currency = UNSET
     mock_po.total = UNSET
+    mock_po.purchase_order_rows = UNSET
 
     mock_get_response = MagicMock()
     mock_get_response.status_code = 200
@@ -1654,6 +1664,7 @@ async def test_receive_purchase_order_order_no_unset():
     mock_po.supplier_id = UNSET
     mock_po.currency = UNSET
     mock_po.total = UNSET
+    mock_po.purchase_order_rows = UNSET
 
     mock_get_response = MagicMock()
     mock_get_response.status_code = 200
@@ -1699,6 +1710,7 @@ async def test_receive_purchase_order_received_date_falls_back_to_now():
     mock_po.supplier_id = UNSET
     mock_po.currency = UNSET
     mock_po.total = UNSET
+    mock_po.purchase_order_rows = UNSET
 
     mock_get_response = MagicMock()
     mock_get_response.status_code = 200
@@ -1764,6 +1776,7 @@ async def test_receive_purchase_order_received_date_passthrough():
     mock_po.supplier_id = UNSET
     mock_po.currency = UNSET
     mock_po.total = UNSET
+    mock_po.purchase_order_rows = UNSET
 
     mock_get_response = MagicMock()
     mock_get_response.status_code = 200
@@ -1832,6 +1845,7 @@ async def test_receive_purchase_order_batch_transactions_passthrough():
     mock_po.supplier_id = UNSET
     mock_po.currency = UNSET
     mock_po.total = UNSET
+    mock_po.purchase_order_rows = UNSET
 
     mock_get_response = MagicMock()
     mock_get_response.status_code = 200
@@ -1904,6 +1918,7 @@ async def test_receive_purchase_order_omits_batch_transactions_when_unset():
     mock_po.supplier_id = UNSET
     mock_po.currency = UNSET
     mock_po.total = UNSET
+    mock_po.purchase_order_rows = UNSET
 
     mock_get_response = MagicMock()
     mock_get_response.status_code = 200
@@ -1938,6 +1953,167 @@ async def test_receive_purchase_order_omits_batch_transactions_when_unset():
         "body"
     ]
     assert "batch_transactions" not in body[0].to_dict()
+
+
+@pytest.mark.asyncio
+async def test_receive_purchase_order_preview_enriches_per_row_details():
+    """Preview path enriches ``received_items`` with PO row + cache data (#556).
+
+    Joins:
+    - request items (quantity, received_date, batch transactions)
+    - PO rows (quantity_ordered, price_per_unit, variant_id)
+    - typed cache variants (sku, display_name)
+
+    The card consumes this to render a per-row DataTable; without
+    enrichment the operator can't tell *what* is being received from
+    the card alone.
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    def _mock_row(row_id: int, variant_id: int, qty: float, ppu: float) -> MagicMock:
+        row = MagicMock()
+        row.id = row_id
+        row.variant_id = variant_id
+        row.quantity = qty
+        row.price_per_unit = ppu
+        return row
+
+    mock_po = MagicMock(spec=RegularPurchaseOrder)
+    mock_po.id = 1234
+    mock_po.order_no = "PO-2024-001"
+    mock_po.status = MagicMock()
+    mock_po.status.value = "NOT_RECEIVED"
+    mock_po.supplier_id = UNSET
+    mock_po.currency = "USD"
+    mock_po.total = 1500.0
+    mock_po.purchase_order_rows = [
+        _mock_row(7825913, variant_id=100, qty=60.0, ppu=25.0),
+        _mock_row(7825912, variant_id=101, qty=52.0, ppu=0.0),
+    ]
+
+    # Typed-cache returns variant rows keyed by id; getattr drills into
+    # sku/display_name on the build path.
+    variant_100 = MagicMock()
+    variant_100.sku = "C1266049ST"
+    variant_100.display_name = "D125 26P1 / C1266049ST"
+    variant_101 = MagicMock()
+    variant_101.sku = "C1265080ST"
+    variant_101.display_name = "D125 26P1 / C1265080ST"
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
+        return_value={100: variant_100, 101: variant_101}
+    )
+
+    mock_get_response = MagicMock()
+    mock_get_response.status_code = 200
+    mock_get_response.parsed = mock_po
+    lifespan_ctx.client = MagicMock()
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+
+    request = ReceivePurchaseOrderRequest(
+        order_id=1234,
+        items=[
+            # Partial receive on row 7825913 (52 of 60 ordered) — exercises
+            # the partial-qty display in the card.
+            ReceiveItemRequest(purchase_order_row_id=7825913, quantity=52.0),
+            # Full receive on row 7825912 with batch allocations.
+            ReceiveItemRequest(
+                purchase_order_row_id=7825912,
+                quantity=52.0,
+                batch_transactions=[
+                    ReceiveBatchTransaction(batch_id=42, quantity=30.0),
+                    ReceiveBatchTransaction(batch_id=51, quantity=22.0),
+                ],
+            ),
+        ],
+        preview=True,
+    )
+
+    result = await _receive_purchase_order_impl(request, context)
+    assert len(result.received_items) == 2
+
+    by_row = {ri.purchase_order_row_id: ri for ri in result.received_items}
+
+    row_a = by_row[7825913]
+    assert row_a.variant_id == 100
+    assert row_a.sku == "C1266049ST"
+    assert row_a.display_name == "D125 26P1 / C1266049ST"
+    assert row_a.quantity == 52.0
+    assert row_a.quantity_ordered == 60.0  # partial-receive context
+    assert row_a.price_per_unit == 25.0
+    assert row_a.row_total == 25.0 * 52.0
+    assert row_a.currency == "USD"
+    assert row_a.batch_summary is None
+    # Preview omits the default received_date so the card renders '—'.
+    assert row_a.received_date is None
+
+    row_b = by_row[7825912]
+    assert row_b.variant_id == 101
+    assert row_b.sku == "C1265080ST"
+    assert row_b.batch_summary == "batch 42x30, batch 51x22"
+
+
+@pytest.mark.asyncio
+async def test_receive_purchase_order_confirm_fills_default_received_date():
+    """Confirm path substitutes the default ``received_date`` into the
+    rendered enrichment so the success card's timestamp matches what
+    actually landed on the wire (#556 + #505 interaction)."""
+    context, lifespan_ctx = create_mock_context()
+
+    row = MagicMock()
+    row.id = 7825911
+    row.variant_id = 200
+    row.quantity = 52.0
+    row.price_per_unit = 10.0
+
+    mock_po = MagicMock(spec=RegularPurchaseOrder)
+    mock_po.id = 1234
+    mock_po.order_no = "PO-2024-001"
+    mock_po.status = MagicMock()
+    mock_po.status.value = "PARTIALLY_RECEIVED"
+    mock_po.supplier_id = UNSET
+    mock_po.currency = "USD"
+    mock_po.total = 520.0
+    mock_po.purchase_order_rows = [row]
+
+    mock_get_response = MagicMock()
+    mock_get_response.status_code = 200
+    mock_get_response.parsed = mock_po
+    mock_receive_response = MagicMock()
+    mock_receive_response.status_code = 204
+    lifespan_ctx.client = MagicMock()
+
+    from katana_public_api_client.api.purchase_order import (
+        receive_purchase_order as api_receive_purchase_order,
+    )
+
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+    cast(Any, api_receive_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_receive_response
+    )
+
+    request = ReceivePurchaseOrderRequest(
+        order_id=1234,
+        items=[
+            ReceiveItemRequest(purchase_order_row_id=7825911, quantity=52.0),
+        ],
+        preview=False,
+    )
+
+    result = await _receive_purchase_order_impl(request, context)
+    assert len(result.received_items) == 1
+    # On the confirm path the default fills in — must be ISO 8601 string
+    # because the rendered card reads it through _iso_date_only.
+    rd = result.received_items[0].received_date
+    assert isinstance(rd, str)
+    assert "T" in rd  # ISO 8601 datetime, not '—' or None
+    # Tier 3 fields the success card displays:
+    assert result.received_items[0].quantity == 52.0
+    assert result.received_items[0].row_total == 10.0 * 52.0
+    assert result.received_items[0].currency == "USD"
 
 
 # ============================================================================
@@ -1993,6 +2169,7 @@ async def test_receive_purchase_order_wrapper():
     mock_po.supplier_id = UNSET
     mock_po.currency = UNSET
     mock_po.total = UNSET
+    mock_po.purchase_order_rows = UNSET
 
     mock_get_response = MagicMock()
     mock_get_response.status_code = 200
@@ -2031,6 +2208,10 @@ async def test_receive_purchase_order_multiple_items_various_quantities():
 
     # Mock successful get and receive
     mock_po = MagicMock(spec=RegularPurchaseOrder)
+    mock_po.supplier_id = UNSET
+    mock_po.currency = UNSET
+    mock_po.total = UNSET
+    mock_po.purchase_order_rows = UNSET
     mock_po.id = 1234
     mock_po.order_no = "PO-2024-003"
     mock_po.status = MagicMock()
@@ -2143,6 +2324,10 @@ async def test_receive_purchase_order_builds_correct_api_payload():
 
     # Mock successful get and receive
     mock_po = MagicMock(spec=RegularPurchaseOrder)
+    mock_po.supplier_id = UNSET
+    mock_po.currency = UNSET
+    mock_po.total = UNSET
+    mock_po.purchase_order_rows = UNSET
     mock_po.id = 1234
     mock_po.order_no = "PO-2024-TEST"
     mock_po.status = MagicMock()
@@ -2224,6 +2409,7 @@ async def test_receive_purchase_order_confirm_refuses_when_already_received():
     mock_po.supplier_id = UNSET
     mock_po.currency = UNSET
     mock_po.total = UNSET
+    mock_po.purchase_order_rows = UNSET
 
     mock_get_response = MagicMock()
     mock_get_response.status_code = 200
@@ -2276,6 +2462,7 @@ async def test_receive_purchase_order_response_structure():
     mock_po.supplier_id = UNSET
     mock_po.currency = UNSET
     mock_po.total = UNSET
+    mock_po.purchase_order_rows = UNSET
 
     mock_get_response = MagicMock()
     mock_get_response.status_code = 200

@@ -2689,6 +2689,132 @@ class TestBuildReceiptUI:
         app = build_receipt_ui(response)
         _assert_valid_prefab(app)
 
+    def test_received_items_empty_omits_per_row_table(self):
+        """Back-compat: an older payload with no ``received_items`` key
+        must not render an empty DataTable (closes #556 regression risk).
+        """
+        response = {
+            "order_number": "PO-001",
+            "order_id": 123,
+            "is_preview": True,
+            "items_received": 5,
+        }
+        envelope = build_receipt_ui(response).to_json()
+        assert not _has_node_of_type(envelope, "DataTable"), (
+            "received_items empty must NOT emit a DataTable."
+        )
+
+    def test_received_items_present_emits_per_row_table(self):
+        """The Tier 3 DataTable pinned by #556 — per-row breakdown so the
+        agent can verify *what* is being received without parsing the
+        raw items=[...] tool-call blob."""
+        response = {
+            "order_number": "PO-001",
+            "order_id": 123,
+            "is_preview": True,
+            "items_received": 1,
+            "currency": "USD",
+            "received_items": [
+                {
+                    "purchase_order_row_id": 7825913,
+                    "variant_id": 12345,
+                    "sku": "C1266049ST",
+                    "display_name": "D125 26P1 / C1266049ST",
+                    "quantity": 52.0,
+                    "quantity_ordered": 52.0,
+                    "received_date": "2026-05-18T13:22:00-06:00",
+                    "batch_summary": None,
+                    "price_per_unit": 100.0,
+                    "row_total": 5200.0,
+                    "currency": "USD",
+                }
+            ],
+        }
+        envelope = build_receipt_ui(response).to_json()
+        tables = _find_components_by_type(envelope, "DataTable")
+        assert len(tables) == 1
+        # Column set pinned: Item / SKU / Qty / Received / Batch / Line Total
+        headers = [c.get("header") for c in tables[0].get("columns", [])]
+        assert headers == ["Item", "SKU", "Qty", "Received", "Batch", "Line Total"]
+
+    def test_per_row_table_flattens_strings_into_state(self):
+        """``DataTable.rows`` is a state-bound mustache reference. The
+        builder must pre-format the per-row dicts (date trimmed to
+        YYYY-MM-DD, money via babel) so the template never sees raw
+        datetimes or floats — see :func:`_build_receipt_row_display`."""
+        response = {
+            "order_number": "PO-001",
+            "order_id": 123,
+            "is_preview": True,
+            "items_received": 1,
+            "received_items": [
+                {
+                    "purchase_order_row_id": 7825913,
+                    "sku": "C1266049ST",
+                    "display_name": "D125 / C1266049ST",
+                    "quantity": 52.0,
+                    "quantity_ordered": 52.0,
+                    "received_date": "2026-05-18T13:22:00-06:00",
+                    "row_total": 5200.0,
+                    "currency": "USD",
+                }
+            ],
+        }
+        envelope = build_receipt_ui(response).to_json()
+        state = envelope.get("state") or envelope.get("$prefab", {}).get("state", {})
+        rows = state.get("received_items")
+        assert isinstance(rows, list) and len(rows) == 1
+        row = rows[0]
+        assert row["display_name"] == "D125 / C1266049ST"
+        assert row["sku"] == "C1266049ST"
+        assert row["quantity"] == "52"  # :g trims trailing .0
+        assert row["received_date"] == "2026-05-18"  # date-only
+        assert row["row_total"] == "$5,200.00"
+        assert row["batch_summary"] == ""
+
+    def test_partial_receive_qty_shows_received_of_ordered(self):
+        """Partial receives (qty < quantity_ordered) render as '52 of 60'
+        — the operator's most common decision context (received less than
+        ordered, PO stays PARTIALLY_RECEIVED)."""
+        response = {
+            "order_number": "PO-001",
+            "order_id": 123,
+            "is_preview": True,
+            "items_received": 1,
+            "received_items": [
+                {
+                    "purchase_order_row_id": 1,
+                    "quantity": 52.0,
+                    "quantity_ordered": 60.0,
+                    "received_date": None,
+                }
+            ],
+        }
+        envelope = build_receipt_ui(response).to_json()
+        state = envelope.get("state") or envelope.get("$prefab", {}).get("state", {})
+        assert state["received_items"][0]["quantity"] == "52 of 60"
+        assert state["received_items"][0]["received_date"] == "—"
+
+    def test_batch_summary_renders_pre_formatted(self):
+        """Batch-tracked rows surface the allocation in human-readable form
+        so the operator can confirm the right lot was selected."""
+        response = {
+            "order_number": "PO-001",
+            "order_id": 123,
+            "is_preview": True,
+            "items_received": 1,
+            "received_items": [
+                {
+                    "purchase_order_row_id": 1,
+                    "quantity": 50.0,
+                    "batch_summary": "batch 42x30, batch 51x20",
+                }
+            ],
+        }
+        envelope = build_receipt_ui(response).to_json()
+        state = envelope.get("state") or envelope.get("$prefab", {}).get("state", {})
+        assert state["received_items"][0]["batch_summary"] == "batch 42x30, batch 51x20"
+
 
 class TestBuildInventoryCheckBatchUI:
     """Pin the batch ``check_inventory`` card shape (#562). The single-item
