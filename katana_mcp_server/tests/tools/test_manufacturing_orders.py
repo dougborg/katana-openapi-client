@@ -2870,6 +2870,435 @@ async def test_modify_mo_canonical_order_across_all_three_sub_resources():
 
 
 # ============================================================================
+# #773: action-order swap for lock-state-changing header transitions
+# ============================================================================
+#
+# Katana locks an MO once it reaches ``DONE`` / ``PARTIALLY_COMPLETED`` —
+# subsequent row edits fail with ``"You can not modify manufacturing order
+# with status done"``. The plan builder reorders the ``update_header``
+# ActionSpec so locking transitions (open→DONE) land LAST and unlocking
+# transitions (DONE→IN_PROGRESS) land FIRST. Non-status changes stay first.
+
+
+_MODIFY_MO_RECIPE_UPDATE = (
+    "katana_public_api_client.api.manufacturing_order_recipe."
+    "update_manufacturing_order_recipe_rows"
+)
+
+
+def _mock_mo_with_status(
+    mo_id: int = 42, order_no: str = "MO-1", *, status: ManufacturingOrderStatus
+):
+    """Build a mock MO with an explicit status (rest of fields UNSET)."""
+    return mock_entity_for_modify(
+        ManufacturingOrder, id=mo_id, order_no=order_no, status=status
+    )
+
+
+@pytest.mark.asyncio
+async def test_modify_mo_locking_transition_lands_header_last():
+    """#773: ``update_header={status: DONE}`` + ``update_recipe_rows`` in one
+    call must apply recipe edits BEFORE the header. Otherwise Katana locks
+    the MO and the recipe row write fails with the row silently dropped."""
+    context, _ = create_mock_context()
+    # Existing MO is IN_PROGRESS — caller wants to close it.
+    existing = _mock_mo_with_status(
+        mo_id=42, status=ManufacturingOrderStatus.IN_PROGRESS
+    )
+    updated = _mock_mo_with_status(mo_id=42, status=ManufacturingOrderStatus.DONE)
+    updated_row = MagicMock()
+    updated_row.id = 555
+
+    call_log: list[str] = []
+
+    async def fake_update_mo(*, id, client, body):
+        call_log.append("update_header")
+        resp = MagicMock()
+        resp.parsed = updated
+        return resp
+
+    async def fake_update_recipe(*, id, client, body):
+        call_log.append("update_recipe_row")
+        resp = MagicMock()
+        resp.parsed = updated_row
+        return resp
+
+    existing_row = MagicMock()
+    existing_row.id = 555
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_manufacturing_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_mo_recipe_row",
+            new_callable=AsyncMock,
+            return_value=existing_row,
+        ),
+        patch(f"{_MODIFY_MO_UPDATE}.asyncio_detailed", side_effect=fake_update_mo),
+        patch(
+            f"{_MODIFY_MO_RECIPE_UPDATE}.asyncio_detailed",
+            side_effect=fake_update_recipe,
+        ),
+        patch(_MODIFY_MO_UNWRAP_AS, side_effect=[updated_row, updated]),
+    ):
+        from katana_mcp.tools.foundation.manufacturing_orders import MORecipeRowUpdate
+
+        request = ModifyManufacturingOrderRequest(
+            id=42,
+            update_recipe_rows=[
+                MORecipeRowUpdate(id=555, planned_quantity_per_unit=3.0)
+            ],
+            update_header=MOHeaderPatch(status="DONE"),
+            preview=False,
+        )
+        response = await _modify_manufacturing_order_impl(request, context)
+
+    assert response.is_preview is False
+    assert all(a.succeeded is True for a in response.actions)
+    # CRITICAL: recipe row edit ran BEFORE header close — otherwise Katana
+    # would have rejected the row PATCH with the "status done" 422.
+    assert call_log == ["update_recipe_row", "update_header"]
+    # Plan order matches the call order: row first, header last.
+    assert [a.operation for a in response.actions] == [
+        "update_recipe_row",
+        "update_header",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_modify_mo_locking_transition_preview_orders_actions_correctly():
+    """#773: preview path also reorders so the operator sees the actual
+    execution order before confirming."""
+    context, _ = create_mock_context()
+    existing = _mock_mo_with_status(
+        mo_id=42, status=ManufacturingOrderStatus.IN_PROGRESS
+    )
+    existing_row = MagicMock()
+    existing_row.id = 555
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_manufacturing_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_mo_recipe_row",
+            new_callable=AsyncMock,
+            return_value=existing_row,
+        ),
+    ):
+        from katana_mcp.tools.foundation.manufacturing_orders import MORecipeRowUpdate
+
+        request = ModifyManufacturingOrderRequest(
+            id=42,
+            update_recipe_rows=[
+                MORecipeRowUpdate(id=555, planned_quantity_per_unit=3.0)
+            ],
+            update_header=MOHeaderPatch(status="DONE"),
+            preview=True,
+        )
+        response = await _modify_manufacturing_order_impl(request, context)
+
+    assert response.is_preview is True
+    assert [a.operation for a in response.actions] == [
+        "update_recipe_row",
+        "update_header",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_modify_mo_unlocking_transition_lands_header_first():
+    """#773: ``update_header={status: IN_PROGRESS}`` (reopen from DONE) +
+    ``update_recipe_rows`` — header must land FIRST so Katana unlocks the MO
+    before the row edit attempts to land. Current behavior preserved."""
+    context, _ = create_mock_context()
+    # Existing MO is DONE — caller wants to reopen and edit.
+    existing = _mock_mo_with_status(mo_id=42, status=ManufacturingOrderStatus.DONE)
+    updated = _mock_mo_with_status(
+        mo_id=42, status=ManufacturingOrderStatus.IN_PROGRESS
+    )
+    updated_row = MagicMock()
+    updated_row.id = 555
+    existing_row = MagicMock()
+    existing_row.id = 555
+
+    call_log: list[str] = []
+
+    async def fake_update_mo(*, id, client, body):
+        call_log.append("update_header")
+        resp = MagicMock()
+        resp.parsed = updated
+        return resp
+
+    async def fake_update_recipe(*, id, client, body):
+        call_log.append("update_recipe_row")
+        resp = MagicMock()
+        resp.parsed = updated_row
+        return resp
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_manufacturing_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_mo_recipe_row",
+            new_callable=AsyncMock,
+            return_value=existing_row,
+        ),
+        patch(f"{_MODIFY_MO_UPDATE}.asyncio_detailed", side_effect=fake_update_mo),
+        patch(
+            f"{_MODIFY_MO_RECIPE_UPDATE}.asyncio_detailed",
+            side_effect=fake_update_recipe,
+        ),
+        patch(_MODIFY_MO_UNWRAP_AS, side_effect=[updated, updated_row]),
+    ):
+        from katana_mcp.tools.foundation.manufacturing_orders import MORecipeRowUpdate
+
+        request = ModifyManufacturingOrderRequest(
+            id=42,
+            update_header=MOHeaderPatch(status="IN_PROGRESS"),
+            update_recipe_rows=[
+                MORecipeRowUpdate(id=555, planned_quantity_per_unit=3.0)
+            ],
+            preview=False,
+        )
+        response = await _modify_manufacturing_order_impl(request, context)
+
+    assert response.is_preview is False
+    assert all(a.succeeded is True for a in response.actions)
+    # Header reopens MO first, then row edit lands while MO is editable.
+    assert call_log == ["update_header", "update_recipe_row"]
+    assert [a.operation for a in response.actions] == [
+        "update_header",
+        "update_recipe_row",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_modify_mo_locking_status_only_no_row_edits_still_works():
+    """#773: pure status→DONE with no row edits keeps working — the reorder
+    is a no-op since there are no row actions to land before the header."""
+    context, _ = create_mock_context()
+    existing = _mock_mo_with_status(
+        mo_id=42, status=ManufacturingOrderStatus.IN_PROGRESS
+    )
+    updated = _mock_mo_with_status(mo_id=42, status=ManufacturingOrderStatus.DONE)
+
+    async def fake_update_mo(*, id, client, body):
+        resp = MagicMock()
+        resp.parsed = updated
+        return resp
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_manufacturing_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(f"{_MODIFY_MO_UPDATE}.asyncio_detailed", side_effect=fake_update_mo),
+        patch(_MODIFY_MO_UNWRAP_AS, return_value=updated),
+    ):
+        request = ModifyManufacturingOrderRequest(
+            id=42,
+            update_header=MOHeaderPatch(status="DONE"),
+            preview=False,
+        )
+        response = await _modify_manufacturing_order_impl(request, context)
+
+    assert response.is_preview is False
+    assert len(response.actions) == 1
+    assert response.actions[0].operation == "update_header"
+    assert response.actions[0].succeeded is True
+
+
+@pytest.mark.asyncio
+async def test_modify_mo_row_edits_without_header_unchanged_behavior():
+    """#773: pure row edits with no header sub-payload stay where they are —
+    the reorder logic only fires when ``update_header`` is set."""
+    context, _ = create_mock_context()
+    existing = _mock_mo_with_status(
+        mo_id=42, status=ManufacturingOrderStatus.IN_PROGRESS
+    )
+    updated_row = MagicMock()
+    updated_row.id = 555
+    existing_row = MagicMock()
+    existing_row.id = 555
+
+    async def fake_update_recipe(*, id, client, body):
+        resp = MagicMock()
+        resp.parsed = updated_row
+        return resp
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_manufacturing_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_mo_recipe_row",
+            new_callable=AsyncMock,
+            return_value=existing_row,
+        ),
+        patch(
+            f"{_MODIFY_MO_RECIPE_UPDATE}.asyncio_detailed",
+            side_effect=fake_update_recipe,
+        ),
+        patch(_MODIFY_MO_UNWRAP_AS, return_value=updated_row),
+    ):
+        from katana_mcp.tools.foundation.manufacturing_orders import MORecipeRowUpdate
+
+        request = ModifyManufacturingOrderRequest(
+            id=42,
+            update_recipe_rows=[
+                MORecipeRowUpdate(id=555, planned_quantity_per_unit=3.0)
+            ],
+            preview=False,
+        )
+        response = await _modify_manufacturing_order_impl(request, context)
+
+    assert response.is_preview is False
+    assert len(response.actions) == 1
+    assert response.actions[0].operation == "update_recipe_row"
+    assert response.actions[0].succeeded is True
+
+
+@pytest.mark.asyncio
+async def test_modify_mo_non_status_header_change_lands_first():
+    """#773: header changes that don't touch ``status`` (e.g. order_no rename)
+    keep landing FIRST — they can't change the lock state."""
+    context, _ = create_mock_context()
+    existing = _mock_mo_with_status(
+        mo_id=42, status=ManufacturingOrderStatus.IN_PROGRESS
+    )
+    updated = _mock_mo_with_status(
+        mo_id=42, order_no="MO-RENAMED", status=ManufacturingOrderStatus.IN_PROGRESS
+    )
+    updated_row = MagicMock()
+    updated_row.id = 555
+    existing_row = MagicMock()
+    existing_row.id = 555
+
+    call_log: list[str] = []
+
+    async def fake_update_mo(*, id, client, body):
+        call_log.append("update_header")
+        resp = MagicMock()
+        resp.parsed = updated
+        return resp
+
+    async def fake_update_recipe(*, id, client, body):
+        call_log.append("update_recipe_row")
+        resp = MagicMock()
+        resp.parsed = updated_row
+        return resp
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_manufacturing_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_mo_recipe_row",
+            new_callable=AsyncMock,
+            return_value=existing_row,
+        ),
+        patch(f"{_MODIFY_MO_UPDATE}.asyncio_detailed", side_effect=fake_update_mo),
+        patch(
+            f"{_MODIFY_MO_RECIPE_UPDATE}.asyncio_detailed",
+            side_effect=fake_update_recipe,
+        ),
+        patch(_MODIFY_MO_UNWRAP_AS, side_effect=[updated, updated_row]),
+    ):
+        from katana_mcp.tools.foundation.manufacturing_orders import MORecipeRowUpdate
+
+        request = ModifyManufacturingOrderRequest(
+            id=42,
+            update_header=MOHeaderPatch(order_no="MO-RENAMED"),
+            update_recipe_rows=[
+                MORecipeRowUpdate(id=555, planned_quantity_per_unit=3.0)
+            ],
+            preview=False,
+        )
+        response = await _modify_manufacturing_order_impl(request, context)
+
+    assert all(a.succeeded is True for a in response.actions)
+    assert call_log == ["update_header", "update_recipe_row"]
+
+
+def test_classify_status_transition_open_to_locked_returns_last():
+    """Unit-level coverage of the lock-state classifier."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        _classify_status_transition,
+        _HeaderPhase,
+    )
+
+    existing = _mock_mo_with_status(status=ManufacturingOrderStatus.IN_PROGRESS)
+    assert _classify_status_transition(existing, "DONE") is _HeaderPhase.LAST
+    assert (
+        _classify_status_transition(existing, "PARTIALLY_COMPLETED")
+        is _HeaderPhase.LAST
+    )
+
+
+def test_classify_status_transition_locked_to_open_returns_first():
+    """Reopen / closed→open lands FIRST so subsequent edits aren't blocked."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        _classify_status_transition,
+        _HeaderPhase,
+    )
+
+    existing = _mock_mo_with_status(status=ManufacturingOrderStatus.DONE)
+    assert _classify_status_transition(existing, "IN_PROGRESS") is _HeaderPhase.FIRST
+    assert _classify_status_transition(existing, "NOT_STARTED") is _HeaderPhase.FIRST
+
+
+def test_classify_status_transition_no_status_change_returns_first():
+    """Header patches without a ``status`` field can't change the lock state."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        _classify_status_transition,
+        _HeaderPhase,
+    )
+
+    existing = _mock_mo_with_status(status=ManufacturingOrderStatus.IN_PROGRESS)
+    assert _classify_status_transition(existing, None) is _HeaderPhase.FIRST
+
+
+def test_classify_status_transition_unknown_existing_falls_back_to_first():
+    """Pre-fetch failure can't be told apart from closed→open — default to
+    the historical FIRST placement (no regression from pre-fix behavior)."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        _classify_status_transition,
+        _HeaderPhase,
+    )
+
+    assert _classify_status_transition(None, "DONE") is _HeaderPhase.FIRST
+
+
+def test_classify_status_transition_locked_to_locked_returns_first():
+    """DONE → PARTIALLY_COMPLETED (or vice versa) doesn't change the lock
+    state, so it's safe to land FIRST. Katana may still reject the transition
+    itself server-side, but the plan-builder shouldn't be the one to fail."""
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        _classify_status_transition,
+        _HeaderPhase,
+    )
+
+    existing = _mock_mo_with_status(status=ManufacturingOrderStatus.DONE)
+    assert (
+        _classify_status_transition(existing, "PARTIALLY_COMPLETED")
+        is _HeaderPhase.FIRST
+    )
+
+
+# ============================================================================
 # #505 follow-on: PATCH-wipe `additional_info` workaround on MOs
 # ============================================================================
 #
