@@ -2930,7 +2930,7 @@ async def test_modify_mo_production_record_add_passes_through_to_api():
                 MOProductionAdd(
                     completed_quantity=10.0,
                     is_final=True,
-                    serial_numbers=["SN-001", "SN-002"],
+                    serial_numbers=[1001, 1002],
                 ),
             ],
             preview=False,
@@ -2943,7 +2943,7 @@ async def test_modify_mo_production_record_add_passes_through_to_api():
     assert body.manufacturing_order_id == 42
     assert body.completed_quantity == 10.0
     assert body.is_final is True
-    assert body.serial_numbers == ["SN-001", "SN-002"]
+    assert body.serial_numbers == [1001, 1002]
 
 
 @pytest.mark.asyncio

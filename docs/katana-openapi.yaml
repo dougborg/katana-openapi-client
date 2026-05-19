@@ -3411,9 +3411,14 @@ components:
             $ref: "#/components/schemas/ManufacturingOrderOperationRow"
         serial_numbers:
           type: array
-          description: Serial numbers to assign to produced items
+          description:
+            Pre-existing SerialNumber IDs (integers) to assign to the units
+            produced in this production run. Required when the
+            manufacturing order's finished-good variant is serial-tracked.
+            Katana silently drops IDs that do not exist — callers must mint
+            via `POST /serial_numbers` first.
           items:
-            type: string
+            type: integer
       example:
         manufacturing_order_id: 3001
         completed_quantity: 25

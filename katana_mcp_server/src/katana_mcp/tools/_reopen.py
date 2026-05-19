@@ -90,11 +90,17 @@ class MOProductionSnapshot:
     sequence in the original Shopify SP73000→SP73001 correction: Katana
     stamps the create with server-time, so the explicit PATCH is what
     actually backdates the production.
+
+    ``serial_numbers`` carries the integer ``SerialNumber.id`` values
+    captured from the prior production — the production POST body wants
+    pre-existing SN IDs (Katana silently drops unknown IDs, so capturing
+    the ID rather than the human-readable serial string is what allows
+    the restore to actually re-attach the original serials).
     """
 
     completed_quantity: float
     production_date: datetime | None
-    serial_numbers: list[str] = field(default_factory=list)
+    serial_numbers: list[int] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -106,21 +112,25 @@ class MOCloseState:
     productions: list[MOProductionSnapshot]
 
 
-def _serial_numbers_to_strs(value: Any) -> list[str]:
-    """Extract serial-number strings from an attrs ``list[SerialNumber]``.
+def _serial_numbers_to_ids(value: Any) -> list[int]:
+    """Extract integer ``SerialNumber.id`` values from an attrs
+    ``list[SerialNumber]``.
 
     The persisted entity carries ``SerialNumber`` objects; the create-body
-    field accepts a flat ``list[str]``. UNSET / None / missing
-    ``serial_number`` field on an item all fall through to "skip".
+    field accepts a flat ``list[int]`` of pre-existing SN IDs. UNSET /
+    None / missing ``id`` field on an item all fall through to "skip".
+    Spec drift fix in #790: the serial-number wire shape is integers, not
+    strings — Katana silently drops unknown IDs (and silently drops every
+    string that was previously passed through here).
     """
     items = unwrap_unset(value, None)
     if not items:
         return []
-    out: list[str] = []
+    out: list[int] = []
     for item in items:
-        sn = unwrap_unset(getattr(item, "serial_number", UNSET), None)
-        if isinstance(sn, str) and sn:
-            out.append(sn)
+        sn_id = unwrap_unset(getattr(item, "id", UNSET), None)
+        if isinstance(sn_id, int):
+            out.append(sn_id)
     return out
 
 
@@ -144,7 +154,7 @@ def snapshot_mo_close_state(
             MOProductionSnapshot(
                 completed_quantity=float(qty),
                 production_date=unwrap_unset(prod.production_date, None),
-                serial_numbers=_serial_numbers_to_strs(prod.serial_numbers),
+                serial_numbers=_serial_numbers_to_ids(prod.serial_numbers),
             )
         )
 

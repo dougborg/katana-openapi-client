@@ -396,6 +396,57 @@ class TestVariantNullSku:
         assert pydantic_product.variants[1].sku is None
 
 
+class TestProductionSerialNumbers:
+    """Wire-shape pin for ``CreateManufacturingOrderProductionRequest.serial_numbers``.
+
+    Spec drift fix in #790: Katana's `POST /manufacturing_order_productions`
+    schema previously declared ``serial_numbers: array<string>`` but the live
+    API rejects strings with HTTP 422 ("must be of type: number") and accepts
+    only integer ``SerialNumber.id`` values. The spec was corrected to
+    ``array<integer>`` in this PR; this test pins the regenerated wire shape
+    so a future spec-regen can't silently revert it.
+
+    Worse, when an unknown integer ID was passed (e.g., from a future-mint
+    flow that handed the production POST an unminted ID), Katana would
+    return HTTP 200 with ``serial_numbers: []`` — a silent drop. Catching
+    that footgun lives in the MCP tool layer (``_fulfill_manufacturing_order``);
+    this test only pins the wire-type contract.
+    """
+
+    def test_serial_numbers_is_list_of_int(self) -> None:
+        from katana_public_api_client.models_pydantic._generated import (
+            CreateManufacturingOrderProductionRequest,
+        )
+
+        # Integer IDs round-trip cleanly.
+        req = CreateManufacturingOrderProductionRequest(
+            manufacturing_order_id=3001,
+            completed_quantity=25,
+            serial_numbers=[101, 102, 103],
+        )
+        assert req.serial_numbers == [101, 102, 103]
+
+    def test_serial_numbers_rejects_string_values(self) -> None:
+        from pydantic import ValidationError
+
+        from katana_public_api_client.models_pydantic._generated import (
+            CreateManufacturingOrderProductionRequest,
+        )
+
+        # Strings (the pre-#790 wrong type) now raise at the model boundary.
+        # Routes through ``model_validate`` so the test stays type-clean —
+        # raw string values are a wire-layer concern (MCP clients pass JSON),
+        # not a static-type one.
+        with pytest.raises(ValidationError):
+            CreateManufacturingOrderProductionRequest.model_validate(
+                {
+                    "manufacturing_order_id": 3001,
+                    "completed_quantity": 25,
+                    "serial_numbers": ["SN-001", "SN-002"],
+                }
+            )
+
+
 class TestWireNullTolerance:
     """Generated ``from_dict`` parsers must tolerate ``null`` for spec-nullable fields.
 
