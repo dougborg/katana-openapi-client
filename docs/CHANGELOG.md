@@ -2,6 +2,31 @@
 
 <!-- version list -->
 
+## v0.69.0 (2026-05-18)
+
+### Bug Fixes
+
+- **client**: Create_sales_order addresses payload (three-layer fix)
+  ([#775](https://github.com/dougborg/katana-openapi-client/pull/775),
+  [`c450444`](https://github.com/dougborg/katana-openapi-client/commit/c450444674b81855bab16a9cbf8f6d61228cd8e4))
+
+### Chores
+
+- **mcp**: Update client dependency to v0.68.0
+  ([`a60b6fa`](https://github.com/dougborg/katana-openapi-client/commit/a60b6fa45bcf7cbeb0564f1149c32f1215d9f332))
+
+### Documentation
+
+- **mcp**: Clarify zip field rename rationale (#772 follow-up)
+  ([#775](https://github.com/dougborg/katana-openapi-client/pull/775),
+  [`c450444`](https://github.com/dougborg/katana-openapi-client/commit/c450444674b81855bab16a9cbf8f6d61228cd8e4))
+
+### Features
+
+- **client**: Fix create_sales_order addresses payload (three-layer fix)
+  ([#775](https://github.com/dougborg/katana-openapi-client/pull/775),
+  [`c450444`](https://github.com/dougborg/katana-openapi-client/commit/c450444674b81855bab16a9cbf8f6d61228cd8e4))
+
 ## v0.68.0 (2026-05-18)
 
 ### Chores
