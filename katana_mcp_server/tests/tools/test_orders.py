@@ -71,39 +71,50 @@ async def test_fulfill_manufacturing_order_preview():
 
 @pytest.mark.asyncio
 async def test_fulfill_manufacturing_order_confirm():
-    """Test fulfill_order confirm mode for manufacturing order."""
+    """fulfill_order(manufacturing) apply path: single POST
+    /manufacturing_order_productions atomically marks the MO DONE (#790).
+    Replaces the prior two-call PATCH chase (#779).
+    """
     context, _lifespan_ctx = create_mock_context()
 
-    # Mock ManufacturingOrder for get
+    # Mock ManufacturingOrder for the initial get (pre-production).
     mock_mo = MagicMock(spec=ManufacturingOrder)
     mock_mo.order_no = "MO-002"
     mock_mo.status = ManufacturingOrderStatus.IN_PROGRESS
+    mock_mo.variant_id = None
+    mock_mo.actual_quantity = None
 
-    mock_get_response = MagicMock()
-    mock_get_response.status_code = 200
-    mock_get_response.parsed = mock_mo
+    mock_get_response = MagicMock(status_code=200, parsed=mock_mo)
 
-    # Mock ManufacturingOrder for update
-    mock_updated_mo = MagicMock(spec=ManufacturingOrder)
-    mock_updated_mo.order_no = "MO-002"
-    mock_updated_mo.status = ManufacturingOrderStatus.DONE
+    # Mock ManufacturingOrderProduction returned from POST
+    # /manufacturing_order_productions.
+    from katana_public_api_client.models import ManufacturingOrderProduction
 
-    mock_update_response = MagicMock()
-    mock_update_response.status_code = 200
-    mock_update_response.parsed = mock_updated_mo
+    mock_production = MagicMock(spec=ManufacturingOrderProduction)
+    mock_production.id = 9001
+    mock_create_response = MagicMock(status_code=200, parsed=mock_production)
 
-    # Mock the API calls
+    # Mock ManufacturingOrder for the post-production re-fetch (cache-merge
+    # contract: a single full-entity fetch at the end).
+    mock_done_mo = MagicMock(spec=ManufacturingOrder)
+    mock_done_mo.order_no = "MO-002"
+    mock_done_mo.status = ManufacturingOrderStatus.DONE
+    mock_final_response = MagicMock(status_code=200, parsed=mock_done_mo)
+
     from katana_public_api_client.api.manufacturing_order import (
         get_manufacturing_order,
-        update_manufacturing_order,
+    )
+    from katana_public_api_client.api.manufacturing_order_production import (
+        create_manufacturing_order_production,
     )
 
-    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
-        return_value=mock_get_response
-    )
-    cast(Any, update_manufacturing_order).asyncio_detailed = AsyncMock(
-        return_value=mock_update_response
-    )
+    # The pre-mutation get returns the IN_PROGRESS MO; the post-mutation
+    # get returns the DONE MO. Use side_effect to sequence them.
+    get_mock = AsyncMock(side_effect=[mock_get_response, mock_final_response])
+    cast(Any, get_manufacturing_order).asyncio_detailed = get_mock
+
+    create_mock = AsyncMock(return_value=mock_create_response)
+    cast(Any, create_manufacturing_order_production).asyncio_detailed = create_mock
 
     request = FulfillOrderRequest(
         order_id=1234, order_type="manufacturing", preview=False
@@ -118,8 +129,13 @@ async def test_fulfill_manufacturing_order_confirm():
     assert len(result.inventory_updates) > 0
     assert "marked" in result.message.lower() or "done" in result.message.lower()
 
-    # Verify update was called
-    cast(Any, update_manufacturing_order.asyncio_detailed).assert_called_once()
+    # The production POST was called exactly once with the expected body.
+    create_mock.assert_called_once()
+    sent_body = create_mock.call_args.kwargs["body"]
+    assert sent_body.manufacturing_order_id == 1234
+    assert sent_body.is_final is True
+    # actual_quantity was None → default to 1.
+    assert sent_body.completed_quantity == 1
 
 
 @pytest.mark.asyncio
@@ -535,33 +551,35 @@ async def test_fulfill_order_invalid_type():
 
 @pytest.mark.asyncio
 async def test_fulfill_manufacturing_order_api_error():
-    """Test fulfill_order when manufacturing order API returns error."""
+    """Apply path: a non-2xx from the production POST raises APIError, so
+    the fail-loud contract on the upstream production endpoint is preserved.
+    """
     context, _lifespan_ctx = create_mock_context()
 
     # Mock ManufacturingOrder
     mock_mo = MagicMock(spec=ManufacturingOrder)
     mock_mo.order_no = "MO-005"
     mock_mo.status = ManufacturingOrderStatus.IN_PROGRESS
+    mock_mo.variant_id = None
+    mock_mo.actual_quantity = None
 
-    mock_get_response = MagicMock()
-    mock_get_response.status_code = 200
-    mock_get_response.parsed = mock_mo
+    mock_get_response = MagicMock(status_code=200, parsed=mock_mo)
 
-    # Mock update API returning error
-    mock_update_response = MagicMock()
-    mock_update_response.status_code = 500
-    mock_update_response.parsed = None
+    # Production POST returns 500 — no parsed payload → unwrap_as raises.
+    mock_create_response = MagicMock(status_code=500, parsed=None)
 
     from katana_public_api_client.api.manufacturing_order import (
         get_manufacturing_order,
-        update_manufacturing_order,
+    )
+    from katana_public_api_client.api.manufacturing_order_production import (
+        create_manufacturing_order_production,
     )
 
     cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
         return_value=mock_get_response
     )
-    cast(Any, update_manufacturing_order).asyncio_detailed = AsyncMock(
-        return_value=mock_update_response
+    cast(Any, create_manufacturing_order_production).asyncio_detailed = AsyncMock(
+        return_value=mock_create_response
     )
 
     request = FulfillOrderRequest(
@@ -1119,28 +1137,39 @@ async def test_fulfill_manufacturing_order_preview_accepts_serial_numbers():
 
 @pytest.mark.asyncio
 async def test_fulfill_manufacturing_order_apply_passes_serials_to_api():
-    """Apply with serial_numbers → update_manufacturing_order body carries them."""
+    """Apply with serial_numbers → production POST body carries them as
+    list[int] (#790). Serial-tracked MO close-out: caller must mint via
+    ``POST /serial_numbers`` first; Katana silently drops unminted IDs.
+    """
     context, lifespan_ctx = create_mock_context()
     _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="WIDGET-V2")
 
     mock_mo = _make_serial_tracked_mo(order_no="MO-SN-3", actual_quantity=2.0)
     mock_get_response = MagicMock(status_code=200, parsed=mock_mo)
 
-    mock_updated_mo = MagicMock(spec=ManufacturingOrder)
-    mock_updated_mo.order_no = "MO-SN-3"
-    mock_updated_mo.status = ManufacturingOrderStatus.DONE
-    mock_update_response = MagicMock(status_code=200, parsed=mock_updated_mo)
+    from katana_public_api_client.models import ManufacturingOrderProduction
+
+    mock_production = MagicMock(spec=ManufacturingOrderProduction)
+    mock_production.id = 9001
+    mock_create_response = MagicMock(status_code=200, parsed=mock_production)
+
+    mock_done_mo = MagicMock(spec=ManufacturingOrder)
+    mock_done_mo.order_no = "MO-SN-3"
+    mock_done_mo.status = ManufacturingOrderStatus.DONE
+    mock_final_response = MagicMock(status_code=200, parsed=mock_done_mo)
 
     from katana_public_api_client.api.manufacturing_order import (
         get_manufacturing_order,
-        update_manufacturing_order,
+    )
+    from katana_public_api_client.api.manufacturing_order_production import (
+        create_manufacturing_order_production,
     )
 
-    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
-        return_value=mock_get_response
-    )
-    update_mock = AsyncMock(return_value=mock_update_response)
-    cast(Any, update_manufacturing_order).asyncio_detailed = update_mock
+    get_mock = AsyncMock(side_effect=[mock_get_response, mock_final_response])
+    cast(Any, get_manufacturing_order).asyncio_detailed = get_mock
+
+    create_mock = AsyncMock(return_value=mock_create_response)
+    cast(Any, create_manufacturing_order_production).asyncio_detailed = create_mock
 
     request = FulfillOrderRequest(
         order_id=42,
@@ -1152,10 +1181,12 @@ async def test_fulfill_manufacturing_order_apply_passes_serials_to_api():
 
     assert result.is_preview is False
     assert result.status == "DONE"
-    update_mock.assert_called_once()
-    assert update_mock.call_args is not None
-    sent_body = update_mock.call_args.kwargs["body"]
+    create_mock.assert_called_once()
+    sent_body = create_mock.call_args.kwargs["body"]
     assert sent_body.serial_numbers == [501, 502]
+    # completed_quantity sourced from the MO's actual_quantity.
+    assert sent_body.completed_quantity == 2.0
+    assert sent_body.is_final is True
 
 
 @pytest.mark.asyncio
@@ -1318,8 +1349,8 @@ async def test_fulfill_manufacturing_order_serial_tracked_detection_falls_back_t
 
 @pytest.mark.asyncio
 async def test_fulfill_manufacturing_order_non_serial_tracked_no_change():
-    """Non-serial-tracked MO + no serials → behaves as before (no BLOCK,
-    apply path passes UNSET for serial_numbers).
+    """Non-serial-tracked MO + no serials → no BLOCK, production POST body
+    carries UNSET for serial_numbers (not an empty list) (#790).
     """
     context, lifespan_ctx = create_mock_context()
 
@@ -1343,21 +1374,29 @@ async def test_fulfill_manufacturing_order_non_serial_tracked_no_change():
     mock_mo = _make_serial_tracked_mo(order_no="MO-SN-7", actual_quantity=2.0)
     mock_get_response = MagicMock(status_code=200, parsed=mock_mo)
 
-    mock_updated_mo = MagicMock(spec=ManufacturingOrder)
-    mock_updated_mo.order_no = "MO-SN-7"
-    mock_updated_mo.status = ManufacturingOrderStatus.DONE
-    mock_update_response = MagicMock(status_code=200, parsed=mock_updated_mo)
+    from katana_public_api_client.models import ManufacturingOrderProduction
+
+    mock_production = MagicMock(spec=ManufacturingOrderProduction)
+    mock_production.id = 9001
+    mock_create_response = MagicMock(status_code=200, parsed=mock_production)
+
+    mock_done_mo = MagicMock(spec=ManufacturingOrder)
+    mock_done_mo.order_no = "MO-SN-7"
+    mock_done_mo.status = ManufacturingOrderStatus.DONE
+    mock_final_response = MagicMock(status_code=200, parsed=mock_done_mo)
 
     from katana_public_api_client.api.manufacturing_order import (
         get_manufacturing_order,
-        update_manufacturing_order,
+    )
+    from katana_public_api_client.api.manufacturing_order_production import (
+        create_manufacturing_order_production,
     )
 
-    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
-        return_value=mock_get_response
-    )
-    update_mock = AsyncMock(return_value=mock_update_response)
-    cast(Any, update_manufacturing_order).asyncio_detailed = update_mock
+    get_mock = AsyncMock(side_effect=[mock_get_response, mock_final_response])
+    cast(Any, get_manufacturing_order).asyncio_detailed = get_mock
+
+    create_mock = AsyncMock(return_value=mock_create_response)
+    cast(Any, create_manufacturing_order_production).asyncio_detailed = create_mock
 
     request = FulfillOrderRequest(
         order_id=42, order_type="manufacturing", preview=False
@@ -1366,7 +1405,7 @@ async def test_fulfill_manufacturing_order_non_serial_tracked_no_change():
 
     assert result.status == "DONE"
     assert not [w for w in result.warnings if w.startswith("BLOCK:")]
-    sent_body = update_mock.call_args.kwargs["body"]
+    sent_body = create_mock.call_args.kwargs["body"]
     # serial_numbers should be UNSET (omitted from wire), not an empty list.
     from katana_public_api_client.client_types import UNSET
 
@@ -1374,7 +1413,7 @@ async def test_fulfill_manufacturing_order_non_serial_tracked_no_change():
 
 
 # ============================================================================
-# completed_at Backdating Tests (#778)
+# completed_at Backdating Tests (#778, refactored for #790)
 # ============================================================================
 #
 # Hybrid surface: ``FulfillOrderRequest.completed_at`` maps to two different
@@ -1382,13 +1421,18 @@ async def test_fulfill_manufacturing_order_non_serial_tracked_no_change():
 #
 # - SO: forwarded as ``picked_date`` on the single
 #   ``POST /sales_order_fulfillments`` call (one round-trip).
-# - MO: requires a two-call PATCH chase (Katana 422s if ``done_date`` and
-#   ``status=DONE`` ship in the same body — see corrections.py).
+# - MO: forwarded as ``completed_date`` on the single
+#   ``POST /manufacturing_order_productions`` call (one round-trip). Katana
+#   propagates ``completed_date`` verbatim to ``MO.done_date``. Refactored
+#   from the prior two-call PATCH chase in #790.
 
 
 @pytest.mark.asyncio
-async def test_fulfill_mo_with_completed_at_two_call_succeeds():
-    """MO apply with completed_at: two PATCHes fire (status then done_date)."""
+async def test_fulfill_mo_with_completed_at_one_call_succeeds():
+    """MO apply with completed_at: one POST
+    /manufacturing_order_productions fires with completed_date in the body
+    (#790). No follow-up PATCH.
+    """
     context, _lifespan_ctx = create_mock_context()
 
     mock_mo = MagicMock(spec=ManufacturingOrder)
@@ -1399,27 +1443,29 @@ async def test_fulfill_mo_with_completed_at_two_call_succeeds():
 
     mock_get_response = MagicMock(status_code=200, parsed=mock_mo)
 
-    mock_updated_mo = MagicMock(spec=ManufacturingOrder)
-    mock_updated_mo.order_no = "MO-CA-1"
-    mock_updated_mo.status = ManufacturingOrderStatus.DONE
-    mock_status_response = MagicMock(status_code=200, parsed=mock_updated_mo)
+    from katana_public_api_client.models import ManufacturingOrderProduction
 
-    # Second PATCH (done_date) — Katana returns the mutated MO on success.
-    mock_dated_mo = MagicMock(spec=ManufacturingOrder)
-    mock_dated_mo.order_no = "MO-CA-1"
-    mock_dated_mo.status = ManufacturingOrderStatus.DONE
-    mock_date_response = MagicMock(status_code=200, parsed=mock_dated_mo)
+    mock_production = MagicMock(spec=ManufacturingOrderProduction)
+    mock_production.id = 9001
+    mock_create_response = MagicMock(status_code=200, parsed=mock_production)
+
+    mock_done_mo = MagicMock(spec=ManufacturingOrder)
+    mock_done_mo.order_no = "MO-CA-1"
+    mock_done_mo.status = ManufacturingOrderStatus.DONE
+    mock_final_response = MagicMock(status_code=200, parsed=mock_done_mo)
 
     from katana_public_api_client.api.manufacturing_order import (
         get_manufacturing_order,
-        update_manufacturing_order,
+    )
+    from katana_public_api_client.api.manufacturing_order_production import (
+        create_manufacturing_order_production,
     )
 
-    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
-        return_value=mock_get_response
-    )
-    update_mock = AsyncMock(side_effect=[mock_status_response, mock_date_response])
-    cast(Any, update_manufacturing_order).asyncio_detailed = update_mock
+    get_mock = AsyncMock(side_effect=[mock_get_response, mock_final_response])
+    cast(Any, get_manufacturing_order).asyncio_detailed = get_mock
+
+    create_mock = AsyncMock(return_value=mock_create_response)
+    cast(Any, create_manufacturing_order_production).asyncio_detailed = create_mock
 
     completed = datetime(2026, 5, 1, 20, 30, tzinfo=UTC)
     request = FulfillOrderRequest(
@@ -1432,29 +1478,23 @@ async def test_fulfill_mo_with_completed_at_two_call_succeeds():
 
     assert result.is_preview is False
     assert result.status == "DONE"
-    # Two PATCH calls fired in order.
-    assert update_mock.call_count == 2
-    first_body = update_mock.call_args_list[0].kwargs["body"]
-    second_body = update_mock.call_args_list[1].kwargs["body"]
-    # First call: status=DONE (no done_date — Katana would 422 otherwise).
-    assert first_body.status == ManufacturingOrderStatus.DONE
-    from katana_public_api_client.client_types import UNSET
-
-    assert first_body.done_date is UNSET
-    # Second call: done_date set, status UNSET.
-    assert second_body.done_date == completed
-    assert second_body.status is UNSET
+    # Single production POST carries completed_date directly.
+    create_mock.assert_called_once()
+    sent_body = create_mock.call_args.kwargs["body"]
+    assert sent_body.completed_date == completed
+    assert sent_body.is_final is True
     # next_actions surfaces the backdate confirmation.
-    assert any("backdated" in a for a in result.next_actions)
-    assert any(completed.isoformat() in a for a in result.next_actions)
+    assert any(
+        "done_date set to" in a and completed.isoformat() in a
+        for a in result.next_actions
+    )
 
 
 @pytest.mark.asyncio
-async def test_fulfill_mo_without_completed_at_is_single_call():
-    """No completed_at: only the status PATCH fires; no spurious second call.
-
-    Regression guard — if the second PATCH is fired with an empty body it
-    would clear ``done_date`` to None on success (Katana wipe-on-omit).
+async def test_fulfill_mo_completed_at_omitted_when_absent():
+    """No completed_at: production POST body's completed_date stays UNSET
+    (omitted from wire). Regression guard against accidentally clearing
+    done_date to null.
     """
     context, _lifespan_ctx = create_mock_context()
 
@@ -1466,21 +1506,29 @@ async def test_fulfill_mo_without_completed_at_is_single_call():
 
     mock_get_response = MagicMock(status_code=200, parsed=mock_mo)
 
-    mock_updated_mo = MagicMock(spec=ManufacturingOrder)
-    mock_updated_mo.order_no = "MO-CA-2"
-    mock_updated_mo.status = ManufacturingOrderStatus.DONE
-    mock_update_response = MagicMock(status_code=200, parsed=mock_updated_mo)
+    from katana_public_api_client.models import ManufacturingOrderProduction
+
+    mock_production = MagicMock(spec=ManufacturingOrderProduction)
+    mock_production.id = 9001
+    mock_create_response = MagicMock(status_code=200, parsed=mock_production)
+
+    mock_done_mo = MagicMock(spec=ManufacturingOrder)
+    mock_done_mo.order_no = "MO-CA-2"
+    mock_done_mo.status = ManufacturingOrderStatus.DONE
+    mock_final_response = MagicMock(status_code=200, parsed=mock_done_mo)
 
     from katana_public_api_client.api.manufacturing_order import (
         get_manufacturing_order,
-        update_manufacturing_order,
+    )
+    from katana_public_api_client.api.manufacturing_order_production import (
+        create_manufacturing_order_production,
     )
 
-    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
-        return_value=mock_get_response
-    )
-    update_mock = AsyncMock(return_value=mock_update_response)
-    cast(Any, update_manufacturing_order).asyncio_detailed = update_mock
+    get_mock = AsyncMock(side_effect=[mock_get_response, mock_final_response])
+    cast(Any, get_manufacturing_order).asyncio_detailed = get_mock
+
+    create_mock = AsyncMock(return_value=mock_create_response)
+    cast(Any, create_manufacturing_order_production).asyncio_detailed = create_mock
 
     request = FulfillOrderRequest(
         order_id=1234, order_type="manufacturing", preview=False
@@ -1489,49 +1537,59 @@ async def test_fulfill_mo_without_completed_at_is_single_call():
 
     assert result.is_preview is False
     assert result.status == "DONE"
-    update_mock.assert_called_once()
+    create_mock.assert_called_once()
+    from katana_public_api_client.client_types import UNSET
+
+    sent_body = create_mock.call_args.kwargs["body"]
+    assert sent_body.completed_date is UNSET
     # No backdate next-action when completed_at is absent.
-    assert not any("backdated" in a for a in result.next_actions)
+    assert not any("done_date set to" in a for a in result.next_actions)
 
 
 @pytest.mark.asyncio
-async def test_fulfill_mo_completed_at_second_patch_422_surfaces_warning():
-    """Second PATCH 422: MO is DONE, warning surfaces, no exception bubbles.
-
-    Per the WS-H umbrella: Katana isn't transactional across endpoints; fail
-    forward with diagnostic context rather than rolling back inventory. The
-    user's primary intent (close the MO) landed; the backdate failure is a
-    secondary concern.
+async def test_fulfill_mo_apply_emits_no_patch_calls():
+    """Regression guard: apply path must NOT emit any PATCH /manufacturing_
+    orders/{id} calls. Catches accidental re-introduction of the pre-#790
+    two-call PATCH chain.
     """
     context, _lifespan_ctx = create_mock_context()
 
     mock_mo = MagicMock(spec=ManufacturingOrder)
-    mock_mo.order_no = "MO-CA-3"
+    mock_mo.order_no = "MO-NOPATCH"
     mock_mo.status = ManufacturingOrderStatus.IN_PROGRESS
     mock_mo.variant_id = None
     mock_mo.actual_quantity = None
 
     mock_get_response = MagicMock(status_code=200, parsed=mock_mo)
 
-    mock_updated_mo = MagicMock(spec=ManufacturingOrder)
-    mock_updated_mo.order_no = "MO-CA-3"
-    mock_updated_mo.status = ManufacturingOrderStatus.DONE
-    mock_status_response = MagicMock(status_code=200, parsed=mock_updated_mo)
+    from katana_public_api_client.models import ManufacturingOrderProduction
 
-    # Second PATCH 422s — no parsed body so unwrap(raise_on_error=False)
-    # returns None.
-    mock_422 = MagicMock(status_code=422, parsed=None)
+    mock_production = MagicMock(spec=ManufacturingOrderProduction)
+    mock_production.id = 9001
+    mock_create_response = MagicMock(status_code=200, parsed=mock_production)
+
+    mock_done_mo = MagicMock(spec=ManufacturingOrder)
+    mock_done_mo.order_no = "MO-NOPATCH"
+    mock_done_mo.status = ManufacturingOrderStatus.DONE
+    mock_final_response = MagicMock(status_code=200, parsed=mock_done_mo)
 
     from katana_public_api_client.api.manufacturing_order import (
         get_manufacturing_order,
         update_manufacturing_order,
     )
-
-    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
-        return_value=mock_get_response
+    from katana_public_api_client.api.manufacturing_order_production import (
+        create_manufacturing_order_production,
     )
-    update_mock = AsyncMock(side_effect=[mock_status_response, mock_422])
-    cast(Any, update_manufacturing_order).asyncio_detailed = update_mock
+
+    get_mock = AsyncMock(side_effect=[mock_get_response, mock_final_response])
+    cast(Any, get_manufacturing_order).asyncio_detailed = get_mock
+
+    # Wire the PATCH endpoint to a mock that records calls — must stay at 0.
+    patch_mock = AsyncMock()
+    cast(Any, update_manufacturing_order).asyncio_detailed = patch_mock
+
+    create_mock = AsyncMock(return_value=mock_create_response)
+    cast(Any, create_manufacturing_order_production).asyncio_detailed = create_mock
 
     request = FulfillOrderRequest(
         order_id=1234,
@@ -1541,16 +1599,113 @@ async def test_fulfill_mo_completed_at_second_patch_422_surfaces_warning():
     )
     result = await _fulfill_order_impl(request, context)
 
-    # MO is still DONE — the close landed even though the backdate didn't.
-    assert result.is_preview is False
     assert result.status == "DONE"
-    # Warning surfaces with the HTTP code and the actionable hint.
-    assert any("completed_at was not applied" in w for w in result.warnings)
-    assert any("HTTP 422" in w for w in result.warnings)
-    # No BLOCK prefix — this is a soft warning, not a refusal.
-    assert not any(w.startswith("BLOCK:") for w in result.warnings)
-    # next_actions doesn't claim the backdate succeeded.
-    assert not any("backdated" in a for a in result.next_actions)
+    create_mock.assert_called_once()
+    # Zero PATCH calls — the whole point of the #790 refactor.
+    patch_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_fulfill_mo_completed_quantity_defaults_to_one_when_actual_unset():
+    """When actual_quantity is None (MO never had a prior production),
+    completed_quantity defaults to 1 in the production POST body.
+
+    Katana stamps actual_quantity = completed_quantity on the MO when there's
+    no prior production, so 1 closes the MO at qty=1 (matches the Katana
+    UI's "complete one" semantics).
+    """
+    context, _lifespan_ctx = create_mock_context()
+
+    mock_mo = MagicMock(spec=ManufacturingOrder)
+    mock_mo.order_no = "MO-QTY1"
+    mock_mo.status = ManufacturingOrderStatus.IN_PROGRESS
+    mock_mo.variant_id = None
+    mock_mo.actual_quantity = None
+
+    mock_get_response = MagicMock(status_code=200, parsed=mock_mo)
+
+    from katana_public_api_client.models import ManufacturingOrderProduction
+
+    mock_production = MagicMock(spec=ManufacturingOrderProduction)
+    mock_production.id = 9001
+    mock_create_response = MagicMock(status_code=200, parsed=mock_production)
+
+    mock_done_mo = MagicMock(spec=ManufacturingOrder)
+    mock_done_mo.order_no = "MO-QTY1"
+    mock_done_mo.status = ManufacturingOrderStatus.DONE
+    mock_final_response = MagicMock(status_code=200, parsed=mock_done_mo)
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+    from katana_public_api_client.api.manufacturing_order_production import (
+        create_manufacturing_order_production,
+    )
+
+    get_mock = AsyncMock(side_effect=[mock_get_response, mock_final_response])
+    cast(Any, get_manufacturing_order).asyncio_detailed = get_mock
+
+    create_mock = AsyncMock(return_value=mock_create_response)
+    cast(Any, create_manufacturing_order_production).asyncio_detailed = create_mock
+
+    request = FulfillOrderRequest(
+        order_id=1234, order_type="manufacturing", preview=False
+    )
+    await _fulfill_order_impl(request, context)
+
+    sent_body = create_mock.call_args.kwargs["body"]
+    assert sent_body.completed_quantity == 1
+
+
+@pytest.mark.asyncio
+async def test_fulfill_mo_completed_quantity_sourced_from_actual_quantity():
+    """When actual_quantity is set (e.g., partial completion of a 5-unit MO
+    with 3 already produced), completed_quantity in the body matches.
+
+    Per Probe 3: Katana honors the lower actual quantity with is_final=True
+    (closes the MO at the partial value rather than refusing). #790.
+    """
+    context, _lifespan_ctx = create_mock_context()
+
+    mock_mo = MagicMock(spec=ManufacturingOrder)
+    mock_mo.order_no = "MO-QTY3"
+    mock_mo.status = ManufacturingOrderStatus.IN_PROGRESS
+    mock_mo.variant_id = None
+    mock_mo.actual_quantity = 3.0
+
+    mock_get_response = MagicMock(status_code=200, parsed=mock_mo)
+
+    from katana_public_api_client.models import ManufacturingOrderProduction
+
+    mock_production = MagicMock(spec=ManufacturingOrderProduction)
+    mock_production.id = 9001
+    mock_create_response = MagicMock(status_code=200, parsed=mock_production)
+
+    mock_done_mo = MagicMock(spec=ManufacturingOrder)
+    mock_done_mo.order_no = "MO-QTY3"
+    mock_done_mo.status = ManufacturingOrderStatus.DONE
+    mock_final_response = MagicMock(status_code=200, parsed=mock_done_mo)
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+    from katana_public_api_client.api.manufacturing_order_production import (
+        create_manufacturing_order_production,
+    )
+
+    get_mock = AsyncMock(side_effect=[mock_get_response, mock_final_response])
+    cast(Any, get_manufacturing_order).asyncio_detailed = get_mock
+
+    create_mock = AsyncMock(return_value=mock_create_response)
+    cast(Any, create_manufacturing_order_production).asyncio_detailed = create_mock
+
+    request = FulfillOrderRequest(
+        order_id=1234, order_type="manufacturing", preview=False
+    )
+    await _fulfill_order_impl(request, context)
+
+    sent_body = create_mock.call_args.kwargs["body"]
+    assert sent_body.completed_quantity == 3.0
 
 
 @pytest.mark.asyncio
@@ -1604,7 +1759,7 @@ async def test_fulfill_mo_preview_with_completed_at_surfaces_in_inventory_update
 
     assert result.is_preview is True
     assert any(
-        "done_date will be set to" in u and completed.isoformat() in u
+        "completed_date / done_date will be set to" in u and completed.isoformat() in u
         for u in result.inventory_updates
     )
 
@@ -1774,17 +1929,15 @@ async def test_completed_at_validator_rejects_invalid_string():
 
 @pytest.mark.asyncio
 async def test_fulfill_mo_completed_at_propagates_to_serial_transaction_date():
-    """Integration-style: the second PATCH carrying ``done_date`` is the same
-    timestamp the Traceability column's ``SerialNumber.transaction_date`` is
-    derived from.
+    """Integration-style: the single production POST carries both
+    ``serial_numbers`` and ``completed_date`` in one body — Katana
+    propagates ``completed_date`` to ``MO.done_date``, which derives the
+    ``SerialNumber.transaction_date`` shown in the Traceability column.
 
     This test pins the **emitter side**: the tool sends Katana exactly one
-    ``done_date`` value via the second PATCH. The **consumer side** (Katana
-    deriving ``SerialNumber.transaction_date`` from ``done_date``) is
-    asserted in the issue body (#778) against a live-API observation
-    (WEB20387) and can only be verified live — flagged as a known-unknown
-    in the PR body. If Katana ever changes that derivation, the symptom
-    surfaces in production, not here.
+    ``completed_date`` value via the production POST. The **consumer side**
+    (Katana deriving ``SerialNumber.transaction_date`` from
+    ``completed_date`` → ``done_date``) is asserted live (Probe 2 in #790).
     """
     context, lifespan_ctx = create_mock_context()
     _wire_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="WIDGET-SN")
@@ -1792,26 +1945,29 @@ async def test_fulfill_mo_completed_at_propagates_to_serial_transaction_date():
     mock_mo = _make_serial_tracked_mo(order_no="MO-CA-SN", actual_quantity=1.0)
     mock_get_response = MagicMock(status_code=200, parsed=mock_mo)
 
-    mock_updated_mo = MagicMock(spec=ManufacturingOrder)
-    mock_updated_mo.order_no = "MO-CA-SN"
-    mock_updated_mo.status = ManufacturingOrderStatus.DONE
-    mock_status_response = MagicMock(status_code=200, parsed=mock_updated_mo)
+    from katana_public_api_client.models import ManufacturingOrderProduction
 
-    mock_dated_mo = MagicMock(spec=ManufacturingOrder)
-    mock_dated_mo.order_no = "MO-CA-SN"
-    mock_dated_mo.status = ManufacturingOrderStatus.DONE
-    mock_date_response = MagicMock(status_code=200, parsed=mock_dated_mo)
+    mock_production = MagicMock(spec=ManufacturingOrderProduction)
+    mock_production.id = 9001
+    mock_create_response = MagicMock(status_code=200, parsed=mock_production)
+
+    mock_done_mo = MagicMock(spec=ManufacturingOrder)
+    mock_done_mo.order_no = "MO-CA-SN"
+    mock_done_mo.status = ManufacturingOrderStatus.DONE
+    mock_final_response = MagicMock(status_code=200, parsed=mock_done_mo)
 
     from katana_public_api_client.api.manufacturing_order import (
         get_manufacturing_order,
-        update_manufacturing_order,
+    )
+    from katana_public_api_client.api.manufacturing_order_production import (
+        create_manufacturing_order_production,
     )
 
-    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
-        return_value=mock_get_response
-    )
-    update_mock = AsyncMock(side_effect=[mock_status_response, mock_date_response])
-    cast(Any, update_manufacturing_order).asyncio_detailed = update_mock
+    get_mock = AsyncMock(side_effect=[mock_get_response, mock_final_response])
+    cast(Any, get_manufacturing_order).asyncio_detailed = get_mock
+
+    create_mock = AsyncMock(return_value=mock_create_response)
+    cast(Any, create_manufacturing_order_production).asyncio_detailed = create_mock
 
     completed = datetime(2026, 5, 1, 20, 30, tzinfo=UTC)
     request = FulfillOrderRequest(
@@ -1824,12 +1980,9 @@ async def test_fulfill_mo_completed_at_propagates_to_serial_transaction_date():
     result = await _fulfill_order_impl(request, context)
 
     assert result.is_preview is False
-    assert update_mock.call_count == 2
-    # First PATCH carries serials (per the existing #586 contract).
-    first_body = update_mock.call_args_list[0].kwargs["body"]
-    assert first_body.serial_numbers == [501]
-    # Second PATCH carries the exact done_date Katana derives
-    # transaction_date from. This is the value that lands on the
-    # serial via the Katana-side derivation.
-    second_body = update_mock.call_args_list[1].kwargs["body"]
-    assert second_body.done_date == completed
+    create_mock.assert_called_once()
+    sent_body = create_mock.call_args.kwargs["body"]
+    # Serials + completed_date land in the same body — atomic close (#790).
+    assert sent_body.serial_numbers == [501]
+    assert sent_body.completed_date == completed
+    assert sent_body.is_final is True

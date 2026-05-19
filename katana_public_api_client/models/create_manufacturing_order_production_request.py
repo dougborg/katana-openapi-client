@@ -45,7 +45,7 @@ class CreateManufacturingOrderProductionRequest:
     batch_transaction: BatchTransaction | Unset = UNSET
     ingredients: list[ManufacturingOrderProductionIngredient] | Unset = UNSET
     operations: list[ManufacturingOrderOperationRow] | Unset = UNSET
-    serial_numbers: list[str] | Unset = UNSET
+    serial_numbers: list[int] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -77,7 +77,7 @@ class CreateManufacturingOrderProductionRequest:
                 operations_item = operations_item_data.to_dict()
                 operations.append(operations_item)
 
-        serial_numbers: list[str] | Unset = UNSET
+        serial_numbers: list[int] | Unset = UNSET
         if not isinstance(self.serial_numbers, Unset):
             serial_numbers = self.serial_numbers
 
@@ -157,7 +157,7 @@ class CreateManufacturingOrderProductionRequest:
 
                 operations.append(operations_item)
 
-        serial_numbers = cast(list[str], d.pop("serial_numbers", UNSET))
+        serial_numbers = cast(list[int], d.pop("serial_numbers", UNSET))
 
         create_manufacturing_order_production_request = cls(
             manufacturing_order_id=manufacturing_order_id,

@@ -28,8 +28,8 @@ from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.domain.converters import to_unset, unwrap_unset
 from katana_public_api_client.models import (
     ManufacturingOrder,
+    ManufacturingOrderProduction,
     SalesOrder,
-    UpdateManufacturingOrderRequest,
 )
 from katana_public_api_client.models_pydantic._generated import (
     CachedMaterial,
@@ -102,17 +102,17 @@ class FulfillOrderRequest(BaseModel):
         default=None,
         description=(
             "Backdated completion timestamp for catching up on a backlog. "
-            "For manufacturing orders, sets ``done_date``; for sales orders, "
-            "sets the fulfillment's ``picked_date``. ISO 8601 "
-            "(e.g. '2026-05-01T20:30:00Z'); naive datetimes are interpreted "
-            "as UTC. When omitted, Katana stamps server-time. Manufacturing "
-            "branch only: requires a second PATCH after the DONE transition "
-            "(Katana validates ``done_date`` against current status); the "
-            "tool emits both calls and surfaces a warning if the second one "
-            "fails. The MO's first-serial "
+            "For manufacturing orders, sets the production record's "
+            "``completed_date`` which Katana propagates verbatim to "
+            "``MO.done_date``; for sales orders, sets the fulfillment's "
+            "``picked_date``. ISO 8601 (e.g. '2026-05-01T20:30:00Z'); "
+            "naive datetimes are interpreted as UTC. When omitted, Katana "
+            "stamps server-time. Manufacturing branch: lands atomically via "
+            "a single ``POST /manufacturing_order_productions`` — no "
+            "follow-up PATCH needed. The MO's first-serial "
             "``SerialNumber.transaction_date`` is derived from "
-            "``done_date``, so the Traceability 'Production date' column "
-            "tracks this value."
+            "``done_date`` / ``completed_date``, so the Traceability "
+            "'Production date' column tracks this value."
         ),
     )
 
@@ -197,8 +197,9 @@ async def _fulfill_manufacturing_order(
         )
     if request.completed_at is not None:
         inventory_updates.append(
-            f"done_date will be set to {request.completed_at.isoformat()} "
-            "(via second PATCH after status flip)"
+            f"completed_date / done_date will be set to "
+            f"{request.completed_at.isoformat()} "
+            "(atomic via POST /manufacturing_order_productions)"
         )
 
     warnings: list[str] = []
@@ -283,51 +284,56 @@ async def _fulfill_manufacturing_order(
             ),
         )
 
-    from katana_public_api_client.api.manufacturing_order import (
-        update_manufacturing_order as api_update_manufacturing_order,
+    from katana_public_api_client.api.manufacturing_order_production import (
+        create_manufacturing_order_production as api_create_production,
     )
-    from katana_public_api_client.models.manufacturing_order_status import (
-        ManufacturingOrderStatus,
+    from katana_public_api_client.models import (
+        CreateManufacturingOrderProductionRequest,
     )
 
-    update_req = UpdateManufacturingOrderRequest(
-        status=ManufacturingOrderStatus.DONE,
+    # Source ``completed_quantity`` from the MO's current ``actual_quantity``
+    # (Probe 3 / orders.py:177): partial completion is honored verbatim, and
+    # ``is_final=True`` is what flips status — not the planned/actual match.
+    # When ``actual_quantity`` is null/UNSET (MO never had a prior production),
+    # Katana stamps ``actual_quantity = completed_quantity``, so a sane
+    # default of 1 closes the MO at qty=1 (matches Katana's own "complete
+    # one" semantics in the UI).
+    completed_quantity = actual_quantity if actual_quantity else 1
+
+    production_req = CreateManufacturingOrderProductionRequest(
+        manufacturing_order_id=request.order_id,
+        completed_quantity=completed_quantity,
+        completed_date=to_unset(request.completed_at),
+        is_final=True,
         serial_numbers=to_unset(request.serial_numbers),
+        # ingredients / operations intentionally omitted — Katana auto-
+        # consumes from the MO's recipe (documented behavior).
     )
-    update_response = await api_update_manufacturing_order.asyncio_detailed(
-        id=request.order_id, client=services.client, body=update_req
+    production_response = await api_create_production.asyncio_detailed(
+        client=services.client, body=production_req
     )
-    updated_mo = unwrap_as(update_response, ManufacturingOrder)
-    new_status = updated_mo.status.value if updated_mo.status else "UNKNOWN"
+    # Raises APIError on non-2xx (unwrap_as on the response below) — preserves
+    # the existing fail-loud contract so callers see the upstream error.
+    unwrap_as(production_response, ManufacturingOrderProduction)
 
-    # Second PATCH to backdate ``done_date``. Katana validates the field
-    # against the *current* status, so it can only land after the
-    # ``status=DONE`` PATCH above. Mirrors the two-call chase in
-    # ``_build_close_mo_actions`` (corrections.py). Best-effort: a 422 here
-    # leaves the MO already-DONE with server-time ``done_date``; we surface
-    # a non-BLOCK warning rather than rolling back inventory (which Katana
-    # can't reopen cleanly anyway).
+    # Re-fetch the MO to surface post-mutation status / done_date. The
+    # production response doesn't carry the MO header; the MO does. This is
+    # the single full-entity fetch the cache-merge contract relies on
+    # (CLAUDE.md "verify and cache-merge once at the end via a single full-
+    # entity fetch — not per-action").
+    final_mo_response = await api_get_manufacturing_order.asyncio_detailed(
+        id=request.order_id, client=services.client
+    )
+    final_mo = unwrap_as(final_mo_response, ManufacturingOrder)
+    new_status = final_mo.status.value if final_mo.status else "UNKNOWN"
+
     next_actions = [
         f"Manufacturing order {order_number} completed",
         "Inventory has been updated",
         "Check stock levels for finished goods",
     ]
     if request.completed_at is not None:
-        date_req = UpdateManufacturingOrderRequest(done_date=request.completed_at)
-        date_response = await api_update_manufacturing_order.asyncio_detailed(
-            id=request.order_id, client=services.client, body=date_req
-        )
-        if unwrap(date_response, raise_on_error=False) is None:
-            warnings.append(
-                f"completed_at was not applied to MO {order_number} "
-                f"(HTTP {date_response.status_code}); the order is DONE but "
-                "done_date is server-time. Patch done_date manually in the "
-                "Katana UI if the backdated value is required."
-            )
-        else:
-            next_actions.insert(
-                1, f"done_date backdated to {request.completed_at.isoformat()}"
-            )
+        next_actions.insert(1, f"done_date set to {request.completed_at.isoformat()}")
 
     logger.info(f"Successfully marked manufacturing order {order_number} as DONE")
     return FulfillOrderResponse(
@@ -363,7 +369,6 @@ async def _fetch_missing_from_api(
     read fields uniformly across cache hits and API-fallback rows.
     """
     from katana_public_api_client.models import ErrorResponse
-    from katana_public_api_client.utils import unwrap
 
     missing = [eid for eid in needed_ids if eid not in cached]
     if not missing:

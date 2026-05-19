@@ -2590,8 +2590,15 @@ class MOProductionAdd(BaseModel):
         default=None,
         description="When true, marks this as the final production record",
     )
-    serial_numbers: list[str] | None = Field(
-        default=None, description="Serial numbers for serial-tracked variants"
+    serial_numbers: list[int] | None = Field(
+        default=None,
+        description=(
+            "Pre-existing SerialNumber IDs (integers) to attach to the units "
+            "produced in this production record. Required when the MO's "
+            "finished-good variant is serial-tracked. Katana silently drops "
+            "IDs that do not exist — callers must mint via "
+            "``POST /serial_numbers`` first."
+        ),
     )
 
 
