@@ -52,6 +52,21 @@ class _SampleRequest(ConfirmableRequest):
     # ``True``; no need to re-declare here.
 
 
+class _AttrsStub:
+    """Mutable stand-in for a generated attrs response model.
+
+    Used in the post-apply overlay tests where we need the dispatcher's
+    ``getattr``/``setattr`` contract to behave like a real attrs class —
+    ``MagicMock(spec=...)`` answers ``hasattr`` truthy for arbitrary
+    attributes and would mask the very ``_MISSING`` sentinel guard the
+    overlay relies on.
+    """
+
+    def __init__(self, **kw: Any) -> None:
+        for k, v in kw.items():
+            setattr(self, k, v)
+
+
 def test_compute_field_diff_skips_id_and_preview_by_default():
     request = _SampleRequest(id=1, name="x", preview=False)
     diff = compute_field_diff(None, request)
@@ -791,6 +806,189 @@ async def test_run_modify_plan_post_apply_merge_fires_on_success(monkeypatch):
         "attrs_objs": [refetched_parent],
         "refetched_id": 42,
     }
+
+
+@pytest.mark.asyncio
+async def test_run_modify_plan_overlays_patch_response_on_stale_refetch(monkeypatch):
+    """Bug #2b: defeat Katana read-replica lag on the post-apply refetch.
+
+    Setup: the PATCH apply returns a fresh outcome with ``name="FRESH"``,
+    but the cache-merge refetch (simulating a stale read replica) returns
+    a parent with ``name="STALE"``. Without the overlay the cache would be
+    silently corrupted with the pre-modify value — the regression we saw
+    on 2026-05-18 in the supplier-code session.
+
+    Asserts: the attrs object passed to ``merge_filtered_fetch`` carries
+    the FRESH value, because the dispatcher copied it from the PATCH
+    response body onto the stale GET refetch before merge.
+    """
+    from katana_mcp.tools._modification_dispatch import run_modify_plan
+
+    fresh_outcome = _AttrsStub(name="FRESH")
+    stale_parent = _AttrsStub(name="STALE")
+
+    captured: dict[str, Any] = {}
+
+    async def fake_merge(cache, spec, attrs_objs):
+        captured["attrs_objs"] = list(attrs_objs)
+
+    monkeypatch.setattr("katana_mcp.typed_cache.sync.merge_filtered_fetch", fake_merge)
+
+    async def fake_apply():
+        return fresh_outcome
+
+    async def fake_refetch(_eid: int):
+        return stale_parent
+
+    request = _SampleRequest(id=42, name="FRESH", preview=False)
+    plan = [
+        ActionSpec(
+            operation="update_header",
+            target_id=42,  # matches request.id — parent-level action
+            diff=[FieldChange(field="name", old="STALE", new="FRESH")],
+            apply=fake_apply,
+            verify=None,
+        )
+    ]
+
+    fake_cache = cast(TypedCacheEngine, object())
+    await run_modify_plan(
+        request=request,
+        naming=EntityNaming(
+            entity_type="purchase_order",
+            entity_label="purchase order 42",
+            tool_name="modify_purchase_order",
+        ),
+        web_url_kind=None,
+        existing=None,
+        plan=plan,
+        has_get_endpoint=False,
+        cache_merge=CacheMerge(cache=fake_cache, refetch_for_merge=fake_refetch),
+    )
+
+    # The merged object IS the stale refetch (same identity), but its
+    # ``name`` attribute has been overwritten in-place by the overlay.
+    merged = captured["attrs_objs"][0]
+    assert merged is stale_parent
+    assert merged.name == "FRESH"
+
+
+@pytest.mark.asyncio
+async def test_run_modify_plan_overlay_skips_row_level_actions(monkeypatch):
+    """Parent overlay only applies to actions whose ``target_id`` matches
+    the request's entity id. Row-level actions (e.g. ``update_row`` on a
+    PO row, target_id=row_id != po_id) must NOT contribute to the parent
+    overlay — their fields belong on a row class, not the parent class.
+    """
+    from katana_mcp.tools._modification_dispatch import run_modify_plan
+
+    # Outcome from a row-level PATCH — has a ``quantity`` field that
+    # happens to also exist on the parent (coincidence). If we naively
+    # overlaid, the parent's quantity would be clobbered by the row's.
+    row_outcome = _AttrsStub(quantity=999)
+    parent_refetch = _AttrsStub(quantity=42)
+
+    captured: dict[str, Any] = {}
+
+    async def fake_merge(cache, spec, attrs_objs):
+        captured["attrs_objs"] = list(attrs_objs)
+
+    monkeypatch.setattr("katana_mcp.typed_cache.sync.merge_filtered_fetch", fake_merge)
+
+    async def fake_apply():
+        return row_outcome
+
+    async def fake_refetch(_eid: int):
+        return parent_refetch
+
+    request = _SampleRequest(id=42, qty=10, preview=False)
+    plan = [
+        ActionSpec(
+            operation="update_row",
+            target_id=999,  # row id — does NOT match request.id (42)
+            diff=[FieldChange(field="quantity", old=42, new=999)],
+            apply=fake_apply,
+            verify=None,
+        )
+    ]
+
+    fake_cache = cast(TypedCacheEngine, object())
+    await run_modify_plan(
+        request=request,
+        naming=EntityNaming(
+            entity_type="purchase_order",
+            entity_label="purchase order 42",
+            tool_name="modify_purchase_order",
+        ),
+        web_url_kind=None,
+        existing=None,
+        plan=plan,
+        has_get_endpoint=False,
+        cache_merge=CacheMerge(cache=fake_cache, refetch_for_merge=fake_refetch),
+    )
+
+    merged = captured["attrs_objs"][0]
+    assert merged is parent_refetch
+    assert merged.quantity == 42  # untouched — overlay skipped the row action
+
+
+@pytest.mark.asyncio
+async def test_run_modify_plan_overlay_skips_unset_values(monkeypatch):
+    """UNSET on the PATCH response means "Katana didn't echo this field"
+    — we should NOT overlay UNSET onto the GET value. The GET stays.
+    """
+    from katana_mcp.tools._modification_dispatch import run_modify_plan
+
+    # Outcome echoes ``name`` but not ``qty`` (qty is UNSET — Katana
+    # didn't include it in the response body for some reason).
+    outcome = _AttrsStub(name="FRESH_NAME", qty=UNSET)
+    refetched = _AttrsStub(name="STALE_NAME", qty=7)
+
+    captured: dict[str, Any] = {}
+
+    async def fake_merge(cache, spec, attrs_objs):
+        captured["attrs_objs"] = list(attrs_objs)
+
+    monkeypatch.setattr("katana_mcp.typed_cache.sync.merge_filtered_fetch", fake_merge)
+
+    async def fake_apply():
+        return outcome
+
+    async def fake_refetch(_eid: int):
+        return refetched
+
+    request = _SampleRequest(id=42, name="FRESH_NAME", qty=7, preview=False)
+    plan = [
+        ActionSpec(
+            operation="update_header",
+            target_id=42,
+            diff=[
+                FieldChange(field="name", old="STALE_NAME", new="FRESH_NAME"),
+                FieldChange(field="qty", old=7, new=7, is_unchanged=True),
+            ],
+            apply=fake_apply,
+            verify=None,
+        )
+    ]
+
+    fake_cache = cast(TypedCacheEngine, object())
+    await run_modify_plan(
+        request=request,
+        naming=EntityNaming(
+            entity_type="purchase_order",
+            entity_label="purchase order 42",
+            tool_name="modify_purchase_order",
+        ),
+        web_url_kind=None,
+        existing=None,
+        plan=plan,
+        has_get_endpoint=False,
+        cache_merge=CacheMerge(cache=fake_cache, refetch_for_merge=fake_refetch),
+    )
+
+    merged = captured["attrs_objs"][0]
+    assert merged.name == "FRESH_NAME"  # overlaid (non-UNSET)
+    assert merged.qty == 7  # UNSET in outcome — GET value preserved
 
 
 @pytest.mark.asyncio
