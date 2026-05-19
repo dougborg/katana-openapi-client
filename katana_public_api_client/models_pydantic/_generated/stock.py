@@ -56,6 +56,11 @@ class CreateSerialNumberResourceType(StrEnum):
     sales_order_row = "SalesOrderRow"
 
 
+class CreateSerialNumberFailureReason(StrEnum):
+    duplicate = "DUPLICATE"
+    missing = "MISSING"
+
+
 class Batch(KatanaPydanticBase):
     batch_number: Annotated[str, Field(description="Unique batch number identifier")]
     expiration_date: Annotated[
@@ -197,7 +202,7 @@ class SerialNumber(KatanaPydanticBase):
     transaction_id: Annotated[
         str | None,
         Field(
-            description="Identifier of the transaction that affected this serial number"
+            description='Identifier of the transaction that affected this serial number.\nMay be the literal string ``"undefined"`` on a transfer\nresponse; expect ``null`` in some edge cases.\n'
         ),
     ] = None
     serial_number: Annotated[
@@ -212,7 +217,9 @@ class SerialNumber(KatanaPydanticBase):
     ] = None
     resource_id: Annotated[
         int | None,
-        Field(description="Unique identifier of the specific resource instance"),
+        Field(
+            description="Unique identifier of the specific resource instance.\nMay be ``null`` on a transfer response — re-fetch via\n``GET /serial_numbers`` to confirm.\n"
+        ),
     ] = None
     transaction_date: Annotated[
         AwareDatetime | None,
@@ -222,6 +229,31 @@ class SerialNumber(KatanaPydanticBase):
         int | None,
         Field(description="Quantity change for this serial number transaction"),
     ] = None
+
+
+class CreateSerialNumberFailedItem(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    serial_number: Annotated[
+        str, Field(description="The input serial-number string that failed.")
+    ]
+    reason: CreateSerialNumberFailureReason
+
+
+class CreateSerialNumbersResponse(KatanaPydanticBase):
+    successful: Annotated[
+        list[SerialNumber],
+        Field(
+            description="Serial-number records that were created (mint) or transferred\n(move) successfully. May be empty if every requested string\nfailed.\n"
+        ),
+    ]
+    failed: Annotated[
+        list[CreateSerialNumberFailedItem],
+        Field(
+            description="Per-string failures. Each entry carries the input\n``serial_number`` string and a ``reason`` code so the caller\ncan react without inspecting status code or response body\nshape.\n"
+        ),
+    ]
 
 
 class SerialNumberListResponse(KatanaPydanticBase):

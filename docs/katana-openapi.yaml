@@ -2065,6 +2065,36 @@ components:
         *retrieving* serial numbers (see ``SerialNumberResourceType``) but
         is not accepted as input here — the API rejects it with 422.
 
+        **Write semantics differ by resource type:**
+
+        - **Mint** (create new serial-number strings) — ``ManufacturingOrder``
+          and ``PurchaseOrderRow``. The supplied string doesn't need to
+          pre-exist anywhere.
+        - **Transfer** (move an existing serial number to this resource) —
+          ``SalesOrderRow``, ``StockTransferRow``, and ``StockAdjustmentRow``.
+          The supplied string MUST already exist (typically attached to a
+          ManufacturingOrder output). If it doesn't, the response surfaces
+          it in ``failed`` with ``reason: MISSING`` — the call still returns
+          200, not 422.
+
+    CreateSerialNumberFailureReason:
+      type: string
+      enum:
+        - DUPLICATE
+        - MISSING
+      description: |
+        Per-string failure reason when ``POST /serial_numbers`` partial-fails.
+
+        - ``DUPLICATE`` — string is already attached to the target resource
+          (mint path) and the API refuses to re-attach it.
+        - ``MISSING`` — string doesn't exist anywhere in the tenant, so a
+          transfer to ``SalesOrderRow`` / ``StockTransferRow`` /
+          ``StockAdjustmentRow`` can't move it.
+
+        Other reasons may exist but have not been observed via the
+        live-API probe. Consumers should treat unknown values as
+        forward-compatible failures rather than 422s.
+
     CustomFieldCollectionResourceType:
       type: string
       enum:
@@ -4117,15 +4147,29 @@ components:
             deleted_at: null
     SerialNumber:
       description: |
-        Individual serial number record for tracking specific units of serialized inventory items through transactions
+        Individual serial number record for tracking specific units of
+        serialized inventory items through transactions.
+
+        **Transfer side-effects:** when a serial number is moved between
+        resources (e.g. from a ManufacturingOrder to a SalesOrderRow via
+        ``POST /serial_numbers``), the immediate response may report
+        ``transaction_id`` equal to the literal string ``undefined`` and
+        ``resource_id: null`` for the moved record. The subsequent
+        ``GET /serial_numbers`` resolves the correct ``resource_id`` —
+        re-fetch via GET to confirm the landing state.
       type: object
       properties:
         id:
           type: integer
           description: Unique identifier for the serial number record
         transaction_id:
-          type: string
-          description: Identifier of the transaction that affected this serial number
+          type:
+            - string
+            - "null"
+          description: |
+            Identifier of the transaction that affected this serial number.
+            May be the literal string ``undefined`` on a transfer
+            response; expect ``null`` in some edge cases.
         serial_number:
           type: string
           description: The actual serial number string for the tracked item
@@ -4133,8 +4177,13 @@ components:
           description: Type of resource/transaction that generated or moved this serial number
           $ref: "#/components/schemas/SerialNumberResourceType"
         resource_id:
-          type: integer
-          description: Unique identifier of the specific resource instance
+          type:
+            - integer
+            - "null"
+          description: |
+            Unique identifier of the specific resource instance.
+            May be ``null`` on a transfer response — re-fetch via
+            ``GET /serial_numbers`` to confirm.
         transaction_date:
           type:
             - string
@@ -4144,6 +4193,65 @@ components:
         quantity_change:
           type: integer
           description: Quantity change for this serial number transaction
+
+    CreateSerialNumberFailedItem:
+      description: |
+        Single per-string failure block on a ``CreateSerialNumbersResponse``.
+        Carries the input ``serial_number`` string and a ``reason`` code so
+        the caller can react without inspecting status code or response
+        body shape.
+      type: object
+      additionalProperties: false
+      required:
+        - serial_number
+        - reason
+      properties:
+        serial_number:
+          type: string
+          description: The input serial-number string that failed.
+        reason:
+          $ref: "#/components/schemas/CreateSerialNumberFailureReason"
+
+    CreateSerialNumbersResponse:
+      description: |
+        Response from ``POST /serial_numbers``. The endpoint can partial-
+        fail: any string the API rejects (DUPLICATE on the mint path,
+        MISSING on the transfer path) lands in ``failed`` while the rest
+        succeed. The call still returns 200 in the partial-failure case.
+      type: object
+      properties:
+        successful:
+          type: array
+          description: |
+            Serial-number records that were created (mint) or transferred
+            (move) successfully. May be empty if every requested string
+            failed.
+          items:
+            $ref: "#/components/schemas/SerialNumber"
+        failed:
+          type: array
+          description: |
+            Per-string failures. Each entry carries the input
+            ``serial_number`` string and a ``reason`` code so the caller
+            can react without inspecting status code or response body
+            shape.
+          items:
+            $ref: "#/components/schemas/CreateSerialNumberFailedItem"
+      required:
+        - successful
+        - failed
+      example:
+        successful:
+          - id: 886853
+            transaction_id: "0f054aa0-1234-5678-9abc-def012345678"
+            serial_number: KNF001234567
+            resource_type: ManufacturingOrder
+            resource_id: 16920710
+            transaction_date: "2024-01-15T08:00:00.000Z"
+            quantity_change: 0
+        failed:
+          - serial_number: KNF001234568
+            reason: DUPLICATE
     SerialNumberListResponse:
       type: object
       description: List of serial number records for tracking individual units and enabling full product traceability
@@ -21271,7 +21379,19 @@ paths:
       summary: List serial numbers
       tags:
         - Serial number
-      description: Returns a list of serial numbers.
+      description: |
+        Returns a list of serial numbers, optionally filtered by
+        ``resource_type`` and/or ``resource_id``.
+
+        **Filter behavior** (verified live 2026-05-19):
+
+        - Both filters set → results scoped to that exact ``(type, id)``.
+        - ``resource_type`` alone → ALL serial numbers of that type
+          across all resources (paginated, never 422).
+        - ``resource_id`` alone → narrows to that resource regardless of
+          type.
+        - Neither filter → all serial numbers in the tenant (paginated).
+        - Page beyond data → 200 with an empty ``data`` array, not 404.
       operationId: getAllSerialNumbers
       parameters:
         - $ref: "#/components/parameters/resource_type"
@@ -21302,7 +21422,36 @@ paths:
       summary: Create serial numbers
       tags:
         - Serial number
-      description: Creates new serial numbers for a resource.
+      description: |
+        Mints new or transfers existing serial numbers to a resource.
+
+        **Write semantics differ by ``resource_type``** (see
+        ``CreateSerialNumberResourceType``):
+
+        - **Mint** (``ManufacturingOrder``, ``PurchaseOrderRow``) — the
+          serial-number string doesn't need to pre-exist. The API creates a
+          new record and links it to the target resource.
+        - **Transfer** (``SalesOrderRow``, ``StockTransferRow``,
+          ``StockAdjustmentRow``) — the serial-number string MUST already
+          exist (typically attached to a ManufacturingOrder output). The
+          API moves the linkage from its current resource to the target.
+          If the string isn't anywhere yet, the entry lands in ``failed``
+          with ``reason: MISSING`` — the call still returns 200.
+
+        **Partial failure is the norm, not the exception.** The response
+        carries ``successful`` AND ``failed`` arrays; consumers must
+        handle both. A 200 status does NOT mean every input was applied —
+        check ``failed`` to learn which strings the API rejected.
+
+        **422 cases:** non-existent ``resource_id`` returns
+        ``422 UnprocessableEntityError`` with detail ``No entity found``
+        (not 404). Invalid ``resource_type`` (e.g. ``Production``)
+        returns 422 with an Ajv-style validation detail.
+
+        **Transfer response quirks:** on a successful transfer the moved
+        record's ``transaction_id`` may be the literal string
+        ``undefined`` and ``resource_id`` may be ``null`` — re-fetch via
+        ``GET /serial_numbers`` to confirm the landing state.
       operationId: createSerialNumbers
       requestBody:
         description: Serial number creation details
@@ -21313,7 +21462,10 @@ paths:
               $ref: "#/components/schemas/CreateSerialNumbersRequest"
       responses:
         "200":
-          description: Serial numbers created successfully
+          description: |
+            Serial numbers created / transferred — partial failure is
+            possible. Inspect ``successful`` and ``failed`` arrays in the
+            response body to determine which strings landed.
           headers:
             X-Ratelimit-Limit:
               $ref: "#/components/headers/X-Ratelimit-Limit"
@@ -21324,7 +21476,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SerialNumberListResponse"
+                $ref: "#/components/schemas/CreateSerialNumbersResponse"
         "400":
           $ref: "#/components/responses/BadRequestError"
         "401":
@@ -21339,7 +21491,19 @@ paths:
       summary: Delete serial numbers
       tags:
         - Serial number
-      description: Deletes serial numbers for a resource.
+      description: |
+        Deletes serial numbers for a resource.
+
+        **DELETE is unconditionally idempotent.** Empirically (live-API
+        probes 2026-05-19) the endpoint returns 204 No Content for every
+        request variant tested: valid id, already-deleted id, mixed
+        valid+invalid id batches, pure-invalid id, and ``resource_id``
+        mismatch between body and the SN's actual parent. The endpoint
+        does NOT validate the request body — callers cannot detect
+        ``id didn't exist`` or ``id belongs to wrong resource`` via
+        the response. If strong confirmation is needed, follow up with a
+        ``GET /serial_numbers`` filtered by ``resource_id`` and verify
+        the deleted ids are absent.
       operationId: deleteSerialNumbers
       requestBody:
         description: Serial number deletion details
@@ -21350,7 +21514,10 @@ paths:
               $ref: "#/components/schemas/DeleteSerialNumbersRequest"
       responses:
         "204":
-          description: Serial numbers deleted successfully
+          description: |
+            Serial numbers deleted successfully. Returned for every
+            well-formed request (valid auth, valid JSON body) regardless
+            of whether the supplied ids actually exist.
           headers:
             X-Ratelimit-Limit:
               $ref: "#/components/headers/X-Ratelimit-Limit"
@@ -21358,14 +21525,8 @@ paths:
               $ref: "#/components/headers/X-Ratelimit-Remaining"
             X-Ratelimit-Reset:
               $ref: "#/components/headers/X-Ratelimit-Reset"
-        "400":
-          $ref: "#/components/responses/BadRequestError"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
-        "404":
-          $ref: "#/components/responses/NotFoundError"
-        "422":
-          $ref: "#/components/responses/UnprocessableEntityError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":

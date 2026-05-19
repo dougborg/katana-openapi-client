@@ -79,6 +79,11 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **modify_stock_transfer** - Unified modify: header body fields and/or status transition in one call (preview/apply). Hides Katana's two-endpoint split.
 - **delete_stock_transfer** - Delete a transfer
 
+### Serial Numbers
+- **add_serial_numbers** - Attach serial numbers to a resource. Mint new ones (ManufacturingOrder, PurchaseOrderRow) or transfer existing strings between resources (SalesOrderRow, StockTransferRow, StockAdjustmentRow). Partial-failure capable. (preview/apply)
+- **list_serial_numbers** - List serial numbers, optionally scoped by `resource_type` and/or `resource_id`. Diagnostic / lookup tool — use to verify which strings are attached to an MO before fulfillment.
+- **delete_serial_numbers** - Detach serial numbers from a resource. Idempotent (Katana returns 204 even for invalid ids). (preview/apply, destructive)
+
 ### Reference Data
 - **list_locations** - List or fuzzy-search warehouses and facilities (id, name, address, primary flag). Use for `location_id` lookups on orders and inventory queries. Supports `query`, `limit`
 - **list_suppliers** - List or fuzzy-search suppliers by name/code (id, name, email, phone, currency, code). Use for `supplier_id` / `default_supplier_id` on POs and materials. Supports `query`, `limit`

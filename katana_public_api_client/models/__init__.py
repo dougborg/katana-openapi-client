@@ -122,8 +122,11 @@ from .create_sales_order_shipping_fee_request import CreateSalesOrderShippingFee
 from .create_sales_order_status import CreateSalesOrderStatus
 from .create_sales_return_request import CreateSalesReturnRequest
 from .create_sales_return_row_request import CreateSalesReturnRowRequest
+from .create_serial_number_failed_item import CreateSerialNumberFailedItem
+from .create_serial_number_failure_reason import CreateSerialNumberFailureReason
 from .create_serial_number_resource_type import CreateSerialNumberResourceType
 from .create_serial_numbers_request import CreateSerialNumbersRequest
+from .create_serial_numbers_response import CreateSerialNumbersResponse
 from .create_service_request import CreateServiceRequest
 from .create_service_variant_request import CreateServiceVariantRequest
 from .create_service_variant_request_custom_fields_item import (
@@ -665,8 +668,11 @@ __all__ = (
     "CreateSalesOrderStatus",
     "CreateSalesReturnRequest",
     "CreateSalesReturnRowRequest",
+    "CreateSerialNumberFailedItem",
+    "CreateSerialNumberFailureReason",
     "CreateSerialNumberResourceType",
     "CreateSerialNumbersRequest",
+    "CreateSerialNumbersResponse",
     "CreateServiceRequest",
     "CreateServiceVariantRequest",
     "CreateServiceVariantRequestCustomFieldsItem",

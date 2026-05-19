@@ -96,7 +96,18 @@ def sync_detailed(
 ) -> Response[ErrorResponse | SerialNumberListResponse]:
     """List serial numbers
 
-     Returns a list of serial numbers.
+     Returns a list of serial numbers, optionally filtered by
+    ``resource_type`` and/or ``resource_id``.
+
+    **Filter behavior** (verified live 2026-05-19):
+
+    - Both filters set → results scoped to that exact ``(type, id)``.
+    - ``resource_type`` alone → ALL serial numbers of that type
+      across all resources (paginated, never 422).
+    - ``resource_id`` alone → narrows to that resource regardless of
+      type.
+    - Neither filter → all serial numbers in the tenant (paginated).
+    - Page beyond data → 200 with an empty ``data`` array, not 404.
 
     Args:
         resource_type (GetAllSerialNumbersResourceType | Unset):
@@ -138,7 +149,18 @@ def sync(
 ) -> ErrorResponse | SerialNumberListResponse | None:
     """List serial numbers
 
-     Returns a list of serial numbers.
+     Returns a list of serial numbers, optionally filtered by
+    ``resource_type`` and/or ``resource_id``.
+
+    **Filter behavior** (verified live 2026-05-19):
+
+    - Both filters set → results scoped to that exact ``(type, id)``.
+    - ``resource_type`` alone → ALL serial numbers of that type
+      across all resources (paginated, never 422).
+    - ``resource_id`` alone → narrows to that resource regardless of
+      type.
+    - Neither filter → all serial numbers in the tenant (paginated).
+    - Page beyond data → 200 with an empty ``data`` array, not 404.
 
     Args:
         resource_type (GetAllSerialNumbersResourceType | Unset):
@@ -175,7 +197,18 @@ async def asyncio_detailed(
 ) -> Response[ErrorResponse | SerialNumberListResponse]:
     """List serial numbers
 
-     Returns a list of serial numbers.
+     Returns a list of serial numbers, optionally filtered by
+    ``resource_type`` and/or ``resource_id``.
+
+    **Filter behavior** (verified live 2026-05-19):
+
+    - Both filters set → results scoped to that exact ``(type, id)``.
+    - ``resource_type`` alone → ALL serial numbers of that type
+      across all resources (paginated, never 422).
+    - ``resource_id`` alone → narrows to that resource regardless of
+      type.
+    - Neither filter → all serial numbers in the tenant (paginated).
+    - Page beyond data → 200 with an empty ``data`` array, not 404.
 
     Args:
         resource_type (GetAllSerialNumbersResourceType | Unset):
@@ -215,7 +248,18 @@ async def asyncio(
 ) -> ErrorResponse | SerialNumberListResponse | None:
     """List serial numbers
 
-     Returns a list of serial numbers.
+     Returns a list of serial numbers, optionally filtered by
+    ``resource_type`` and/or ``resource_id``.
+
+    **Filter behavior** (verified live 2026-05-19):
+
+    - Both filters set → results scoped to that exact ``(type, id)``.
+    - ``resource_type`` alone → ALL serial numbers of that type
+      across all resources (paginated, never 422).
+    - ``resource_id`` alone → narrows to that resource regardless of
+      type.
+    - Neither filter → all serial numbers in the tenant (paginated).
+    - Page beyond data → 200 with an empty ``data`` array, not 404.
 
     Args:
         resource_type (GetAllSerialNumbersResourceType | Unset):
