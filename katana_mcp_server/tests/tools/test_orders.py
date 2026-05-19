@@ -1986,3 +1986,377 @@ async def test_fulfill_mo_completed_at_propagates_to_serial_transaction_date():
     assert sent_body.serial_numbers == [501]
     assert sent_body.completed_date == completed
     assert sent_body.is_final is True
+
+
+# ============================================================================
+# Tier 2 metrics + Tier 3 per-row enrichment (#553)
+# ============================================================================
+
+
+def _make_so_row_with_price(
+    row_id: int,
+    variant_id: int,
+    quantity: float,
+    price_per_unit: str,
+    *,
+    batch_transactions: Any = None,
+) -> MagicMock:
+    """Like ``_make_so_row`` but pins the fields the #553 enrichment reads.
+
+    Sets ``price_per_unit`` as a string (matches the wire model — the
+    Katana API returns prices as strings to preserve precision) and
+    optionally a ``batch_transactions`` list so the batch_summary branch
+    can be exercised.
+    """
+    from katana_public_api_client.client_types import UNSET
+
+    row = MagicMock()
+    row.id = row_id
+    row.variant_id = variant_id
+    row.quantity = quantity
+    row.price_per_unit = price_per_unit
+    row.batch_transactions = (
+        batch_transactions if batch_transactions is not None else UNSET
+    )
+    return row
+
+
+@pytest.mark.asyncio
+async def test_fulfill_sales_order_preview_enriches_fulfilled_rows():
+    """Preview path enriches ``fulfilled_rows`` with PO row + cache data (#553).
+
+    Pinned by the receipt-card sibling pattern (#556 / PR #793). Joins:
+    - request row overrides (serial_numbers)
+    - SO rows (quantity, variant_id, price_per_unit, batch_transactions)
+    - typed cache variants (sku, display_name)
+
+    Plus computes the Tier 2 metric aggregates (rows_count, total_quantity,
+    total_value) that drive the Metric row on the card.
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    mock_so = MagicMock(spec=SalesOrder)
+    mock_so.order_no = "SO-T2-001"
+    mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.currency = "USD"
+    mock_so.sales_order_rows = [
+        _make_so_row_with_price(1, 100, 5.0, "10.00"),
+        _make_so_row_with_price(2, 200, 2.0, "25.00"),
+    ]
+
+    mock_response = MagicMock(status_code=200, parsed=mock_so)
+    from katana_public_api_client.api.sales_order import get_sales_order
+
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(return_value=mock_response)
+
+    # Seed the typed cache so each variant resolves to a canonical
+    # display_name; the enrichment lifts this verbatim into the row.
+    def _mk_cached(vid, sku, display_name):
+        m = MagicMock()
+        m.id = vid
+        m.sku = sku
+        m.display_name = display_name
+        m.product_id = None
+        m.material_id = None
+        m.config_attributes = []
+        return m
+
+    async def _get_many(model_cls, ids, **_kw):
+        if model_cls is CachedVariant:
+            data = {
+                100: _mk_cached(100, "WIDGET-100", "Big Widget / Red"),
+                200: _mk_cached(200, "WIDGET-200", "Small Widget / Blue"),
+            }
+            return {vid: data[vid] for vid in ids if vid in data}
+        return {}
+
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(side_effect=_get_many)
+
+    request = FulfillOrderRequest(
+        order_id=5678,
+        order_type="sales",
+        preview=True,
+        rows=[FulfillRowOverride(sales_order_row_id=2, serial_numbers=[9001, 9002])],
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    # ---- Tier 3 enrichment ----
+    assert len(result.fulfilled_rows) == 2
+    by_row = {r.row_id: r for r in result.fulfilled_rows}
+
+    row_a = by_row[1]
+    assert row_a.variant_id == 100
+    assert row_a.sku == "WIDGET-100"
+    assert row_a.display_name == "Big Widget / Red"
+    assert row_a.quantity == 5.0
+    assert row_a.price_per_unit == 10.0
+    assert row_a.row_total == 50.0
+    assert row_a.currency == "USD"
+    assert row_a.serial_numbers == []
+    assert row_a.batch_summary is None
+
+    row_b = by_row[2]
+    assert row_b.variant_id == 200
+    assert row_b.sku == "WIDGET-200"
+    assert row_b.quantity == 2.0
+    assert row_b.row_total == 50.0
+    # Serial overrides from the request land on the enriched row.
+    assert row_b.serial_numbers == [9001, 9002]
+
+    # ---- Tier 2 metrics ----
+    assert result.rows_count == 2
+    assert result.total_quantity == 7.0
+    assert result.total_value == 100.0
+    assert result.currency == "USD"
+    # Tier 4: deep link is on the preview response so the success card
+    # can pre-bind the View in Katana button.
+    assert result.katana_url is not None
+    assert result.katana_url.endswith("/salesorder/5678")
+
+
+@pytest.mark.asyncio
+async def test_fulfill_sales_order_preview_batch_summary_renders():
+    """Batch-tracked rows surface the allocation in human-readable form
+    (``"batch 42x30, batch 51x20"``). Pinned for the receipt-card sibling
+    parity (#556) so a future change to the format keeps the two cards
+    in step.
+    """
+    context, _lifespan_ctx = create_mock_context()
+
+    # Batch transaction objects mirroring the wire model shape.
+    bt1 = MagicMock()
+    bt1.batch_id = 42
+    bt1.quantity = 30.0
+    bt2 = MagicMock()
+    bt2.batch_id = 51
+    bt2.quantity = 20.0
+
+    mock_so = MagicMock(spec=SalesOrder)
+    mock_so.order_no = "SO-BATCH"
+    mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.currency = "USD"
+    mock_so.sales_order_rows = [
+        _make_so_row_with_price(1, 300, 50.0, "5.00", batch_transactions=[bt1, bt2]),
+    ]
+
+    mock_response = MagicMock(status_code=200, parsed=mock_so)
+    from katana_public_api_client.api.sales_order import get_sales_order
+
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(return_value=mock_response)
+
+    request = FulfillOrderRequest(order_id=9999, order_type="sales", preview=True)
+    result = await _fulfill_order_impl(request, context)
+
+    assert len(result.fulfilled_rows) == 1
+    assert result.fulfilled_rows[0].batch_summary == "batch 42x30, batch 51x20"
+
+
+@pytest.mark.asyncio
+async def test_fulfill_manufacturing_order_preview_enriches_fulfilled_row():
+    """MO preview enriches a single ``FulfilledRowInfo`` (the MO carries
+    one variant, not a row list). Tier 2 metrics: rows_count=1, total_qty
+    is ``actual_quantity``, total_value is ``None`` (MOs track cost, not
+    price). ``katana_url`` deep-links to the MO page.
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    mock_mo = MagicMock(spec=ManufacturingOrder)
+    mock_mo.order_no = "MO-T2-001"
+    mock_mo.status = ManufacturingOrderStatus.IN_PROGRESS
+    mock_mo.variant_id = 555
+    mock_mo.actual_quantity = 3.0
+
+    mock_response = MagicMock(status_code=200, parsed=mock_mo)
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=mock_response
+    )
+
+    cached_variant = MagicMock()
+    cached_variant.id = 555
+    cached_variant.sku = "FG-001"
+    cached_variant.display_name = "Premium Widget / Large"
+    cached_variant.product_id = None
+    cached_variant.material_id = None
+    cached_variant.config_attributes = []
+
+    async def _get_many(model_cls, ids, **_kw):
+        if model_cls is CachedVariant and 555 in set(ids):
+            return {555: cached_variant}
+        return {}
+
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(side_effect=_get_many)
+
+    request = FulfillOrderRequest(
+        order_id=8888, order_type="manufacturing", preview=True
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    # ---- Tier 3 enrichment ----
+    assert len(result.fulfilled_rows) == 1
+    row = result.fulfilled_rows[0]
+    assert row.row_id is None  # MO has no row IDs the way SO does
+    assert row.variant_id == 555
+    assert row.sku == "FG-001"
+    assert row.display_name == "Premium Widget / Large"
+    assert row.quantity == 3.0
+    # Price not surfaced on the MO branch.
+    assert row.price_per_unit is None
+    assert row.row_total is None
+    assert row.currency is None
+
+    # ---- Tier 2 metrics ----
+    assert result.rows_count == 1
+    assert result.total_quantity == 3.0
+    # No price on any row → total_value omitted (None signals the card
+    # to skip the Total Value metric).
+    assert result.total_value is None
+
+    # ---- Tier 4 deep link ----
+    assert result.katana_url is not None
+    assert result.katana_url.endswith("/manufacturingorder/8888")
+
+
+@pytest.mark.asyncio
+async def test_fulfill_manufacturing_order_confirm_carries_enrichment():
+    """Success path rebuilds enrichment from the *post-mutation* MO so the
+    success card reflects what Katana actually stamped (matters when the
+    MO had no prior production and Katana sets ``actual_quantity =
+    completed_quantity``).
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    # Initial fetch: pre-production MO with no actual_quantity yet.
+    mock_pre_mo = MagicMock(spec=ManufacturingOrder)
+    mock_pre_mo.order_no = "MO-T2-CONFIRM"
+    mock_pre_mo.status = ManufacturingOrderStatus.IN_PROGRESS
+    mock_pre_mo.variant_id = 555
+    mock_pre_mo.actual_quantity = None
+    mock_get_response = MagicMock(status_code=200, parsed=mock_pre_mo)
+
+    from katana_public_api_client.models import ManufacturingOrderProduction
+
+    mock_production = MagicMock(spec=ManufacturingOrderProduction)
+    mock_production.id = 9001
+    mock_create_response = MagicMock(status_code=200, parsed=mock_production)
+
+    # Post-mutation MO: Katana stamped actual_quantity = 1 (the default).
+    mock_post_mo = MagicMock(spec=ManufacturingOrder)
+    mock_post_mo.order_no = "MO-T2-CONFIRM"
+    mock_post_mo.status = ManufacturingOrderStatus.DONE
+    mock_post_mo.variant_id = 555
+    mock_post_mo.actual_quantity = 1.0
+    mock_final_response = MagicMock(status_code=200, parsed=mock_post_mo)
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+    from katana_public_api_client.api.manufacturing_order_production import (
+        create_manufacturing_order_production,
+    )
+
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        side_effect=[mock_get_response, mock_final_response]
+    )
+    cast(Any, create_manufacturing_order_production).asyncio_detailed = AsyncMock(
+        return_value=mock_create_response
+    )
+
+    cached_variant = MagicMock()
+    cached_variant.id = 555
+    cached_variant.sku = "FG-001"
+    cached_variant.display_name = "Premium Widget"
+    cached_variant.product_id = None
+    cached_variant.material_id = None
+    cached_variant.config_attributes = []
+
+    async def _get_many(model_cls, ids, **_kw):
+        if model_cls is CachedVariant and 555 in set(ids):
+            return {555: cached_variant}
+        return {}
+
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(side_effect=_get_many)
+
+    request = FulfillOrderRequest(
+        order_id=8888, order_type="manufacturing", preview=False
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert result.is_preview is False
+    assert result.status == "DONE"
+    # Quantity reflects post-mutation state (the API-stamped actual_quantity=1),
+    # not the pre-mutation None.
+    assert len(result.fulfilled_rows) == 1
+    assert result.fulfilled_rows[0].quantity == 1.0
+    assert result.rows_count == 1
+    assert result.total_quantity == 1.0
+    # Deep link present on the success response so the View in Katana
+    # button can wire up without an extra round-trip.
+    assert result.katana_url is not None
+
+
+@pytest.mark.asyncio
+async def test_fulfill_sales_order_confirm_carries_enrichment():
+    """Success path on the SO branch also carries the enriched rows +
+    metrics + deep link so the success card matches the preview card's
+    information density.
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    mock_so = MagicMock(spec=SalesOrder)
+    mock_so.order_no = "SO-T2-CONFIRM"
+    mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.currency = "USD"
+    mock_so.sales_order_rows = [_make_so_row_with_price(1, 100, 5.0, "10.00")]
+
+    mock_get_response = MagicMock(status_code=200, parsed=mock_so)
+
+    from katana_public_api_client.api.sales_order import get_sales_order
+    from katana_public_api_client.api.sales_order_fulfillment import (
+        create_sales_order_fulfillment,
+    )
+    from katana_public_api_client.models import SalesOrderFulfillment
+
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=mock_get_response
+    )
+
+    fulfillment_obj = MagicMock(spec=SalesOrderFulfillment)
+    fulfillment_obj.id = 7777
+    mock_create_response = MagicMock(status_code=201, parsed=fulfillment_obj)
+    cast(Any, create_sales_order_fulfillment).asyncio_detailed = AsyncMock(
+        return_value=mock_create_response
+    )
+
+    cached_variant = MagicMock()
+    cached_variant.id = 100
+    cached_variant.sku = "WIDGET-100"
+    cached_variant.display_name = "Big Widget / Red"
+    cached_variant.product_id = None
+    cached_variant.material_id = None
+    cached_variant.config_attributes = []
+
+    async def _get_many(model_cls, ids, **_kw):
+        if model_cls is CachedVariant and 100 in set(ids):
+            return {100: cached_variant}
+        return {}
+
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(side_effect=_get_many)
+
+    request = FulfillOrderRequest(order_id=5678, order_type="sales", preview=False)
+    result = await _fulfill_order_impl(request, context)
+
+    assert result.is_preview is False
+    assert result.status == "DELIVERED"
+    assert len(result.fulfilled_rows) == 1
+    assert result.fulfilled_rows[0].sku == "WIDGET-100"
+    assert result.fulfilled_rows[0].row_total == 50.0
+    assert result.rows_count == 1
+    assert result.total_quantity == 5.0
+    assert result.total_value == 50.0
+    assert result.currency == "USD"
+    assert result.katana_url is not None
+    assert result.katana_url.endswith("/salesorder/5678")
