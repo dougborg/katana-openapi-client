@@ -7,7 +7,6 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import Response
 from ...models.delete_serial_numbers_request import DeleteSerialNumbersRequest
-from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 
 
@@ -32,30 +31,15 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Any | DetailedErrorResponse | ErrorResponse | None:
+) -> Any | ErrorResponse | None:
     if response.status_code == 204:
         response_204 = cast(Any, None)
         return response_204
-
-    if response.status_code == 400:
-        response_400 = ErrorResponse.from_dict(response.json())
-
-        return response_400
 
     if response.status_code == 401:
         response_401 = ErrorResponse.from_dict(response.json())
 
         return response_401
-
-    if response.status_code == 404:
-        response_404 = ErrorResponse.from_dict(response.json())
-
-        return response_404
-
-    if response.status_code == 422:
-        response_422 = DetailedErrorResponse.from_dict(response.json())
-
-        return response_422
 
     if response.status_code == 429:
         response_429 = ErrorResponse.from_dict(response.json())
@@ -75,7 +59,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
+) -> Response[Any | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -88,10 +72,21 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: DeleteSerialNumbersRequest,
-) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
+) -> Response[Any | ErrorResponse]:
     """Delete serial numbers
 
      Deletes serial numbers for a resource.
+
+    **DELETE is unconditionally idempotent.** Empirically (live-API
+    probes 2026-05-19) the endpoint returns 204 No Content for every
+    request variant tested: valid id, already-deleted id, mixed
+    valid+invalid id batches, pure-invalid id, and ``resource_id``
+    mismatch between body and the SN's actual parent. The endpoint
+    does NOT validate the request body — callers cannot detect
+    ``id didn't exist`` or ``id belongs to wrong resource`` via
+    the response. If strong confirmation is needed, follow up with a
+    ``GET /serial_numbers`` filtered by ``resource_id`` and verify
+    the deleted ids are absent.
 
     Args:
         body (DeleteSerialNumbersRequest): Request payload for deleting serial numbers from a
@@ -107,7 +102,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[Any | DetailedErrorResponse | ErrorResponse]
+        Response[Any | ErrorResponse]
     """
 
     kwargs = _get_kwargs(
@@ -125,10 +120,21 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: DeleteSerialNumbersRequest,
-) -> Any | DetailedErrorResponse | ErrorResponse | None:
+) -> Any | ErrorResponse | None:
     """Delete serial numbers
 
      Deletes serial numbers for a resource.
+
+    **DELETE is unconditionally idempotent.** Empirically (live-API
+    probes 2026-05-19) the endpoint returns 204 No Content for every
+    request variant tested: valid id, already-deleted id, mixed
+    valid+invalid id batches, pure-invalid id, and ``resource_id``
+    mismatch between body and the SN's actual parent. The endpoint
+    does NOT validate the request body — callers cannot detect
+    ``id didn't exist`` or ``id belongs to wrong resource`` via
+    the response. If strong confirmation is needed, follow up with a
+    ``GET /serial_numbers`` filtered by ``resource_id`` and verify
+    the deleted ids are absent.
 
     Args:
         body (DeleteSerialNumbersRequest): Request payload for deleting serial numbers from a
@@ -144,7 +150,7 @@ def sync(
 
 
     Returns:
-        Any | DetailedErrorResponse | ErrorResponse
+        Any | ErrorResponse
     """
 
     return sync_detailed(
@@ -157,10 +163,21 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: DeleteSerialNumbersRequest,
-) -> Response[Any | DetailedErrorResponse | ErrorResponse]:
+) -> Response[Any | ErrorResponse]:
     """Delete serial numbers
 
      Deletes serial numbers for a resource.
+
+    **DELETE is unconditionally idempotent.** Empirically (live-API
+    probes 2026-05-19) the endpoint returns 204 No Content for every
+    request variant tested: valid id, already-deleted id, mixed
+    valid+invalid id batches, pure-invalid id, and ``resource_id``
+    mismatch between body and the SN's actual parent. The endpoint
+    does NOT validate the request body — callers cannot detect
+    ``id didn't exist`` or ``id belongs to wrong resource`` via
+    the response. If strong confirmation is needed, follow up with a
+    ``GET /serial_numbers`` filtered by ``resource_id`` and verify
+    the deleted ids are absent.
 
     Args:
         body (DeleteSerialNumbersRequest): Request payload for deleting serial numbers from a
@@ -176,7 +193,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[Any | DetailedErrorResponse | ErrorResponse]
+        Response[Any | ErrorResponse]
     """
 
     kwargs = _get_kwargs(
@@ -192,10 +209,21 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: DeleteSerialNumbersRequest,
-) -> Any | DetailedErrorResponse | ErrorResponse | None:
+) -> Any | ErrorResponse | None:
     """Delete serial numbers
 
      Deletes serial numbers for a resource.
+
+    **DELETE is unconditionally idempotent.** Empirically (live-API
+    probes 2026-05-19) the endpoint returns 204 No Content for every
+    request variant tested: valid id, already-deleted id, mixed
+    valid+invalid id batches, pure-invalid id, and ``resource_id``
+    mismatch between body and the SN's actual parent. The endpoint
+    does NOT validate the request body — callers cannot detect
+    ``id didn't exist`` or ``id belongs to wrong resource`` via
+    the response. If strong confirmation is needed, follow up with a
+    ``GET /serial_numbers`` filtered by ``resource_id`` and verify
+    the deleted ids are absent.
 
     Args:
         body (DeleteSerialNumbersRequest): Request payload for deleting serial numbers from a
@@ -211,7 +239,7 @@ async def asyncio(
 
 
     Returns:
-        Any | DetailedErrorResponse | ErrorResponse
+        Any | ErrorResponse
     """
 
     return (

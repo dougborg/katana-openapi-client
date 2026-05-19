@@ -149,8 +149,14 @@ from katana_public_api_client.models.create_sales_return_request import (
 from katana_public_api_client.models.create_sales_return_row_request import (
     CreateSalesReturnRowRequest as AttrsCreateSalesReturnRowRequest,
 )
+from katana_public_api_client.models.create_serial_number_failed_item import (
+    CreateSerialNumberFailedItem as AttrsCreateSerialNumberFailedItem,
+)
 from katana_public_api_client.models.create_serial_numbers_request import (
     CreateSerialNumbersRequest as AttrsCreateSerialNumbersRequest,
+)
+from katana_public_api_client.models.create_serial_numbers_response import (
+    CreateSerialNumbersResponse as AttrsCreateSerialNumbersResponse,
 )
 from katana_public_api_client.models.create_service_request import (
     CreateServiceRequest as AttrsCreateServiceRequest,
@@ -981,7 +987,9 @@ from ._generated.stock import (
     BatchStockUpdate as PydanticBatchStockUpdate,
     BatchTransaction as PydanticBatchTransaction,
     BatchTransactionRequest as PydanticBatchTransactionRequest,
+    CreateSerialNumberFailedItem as PydanticCreateSerialNumberFailedItem,
     CreateSerialNumbersRequest as PydanticCreateSerialNumbersRequest,
+    CreateSerialNumbersResponse as PydanticCreateSerialNumbersResponse,
     CreateStockAdjustmentRequest as PydanticCreateStockAdjustmentRequest,
     CreateStocktakeRequest as PydanticCreateStocktakeRequest,
     CreateStocktakeRowRequest as PydanticCreateStocktakeRowRequest,
@@ -1118,7 +1126,9 @@ def register_all_models() -> None:
     )
     register(AttrsCreateSalesReturnRequest, PydanticCreateSalesReturnRequest)
     register(AttrsCreateSalesReturnRowRequest, PydanticCreateSalesReturnRowRequest)
+    register(AttrsCreateSerialNumberFailedItem, PydanticCreateSerialNumberFailedItem)
     register(AttrsCreateSerialNumbersRequest, PydanticCreateSerialNumbersRequest)
+    register(AttrsCreateSerialNumbersResponse, PydanticCreateSerialNumbersResponse)
     register(AttrsCreateServiceRequest, PydanticCreateServiceRequest)
     register(AttrsCreateServiceVariantRequest, PydanticCreateServiceVariantRequest)
     register(AttrsCreateStockAdjustmentRequest, PydanticCreateStockAdjustmentRequest)
