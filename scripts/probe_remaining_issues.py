@@ -26,6 +26,7 @@ import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from scripts.spec_drift_verify import (
+    discover_sdt_fixture,
     label,
     make_client,
     pp_response,
@@ -34,20 +35,58 @@ from scripts.spec_drift_verify import (
 )
 
 
+def _ensure_sdt_customer(client: httpx.Client) -> int:
+    """Find or create an SDT-tagged customer for use as a probe target.
+
+    The probe pattern previously was "grab the first customer the API
+    returns" — exactly the WEB20604 incident's root cause (the first
+    customer was a real Shopify record). Use ``discover_sdt_fixture``
+    to filter for SDT-prefixed names; create a fresh SDT customer when
+    none exist. The fresh customer hits the ledger and gets cleaned up
+    on the next ``spec_drift_verify.py cleanup`` run.
+    """
+    found = discover_sdt_fixture(client, "/customers", "name")
+    if found is not None:
+        return int(found["id"])
+    payload = {
+        "name": label("probe-customer"),
+        "company": label("probe-customer"),
+    }
+    resp = client.post("/customers", json=payload)
+    if not resp.is_success:
+        print(f"  ✗  could not create SDT customer: {pp_response(resp, 200)}")
+        sys.exit(1)
+    created = resp.json()
+    record_artifact(
+        endpoint="/customers",
+        entity_id=created["id"],
+        issue="probe-fixture",
+        sku_or_name=payload["name"],
+    )
+    return int(created["id"])
+
+
 def discover_fixtures(client: httpx.Client) -> dict[str, Any]:
-    """Pre-fetch a location, customer, supplier, and sellable variant.
+    """Pre-fetch a location, customer, and sellable variant.
 
     Resolves the sales-enabled location via ``GET /factory`` (its
     ``default_sales_location_id`` is authoritative). Other locations
     on the tenant may have ``purchase_allowed: false`` and the live
     API rejects SO creates against them ("Location has selling
-    disabled"). Bails if any fixture is missing.
+    disabled"). Bails (``sys.exit(1)``) when ``default_sales_location_id``
+    is missing or no sellable variant is available; ``_ensure_sdt_customer``
+    bails on its own if neither lookup nor creation succeeds.
+
+    The customer is filtered for the SDT- prefix so probes never target
+    a real customer record (root cause of the 2026-05-19 WEB20604
+    near-miss — see issue #781). When no SDT-tagged customer exists, a
+    fresh one is created and recorded to the ledger. Variants are still
+    picked by "first sellable" because they're read-only fixtures (not
+    the target of any mutation in this probe).
     """
     print("\n=== Discovering shared fixtures ===")
     factory = client.get("/factory").json()
     locations = client.get("/locations?limit=10").json().get("data", [])
-    customers = client.get("/customers?limit=1").json().get("data", [])
-    suppliers = client.get("/suppliers?limit=1").json().get("data", [])
     variants = client.get("/variants?limit=20").json().get("data", [])
     sellable = [v for v in variants if v.get("sales_price") is not None][:1]
 
@@ -61,18 +100,16 @@ def discover_fixtures(client: httpx.Client) -> dict[str, Any]:
     if not sales_location_id:
         print("  ✗  factory.default_sales_location_id missing; aborting")
         sys.exit(1)
-    if not customers:
-        print("  ✗  no customers available; aborting")
-        sys.exit(1)
     if not sellable:
         print("  ✗  no sellable variant available; aborting")
         sys.exit(1)
 
+    customer_id = _ensure_sdt_customer(client)
+
     fx = {
         "location_id": sales_location_id,
         "second_location_id": other,
-        "customer_id": customers[0]["id"],
-        "supplier_id": suppliers[0]["id"] if suppliers else None,
+        "customer_id": customer_id,
         "variant_id": sellable[0]["id"],
     }
     print(f"  fixtures: {fx}")
