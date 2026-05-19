@@ -694,6 +694,170 @@ async def test_get_manufacturing_order_recipe_empty():
 
 
 @pytest.mark.asyncio
+async def test_get_mo_recipe_requests_live_only_from_api():
+    """Regression for #777: read tool MUST call the recipe-rows endpoint with
+    ``include_deleted=False`` — otherwise tombstoned rows leak through and
+    naive agents batch them into ``delete_recipe_row_ids``, producing
+    apply-time 404s.
+    """
+    # Arrange
+    context, _ = create_mock_context()
+
+    def _mk_row(row_id: int) -> MagicMock:
+        m = MagicMock()
+        m.id = row_id
+        m.variant_id = UNSET
+        m.planned_quantity_per_unit = 1.0
+        m.total_actual_quantity = 0.0
+        m.ingredient_availability = "IN_STOCK"
+        m.notes = None
+        m.cost = 0.0
+        m.manufacturing_order_id = UNSET
+        m.total_consumed_quantity = UNSET
+        m.total_remaining_quantity = UNSET
+        m.ingredient_expected_date = UNSET
+        m.batch_transactions = UNSET
+        m.created_at = UNSET
+        m.updated_at = UNSET
+        m.deleted_at = UNSET
+        return m
+
+    api_mock = AsyncMock()
+    with (
+        patch(
+            f"{_RECIPE_API}.get_all_manufacturing_order_recipe_rows.asyncio_detailed",
+            new=api_mock,
+        ),
+        patch(_UNWRAP_DATA, return_value=[_mk_row(5001)]),
+    ):
+        request = GetManufacturingOrderRecipeRequest(manufacturing_order_id=9999)
+        # Act
+        await _get_manufacturing_order_recipe_impl(request, context)
+
+    # Assert
+    api_mock.assert_called_once()
+    assert api_mock.call_args.kwargs["include_deleted"] is False
+    assert api_mock.call_args.kwargs["manufacturing_order_id"] == 9999
+
+
+@pytest.mark.asyncio
+async def test_get_mo_recipe_excludes_tombstoned_rows():
+    """Regression for #777: ``get_manufacturing_order_recipe`` must not
+    surface tombstoned rows. With ``include_deleted=False`` plus the
+    client-side defense-in-depth filter, agents see only live rows.
+    """
+    # Arrange — three live + two tombstones (simulates Katana returning
+    # tombstones even though we asked for live-only).
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(return_value={})
+
+    def _mk_row(row_id: int, deleted_at: Any = UNSET) -> MagicMock:
+        m = MagicMock()
+        m.id = row_id
+        m.variant_id = UNSET
+        m.planned_quantity_per_unit = 1.0
+        m.total_actual_quantity = 0.0
+        m.ingredient_availability = "IN_STOCK"
+        m.notes = None
+        m.cost = 0.0
+        m.manufacturing_order_id = UNSET
+        m.total_consumed_quantity = UNSET
+        m.total_remaining_quantity = UNSET
+        m.ingredient_expected_date = UNSET
+        m.batch_transactions = UNSET
+        m.created_at = UNSET
+        m.updated_at = UNSET
+        m.deleted_at = deleted_at
+        return m
+
+    tombstone_ts = datetime(2026, 4, 16, 12, 0, tzinfo=UTC)
+    raw_rows = [
+        _mk_row(5001),
+        _mk_row(5002),
+        _mk_row(5003, deleted_at=tombstone_ts),
+        _mk_row(5004),
+        _mk_row(5005, deleted_at=tombstone_ts),
+    ]
+
+    with (
+        patch(
+            f"{_RECIPE_API}.get_all_manufacturing_order_recipe_rows.asyncio_detailed",
+            new_callable=AsyncMock,
+        ),
+        patch(_UNWRAP_DATA, return_value=raw_rows),
+    ):
+        request = GetManufacturingOrderRecipeRequest(manufacturing_order_id=9999)
+        # Act
+        result = await _get_manufacturing_order_recipe_impl(request, context)
+
+    # Assert — only live rows surface; tombstones are dropped.
+    assert result.total_count == 3
+    surfaced_ids = {row.id for row in result.rows}
+    assert surfaced_ids == {5001, 5002, 5004}
+    assert all(row.deleted_at is None for row in result.rows)
+
+
+@pytest.mark.asyncio
+async def test_modify_mo_cache_merge_uses_tombstone_aware_fetcher():
+    """Regression for #777: the cache-merge fan-out MUST still see
+    tombstones (so it can evict deleted cached rows). The split must
+    not regress that.
+    """
+    # Arrange — assert by inspecting the dispatch wiring: the
+    # ``refetch_related`` lambda used by ``CacheMerge`` must call the
+    # ``_for_cache_merge`` fetcher, not the ``_live_only`` sibling.
+    import inspect
+
+    from katana_mcp.tools.foundation import manufacturing_orders as mo_mod
+
+    # Act — read the source of the impl that registers the cache merge.
+    src = inspect.getsource(mo_mod._modify_manufacturing_order_impl)
+
+    # Assert — the cache merge wiring references the tombstone-aware
+    # fetcher, NOT the live-only sibling. (If a future refactor moves
+    # this elsewhere, the test will still catch a regression in spirit
+    # because we'd lose the symbol entirely.)
+    assert "_fetch_mo_recipe_row_attrs_for_cache_merge" in src
+    assert "_fetch_mo_recipe_row_attrs_live_only" not in src
+    # Sanity: the live-only fetcher exists separately for read-paths.
+    assert hasattr(mo_mod, "_fetch_mo_recipe_row_attrs_live_only")
+    assert hasattr(mo_mod, "_fetch_mo_recipe_row_attrs_for_cache_merge")
+
+
+@pytest.mark.asyncio
+async def test_fetch_mo_recipe_row_attrs_for_cache_merge_includes_tombstones():
+    """The cache-merge fetcher MUST call the API with
+    ``include_deleted=True`` — otherwise the cache can't evict
+    just-deleted rows after a ``delete_recipe_row`` modify action.
+    """
+    # Arrange
+    from katana_mcp.tools.foundation.manufacturing_orders import (
+        _fetch_mo_recipe_row_attrs_for_cache_merge,
+    )
+
+    services = MagicMock()
+    services.client = MagicMock()
+
+    api_mock = AsyncMock()
+    with (
+        patch(
+            f"{_RECIPE_API}.get_all_manufacturing_order_recipe_rows.asyncio_detailed",
+            new=api_mock,
+        ),
+        patch(_UNWRAP_DATA, return_value=[]),
+    ):
+        # Act
+        await _fetch_mo_recipe_row_attrs_for_cache_merge(
+            services=services, manufacturing_order_id=12345
+        )
+
+    # Assert
+    api_mock.assert_called_once()
+    assert api_mock.call_args.kwargs["include_deleted"] is True
+    assert api_mock.call_args.kwargs["manufacturing_order_id"] == 12345
+
+
+@pytest.mark.asyncio
 async def test_create_manufacturing_order_make_to_order_preview():
     """Make-to-order preview mode: sales_order_row_id only, no other fields required."""
     from katana_public_api_client.models import SalesOrderRow

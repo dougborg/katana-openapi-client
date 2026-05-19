@@ -493,10 +493,29 @@ def make_delete_apply(endpoint: Any, services: Any, target_id: int) -> ApplyCall
     Used by every ``delete_*`` action and the ``delete_<entity>`` tools.
     DELETE endpoints return 204 No Content on success; ``is_success`` +
     ``unwrap`` translates non-success into a typed error.
+
+    **404 on DELETE is treated as success** (idempotent semantics). The
+    caller's intent is "ensure this row is gone" — if Katana reports
+    404, the row is already gone and the target state is satisfied. The
+    Katana DELETE endpoints are not idempotent server-side (a second
+    DELETE on the same id returns 404, see issue #777), so this
+    conflation happens here at the dispatch layer so every entity
+    benefits uniformly: PO rows, SO rows, MO recipe rows, MO operation
+    rows, productions, and the top-level ``delete_<entity>`` tools.
     """
 
     async def apply() -> None:
         response = await endpoint.asyncio_detailed(id=target_id, client=services.client)
+        if response.status_code == 404:
+            # Idempotent semantics: row already gone is the desired end state.
+            endpoint_label = getattr(endpoint, "__name__", repr(endpoint))
+            logger.info(
+                "DELETE %s id=%s returned 404 — treating as success "
+                "(row already deleted).",
+                endpoint_label,
+                target_id,
+            )
+            return None
         if not is_success(response):
             unwrap(response)
         return None
