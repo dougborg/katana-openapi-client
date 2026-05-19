@@ -2758,6 +2758,87 @@ def _build_update_production_request(
 
 
 # ----------------------------------------------------------------------------
+# Status-transition classification (#773)
+# ----------------------------------------------------------------------------
+
+
+class _HeaderPhase(StrEnum):
+    """When to land the ``update_header`` ActionSpec relative to row edits.
+
+    Katana locks an MO once it reaches a "closed" status — further edits to
+    recipe rows / operation rows / productions fail with
+    ``"You can not modify manufacturing order with status done"`` (422).
+    The plan builder reorders the header action to match the lock state:
+
+    - ``FIRST`` — header lands before row edits. Used when the header makes
+      no status change, the change is between two open states (open→open),
+      or it unlocks the MO (closed→open) so subsequent row edits succeed.
+    - ``LAST`` — header lands after all row edits. Used when the header
+      transitions an open MO into a closed/locked state (open→closed) so
+      row edits land while the MO is still editable.
+
+    Closed/locking statuses come from ``_reopen.MO_CLOSED_STATUSES``
+    (``DONE`` + ``PARTIALLY_COMPLETED``) so the lock-state taxonomy stays
+    in one place across the modify and ``correct_manufacturing_order`` paths.
+    """
+
+    FIRST = "first"
+    LAST = "last"
+
+
+def _classify_status_transition(
+    existing_mo: ManufacturingOrder | None,
+    target_status_literal: ManufacturingOrderStatusLiteral | None,
+) -> _HeaderPhase:
+    """Decide whether the header action lands first or last in the plan.
+
+    Args:
+        existing_mo: The pre-fetched MO (``None`` if the fetch failed —
+            treated as "current state unknown", which falls through to FIRST).
+        target_status_literal: The target status from ``update_header.status``,
+            or ``None`` if the patch doesn't touch status.
+
+    Returns:
+        ``_HeaderPhase.LAST`` only when the transition is from an open
+        (editable) state to a closed (locking) state. All other shapes —
+        no status change, target unknown, current state unknown, unlocking
+        transition, open→open, closed→closed — return ``_HeaderPhase.FIRST``
+        (the historical behavior).
+    """
+    # Lazy import — ``MO_CLOSED_STATUSES`` lives in ``_reopen`` (which already
+    # imports from this module's ``ManufacturingOrderStatus``), so eagerly
+    # importing it at module top would create a circular pair if either side
+    # ever grows another shared import.
+    from katana_mcp.tools._reopen import MO_CLOSED_STATUSES
+
+    if target_status_literal is None:
+        # Header patch with no status field — locking state can't change.
+        return _HeaderPhase.FIRST
+
+    target_locks = target_status_literal in MO_CLOSED_STATUSES
+
+    if existing_mo is None:
+        # Pre-fetch failed; we can't tell if this is open→closed. Fall back
+        # to the historical "first" placement — the worst case is the
+        # caller sees the existing partial-failure shape (the bug #773
+        # describes), which is no regression from the pre-fix behavior.
+        return _HeaderPhase.FIRST
+
+    current_status_enum = unwrap_unset(existing_mo.status, None)
+    current_status = (
+        current_status_enum.value if current_status_enum is not None else None
+    )
+    current_locked = current_status in MO_CLOSED_STATUSES
+
+    # Only open→closed needs to land LAST. closed→open ("reopen") must land
+    # FIRST so row edits can take effect; open→open and closed→closed are
+    # both safe to land FIRST (no lock-state change).
+    if target_locks and not current_locked:
+        return _HeaderPhase.LAST
+    return _HeaderPhase.FIRST
+
+
+# ----------------------------------------------------------------------------
 # Implementation
 # ----------------------------------------------------------------------------
 
@@ -2765,7 +2846,15 @@ def _build_update_production_request(
 async def _modify_manufacturing_order_impl(
     request: ModifyManufacturingOrderRequest, context: Context
 ) -> ModificationResponse:
-    """Build the action plan from sub-payloads and either preview or execute."""
+    """Build the action plan from sub-payloads and either preview or execute.
+
+    Header actions are reordered relative to row/operation/production edits
+    based on the status transition (#773): an open→closed transition (e.g.
+    → ``DONE``) lands LAST so row edits run while the MO is still editable;
+    a closed→open transition (reopen) lands FIRST so subsequent edits aren't
+    blocked by the locked state. All other shapes land FIRST as before. See
+    :class:`_HeaderPhase` and :func:`_classify_status_transition`.
+    """
     services = get_services(context)
 
     if not has_any_subpayload(request):
@@ -2781,25 +2870,39 @@ async def _modify_manufacturing_order_impl(
 
     plan: list[ActionSpec] = []
 
+    # Build the header ActionSpec separately so we can choose where in the plan
+    # it lands based on the status transition. Katana locks an MO once it
+    # reaches a "closed" status (DONE / PARTIALLY_COMPLETED) — further row
+    # edits return 422. Landing the header first would close the MO before
+    # the row edits run, causing partial failure with potential data loss
+    # (#773). Conversely, reopening (closed → IN_PROGRESS) must happen first
+    # so the subsequent row edits can take effect. See ``_classify_status_transition``
+    # and ``_HeaderPhase``.
+    header_action: ActionSpec | None = None
+    header_phase: _HeaderPhase = _HeaderPhase.FIRST
     if request.update_header is not None:
         diff = compute_field_diff(
             existing_mo, request.update_header, unknown_prior=existing_mo is None
         )
-        plan.append(
-            ActionSpec(
-                operation=MOOperation.UPDATE_HEADER,
-                target_id=request.id,
-                diff=diff,
-                apply=make_patch_apply(
-                    api_update_manufacturing_order,
-                    services,
-                    request.id,
-                    _build_update_header_request(request.update_header, existing_mo),
-                    return_type=ManufacturingOrder,
-                ),
-                verify=make_response_verifier(diff),
-            )
+        header_action = ActionSpec(
+            operation=MOOperation.UPDATE_HEADER,
+            target_id=request.id,
+            diff=diff,
+            apply=make_patch_apply(
+                api_update_manufacturing_order,
+                services,
+                request.id,
+                _build_update_header_request(request.update_header, existing_mo),
+                return_type=ManufacturingOrder,
+            ),
+            verify=make_response_verifier(diff),
         )
+        header_phase = _classify_status_transition(
+            existing_mo, request.update_header.status
+        )
+
+    if header_action is not None and header_phase is _HeaderPhase.FIRST:
+        plan.append(header_action)
 
     # Recipe rows.
     plan.extend(
@@ -2911,6 +3014,15 @@ async def _modify_manufacturing_order_impl(
             lambda pid: make_delete_apply(api_delete_mo_production, services, pid),
         )
     )
+
+    # Locking-status transitions (e.g. → DONE) must land after all row edits.
+    # The header transition itself succeeds, but it closes/locks the MO — so
+    # any subsequent row/operation/production edits get rejected with "You
+    # can not modify manufacturing order with status done", leaving the
+    # operator with a partial apply (#773). Sequencing the locking transition
+    # last keeps the row edits landing while the MO is still editable.
+    if header_action is not None and header_phase is _HeaderPhase.LAST:
+        plan.append(header_action)
 
     return await run_modify_plan(
         request=request,
