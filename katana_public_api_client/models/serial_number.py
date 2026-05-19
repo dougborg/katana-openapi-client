@@ -18,13 +18,23 @@ T = TypeVar("T", bound="SerialNumber")
 
 @_attrs_define
 class SerialNumber:
-    """Individual serial number record for tracking specific units of serialized inventory items through transactions"""
+    """Individual serial number record for tracking specific units of
+    serialized inventory items through transactions.
+
+    **Transfer side-effects:** when a serial number is moved between
+    resources (e.g. from a ManufacturingOrder to a SalesOrderRow via
+    ``POST /serial_numbers``), the immediate response may report
+    ``transaction_id`` equal to the literal string ``undefined`` and
+    ``resource_id: null`` for the moved record. The subsequent
+    ``GET /serial_numbers`` resolves the correct ``resource_id`` —
+    re-fetch via GET to confirm the landing state.
+    """
 
     id: int | Unset = UNSET
-    transaction_id: str | Unset = UNSET
+    transaction_id: None | str | Unset = UNSET
     serial_number: str | Unset = UNSET
     resource_type: SerialNumberResourceType | Unset = UNSET
-    resource_id: int | Unset = UNSET
+    resource_id: int | None | Unset = UNSET
     transaction_date: datetime.datetime | None | Unset = UNSET
     quantity_change: int | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -32,7 +42,11 @@ class SerialNumber:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
-        transaction_id = self.transaction_id
+        transaction_id: None | str | Unset
+        if isinstance(self.transaction_id, Unset):
+            transaction_id = UNSET
+        else:
+            transaction_id = self.transaction_id
 
         serial_number = self.serial_number
 
@@ -40,7 +54,11 @@ class SerialNumber:
         if not isinstance(self.resource_type, Unset):
             resource_type = self.resource_type.value
 
-        resource_id = self.resource_id
+        resource_id: int | None | Unset
+        if isinstance(self.resource_id, Unset):
+            resource_id = UNSET
+        else:
+            resource_id = self.resource_id
 
         transaction_date: None | str | Unset
         if isinstance(self.transaction_date, Unset):
@@ -77,7 +95,14 @@ class SerialNumber:
         d = dict(src_dict)
         id = d.pop("id", UNSET)
 
-        transaction_id = d.pop("transaction_id", UNSET)
+        def _parse_transaction_id(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        transaction_id = _parse_transaction_id(d.pop("transaction_id", UNSET))
 
         serial_number = d.pop("serial_number", UNSET)
 
@@ -88,7 +113,14 @@ class SerialNumber:
         else:
             resource_type = SerialNumberResourceType(_resource_type)
 
-        resource_id = d.pop("resource_id", UNSET)
+        def _parse_resource_id(data: object) -> int | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(int | None | Unset, data)
+
+        resource_id = _parse_resource_id(d.pop("resource_id", UNSET))
 
         def _parse_transaction_date(data: object) -> datetime.datetime | None | Unset:
             if data is None:

@@ -7,9 +7,9 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import Response
 from ...models.create_serial_numbers_request import CreateSerialNumbersRequest
+from ...models.create_serial_numbers_response import CreateSerialNumbersResponse
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
-from ...models.serial_number_list_response import SerialNumberListResponse
 
 
 def _get_kwargs(
@@ -33,9 +33,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> DetailedErrorResponse | ErrorResponse | SerialNumberListResponse | None:
+) -> CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse | None:
     if response.status_code == 200:
-        response_200 = SerialNumberListResponse.from_dict(response.json())
+        response_200 = CreateSerialNumbersResponse.from_dict(response.json())
 
         return response_200
 
@@ -72,7 +72,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[DetailedErrorResponse | ErrorResponse | SerialNumberListResponse]:
+) -> Response[CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -85,10 +85,38 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateSerialNumbersRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | SerialNumberListResponse]:
+) -> Response[CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse]:
     """Create serial numbers
 
-     Creates new serial numbers for a resource.
+     Mints new or transfers existing serial numbers to a resource.
+
+    **Write semantics differ by ``resource_type``** (see
+    ``CreateSerialNumberResourceType``):
+
+    - **Mint** (``ManufacturingOrder``, ``PurchaseOrderRow``) — the
+      serial-number string doesn't need to pre-exist. The API creates a
+      new record and links it to the target resource.
+    - **Transfer** (``SalesOrderRow``, ``StockTransferRow``,
+      ``StockAdjustmentRow``) — the serial-number string MUST already
+      exist (typically attached to a ManufacturingOrder output). The
+      API moves the linkage from its current resource to the target.
+      If the string isn't anywhere yet, the entry lands in ``failed``
+      with ``reason: MISSING`` — the call still returns 200.
+
+    **Partial failure is the norm, not the exception.** The response
+    carries ``successful`` AND ``failed`` arrays; consumers must
+    handle both. A 200 status does NOT mean every input was applied —
+    check ``failed`` to learn which strings the API rejected.
+
+    **422 cases:** non-existent ``resource_id`` returns
+    ``422 UnprocessableEntityError`` with detail ``No entity found``
+    (not 404). Invalid ``resource_type`` (e.g. ``Production``)
+    returns 422 with an Ajv-style validation detail.
+
+    **Transfer response quirks:** on a successful transfer the moved
+    record's ``transaction_id`` may be the literal string
+    ``undefined`` and ``resource_id`` may be ``null`` — re-fetch via
+    ``GET /serial_numbers`` to confirm the landing state.
 
     Args:
         body (CreateSerialNumbersRequest): Request payload for creating serial numbers for a
@@ -100,7 +128,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[DetailedErrorResponse | ErrorResponse | SerialNumberListResponse]
+        Response[CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse]
     """
 
     kwargs = _get_kwargs(
@@ -118,10 +146,38 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: CreateSerialNumbersRequest,
-) -> DetailedErrorResponse | ErrorResponse | SerialNumberListResponse | None:
+) -> CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse | None:
     """Create serial numbers
 
-     Creates new serial numbers for a resource.
+     Mints new or transfers existing serial numbers to a resource.
+
+    **Write semantics differ by ``resource_type``** (see
+    ``CreateSerialNumberResourceType``):
+
+    - **Mint** (``ManufacturingOrder``, ``PurchaseOrderRow``) — the
+      serial-number string doesn't need to pre-exist. The API creates a
+      new record and links it to the target resource.
+    - **Transfer** (``SalesOrderRow``, ``StockTransferRow``,
+      ``StockAdjustmentRow``) — the serial-number string MUST already
+      exist (typically attached to a ManufacturingOrder output). The
+      API moves the linkage from its current resource to the target.
+      If the string isn't anywhere yet, the entry lands in ``failed``
+      with ``reason: MISSING`` — the call still returns 200.
+
+    **Partial failure is the norm, not the exception.** The response
+    carries ``successful`` AND ``failed`` arrays; consumers must
+    handle both. A 200 status does NOT mean every input was applied —
+    check ``failed`` to learn which strings the API rejected.
+
+    **422 cases:** non-existent ``resource_id`` returns
+    ``422 UnprocessableEntityError`` with detail ``No entity found``
+    (not 404). Invalid ``resource_type`` (e.g. ``Production``)
+    returns 422 with an Ajv-style validation detail.
+
+    **Transfer response quirks:** on a successful transfer the moved
+    record's ``transaction_id`` may be the literal string
+    ``undefined`` and ``resource_id`` may be ``null`` — re-fetch via
+    ``GET /serial_numbers`` to confirm the landing state.
 
     Args:
         body (CreateSerialNumbersRequest): Request payload for creating serial numbers for a
@@ -133,7 +189,7 @@ def sync(
 
 
     Returns:
-        DetailedErrorResponse | ErrorResponse | SerialNumberListResponse
+        CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse
     """
 
     return sync_detailed(
@@ -146,10 +202,38 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CreateSerialNumbersRequest,
-) -> Response[DetailedErrorResponse | ErrorResponse | SerialNumberListResponse]:
+) -> Response[CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse]:
     """Create serial numbers
 
-     Creates new serial numbers for a resource.
+     Mints new or transfers existing serial numbers to a resource.
+
+    **Write semantics differ by ``resource_type``** (see
+    ``CreateSerialNumberResourceType``):
+
+    - **Mint** (``ManufacturingOrder``, ``PurchaseOrderRow``) — the
+      serial-number string doesn't need to pre-exist. The API creates a
+      new record and links it to the target resource.
+    - **Transfer** (``SalesOrderRow``, ``StockTransferRow``,
+      ``StockAdjustmentRow``) — the serial-number string MUST already
+      exist (typically attached to a ManufacturingOrder output). The
+      API moves the linkage from its current resource to the target.
+      If the string isn't anywhere yet, the entry lands in ``failed``
+      with ``reason: MISSING`` — the call still returns 200.
+
+    **Partial failure is the norm, not the exception.** The response
+    carries ``successful`` AND ``failed`` arrays; consumers must
+    handle both. A 200 status does NOT mean every input was applied —
+    check ``failed`` to learn which strings the API rejected.
+
+    **422 cases:** non-existent ``resource_id`` returns
+    ``422 UnprocessableEntityError`` with detail ``No entity found``
+    (not 404). Invalid ``resource_type`` (e.g. ``Production``)
+    returns 422 with an Ajv-style validation detail.
+
+    **Transfer response quirks:** on a successful transfer the moved
+    record's ``transaction_id`` may be the literal string
+    ``undefined`` and ``resource_id`` may be ``null`` — re-fetch via
+    ``GET /serial_numbers`` to confirm the landing state.
 
     Args:
         body (CreateSerialNumbersRequest): Request payload for creating serial numbers for a
@@ -161,7 +245,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[DetailedErrorResponse | ErrorResponse | SerialNumberListResponse]
+        Response[CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse]
     """
 
     kwargs = _get_kwargs(
@@ -177,10 +261,38 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: CreateSerialNumbersRequest,
-) -> DetailedErrorResponse | ErrorResponse | SerialNumberListResponse | None:
+) -> CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse | None:
     """Create serial numbers
 
-     Creates new serial numbers for a resource.
+     Mints new or transfers existing serial numbers to a resource.
+
+    **Write semantics differ by ``resource_type``** (see
+    ``CreateSerialNumberResourceType``):
+
+    - **Mint** (``ManufacturingOrder``, ``PurchaseOrderRow``) — the
+      serial-number string doesn't need to pre-exist. The API creates a
+      new record and links it to the target resource.
+    - **Transfer** (``SalesOrderRow``, ``StockTransferRow``,
+      ``StockAdjustmentRow``) — the serial-number string MUST already
+      exist (typically attached to a ManufacturingOrder output). The
+      API moves the linkage from its current resource to the target.
+      If the string isn't anywhere yet, the entry lands in ``failed``
+      with ``reason: MISSING`` — the call still returns 200.
+
+    **Partial failure is the norm, not the exception.** The response
+    carries ``successful`` AND ``failed`` arrays; consumers must
+    handle both. A 200 status does NOT mean every input was applied —
+    check ``failed`` to learn which strings the API rejected.
+
+    **422 cases:** non-existent ``resource_id`` returns
+    ``422 UnprocessableEntityError`` with detail ``No entity found``
+    (not 404). Invalid ``resource_type`` (e.g. ``Production``)
+    returns 422 with an Ajv-style validation detail.
+
+    **Transfer response quirks:** on a successful transfer the moved
+    record's ``transaction_id`` may be the literal string
+    ``undefined`` and ``resource_id`` may be ``null`` — re-fetch via
+    ``GET /serial_numbers`` to confirm the landing state.
 
     Args:
         body (CreateSerialNumbersRequest): Request payload for creating serial numbers for a
@@ -192,7 +304,7 @@ async def asyncio(
 
 
     Returns:
-        DetailedErrorResponse | ErrorResponse | SerialNumberListResponse
+        CreateSerialNumbersResponse | DetailedErrorResponse | ErrorResponse
     """
 
     return (
