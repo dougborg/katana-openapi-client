@@ -96,7 +96,7 @@ class CheckInventoryRequest(BaseModel):
             "JSON array of SKUs (strings) or variant IDs (integers) — mix freely. "
             'E.g., ["WS74001", 12345] or ["WS74001", "WS74002"]. '
             "Response is always the JSON `{items: [...]}` envelope (single OR batch); "
-            "single-item calls additionally attach a Prefab stock card for UI hosts. "
+            "a Prefab stock card is attached for UI hosts on every shape. "
             "Batching N items in a single call beats N separate invocations. "
             "Output order matches input order."
         ),
@@ -524,9 +524,10 @@ async def check_inventory(
     Pass a list of SKUs (strings) or variant IDs (integers) — or mix both — to
     ``skus_or_variant_ids``. Returns the JSON ``{items: [...]}`` envelope for
     every request shape — single OR batch — so programmatic consumers see one
-    stable contract. Single-item requests additionally attach a rich Prefab
-    stock card via ``structured_content`` for MCP-Apps hosts. Batching N
-    checks in one call is faster than N separate invocations.
+    stable contract. ``structured_content`` carries a rich Prefab card on
+    every shape: the single-item card on a 1-item request, the batch summary
+    + per-variant by-location card on N-item requests. Batching N checks in
+    one call is faster than N separate invocations.
 
     By default returns totals summed across every location the variant has
     stock at, plus a per-location ``by_location`` breakdown so callers can
@@ -539,7 +540,10 @@ async def check_inventory(
     batch list to check multiple ingredients at once (e.g. all EXPECTED
     items in an MO recipe).
     """
-    from katana_mcp.tools.prefab_ui import build_inventory_check_ui
+    from katana_mcp.tools.prefab_ui import (
+        build_inventory_check_batch_ui,
+        build_inventory_check_ui,
+    )
 
     results = await _check_inventory_impl(request, context)
 
@@ -550,15 +554,13 @@ async def check_inventory(
     payload = {"items": [r.model_dump(mode="json") for r in results]}
     content = json.dumps(payload, indent=2, default=str)
 
-    # Single-variant request: attach the rich Prefab card on top of the
-    # envelope content. The batch Prefab UI (tracked in #562) will read
-    # the same ``items`` key when it ships.
+    # Batch path uses its own builder (#562).
     is_single = len(results) == 1 and len(request.skus_or_variant_ids) == 1
     if is_single:
         ui = build_inventory_check_ui(results[0].model_dump())
-        return ToolResult(content=content, structured_content=ui)
-
-    return ToolResult(content=content, structured_content=payload)
+    else:
+        ui = build_inventory_check_batch_ui([r.model_dump() for r in results])
+    return ToolResult(content=content, structured_content=ui)
 
 
 # ============================================================================
