@@ -874,17 +874,41 @@ async def _get_inventory_movements_impl(
         variant_id = _attr(variant, "id")
         product_name = _attr(variant, "display_name") or _attr(variant, "sku") or ""
 
-        # Query inventory movements filtered by variant_id
-        response = await get_all_inventory_movements.asyncio_detailed(
-            client=services.client,
+        # Query inventory movements filtered by variant_id.
+        #
+        # IMPORTANT: ``request.limit`` is the user-facing row cap, NOT just a
+        # per-page hint. The pagination transport treats the API ``limit``
+        # query param as page size and walks every page up to ``max_pages``
+        # unless ``extensions={"max_items": N}`` is set — without that
+        # extension, ``limit=5`` would still return the full movement history
+        # (issue #771). We bypass ``asyncio_detailed`` and call the generated
+        # ``_get_kwargs`` / ``_build_response`` helpers directly so we can
+        # pass ``extensions`` into the underlying httpx request and cap the
+        # merged result at ``request.limit`` rows.
+        #
+        # Decouple page-size from row-cap: the per-page ``limit`` query param
+        # must be clamped to Katana's documented max of 250 (see
+        # ``docs/katana-openapi.yaml`` lines 21-24 — "Max page size: 250
+        # records per request"). Otherwise ``request.limit=500`` would be sent
+        # as ``?limit=500`` and Katana rejects it. The transport paginates
+        # additional pages as needed up to ``max_items``.
+        per_page_limit = min(request.limit, 250)
+        kwargs = get_all_inventory_movements._get_kwargs(
             variant_ids=[variant_id],
-            limit=request.limit,
+            limit=per_page_limit,
             location_id=to_unset(request.location_id),
             resource_type=to_unset(request.resource_type),
             created_at_min=to_unset(parsed_dates["created_at_min"]),
             created_at_max=to_unset(parsed_dates["created_at_max"]),
             updated_at_min=to_unset(parsed_dates["updated_at_min"]),
             updated_at_max=to_unset(parsed_dates["updated_at_max"]),
+        )
+        kwargs["extensions"] = {"max_items": request.limit}
+        httpx_response = await services.client.get_async_httpx_client().request(
+            **kwargs
+        )
+        response = get_all_inventory_movements._build_response(
+            client=services.client, response=httpx_response
         )
         attrs_list = unwrap_data(response)
 
