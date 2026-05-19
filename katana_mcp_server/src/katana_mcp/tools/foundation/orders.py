@@ -18,6 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
+from katana_mcp.tools._modification import WireDatetime
 from katana_mcp.tools.tool_result_utils import (
     BLOCK_WARNING_PREFIX,
     UI_META,
@@ -35,7 +36,7 @@ from katana_public_api_client.models_pydantic._generated import (
     CachedProduct,
     CachedVariant,
 )
-from katana_public_api_client.utils import unwrap_as
+from katana_public_api_client.utils import unwrap, unwrap_as
 
 logger = get_logger(__name__)
 
@@ -95,6 +96,23 @@ class FulfillOrderRequest(BaseModel):
             "``actual_quantity``. Required when the MO's finished-good variant "
             "is serial-tracked. Manufacturing orders only — ignored for "
             "order_type='sales' (use ``rows`` for per-row sales-order serials)."
+        ),
+    )
+    completed_at: WireDatetime | None = Field(
+        default=None,
+        description=(
+            "Backdated completion timestamp for catching up on a backlog. "
+            "For manufacturing orders, sets ``done_date``; for sales orders, "
+            "sets the fulfillment's ``picked_date``. ISO 8601 "
+            "(e.g. '2026-05-01T20:30:00Z'); naive datetimes are interpreted "
+            "as UTC. When omitted, Katana stamps server-time. Manufacturing "
+            "branch only: requires a second PATCH after the DONE transition "
+            "(Katana validates ``done_date`` against current status); the "
+            "tool emits both calls and surfaces a warning if the second one "
+            "fails. The MO's first-serial "
+            "``SerialNumber.transaction_date`` is derived from "
+            "``done_date``, so the Traceability 'Production date' column "
+            "tracks this value."
         ),
     )
 
@@ -176,6 +194,11 @@ async def _fulfill_manufacturing_order(
     if is_serial_tracked and request.serial_numbers:
         inventory_updates.append(
             f"Finished-good serials to attach: {request.serial_numbers}"
+        )
+    if request.completed_at is not None:
+        inventory_updates.append(
+            f"done_date will be set to {request.completed_at.isoformat()} "
+            "(via second PATCH after status flip)"
         )
 
     warnings: list[str] = []
@@ -277,6 +300,35 @@ async def _fulfill_manufacturing_order(
     updated_mo = unwrap_as(update_response, ManufacturingOrder)
     new_status = updated_mo.status.value if updated_mo.status else "UNKNOWN"
 
+    # Second PATCH to backdate ``done_date``. Katana validates the field
+    # against the *current* status, so it can only land after the
+    # ``status=DONE`` PATCH above. Mirrors the two-call chase in
+    # ``_build_close_mo_actions`` (corrections.py). Best-effort: a 422 here
+    # leaves the MO already-DONE with server-time ``done_date``; we surface
+    # a non-BLOCK warning rather than rolling back inventory (which Katana
+    # can't reopen cleanly anyway).
+    next_actions = [
+        f"Manufacturing order {order_number} completed",
+        "Inventory has been updated",
+        "Check stock levels for finished goods",
+    ]
+    if request.completed_at is not None:
+        date_req = UpdateManufacturingOrderRequest(done_date=request.completed_at)
+        date_response = await api_update_manufacturing_order.asyncio_detailed(
+            id=request.order_id, client=services.client, body=date_req
+        )
+        if unwrap(date_response, raise_on_error=False) is None:
+            warnings.append(
+                f"completed_at was not applied to MO {order_number} "
+                f"(HTTP {date_response.status_code}); the order is DONE but "
+                "done_date is server-time. Patch done_date manually in the "
+                "Katana UI if the backdated value is required."
+            )
+        else:
+            next_actions.insert(
+                1, f"done_date backdated to {request.completed_at.isoformat()}"
+            )
+
     logger.info(f"Successfully marked manufacturing order {order_number} as DONE")
     return FulfillOrderResponse(
         order_id=request.order_id,
@@ -286,11 +338,7 @@ async def _fulfill_manufacturing_order(
         is_preview=False,
         inventory_updates=inventory_updates,
         warnings=warnings,
-        next_actions=[
-            f"Manufacturing order {order_number} completed",
-            "Inventory has been updated",
-            "Check stock levels for finished goods",
-        ],
+        next_actions=next_actions,
         message=f"Successfully marked manufacturing order {order_number} as DONE",
     )
 
@@ -693,6 +741,10 @@ async def _fulfill_sales_order(
         )
     if not inventory_updates:
         inventory_updates.append("(no rows on this sales order)")
+    if request.completed_at is not None:
+        inventory_updates.append(
+            f"picked_date will be set to {request.completed_at.isoformat()}"
+        )
 
     warnings: list[str] = []
     if current_status in ("DELIVERED", "PARTIALLY_DELIVERED"):
@@ -816,6 +868,7 @@ async def _fulfill_sales_order(
         sales_order_id=request.order_id,
         status=SalesOrderFulfillmentStatus.DELIVERED,
         sales_order_fulfillment_rows=fulfill_rows,
+        picked_date=to_unset(request.completed_at),
     )
     fulfill_response = await api_create_fulfillment.asyncio_detailed(
         client=services.client, body=fulfill_request
