@@ -4440,6 +4440,219 @@ def build_receipt_ui(
 # ============================================================================
 
 
+def _format_batch_transactions_summary(
+    transactions: list[dict[str, Any]] | None,
+) -> str:
+    """Collapse a ``batch_transactions`` list into a single display string.
+
+    Wire shape is ``[{batch_id: int, quantity: float}, ...]``. The summary
+    renders as ``"batch 42x30, batch 51x20"`` (ASCII ``x`` per the
+    RUF001 / RUF002 ambiguous-unicode rule; the multiplication sign
+    U+00D7 trips the linter). Empty / missing transactions return the
+    empty string — callers decide whether to render the empty cell or
+    skip the column.
+    """
+    if not transactions:
+        return ""
+    parts: list[str] = []
+    for bt in transactions:
+        if not isinstance(bt, dict):
+            continue
+        batch_id = bt.get("batch_id")
+        qty = bt.get("quantity")
+        if batch_id is None:
+            continue
+        qty_str = f"{qty:g}" if isinstance(qty, (int, float)) else str(qty or "")
+        parts.append(f"batch {batch_id}x{qty_str}" if qty_str else f"batch {batch_id}")
+    return ", ".join(parts)
+
+
+def _format_serial_numbers_summary(serials: list[Any] | None) -> str:
+    """Collapse a serial-number list into a single display string.
+
+    Mirrors :func:`_format_batch_transactions_summary` shape — empty input
+    returns the empty string. Non-string serials are coerced via ``str``
+    for defensiveness against odd inputs (the wire model is ``list[str]``).
+    """
+    if not serials:
+        return ""
+    return ", ".join(str(s) for s in serials if s is not None and str(s).strip())
+
+
+def _build_recipe_row_diff_view(
+    field: str,
+    *,
+    op_type: str,
+    before: Any,
+    after: Any,
+    label: str,
+) -> FieldChangeView | None:
+    """Project a per-row before/after pair onto a ``FieldChangeView``.
+
+    Maps the recipe-row ``op_type`` (``add`` / ``update`` / ``delete``)
+    onto :class:`FieldChangeView`'s ``kind`` discriminator so the diff
+    string formatter can share the rendering rules used by the modify-
+    card entity views:
+
+    - ``add`` → ``kind="added"`` with ``before=None``
+    - ``delete`` → ``kind="removed"`` with ``after=None``
+    - ``update`` → ``kind="changed"`` when ``before != after``,
+      ``kind="unchanged"`` when they match (the row was sent but the
+      field wasn't actually patched — surfaces as an empty-string cell)
+
+    Returns ``None`` when the before/after pair has nothing to render
+    (both unset and not an add/delete signal) so the caller can drop
+    the cell to an empty string rather than emit ``(unset) -> (unset)``.
+    """
+    op_norm = (op_type or "").lower()
+    if op_norm == "add":
+        if after is None and not (isinstance(after, (list, str)) and len(after) == 0):
+            return None
+        return FieldChangeView(
+            field=field, before=None, after=after, kind="added", label=label
+        )
+    if op_norm == "delete":
+        if before is None and not (
+            isinstance(before, (list, str)) and len(before) == 0
+        ):
+            return None
+        return FieldChangeView(
+            field=field, before=before, after=None, kind="removed", label=label
+        )
+    # ``update`` (and unknown op_types fall through here so the caller
+    # still gets a diff if both sides are populated).
+    if before is None and after is None:
+        return None
+    if _diff_values_equal(before, after):
+        return FieldChangeView(
+            field=field, before=before, after=after, kind="unchanged", label=label
+        )
+    return FieldChangeView(
+        field=field, before=before, after=after, kind="changed", label=label
+    )
+
+
+def _diff_values_equal(before: Any, after: Any) -> bool:
+    """Loose equality for diff-pair comparison.
+
+    Lists compare element-wise after coercing each side to its display
+    string (so ``[{batch_id: 1, quantity: 5}]`` == ``[{batch_id: 1,
+    quantity: 5}]`` even when one came from a Pydantic model_dump and
+    the other from a raw dict).
+    """
+    if before == after:
+        return True
+    if isinstance(before, list) and isinstance(after, list):
+        if len(before) != len(after):
+            return False
+        return all(b == a for b, a in zip(before, after, strict=True))
+    return False
+
+
+def _format_recipe_row_diff(
+    change: FieldChangeView | None,
+    *,
+    formatter: Any = None,
+) -> str:
+    """Render a per-row diff projection as a single DataTable cell string.
+
+    Unlike :func:`_render_field_diff_line` (which emits a ``Text``
+    component into a Column layout), this returns a flat string suitable
+    for embedding in a DataTable cell. Output shapes:
+
+    - ``change is None`` → ``""`` (no signal, empty cell).
+    - ``kind == "added"`` → ``"+ after"``.
+    - ``kind == "removed"`` → ``"- before"``.
+    - ``kind == "unchanged"`` → ``"after"`` (the field rode along on the
+      patch but didn't change — render the current value, not a no-op
+      diff).
+    - ``kind == "changed"`` → ``"before -> after"`` (ASCII arrow, since
+      this string lands in a DataTable cell rather than a ``Text``
+      component, and the cell text is sometimes copy-pasted into ops
+      scripts where the unicode arrow is less ergonomic).
+
+    ``formatter`` overrides :func:`_format_diff_value` for value-side
+    rendering — used to render ``batch_transactions`` and
+    ``serial_numbers`` via their list formatters instead of the
+    generic ``repr`` fallback.
+    """
+    if change is None:
+        return ""
+    fmt = formatter if formatter is not None else _format_diff_value
+    if change.kind == "added":
+        return f"+ {fmt(change.after)}"
+    if change.kind == "removed":
+        return f"- {fmt(change.before)}"
+    if change.kind == "unchanged":
+        return fmt(change.after) if change.after is not None else fmt(change.before)
+    # ``changed``. ASCII arrow keeps the cell copy-paste friendly and
+    # sidesteps RUF001 entirely for this string-valued cell path.
+    return f"{fmt(change.before)} -> {fmt(change.after)}"
+
+
+def _build_batch_recipe_row(op: dict[str, Any], *, group_label: str) -> dict[str, Any]:
+    """Flatten a result-op dict into the DataTable row shape.
+
+    Splits out the per-row qty / batch_transactions / serial_numbers
+    diffs via :class:`FieldChangeView` so the cell strings reuse the
+    same projection vocabulary the modify-card entity views consume.
+    """
+    op_type = op.get("op_type") or ""
+    display = (
+        op.get("display_name")
+        or op.get("sku")
+        or (f"variant {op['variant_id']}" if op.get("variant_id") else "")
+    )
+
+    qty_after = op.get("planned_quantity_per_unit")
+    qty_before = op.get("before_planned_quantity_per_unit")
+    qty_change = _build_recipe_row_diff_view(
+        "planned_quantity_per_unit",
+        op_type=op_type,
+        before=qty_before,
+        after=qty_after,
+        label="Qty",
+    )
+
+    batch_after = op.get("batch_transactions")
+    batch_before = op.get("before_batch_transactions")
+    batch_change = _build_recipe_row_diff_view(
+        "batch_transactions",
+        op_type=op_type,
+        before=batch_before,
+        after=batch_after,
+        label="Batch",
+    )
+
+    serial_after = op.get("serial_numbers")
+    serial_before = op.get("before_serial_numbers")
+    serial_change = _build_recipe_row_diff_view(
+        "serial_numbers",
+        op_type=op_type,
+        before=serial_before,
+        after=serial_after,
+        label="Serials",
+    )
+
+    return {
+        "group": group_label,
+        "mo_id": op.get("manufacturing_order_id"),
+        "action": op_type.upper(),
+        "row_id": op.get("recipe_row_id") or "(new)",
+        "sku": op.get("sku") or "",
+        "item": display,
+        "qty": _format_recipe_row_diff(qty_change),
+        "batch": _format_recipe_row_diff(
+            batch_change, formatter=_format_batch_transactions_summary
+        ),
+        "serials": _format_recipe_row_diff(
+            serial_change, formatter=_format_serial_numbers_summary
+        ),
+        "status": (op.get("status") or "pending").upper(),
+        "error": op.get("error") or "",
+    }
+
+
 def build_batch_recipe_update_ui(
     response: dict[str, Any],
     *,
@@ -4450,6 +4663,29 @@ def build_batch_recipe_update_ui(
 
     Shows one row per planned sub-op grouped by replacement group_label.
     Preview mode shows all ops as PENDING; executed mode shows SUCCESS/FAILED/SKIPPED.
+
+    Per-row diff columns surface what each sub-op changes about the
+    underlying recipe row:
+
+    - ``Qty`` — ``planned_quantity_per_unit`` before vs after. ``add``
+      ops show ``+ N``; ``delete`` ops show ``- N`` (when the upstream
+      enricher resolved the prior value); ``update`` ops show
+      ``before -> after``.
+    - ``Batch`` — ``batch_transactions`` allocations, post-#518. Same
+      diff shape as Qty, formatted as ``batch <id>x<qty>, ...``.
+    - ``Serials`` — ``serial_numbers``, formatted as comma-joined.
+
+    The diff overlay uses :class:`FieldChangeView` internally so the
+    projection logic shares vocabulary with the modify-card entity
+    views (PR #755). DataTable cells render flat strings rather than
+    components — see :func:`_format_recipe_row_diff` for the
+    ``+`` / ``-`` / ``before -> after`` shapes.
+
+    Back-compat: per-row diff inputs (``before_planned_quantity_per_unit``,
+    ``before_batch_transactions``, ``before_serial_numbers``) are
+    optional. Result ops without a ``before`` snapshot still render —
+    the diff cells just show ``+ after`` (for add) or empty (for
+    delete with no captured prior).
 
     On the preview branch, pass ``confirm_request`` (the original Pydantic
     input) and ``confirm_tool`` (the matching tool name) to wire the
@@ -4473,28 +4709,21 @@ def build_batch_recipe_update_ui(
     # ``parent / value1 / value2`` built upstream via
     # ``build_variant_display_name``), then SKU, then a ``variant {id}``
     # fallback so the row always renders something meaningful even on
-    # cold-cache calls where neither is resolved.
+    # cold-cache calls where neither is resolved. Per-row diff columns
+    # (qty / batch / serials) are projected via ``FieldChangeView`` —
+    # see :func:`_build_batch_recipe_row`.
     flat_rows: list[dict[str, Any]] = []
     for label, ops in groups.items():
         for op in ops:
-            display = (
-                op.get("display_name")
-                or op.get("sku")
-                or (f"variant {op['variant_id']}" if op.get("variant_id") else "")
-            )
-            flat_rows.append(
-                {
-                    "group": label,
-                    "mo_id": op.get("manufacturing_order_id"),
-                    "action": (op.get("op_type") or "").upper(),
-                    "row_id": op.get("recipe_row_id") or "(new)",
-                    "sku": op.get("sku") or "",
-                    "item": display,
-                    "qty": op.get("planned_quantity_per_unit") or "",
-                    "status": (op.get("status") or "pending").upper(),
-                    "error": op.get("error") or "",
-                }
-            )
+            flat_rows.append(_build_batch_recipe_row(op, group_label=label))
+
+    # Decide whether to render the optional ``Batch`` / ``Serials`` columns.
+    # Most batch recipe payloads don't touch batch tracking or serial
+    # tracking; padding every card with two empty columns is a waste of
+    # horizontal real estate. Render the column only when at least one
+    # row carries a non-empty cell.
+    has_batch_signal = any(r["batch"] for r in flat_rows)
+    has_serial_signal = any(r["serials"] for r in flat_rows)
 
     total = response.get("total_ops", 0)
     success = response.get("success_count", 0)
@@ -4525,6 +4754,26 @@ def build_batch_recipe_update_ui(
         f"the batch recipe update ({total} planned operation(s))"
     )
 
+    columns = [
+        DataTableColumn(key="group", header="Group", sortable=True),
+        DataTableColumn(key="mo_id", header="MO", sortable=True),
+        DataTableColumn(key="action", header="Action"),
+        DataTableColumn(key="row_id", header="Row ID"),
+        DataTableColumn(key="item", header="Item"),
+        DataTableColumn(key="sku", header="SKU"),
+        DataTableColumn(key="qty", header="Qty"),
+    ]
+    if has_batch_signal:
+        columns.append(DataTableColumn(key="batch", header="Batch"))
+    if has_serial_signal:
+        columns.append(DataTableColumn(key="serials", header="Serials"))
+    columns.extend(
+        [
+            DataTableColumn(key="status", header="Status", sortable=True),
+            DataTableColumn(key="error", header="Error"),
+        ]
+    )
+
     with (
         PrefabApp(
             state=state,
@@ -4548,18 +4797,11 @@ def build_batch_recipe_update_ui(
         # ``Item`` shows the canonical Katana-UI display name (parent / value1
         # / value2) when the upstream caller resolved a variant; ``SKU`` keeps
         # the raw SKU as a secondary identity column for ops + scripts.
+        # The ``Qty`` / ``Batch`` / ``Serials`` columns carry the per-row
+        # diff overlay (old -> new) so the agent can verify each sub-op's
+        # effect before clicking Execute.
         DataTable(
-            columns=[
-                DataTableColumn(key="group", header="Group", sortable=True),
-                DataTableColumn(key="mo_id", header="MO", sortable=True),
-                DataTableColumn(key="action", header="Action"),
-                DataTableColumn(key="row_id", header="Row ID"),
-                DataTableColumn(key="item", header="Item"),
-                DataTableColumn(key="sku", header="SKU"),
-                DataTableColumn(key="qty", header="Qty", align="right"),
-                DataTableColumn(key="status", header="Status", sortable=True),
-                DataTableColumn(key="error", header="Error"),
-            ],
+            columns=columns,
             rows="{{ rows }}",
             search=True,
             paginated=True,

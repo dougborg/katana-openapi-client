@@ -3577,6 +3577,314 @@ class TestBuildBatchRecipeUpdateUI:
         # Neither display_name nor sku — falls through to ``variant {id}``.
         assert state_rows[1]["item"] == "variant 301"
 
+    def test_per_row_qty_diff_overlay(self):
+        """The per-row ``Qty`` cell carries an old → new diff via
+        :class:`FieldChangeView`. Maps the three op_types to the three
+        diff shapes the renderer cares about:
+
+        - ``add`` → ``"+ N"``
+        - ``delete`` → ``"- N"`` (when the upstream enricher captured the
+          prior qty via ``before_planned_quantity_per_unit``)
+        - ``update`` → ``"before -> after"`` (ASCII arrow — DataTable
+          cells are flat strings).
+        """
+        response = {
+            "is_preview": True,
+            "total_ops": 3,
+            "success_count": 0,
+            "failed_count": 0,
+            "skipped_count": 0,
+            "results": [
+                {
+                    "op_type": "add",
+                    "manufacturing_order_id": 9999,
+                    "variant_id": 200,
+                    "sku": "NEW-PART",
+                    "planned_quantity_per_unit": 2.0,
+                    "status": "pending",
+                    "group_label": "g1",
+                },
+                {
+                    "op_type": "delete",
+                    "manufacturing_order_id": 9999,
+                    "recipe_row_id": 5001,
+                    "variant_id": 100,
+                    "sku": "OLD-PART",
+                    "before_planned_quantity_per_unit": 3.0,
+                    "status": "pending",
+                    "group_label": "g1",
+                },
+                {
+                    "op_type": "update",
+                    "manufacturing_order_id": 9999,
+                    "recipe_row_id": 5002,
+                    "variant_id": 101,
+                    "sku": "RESIZE-PART",
+                    "before_planned_quantity_per_unit": 1.0,
+                    "planned_quantity_per_unit": 4.0,
+                    "status": "pending",
+                    "group_label": "g1",
+                },
+            ],
+            "warnings": [],
+            "message": "preview",
+        }
+        app = build_batch_recipe_update_ui(response)
+        _assert_valid_prefab(app)
+        rows = app.to_json()["state"]["rows"]
+        assert rows[0]["qty"] == "+ 2.0"
+        assert rows[1]["qty"] == "- 3.0"
+        assert rows[2]["qty"] == "1.0 -> 4.0"
+
+    def test_per_row_batch_transactions_diff_overlay(self):
+        """Post-#518, ``MORecipeRowAdd`` / ``Update`` carry
+        ``batch_transactions``. The renderer surfaces these inline with
+        the same diff shape as Qty, via
+        :func:`_format_batch_transactions_summary` —
+        ``batch <id>xN, batch <id>xM`` per allocation. The ``Batch``
+        column only renders when at least one row carries a non-empty
+        cell.
+        """
+        response = {
+            "is_preview": True,
+            "total_ops": 2,
+            "success_count": 0,
+            "failed_count": 0,
+            "skipped_count": 0,
+            "results": [
+                {
+                    "op_type": "add",
+                    "manufacturing_order_id": 9999,
+                    "variant_id": 200,
+                    "sku": "BATCH-TRACKED",
+                    "planned_quantity_per_unit": 50.0,
+                    "batch_transactions": [
+                        {"batch_id": 42, "quantity": 30.0},
+                        {"batch_id": 51, "quantity": 20.0},
+                    ],
+                    "status": "pending",
+                    "group_label": "g1",
+                },
+                {
+                    "op_type": "update",
+                    "manufacturing_order_id": 9999,
+                    "recipe_row_id": 5001,
+                    "variant_id": 201,
+                    "sku": "RESIZE-BATCH",
+                    "before_batch_transactions": [
+                        {"batch_id": 42, "quantity": 10.0},
+                    ],
+                    "batch_transactions": [
+                        {"batch_id": 42, "quantity": 15.0},
+                    ],
+                    "status": "pending",
+                    "group_label": "g1",
+                },
+            ],
+            "warnings": [],
+            "message": "preview",
+        }
+        app = build_batch_recipe_update_ui(response)
+        _assert_valid_prefab(app)
+        envelope = app.to_json()
+        rows = envelope["state"]["rows"]
+        assert rows[0]["batch"] == "+ batch 42x30, batch 51x20"
+        assert rows[1]["batch"] == "batch 42x10 -> batch 42x15"
+
+        # The Batch column must be present in the rendered columns because
+        # at least one row has a non-empty cell.
+        columns = _walk_view_tree(envelope["view"])
+        batch_col_keys = {
+            c.get("key")
+            for tab in columns
+            if tab.get("type") == "DataTable"
+            for c in (tab.get("columns") or [])
+        }
+        assert "batch" in batch_col_keys
+
+    def test_per_row_serial_numbers_diff_overlay(self):
+        """Serial-tracked variants surface their serial list as a
+        comma-joined cell. ``add`` ops render ``"+ sn1, sn2"``;
+        ``update`` ops render ``"before -> after"``.
+        """
+        response = {
+            "is_preview": True,
+            "total_ops": 1,
+            "success_count": 0,
+            "failed_count": 0,
+            "skipped_count": 0,
+            "results": [
+                {
+                    "op_type": "add",
+                    "manufacturing_order_id": 9999,
+                    "variant_id": 200,
+                    "sku": "SERIAL-TRACKED",
+                    "planned_quantity_per_unit": 2.0,
+                    "serial_numbers": ["SN-001", "SN-002"],
+                    "status": "pending",
+                    "group_label": "g1",
+                },
+            ],
+            "warnings": [],
+            "message": "preview",
+        }
+        app = build_batch_recipe_update_ui(response)
+        _assert_valid_prefab(app)
+        envelope = app.to_json()
+        rows = envelope["state"]["rows"]
+        assert rows[0]["serials"] == "+ SN-001, SN-002"
+
+        # Serials column must be rendered for this card (at least one
+        # non-empty cell).
+        column_keys = {
+            c.get("key")
+            for tab in _walk_view_tree(envelope["view"])
+            if tab.get("type") == "DataTable"
+            for c in (tab.get("columns") or [])
+        }
+        assert "serials" in column_keys
+
+    def test_optional_columns_dropped_when_no_signal(self):
+        """The ``Batch`` and ``Serials`` columns are dropped when no row
+        carries a non-empty cell. Keeps the all-qty (non-batch, non-serial)
+        case from padding two empty columns across every row.
+        """
+        response = {
+            "is_preview": True,
+            "total_ops": 1,
+            "success_count": 0,
+            "failed_count": 0,
+            "skipped_count": 0,
+            "results": [
+                {
+                    "op_type": "add",
+                    "manufacturing_order_id": 9999,
+                    "variant_id": 200,
+                    "sku": "PLAIN-PART",
+                    "planned_quantity_per_unit": 1.0,
+                    "status": "pending",
+                    "group_label": "g1",
+                },
+            ],
+            "warnings": [],
+            "message": "preview",
+        }
+        app = build_batch_recipe_update_ui(response)
+        envelope = app.to_json()
+        column_keys = {
+            c.get("key")
+            for tab in _walk_view_tree(envelope["view"])
+            if tab.get("type") == "DataTable"
+            for c in (tab.get("columns") or [])
+        }
+        # Core columns always render…
+        assert "qty" in column_keys
+        # …but the optional Batch / Serials columns drop out when empty.
+        assert "batch" not in column_keys
+        assert "serials" not in column_keys
+
+    def test_update_with_no_prior_renders_just_after_value(self):
+        """Back-compat: ops emitted before the ``before_*`` enrichment
+        landed (no ``before_planned_quantity_per_unit`` on the wire) still
+        render — the diff cell shows just the after value for the
+        ``update`` shape (kind="changed" with before=None falls through
+        the ``_format_recipe_row_diff`` path that uses
+        ``_format_diff_value(None) == "(unset)"``).
+        """
+        response = {
+            "is_preview": True,
+            "total_ops": 1,
+            "success_count": 0,
+            "failed_count": 0,
+            "skipped_count": 0,
+            "results": [
+                {
+                    "op_type": "update",
+                    "manufacturing_order_id": 9999,
+                    "recipe_row_id": 5002,
+                    "variant_id": 101,
+                    "sku": "NO-PRIOR",
+                    "planned_quantity_per_unit": 4.0,
+                    "status": "pending",
+                    "group_label": "g1",
+                },
+            ],
+            "warnings": [],
+            "message": "preview",
+        }
+        app = build_batch_recipe_update_ui(response)
+        _assert_valid_prefab(app)
+        rows = app.to_json()["state"]["rows"]
+        # No before_* on the wire — the diff cell still renders the after
+        # value, just without a meaningful prior side.
+        assert "4.0" in rows[0]["qty"]
+
+    def test_update_with_unchanged_value_renders_current(self):
+        """When a row was sent in ``update_recipe_rows`` but a field's
+        before == after (a no-op patch — e.g. the agent included a field
+        for clarity but didn't actually change it), the diff cell shows
+        the current value rather than ``"3.0 -> 3.0"`` (visual noise).
+        """
+        response = {
+            "is_preview": True,
+            "total_ops": 1,
+            "success_count": 0,
+            "failed_count": 0,
+            "skipped_count": 0,
+            "results": [
+                {
+                    "op_type": "update",
+                    "manufacturing_order_id": 9999,
+                    "recipe_row_id": 5002,
+                    "variant_id": 101,
+                    "sku": "NOOP",
+                    "before_planned_quantity_per_unit": 3.0,
+                    "planned_quantity_per_unit": 3.0,
+                    "status": "pending",
+                    "group_label": "g1",
+                },
+            ],
+            "warnings": [],
+            "message": "preview",
+        }
+        app = build_batch_recipe_update_ui(response)
+        rows = app.to_json()["state"]["rows"]
+        assert rows[0]["qty"] == "3.0"
+
+    def test_qty_diff_survives_failed_status(self):
+        """A failed result still renders the planned diff so the operator
+        can see what was attempted. ``status="failed"`` only controls the
+        Status column + error column — not the diff overlay.
+        """
+        response = {
+            "is_preview": False,
+            "total_ops": 1,
+            "success_count": 0,
+            "failed_count": 1,
+            "skipped_count": 0,
+            "results": [
+                {
+                    "op_type": "update",
+                    "manufacturing_order_id": 9999,
+                    "recipe_row_id": 5002,
+                    "variant_id": 101,
+                    "sku": "FAILED-RESIZE",
+                    "before_planned_quantity_per_unit": 1.0,
+                    "planned_quantity_per_unit": 4.0,
+                    "status": "failed",
+                    "error": "422 validation error",
+                    "group_label": "g1",
+                },
+            ],
+            "warnings": [],
+            "message": "1 failed",
+        }
+        app = build_batch_recipe_update_ui(response)
+        rows = app.to_json()["state"]["rows"]
+        assert rows[0]["qty"] == "1.0 -> 4.0"
+        assert rows[0]["status"] == "FAILED"
+        assert rows[0]["error"] == "422 validation error"
+
 
 def _confirm_button_on_click(envelope: dict, label: str) -> list[dict]:
     """Return the on_click action list for the Confirm button matching ``label``.
