@@ -4097,6 +4097,52 @@ def build_item_mutation_ui(
 # ============================================================================
 
 
+def _build_receipt_row_display(item: dict[str, Any]) -> dict[str, Any]:
+    """Flatten one ``ReceivedItemInfo`` dict into DataTable-ready strings.
+
+    The card-side template only renders pre-formatted strings — the
+    builder owns money/date/qty formatting so a future style change is a
+    one-line edit here instead of a hunt across the mustache template.
+
+    Three display rules pinned by tests:
+
+    - ``quantity`` renders as ``"{recv:g} of {ordered:g}"`` whenever both
+      sides are present and differ (partial-receive case); otherwise just
+      the receive quantity. Trailing-zero trimming via ``:g`` keeps
+      ``5.0 → '5'`` while preserving ``2.5``.
+    - ``received_date`` is trimmed to ``YYYY-MM-DD`` via
+      :func:`_iso_date_only` — the time component is noise on a receipt.
+    - ``row_total`` always renders through :func:`_format_money` (uses
+      ``USD`` fallback) so the column is never blank when a price is
+      present.
+    """
+
+    def _qty_display() -> str:
+        recv = item.get("quantity")
+        ordered = item.get("quantity_ordered")
+        if recv is None:
+            return ""
+        recv_str = f"{recv:g}"
+        if ordered is not None and float(ordered) != float(recv):
+            return f"{recv_str} of {float(ordered):g}"
+        return recv_str
+
+    received_date = item.get("received_date")
+    row_total = item.get("row_total")
+    return {
+        "display_name": item.get("display_name") or "",
+        "sku": item.get("sku") or "",
+        "quantity": _qty_display(),
+        "received_date": _iso_date_only(received_date) if received_date else "—",
+        "batch_summary": item.get("batch_summary") or "",
+        "row_total": (
+            _format_money(row_total, item.get("currency"))
+            if row_total is not None
+            else ""
+        ),
+    }
+
+
 def build_receipt_ui(
     response: dict[str, Any],
     *,
@@ -4115,8 +4161,15 @@ def build_receipt_ui(
     is_preview = response.get("is_preview", True)
     apply_action = _build_apply_action(confirm_tool, confirm_request)
     cancel_action = _build_cancel_action(f"the receipt for {order_number}")
+
+    # Per-row Tier 3 DataTable rows are pre-flattened into the state so
+    # the iframe mustache template renders pure strings — see #556.
+    received_items = response.get("received_items") or []
+    received_items_display = [_build_receipt_row_display(it) for it in received_items]
+
     state: dict[str, Any] = {
         "response": response,
+        "received_items": received_items_display,
         "pending": False,
         "cancelled": False,
     }
@@ -4152,6 +4205,32 @@ def build_receipt_ui(
                     value=_format_money(
                         response["total_cost"], response.get("currency")
                     ),
+                )
+
+            # Tier 3 — per-row breakdown so the agent can verify *what*
+            # is being received without parsing the raw items=[...]
+            # tool-call blob below the card. Only render when the
+            # response carries enrichment (back-compat with older
+            # payloads that pre-dated #556).
+            if received_items_display:
+                Separator()
+                Muted(
+                    content="Items being received:" if is_preview else "Items received:"
+                )
+                DataTable(
+                    columns=[
+                        DataTableColumn(
+                            key="display_name", header="Item", sortable=True
+                        ),
+                        DataTableColumn(key="sku", header="SKU", sortable=True),
+                        DataTableColumn(key="quantity", header="Qty", align="right"),
+                        DataTableColumn(key="received_date", header="Received"),
+                        DataTableColumn(key="batch_summary", header="Batch"),
+                        DataTableColumn(
+                            key="row_total", header="Line Total", align="right"
+                        ),
+                    ],
+                    rows="{{ received_items }}",
                 )
 
             block_warnings, regular_warnings = _split_warnings(response.get("warnings"))
