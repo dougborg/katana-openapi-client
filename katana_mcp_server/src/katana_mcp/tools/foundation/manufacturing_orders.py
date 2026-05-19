@@ -986,9 +986,32 @@ def _serial_number_info_from_attrs(sn: Any) -> SerialNumberInfo:
 
 
 async def _fetch_mo_recipe_row_attrs(
+    services: Any, manufacturing_order_id: int, *, include_deleted: bool
+) -> list[Any]:
+    """Underlying recipe-row fetch — callers pick tombstone visibility.
+
+    Don't call this directly from new code: use one of the two named
+    wrappers below so the call-site documents intent at the read /
+    cache-merge boundary (issue #777).
+    """
+    from katana_public_api_client.api.manufacturing_order_recipe import (
+        get_all_manufacturing_order_recipe_rows,
+    )
+    from katana_public_api_client.utils import unwrap_data
+
+    response = await get_all_manufacturing_order_recipe_rows.asyncio_detailed(
+        client=services.client,
+        manufacturing_order_id=manufacturing_order_id,
+        limit=250,
+        include_deleted=include_deleted,
+    )
+    return unwrap_data(response, default=[])
+
+
+async def _fetch_mo_recipe_row_attrs_for_cache_merge(
     services: Any, manufacturing_order_id: int
 ) -> list[Any]:
-    """Return raw attrs ``ManufacturingOrderRecipeRow`` list for an MO.
+    """Return raw attrs ``ManufacturingOrderRecipeRow`` list including tombstones.
 
     Thin wrapper used by ``modify_manufacturing_order``'s post-apply
     cache merge: recipe rows live at the separate
@@ -1004,26 +1027,57 @@ async def _fetch_mo_recipe_row_attrs(
     action would land at Katana but the cached row would persist as a
     ghost until the next watermark sync — same trap the typed-cache
     spec already documents on its row-watermark setup.
-    """
-    from katana_public_api_client.api.manufacturing_order_recipe import (
-        get_all_manufacturing_order_recipe_rows,
-    )
-    from katana_public_api_client.utils import unwrap_data
 
-    response = await get_all_manufacturing_order_recipe_rows.asyncio_detailed(
-        client=services.client,
-        manufacturing_order_id=manufacturing_order_id,
-        limit=250,
-        include_deleted=True,
+    **Do not call this from agent-facing reads** — tombstones leaking
+    through a read tool surface naive callers' delete plans with
+    already-gone IDs, producing a 404 storm at apply time (issue #777).
+    Use :func:`_fetch_mo_recipe_row_attrs_live_only` for read tools.
+    """
+    return await _fetch_mo_recipe_row_attrs(
+        services, manufacturing_order_id, include_deleted=True
     )
-    return unwrap_data(response, default=[])
+
+
+async def _fetch_mo_recipe_row_attrs_live_only(
+    services: Any, manufacturing_order_id: int
+) -> list[Any]:
+    """Return raw attrs ``ManufacturingOrderRecipeRow`` list, live rows only.
+
+    Sibling of :func:`_fetch_mo_recipe_row_attrs_for_cache_merge` for
+    agent-facing reads (``get_manufacturing_order_recipe`` and the
+    recipe rows inlined in ``get_manufacturing_order``'s response).
+    Agents only want live rows: a row with ``deleted_at`` set is not a
+    valid delete target — surfacing it as one leads to apply-time 404s
+    when the agent batches it into ``delete_recipe_row_ids`` (issue
+    #777).
+
+    Passes ``include_deleted=False`` explicitly (the API default, made
+    explicit here for clarity). The caller layer also applies a
+    client-side ``deleted_at`` filter as a defense-in-depth in case
+    Katana's server-side filter ever regresses.
+    """
+    return await _fetch_mo_recipe_row_attrs(
+        services, manufacturing_order_id, include_deleted=False
+    )
 
 
 async def _fetch_mo_recipe_rows(
     services: Any, manufacturing_order_id: int
 ) -> list[RecipeRowInfo]:
-    """Fetch every recipe row for the MO and enrich with cached SKU."""
-    raw_rows = await _fetch_mo_recipe_row_attrs(services, manufacturing_order_id)
+    """Fetch every recipe row for the MO and enrich with cached SKU.
+
+    Tombstones (rows with ``deleted_at`` populated) are filtered both
+    server-side (``include_deleted=False``) and client-side (defense-in-
+    depth) — agents reading the recipe should never see soft-deleted
+    rows as legitimate delete targets (issue #777).
+    """
+    raw_rows = await _fetch_mo_recipe_row_attrs_live_only(
+        services, manufacturing_order_id
+    )
+    # Defense-in-depth: drop any row Katana didn't filter server-side.
+    # Historically ``include_deleted=false`` has been unreliable on some
+    # list endpoints — see the note on the cache-merge fetcher above.
+    raw_rows = [row for row in raw_rows if unwrap_unset(row.deleted_at, None) is None]
 
     # One batched IN-clause SQLite read instead of one read per recipe row —
     # a multi-component MO has ~30 rows, all looked up by variant_id.
@@ -3050,7 +3104,9 @@ async def _modify_manufacturing_order_impl(
             refetch_related=(
                 (
                     "manufacturing_order_recipe_row",
-                    lambda eid: _fetch_mo_recipe_row_attrs(services, eid),
+                    lambda eid: _fetch_mo_recipe_row_attrs_for_cache_merge(
+                        services, eid
+                    ),
                 ),
             ),
         ),

@@ -10,8 +10,8 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import cast
-from unittest.mock import MagicMock
+from typing import Any, cast
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from katana_mcp.tools._modification import (
@@ -523,6 +523,165 @@ async def test_execute_plan_verification_exception_marks_unverified():
     assert results[0].succeeded is True
     assert results[0].verified is False
     assert results[0].actual_after is None
+
+
+# ============================================================================
+# make_delete_apply — idempotent 404 semantics (#777)
+# ============================================================================
+
+
+def _build_delete_endpoint_mock(*, status_code: int, name: str = "delete_endpoint"):
+    """Build a fake DELETE endpoint module exposing ``asyncio_detailed``.
+
+    Mirrors the shape :func:`make_delete_apply` expects: an object with
+    a ``__name__`` and an ``asyncio_detailed`` async callable returning a
+    ``Response``-like object whose ``status_code`` matches the scenario.
+    """
+    from http import HTTPStatus
+
+    from katana_public_api_client.client_types import Response
+
+    response: Response[Any] = Response(
+        status_code=HTTPStatus(status_code),
+        content=b"",
+        headers={},
+        parsed=None,
+    )
+    endpoint = MagicMock()
+    endpoint.__name__ = name
+    endpoint.asyncio_detailed = AsyncMock(return_value=response)
+    return endpoint, response
+
+
+def _build_services_mock():
+    services = MagicMock()
+    services.client = MagicMock()
+    return services
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "endpoint_name",
+    [
+        "delete_purchase_order_row",
+        "delete_sales_order_row",
+        "delete_manufacturing_order_recipe_row",
+    ],
+)
+async def test_make_delete_apply_treats_404_as_success(endpoint_name: str):
+    """Regression for #777: 404 on DELETE means the row is already gone,
+    which is the desired end state. ``apply()`` must return None
+    (not raise), so a fail-fast plan can keep marching.
+
+    Parametrized across endpoint names to confirm the conflation lives
+    at the dispatch layer and applies uniformly across every entity
+    that routes through :func:`make_delete_apply`.
+    """
+    # Arrange
+    from katana_mcp.tools._modification_dispatch import make_delete_apply
+
+    services = _build_services_mock()
+    endpoint, _response = _build_delete_endpoint_mock(
+        status_code=404, name=endpoint_name
+    )
+
+    # Act
+    apply = make_delete_apply(endpoint, services, target_id=42)
+    result = await apply()
+
+    # Assert
+    assert result is None
+    endpoint.asyncio_detailed.assert_awaited_once()
+    call_kwargs = endpoint.asyncio_detailed.await_args.kwargs
+    assert call_kwargs["id"] == 42
+    assert call_kwargs["client"] is services.client
+
+
+@pytest.mark.asyncio
+async def test_make_delete_apply_204_remains_success():
+    """Control case: a normal 204 No Content still returns None and the
+    fast-path (no error) is preserved.
+    """
+    from katana_mcp.tools._modification_dispatch import make_delete_apply
+
+    services = _build_services_mock()
+    endpoint, _response = _build_delete_endpoint_mock(status_code=204)
+
+    apply = make_delete_apply(endpoint, services, target_id=7)
+    result = await apply()
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_make_delete_apply_400_still_raises():
+    """Control case: 4xx that isn't 404 must still surface as an error
+    so the dispatcher can fail-fast — only 404 gets the idempotent
+    treatment.
+    """
+    from katana_mcp.tools._modification_dispatch import make_delete_apply
+
+    from katana_public_api_client.utils import APIError
+
+    services = _build_services_mock()
+    endpoint, _response = _build_delete_endpoint_mock(status_code=400)
+
+    apply = make_delete_apply(endpoint, services, target_id=7)
+
+    with pytest.raises(APIError):
+        await apply()
+
+
+@pytest.mark.asyncio
+async def test_make_delete_apply_500_still_raises():
+    """Control case: server errors (5xx) must still surface so the
+    dispatcher fails fast and the caller learns Katana is unhappy.
+    """
+    from katana_mcp.tools._modification_dispatch import make_delete_apply
+
+    from katana_public_api_client.utils import APIError
+
+    services = _build_services_mock()
+    endpoint, _response = _build_delete_endpoint_mock(status_code=500)
+
+    apply = make_delete_apply(endpoint, services, target_id=7)
+
+    with pytest.raises(APIError):
+        await apply()
+
+
+@pytest.mark.asyncio
+async def test_execute_plan_with_mixed_204_and_404_marks_both_succeeded():
+    """Integration-ish: with two deletes where the first lands at 204
+    and the second hits 404 (already gone), both ActionResults should
+    show ``succeeded=True``. This is the bug-report scenario from #777
+    — stale tombstone IDs in a delete batch should no longer abort the
+    plan.
+    """
+    from katana_mcp.tools._modification_dispatch import make_delete_apply
+
+    services = _build_services_mock()
+    live_endpoint, _ = _build_delete_endpoint_mock(status_code=204, name="delete_live")
+    gone_endpoint, _ = _build_delete_endpoint_mock(status_code=404, name="delete_gone")
+
+    plan = [
+        ActionSpec(
+            operation="delete_recipe_row",
+            target_id=5001,
+            apply=make_delete_apply(live_endpoint, services, target_id=5001),
+        ),
+        ActionSpec(
+            operation="delete_recipe_row",
+            target_id=5002,
+            apply=make_delete_apply(gone_endpoint, services, target_id=5002),
+        ),
+    ]
+
+    results = await execute_plan(plan)
+
+    assert len(results) == 2
+    assert all(r.succeeded is True for r in results)
+    assert all(r.error is None for r in results)
 
 
 def test_plan_to_preview_results_has_all_succeeded_none():
