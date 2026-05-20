@@ -2222,18 +2222,21 @@ async def test_fulfill_manufacturing_order_preview_enriches_fulfilled_row():
 
 @pytest.mark.asyncio
 async def test_mo_card_renders_real_sku_starting_with_variant_prefix():
-    """Regression: real customer SKUs starting with ``"variant "`` (e.g.,
-    ``"variant-red"`` for a colour-keyed variant family, or
-    ``"variant 2 pack"`` for a multi-pack) must round-trip to the card
+    """Regression: real customer SKUs starting with the literal prefix
+    ``"variant "`` (note the trailing space — e.g. ``"variant 2 pack"``
+    for a multi-pack, or any product-line where the word ``variant`` is
+    followed by space-separated qualifiers) must round-trip to the card
     unmolested.
 
-    The earlier ``startswith("variant ")`` guard in
+    The earlier ``sku.startswith("variant ")`` guard in
     ``_build_fulfilled_row_manufacturing`` was meant to filter the
     ``f"variant {id}"`` cache-miss sentinel — but that sentinel is only
     injected at the resolution sites (``_resolve_row_serial_info`` /
     ``_resolve_variant_serial_info``), so the strip was redundant *and*
     blanked legitimate SKUs for any customer with the naming convention.
-    Pinned here so the bug can't silently regress.
+    Pinned here so the bug can't silently regress — note the SKU below
+    uses ``"variant "`` with a space, which is exactly the prefix the
+    old guard would have caught.
     """
     context, lifespan_ctx = create_mock_context()
 
@@ -2254,9 +2257,11 @@ async def test_mo_card_renders_real_sku_starting_with_variant_prefix():
 
     cached_variant = MagicMock()
     cached_variant.id = 777
-    # Real customer SKU that *starts with* "variant " — must NOT be stripped.
-    cached_variant.sku = "variant-red"
-    cached_variant.display_name = "Premium Widget / Red"
+    # Real customer SKU that *starts with* "variant " (literal space) —
+    # this is the exact prefix the old buggy guard checked, so removing
+    # the guard must let this SKU survive intact.
+    cached_variant.sku = "variant 2 pack"
+    cached_variant.display_name = "Premium Widget / 2-Pack"
     cached_variant.product_id = None
     cached_variant.material_id = None
     cached_variant.config_attributes = []
@@ -2278,8 +2283,8 @@ async def test_mo_card_renders_real_sku_starting_with_variant_prefix():
     # The SKU must survive intact — the previous startswith guard would
     # have nulled this and the card would have shown "variant {id}" instead
     # of the real SKU.
-    assert row.sku == "variant-red"
-    assert row.display_name == "Premium Widget / Red"
+    assert row.sku == "variant 2 pack"
+    assert row.display_name == "Premium Widget / 2-Pack"
     assert row.variant_id == 777
 
 
