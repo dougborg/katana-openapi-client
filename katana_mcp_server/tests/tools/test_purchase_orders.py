@@ -672,12 +672,19 @@ async def test_verify_order_document_perfect_match():
 
 @pytest.mark.asyncio
 async def test_verify_order_document_perfect_match_expected_values_equal_actual():
-    """#554 invariant — on a perfect match, the PO-side ``expected_*``
-    fields on ``MatchResult`` equal the document-side actual values.
+    """#554 invariant — when a perfect match has a doc-side price, the
+    PO-side ``expected_*`` fields on ``MatchResult`` equal the
+    document-side actual values.
 
-    This pins the contract the verification card depends on: when status
-    is ``perfect``, the Qty (doc) / Qty (PO) and Price (doc) / Price
-    (PO) columns render the same value.
+    Narrow to the "document provides a price" case: when ``unit_price``
+    is ``None`` the price check is skipped (status can still be
+    ``"perfect"``) so the equality only holds when the doc supplied a
+    price — see
+    :func:`test_verify_order_document_no_price_in_document` for the
+    null-price branch. This pins the contract the verification card
+    depends on: with a doc-side price + perfect status, the Qty (doc) /
+    Qty (PO) and Price (doc) / Price (PO) columns render the same
+    value.
     """
     # Arrange
     context, lifespan_ctx = create_mock_context()
