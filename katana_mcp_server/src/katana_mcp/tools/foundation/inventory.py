@@ -583,17 +583,11 @@ class LowStockRequest(BaseModel):
 class LowStockItem(BaseModel):
     """Low stock item information.
 
-    Carries the fields the four-tier card surface needs (#537 / #550):
-    the rendered ``display_name`` and a ``variant_id`` drill-in key, plus
-    enrichment from the parent product/material (``uom``,
-    ``default_supplier_id``, ``default_supplier_name``) and per-variant
-    procurement signals (``lead_time_days``, ``minimum_order_quantity``).
-
-    ``lead_time`` and ``minimum_order_quantity`` are sourced from
-    ``CachedVariant`` — they exist on the variant for both product- and
-    material-parented variants. The parent's ``lead_time`` (products only;
-    materials don't carry one) is not used here so the field is uniform
-    across both parent types.
+    ``lead_time_days`` and ``minimum_order_quantity`` come from
+    ``CachedVariant`` so the field is uniform across product- and
+    material-parented variants — only products carry a parent-level
+    ``lead_time``, so reading from the variant keeps both shapes
+    symmetric.
     """
 
     sku: str
@@ -651,7 +645,10 @@ async def _list_low_stock_items_impl(
     )
 
     try:
-        from katana_mcp.tools.foundation.items import _fetch_variant_by_id
+        from katana_mcp.tools.foundation.items import (
+            _enrich_variants_with_parent,
+            _fetch_variant_by_id,
+        )
         from katana_public_api_client.api.inventory import get_all_inventory_point
         from katana_public_api_client.utils import unwrap_data
 
@@ -684,71 +681,42 @@ async def _list_low_stock_items_impl(
             CachedVariant, variant_ids, include_deleted=True
         )
 
-        # Resolve any cache misses with the per-variant API fallback
-        # before the bulk parent/supplier fetches, so the parent ID
-        # collection is complete even on a cold cache.
-        resolved_variants: dict[int, Any] = {}
-        for variant_id in variant_ids:
-            variant: Any = cached_variants.get(variant_id)
-            if variant is None:
-                variant = await _fetch_variant_by_id(services, variant_id)
-            resolved_variants[variant_id] = variant
+        # Resolve cache misses in parallel via the per-variant API
+        # fallback so the parent collection is complete even on a cold
+        # cache. Sequential awaits would serialize N HTTP round-trips.
+        missing_ids = [vid for vid in variant_ids if cached_variants.get(vid) is None]
+        if missing_ids:
+            fetched = await asyncio.gather(
+                *(_fetch_variant_by_id(services, vid) for vid in missing_ids)
+            )
+            for vid, v in zip(missing_ids, fetched, strict=True):
+                cached_variants[vid] = v
 
-        # Bulk-fetch parent products + materials. IDs are split by
-        # parent kind because product and material IDs aren't globally
-        # unique — see ``_enrich_variants_with_parent`` for the same
-        # pattern in items.py.
-        product_ids = {
-            pid for v in resolved_variants.values() if (pid := _attr(v, "product_id"))
-        }
-        material_ids = {
-            mid for v in resolved_variants.values() if (mid := _attr(v, "material_id"))
-        }
-        products_by_id, materials_by_id = await asyncio.gather(
-            catalog.get_many_by_ids(
-                CachedProduct,
-                product_ids,
-                include_archived=True,
-                include_deleted=True,
-            ),
-            catalog.get_many_by_ids(
-                CachedMaterial,
-                material_ids,
-                include_archived=True,
-                include_deleted=True,
-            ),
+        # Enrich parents + suppliers via the shared helper so the
+        # product/material ID-collision split and the cold-cache
+        # nested-parent graft stay in lockstep with the items.py path.
+        (
+            products_by_id,
+            materials_by_id,
+            supplier_by_id,
+        ) = await _enrich_variants_with_parent(
+            services, [v for v in cached_variants.values() if v is not None]
         )
 
-        # Build a variant_id → parent map for fast lookup in the row
-        # construction loop below.
-        parent_by_variant_id: dict[int, Any] = {}
-        for variant_id, v in resolved_variants.items():
-            pid = _attr(v, "product_id")
-            mid = _attr(v, "material_id")
-            if (pid and (parent := products_by_id.get(pid)) is not None) or (
-                mid and (parent := materials_by_id.get(mid)) is not None
-            ):
-                parent_by_variant_id[variant_id] = parent
-
-        # Bulk-resolve supplier names from the parent rows. Usually a
-        # small unique set — most low-stock results share suppliers.
-        supplier_ids = {
-            sid
-            for parent in parent_by_variant_id.values()
-            if (sid := _attr(parent, "default_supplier_id"))
-        }
-        supplier_by_id = await catalog.get_many_by_ids(
-            CachedSupplier, supplier_ids, include_deleted=True
-        )
+        def _parent_for(v: Any) -> Any | None:
+            if (pid := _attr(v, "product_id")) is not None:
+                return products_by_id.get(pid)
+            if (mid := _attr(v, "material_id")) is not None:
+                return materials_by_id.get(mid)
+            return None
 
         items: list[LowStockItem] = []
         for variant_id, total in limited:
-            variant = resolved_variants.get(variant_id)
-            sku = _attr(variant, "sku") or ""
+            variant = cached_variants.get(variant_id)
             display_name = (
                 _attr(variant, "display_name") or _attr(variant, "name") or ""
             )
-            parent = parent_by_variant_id.get(variant_id)
+            parent = _parent_for(variant)
             default_supplier_id = _attr(parent, "default_supplier_id")
             supplier = (
                 supplier_by_id.get(default_supplier_id)
@@ -757,7 +725,7 @@ async def _list_low_stock_items_impl(
             )
             items.append(
                 LowStockItem(
-                    sku=sku,
+                    sku=_attr(variant, "sku") or "",
                     product_name=display_name,
                     current_stock=total,
                     threshold=request.threshold,
