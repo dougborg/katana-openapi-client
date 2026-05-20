@@ -331,6 +331,7 @@ async def _fulfill_manufacturing_order(
             actual_quantity=actual_quantity,
             serial_numbers=request.serial_numbers,
             batch_transactions=mo_batch_transactions,
+            order_id=request.order_id,
         )
     ]
     rows_count, total_qty, total_value = _summarize_fulfilled_rows(fulfilled_rows)
@@ -472,6 +473,7 @@ async def _fulfill_manufacturing_order(
             actual_quantity=final_actual_quantity,
             serial_numbers=request.serial_numbers,
             batch_transactions=final_batch_transactions,
+            order_id=request.order_id,
         )
     ]
     success_rows_count, success_total_qty, success_total_value = (
@@ -747,6 +749,8 @@ def _build_fulfilled_rows_sales(
     sku_by_row: dict[int, str],
     display_name_by_row: dict[int, str],
     currency: str | None,
+    order_id: int | None = None,
+    order_number: str | None = None,
 ) -> list[FulfilledRowInfo]:
     """Build per-row ``FulfilledRowInfo`` entries for a sales-order fulfillment.
 
@@ -756,6 +760,11 @@ def _build_fulfilled_rows_sales(
     transactions, serial overrides) from each SO row. Price comes from
     ``row.price_per_unit`` (stringly-typed in the wire model; cast to
     float when present so the card can compute ``row_total`` cleanly).
+
+    ``order_id`` / ``order_number`` are threaded through purely for
+    observability — the defensive-coerce sites log them alongside the
+    row id so a wire-format regression in production is actionable from
+    the log line alone (no need to grep request context).
     """
     rows: list[FulfilledRowInfo] = []
     for row in so_rows:
@@ -781,7 +790,14 @@ def _build_fulfilled_rows_sales(
         if isinstance(qty, int | float):
             qty_f: float = float(qty)
         else:
-            logger.warning("Unexpected type for SO row quantity: %s", type(qty))
+            logger.warning(
+                "Unexpected type for SO row quantity: %s "
+                "(order_id=%s, order_number=%s, row_id=%s)",
+                type(qty),
+                order_id,
+                order_number,
+                rid,
+            )
             qty_f = 0.0
         row_total = ppu * qty_f if ppu is not None else None
         # Coerce non-string identity fields to None — a MagicMock leaking
@@ -793,23 +809,47 @@ def _build_fulfilled_rows_sales(
         sku_raw = sku_by_row.get(rid)
         display_raw = display_name_by_row.get(rid)
         if rid is not None and not isinstance(rid, int):
-            logger.warning("Unexpected type for SO row id: %s", type(rid))
+            logger.warning(
+                "Unexpected type for SO row id: %s (order_id=%s, order_number=%s)",
+                type(rid),
+                order_id,
+                order_number,
+            )
             row_id_safe: int | None = None
         else:
             row_id_safe = rid if isinstance(rid, int) else None
         if vid is not None and not isinstance(vid, int):
-            logger.warning("Unexpected type for SO row variant_id: %s", type(vid))
+            logger.warning(
+                "Unexpected type for SO row variant_id: %s "
+                "(order_id=%s, order_number=%s, row_id=%s)",
+                type(vid),
+                order_id,
+                order_number,
+                rid,
+            )
             variant_id_safe: int | None = None
         else:
             variant_id_safe = vid if isinstance(vid, int) else None
         if sku_raw is not None and not isinstance(sku_raw, str):
-            logger.warning("Unexpected type for SO row sku: %s", type(sku_raw))
+            logger.warning(
+                "Unexpected type for SO row sku: %s "
+                "(order_id=%s, order_number=%s, row_id=%s)",
+                type(sku_raw),
+                order_id,
+                order_number,
+                rid,
+            )
             sku_for_row: str | None = None
         else:
             sku_for_row = sku_raw if isinstance(sku_raw, str) else None
         if display_raw is not None and not isinstance(display_raw, str):
             logger.warning(
-                "Unexpected type for SO row display_name: %s", type(display_raw)
+                "Unexpected type for SO row display_name: %s "
+                "(order_id=%s, order_number=%s, row_id=%s)",
+                type(display_raw),
+                order_id,
+                order_number,
+                rid,
             )
             display_for_row: str | None = None
         else:
@@ -841,6 +881,7 @@ def _build_fulfilled_row_manufacturing(
     actual_quantity: float | None,
     serial_numbers: list[int] | None,
     batch_transactions: Any,
+    order_id: int | None = None,
 ) -> FulfilledRowInfo:
     """Build the single ``FulfilledRowInfo`` for a manufacturing-order
     completion.
@@ -854,12 +895,19 @@ def _build_fulfilled_row_manufacturing(
     ``price_per_unit`` / ``row_total`` are deliberately left ``None`` —
     MOs track cost, not price, and the cost ledger lives on a separate
     surface. The card hides the Line Total column for MO branches.
+
+    ``order_id`` is threaded purely for observability — defensive-coerce
+    sites log it alongside the ``variant_id`` so a wire-format
+    regression in production is traceable from the log line alone.
     """
     if isinstance(actual_quantity, int | float):
         qty_f: float = float(actual_quantity)
     elif actual_quantity is not None:
         logger.warning(
-            "Unexpected type for MO actual_quantity: %s", type(actual_quantity)
+            "Unexpected type for MO actual_quantity: %s (order_id=%s, variant_id=%s)",
+            type(actual_quantity),
+            order_id,
+            variant_id,
         )
         qty_f = 1.0
     else:
@@ -878,15 +926,29 @@ def _build_fulfilled_row_manufacturing(
     if isinstance(sku, str):
         sku_safe: str | None = sku or None
     else:
-        logger.warning("Unexpected type for MO sku: %s", type(sku))
+        logger.warning(
+            "Unexpected type for MO sku: %s (order_id=%s, variant_id=%s)",
+            type(sku),
+            order_id,
+            variant_id,
+        )
         sku_safe = None
     if isinstance(display_name, str):
         display_safe: str | None = display_name or None
     else:
-        logger.warning("Unexpected type for MO display_name: %s", type(display_name))
+        logger.warning(
+            "Unexpected type for MO display_name: %s (order_id=%s, variant_id=%s)",
+            type(display_name),
+            order_id,
+            variant_id,
+        )
         display_safe = None
     if variant_id is not None and not isinstance(variant_id, int):
-        logger.warning("Unexpected type for MO variant_id: %s", type(variant_id))
+        logger.warning(
+            "Unexpected type for MO variant_id: %s (order_id=%s)",
+            type(variant_id),
+            order_id,
+        )
         variant_id_safe: int | None = None
     else:
         variant_id_safe = variant_id if isinstance(variant_id, int) else None
@@ -1139,7 +1201,12 @@ async def _fulfill_sales_order(
     # Log a warning so a wire-format regression surfaces in observability
     # instead of silently nulling.
     if raw_currency is not None and not isinstance(raw_currency, str):
-        logger.warning("Unexpected type for SO currency: %s", type(raw_currency))
+        logger.warning(
+            "Unexpected type for SO currency: %s (order_id=%s, order_number=%s)",
+            type(raw_currency),
+            request.order_id,
+            order_number,
+        )
         currency: str | None = None
     else:
         currency = raw_currency if isinstance(raw_currency, str) else None
@@ -1149,6 +1216,8 @@ async def _fulfill_sales_order(
         sku_by_row=sku_by_row,
         display_name_by_row=display_name_by_row,
         currency=currency,
+        order_id=request.order_id,
+        order_number=order_number,
     )
     rows_count, total_qty, total_value = _summarize_fulfilled_rows(fulfilled_rows)
     katana_url = katana_web_url("sales_order", request.order_id)
