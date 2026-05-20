@@ -917,12 +917,12 @@ def _build_fulfilled_row_manufacturing(
     # serial_info``; Pydantic's validator rejects those, so coerce to
     # None and let the card fall back to ``variant {id}`` rendering. We
     # *don't* strip the ``"variant {id}"`` fallback sentinel here — real
-    # customer SKUs starting with ``"variant "`` (e.g. ``"variant-red"``,
-    # ``"variant 2 pack"``) are legitimate, and silently blanking them
-    # would be data loss. Empty strings still fall through to ``None`` so
-    # the card's ``display_name or sku`` chain works. Log a warning at
-    # each coerce so a wire-format regression surfaces in observability
-    # instead of silently nulling.
+    # customer SKUs that share the literal ``"variant "`` prefix (e.g.
+    # ``"variant 2 pack"`` for a multi-pack) are legitimate, and silently
+    # blanking them would be data loss. Empty strings still fall through
+    # to ``None`` so the card's ``display_name or sku`` chain works. Log
+    # a warning at each coerce so a wire-format regression surfaces in
+    # observability instead of silently nulling.
     if isinstance(sku, str):
         sku_safe: str | None = sku or None
     else:
