@@ -1691,6 +1691,23 @@ Complete a manufacturing or sales order.
   finished-good variant is serial-tracked — without it, the tool emits a
   `BLOCK:` warning at preview and refuses on direct apply (Katana would 422
   the request).
+- `completed_at` (optional, ISO-8601): Backdated completion timestamp. MO →
+  production POST `completed_date` (Katana propagates to `MO.done_date`);
+  SO → fulfillment `picked_date`. Omit to let Katana stamp server-time.
+- `acknowledge_inventory_ordering` (optional, default false): Override flag
+  for the inventory-ordering guard. The guard fires when `completed_at` is
+  supplied and a linked entity's timestamp is known — Katana's
+  timestamp-ordered movement engine requires MO `done_date` to land
+  **strictly before** SO `picked_date`. The BLOCK message suggests a
+  1-minute offset in the safe direction (MO `done_date` 1 minute before
+  the linked SO `picked_date`, or SO `picked_date` 1 minute after the
+  linked MO `done_date`) as a safe default — any strictly-ordered value
+  works; 1 minute is the recommendation, not a Katana-enforced floor.
+  Setting `acknowledge_inventory_ordering=true` demotes the BLOCK to a
+  non-BLOCK warning so the apply proceeds (the caller has accepted the
+  consequence of a transient negative balance on the persistent
+  `inventory_movements` ledger). Use only after explicit ledger
+  verification.
 
 **Returns:** Standard fulfillment envelope (`order_id`, `order_type`,
 `order_number`, `status`, `is_preview`, `inventory_updates`, `warnings`,

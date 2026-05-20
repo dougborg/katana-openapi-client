@@ -4836,6 +4836,37 @@ class TestBlockWarningSuppressesConfirm:
             "Confirm Fulfillment button must be suppressed on BLOCK warning."
         )
 
+    def test_fulfill_preview_renders_inventory_ordering_block_message(self):
+        """The inventory-ordering BLOCK (#787) surfaces in the card body
+        as a destructive Badge, same as every other BLOCK class — and the
+        ``BLOCK:`` prefix is stripped per the ``_split_warnings`` contract.
+        """
+        block_text = (
+            "Sales order SO-INV-1 picked_date (2026-05-01T20:30:00+00:00) "
+            "is not after linked manufacturing order 555 done_date "
+            "(2026-05-01T20:30:00+00:00). This will cause transient negative "
+            "inventory on the inventory_movements ledger."
+        )
+        response = {
+            "order_type": "sales",
+            "order_number": "SO-INV-1",
+            "order_id": 42,
+            "status": "NOT_SHIPPED",
+            "warnings": [f"BLOCK: {block_text}"],
+        }
+        app = build_fulfill_preview_ui(response)
+        envelope = app.to_json()
+
+        # The block warning text appears somewhere in the rendered envelope
+        # (as the label of a destructive Badge per build_fulfill_preview_ui).
+        rendered = json.dumps(envelope)
+        assert "transient negative inventory" in rendered
+        assert "inventory_movements ledger" in rendered
+
+        # Confirm button is suppressed (BLOCK present).
+        confirm_buttons = _find_buttons_by_label(envelope, "Confirm Fulfillment")
+        assert len(confirm_buttons) == 0
+
     def test_receipt_ui_with_block_warning_omits_confirm_button(self):
         from katana_mcp.tools.foundation.purchase_orders import (
             ReceiveItemRequest,

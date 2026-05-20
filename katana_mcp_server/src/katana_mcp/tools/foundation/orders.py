@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import Counter
+from datetime import datetime, timedelta
 from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
@@ -114,6 +115,22 @@ class FulfillOrderRequest(BaseModel):
             "``SerialNumber.transaction_date`` is derived from "
             "``done_date`` / ``completed_date``, so the Traceability "
             "'Production date' column tracks this value."
+        ),
+    )
+    acknowledge_inventory_ordering: bool = Field(
+        default=False,
+        description=(
+            "Override the inventory-ordering BLOCK warning. When set to True, "
+            "the tool will proceed despite a detected ordering risk between "
+            "MO ``done_date`` and SO ``picked_date``. The strict invariant is "
+            "MO ``done_date`` must be **before** SO ``picked_date`` — if they "
+            "are simultaneous (or out of order), Katana processes stock "
+            "movements in the wrong sequence and records transient negative "
+            "inventory on the ``inventory_movements`` ledger. The guard fires "
+            "when ``completed_at`` is supplied and a linked entity's "
+            "timestamp is known. Use only when you have explicitly verified "
+            "Katana's inventory ledger and accepted the consequence of "
+            "transient negative balances."
         ),
     )
 
@@ -336,6 +353,27 @@ async def _fulfill_manufacturing_order(
     ]
     rows_count, total_qty, total_value = _summarize_fulfilled_rows(fulfilled_rows)
     katana_url = katana_web_url("manufacturing_order", request.order_id)
+
+    # Inventory-ordering guard (#787). Symmetric to the SO branch: when the
+    # caller backdates done_date and the linked SO is already fulfilled
+    # (picked_date set on the header), require strict ordering
+    # ``mo_done_at < so_picked_at`` so Katana's timestamp-ordered movement
+    # engine doesn't write a transient negative on the inventory_movements
+    # ledger. Skip when completed_at is None (server-time) or when there's
+    # no linked SO yet (or the SO isn't fulfilled — its future fulfill will
+    # be subject to the SO-branch guard).
+    linked_so_id = unwrap_unset(mo.sales_order_id, None)
+    if request.completed_at is not None and linked_so_id is not None:
+        linked_so_picked_at = await _fetch_linked_so_picked_date(services, linked_so_id)
+        warnings.extend(
+            _build_inventory_ordering_warnings_mo(
+                order_number=order_number,
+                mo_done_at=request.completed_at,
+                linked_so_id=linked_so_id,
+                linked_so_picked_at=linked_so_picked_at,
+                acknowledged=request.acknowledge_inventory_ordering,
+            )
+        )
 
     if request.preview:
         has_block = any(w.startswith(BLOCK_WARNING_PREFIX) for w in warnings)
@@ -1101,6 +1139,198 @@ def _build_row_override_warnings(
     return warnings
 
 
+# ============================================================================
+# Inventory-ordering guard (#787)
+# ============================================================================
+#
+# Katana's stock-movement engine is timestamp-ordered: a ``Production`` event
+# that lands at ``T`` lifts the finished-good balance from 0 → 1; a
+# ``SalesOrderRow`` event at the *same instant* (or earlier) sees balance 0
+# and writes a -1 movement to the persistent ``inventory_movements`` ledger
+# before the production posts. The transient negative is auditable forever,
+# not just a UI race.
+#
+# Live-tenant probe (issue #787) verified three cases on a producible variant:
+#   - MO ``done_date`` ==  SO ``picked_date``: non-deterministic ordering;
+#     half the time Katana writes the SalesOrderRow first → bal=-1.
+#   - SO before MO: deterministic negative balance recorded.
+#   - MO 1 min before SO: clean, never negative.
+#
+# Guards on both branches:
+#   - SO fulfill: if any linked MO has ``done_date >= so_picked_at``, BLOCK.
+#   - MO fulfill: if linked SO has ``picked_date <= mo_done_at``, BLOCK.
+#
+# Override flag ``acknowledge_inventory_ordering`` demotes the BLOCK to a
+# non-BLOCK warning (operator has accepted the ledger consequence) — the
+# warning is still surfaced in the response, just doesn't trip ``has_block``.
+
+_INVENTORY_ORDERING_SUGGESTED_GAP = timedelta(minutes=1)
+
+
+def _format_iso(ts: datetime) -> str:
+    """Stable ISO-8601 rendering for BLOCK warning bodies.
+
+    ``datetime.isoformat()`` is already stable; centralized here so the
+    suggested-correction text and the violation text use the same format
+    and stay easy to grep for in tests / logs.
+    """
+    return ts.isoformat()
+
+
+def _build_inventory_ordering_warnings_so(
+    *,
+    order_number: str,
+    so_picked_at: datetime | None,
+    linked_mo_done_dates: dict[int, datetime | None],
+    acknowledged: bool,
+) -> list[str]:
+    """Return warnings when SO ``picked_date <= any linked MO done_date``.
+
+    Silent when:
+      - ``so_picked_at`` is None (server-time, no race the caller controls)
+      - no linked MOs were found (``linked_mo_done_dates`` empty)
+      - every linked MO has an unset ``done_date`` (nothing to compare against;
+        the future MO close will be subject to the MO-branch guard)
+
+    Fires once per violating MO ID. Demotes to a non-``BLOCK:`` warning when
+    ``acknowledged=True`` (override flag set) — still surfaced for the audit
+    trail, just doesn't trip ``has_block``. Mirrors the spirit of the
+    existing non-BLOCK ``done_date PATCH failed`` warning.
+    """
+    if so_picked_at is None:
+        return []
+
+    warnings: list[str] = []
+    for mo_id, mo_done in linked_mo_done_dates.items():
+        if mo_done is None:
+            continue
+        if so_picked_at > mo_done:
+            continue
+        suggested = mo_done + _INVENTORY_ORDERING_SUGGESTED_GAP
+        core = (
+            f"Sales order {order_number} picked_date "
+            f"({_format_iso(so_picked_at)}) is not after linked manufacturing "
+            f"order {mo_id} done_date ({_format_iso(mo_done)}). This will "
+            "cause transient negative inventory on the inventory_movements "
+            "ledger. Set picked_date at least 1 minute after the MO "
+            f"done_date (suggested: {_format_iso(suggested)})."
+        )
+        if acknowledged:
+            warnings.append(f"WARNING (acknowledged): {core}")
+        else:
+            warnings.append(
+                f"{BLOCK_WARNING_PREFIX} {core} Pass "
+                "acknowledge_inventory_ordering=true to override."
+            )
+    return warnings
+
+
+def _build_inventory_ordering_warnings_mo(
+    *,
+    order_number: str,
+    mo_done_at: datetime | None,
+    linked_so_id: int | None,
+    linked_so_picked_at: datetime | None,
+    acknowledged: bool,
+) -> list[str]:
+    """Return warnings when MO ``done_date >= linked SO picked_date``.
+
+    Silent when:
+      - ``mo_done_at`` is None (server-time)
+      - ``linked_so_id`` is None (no linked SO to compare against)
+      - ``linked_so_picked_at`` is None (SO not yet fulfilled — the future
+        SO fulfill will be subject to the SO-branch guard)
+
+    Demotes to a non-``BLOCK:`` warning when ``acknowledged=True``.
+    """
+    if mo_done_at is None or linked_so_id is None or linked_so_picked_at is None:
+        return []
+    if mo_done_at < linked_so_picked_at:
+        return []
+
+    suggested = linked_so_picked_at - _INVENTORY_ORDERING_SUGGESTED_GAP
+    core = (
+        f"Manufacturing order {order_number} done_date "
+        f"({_format_iso(mo_done_at)}) is not before linked sales order "
+        f"{linked_so_id} picked_date ({_format_iso(linked_so_picked_at)}). "
+        "This will cause transient negative inventory on the "
+        "inventory_movements ledger. Set done_date at least 1 minute before "
+        f"the SO picked_date (suggested: {_format_iso(suggested)})."
+    )
+    if acknowledged:
+        return [f"WARNING (acknowledged): {core}"]
+    return [
+        f"{BLOCK_WARNING_PREFIX} {core} Pass "
+        "acknowledge_inventory_ordering=true to override."
+    ]
+
+
+async def _fetch_linked_mo_done_dates(
+    services: Any, mo_ids: set[int]
+) -> dict[int, datetime | None]:
+    """Fan-out fetch ``done_date`` for each linked MO ID.
+
+    Returns ``{mo_id: done_date_or_None}`` for every successfully fetched MO.
+    Failures (404 / network) are swallowed — the ID drops out of the dict,
+    which the warning helper treats as "unknown, don't block" (best-effort).
+    """
+    if not mo_ids:
+        return {}
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order as api_get_manufacturing_order,
+    )
+
+    # Materialize the set to a stable sequence once. Iterating a ``set``
+    # twice (here and below in ``zip``) does not guarantee the same
+    # order at the language level, which could mis-associate responses
+    # to MO ids and silently block the wrong order or miss a real
+    # violation. Sort for determinism — handy for test debugging too.
+    mo_id_list = sorted(mo_ids)
+    responses = await asyncio.gather(
+        *(
+            api_get_manufacturing_order.asyncio_detailed(
+                id=mo_id, client=services.client
+            )
+            for mo_id in mo_id_list
+        ),
+        return_exceptions=True,
+    )
+    out: dict[int, datetime | None] = {}
+    for mo_id, response in zip(mo_id_list, responses, strict=True):
+        if isinstance(response, BaseException):
+            continue
+        mo = unwrap(response, raise_on_error=False)
+        if mo is None or not isinstance(mo, ManufacturingOrder):
+            continue
+        out[mo_id] = unwrap_unset(mo.done_date, None)
+    return out
+
+
+async def _fetch_linked_so_picked_date(services: Any, so_id: int) -> datetime | None:
+    """Fetch the linked SO's header ``picked_date``.
+
+    Returns None on any failure (404 / network) or when ``picked_date`` is
+    unset. Callers treat None as "nothing to compare against" (best-effort).
+    Uses the same ``gather(return_exceptions=True)`` swallow pattern as
+    :func:`_fetch_missing_from_api` so a transient lookup failure can't
+    take down the apply path.
+    """
+    from katana_public_api_client.api.sales_order import (
+        get_sales_order as api_get_sales_order,
+    )
+
+    (response,) = await asyncio.gather(
+        api_get_sales_order.asyncio_detailed(id=so_id, client=services.client),
+        return_exceptions=True,
+    )
+    if isinstance(response, BaseException):
+        return None
+    so = unwrap(response, raise_on_error=False)
+    if so is None or not isinstance(so, SalesOrder):
+        return None
+    return unwrap_unset(so.picked_date, None)
+
+
 async def _fulfill_sales_order(
     request: FulfillOrderRequest, context: Context
 ) -> FulfillOrderResponse:
@@ -1221,6 +1451,29 @@ async def _fulfill_sales_order(
     )
     rows_count, total_qty, total_value = _summarize_fulfilled_rows(fulfilled_rows)
     katana_url = katana_web_url("sales_order", request.order_id)
+
+    # Inventory-ordering guard (#787). Skip when caller didn't supply a
+    # backdated picked_date — server-stamped time can't trip a deterministic
+    # race the caller controls. Linked-MO IDs are read off the SO rows we
+    # already fetched; one parallel fan-out resolves their done_dates.
+    if request.completed_at is not None:
+        linked_mo_ids = {
+            mid
+            for row in so_rows
+            if (mid := unwrap_unset(row.linked_manufacturing_order_id, None))
+            is not None
+        }
+        linked_mo_done_dates = await _fetch_linked_mo_done_dates(
+            services, linked_mo_ids
+        )
+        warnings.extend(
+            _build_inventory_ordering_warnings_so(
+                order_number=order_number,
+                so_picked_at=request.completed_at,
+                linked_mo_done_dates=linked_mo_done_dates,
+                acknowledged=request.acknowledge_inventory_ordering,
+            )
+        )
 
     if request.preview:
         has_block = any(w.startswith(BLOCK_WARNING_PREFIX) for w in warnings)
