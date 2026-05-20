@@ -1,6 +1,6 @@
 """Tests for order fulfillment MCP tools."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock
 
@@ -243,12 +243,24 @@ async def test_fulfill_manufacturing_order_not_found():
 # ============================================================================
 
 
-def _make_so_row(row_id: int, variant_id: int, quantity: float):
-    """Build a SalesOrderRow mock with the fields fulfill_sales_order reads."""
+def _make_so_row(
+    row_id: int,
+    variant_id: int,
+    quantity: float,
+    *,
+    linked_manufacturing_order_id: int | None = None,
+):
+    """Build a SalesOrderRow mock with the fields fulfill_sales_order reads.
+
+    ``linked_manufacturing_order_id`` defaults to None so the inventory-
+    ordering guard (#787) stays silent on tests that don't exercise it; set
+    it explicitly to wire a linked MO for the guard.
+    """
     row = MagicMock()
     row.id = row_id
     row.variant_id = variant_id
     row.quantity = quantity
+    row.linked_manufacturing_order_id = linked_manufacturing_order_id
     return row
 
 
@@ -1062,20 +1074,26 @@ async def test_fulfill_sales_order_non_serial_tracked_no_change():
 
 
 def _make_serial_tracked_mo(
-    *, order_no: str, variant_id: int = 100, actual_quantity: float = 1.0
+    *,
+    order_no: str,
+    variant_id: int = 100,
+    actual_quantity: float = 1.0,
+    sales_order_id: int | None = None,
 ):
     """Build a serial-tracked ManufacturingOrder mock with the fields the tool reads.
 
-    The MO path reads ``order_no``, ``status``, ``variant_id``, and
-    ``actual_quantity`` — set them explicitly rather than letting MagicMock
-    autogen child mocks (which interact poorly with ``unwrap_unset`` +
-    cache lookups by ID).
+    The MO path reads ``order_no``, ``status``, ``variant_id``,
+    ``actual_quantity``, and ``sales_order_id`` (inventory-ordering guard,
+    #787) — set them explicitly rather than letting MagicMock autogen child
+    mocks (which interact poorly with ``unwrap_unset`` + cache lookups by
+    ID, and trip type-mismatch errors on the guard's datetime comparisons).
     """
     mock_mo = MagicMock(spec=ManufacturingOrder)
     mock_mo.order_no = order_no
     mock_mo.status = ManufacturingOrderStatus.IN_PROGRESS
     mock_mo.variant_id = variant_id
     mock_mo.actual_quantity = actual_quantity
+    mock_mo.sales_order_id = sales_order_id
     return mock_mo
 
 
@@ -1440,6 +1458,7 @@ async def test_fulfill_mo_with_completed_at_one_call_succeeds():
     mock_mo.status = ManufacturingOrderStatus.IN_PROGRESS
     mock_mo.variant_id = None
     mock_mo.actual_quantity = None
+    mock_mo.sales_order_id = None  # silence #787 guard (no linked SO)
 
     mock_get_response = MagicMock(status_code=200, parsed=mock_mo)
 
@@ -1559,6 +1578,7 @@ async def test_fulfill_mo_apply_emits_no_patch_calls():
     mock_mo.status = ManufacturingOrderStatus.IN_PROGRESS
     mock_mo.variant_id = None
     mock_mo.actual_quantity = None
+    mock_mo.sales_order_id = None  # silence #787 guard (no linked SO)
 
     mock_get_response = MagicMock(status_code=200, parsed=mock_mo)
 
@@ -1737,6 +1757,7 @@ async def test_fulfill_mo_preview_with_completed_at_surfaces_in_inventory_update
     mock_mo.status = ManufacturingOrderStatus.IN_PROGRESS
     mock_mo.variant_id = None
     mock_mo.actual_quantity = None
+    mock_mo.sales_order_id = None  # silence #787 guard (no linked SO)
 
     mock_response = MagicMock(status_code=200, parsed=mock_mo)
 
@@ -2360,3 +2381,857 @@ async def test_fulfill_sales_order_confirm_carries_enrichment():
     assert result.currency == "USD"
     assert result.katana_url is not None
     assert result.katana_url.endswith("/salesorder/5678")
+
+
+# Inventory-Ordering Guard Tests (#787)
+# ============================================================================
+#
+# Strict invariant: MO ``done_date`` must land **before** SO ``picked_date``.
+# Equal timestamps are unsafe (Probe case A: non-deterministic ordering); SO
+# before MO is unsafe (Probe case B: deterministic negative balance recorded
+# on inventory_movements). Both branches BLOCK on violation; the override
+# flag ``acknowledge_inventory_ordering`` demotes the BLOCK to a non-BLOCK
+# warning so the apply proceeds.
+
+
+def _mock_mo_response(*, done_date: Any = None) -> MagicMock:
+    """Build a ``GET /manufacturing_orders/{id}`` response carrying done_date.
+
+    The inventory-ordering guard's SO branch fans out one of these per
+    linked MO ID to compare done_date against the proposed SO picked_date.
+    ``done_date`` accepts ``datetime``, ``None``, or ``UNSET`` (the wire
+    sentinel; ``unwrap_unset`` normalizes both to None).
+    """
+    mo = MagicMock(spec=ManufacturingOrder)
+    mo.done_date = done_date
+    return MagicMock(status_code=200, parsed=mo)
+
+
+def _mock_so_response(*, picked_date: Any = None) -> MagicMock:
+    """Build a ``GET /sales_orders/{id}`` response carrying header picked_date.
+
+    The inventory-ordering guard's MO branch reads the linked SO header
+    ``picked_date`` (cascading-update field; rewrites every fulfillment's
+    picked_date per the spec). ``picked_date`` accepts ``datetime``,
+    ``None``, or ``UNSET``.
+    """
+    so = MagicMock(spec=SalesOrder)
+    so.picked_date = picked_date
+    so.sales_order_rows = []  # not needed for the guard
+    return MagicMock(status_code=200, parsed=so)
+
+
+# --- SO branch -------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_so_inventory_ordering_blocks_when_equal_to_mo_done_date():
+    """SO picked_date == MO done_date → BLOCK (non-deterministic ordering)."""
+    context, lifespan_ctx = create_mock_context()
+    _wire_non_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="PLAIN-IO")
+
+    mo_done = datetime(2026, 5, 1, 20, 30, tzinfo=UTC)
+    mock_so = MagicMock(spec=SalesOrder)
+    mock_so.order_no = "SO-IO-EQ"
+    mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.sales_order_rows = [
+        _make_so_row(1, 100, 1.0, linked_manufacturing_order_id=555),
+    ]
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+    from katana_public_api_client.api.sales_order import get_sales_order
+
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=MagicMock(status_code=200, parsed=mock_so)
+    )
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=_mock_mo_response(done_date=mo_done)
+    )
+
+    request = FulfillOrderRequest(
+        order_id=42, order_type="sales", preview=True, completed_at=mo_done
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
+    assert len(block_warnings) == 1
+    assert "not after linked manufacturing order 555 done_date" in block_warnings[0]
+
+
+@pytest.mark.asyncio
+async def test_so_inventory_ordering_clean_when_one_minute_after():
+    """SO picked_date = MO done_date + 1 min → no BLOCK (safe ordering)."""
+    context, lifespan_ctx = create_mock_context()
+    _wire_non_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="PLAIN-IO")
+
+    mo_done = datetime(2026, 5, 1, 20, 30, tzinfo=UTC)
+    so_picked = mo_done + timedelta(minutes=1)
+    mock_so = MagicMock(spec=SalesOrder)
+    mock_so.order_no = "SO-IO-OK"
+    mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.sales_order_rows = [
+        _make_so_row(1, 100, 1.0, linked_manufacturing_order_id=555),
+    ]
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+    from katana_public_api_client.api.sales_order import get_sales_order
+
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=MagicMock(status_code=200, parsed=mock_so)
+    )
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=_mock_mo_response(done_date=mo_done)
+    )
+
+    request = FulfillOrderRequest(
+        order_id=42, order_type="sales", preview=True, completed_at=so_picked
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert not [w for w in result.warnings if "inventory_movements ledger" in w], (
+        result.warnings
+    )
+
+
+@pytest.mark.asyncio
+async def test_so_inventory_ordering_blocks_when_one_minute_before_mo_done():
+    """SO picked_date = MO done_date - 1 min → BLOCK (Probe case B,
+    deterministic negative balance on the inventory_movements ledger).
+    """
+    context, lifespan_ctx = create_mock_context()
+    _wire_non_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="PLAIN-IO")
+
+    mo_done = datetime(2026, 5, 1, 20, 30, tzinfo=UTC)
+    so_picked = mo_done - timedelta(minutes=1)
+    mock_so = MagicMock(spec=SalesOrder)
+    mock_so.order_no = "SO-IO-BAD"
+    mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.sales_order_rows = [
+        _make_so_row(1, 100, 1.0, linked_manufacturing_order_id=555),
+    ]
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+    from katana_public_api_client.api.sales_order import get_sales_order
+
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=MagicMock(status_code=200, parsed=mock_so)
+    )
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=_mock_mo_response(done_date=mo_done)
+    )
+
+    request = FulfillOrderRequest(
+        order_id=42, order_type="sales", preview=True, completed_at=so_picked
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
+    assert len(block_warnings) == 1
+    assert "transient negative inventory" in block_warnings[0]
+    # Suggested correction is mo_done + 1 minute.
+    suggested = (mo_done + timedelta(minutes=1)).isoformat()
+    assert suggested in block_warnings[0]
+
+
+@pytest.mark.asyncio
+async def test_so_inventory_ordering_override_demotes_block_and_applies():
+    """acknowledge_inventory_ordering=True demotes BLOCK to non-BLOCK,
+    apply proceeds with the fulfillment POST firing exactly once.
+    """
+    context, lifespan_ctx = create_mock_context()
+    _wire_non_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="PLAIN-IO")
+
+    mo_done = datetime(2026, 5, 1, 20, 30, tzinfo=UTC)
+    mock_so = MagicMock(spec=SalesOrder)
+    mock_so.order_no = "SO-IO-ACK"
+    mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.sales_order_rows = [
+        _make_so_row(1, 100, 1.0, linked_manufacturing_order_id=555),
+    ]
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+    from katana_public_api_client.api.sales_order import get_sales_order
+    from katana_public_api_client.api.sales_order_fulfillment import (
+        create_sales_order_fulfillment,
+    )
+    from katana_public_api_client.models import SalesOrderFulfillment
+
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=MagicMock(status_code=200, parsed=mock_so)
+    )
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=_mock_mo_response(done_date=mo_done)
+    )
+    fulfillment_obj = MagicMock(spec=SalesOrderFulfillment)
+    fulfillment_obj.id = 99999
+    create_mock = AsyncMock(
+        return_value=MagicMock(status_code=201, parsed=fulfillment_obj)
+    )
+    cast(Any, create_sales_order_fulfillment).asyncio_detailed = create_mock
+
+    request = FulfillOrderRequest(
+        order_id=42,
+        order_type="sales",
+        preview=False,
+        completed_at=mo_done,  # equal → would BLOCK without override
+        acknowledge_inventory_ordering=True,
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    # Apply proceeded — BLOCK was demoted.
+    assert result.status == "DELIVERED"
+    create_mock.assert_called_once()
+    # The warning still surfaces (demoted to non-BLOCK).
+    assert not [w for w in result.warnings if w.startswith("BLOCK:")]
+    assert any("WARNING (acknowledged):" in w for w in result.warnings)
+
+
+@pytest.mark.asyncio
+async def test_so_inventory_ordering_silent_when_linked_mo_done_date_unset():
+    """Linked MO with done_date = UNSET → guard silent (the future MO close
+    will be subject to its own branch's guard).
+    """
+    context, lifespan_ctx = create_mock_context()
+    _wire_non_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="PLAIN-IO")
+
+    mock_so = MagicMock(spec=SalesOrder)
+    mock_so.order_no = "SO-IO-UNSET"
+    mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.sales_order_rows = [
+        _make_so_row(1, 100, 1.0, linked_manufacturing_order_id=555),
+    ]
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+    from katana_public_api_client.api.sales_order import get_sales_order
+    from katana_public_api_client.client_types import UNSET
+
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=MagicMock(status_code=200, parsed=mock_so)
+    )
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=_mock_mo_response(done_date=UNSET)
+    )
+
+    request = FulfillOrderRequest(
+        order_id=42,
+        order_type="sales",
+        preview=True,
+        completed_at=datetime(2026, 5, 1, 20, 30, tzinfo=UTC),
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert not [w for w in result.warnings if "inventory_movements ledger" in w]
+
+
+@pytest.mark.asyncio
+async def test_so_inventory_ordering_silent_when_no_linked_mo():
+    """SO row with linked_manufacturing_order_id=None → guard silent."""
+    context, lifespan_ctx = create_mock_context()
+    _wire_non_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="PLAIN-IO")
+
+    mock_so = MagicMock(spec=SalesOrder)
+    mock_so.order_no = "SO-IO-NOMO"
+    mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.sales_order_rows = [_make_so_row(1, 100, 1.0)]  # no linked MO
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+    from katana_public_api_client.api.sales_order import get_sales_order
+
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=MagicMock(status_code=200, parsed=mock_so)
+    )
+    get_mo_mock = AsyncMock()
+    cast(Any, get_manufacturing_order).asyncio_detailed = get_mo_mock
+
+    request = FulfillOrderRequest(
+        order_id=42,
+        order_type="sales",
+        preview=True,
+        completed_at=datetime(2026, 5, 1, 20, 30, tzinfo=UTC),
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert not [w for w in result.warnings if "inventory_movements ledger" in w]
+    # No linked MOs → no MO lookups fired (guard short-circuits).
+    get_mo_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_so_inventory_ordering_silent_when_completed_at_is_none():
+    """completed_at=None (server-time) → guard silent regardless of links."""
+    context, lifespan_ctx = create_mock_context()
+    _wire_non_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="PLAIN-IO")
+
+    mock_so = MagicMock(spec=SalesOrder)
+    mock_so.order_no = "SO-IO-SVR"
+    mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.sales_order_rows = [
+        _make_so_row(1, 100, 1.0, linked_manufacturing_order_id=555),
+    ]
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+    from katana_public_api_client.api.sales_order import get_sales_order
+
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=MagicMock(status_code=200, parsed=mock_so)
+    )
+    get_mo_mock = AsyncMock()
+    cast(Any, get_manufacturing_order).asyncio_detailed = get_mo_mock
+
+    request = FulfillOrderRequest(order_id=42, order_type="sales", preview=True)
+    result = await _fulfill_order_impl(request, context)
+
+    assert not [w for w in result.warnings if "inventory_movements ledger" in w]
+    # No completed_at → guard short-circuits before fanning out.
+    get_mo_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_so_inventory_ordering_two_mos_one_violates():
+    """Two linked MOs, one safe one violating → BLOCK fires once
+    (named for the violator) and clean for the other.
+    """
+    context, lifespan_ctx = create_mock_context()
+    _wire_non_serial_tracked_cache(lifespan_ctx, variant_id=100, sku="PLAIN-IO")
+
+    so_picked = datetime(2026, 5, 1, 20, 30, tzinfo=UTC)
+    mo_safe = so_picked - timedelta(minutes=5)  # safe — 5 min before
+    mo_violating = so_picked  # equal → BLOCK
+
+    mock_so = MagicMock(spec=SalesOrder)
+    mock_so.order_no = "SO-IO-MIX"
+    mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.sales_order_rows = [
+        _make_so_row(1, 100, 1.0, linked_manufacturing_order_id=111),
+        _make_so_row(2, 100, 1.0, linked_manufacturing_order_id=222),
+    ]
+
+    async def _get_mo(**kwargs):
+        # The API call uses ``id=...`` (mirrors the generated client); accept
+        # via kwargs to avoid shadowing the builtin in the lambda-like helper.
+        if kwargs["id"] == 111:
+            return _mock_mo_response(done_date=mo_safe)
+        return _mock_mo_response(done_date=mo_violating)
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+    from katana_public_api_client.api.sales_order import get_sales_order
+
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=MagicMock(status_code=200, parsed=mock_so)
+    )
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(side_effect=_get_mo)
+
+    request = FulfillOrderRequest(
+        order_id=42, order_type="sales", preview=True, completed_at=so_picked
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
+    assert len(block_warnings) == 1
+    # Names the violator (MO 222), not the safe one (MO 111).
+    assert "manufacturing order 222" in block_warnings[0]
+    assert "manufacturing order 111" not in block_warnings[0]
+
+
+@pytest.mark.asyncio
+async def test_fetch_linked_mo_done_dates_deterministic_ordering():
+    """Regression: ``_fetch_linked_mo_done_dates`` must pair responses to
+    MO ids deterministically, even though the input is a ``set``.
+
+    The pre-fix code iterated ``mo_ids`` (a set) twice — once to build
+    the ``gather()`` call list, once to ``zip`` responses back to ids.
+    Set iteration order is not guaranteed by the language, so a future
+    Python or a different hash seed could mis-associate responses,
+    silently blocking the wrong order or missing a real violation.
+
+    Verify by passing a set with multiple ids and asserting the
+    returned mapping pairs each id to its OWN ``done_date`` value.
+    """
+    from katana_mcp.tools.foundation.orders import _fetch_linked_mo_done_dates
+
+    # Distinct done_date per id so we can detect mis-pairing.
+    dones = {
+        111: datetime(2026, 5, 1, 10, 0, tzinfo=UTC),
+        222: datetime(2026, 5, 1, 11, 0, tzinfo=UTC),
+        333: datetime(2026, 5, 1, 12, 0, tzinfo=UTC),
+        444: datetime(2026, 5, 1, 13, 0, tzinfo=UTC),
+    }
+
+    async def _get_mo(**kwargs):
+        return _mock_mo_response(done_date=dones[kwargs["id"]])
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(side_effect=_get_mo)
+
+    services = MagicMock()
+    services.client = MagicMock()
+
+    result = await _fetch_linked_mo_done_dates(services, set(dones.keys()))
+
+    # Every id must map to its own done_date, not another id's.
+    assert result == dones
+
+
+# --- MO branch -------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_mo_inventory_ordering_blocks_when_equal_to_so_picked():
+    """MO done_date == linked SO picked_date → BLOCK."""
+    context, lifespan_ctx = create_mock_context()
+    _wire_non_serial_tracked_cache(lifespan_ctx, variant_id=555, sku="PLAIN-IOM")
+
+    so_picked = datetime(2026, 5, 1, 20, 30, tzinfo=UTC)
+    mock_mo = _make_serial_tracked_mo(
+        order_no="MO-IO-EQ",
+        variant_id=555,
+        actual_quantity=1.0,
+        sales_order_id=900,
+    )
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+    from katana_public_api_client.api.sales_order import get_sales_order
+
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=MagicMock(status_code=200, parsed=mock_mo)
+    )
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=_mock_so_response(picked_date=so_picked)
+    )
+
+    request = FulfillOrderRequest(
+        order_id=1234,
+        order_type="manufacturing",
+        preview=True,
+        completed_at=so_picked,
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
+    inv_blocks = [w for w in block_warnings if "inventory_movements" in w]
+    assert len(inv_blocks) == 1
+    assert "linked sales order 900 picked_date" in inv_blocks[0]
+
+
+@pytest.mark.asyncio
+async def test_mo_inventory_ordering_blocks_when_after_so_picked():
+    """MO done_date > linked SO picked_date → BLOCK."""
+    context, lifespan_ctx = create_mock_context()
+    _wire_non_serial_tracked_cache(lifespan_ctx, variant_id=555, sku="PLAIN-IOM")
+
+    so_picked = datetime(2026, 5, 1, 20, 30, tzinfo=UTC)
+    mo_done = so_picked + timedelta(minutes=1)
+    mock_mo = _make_serial_tracked_mo(
+        order_no="MO-IO-AFT",
+        variant_id=555,
+        actual_quantity=1.0,
+        sales_order_id=900,
+    )
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+    from katana_public_api_client.api.sales_order import get_sales_order
+
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=MagicMock(status_code=200, parsed=mock_mo)
+    )
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=_mock_so_response(picked_date=so_picked)
+    )
+
+    request = FulfillOrderRequest(
+        order_id=1234,
+        order_type="manufacturing",
+        preview=True,
+        completed_at=mo_done,
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
+    assert any("inventory_movements" in w for w in block_warnings)
+
+
+@pytest.mark.asyncio
+async def test_mo_inventory_ordering_clean_when_before_so_picked():
+    """MO done_date < linked SO picked_date → no BLOCK (safe ordering)."""
+    context, lifespan_ctx = create_mock_context()
+    _wire_non_serial_tracked_cache(lifespan_ctx, variant_id=555, sku="PLAIN-IOM")
+
+    so_picked = datetime(2026, 5, 1, 20, 30, tzinfo=UTC)
+    mo_done = so_picked - timedelta(minutes=1)
+    mock_mo = _make_serial_tracked_mo(
+        order_no="MO-IO-OK",
+        variant_id=555,
+        actual_quantity=1.0,
+        sales_order_id=900,
+    )
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+    from katana_public_api_client.api.sales_order import get_sales_order
+
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=MagicMock(status_code=200, parsed=mock_mo)
+    )
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=_mock_so_response(picked_date=so_picked)
+    )
+
+    request = FulfillOrderRequest(
+        order_id=1234,
+        order_type="manufacturing",
+        preview=True,
+        completed_at=mo_done,
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert not [w for w in result.warnings if "inventory_movements" in w]
+
+
+@pytest.mark.asyncio
+async def test_mo_inventory_ordering_override_demotes_block_and_applies():
+    """acknowledge_inventory_ordering=True demotes BLOCK to non-BLOCK,
+    apply proceeds with the production POST firing exactly once.
+    """
+    context, lifespan_ctx = create_mock_context()
+    _wire_non_serial_tracked_cache(lifespan_ctx, variant_id=555, sku="PLAIN-IOM")
+
+    so_picked = datetime(2026, 5, 1, 20, 30, tzinfo=UTC)
+    mock_mo = _make_serial_tracked_mo(
+        order_no="MO-IO-ACK",
+        variant_id=555,
+        actual_quantity=1.0,
+        sales_order_id=900,
+    )
+    mock_done_mo = MagicMock(spec=ManufacturingOrder)
+    mock_done_mo.order_no = "MO-IO-ACK"
+    mock_done_mo.status = ManufacturingOrderStatus.DONE
+    mock_done_mo.sales_order_id = 900
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+    from katana_public_api_client.api.manufacturing_order_production import (
+        create_manufacturing_order_production,
+    )
+    from katana_public_api_client.api.sales_order import get_sales_order
+    from katana_public_api_client.models import ManufacturingOrderProduction
+
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        side_effect=[
+            MagicMock(status_code=200, parsed=mock_mo),
+            MagicMock(status_code=200, parsed=mock_done_mo),
+        ]
+    )
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=_mock_so_response(picked_date=so_picked)
+    )
+    mock_production = MagicMock(spec=ManufacturingOrderProduction)
+    mock_production.id = 9001
+    create_mock = AsyncMock(
+        return_value=MagicMock(status_code=200, parsed=mock_production)
+    )
+    cast(Any, create_manufacturing_order_production).asyncio_detailed = create_mock
+
+    request = FulfillOrderRequest(
+        order_id=1234,
+        order_type="manufacturing",
+        preview=False,
+        completed_at=so_picked,  # equal → would BLOCK without override
+        acknowledge_inventory_ordering=True,
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert result.status == "DONE"
+    create_mock.assert_called_once()
+    assert not [w for w in result.warnings if w.startswith("BLOCK:")]
+    assert any("WARNING (acknowledged):" in w for w in result.warnings)
+
+
+@pytest.mark.asyncio
+async def test_mo_inventory_ordering_silent_when_no_linked_so():
+    """MO with sales_order_id=None → guard silent (no linked SO to check)."""
+    context, lifespan_ctx = create_mock_context()
+    _wire_non_serial_tracked_cache(lifespan_ctx, variant_id=555, sku="PLAIN-IOM")
+
+    mock_mo = _make_serial_tracked_mo(
+        order_no="MO-IO-NOSO",
+        variant_id=555,
+        actual_quantity=1.0,
+        sales_order_id=None,
+    )
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+    from katana_public_api_client.api.sales_order import get_sales_order
+
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=MagicMock(status_code=200, parsed=mock_mo)
+    )
+    get_so_mock = AsyncMock()
+    cast(Any, get_sales_order).asyncio_detailed = get_so_mock
+
+    request = FulfillOrderRequest(
+        order_id=1234,
+        order_type="manufacturing",
+        preview=True,
+        completed_at=datetime(2026, 5, 1, 20, 30, tzinfo=UTC),
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert not [w for w in result.warnings if "inventory_movements" in w]
+    get_so_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_mo_inventory_ordering_silent_when_linked_so_picked_unset():
+    """Linked SO with picked_date=UNSET (not yet fulfilled) → guard silent
+    (the future SO fulfill will be subject to the SO-branch guard).
+    """
+    context, lifespan_ctx = create_mock_context()
+    _wire_non_serial_tracked_cache(lifespan_ctx, variant_id=555, sku="PLAIN-IOM")
+
+    mock_mo = _make_serial_tracked_mo(
+        order_no="MO-IO-SOUN",
+        variant_id=555,
+        actual_quantity=1.0,
+        sales_order_id=900,
+    )
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+    from katana_public_api_client.api.sales_order import get_sales_order
+    from katana_public_api_client.client_types import UNSET
+
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=MagicMock(status_code=200, parsed=mock_mo)
+    )
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=_mock_so_response(picked_date=UNSET)
+    )
+
+    request = FulfillOrderRequest(
+        order_id=1234,
+        order_type="manufacturing",
+        preview=True,
+        completed_at=datetime(2026, 5, 1, 20, 30, tzinfo=UTC),
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert not [w for w in result.warnings if "inventory_movements" in w]
+
+
+@pytest.mark.asyncio
+async def test_mo_inventory_ordering_silent_when_completed_at_is_none():
+    """MO completed_at=None (server-time) → guard silent."""
+    context, lifespan_ctx = create_mock_context()
+    _wire_non_serial_tracked_cache(lifespan_ctx, variant_id=555, sku="PLAIN-IOM")
+
+    mock_mo = _make_serial_tracked_mo(
+        order_no="MO-IO-SVR",
+        variant_id=555,
+        actual_quantity=1.0,
+        sales_order_id=900,
+    )
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+    from katana_public_api_client.api.sales_order import get_sales_order
+
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=MagicMock(status_code=200, parsed=mock_mo)
+    )
+    get_so_mock = AsyncMock()
+    cast(Any, get_sales_order).asyncio_detailed = get_so_mock
+
+    request = FulfillOrderRequest(
+        order_id=1234, order_type="manufacturing", preview=True
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert not [w for w in result.warnings if "inventory_movements" in w]
+    get_so_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_mo_inventory_ordering_apply_refuses_without_override():
+    """preview=False on a violating MO without override → refused, production
+    POST never fired (defense-in-depth: BLOCK propagates to apply gate).
+    """
+    context, lifespan_ctx = create_mock_context()
+    _wire_non_serial_tracked_cache(lifespan_ctx, variant_id=555, sku="PLAIN-IOM")
+
+    so_picked = datetime(2026, 5, 1, 20, 30, tzinfo=UTC)
+    mock_mo = _make_serial_tracked_mo(
+        order_no="MO-IO-REF",
+        variant_id=555,
+        actual_quantity=1.0,
+        sales_order_id=900,
+    )
+
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+    from katana_public_api_client.api.manufacturing_order_production import (
+        create_manufacturing_order_production,
+    )
+    from katana_public_api_client.api.sales_order import get_sales_order
+
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=MagicMock(status_code=200, parsed=mock_mo)
+    )
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(
+        return_value=_mock_so_response(picked_date=so_picked)
+    )
+    create_mock = AsyncMock()
+    cast(Any, create_manufacturing_order_production).asyncio_detailed = create_mock
+
+    request = FulfillOrderRequest(
+        order_id=1234,
+        order_type="manufacturing",
+        preview=False,
+        completed_at=so_picked,  # equal → BLOCK
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert "Refused" in result.message
+    create_mock.assert_not_called()
+
+
+# --- Helper unit tests -----------------------------------------------------
+
+
+def test_inventory_ordering_helper_so_silent_on_none_picked():
+    """Helper unit: so_picked_at=None → empty list, regardless of linked MOs."""
+    from katana_mcp.tools.foundation.orders import (
+        _build_inventory_ordering_warnings_so,
+    )
+
+    warnings = _build_inventory_ordering_warnings_so(
+        order_number="SO-X",
+        so_picked_at=None,
+        linked_mo_done_dates={555: datetime(2026, 5, 1, tzinfo=UTC)},
+        acknowledged=False,
+    )
+    assert warnings == []
+
+
+def test_inventory_ordering_helper_so_silent_on_empty_links():
+    """Helper unit: empty linked-MO map → empty list."""
+    from katana_mcp.tools.foundation.orders import (
+        _build_inventory_ordering_warnings_so,
+    )
+
+    warnings = _build_inventory_ordering_warnings_so(
+        order_number="SO-X",
+        so_picked_at=datetime(2026, 5, 1, tzinfo=UTC),
+        linked_mo_done_dates={},
+        acknowledged=False,
+    )
+    assert warnings == []
+
+
+def test_inventory_ordering_helper_mo_silent_on_unset_so_picked():
+    """Helper unit: linked_so_picked_at=None → empty list."""
+    from katana_mcp.tools.foundation.orders import (
+        _build_inventory_ordering_warnings_mo,
+    )
+
+    warnings = _build_inventory_ordering_warnings_mo(
+        order_number="MO-X",
+        mo_done_at=datetime(2026, 5, 1, tzinfo=UTC),
+        linked_so_id=900,
+        linked_so_picked_at=None,
+        acknowledged=False,
+    )
+    assert warnings == []
+
+
+def test_inventory_ordering_helper_mo_acknowledged_demotes_prefix():
+    """Helper unit: acknowledged=True swaps BLOCK: → WARNING (acknowledged):."""
+    from katana_mcp.tools.foundation.orders import (
+        _build_inventory_ordering_warnings_mo,
+    )
+
+    ts = datetime(2026, 5, 1, tzinfo=UTC)
+    warnings = _build_inventory_ordering_warnings_mo(
+        order_number="MO-X",
+        mo_done_at=ts,
+        linked_so_id=900,
+        linked_so_picked_at=ts,  # equal → would violate
+        acknowledged=True,
+    )
+    assert len(warnings) == 1
+    assert warnings[0].startswith("WARNING (acknowledged):")
+    assert not warnings[0].startswith("BLOCK:")
+
+
+def test_inventory_ordering_helper_override_clause_only_when_blocking():
+    """The "Pass acknowledge_inventory_ordering=true to override" instruction
+    only appears in the BLOCK variant — including it in the acknowledged
+    variant would be misleading (the override is already in effect)."""
+    from katana_mcp.tools.foundation.orders import (
+        _build_inventory_ordering_warnings_mo,
+        _build_inventory_ordering_warnings_so,
+    )
+
+    ts = datetime(2026, 5, 1, tzinfo=UTC)
+    override_phrase = "acknowledge_inventory_ordering=true to override"
+
+    so_blocking = _build_inventory_ordering_warnings_so(
+        order_number="SO-X",
+        so_picked_at=ts,
+        linked_mo_done_dates={555: ts},
+        acknowledged=False,
+    )
+    so_acknowledged = _build_inventory_ordering_warnings_so(
+        order_number="SO-X",
+        so_picked_at=ts,
+        linked_mo_done_dates={555: ts},
+        acknowledged=True,
+    )
+    mo_blocking = _build_inventory_ordering_warnings_mo(
+        order_number="MO-X",
+        mo_done_at=ts,
+        linked_so_id=900,
+        linked_so_picked_at=ts,
+        acknowledged=False,
+    )
+    mo_acknowledged = _build_inventory_ordering_warnings_mo(
+        order_number="MO-X",
+        mo_done_at=ts,
+        linked_so_id=900,
+        linked_so_picked_at=ts,
+        acknowledged=True,
+    )
+
+    assert override_phrase in so_blocking[0]
+    assert override_phrase not in so_acknowledged[0]
+    assert override_phrase in mo_blocking[0]
+    assert override_phrase not in mo_acknowledged[0]
