@@ -4498,7 +4498,8 @@ def _build_recipe_row_diff_view(
     - ``delete`` → ``kind="removed"`` with ``after=None``
     - ``update`` → ``kind="changed"`` when ``before != after``,
       ``kind="unchanged"`` when they match (the row was sent but the
-      field wasn't actually patched — surfaces as an empty-string cell)
+      field wasn't actually patched — the formatter renders the current
+      value rather than the noisy ``"N -> N"``).
 
     Returns ``None`` when the before/after pair has nothing to render
     (both unset and not an add/delete signal) so the caller can drop
@@ -4521,31 +4522,13 @@ def _build_recipe_row_diff_view(
     # still gets a diff if both sides are populated).
     if before is None and after is None:
         return None
-    if _diff_values_equal(before, after):
+    if before == after:
         return FieldChangeView(
             field=field, before=before, after=after, kind="unchanged", label=label
         )
     return FieldChangeView(
         field=field, before=before, after=after, kind="changed", label=label
     )
-
-
-def _diff_values_equal(before: Any, after: Any) -> bool:
-    """Equality check for diff-pair comparison.
-
-    Returns ``True`` when ``before == after`` directly, or — for two
-    same-length lists where top-level ``==`` returned ``False`` — when
-    every element pair compares equal individually. The list fallback
-    catches cases where iteration order or list identity differs but
-    members are structurally equal.
-    """
-    if before == after:
-        return True
-    if isinstance(before, list) and isinstance(after, list):
-        if len(before) != len(after):
-            return False
-        return all(b == a for b, a in zip(before, after, strict=True))
-    return False
 
 
 def _format_recipe_row_diff(
@@ -4560,15 +4543,22 @@ def _format_recipe_row_diff(
     for embedding in a DataTable cell. Output shapes:
 
     - ``change is None`` → ``""`` (no signal, empty cell).
-    - ``kind == "added"`` → ``"+ after"``.
-    - ``kind == "removed"`` → ``"- before"``.
+    - ``kind == "added"`` → ``"+ after"`` (or ``""`` when the formatter
+      returns an empty string — e.g. ``batch_transactions=[]`` — so the
+      optional column drop-out still kicks in).
+    - ``kind == "removed"`` → ``"- before"`` (same empty-cell rule).
     - ``kind == "unchanged"`` → ``"after"`` (the field rode along on the
       patch but didn't change — render the current value, not a no-op
       diff).
-    - ``kind == "changed"`` → ``"before -> after"`` (ASCII arrow, since
-      this string lands in a DataTable cell rather than a ``Text``
-      component, and the cell text is sometimes copy-pasted into ops
-      scripts where the unicode arrow is less ergonomic).
+    - ``kind == "changed"`` with ``before is None`` → ``"after"``. This
+      is the back-compat path for ``update`` ops emitted before the
+      ``before_*`` enricher landed: we don't know the prior value, so we
+      render only the after side rather than implying the prior was
+      actually unset (``"(unset) -> 4.0"``).
+    - ``kind == "changed"`` otherwise → ``"before -> after"`` (ASCII
+      arrow, since this string lands in a DataTable cell rather than a
+      ``Text`` component, and the cell text is sometimes copy-pasted
+      into ops scripts where the unicode arrow is less ergonomic).
 
     ``formatter`` overrides :func:`_format_diff_value` for value-side
     rendering — used to render ``batch_transactions`` and
@@ -4579,13 +4569,20 @@ def _format_recipe_row_diff(
         return ""
     fmt = formatter if formatter is not None else _format_diff_value
     if change.kind == "added":
-        return f"+ {fmt(change.after)}"
+        formatted = fmt(change.after)
+        return f"+ {formatted}" if formatted else ""
     if change.kind == "removed":
-        return f"- {fmt(change.before)}"
+        formatted = fmt(change.before)
+        return f"- {formatted}" if formatted else ""
     if change.kind == "unchanged":
         return fmt(change.after) if change.after is not None else fmt(change.before)
-    # ``changed``. ASCII arrow keeps the cell copy-paste friendly and
-    # sidesteps RUF001 entirely for this string-valued cell path.
+    # ``changed``. Back-compat: when the prior snapshot wasn't threaded
+    # through (``before is None``) for an ``update`` op, render only the
+    # after value — claiming the prior was ``(unset)`` is misleading.
+    if change.before is None:
+        return fmt(change.after)
+    # ASCII arrow keeps the cell copy-paste friendly and sidesteps RUF001
+    # entirely for this string-valued cell path.
     return f"{fmt(change.before)} -> {fmt(change.after)}"
 
 

@@ -3783,13 +3783,57 @@ class TestBuildBatchRecipeUpdateUI:
         assert "batch" not in column_keys
         assert "serials" not in column_keys
 
+    def test_empty_batch_or_serials_does_not_emit_prefix_only_cell(self):
+        """When ``batch_transactions=[]`` / ``serial_numbers=[]`` is on the
+        wire (e.g. a non-batch-tracked add that still sent an empty list
+        for shape consistency), the cell must render as ``""`` rather
+        than ``"+ "``. Otherwise the truthy prefix-only string keeps the
+        column visible with no meaningful content.
+        """
+        response = {
+            "is_preview": True,
+            "total_ops": 1,
+            "success_count": 0,
+            "failed_count": 0,
+            "skipped_count": 0,
+            "results": [
+                {
+                    "op_type": "add",
+                    "manufacturing_order_id": 9999,
+                    "variant_id": 200,
+                    "sku": "EMPTY-LISTS",
+                    "planned_quantity_per_unit": 1.0,
+                    "batch_transactions": [],
+                    "serial_numbers": [],
+                    "status": "pending",
+                    "group_label": "g1",
+                },
+            ],
+            "warnings": [],
+            "message": "preview",
+        }
+        app = build_batch_recipe_update_ui(response)
+        envelope = app.to_json()
+        rows = envelope["state"]["rows"]
+        assert rows[0]["batch"] == ""
+        assert rows[0]["serials"] == ""
+        # And the optional columns drop out since every cell is empty.
+        column_keys = {
+            c.get("key")
+            for tab in _walk_view_tree(envelope["view"])
+            if tab.get("type") == "DataTable"
+            for c in (tab.get("columns") or [])
+        }
+        assert "batch" not in column_keys
+        assert "serials" not in column_keys
+
     def test_update_with_no_prior_renders_just_after_value(self):
         """Back-compat: ops emitted before the ``before_*`` enrichment
         landed (no ``before_planned_quantity_per_unit`` on the wire) still
-        render — the diff cell shows just the after value for the
-        ``update`` shape (kind="changed" with before=None falls through
-        the ``_format_recipe_row_diff`` path that uses
-        ``_format_diff_value(None) == "(unset)"``).
+        render — the diff cell shows *only* the after value rather than
+        claiming the prior was actually unset (``"(unset) -> 4.0"``).
+        ``_format_recipe_row_diff`` special-cases ``kind="changed"`` with
+        ``before is None`` to render after-only.
         """
         response = {
             "is_preview": True,
@@ -3815,9 +3859,9 @@ class TestBuildBatchRecipeUpdateUI:
         app = build_batch_recipe_update_ui(response)
         _assert_valid_prefab(app)
         rows = app.to_json()["state"]["rows"]
-        # No before_* on the wire — the diff cell still renders the after
-        # value, just without a meaningful prior side.
-        assert "4.0" in rows[0]["qty"]
+        # No before_* on the wire — the diff cell renders the after value
+        # alone, with no ``(unset) -> `` prefix.
+        assert rows[0]["qty"] == "4.0"
 
     def test_delete_with_no_prior_renders_empty_qty_cell(self):
         """Back-compat: ``delete`` ops emitted without a captured
