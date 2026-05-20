@@ -677,8 +677,15 @@ async def _list_low_stock_items_impl(
         variant_ids = [variant_id for variant_id, _ in limited]
 
         catalog = services.typed_cache.catalog
+        # ``include_archived=True`` matches ``ensure_variants_synced``'s
+        # ingest semantics — archived variants live in the cache, so
+        # bulk-reading without the flag would force the per-ID fallback
+        # for every archived row in the low-stock set.
         cached_variants: dict[int, Any] = await catalog.get_many_by_ids(
-            CachedVariant, variant_ids, include_deleted=True
+            CachedVariant,
+            variant_ids,
+            include_archived=True,
+            include_deleted=True,
         )
 
         # Resolve cache misses in parallel via the per-variant API

@@ -1744,11 +1744,15 @@ def build_low_stock_ui(
             )
             return app
 
+        # All three Tier 2 metrics describe the rendered rows so the
+        # populations stay internally consistent — when ``total_count >
+        # len(items)`` (request.limit truncated the full set), the
+        # full count still surfaces on the Tier 1 badge above.
         # ``Critically low`` uses ``trendSentiment="negative"`` for the
         # destructive visual on stock-outs; Metric has no ``variant``
         # parameter like Badge does.
         with Row(gap=2):
-            Metric(label="Below threshold", value=str(total_count))
+            Metric(label="Below threshold", value=str(len(items)))
             Metric(
                 label="Critically low",
                 value=str(critically_low_count),
