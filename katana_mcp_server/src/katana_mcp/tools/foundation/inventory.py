@@ -616,7 +616,7 @@ class LowStockResponse(BaseModel):
     total_count: int
 
 
-@cache_read(CachedVariant)
+@cache_read(CachedVariant, CachedProduct, CachedMaterial, CachedSupplier)
 async def _list_low_stock_items_impl(
     request: LowStockRequest, context: Context
 ) -> LowStockResponse:
