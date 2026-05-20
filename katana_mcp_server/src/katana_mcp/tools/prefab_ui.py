@@ -3884,15 +3884,16 @@ def build_verification_ui(
     # to the Discrepant count instead. Both totals format through
     # :func:`_format_money` so the symbol + decimal precision tracks the
     # PO's transaction currency.
-    perfect_count = sum(1 for m in matches if m.get("status") == "perfect")
-    discrepant_count = len(discrepancies) + sum(
-        1 for m in matches if m.get("status") != "perfect"
-    )
-    matched_total = sum(
-        (m.get("quantity") or 0) * (m.get("unit_price") or 0)
-        for m in matches
-        if m.get("status") == "perfect"
-    )
+    perfect_count = 0
+    non_perfect_count = 0
+    matched_total = 0.0
+    for m in matches:
+        if m.get("status") == "perfect":
+            perfect_count += 1
+            matched_total += (m.get("quantity") or 0) * (m.get("unit_price") or 0)
+        else:
+            non_perfect_count += 1
+    discrepant_count = len(discrepancies) + non_perfect_count
     matched_total_formatted = _format_money(matched_total, currency)
     po_total_formatted = _format_money(po_total, currency)
 
@@ -3911,14 +3912,12 @@ def build_verification_ui(
                 label=overall_status.replace("_", " ").title(), variant=status_variant
             )
 
-        # Tier 2 — Decision metrics. The ``Discrepant`` metric flips to
-        # red (``trendSentiment="negative"``) when any discrepancy exists
-        # so the color tracks the at-a-glance health signal; Metric
-        # widgets don't expose a Badge-style ``variant`` kwarg —
-        # ``trendSentiment`` is the equivalent. We pass the JSON alias
-        # form here so static type checkers see the field (``Metric``'s
-        # ``__init__`` doesn't include the ``**kwargs: Any`` overload
-        # that ``Button`` uses for ``onClick``).
+        # Tier 2 — Decision metrics. ``Discrepant`` flips to red via
+        # ``trendSentiment="negative"`` (Metric's color hook — no
+        # Badge-style ``variant`` kwarg exists). The JSON alias form is
+        # required for static type-check: ``Metric`` lacks the
+        # ``**kwargs: Any`` overload that ``Button`` carries, so pyright
+        # only sees the alias name through pydantic's generated init.
         with Row(gap=2):
             Metric(label="Matched", value=str(perfect_count))
             Metric(
@@ -3992,7 +3991,7 @@ def build_verification_ui(
             if overall_status == "match":
                 Button(
                     label="Proceed to Receive",
-                    variant="default" if not katana_url else "outline",
+                    variant="outline" if katana_url else "default",
                     on_click=SendMessage(
                         f"Receive items for purchase order {order_id}"
                     ),
