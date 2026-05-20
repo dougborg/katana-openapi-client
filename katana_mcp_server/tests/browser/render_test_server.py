@@ -433,21 +433,83 @@ def _item_detail_app() -> PrefabApp:
 
 
 def _batch_recipe_update_app() -> PrefabApp:
-    """build_batch_recipe_update_ui with 5 sub-ops — exercises rows='{{ rows }}'."""
+    """build_batch_recipe_update_ui with mixed sub-ops — exercises the
+    per-row diff overlay (Qty / Batch / Serials columns) across all three
+    op_types (add / delete / update) including batch-tracked + serial-
+    tracked materials. See #557 for the design contract.
+    """
     response = {
         "is_preview": True,
+        "total_ops": 5,
+        "success_count": 0,
+        "failed_count": 0,
+        "skipped_count": 0,
         "message": "5 sub-ops planned",
         "warnings": [],
         "results": [
+            # Simple add — no batch / serial tracking.
             {
+                "op_type": "add",
                 "group_label": "Replace bolt with nut",
-                "sub_op": "delete",
-                "sku": f"SKU-OLD-{i}",
-                "qty": 1,
-                "status": "PENDING",
-                "error": None,
-            }
-            for i in range(5)
+                "manufacturing_order_id": 9999,
+                "variant_id": 200,
+                "sku": "SKU-NEW-NUT",
+                "display_name": "M6 nut / 1.0mm pitch / Stainless",
+                "planned_quantity_per_unit": 2.0,
+                "status": "pending",
+            },
+            # Delete with captured prior qty — exercises the "- N" shape.
+            {
+                "op_type": "delete",
+                "group_label": "Replace bolt with nut",
+                "manufacturing_order_id": 9999,
+                "recipe_row_id": 5001,
+                "variant_id": 100,
+                "sku": "SKU-OLD-BOLT",
+                "display_name": "M6 bolt / 25mm / Stainless",
+                "before_planned_quantity_per_unit": 2.0,
+                "status": "pending",
+            },
+            # Update with full diff — exercises the "before -> after" shape.
+            {
+                "op_type": "update",
+                "group_label": "Resize gasket",
+                "manufacturing_order_id": 9999,
+                "recipe_row_id": 5002,
+                "variant_id": 101,
+                "sku": "SKU-GASKET",
+                "display_name": "Rubber gasket / 30mm",
+                "before_planned_quantity_per_unit": 1.0,
+                "planned_quantity_per_unit": 4.0,
+                "status": "pending",
+            },
+            # Batch-tracked add — exercises the Batch column.
+            {
+                "op_type": "add",
+                "group_label": "Add batch-tracked ingredient",
+                "manufacturing_order_id": 9999,
+                "variant_id": 202,
+                "sku": "SKU-BATCH-MAT",
+                "display_name": "Premixed solvent / 1L",
+                "planned_quantity_per_unit": 50.0,
+                "batch_transactions": [
+                    {"batch_id": 42, "quantity": 30.0},
+                    {"batch_id": 51, "quantity": 20.0},
+                ],
+                "status": "pending",
+            },
+            # Serial-tracked add — exercises the Serials column.
+            {
+                "op_type": "add",
+                "group_label": "Add serial-tracked ingredient",
+                "manufacturing_order_id": 9999,
+                "variant_id": 203,
+                "sku": "SKU-SERIAL-MAT",
+                "display_name": "Motor controller / rev B",
+                "planned_quantity_per_unit": 2.0,
+                "serial_numbers": ["SN-001", "SN-002"],
+                "status": "pending",
+            },
         ],
     }
     return build_batch_recipe_update_ui(response)
