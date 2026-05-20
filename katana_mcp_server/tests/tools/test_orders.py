@@ -2221,6 +2221,69 @@ async def test_fulfill_manufacturing_order_preview_enriches_fulfilled_row():
 
 
 @pytest.mark.asyncio
+async def test_mo_card_renders_real_sku_starting_with_variant_prefix():
+    """Regression: real customer SKUs starting with ``"variant "`` (e.g.,
+    ``"variant-red"`` for a colour-keyed variant family, or
+    ``"variant 2 pack"`` for a multi-pack) must round-trip to the card
+    unmolested.
+
+    The earlier ``startswith("variant ")`` guard in
+    ``_build_fulfilled_row_manufacturing`` was meant to filter the
+    ``f"variant {id}"`` cache-miss sentinel — but that sentinel is only
+    injected at the resolution sites (``_resolve_row_serial_info`` /
+    ``_resolve_variant_serial_info``), so the strip was redundant *and*
+    blanked legitimate SKUs for any customer with the naming convention.
+    Pinned here so the bug can't silently regress.
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    mock_mo = MagicMock(spec=ManufacturingOrder)
+    mock_mo.order_no = "MO-VAR-PREFIX"
+    mock_mo.status = ManufacturingOrderStatus.IN_PROGRESS
+    mock_mo.variant_id = 777
+    mock_mo.actual_quantity = 2.0
+
+    mock_response = MagicMock(status_code=200, parsed=mock_mo)
+    from katana_public_api_client.api.manufacturing_order import (
+        get_manufacturing_order,
+    )
+
+    cast(Any, get_manufacturing_order).asyncio_detailed = AsyncMock(
+        return_value=mock_response
+    )
+
+    cached_variant = MagicMock()
+    cached_variant.id = 777
+    # Real customer SKU that *starts with* "variant " — must NOT be stripped.
+    cached_variant.sku = "variant-red"
+    cached_variant.display_name = "Premium Widget / Red"
+    cached_variant.product_id = None
+    cached_variant.material_id = None
+    cached_variant.config_attributes = []
+
+    async def _get_many(model_cls, ids, **_kw):
+        if model_cls is CachedVariant and 777 in set(ids):
+            return {777: cached_variant}
+        return {}
+
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(side_effect=_get_many)
+
+    request = FulfillOrderRequest(
+        order_id=4242, order_type="manufacturing", preview=True
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert len(result.fulfilled_rows) == 1
+    row = result.fulfilled_rows[0]
+    # The SKU must survive intact — the previous startswith guard would
+    # have nulled this and the card would have shown "variant {id}" instead
+    # of the real SKU.
+    assert row.sku == "variant-red"
+    assert row.display_name == "Premium Widget / Red"
+    assert row.variant_id == 777
+
+
+@pytest.mark.asyncio
 async def test_fulfill_manufacturing_order_confirm_carries_enrichment():
     """Success path rebuilds enrichment from the *post-mutation* MO so the
     success card reflects what Katana actually stamped (matters when the

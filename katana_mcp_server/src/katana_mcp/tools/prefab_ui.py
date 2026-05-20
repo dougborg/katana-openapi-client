@@ -3518,6 +3518,14 @@ def _render_inventory_updates(
             Text(content=f"  {update}")
 
 
+# Max serial IDs to render verbatim in the fulfill card's "Serials" column
+# before collapsing to a count. The DataTable column is sized for short
+# manufacturing-run serial blocks; longer lists (e.g., bulk SO fulfillments
+# with 50+ serials) would blow out the column width. The receipt card sibling
+# uses its own literal — convergence is tracked as a follow-up.
+_SERIAL_DISPLAY_THRESHOLD = 5
+
+
 def _build_fulfill_row_display(row: dict[str, Any]) -> dict[str, Any]:
     """Flatten one ``FulfilledRowInfo`` dict into DataTable-ready strings.
 
@@ -3528,8 +3536,9 @@ def _build_fulfill_row_display(row: dict[str, Any]) -> dict[str, Any]:
     - ``quantity`` renders via ``:g`` so ``5.0 -> '5'`` while preserving
       ``2.5``.
     - ``serial_numbers`` collapses the list to its count when it grows
-      past 5 (``[1, 2, ..., 99]`` would blow out the column width); short
-      lists render verbatim so the operator can sanity-check the IDs.
+      past :data:`_SERIAL_DISPLAY_THRESHOLD` (``[1, 2, ..., 99]`` would
+      blow out the column width); short lists render verbatim so the
+      operator can sanity-check the IDs.
     - ``row_total`` renders through :func:`_format_money` (USD fallback)
       so the column stays consistent across currencies. Empty string when
       the row carries no price (MO branch).
@@ -3539,7 +3548,7 @@ def _build_fulfill_row_display(row: dict[str, Any]) -> dict[str, Any]:
         serials = row.get("serial_numbers") or []
         if not serials:
             return ""
-        if len(serials) <= 5:
+        if len(serials) <= _SERIAL_DISPLAY_THRESHOLD:
             return ", ".join(str(s) for s in serials)
         return f"{len(serials)} serial(s)"
 

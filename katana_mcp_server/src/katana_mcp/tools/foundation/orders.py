@@ -775,23 +775,53 @@ def _build_fulfilled_rows_sales(
         except (TypeError, ValueError):
             ppu = None
         # Defensive coerce: qty should be a float on the wire, but test
-        # fixtures occasionally leave it as the default MagicMock.
-        qty_f: float = float(qty) if isinstance(qty, int | float) else 0.0
+        # fixtures occasionally leave it as the default MagicMock. Log a
+        # warning so a wire-format regression surfaces in observability
+        # instead of silently flowing through as 0.
+        if isinstance(qty, int | float):
+            qty_f: float = float(qty)
+        else:
+            logger.warning("Unexpected type for SO row quantity: %s", type(qty))
+            qty_f = 0.0
         row_total = ppu * qty_f if ppu is not None else None
         # Coerce non-string identity fields to None — a MagicMock leaking
         # through ``_resolve_row_serial_info`` (test fixtures that don't
         # set ``variant.display_name``) would otherwise trip the Pydantic
         # validator. The card falls back to SKU / variant id in that case.
+        # Log a warning at each coerce so a wire-format regression
+        # surfaces in observability instead of silently nulling.
         sku_raw = sku_by_row.get(rid)
         display_raw = display_name_by_row.get(rid)
+        if rid is not None and not isinstance(rid, int):
+            logger.warning("Unexpected type for SO row id: %s", type(rid))
+            row_id_safe: int | None = None
+        else:
+            row_id_safe = rid if isinstance(rid, int) else None
+        if vid is not None and not isinstance(vid, int):
+            logger.warning("Unexpected type for SO row variant_id: %s", type(vid))
+            variant_id_safe: int | None = None
+        else:
+            variant_id_safe = vid if isinstance(vid, int) else None
+        if sku_raw is not None and not isinstance(sku_raw, str):
+            logger.warning("Unexpected type for SO row sku: %s", type(sku_raw))
+            sku_for_row: str | None = None
+        else:
+            sku_for_row = sku_raw if isinstance(sku_raw, str) else None
+        if display_raw is not None and not isinstance(display_raw, str):
+            logger.warning(
+                "Unexpected type for SO row display_name: %s", type(display_raw)
+            )
+            display_for_row: str | None = None
+        else:
+            display_for_row = (
+                display_raw if isinstance(display_raw, str) and display_raw else None
+            )
         rows.append(
             FulfilledRowInfo(
-                row_id=rid if isinstance(rid, int) else None,
-                variant_id=vid if isinstance(vid, int) else None,
-                sku=sku_raw if isinstance(sku_raw, str) else None,
-                display_name=display_raw
-                if isinstance(display_raw, str) and display_raw
-                else None,
+                row_id=row_id_safe,
+                variant_id=variant_id_safe,
+                sku=sku_for_row,
+                display_name=display_for_row,
                 quantity=qty_f,
                 serial_numbers=serials,
                 batch_summary=batch_summary,
@@ -825,22 +855,44 @@ def _build_fulfilled_row_manufacturing(
     MOs track cost, not price, and the cost ledger lives on a separate
     surface. The card hides the Line Total column for MO branches.
     """
-    qty_f: float = (
-        float(actual_quantity) if isinstance(actual_quantity, int | float) else 1.0
-    )
-    # SKU resolution already coerces to ``f"variant {id}"`` on miss — keep
-    # the same sentinel here so the column doesn't show a bare integer.
+    if isinstance(actual_quantity, int | float):
+        qty_f: float = float(actual_quantity)
+    elif actual_quantity is not None:
+        logger.warning(
+            "Unexpected type for MO actual_quantity: %s", type(actual_quantity)
+        )
+        qty_f = 1.0
+    else:
+        qty_f = 1.0
     # Defensive coerce on string fields: test fixtures that miss the SKU
     # / display_name setup leak MagicMocks through ``_resolve_variant_
     # serial_info``; Pydantic's validator rejects those, so coerce to
-    # None and let the card fall back to ``variant {id}`` rendering.
-    sku_safe = sku if isinstance(sku, str) and not sku.startswith("variant ") else None
-    display_safe = (
-        display_name if isinstance(display_name, str) and display_name else None
-    )
+    # None and let the card fall back to ``variant {id}`` rendering. We
+    # *don't* strip the ``"variant {id}"`` fallback sentinel here — real
+    # customer SKUs starting with ``"variant "`` (e.g. ``"variant-red"``,
+    # ``"variant 2 pack"``) are legitimate, and silently blanking them
+    # would be data loss. Empty strings still fall through to ``None`` so
+    # the card's ``display_name or sku`` chain works. Log a warning at
+    # each coerce so a wire-format regression surfaces in observability
+    # instead of silently nulling.
+    if isinstance(sku, str):
+        sku_safe: str | None = sku or None
+    else:
+        logger.warning("Unexpected type for MO sku: %s", type(sku))
+        sku_safe = None
+    if isinstance(display_name, str):
+        display_safe: str | None = display_name or None
+    else:
+        logger.warning("Unexpected type for MO display_name: %s", type(display_name))
+        display_safe = None
+    if variant_id is not None and not isinstance(variant_id, int):
+        logger.warning("Unexpected type for MO variant_id: %s", type(variant_id))
+        variant_id_safe: int | None = None
+    else:
+        variant_id_safe = variant_id if isinstance(variant_id, int) else None
     return FulfilledRowInfo(
         row_id=None,
-        variant_id=variant_id if isinstance(variant_id, int) else None,
+        variant_id=variant_id_safe,
         sku=sku_safe,
         display_name=display_safe,
         quantity=qty_f,
@@ -1084,7 +1136,13 @@ async def _fulfill_sales_order(
     # fixture that forgot to stub ``.currency`` leaks a MagicMock through,
     # which Pydantic rejects on ``FulfilledRowInfo.currency``. Coerce
     # anything non-string to ``None`` so the response model validates.
-    currency = raw_currency if isinstance(raw_currency, str) else None
+    # Log a warning so a wire-format regression surfaces in observability
+    # instead of silently nulling.
+    if raw_currency is not None and not isinstance(raw_currency, str):
+        logger.warning("Unexpected type for SO currency: %s", type(raw_currency))
+        currency: str | None = None
+    else:
+        currency = raw_currency if isinstance(raw_currency, str) else None
     fulfilled_rows = _build_fulfilled_rows_sales(
         so_rows,
         overrides_by_row=overrides_by_row,

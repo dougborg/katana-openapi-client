@@ -1692,6 +1692,25 @@ Complete a manufacturing or sales order.
   `BLOCK:` warning at preview and refuses on direct apply (Katana would 422
   the request).
 
+**Returns:** Standard fulfillment envelope (`order_id`, `order_type`,
+`order_number`, `status`, `is_preview`, `inventory_updates`, `warnings`,
+`next_actions`, `message`) plus the Tier 2 metrics + Tier 3 per-row
+breakdown introduced in #553:
+- `fulfilled_rows`: Per-row breakdown — list of `{row_id, variant_id, sku,
+  display_name, quantity, serial_numbers, batch_summary, price_per_unit,
+  row_total, currency}`. For manufacturing orders this is always a single
+  synthesized row (the MO's finished good) with `row_id=None`; for sales
+  orders it's one entry per SO row.
+- `rows_count`: Count of fulfilled rows — equals SO row count for sales,
+  always `1` for manufacturing.
+- `total_quantity`: Sum of quantities across `fulfilled_rows`.
+- `total_value`: Sum of `row_total` across rows in the order's currency.
+  `None` when no row carries a price (manufacturing orders track cost,
+  not price).
+- `currency`: ISO 4217 currency code (sales orders only; `None` for MOs).
+- `katana_url`: Deep link to the order in the Katana web UI (drives the
+  Tier 4 "View in Katana" action on the success card).
+
 ---
 
 ## Stock Transfer Tools
