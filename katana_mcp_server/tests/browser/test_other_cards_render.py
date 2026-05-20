@@ -131,14 +131,29 @@ class TestOtherCardsRender:
 
     def test_batch_recipe_update_renders(self, render_scenario):
         """``build_batch_recipe_update_ui`` — rows='{{ rows }}' over 5
-        sub-ops grouped by ``group_label``.
+        mixed sub-ops grouped by ``group_label``, exercising the per-row
+        diff overlay (Qty / Batch / Serials columns) added by #557.
         """
         frame = render_scenario("batch_recipe_update")
         assert frame.locator("table").count() == 1
         # 5 sub-ops + header.
         assert frame.locator("table tr").count() >= 6
-        # SKU strings from the test fixture.
-        assert frame.locator("text=SKU-OLD-0").count() >= 1
+        # SKU strings from the test fixture — covers add, delete, update,
+        # and batch / serial-tracked variants.
+        assert frame.locator("text=SKU-NEW-NUT").count() >= 1
+        assert frame.locator("text=SKU-OLD-BOLT").count() >= 1
+        # Diff overlay rendering: ``+ N`` for adds, ``- N`` for deletes,
+        # ``before -> after`` for updates. Cell text uses ASCII arrow.
+        assert frame.locator("text=+ 2.0").count() >= 1
+        assert frame.locator("text=- 2.0").count() >= 1
+        # Update diff renders ``before -> after`` (the literal hyphen-arrow
+        # is split into multiple text nodes by the DataTable cell — match
+        # on a single half to confirm the cell content rendered).
+        assert frame.locator("text=1.0").count() >= 1
+        assert frame.locator("text=4.0").count() >= 1
+        # Optional columns surface when at least one row supplies a value.
+        assert frame.locator("text=batch 42x30").count() >= 1
+        assert frame.locator("text=SN-001").count() >= 1
 
 
 class TestDataTableRowClickBinding:
