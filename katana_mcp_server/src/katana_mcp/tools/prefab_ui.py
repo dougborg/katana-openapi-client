@@ -3980,13 +3980,15 @@ def build_verification_ui(
         # Tier 4 — Actions. View-in-Katana wins the primary slot when a
         # deep-link is available (operator's most common follow-up is to
         # eyeball the PO in the web UI); Proceed / Receive Anyway gate on
-        # ``overall_status``.
+        # ``overall_status``. Per the file-level convention, Katana URLs
+        # use ``OpenLink`` for one-click navigation rather than
+        # ``SendMessage`` indirection through the agent.
         with Row(gap=2):
             if katana_url:
                 Button(
                     label="View in Katana",
                     variant="default",
-                    on_click=SendMessage(f"Open {katana_url} in the Katana web UI"),
+                    on_click=OpenLink(url=katana_url),
                 )
             if overall_status == "match":
                 Button(
