@@ -3111,6 +3111,161 @@ class TestBuildVerificationUI:
         # contributes to ``matched_total``; PO total is $100.00.
         assert by_label["Totals reconciled"]["value"] == "$50.00 of $100.00"
 
+    def test_matched_total_falls_back_to_expected_unit_price(self):
+        """#554 — When the document omits ``unit_price`` (price check is
+        skipped, so the line still counts as ``perfect``), the matched
+        subtotal must fall back to the PO row's ``expected_unit_price``
+        instead of coercing ``None`` to ``0``. Coercing to zero
+        silently undercounts and shows ``$0.00 of $X.XX`` even when the
+        PO has a known price.
+        """
+        # Arrange — perfect-status match with doc-side ``unit_price=None``.
+        response = {
+            "overall_status": "match",
+            "order_id": 789,
+            "purchase_order": {"id": 789, "currency": "USD", "total": 50.0},
+            "matches": [
+                {
+                    "sku": "WIDGET-001",
+                    "display_name": "Acme Widget",
+                    "quantity": 10,
+                    "unit_price": None,
+                    "expected_quantity": 10,
+                    "expected_unit_price": 5.0,
+                    "status": "perfect",
+                }
+            ],
+            "discrepancies": [],
+        }
+
+        # Act
+        app = build_verification_ui(response)
+        envelope = app.to_json()
+
+        # Assert — 10 * 5.0 = $50.00 via expected_unit_price fallback.
+        metrics = _find_components_by_type(envelope, "Metric")
+        by_label = {m["label"]: m for m in metrics}
+        assert by_label["Totals reconciled"]["value"] == "$50.00 of $50.00"
+
+    def test_matched_total_skips_lines_with_no_price_on_either_side(self):
+        """#554 — When both ``unit_price`` and ``expected_unit_price`` are
+        missing, the line is skipped entirely — there's nothing to
+        reconcile against, and treating "unknown" as zero would
+        misleadingly drag down the matched subtotal.
+        """
+        # Arrange — one fully-priced perfect match + one perfect match
+        # with no price on either side.
+        response = {
+            "overall_status": "match",
+            "order_id": 789,
+            "purchase_order": {"id": 789, "currency": "USD", "total": 50.0},
+            "matches": [
+                {
+                    "sku": "WIDGET-001",
+                    "display_name": "Acme Widget",
+                    "quantity": 10,
+                    "unit_price": 5.0,
+                    "expected_quantity": 10,
+                    "expected_unit_price": 5.0,
+                    "status": "perfect",
+                },
+                {
+                    "sku": "WIDGET-002",
+                    "display_name": "Other Widget",
+                    "quantity": 4,
+                    "unit_price": None,
+                    "expected_quantity": 4,
+                    "expected_unit_price": None,
+                    "status": "perfect",
+                },
+            ],
+            "discrepancies": [],
+        }
+
+        # Act
+        app = build_verification_ui(response)
+        envelope = app.to_json()
+
+        # Assert — only the priced row contributes ($50.00); the
+        # unpriced row is skipped (does not drop the subtotal to $0).
+        metrics = _find_components_by_type(envelope, "Metric")
+        by_label = {m["label"]: m for m in metrics}
+        assert by_label["Totals reconciled"]["value"] == "$50.00 of $50.00"
+
+    def test_totals_reconciled_omitted_when_po_total_is_none(self):
+        """#554 — When ``purchase_order.total`` is ``None`` (Katana's
+        ``GetPurchaseOrderResponse.total`` is ``float | None``, and the
+        back-compat path drops ``purchase_order`` entirely so ``total``
+        resolves to ``None``), the Totals reconciled Metric is omitted
+        rather than rendering a misleading ``$X of $0.00``. The
+        remaining Metric widgets (Matched / Discrepant) still render
+        normally.
+        """
+        # Arrange — purchase_order is present but ``total`` is None.
+        response = {
+            "overall_status": "match",
+            "order_id": 789,
+            "purchase_order": {"id": 789, "currency": "USD", "total": None},
+            "matches": [
+                {
+                    "sku": "WIDGET-001",
+                    "display_name": "Acme Widget",
+                    "quantity": 10,
+                    "unit_price": 5.0,
+                    "expected_quantity": 10,
+                    "expected_unit_price": 5.0,
+                    "status": "perfect",
+                }
+            ],
+            "discrepancies": [],
+        }
+
+        # Act
+        app = build_verification_ui(response)
+        envelope = app.to_json()
+
+        # Assert — Matched + Discrepant present; Totals reconciled
+        # absent (would otherwise read ``$50.00 of $0.00``).
+        metrics = _find_components_by_type(envelope, "Metric")
+        labels = [m.get("label") for m in metrics]
+        assert "Matched" in labels
+        assert "Discrepant" in labels
+        assert "Totals reconciled" not in labels
+        assert len(metrics) == 2
+
+    def test_totals_reconciled_omitted_when_purchase_order_missing(self):
+        """#554 — Back-compat path: ``purchase_order`` block absent from
+        the response (older verify_order_document callers, or callers
+        constructing responses without the embedded PO). ``po_total``
+        resolves to ``None`` and the Totals Metric is omitted.
+        """
+        # Arrange — no ``purchase_order`` key at all.
+        response = {
+            "overall_status": "match",
+            "order_id": 789,
+            "matches": [
+                {
+                    "sku": "WIDGET-001",
+                    "display_name": "Acme Widget",
+                    "quantity": 10,
+                    "unit_price": 5.0,
+                    "expected_quantity": 10,
+                    "expected_unit_price": 5.0,
+                    "status": "perfect",
+                }
+            ],
+            "discrepancies": [],
+        }
+
+        # Act
+        app = build_verification_ui(response)
+        envelope = app.to_json()
+
+        # Assert
+        metrics = _find_components_by_type(envelope, "Metric")
+        labels = [m.get("label") for m in metrics]
+        assert labels == ["Matched", "Discrepant"]
+
     def test_matches_table_shows_po_side_columns_for_non_perfect_status(self):
         """#554 — Matches table renders Qty (doc) / Qty (PO) / Price (doc)
         / Price (PO) columns so the operator sees doc-vs-PO deltas

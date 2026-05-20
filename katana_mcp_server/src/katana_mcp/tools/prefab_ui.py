@@ -3851,10 +3851,15 @@ def build_verification_ui(
     Layout follows the #537 four-tier framework (#554):
 
     - **Tier 1 — Identity**: H3 title + PO badge + overall-status badge.
-    - **Tier 2 — Decision metrics**: three Metric widgets — Matched
-      count, Discrepant count (variant ``destructive`` when >0), and
-      Totals reconciled (``$matched_total of $po_total``) using
-      :func:`_format_money` with the PO's currency.
+    - **Tier 2 — Decision metrics**: two or three Metric widgets —
+      Matched count, Discrepant count (renders in red via
+      ``trendSentiment="negative"`` when >0 — ``Metric`` has no
+      Badge-style ``variant`` kwarg), and (when ``purchase_order.total``
+      is known) Totals reconciled (``$matched_total of $po_total``)
+      using :func:`_format_money` with the PO's currency. The Totals
+      Metric is omitted entirely when ``po_total is None`` (back-compat
+      path or PO with no recorded total) rather than showing a
+      misleading ``$0.00`` placeholder.
     - **Tier 3 — Reference data**: two DataTables with explicit
       doc-vs-PO side-by-side columns (Qty/Price doc vs PO on matches;
       Expected / Actual columns on discrepancies).
@@ -3884,18 +3889,41 @@ def build_verification_ui(
     # to the Discrepant count instead. Both totals format through
     # :func:`_format_money` so the symbol + decimal precision tracks the
     # PO's transaction currency.
+    #
+    # Price-fallback rule: ``_verify_order_document_impl`` skips the
+    # price-mismatch check when ``doc_item.unit_price is None`` (document
+    # omitted price), so a perfect-status match can still carry
+    # ``unit_price=None``. Coercing that to ``0`` would silently undercount
+    # the matched subtotal — e.g. ``$0.00 of $X.XX`` for a PO whose row
+    # actually has a known price. Fall back to ``expected_unit_price``
+    # (the PO row's ``price_per_unit``) when the document side is missing;
+    # if both are unknown the line is skipped entirely.
     perfect_count = 0
     non_perfect_count = 0
     matched_total = 0.0
     for m in matches:
         if m.get("status") == "perfect":
             perfect_count += 1
-            matched_total += (m.get("quantity") or 0) * (m.get("unit_price") or 0)
+            unit_price = m.get("unit_price")
+            if unit_price is None:
+                unit_price = m.get("expected_unit_price")
+            if unit_price is not None:
+                matched_total += (m.get("quantity") or 0) * unit_price
         else:
             non_perfect_count += 1
     discrepant_count = len(discrepancies) + non_perfect_count
+    # ``Totals reconciled`` is only rendered when the PO side has a known
+    # total. ``GetPurchaseOrderResponse.total`` is ``float | None`` and
+    # the back-compat path can omit ``purchase_order`` entirely; in
+    # either case ``_format_money(None, ...)`` would render ``$0.00`` and
+    # produce a misleading ``$X of $0.00`` metric. Skip the widget
+    # outright rather than show a fake zero — the operator can still
+    # spot-check against ``View in Katana``.
+    show_totals_reconciled = po_total is not None
     matched_total_formatted = _format_money(matched_total, currency)
-    po_total_formatted = _format_money(po_total, currency)
+    po_total_formatted = (
+        _format_money(po_total, currency) if show_totals_reconciled else ""
+    )
 
     with (
         PrefabApp(
@@ -3925,10 +3953,11 @@ def build_verification_ui(
                 value=str(discrepant_count),
                 trendSentiment="negative" if discrepant_count > 0 else "neutral",
             )
-            Metric(
-                label="Totals reconciled",
-                value=f"{matched_total_formatted} of {po_total_formatted}",
-            )
+            if show_totals_reconciled:
+                Metric(
+                    label="Totals reconciled",
+                    value=f"{matched_total_formatted} of {po_total_formatted}",
+                )
 
         # Tier 3 — Reference data.
         # Matches table — explicit Qty/Price (doc) vs Qty/Price (PO)
