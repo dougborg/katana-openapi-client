@@ -1713,8 +1713,8 @@ def build_low_stock_ui(
     action buttons — they reference nonexistent items — and renders a
     friendly "all clear" hint instead.
     """
-    # Tier 2 metric inputs — derived from the row set rather than the
-    # impl, so the builder stays self-contained for testing.
+    # Tier 2 metric inputs — derived from the row set so the builder
+    # stays self-contained for testing.
     critically_low_count = sum(1 for item in items if item.get("current_stock") == 0)
     supplier_count = len(
         {sid for item in items if (sid := item.get("default_supplier_id")) is not None}
@@ -1744,10 +1744,9 @@ def build_low_stock_ui(
             )
             return app
 
-        # Tier 2 — at-a-glance restock metrics. ``critically_low`` uses
-        # ``trendSentiment="negative"`` for the destructive visual when
-        # there's at least one stock-out; Metric doesn't expose a
-        # ``variant`` parameter the way Badge does.
+        # ``Critically low`` uses ``trendSentiment="negative"`` for the
+        # destructive visual on stock-outs; Metric has no ``variant``
+        # parameter like Badge does.
         with Row(gap=2):
             Metric(label="Below threshold", value=str(total_count))
             Metric(
@@ -1757,10 +1756,9 @@ def build_low_stock_ui(
             )
             Metric(label="Suppliers involved", value=str(supplier_count))
 
-        # Tier 3 — enriched DataTable. Column order follows the
-        # decision sequence: identify the item (name, SKU, UoM), see
-        # the depletion signal (in stock vs threshold), then act
-        # (lead time + supplier + MOQ).
+        # Column order follows the decision sequence: identify (name,
+        # SKU, UoM), see the depletion signal (stock vs threshold),
+        # then act (lead time + supplier + MOQ).
         DataTable(
             columns=[
                 DataTableColumn(key="display_name", header="Item", sortable=True),
@@ -1791,9 +1789,6 @@ def build_low_stock_ui(
             paginated=True,
         )
 
-        # Tier 4 — actions. Restock kicks off the PO flow; Check
-        # Inventory is the obvious diagnostic next step when the
-        # numbers look surprising.
         with Row(gap=2):
             Button(
                 label="Create Restock Orders",
