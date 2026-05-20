@@ -43,6 +43,9 @@ from katana_public_api_client.models.get_all_inventory_movements_resource_type i
 )
 from katana_public_api_client.models_pydantic._generated import (
     CachedLocation,
+    CachedMaterial,
+    CachedProduct,
+    CachedSupplier,
     CachedVariant,
 )
 from katana_public_api_client.utils import unwrap_data
@@ -578,12 +581,32 @@ class LowStockRequest(BaseModel):
 
 
 class LowStockItem(BaseModel):
-    """Low stock item information."""
+    """Low stock item information.
+
+    Carries the fields the four-tier card surface needs (#537 / #550):
+    the rendered ``display_name`` and a ``variant_id`` drill-in key, plus
+    enrichment from the parent product/material (``uom``,
+    ``default_supplier_id``, ``default_supplier_name``) and per-variant
+    procurement signals (``lead_time_days``, ``minimum_order_quantity``).
+
+    ``lead_time`` and ``minimum_order_quantity`` are sourced from
+    ``CachedVariant`` — they exist on the variant for both product- and
+    material-parented variants. The parent's ``lead_time`` (products only;
+    materials don't carry one) is not used here so the field is uniform
+    across both parent types.
+    """
 
     sku: str
     product_name: str
     current_stock: float
     threshold: int
+    display_name: str | None = None
+    variant_id: int
+    uom: str | None = None
+    lead_time_days: int | None = None
+    default_supplier_id: int | None = None
+    default_supplier_name: str | None = None
+    minimum_order_quantity: float | None = None
 
 
 class LowStockResponse(BaseModel):
@@ -656,27 +679,95 @@ async def _list_low_stock_items_impl(
         limited = low_stock[: request.limit]
         variant_ids = [variant_id for variant_id, _ in limited]
 
-        cached_variants: dict[
-            int, Any
-        ] = await services.typed_cache.catalog.get_many_by_ids(
+        catalog = services.typed_cache.catalog
+        cached_variants: dict[int, Any] = await catalog.get_many_by_ids(
             CachedVariant, variant_ids, include_deleted=True
+        )
+
+        # Resolve any cache misses with the per-variant API fallback
+        # before the bulk parent/supplier fetches, so the parent ID
+        # collection is complete even on a cold cache.
+        resolved_variants: dict[int, Any] = {}
+        for variant_id in variant_ids:
+            variant: Any = cached_variants.get(variant_id)
+            if variant is None:
+                variant = await _fetch_variant_by_id(services, variant_id)
+            resolved_variants[variant_id] = variant
+
+        # Bulk-fetch parent products + materials. IDs are split by
+        # parent kind because product and material IDs aren't globally
+        # unique — see ``_enrich_variants_with_parent`` for the same
+        # pattern in items.py.
+        product_ids = {
+            pid for v in resolved_variants.values() if (pid := _attr(v, "product_id"))
+        }
+        material_ids = {
+            mid for v in resolved_variants.values() if (mid := _attr(v, "material_id"))
+        }
+        products_by_id, materials_by_id = await asyncio.gather(
+            catalog.get_many_by_ids(
+                CachedProduct,
+                product_ids,
+                include_archived=True,
+                include_deleted=True,
+            ),
+            catalog.get_many_by_ids(
+                CachedMaterial,
+                material_ids,
+                include_archived=True,
+                include_deleted=True,
+            ),
+        )
+
+        # Build a variant_id → parent map for fast lookup in the row
+        # construction loop below.
+        parent_by_variant_id: dict[int, Any] = {}
+        for variant_id, v in resolved_variants.items():
+            pid = _attr(v, "product_id")
+            mid = _attr(v, "material_id")
+            if (pid and (parent := products_by_id.get(pid)) is not None) or (
+                mid and (parent := materials_by_id.get(mid)) is not None
+            ):
+                parent_by_variant_id[variant_id] = parent
+
+        # Bulk-resolve supplier names from the parent rows. Usually a
+        # small unique set — most low-stock results share suppliers.
+        supplier_ids = {
+            sid
+            for parent in parent_by_variant_id.values()
+            if (sid := _attr(parent, "default_supplier_id"))
+        }
+        supplier_by_id = await catalog.get_many_by_ids(
+            CachedSupplier, supplier_ids, include_deleted=True
         )
 
         items: list[LowStockItem] = []
         for variant_id, total in limited:
-            variant: Any = cached_variants.get(variant_id)
-            if variant is None:
-                variant = await _fetch_variant_by_id(services, variant_id)
+            variant = resolved_variants.get(variant_id)
             sku = _attr(variant, "sku") or ""
-            product_name = (
+            display_name = (
                 _attr(variant, "display_name") or _attr(variant, "name") or ""
+            )
+            parent = parent_by_variant_id.get(variant_id)
+            default_supplier_id = _attr(parent, "default_supplier_id")
+            supplier = (
+                supplier_by_id.get(default_supplier_id)
+                if default_supplier_id is not None
+                else None
             )
             items.append(
                 LowStockItem(
                     sku=sku,
-                    product_name=product_name,
+                    product_name=display_name,
                     current_stock=total,
                     threshold=request.threshold,
+                    display_name=display_name or None,
+                    variant_id=variant_id,
+                    uom=_attr(parent, "uom"),
+                    lead_time_days=_attr(variant, "lead_time"),
+                    default_supplier_id=default_supplier_id,
+                    default_supplier_name=_attr(supplier, "name"),
+                    minimum_order_quantity=_attr(variant, "minimum_order_quantity"),
                 )
             )
 
