@@ -670,6 +670,86 @@ async def test_verify_order_document_perfect_match():
     assert "All items verified successfully" in result.suggested_actions[0]
 
 
+@pytest.mark.asyncio
+async def test_verify_order_document_perfect_match_expected_values_equal_actual():
+    """#554 invariant — on a perfect match, the PO-side ``expected_*``
+    fields on ``MatchResult`` equal the document-side actual values.
+
+    This pins the contract the verification card depends on: when status
+    is ``perfect``, the Qty (doc) / Qty (PO) and Price (doc) / Price
+    (PO) columns render the same value.
+    """
+    # Arrange
+    context, lifespan_ctx = create_mock_context()
+    po_rows = [create_mock_po_row(variant_id=1, quantity=100.0, price=25.50)]
+    mock_po = create_mock_po(order_id=1234, order_no="PO-001", rows=po_rows)
+    mock_po_response = MagicMock()
+    mock_po_response.status_code = 200
+    mock_po_response.parsed = mock_po
+    mock_variants = [create_mock_variant(variant_id=1, sku="WIDGET-001")]
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_po_response
+    )
+    stub_variant_cache(lifespan_ctx, mock_variants)
+    request = VerifyOrderDocumentRequest(
+        order_id=1234,
+        document_items=[
+            DocumentItem(sku="WIDGET-001", quantity=100.0, unit_price=25.50),
+        ],
+    )
+
+    # Act
+    result = await _verify_order_document_impl(request, context)
+
+    # Assert
+    match = result.matches[0]
+    assert match.status == "perfect"
+    assert match.quantity == match.expected_quantity == 100.0
+    assert match.unit_price == match.expected_unit_price == 25.50
+
+
+@pytest.mark.asyncio
+async def test_verify_order_document_match_result_captures_expected_values_from_po_row():
+    """#554 — ``MatchResult.expected_quantity`` / ``expected_unit_price``
+    come from the PO row regardless of the document-side values.
+
+    Uses a quantity-and-price mismatch so the doc-side values and
+    PO-side values differ; both pairs must be populated independently.
+    """
+    # Arrange
+    context, lifespan_ctx = create_mock_context()
+    po_rows = [create_mock_po_row(variant_id=1, quantity=100.0, price=25.50)]
+    mock_po = create_mock_po(order_id=1234, order_no="PO-001", rows=po_rows)
+    mock_po_response = MagicMock()
+    mock_po_response.status_code = 200
+    mock_po_response.parsed = mock_po
+    mock_variants = [create_mock_variant(variant_id=1, sku="WIDGET-001")]
+    cast(Any, api_get_purchase_order).asyncio_detailed = AsyncMock(
+        return_value=mock_po_response
+    )
+    stub_variant_cache(lifespan_ctx, mock_variants)
+    # Document quantity and price both diverge from PO.
+    request = VerifyOrderDocumentRequest(
+        order_id=1234,
+        document_items=[
+            DocumentItem(sku="WIDGET-001", quantity=90.0, unit_price=30.00),
+        ],
+    )
+
+    # Act
+    result = await _verify_order_document_impl(request, context)
+
+    # Assert
+    match = result.matches[0]
+    assert match.status == "both_diff"
+    # Document-side values stay on ``quantity`` / ``unit_price``.
+    assert match.quantity == 90.0
+    assert match.unit_price == 30.00
+    # PO-side values land on ``expected_*``.
+    assert match.expected_quantity == 100.0
+    assert match.expected_unit_price == 25.50
+
+
 # ============================================================================
 # Unit Tests - Quantity Discrepancies
 # ============================================================================
