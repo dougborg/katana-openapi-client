@@ -50,7 +50,33 @@ from functools import cache
 from pathlib import Path
 from typing import Any
 
-import httpx
+from scripts._safety import (
+    SafeClient,
+    SilentDropError,
+    UnsafeMutationError,
+    discover_sdt_fixture,
+    verify_production_serial_numbers_match,
+)
+
+__all__ = [
+    "BASE_URL",
+    "LEDGER_PATH",
+    "SDT_PREFIX",
+    "LedgerRow",
+    "SafeClient",
+    "SilentDropError",
+    "UnsafeMutationError",
+    "cleanup",
+    "discover_sdt_fixture",
+    "format_422",
+    "label",
+    "make_client",
+    "pp_response",
+    "read_ledger",
+    "record_artifact",
+    "tagged",
+    "verify_production_serial_numbers_match",
+]
 
 # Date-stamped prefix so concurrent runs on different days don't collide
 # and so a glance at any tagged record reveals when it was created.
@@ -100,18 +126,91 @@ def _api_key() -> str:
     return key
 
 
-def make_client() -> httpx.Client:
-    """Build a bearer-auth httpx client pointed at the live Katana API.
+def _initial_ledger_keys() -> set[tuple[str, str]]:
+    """Build the in-memory ``(endpoint, entity_id)`` set from the on-disk ledger.
+
+    **Tenant-scoped, fail-closed.** A row is admitted only when both
+    ``base_url`` and ``factory_id`` are present AND match the current
+    credential's tenant. The pre-fingerprint era admitted unscoped rows
+    on the theory that the per-mutation pre-fetch + identity check was
+    a sufficient final layer — but that doesn't hold for ledger-only
+    guard paths: ``NO_GET_BY_ID`` endpoints (e.g. ``/stock_transfers``)
+    skip the pre-fetch entirely, and child POSTs that vet only the
+    parent's ledger membership (e.g. ``POST
+    /manufacturing_order_productions`` against a parent MO) have no
+    per-record identity check on the target. Admitting an unscoped row
+    on those paths would let a stale cross-tenant entry act as an
+    allow-list bypass.
+
+    The cost is that older ledger files (written before fingerprinting
+    landed) won't restore on the next run; the probe re-mints SDT
+    artifacts and the new rows carry the fingerprint. Cleanup pairs
+    this with its own tenant filter so cross-tenant rows aren't deleted
+    either.
+
+    Read once at ``SafeClient`` construction; subsequent
+    ``record_artifact`` calls keep both the file and the client's
+    in-memory copy in sync via ``SafeClient.register_artifact``.
+    """
+    keys: set[tuple[str, str]] = set()
+    current_factory_id = _resolve_factory_id()
+    for row in read_ledger():
+        endpoint = row.get("endpoint")
+        entity_id = row.get("entity_id")
+        if endpoint is None or entity_id is None:
+            continue
+        row_base = row.get("base_url")
+        row_factory = row.get("factory_id")
+        # Fail closed on pre-fingerprint rows: with no tenant signal we
+        # can't prove they belong to the current credential.
+        if row_base is None or row_factory is None:
+            continue
+        # Tenant fingerprint must match exactly. Any divergence means a
+        # different tenant; refuse to seed the ledger from foreign rows.
+        if row_base != BASE_URL:
+            continue
+        if current_factory_id is None or row_factory != current_factory_id:
+            continue
+        keys.add((str(endpoint), str(entity_id)))
+    return keys
+
+
+# Process-local registry of every SafeClient ``make_client`` has handed
+# out. ``record_artifact`` walks this list to keep each open client's
+# in-memory ledger fresh as the run creates new artifacts. Weak-ref-free
+# because probes hold their client open for the whole run; the small
+# leak (one entry per ``with make_client()`` block) is bounded.
+_LIVE_CLIENTS: list[SafeClient] = []
+
+
+def make_client(*, allow_unsafe: bool = False) -> SafeClient:
+    """Build a bearer-auth ``SafeClient`` pointed at the live Katana API.
 
     Shared by every probe script so they all hit the same base URL with
-    the same auth header and timeout. Bails with exit-2 when
-    ``KATANA_API_KEY`` is missing.
+    the same auth header and timeout. The returned client refuses any
+    ``POST`` / ``PATCH`` / ``DELETE`` whose target doesn't carry the
+    SDT- prefix or doesn't appear in the local ledger (see
+    ``scripts/_safety.py``). Bails with exit-2 when ``KATANA_API_KEY``
+    is missing.
+
+    ``allow_unsafe=True`` bypasses every check — reserved for cleanup
+    paths where the ledger has already pre-vetted the target and for
+    read-only internal helpers like ``_resolve_factory_id``. When set,
+    ledger initialization is skipped entirely: the guard isn't engaged,
+    so the (potentially expensive, factory-id-resolving) read is wasted
+    work, and skipping breaks the bootstrap chicken-and-egg where
+    ``_initial_ledger_keys`` itself calls ``_resolve_factory_id`` which
+    needs a SafeClient to GET ``/factory``.
     """
-    return httpx.Client(
+    client = SafeClient(
         base_url=BASE_URL,
         headers={"Authorization": f"Bearer {_api_key()}"},
         timeout=30.0,
+        allow_unsafe=allow_unsafe,
+        ledger_keys=set() if allow_unsafe else _initial_ledger_keys(),
     )
+    _LIVE_CLIENTS.append(client)
+    return client
 
 
 def format_422(response: Any) -> str:
@@ -188,19 +287,23 @@ class LedgerRow:
 
 
 @cache
-def _resolve_factory_id() -> int | None:
-    """Look up the active credential's ``Factory.factory_id`` once.
+def _factory_id_for_key(api_key: str) -> int | None:
+    """Inner GET /factory lookup, cached on ``api_key`` so a key rotation
+    busts the cache naturally. Callers must reach this through
+    ``_resolve_factory_id()``, which reads the current env key on every
+    call and routes here; never call this directly with a stale key.
 
-    ``@cache`` memoizes the result so the ``record_artifact`` fast path
-    doesn't hit ``GET /factory`` for every artifact. Returns ``None`` on
-    lookup failure; on the record side, the ledger row simply has no
-    fingerprint (cleanup proceeds with only the URL check for those
-    rows). On the cleanup side, ``None`` is treated as "tenant
-    unverifiable" — rows that *do* carry a stored ``factory_id`` are
-    refused rather than delete-anyway-and-hope.
-    """
+    Note: ``api_key`` is consumed by ``lru_cache`` as the cache key.
+    The function body doesn't reference it (``make_client`` re-reads
+    ``KATANA_API_KEY`` from env, which is correct because the env is
+    always the fresh value at cache-miss time)."""
+    del api_key  # used as the lru_cache key only; see docstring
     try:
-        with make_client() as client:
+        # ``allow_unsafe=True``: read-only GET, no need to engage the
+        # mutation guard (which also has a startup cost from reading the
+        # ledger). This call is the *guard's own dependency* in some
+        # paths — keep it cheap and side-effect-free.
+        with make_client(allow_unsafe=True) as client:
             data = client.get("/factory").json()
     except Exception:
         return None
@@ -209,6 +312,25 @@ def _resolve_factory_id() -> int | None:
         if isinstance(fid, int):
             return fid
     return None
+
+
+def _resolve_factory_id() -> int | None:
+    """Look up the active credential's ``Factory.factory_id`` once per key.
+
+    Reads ``KATANA_API_KEY`` fresh on every call and dispatches to
+    ``_factory_id_for_key``, which memoizes on the key value. So the
+    ``record_artifact`` fast path doesn't hit ``GET /factory`` for every
+    artifact, AND an API-key rotation mid-process busts the cache
+    naturally (closing the cross-tenant trap where a stale factory_id
+    would be matched against fresh-tenant ledger rows).
+
+    Returns ``None`` on lookup failure; on the record side, the ledger
+    row simply has no fingerprint (cleanup proceeds with only the URL
+    check for those rows). On the cleanup side, ``None`` is treated as
+    "tenant unverifiable" — rows that *do* carry a stored ``factory_id``
+    are refused rather than delete-anyway-and-hope.
+    """
+    return _factory_id_for_key(_api_key())
 
 
 def record_artifact(
@@ -237,6 +359,12 @@ def record_artifact(
     LEDGER_PATH.parent.mkdir(parents=True, exist_ok=True)
     with LEDGER_PATH.open("a") as f:
         f.write(row.to_json() + "\n")
+    # Keep every open SafeClient's in-memory ledger fresh so subsequent
+    # PATCH/DELETE against this freshly-created record bypass the
+    # pre-fetch round-trip via the ledger-membership fast path.
+    for client in _LIVE_CLIENTS:
+        if not client.is_closed:
+            client.register_artifact(endpoint, entity_id)
     return row
 
 
@@ -281,7 +409,11 @@ def cleanup(*, dry_run: bool = False) -> int:
     deleted: list[dict[str, Any]] = []
     skipped_tenant: list[dict[str, Any]] = []
     current_factory_id = _resolve_factory_id()
-    with make_client() as client:
+    # ``allow_unsafe=True``: cleanup deliberately mutates ledger-recorded
+    # rows that the harness itself created. Each row already passed the
+    # factory/base_url tenant-fingerprint guard above, and the SafeClient
+    # mutation guard would just re-check the same thing.
+    with make_client(allow_unsafe=True) as client:
         for r in reversed(pending):
             row_base = r.get("base_url")
             row_factory = r.get("factory_id")
