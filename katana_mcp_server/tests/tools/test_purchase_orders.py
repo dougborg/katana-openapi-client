@@ -1114,7 +1114,16 @@ async def test_verify_order_document_po_not_found():
 
 @pytest.mark.asyncio
 async def test_verify_order_document_unset_values():
-    """Test verification with UNSET values in PO data."""
+    """#554 — UNSET PO row values surface as ``None`` (not ``0.0``).
+
+    PO ``quantity`` / ``price_per_unit`` are optional in the schema. When
+    the PO row omits them, the matcher must NOT coerce-to-zero — that
+    would (1) silently misrepresent "unknown" as zero in the
+    ``expected_*`` response fields the verification card renders, and
+    (2) generate false QUANTITY_MISMATCH discrepancies against non-zero
+    document quantities. Comparisons skip when the PO side is missing,
+    mirroring the existing doc-side price-is-None skip.
+    """
     context, lifespan_ctx = create_mock_context()
 
     # Mock PO row with UNSET values — start from create_mock_po_row so the
@@ -1145,15 +1154,25 @@ async def test_verify_order_document_unset_values():
 
     result = await _verify_order_document_impl(request, context)
 
-    # Should handle UNSET by defaulting to 0
     assert result.order_id == 1234
-    # Quantity mismatch because PO has 0 (from UNSET)
-    assert len(result.discrepancies) >= 1
+    # No false QUANTITY_MISMATCH / PRICE_MISMATCH against missing PO values.
     qty_disc = [
         d for d in result.discrepancies if d.type == DiscrepancyType.QUANTITY_MISMATCH
     ]
-    if qty_disc:
-        assert qty_disc[0].expected == 0.0
+    price_disc = [
+        d for d in result.discrepancies if d.type == DiscrepancyType.PRICE_MISMATCH
+    ]
+    assert qty_disc == []
+    assert price_disc == []
+    # ``expected_*`` carry through as ``None`` so the card cell renders empty
+    # rather than displaying a misleading "0.00".
+    assert len(result.matches) == 1
+    match = result.matches[0]
+    assert match.expected_quantity is None
+    assert match.expected_unit_price is None
+    # Document-side values are still echoed back unchanged.
+    assert match.quantity == 100.0
+    assert match.unit_price == 25.50
 
 
 @pytest.mark.asyncio

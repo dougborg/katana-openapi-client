@@ -1524,12 +1524,18 @@ class MatchResult(BaseModel):
     so the verification card can render side-by-side comparison columns
     without rummaging through the embedded ``purchase_order`` for the PO
     row. On a ``"perfect"`` status the document-side and PO-side
-    quantities are equal; the prices are equal **only when the document
-    provided a price** — when ``unit_price`` is ``None`` the price check
-    is skipped (status can still be ``"perfect"``) and
-    ``expected_unit_price`` carries the PO row's price unchanged. The
-    pairs diverge on the other statuses (``quantity_diff`` /
-    ``price_diff`` / ``both_diff``).
+    quantities are equal **only when both sides provided a quantity** —
+    when ``expected_quantity`` is ``None`` (the underlying
+    ``PurchaseOrderRow.quantity`` was ``Unset``) the quantity check is
+    skipped (status can still be ``"perfect"``). The same rule applies
+    to prices: they are equal **only when both sides provided a
+    price** — when either ``unit_price`` or ``expected_unit_price`` is
+    ``None`` the price check is skipped (status can still be
+    ``"perfect"``). PO-side fields propagate ``None`` when the
+    underlying ``PurchaseOrderRow`` value is ``Unset``; the card
+    renders these as empty cells rather than misleading ``0.00``
+    placeholders. The pairs diverge on the other statuses
+    (``quantity_diff`` / ``price_diff`` / ``both_diff``).
     """
 
     sku: str = Field(..., description="Item SKU")
@@ -1887,16 +1893,25 @@ async def _verify_order_document_impl(
                 continue
 
             row, display_name = sku_to_row[doc_item.sku]
-            row_qty = unwrap_unset(row.quantity, 0.0)
-            row_price = unwrap_unset(row.price_per_unit, 0.0)
+            # PO row's ``quantity`` / ``price_per_unit`` are optional in the
+            # OpenAPI schema (``Unset`` in the generated model). Preserve
+            # ``None`` rather than coercing missing-to-zero — propagating
+            # ``0.0`` would (1) silently misrepresent "unknown" as zero in
+            # the new ``expected_*`` response fields the card renders, and
+            # (2) generate false QUANTITY_MISMATCH discrepancies against
+            # non-zero document quantities. Comparisons skip when the PO
+            # side is missing, mirroring how the doc-side price check skips
+            # when ``doc_item.unit_price is None``.
+            row_qty: float | None = unwrap_unset(row.quantity, None)
+            row_price: float | None = unwrap_unset(row.price_per_unit, None)
 
             # Track match status and discrepancies
             has_qty_mismatch = False
             has_price_mismatch = False
 
-            # Check quantity match
+            # Check quantity match — skip when PO row has no quantity.
             if (
-                abs(doc_item.quantity - row_qty) > 0.01
+                row_qty is not None and abs(doc_item.quantity - row_qty) > 0.01
             ):  # Small tolerance for float comparison
                 has_qty_mismatch = True
                 discrepancies.append(
@@ -1910,9 +1925,10 @@ async def _verify_order_document_impl(
                     )
                 )
 
-            # Check price match if provided
+            # Check price match — skip when either side is missing.
             if (
                 doc_item.unit_price is not None
+                and row_price is not None
                 and abs(doc_item.unit_price - row_price) > 0.01
             ):
                 has_price_mismatch = True
