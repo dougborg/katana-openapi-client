@@ -3041,6 +3041,271 @@ class TestBuildVerificationUI:
             assert cols[0]["header"] == "Item"
             assert cols[1]["key"] == "sku"
 
+    def test_renders_tier_2_metrics_row(self):
+        """#554 — Tier 2 metric row carries three Metric widgets:
+        Matched / Discrepant / Totals reconciled.
+
+        ``Matched`` counts perfect-status matches; ``Discrepant`` counts
+        discrepancies + non-perfect matches; ``Totals reconciled`` reads
+        as ``$matched_total of $po_total``.
+        """
+        # Arrange
+        response = {
+            "overall_status": "partial_match",
+            "order_id": 789,
+            "purchase_order": {
+                "id": 789,
+                "currency": "USD",
+                "total": 100.00,
+                "katana_url": "https://factory.katanamrp.com/purchaseorder/789",
+            },
+            "matches": [
+                {
+                    "sku": "WIDGET-001",
+                    "display_name": "Acme Widget / Large / Red",
+                    "quantity": 10,
+                    "unit_price": 5.0,
+                    "expected_quantity": 10,
+                    "expected_unit_price": 5.0,
+                    "status": "perfect",
+                },
+                {
+                    "sku": "WIDGET-002",
+                    "display_name": "Acme Widget / Small / Blue",
+                    "quantity": 4,
+                    "unit_price": 5.0,
+                    "expected_quantity": 6,
+                    "expected_unit_price": 5.0,
+                    "status": "quantity_diff",
+                },
+            ],
+            "discrepancies": [
+                {
+                    "sku": "WIDGET-002",
+                    "display_name": "Acme Widget / Small / Blue",
+                    "type": "quantity_mismatch",
+                    "expected": 6,
+                    "actual": 4,
+                    "message": "Quantity off by 2",
+                }
+            ],
+        }
+
+        # Act
+        app = build_verification_ui(response)
+        envelope = app.to_json()
+
+        # Assert
+        metrics = _find_components_by_type(envelope, "Metric")
+        assert len(metrics) == 3
+        labels = [m.get("label") for m in metrics]
+        assert labels == ["Matched", "Discrepant", "Totals reconciled"]
+        # Perfect-status matches count = 1; discrepancies (1) + non-perfect
+        # matches (1) = 2.
+        by_label = {m["label"]: m for m in metrics}
+        assert by_label["Matched"]["value"] == "1"
+        assert by_label["Discrepant"]["value"] == "2"
+        # When discrepant > 0, color flips via trend_sentiment="negative".
+        assert by_label["Discrepant"].get("trendSentiment") == "negative"
+        # Totals: only the perfect-status match (10 * 5.0 = $50.00)
+        # contributes to ``matched_total``; PO total is $100.00.
+        assert by_label["Totals reconciled"]["value"] == "$50.00 of $100.00"
+
+    def test_matches_table_shows_po_side_columns_for_non_perfect_status(self):
+        """#554 — Matches table renders Qty (doc) / Qty (PO) / Price (doc)
+        / Price (PO) columns so the operator sees doc-vs-PO deltas
+        without re-resolving against the embedded purchase_order.
+        """
+        # Arrange
+        response = {
+            "overall_status": "partial_match",
+            "order_id": 789,
+            "purchase_order": {"id": 789, "currency": "USD", "total": 50.0},
+            "matches": [
+                {
+                    "sku": "WIDGET-001",
+                    "display_name": "Acme Widget / Large / Red",
+                    "quantity": 8,
+                    "unit_price": 6.0,
+                    "expected_quantity": 10,
+                    "expected_unit_price": 5.0,
+                    "status": "both_diff",
+                }
+            ],
+            "discrepancies": [],
+        }
+
+        # Act
+        app = build_verification_ui(response)
+        envelope = app.to_json()
+
+        # Assert — matches table is the only DataTable here.
+        tables = _find_components_by_type(envelope, "DataTable")
+        assert len(tables) == 1
+        cols = tables[0]["columns"]
+        col_keys = [c["key"] for c in cols]
+        col_headers = [c["header"] for c in cols]
+        assert "expected_quantity" in col_keys
+        assert "expected_unit_price" in col_keys
+        assert "Qty (doc)" in col_headers
+        assert "Qty (PO)" in col_headers
+        assert "Price (doc)" in col_headers
+        assert "Price (PO)" in col_headers
+
+    def test_discrepancies_table_shows_expected_and_actual_columns(self):
+        """#554 — Discrepancies table renders Expected / Actual columns
+        from the ``expected`` / ``actual`` fields on ``Discrepancy``.
+        """
+        # Arrange
+        response = {
+            "overall_status": "no_match",
+            "order_id": 456,
+            "purchase_order": {"id": 456, "currency": "USD", "total": 50.0},
+            "matches": [],
+            "discrepancies": [
+                {
+                    "sku": "SKU-002",
+                    "display_name": "Item Two",
+                    "type": "quantity_mismatch",
+                    "expected": 10,
+                    "actual": 7,
+                    "message": "Quantity off by 3",
+                }
+            ],
+        }
+
+        # Act
+        app = build_verification_ui(response)
+        envelope = app.to_json()
+
+        # Assert — discrepancies table is the only DataTable here.
+        tables = _find_components_by_type(envelope, "DataTable")
+        assert len(tables) == 1
+        cols = tables[0]["columns"]
+        col_keys = [c["key"] for c in cols]
+        col_headers = [c["header"] for c in cols]
+        assert "expected" in col_keys
+        assert "actual" in col_keys
+        assert "Expected" in col_headers
+        assert "Actual" in col_headers
+
+    def test_view_in_katana_button_present_when_url_set(self):
+        """#554 — Tier 4 surfaces a ``View in Katana`` button when the
+        embedded ``purchase_order.katana_url`` is set; that's the
+        operator's most common follow-up after verification.
+        """
+        # Arrange
+        response = {
+            "overall_status": "match",
+            "order_id": 789,
+            "purchase_order": {
+                "id": 789,
+                "currency": "USD",
+                "total": 50.0,
+                "katana_url": "https://factory.katanamrp.com/purchaseorder/789",
+            },
+            "matches": [
+                {
+                    "sku": "WIDGET-001",
+                    "display_name": "Acme Widget",
+                    "quantity": 10,
+                    "unit_price": 5.0,
+                    "expected_quantity": 10,
+                    "expected_unit_price": 5.0,
+                    "status": "perfect",
+                }
+            ],
+            "discrepancies": [],
+        }
+
+        # Act
+        app = build_verification_ui(response)
+        envelope = app.to_json()
+
+        # Assert
+        view_buttons = _find_buttons_by_label(envelope, "View in Katana")
+        assert len(view_buttons) == 1
+
+    def test_view_in_katana_button_absent_when_url_missing(self):
+        """#554 — back-compat: when the response lacks the embedded
+        ``purchase_order`` (or its ``katana_url`` field), the
+        View-in-Katana button is omitted entirely.
+        """
+        # Arrange — no ``purchase_order`` key at all.
+        response = {
+            "overall_status": "match",
+            "order_id": 789,
+            "matches": [
+                {
+                    "sku": "WIDGET-001",
+                    "display_name": "Acme Widget",
+                    "quantity": 10,
+                    "unit_price": 5.0,
+                    "expected_quantity": 10,
+                    "expected_unit_price": 5.0,
+                    "status": "perfect",
+                }
+            ],
+            "discrepancies": [],
+        }
+
+        # Act
+        app = build_verification_ui(response)
+        envelope = app.to_json()
+
+        # Assert
+        view_buttons = _find_buttons_by_label(envelope, "View in Katana")
+        assert len(view_buttons) == 0
+
+    def test_proceed_button_only_when_overall_match(self):
+        """#554 — Tier 4 routing: ``Proceed to Receive`` renders only when
+        ``overall_status == "match"``; ``Receive Anyway`` renders
+        otherwise (partial_match / no_match). The two are
+        mutually-exclusive.
+        """
+        # Arrange — match case.
+        match_response = {
+            "overall_status": "match",
+            "order_id": 789,
+            "purchase_order": {"id": 789, "currency": "USD", "total": 50.0},
+            "matches": [
+                {
+                    "sku": "WIDGET-001",
+                    "display_name": "Acme Widget",
+                    "quantity": 10,
+                    "unit_price": 5.0,
+                    "expected_quantity": 10,
+                    "expected_unit_price": 5.0,
+                    "status": "perfect",
+                }
+            ],
+            "discrepancies": [],
+        }
+
+        # Act + Assert (match)
+        match_envelope = build_verification_ui(match_response).to_json()
+        assert len(_find_buttons_by_label(match_envelope, "Proceed to Receive")) == 1
+        assert len(_find_buttons_by_label(match_envelope, "Receive Anyway")) == 0
+
+        # Arrange — partial_match case.
+        partial_response = dict(match_response)
+        partial_response["overall_status"] = "partial_match"
+        partial_response["discrepancies"] = [
+            {
+                "sku": "SKU-X",
+                "display_name": "Other Item",
+                "type": "quantity_mismatch",
+                "expected": 5,
+                "actual": 3,
+                "message": "Quantity off by 2",
+            }
+        ]
+
+        # Act + Assert (partial_match)
+        partial_envelope = build_verification_ui(partial_response).to_json()
+        assert len(_find_buttons_by_label(partial_envelope, "Proceed to Receive")) == 0
+        assert len(_find_buttons_by_label(partial_envelope, "Receive Anyway")) == 1
+
 
 class TestBuildItemMutationUI:
     @pytest.mark.parametrize("action", ["Created", "Updated", "Deleted"])
