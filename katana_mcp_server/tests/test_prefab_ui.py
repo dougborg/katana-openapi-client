@@ -1384,6 +1384,115 @@ class TestBuildLowStockUI:
             f"Empty-state hint must echo the threshold value; got {hint!r}"
         )
 
+    def test_low_stock_renders_tier_2_metrics_row(self):
+        """#550 — four-tier redesign Tier 2 — exactly three Metric widgets
+        with the expected labels render in the populated card.
+        """
+        items = [
+            {
+                "sku": "SKU-001",
+                "display_name": "Widget A",
+                "current_stock": 3,
+                "threshold": 10,
+                "default_supplier_id": 100,
+            },
+        ]
+        app = build_low_stock_ui(items, 10, 1)
+        envelope = app.to_json()
+        metrics = _find_components_by_type(envelope, "Metric")
+        labels = [m.get("label") for m in metrics]
+        assert labels == [
+            "Below threshold",
+            "Critically low",
+            "Suppliers involved",
+        ], f"Expected the three Tier 2 metric labels; got {labels!r}"
+
+    def test_low_stock_critically_low_count_excludes_threshold_rows(self):
+        """#550 — Tier 2 "Critically low" Metric counts only stock-out
+        rows (``current_stock == 0``), not every row below threshold.
+        """
+        items = [
+            # Two stock-outs.
+            {"sku": "A", "current_stock": 0, "threshold": 10},
+            {"sku": "B", "current_stock": 0, "threshold": 10},
+            # Below threshold but not stock-out — must be excluded.
+            {"sku": "C", "current_stock": 4, "threshold": 10},
+        ]
+        app = build_low_stock_ui(items, 10, 3)
+        envelope = app.to_json()
+        metrics = _find_components_by_type(envelope, "Metric")
+        crit = next(m for m in metrics if m.get("label") == "Critically low")
+        assert crit.get("value") == "2", (
+            f"Critically low Metric should count only stock==0 rows; got {crit!r}"
+        )
+
+    def test_low_stock_suppliers_involved_count_dedupes_by_supplier_id(self):
+        """#550 — Tier 2 "Suppliers involved" Metric is the distinct count
+        of ``default_supplier_id`` across the row set, ignoring ``None``.
+        """
+        items = [
+            {"sku": "A", "current_stock": 1, "default_supplier_id": 100},
+            {"sku": "B", "current_stock": 2, "default_supplier_id": 100},  # dupe
+            {"sku": "C", "current_stock": 3, "default_supplier_id": 200},
+            {"sku": "D", "current_stock": 4, "default_supplier_id": None},  # ignored
+            {"sku": "E", "current_stock": 5},  # missing — ignored
+        ]
+        app = build_low_stock_ui(items, 10, 5)
+        envelope = app.to_json()
+        metrics = _find_components_by_type(envelope, "Metric")
+        suppliers = next(m for m in metrics if m.get("label") == "Suppliers involved")
+        assert suppliers.get("value") == "2", (
+            f"Suppliers involved should dedupe by supplier_id and ignore None; "
+            f"got {suppliers!r}"
+        )
+
+    def test_low_stock_datatable_includes_supplier_and_lead_time_columns(self):
+        """#550 — Tier 3 — pin the full column set of the enriched
+        DataTable so the four-tier redesign's columns don't silently
+        regress.
+        """
+        items = [
+            {
+                "sku": "SKU-001",
+                "display_name": "Widget A",
+                "current_stock": 3,
+                "threshold": 10,
+                "uom": "pcs",
+                "lead_time_days": 7,
+                "default_supplier_name": "Acme",
+                "minimum_order_quantity": 50.0,
+            },
+        ]
+        app = build_low_stock_ui(items, 10, 1)
+        envelope = app.to_json()
+        tables = _find_components_by_type(envelope, "DataTable")
+        assert len(tables) == 1
+        column_keys = [c.get("key") for c in tables[0].get("columns", [])]
+        assert column_keys == [
+            "display_name",
+            "sku",
+            "uom",
+            "current_stock",
+            "threshold",
+            "lead_time_days",
+            "default_supplier_name",
+            "minimum_order_quantity",
+        ], f"Tier 3 DataTable column set drifted; got {column_keys!r}"
+
+    def test_low_stock_renders_check_inventory_action_button(self):
+        """#550 — Tier 4 adds a "Check Inventory" button alongside the
+        existing "Create Restock Orders" trigger.
+        """
+        items = [
+            {"sku": "A", "current_stock": 1, "threshold": 10},
+        ]
+        app = build_low_stock_ui(items, 10, 1)
+        envelope = app.to_json()
+        check_buttons = _find_buttons_by_label(envelope, "Check Inventory")
+        assert len(check_buttons) == 1, (
+            "Populated low-stock report must render the 'Check Inventory' button."
+        )
+
 
 class TestBuildPOCreateUI:
     """``build_po_create_ui`` handles both preview and applied states for

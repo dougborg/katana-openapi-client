@@ -388,6 +388,136 @@ async def test_list_low_stock_cache_miss_fallback():
 
 
 @pytest.mark.asyncio
+async def test_list_low_stock_enriches_with_parent_uom_and_supplier():
+    """#550 — low-stock items now carry parent-derived ``uom`` /
+    ``default_supplier_*`` and per-variant ``lead_time_days`` /
+    ``minimum_order_quantity`` to power the four-tier card.
+    """
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedMaterial,
+        CachedProduct,
+        CachedSupplier,
+        CachedVariant,
+    )
+
+    context, lifespan_ctx = create_mock_context()
+
+    inventory_rows = [_mock_inventory_row(7001, "4")]
+
+    # Variant carries product_id (→ product parent), lead_time, MOQ, sku, display_name.
+    variant_row = {
+        "id": 7001,
+        "sku": "PROD-001",
+        "display_name": "Enriched Widget",
+        "product_id": 8001,
+        "material_id": None,
+        "lead_time": 14,
+        "minimum_order_quantity": 25.0,
+    }
+    product_row = {
+        "id": 8001,
+        "name": "Enriched Widget Parent",
+        "uom": "pcs",
+        "default_supplier_id": 9001,
+    }
+    supplier_row = {"id": 9001, "name": "Acme Supplies"}
+
+    # The conftest mock collapses all six CatalogQueries methods onto one
+    # AsyncMock; switch ``get_many_by_ids`` to a side_effect so each
+    # ``Cached*`` query returns the right table.
+    async def get_many_by_ids(model, ids, **_kwargs):
+        if model is CachedVariant:
+            return {7001: variant_row} if 7001 in ids else {}
+        if model is CachedProduct:
+            return {8001: product_row} if 8001 in ids else {}
+        if model is CachedMaterial:
+            return {}
+        if model is CachedSupplier:
+            return {9001: supplier_row} if 9001 in ids else {}
+        return {}
+
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
+        side_effect=get_many_by_ids
+    )
+
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=inventory_rows),
+    ):
+        request = LowStockRequest(threshold=10)
+        result = await _list_low_stock_items_impl(request, context)
+
+    assert len(result.items) == 1
+    item = result.items[0]
+    assert item.sku == "PROD-001"
+    assert item.variant_id == 7001
+    assert item.display_name == "Enriched Widget"
+    assert item.uom == "pcs"
+    assert item.lead_time_days == 14
+    assert item.default_supplier_id == 9001
+    assert item.default_supplier_name == "Acme Supplies"
+    assert item.minimum_order_quantity == 25.0
+
+
+@pytest.mark.asyncio
+async def test_list_low_stock_handles_missing_parent_gracefully():
+    """#550 — on parent cache miss, the new enrichment fields stay
+    ``None`` rather than raising. Pins the tolerance contract so a
+    cold cache can't crash the low-stock card.
+    """
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedMaterial,
+        CachedProduct,
+        CachedSupplier,
+        CachedVariant,
+    )
+
+    context, lifespan_ctx = create_mock_context()
+
+    inventory_rows = [_mock_inventory_row(7100, "2")]
+
+    # Variant exists but parent is missing from the cache.
+    variant_row = {
+        "id": 7100,
+        "sku": "ORPHAN-001",
+        "display_name": "Orphan Widget",
+        "product_id": 8100,
+        "material_id": None,
+        "lead_time": None,
+        "minimum_order_quantity": None,
+    }
+
+    async def get_many_by_ids(model, ids, **_kwargs):
+        if model is CachedVariant:
+            return {7100: variant_row} if 7100 in ids else {}
+        # All parent + supplier lookups miss.
+        if model in (CachedProduct, CachedMaterial, CachedSupplier):
+            return {}
+        return {}
+
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
+        side_effect=get_many_by_ids
+    )
+
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=inventory_rows),
+    ):
+        request = LowStockRequest(threshold=10)
+        result = await _list_low_stock_items_impl(request, context)
+
+    assert len(result.items) == 1
+    item = result.items[0]
+    assert item.sku == "ORPHAN-001"
+    assert item.variant_id == 7100
+    assert item.uom is None
+    assert item.lead_time_days is None
+    assert item.default_supplier_id is None
+    assert item.default_supplier_name is None
+    assert item.minimum_order_quantity is None
+
+
+@pytest.mark.asyncio
 async def test_search_items():
     """Test search_items tool with cached data."""
     context, lifespan_ctx = create_mock_context()
