@@ -3911,17 +3911,20 @@ def build_verification_ui(
                 label=overall_status.replace("_", " ").title(), variant=status_variant
             )
 
-        # Tier 2 — Decision metrics. The ``Discrepant`` metric uses
-        # ``trend_sentiment="negative"`` (red) when any discrepancy exists
+        # Tier 2 — Decision metrics. The ``Discrepant`` metric flips to
+        # red (``trendSentiment="negative"``) when any discrepancy exists
         # so the color tracks the at-a-glance health signal; Metric
-        # widgets don't accept a Badge-style ``variant`` kwarg —
-        # ``trend_sentiment`` is the equivalent.
+        # widgets don't expose a Badge-style ``variant`` kwarg —
+        # ``trendSentiment`` is the equivalent. We pass the JSON alias
+        # form here so static type checkers see the field (``Metric``'s
+        # ``__init__`` doesn't include the ``**kwargs: Any`` overload
+        # that ``Button`` uses for ``onClick``).
         with Row(gap=2):
             Metric(label="Matched", value=str(perfect_count))
             Metric(
                 label="Discrepant",
                 value=str(discrepant_count),
-                trend_sentiment="negative" if discrepant_count > 0 else "neutral",
+                trendSentiment="negative" if discrepant_count > 0 else "neutral",
             )
             Metric(
                 label="Totals reconciled",
