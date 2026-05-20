@@ -1517,7 +1517,15 @@ class DocumentItem(BaseModel):
 
 
 class MatchResult(BaseModel):
-    """Result of matching a document item to a PO line."""
+    """Result of matching a document item to a PO line.
+
+    Carries both the **document-side** values (``quantity``, ``unit_price``)
+    and the **PO-side** values (``expected_quantity``, ``expected_unit_price``)
+    so the verification card can render side-by-side comparison columns
+    without rummaging through the embedded ``purchase_order`` for the PO
+    row. The two pairs are equal when ``status == "perfect"`` and diverge
+    otherwise (``quantity_diff`` / ``price_diff`` / ``both_diff``).
+    """
 
     sku: str = Field(..., description="Item SKU")
     display_name: str = Field(
@@ -1532,8 +1540,28 @@ class MatchResult(BaseModel):
             "(rare — would mean the PO row references a deleted variant)."
         ),
     )
-    quantity: float = Field(..., description="Matched quantity")
-    unit_price: float | None = Field(default=None, description="Matched price")
+    quantity: float = Field(..., description="Document-side quantity")
+    unit_price: float | None = Field(
+        default=None, description="Document-side unit price"
+    )
+    expected_quantity: float | None = Field(
+        default=None,
+        description=(
+            "PO-side quantity copied from the matched ``PurchaseOrderRow`` "
+            "so the verification card can render a Qty (doc) vs Qty (PO) "
+            "side-by-side column without rummaging through the embedded "
+            "``purchase_order``."
+        ),
+    )
+    expected_unit_price: float | None = Field(
+        default=None,
+        description=(
+            "PO-side unit price copied from the matched "
+            "``PurchaseOrderRow.price_per_unit`` so the verification card "
+            "can render a Price (doc) vs Price (PO) side-by-side column "
+            "without rummaging through the embedded ``purchase_order``."
+        ),
+    )
     status: str = Field(
         ...,
         description="Match status (perfect, quantity_diff, price_diff, both_diff)",
@@ -1904,13 +1932,20 @@ async def _verify_order_document_impl(
             else:
                 status = "perfect"
 
-            # Create match result
+            # Create match result. ``quantity`` / ``unit_price`` are the
+            # document-side values; ``expected_quantity`` /
+            # ``expected_unit_price`` are the PO-side values from the matched
+            # row. The card renders these as side-by-side columns so the
+            # operator sees the delta without re-resolving against the
+            # embedded purchase_order (#554).
             matches.append(
                 MatchResult(
                     sku=doc_item.sku,
                     display_name=display_name,
                     quantity=doc_item.quantity,
                     unit_price=doc_item.unit_price,
+                    expected_quantity=row_qty,
+                    expected_unit_price=row_price,
                     status=status,
                 )
             )
