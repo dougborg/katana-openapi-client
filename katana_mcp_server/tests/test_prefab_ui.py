@@ -3819,6 +3819,42 @@ class TestBuildBatchRecipeUpdateUI:
         # value, just without a meaningful prior side.
         assert "4.0" in rows[0]["qty"]
 
+    def test_delete_with_no_prior_renders_empty_qty_cell(self):
+        """Back-compat: ``delete`` ops emitted without a captured
+        ``before_planned_quantity_per_unit`` (the upstream enricher
+        couldn't resolve the prior row) still render — the diff cell
+        falls through to empty rather than ``"- (unset)"``. Documented
+        in ``build_batch_recipe_update_ui``'s docstring: "delete with no
+        captured prior" → empty cell.
+        """
+        response = {
+            "is_preview": True,
+            "total_ops": 1,
+            "success_count": 0,
+            "failed_count": 0,
+            "skipped_count": 0,
+            "results": [
+                {
+                    "op_type": "delete",
+                    "manufacturing_order_id": 9999,
+                    "recipe_row_id": 5003,
+                    "variant_id": 102,
+                    "sku": "DELETE-NO-PRIOR",
+                    "status": "pending",
+                    "group_label": "g1",
+                },
+            ],
+            "warnings": [],
+            "message": "preview",
+        }
+        app = build_batch_recipe_update_ui(response)
+        _assert_valid_prefab(app)
+        rows = app.to_json()["state"]["rows"]
+        # No before_* on the wire for a delete — the diff cell is empty
+        # (no signal to render). Status / action still surface.
+        assert rows[0]["qty"] == ""
+        assert rows[0]["action"] == "DELETE"
+
     def test_update_with_unchanged_value_renders_current(self):
         """When a row was sent in ``update_recipe_rows`` but a field's
         before == after (a no-op patch — e.g. the agent included a field

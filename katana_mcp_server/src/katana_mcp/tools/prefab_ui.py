@@ -4506,15 +4506,13 @@ def _build_recipe_row_diff_view(
     """
     op_norm = (op_type or "").lower()
     if op_norm == "add":
-        if after is None and not (isinstance(after, (list, str)) and len(after) == 0):
+        if after is None:
             return None
         return FieldChangeView(
             field=field, before=None, after=after, kind="added", label=label
         )
     if op_norm == "delete":
-        if before is None and not (
-            isinstance(before, (list, str)) and len(before) == 0
-        ):
+        if before is None:
             return None
         return FieldChangeView(
             field=field, before=before, after=None, kind="removed", label=label
@@ -4533,12 +4531,13 @@ def _build_recipe_row_diff_view(
 
 
 def _diff_values_equal(before: Any, after: Any) -> bool:
-    """Loose equality for diff-pair comparison.
+    """Equality check for diff-pair comparison.
 
-    Lists compare element-wise after coercing each side to its display
-    string (so ``[{batch_id: 1, quantity: 5}]`` == ``[{batch_id: 1,
-    quantity: 5}]`` even when one came from a Pydantic model_dump and
-    the other from a raw dict).
+    Returns ``True`` when ``before == after`` directly, or — for two
+    same-length lists where top-level ``==`` returned ``False`` — when
+    every element pair compares equal individually. The list fallback
+    catches cases where iteration order or list identity differs but
+    members are structurally equal.
     """
     if before == after:
         return True
@@ -4761,7 +4760,7 @@ def build_batch_recipe_update_ui(
         DataTableColumn(key="row_id", header="Row ID"),
         DataTableColumn(key="item", header="Item"),
         DataTableColumn(key="sku", header="SKU"),
-        DataTableColumn(key="qty", header="Qty"),
+        DataTableColumn(key="qty", header="Qty", align="right"),
     ]
     if has_batch_signal:
         columns.append(DataTableColumn(key="batch", header="Batch"))
