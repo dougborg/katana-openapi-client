@@ -1523,8 +1523,13 @@ class MatchResult(BaseModel):
     and the **PO-side** values (``expected_quantity``, ``expected_unit_price``)
     so the verification card can render side-by-side comparison columns
     without rummaging through the embedded ``purchase_order`` for the PO
-    row. The two pairs are equal when ``status == "perfect"`` and diverge
-    otherwise (``quantity_diff`` / ``price_diff`` / ``both_diff``).
+    row. On a ``"perfect"`` status the document-side and PO-side
+    quantities are equal; the prices are equal **only when the document
+    provided a price** — when ``unit_price`` is ``None`` the price check
+    is skipped (status can still be ``"perfect"``) and
+    ``expected_unit_price`` carries the PO row's price unchanged. The
+    pairs diverge on the other statuses (``quantity_diff`` /
+    ``price_diff`` / ``both_diff``).
     """
 
     sku: str = Field(..., description="Item SKU")
