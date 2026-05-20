@@ -3846,8 +3846,25 @@ def build_fulfill_success_ui(
 def build_verification_ui(
     response: dict[str, Any],
 ) -> PrefabApp:
-    """Build a verification results card with matches and discrepancies."""
+    """Build a verification results card with matches and discrepancies.
+
+    Layout follows the #537 four-tier framework (#554):
+
+    - **Tier 1 — Identity**: H3 title + PO badge + overall-status badge.
+    - **Tier 2 — Decision metrics**: three Metric widgets — Matched
+      count, Discrepant count (variant ``destructive`` when >0), and
+      Totals reconciled (``$matched_total of $po_total``) using
+      :func:`_format_money` with the PO's currency.
+    - **Tier 3 — Reference data**: two DataTables with explicit
+      doc-vs-PO side-by-side columns (Qty/Price doc vs PO on matches;
+      Expected / Actual columns on discrepancies).
+    - **Tier 4 — Actions**: ``Row(gap=2)`` with three conditional
+      buttons — View in Katana (when ``purchase_order.katana_url`` is
+      set), Proceed to Receive (when ``overall_status == "match"``),
+      Receive Anyway (otherwise).
+    """
     overall_status = response.get("overall_status", "unknown")
+    order_id = response.get("order_id", "")
 
     status_variant = {
         "match": "default",
@@ -3857,6 +3874,27 @@ def build_verification_ui(
 
     matches = response.get("matches", [])
     discrepancies = response.get("discrepancies", [])
+    purchase_order = response.get("purchase_order") or {}
+    currency = purchase_order.get("currency")
+    po_total = purchase_order.get("total")
+    katana_url = purchase_order.get("katana_url")
+
+    # Tier 2 — Decision metrics. ``matched_total`` only sums lines that
+    # genuinely tie out (status == "perfect"); discrepant lines contribute
+    # to the Discrepant count instead. Both totals format through
+    # :func:`_format_money` so the symbol + decimal precision tracks the
+    # PO's transaction currency.
+    perfect_count = sum(1 for m in matches if m.get("status") == "perfect")
+    discrepant_count = len(discrepancies) + sum(
+        1 for m in matches if m.get("status") != "perfect"
+    )
+    matched_total = sum(
+        (m.get("quantity") or 0) * (m.get("unit_price") or 0)
+        for m in matches
+        if m.get("status") == "perfect"
+    )
+    matched_total_formatted = _format_money(matched_total, currency)
+    po_total_formatted = _format_money(po_total, currency)
 
     with (
         PrefabApp(
@@ -3865,32 +3903,64 @@ def build_verification_ui(
         ) as app,
         Column(gap=4),
     ):
+        # Tier 1 — Identity.
         with Row(gap=2):
             H3(content="Document Verification")
-            Badge(label=f"PO {response.get('order_id', 'N/A')}", variant="outline")
+            Badge(label=f"PO {order_id or 'N/A'}", variant="outline")
             Badge(
                 label=overall_status.replace("_", " ").title(), variant=status_variant
             )
 
-        # Matches table — ``Item`` column shows the canonical
-        # Katana-UI-format display name (parent / config1 / config2),
-        # ``SKU`` remains as a secondary identity column for ops + scripts.
-        # Same column ordering used by the batch recipe update card.
+        # Tier 2 — Decision metrics. The ``Discrepant`` metric uses
+        # ``trend_sentiment="negative"`` (red) when any discrepancy exists
+        # so the color tracks the at-a-glance health signal; Metric
+        # widgets don't accept a Badge-style ``variant`` kwarg —
+        # ``trend_sentiment`` is the equivalent.
+        with Row(gap=2):
+            Metric(label="Matched", value=str(perfect_count))
+            Metric(
+                label="Discrepant",
+                value=str(discrepant_count),
+                trend_sentiment="negative" if discrepant_count > 0 else "neutral",
+            )
+            Metric(
+                label="Totals reconciled",
+                value=f"{matched_total_formatted} of {po_total_formatted}",
+            )
+
+        # Tier 3 — Reference data.
+        # Matches table — explicit Qty/Price (doc) vs Qty/Price (PO)
+        # side-by-side columns so non-perfect statuses show the delta
+        # directly. ``Item`` column shows the canonical Katana-UI-format
+        # display name (parent / config1 / config2), ``SKU`` remains as a
+        # secondary identity column for ops + scripts.
         if matches:
             Muted(content="Matched Items:")
             DataTable(
                 columns=[
                     DataTableColumn(key="display_name", header="Item", sortable=True),
                     DataTableColumn(key="sku", header="SKU", sortable=True),
-                    DataTableColumn(key="quantity", header="Quantity", align="right"),
-                    DataTableColumn(key="unit_price", header="Price", align="right"),
+                    DataTableColumn(key="quantity", header="Qty (doc)", align="right"),
+                    DataTableColumn(
+                        key="expected_quantity", header="Qty (PO)", align="right"
+                    ),
+                    DataTableColumn(
+                        key="unit_price", header="Price (doc)", align="right"
+                    ),
+                    DataTableColumn(
+                        key="expected_unit_price",
+                        header="Price (PO)",
+                        align="right",
+                    ),
                     DataTableColumn(key="status", header="Status"),
                 ],
                 rows="{{ matches }}",
             )
 
         # Discrepancies table — same ``Item`` / ``SKU`` ordering for
-        # visual consistency with the matches table above.
+        # visual consistency with the matches table above. Explicit
+        # Expected / Actual columns surface the delta numerics that
+        # ``Discrepancy.message`` previously folded into a string.
         if discrepancies:
             Muted(content="Discrepancies:")
             DataTable(
@@ -3898,19 +3968,30 @@ def build_verification_ui(
                     DataTableColumn(key="display_name", header="Item"),
                     DataTableColumn(key="sku", header="SKU"),
                     DataTableColumn(key="type", header="Type"),
+                    DataTableColumn(key="expected", header="Expected", align="right"),
+                    DataTableColumn(key="actual", header="Actual", align="right"),
                     DataTableColumn(key="message", header="Details"),
                 ],
                 rows="{{ discrepancies }}",
             )
 
-        # Action buttons
+        # Tier 4 — Actions. View-in-Katana wins the primary slot when a
+        # deep-link is available (operator's most common follow-up is to
+        # eyeball the PO in the web UI); Proceed / Receive Anyway gate on
+        # ``overall_status``.
         with Row(gap=2):
+            if katana_url:
+                Button(
+                    label="View in Katana",
+                    variant="default",
+                    on_click=SendMessage(f"Open {katana_url} in the Katana web UI"),
+                )
             if overall_status == "match":
                 Button(
                     label="Proceed to Receive",
-                    variant="default",
+                    variant="default" if not katana_url else "outline",
                     on_click=SendMessage(
-                        f"Receive items for purchase order {response.get('order_id', '')}"
+                        f"Receive items for purchase order {order_id}"
                     ),
                 )
             else:
@@ -3918,7 +3999,7 @@ def build_verification_ui(
                     label="Receive Anyway",
                     variant="outline",
                     on_click=SendMessage(
-                        f"Receive items for purchase order {response.get('order_id', '')} "
+                        f"Receive items for purchase order {order_id} "
                         "despite discrepancies"
                     ),
                 )
