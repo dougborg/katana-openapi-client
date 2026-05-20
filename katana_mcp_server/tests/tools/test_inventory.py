@@ -2278,6 +2278,7 @@ async def test_list_low_stock_items_format_json_returns_json():
                     product_name="Low Item",
                     current_stock=2,
                     threshold=10,
+                    variant_id=1001,
                 )
             ],
             total_count=1,
