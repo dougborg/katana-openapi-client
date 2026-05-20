@@ -185,6 +185,81 @@ class TestPostIdentityGuard:
         finally:
             client.close()
 
+    def test_post_webhook_identity_field_is_description(self) -> None:
+        """``/webhooks`` identity must be ``description`` not ``url`` —
+        webhook URLs must be ``https://…`` per Katana's spec pattern, so
+        the ``url`` field could never carry an ``SDT-`` prefix. The
+        guard therefore looks at ``description``."""
+
+        def handler(_: httpx.Request) -> httpx.Response:
+            return httpx.Response(201, json={"id": 1})
+
+        client = _build_safe_client(handler)
+        try:
+            resp = client.post(
+                "/webhooks",
+                json={
+                    "url": "https://webhook.example.test/probe",
+                    "subscribed_events": ["sales_order.created"],
+                    "description": "[SDT-2026-05-19] probe-webhook",
+                },
+            )
+            assert resp.status_code == 201
+        finally:
+            client.close()
+
+    def test_post_webhook_non_sdt_description_refused(self) -> None:
+        """A webhook POST with a ``description`` that lacks SDT- must fail
+        closed — confirms the identity field is being read."""
+
+        def handler(_: httpx.Request) -> httpx.Response:
+            pytest.fail("guard should refuse non-SDT webhook description")
+
+        client = _build_safe_client(handler)
+        try:
+            with pytest.raises(UnsafeMutationError) as exc_info:
+                client.post(
+                    "/webhooks",
+                    json={
+                        "url": "https://webhook.example.test/probe",
+                        "subscribed_events": ["sales_order.created"],
+                        "description": "production integration",
+                    },
+                )
+            assert exc_info.value.identity_field == "description"
+            assert exc_info.value.identity_value == "production integration"
+        finally:
+            client.close()
+
+    def test_post_webhook_missing_description_refused(self) -> None:
+        """``/webhooks`` is in ``IDENTITY_REQUIRED`` because webhooks
+        have IMMEDIATE live side effects — Katana starts delivering real
+        tenant events to the caller-supplied URL the moment POST returns
+        201. Unlike a missing ``order_no`` (which the server will
+        generate and the ledger then protects), a missing
+        ``description`` here is a data-exfiltration risk during the
+        record's lifetime. Fail closed when the field is absent rather
+        than the standard "key-absent ⇒ permissive" path."""
+
+        def handler(_: httpx.Request) -> httpx.Response:
+            pytest.fail("guard should refuse webhook without description")
+
+        client = _build_safe_client(handler)
+        try:
+            with pytest.raises(UnsafeMutationError) as exc_info:
+                client.post(
+                    "/webhooks",
+                    json={
+                        "url": "https://webhook.example.test/probe",
+                        "subscribed_events": ["sales_order.created"],
+                        # description deliberately omitted
+                    },
+                )
+            assert exc_info.value.identity_field == "description"
+            assert "immediate live side effects" in exc_info.value.reason
+        finally:
+            client.close()
+
 
 # ----------------------------------------------------------------------
 # POST guard — child endpoints (no top-level identity)
@@ -1073,6 +1148,169 @@ class TestLedgerTenantScoping:
 
         keys = sdv._initial_ledger_keys()
         assert keys == set()
+
+
+class TestCleanupTenantScoping:
+    """``cleanup()`` runs with ``allow_unsafe=True`` so the SafeClient
+    mutation guard is bypassed — the tenant fingerprint check in cleanup
+    itself is the ONLY guard against cross-tenant deletion. Symmetric
+    with the seed-side ``_initial_ledger_keys`` fail-closed: a row
+    without a fingerprint MUST be skipped, not deleted."""
+
+    def test_pre_fingerprint_row_skipped_not_deleted(
+        self,
+        tmp_path,
+        monkeypatch,
+    ) -> None:
+        from scripts import spec_drift_verify as sdv
+
+        deletes: list[str] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.method == "DELETE":
+                deletes.append(request.url.path)
+            return httpx.Response(204)
+
+        ledger = tmp_path / "ledger.jsonl"
+        ledger.write_text(
+            # Pre-fingerprint row: no base_url, no factory_id. Under the
+            # pre-fix cleanup logic this would have been DELETED.
+            json.dumps(
+                {
+                    "endpoint": "/sales_orders",
+                    "entity_id": 42,
+                    "issue": "x",
+                    "method": "POST",
+                    "created_at": "2026-01-01T00:00:00",
+                }
+            )
+            + "\n"
+        )
+        monkeypatch.setattr(sdv, "LEDGER_PATH", ledger)
+        monkeypatch.setattr(sdv, "BASE_URL", "https://api.katana.test")
+        sdv._factory_id_for_key.cache_clear()
+        monkeypatch.setattr(sdv, "_resolve_factory_id", lambda: 100)
+        monkeypatch.setattr(
+            sdv,
+            "make_client",
+            lambda allow_unsafe=False: SafeClient(
+                base_url="https://api.katana.test",
+                transport=httpx.MockTransport(handler),
+                allow_unsafe=True,
+            ),
+        )
+
+        rc = sdv.cleanup()
+        # Should have refused to delete the unscoped row.
+        assert deletes == []
+        # Skipped rows do not flip the exit code to failure.
+        assert rc == 0
+
+    def test_skip_message_names_which_fingerprint_field_is_missing(
+        self,
+        tmp_path,
+        monkeypatch,
+        capsys,
+    ) -> None:
+        """A row with ``base_url`` present but ``factory_id`` missing (e.g.
+        ``/factory`` lookup failed transiently at record time) must be
+        skipped, and the operator-facing skip message must name the
+        actually-missing field so manual triage isn't misled."""
+        from scripts import spec_drift_verify as sdv
+
+        deletes: list[str] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.method == "DELETE":
+                deletes.append(request.url.path)
+            return httpx.Response(204)
+
+        ledger = tmp_path / "ledger.jsonl"
+        ledger.write_text(
+            json.dumps(
+                {
+                    "endpoint": "/sales_orders",
+                    "entity_id": 42,
+                    "base_url": "https://api.katana.test",
+                    # factory_id deliberately omitted (transient miss)
+                    "issue": "x",
+                    "method": "POST",
+                    "created_at": "2026-01-01T00:00:00",
+                }
+            )
+            + "\n"
+        )
+        monkeypatch.setattr(sdv, "LEDGER_PATH", ledger)
+        monkeypatch.setattr(sdv, "BASE_URL", "https://api.katana.test")
+        sdv._factory_id_for_key.cache_clear()
+        monkeypatch.setattr(sdv, "_resolve_factory_id", lambda: 100)
+        monkeypatch.setattr(
+            sdv,
+            "make_client",
+            lambda allow_unsafe=False: SafeClient(
+                base_url="https://api.katana.test",
+                transport=httpx.MockTransport(handler),
+                allow_unsafe=True,
+            ),
+        )
+
+        rc = sdv.cleanup()
+        captured = capsys.readouterr()
+        assert deletes == []
+        assert rc == 0
+        # Message names the actually-missing field, not the union label.
+        assert "missing factory_id" in captured.out
+        assert "missing base_url" not in captured.out
+
+    def test_factory_id_unresolvable_skips_scoped_row(
+        self,
+        tmp_path,
+        monkeypatch,
+    ) -> None:
+        """A scoped row whose tenant cannot be verified (factory_id
+        currently unresolvable) MUST be skipped, not deleted — matches
+        the cross-tenant fail-closed posture of the seed side."""
+        from scripts import spec_drift_verify as sdv
+
+        deletes: list[str] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.method == "DELETE":
+                deletes.append(request.url.path)
+            return httpx.Response(204)
+
+        ledger = tmp_path / "ledger.jsonl"
+        ledger.write_text(
+            json.dumps(
+                {
+                    "endpoint": "/sales_orders",
+                    "entity_id": 42,
+                    "base_url": "https://api.katana.test",
+                    "factory_id": 100,
+                    "issue": "x",
+                    "method": "POST",
+                    "created_at": "2026-01-01T00:00:00",
+                }
+            )
+            + "\n"
+        )
+        monkeypatch.setattr(sdv, "LEDGER_PATH", ledger)
+        monkeypatch.setattr(sdv, "BASE_URL", "https://api.katana.test")
+        sdv._factory_id_for_key.cache_clear()
+        monkeypatch.setattr(sdv, "_resolve_factory_id", lambda: None)
+        monkeypatch.setattr(
+            sdv,
+            "make_client",
+            lambda allow_unsafe=False: SafeClient(
+                base_url="https://api.katana.test",
+                transport=httpx.MockTransport(handler),
+                allow_unsafe=True,
+            ),
+        )
+
+        rc = sdv.cleanup()
+        assert deletes == []
+        assert rc == 0
 
 
 class TestMakeClientAllowUnsafeSkipsLedger:

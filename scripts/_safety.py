@@ -64,7 +64,14 @@ IDENTITY_FIELDS: dict[str, str | None] = {
     "/locations": "name",
     "/bin_locations": "name",
     "/custom_field_definitions": "label",
-    "/webhooks": "url",
+    # ``Webhook.url`` must be ``https://…`` (Katana spec pattern), so it
+    # can never carry the ``SDT-`` prefix. ``description`` is the only
+    # taggable field on ``CreateWebhookRequest``. Listed in
+    # ``IDENTITY_REQUIRED`` below — webhooks are an exception to the
+    # standard "key-absent ⇒ permissive" path because they have
+    # immediate live side effects (the URL starts receiving real tenant
+    # events the moment POST returns 201, well before any cleanup).
+    "/webhooks": "description",
     # Child / transactional endpoints — no top-level identity on the body.
     "/sales_order_rows": None,
     "/sales_order_fulfillments": None,
@@ -73,6 +80,22 @@ IDENTITY_FIELDS: dict[str, str | None] = {
     "/stock_adjustments": None,
     "/variant_bin_locations": None,
 }
+
+# Endpoints where the identity field MUST be present and SDT-tagged.
+# Standard endpoints (e.g. ``/sales_orders``) treat key-absent as
+# "server will generate the identity" and lean permissive — the probe
+# records the resulting ID into the ledger and subsequent mutations are
+# ledger-protected. That's safe because a missing-identity record is
+# just a row in Katana's DB until something mutates it.
+#
+# A webhook is different: the moment POST /webhooks returns 201,
+# Katana starts delivering real tenant events to the caller-supplied
+# URL (data exfiltration risk if the probe is pointing at an
+# operator-controlled URL that's also serving real customer payloads).
+# Cleanup deletes the row eventually, but during its lifetime the side
+# effect is live. Fail closed when ``description`` is absent so probes
+# must consciously tag every webhook.
+IDENTITY_REQUIRED: frozenset[str] = frozenset({"/webhooks"})
 
 # For endpoints whose POST body carries a parent FK rather than a
 # top-level identity, this map names the FK field. The parent must
@@ -255,7 +278,13 @@ class SafeClient(httpx.Client):
         endpoint: str,
         hook: VerifyHook,
     ) -> None:
-        """Register ``hook`` to run after every 2xx ``METHOD endpoint`` response.
+        """Register ``hook`` to run after a 2xx ``METHOD endpoint`` response.
+
+        Hooks only fire for **mutation** methods (``POST`` / ``PATCH`` /
+        ``DELETE``) — the framework is designed for post-mutation
+        silent-drop assertions, and reads are exempted in ``request()``
+        so a hook registered on ``("GET", …)`` is silently inert.
+        Register on a non-mutation method only as a no-op marker.
 
         Hook signature: ``(request, response) -> None``. Raise
         ``SilentDropError`` to fail; any other exception bubbles. Multiple
@@ -341,15 +370,32 @@ class SafeClient(httpx.Client):
         identity_field = IDENTITY_FIELDS.get(endpoint)
         if identity_field is not None:
             if identity_field not in item:
-                # Server-generated identity (e.g. SO without ``order_no``)
-                # — the caller is asking Katana to mint the field. Lean
-                # permissive: the probe records the created ID into the
-                # ledger and every subsequent mutation is then guarded.
-                # Note: this only covers KEY-ABSENT; an explicit
-                # ``{order_no: None}`` falls through to the SDT check
-                # below and fails closed, because explicit null is a
-                # different caller intent (a real customer's record
-                # could plausibly have a null identity column).
+                # Standard endpoints: a key-absent identity is the
+                # caller asking Katana to mint the field (e.g. SO
+                # without ``order_no``). Lean permissive — the probe
+                # records the created ID into the ledger and every
+                # subsequent mutation is then guarded. (KEY-ABSENT only;
+                # an explicit ``{order_no: None}`` falls through to the
+                # SDT check below and fails closed, because explicit
+                # null is a different caller intent.)
+                #
+                # Live-side-effect endpoints (``IDENTITY_REQUIRED``) opt
+                # out: webhooks start delivering events immediately on
+                # 201, so ``description`` must be present AND SDT-tagged
+                # before the wire call.
+                if endpoint in IDENTITY_REQUIRED:
+                    raise UnsafeMutationError(
+                        method="POST",
+                        endpoint=endpoint,
+                        target_id=None,
+                        identity_field=identity_field,
+                        identity_value=None,
+                        reason=(
+                            f"{endpoint} requires {identity_field} to be "
+                            "present and SDT-tagged before POST (endpoint "
+                            "has immediate live side effects)"
+                        ),
+                    )
                 return
             value = item[identity_field]
             if not _is_sdt_tagged(value):
@@ -547,9 +593,11 @@ def _split_path(url: httpx.URL | str) -> tuple[str, str | None]:
     else:
         # Accept absolute or relative URL strings.
         path = urlparse(str(url)).path if "://" in str(url) else str(url)
-    # Drop query string and normalize: collapse extra slashes, ensure a
-    # leading ``/`` so the ``split('/')`` produces a stable
-    # ``['', collection, id?]`` shape regardless of input form.
+    # Drop query string, then strip the leading/trailing ``/`` so a
+    # subsequent ``split('/')`` produces a stable shape regardless of
+    # input form. (Repeated interior slashes like ``"a//b"`` are not
+    # collapsed — Katana never emits them and the SafeClient mints all
+    # mutation paths itself, so the case doesn't arise in practice.)
     path = path.split("?", 1)[0].strip("/")
     if not path:
         return ("", None)

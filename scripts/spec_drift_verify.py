@@ -417,13 +417,32 @@ def cleanup(*, dry_run: bool = False) -> int:
         for r in reversed(pending):
             row_base = r.get("base_url")
             row_factory = r.get("factory_id")
+            # Fail closed on pre-fingerprint rows. ``cleanup`` uses
+            # ``allow_unsafe=True`` and so the SafeClient mutation guard
+            # is NOT re-checking these rows for us — the tenant filter
+            # below IS the only guard. Without a fingerprint we have no
+            # signal that this row belongs to the current credential, so
+            # deleting it could land on a real record on the active
+            # tenant. (Mirror of the seed-side fail-closed in
+            # ``_initial_ledger_keys`` — see issue #781 follow-up.)
+            if row_base is None or row_factory is None:
+                missing = []
+                if row_base is None:
+                    missing.append("base_url")
+                if row_factory is None:
+                    missing.append("factory_id")
+                print(
+                    f"  ⚠  skipping {r['endpoint']}/{r['entity_id']} — "
+                    f"missing {' and '.join(missing)} in ledger row, "
+                    "cannot verify tenant — delete by hand if known-safe"
+                )
+                skipped_tenant.append(r)
+                continue
             # Refuse to delete when either the base URL OR the factory
             # fingerprint disagrees with the active credential — catches
             # both ``KATANA_BASE_URL`` swaps and ``KATANA_API_KEY`` swaps
-            # against the same base. Missing fingerprint (None on either
-            # side) is skipped rather than enforced — older ledger rows
-            # may pre-date the fingerprint field.
-            if row_base and row_base != BASE_URL:
+            # against the same base.
+            if row_base != BASE_URL:
                 print(
                     f"  ⚠  skipping {r['endpoint']}/{r['entity_id']} — "
                     f"created against {row_base}, "
@@ -431,15 +450,10 @@ def cleanup(*, dry_run: bool = False) -> int:
                 )
                 skipped_tenant.append(r)
                 continue
-            # Fail closed on the factory check: when a row carries a
-            # stored ``factory_id`` we require the current credential's
-            # ``factory_id`` to be resolvable AND match. Falling through
-            # because ``current_factory_id is None`` (e.g. ``/factory``
-            # unreachable) would bypass the tenant guard precisely when
-            # we can't verify the active tenant.
-            if row_factory is not None and (
-                current_factory_id is None or row_factory != current_factory_id
-            ):
+            # Fail closed when the current credential's factory_id is
+            # either unresolvable (``/factory`` unreachable) or differs
+            # from the row's stored value.
+            if current_factory_id is None or row_factory != current_factory_id:
                 reason = (
                     "current credential's factory_id unresolved (cannot verify)"
                     if current_factory_id is None
