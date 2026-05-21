@@ -274,10 +274,12 @@ class LedgerRow:
     """The Katana ``Factory.factory_id`` singleton at create time —
     serves as a non-secret tenant fingerprint. ``cleanup`` refuses to
     delete rows whose ``factory_id`` doesn't match the active
-    credential's factory, which catches the case where someone swaps
-    ``KATANA_API_KEY`` between probe and cleanup but ``BASE_URL`` stays
-    the default. Populated by :func:`record_artifact` from a process-
-    local cache so we hit ``GET /factory`` once per session."""
+    credential's factory, AND refuses rows where ``factory_id is None``
+    (or ``base_url is None``) since without a complete fingerprint we
+    can't prove tenant identity — fail-closed mirrors the seed side
+    (``_initial_ledger_keys``). Populated by :func:`record_artifact`
+    from a process-local cache so we hit ``GET /factory`` once per
+    session."""
     extra: dict[str, Any] = field(default_factory=dict)
     deleted_at: str | None = None
     delete_error: str | None = None
@@ -324,11 +326,12 @@ def _resolve_factory_id() -> int | None:
     naturally (closing the cross-tenant trap where a stale factory_id
     would be matched against fresh-tenant ledger rows).
 
-    Returns ``None`` on lookup failure; on the record side, the ledger
-    row simply has no fingerprint (cleanup proceeds with only the URL
-    check for those rows). On the cleanup side, ``None`` is treated as
-    "tenant unverifiable" — rows that *do* carry a stored ``factory_id``
-    are refused rather than delete-anyway-and-hope.
+    Returns ``None`` on lookup failure. On the record side, the ledger
+    row is written without a ``factory_id`` fingerprint — and the
+    cleanup side then treats that row as ``skipped_unverifiable`` (no
+    URL-only fallback; both fingerprint fields are required to even
+    consider a row for deletion, matching the seed-side
+    ``_initial_ledger_keys`` fail-closed in #781).
     """
     return _factory_id_for_key(_api_key())
 
@@ -407,7 +410,21 @@ def cleanup(*, dry_run: bool = False) -> int:
 
     failed: list[dict[str, Any]] = []
     deleted: list[dict[str, Any]] = []
-    skipped_tenant: list[dict[str, Any]] = []
+    # Two distinct skip buckets so the summary can accurately tell
+    # operators which rows still need attention vs. which are foreign:
+    # * ``skipped_unverifiable``: tenant cannot be PROVEN (missing
+    #   fingerprint field, or current ``/factory`` lookup failed). Could
+    #   belong to the current tenant — operator should inspect.
+    # * ``skipped_mismatch``: fingerprint definitively belongs to a
+    #   DIFFERENT tenant. Foreign — should be cleaned up by re-running
+    #   ``cleanup`` against that tenant's credentials.
+    skipped_unverifiable: list[dict[str, Any]] = []
+    skipped_mismatch: list[dict[str, Any]] = []
+    # Rows whose endpoint has no DELETE template — the cleanup script
+    # can't delete them automatically, but they're still ours (tenant
+    # fingerprint passed). Tracked separately so the summary breakdown
+    # accounts for them and ``total_skipped == sum(buckets)``.
+    skipped_no_template: list[dict[str, Any]] = []
     current_factory_id = _resolve_factory_id()
     # ``allow_unsafe=True``: cleanup deliberately mutates ledger-recorded
     # rows that the harness itself created. Each row already passed the
@@ -415,41 +432,67 @@ def cleanup(*, dry_run: bool = False) -> int:
     # mutation guard would just re-check the same thing.
     with make_client(allow_unsafe=True) as client:
         for r in reversed(pending):
+            # Clear any ``delete_error`` from a prior run before deciding
+            # this row's fate. The ledger is rewritten at the end of the
+            # loop; without this, a row that was ``failed`` in run #1
+            # and ``skipped`` in run #2 would carry run #1's stale error
+            # message in the serialised output, misleading operators
+            # reading the ledger for forensic context.
+            r.pop("delete_error", None)
             row_base = r.get("base_url")
             row_factory = r.get("factory_id")
+            # Fail closed on pre-fingerprint rows. ``cleanup`` uses
+            # ``allow_unsafe=True`` and so the SafeClient mutation guard
+            # is NOT re-checking these rows for us — the tenant filter
+            # below IS the only guard. Without a fingerprint we have no
+            # signal that this row belongs to the current credential, so
+            # deleting it could land on a real record on the active
+            # tenant. (Mirror of the seed-side fail-closed in
+            # ``_initial_ledger_keys`` — see issue #781 follow-up.)
+            if row_base is None or row_factory is None:
+                missing = []
+                if row_base is None:
+                    missing.append("base_url")
+                if row_factory is None:
+                    missing.append("factory_id")
+                print(
+                    f"  ⚠  skipping {r['endpoint']}/{r['entity_id']} — "
+                    f"missing {' and '.join(missing)} in ledger row, "
+                    "cannot verify tenant — delete by hand if known-safe"
+                )
+                skipped_unverifiable.append(r)
+                continue
             # Refuse to delete when either the base URL OR the factory
             # fingerprint disagrees with the active credential — catches
             # both ``KATANA_BASE_URL`` swaps and ``KATANA_API_KEY`` swaps
-            # against the same base. Missing fingerprint (None on either
-            # side) is skipped rather than enforced — older ledger rows
-            # may pre-date the fingerprint field.
-            if row_base and row_base != BASE_URL:
+            # against the same base.
+            if row_base != BASE_URL:
                 print(
                     f"  ⚠  skipping {r['endpoint']}/{r['entity_id']} — "
                     f"created against {row_base}, "
                     f"current client targets {BASE_URL}"
                 )
-                skipped_tenant.append(r)
+                skipped_mismatch.append(r)
                 continue
-            # Fail closed on the factory check: when a row carries a
-            # stored ``factory_id`` we require the current credential's
-            # ``factory_id`` to be resolvable AND match. Falling through
-            # because ``current_factory_id is None`` (e.g. ``/factory``
-            # unreachable) would bypass the tenant guard precisely when
-            # we can't verify the active tenant.
-            if row_factory is not None and (
-                current_factory_id is None or row_factory != current_factory_id
-            ):
-                reason = (
-                    "current credential's factory_id unresolved (cannot verify)"
-                    if current_factory_id is None
-                    else f"current credential targets factory_id={current_factory_id}"
-                )
+            # When the current credential's factory_id is unresolvable
+            # (``/factory`` unreachable) we can't prove tenant identity
+            # — unverifiable. When it's resolvable but differs, this is
+            # a definitive mismatch.
+            if current_factory_id is None:
                 print(
                     f"  ⚠  skipping {r['endpoint']}/{r['entity_id']} — "
-                    f"created on factory_id={row_factory}, {reason}"
+                    f"created on factory_id={row_factory}, current "
+                    "credential's factory_id unresolved (cannot verify)"
                 )
-                skipped_tenant.append(r)
+                skipped_unverifiable.append(r)
+                continue
+            if row_factory != current_factory_id:
+                print(
+                    f"  ⚠  skipping {r['endpoint']}/{r['entity_id']} — "
+                    f"created on factory_id={row_factory}, current "
+                    f"credential targets factory_id={current_factory_id}"
+                )
+                skipped_mismatch.append(r)
                 continue
             template = DELETE_TEMPLATES.get(r["endpoint"])
             if template is None:
@@ -457,6 +500,7 @@ def cleanup(*, dry_run: bool = False) -> int:
                     f"  ⚠  no DELETE template for {r['endpoint']} — "
                     "skipping (clean up by hand)"
                 )
+                skipped_no_template.append(r)
                 continue
             path = template.format(id=r["entity_id"])
             resp = client.delete(path)
@@ -477,10 +521,31 @@ def cleanup(*, dry_run: bool = False) -> int:
     # mutated in place; just re-serialize the list.
     LEDGER_PATH.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
 
+    # Compute total from the buckets themselves so the headline number
+    # always equals the sum of the breakdown — no silent "other" gap.
+    total_skipped = (
+        len(skipped_mismatch) + len(skipped_unverifiable) + len(skipped_no_template)
+    )
+    skip_breakdown_parts = []
+    if skipped_mismatch:
+        skip_breakdown_parts.append(
+            f"{len(skipped_mismatch)} from a different tenant/base URL"
+        )
+    if skipped_unverifiable:
+        skip_breakdown_parts.append(
+            f"{len(skipped_unverifiable)} could not be verified "
+            "(missing fingerprint or /factory unreachable)"
+        )
+    if skipped_no_template:
+        skip_breakdown_parts.append(
+            f"{len(skipped_no_template)} have no DELETE template (clean up by hand)"
+        )
+    skip_breakdown = (
+        f" ({'; '.join(skip_breakdown_parts)})" if skip_breakdown_parts else ""
+    )
     print(
         f"\nResult: {len(deleted)} deleted, {len(failed)} failed, "
-        f"{len(pending) - len(deleted) - len(failed)} skipped "
-        f"({len(skipped_tenant)} from a different tenant/base URL)."
+        f"{total_skipped} skipped{skip_breakdown}."
     )
     if failed:
         print("\nFailed rows (inspect manually):")
