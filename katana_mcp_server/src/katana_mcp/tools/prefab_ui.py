@@ -642,6 +642,11 @@ def build_search_results_ui(
     "Check inventory" button — they all reference nonexistent results — and
     renders a friendly hint suggesting partial-SKU / name fallbacks. Closes
     #470.
+
+    The "Check inventory for search results" button invokes
+    ``check_inventory`` via ``CallTool`` with SKUs collected at card-build
+    time. Falls back to ``UpdateContext`` if every result is SKU-less,
+    asking the agent to resolve variant IDs.
     """
     with (
         PrefabApp(
@@ -710,13 +715,35 @@ def build_search_results_ui(
         with Slot(name="detail"):
             Muted(content="Click a row to see variant details")
 
+        # Collect SKUs at card-build time so the Check Inventory button
+        # invokes ``check_inventory`` deterministically via ``CallTool``
+        # instead of asking the agent to compose the args from chat
+        # context. Falls back to ``UpdateContext`` when no SKUs are
+        # resolvable (every variant in the result set is SKU-less — rare
+        # legacy NetSuite-import shape, see CLAUDE.md "Variants can have
+        # null SKUs").
+        search_result_skus = [item["sku"] for item in items if item.get("sku")]
         with Row(gap=2):
+            check_inventory_action: Action
+            if search_result_skus:
+                check_inventory_action = CallTool(
+                    "check_inventory",
+                    arguments={"skus_or_variant_ids": search_result_skus},
+                )
+            else:
+                check_inventory_action = UpdateContext(
+                    content=(
+                        "User wants to check inventory for the items in the "
+                        "search results, but none of the results carry a SKU. "
+                        "Resolve variant IDs from the search and call "
+                        "check_inventory with skus_or_variant_ids set to "
+                        "those IDs."
+                    ),
+                )
             Button(
                 label="Check inventory for search results",
                 variant="outline",
-                on_click=SendMessage(
-                    "Check inventory levels for the items in my search results"
-                ),
+                on_click=check_inventory_action,
             )
     return app
 
@@ -885,24 +912,66 @@ def _variant_footer_section(variant: dict[str, Any]) -> None:
     asked the agent to surface the URL. Replaced by a real external
     ``Link`` wrapping the card title — clicking the title opens the
     parent's Katana page directly, no agent round-trip needed.
+
+    Action wiring:
+    - **Check Inventory** — ``CallTool("check_inventory", ...)`` with the
+      SKU resolved at card-build time. Deterministic re-invocation, no
+      agent composition.
+    - **Create Purchase Order** — ``UpdateContext``: PO creation needs
+      ``supplier_id`` + ``location_id`` + ``order_number`` + ``items``,
+      none of which are resolvable from the variant card. The agent has
+      to ask the user for those before it can call ``create_purchase_order``.
+    - **List MOs Using This** (materials only) — ``UpdateContext``: no
+      tool answers "MOs that consume this variant" in one call;
+      ``list_manufacturing_orders.variant_ids`` filters by *finished
+      good* (what the MO produces), and there is no
+      ``ingredient_variant_id`` filter today. Tracked in #758.
     """
-    sku = variant.get("sku", "")
-    Button(
-        label="Check Inventory",
-        variant="outline",
-        on_click=SendMessage(f"Check inventory for SKU {sku}"),
-    )
+    # ``check_inventory`` rejects blank SKUs (validated in
+    # ``foundation/inventory.py``), and variants can legally have
+    # ``sku=None`` (see CLAUDE.md "Variants can have null SKUs"). Prefer
+    # the SKU when present (clearer in the resulting tool call), else
+    # fall back to ``variant_id`` — ``skus_or_variant_ids`` accepts both
+    # types in the same arg. Use the same handle in the PO copy so the
+    # agent's prompt and the CallTool args agree on the identity.
+    sku = variant.get("sku")
+    variant_id = variant.get("id")
+    handle: str | int | None = sku if sku else variant_id
+    if handle is not None:
+        Button(
+            label="Check Inventory",
+            variant="outline",
+            on_click=CallTool(
+                "check_inventory",
+                arguments={"skus_or_variant_ids": [handle]},
+            ),
+        )
+    handle_label = f"SKU {sku}" if sku else f"variant_id {variant_id}"
     Button(
         label="Create Purchase Order",
         variant="outline",
-        on_click=SendMessage(f"Draft a purchase order for SKU {sku}"),
+        on_click=UpdateContext(
+            content=(
+                f"User wants to draft a purchase order for {handle_label}. "
+                "Ask for the supplier, location, order number, and quantity "
+                "(or look them up from the variant's default supplier), then "
+                "call create_purchase_order with preview=True."
+            ),
+        ),
     )
     if variant.get("type") == "material" and variant.get("id"):
         Button(
             label="List MOs Using This",
             variant="outline",
-            on_click=SendMessage(
-                f"List manufacturing orders that use variant_id {variant['id']}"
+            on_click=UpdateContext(
+                content=(
+                    f"User wants to list manufacturing orders that use "
+                    f"variant_id {variant['id']} as an ingredient. "
+                    "list_manufacturing_orders filters by finished-good "
+                    "variant, not by ingredient — call list_blocking_ingredients "
+                    "or page through recent MOs and filter their recipes "
+                    "client-side."
+                ),
             ),
         )
 
@@ -1182,11 +1251,26 @@ def _item_reference_section(item: dict[str, Any]) -> None:
 def _item_footer_section(item: dict[str, Any]) -> None:
     """Render Tier 4 action buttons keyed off item type.
 
-    All buttons emit ``SendMessage`` invocations of other tools —
-    correct use of the agent-prompt rail per the module docstring
-    convention (composes context the agent fills in, vs. a deterministic
-    URL which would be a Link). The title's external Link already covers
-    "open in Katana", so no footer button for that.
+    Action wiring (all use ``UpdateContext`` rather than ``CallTool`` —
+    each downstream tool needs request fields the item card can't
+    populate from item state alone):
+
+    - **Create Purchase Order** (materials) — ``create_purchase_order``
+      needs ``supplier_id`` + ``location_id`` + ``order_number`` + a
+      variant-keyed ``items`` list, none of which are determined by the
+      parent item.
+    - **List MOs Using This** (materials) — no tool answers "MOs
+      consuming this item" directly today. Tracked in #758.
+    - **Create Manufacturing Order** (producible products) —
+      ``create_manufacturing_order`` needs ``variant_id`` (not
+      ``item_id``), plus ``planned_quantity`` and ``location_id``. A
+      producible product can have many variants; the agent has to ask
+      which one.
+    - **Modify Item** (all) — open-ended; the user hasn't said which
+      field to change yet.
+
+    The title's external Link already covers "open in Katana", so no
+    footer button for that.
     """
     item_id = item.get("id")
     item_type = item.get("type") or "item"
@@ -1197,29 +1281,52 @@ def _item_footer_section(item: dict[str, Any]) -> None:
         Button(
             label="Create Purchase Order",
             variant="outline",
-            on_click=SendMessage(f"Draft a purchase order for material_id {item_id}"),
+            on_click=UpdateContext(
+                content=(
+                    f"User wants to draft a purchase order for material_id "
+                    f"{item_id}. Resolve the variant_id, default supplier, "
+                    "and location, then call create_purchase_order with "
+                    "preview=True."
+                ),
+            ),
         )
         Button(
             label="List MOs Using This",
             variant="outline",
-            on_click=SendMessage(
-                f"List manufacturing orders that use material_id {item_id}"
+            on_click=UpdateContext(
+                content=(
+                    f"User wants to list manufacturing orders that use "
+                    f"material_id {item_id} as an ingredient. "
+                    "list_manufacturing_orders filters by finished-good "
+                    "variant, not by ingredient — call list_blocking_ingredients "
+                    "or page through recent MOs and filter their recipes "
+                    "client-side."
+                ),
             ),
         )
     elif item_type == "product" and item.get("is_producible"):
         Button(
             label="Create Manufacturing Order",
             variant="outline",
-            on_click=SendMessage(
-                f"Draft a manufacturing order for product_id {item_id}"
+            on_click=UpdateContext(
+                content=(
+                    f"User wants to draft a manufacturing order for "
+                    f"product_id {item_id}. Resolve the target variant_id "
+                    "(the product may have multiple), planned_quantity, "
+                    "and location, then call create_manufacturing_order "
+                    "with preview=True."
+                ),
             ),
         )
 
     Button(
         label="Modify Item",
         variant="outline",
-        on_click=SendMessage(
-            f"I want to modify {item_type} {item_id} — what should I change?"
+        on_click=UpdateContext(
+            content=(
+                f"User wants to modify {item_type} {item_id}. Ask which "
+                "fields to change, then call modify_item with preview=True."
+            ),
         ),
     )
 
@@ -1245,11 +1352,13 @@ def build_item_detail_ui(
       page), config-axis definitions (P/M), additional info, and the
       nested variants table — a DataTable with per-row CallTool
       drilling into ``get_variant_details``.
-    - **Tier 4 — Actions**: sub-type-specific SendMessage buttons:
-      ``Create Purchase Order`` + ``List MOs Using This`` (materials),
-      ``Create Manufacturing Order`` (producible products),
-      ``Modify Item`` (all). No "View in Katana" footer button —
-      the title link replaces it.
+    - **Tier 4 — Actions**: sub-type-specific buttons backed by
+      ``UpdateContext`` (composing the args is on the agent because the
+      item card lacks the variant / location / supplier / target-field
+      context the underlying tools need): ``Create Purchase Order`` +
+      ``List MOs Using This`` (materials), ``Create Manufacturing Order``
+      (producible products), ``Modify Item`` (all). No "View in Katana"
+      footer button — the title link replaces it.
 
     Reference example: the variant card (#542 / #696) established the
     same shape on a single-row entity; this card extends the pattern
@@ -1432,15 +1541,32 @@ def _inventory_footer_section(stock: dict[str, Any]) -> None:
         identity = f"variant_id {variant_id}"
     else:
         return
+    # PO drafting needs supplier_id + location_id + order_number + items —
+    # none of which are derivable from a stock-check card alone — so the
+    # button hands the agent an UpdateContext prompt. "View Variant
+    # Details" is a deterministic re-invocation, so it's a CallTool keyed
+    # on whichever identity the row carries.
     Button(
         label="Create PO",
         variant="outline",
-        on_click=SendMessage(f"Draft a purchase order for {identity}"),
+        on_click=UpdateContext(
+            content=(
+                f"User wants to draft a purchase order for {identity}. "
+                "Resolve the default supplier and target location, then "
+                "call create_purchase_order with preview=True."
+            ),
+        ),
+    )
+    variant_details_args: dict[str, Any] = (
+        {"sku": sku} if sku else {"variant_id": variant_id}
     )
     Button(
         label="View Variant Details",
         variant="outline",
-        on_click=SendMessage(f"Get variant details for {identity}"),
+        on_click=CallTool(
+            "get_variant_details",
+            arguments=variant_details_args,
+        ),
     )
 
 
@@ -1793,20 +1919,54 @@ def build_low_stock_ui(
             paginated=True,
         )
 
+        # "Create Restock Orders" is genuinely batch-composition work: a
+        # human (or agent) has to group rows by supplier, decide order
+        # numbers, and resolve per-row quantities — so the button hands
+        # the agent an ``UpdateContext`` prompt rather than calling a
+        # specific tool.
+        #
+        # "Check Inventory" is deterministic: pass the SKUs (or
+        # variant_ids when SKU is null) collected at card-build time
+        # straight to ``check_inventory``. Falls back to UpdateContext
+        # when every row is anonymous.
+        low_stock_handles: list[str | int] = [
+            handle
+            for item in items
+            if (handle := item.get("sku") or item.get("variant_id"))
+        ]
+        check_inventory_action: Action
+        if low_stock_handles:
+            check_inventory_action = CallTool(
+                "check_inventory",
+                arguments={"skus_or_variant_ids": low_stock_handles},
+            )
+        else:
+            check_inventory_action = UpdateContext(
+                content=(
+                    "User wants to check inventory for the low-stock items "
+                    "in the report, but none of them carry a SKU or "
+                    "variant_id. Resolve identities from the report rows "
+                    "and call check_inventory."
+                ),
+            )
         with Row(gap=2):
             Button(
                 label="Create Restock Orders",
                 variant="default",
-                on_click=SendMessage(
-                    "Create purchase orders to restock all low-stock items"
+                on_click=UpdateContext(
+                    content=(
+                        "User wants to create purchase orders to restock all "
+                        "low-stock items. Group the rows by supplier, "
+                        "resolve order numbers and per-row quantities, then "
+                        "call create_purchase_order with preview=True for "
+                        "each supplier."
+                    ),
                 ),
             )
             Button(
                 label="Check Inventory",
                 variant="default",
-                on_click=SendMessage(
-                    "Check inventory details for these low-stock items"
-                ),
+                on_click=check_inventory_action,
             )
     return app
 
@@ -1977,29 +2137,65 @@ def build_inventory_at_ui(
                 )
 
         with CardFooter(), Row(gap=2):
-            # First resolved SKU drives both follow-up actions; falls back
-            # to variant_id when the variant has no SKU (per the documented
-            # null-SKU invariant).
+            # First resolved handle drives both follow-up actions; falls
+            # back to variant_id when the variant has no SKU (per the
+            # documented null-SKU invariant).
+            #
+            # ``check_inventory`` accepts SKUs OR variant_ids in the same
+            # ``skus_or_variant_ids`` arg, so ``CallTool`` keys directly
+            # off the resolved handle.
+            #
+            # ``get_inventory_movements`` only accepts ``sku`` (string).
+            # If the first handle is an integer (variant_id), the
+            # deterministic CallTool path isn't available — fall back to
+            # ``UpdateContext`` so the agent can resolve the SKU first.
             first_handle: str | int = ""
             if items:
                 first_handle = items[0].get("sku") or items[0].get("variant_id") or ""
+
+            check_inventory_action: Action
+            if first_handle:
+                check_inventory_action = CallTool(
+                    "check_inventory",
+                    arguments={"skus_or_variant_ids": [first_handle]},
+                )
+            else:
+                check_inventory_action = UpdateContext(
+                    content="Check current inventory levels for the items "
+                    "in the inventory-at report.",
+                )
+
+            movements_action: Action
+            if isinstance(first_handle, str) and first_handle:
+                movements_action = CallTool(
+                    "get_inventory_movements",
+                    arguments={"sku": first_handle},
+                )
+            elif first_handle:
+                # first_handle is a variant_id (int) — get_inventory_movements
+                # has no variant_id arg, so prompt the agent to resolve.
+                movements_action = UpdateContext(
+                    content=(
+                        f"User wants to see inventory movements for "
+                        f"variant_id {first_handle}. Resolve the SKU via "
+                        "get_variant_details, then call get_inventory_movements."
+                    ),
+                )
+            else:
+                movements_action = UpdateContext(
+                    content="Show recent inventory movements for the "
+                    "items in the inventory-at report.",
+                )
+
             Button(
                 label="Check Current Inventory",
                 variant="outline",
-                on_click=SendMessage(
-                    f"Check current inventory for {first_handle}"
-                    if first_handle
-                    else "Check current inventory"
-                ),
+                on_click=check_inventory_action,
             )
             Button(
                 label="View Movements",
                 variant="outline",
-                on_click=SendMessage(
-                    f"Show inventory movements for SKU {first_handle}"
-                    if first_handle
-                    else "Show recent inventory movements"
-                ),
+                on_click=movements_action,
             )
     return app
 
