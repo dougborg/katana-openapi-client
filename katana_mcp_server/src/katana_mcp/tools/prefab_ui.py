@@ -2589,9 +2589,7 @@ def build_stock_adjustment_create_ui(
                 Button(
                     label="View in Katana",
                     variant="outline",
-                    on_click=SendMessage(
-                        f"Open {response['katana_url']} in the Katana web UI"
-                    ),
+                    on_click=OpenLink(url=response["katana_url"]),
                 )
     return app
 
@@ -2676,9 +2674,7 @@ def build_stock_adjustment_update_ui(
                 Button(
                     label="View in Katana",
                     variant="outline",
-                    on_click=SendMessage(
-                        f"Open {response['katana_url']} in the Katana web UI"
-                    ),
+                    on_click=OpenLink(url=response["katana_url"]),
                 )
     return app
 
@@ -2871,7 +2867,7 @@ def _render_preview_footer(
     confirm_label: str,
     apply_action: list[Action] | None,
     cancel_action: list[Action],
-    next_action_buttons: tuple[tuple[str, str], ...] = (),
+    next_action_buttons: tuple[tuple[str, Action], ...] = (),
     applied_verb: str = "created",
 ) -> None:
     """Tier 4: CardFooter for a preview/apply card.
@@ -2881,9 +2877,16 @@ def _render_preview_footer(
     should pass ``"applied"`` ("Purchase Order Modify applied.") so the user-
     visible copy matches the actual operation.
 
+    ``next_action_buttons`` is a tuple of ``(label, action)`` pairs — the
+    action is an ``Action`` instance (``CallTool``, ``OpenLink``, or
+    ``UpdateContext``). The footer simply emits each as a button; callers
+    decide the action shape based on whether the next-step tool's args
+    are resolvable from the apply response (CallTool) or need agent
+    composition (UpdateContext).
+
     The applied-state View-in-Katana link and the per-entity next-action
-    SendMessage buttons bind to ``{{ result.<field> }}`` templates so they
-    work in both entry paths:
+    buttons bind to ``{{ result.<field> }}`` templates so they work in
+    both entry paths:
 
     - In-place morph: the preview response has no ``id`` / ``katana_url``,
       but the direct-apply rail's on_success chain writes the apply
@@ -2921,11 +2924,11 @@ def _render_preview_footer(
                         variant="outline",
                         on_click=OpenLink(url="{{ result.katana_url }}"),
                     )
-                for label, send_text in next_action_buttons:
+                for label, action in next_action_buttons:
                     Button(
                         label=label,
                         variant="outline",
-                        on_click=SendMessage(send_text),
+                        on_click=action,
                     )
         with Elif("error"):
             Muted(content="Apply failed — see error above.")
@@ -3348,13 +3351,33 @@ def build_po_create_ui(
             apply_action=apply_action,
             cancel_action=cancel_action,
             next_action_buttons=(
+                # Both follow-ups need request fields the PO-create
+                # response can't supply (per-row receive items;
+                # document_items to verify against), so they hand off to
+                # the agent via UpdateContext rather than calling the
+                # tool directly. ``{{ result.id }}`` resolves against
+                # the create response's state at render time.
                 (
                     "Receive Items",
-                    "Receive items for purchase order {{ result.id }}",
+                    UpdateContext(
+                        content=(
+                            "User wants to receive items for purchase order "
+                            "{{ result.id }}. Ask which rows to receive and "
+                            "in what quantities, then call "
+                            "receive_purchase_order with preview=True."
+                        ),
+                    ),
                 ),
                 (
                     "Verify Document",
-                    "Verify a supplier document against PO {{ result.id }}",
+                    UpdateContext(
+                        content=(
+                            "User wants to verify a supplier document against "
+                            "purchase order {{ result.id }}. Ask the user to "
+                            "share the document line items (sku, quantity, "
+                            "unit_price), then call verify_order_document."
+                        ),
+                    ),
                 ),
             ),
         )
@@ -3648,7 +3671,21 @@ def build_so_create_ui(
             apply_action=apply_action,
             cancel_action=cancel_action,
             next_action_buttons=(
-                ("Fulfill Order", "Fulfill sales order {{ result.id }}"),
+                # Fulfill takes order_id + order_type, both knowable from
+                # the create response, so it's a deterministic CallTool.
+                # ``{{ result.id }}`` resolves against state.result at
+                # render time.
+                (
+                    "Fulfill Order",
+                    CallTool(
+                        "fulfill_order",
+                        arguments={
+                            "order_id": "{{ result.id }}",
+                            "order_type": "sales",
+                            "preview": True,
+                        },
+                    ),
+                ),
             ),
         )
     return app
@@ -3728,9 +3765,21 @@ def build_mo_create_ui(
             apply_action=apply_action,
             cancel_action=cancel_action,
             next_action_buttons=(
+                # Completing an MO is a fulfill call with
+                # order_type="manufacturing"; serial-tracked finished
+                # goods need ``serial_numbers``, but the agent can ask
+                # for those after seeing the preview. Same CallTool /
+                # ``{{ result.id }}`` template pattern as the SO card.
                 (
                     "Complete Order",
-                    "Complete manufacturing order {{ result.id }}",
+                    CallTool(
+                        "fulfill_order",
+                        arguments={
+                            "order_id": "{{ result.id }}",
+                            "order_type": "manufacturing",
+                            "preview": True,
+                        },
+                    ),
                 ),
             ),
         )
@@ -4015,6 +4064,25 @@ def build_fulfill_success_ui(
                 is_preview=False,
             )
 
+        # Collect the SKUs that were just fulfilled so Check Inventory
+        # becomes a deterministic CallTool. Falls back to UpdateContext
+        # when none of the rows carry a SKU (every fulfilled row is
+        # SKU-less — rare, but legal per the null-SKU invariant).
+        fulfilled_skus = [row["sku"] for row in fulfilled_rows if row.get("sku")]
+        check_inventory_action: Action
+        if fulfilled_skus:
+            check_inventory_action = CallTool(
+                "check_inventory",
+                arguments={"skus_or_variant_ids": fulfilled_skus},
+            )
+        else:
+            check_inventory_action = UpdateContext(
+                content=(
+                    "User wants to check current inventory levels for the "
+                    "items just fulfilled. Resolve identities from the "
+                    "fulfilled rows and call check_inventory."
+                ),
+            )
         with CardFooter(), Row(gap=2):
             # Tier 4 actions (#553): two follow-ups. View in Katana wins
             # the primary slot when a deep-link is available (operator's
@@ -4024,12 +4092,12 @@ def build_fulfill_success_ui(
                 Button(
                     label="View in Katana",
                     variant="default",
-                    on_click=SendMessage(f"Open {katana_url} in the Katana web UI"),
+                    on_click=OpenLink(url=katana_url),
                 )
             Button(
                 label="Check Inventory",
                 variant="outline",
-                on_click=SendMessage("Check current inventory levels"),
+                on_click=check_inventory_action,
             )
     return app
 
@@ -4208,6 +4276,13 @@ def build_verification_ui(
         # ``overall_status``. Per the file-level convention, Katana URLs
         # use ``OpenLink`` for one-click navigation rather than
         # ``SendMessage`` indirection through the agent.
+        #
+        # Both Proceed / Receive Anyway hand the agent an
+        # ``UpdateContext`` rather than calling ``receive_purchase_order``
+        # directly: receive needs a per-row ``items`` array (quantities,
+        # optional batch allocations, received_date), none of which the
+        # verification response can pre-fill — the agent has to ask the
+        # user (or mirror the document items) before invoking the tool.
         with Row(gap=2):
             if katana_url:
                 Button(
@@ -4219,17 +4294,29 @@ def build_verification_ui(
                 Button(
                     label="Proceed to Receive",
                     variant="outline" if katana_url else "default",
-                    on_click=SendMessage(
-                        f"Receive items for purchase order {order_id}"
+                    on_click=UpdateContext(
+                        content=(
+                            f"User wants to receive items for purchase "
+                            f"order {order_id}. The document matched the "
+                            "PO — mirror the matched quantities into the "
+                            "items array and call receive_purchase_order "
+                            "with preview=True."
+                        ),
                     ),
                 )
             else:
                 Button(
                     label="Receive Anyway",
                     variant="outline",
-                    on_click=SendMessage(
-                        f"Receive items for purchase order {order_id} "
-                        "despite discrepancies"
+                    on_click=UpdateContext(
+                        content=(
+                            f"User wants to receive items for purchase "
+                            f"order {order_id} despite discrepancies. "
+                            "Confirm the per-row quantities with the user "
+                            "first (the document and PO did not fully "
+                            "agree), then call receive_purchase_order "
+                            "with preview=True."
+                        ),
                     ),
                 )
     return app
@@ -4587,9 +4674,7 @@ def build_modification_result_ui(
                 Button(
                     label="View in Katana",
                     variant="outline",
-                    on_click=SendMessage(
-                        f"Open {response['katana_url']} in the Katana web UI"
-                    ),
+                    on_click=OpenLink(url=response["katana_url"]),
                 )
     return app
 
@@ -4620,17 +4705,27 @@ def build_item_mutation_ui(
                 Text(content=item["message"])
 
         with CardFooter(), Row(gap=2):
-            if item.get("sku"):
+            sku = item.get("sku")
+            if sku:
+                # Both follow-ups are deterministic tool invocations
+                # keyed off the SKU, so they're CallTool. The item card
+                # also carries variant_id when present, but SKU is the
+                # one identifier both tools accept directly.
                 Button(
                     label="View Details",
                     variant="outline",
-                    on_click=SendMessage(f"Get variant details for SKU {item['sku']}"),
+                    on_click=CallTool(
+                        "get_variant_details",
+                        arguments={"sku": sku},
+                    ),
                 )
-            if item.get("sku"):
                 Button(
                     label="Check Inventory",
                     variant="outline",
-                    on_click=SendMessage(f"Check inventory for SKU {item['sku']}"),
+                    on_click=CallTool(
+                        "check_inventory",
+                        arguments={"skus_or_variant_ids": [sku]},
+                    ),
                 )
     return app
 
@@ -4784,6 +4879,11 @@ def build_receipt_ui(
                 for warning in regular_warnings:
                     Badge(label=warning, variant="secondary")
 
+        # Collect SKUs from the receipt rows for the Check Inventory
+        # CallTool, falling back to UpdateContext when the response
+        # carries no SKUs at all (shouldn't happen for receipts because
+        # the per-row enrichment ships sku/display_name — defensive).
+        received_skus = [row["sku"] for row in received_items_display if row.get("sku")]
         with CardFooter():
             if is_preview and apply_action is not None:
                 _render_apply_button_row(
@@ -4793,12 +4893,24 @@ def build_receipt_ui(
                     disabled=bool(block_warnings),
                 )
             else:
+                check_inventory_action: Action
+                if received_skus:
+                    check_inventory_action = CallTool(
+                        "check_inventory",
+                        arguments={"skus_or_variant_ids": received_skus},
+                    )
+                else:
+                    check_inventory_action = UpdateContext(
+                        content=(
+                            "User wants to check current inventory levels "
+                            "after the receipt. Resolve the SKUs from the "
+                            "received items and call check_inventory."
+                        ),
+                    )
                 Button(
                     label="Check Inventory",
                     variant="outline",
-                    on_click=SendMessage(
-                        "Check current inventory levels after receipt"
-                    ),
+                    on_click=check_inventory_action,
                 )
     return app
 
@@ -5188,22 +5300,39 @@ def build_batch_recipe_update_ui(
                 disabled=False,
             )
         elif failed > 0:
+            # Open-ended: the agent has to triage which failures are
+            # retryable, surface the root cause, and suggest specific
+            # corrective tool calls — that's UpdateContext, not a
+            # deterministic CallTool.
             with Row(gap=2):
                 Button(
                     label="Review failed ops",
                     variant="outline",
-                    on_click=SendMessage(
-                        "List the failed sub-operations from the last batch update "
-                        "and suggest recovery steps"
+                    on_click=UpdateContext(
+                        content=(
+                            "List the failed sub-operations from the last "
+                            "batch update and suggest recovery steps. Look "
+                            "at the per-row error messages in the batch "
+                            "result and recommend either a retry, a manual "
+                            "correction, or skipping the op."
+                        ),
                     ),
                 )
         else:
+            # Verification is judgment-driven (which MOs to re-check,
+            # which fields), so it's UpdateContext as well.
             with Row(gap=2):
                 Button(
                     label="Verify recipes",
                     variant="outline",
-                    on_click=SendMessage(
-                        "Verify the updated manufacturing order recipes"
+                    on_click=UpdateContext(
+                        content=(
+                            "Verify the updated manufacturing order recipes. "
+                            "Pick the MOs touched by the batch update, "
+                            "fetch each recipe via "
+                            "get_manufacturing_order_recipe, and confirm "
+                            "the changes landed correctly."
+                        ),
                     ),
                 )
 
@@ -5242,7 +5371,7 @@ def build_apply_success_ui(
                 Button(
                     label="View in Katana",
                     variant="outline",
-                    on_click=SendMessage(f"Open {katana_url} in the Katana web UI"),
+                    on_click=OpenLink(url=katana_url),
                 )
     return app
 
