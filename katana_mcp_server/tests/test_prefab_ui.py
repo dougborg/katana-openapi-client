@@ -1748,7 +1748,7 @@ class TestBuildPOCreateUI:
         the response so the applied-state Buttons (which bind to
         ``{{ result.id }}`` and ``{{ result.katana_url }}``) resolve. On
         the in-place morph path, the on_success chain in
-        ``_build_apply_action_direct`` writes the same key."""
+        ``_build_apply_action`` writes the same key."""
         order = dict(self._PO_RESPONSE, **self._PO_APPLIED)
         app = build_po_create_ui(
             order,
@@ -5743,7 +5743,7 @@ class TestBlockWarningSuppressesConfirm:
 class _ModifyStubRequest(BaseModel):
     """Stub for ``ConfirmableRequest`` used by modification-card tests.
 
-    Mirrors the load-bearing fields ``_build_apply_action_direct`` reads
+    Mirrors the load-bearing fields ``_build_apply_action`` reads
     (``id``, ``preview``) without pulling a real entity request shape into
     these unit tests.
     """
