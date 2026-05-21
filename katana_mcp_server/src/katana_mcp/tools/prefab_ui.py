@@ -2869,12 +2869,7 @@ def _init_create_card_state(response: dict[str, Any]) -> dict[str, Any]:
     ``SetState("result", RESULT)`` before flipping ``applied=True``.
     """
     applied = not response.get("is_preview", True)
-    state: dict[str, Any] = {
-        "applied": applied,
-        "pending": False,
-        "cancelled": False,
-        "error": None,
-    }
+    state: dict[str, Any] = {**_APPLY_RAIL_STATE_INIT, "applied": applied}
     if applied:
         state["result"] = response
     return state
@@ -3881,11 +3876,13 @@ def build_fulfill_preview_ui(
     fulfilled_rows = response.get("fulfilled_rows") or []
     fulfilled_rows_display = [_build_fulfill_row_display(r) for r in fulfilled_rows]
 
-    state = {
+    # Seed the full apply-rail state shape so the unified
+    # ``_render_apply_button_row`` Rx bindings (``applied`` / ``error``)
+    # resolve against present slots — see ADR-0021.
+    state: dict[str, Any] = {
+        **_APPLY_RAIL_STATE_INIT,
         "response": response,
         "fulfilled_rows": fulfilled_rows_display,
-        "pending": False,
-        "cancelled": False,
     }
 
     with PrefabApp(state=state, css_class="p-4") as app, Card():
@@ -4440,10 +4437,7 @@ def build_modification_preview_ui(
     n_actions = len(actions)
 
     state: dict[str, Any] = {
-        "pending": False,
-        "cancelled": False,
-        "applied": False,
-        "error": None,
+        **_APPLY_RAIL_STATE_INIT,
         _PLAN_ACTIONS_KEY: _actions_to_rows(actions),
     }
 
@@ -4709,11 +4703,13 @@ def build_receipt_ui(
     received_items = response.get("received_items") or []
     received_items_display = [_build_receipt_row_display(it) for it in received_items]
 
+    # Seed the full apply-rail state shape so the unified
+    # ``_render_apply_button_row`` Rx bindings (``applied`` / ``error``)
+    # resolve against present slots — see ADR-0021.
     state: dict[str, Any] = {
+        **_APPLY_RAIL_STATE_INIT,
         "response": response,
         "received_items": received_items_display,
-        "pending": False,
-        "cancelled": False,
     }
 
     with PrefabApp(state=state, css_class="p-4") as app, Card():
@@ -5109,7 +5105,11 @@ def build_batch_recipe_update_ui(
         "secondary" if is_preview else ("destructive" if failed > 0 else "default")
     )
 
+    # Seed the full apply-rail state shape so the unified
+    # ``_render_apply_button_row`` Rx bindings (``applied`` / ``error``)
+    # resolve against present slots — see ADR-0021.
     state: dict[str, Any] = {
+        **_APPLY_RAIL_STATE_INIT,
         "rows": flat_rows,
         "summary": {
             "total": total,
@@ -5120,8 +5120,6 @@ def build_batch_recipe_update_ui(
         "is_preview": is_preview,
         "warnings": warnings,
         "groups": list(groups.keys()),
-        "pending": False,
-        "cancelled": False,
     }
     apply_action = _build_apply_action(confirm_tool, confirm_request)
     cancel_action = _build_cancel_action(
