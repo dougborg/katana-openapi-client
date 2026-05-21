@@ -186,6 +186,50 @@ class TestBuildSearchResultsUI:
             "Populated search results must render the 'Check inventory' button."
         )
 
+    def test_check_inventory_button_uses_call_tool_with_collected_skus(self):
+        """The "Check inventory for search results" button must invoke
+        ``check_inventory`` directly via ``CallTool`` (deterministic
+        re-invocation), passing the SKUs collected at card-build time
+        as ``skus_or_variant_ids``. No ``SendMessage`` chat-prompt
+        indirection — that's what the migration in this PR replaces."""
+        items = [
+            {"id": 1, "sku": "SKU-001", "name": "Widget", "is_sellable": True},
+            {"id": 2, "sku": "SKU-002", "name": "Gadget", "is_sellable": True},
+        ]
+        envelope = build_search_results_ui(items, "widget", 2).to_json()
+        button = _find_buttons_by_label(envelope, "Check inventory for search results")[
+            0
+        ]
+        on_click = button.get("onClick") or button.get("on_click")
+        assert isinstance(on_click, dict), (
+            f"Expected onClick to be a dict action; got {on_click!r}"
+        )
+        assert on_click.get("action") == "toolCall", (
+            f"Expected CallTool action; got {on_click!r}"
+        )
+        assert on_click.get("tool") == "check_inventory"
+        assert on_click.get("arguments") == {
+            "skus_or_variant_ids": ["SKU-001", "SKU-002"]
+        }
+
+    def test_check_inventory_button_falls_back_to_update_context_when_sku_less(self):
+        """When every search result is SKU-less (legacy null-SKU rows
+        per CLAUDE.md), Check Inventory can't construct CallTool args —
+        falls back to ``UpdateContext`` asking the agent to resolve
+        variant IDs first."""
+        items = [
+            {"id": 1, "sku": None, "name": "Legacy Import", "is_sellable": True},
+        ]
+        envelope = build_search_results_ui(items, "widget", 1).to_json()
+        button = _find_buttons_by_label(envelope, "Check inventory for search results")[
+            0
+        ]
+        on_click = button.get("onClick") or button.get("on_click")
+        assert isinstance(on_click, dict)
+        assert on_click.get("action") == "updateContext", (
+            f"Expected UpdateContext fallback for null-SKU results; got {on_click!r}"
+        )
+
     def test_empty_results(self):
         app = build_search_results_ui([], "nothing", 0)
         _assert_valid_prefab(app)
@@ -655,6 +699,87 @@ class TestBuildVariantDetailsUI:
         # Identity still renders.
         assert "Orphan Variant" in rendered
         assert "SKU-001" in rendered
+
+    def test_footer_actions_wire_correct_action_types(self):
+        """Variant footer buttons follow the migration:
+        - ``Check Inventory`` → ``CallTool("check_inventory", ...)`` —
+          deterministic, args resolvable from the variant.
+        - ``Create Purchase Order`` → ``UpdateContext`` — PO needs
+          supplier/location/items, not derivable from the variant.
+        - ``List MOs Using This`` (materials) → ``UpdateContext`` —
+          no ingredient filter on list_manufacturing_orders today.
+        """
+        variant = {
+            "id": 100,
+            "sku": "SKU-001",
+            "name": "Steel Bar",
+            "type": "material",
+        }
+        envelope = build_variant_details_ui(variant).to_json()
+
+        check_inv = _find_buttons_by_label(envelope, "Check Inventory")[0]
+        check_inv_action = check_inv.get("onClick") or check_inv.get("on_click")
+        assert isinstance(check_inv_action, dict)
+        assert check_inv_action.get("action") == "toolCall"
+        assert check_inv_action.get("tool") == "check_inventory"
+        assert check_inv_action.get("arguments") == {"skus_or_variant_ids": ["SKU-001"]}
+
+        create_po = _find_buttons_by_label(envelope, "Create Purchase Order")[0]
+        create_po_action = create_po.get("onClick") or create_po.get("on_click")
+        assert isinstance(create_po_action, dict)
+        assert create_po_action.get("action") == "updateContext"
+
+        list_mos = _find_buttons_by_label(envelope, "List MOs Using This")[0]
+        list_mos_action = list_mos.get("onClick") or list_mos.get("on_click")
+        assert isinstance(list_mos_action, dict)
+        assert list_mos_action.get("action") == "updateContext"
+
+    def test_footer_falls_back_to_variant_id_when_sku_null(self):
+        """Variants can legally have ``sku=None`` (legacy NetSuite imports —
+        see CLAUDE.md "Variants can have null SKUs"). Check Inventory must
+        key off ``variant_id`` instead of passing an empty string —
+        ``check_inventory`` rejects blank SKUs. The Create Purchase Order
+        copy must use the same identity so the agent's prompt agrees with
+        the surrounding card.
+        """
+        variant = {
+            "id": 100,
+            "sku": None,
+            "name": "Legacy Import",
+            "type": "material",
+        }
+        envelope = build_variant_details_ui(variant).to_json()
+
+        check_inv = _find_buttons_by_label(envelope, "Check Inventory")[0]
+        check_inv_action = check_inv.get("onClick") or check_inv.get("on_click")
+        assert isinstance(check_inv_action, dict)
+        assert check_inv_action.get("action") == "toolCall"
+        assert check_inv_action.get("tool") == "check_inventory"
+        # variant_id (int) rather than empty string keeps the call valid.
+        assert check_inv_action.get("arguments") == {"skus_or_variant_ids": [100]}
+
+        create_po = _find_buttons_by_label(envelope, "Create Purchase Order")[0]
+        create_po_action = create_po.get("onClick") or create_po.get("on_click")
+        assert isinstance(create_po_action, dict)
+        assert create_po_action.get("action") == "updateContext"
+        content = create_po_action.get("content", "")
+        assert isinstance(content, str)
+        assert "variant_id 100" in content, (
+            f"Create-PO copy must surface variant_id when SKU is null; got: {content!r}"
+        )
+
+    def test_footer_omits_check_inventory_when_no_identity(self):
+        """If neither SKU nor variant_id is resolvable (truly orphan
+        variant — extremely rare), Check Inventory can't construct a
+        valid CallTool, so the button is dropped entirely rather than
+        sending an empty payload."""
+        variant = {"sku": None, "name": "Truly Orphan"}
+        envelope = build_variant_details_ui(variant).to_json()
+        check_inv_buttons = _find_buttons_by_label(envelope, "Check Inventory")
+        assert len(check_inv_buttons) == 0, (
+            "Variant with no SKU and no variant_id must not render an "
+            "unanswerable Check Inventory button."
+        )
 
 
 class TestBuildItemDetailUI:
@@ -1279,18 +1404,72 @@ class TestBuildInventoryCheckUI:
         # Both buttons render
         assert len(_find_buttons_by_label(envelope, "Create PO")) == 1
         assert len(_find_buttons_by_label(envelope, "View Variant Details")) == 1
-        # Prompt text uses variant_id, not "SKU "
-        # Walk the JSON for the SendMessage payload strings
+        # Prompt text uses variant_id, not "SKU ".
+        # Walk the rendered JSON envelope — covers both the
+        # UpdateContext content string (Create PO) and the CallTool
+        # arguments dict (View Variant Details).
         import json as _json
 
         rendered = _json.dumps(envelope)
-        assert "variant_id 9999" in rendered, (
+        assert "variant_id 9999" in rendered or '"variant_id": 9999' in rendered, (
             f"Expected variant_id fallback in agent prompts; rendered: {rendered[:500]!r}"
         )
         assert "for SKU " not in rendered, (
             f"Null-SKU footer must not produce broken 'for SKU ' prompts; "
             f"rendered: {rendered[:500]!r}"
         )
+
+    def test_footer_actions_wire_correct_action_types(self):
+        """Tier 4 actions on the inventory-check card follow the
+        migration:
+        - ``Create PO`` → ``UpdateContext`` — PO drafting needs
+          supplier + location + items that aren't card-derivable.
+        - ``View Variant Details`` → ``CallTool("get_variant_details")``
+          — deterministic, args resolve directly from the row's SKU
+          (or variant_id when SKU is null).
+        """
+        stock = {
+            "sku": "SKU-X",
+            "variant_id": 42,
+            "in_stock": 1,
+            "available_stock": 1,
+            "committed": 0,
+            "expected": 0,
+        }
+        envelope = build_inventory_check_ui(stock).to_json()
+
+        create_po = _find_buttons_by_label(envelope, "Create PO")[0]
+        create_po_action = create_po.get("onClick") or create_po.get("on_click")
+        assert isinstance(create_po_action, dict)
+        assert create_po_action.get("action") == "updateContext"
+
+        view_details = _find_buttons_by_label(envelope, "View Variant Details")[0]
+        view_details_action = view_details.get("onClick") or view_details.get(
+            "on_click"
+        )
+        assert isinstance(view_details_action, dict)
+        assert view_details_action.get("action") == "toolCall"
+        assert view_details_action.get("tool") == "get_variant_details"
+        assert view_details_action.get("arguments") == {"sku": "SKU-X"}
+
+    def test_view_variant_details_falls_back_to_variant_id_when_sku_null(self):
+        """When the row has no SKU, View Variant Details still works —
+        ``CallTool`` keys off ``variant_id`` instead of ``sku``."""
+        stock = {
+            "sku": None,
+            "variant_id": 9999,
+            "in_stock": 1,
+            "available_stock": 1,
+            "committed": 0,
+            "expected": 0,
+        }
+        envelope = build_inventory_check_ui(stock).to_json()
+        view_details = _find_buttons_by_label(envelope, "View Variant Details")[0]
+        action = view_details.get("onClick") or view_details.get("on_click")
+        assert isinstance(action, dict)
+        assert action.get("action") == "toolCall"
+        assert action.get("tool") == "get_variant_details"
+        assert action.get("arguments") == {"variant_id": 9999}
 
     def test_footer_omits_buttons_when_no_identity(self):
         """Defensive — if both sku and variant_id are missing (truly
@@ -2953,6 +3132,10 @@ class TestBuildFulfillUI:
         """Tier 4 expansion (#553): the success card now offers two
         follow-ups instead of the legacy single Check Inventory button.
         View in Katana wins the primary slot when a deep-link is present.
+
+        ``View in Katana`` uses ``OpenLink`` (deterministic URL
+        navigation), not ``SendMessage`` — the host opens the link
+        directly without an agent round-trip.
         """
         envelope = build_fulfill_success_ui(
             self._so_response(is_preview=False)
@@ -2961,6 +3144,14 @@ class TestBuildFulfillUI:
         labels = [b.get("label") for b in buttons]
         assert "View in Katana" in labels
         assert "Check Inventory" in labels
+
+        view_in_katana = _find_buttons_by_label(envelope, "View in Katana")[0]
+        action = view_in_katana.get("onClick") or view_in_katana.get("on_click")
+        assert isinstance(action, dict)
+        assert action.get("action") == "openLink", (
+            f"View in Katana must use OpenLink, not SendMessage; got {action!r}"
+        )
+        assert action.get("url"), f"OpenLink must carry a URL; got {action!r}"
 
     def test_success_omits_view_in_katana_when_url_missing(self):
         """No ``katana_url`` on the response (older payload) → fall back
