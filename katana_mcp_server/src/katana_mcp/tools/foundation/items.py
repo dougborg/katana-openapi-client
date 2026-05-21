@@ -2246,7 +2246,6 @@ def register_tools(mcp: FastMCP) -> None:
         tags={"catalog", "write"},
         annotations=_modify,
         meta=UI_META,
-        direct=True,
     )
     register_preview_tool(
         mcp,
@@ -2254,7 +2253,6 @@ def register_tools(mcp: FastMCP) -> None:
         tags={"catalog", "write", "destructive"},
         annotations=_destructive,
         meta=UI_META,
-        direct=True,
     )
     mcp.tool(tags={"catalog", "read"}, annotations=_read, meta=UI_META)(
         get_variant_details

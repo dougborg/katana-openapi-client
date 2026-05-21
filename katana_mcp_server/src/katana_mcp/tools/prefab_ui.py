@@ -37,30 +37,33 @@ shape. If a field corresponds to a Katana entity not yet in
 ``EntityKind``, add the path template in ``web_urls.py`` and wire
 the link.
 
-**Button action selection.** Each card button picks one of three
-primitives based on what its click needs to do:
+**Action primitive selection.** Card actions choose between four
+host primitives based on intent:
 
-- ``CallTool(tool, arguments={...})`` — re-invoke an MCP tool
-  deterministically. Use when every arg is resolvable at card-build
-  time from the response dict the builder receives, or from a
-  ``{{ result.<field> }}`` template that resolves against the
-  apply-response state. ``Check Inventory`` (with a known SKU) and
+- ``CallTool(tool, arguments={...})`` — deterministic tool re-invocation
+  when every required argument is resolvable at card-build time, either
+  from the response dict the builder receives or from a
+  ``{{ result.<field> }}`` template that resolves against the apply-
+  response state. ``Check Inventory`` (with a known SKU) and
   ``View Variant Details`` (with a known sku/variant_id) are the
-  canonical shape.
-- ``OpenLink(url=...)`` — host opens the URL directly. Used for every
-  ``View in Katana`` button across the cards.
-- ``UpdateContext(content="...")`` — push a chat-context update so
-  the agent composes the next call itself. Right primitive when the
-  next-step tool needs args the card can't produce (PO needs supplier
-  + location + items; "MOs using this material" has no ingredient
-  filter today — #758; receive needs per-row items; open-ended
-  modifies).
-
-The preview→apply rail still uses ``SendMessage`` because of the spec
-finding behind ADR-0015: iframe-initiated ``tools/call`` returns to
-the iframe, not the agent, so the agent has to re-issue the apply
-itself. ``_build_apply_action`` / ``_build_cancel_action`` are the
-only two ``SendMessage`` callsites remaining in this module.
+  canonical follow-up shape. This is also the preview→apply rail:
+  the Confirm button fires ``tools/call`` with the original args +
+  ``preview=False`` and pushes the structured result back to the
+  agent's model context via ``ui/update-model-context``. See ADR-0021
+  for the rationale.
+- ``OpenLink(url=...)`` — URL navigation; the host opens the link
+  directly with no agent round-trip. Used for every ``View in Katana``
+  button across the cards.
+- ``UpdateContext(content="...")`` — push a chat-context update so the
+  agent composes the next call itself. Right primitive when the next-
+  step tool needs args the card can't produce (PO needs supplier +
+  location + items; "MOs using this material" has no ingredient filter
+  today — #758; receive needs per-row items; open-ended modifies). Also
+  used on the Cancel button to signal the user opted out without
+  polluting the chat history.
+- ``SendMessage(...)`` — legacy chat-prompt primitive. Reserved for
+  fallback uses where the agent needs to *speak* (rare; usually prefer
+  ``UpdateContext``).
 """
 
 from __future__ import annotations
@@ -194,39 +197,9 @@ def status_badge_variant(entity: str, status: str | None) -> str:
 # follows the iframe-happy-path coaching ends its turn waiting for clicks
 # that never come (see #648). Mention the iframe path second.
 #
-# The rationale for the chat-message rail lives in ADR-0015; the
-# Confirm-then-iframe-handles-everything UX in ADR-0016.
+# The unified Confirm-fires-CallTool / Cancel-fires-UpdateContext rail
+# rationale lives in ADR-0021 (supersedes ADR-0015's SendMessage rail).
 PREVIEW_APPLY_COACHING = (
-    "Preview→apply pattern: when ``preview=True`` (default) the tool returns "
-    "a Prefab card describing the planned change. The ``content`` channel of "
-    "the tool result carries the response JSON, so you always have the data "
-    "even if the card itself doesn't render. Handle both host scenarios:\n\n"
-    "1. If the host does NOT render MCP Apps iframes (Claude Code, plain CLI "
-    "clients, etc.) — common signal: the user says they can't see the card, "
-    "or you have no other evidence the card was rendered — the Prefab card "
-    "is invisible. Summarize the planned change in chat from the ``content`` "
-    "JSON (what's changing, key field values), ask the user to confirm, then "
-    "re-issue the call with ``preview=False`` yourself. Do NOT end your turn "
-    "waiting for a button click — there is none.\n\n"
-    "2. If the host DOES render iframes (Claude Desktop, Claude.ai, Cowork, "
-    "etc.), the card has Confirm/Cancel buttons the user clicks. Do NOT "
-    "re-narrate the card or ask for confirmation in chat — the buttons "
-    "handle that. End your turn after the preview response. If you later "
-    "receive a chat message starting with ``Apply: call <tool>(...)`` or "
-    "``Cancel: do not apply ...``, that is a button click from a previous "
-    "preview: for Apply re-issue the tool call exactly as written; for "
-    "Cancel acknowledge briefly without re-issuing."
-)
-
-
-# Coaching text for tools using the direct-apply rail (Confirm button fires
-# ``tools/call`` directly + iframe pushes the structured result back via
-# ``ui/update-model-context``). The agent does not re-issue the call — it
-# receives the apply result automatically on its next turn. See
-# ``docs/adr/0016-direct-apply-confirm-button-rail.md`` (forthcoming).
-#
-# Same no-iframe-first lead as PREVIEW_APPLY_COACHING (see #648).
-PREVIEW_APPLY_DIRECT_COACHING = (
     "Preview→apply pattern: when ``preview=True`` (default) the tool returns "
     "a Prefab card describing the planned change. The ``content`` channel of "
     "the tool result carries the response JSON, so you always have the data "
@@ -247,30 +220,25 @@ PREVIEW_APPLY_DIRECT_COACHING = (
     "result — acknowledge completion, suggest next steps. Do NOT re-narrate "
     "the preview card, do NOT ask for confirmation in chat (the buttons "
     "handle that), and Do NOT re-issue the call after the iframe already "
-    "applied. End your turn after the preview response. If you receive a "
-    "chat message starting with ``Cancel: do not apply ...``, the user "
-    "opted out — acknowledge briefly without re-issuing."
+    "applied. End your turn after the preview response. If you receive an "
+    "``UpdateContext`` notification that the user cancelled the preview, "
+    "acknowledge briefly without re-issuing."
 )
 
 
-def with_preview_coaching(fn: Any, *, direct: bool = False) -> str:
+def with_preview_coaching(fn: Any) -> str:
     """Build a FastMCP tool description by appending preview→apply coaching
     to the function's docstring.
 
-    Two coaching variants:
-
-    - ``direct=False`` (default): tools using the SendMessage rail. Confirm
-      fires a ``Apply: call <tool>(...)`` chat message; agent re-issues.
-    - ``direct=True``: tools using the direct-apply rail. Confirm fires
-      ``tools/call`` directly and pushes the result via
-      ``ui/update-model-context``; agent does not re-issue.
+    All preview-mode write tools share a single coaching variant: Confirm
+    fires the apply ``tools/call`` directly and pushes the result via
+    ``ui/update-model-context``; the agent does not re-issue.
 
     Most callers should use :func:`register_preview_tool` rather than
     calling this directly.
     """
-    coaching = PREVIEW_APPLY_DIRECT_COACHING if direct else PREVIEW_APPLY_COACHING
     base = (fn.__doc__ or "").strip()
-    return f"{base}\n\n{coaching}" if base else coaching
+    return f"{base}\n\n{PREVIEW_APPLY_COACHING}" if base else PREVIEW_APPLY_COACHING
 
 
 def register_preview_tool(
@@ -280,103 +248,30 @@ def register_preview_tool(
     tags: set[str],
     annotations: Any,
     meta: Any = None,
-    direct: bool = False,
 ) -> None:
     """Register a preview-mode write tool with standard coaching applied.
 
-    Set ``direct=True`` for tools whose preview UI uses the direct-apply
-    rail (Confirm button fires ``tools/call`` directly and pushes the
-    structured result back via ``ui/update-model-context``). Default
-    ``direct=False`` uses the SendMessage rail (Confirm fires a chat
-    ``Apply: call ...`` for the agent to re-issue).
+    All preview tools use the unified direct-apply rail (Confirm fires
+    ``tools/call`` directly and pushes the structured result back via
+    ``ui/update-model-context``); see ADR-0021 for the architectural
+    rationale.
     """
     mcp.tool(
-        description=with_preview_coaching(fn, direct=direct),
+        description=with_preview_coaching(fn),
         tags=tags,
         annotations=annotations,
         meta=meta,
     )(fn)
 
 
-def _build_apply_message(tool_name: str, args: dict[str, Any]) -> str:
-    """Format the SendMessage text the Confirm button emits to prompt the
-    agent to re-issue the apply tool call.
-
-    Shape (uniform across all preview-mode write tools)::
-
-        Apply: call <tool_name>(<key>=<value>, ..., preview=False)
-
-    The message is human-readable and machine-parseable: the agent's tool
-    description coaches it to recognize the ``Apply:`` prefix and re-invoke
-    ``<tool_name>`` with the inlined args verbatim. ``preview=False`` is
-    placed last regardless of where ``preview`` appears in ``args.items()``
-    iteration order — for ``ConfirmableRequest`` subclasses the base-class
-    ``preview`` field can appear in the middle, but the agent should read
-    a stable trailing ``, preview=False)``.
-
-    ``args`` comes from ``request.model_dump(mode="json")``, so values are
-    already JSON primitives (str, None, bool, int/float, list, dict) — we
-    can use built-in ``repr`` for byte-identical Python-source rendering.
-    """
-    body = ", ".join(
-        f"{key}={value!r}" for key, value in args.items() if key != "preview"
-    )
-    suffix = "preview=False"
-    inner = f"{body}, {suffix}" if body else suffix
-    return f"Apply: call {tool_name}({inner})"
-
-
 def _build_apply_action(
-    confirm_tool: str | None,
-    confirm_request: BaseModel | None,
-) -> list[Action] | None:
-    """Construct the Confirm-button click action, or ``None`` when both
-    inputs are ``None``.
-
-    The action does **not** call the apply tool directly. By MCP spec, an
-    iframe-initiated ``tools/call`` returns its result to the iframe, not to
-    the agent's context — so the agent would never see the structured apply
-    response. Instead, the click marks the preview card as ``pending`` and
-    sends a ``SendMessage`` instructing the agent to re-issue the call. The
-    agent then makes the real tool call through its own tool-calling loop
-    and gets the full structured response back.
-
-    See ``docs/adr/0015-confirmation-pattern-for-write-tools.md`` for the
-    architectural rationale.
-
-    ``confirm_tool`` and ``confirm_request`` must be both set or both
-    ``None`` (the latter for builders that render their non-preview
-    branch — no Confirm button to wire).
-    """
-    if confirm_tool is None and confirm_request is None:
-        return None
-    if confirm_tool is None or confirm_request is None:
-        raise ValueError(
-            "confirm_tool and confirm_request must be set together (or both None)"
-        )
-    args = confirm_request.model_dump(mode="json")
-    if "preview" not in args:
-        raise ValueError(
-            f"_build_apply_action requires a request model with a "
-            f"`preview` field; {type(confirm_request).__name__} has none. "
-            f"Without that field the SendMessage would tell the agent to "
-            f"re-issue {confirm_tool} with an unrecognized preview=False "
-            f"argument, failing validation downstream."
-        )
-    args["preview"] = False
-    return [
-        SetState("pending", True),
-        SendMessage(_build_apply_message(confirm_tool, args)),
-    ]
-
-
-def _build_apply_action_direct(
     confirm_tool: str | None,
     confirm_request: BaseModel | None,
     *,
     extra_on_success: list[Action] | None = None,
 ) -> list[Action] | None:
-    """Construct the direct-apply Confirm-button click action chain.
+    """Construct the Confirm-button click action chain, or ``None`` when
+    both inputs are ``None``.
 
     The chain is ``[SetState(pending, True), CallTool(...)]``. Setting
     ``pending=True`` synchronously before the call fires is the spam guard:
@@ -398,12 +293,12 @@ def _build_apply_action_direct(
     reaches the model; ``structuredContent`` is for UI rendering and is
     not guaranteed in model context.
 
-    See ``docs/adr/0016-direct-apply-confirm-button-rail.md`` (forthcoming)
-    for the architectural rationale; supersedes ADR-0015 for tools that
-    opt into this rail.
+    See ``docs/adr/0021-unified-direct-apply-rail.md`` for the
+    architectural rationale (supersedes ADR-0015's SendMessage rail).
 
     ``confirm_tool`` and ``confirm_request`` must be both set or both
-    ``None`` (the latter for builders that render their non-preview branch).
+    ``None`` (the latter for builders that render their non-preview
+    branch — no Confirm button to wire).
     """
     if confirm_tool is None and confirm_request is None:
         return None
@@ -414,8 +309,11 @@ def _build_apply_action_direct(
     args = confirm_request.model_dump(mode="json")
     if "preview" not in args:
         raise ValueError(
-            f"_build_apply_action_direct requires a request model with a "
-            f"`preview` field; {type(confirm_request).__name__} has none."
+            f"_build_apply_action requires a request model with a "
+            f"`preview` field; {type(confirm_request).__name__} has none. "
+            f"Without that field the CallTool would re-issue {confirm_tool} "
+            f"with an unrecognized preview=False argument, failing "
+            f"validation downstream."
         )
     args["preview"] = False
     # The on_success chain runs the caller's extras BEFORE the generic
@@ -458,17 +356,21 @@ def _build_cancel_action(operation_label: str) -> list[Action]:
     """Construct the Cancel-button click action.
 
     Marks the preview card as ``cancelled`` (so the buttons gray out + a
-    "Cancelled" pill appears) and sends a ``SendMessage`` so the agent
+    "Cancelled" pill appears) and pushes a context update so the agent
     knows the user opted out. The agent's tool description coaches it to
     acknowledge briefly and move on without re-issuing.
 
     ``operation_label`` is a human-readable phrase like ``"the fulfillment"``
-    or ``"that preview"`` — embedded in the SendMessage text so the agent
-    has enough context to acknowledge specifically.
+    or ``"that preview"`` — embedded in the UpdateContext payload so the
+    agent has enough context to acknowledge specifically.
+
+    See ``docs/adr/0021-unified-direct-apply-rail.md`` for the
+    architectural rationale (supersedes ADR-0015's ``SendMessage`` cancel
+    indirection).
     """
     return [
         SetState("cancelled", True),
-        SendMessage(f"Cancel: do not apply {operation_label}."),
+        UpdateContext(content=f"User cancelled the {operation_label} preview."),
     ]
 
 
@@ -478,26 +380,23 @@ def _render_apply_button_row(
     apply_action: list[Action] | None,
     cancel_action: list[Action],
     disabled: bool = False,
-    direct_apply: bool = False,
 ) -> None:
     """Render the preview-card button row with state-aware visuals.
 
-    States driven by iframe state:
+    States driven by iframe state (post-ADR-0021 unified rail):
 
     - **Default** — Confirm + Cancel buttons enabled.
-    - **Pending…** — pill rendered, both buttons disabled. Set on click for
-      both rails: SendMessage rail uses it as the re-issue handoff signal;
-      direct-apply rail uses it as the in-flight click guard so a
-      double-click cannot fire two applies. Cleared in on_success /
-      on_error for direct rail; persists for SendMessage rail (the agent
-      re-issue replaces the card).
-    - **Applied** — pill rendered, both buttons disabled. Direct-apply rail
-      only (``direct_apply=True``); apply succeeded and the iframe morphed.
-    - **Error** — pill rendered, both buttons disabled. Direct-apply rail
-      only; apply failed. The error reason is in iframe state and was
-      pushed to the agent via ``ui/update-model-context``.
+    - **Pending…** — pill rendered, both buttons disabled. Set on click as
+      the in-flight click guard so a double-click cannot fire two applies.
+      Cleared in on_success / on_error.
+    - **Applied** — pill rendered, both buttons disabled. Apply succeeded
+      and the iframe morphed in place.
+    - **Error** — pill rendered, both buttons disabled. Apply failed; the
+      error reason is in iframe state and was pushed to the agent via
+      ``ui/update-model-context``.
     - **Cancelled** — pill rendered, both buttons disabled, after Cancel
-      click.
+      click. The cancel action pushes an ``UpdateContext`` notification so
+      the agent knows the user opted out.
 
     ``disabled=True`` is the block-warning fallback: only the Cancel button
     is offered (no Confirm). The Cancel button still binds
@@ -523,10 +422,8 @@ def _render_apply_button_row(
     # state (PREVIEW / APPLIED / FAILED) separately; the button is
     # specifically about "what action ran or can run next."
     #
-    # State machine (direct-apply rail):
-    # - Preview:           ``Confirm Changes`` (default, + loader icon
-    #                      ``loader`` on the pending replacement) →
-    #                      fires apply
+    # State machine (unified direct-apply rail, ADR-0021):
+    # - Preview:           ``Confirm Changes`` (default) → fires apply
     # - Pending:           ``Applying…`` (default + ``loader`` icon,
     #                      disabled)
     # - Applied + url:     ``View in Katana`` (success + ``external-link``
@@ -541,97 +438,72 @@ def _render_apply_button_row(
     #                      delete data" which is semantically wrong
     #                      for a retry affordance
     # - Cancelled:         ``Cancelled`` (outline, disabled)
-    #
-    # The SendMessage-rail (``direct_apply=False``) variant only
-    # transitions Preview → Pending; the agent re-issue replaces the
-    # card so applied/error/cancelled are out-of-process.
     with Row(gap=2):
-        if direct_apply:
-            with If("pending"):
-                # Loader icon + spinner-style label conveys in-flight
-                # state more clearly than the bare "Applying…" text.
+        with If("pending"):
+            # Loader icon + spinner-style label conveys in-flight
+            # state more clearly than the bare "Applying…" text.
+            Button(
+                label="Applying…",
+                variant="default",
+                icon="loader",
+                disabled=True,
+            )
+        with Elif("applied"):
+            with If("result.katana_url"):
+                # Success variant (green) + external-link icon —
+                # primary affordance on a successful apply is to
+                # see the result in Katana.
                 Button(
-                    label="Applying…",
-                    variant="default",
-                    icon="loader",
+                    label="View in Katana",
+                    variant="success",
+                    icon="external-link",
+                    on_click=OpenLink(url="{{ result.katana_url }}"),
+                )
+            with Else():
+                # No URL (typically a successful delete) — keep
+                # the success variant + check icon so the user
+                # gets unambiguous confirmation the action ran.
+                Button(
+                    label="Applied",
+                    variant="success",
+                    icon="check",
                     disabled=True,
                 )
-            with Elif("applied"):
-                with If("result.katana_url"):
-                    # Success variant (green) + external-link icon —
-                    # primary affordance on a successful apply is to
-                    # see the result in Katana.
-                    Button(
-                        label="View in Katana",
-                        variant="success",
-                        icon="external-link",
-                        on_click=OpenLink(url="{{ result.katana_url }}"),
-                    )
-                with Else():
-                    # No URL (typically a successful delete) — keep
-                    # the success variant + check icon so the user
-                    # gets unambiguous confirmation the action ran.
-                    Button(
-                        label="Applied",
-                        variant="success",
-                        icon="check",
-                        disabled=True,
-                    )
-            with Elif("error"):
-                # Warning variant (amber) + rotate icon signals "the
-                # previous attempt failed, click to redo." Destructive
-                # variant (red) would imply "this will delete data" —
-                # semantically wrong for a retry affordance (per the
-                # /ui-review audit). The action re-fires apply_action,
-                # which resets the rail via SetState("error", None) and
-                # restarts the apply chain.
-                Button(
-                    label="Retry",
-                    variant="warning",
-                    icon="rotate-cw",
-                    on_click=apply_action,
-                )
-            with Elif("cancelled"):
-                Button(label="Cancelled", variant="outline", disabled=True)
-            with Else():
-                # Preview state — explicit ``disabled=Rx("pending")`` is
-                # the belt-and-suspenders double-click guard: the
-                # SetState("pending", True) at the start of the on_click
-                # chain disables the button before If/Elif has a chance
-                # to swap it. Both layers protect against rapid
-                # double-click firing two CallTools.
-                Button(
-                    label=confirm_label,
-                    variant="default",
-                    on_click=apply_action,
-                    disabled=Rx("pending"),
-                )
-        else:
-            # SendMessage rail — simpler state machine, only
-            # Preview ↔ Pending ↔ Cancelled visible (agent re-issue
-            # replaces the card for terminal apply outcomes).
-            with If("pending"):
-                Button(
-                    label="Pending…",
-                    variant="default",
-                    icon="loader",
-                    disabled=True,
-                )
-            with Elif("cancelled"):
-                Button(label="Cancelled", variant="outline", disabled=True)
-            with Else():
-                Button(
-                    label=confirm_label,
-                    variant="default",
-                    on_click=apply_action,
-                    disabled=Rx("pending") | Rx("cancelled"),
-                )
+        with Elif("error"):
+            # Warning variant (amber) + rotate icon signals "the
+            # previous attempt failed, click to redo." Destructive
+            # variant (red) would imply "this will delete data" —
+            # semantically wrong for a retry affordance (per the
+            # /ui-review audit). The action re-fires apply_action,
+            # which resets the rail via SetState("error", None) and
+            # restarts the apply chain.
+            Button(
+                label="Retry",
+                variant="warning",
+                icon="rotate-cw",
+                on_click=apply_action,
+            )
+        with Elif("cancelled"):
+            Button(label="Cancelled", variant="outline", disabled=True)
+        with Else():
+            # Preview state — explicit ``disabled=Rx("pending")`` is
+            # the belt-and-suspenders double-click guard: the
+            # SetState("pending", True) at the start of the on_click
+            # chain disables the button before If/Elif has a chance
+            # to swap it. Both layers protect against rapid
+            # double-click firing two CallTools.
+            Button(
+                label=confirm_label,
+                variant="default",
+                on_click=apply_action,
+                disabled=Rx("pending"),
+            )
         # Cancel button — disabled in all terminal states so the row
         # width stays constant (two buttons always visible). Cancel
         # only does anything in Preview.
-        cancel_locked: Any = Rx("pending") | Rx("cancelled")
-        if direct_apply:
-            cancel_locked = cancel_locked | Rx("applied") | Rx("error")
+        cancel_locked: Any = (
+            Rx("pending") | Rx("cancelled") | Rx("applied") | Rx("error")
+        )
         Button(
             label="Cancel",
             variant="outline",
@@ -2514,12 +2386,12 @@ def _render_field_diff_line(
     # reflow when an apply fails.
 
 
-# Initial state slots written by the direct-apply rail's Confirm/Cancel
-# action chains. Builders that opt into the rail seed these to ``False`` /
+# Initial state slots written by the unified apply rail's Confirm/Cancel
+# action chains (ADR-0021). Every preview card seeds these to ``False`` /
 # ``None`` so the iframe's If/Elif blocks have something to bind to before
 # the first click. ``SetState`` mutations from
-# ``_build_apply_action_direct`` / ``_build_cancel_action`` flip them.
-_DIRECT_APPLY_STATE_INIT: dict[str, Any] = {
+# ``_build_apply_action`` / ``_build_cancel_action`` flip them.
+_APPLY_RAIL_STATE_INIT: dict[str, Any] = {
     "pending": False,
     "cancelled": False,
     "applied": False,
@@ -2567,8 +2439,8 @@ def build_stock_adjustment_create_ui(
     apply_action: list[Action] | None = None
     cancel_action: list[Action] | None = None
     if is_preview:
-        state.update(_DIRECT_APPLY_STATE_INIT)
-        apply_action = _build_apply_action_direct(confirm_tool, confirm_request)
+        state.update(_APPLY_RAIL_STATE_INIT)
+        apply_action = _build_apply_action(confirm_tool, confirm_request)
         cancel_action = _build_cancel_action("the stock adjustment")
 
     location_id = response.get("location_id")
@@ -2620,7 +2492,6 @@ def build_stock_adjustment_create_ui(
                     confirm_label="Confirm & Create",
                     apply_action=apply_action,
                     cancel_action=cancel_action,
-                    direct_apply=True,
                 )
             elif response.get("katana_url"):
                 Button(
@@ -2659,8 +2530,8 @@ def build_stock_adjustment_update_ui(
     apply_action: list[Action] | None = None
     cancel_action: list[Action] | None = None
     if is_preview:
-        state.update(_DIRECT_APPLY_STATE_INIT)
-        apply_action = _build_apply_action_direct(confirm_tool, confirm_request)
+        state.update(_APPLY_RAIL_STATE_INIT)
+        apply_action = _build_apply_action(confirm_tool, confirm_request)
         cancel_action = _build_cancel_action("the stock-adjustment update")
 
     with PrefabApp(state=state, css_class="p-4") as app, Card():
@@ -2705,7 +2576,6 @@ def build_stock_adjustment_update_ui(
                     confirm_label="Confirm & Update",
                     apply_action=apply_action,
                     cancel_action=cancel_action,
-                    direct_apply=True,
                 )
             elif response.get("katana_url"):
                 Button(
@@ -2734,8 +2604,8 @@ def build_stock_adjustment_delete_ui(
     apply_action: list[Action] | None = None
     cancel_action: list[Action] | None = None
     if is_preview:
-        state = dict(_DIRECT_APPLY_STATE_INIT)
-        apply_action = _build_apply_action_direct(confirm_tool, confirm_request)
+        state = dict(_APPLY_RAIL_STATE_INIT)
+        apply_action = _build_apply_action(confirm_tool, confirm_request)
         cancel_action = _build_cancel_action("the stock-adjustment deletion")
 
     with PrefabApp(state=state, css_class="p-4") as app, Card():
@@ -2793,7 +2663,6 @@ def build_stock_adjustment_delete_ui(
                     confirm_label="Confirm & Delete",
                     apply_action=apply_action,
                     cancel_action=cancel_action,
-                    direct_apply=True,
                 )
     return app
 
@@ -2949,7 +2818,6 @@ def _render_preview_footer(
                 apply_action=None,
                 cancel_action=cancel_action,
                 disabled=True,
-                direct_apply=True,
             )
             return
         with If("applied"):
@@ -2977,7 +2845,6 @@ def _render_preview_footer(
                 confirm_label=confirm_label,
                 apply_action=apply_action,
                 cancel_action=cancel_action,
-                direct_apply=True,
             )
 
 
@@ -2998,7 +2865,7 @@ def _init_create_card_state(response: dict[str, Any]) -> dict[str, Any]:
     applied-state Buttons (``{{ result.katana_url }}`` etc.). On the
     standalone-applied path we seed it from the response here; on the
     in-place morph path the on_success chain in
-    :func:`_build_apply_action_direct` populates it via
+    :func:`_build_apply_action` populates it via
     ``SetState("result", RESULT)`` before flipping ``applied=True``.
     """
     applied = not response.get("is_preview", True)
@@ -3362,7 +3229,7 @@ def build_po_create_ui(
     status = response.get("status")
     entity_type = response.get("entity_type")
 
-    apply_action = _build_apply_action_direct(confirm_tool, confirm_request)
+    apply_action = _build_apply_action(confirm_tool, confirm_request)
     cancel_action = _build_cancel_action("that purchase order")
     extra_badges: tuple[tuple[str, str], ...] = (
         ((entity_type, "outline"),) if entity_type and entity_type != "regular" else ()
@@ -3540,7 +3407,7 @@ def build_po_modify_ui(
     # at #760 — see issue for design options.
     changes_by_field = _index_changes_by_field(actions)
 
-    apply_action = _build_apply_action_direct(confirm_tool, confirm_request)
+    apply_action = _build_apply_action(confirm_tool, confirm_request)
     # ``_build_cancel_action`` interpolates its arg into "Cancel: do not
     # apply X.", so the noun phrase has to read naturally there. Verb
     # forms like ``"that purchase order modify"`` (the previous shape)
@@ -3667,7 +3534,7 @@ def build_so_create_ui(
     item_count = response.get("item_count")
     delivery_date = response.get("delivery_date")
 
-    apply_action = _build_apply_action_direct(confirm_tool, confirm_request)
+    apply_action = _build_apply_action(confirm_tool, confirm_request)
     cancel_action = _build_cancel_action("that sales order")
 
     with (
@@ -3758,7 +3625,7 @@ def build_mo_create_ui(
     production_deadline_date = response.get("production_deadline_date")
     additional_info = response.get("additional_info")
 
-    apply_action = _build_apply_action_direct(confirm_tool, confirm_request)
+    apply_action = _build_apply_action(confirm_tool, confirm_request)
     cancel_action = _build_cancel_action("that manufacturing order")
 
     with (
@@ -4550,7 +4417,7 @@ def build_modification_preview_ui(
         if legacy is not None:
             actions = [legacy]
 
-    apply_action = _build_apply_action_direct(confirm_tool, confirm_request)
+    apply_action = _build_apply_action(confirm_tool, confirm_request)
     # NOTE: A live-tick design (rows ticking PLANNED -> APPLIED in place via
     # ``SetState("plan_actions", RESULT.actions)``) was attempted in #634 but
     # turned out to be broken: ``$result`` in the on_success Rx context
@@ -4633,7 +4500,6 @@ def build_modification_preview_ui(
                 apply_action=apply_action,
                 cancel_action=cancel_action,
                 disabled=bool(block_warnings),
-                direct_apply=True,
             )
     return app
 

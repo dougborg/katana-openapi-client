@@ -3231,7 +3231,6 @@ def register_tools(mcp: FastMCP) -> None:
         tags={"orders", "manufacturing", "write"},
         annotations=_create,
         meta=UI_META,
-        direct=True,
     )
     mcp.tool(
         tags={"orders", "manufacturing", "read"},
@@ -3255,7 +3254,6 @@ def register_tools(mcp: FastMCP) -> None:
         tags={"orders", "manufacturing", "write"},
         annotations=_modify,
         meta=UI_META,
-        direct=True,
     )
     register_preview_tool(
         mcp,
@@ -3263,5 +3261,4 @@ def register_tools(mcp: FastMCP) -> None:
         tags={"orders", "manufacturing", "write", "destructive"},
         annotations=_destructive_write,
         meta=UI_META,
-        direct=True,
     )

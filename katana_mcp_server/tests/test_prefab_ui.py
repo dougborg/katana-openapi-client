@@ -14,7 +14,6 @@ from typing import Any, ClassVar
 import pytest
 from katana_mcp.tools.prefab_ui import (
     PREVIEW_APPLY_COACHING,
-    PREVIEW_APPLY_DIRECT_COACHING,
     _format_money,
     build_batch_recipe_update_ui,
     build_fulfill_preview_ui,
@@ -2390,13 +2389,13 @@ class TestBuildPOModifyUI:
         assert "Confirm Delete" in rendered
 
     def test_cancel_messages_use_natural_noun_phrases_per_verb(self):
-        """``_build_cancel_action`` interpolates its arg into "Cancel: do
-        not apply X." — the noun phrase has to read naturally there.
-        Modify/correct cards interpolate "those purchase order changes" /
-        "those purchase order corrections"; delete cards interpolate
-        "that purchase order deletion". The previous shape (e.g. "that
-        purchase order modify") was grammatically awkward — Copilot
-        flagged on #755."""
+        """``_build_cancel_action`` interpolates its arg into the
+        ``UpdateContext`` payload "User cancelled the X preview." — the
+        noun phrase has to read naturally there. Modify/correct cards
+        interpolate "those purchase order changes" / "those purchase
+        order corrections"; delete cards interpolate "that purchase
+        order deletion". The previous shape (e.g. "that purchase order
+        modify") was grammatically awkward — Copilot flagged on #755."""
         for tool, expected_phrase in [
             ("modify_purchase_order", "those purchase order changes"),
             ("correct_purchase_order", "those purchase order corrections"),
@@ -4744,11 +4743,10 @@ class TestBuildBatchRecipeUpdateUI:
 def _confirm_button_on_click(envelope: dict, label: str) -> list[dict]:
     """Return the on_click action list for the Confirm button matching ``label``.
 
-    All Confirm buttons in the new (post-#316) confirmation pattern fire
-    a list of two actions: ``setState("pending", True)`` and
-    ``sendMessage("Apply: call <tool>(<args>, preview=False)")``. The
-    Cancel button mirrors this with ``cancelled`` and a ``"Cancel: ..."``
-    SendMessage.
+    Per ADR-0021 every Confirm button fires a list of two actions:
+    ``setState("pending", True)`` and ``toolCall(<apply_tool>, ...)``.
+    The Cancel button mirrors this with ``setState("cancelled", True)``
+    and an ``updateContext(...)`` notification.
     """
     buttons = _find_buttons_by_label(envelope, label)
     assert len(buttons) == 1, (
@@ -4761,42 +4759,47 @@ def _confirm_button_on_click(envelope: dict, label: str) -> list[dict]:
     return on_click
 
 
-class TestConfirmButtonEmitsApplyMessage:
-    """The Confirm button on every preview card must fire two actions:
+class TestConfirmButtonEmitsCallTool:
+    """The Confirm button on every preview card fires two actions per
+    ADR-0021:
 
     1. ``setState("pending", True)`` — flips the card to a "Pending…"
-       pill and grays out the buttons (no double-fire footgun).
-    2. ``sendMessage("Apply: call <tool>(<inlined args>, preview=False)")``
-       — prompts the agent to re-issue the apply call.
+       pill, grays out the buttons (in-flight click guard).
+    2. ``toolCall(<apply_tool>, arguments={..., preview=False}, ...)``
+       — calls the apply tool directly from the iframe. The
+       ``on_success`` chain pushes the structured result back into the
+       agent's model context via ``updateContext``.
 
-    The button does **not** fire ``CallTool`` directly. Per ADR-0015 and
-    the spec finding behind #316, an iframe-initiated ``tools/call``
-    returns its result to the iframe, not to the agent — so the only way
-    for the agent to see the apply response is to make the call itself.
+    Supersedes the old ADR-0015 ``SendMessage`` re-issue handshake; see
+    the unified rail ADR for the spec finding that motivated the move
+    (``ui/update-model-context`` lets the iframe push the result to the
+    agent's context, removing the need for an agent re-issue).
     """
 
     @staticmethod
     def _assert_apply_actions(on_click: list[dict], tool_name: str) -> dict:
         """Validate that on_click is exactly [SetState(pending, True),
-        SendMessage(Apply: call <tool>(...))] and return the SendMessage."""
+        CallTool(<tool_name>, arguments={..., preview=False}, ...)] and
+        return the CallTool action."""
         set_states = [a for a in on_click if a.get("action") == "setState"]
-        send_messages = [a for a in on_click if a.get("action") == "sendMessage"]
+        tool_calls = [a for a in on_click if a.get("action") == "toolCall"]
         assert any(
             a.get("key") == "pending" and a.get("value") is True for a in set_states
         ), f"Expected setState('pending', True) in on_click; got {on_click!r}"
-        apply_msgs = [
-            m
-            for m in send_messages
-            if isinstance(m.get("content"), str)
-            and m["content"].startswith(f"Apply: call {tool_name}(")
-        ]
-        assert len(apply_msgs) == 1, (
-            f"Expected exactly one SendMessage with 'Apply: call {tool_name}('; "
-            f"got {[m.get('content') for m in send_messages]!r}"
+        matching = [c for c in tool_calls if c.get("tool") == tool_name]
+        assert len(matching) == 1, (
+            f"Expected exactly one toolCall to {tool_name!r}; "
+            f"got {[c.get('tool') for c in tool_calls]!r}"
         )
-        return apply_msgs[0]
+        call = matching[0]
+        args = call.get("arguments") or {}
+        assert args.get("preview") is False, (
+            f"Confirm-button toolCall must bake preview=False into arguments; "
+            f"got {args!r}"
+        )
+        return call
 
-    def test_fulfill_preview_confirm_emits_apply_send_message(self):
+    def test_fulfill_preview_confirm_emits_call_tool(self):
         app = build_fulfill_preview_ui(
             {
                 "order_id": 9999,
@@ -4808,12 +4811,12 @@ class TestConfirmButtonEmitsApplyMessage:
         )
         envelope = app.to_json()
         on_click = _confirm_button_on_click(envelope, "Confirm Fulfillment")
-        msg = self._assert_apply_actions(on_click, "fulfill_order")
-        assert "order_id=9999" in msg["content"]
-        assert "order_type='sales'" in msg["content"]
-        assert "preview=False" in msg["content"]
+        call = self._assert_apply_actions(on_click, "fulfill_order")
+        args = call["arguments"]
+        assert args["order_id"] == 9999
+        assert args["order_type"] == "sales"
 
-    def test_receipt_preview_confirm_emits_apply_send_message(self):
+    def test_receipt_preview_confirm_emits_call_tool(self):
         from katana_mcp.tools.foundation.purchase_orders import (
             ReceiveItemRequest,
             ReceivePurchaseOrderRequest,
@@ -4837,11 +4840,10 @@ class TestConfirmButtonEmitsApplyMessage:
         )
         envelope = app.to_json()
         on_click = _confirm_button_on_click(envelope, "Confirm Receipt")
-        msg = self._assert_apply_actions(on_click, "receive_purchase_order")
-        assert "order_id=1234" in msg["content"]
-        assert "preview=False" in msg["content"]
+        call = self._assert_apply_actions(on_click, "receive_purchase_order")
+        assert call["arguments"]["order_id"] == 1234
 
-    def test_batch_recipe_preview_confirm_emits_apply_send_message(self):
+    def test_batch_recipe_preview_confirm_emits_call_tool(self):
         request = _StubRequest()
         app = build_batch_recipe_update_ui(
             {
@@ -4866,20 +4868,43 @@ class TestConfirmButtonEmitsApplyMessage:
         )
         envelope = app.to_json()
         on_click = _confirm_button_on_click(envelope, "Execute batch")
-        msg = self._assert_apply_actions(on_click, "batch_update_recipes")
-        assert "preview=False" in msg["content"]
+        self._assert_apply_actions(on_click, "batch_update_recipes")
+
+    def test_fulfill_preview_confirm_pushes_result_via_update_context(self):
+        """The unified apply rail's on_success chain must include
+        ``UpdateContext(content=$result)`` so the structured apply
+        response reaches the agent's context on its next turn.
+        """
+        app = build_fulfill_preview_ui(
+            {
+                "order_id": 5,
+                "order_type": "manufacturing",
+                "order_number": "MO-2",
+                "status": "PARTIALLY_DELIVERED",
+                "warnings": [],
+            }
+        )
+        envelope = app.to_json()
+        on_click = _confirm_button_on_click(envelope, "Confirm Fulfillment")
+        call = self._assert_apply_actions(on_click, "fulfill_order")
+        on_success = call.get("onSuccess")
+        assert isinstance(on_success, list), (
+            f"Expected onSuccess to be a list; got {on_success!r}"
+        )
+        update_contexts = [a for a in on_success if a.get("action") == "updateContext"]
+        assert len(update_contexts) == 1, (
+            f"Expected exactly one updateContext in on_success; got {update_contexts!r}"
+        )
+        assert update_contexts[0].get("content") == "{{ $result }}", (
+            f"updateContext.content must carry $result so the agent receives "
+            f"the structured apply response; got {update_contexts[0]!r}"
+        )
 
 
 class TestConfirmButtonDirectApplyRail:
-    """Direct-apply rail (ADR-0016, supersedes ADR-0015 for opted-in tools):
-
-    The Confirm button fires ``tools/call`` directly from the iframe with
-    the original args + ``preview=False``, and on success pushes the
-    structured result back to the agent's model context via
-    ``ui/update-model-context``. The agent does NOT re-issue the call.
-
-    Currently opted into by ``create_purchase_order``; rolling out to other
-    write tools after Cowork verification.
+    """Pre-#807 direct-apply rail tests, retained as the smoke test for the
+    create-PO card's full retry / error / spam-guard contract. Now the
+    unified rail (ADR-0021) every preview tool uses.
     """
 
     @staticmethod
@@ -5172,27 +5197,30 @@ class TestConfirmButtonDirectApplyRail:
         )
 
 
-class TestCancelButtonEmitsCancelMessage:
-    """The Cancel button must fire ``setState("cancelled", True)`` plus a
-    ``sendMessage("Cancel: do not apply ...")`` so the agent recognizes the
-    user's opt-out and moves on. Mirrors the Confirm-button contract above.
+class TestCancelButtonEmitsUpdateContext:
+    """The Cancel button (post-ADR-0021) fires ``setState("cancelled", True)``
+    plus an ``updateContext(content="User cancelled the ... preview.")``
+    so the agent sees the user's opt-out as a context update — no chat
+    indirection.
     """
 
     def _assert_cancel_actions(self, on_click: list[dict]) -> None:
         set_states = [a for a in on_click if a.get("action") == "setState"]
-        send_messages = [a for a in on_click if a.get("action") == "sendMessage"]
+        update_contexts = [a for a in on_click if a.get("action") == "updateContext"]
         assert any(
             a.get("key") == "cancelled" and a.get("value") is True for a in set_states
         ), f"Expected setState('cancelled', True) in on_click; got {on_click!r}"
         cancel_msgs = [
-            m
-            for m in send_messages
-            if isinstance(m.get("content"), str)
-            and m["content"].startswith("Cancel: do not apply ")
+            u
+            for u in update_contexts
+            if isinstance(u.get("content"), str)
+            and u["content"].startswith("User cancelled the ")
+            and u["content"].endswith(" preview.")
         ]
         assert len(cancel_msgs) == 1, (
-            f"Expected exactly one Cancel SendMessage; "
-            f"got {[m.get('content') for m in send_messages]!r}"
+            f"Expected exactly one Cancel updateContext starting with "
+            f"'User cancelled the ' and ending with ' preview.'; "
+            f"got {[u.get('content') for u in update_contexts]!r}"
         )
 
     def test_order_preview_cancel(self):
@@ -5351,10 +5379,11 @@ class TestBuildApplyActionXorInvariant:
 
         assert _build_apply_action(None, None) is None
 
-    def test_apply_message_inlines_args_and_overrides_preview(self):
-        """The ``Apply: call ...`` SendMessage must inline every request
-        field as a literal value and force ``preview=False`` regardless
-        of the request's preview value (the user already saw the preview).
+    def test_apply_inlines_args_and_overrides_preview(self):
+        """The Confirm-button ``CallTool`` must carry every request field
+        as a literal value in ``arguments`` and force ``preview=False``
+        regardless of the request's preview value (the user already saw
+        the preview).
         """
         from katana_mcp.tools.foundation.orders import FulfillOrderRequest
         from katana_mcp.tools.prefab_ui import _build_apply_action
@@ -5362,30 +5391,23 @@ class TestBuildApplyActionXorInvariant:
         request = FulfillOrderRequest(order_id=42, order_type="sales", preview=True)
         actions = _build_apply_action("fulfill_order", request)
         assert actions is not None
-        send_messages = [a for a in actions if hasattr(a, "content")]
-        assert len(send_messages) == 1
-        # ``Action`` is a discriminated union; only some variants expose
-        # ``content``. ``hasattr`` filters at runtime, but the static type
-        # is the bare union — read via ``getattr`` to satisfy the checker.
-        text = getattr(send_messages[0], "content", None)
-        assert isinstance(text, str)
-        assert text.startswith("Apply: call fulfill_order(")
-        assert "order_id=42" in text
-        assert "order_type='sales'" in text
-        # preview is forced to False even though request.preview was True
-        assert "preview=False" in text
-        assert "preview=True" not in text
-        # And ``preview=False`` is the trailing arg regardless of where the
-        # field appears in args.items() iteration order — agents read a
-        # stable suffix.
-        assert text.rstrip(")").endswith(", preview=False"), (
-            f"`preview=False` must be the trailing arg; got: {text!r}"
+        # Find the CallTool action.
+        tool_calls = [a for a in actions if getattr(a, "tool", None) == "fulfill_order"]
+        assert len(tool_calls) == 1, (
+            f"Expected exactly one CallTool to fulfill_order; got {actions!r}"
         )
+        call = tool_calls[0]
+        args = getattr(call, "arguments", None)
+        assert isinstance(args, dict)
+        assert args["order_id"] == 42
+        assert args["order_type"] == "sales"
+        # preview is forced to False even though request.preview was True
+        assert args["preview"] is False
 
     def test_preview_field_required_in_request(self):
         """A request model without a ``preview`` field is a programmer
-        error — the SendMessage would prompt the agent to call the tool
-        with an unrecognized argument that fails validation downstream.
+        error — the CallTool would invoke the tool with an unrecognized
+        ``preview=False`` argument that fails validation downstream.
         Fail loudly at UI-build time instead.
         """
         from katana_mcp.tools.prefab_ui import _build_apply_action
@@ -6356,17 +6378,11 @@ class TestPreviewCoachingLeadsWithNoIframeFallback:
     ended their turns waiting for clicks the user could not make.
     """
 
-    @pytest.mark.parametrize(
-        "coaching",
-        [PREVIEW_APPLY_COACHING, PREVIEW_APPLY_DIRECT_COACHING],
-        ids=["sendmessage-rail", "direct-apply-rail"],
-    )
-    def test_no_iframe_scenario_appears_before_iframe_scenario(
-        self, coaching: str
-    ) -> None:
+    def test_no_iframe_scenario_appears_before_iframe_scenario(self) -> None:
         """The no-iframe path must be discussed BEFORE the iframe path so
         agents whose host doesn't render Prefab cards don't miss the
         fallback instructions."""
+        coaching = PREVIEW_APPLY_COACHING
         # Numbered scenarios — `1.` introduces no-iframe, `2.` iframe.
         no_iframe_idx = coaching.find("does NOT render")
         iframe_idx = coaching.find("DOES render")
@@ -6384,33 +6400,21 @@ class TestPreviewCoachingLeadsWithNoIframeFallback:
             "footgun #648 fixed."
         )
 
-    @pytest.mark.parametrize(
-        "coaching",
-        [PREVIEW_APPLY_COACHING, PREVIEW_APPLY_DIRECT_COACHING],
-        ids=["sendmessage-rail", "direct-apply-rail"],
-    )
-    def test_mentions_content_channel_as_data_source(self, coaching: str) -> None:
+    def test_mentions_content_channel_as_data_source(self) -> None:
         """The no-iframe fallback path tells the agent to summarize from the
         ``content`` channel — make sure the coaching points there explicitly
         so agents don't claim "I don't have enough data" instead of reading
         the JSON they were just handed."""
-        assert "``content``" in coaching, (
+        assert "``content``" in PREVIEW_APPLY_COACHING, (
             "coaching must direct the agent to the ``content`` channel for "
             "the no-iframe summarize-then-confirm path; otherwise agents "
             "may not realize the response data is already in context."
         )
 
-    @pytest.mark.parametrize(
-        "coaching",
-        [PREVIEW_APPLY_COACHING, PREVIEW_APPLY_DIRECT_COACHING],
-        ids=["sendmessage-rail", "direct-apply-rail"],
-    )
-    def test_no_iframe_path_says_re_issue_with_preview_false(
-        self, coaching: str
-    ) -> None:
+    def test_no_iframe_path_says_re_issue_with_preview_false(self) -> None:
         """The no-iframe fallback must spell out the apply mechanic
         (``preview=False``) so the agent isn't left guessing how to apply."""
-        assert "preview=False" in coaching, (
+        assert "preview=False" in PREVIEW_APPLY_COACHING, (
             "the no-iframe fallback must tell the agent to re-issue with "
             "``preview=False``"
         )

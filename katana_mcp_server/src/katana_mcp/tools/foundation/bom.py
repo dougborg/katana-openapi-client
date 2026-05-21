@@ -620,5 +620,4 @@ def register_tools(mcp: FastMCP) -> None:
         tags={"catalog", "write"},
         annotations=_modify,
         meta=UI_META,
-        direct=True,
     )
