@@ -127,34 +127,22 @@ prior evidence iframes have rendered in this session.
 **2. Hosts that DO render iframes** (Claude Desktop, Claude.ai, Cowork).
 The card has Confirm and Cancel buttons the user clicks. **Do not
 re-narrate the card or ask for confirmation in chat** — the buttons
-handle that. End your turn after the preview response. The Confirm-click
-behavior depends on which rail the tool is on:
+handle that. End your turn after the preview response.
 
-*SendMessage rail (ADR-0015) — default for tools that don't opt into
-direct-apply.* The iframe sends a chat message of the form:
+*Unified direct-apply rail (ADR-0021, supersedes ADR-0015).* The
+Confirm click fires the apply `tools/call` directly from the iframe
+with the original args + `preview=False`, and the iframe pushes the
+structured result back to the agent's model context via
+`ui/update-model-context`. The agent sees the apply response on its
+next turn without re-issuing — treat it as you would any tool-call
+result (acknowledge completion, suggest next steps).
 
-    Apply: call <tool_name>(<arg>=<value>, ..., preview=False)
+The Cancel button pushes an `UpdateContext` notification of the form
 
-Recognize the `Apply:` prefix and re-issue the tool call **exactly as
-written**, with all inlined arguments preserved. Re-issuing through the
-agent's tool-calling loop is what lets the agent see the structured
-apply response on this rail; the iframe-initiated call alone routes its
-result back to the iframe, not to the agent.
+    User cancelled the <description> preview.
 
-*Direct-apply rail (ADR-0016) — used by `create_purchase_order`,
-`create_sales_order`, `create_manufacturing_order`, the unified
-`modify_<entity>` / `delete_<entity>` family, the `correct_*` family,
-and the stock-adjustment write tools.* The Confirm click fires the
-apply `tools/call` directly and the iframe pushes the structured result
-back to the agent's model context via `ui/update-model-context`. The
-agent sees the apply response on its next turn without re-issuing.
-
-Cancel behavior is the same on both rails: the iframe sends
-
-    Cancel: do not apply <description>.
-
-Acknowledge briefly without re-issuing. The user can ask again later if
-they want to retry.
+into the agent's context. Acknowledge briefly without re-issuing. The
+user can ask again later if they want to retry.
 
 ## Unified-Modify Pattern
 

@@ -1,7 +1,8 @@
 """Regression tests pinning two cross-cutting properties of registered MCP tools:
 
 1. Every tool whose request model has a ``preview`` field includes the
-   preview→apply coaching block in its description (closes #544).
+   preview→apply coaching block in its description (closes #544). After
+   ADR-0021 every preview tool uses the unified direct-apply rail.
 2. ``destructiveHint`` annotations follow the policy fixed in ADR-0015
    (#316 housekeeping).
 
@@ -40,25 +41,21 @@ def registered_tools() -> dict[str, Any]:
 # block (``with_preview_coaching``) in their description so the agent
 # recognizes the iframe round-trip.
 #
-# Two rails:
-#   - SendMessage rail (default) — Confirm fires a ``Apply: call`` chat hint
-#     and the agent re-issues. Coaching: ``PREVIEW_APPLY_COACHING``.
-#   - Direct-apply rail (``register_preview_tool(direct=True)``) — Confirm
-#     fires ``tools/call`` directly and pushes the structured result back via
-#     ``ui/update-model-context``. Coaching: ``PREVIEW_APPLY_DIRECT_COACHING``.
+# Per ADR-0021, all preview-button tools use the unified direct-apply rail:
+# Confirm fires ``tools/call`` directly and pushes the structured result
+# back via ``ui/update-model-context``; Cancel pushes an UpdateContext
+# notification of the user's opt-out.
 #
 # ``rebuild_cache`` has a ``preview`` field but renders markdown text rather
 # than a Prefab card, so it does not need coaching about button-driven
-# Apply: messages.
-
-# Tools currently using the direct-apply rail (per ADR-0016 spike).
-DIRECT_APPLY_TOOLS = [
+# Apply behavior.
+PREVIEW_BUTTON_TOOLS = [
     # Order creates that route through per-entity build_<po|so|mo>_create_ui.
     "create_purchase_order",
     "create_sales_order",
     "create_manufacturing_order",
     # Modification tools — every tool that returns a ModificationResponse
-    # via _modification.to_tool_result is on the direct-apply rail.
+    # via _modification.to_tool_result is on the apply rail.
     "modify_purchase_order",
     "delete_purchase_order",
     "modify_sales_order",
@@ -77,17 +74,12 @@ DIRECT_APPLY_TOOLS = [
     "create_stock_adjustment",
     "update_stock_adjustment",
     "delete_stock_adjustment",
-]
-
-# Tools still using the SendMessage rail (default, per ADR-0015). Tracked
-# for migration in #633.
-SEND_MESSAGE_APPLY_TOOLS = [
+    # Tools migrated from the SendMessage rail to the unified apply rail
+    # by ADR-0021.
     "receive_purchase_order",
     "create_stock_transfer",
     "fulfill_order",
 ]
-
-PREVIEW_BUTTON_TOOLS = DIRECT_APPLY_TOOLS + SEND_MESSAGE_APPLY_TOOLS
 
 
 @pytest.mark.parametrize("tool_name", PREVIEW_BUTTON_TOOLS)
@@ -95,7 +87,8 @@ def test_preview_button_tool_has_no_renarrate_coaching(
     registered_tools: dict[str, Any], tool_name: str
 ) -> None:
     """Every preview-button tool's description must include the
-    "do not re-narrate" coaching (closes #544). Required for both rails.
+    "do not re-narrate" coaching (closes #544). Required for all tools
+    that emit a Prefab preview card.
     """
     tool = registered_tools[tool_name]
     description = tool.description or ""
@@ -106,40 +99,25 @@ def test_preview_button_tool_has_no_renarrate_coaching(
     )
 
 
-@pytest.mark.parametrize("tool_name", SEND_MESSAGE_APPLY_TOOLS)
-def test_send_message_apply_tool_has_apply_call_coaching(
+@pytest.mark.parametrize("tool_name", PREVIEW_BUTTON_TOOLS)
+def test_preview_button_tool_has_update_model_context_coaching(
     registered_tools: dict[str, Any], tool_name: str
 ) -> None:
-    """SendMessage-rail tools must coach the agent to recognize the
-    ``Apply: call <tool>(...)`` chat hint and re-issue.
-    """
-    tool = registered_tools[tool_name]
-    description = tool.description or ""
-    assert "Apply: call" in description, (
-        f"{tool_name}: missing 'Apply: call' coaching — agent will not "
-        f"recognize the Confirm-button SendMessage and re-issue the call. "
-        f"Wire via with_preview_coaching() (direct=False) in register_tools."
-    )
-
-
-@pytest.mark.parametrize("tool_name", DIRECT_APPLY_TOOLS)
-def test_direct_apply_tool_has_update_model_context_coaching(
-    registered_tools: dict[str, Any], tool_name: str
-) -> None:
-    """Direct-apply-rail tools must coach the agent that the apply result
-    arrives via ``ui/update-model-context``, not via re-issue.
+    """Every preview-button tool must coach the agent that the apply
+    result arrives via ``ui/update-model-context`` (post-ADR-0021 unified
+    rail), not via agent re-issue.
     """
     tool = registered_tools[tool_name]
     description = tool.description or ""
     assert "ui/update-model-context" in description, (
         f"{tool_name}: missing 'ui/update-model-context' coaching — agent "
         f"won't know to expect the apply result via the iframe context push. "
-        f"Wire via with_preview_coaching(direct=True) in register_tools."
+        f"Wire via with_preview_coaching() in register_tools."
     )
     assert "Do NOT re-issue" in description, (
         f"{tool_name}: missing 'Do NOT re-issue' coaching — agent may "
         f"incorrectly re-issue after the iframe already applied. "
-        f"Wire via with_preview_coaching(direct=True) in register_tools."
+        f"Wire via with_preview_coaching() in register_tools."
     )
 
 
@@ -174,13 +152,8 @@ def test_read_only_tools_do_not_have_coaching(
         if name not in registered_tools:
             continue
         description = registered_tools[name].description or ""
-        assert "Apply: call" not in description, (
-            f"{name}: read-only tool unexpectedly carries the preview→apply "
-            f"coaching. The coaching should only be on tools that emit a "
-            f"Prefab preview card with Confirm/Cancel buttons."
-        )
         assert "ui/update-model-context" not in description, (
-            f"{name}: read-only tool unexpectedly carries the direct-apply "
+            f"{name}: read-only tool unexpectedly carries the apply-rail "
             f"coaching. The coaching should only be on tools that emit a "
             f"Prefab preview card with Confirm/Cancel buttons."
         )
