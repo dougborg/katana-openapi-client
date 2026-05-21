@@ -4408,8 +4408,9 @@ def build_modification_preview_ui(
     Confirm fires ``tools/call`` directly; the on_success chain pushes
     ``RESULT.actions`` into ``state.plan_actions`` so each row's status
     cell ticks PLANNED → APPLIED/FAILED in place without re-rendering
-    the iframe (ADR-0016 direct-apply rail). The iframe also pushes the
-    structured result to the agent via ``ui/update-model-context``.
+    the iframe (ADR-0021 unified direct-apply rail). The iframe also
+    pushes the structured result to the agent via
+    ``ui/update-model-context``.
     """
     actions = response.get("actions") or []
     if not actions:

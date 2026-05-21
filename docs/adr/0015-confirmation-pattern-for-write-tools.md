@@ -2,9 +2,23 @@
 
 ## Status
 
-Accepted
+**Superseded by
+[ADR-0021](../../katana_mcp_server/docs/adr/0021-unified-direct-apply-rail.md)**
 
-Date: 2026-05-06
+Date: 2026-05-06 Superseded: 2026-05-21
+
+The "Confirm button fires `SendMessage` so the agent re-issues the call" rail described
+below was the right answer when MCP had no way for an iframe to push a structured result
+back to the agent's model context. The 2026-01-26 MCP Apps spec (SEP-1865,
+`ui/update-model-context`) removed that constraint: the iframe can now fire `tools/call`
+directly *and* deliver the structured response into model context. The SendMessage chat
+indirection is no longer load-bearing.
+
+ADR-0021 unifies every preview tool onto that direct-apply rail (the shape this ADR's
+"Alternative 2: Card-morphing" rejected — now feasible because the agent *does* see the
+structured response).
+
+The history below is preserved verbatim for the architectural narrative.
 
 Closes the action items from issue #316; supersedes the iframe-direct-apply shape that
 #491, #495, #545, #559 were filed against.

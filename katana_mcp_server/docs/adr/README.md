@@ -35,6 +35,9 @@ We use the format proposed by Michael Nygard in his article
 - [ADR-0017: Automated Tool Documentation](0017-automated-tool-documentation.md)
 - [ADR-0018: SQLModel-backed Typed Cache for Transactional List Tools](0018-sqlmodel-typed-cache.md)
 - [ADR-0019: MCP Tool Description and Batch-Field Conventions](0019-tool-description-batch-conventions.md)
+- [ADR-0021: Unified Direct-Apply Rail for Preview→Apply Cards](0021-unified-direct-apply-rail.md)
+  — supersedes
+  [ADR-0015 (monorepo)](../../../docs/adr/0015-confirmation-pattern-for-write-tools.md)
 
 ### Proposed Architecture Decisions
 
