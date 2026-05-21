@@ -26,8 +26,7 @@ Design conventions
 field that maps to a Katana entity with a known web URL (suppliers,
 customers, products, materials, orders, etc. — see
 ``katana_mcp.web_urls.EntityKind``), render it as a ``Link`` with
-``href`` pointing at the Katana page, not as plain ``Text`` or a
-``SendMessage`` button that asks the agent to surface the URL.
+``href`` pointing at the Katana page, not as plain ``Text``.
 
 A real anchor tag is a one-click path to the source of truth, costs
 nothing in agent tokens or chat noise, and stays correct regardless
@@ -36,12 +35,32 @@ twice (parent product/material on the title; default supplier in
 the reference section); future card work should follow the same
 shape. If a field corresponds to a Katana entity not yet in
 ``EntityKind``, add the path template in ``web_urls.py`` and wire
-the link — don't fall back to ``SendMessage`` indirection.
+the link.
 
-The agent-prompt rail (``SendMessage(...)``) is reserved for follow-up
-*actions* that need the agent to invoke another tool (e.g.
-``Check Inventory`` → triggers ``check_inventory`` for the SKU). It's
-the wrong primitive for "open this URL".
+**Button action selection.** Each card button picks one of three
+primitives based on what its click needs to do:
+
+- ``CallTool(tool, arguments={...})`` — re-invoke an MCP tool
+  deterministically. Use when every arg is resolvable at card-build
+  time from the response dict the builder receives, or from a
+  ``{{ result.<field> }}`` template that resolves against the
+  apply-response state. ``Check Inventory`` (with a known SKU) and
+  ``View Variant Details`` (with a known sku/variant_id) are the
+  canonical shape.
+- ``OpenLink(url=...)`` — host opens the URL directly. Used for every
+  ``View in Katana`` button across the cards.
+- ``UpdateContext(content="...")`` — push a chat-context update so
+  the agent composes the next call itself. Right primitive when the
+  next-step tool needs args the card can't produce (PO needs supplier
+  + location + items; "MOs using this material" has no ingredient
+  filter today — #758; receive needs per-row items; open-ended
+  modifies).
+
+The preview→apply rail still uses ``SendMessage`` because of the spec
+finding behind ADR-0015: iframe-initiated ``tools/call`` returns to
+the iframe, not the agent, so the agent has to re-issue the apply
+itself. ``_build_apply_action`` / ``_build_cancel_action`` are the
+only two ``SendMessage`` callsites remaining in this module.
 """
 
 from __future__ import annotations
