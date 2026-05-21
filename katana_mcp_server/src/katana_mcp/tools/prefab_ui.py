@@ -640,6 +640,53 @@ def _render_apply_button_row(
         )
 
 
+def _check_inventory_action(
+    handles: list[str | int] | list[str],
+    *,
+    fallback_content: str,
+) -> Action:
+    """Build the ``Check Inventory`` button click action.
+
+    ``check_inventory`` accepts SKUs OR variant_ids in the same
+    ``skus_or_variant_ids`` arg, so when at least one handle resolves at
+    card-build time we emit ``CallTool`` for deterministic re-invocation.
+    Otherwise we hand the agent an ``UpdateContext`` with
+    ``fallback_content`` — every card has its own wording for the
+    null-identity case (search-results vs low-stock vs fulfill-success).
+    The fallback path is rare (variants can legally have ``sku=None``
+    per CLAUDE.md, but rows with neither SKU nor variant_id are
+    extremely uncommon).
+    """
+    if handles:
+        return CallTool(
+            "check_inventory",
+            arguments={"skus_or_variant_ids": list(handles)},
+        )
+    return UpdateContext(content=fallback_content)
+
+
+def _variant_details_action(
+    sku: str | None,
+    variant_id: int | None,
+) -> Action | None:
+    """Build the ``View Variant Details`` button click action.
+
+    ``get_variant_details`` accepts either ``sku`` (string) or
+    ``variant_id`` (int) — prefer SKU when present (clearer in the
+    resulting tool call), else fall back to ``variant_id``. Returns
+    ``None`` when neither identity is resolvable so callers can skip
+    rendering the button entirely.
+    """
+    if sku:
+        return CallTool("get_variant_details", arguments={"sku": sku})
+    if variant_id is not None:
+        return CallTool(
+            "get_variant_details",
+            arguments={"variant_id": variant_id},
+        )
+    return None
+
+
 # ============================================================================
 # Search & Browse UIs
 # ============================================================================
@@ -734,35 +781,27 @@ def build_search_results_ui(
         with Slot(name="detail"):
             Muted(content="Click a row to see variant details")
 
-        # Collect SKUs at card-build time so the Check Inventory button
-        # invokes ``check_inventory`` deterministically via ``CallTool``
-        # instead of asking the agent to compose the args from chat
-        # context. Falls back to ``UpdateContext`` when no SKUs are
-        # resolvable (every variant in the result set is SKU-less — rare
-        # legacy NetSuite-import shape, see CLAUDE.md "Variants can have
-        # null SKUs").
-        search_result_skus = [item["sku"] for item in items if item.get("sku")]
+        # Collect SKUs at card-build time so Check Inventory becomes a
+        # deterministic ``CallTool``; fall back to ``UpdateContext`` when
+        # every result is SKU-less (rare legacy NetSuite-import shape —
+        # see CLAUDE.md "Variants can have null SKUs").
+        search_result_skus: list[str | int] = [
+            item["sku"] for item in items if item.get("sku")
+        ]
         with Row(gap=2):
-            check_inventory_action: Action
-            if search_result_skus:
-                check_inventory_action = CallTool(
-                    "check_inventory",
-                    arguments={"skus_or_variant_ids": search_result_skus},
-                )
-            else:
-                check_inventory_action = UpdateContext(
-                    content=(
+            Button(
+                label="Check inventory for search results",
+                variant="outline",
+                on_click=_check_inventory_action(
+                    search_result_skus,
+                    fallback_content=(
                         "User wants to check inventory for the items in the "
                         "search results, but none of the results carry a SKU. "
                         "Resolve variant IDs from the search and call "
                         "check_inventory with skus_or_variant_ids set to "
                         "those IDs."
                     ),
-                )
-            Button(
-                label="Check inventory for search results",
-                variant="outline",
-                on_click=check_inventory_action,
+                ),
             )
     return app
 
@@ -946,13 +985,11 @@ def _variant_footer_section(variant: dict[str, Any]) -> None:
       good* (what the MO produces), and there is no
       ``ingredient_variant_id`` filter today. Tracked in #758.
     """
-    # ``check_inventory`` rejects blank SKUs (validated in
-    # ``foundation/inventory.py``), and variants can legally have
-    # ``sku=None`` (see CLAUDE.md "Variants can have null SKUs"). Prefer
-    # the SKU when present (clearer in the resulting tool call), else
-    # fall back to ``variant_id`` — ``skus_or_variant_ids`` accepts both
-    # types in the same arg. Use the same handle in the PO copy so the
-    # agent's prompt and the CallTool args agree on the identity.
+    # Variants can legally have ``sku=None`` (see CLAUDE.md "Variants
+    # can have null SKUs"), so prefer SKU then fall back to variant_id.
+    # ``check_inventory`` accepts both in the same arg; the PO copy
+    # uses the matching label so the agent's prompt and any CallTool
+    # args agree on the identity.
     sku = variant.get("sku")
     variant_id = variant.get("id")
     handle: str | int | None = sku if sku else variant_id
@@ -1576,17 +1613,13 @@ def _inventory_footer_section(stock: dict[str, Any]) -> None:
             ),
         ),
     )
-    variant_details_args: dict[str, Any] = (
-        {"sku": sku} if sku else {"variant_id": variant_id}
-    )
-    Button(
-        label="View Variant Details",
-        variant="outline",
-        on_click=CallTool(
-            "get_variant_details",
-            arguments=variant_details_args,
-        ),
-    )
+    details_action = _variant_details_action(sku, variant_id)
+    if details_action is not None:
+        Button(
+            label="View Variant Details",
+            variant="outline",
+            on_click=details_action,
+        )
 
 
 def _annotate_location_rows(stock: dict[str, Any]) -> None:
@@ -1938,36 +1971,15 @@ def build_low_stock_ui(
             paginated=True,
         )
 
-        # "Create Restock Orders" is genuinely batch-composition work: a
-        # human (or agent) has to group rows by supplier, decide order
-        # numbers, and resolve per-row quantities — so the button hands
-        # the agent an ``UpdateContext`` prompt rather than calling a
-        # specific tool.
-        #
-        # "Check Inventory" is deterministic: pass the SKUs (or
-        # variant_ids when SKU is null) collected at card-build time
-        # straight to ``check_inventory``. Falls back to UpdateContext
-        # when every row is anonymous.
+        # "Create Restock Orders" is batch-composition work (group rows
+        # by supplier, decide order numbers, resolve per-row quantities)
+        # — UpdateContext. "Check Inventory" is deterministic when at
+        # least one row carries an identity — CallTool via the helper.
         low_stock_handles: list[str | int] = [
             handle
             for item in items
             if (handle := item.get("sku") or item.get("variant_id"))
         ]
-        check_inventory_action: Action
-        if low_stock_handles:
-            check_inventory_action = CallTool(
-                "check_inventory",
-                arguments={"skus_or_variant_ids": low_stock_handles},
-            )
-        else:
-            check_inventory_action = UpdateContext(
-                content=(
-                    "User wants to check inventory for the low-stock items "
-                    "in the report, but none of them carry a SKU or "
-                    "variant_id. Resolve identities from the report rows "
-                    "and call check_inventory."
-                ),
-            )
         with Row(gap=2):
             Button(
                 label="Create Restock Orders",
@@ -1985,7 +1997,15 @@ def build_low_stock_ui(
             Button(
                 label="Check Inventory",
                 variant="default",
-                on_click=check_inventory_action,
+                on_click=_check_inventory_action(
+                    low_stock_handles,
+                    fallback_content=(
+                        "User wants to check inventory for the low-stock items "
+                        "in the report, but none of them carry a SKU or "
+                        "variant_id. Resolve identities from the report rows "
+                        "and call check_inventory."
+                    ),
+                ),
             )
     return app
 
@@ -2157,33 +2177,15 @@ def build_inventory_at_ui(
 
         with CardFooter(), Row(gap=2):
             # First resolved handle drives both follow-up actions; falls
-            # back to variant_id when the variant has no SKU (per the
-            # documented null-SKU invariant).
-            #
-            # ``check_inventory`` accepts SKUs OR variant_ids in the same
-            # ``skus_or_variant_ids`` arg, so ``CallTool`` keys directly
-            # off the resolved handle.
-            #
-            # ``get_inventory_movements`` only accepts ``sku`` (string).
-            # If the first handle is an integer (variant_id), the
-            # deterministic CallTool path isn't available — fall back to
-            # ``UpdateContext`` so the agent can resolve the SKU first.
+            # back to variant_id when the variant has no SKU.
+            # ``get_inventory_movements`` only accepts ``sku`` (string),
+            # so an integer variant_id forces the UpdateContext path
+            # there even when check_inventory's CallTool path is fine.
             first_handle: str | int = ""
             if items:
                 first_handle = items[0].get("sku") or items[0].get("variant_id") or ""
 
-            check_inventory_action: Action
-            if first_handle:
-                check_inventory_action = CallTool(
-                    "check_inventory",
-                    arguments={"skus_or_variant_ids": [first_handle]},
-                )
-            else:
-                check_inventory_action = UpdateContext(
-                    content="Check current inventory levels for the items "
-                    "in the inventory-at report.",
-                )
-
+            handles: list[str | int] = [first_handle] if first_handle else []
             movements_action: Action
             if isinstance(first_handle, str) and first_handle:
                 movements_action = CallTool(
@@ -2209,7 +2211,11 @@ def build_inventory_at_ui(
             Button(
                 label="Check Current Inventory",
                 variant="outline",
-                on_click=check_inventory_action,
+                on_click=_check_inventory_action(
+                    handles,
+                    fallback_content="Check current inventory levels for "
+                    "the items in the inventory-at report.",
+                ),
             )
             Button(
                 label="View Movements",
@@ -4083,25 +4089,9 @@ def build_fulfill_success_ui(
                 is_preview=False,
             )
 
-        # Collect the SKUs that were just fulfilled so Check Inventory
-        # becomes a deterministic CallTool. Falls back to UpdateContext
-        # when none of the rows carry a SKU (every fulfilled row is
-        # SKU-less — rare, but legal per the null-SKU invariant).
-        fulfilled_skus = [row["sku"] for row in fulfilled_rows if row.get("sku")]
-        check_inventory_action: Action
-        if fulfilled_skus:
-            check_inventory_action = CallTool(
-                "check_inventory",
-                arguments={"skus_or_variant_ids": fulfilled_skus},
-            )
-        else:
-            check_inventory_action = UpdateContext(
-                content=(
-                    "User wants to check current inventory levels for the "
-                    "items just fulfilled. Resolve identities from the "
-                    "fulfilled rows and call check_inventory."
-                ),
-            )
+        fulfilled_skus: list[str | int] = [
+            row["sku"] for row in fulfilled_rows if row.get("sku")
+        ]
         with CardFooter(), Row(gap=2):
             # Tier 4 actions (#553): two follow-ups. View in Katana wins
             # the primary slot when a deep-link is available (operator's
@@ -4116,7 +4106,14 @@ def build_fulfill_success_ui(
             Button(
                 label="Check Inventory",
                 variant="outline",
-                on_click=check_inventory_action,
+                on_click=_check_inventory_action(
+                    fulfilled_skus,
+                    fallback_content=(
+                        "User wants to check current inventory levels for the "
+                        "items just fulfilled. Resolve identities from the "
+                        "fulfilled rows and call check_inventory."
+                    ),
+                ),
             )
     return app
 
@@ -4727,9 +4724,8 @@ def build_item_mutation_ui(
             sku = item.get("sku")
             if sku:
                 # Both follow-ups are deterministic tool invocations
-                # keyed off the SKU, so they're CallTool. The item card
-                # also carries variant_id when present, but SKU is the
-                # one identifier both tools accept directly.
+                # keyed off the SKU — SKU is the one identifier both
+                # tools accept directly.
                 Button(
                     label="View Details",
                     variant="outline",
@@ -4899,10 +4895,11 @@ def build_receipt_ui(
                     Badge(label=warning, variant="secondary")
 
         # Collect SKUs from the receipt rows for the Check Inventory
-        # CallTool, falling back to UpdateContext when the response
-        # carries no SKUs at all (shouldn't happen for receipts because
-        # the per-row enrichment ships sku/display_name — defensive).
-        received_skus = [row["sku"] for row in received_items_display if row.get("sku")]
+        # CallTool; falls back to UpdateContext when the response carries
+        # no SKUs (rare — per-row enrichment normally ships sku).
+        received_skus: list[str | int] = [
+            row["sku"] for row in received_items_display if row.get("sku")
+        ]
         with CardFooter():
             if is_preview and apply_action is not None:
                 _render_apply_button_row(
@@ -4912,24 +4909,17 @@ def build_receipt_ui(
                     disabled=bool(block_warnings),
                 )
             else:
-                check_inventory_action: Action
-                if received_skus:
-                    check_inventory_action = CallTool(
-                        "check_inventory",
-                        arguments={"skus_or_variant_ids": received_skus},
-                    )
-                else:
-                    check_inventory_action = UpdateContext(
-                        content=(
+                Button(
+                    label="Check Inventory",
+                    variant="outline",
+                    on_click=_check_inventory_action(
+                        received_skus,
+                        fallback_content=(
                             "User wants to check current inventory levels "
                             "after the receipt. Resolve the SKUs from the "
                             "received items and call check_inventory."
                         ),
-                    )
-                Button(
-                    label="Check Inventory",
-                    variant="outline",
-                    on_click=check_inventory_action,
+                    ),
                 )
     return app
 
