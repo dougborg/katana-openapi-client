@@ -768,18 +768,26 @@ class TestBuildVariantDetailsUI:
             f"Create-PO copy must surface variant_id when SKU is null; got: {content!r}"
         )
 
-    def test_footer_omits_check_inventory_when_no_identity(self):
+    def test_footer_omits_all_action_buttons_when_no_identity(self):
         """If neither SKU nor variant_id is resolvable (truly orphan
-        variant — extremely rare), Check Inventory can't construct a
-        valid CallTool, so the button is dropped entirely rather than
-        sending an empty payload."""
+        variant — extremely rare but legal on the wire), every footer
+        action gets dropped: Check Inventory's CallTool would have no
+        target, and the Create-PO / List-MOs UpdateContext prompts
+        would interpolate ``variant_id None`` which is actively
+        misleading to the agent. Better no action than a broken one."""
         variant = {"sku": None, "name": "Truly Orphan"}
         envelope = build_variant_details_ui(variant).to_json()
-        check_inv_buttons = _find_buttons_by_label(envelope, "Check Inventory")
-        assert len(check_inv_buttons) == 0, (
-            "Variant with no SKU and no variant_id must not render an "
-            "unanswerable Check Inventory button."
-        )
+        for label in (
+            "Check Inventory",
+            "Create Purchase Order",
+            "List MOs Using This",
+        ):
+            buttons = _find_buttons_by_label(envelope, label)
+            assert len(buttons) == 0, (
+                f"Variant with no SKU and no variant_id must not render "
+                f"the {label!r} footer button — there's no stable identity "
+                f"to anchor the downstream prompt to."
+            )
 
 
 class TestBuildItemDetailUI:
@@ -3165,6 +3173,53 @@ class TestBuildFulfillUI:
         labels = [b.get("label") for b in buttons]
         assert "View in Katana" not in labels
         assert "Check Inventory" in labels
+
+    def test_success_check_inventory_uses_variant_id_when_sku_null(self):
+        """``fulfilled_rows`` carries both ``sku`` and ``variant_id``;
+        variants can legally have ``sku=None`` (CLAUDE.md "Variants can
+        have null SKUs"). The success-card ``Check Inventory`` button
+        must coalesce on ``sku or variant_id`` so a SKU-less row still
+        emits the deterministic ``CallTool`` path instead of falling
+        through to the agent-prompt ``UpdateContext`` fallback (review
+        finding on PR #807)."""
+        response = self._so_response(is_preview=False)
+        # Mix: one row with SKU, one with only variant_id.
+        response["fulfilled_rows"] = [
+            {
+                "row_id": None,
+                "variant_id": 555,
+                "sku": "HAS-SKU",
+                "display_name": "Sku-bearing",
+                "quantity": 1.0,
+                "serial_numbers": [],
+                "batch_summary": None,
+                "row_total": None,
+                "currency": None,
+            },
+            {
+                "row_id": None,
+                "variant_id": 777,
+                "sku": None,
+                "display_name": "Sku-less variant",
+                "quantity": 2.0,
+                "serial_numbers": [],
+                "batch_summary": None,
+                "row_total": None,
+                "currency": None,
+            },
+        ]
+        envelope = build_fulfill_success_ui(response).to_json()
+        check_inv = _find_buttons_by_label(envelope, "Check Inventory")[0]
+        action = check_inv.get("onClick") or check_inv.get("on_click")
+        assert isinstance(action, dict)
+        assert action.get("action") == "toolCall", (
+            f"Check Inventory must use CallTool when at least one "
+            f"row resolves an identity (SKU or variant_id); got {action!r}"
+        )
+        handles = (action.get("arguments") or {}).get("skus_or_variant_ids")
+        assert handles == ["HAS-SKU", 777], (
+            f"Expected handles to coalesce sku-or-variant_id per row; got {handles!r}"
+        )
 
 
 class TestBuildVerificationUI:
