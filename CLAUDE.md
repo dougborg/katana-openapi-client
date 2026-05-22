@@ -89,6 +89,8 @@ should I work on?", the answer is the top of Todo. **Do not re-derive the queue 
 - **Fulfillment** — `fulfill_order` / `receive_purchase_order` / order lifecycle.
   Orthogonal to umbrellas.
 - **Spec-drift** — Katana API spec misalignment, codegen issues.
+- **Custom-fields** — Custom-fields vertical: spec alignment, MCP tooling, definition
+  CRUD, search-endpoint coverage. Spans both client and server.
 - **Harness** — `.claude/`, harness-kit integration, skills, agents.
 - **Process** — backlog hygiene, docs, ADRs, retros.
 - **Other** — anything that doesn't fit above; usually means the schema needs a new

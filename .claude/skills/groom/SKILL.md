@@ -44,6 +44,18 @@ goes stale immediately. The board is durable; mutate it in place.
 - **Don't grow the heuristics arbitrarily** — keep the rule set tight.
   Each new heuristic must have a concrete observed drift it solves; soft
   signals belong in a richer `/triage` skill (#684), not here.
+- **NEVER mutate the project field schema from inside `/groom`.** Adding,
+  renaming, or reordering options on Priority / Workstream / Status is
+  out of scope. GitHub's `updateProjectV2Field` GraphQL mutation accepts
+  the full option list (no IDs); when invoked, GitHub regenerates every
+  option ID and **all existing item assignments to that field are
+  silently wiped** because items reference options by stale IDs. The
+  `gh project` CLI does not expose a non-destructive "add option" path.
+  If a new bucket is genuinely needed, **stop**, instruct the user to
+  add it through the GitHub UI (Project → "..." → Settings → field →
+  Edit), then re-run the skill. Then update CLAUDE.md "Workstream
+  definitions" in the same change so the doc stays in lockstep with the
+  board schema.
 
 ## ASSUMES
 
