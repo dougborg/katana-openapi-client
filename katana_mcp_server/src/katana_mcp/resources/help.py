@@ -1483,6 +1483,18 @@ Create a sales order with preview/apply pattern.
 - `tracking_number`, `tracking_number_url`: Set if a carrier label is
   already known at creation time; otherwise patch in via
   `modify_sales_order.update_header.tracking_number`.
+- `shipping_fees` (optional, list): Inline shipping fees to attach to the
+  new SO. Each entry: `amount` (decimal string, required, e.g. "8.95"),
+  `description` (label like "Standard shipping"), `tax_rate_id` (see
+  `list_tax_rates`). Eliminates the create-then-modify two-step that
+  every ecommerce-order workflow hits (#818).
+  - **Wire-level**: Katana's `POST /sales_orders` doesn't accept fees
+    inline, so the apply path creates the SO first and then fires
+    `POST /sales_order_shipping_fee` per fee.
+  - **Best-effort semantics**: SO success is durable. If any fee fails,
+    the response carries a warning and per-fee outcomes; the SO remains
+    intact. Retry failed fees via
+    `modify_sales_order(id=<so_id>, add_shipping_fees=[...])`.
 
 **Ecommerce cross-references** (set when the SO mirrors an order from a
 storefront — Shopify, WooCommerce, etc.):
@@ -1496,6 +1508,11 @@ storefront — Shopify, WooCommerce, etc.):
   Sending an unknown name yields a 422.
 
 **`preview`** (optional, default true): true=preview, false=create.
+
+**Returns:** `SalesOrderResponse` with the standard SO fields plus
+`shipping_fee_outcomes` (per-fee status rows when `shipping_fees` was
+supplied — `succeeded=None` on preview; `succeeded=True/False` on apply
+with `created_id` on success or `error` on failure).
 
 ---
 

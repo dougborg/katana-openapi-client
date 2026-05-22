@@ -1874,6 +1874,179 @@ class TestBuildSOCreateUI:
         assert "/contacts/customers/1" in rendered
         assert "Buyer Co" in rendered
 
+    def test_inline_shipping_fees_render_preview(self):
+        """Preview state: planned shipping fees surface as rows with
+        description / amount / tax. Section header + total summary line
+        appear. No APPLIED / FAILED status pills (those are apply-only).
+        """
+        response = dict(
+            self._SO_RESPONSE,
+            shipping_fee_outcomes=[
+                {
+                    "description": "Standard shipping",
+                    "amount": "8.95",
+                    "tax_rate_id": 301,
+                    "succeeded": None,
+                    "created_id": None,
+                    "error": None,
+                },
+                {
+                    "description": "Handling",
+                    "amount": "2.50",
+                    "tax_rate_id": None,
+                    "succeeded": None,
+                    "created_id": None,
+                    "error": None,
+                },
+            ],
+        )
+        app = build_so_create_ui(
+            response,
+            confirm_request=_StubRequest(),
+            confirm_tool="create_sales_order",
+        )
+        rendered = str(app.to_json())
+        # Section header + per-fee rows show up.
+        assert "Shipping fees" in rendered
+        assert "Standard shipping" in rendered
+        assert "Handling" in rendered
+        # Tax-rate suffix surfaces when present.
+        assert "tax rate #301" in rendered
+        # Summary line surfaces the total + count.
+        assert "Total shipping" in rendered
+        assert "2 fee(s)" in rendered
+        # No status pills on preview.
+        assert "APPLIED" not in rendered
+        assert "FAILED" not in rendered
+
+    def test_inline_shipping_fees_render_applied_success(self):
+        """Applied + all-success: each fee row gains an APPLIED pill +
+        the server-assigned created_id surfaces."""
+        response = dict(
+            self._SO_RESPONSE,
+            is_preview=False,
+            id=99,
+            katana_url="https://factory.katanamrp.com/salesorder/99",
+            shipping_fee_outcomes=[
+                {
+                    "description": "Standard shipping",
+                    "amount": "8.95",
+                    "tax_rate_id": None,
+                    "succeeded": True,
+                    "created_id": 5001,
+                    "error": None,
+                },
+            ],
+        )
+        app = build_so_create_ui(
+            response,
+            confirm_request=_StubRequest(),
+            confirm_tool="create_sales_order",
+        )
+        rendered = str(app.to_json())
+        assert "APPLIED" in rendered
+        assert "id=5001" in rendered
+        # No failure retry coaching on a clean run.
+        assert "modify_sales_order" not in rendered
+
+    def test_inline_shipping_fees_render_applied_partial_failure(self):
+        """Partial failure: failed rows get the FAILED pill + ✗ glyph +
+        inline error text, and a destructive Alert at the bottom coaches
+        the operator toward retrying via modify_sales_order."""
+        response = dict(
+            self._SO_RESPONSE,
+            is_preview=False,
+            id=99,
+            katana_url="https://factory.katanamrp.com/salesorder/99",
+            shipping_fee_outcomes=[
+                {
+                    "description": "Standard shipping",
+                    "amount": "8.95",
+                    "tax_rate_id": None,
+                    "succeeded": True,
+                    "created_id": 5001,
+                    "error": None,
+                },
+                {
+                    "description": "Handling",
+                    "amount": "2.50",
+                    "tax_rate_id": 9999,
+                    "succeeded": False,
+                    "created_id": None,
+                    "error": "422: invalid tax rate",
+                },
+            ],
+        )
+        app = build_so_create_ui(
+            response,
+            confirm_request=_StubRequest(),
+            confirm_tool="create_sales_order",
+        )
+        rendered = str(app.to_json())
+        assert "APPLIED" in rendered
+        assert "FAILED" in rendered
+        assert "✗" in rendered
+        assert "422: invalid tax rate" in rendered
+        # Retry coaching surfaces in the Alert.
+        assert "modify_sales_order" in rendered
+        assert "add_shipping_fees" in rendered
+        # The bottom-line total reflects ONLY succeeded fees, not the
+        # full requested set — currency is EUR per ``_SO_RESPONSE``,
+        # so the formatted strings appear with the € symbol. Showing
+        # the full €11.45 when only €8.95 attached would misrepresent
+        # the SO's actual state.
+        assert "Total shipping applied" in rendered
+        assert "1 of 2 fee(s) applied" in rendered
+        assert "€11.45" not in rendered
+        assert "8.95" in rendered  # the succeeded fee's amount
+
+    def test_inline_shipping_fees_render_applied_all_failed(self):
+        """Every fee failed: the SO exists but no fees attached. The
+        total line is skipped entirely (no succeeded fees → nothing to
+        sum); the failed-row Alert below still surfaces."""
+        response = dict(
+            self._SO_RESPONSE,
+            is_preview=False,
+            id=99,
+            katana_url="https://factory.katanamrp.com/salesorder/99",
+            shipping_fee_outcomes=[
+                {
+                    "description": "Standard shipping",
+                    "amount": "8.95",
+                    "succeeded": False,
+                    "error": "500 upstream",
+                },
+                {
+                    "description": "Handling",
+                    "amount": "2.50",
+                    "succeeded": False,
+                    "error": "422 invalid tax",
+                },
+            ],
+        )
+        app = build_so_create_ui(
+            response,
+            confirm_request=_StubRequest(),
+            confirm_tool="create_sales_order",
+        )
+        rendered = str(app.to_json())
+        assert "FAILED" in rendered
+        # No total line — every fee failed, nothing landed on the SO.
+        assert "Total shipping" not in rendered
+        # Retry coaching still surfaces.
+        assert "modify_sales_order" in rendered
+
+    def test_inline_shipping_fees_section_skipped_when_no_fees(self):
+        """No shipping_fee_outcomes → the section is omitted entirely."""
+        app = build_so_create_ui(
+            dict(self._SO_RESPONSE, shipping_fee_outcomes=[]),
+            confirm_request=_StubRequest(),
+            confirm_tool="create_sales_order",
+        )
+        rendered = str(app.to_json())
+        assert "Shipping fees" not in rendered
+        assert "Total shipping" not in rendered
+
 
 class TestBuildMOCreateUI:
     """``build_mo_create_ui`` — MO response uses ``order_no`` (not
