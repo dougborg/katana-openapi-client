@@ -984,25 +984,37 @@ def _variant_footer_section(variant: dict[str, Any]) -> None:
       ``list_manufacturing_orders.variant_ids`` filters by *finished
       good* (what the MO produces), and there is no
       ``ingredient_variant_id`` filter today. Tracked in #758.
+
+    Renders nothing when the variant has neither ``sku`` nor ``id`` (truly
+    orphan — rare but legal on the wire). Without a stable identity every
+    downstream prompt would have to read ``variant_id None`` and the
+    CallTool path can't resolve a target, so we drop the whole footer
+    rather than render misleading affordances.
     """
     # Variants can legally have ``sku=None`` (see CLAUDE.md "Variants
     # can have null SKUs"), so prefer SKU then fall back to variant_id.
     # ``check_inventory`` accepts both in the same arg; the PO copy
     # uses the matching label so the agent's prompt and any CallTool
-    # args agree on the identity.
+    # args agree on the identity. When neither identity is resolvable
+    # (truly orphan variant — rare but legal on the wire) we skip every
+    # footer action button: a "Create Purchase Order" prompt that says
+    # ``variant_id None`` would be actively misleading to the agent, and
+    # the downstream PO/MO workflows have no stable identity to anchor
+    # to. Better to render no actions than broken ones.
     sku = variant.get("sku")
     variant_id = variant.get("id")
     handle: str | int | None = sku if sku else variant_id
-    if handle is not None:
-        Button(
-            label="Check Inventory",
-            variant="outline",
-            on_click=CallTool(
-                "check_inventory",
-                arguments={"skus_or_variant_ids": [handle]},
-            ),
-        )
+    if handle is None:
+        return
     handle_label = f"SKU {sku}" if sku else f"variant_id {variant_id}"
+    Button(
+        label="Check Inventory",
+        variant="outline",
+        on_click=CallTool(
+            "check_inventory",
+            arguments={"skus_or_variant_ids": [handle]},
+        ),
+    )
     Button(
         label="Create Purchase Order",
         variant="outline",
@@ -1015,14 +1027,14 @@ def _variant_footer_section(variant: dict[str, Any]) -> None:
             ),
         ),
     )
-    if variant.get("type") == "material" and variant.get("id"):
+    if variant.get("type") == "material" and variant_id is not None:
         Button(
             label="List MOs Using This",
             variant="outline",
             on_click=UpdateContext(
                 content=(
                     f"User wants to list manufacturing orders that use "
-                    f"variant_id {variant['id']} as an ingredient. "
+                    f"variant_id {variant_id} as an ingredient. "
                     "list_manufacturing_orders filters by finished-good "
                     "variant, not by ingredient — call list_blocking_ingredients "
                     "or page through recent MOs and filter their recipes "
@@ -4089,8 +4101,18 @@ def build_fulfill_success_ui(
                 is_preview=False,
             )
 
-        fulfilled_skus: list[str | int] = [
-            row["sku"] for row in fulfilled_rows if row.get("sku")
+        # ``check_inventory`` accepts SKUs OR variant_ids in the same arg
+        # (``skus_or_variant_ids``), so coalesce on ``sku or variant_id``
+        # per row — variants can legally have ``sku=None`` (CLAUDE.md
+        # "Variants can have null SKUs"), and a SKU-less row still has a
+        # variant_id that resolves the same lookup. Previous SKU-only
+        # collection forced the fallback ``UpdateContext`` whenever any
+        # fulfilled row was SKU-less, even though a deterministic
+        # ``CallTool`` path existed.
+        fulfilled_handles: list[str | int] = [
+            handle
+            for row in fulfilled_rows
+            if (handle := row.get("sku") or row.get("variant_id")) is not None
         ]
         with CardFooter(), Row(gap=2):
             # Tier 4 actions (#553): two follow-ups. View in Katana wins
@@ -4107,7 +4129,7 @@ def build_fulfill_success_ui(
                 label="Check Inventory",
                 variant="outline",
                 on_click=_check_inventory_action(
-                    fulfilled_skus,
+                    fulfilled_handles,
                     fallback_content=(
                         "User wants to check current inventory levels for the "
                         "items just fulfilled. Resolve identities from the "
