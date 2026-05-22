@@ -612,14 +612,21 @@ async def _list_stock_transfers_impl(
     # When ``include_rows`` is set, ``selectinload`` eager-loads the
     # children, so ``len(transfer.stock_transfer_rows)`` is free at
     # materialization time and we skip the correlated COUNT subquery.
+    # Both paths filter ``deleted_at IS NULL`` so soft-deleted rows
+    # never surface (see #803).
     if request.include_rows:
         stmt = select(CachedStockTransfer).options(
-            selectinload(CachedStockTransfer.stock_transfer_rows)
+            selectinload(
+                CachedStockTransfer.stock_transfer_rows.and_(
+                    CachedStockTransferRow.deleted_at.is_(None)
+                )
+            )
         )
     else:
         row_count_subq = (
             select(func.count(CachedStockTransferRow.id))
             .where(CachedStockTransferRow.stock_transfer_id == CachedStockTransfer.id)
+            .where(CachedStockTransferRow.deleted_at.is_(None))
             .correlate(CachedStockTransfer)
             .scalar_subquery()
             .label("row_count")
