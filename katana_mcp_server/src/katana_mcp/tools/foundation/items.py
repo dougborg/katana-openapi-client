@@ -2164,9 +2164,12 @@ async def get_variant_details(
     # JSON ``content`` is the stable contract: the ``{variants, not_found}``
     # envelope is returned for every request shape — single OR batch — so
     # programmatic consumers see one parseable shape (#567 — no per-tool
-    # markdown). ``structured_content`` then differs by shape: a Prefab card
-    # for single requests (see below), or the envelope dict for batch.
-    # Pre-#567 the format="json" branch already returned this envelope; the
+    # markdown). ``structured_content`` carries a ``PrefabApp`` in both
+    # branches: ``build_variant_details_ui`` for the single-variant case,
+    # ``build_variant_batch_ui`` for batch / mixed-result / all-not-found
+    # cases (#810 sibling fix — the batch path used to return the raw
+    # dict and the host stalled on "Waiting for content..."). Pre-#567
+    # the ``format="json"`` branch already returned the envelope; the
     # single-item bare-VariantDetailsResponse shape was markdown-only.
     import json as _json
 
@@ -2176,13 +2179,13 @@ async def get_variant_details(
     }
     content = _json.dumps(payload, indent=2, default=str)
 
-    # Single-variant request → rich Prefab card alongside the envelope.
-    # Treat a single-element batch list (skus=[X] or variant_ids=[X]) the
+    # Single-variant request → rich Prefab variant-details card. Treat
+    # a single-element batch list (skus=[X] or variant_ids=[X]) the
     # same as the singular form to honor the docstring's "single item"
     # promise — but only when there are no misses; with misses we fall
-    # through to the bare envelope so the ``not_found`` array still
-    # surfaces in structured_content without a Prefab card stealing
-    # the slot.
+    # through to the batch card so the ``not_found`` list surfaces in
+    # a destructive Alert rather than getting hidden under a card built
+    # for a single found row.
     is_single = (
         len(found) == 1
         and not not_found
@@ -2199,7 +2202,14 @@ async def get_variant_details(
         ui = build_variant_details_ui(found[0].model_dump())
         return ToolResult(content=content, structured_content=ui)
 
-    return ToolResult(content=content, structured_content=payload)
+    # Batch path. Without a Prefab UI the host stalls on
+    # "Waiting for content..." (#810 sibling — the tool is registered
+    # with ``meta=UI_META`` so the host polls for a tree). Build a
+    # summary card listing the found variants + any not-found inputs.
+    from katana_mcp.tools.prefab_ui import build_variant_batch_ui
+
+    ui = build_variant_batch_ui(payload)
+    return ToolResult(content=content, structured_content=ui)
 
 
 def register_tools(mcp: FastMCP) -> None:

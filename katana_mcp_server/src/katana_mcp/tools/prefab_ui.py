@@ -984,6 +984,120 @@ def build_variant_details_ui(
     return app
 
 
+def build_variant_batch_ui(
+    payload: dict[str, Any],
+) -> PrefabApp:
+    """Build a summary card for a batch ``get_variant_details`` response.
+
+    The single-variant card (``build_variant_details_ui``) covers the
+    common case; this builder handles every other shape the tool can
+    return — multi-variant batches, mixed found+not_found, all-not-found.
+    Pre-fix the batch path returned ``ToolResult(structured_content=<dict>)``
+    with no PrefabApp, so the host stalled on "Waiting for content..."
+    (the #810 sibling bug — ``get_variant_details`` is registered with
+    ``meta=UI_META``, so the host polls indefinitely for a tree).
+
+    Tier 1: count badges in the header (``N found`` + ``M not found``
+    when present). No external Link — batches span many variants.
+    Tier 3: a DataTable for the found variants (click-through to the
+    single-variant card via ``CallTool``) plus a separate Alert listing
+    not-found inputs so the agent can decide whether to fall back to
+    ``search_items`` or fix typos.
+    """
+    found = payload.get("variants") or []
+    not_found = payload.get("not_found") or []
+
+    # The DataTable rows pull from the SAME ``VariantDetailsResponse``
+    # shape as the single-variant card, just in list form. Project to a
+    # flat row dict so the table doesn't have to deal with nested keys.
+    # The primary key on ``VariantDetailsResponse.model_dump()`` is
+    # ``id`` (not ``variant_id``) — mirror that here so the onRowClick
+    # binding below can read ``EVENT.id`` cleanly, matching the
+    # ``_item_variants_table`` convention.
+    rows = [
+        {
+            "id": v.get("id"),
+            "sku": v.get("sku"),
+            "display_name": v.get("display_name"),
+            "uom": v.get("uom"),
+            "sales_price": v.get("sales_price"),
+            "purchase_price": v.get("purchase_price"),
+        }
+        for v in found
+    ]
+
+    with (
+        PrefabApp(state={"rows": rows, "detail": None}, css_class="p-4") as app,
+        Card(),
+    ):
+        with CardHeader(), Row(gap=2):
+            with CardTitle():
+                Text(content="Variant lookup")
+            Badge(label=f"{len(found)} found", variant="secondary")
+            if not_found:
+                Badge(label=f"{len(not_found)} not found", variant="destructive")
+
+        with CardContent(), Column(gap=3):
+            if rows:
+                DataTable(
+                    columns=[
+                        DataTableColumn(key="sku", header="SKU", sortable=True),
+                        DataTableColumn(
+                            key="display_name", header="Name", sortable=True
+                        ),
+                        DataTableColumn(key="uom", header="UoM"),
+                        DataTableColumn(
+                            key="sales_price",
+                            header="Sales Price",
+                            sortable=True,
+                            align="right",
+                        ),
+                        DataTableColumn(
+                            key="purchase_price",
+                            header="Purchase Price",
+                            sortable=True,
+                            align="right",
+                        ),
+                    ],
+                    rows="{{ rows }}",
+                    search=True,
+                    paginated=True,
+                    pageSize=20,
+                    # Drill into the single-variant card by id (the
+                    # row dict's ``id`` is the variant's primary key
+                    # from ``VariantDetailsResponse.model_dump()``).
+                    # SKU may be None (legacy NetSuite imports — see
+                    # CLAUDE.md "Variants can have null SKUs"); id is
+                    # always present on the wire.
+                    onRowClick=CallTool(
+                        "get_variant_details",
+                        arguments={"variant_id": str(EVENT.id)},
+                        on_success=SetState("detail", RESULT.view),
+                        on_error=ShowToast("{{ $error }}", variant="error"),
+                    ),
+                )
+                with Slot(name="detail"):
+                    Muted(content="Click a row to see variant details")
+            else:
+                Muted(content="No variants resolved.")
+
+            if not_found:
+                Separator()
+                with Alert(variant="destructive"):
+                    AlertTitle(content="Not found")
+                    # Each ``not_found`` entry carries one of ``sku`` /
+                    # ``variant_id`` echoing the input. Render them as
+                    # a compact comma-separated list — the agent uses
+                    # this to decide between fixing typos and falling
+                    # back to ``search_items``.
+                    missing_labels = ", ".join(
+                        str(n.get("sku") or n.get("variant_id") or "?")
+                        for n in not_found
+                    )
+                    AlertDescription(content=missing_labels)
+    return app
+
+
 def _item_header_section(item: dict[str, Any]) -> None:
     """Render item card header: title (linked to Katana page), type badge,
     and status pills.
@@ -1343,6 +1457,172 @@ def build_item_detail_ui(
 
         with CardFooter(), Row(gap=2):
             _item_footer_section(item)
+    return app
+
+
+# ============================================================================
+# BOM (Bill of Materials) UI
+# ============================================================================
+
+
+def _bom_header_section(bom: dict[str, Any]) -> None:
+    """Tier 1 — title (linked to parent product page when available),
+    variant SKU pill, producible status, and a row-count badge.
+
+    Title links through to the parent product page because variants
+    don't have their own page in Katana's web app (same convention as
+    ``_inventory_header_section`` / ``_variant_header_section``). Falls
+    back to the variant id when the cache miss left ``product_name``
+    unresolved so the card is still meaningfully labeled.
+    """
+    katana_url = bom.get("katana_url")
+    title_content = (
+        bom.get("product_name")
+        or bom.get("variant_display_name")
+        or f"BOM for variant {bom.get('product_variant_id')}"
+    )
+    sku = bom.get("variant_sku")
+    is_producible = bom.get("is_producible")
+    total_count = bom.get("total_count", 0)
+
+    with Row(gap=2):
+        with CardTitle():
+            if katana_url:
+                Link(content=title_content, href=katana_url, target="_blank")
+            else:
+                Text(content=title_content)
+        if sku:
+            Badge(label=sku, variant="outline")
+        if is_producible is False:
+            # Surface the mismatch — a non-producible variant with BOM
+            # rows is unusual; flag it. Producible=True is the expected
+            # case for the standard recipe-edit workflow, so skip the
+            # badge to keep the header uncluttered.
+            Badge(label="Not Producible", variant="destructive")
+        Badge(
+            label=f"{total_count} {'ingredient' if total_count == 1 else 'ingredients'}",
+            variant="secondary",
+        )
+
+
+def _bom_rows_table(bom: dict[str, Any]) -> None:
+    """Tier 3 — DataTable of BOM rows.
+
+    Per-row click invokes ``get_variant_details`` directly on the
+    ingredient's variant id — same pattern as ``_item_variants_table``.
+    The ingredient SKU + display_name are pre-resolved from the typed
+    cache during the response build, so the rows render with
+    user-meaningful identifiers (the per-row ``feedback-user-centric-card-content``
+    memory: card content answers "what does the user care about?", not
+    "internal IDs"). Falls back to a friendly empty-state when the
+    variant has no recipe.
+    """
+    rows = bom.get("rows") or []
+    if not rows:
+        Muted(
+            content=(
+                "No BOM rows for this variant. Use ``manage_product_bom`` "
+                "with ``add_bom_rows`` to add ingredients."
+            )
+        )
+        return
+    DataTable(
+        columns=[
+            DataTableColumn(key="sku", header="Ingredient SKU", sortable=True),
+            DataTableColumn(key="display_name", header="Name", sortable=True),
+            DataTableColumn(
+                key="quantity", header="Qty per Unit", sortable=True, align="right"
+            ),
+            DataTableColumn(key="notes", header="Notes"),
+        ],
+        rows="{{ bom.rows }}",
+        search=True,
+        paginated=True,
+        pageSize=20,
+        # Per-row click drills into the ingredient's variant card.
+        # ``EVENT.ingredient_variant_id`` is always present on
+        # ``BomRowInfo`` — every row carries the FK, even when the
+        # cached SKU lookup missed (sku=None). Binding by id (not sku)
+        # keeps SKU-less rows clickable. Mirrors ``_item_variants_table``.
+        onRowClick=CallTool(
+            "get_variant_details",
+            arguments={"variant_id": str(EVENT.ingredient_variant_id)},
+            on_success=SetState("detail", RESULT.view),
+            on_error=ShowToast("{{ $error }}", variant="error"),
+        ),
+    )
+    with Slot(name="detail"):
+        Muted(content="Click a row to see ingredient variant details")
+
+
+def _bom_footer_section(bom: dict[str, Any]) -> None:
+    """Tier 4 — [Manage BOM] action.
+
+    Uses ``UpdateContext`` (not ``CallTool``) because ``manage_product_bom``
+    needs a sub-payload — the user hasn't said yet which rows to add /
+    update / delete. The agent prompts for that, then issues the call
+    with ``preview=True`` so the preview/apply gate fires.
+    """
+    variant_id = bom.get("product_variant_id")
+    if variant_id is None:
+        return
+    Button(
+        label="Manage BOM",
+        variant="outline",
+        on_click=UpdateContext(
+            content=(
+                f"User wants to modify the BOM for product_variant_id "
+                f"{variant_id}. Ask which rows to add, update, or delete, "
+                "then call manage_product_bom with preview=True."
+            ),
+        ),
+    )
+
+
+def build_product_bom_ui(
+    bom: dict[str, Any],
+) -> PrefabApp:
+    """Build a detail card for a product variant's BOM (Bill of Materials).
+
+    Implements the four-tier framework from #537 with the
+    "nested-row-table on a parent entity" shape established by
+    ``build_item_detail_ui``:
+
+    - **Tier 1 — Identity**: title as external ``Link`` to the parent
+      product page (variants don't have their own page in Katana's web
+      app); variant SKU badge; ingredient-count badge. ``Not Producible``
+      badge surfaces the mismatch when a non-producible variant
+      somehow has BOM rows.
+    - **Tier 2 — Decision metrics**: skipped. BOMs are reference data,
+      not transactional, so there's no obvious numeric fact that beats
+      the ingredient-count badge already in tier 1. The variant card
+      (``build_variant_details_ui``) made the same choice on the same
+      reasoning.
+    - **Tier 3 — Reference**: the BOM rows DataTable. Columns are the
+      user-facing fields (ingredient SKU, display name, quantity,
+      notes) — NOT the internal BOM-row UUID or the
+      ``product_item_id`` / ``product_variant_id`` echo. Per-row click
+      drills into ``get_variant_details`` for the ingredient variant.
+    - **Tier 4 — Actions**: [Manage BOM] only. Pushed through
+      ``UpdateContext`` because the modify payload (add/update/delete
+      rows) isn't deterministic from the card's data alone.
+
+    Closes #810 — pre-fix the tool was registered with ``meta=UI_META``
+    but returned ``make_json_result`` (no PrefabApp), so cards rendered
+    as "Waiting for content..." indefinitely.
+    """
+    with (
+        PrefabApp(state={"bom": bom, "detail": None}, css_class="p-4") as app,
+        Card(),
+    ):
+        with CardHeader(), Column(gap=2):
+            _bom_header_section(bom)
+
+        with CardContent(), Column(gap=3):
+            _bom_rows_table(bom)
+
+        with CardFooter(), Row(gap=2):
+            _bom_footer_section(bom)
     return app
 
 

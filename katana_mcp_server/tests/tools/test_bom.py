@@ -135,6 +135,80 @@ async def test_get_product_bom_empty_recipe_returns_zero_rows():
 
 
 @pytest.mark.asyncio
+async def test_get_product_bom_populates_parent_for_card():
+    """The response carries parent product + variant display info so the
+    Prefab card's Tier-1 header has a name to render (#810 fix). Walks
+    ``_resolve_parent_for_card``: variant cache lookup → product cache
+    lookup → fields populated.
+    """
+    context, lifespan = create_mock_context()
+
+    # Variant cache hit — points at product_id 9001.
+    variant = _mock_variant(
+        id=200,
+        sku="FRAME-A",
+        display_name="Test Frame / Standard",
+        product_id=9001,
+    )
+    lifespan.typed_cache.catalog.get_many_by_ids = AsyncMock(
+        return_value={200: variant}
+    )
+
+    # Product cache hit — supplies name, is_producible, uom.
+    product = MagicMock()
+    product.id = 9001
+    product.name = "Test Frame"
+    product.is_producible = True
+    product.uom = "pcs"
+    lifespan.typed_cache.catalog.get_by_id = AsyncMock(return_value=product)
+
+    with patch(
+        "katana_mcp.tools.foundation.bom._fetch_bom_rows",
+        new_callable=AsyncMock,
+        return_value=[],
+    ):
+        response = await _get_product_bom_impl(
+            GetProductBomRequest(product_variant_id=200), context
+        )
+
+    assert response.product_id == 9001
+    assert response.product_name == "Test Frame"
+    assert response.variant_sku == "FRAME-A"
+    assert response.variant_display_name == "Test Frame / Standard"
+    assert response.is_producible is True
+    assert response.uom == "pcs"
+    assert response.katana_url is not None
+    assert "9001" in response.katana_url
+
+
+@pytest.mark.asyncio
+async def test_get_product_bom_card_fields_fall_back_to_none_on_cache_miss():
+    """A cold cache (no variant or product hit) falls through cleanly —
+    response still builds, card-display fields are None, rows are
+    untouched. Best-effort: the read path must not raise on cache miss.
+    """
+    context, lifespan = create_mock_context()
+    # Empty get_many_by_ids → variant cache miss → product never fetched.
+    lifespan.typed_cache.catalog.get_many_by_ids = AsyncMock(return_value={})
+
+    with patch(
+        "katana_mcp.tools.foundation.bom._fetch_bom_rows",
+        new_callable=AsyncMock,
+        return_value=[],
+    ):
+        response = await _get_product_bom_impl(
+            GetProductBomRequest(product_variant_id=200), context
+        )
+
+    assert response.product_variant_id == 200
+    assert response.product_id is None
+    assert response.product_name is None
+    assert response.variant_sku is None
+    assert response.is_producible is None
+    assert response.katana_url is None
+
+
+@pytest.mark.asyncio
 async def test_get_product_bom_uncached_ingredient_yields_null_sku():
     """When a referenced ingredient variant isn't in the cache, the row
     still surfaces — sku and display_name fall back to None rather than

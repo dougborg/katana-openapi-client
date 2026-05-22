@@ -225,6 +225,61 @@ class TestOtherCardsRender:
             frame.locator("text=No additional contact details provided.").count() >= 1
         )
 
+    def test_product_bom_renders(self, render_scenario):
+        """``build_product_bom_ui`` — rows='{{ bom.rows }}' over 3
+        ingredient rows. Pre-#810 the tool returned ``make_json_result``
+        (no PrefabApp) and the iframe stalled on "Waiting for content..."
+        forever; this scenario proves the card now renders end-to-end.
+        """
+        frame = render_scenario("product_bom")
+        # Header content: product name (linked) + ingredient-count badge.
+        assert frame.locator("text=Test Frame").count() >= 1
+        assert frame.locator("text=3 ingredients").count() >= 1
+        # DataTable with header + 3 ingredient rows.
+        assert frame.locator("table").count() == 1
+        assert frame.locator("table tr").count() >= 4
+        # User-facing identifiers (SKU + display_name), NOT internal UUIDs.
+        assert frame.locator("text=FS90250").count() >= 1
+        assert frame.locator("text=M5 chainring bolt").count() >= 1
+        assert frame.locator("text=OR12-NBR").count() >= 1
+        # Footer action surfaced.
+        assert frame.locator("text=Manage BOM").count() >= 1
+
+    def test_product_bom_empty_renders(self, render_scenario):
+        """``build_product_bom_ui`` with no rows — the friendly hint
+        replaces the DataTable. Pins the empty-state path so a cold-
+        cache or new-variant lookup doesn't fall back to the
+        empty-iframe failure mode #470 originally caught.
+        """
+        frame = render_scenario("product_bom_empty")
+        # Empty-state hint instead of a DataTable.
+        assert frame.locator("table").count() == 0
+        assert frame.locator("text=No BOM rows for this variant").count() >= 1
+        # Header still informative — the empty hint isn't a substitute for
+        # the identity badge / title.
+        assert frame.locator("text=Test Frame").count() >= 1
+        # Footer action still present — the user may want to add rows.
+        assert frame.locator("text=Manage BOM").count() >= 1
+
+    def test_variant_batch_renders(self, render_scenario):
+        """``build_variant_batch_ui`` — rows='{{ rows }}' over 3 found
+        + 2 not-found inputs. Closes the get_variant_details batch-path
+        empty-card sibling bug from #810: the batch return was
+        ``ToolResult(structured_content=<dict>)`` with no PrefabApp.
+        """
+        frame = render_scenario("variant_batch")
+        # Count badges in the header.
+        assert frame.locator("text=3 found").count() >= 1
+        assert frame.locator("text=2 not found").count() >= 1
+        # DataTable for found variants.
+        assert frame.locator("table").count() == 1
+        assert frame.locator("table tr").count() >= 4  # header + 3
+        assert frame.locator("text=VAR-A").count() >= 1
+        assert frame.locator("text=VAR-C").count() >= 1
+        # Not-found Alert section surfaces the missing inputs.
+        assert frame.locator("text=DOES-NOT-EXIST-1").count() >= 1
+        assert frame.locator("text=999999999").count() >= 1
+
 
 class TestDataTableRowClickBinding:
     """Verify DataTable ``onRowClick`` ``{{ field }}`` per-row bindings

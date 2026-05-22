@@ -42,8 +42,9 @@ from katana_mcp.tools._modification_dispatch import (
     run_modify_plan,
     unset_dict,
 )
-from katana_mcp.tools.tool_result_utils import UI_META, make_json_result
+from katana_mcp.tools.tool_result_utils import UI_META, make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
+from katana_mcp.web_urls import katana_web_url
 from katana_public_api_client.api.bom_row import (
     create_bom_row as api_create_bom_row,
     delete_bom_row as api_delete_bom_row,
@@ -56,7 +57,10 @@ from katana_public_api_client.models import (
     CreateBomRowRequest as APICreateBomRowRequest,
     UpdateBomRowRequest as APIUpdateBomRowRequest,
 )
-from katana_public_api_client.models_pydantic._generated import CachedVariant
+from katana_public_api_client.models_pydantic._generated import (
+    CachedProduct,
+    CachedVariant,
+)
 from katana_public_api_client.utils import is_success, unwrap, unwrap_as, unwrap_data
 
 # ============================================================================
@@ -104,11 +108,26 @@ class GetProductBomRequest(BaseModel):
 
 
 class GetProductBomResponse(BaseModel):
-    """Response containing BOM rows for a product variant."""
+    """Response containing BOM rows for a product variant.
+
+    Carries enough parent-entity context for the Prefab card's tier-1
+    identity header (product name + variant SKU + producible badge +
+    Katana link) without forcing the agent to issue a follow-up
+    ``get_variant_details``. ``product_name`` / ``variant_sku`` etc.
+    fall back to ``None`` when the parent variant isn't in the typed
+    cache — the card still renders with whatever's available.
+    """
 
     product_variant_id: int
     rows: list[BomRowInfo]
     total_count: int
+    product_id: int | None = None
+    product_name: str | None = None
+    variant_sku: str | None = None
+    variant_display_name: str | None = None
+    is_producible: bool | None = None
+    uom: str | None = None
+    katana_url: str | None = None
 
 
 async def _resolve_ingredient_fields(
@@ -179,11 +198,81 @@ async def _get_product_bom_impl(
 ) -> GetProductBomResponse:
     services = get_services(context)
     rows = await _fetch_bom_row_infos(services, request.product_variant_id)
+
+    # Resolve the parent variant + product so the Prefab card's tier-1
+    # header has a name to render. Best-effort: a cold cache falls
+    # through to the bare wire fields without blocking the response.
+    variant, product = await _resolve_parent_for_card(
+        services, request.product_variant_id
+    )
+
     return GetProductBomResponse(
         product_variant_id=request.product_variant_id,
         rows=rows,
         total_count=len(rows),
+        product_id=getattr(product, "id", None) if product is not None else None,
+        product_name=getattr(product, "name", None) if product is not None else None,
+        variant_sku=getattr(variant, "sku", None) if variant is not None else None,
+        variant_display_name=(
+            getattr(variant, "display_name", None) if variant is not None else None
+        ),
+        is_producible=(
+            getattr(product, "is_producible", None) if product is not None else None
+        ),
+        uom=getattr(product, "uom", None) if product is not None else None,
+        katana_url=(
+            katana_web_url("product", product.id)
+            if product is not None and getattr(product, "id", None) is not None
+            else None
+        ),
     )
+
+
+async def _resolve_parent_for_card(
+    services: Any, product_variant_id: int
+) -> tuple[Any | None, Any | None]:
+    """Look up the variant and its parent product for card display.
+
+    Returns ``(variant, product)`` — either may be ``None`` if the
+    cache misses or the parent is a material (BOMs can hang off
+    materials too, but the typical case is a producible product).
+    Best-effort: cache failures fall through to ``(None, None)`` so
+    the card still renders with whatever fields are available.
+
+    Cooperative cancellation (``asyncio.CancelledError``) is re-raised
+    explicitly — request timeouts and shutdown must propagate cleanly,
+    not be swallowed by the best-effort fallback. Matches the existing
+    snapshot path in ``_modify_product_bom_impl``.
+    """
+    try:
+        variants = await services.typed_cache.catalog.get_many_by_ids(
+            CachedVariant, {product_variant_id}, include_deleted=True
+        )
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        return None, None
+    variant = variants.get(product_variant_id) if variants else None
+    if variant is None:
+        return None, None
+
+    product_id = (
+        variant.get("product_id")
+        if isinstance(variant, dict)
+        else getattr(variant, "product_id", None)
+    )
+    if product_id is None:
+        return variant, None
+
+    try:
+        product = await services.typed_cache.catalog.get_by_id(
+            CachedProduct, product_id, include_deleted=True
+        )
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        return variant, None
+    return variant, product
 
 
 @observe_tool
@@ -212,8 +301,10 @@ async def get_product_bom(
     ``get_variant_details`` first to confirm the variant exists and is
     ``is_producible``.
     """
+    from katana_mcp.tools.prefab_ui import build_product_bom_ui
+
     response = await _get_product_bom_impl(request, context)
-    return make_json_result(response)
+    return make_tool_result(response, ui=build_product_bom_ui(response.model_dump()))
 
 
 # ============================================================================
