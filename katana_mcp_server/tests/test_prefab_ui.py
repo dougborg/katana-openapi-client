@@ -5196,6 +5196,85 @@ class TestConfirmButtonDirectApplyRail:
             f"morph so the apply rail can retry on failure. Got buttons={labels!r}"
         )
 
+    def test_apply_action_clears_error_state_on_click_and_on_success(self):
+        """Per PR #808 review: the Retry button reuses ``apply_action`` and
+        every preview card renders an ``If("error")`` destructive Alert
+        whenever ``state.error`` is truthy. Without explicit clears, a
+        successful Retry leaves the failed-attempt Alert stuck on the
+        otherwise-applied card.
+
+        The apply action chain must clear ``state.error`` in two places:
+
+        1. **Click-time** — at the start of the on_click list, alongside
+           ``pending=True``. Hides the destructive Alert the moment the
+           retry fires, matching the Pending pill visual state.
+        2. **On success** — inside ``on_success`` alongside the
+           ``applied=True`` morph. Belt-and-suspenders for the successful
+           case so the rendered applied card never carries a stale error.
+        """
+        from katana_mcp.tools.foundation.purchase_orders import (
+            CreatePurchaseOrderRequest,
+            PurchaseOrderItem,
+        )
+
+        request = CreatePurchaseOrderRequest(
+            supplier_id=2,
+            location_id=3,
+            order_number="PO-RETRY",
+            items=[PurchaseOrderItem(variant_id=10, quantity=1.0, price_per_unit=2.0)],
+        )
+        app = build_po_create_ui(
+            {
+                "id": 1,
+                "order_number": "PO-RETRY",
+                "supplier_id": 2,
+                "location_id": 3,
+                "status": "NOT_RECEIVED",
+                "warnings": [],
+            },
+            confirm_request=request,
+            confirm_tool="create_purchase_order",
+        )
+        envelope = app.to_json()
+        on_click = self._confirm_action(envelope, "Confirm & Create Purchase Order")
+
+        # Click-time clear: among the top-level setState actions before
+        # the toolCall, exactly one must set error=None.
+        # ``on_click`` is the CallTool itself; click-chain wrapper lives
+        # one level up — fetch via the Confirm button's on_click array.
+        buttons = _find_buttons_by_label(envelope, "Confirm & Create Purchase Order")
+        click_chain = buttons[0].get("onClick") or buttons[0].get("on_click")
+        assert isinstance(click_chain, list)
+        prefire_error_clears = [
+            a
+            for a in click_chain
+            if a.get("action") == "setState"
+            and a.get("key") == "error"
+            and a.get("value") is None
+        ]
+        assert len(prefire_error_clears) == 1, (
+            "Click chain must set error=None before firing the apply so "
+            "the destructive Alert from any prior failed attempt hides "
+            "immediately on Retry. Got chain="
+            f"{click_chain!r}"
+        )
+
+        # On-success clear: inside the CallTool's onSuccess list.
+        on_success = on_click.get("onSuccess") or []
+        success_error_clears = [
+            a
+            for a in on_success
+            if a.get("action") == "setState"
+            and a.get("key") == "error"
+            and a.get("value") is None
+        ]
+        assert len(success_error_clears) == 1, (
+            "on_success must set error=None alongside the applied morph "
+            "so a successful Retry doesn't leave a stale failure Alert "
+            "rendered on the applied card. Got on_success="
+            f"{on_success!r}"
+        )
+
 
 class TestCancelButtonEmitsUpdateContext:
     """The Cancel button (post-ADR-0021) fires ``setState("cancelled", True)``

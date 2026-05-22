@@ -139,10 +139,13 @@ result (acknowledge completion, suggest next steps).
 
 The Cancel button pushes an `UpdateContext` notification of the form
 
-    User cancelled the <description> preview.
+    User cancelled <description> preview.
 
-into the agent's context. Acknowledge briefly without re-issuing. The
-user can ask again later if they want to retry.
+into the agent's context, where `<description>` is a noun phrase that
+already carries its own determiner — e.g. `the stock adjustment`,
+`that purchase order`, `the receipt for PO-123`, `those purchase order
+changes`. Acknowledge briefly without re-issuing. The user can ask
+again later if they want to retry.
 
 ## Unified-Modify Pattern
 

@@ -73,8 +73,11 @@ the same rail:**
 - **Cancel button** fires:
   1. `SetState("cancelled", True)` — flips the card to a "Cancelled" pill, locks both
      buttons.
-  1. `UpdateContext(content="User cancelled the <description> preview.")` — the agent's
-     context picks up the opt-out without a chat line.
+  1. `UpdateContext(content="User cancelled <description> preview.")` — the agent's
+     context picks up the opt-out without a chat line. `<description>` is a noun phrase
+     that already carries its own determiner (e.g. `"the stock adjustment"`,
+     `"that purchase order"`, `"those purchase order changes"`); the template does not
+     add a leading article, so call sites must supply one to read naturally.
 
 `_build_apply_action` and `_build_apply_action_direct` collapse into a single
 `_build_apply_action` function. `_render_apply_button_row` loses its `direct_apply` flag

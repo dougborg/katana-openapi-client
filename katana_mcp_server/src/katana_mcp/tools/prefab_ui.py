@@ -72,7 +72,7 @@ from typing import Any, Literal
 
 from babel.numbers import format_currency
 from prefab_ui.actions import Action, SetState, ShowToast
-from prefab_ui.actions.mcp import CallTool, SendMessage, UpdateContext
+from prefab_ui.actions.mcp import CallTool, UpdateContext
 from prefab_ui.actions.navigation import OpenLink
 from prefab_ui.app import PrefabApp
 from prefab_ui.components import (
@@ -321,9 +321,17 @@ def _build_apply_action(
     # the modification card binding ``state.plan_actions`` for live-tick row
     # updates) sees its row data land before the iframe morphs to its
     # ``applied=True`` rendering.
+    #
+    # ``SetState("error", None)`` on success is the retry-cleanup: every
+    # preview card renders an ``If("error")`` destructive Alert whenever
+    # ``state.error`` is truthy, so a successful Retry click after an
+    # earlier failure would leave the "Apply failed" Alert stuck on the
+    # otherwise-applied card. Clearing the slot keeps the rendered state
+    # internally consistent.
     on_success: list[Action] = [
         *(extra_on_success or []),
         SetState("pending", False),
+        SetState("error", None),
         # ``result`` MUST land before ``applied`` flips — the applied-state
         # tree binds Buttons to ``{{ result.id }}`` / ``{{ result.katana_url }}``
         # templates (see ``_render_preview_footer``). Setting ``applied=True``
@@ -338,6 +346,12 @@ def _build_apply_action(
         # in the iframe can't fire two applies (which would create
         # duplicate POs etc.). Cleared in on_success/on_error.
         SetState("pending", True),
+        # Clear any prior error before re-firing the apply (this same
+        # action chain backs the Retry button after an apply failure —
+        # see ``_render_apply_button_row``). Without this the destructive
+        # Alert from the failed previous attempt would stay visible
+        # while the retry is in flight, contradicting the Pending pill.
+        SetState("error", None),
         CallTool(
             tool=confirm_tool,
             arguments=args,
