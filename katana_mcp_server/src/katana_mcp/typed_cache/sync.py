@@ -214,6 +214,23 @@ class EntitySpec:
     supports_incremental: bool = True
     supports_include_deleted: bool = True
     single_record: bool = False
+    reconcile_children: bool = False
+    # ``reconcile_children`` closes the hard-delete window that
+    # ``_<entity>_ROW_SPEC`` (the row-tombstone polling specs) miss when
+    # Katana drops a row without bumping the parent's ``updated_at`` or
+    # without leaving a soft-delete behind. After the parent batch lands,
+    # the sync clears every live cached child under each parent in the
+    # batch (``DELETE FROM <child> WHERE fk = ? AND deleted_at IS NULL``,
+    # or the unconditional form when the child table has no ``deleted_at``
+    # column) and lets the bulk-upsert that follows reinstate exactly
+    # what the response said. Soft-deleted rows are left alone — those
+    # belong to the parallel ``_<entity>_ROW_SPEC`` sync, which fetches
+    # tombstones via ``include_deleted=True`` and would race with us
+    # otherwise. Safe only for entities where the parent endpoint
+    # returns the full current row set (SO/PO/stock_adjustment/
+    # stock_transfer — verified against ``get_<entity>``). Leave False
+    # for entities whose rows live behind a separate watermarked endpoint
+    # (manufacturing-order recipe rows). See #803.
 
     def __post_init__(self) -> None:
         # Children are configured by a ``(child_cls, rows_field, fk_field)``
@@ -226,6 +243,12 @@ class EntitySpec:
             msg = (
                 "EntitySpec child_cls/rows_field/fk_field must all be "
                 "set together or all left as None"
+            )
+            raise ValueError(msg)
+        if self.reconcile_children and n_set == 0:
+            msg = (
+                "EntitySpec reconcile_children=True requires "
+                "child_cls/rows_field/fk_field to be set"
             )
             raise ValueError(msg)
 
@@ -516,8 +539,49 @@ async def _sync_one_locked(
         # but SQLite triggers fire for every write mode (ORM, Core,
         # raw SQL).
         await _bulk_upsert(session, spec.cache_cls, cached_parents)
+
+        if (
+            spec.reconcile_children
+            and spec.child_cls is not None
+            and spec.fk_field is not None
+        ):
+            # Treat each parent's nested row list as authoritative: clear
+            # the LIVE cached children under the parents in this batch,
+            # then let the upsert below land only what the response said.
+            # Avoids ``NOT IN (seen_ids)`` entirely — that form binds one
+            # SQL parameter per child and would blow past SQLite's bound-
+            # parameter cap on a sufficiently fat parent.
+            #
+            # Soft-deleted rows are deliberately left in place: they're
+            # owned by the parallel ``_<entity>_ROW_SPEC`` sync, which
+            # fetches tombstones via ``include_deleted=True`` and would
+            # race with us if we wiped them. ``CachedStockAdjustmentRow``
+            # is the only child table in the reconcile set without a
+            # ``deleted_at`` column (the others — SO/PO/stock-transfer
+            # rows — all carry one), so the predicate is conditional on
+            # the column existing.
+            #
+            # ``synchronize_session=False`` keeps aiosqlite happy: the
+            # ORM-aware synchronize strategy issues a SELECT to collect
+            # affected instances and holds that cursor open through
+            # commit, which the single-cursor backend refuses.
+            #
+            # Reach the FK column via the SQLAlchemy mapper rather than
+            # ``Cls.<fk>`` direct access — the static type
+            # ``type[SQLModel]`` doesn't surface column attributes (same
+            # pattern as ``_bulk_upsert``'s ``mapper.columns`` use).
+            child_columns = sqla_inspect(spec.child_cls).columns
+            fk_col = child_columns[spec.fk_field]
+            deleted_at_col = child_columns.get("deleted_at")
+            for parent in cached_parents:
+                stmt = delete(spec.child_cls).where(fk_col == parent.id)
+                if deleted_at_col is not None:
+                    stmt = stmt.where(deleted_at_col.is_(None))
+                await session.exec(stmt.execution_options(synchronize_session=False))
+
         if spec.child_cls is not None:
             await _bulk_upsert(session, spec.child_cls, cached_children)
+
         # SQLite's DateTime column doesn't preserve tzinfo, so naive
         # UTC on the write side. ``row_count`` is the last-fetch size
         # (not a cumulative total, which would drift since a re-sync
@@ -619,6 +683,7 @@ _SALES_ORDER_SPEC = EntitySpec(
     rows_field="sales_order_rows",
     fk_field="sales_order_id",
     related_specs=(_SALES_ORDER_ROW_SPEC,),
+    reconcile_children=True,
 )
 
 
@@ -630,6 +695,7 @@ _STOCK_ADJUSTMENT_SPEC = EntitySpec(
     child_cls=CachedStockAdjustmentRow,
     rows_field="stock_adjustment_rows",
     fk_field="stock_adjustment_id",
+    reconcile_children=True,
 )
 
 
@@ -696,6 +762,7 @@ _PURCHASE_ORDER_SPEC = EntitySpec(
     fk_field="purchase_order_id",
     pydantic_resolver=_resolve_purchase_order_class,
     related_specs=(_PURCHASE_ORDER_ROW_SPEC,),
+    reconcile_children=True,
 )
 
 
@@ -707,6 +774,7 @@ _STOCK_TRANSFER_SPEC = EntitySpec(
     child_cls=CachedStockTransferRow,
     rows_field="stock_transfer_rows",
     fk_field="stock_transfer_id",
+    reconcile_children=True,
 )
 
 
