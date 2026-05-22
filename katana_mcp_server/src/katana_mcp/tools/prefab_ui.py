@@ -3301,6 +3301,302 @@ def build_po_create_ui(
     return app
 
 
+def _render_address_block(label: str, address: dict[str, Any]) -> bool:
+    """Render one labeled multi-line address block (billing or shipping).
+
+    Surfaces the fields a user actually verifies before committing: who the
+    package is for (recipient name + company), the street lines, the city /
+    state / zip, the country, and the contact phone. Skips blank components
+    silently so a partial address (e.g. country-only) renders as one tight
+    block rather than five empty lines.
+
+    Returns ``True`` if the block rendered; ``False`` if every field
+    except ``entity_type`` was empty (caller can decide whether to skip
+    the whole address section).
+
+    Must be called inside a ``CardContent`` column block.
+    """
+    name_parts = [p for p in (address.get("first_name"), address.get("last_name")) if p]
+    recipient = " ".join(name_parts) if name_parts else None
+    company = address.get("company")
+    line_1 = address.get("line_1")
+    line_2 = address.get("line_2")
+    city = address.get("city")
+    state = address.get("state")
+    # Wire name is ``zip``; the attrs model exposes it as ``zip_`` but
+    # ``model_dump()`` emits the wire name, so we read ``zip`` here.
+    postal = address.get("zip")
+    country = address.get("country")
+    phone = address.get("phone")
+
+    street = ", ".join(p for p in (line_1, line_2) if p)
+    locality_parts: list[str] = []
+    if city:
+        locality_parts.append(city)
+    state_zip = " ".join(p for p in (state, postal) if p)
+    if state_zip:
+        locality_parts.append(state_zip)
+    locality = ", ".join(locality_parts)
+    country_phone = " • ".join(p for p in (country, phone) if p)
+
+    body_lines = [
+        line for line in (recipient, company, street, locality, country_phone) if line
+    ]
+    # Skip rendering entirely when every meaningful field is empty —
+    # otherwise the card surfaces a dangling "Billing Address:" label
+    # with no content underneath, which reads as broken.
+    if not body_lines:
+        return False
+    with Column(gap=0):
+        Text(content=f"{label}:")
+        for line in body_lines:
+            Text(content=f"  {line}")
+    return True
+
+
+def _addresses_are_equivalent(a: dict[str, Any], b: dict[str, Any]) -> bool:
+    """Two addresses are equivalent if every user-visible field matches.
+
+    Compares the fields ``_render_address_block`` surfaces — entity_type is
+    irrelevant here (that's what's labelling each block), and server-side
+    fields (id, customer_id, timestamps) don't enter into "is the same
+    place" judgement.
+    """
+    keys = (
+        "first_name",
+        "last_name",
+        "company",
+        "phone",
+        "line_1",
+        "line_2",
+        "city",
+        "state",
+        "zip",
+        "country",
+    )
+    return all((a.get(k) or None) == (b.get(k) or None) for k in keys)
+
+
+def _render_customer_entity_view(
+    entity: dict[str, Any],
+    *,
+    changes: dict[str, Any] | None = None,
+) -> list[str]:
+    """Render the customer entity view (Tier 3 reference fields + addresses).
+
+    Shared shape with :func:`_render_po_entity_view`: a future
+    ``build_customer_modify_ui`` will pass ``changes`` to decorate each
+    scalar field with ``before → after``. ``changes`` is typed loosely as
+    ``dict[str, Any]`` for now because the modify-card framework's
+    ``FieldChangeView`` will land with #721's customer card; the
+    create-card path always passes ``changes=None``.
+
+    Customer cards skip Tier 2 metrics entirely — there's no money or count
+    aggregate worth promoting to a metric. The decision the operator makes
+    is "this person/company exists in our system," reviewed via the Tier 3
+    fields directly.
+
+    Returns the block-warning list (always empty for now; reserved for
+    future business-rule blocks such as duplicate-email warnings).
+
+    Must be called inside ``with PrefabApp(...) as app, Card(): with
+    CardContent(), Column(gap=3):``.
+    """
+    changes = changes or {}
+    rendered_any = False
+
+    contact_lines = (
+        ("Email", entity.get("email")),
+        ("Phone", entity.get("phone")),
+        ("Company", entity.get("company")),
+        ("Currency", entity.get("currency")),
+        ("Category", entity.get("category")),
+        ("Reference ID", entity.get("reference_id")),
+    )
+    for label, value in contact_lines:
+        change = changes.get(_customer_change_key(label))
+        if change is not None or value:
+            _render_field_diff_line(label, value=value, change=change)
+            rendered_any = True
+
+    discount_rate = entity.get("discount_rate")
+    discount_change = changes.get("discount_rate")
+    if discount_change is not None or discount_rate is not None:
+        # ``:g`` switches to scientific notation outside ~1e-5..1e+6;
+        # an operator fat-finger like ``discount_rate=1000000`` would
+        # then render as "1e+06%" — a deliberate-looking technical
+        # value rather than the obvious red flag the operator needs.
+        # ``:.4f`` with trailing-zero strip keeps fixed-point in all
+        # realistic discount ranges.
+        if isinstance(discount_rate, bool) or not isinstance(
+            discount_rate, (int, float)
+        ):
+            display: Any = discount_rate
+        else:
+            display = f"{discount_rate:.4f}".rstrip("0").rstrip(".") + "%"
+        _render_field_diff_line("Discount Rate", value=display, change=discount_change)
+        rendered_any = True
+
+    comment = entity.get("comment")
+    comment_change = changes.get("comment")
+    if comment_change is not None or comment:
+        _render_field_diff_line("Notes", value=comment, change=comment_change)
+        rendered_any = True
+
+    addresses = entity.get("addresses") or []
+    if addresses:
+        # Sort billing before shipping so the visual order matches operator
+        # expectation. Unknown entity_types sort last in stable insert order.
+        order = {"billing": 0, "shipping": 1}
+        sorted_addresses = sorted(
+            addresses, key=lambda a: order.get(a.get("entity_type") or "", 2)
+        )
+        # Collect ALL billing addresses for dedup, not just the last —
+        # a customer with multiple billings shouldn't fail dedup when
+        # shipping matches the first billing but not the most recently
+        # rendered one. Loop matches each shipping against any prior billing.
+        rendered_billings: list[dict[str, Any]] = []
+        for addr in sorted_addresses:
+            entity_type = (addr.get("entity_type") or "").lower()
+            label = (
+                "Billing Address"
+                if entity_type == "billing"
+                else "Shipping Address"
+                if entity_type == "shipping"
+                else "Address"
+            )
+            if entity_type == "shipping" and any(
+                _addresses_are_equivalent(b, addr) for b in rendered_billings
+            ):
+                Text(content="Shipping Address: (same as billing)")
+                rendered_any = True
+                continue
+            if _render_address_block(label, addr):
+                rendered_any = True
+                if entity_type == "billing":
+                    rendered_billings.append(addr)
+
+    # Empty-card defense: a minimal create_customer(name='X') has no
+    # Tier 3 content to surface. Without this fallback the CardContent
+    # column would be empty and the card would read as broken (header
+    # + blank body + footer).
+    if not rendered_any:
+        Muted(content="No additional contact details provided.")
+
+    return _render_warnings_block(entity.get("warnings"))
+
+
+_CUSTOMER_FIELD_TO_WIRE = {
+    "Email": "email",
+    "Phone": "phone",
+    "Company": "company",
+    "Currency": "currency",
+    "Category": "category",
+    "Reference ID": "reference_id",
+    "Discount Rate": "discount_rate",
+    # "Notes" surfaces the wire field ``comment`` (see
+    # ``_render_customer_entity_view`` — the label is operator-friendly,
+    # the diff key still has to match the wire-shape).
+    "Notes": "comment",
+}
+
+
+def _customer_change_key(label: str) -> str:
+    """Map a user-facing label to the wire field name a future modify card
+    would key its diff lookup off. Kept inline to keep the create-card
+    helper self-contained; the eventual modify card will read the same map.
+
+    Fallback normalizes spaces → underscores so any label not explicitly
+    mapped still produces a wire-shaped key (``"Two Word"`` → ``"two_word"``)
+    rather than a literal lowercase with embedded space.
+    """
+    return _CUSTOMER_FIELD_TO_WIRE.get(label, label.lower().replace(" ", "_"))
+
+
+def build_customer_create_ui(
+    response: dict[str, Any],
+    *,
+    confirm_request: BaseModel,
+    confirm_tool: str,
+) -> PrefabApp:
+    """Build the create-customer card. Handles both preview
+    (``is_preview=True`` → PREVIEW Badge + Confirm/Cancel + direct-apply
+    morph) and applied (``is_preview=False`` → CREATED Badge + View in
+    Katana + next-action buttons) states. Reads
+    ``CreateCustomerResponse.model_dump()`` directly.
+
+    Four-tier framework (#537), pioneer per-entity card for #817:
+
+    - Tier 1 — Identity: title, **customer name** as the headline Badge
+      (the ``_render_preview_header(order_number=...)`` slot — the helper
+      param name is historical from PO/SO/MO; for customer the name itself
+      is the headline), PREVIEW/CREATED state badge, currency badge when
+      set.
+    - Tier 2 — *omitted* — customer creates have no money/count aggregate
+      worth promoting to a Metric.
+    - Tier 3 — content from :func:`_render_customer_entity_view` (shared
+      with the future ``build_customer_modify_ui`` per the #721 design;
+      create cards pass ``changes=None`` so no diff overlay).
+    - Tier 4 — Actions: Confirm & Create + Cancel via the direct-apply
+      rail; applied state surfaces View in Katana + "Create Sales Order"
+      next-action button.
+    """
+    name = response.get("name") or "Customer"
+    # Truncate the headline Badge to keep Tier 1 layout stable. Katana
+    # accepts free-text ``name`` of arbitrary length; PO/SO/MO never
+    # exercised this slot with anything longer than ~20 chars, so the
+    # helper assumed short headlines. 48 chars fits a typical company
+    # name; longer ones surface in the Tier 3 Notes / contact body
+    # where the operator can read them in full.
+    badge_name = name if len(name) <= 48 else name[:45] + "…"
+    currency = response.get("currency")
+    apply_action = _build_apply_action(confirm_tool, confirm_request)
+    cancel_action = _build_cancel_action("that customer")
+    extra_badges: tuple[tuple[str, str], ...] = (
+        ((currency, "outline"),) if currency else ()
+    )
+
+    with (
+        PrefabApp(state=_init_create_card_state(response), css_class="p-4") as app,
+        Card(),
+    ):
+        _render_preview_header(
+            title_prefix="Customer",
+            entity="customer",
+            order_number=badge_name,
+            status=None,
+            extra_badges=extra_badges,
+        )
+        with CardContent(), Column(gap=3):
+            block_warnings = _render_customer_entity_view(response)
+        _render_preview_footer(
+            title_prefix="Customer",
+            block_warnings=block_warnings,
+            confirm_label="Confirm & Create Customer",
+            apply_action=apply_action,
+            cancel_action=cancel_action,
+            next_action_buttons=(
+                # ``create_sales_order`` needs items + quantities that the
+                # customer-create response can't supply. Per ADR-0021,
+                # that's an ``UpdateContext`` (agent composes the call)
+                # rather than a deterministic ``CallTool``. Matches the
+                # PO card's "Receive Items" follow-up shape.
+                (
+                    "Create Sales Order",
+                    UpdateContext(
+                        content=(
+                            "User wants to create a sales order for "
+                            "customer {{ result.id }} ({{ result.name }}). "
+                            "Ask which items and quantities, then call "
+                            "create_sales_order with preview=True."
+                        ),
+                    ),
+                ),
+            ),
+        )
+    return app
+
+
 def _summarize_apply_outcome(
     actions: list[dict[str, Any]],
 ) -> tuple[str, str]:

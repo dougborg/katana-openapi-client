@@ -155,6 +155,76 @@ class TestOtherCardsRender:
         assert frame.locator("text=batch 42x30").count() >= 1
         assert frame.locator("text=SN-001").count() >= 1
 
+    def test_customer_create_preview_renders(self, render_scenario):
+        """``build_customer_create_ui`` preview state (#817).
+
+        Mounts the four-tier customer create card and asserts the
+        user-facing fields surface as values — not API plumbing.
+        """
+        frame = render_scenario("customer_create_preview")
+        # Tier 1 — title + customer name in the headline badge + PREVIEW state.
+        assert frame.locator("text=Customer Preview").count() >= 1
+        assert frame.locator("text=Gourmet Bistro Group").count() >= 1
+        assert frame.locator("text=PREVIEW").count() >= 1
+        # Tier 3 — contact fields rendered with their values, not abstractions.
+        assert frame.locator("text=procurement@gourmetbistro.com").count() >= 1
+        assert frame.locator("text=+1-555-0125").count() >= 1
+        assert frame.locator("text=USD").count() >= 1
+        assert frame.locator("text=Fine Dining").count() >= 1
+        # Tier 4 — Confirm + Cancel.
+        assert frame.locator("text=Confirm & Create Customer").count() >= 1
+        assert frame.locator("text=Cancel").count() >= 1
+        # Anti-regression: no "Operation #" / "Target #" / "field(s) changed"
+        # internal-model leakage in user-visible content.
+        assert frame.locator("text=Operation #").count() == 0
+        assert frame.locator("text=field(s) changed").count() == 0
+
+    def test_customer_create_preview_renders_addresses(self, render_scenario):
+        """Address blocks render with real street/city/state/zip — and the
+        equivalent shipping address de-dupes to '(same as billing)'."""
+        frame = render_scenario("customer_create_preview_with_addresses")
+        # Billing address surfaces the actual lines, not an address ID.
+        assert frame.locator("text=Billing Address:").count() >= 1
+        assert frame.locator("text=123 Market St, Suite 4").count() >= 1
+        assert frame.locator("text=Springfield, IL 62701").count() >= 1
+        # The equivalent shipping address renders the de-dup line, not a
+        # duplicate of the billing block.
+        assert frame.locator("text=Shipping Address: (same as billing)").count() >= 1
+
+    def test_customer_create_applied_renders_view_in_katana(self, render_scenario):
+        """Applied state surfaces the View-in-Katana link + next-action."""
+        frame = render_scenario("customer_create_applied")
+        assert frame.locator("text=Customer Created").count() >= 1
+        assert frame.locator("text=CREATED").count() >= 1
+        assert frame.locator("text=View in Katana").count() >= 1
+        # Direct-apply rail's next-action button.
+        assert frame.locator("text=Create Sales Order").count() >= 1
+
+    def test_customer_create_block_warning_hides_confirm(self, render_scenario):
+        """A BLOCK: warning hides the Confirm button and surfaces the
+        block-warning Badge (gate from _render_warnings_block →
+        _render_preview_footer)."""
+        frame = render_scenario("customer_create_block_warning")
+        # Warning text surfaces, with the BLOCK: prefix stripped.
+        assert (
+            frame.locator(
+                "text=a customer named 'Gourmet Bistro Group' already exists"
+            ).count()
+            >= 1
+        )
+        # Confirm button gone; cannot-proceed coaching shows up.
+        assert frame.locator("text=Confirm & Create Customer").count() == 0
+        assert frame.locator("text=Cannot proceed").count() >= 1
+
+    def test_customer_create_minimal_renders_fallback(self, render_scenario):
+        """A customer with no optional fields renders the empty-Tier-3
+        fallback Muted line instead of a visually-blank card body."""
+        frame = render_scenario("customer_create_minimal")
+        assert frame.locator("text=Minimal Co").count() >= 1
+        assert (
+            frame.locator("text=No additional contact details provided.").count() >= 1
+        )
+
 
 class TestDataTableRowClickBinding:
     """Verify DataTable ``onRowClick`` ``{{ field }}`` per-row bindings

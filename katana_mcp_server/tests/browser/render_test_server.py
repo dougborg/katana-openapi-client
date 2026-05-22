@@ -27,6 +27,7 @@ from katana_mcp.tools._modification import (
 )
 from katana_mcp.tools.prefab_ui import (
     build_batch_recipe_update_ui,
+    build_customer_create_ui,
     build_inventory_at_ui,
     build_inventory_check_ui,
     build_item_detail_ui,
@@ -521,6 +522,62 @@ def _batch_recipe_update_app() -> PrefabApp:
 # ---------------------------------------------------------------------------
 
 
+def _customer_create_response(*, is_preview: bool, with_addresses: bool) -> dict:
+    """Build a canned CreateCustomerResponse dict for the customer card.
+
+    ``with_addresses`` toggles billing+shipping snapshots to exercise the
+    address-block rendering and the "same as billing" de-dup path.
+    """
+    base: dict = {
+        "id": None if is_preview else 8001,
+        "katana_url": (
+            None
+            if is_preview
+            else "https://factory.katanamrp.com/contacts/customers/8001"
+        ),
+        "name": "Gourmet Bistro Group",
+        "first_name": "Elena",
+        "last_name": "Rodriguez",
+        "company": "Gourmet Bistro Group Inc",
+        "email": "procurement@gourmetbistro.com",
+        "phone": "+1-555-0125",
+        "comment": "Premium restaurant chain — priority orders",
+        "currency": "USD",
+        "reference_id": "GBG-2024-003",
+        "category": "Fine Dining",
+        "discount_rate": 7.5,
+        "addresses": [],
+        "is_preview": is_preview,
+        "warnings": [],
+        "next_actions": [],
+        "message": (
+            "Preview: customer ready to create"
+            if is_preview
+            else "Successfully created customer (ID: 8001)"
+        ),
+    }
+    if with_addresses:
+        billing = {
+            "entity_type": "billing",
+            "first_name": "Elena",
+            "last_name": "Rodriguez",
+            "company": "Gourmet Bistro Group Inc",
+            "phone": "+1-555-0125",
+            "line_1": "123 Market St",
+            "line_2": "Suite 4",
+            "city": "Springfield",
+            "state": "IL",
+            "zip": "62701",
+            "country": "US",
+        }
+        # Shipping byte-equal to billing exercises the "same as billing"
+        # de-dup branch in ``_render_customer_entity_view``.
+        shipping = dict(billing)
+        shipping["entity_type"] = "shipping"
+        base["addresses"] = [billing, shipping]
+    return base
+
+
 def _stock_adjustment_response(*, is_preview: bool, n_rows: int = 3) -> dict:
     """Build a canned StockAdjustmentResponse dict with N rows."""
     rows = [
@@ -651,6 +708,52 @@ SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
         _stock_adjustment_delete_response(is_preview=False),
         confirm_request=_StubRequest(),
         confirm_tool="delete_stock_adjustment",
+    ),
+    # Customer create card (#817) — preview + applied + addresses variants.
+    "customer_create_preview": lambda: build_customer_create_ui(
+        _customer_create_response(is_preview=True, with_addresses=False),
+        confirm_request=_StubRequest(),
+        confirm_tool="create_customer",
+    ),
+    "customer_create_preview_with_addresses": lambda: build_customer_create_ui(
+        _customer_create_response(is_preview=True, with_addresses=True),
+        confirm_request=_StubRequest(),
+        confirm_tool="create_customer",
+    ),
+    "customer_create_applied": lambda: build_customer_create_ui(
+        _customer_create_response(is_preview=False, with_addresses=True),
+        confirm_request=_StubRequest(),
+        confirm_tool="create_customer",
+    ),
+    # Block-warning gate: the Confirm button must hide and the warnings
+    # badge must surface when ``warnings`` carries a ``BLOCK:`` prefix.
+    # Pins the gate against future regressions (no business-rule warning
+    # populates this on the customer create path today; locked in now).
+    "customer_create_block_warning": lambda: build_customer_create_ui(
+        {
+            **_customer_create_response(is_preview=True, with_addresses=False),
+            "warnings": [
+                "BLOCK: a customer named 'Gourmet Bistro Group' already exists"
+            ],
+        },
+        confirm_request=_StubRequest(),
+        confirm_tool="create_customer",
+    ),
+    # Minimal customer (only ``name``) — pins the empty-Tier-3-body
+    # fallback ("No additional contact details provided.").
+    "customer_create_minimal": lambda: build_customer_create_ui(
+        {
+            "id": None,
+            "katana_url": None,
+            "name": "Minimal Co",
+            "is_preview": True,
+            "addresses": [],
+            "warnings": [],
+            "next_actions": [],
+            "message": "Preview: customer Minimal Co ready to create",
+        },
+        confirm_request=_StubRequest(),
+        confirm_tool="create_customer",
     ),
     "modify_item_single_preview": lambda: build_modification_preview_ui(
         {

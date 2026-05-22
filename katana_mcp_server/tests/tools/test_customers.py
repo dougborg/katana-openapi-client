@@ -1,13 +1,18 @@
-"""Tests for customer search and lookup tools."""
+"""Tests for customer search, lookup, and create tools."""
 
 import json
 from datetime import datetime
-from unittest.mock import AsyncMock, patch
+from typing import Any, cast
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from katana_mcp.tools.foundation.customers import (
+    CreateCustomerAddressRequest,
+    CreateCustomerRequest,
     GetCustomerRequest,
     SearchCustomersRequest,
+    _create_customer_impl,
+    _customer_response_to_tool_result,
     _get_customer_impl,
     _search_customers_impl,
     get_customer,
@@ -15,7 +20,9 @@ from katana_mcp.tools.foundation.customers import (
 )
 from katana_mcp_server.tests.conftest import create_mock_context
 
+from katana_public_api_client.models import Customer as APICustomer
 from katana_public_api_client.models_pydantic._generated import CachedCustomer
+from tests.factories import mock_entity_for_modify
 
 
 @pytest.fixture(autouse=True)
@@ -294,3 +301,395 @@ async def test_get_customer_content_is_indented_json():
     data = json.loads(_content_text(result))
     assert data["id"] == 42
     assert data["name"] == "Widgets Inc"
+
+
+# ============================================================================
+# create_customer
+# ============================================================================
+
+
+_MERGE_CACHE_PATH = "katana_mcp.typed_cache.sync.merge_filtered_fetch"
+
+
+@pytest.mark.asyncio
+async def test_create_customer_preview_skips_api_call():
+    """Preview branch must echo request fields without hitting the API or cache."""
+    context, _ = create_mock_context()
+
+    request = CreateCustomerRequest(
+        name="Acme Corp",
+        company="Acme Corp",
+        email="orders@acme.com",
+        phone="+1-555-0100",
+        currency="USD",
+        category="Wholesale",
+        discount_rate=7.5,
+        preview=True,
+    )
+
+    # ``merge_filtered_fetch`` should NOT be called on the preview branch —
+    # patch it so the test fails loudly if the impl regresses.
+    with patch(_MERGE_CACHE_PATH, AsyncMock()) as merge_mock:
+        result = await _create_customer_impl(request, context)
+
+    assert result.is_preview is True
+    assert result.id is None
+    assert result.katana_url is None
+    assert result.name == "Acme Corp"
+    assert result.company == "Acme Corp"
+    assert result.email == "orders@acme.com"
+    assert result.currency == "USD"
+    assert result.discount_rate == 7.5
+    assert result.addresses == []
+    assert "preview=false" in result.message.lower() or result.message.startswith(
+        "Preview"
+    )
+    merge_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_create_customer_preview_carries_addresses():
+    """Addresses on the request flow through to the preview response snapshot."""
+    context, _ = create_mock_context()
+
+    billing = CreateCustomerAddressRequest(
+        entity_type="billing",
+        first_name="Elena",
+        last_name="Rodriguez",
+        line_1="123 Market St",
+        city="Springfield",
+        state="IL",
+        zip="62701",
+        country="US",
+    )
+    shipping = CreateCustomerAddressRequest(
+        entity_type="shipping",
+        first_name="Elena",
+        last_name="Rodriguez",
+        line_1="500 Warehouse Way",
+        city="Springfield",
+        state="IL",
+        zip="62702",
+        country="US",
+    )
+    request = CreateCustomerRequest(
+        name="Gourmet Bistro Group",
+        addresses=[billing, shipping],
+        preview=True,
+    )
+
+    result = await _create_customer_impl(request, context)
+
+    assert result.is_preview is True
+    assert len(result.addresses) == 2
+    assert result.addresses[0].entity_type == "billing"
+    assert result.addresses[0].line_1 == "123 Market St"
+    assert result.addresses[1].entity_type == "shipping"
+    assert result.addresses[1].line_1 == "500 Warehouse Way"
+
+
+@pytest.mark.asyncio
+async def test_create_customer_empty_name_rejected():
+    """Empty or whitespace-only ``name`` raises before any API call."""
+    context, _ = create_mock_context()
+
+    request = CreateCustomerRequest(name="   ", preview=True)
+    with pytest.raises(ValueError, match="name cannot be empty"):
+        await _create_customer_impl(request, context)
+
+
+def test_create_customer_discount_rate_out_of_range_rejected():
+    """``discount_rate`` outside 0-100 raises at request-parse time —
+    a clean ValidationError rather than an opaque Katana 422 on apply.
+    """
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="less than or equal to 100"):
+        CreateCustomerRequest(name="X", discount_rate=150)
+    with pytest.raises(ValidationError, match="greater than or equal to 0"):
+        CreateCustomerRequest(name="X", discount_rate=-1)
+
+
+@pytest.mark.asyncio
+async def test_create_customer_apply_calls_api_and_merges_cache():
+    """Apply branch must POST to /customers and write through to the cache."""
+    context, _ = create_mock_context()
+
+    api_customer = mock_entity_for_modify(
+        APICustomer,
+        id=8001,
+        name="Acme Corp",
+        email="orders@acme.com",
+        currency="USD",
+        category="Wholesale",
+    )
+    mock_api_response = MagicMock()
+    mock_api_response.status_code = 200
+    mock_api_response.parsed = api_customer
+    mock_api_call = AsyncMock(return_value=mock_api_response)
+
+    import katana_public_api_client.api.customer.create_customer as create_module
+
+    original = create_module.asyncio_detailed
+    cast(Any, create_module).asyncio_detailed = mock_api_call
+
+    try:
+        with patch(_MERGE_CACHE_PATH, AsyncMock()) as merge_mock:
+            request = CreateCustomerRequest(
+                name="Acme Corp",
+                email="orders@acme.com",
+                currency="USD",
+                category="Wholesale",
+                preview=False,
+            )
+            result = await _create_customer_impl(request, context)
+    finally:
+        create_module.asyncio_detailed = original
+
+    assert result.is_preview is False
+    assert result.id == 8001
+    assert result.name == "Acme Corp"
+    assert result.email == "orders@acme.com"
+    assert result.currency == "USD"
+    assert result.katana_url is not None
+    assert "8001" in result.katana_url
+    # Cache write-through must have been invoked with the fresh attrs object.
+    merge_mock.assert_called_once()
+    args, _kwargs = merge_mock.call_args
+    # merge_filtered_fetch(cache, spec, [attrs_obj])
+    assert args[2] == [api_customer]
+    # And the API was called exactly once with the right body shape.
+    mock_api_call.assert_called_once()
+    body = mock_api_call.call_args.kwargs["body"]
+    assert body.name == "Acme Corp"
+    assert body.email == "orders@acme.com"
+    assert body.currency == "USD"
+
+
+@pytest.mark.asyncio
+async def test_create_customer_apply_forwards_addresses_to_api():
+    """Addresses on the request must reach the API attrs body verbatim."""
+    context, _ = create_mock_context()
+
+    api_customer = mock_entity_for_modify(APICustomer, id=8002, name="Bistro Group")
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = api_customer
+    mock_api_call = AsyncMock(return_value=mock_response)
+
+    import katana_public_api_client.api.customer.create_customer as create_module
+
+    original = create_module.asyncio_detailed
+    cast(Any, create_module).asyncio_detailed = mock_api_call
+    try:
+        with patch(_MERGE_CACHE_PATH, AsyncMock()):
+            request = CreateCustomerRequest(
+                name="Bistro Group",
+                addresses=[
+                    CreateCustomerAddressRequest(
+                        entity_type="billing",
+                        line_1="123 Market St",
+                        city="Springfield",
+                        zip="62701",
+                        country="US",
+                    )
+                ],
+                preview=False,
+            )
+            await _create_customer_impl(request, context)
+    finally:
+        create_module.asyncio_detailed = original
+
+    body = mock_api_call.call_args.kwargs["body"]
+    assert len(body.addresses) == 1
+    addr = body.addresses[0]
+    # AddressEntityType is an enum on the attrs side; ``.value`` is "billing".
+    assert addr.entity_type.value == "billing"
+    assert addr.line_1 == "123 Market St"
+    # zip → zip_ wire-name workaround on the attrs model.
+    assert addr.zip_ == "62701"
+
+
+@pytest.mark.asyncio
+async def test_create_customer_apply_prefers_server_addresses_over_request_snapshot():
+    """When the API echoes addresses on the create response (with
+    server-assigned ``id`` / ``default`` + normalized values), the tool
+    surfaces those — not the request snapshot — so the card reflects what
+    Katana actually stored.
+    """
+    from katana_public_api_client.client_types import UNSET
+    from katana_public_api_client.models import (
+        AddressEntityType,
+        CustomerAddress,
+    )
+
+    context, _ = create_mock_context()
+
+    # Real attrs CustomerAddress: ``zip_`` (Python keyword workaround) +
+    # AddressEntityType enum for entity_type. Katana normalized country
+    # 'USA' → 'US' and assigned id=3001 / default=True.
+    server_billing = CustomerAddress(
+        id=3001,
+        customer_id=8020,
+        entity_type=AddressEntityType.BILLING,
+        default=True,
+        first_name="Elena",
+        line_1="123 Market St",
+        city="Springfield",
+        state="IL",
+        zip_="62701",
+        country="US",
+        created_at=UNSET,
+        updated_at=UNSET,
+        deleted_at=UNSET,
+    )
+    api_customer = mock_entity_for_modify(
+        APICustomer,
+        id=8020,
+        name="Server Address Echo Co",
+        addresses=[server_billing],
+    )
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = api_customer
+
+    import katana_public_api_client.api.customer.create_customer as create_module
+
+    original = create_module.asyncio_detailed
+    cast(Any, create_module).asyncio_detailed = AsyncMock(return_value=mock_response)
+    try:
+        with patch(_MERGE_CACHE_PATH, AsyncMock()):
+            # Request submitted with country='USA' (un-normalized) — should
+            # be replaced by the server's 'US' in the response.
+            request = CreateCustomerRequest(
+                name="Server Address Echo Co",
+                addresses=[
+                    CreateCustomerAddressRequest(
+                        entity_type="billing",
+                        first_name="Elena",
+                        line_1="123 Market St",
+                        city="Springfield",
+                        state="IL",
+                        zip="62701",
+                        country="USA",
+                    )
+                ],
+                preview=False,
+            )
+            result = await _create_customer_impl(request, context)
+    finally:
+        create_module.asyncio_detailed = original
+
+    assert len(result.addresses) == 1
+    addr = result.addresses[0]
+    assert addr.id == 3001  # server-assigned
+    assert addr.default is True  # server-assigned
+    assert addr.country == "US"  # server-normalized (not request 'USA')
+    assert addr.entity_type == "billing"
+
+
+@pytest.mark.asyncio
+async def test_create_customer_apply_surfaces_warning_when_cache_merge_fails():
+    """Cache-merge failure must NOT raise — the customer already exists in
+    Katana, so re-raising would push the operator into retrying and creating
+    a duplicate. The tool returns is_preview=False with a warning instead.
+    """
+    context, _ = create_mock_context()
+
+    api_customer = mock_entity_for_modify(APICustomer, id=8010, name="Cache Failure Co")
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = api_customer
+
+    import katana_public_api_client.api.customer.create_customer as create_module
+
+    original = create_module.asyncio_detailed
+    cast(Any, create_module).asyncio_detailed = AsyncMock(return_value=mock_response)
+    try:
+        with patch(
+            _MERGE_CACHE_PATH,
+            AsyncMock(side_effect=RuntimeError("database is locked")),
+        ):
+            request = CreateCustomerRequest(name="Cache Failure Co", preview=False)
+            result = await _create_customer_impl(request, context)
+    finally:
+        create_module.asyncio_detailed = original
+
+    # Customer was created in Katana; we don't lose that fact just because
+    # the cache write-through failed.
+    assert result.is_preview is False
+    assert result.id == 8010
+    # Warning surfaces what happened + explicit "do not retry" coaching.
+    assert any("cache" in w.lower() for w in result.warnings)
+    assert any("duplicate" in w.lower() for w in result.warnings)
+
+
+@pytest.mark.asyncio
+async def test_create_customer_apply_writes_through_to_real_cache(typed_cache_engine):
+    """Integration: apply branch writes a row that ``search_customers`` can
+    immediately read back via the real typed cache — no ``rebuild_cache``
+    round-trip needed (the cache-merge contract on #817).
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache = typed_cache_engine
+
+    # Real APICustomer (not MagicMock) — the cache converter calls
+    # ``Customer.from_attrs(attrs_obj)`` which validates field shapes.
+    api_customer = APICustomer(
+        id=8003,
+        name="Cache Writethrough Test Co",
+        email="qa@example.com",
+        currency="USD",
+    )
+    mock_api_response = MagicMock()
+    mock_api_response.status_code = 200
+    mock_api_response.parsed = api_customer
+
+    import katana_public_api_client.api.customer.create_customer as create_module
+
+    original = create_module.asyncio_detailed
+    cast(Any, create_module).asyncio_detailed = AsyncMock(
+        return_value=mock_api_response
+    )
+    try:
+        request = CreateCustomerRequest(
+            name="Cache Writethrough Test Co",
+            email="qa@example.com",
+            currency="USD",
+            preview=False,
+        )
+        await _create_customer_impl(request, context)
+    finally:
+        create_module.asyncio_detailed = original
+
+    # search_customers reads through the cache via smart_search. Query the
+    # catalog directly — it's the same data path search_customers uses.
+    rows = await typed_cache_engine.catalog.smart_search(
+        CachedCustomer, "Cache Writethrough", limit=10
+    )
+    assert any(r.id == 8003 for r in rows)
+
+
+def test_create_customer_response_to_tool_result_emits_prefab_card():
+    """The ToolResult must carry the Prefab card envelope, not plain JSON."""
+    from katana_mcp.tools.foundation.customers import CreateCustomerResponse
+
+    response = CreateCustomerResponse(
+        name="Acme Corp",
+        is_preview=True,
+        message="Preview",
+    )
+    request = CreateCustomerRequest(name="Acme Corp", preview=True)
+
+    result = _customer_response_to_tool_result(response, request=request)
+
+    # structured_content is the Prefab wire envelope — fastmcp serializes
+    # the PrefabApp into a ``$prefab`` / ``state`` / ``view`` dict at
+    # ToolResult construction time.
+    assert isinstance(result.structured_content, dict)
+    assert "$prefab" in result.structured_content
+    assert "view" in result.structured_content
+    # content channel carries the response JSON for the model context.
+    data = json.loads(_content_text(result))
+    assert data["name"] == "Acme Corp"
+    assert data["is_preview"] is True

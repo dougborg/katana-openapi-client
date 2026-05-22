@@ -1,25 +1,33 @@
 """Customer management tools for Katana MCP Server.
 
-Foundation tools for searching and looking up customer records. Customers
-can grow to thousands and contain PII, so they are served via search tools
-rather than exposed as a resource.
+Foundation tools for searching, looking up, and creating customer records.
+Customers can grow to thousands and contain PII, so reads go through search
+tools rather than a resource; writes follow the standard preview/apply
+pattern with cache write-through so the new record surfaces in
+``search_customers`` immediately.
 """
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
 from pydantic import BaseModel, ConfigDict, Field
 
-from katana_mcp.logging import observe_tool
+from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.decorators import cache_read
-from katana_mcp.tools.tool_result_utils import make_json_result
+from katana_mcp.tools.tool_result_utils import (
+    UI_META,
+    make_json_result,
+    make_tool_result,
+)
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_mcp.web_urls import katana_web_url
 from katana_public_api_client.models_pydantic._generated import CachedCustomer
+
+logger = get_logger(__name__)
 
 # ============================================================================
 # Tool 1: search_customers
@@ -325,9 +333,452 @@ async def get_customer(
     return make_json_result(response)
 
 
+# ============================================================================
+# Tool 3: create_customer
+# ============================================================================
+
+
+AddressEntityType = Literal["billing", "shipping"]
+
+
+class CreateCustomerAddressRequest(BaseModel):
+    """One address (billing or shipping) to attach to the new customer.
+
+    Mirrors the shape of ``CreateCustomerRequest.addresses[*]`` in the
+    Katana OpenAPI spec — fields are optional individually so a caller
+    can supply just the parts they know (e.g., a country-only address for
+    a record they'll flesh out later). ``entity_type`` is the only field
+    that's effectively required for the address to be useful, since the
+    card and Katana both differentiate billing from shipping.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    entity_type: AddressEntityType = Field(
+        ...,
+        description="'billing' or 'shipping'. Drives both card layout and Katana's address routing.",
+    )
+    first_name: str | None = Field(default=None)
+    last_name: str | None = Field(default=None)
+    company: str | None = Field(default=None)
+    phone: str | None = Field(default=None)
+    line_1: str | None = Field(default=None, description="Street address line 1")
+    line_2: str | None = Field(default=None, description="Street address line 2")
+    city: str | None = Field(default=None)
+    state: str | None = Field(default=None, description="State / province / region")
+    zip: str | None = Field(default=None, description="Postal code")
+    country: str | None = Field(default=None)
+
+
+class CreateCustomerRequest(BaseModel):
+    """Request to create a new customer.
+
+    Mirrors ``CreateCustomerRequest`` in ``docs/katana-openapi.yaml`` — ``name``
+    is the only required field; everything else is optional. Use individual
+    ``first_name`` / ``last_name`` for personal contacts; use ``company`` for
+    business accounts (and typically populate ``name`` to mirror the company
+    name).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(
+        ...,
+        description=(
+            "Display name shown in the Katana UI and on documents. For an "
+            "individual contact, use the person's full name; for a business "
+            "account, mirror the company name."
+        ),
+    )
+    first_name: str | None = Field(default=None)
+    last_name: str | None = Field(default=None)
+    company: str | None = Field(default=None)
+    email: str | None = Field(default=None)
+    phone: str | None = Field(default=None)
+    comment: str | None = Field(
+        default=None,
+        description="Internal notes about the customer (not shown to them).",
+    )
+    currency: str | None = Field(
+        default=None,
+        description="ISO 4217 currency code (e.g., USD, EUR, GBP).",
+    )
+    reference_id: str | None = Field(
+        default=None,
+        description="External reference (e.g., the customer's ID in another system).",
+    )
+    category: str | None = Field(
+        default=None,
+        description="Free-form category label for segmentation/reporting.",
+    )
+    discount_rate: float | None = Field(
+        default=None,
+        ge=0,
+        le=100,
+        description="Default percentage discount on this customer's orders (0-100).",
+    )
+    addresses: list[CreateCustomerAddressRequest] = Field(
+        default_factory=list,
+        description=(
+            "Billing and/or shipping addresses. Optional — addresses can be "
+            "added or edited later via Katana's UI."
+        ),
+    )
+    preview: bool = Field(
+        default=True,
+        description="If true (default), returns a preview. If false, creates the customer.",
+    )
+
+
+class CreateCustomerAddressSnapshot(BaseModel):
+    """Address fields surfaced in the create-customer response card.
+
+    Mirrors :class:`CreateCustomerAddressRequest`'s shape on the response
+    side. ``id``/``default`` are populated on the apply branch when Katana
+    returns them — useful for callers that want to identify the
+    server-assigned default address on a multi-address create.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    entity_type: AddressEntityType | None = None
+    id: int | None = None
+    default: bool | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    company: str | None = None
+    phone: str | None = None
+    line_1: str | None = None
+    line_2: str | None = None
+    city: str | None = None
+    state: str | None = None
+    zip: str | None = None
+    country: str | None = None
+
+
+class CreateCustomerResponse(BaseModel):
+    """Response from creating (or previewing the creation of) a customer.
+
+    Field set is tuned for what the create card needs to render plus the
+    identity / timestamp fields Katana returns on the apply branch.
+    Server-generated fields (``id``, ``katana_url``, ``default_*_id``,
+    timestamps) populate only on the apply branch.
+    """
+
+    id: int | None = None
+    katana_url: str | None = None
+    name: str
+    first_name: str | None = None
+    last_name: str | None = None
+    company: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    comment: str | None = None
+    currency: str | None = None
+    reference_id: str | None = None
+    category: str | None = None
+    discount_rate: float | None = None
+    default_billing_id: int | None = None
+    default_shipping_id: int | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+    addresses: list[CreateCustomerAddressSnapshot] = Field(default_factory=list)
+    is_preview: bool
+    warnings: list[str] = Field(default_factory=list)
+    next_actions: list[str] = Field(default_factory=list)
+    message: str
+
+
+def _customer_response_to_tool_result(
+    response: CreateCustomerResponse,
+    *,
+    request: CreateCustomerRequest,
+) -> ToolResult:
+    """Convert a ``CreateCustomerResponse`` to a ``ToolResult`` with a Prefab UI.
+
+    The preview branch wires the direct-apply rail (Confirm fires
+    ``tools/call`` directly and pushes the structured result back to the
+    agent via ``ui/update-model-context``). Same shape as
+    ``_po_response_to_tool_result`` in ``purchase_orders.py``.
+    """
+    from katana_mcp.tools.prefab_ui import build_customer_create_ui
+
+    ui = build_customer_create_ui(
+        response.model_dump(mode="json"),
+        confirm_request=request,
+        confirm_tool="create_customer",
+    )
+    return make_tool_result(response, ui=ui)
+
+
+def _addresses_snapshot(
+    addresses: list[CreateCustomerAddressRequest],
+) -> list[CreateCustomerAddressSnapshot]:
+    """Project request-side addresses onto the response-side snapshot.
+
+    Used by the preview branch (no API call yet) and as the apply-branch
+    fallback when the server doesn't echo addresses on the response.
+    """
+    return [CreateCustomerAddressSnapshot(**addr.model_dump()) for addr in addresses]
+
+
+def _addresses_from_attrs(server_addresses: Any) -> list[CreateCustomerAddressSnapshot]:
+    """Project the API ``Customer.addresses`` list (attrs) onto the snapshot.
+
+    Used on the apply branch when the server echoes addresses on the
+    response — preferred over :func:`_addresses_snapshot` because the
+    server-side values reflect Katana's normalization (uppercased country
+    codes, trimmed whitespace) and carry the server-assigned ``id`` /
+    ``default`` flag the operator may want to reference next.
+
+    The attrs ``CustomerAddress.entity_type`` is an enum
+    (:class:`AddressEntityType`); ``.value`` extracts the wire string.
+    The attrs ``zip_`` field maps to the wire / snapshot name ``zip``.
+    """
+    from katana_public_api_client.domain.converters import unwrap_unset
+
+    snapshots: list[CreateCustomerAddressSnapshot] = []
+    for addr in server_addresses:
+        entity_type_attr = unwrap_unset(addr.entity_type, None)
+        entity_type_value: AddressEntityType | None = None
+        if entity_type_attr is not None:
+            value = getattr(entity_type_attr, "value", entity_type_attr)
+            if value in ("billing", "shipping"):
+                entity_type_value = value
+        snapshots.append(
+            CreateCustomerAddressSnapshot(
+                entity_type=entity_type_value,
+                id=unwrap_unset(addr.id, None),
+                default=unwrap_unset(addr.default, None),
+                first_name=unwrap_unset(addr.first_name, None),
+                last_name=unwrap_unset(addr.last_name, None),
+                company=unwrap_unset(addr.company, None),
+                phone=unwrap_unset(addr.phone, None),
+                line_1=unwrap_unset(addr.line_1, None),
+                line_2=unwrap_unset(addr.line_2, None),
+                city=unwrap_unset(addr.city, None),
+                state=unwrap_unset(addr.state, None),
+                zip=unwrap_unset(addr.zip_, None),
+                country=unwrap_unset(addr.country, None),
+            )
+        )
+    return snapshots
+
+
+async def _create_customer_impl(
+    request: CreateCustomerRequest, context: Context
+) -> CreateCustomerResponse:
+    """Implementation of the ``create_customer`` tool.
+
+    Preview branch: no API call — echoes the request fields into a
+    response shape the card can render verbatim. Apply branch: POSTs to
+    ``/customers``, unwraps the response into the typed ``Customer``
+    attrs model, then merges the freshly-created row into the typed cache
+    via :func:`merge_filtered_fetch` so a follow-up ``search_customers``
+    call returns it without a ``rebuild_cache`` round-trip.
+    """
+    from katana_public_api_client.client_types import UNSET
+    from katana_public_api_client.domain.converters import to_unset, unwrap_unset
+    from katana_public_api_client.models import (
+        AddressEntityType as APIAddressEntityType,
+        CreateCustomerRequest as APICreateCustomerRequest,
+        CreateCustomerRequestAddressesItem as APIAddressItem,
+        Customer as APICustomer,
+    )
+    from katana_public_api_client.utils import unwrap_as
+
+    # Validate before logging — a whitespace-only name shouldn't surface
+    # as a noisy `Previewing customer '   '` line followed by the raise.
+    if not request.name.strip():
+        raise ValueError("Customer name cannot be empty")
+
+    logger.info(
+        "customer_create_started",
+        preview=request.preview,
+        name=request.name,
+    )
+
+    if request.preview:
+        return CreateCustomerResponse(
+            name=request.name,
+            first_name=request.first_name,
+            last_name=request.last_name,
+            company=request.company,
+            email=request.email,
+            phone=request.phone,
+            comment=request.comment,
+            currency=request.currency,
+            reference_id=request.reference_id,
+            category=request.category,
+            discount_rate=request.discount_rate,
+            addresses=_addresses_snapshot(request.addresses),
+            is_preview=True,
+            warnings=[],
+            next_actions=[
+                "Review the customer details",
+                "Set preview=false to create the customer",
+            ],
+            message=(
+                f"Preview: customer {request.name} ready to create"
+                + (
+                    f" with {len(request.addresses)} address(es)"
+                    if request.addresses
+                    else ""
+                )
+            ),
+        )
+
+    services = get_services(context)
+
+    # Build the API attrs request. ``to_unset`` maps ``None`` → ``UNSET`` for
+    # every optional field so unset values don't ship as explicit nulls
+    # (which Katana treats as "clear this field" on update, but on create
+    # the server is forgiving; we still send the minimal payload for
+    # parity with the rest of the codebase).
+    address_items: list[APIAddressItem] | Any = UNSET
+    if request.addresses:
+        address_items = [
+            APIAddressItem(
+                entity_type=APIAddressEntityType(addr.entity_type),
+                first_name=to_unset(addr.first_name),
+                last_name=to_unset(addr.last_name),
+                company=to_unset(addr.company),
+                phone=to_unset(addr.phone),
+                line_1=to_unset(addr.line_1),
+                line_2=to_unset(addr.line_2),
+                city=to_unset(addr.city),
+                state=to_unset(addr.state),
+                zip_=to_unset(addr.zip),
+                country=to_unset(addr.country),
+            )
+            for addr in request.addresses
+        ]
+
+    api_request = APICreateCustomerRequest(
+        name=request.name,
+        first_name=to_unset(request.first_name),
+        last_name=to_unset(request.last_name),
+        company=to_unset(request.company),
+        email=to_unset(request.email),
+        phone=to_unset(request.phone),
+        comment=to_unset(request.comment),
+        currency=to_unset(request.currency),
+        reference_id=to_unset(request.reference_id),
+        category=to_unset(request.category),
+        discount_rate=to_unset(request.discount_rate),
+        addresses=address_items,
+    )
+
+    from katana_public_api_client.api.customer import (
+        create_customer as api_create_customer,
+    )
+
+    response = await api_create_customer.asyncio_detailed(
+        client=services.client, body=api_request
+    )
+    customer = unwrap_as(response, APICustomer)
+    logger.info("customer_create_succeeded", customer_id=customer.id)
+
+    # Prefer the API's echoed addresses (Katana's normalized values +
+    # server-assigned ``id`` / ``default`` flag) over the request snapshot;
+    # fall back to the request snapshot only when the field is UNSET
+    # (``unwrap_unset`` → None). An echoed ``addresses: []`` is the
+    # server's authoritative "no addresses persisted" — render it as
+    # such, don't override with the request snapshot.
+    server_addresses = unwrap_unset(customer.addresses, None)
+    if server_addresses is not None:
+        addresses_snapshot = _addresses_from_attrs(server_addresses)
+    else:
+        addresses_snapshot = _addresses_snapshot(request.addresses)
+
+    warnings: list[str] = []
+    # Write the freshly-created customer through to the typed cache so a
+    # follow-up ``search_customers`` returns it without ``rebuild_cache``.
+    # ``merge_filtered_fetch`` does not advance the sync watermark — exactly
+    # right here: the next incremental sync will pull this same row plus
+    # anything else that's changed.
+    #
+    # Cache-merge failure must NOT raise: the customer already exists in
+    # Katana, so re-raising would push the operator into retrying and
+    # creating a duplicate (Katana doesn't enforce name uniqueness).
+    # Degrade to a warning; the next incremental sync recovers the row.
+    from katana_mcp.typed_cache.sync import ENTITY_SPECS, merge_filtered_fetch
+
+    try:
+        await merge_filtered_fetch(
+            services.typed_cache, ENTITY_SPECS["customer"], [customer]
+        )
+    except Exception as merge_err:
+        logger.warning(
+            "create_customer.cache_merge_failed",
+            customer_id=customer.id,
+            error=str(merge_err),
+        )
+        warnings.append(
+            f"Customer created in Katana (ID {customer.id}), but the local cache "
+            f"write-through failed ({merge_err}). The customer will appear in "
+            "search_customers after the next incremental sync; do not retry the "
+            "create call or you will create a duplicate."
+        )
+
+    return CreateCustomerResponse(
+        id=customer.id,
+        katana_url=katana_web_url("customer", customer.id),
+        name=unwrap_unset(customer.name, request.name),
+        first_name=unwrap_unset(customer.first_name, request.first_name),
+        last_name=unwrap_unset(customer.last_name, request.last_name),
+        company=unwrap_unset(customer.company, request.company),
+        email=unwrap_unset(customer.email, request.email),
+        phone=unwrap_unset(customer.phone, request.phone),
+        comment=unwrap_unset(customer.comment, request.comment),
+        currency=unwrap_unset(customer.currency, request.currency),
+        reference_id=unwrap_unset(customer.reference_id, request.reference_id),
+        category=unwrap_unset(customer.category, request.category),
+        discount_rate=unwrap_unset(customer.discount_rate, request.discount_rate),
+        default_billing_id=unwrap_unset(customer.default_billing_id, None),
+        default_shipping_id=unwrap_unset(customer.default_shipping_id, None),
+        created_at=_iso_or_none(unwrap_unset(customer.created_at, None)),
+        updated_at=_iso_or_none(unwrap_unset(customer.updated_at, None)),
+        addresses=addresses_snapshot,
+        is_preview=False,
+        warnings=warnings,
+        next_actions=[
+            f"Customer created with ID {customer.id}",
+            "Use create_sales_order to draft an order for this customer",
+        ],
+        message=f"Successfully created customer {request.name} (ID: {customer.id})",
+    )
+
+
+@observe_tool
+@unpack_pydantic_params
+async def create_customer(
+    request: Annotated[CreateCustomerRequest, Unpack()], context: Context
+) -> ToolResult:
+    """Create a new customer in Katana.
+
+    Two-step flow: ``preview=true`` (default) returns a preview card showing
+    the customer about to be created; ``preview=false`` actually creates it.
+    Use for non-Shopify channels (eBay, Amazon, Etsy, direct-website) where
+    buyers don't pre-exist in Katana — Shopify-synced workflows usually see
+    the customer arrive on their own.
+
+    Required: ``name`` (display name). Everything else is optional; pass
+    ``addresses=[{entity_type: "billing", line_1: "...", ...}]`` to attach
+    one or more billing / shipping addresses on the same call. ``currency``
+    should be an ISO 4217 code (USD, EUR, GBP, etc.). On apply, the new
+    record writes through to the typed cache so a follow-up
+    ``search_customers`` returns it immediately.
+    """
+    response = await _create_customer_impl(request, context)
+    return _customer_response_to_tool_result(response, request=request)
+
+
 def register_tools(mcp: FastMCP) -> None:
     """Register all customer tools with the FastMCP instance."""
     from mcp.types import ToolAnnotations
+
+    from katana_mcp.tools.prefab_ui import register_preview_tool
 
     _read = ToolAnnotations(
         readOnlyHint=True,
@@ -335,9 +786,19 @@ def register_tools(mcp: FastMCP) -> None:
         idempotentHint=True,
         openWorldHint=True,
     )
+    _create = ToolAnnotations(
+        readOnlyHint=False, destructiveHint=False, openWorldHint=True
+    )
 
     mcp.tool(tags={"customers", "read"}, annotations=_read)(search_customers)
     mcp.tool(tags={"customers", "read"}, annotations=_read)(get_customer)
+    register_preview_tool(
+        mcp,
+        create_customer,
+        tags={"customers", "write"},
+        annotations=_create,
+        meta=UI_META,
+    )
 
 
 __all__ = ["register_tools"]
