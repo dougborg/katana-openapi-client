@@ -404,11 +404,20 @@ def _build_update_bom_row_request(patch: BomRowUpdate) -> APIUpdateBomRowRequest
 
 
 def _make_create_bom_row_apply(services: Any, body: APICreateBomRowRequest):
-    async def apply() -> BomRow:
+    async def apply() -> None:
+        # ``POST /bom_rows`` returns 204 No Content per Katana's spec — no
+        # response body to parse. The previous ``unwrap_as(response, BomRow)``
+        # call raised ``APIError`` on every successful create because
+        # ``unwrap`` treated ``parsed is None`` as an error regardless of
+        # status, fail-fast halted the plan, and a multi-row batch silently
+        # became a 1-row commit (#809). Mirror ``_make_delete_bom_row_apply``:
+        # confirm 2xx, otherwise let ``unwrap`` raise the typed error.
         response = await api_create_bom_row.asyncio_detailed(
             client=services.client, body=body
         )
-        return unwrap_as(response, BomRow)
+        if not is_success(response):
+            unwrap(response)
+        return None
 
     return apply
 
