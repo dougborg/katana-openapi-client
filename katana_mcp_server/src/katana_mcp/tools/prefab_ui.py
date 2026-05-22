@@ -360,9 +360,13 @@ def _build_cancel_action(operation_label: str) -> list[Action]:
     knows the user opted out. The agent's tool description coaches it to
     acknowledge briefly and move on without re-issuing.
 
-    ``operation_label`` is a human-readable phrase like ``"the fulfillment"``
-    or ``"that preview"`` — embedded in the UpdateContext payload so the
-    agent has enough context to acknowledge specifically.
+    ``operation_label`` is a human-readable phrase that already carries
+    its own determiner — ``"the fulfillment"`` / ``"that purchase order"``
+    / ``"the receipt for PO-123"`` / ``"those purchase order changes"`` —
+    so the template embeds it verbatim. The previous template hard-coded
+    a leading "the" which doubled up on every existing call site
+    (``"User cancelled the the stock adjustment preview."``); fixed
+    inline by letting the call site own the determiner.
 
     See ``docs/adr/0021-unified-direct-apply-rail.md`` for the
     architectural rationale (supersedes ADR-0015's ``SendMessage`` cancel
@@ -370,7 +374,7 @@ def _build_cancel_action(operation_label: str) -> list[Action]:
     """
     return [
         SetState("cancelled", True),
-        UpdateContext(content=f"User cancelled the {operation_label} preview."),
+        UpdateContext(content=f"User cancelled {operation_label} preview."),
     ]
 
 

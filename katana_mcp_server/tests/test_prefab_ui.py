@@ -2390,12 +2390,12 @@ class TestBuildPOModifyUI:
 
     def test_cancel_messages_use_natural_noun_phrases_per_verb(self):
         """``_build_cancel_action`` interpolates its arg into the
-        ``UpdateContext`` payload "User cancelled the X preview." — the
-        noun phrase has to read naturally there. Modify/correct cards
-        interpolate "those purchase order changes" / "those purchase
-        order corrections"; delete cards interpolate "that purchase
-        order deletion". The previous shape (e.g. "that purchase order
-        modify") was grammatically awkward — Copilot flagged on #755."""
+        ``UpdateContext`` payload "User cancelled <noun phrase> preview."
+        — the noun phrase has to read naturally there. Modify/correct
+        cards interpolate "those purchase order changes" / "those purchase
+        order corrections"; delete cards interpolate "that purchase order
+        deletion". The previous shape (e.g. "that purchase order modify")
+        was grammatically awkward — Copilot flagged on #755."""
         for tool, expected_phrase in [
             ("modify_purchase_order", "those purchase order changes"),
             ("correct_purchase_order", "those purchase order corrections"),
@@ -5199,9 +5199,10 @@ class TestConfirmButtonDirectApplyRail:
 
 class TestCancelButtonEmitsUpdateContext:
     """The Cancel button (post-ADR-0021) fires ``setState("cancelled", True)``
-    plus an ``updateContext(content="User cancelled the ... preview.")``
+    plus an ``updateContext(content="User cancelled <noun phrase> preview.")``
     so the agent sees the user's opt-out as a context update — no chat
-    indirection.
+    indirection. The noun phrase carries its own determiner ("the" / "that"
+    / "those") so the template doesn't double-up the article.
     """
 
     def _assert_cancel_actions(self, on_click: list[dict]) -> None:
@@ -5214,13 +5215,28 @@ class TestCancelButtonEmitsUpdateContext:
             u
             for u in update_contexts
             if isinstance(u.get("content"), str)
-            and u["content"].startswith("User cancelled the ")
+            and u["content"].startswith("User cancelled ")
             and u["content"].endswith(" preview.")
         ]
         assert len(cancel_msgs) == 1, (
             f"Expected exactly one Cancel updateContext starting with "
-            f"'User cancelled the ' and ending with ' preview.'; "
+            f"'User cancelled ' and ending with ' preview.'; "
             f"got {[u.get('content') for u in update_contexts]!r}"
+        )
+        # Regression-guard for the article-doubling bug (#808 review): the
+        # previous template hard-coded a leading "the" while call sites
+        # already passed article-prefixed phrases, producing "the the …"
+        # / "the that …". The noun phrase must start with its own
+        # determiner, never with a doubled article.
+        content = cancel_msgs[0]["content"]
+        assert not content.startswith("User cancelled the the "), (
+            f"Cancel content has double 'the the': {content!r}"
+        )
+        assert not content.startswith("User cancelled the that "), (
+            f"Cancel content has 'the that' mix-up: {content!r}"
+        )
+        assert not content.startswith("User cancelled the those "), (
+            f"Cancel content has 'the those' mix-up: {content!r}"
         )
 
     def test_order_preview_cancel(self):
