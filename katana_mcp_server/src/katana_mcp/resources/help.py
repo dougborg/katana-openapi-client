@@ -84,6 +84,11 @@ Manufacturing ERP tools for inventory, orders, and production management.
 - **list_serial_numbers** - List serial numbers, optionally scoped by `resource_type` and/or `resource_id`. Diagnostic / lookup tool — use to verify which strings are attached to an MO before fulfillment.
 - **delete_serial_numbers** - Detach serial numbers from a resource. Idempotent (Katana returns 204 even for invalid ids). (preview/apply, destructive)
 
+### Customers
+- **search_customers** - Fuzzy-search customers by name / email. Use for `customer_id` lookups on sales orders.
+- **get_customer** - Full-detail customer record by id (contact fields, currency, default discount, addresses).
+- **create_customer** - Create a new customer (preview/apply). Use for non-Shopify channels (eBay, Amazon, etc.) where buyers don't pre-exist. Cache write-through on apply — `search_customers` sees the new record immediately.
+
 ### Reference Data
 - **list_locations** - List or fuzzy-search warehouses and facilities (id, name, address, primary flag). Use for `location_id` lookups on orders and inventory queries. Supports `query`, `limit`
 - **list_suppliers** - List or fuzzy-search suppliers by name/code (id, name, email, phone, currency, code). Use for `supplier_id` / `default_supplier_id` on POs and materials. Supports `query`, `limit`
@@ -1279,6 +1284,36 @@ Get full details for a customer by ID.
 - `customer_id` (required): Customer ID
 
 **Returns:** Full customer details (name, email, phone, currency, category, comment).
+
+---
+
+### create_customer
+Create a new customer record. Two-step preview/apply flow with a card-rendered
+preview. Use for non-Shopify channels (eBay, Amazon, Etsy, direct-website)
+where buyers don't pre-exist in Katana — Shopify-synced workflows usually see
+the customer arrive on their own.
+
+**Parameters:**
+- `name` (required): Display name shown in Katana and on documents
+- `first_name`, `last_name` (optional): For individual contacts
+- `company` (optional): Company name for business accounts
+- `email`, `phone` (optional): Contact details
+- `currency` (optional): ISO 4217 code (USD, EUR, GBP, ...)
+- `comment` (optional): Internal notes (not shown to the customer)
+- `reference_id` (optional): External reference (e.g., the customer's ID in
+  another system)
+- `category` (optional): Free-form segmentation label
+- `discount_rate` (optional): Default percentage discount on orders (0-100)
+- `addresses` (optional): List of `{entity_type: "billing"|"shipping",
+  first_name, last_name, company, phone, line_1, line_2, city, state, zip,
+  country}` items
+- `preview` (default `true`): If true, returns a preview card; if false,
+  creates the customer
+
+**Returns:** Created customer summary (id, name, contact fields, currency,
+addresses snapshot, katana_url) plus next-action coaching. On apply, the
+new record writes through to the typed cache so a follow-up
+`search_customers` returns it immediately — no `rebuild_cache` needed.
 
 ---
 
