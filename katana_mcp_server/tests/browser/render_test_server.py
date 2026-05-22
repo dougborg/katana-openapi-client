@@ -36,6 +36,7 @@ from katana_mcp.tools.prefab_ui import (
     build_modification_result_ui,
     build_product_bom_ui,
     build_search_results_ui,
+    build_so_create_ui,
     build_stock_adjustment_create_ui,
     build_stock_adjustment_delete_ui,
     build_stock_adjustment_update_ui,
@@ -701,6 +702,47 @@ def _customer_create_response(*, is_preview: bool, with_addresses: bool) -> dict
     return base
 
 
+def _so_create_response_with_shipping_fees(
+    *, is_preview: bool, fee_outcomes: list[dict] | None = None
+) -> dict:
+    """Build a canned SalesOrderResponse dict for the SO-with-fees card.
+
+    Used by the #818 browser scenarios to pin the inline-shipping-fees
+    rendering on the create_sales_order card across the preview /
+    all-success-apply / partial-failure states.
+    """
+    base: dict = {
+        "id": None if is_preview else 9001,
+        "order_number": "SO-FEES-001",
+        "customer_id": 1501,
+        "customer_name": "Buyer Co",
+        "location_id": 1,
+        # ``status`` mirrors the real tool's two paths: preview emits
+        # ``PENDING`` (hardcoded — no SO exists yet), apply reads
+        # ``so.status.value`` from the just-created SO (which Katana
+        # stamps ``NOT_SHIPPED`` for a freshly-created order). The
+        # ternary reads in the same order as the impl for parity.
+        "status": "PENDING" if is_preview else "NOT_SHIPPED",
+        "total": 100.0,
+        "currency": "USD",
+        "delivery_date": "2026-06-01",
+        "item_count": 2,
+        "is_preview": is_preview,
+        "shipping_fee_outcomes": fee_outcomes or [],
+        "warnings": [],
+        "next_actions": [],
+        "message": (
+            "Preview: Sales order SO-FEES-001 with 2 items totaling 100.00"
+            if is_preview
+            else "Successfully created sales order SO-FEES-001 (ID: 9001)"
+        ),
+        "katana_url": (
+            None if is_preview else "https://factory.katanamrp.com/salesorder/9001"
+        ),
+    }
+    return base
+
+
 def _stock_adjustment_response(*, is_preview: bool, n_rows: int = 3) -> dict:
     """Build a canned StockAdjustmentResponse dict with N rows."""
     rows = [
@@ -1034,6 +1076,93 @@ SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
         },
         confirm_request=_StubRequest(),
         confirm_tool="create_customer",
+    ),
+    # SO create card with inline shipping fees (#818) — preview / all-success
+    # apply / partial-failure apply. Pins the per-fee row rendering, the
+    # APPLIED / FAILED status pills, and the destructive Alert on partial
+    # failure so a future regression (e.g. the rows-binding shape from #629)
+    # can't silently break the surface.
+    "so_create_with_fees_preview": lambda: build_so_create_ui(
+        _so_create_response_with_shipping_fees(
+            is_preview=True,
+            fee_outcomes=[
+                {
+                    "description": "Standard shipping",
+                    "amount": "8.95",
+                    "tax_rate_id": 301,
+                    "succeeded": None,
+                    "created_id": None,
+                    "error": None,
+                },
+                {
+                    "description": "Handling",
+                    "amount": "2.50",
+                    "tax_rate_id": None,
+                    "succeeded": None,
+                    "created_id": None,
+                    "error": None,
+                },
+            ],
+        ),
+        confirm_request=_StubRequest(),
+        confirm_tool="create_sales_order",
+    ),
+    "so_create_with_fees_applied_all_success": lambda: build_so_create_ui(
+        _so_create_response_with_shipping_fees(
+            is_preview=False,
+            fee_outcomes=[
+                {
+                    "description": "Standard shipping",
+                    "amount": "8.95",
+                    "tax_rate_id": 301,
+                    "succeeded": True,
+                    "created_id": 5001,
+                    "error": None,
+                },
+                {
+                    "description": "Handling",
+                    "amount": "2.50",
+                    "tax_rate_id": None,
+                    "succeeded": True,
+                    "created_id": 5002,
+                    "error": None,
+                },
+            ],
+        ),
+        confirm_request=_StubRequest(),
+        confirm_tool="create_sales_order",
+    ),
+    "so_create_with_fees_applied_partial_failure": lambda: build_so_create_ui(
+        {
+            **_so_create_response_with_shipping_fees(
+                is_preview=False,
+                fee_outcomes=[
+                    {
+                        "description": "Standard shipping",
+                        "amount": "8.95",
+                        "tax_rate_id": None,
+                        "succeeded": True,
+                        "created_id": 5001,
+                        "error": None,
+                    },
+                    {
+                        "description": "Handling",
+                        "amount": "2.50",
+                        "tax_rate_id": 9999,
+                        "succeeded": False,
+                        "created_id": None,
+                        "error": "422: invalid tax rate id",
+                    },
+                ],
+            ),
+            "warnings": [
+                "1 of 2 shipping fee(s) failed to create on SO 9001 — "
+                "the sales order itself is preserved. Retry the failed fees "
+                "via `modify_sales_order(id=9001, add_shipping_fees=[...])`."
+            ],
+        },
+        confirm_request=_StubRequest(),
+        confirm_tool="create_sales_order",
     ),
     "modify_item_single_preview": lambda: build_modification_preview_ui(
         {

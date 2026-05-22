@@ -280,6 +280,74 @@ class TestOtherCardsRender:
         assert frame.locator("text=DOES-NOT-EXIST-1").count() >= 1
         assert frame.locator("text=999999999").count() >= 1
 
+    def test_so_create_with_fees_preview_renders(self, render_scenario):
+        """``build_so_create_ui`` with inline shipping fees on preview (#818).
+
+        The card surfaces each planned fee with description / amount /
+        tax-rate suffix and a total-summary line. No APPLIED / FAILED
+        status pills on preview. The PREVIEW state header keeps the
+        Confirm button available (no BLOCK warnings).
+        """
+        frame = render_scenario("so_create_with_fees_preview")
+        # Tier 1 — title + state.
+        assert frame.locator("text=Sales Order Preview").count() >= 1
+        assert frame.locator("text=PREVIEW").count() >= 1
+        # Shipping fees section header + per-fee rows.
+        assert frame.locator("text=Shipping fees:").count() >= 1
+        assert frame.locator("text=Standard shipping").count() >= 1
+        assert frame.locator("text=Handling").count() >= 1
+        # Tax-rate suffix renders.
+        assert frame.locator("text=tax rate #301").count() >= 1
+        # Summary line.
+        assert frame.locator("text=Total shipping").count() >= 1
+        assert frame.locator("text=2 fee(s)").count() >= 1
+        # Confirm available; no failure chrome.
+        assert frame.locator("text=Confirm & Create Sales Order").count() >= 1
+        assert frame.locator("text=APPLIED").count() == 0
+        assert frame.locator("text=FAILED").count() == 0
+
+    def test_so_create_with_fees_applied_all_success_renders(self, render_scenario):
+        """``build_so_create_ui`` applied state with every fee succeeded.
+
+        Each row gains the APPLIED pill + the server-assigned id surfaces
+        (id=5001 / id=5002). No retry coaching since nothing failed.
+        """
+        frame = render_scenario("so_create_with_fees_applied_all_success")
+        # Tier 1 — applied chrome.
+        assert frame.locator("text=Sales Order Created").count() >= 1
+        # APPLIED pills, one per fee.
+        assert frame.locator("text=APPLIED").count() >= 2
+        # Server-assigned ids surface.
+        assert frame.locator("text=id=5001").count() >= 1
+        assert frame.locator("text=id=5002").count() >= 1
+        # View-in-Katana + Fulfill button rail.
+        assert frame.locator("text=View in Katana").count() >= 1
+        assert frame.locator("text=Fulfill Order").count() >= 1
+        # No retry-coaching Alert.
+        assert frame.locator("text=Retry the failed fees").count() == 0
+
+    def test_so_create_with_fees_applied_partial_failure_renders(self, render_scenario):
+        """Partial failure: SO created + one fee succeeded + one fee failed.
+
+        Pins the per-fee status pill mix (APPLIED + FAILED) and the
+        destructive Alert at the bottom coaching the operator toward
+        ``modify_sales_order(id=<so_id>, add_shipping_fees=[...])``.
+        """
+        frame = render_scenario("so_create_with_fees_applied_partial_failure")
+        # Tier 1 — applied chrome (the SO itself succeeded).
+        assert frame.locator("text=Sales Order Created").count() >= 1
+        # Mixed status pills + inline error text.
+        assert frame.locator("text=APPLIED").count() >= 1
+        assert frame.locator("text=FAILED").count() >= 1
+        assert frame.locator("text=422: invalid tax rate id").count() >= 1
+        # Destructive Alert with retry coaching at the bottom of the
+        # shipping-fees section.
+        assert frame.locator("text=shipping fee(s) failed").count() >= 1
+        assert frame.locator("text=modify_sales_order").count() >= 1
+        assert frame.locator("text=add_shipping_fees").count() >= 1
+        # Partial-failure warning surfaces as a regular (non-BLOCK) Badge.
+        assert frame.locator("text=1 of 2 shipping fee(s) failed").count() >= 1
+
 
 class TestDataTableRowClickBinding:
     """Verify DataTable ``onRowClick`` ``{{ field }}`` per-row bindings

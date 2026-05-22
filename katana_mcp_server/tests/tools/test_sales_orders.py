@@ -16,6 +16,7 @@ from katana_mcp.tools.foundation.sales_orders import (
     SalesOrderItem,
     SOHeaderPatch,
     SORowAdd,
+    SOShippingFeeAdd,
     _create_sales_order_impl,
     _delete_sales_order_impl,
     _get_sales_order_impl,
@@ -562,6 +563,467 @@ async def test_create_sales_order_confirm_with_minimal_fields():
         assert result.total is None
     finally:
         create_so_module.asyncio_detailed = original_asyncio_detailed
+
+
+# ============================================================================
+# Inline shipping-fees on create (#818)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_create_sales_order_preview_with_shipping_fees():
+    """Preview surfaces planned shipping fees on the response.
+
+    The card binds to ``shipping_fee_outcomes`` — each planned fee must
+    land with ``succeeded=None`` (preview), no ``created_id`` / ``error``,
+    and the description/amount/tax_rate_id mirroring the request.
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(
+        return_value={"id": 1501, "name": "Acme"}
+    )
+
+    request = CreateSalesOrderRequest(
+        customer_id=1501,
+        order_number="SO-FEE-PREV-001",
+        items=[SalesOrderItem(variant_id=2101, quantity=1, price_per_unit=100.0)],
+        location_id=1,
+        delivery_date=datetime(2026, 6, 1, tzinfo=UTC),
+        currency="USD",
+        shipping_fees=[
+            SOShippingFeeAdd(
+                amount="8.95", description="Standard shipping", tax_rate_id=301
+            ),
+            SOShippingFeeAdd(amount="2.50", description="Handling"),
+        ],
+        preview=True,
+    )
+    result = await _create_sales_order_impl(request, context)
+
+    assert result.is_preview is True
+    assert len(result.shipping_fee_outcomes) == 2
+    first, second = result.shipping_fee_outcomes
+    assert first.description == "Standard shipping"
+    assert first.amount == "8.95"
+    assert first.tax_rate_id == 301
+    assert first.succeeded is None
+    assert first.created_id is None
+    assert first.error is None
+    assert second.description == "Handling"
+    assert second.amount == "2.50"
+    assert second.tax_rate_id is None
+    assert second.succeeded is None
+    # No BLOCK warnings — both amounts parse cleanly.
+    assert not any(w.startswith("BLOCK:") for w in result.warnings)
+
+
+@pytest.mark.asyncio
+async def test_create_sales_order_apply_with_shipping_fees():
+    """Apply path creates the SO then each shipping fee in sequence.
+
+    On full success: each outcome carries ``succeeded=True`` plus the
+    server-assigned ``created_id``, and the response message reflects
+    the all-ok ratio.
+    """
+    from katana_public_api_client.models import SalesOrderShippingFee
+
+    context, _lifespan_ctx = create_mock_context()
+
+    mock_so = SalesOrder(
+        id=3001,
+        customer_id=1501,
+        order_no="SO-FEE-OK-001",
+        location_id=1,
+        status=SalesOrderStatus.NOT_SHIPPED,
+        currency="USD",
+        total=100.0,
+    )
+    mock_so_response = MagicMock()
+    mock_so_response.status_code = 200
+    mock_so_response.parsed = mock_so
+
+    fee_a = SalesOrderShippingFee(
+        id=5001, sales_order_id=3001, amount="8.95", description="Standard shipping"
+    )
+    fee_b = SalesOrderShippingFee(
+        id=5002, sales_order_id=3001, amount="2.50", description="Handling"
+    )
+    fee_responses = []
+    for fee in (fee_a, fee_b):
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.parsed = fee
+        fee_responses.append(resp)
+
+    mock_create_so = AsyncMock(return_value=mock_so_response)
+    mock_create_fee = AsyncMock(side_effect=fee_responses)
+
+    import katana_public_api_client.api.sales_order.create_sales_order as so_module
+    import katana_public_api_client.api.sales_orders.create_sales_order_shipping_fee as fee_module
+
+    so_orig = so_module.asyncio_detailed
+    fee_orig = fee_module.asyncio_detailed
+    cast(Any, so_module).asyncio_detailed = mock_create_so
+    cast(Any, fee_module).asyncio_detailed = mock_create_fee
+
+    try:
+        request = CreateSalesOrderRequest(
+            customer_id=1501,
+            order_number="SO-FEE-OK-001",
+            items=[SalesOrderItem(variant_id=2101, quantity=1, price_per_unit=100.0)],
+            currency="USD",
+            shipping_fees=[
+                SOShippingFeeAdd(amount="8.95", description="Standard shipping"),
+                SOShippingFeeAdd(amount="2.50", description="Handling"),
+            ],
+            preview=False,
+        )
+        result = await _create_sales_order_impl(request, context)
+    finally:
+        cast(Any, so_module).asyncio_detailed = so_orig
+        cast(Any, fee_module).asyncio_detailed = fee_orig
+
+    assert result.is_preview is False
+    assert result.id == 3001
+    assert len(result.shipping_fee_outcomes) == 2
+    first, second = result.shipping_fee_outcomes
+    assert first.succeeded is True
+    assert first.created_id == 5001
+    assert first.error is None
+    assert second.succeeded is True
+    assert second.created_id == 5002
+    # Each fee POST received the parent SO id.
+    assert mock_create_fee.call_count == 2
+    for call in mock_create_fee.call_args_list:
+        assert call.kwargs["body"].sales_order_id == 3001
+    # No best-effort warning emitted on a clean run.
+    assert not any("failed to create" in w for w in result.warnings)
+    assert "2/2 shipping fee(s) applied" in result.message
+
+
+@pytest.mark.asyncio
+async def test_create_sales_order_apply_partial_shipping_fee_failure():
+    """SO success + 1 fee success + 1 fee failure → best-effort partial.
+
+    The SO stays created. The failing fee carries ``succeeded=False`` +
+    ``error``; the surviving fee carries ``succeeded=True`` + a
+    ``created_id``. A non-BLOCK warning surfaces the partial-failure
+    summary with the retry hint pointing at ``modify_sales_order``.
+    """
+    from katana_public_api_client.models import SalesOrderShippingFee
+
+    context, _lifespan_ctx = create_mock_context()
+
+    mock_so = SalesOrder(
+        id=3002,
+        customer_id=1501,
+        order_no="SO-FEE-PART-001",
+        location_id=1,
+        status=SalesOrderStatus.NOT_SHIPPED,
+        currency="USD",
+    )
+    mock_so_response = MagicMock()
+    mock_so_response.status_code = 200
+    mock_so_response.parsed = mock_so
+
+    fee_a = SalesOrderShippingFee(
+        id=5003, sales_order_id=3002, amount="8.95", description="Standard shipping"
+    )
+    success_resp = MagicMock()
+    success_resp.status_code = 200
+    success_resp.parsed = fee_a
+
+    mock_create_so = AsyncMock(return_value=mock_so_response)
+    # First fee POST succeeds; second raises a typed exception.
+    mock_create_fee = AsyncMock(
+        side_effect=[success_resp, APIError("422: invalid tax rate", 422)]
+    )
+
+    import katana_public_api_client.api.sales_order.create_sales_order as so_module
+    import katana_public_api_client.api.sales_orders.create_sales_order_shipping_fee as fee_module
+
+    so_orig = so_module.asyncio_detailed
+    fee_orig = fee_module.asyncio_detailed
+    cast(Any, so_module).asyncio_detailed = mock_create_so
+    cast(Any, fee_module).asyncio_detailed = mock_create_fee
+
+    try:
+        request = CreateSalesOrderRequest(
+            customer_id=1501,
+            order_number="SO-FEE-PART-001",
+            items=[SalesOrderItem(variant_id=2101, quantity=1, price_per_unit=100.0)],
+            currency="USD",
+            shipping_fees=[
+                SOShippingFeeAdd(amount="8.95", description="Standard shipping"),
+                SOShippingFeeAdd(
+                    amount="2.50", description="Handling", tax_rate_id=9999
+                ),
+            ],
+            preview=False,
+        )
+        result = await _create_sales_order_impl(request, context)
+    finally:
+        cast(Any, so_module).asyncio_detailed = so_orig
+        cast(Any, fee_module).asyncio_detailed = fee_orig
+
+    # SO succeeded and stays in the response — best-effort, not rollback.
+    assert result.is_preview is False
+    assert result.id == 3002
+    assert len(result.shipping_fee_outcomes) == 2
+    first, second = result.shipping_fee_outcomes
+    assert first.succeeded is True
+    assert first.created_id == 5003
+    assert second.succeeded is False
+    assert second.created_id is None
+    assert second.error is not None
+    assert "invalid tax rate" in second.error
+    # Partial-failure summary warning is informational (no BLOCK prefix —
+    # the SO already exists, there's nothing to gate).
+    assert any(
+        "1 of 2 shipping fee(s) failed" in w and not w.startswith("BLOCK:")
+        for w in result.warnings
+    )
+    # Retry coaching surfaces the SO id and the modify path.
+    assert any(
+        f"modify_sales_order(id={result.id}, add_shipping_fees=[...])" in action
+        for action in result.next_actions
+    )
+    assert "1/2 shipping fee(s) applied" in result.message
+
+
+@pytest.mark.asyncio
+async def test_create_sales_order_apply_all_shipping_fees_fail():
+    """SO success + every fee failure → 0/N applied, SO still preserved.
+
+    Symmetric to the partial-failure case. Pins the all-fail message
+    shape (``0/2 shipping fee(s) applied``), the ``next_actions`` retry
+    coaching, and the consolidated warning's framing — the SO id stays
+    available so the operator can re-issue all fees via
+    ``modify_sales_order(id=<so_id>, add_shipping_fees=[...])`` without
+    re-creating the SO.
+    """
+    context, _lifespan_ctx = create_mock_context()
+
+    mock_so = SalesOrder(
+        id=3003,
+        customer_id=1501,
+        order_no="SO-FEE-ALLFAIL-001",
+        location_id=1,
+        status=SalesOrderStatus.NOT_SHIPPED,
+        currency="USD",
+    )
+    mock_so_response = MagicMock()
+    mock_so_response.status_code = 200
+    mock_so_response.parsed = mock_so
+
+    mock_create_so = AsyncMock(return_value=mock_so_response)
+    # Both fee POSTs raise — independent failures so the impl runs through
+    # every fee rather than short-circuiting.
+    mock_create_fee = AsyncMock(
+        side_effect=[
+            APIError("500: upstream timeout", 500),
+            APIError("422: bad tax rate id", 422),
+        ]
+    )
+
+    import katana_public_api_client.api.sales_order.create_sales_order as so_module
+    import katana_public_api_client.api.sales_orders.create_sales_order_shipping_fee as fee_module
+
+    so_orig = so_module.asyncio_detailed
+    fee_orig = fee_module.asyncio_detailed
+    cast(Any, so_module).asyncio_detailed = mock_create_so
+    cast(Any, fee_module).asyncio_detailed = mock_create_fee
+
+    try:
+        request = CreateSalesOrderRequest(
+            customer_id=1501,
+            order_number="SO-FEE-ALLFAIL-001",
+            items=[SalesOrderItem(variant_id=2101, quantity=1, price_per_unit=100.0)],
+            currency="USD",
+            shipping_fees=[
+                SOShippingFeeAdd(amount="8.95", description="Standard shipping"),
+                SOShippingFeeAdd(
+                    amount="2.50", description="Handling", tax_rate_id=9999
+                ),
+            ],
+            preview=False,
+        )
+        result = await _create_sales_order_impl(request, context)
+    finally:
+        cast(Any, so_module).asyncio_detailed = so_orig
+        cast(Any, fee_module).asyncio_detailed = fee_orig
+
+    # SO durability guarantee: SO succeeded despite every fee failing.
+    assert result.is_preview is False
+    assert result.id == 3003
+    assert len(result.shipping_fee_outcomes) == 2
+    # Each outcome carries succeeded=False + error.
+    assert all(o.succeeded is False for o in result.shipping_fee_outcomes)
+    assert all(o.error is not None for o in result.shipping_fee_outcomes)
+    assert all(o.created_id is None for o in result.shipping_fee_outcomes)
+    # The consolidated warning counts all fees as failed.
+    assert any(
+        "2 of 2 shipping fee(s) failed" in w and not w.startswith("BLOCK:")
+        for w in result.warnings
+    )
+    # Retry coaching still surfaces the SO id.
+    assert any(
+        f"modify_sales_order(id={result.id}, add_shipping_fees=[...])" in action
+        for action in result.next_actions
+    )
+    # Message frames it as 0/N applied — the SO id stays in the prefix so
+    # the operator can copy-paste the retry call.
+    assert "0/2 shipping fee(s) applied" in result.message
+    assert str(result.id) in result.message
+
+
+@pytest.mark.asyncio
+async def test_create_sales_order_apply_blocks_on_invalid_amount():
+    """Apply path validates fee amounts BEFORE the SO POST.
+
+    An agent that bypasses preview (calls with ``preview=False`` directly)
+    and supplies a malformed ``amount`` would otherwise leave a created
+    SO + zero applied fees on the books (no rollback on best-effort).
+    The apply path runs the same ``_validate_shipping_fee_amounts`` gate
+    the preview path emits as a BLOCK warning. On failure the SO POST is
+    never issued — the response carries BLOCK warnings, ``id=None``, and
+    ``is_preview=True`` (so the card UI seeds ``state.applied=False`` and
+    renders as a preview with BLOCK warnings disabling the Confirm button
+    — matches the actual outcome: nothing was created).
+    """
+    context, _lifespan_ctx = create_mock_context()
+
+    # SO POST mock — if validation runs first, this should never be called.
+    mock_create_so = AsyncMock()
+    mock_create_fee = AsyncMock()
+
+    import katana_public_api_client.api.sales_order.create_sales_order as so_module
+    import katana_public_api_client.api.sales_orders.create_sales_order_shipping_fee as fee_module
+
+    so_orig = so_module.asyncio_detailed
+    fee_orig = fee_module.asyncio_detailed
+    cast(Any, so_module).asyncio_detailed = mock_create_so
+    cast(Any, fee_module).asyncio_detailed = mock_create_fee
+
+    try:
+        request = CreateSalesOrderRequest(
+            customer_id=1501,
+            order_number="SO-FEE-BADAMT-001",
+            items=[SalesOrderItem(variant_id=2101, quantity=1, price_per_unit=100.0)],
+            currency="USD",
+            shipping_fees=[
+                SOShippingFeeAdd(amount="garbage", description="Bad amount"),
+            ],
+            preview=False,  # bypassing the preview gate
+        )
+        result = await _create_sales_order_impl(request, context)
+    finally:
+        cast(Any, so_module).asyncio_detailed = so_orig
+        cast(Any, fee_module).asyncio_detailed = fee_orig
+
+    # Critically: the SO POST never fired, so nothing was created.
+    mock_create_so.assert_not_awaited()
+    mock_create_fee.assert_not_awaited()
+    # Response shape signals the block clearly. is_preview=True (not
+    # False) so the card UI seeds state.applied=False and renders as a
+    # preview with BLOCK warnings disabling the Confirm button — that
+    # matches the actual outcome (nothing was created).
+    assert result.is_preview is True
+    assert result.id is None
+    block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
+    assert len(block_warnings) == 1
+    assert "not a valid decimal" in block_warnings[0]
+    # Planned outcomes still surface so the UI can show the row the user
+    # has to fix.
+    assert len(result.shipping_fee_outcomes) == 1
+    assert "NOT created" in result.message
+
+
+@pytest.mark.asyncio
+async def test_create_sales_order_preview_nan_infinity_amounts_blocked():
+    """Python's ``Decimal`` constructor accepts ``"NaN"`` and ``"Infinity"``
+    as valid strings — they don't raise on parse, only on subsequent
+    arithmetic. The validator must explicitly reject non-finite values
+    so the user sees a clear BLOCK warning instead of letting them flow
+    through to a wire 422 (or worse, ``InvalidOperation`` on the
+    negativity check).
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(
+        return_value={"id": 1501, "name": "Acme"}
+    )
+
+    request = CreateSalesOrderRequest(
+        customer_id=1501,
+        order_number="SO-FEE-NONFINITE-001",
+        items=[SalesOrderItem(variant_id=2101, quantity=1, price_per_unit=100.0)],
+        location_id=1,
+        delivery_date=datetime(2026, 6, 1, tzinfo=UTC),
+        currency="USD",
+        shipping_fees=[
+            SOShippingFeeAdd(amount="NaN", description="NaN amount"),
+            SOShippingFeeAdd(amount="Infinity", description="Infinite amount"),
+            SOShippingFeeAdd(amount="-Infinity", description="Negative infinity"),
+        ],
+        preview=True,
+    )
+    result = await _create_sales_order_impl(request, context)
+
+    assert result.is_preview is True
+    block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
+    # All three non-finite values get BLOCKed with the "not a finite
+    # decimal" message — distinct from the unparseable / negative buckets.
+    assert len(block_warnings) == 3
+    assert all("not a finite decimal" in w for w in block_warnings)
+
+
+@pytest.mark.asyncio
+async def test_create_sales_order_preview_invalid_fee_amount_blocks_confirm():
+    """Unparseable / negative fee amounts emit BLOCK warnings.
+
+    ``SOShippingFeeAdd.amount`` is a decimal string on the wire — the
+    request schema can't validate the format at parse time, so the impl
+    layer sanity-checks before exposing the Confirm button. Each
+    invalid fee gets a ``BLOCK:``-prefixed warning that the UI builder
+    strips + renders as a destructive Badge, gating the Confirm button.
+
+    Note: ``SOShippingFeeAdd`` carries no currency field (shipping fees
+    inherit the parent SO's currency at the wire level), so a literal
+    "currency mismatch" check is structurally impossible against the
+    current schema. This test pins the closely-related amount-shape
+    validation that the wire-level fee POST would otherwise 422 on.
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(
+        return_value={"id": 1501, "name": "Acme"}
+    )
+
+    request = CreateSalesOrderRequest(
+        customer_id=1501,
+        order_number="SO-FEE-BAD-001",
+        items=[SalesOrderItem(variant_id=2101, quantity=1, price_per_unit=100.0)],
+        location_id=1,
+        delivery_date=datetime(2026, 6, 1, tzinfo=UTC),
+        currency="USD",
+        shipping_fees=[
+            SOShippingFeeAdd(amount="not a number", description="Garbage amount"),
+            SOShippingFeeAdd(amount="-1.00", description="Negative shipping"),
+            SOShippingFeeAdd(amount="9.95", description="Legitimate fee"),
+        ],
+        preview=True,
+    )
+    result = await _create_sales_order_impl(request, context)
+
+    assert result.is_preview is True
+    block_warnings = [w for w in result.warnings if w.startswith("BLOCK:")]
+    # Two BLOCKs: one for unparseable, one for negative. The legitimate
+    # fee passes through.
+    assert len(block_warnings) == 2
+    assert any("not a valid decimal" in w for w in block_warnings)
+    assert any("negative" in w for w in block_warnings)
+    # All planned fees still surface in outcomes so the UI can render the
+    # row that the operator needs to fix.
+    assert len(result.shipping_fee_outcomes) == 3
 
 
 # ============================================================================

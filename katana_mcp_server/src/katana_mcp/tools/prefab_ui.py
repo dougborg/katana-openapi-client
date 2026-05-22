@@ -68,6 +68,7 @@ host primitives based on intent:
 
 from __future__ import annotations
 
+from decimal import Decimal, InvalidOperation
 from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
@@ -2457,14 +2458,18 @@ def _format_cost(cost: float | int | None) -> str:
     return f"{cost:.2f}"
 
 
-def _format_money(amount: float | int | None, currency: str | None) -> str:
+def _format_money(amount: float | int | Decimal | None, currency: str | None) -> str:
     """Format a Metric ``Total`` value using ISO 4217 currency-aware rules.
 
     Delegates to :func:`babel.numbers.format_currency` so the rendered string
     picks up the right symbol, decimal-digit count, and grouping for the
     currency (``$1,500.00`` for USD, ``€1,500.00`` for EUR, ``¥1,500`` for
     JPY with no decimals). Integer ``amount`` is passed through unchanged
-    — Babel handles ``int`` and ``float`` identically.
+    — Babel handles ``int``, ``float``, and ``Decimal`` identically (and
+    actually rounds exact-decimal sums correctly when passed as
+    :class:`~decimal.Decimal`, so call sites accumulating money should
+    pass Decimal here rather than coercing back to float and reintroducing
+    binary-representation drift).
 
     Katana has two currency concepts:
 
@@ -4881,6 +4886,285 @@ def build_bom_modify_ui(
     return app
 
 
+def _render_so_shipping_fees_section(
+    outcomes: list[dict[str, Any]],
+    *,
+    is_preview: bool,
+    currency: str | None,
+) -> None:
+    """Render the inline shipping-fees sub-section for ``build_so_create_ui``.
+
+    Layout:
+    - Section header with a Separator + ``Shipping fees`` muted label
+      (collapses fee block into a clearly demarcated Tier-3 sub-section).
+    - Preview rows (and apply rows still pending) — ``  description:
+      amount`` (formatted via :func:`_format_money` with the SO currency),
+      tax_rate_id when present. Leading 2-char gutter reserves space so an
+      applied-state morph to ``✗`` doesn't reflow the row horizontally.
+    - Applied / success rows — same row text plus an ``APPLIED`` status
+      Badge (variant=default).
+    - Applied / failure rows — ``✗ `` glyph prefix on the row text plus a
+      ``FAILED`` Badge (variant=destructive); the per-row error message
+      tails the row text. When at least one fee failed, a destructive
+      Alert below the section coaches the operator toward retrying via
+      ``modify_sales_order(id=<so_id>, add_shipping_fees=[...])``.
+    - No fees: caller skips this helper entirely.
+
+    The ``✗`` failure glyph matches the convention from
+    :func:`_render_field_diff_line` (failure-row prefix; non-failed rows
+    reserve the 2-char gutter). The per-row ``APPLIED`` / ``FAILED`` Badge
+    is *additional* to that convention — diff lines on scalar-field modify
+    cards omit it because the card-header Badge already carries the signal,
+    but the shipping-fees section is a list of multiple parallel outcomes
+    so each one needs its own status pill.
+
+    Monetary totals accumulate via :class:`~decimal.Decimal` for the same
+    reason the rest of this codebase uses Decimal for sums — float
+    addition can drift on common shipping amounts (``0.1 + 0.2`` etc.).
+    """
+    if not outcomes:
+        return
+
+    Separator()
+    Muted(content="Shipping fees:")
+
+    failed_outcomes: list[dict[str, Any]] = []
+    # Two running totals because preview vs. apply have different "what's
+    # in the total" semantics:
+    # - Preview: ``planned_total`` = sum of every parseable fee. There's
+    #   no succeeded info yet; the total represents what the user will
+    #   be charged if everything attaches.
+    # - Apply: ``succeeded_total`` = sum of fees that actually landed.
+    #   Summing failed fees too would misrepresent the SO's final state
+    #   — "$30 total" when only $20 attached is a wrong number, not a
+    #   "planned" number. Render rule below switches between them.
+    planned_total = Decimal("0")
+    planned_parseable_count = 0
+    succeeded_total = Decimal("0")
+    succeeded_parseable_count = 0
+    succeeded_count = 0
+
+    for outcome in outcomes:
+        description = outcome.get("description") or "Shipping fee"
+        amount_str = outcome.get("amount")
+        tax_rate_id = outcome.get("tax_rate_id")
+        succeeded = outcome.get("succeeded")
+        error = outcome.get("error")
+        created_id = outcome.get("created_id")
+
+        if succeeded is True:
+            succeeded_count += 1
+
+        # Parse the wire-shape decimal string into Decimal once so both
+        # the per-row label and the running totals format from the same
+        # exact value — passing ``float(amount_str)`` to ``_format_money``
+        # would defeat the Decimal accumulation by reintroducing binary-
+        # representation drift in the per-row text (and the totals then
+        # disagree with the sum-of-displayed-rows the user can mentally
+        # verify).
+        #
+        # ``Decimal("NaN")`` / ``Decimal("Infinity")`` parse without
+        # raising but pollute the totals (NaN + Decimal → NaN) and would
+        # render as a garbage formatted-money string. Guard with
+        # ``is_finite()`` so non-finite values fall through to the
+        # raw-string label and are excluded from both totals. The
+        # validator emits BLOCK warnings for these on the request side,
+        # so they only reach the renderer when an agent bypassed preview
+        # — defensive belt + suspenders.
+        amount_dec: Decimal | None = None
+        if amount_str is not None:
+            try:
+                parsed = Decimal(str(amount_str))
+            except (TypeError, ValueError, InvalidOperation):
+                parsed = None
+            if parsed is not None and parsed.is_finite():
+                amount_dec = parsed
+                planned_total += amount_dec
+                planned_parseable_count += 1
+                if succeeded is True:
+                    succeeded_total += amount_dec
+                    succeeded_parseable_count += 1
+        amount_label = (
+            _format_money(amount_dec, currency)
+            if amount_dec is not None
+            else (str(amount_str) if amount_str is not None else "—")
+        )
+
+        tax_suffix = f" · tax rate #{tax_rate_id}" if tax_rate_id is not None else ""
+
+        if is_preview:
+            # Preview row: leading 2-char gutter matches the diff-line
+            # convention so an applied-state morph would shift to ``✗``
+            # without reflowing the row text horizontally.
+            Text(content=f"  {description}: {amount_label}{tax_suffix}")
+            continue
+
+        if succeeded is None:
+            # Apply path with an outcome not yet resolved (defensive — the
+            # apply pipeline always sets succeeded True/False before
+            # returning, but the renderer shouldn't crash on a partially
+            # populated outcome dict).
+            Text(content=f"  {description}: {amount_label}{tax_suffix}")
+            continue
+
+        if succeeded is True:
+            id_suffix = f" (id={created_id})" if created_id is not None else ""
+            with Row(gap=2):
+                Text(content=f"  {description}: {amount_label}{tax_suffix}{id_suffix}")
+                Badge(label="APPLIED", variant="default")
+        else:
+            failed_outcomes.append(outcome)
+            error_suffix = f" — {error}" if error else ""
+            with Row(gap=2):
+                Text(
+                    content=f"✗ {description}: {amount_label}{tax_suffix}{error_suffix}"
+                )
+                Badge(label="FAILED", variant="destructive")
+
+    # Render the running total. Three rules cover the cases:
+    #
+    # 1. *Preview* / no apply outcomes yet — show the planned total when
+    #    every fee parsed. A partial parse-sum would be misleading
+    #    (BLOCK warnings surface the unparseable rows separately;
+    #    showing "Total shipping: $X · 3 fee(s)" when only 2 of the 3
+    #    amounts contributed implies the plan totals to $X — it doesn't).
+    #
+    # 2. *Apply, all succeeded* — same shape as preview but the
+    #    counter reads "applied" so the user knows the SO actually
+    #    carries this total.
+    #
+    # 3. *Apply, partial failure* — show ONLY the succeeded subset so
+    #    the number reflects what landed on the SO. Showing the planned
+    #    total would misrepresent the SO's actual state ("$30 total"
+    #    when only $20 attached is a wrong number, not a "planned"
+    #    number). Label calls out the M-of-N shape explicitly.
+    #
+    # Pass Decimal directly to ``_format_money`` so the formatted total
+    # stays exact (no float-conversion rounding drift between the per-row
+    # labels and the total).
+    n_outcomes = len(outcomes)
+    failed_count = len(failed_outcomes)
+    if is_preview or failed_count == 0:
+        # Preview path or all-succeeded apply path: show planned/applied
+        # total when every parseable.
+        if planned_parseable_count and planned_parseable_count == n_outcomes:
+            total_label = _format_money(planned_total, currency)
+            counter = (
+                f"{n_outcomes} fee(s)" if is_preview else f"{n_outcomes} fee(s) applied"
+            )
+            Muted(content=f"  Total shipping: {total_label} · {counter}")
+    elif succeeded_count and succeeded_parseable_count == succeeded_count:
+        # Partial failure: show only the succeeded subset, labeled
+        # explicitly so the user doesn't confuse it with the requested
+        # total. Skip entirely if no succeeded amounts parsed (rare).
+        total_label = _format_money(succeeded_total, currency)
+        Muted(
+            content=(
+                f"  Total shipping applied: {total_label} · "
+                f"{succeeded_count} of {n_outcomes} fee(s) applied"
+            )
+        )
+
+    if failed_outcomes and not is_preview:
+        with Alert(variant="destructive", icon="circle-alert"):
+            n = len(failed_outcomes)
+            AlertTitle(
+                content=(
+                    f"{n} of {len(outcomes)} shipping fee(s) failed — "
+                    f"sales order itself was created"
+                )
+            )
+            AlertDescription(
+                content=(
+                    "Retry the failed fees via "
+                    "modify_sales_order(id=<so_id>, add_shipping_fees=[...]) — "
+                    "the SO ID is shown above. Each failed fee preserves its "
+                    "description / amount / tax_rate_id in the row above so "
+                    "you can copy them straight into the modify call."
+                )
+            )
+
+
+def _so_shipping_fees_apply_state(
+    outcomes: list[dict[str, Any]],
+    *,
+    so_id: int | None = None,
+) -> dict[str, Any]:
+    """Pre-compute the apply-outcome state slots for the SO shipping
+    fees section so the preview→Confirm in-place morph can surface the
+    actual result.
+
+    The build-time ``_render_so_shipping_fees_section`` paints rows
+    once at preview time and won't repaint on morph (Python-time
+    ``is_preview`` stays True under the iframe's morphed state). We
+    instead bind a state-driven ``If("applied")`` summary block to
+    these slots; the preview-side ``on_success`` chain SetStates them
+    from ``$result.state.*`` after the apply lands.
+
+    Why state slots + ``$result.state.*`` references and not
+    ``$result.<field>`` directly: ``$result`` in the on_success Rx
+    context resolves to the apply tool's wire-shape ``structured_content``
+    — a PrefabApp envelope keyed by ``$prefab`` / ``view`` / ``state``,
+    NOT the raw ``SalesOrderResponse``. So the apply-time builder seeds
+    these slots into its own ``state.*``, and the preview iframe reads
+    off ``$result.state.*`` to morph (documented in
+    ``test_apply_button_morphs_card_to_applied_state``).
+
+    Returns a dict with:
+    - ``applied_fees_summary`` — operator-facing one-liner.
+    - ``applied_fees_failed_count`` — int gating the failed-fees Alert.
+    - ``applied_fees_failed_summary`` — pre-formatted multi-line string
+      with ``Failed — <description>: <error>`` per failed fee, then a
+      retry-coaching line referencing the SO id so the operator knows
+      how to recover. The build-time
+      :func:`_render_so_shipping_fees_section` Alert carries the same
+      coaching but doesn't morph; embedding it here means the
+      preview→Confirm morph keeps the recovery instructions visible.
+    """
+    total = len(outcomes)
+    succeeded = sum(1 for o in outcomes if o.get("succeeded") is True)
+    failed_outcomes = [o for o in outcomes if o.get("succeeded") is False]
+    failed = len(failed_outcomes)
+    if total == 0 or (succeeded == 0 and failed == 0):
+        # Preview path or no fees — empty summary; the If("applied")
+        # gating + If(Rx("applied_fees_failed_count") > 0) gating keep
+        # the block hidden until the apply lands.
+        return {
+            "applied_fees_summary": "",
+            "applied_fees_failed_count": 0,
+            "applied_fees_failed_summary": "",
+        }
+    if failed == 0:
+        summary = f"All {total} shipping fee(s) applied successfully."
+    elif succeeded == 0:
+        summary = f"0 of {total} shipping fee(s) applied — every fee failed."
+    else:
+        summary = f"{succeeded} of {total} shipping fee(s) applied — {failed} failed."
+    failed_lines: list[str] = []
+    for o in failed_outcomes:
+        desc = o.get("description") or "Shipping fee"
+        err = o.get("error") or "unknown error"
+        failed_lines.append(f"Failed — {desc}: {err}")
+    if failed_lines:
+        # Retry coaching — referencing the literal SO id so the operator
+        # can copy/paste the modify call without bouncing through the
+        # response object. ``so_id is None`` falls back to a placeholder
+        # since the preview path doesn't have an SO yet (and won't have
+        # failed fees either, so the path is unreachable in practice).
+        so_ref = str(so_id) if so_id is not None else "<so_id>"
+        failed_lines.append("")
+        failed_lines.append(
+            f"Retry the failed fee(s) via modify_sales_order(id={so_ref}, "
+            f"add_shipping_fees=[...]). Each failed row above preserves its "
+            f"description / amount / tax_rate_id — copy them straight in."
+        )
+    return {
+        "applied_fees_summary": summary,
+        "applied_fees_failed_count": failed,
+        "applied_fees_failed_summary": "\n".join(failed_lines),
+    }
+
+
 def build_so_create_ui(
     response: dict[str, Any],
     *,
@@ -4896,9 +5180,19 @@ def build_so_create_ui(
       ``status_badge_variant("sales_order", status)``).
     - Tier 2: Total, Line Items, Delivery date.
     - Tier 3: customer, location (ID-only — SO response has no
-      ``location_name``), warnings.
+      ``location_name``), inline shipping-fees sub-section (#818) when
+      ``shipping_fee_outcomes`` is non-empty, warnings, state-driven
+      apply-outcome summary block (visible after morph).
     - Tier 4: Confirm/Cancel (preview) or View in Katana + Fulfill Order
       (applied).
+
+    Shipping fees (#818): the apply path creates the SO first, then
+    fires ``POST /sales_order_shipping_fee`` per fee. The card surfaces
+    each planned fee at preview time. After Confirm the iframe's
+    in-place morph reveals an ``If("applied")``-gated state-driven
+    summary block (per-fee badges still don't morph — the Python tree
+    is paint-once — but the operator-facing summary + failed-fee retry
+    coaching DO morph correctly via SetState from ``$result.state.*``).
     """
     order_number = response.get("order_number") or "N/A"
     status = response.get("status")
@@ -4906,12 +5200,49 @@ def build_so_create_ui(
     currency = response.get("currency")
     item_count = response.get("item_count")
     delivery_date = response.get("delivery_date")
+    is_preview = bool(response.get("is_preview", True))
+    shipping_fee_outcomes: list[dict[str, Any]] = (
+        response.get("shipping_fee_outcomes") or []
+    )
+    # Pass ``so_id`` so the apply-time failed-fees summary can embed the
+    # exact ``modify_sales_order(id=…, add_shipping_fees=[…])`` call for
+    # retry. On preview the response has no ``id`` yet (the SO isn't
+    # created) — falls back to ``<so_id>`` placeholder text, which is
+    # only reachable if there are also failed fees (impossible on the
+    # preview path).
+    applied_fees_state = _so_shipping_fees_apply_state(
+        shipping_fee_outcomes,
+        so_id=response.get("id"),
+    )
 
-    apply_action = _build_apply_action(confirm_tool, confirm_request)
+    # The apply response's PrefabApp envelope carries these slots in
+    # ``state`` (initialized below); the preview iframe's on_success
+    # chain reads ``$result.state.*`` to morph the summary block.
+    apply_action = _build_apply_action(
+        confirm_tool,
+        confirm_request,
+        extra_on_success=[
+            SetState(
+                "applied_fees_summary",
+                "{{ $result.state.applied_fees_summary }}",
+            ),
+            SetState(
+                "applied_fees_failed_count",
+                "{{ $result.state.applied_fees_failed_count }}",
+            ),
+            SetState(
+                "applied_fees_failed_summary",
+                "{{ $result.state.applied_fees_failed_summary }}",
+            ),
+        ],
+    )
     cancel_action = _build_cancel_action("that sales order")
 
+    state = _init_create_card_state(response)
+    state.update(applied_fees_state)
+
     with (
-        PrefabApp(state=_init_create_card_state(response), css_class="p-4") as app,
+        PrefabApp(state=state, css_class="p-4") as app,
         Card(),
     ):
         _render_preview_header(
@@ -4940,6 +5271,31 @@ def build_so_create_ui(
                 name=None,  # SalesOrderResponse has no location_name
                 entity_id=response.get("location_id"),
             )
+            _render_so_shipping_fees_section(
+                shipping_fee_outcomes,
+                is_preview=is_preview,
+                currency=currency,
+            )
+
+            # State-driven apply-outcome surface — visible after the
+            # in-place morph (the per-row badges painted by
+            # ``_render_so_shipping_fees_section`` above don't morph
+            # because they're built at Python time; the summary line
+            # + failed-fee Alert below DO morph via SetState).
+            with If("applied"):
+                Muted(content="{{ applied_fees_summary }}")
+                with (
+                    If(Rx("applied_fees_failed_count") > 0),
+                    Alert(variant="destructive", icon="circle-alert"),
+                ):
+                    AlertTitle(
+                        content=(
+                            "{{ applied_fees_failed_count }} shipping fee(s) "
+                            "failed — sales order itself was created"
+                        )
+                    )
+                    AlertDescription(content="{{ applied_fees_failed_summary }}")
+
             block_warnings = _render_warnings_block(response.get("warnings"))
         _render_preview_footer(
             title_prefix="Sales Order",

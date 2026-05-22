@@ -50,6 +50,7 @@ from katana_mcp.tools._modification_dispatch import (
 )
 from katana_mcp.tools.list_coercion import CoercedIntListOpt
 from katana_mcp.tools.tool_result_utils import (
+    BLOCK_WARNING_PREFIX,
     UI_META,
     PaginationMeta,
     SoftDeletableResponse,
@@ -216,6 +217,50 @@ class SalesOrderAddress(BaseModel):
     )
 
 
+class SOShippingFeeAdd(BaseModel):
+    """A new shipping fee to attach to a sales order.
+
+    Shared between the ``create_sales_order`` inline-fees slot (#818) and
+    ``modify_sales_order.add_shipping_fees``. Defined at module top so it's
+    available to ``CreateSalesOrderRequest``; the modify path imports it
+    from the same location.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    amount: str = Field(..., description="Fee amount (decimal string)")
+    description: str | None = Field(
+        default=None,
+        description="Customer-facing fee label (e.g., 'Standard shipping')",
+    )
+    tax_rate_id: int | None = Field(
+        default=None,
+        description=("Tax rate ID. Look up via `list_tax_rates`."),
+    )
+
+
+class SOShippingFeeUpdate(BaseModel):
+    """Patch to an existing SO shipping fee.
+
+    Note: Katana's API requires ``amount`` even on PATCH — it's a replace
+    semantic on the fee's amount, not a partial update. The other fields
+    are genuinely optional.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: int = Field(..., description="Shipping fee ID to update")
+    amount: str = Field(..., description="Fee amount (required by API)")
+    description: str | None = Field(
+        default=None,
+        description="New customer-facing fee label",
+    )
+    tax_rate_id: int | None = Field(
+        default=None,
+        description=("Tax rate ID. Look up via `list_tax_rates`."),
+    )
+
+
 class CreateSalesOrderRequest(BaseModel):
     """Request to create a sales order."""
 
@@ -301,9 +346,66 @@ class CreateSalesOrderRequest(BaseModel):
             "field's configured type."
         ),
     )
+    shipping_fees: list[SOShippingFeeAdd] | None = Field(
+        default=None,
+        description=(
+            "Optional shipping fees to attach to the new SO. Each entry: "
+            "`amount` (decimal string, required), `description` (label like "
+            "'Standard shipping'), `tax_rate_id` (see `list_tax_rates`). "
+            "Wire-level: Katana's `POST /sales_orders` does NOT accept "
+            "inline fees, so the apply path creates the SO first and then "
+            "fires `POST /sales_order_shipping_fee` per fee. Best-effort "
+            "semantics — if the SO succeeds but a fee fails, the response "
+            "carries a warning and the SO is preserved; retry the failed "
+            "fees via `modify_sales_order(id=<so_id>, add_shipping_fees=[...])`."
+        ),
+    )
     preview: bool = Field(
         default=True,
         description="If true (default), returns preview. If false, creates order.",
+    )
+
+
+class ShippingFeeOutcome(BaseModel):
+    """Per-fee outcome row for ``create_sales_order``'s inline shipping fees.
+
+    Used for both preview (planned fees with ``succeeded=None``) and apply
+    (per-fee results with ``succeeded=True``/``False``). The UI renders one
+    row per outcome — preview shows the planned amount/description, applied
+    swaps in an APPLIED/FAILED status pill.
+
+    Best-effort semantics on apply: the parent SO can succeed while one or
+    more fees fail. Failed fees report ``error`` text; surviving rows can
+    be retried via ``modify_sales_order(id=<so_id>, add_shipping_fees=[...])``.
+    """
+
+    description: str | None = Field(
+        default=None,
+        description="Customer-facing fee label, mirrors the request entry.",
+    )
+    amount: str | None = Field(
+        default=None,
+        description="Fee amount (decimal string), mirrors the request entry.",
+    )
+    tax_rate_id: int | None = Field(
+        default=None,
+        description="Tax rate ID associated with the fee, if any.",
+    )
+    succeeded: bool | None = Field(
+        default=None,
+        description=(
+            "None on preview; True/False on apply. False indicates the SO "
+            "succeeded but this fee POST failed — retry via "
+            "`modify_sales_order(id=<so_id>, add_shipping_fees=[...])`."
+        ),
+    )
+    created_id: int | None = Field(
+        default=None,
+        description="Server-assigned shipping-fee ID on success.",
+    )
+    error: str | None = Field(
+        default=None,
+        description="Error message when this fee failed to create.",
     )
 
 
@@ -321,6 +423,15 @@ class SalesOrderResponse(BaseModel):
     delivery_date: str | None = None
     item_count: int | None = None
     is_preview: bool
+    shipping_fee_outcomes: list[ShippingFeeOutcome] = Field(
+        default_factory=list,
+        description=(
+            "Per-fee outcome rows when ``shipping_fees`` was supplied. "
+            "Preview: planned fees with ``succeeded=None``. Apply: per-fee "
+            "results with ``succeeded`` + ``created_id`` (on success) or "
+            "``error`` (on failure). Empty when no fees were requested."
+        ),
+    )
     warnings: list[str] = Field(
         default_factory=list,
         description="Operator-facing warnings raised during the operation.",
@@ -331,6 +442,93 @@ class SalesOrderResponse(BaseModel):
     )
     message: str
     katana_url: str | None = None
+
+
+def _validate_shipping_fee_amounts(
+    fees: list[SOShippingFeeAdd],
+) -> list[str]:
+    """Sanity-check shipping-fee ``amount`` strings on the request.
+
+    Returns a list of ``BLOCK:``-prefixed warning strings — one per fee that
+    fails to parse as a non-negative decimal. The Katana wire shape carries
+    ``amount`` as a decimal string, so the simplest meaningful validation
+    we can do at request time is to confirm each amount actually parses.
+
+    Note: ``SOShippingFeeAdd`` does not carry a per-fee currency field
+    (shipping fees inherit the parent SO's currency at the wire level),
+    so a "currency mismatch" check is structurally impossible on the
+    current schema. This guard catches the closely-related class of
+    request-shape bugs the wire-level POST would otherwise 422 on.
+
+    ``Decimal`` constructor accepts "NaN" and "Infinity" as valid strings
+    (they raise ``InvalidOperation`` on subsequent arithmetic, not parse).
+    Explicitly reject non-finite values so the user gets a clear BLOCK
+    warning instead of letting the wire POST fail with a generic 422
+    (or worse — a later comparison raising ``InvalidOperation``).
+    """
+    from decimal import Decimal, InvalidOperation
+
+    warnings: list[str] = []
+    for idx, fee in enumerate(fees, start=1):
+        try:
+            parsed = Decimal(fee.amount)
+        except (InvalidOperation, ValueError):
+            warnings.append(
+                f"{BLOCK_WARNING_PREFIX} shipping_fees[{idx}].amount "
+                f"({fee.amount!r}) is not a valid decimal — Katana's "
+                f"POST /sales_order_shipping_fee requires a parseable "
+                f"decimal string."
+            )
+            continue
+        if not parsed.is_finite():
+            warnings.append(
+                f"{BLOCK_WARNING_PREFIX} shipping_fees[{idx}].amount "
+                f"({fee.amount!r}) is not a finite decimal (NaN/Infinity) "
+                f"— Katana's POST /sales_order_shipping_fee requires a "
+                f"finite decimal string."
+            )
+            continue
+        try:
+            is_negative = parsed < 0
+        except InvalidOperation:
+            # Defensive — by here ``parsed`` is finite, but ``< 0`` on a
+            # signaling NaN could still raise. Treat as invalid.
+            warnings.append(
+                f"{BLOCK_WARNING_PREFIX} shipping_fees[{idx}].amount "
+                f"({fee.amount!r}) could not be compared as a decimal — "
+                f"Katana's POST /sales_order_shipping_fee requires a "
+                f"comparable decimal string."
+            )
+            continue
+        if is_negative:
+            warnings.append(
+                f"{BLOCK_WARNING_PREFIX} shipping_fees[{idx}].amount "
+                f"({fee.amount!r}) is negative — shipping fees must be "
+                f"non-negative."
+            )
+    return warnings
+
+
+def _outcomes_from_planned_fees(
+    fees: list[SOShippingFeeAdd],
+) -> list[ShippingFeeOutcome]:
+    """Convert request-side ``SOShippingFeeAdd`` list to outcome rows.
+
+    Used for both the preview (succeeded=None, no created_id/error) and
+    as the seed list for the apply path — each outcome's ``succeeded`` /
+    ``created_id`` / ``error`` is mutated in place as the per-fee POSTs
+    land. ``ShippingFeeOutcome`` intentionally omits ``ConfigDict(frozen=
+    True)`` to allow this in-place mutation; tests pin the mutation
+    behavior.
+    """
+    return [
+        ShippingFeeOutcome(
+            description=fee.description,
+            amount=fee.amount,
+            tax_rate_id=fee.tax_rate_id,
+        )
+        for fee in fees
+    ]
 
 
 async def _create_sales_order_impl(
@@ -359,6 +557,8 @@ async def _create_sales_order_impl(
         for item in request.items
     )
 
+    requested_fees = request.shipping_fees or []
+
     if request.preview:
         logger.info(
             f"Preview mode: SO {request.order_number} would have {len(request.items)} items"
@@ -380,6 +580,11 @@ async def _create_sales_order_impl(
             warnings.append(
                 "No delivery_date specified - order will have no delivery deadline"
             )
+        # Validate shipping-fee amounts at preview time — surfacing a BLOCK
+        # warning gates the Confirm button so the user fixes the request
+        # before the wire-level fee POST would 422.
+        if requested_fees:
+            warnings.extend(_validate_shipping_fee_amounts(requested_fees))
 
         return SalesOrderResponse(
             order_number=request.order_number,
@@ -394,6 +599,7 @@ async def _create_sales_order_impl(
             else None,
             item_count=len(request.items),
             is_preview=True,
+            shipping_fee_outcomes=_outcomes_from_planned_fees(requested_fees),
             warnings=warnings,
             next_actions=[
                 "Review the order details",
@@ -405,6 +611,40 @@ async def _create_sales_order_impl(
 
     try:
         services = get_services(context)
+
+        # Apply-path BLOCK validation: amounts must parse to non-negative
+        # decimals BEFORE we POST the SO. We don't roll back the SO on a
+        # later fee failure, so a malformed amount caught after the SO
+        # POST would leave a created SO + zero applied fees on the books.
+        # Preventing the SO POST is the only clean exit. (Same validation
+        # the preview path emits as a BLOCK warning to gate the Confirm
+        # button — an agent that called ``preview=False`` directly bypasses
+        # that gate, so we re-check here.)
+        #
+        # On failure we return ``is_preview=True`` (not False) so the card
+        # UI seeds ``state.applied=False`` and renders as a preview with
+        # BLOCK warnings disabling the Confirm button — visually matches
+        # the actual outcome (nothing was created). Returning
+        # ``is_preview=False`` would flip the card into the "CREATED"
+        # rendering despite no SO existing, which misleads the operator.
+        if requested_fees:
+            block_warnings = _validate_shipping_fee_amounts(requested_fees)
+            if block_warnings:
+                return SalesOrderResponse(
+                    order_number=request.order_number,
+                    customer_id=request.customer_id,
+                    is_preview=True,
+                    shipping_fee_outcomes=_outcomes_from_planned_fees(requested_fees),
+                    warnings=block_warnings,
+                    next_actions=[
+                        "Fix the failing shipping_fees amounts and retry",
+                    ],
+                    message=(
+                        f"Sales order {request.order_number} was NOT created — "
+                        f"one or more shipping_fees amounts failed validation. "
+                        f"Fix the amounts and re-issue with preview=false."
+                    ),
+                )
 
         # Build sales order rows
         so_rows = []
@@ -494,6 +734,63 @@ async def _create_sales_order_impl(
         currency = unwrap_unset(so.currency, None)
         total = unwrap_unset(so.total, None)
 
+        # Inline shipping fees (#818). The wire endpoint POST /sales_orders
+        # does NOT accept fees inline, so we fire POST /sales_order_shipping_fee
+        # per fee against the just-created SO. Best-effort semantics: SO
+        # success is durable; per-fee failures surface as outcomes + a
+        # warning telling the user how to retry the failed fees via
+        # modify_sales_order(id=<so_id>, add_shipping_fees=[...]).
+        fee_outcomes = _outcomes_from_planned_fees(requested_fees)
+        fee_warnings: list[str] = []
+        # ``SalesOrder.id`` is non-optional in the generated model — ``unwrap_as``
+        # raises if the wire shape is missing it, so by this point ``so.id`` is
+        # guaranteed populated; no need to guard.
+        if requested_fees:
+            for outcome, fee in zip(fee_outcomes, requested_fees, strict=True):
+                fee_body = _build_create_shipping_fee_request(so.id, fee)
+                try:
+                    fee_resp = await api_create_so_shipping_fee.asyncio_detailed(
+                        client=services.client, body=fee_body
+                    )
+                    created_fee = unwrap_as(fee_resp, SalesOrderShippingFee)
+                except Exception as fee_exc:
+                    logger.warning(
+                        "create_sales_order shipping fee POST failed",
+                        sales_order_id=so.id,
+                        amount=fee.amount,
+                        description=fee.description,
+                        error=str(fee_exc),
+                    )
+                    outcome.succeeded = False
+                    outcome.error = str(fee_exc)
+                    continue
+                outcome.succeeded = True
+                outcome.created_id = created_fee.id
+
+            failed_count = sum(1 for o in fee_outcomes if o.succeeded is False)
+            if failed_count:
+                fee_warnings.append(
+                    f"{failed_count} of {len(requested_fees)} shipping fee(s) "
+                    f"failed to create on SO {so.id} — the sales order itself "
+                    f"is preserved. Retry the failed fees via "
+                    f"`modify_sales_order(id={so.id}, add_shipping_fees=[...])`."
+                )
+
+        next_actions = [
+            f"Sales order created with ID {so.id}",
+            "Use fulfill_order to ship items when ready",
+        ]
+        if any(o.succeeded is False for o in fee_outcomes):
+            next_actions.append(
+                f"Retry failed shipping fees via "
+                f"modify_sales_order(id={so.id}, add_shipping_fees=[...])"
+            )
+
+        message = f"Successfully created sales order {so.order_no} (ID: {so.id})"
+        if requested_fees:
+            ok_count = sum(1 for o in fee_outcomes if o.succeeded is True)
+            message += f" with {ok_count}/{len(requested_fees)} shipping fee(s) applied"
+
         return SalesOrderResponse(
             id=so.id,
             order_number=so.order_no,
@@ -503,12 +800,11 @@ async def _create_sales_order_impl(
             total=total,
             currency=currency,
             is_preview=False,
+            shipping_fee_outcomes=fee_outcomes,
+            warnings=fee_warnings,
             katana_url=katana_web_url("sales_order", so.id),
-            next_actions=[
-                f"Sales order created with ID {so.id}",
-                "Use fulfill_order to ship items when ready",
-            ],
-            message=f"Successfully created sales order {so.order_no} (ID: {so.id})",
+            next_actions=next_actions,
+            message=message,
         )
 
     except Exception as e:
@@ -1735,44 +2031,6 @@ class SOFulfillmentUpdate(BaseModel):
     tracking_method: str | None = Field(
         default=None,
         description="New shipping method (e.g., Ground, Express, 2-Day)",
-    )
-
-
-class SOShippingFeeAdd(BaseModel):
-    """A new shipping fee to attach to the SO."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    amount: str = Field(..., description="Fee amount (decimal string)")
-    description: str | None = Field(
-        default=None,
-        description="Customer-facing fee label (e.g., 'Standard shipping')",
-    )
-    tax_rate_id: int | None = Field(
-        default=None,
-        description=("Tax rate ID. Look up via `list_tax_rates`."),
-    )
-
-
-class SOShippingFeeUpdate(BaseModel):
-    """Patch to an existing SO shipping fee.
-
-    Note: Katana's API requires ``amount`` even on PATCH — it's a replace
-    semantic on the fee's amount, not a partial update. The other fields
-    are genuinely optional.
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    id: int = Field(..., description="Shipping fee ID to update")
-    amount: str = Field(..., description="Fee amount (required by API)")
-    description: str | None = Field(
-        default=None,
-        description="New customer-facing fee label",
-    )
-    tax_rate_id: int | None = Field(
-        default=None,
-        description=("Tax rate ID. Look up via `list_tax_rates`."),
     )
 
 
