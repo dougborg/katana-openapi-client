@@ -313,7 +313,13 @@ async def test_manage_bom_apply_populates_prior_state_from_snapshot():
 
 @pytest.mark.asyncio
 async def test_manage_bom_apply_calls_create_for_each_add():
-    """Confirm mode executes per-action POST /bom_rows for each add."""
+    """Confirm mode executes per-action POST /bom_rows for each add.
+
+    Katana's ``POST /bom_rows`` returns 204 No Content — no body. The
+    apply closure (post-#809) confirms 2xx via ``is_success`` and does
+    not try to parse a row. The mock response carries ``status_code=204``
+    so ``is_success`` returns True without touching ``response.parsed``.
+    """
     context, lifespan = create_mock_context()
     lifespan.typed_cache.catalog.get_many_by_ids = AsyncMock(
         return_value={
@@ -321,14 +327,13 @@ async def test_manage_bom_apply_calls_create_for_each_add():
         }
     )
 
-    new_row = _bom_row()
-
     captured_bodies: list = []
 
     async def fake_create(*, client, body):
         captured_bodies.append(body)
         resp = MagicMock()
-        resp.parsed = new_row
+        resp.status_code = 204
+        resp.parsed = None
         return resp
 
     with (
@@ -340,10 +345,6 @@ async def test_manage_bom_apply_calls_create_for_each_add():
         patch(
             "katana_mcp.tools.foundation.bom.api_create_bom_row.asyncio_detailed",
             side_effect=fake_create,
-        ),
-        patch(
-            "katana_mcp.tools.foundation.bom.unwrap_as",
-            return_value=new_row,
         ),
     ):
         request = ManageProductBomRequest(
@@ -364,6 +365,70 @@ async def test_manage_bom_apply_calls_create_for_each_add():
     assert captured_bodies[0].product_variant_id == 200
     assert captured_bodies[0].ingredient_variant_id == 301
     assert captured_bodies[1].ingredient_variant_id == 302
+
+
+@pytest.mark.asyncio
+async def test_manage_bom_apply_commits_all_rows_against_204_transport():
+    """Regression for #809: ``POST /bom_rows`` returns 204 No Content per the
+    Katana spec. The generated ``_parse_response`` matches the 204 branch,
+    sets ``response.parsed = None``, and the previous ``unwrap_as(response,
+    BomRow)`` then raised ``APIError`` because ``unwrap`` treated
+    ``parsed is None`` as an error regardless of status. Fail-fast halted
+    the plan after the first row, so a 30-row batch silently became a
+    1-row commit in Katana.
+
+    This test drives a real :class:`KatanaClient` against an ``httpx.MockTransport``
+    that returns 204 on every POST — exactly mirroring production — and
+    asserts all rows in the batch run.
+    """
+    import httpx
+
+    from katana_public_api_client import KatanaClient
+
+    posts_served: list[bytes] = []
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        if req.url.path.endswith("/bom_rows") and req.method == "POST":
+            posts_served.append(req.content)
+            return httpx.Response(204)
+        return httpx.Response(404, json={"error": "unexpected route"})
+
+    async with KatanaClient(
+        api_key="test-key",
+        base_url="https://api.example.com",
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        context, lifespan = create_mock_context()
+        lifespan.client = client
+        lifespan.typed_cache.catalog.get_many_by_ids = AsyncMock(
+            return_value={
+                200: _mock_variant(id=200, sku="SP0502", product_id=17092695),
+            }
+        )
+
+        with patch(
+            "katana_mcp.tools.foundation.bom._fetch_bom_row_infos",
+            new_callable=AsyncMock,
+            return_value=[],
+        ):
+            request = ManageProductBomRequest(
+                id=200,
+                add_bom_rows=[
+                    BomRowAdd(ingredient_variant_id=300 + i, quantity=1.0)
+                    for i in range(5)
+                ],
+                preview=False,
+            )
+            response = await _modify_product_bom_impl(request, context)
+
+    assert len(posts_served) == 5, (
+        f"Only {len(posts_served)} of 5 POSTs reached Katana — "
+        "apply loop halted after the first row (regression of #809)."
+    )
+    assert len(response.actions) == 5
+    assert all(a.succeeded is True for a in response.actions), (
+        f"Some actions failed: {[(a.operation, a.error) for a in response.actions]}"
+    )
 
 
 @pytest.mark.asyncio

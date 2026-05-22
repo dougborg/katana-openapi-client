@@ -267,6 +267,20 @@ def unwrap[T](
         ```
     """
     if response.parsed is None:
+        # 2xx + empty body is a legitimate no-content success (Katana
+        # uses 204 for ``POST /bom_rows`` and most DELETEs). The previous
+        # behavior raised ``APIError`` here, which broke every per-row
+        # apply against a no-body endpoint (#809). Callers that need a
+        # body should keep using ``unwrap_as`` (raises on None).
+        #
+        # 2xx + *non-empty* body falls through to the error path on
+        # purpose: ``parsed`` is None there because ``_parse_response``
+        # didn't recognize the status (e.g. the server starts returning
+        # 201 after an API change but the spec still declares 204). The
+        # body is present and unparsed — raising surfaces the schema
+        # drift instead of silently dropping the response.
+        if is_success(response) and not response.content:
+            return None
         if not raise_on_error:
             return None
         name, message, parsed_error = _try_parse_error_body(response.content)
