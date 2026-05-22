@@ -35,13 +35,70 @@ class TestUnwrap:
         assert result == webhook_data
         assert isinstance(result, WebhookListResponse)
 
-    def test_unwrap_with_none_parsed_raises_error(self):
-        """Test that unwrap raises APIError when parsed is None.
-
-        Empty body falls back to the "<empty response body>" placeholder.
+    def test_unwrap_returns_none_for_2xx_with_no_body(self):
+        """A 2xx success with ``parsed=None`` is a legitimate 204 No Content
+        response (most Katana POST/PATCH endpoints use this shape), not an
+        error. Regression for #809: the previous behavior incorrectly raised
+        ``APIError`` here, which broke every per-row apply on no-body
+        endpoints — a 30-row BOM batch silently became a 1-row commit
+        because the first 204 raised and fail-fast halted the rest.
         """
         response: Response[Any] = Response(
-            status_code=HTTPStatus.OK,
+            status_code=HTTPStatus.NO_CONTENT,
+            content=b"",
+            headers={},
+            parsed=None,
+        )
+
+        result = utils.unwrap(response)
+
+        assert result is None
+
+    def test_unwrap_returns_none_on_204_even_with_raise_on_error_false(self):
+        """``raise_on_error=False`` is the legacy path; 2xx + parsed=None
+        still returns None cleanly without consulting the error parser.
+        """
+        response: Response[Any] = Response(
+            status_code=HTTPStatus.NO_CONTENT,
+            content=b"",
+            headers={},
+            parsed=None,
+        )
+
+        result = utils.unwrap(response, raise_on_error=False)
+
+        assert result is None
+
+    def test_unwrap_raises_on_2xx_with_non_empty_body_and_parsed_none(self):
+        """A 2xx with a non-empty body but ``parsed=None`` is the schema-drift
+        signal: ``_parse_response`` didn't recognize the status (e.g. the
+        server starts returning 201 with a body after an API change, but
+        the spec still declares 204). Returning None there would silently
+        drop the response and let downstream callers crash on ``.id``
+        access; raising surfaces the drift instead.
+        """
+        body = b'{"id": 42, "name": "unexpected response shape"}'
+        response: Response[Any] = Response(
+            status_code=HTTPStatus(200),
+            content=body,
+            headers={},
+            parsed=None,
+        )
+
+        with pytest.raises(utils.APIError) as exc_info:
+            utils.unwrap(response)
+
+        assert exc_info.value.status_code == 200
+
+    def test_unwrap_raises_on_non_2xx_with_parsed_none(self):
+        """When the status is an error code and ``parsed`` is None
+        (undocumented status, malformed body, etc.), the routing helper
+        still raises ``APIError`` — this is the path the previous
+        ``test_unwrap_with_none_parsed_raises_error`` was actually
+        exercising for 4xx/5xx errors. Pin the behavior explicitly.
+        """
+        response: Response[Any] = Response(
+            status_code=HTTPStatus(418),
             content=b"",
             headers={},
             parsed=None,
@@ -52,21 +109,7 @@ class TestUnwrap:
 
         error = exc_info.value
         assert isinstance(error, utils.APIError)
-        assert "<empty response body>" in str(error)
-        assert error.status_code == 200
-
-    def test_unwrap_with_none_parsed_returns_none_when_not_raising(self):
-        """Test that unwrap returns None when parsed is None and raise_on_error=False."""
-        response: Response[Any] = Response(
-            status_code=HTTPStatus.OK,
-            content=b"{}",
-            headers={},
-            parsed=None,
-        )
-
-        result = utils.unwrap(response, raise_on_error=False)
-
-        assert result is None
+        assert error.status_code == 418
 
     def test_unwrap_undocumented_status_surfaces_body(self):
         """Undocumented status codes (e.g. 412) parse the raw body and surface
