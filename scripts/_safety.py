@@ -79,6 +79,7 @@ IDENTITY_FIELDS: dict[str, str | None] = {
     "/manufacturing_order_productions": None,
     "/stock_adjustments": None,
     "/variant_bin_locations": None,
+    "/bom_rows": None,
 }
 
 # Endpoints where the identity field MUST be present and SDT-tagged.
@@ -137,6 +138,11 @@ CHILD_PARENT_FIELDS: dict[str, tuple[str, str]] = {
     ),
     "/stock_adjustments": ("location_id", "/locations"),
     "/variant_bin_locations": ("variant_id", "/variants"),
+    # BOM rows are scoped to a producible product variant. The variant's
+    # parent ``product_item_id`` is the natural ledger key — when a probe
+    # creates an SDT- product, its product_item_id lands in the ledger,
+    # and child bom_row POSTs are then guarded via this FK.
+    "/bom_rows": ("product_item_id", "/products"),
 }
 
 # Endpoints where ``GET /<collection>/{id}`` returns 404 — the live API

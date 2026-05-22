@@ -110,6 +110,7 @@ DELETE_TEMPLATES: dict[str, str] = {
     "/customers": "/customers/{id}",
     "/locations": "/locations/{id}",
     "/bin_locations": "/bin_locations/{id}",
+    "/bom_rows": "/bom_rows/{id}",
 }
 
 
