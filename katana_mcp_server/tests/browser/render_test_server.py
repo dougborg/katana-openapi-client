@@ -33,10 +33,12 @@ from katana_mcp.tools.prefab_ui import (
     build_item_detail_ui,
     build_modification_preview_ui,
     build_modification_result_ui,
+    build_product_bom_ui,
     build_search_results_ui,
     build_stock_adjustment_create_ui,
     build_stock_adjustment_delete_ui,
     build_stock_adjustment_update_ui,
+    build_variant_batch_ui,
     build_verification_ui,
 )
 from katana_mcp.tools.tool_result_utils import make_tool_result
@@ -433,6 +435,126 @@ def _item_detail_app() -> PrefabApp:
     return build_item_detail_ui(item)
 
 
+def _product_bom_app() -> PrefabApp:
+    """build_product_bom_ui with 3 ingredient rows — exercises the BOM
+    rows DataTable's per-row drill into ``get_variant_details``.
+    Pre-#810 ``get_product_bom`` returned ``make_json_result`` and the
+    card rendered as "Waiting for content..." — this scenario pins the
+    end-to-end render against a realistic response shape.
+    """
+    bom = {
+        "product_variant_id": 700001,
+        "product_id": 9001,
+        "product_name": "Test Frame",
+        "variant_sku": "FRAME-A",
+        "variant_display_name": "Test Frame / Standard",
+        "is_producible": True,
+        "uom": "pcs",
+        "katana_url": "https://factory.katanamrp.com/product/9001",
+        "total_count": 3,
+        "rows": [
+            {
+                "id": "11111111-1111-1111-1111-111111111111",
+                "product_item_id": 9001,
+                "product_variant_id": 700001,
+                "ingredient_variant_id": 300,
+                "sku": "FS90250",
+                "display_name": "M5 chainring bolt",
+                "quantity": 6.0,
+                "notes": None,
+                "rank": 1,
+            },
+            {
+                "id": "22222222-2222-2222-2222-222222222222",
+                "product_item_id": 9001,
+                "product_variant_id": 700001,
+                "ingredient_variant_id": 301,
+                "sku": "FS90251",
+                "display_name": "M6 hex screw",
+                "quantity": 4.0,
+                "notes": "Loctite blue",
+                "rank": 2,
+            },
+            {
+                "id": "33333333-3333-3333-3333-333333333333",
+                "product_item_id": 9001,
+                "product_variant_id": 700001,
+                "ingredient_variant_id": 302,
+                "sku": "OR12-NBR",
+                "display_name": "O-ring NBR 12mm",
+                "quantity": 2.0,
+                "notes": None,
+                "rank": 3,
+            },
+        ],
+    }
+    return build_product_bom_ui(bom)
+
+
+def _product_bom_empty_app() -> PrefabApp:
+    """build_product_bom_ui with no rows — exercises the empty-state
+    Muted hint path (no DataTable rendered).
+    """
+    bom = {
+        "product_variant_id": 700001,
+        "product_id": 9001,
+        "product_name": "Test Frame",
+        "variant_sku": "FRAME-A",
+        "variant_display_name": "Test Frame / Standard",
+        "is_producible": True,
+        "uom": "pcs",
+        "katana_url": "https://factory.katanamrp.com/product/9001",
+        "total_count": 0,
+        "rows": [],
+    }
+    return build_product_bom_ui(bom)
+
+
+def _variant_batch_app() -> PrefabApp:
+    """build_variant_batch_ui with 3 found + 2 not-found inputs —
+    exercises the batch summary DataTable and the not-found Alert.
+    Pre-#810 sibling fix the batch path returned a bare dict
+    ``structured_content`` and stalled on "Waiting for content...".
+    """
+    # Real ``VariantDetailsResponse.model_dump()`` uses ``id`` (not
+    # ``variant_id``) for the primary key — mirror that here so the
+    # fixture exercises the same shape ``get_variant_details``
+    # actually emits, not a fictional one.
+    payload = {
+        "variants": [
+            {
+                "id": 700001,
+                "sku": "VAR-A",
+                "display_name": "Frame / Standard",
+                "uom": "pcs",
+                "sales_price": "100.00",
+                "purchase_price": "40.00",
+            },
+            {
+                "id": 700002,
+                "sku": "VAR-B",
+                "display_name": "Frame / Large",
+                "uom": "pcs",
+                "sales_price": "120.00",
+                "purchase_price": "48.00",
+            },
+            {
+                "id": 700003,
+                "sku": "VAR-C",
+                "display_name": "Frame / XL",
+                "uom": "pcs",
+                "sales_price": "140.00",
+                "purchase_price": "56.00",
+            },
+        ],
+        "not_found": [
+            {"sku": "DOES-NOT-EXIST-1"},
+            {"variant_id": 999999999},
+        ],
+    }
+    return build_variant_batch_ui(payload)
+
+
 def _batch_recipe_update_app() -> PrefabApp:
     """build_batch_recipe_update_ui with mixed sub-ops — exercises the
     per-row diff overlay (Qty / Batch / Serials columns) across all three
@@ -673,6 +795,9 @@ SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
     # state-bound DataTable card.
     "search_results": _search_results_app,
     "item_detail": _item_detail_app,
+    "product_bom": _product_bom_app,
+    "product_bom_empty": _product_bom_empty_app,
+    "variant_batch": _variant_batch_app,
     "inventory_check": _inventory_check_app,
     "inventory_at_single": _inventory_at_single_app,
     "inventory_at_batch": _inventory_at_batch_app,
