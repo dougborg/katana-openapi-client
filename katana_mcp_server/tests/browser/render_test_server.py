@@ -27,6 +27,7 @@ from katana_mcp.tools._modification import (
 )
 from katana_mcp.tools.prefab_ui import (
     build_batch_recipe_update_ui,
+    build_bom_modify_ui,
     build_customer_create_ui,
     build_inventory_at_ui,
     build_inventory_check_ui,
@@ -769,6 +770,160 @@ def _stock_adjustment_delete_response(*, is_preview: bool) -> dict:
     }
 
 
+def _bom_modify_response(*, is_preview: bool, succeeded: bool | None) -> dict:
+    """Build a canned BOM modify response with adds + updates + deletes.
+
+    Mirrors the production shape for the #811 BOM modify card: 5+ mixed
+    actions (1 add + 1 update + 2 delete + 3 existing-untouched), the
+    pre-action snapshot threaded as ``prior_state``, and
+    ``resolved_ingredients`` in ``extras`` so ``build_bom_modify_ui``
+    can render the added row's SKU + display name.
+    """
+    existing_rows = [
+        {
+            "id": "11111111-1111-1111-1111-111111111111",
+            "product_item_id": 100,
+            "product_variant_id": 200,
+            "ingredient_variant_id": 401,
+            "sku": "BLT-M5-10",
+            "display_name": "M5 chainring bolt",
+            "quantity": 6.0,
+            "notes": None,
+            "rank": 10000,
+        },
+        {
+            "id": "22222222-2222-2222-2222-222222222222",
+            "product_item_id": 100,
+            "product_variant_id": 200,
+            "ingredient_variant_id": 402,
+            "sku": "BLT-M6-12",
+            "display_name": "M6 hex screw",
+            "quantity": 4.0,
+            "notes": "optional",
+            "rank": 20000,
+        },
+        {
+            "id": "33333333-3333-3333-3333-333333333333",
+            "product_item_id": 100,
+            "product_variant_id": 200,
+            "ingredient_variant_id": 403,
+            "sku": "FRM-AL-140",
+            "display_name": "Aluminum 140 frame raw",
+            "quantity": 1.0,
+            "notes": None,
+            "rank": 30000,
+        },
+        {
+            "id": "44444444-4444-4444-4444-444444444444",
+            "product_item_id": 100,
+            "product_variant_id": 200,
+            "ingredient_variant_id": 404,
+            "sku": "PNT-MTB",
+            "display_name": "Matte black paint",
+            "quantity": 2.0,
+            "notes": None,
+            "rank": 40000,
+        },
+        {
+            "id": "55555555-5555-5555-5555-555555555555",
+            "product_item_id": 100,
+            "product_variant_id": 200,
+            "ingredient_variant_id": 405,
+            "sku": "DCL-MAYHEM",
+            "display_name": "Mayhem decal sheet",
+            "quantity": 1.0,
+            "notes": None,
+            "rank": 50000,
+        },
+    ]
+    actions = [
+        # Add: new chain pin ingredient.
+        ActionResult(
+            index=1,
+            operation="add_bom_row",
+            target_id=None,
+            changes=[
+                FieldChange(
+                    field="ingredient_variant_id",
+                    old=None,
+                    new=301,
+                    is_added=True,
+                ),
+                FieldChange(field="quantity", old=None, new=2.0, is_added=True),
+            ],
+            succeeded=succeeded,
+        ).model_dump(),
+        # Update: bump chainring bolt quantity from 6 → 8.
+        ActionResult(
+            index=2,
+            operation="update_bom_row",
+            target_id="11111111-1111-1111-1111-111111111111",
+            changes=[
+                FieldChange(
+                    field="quantity",
+                    old=None,
+                    new=8.0,
+                    is_unknown_prior=True,
+                ),
+            ],
+            succeeded=succeeded,
+            verified=True if succeeded else None,
+        ).model_dump(),
+        # Delete: drop the paint row.
+        ActionResult(
+            index=3,
+            operation="delete_bom_row",
+            target_id="44444444-4444-4444-4444-444444444444",
+            changes=[],
+            succeeded=succeeded,
+        ).model_dump(),
+        # Delete: drop the decal row.
+        ActionResult(
+            index=4,
+            operation="delete_bom_row",
+            target_id="55555555-5555-5555-5555-555555555555",
+            changes=[],
+            succeeded=succeeded,
+        ).model_dump(),
+    ]
+    return {
+        "entity_type": "product_bom",
+        "entity_id": 200,
+        "is_preview": is_preview,
+        "operation": "",
+        "changes": [],
+        "actions": actions,
+        "prior_state": {
+            "product_variant_id": 200,
+            "product_id": 100,
+            "product_name": "Mayhem 140 Frame",
+            "variant_sku": "MA14025RTLG",
+            "variant_display_name": "Mayhem 140 Frame / Large",
+            "is_producible": True,
+            "uom": "pcs",
+            "katana_url": "https://factory.katanamrp.com/product/100",
+            "total_count": 5,
+            "rows": existing_rows,
+        },
+        "extras": {
+            "resolved_ingredients": {
+                301: {"sku": "FS90250", "display_name": "M5 chain pin"},
+                401: {"sku": "BLT-M5-10", "display_name": "M5 chainring bolt"},
+                402: {"sku": "BLT-M6-12", "display_name": "M6 hex screw"},
+                403: {"sku": "FRM-AL-140", "display_name": "Aluminum 140 frame raw"},
+                404: {"sku": "PNT-MTB", "display_name": "Matte black paint"},
+                405: {"sku": "DCL-MAYHEM", "display_name": "Mayhem decal sheet"},
+            },
+        },
+        "warnings": [],
+        "next_actions": [],
+        "katana_url": None,
+        "message": (
+            "Preview: 4 action(s) planned" if is_preview else "Applied 4 action(s)"
+        ),
+    }
+
+
 SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
     # The bug-repro: 12 mixed actions on the preview card. Pre-fix this
     # rendered as a blank iframe; post-fix it renders one DataTable with 12
@@ -903,6 +1058,19 @@ SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
         },
         confirm_request=_StubRequest(),
         confirm_tool="modify_item",
+    ),
+    # #811 — BOM modify card with adds + updates + deletes against a
+    # realistic 5-row existing recipe. Pins the row-content + status-pill
+    # contract end-to-end in a real browser render.
+    "bom_modify_mixed_preview": lambda: build_bom_modify_ui(
+        _bom_modify_response(is_preview=True, succeeded=None),
+        confirm_request=_StubRequest(),
+        confirm_tool="manage_product_bom",
+    ),
+    "bom_modify_mixed_applied": lambda: build_bom_modify_ui(
+        _bom_modify_response(is_preview=False, succeeded=True),
+        confirm_request=_StubRequest(),
+        confirm_tool="manage_product_bom",
     ),
 }
 

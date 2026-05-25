@@ -704,6 +704,7 @@ async def run_modify_plan(
     plan: list[ActionSpec],
     has_get_endpoint: bool = True,
     cache_merge: CacheMerge | None = None,
+    extras: dict[str, Any] | None = None,
 ) -> ModificationResponse:
     """Wrap a built plan in a preview-or-execute :class:`ModificationResponse`.
 
@@ -733,6 +734,10 @@ async def run_modify_plan(
             ``@cache_read`` tools see fresh data without ``rebuild_cache``.
             Omit for tools without a GET-by-id (stock_transfers) — the
             cache stays stale on modify until the next sync window.
+        extras: Entity-specific extras for the renderer (e.g. BOM's
+            ``resolved_ingredients`` lookup). Threaded onto
+            :attr:`ModificationResponse.extras` on both the preview and
+            apply branches. Defaults to an empty dict.
     """
     entity_type = naming.entity_type
     entity_label = naming.entity_label
@@ -813,6 +818,7 @@ async def run_modify_plan(
             ],
             katana_url=katana_url,
             message=f"Preview: {len(plan)} action(s) planned for {entity_label}",
+            extras=extras or {},
         )
 
     actions = await execute_plan(plan)
@@ -868,6 +874,7 @@ async def run_modify_plan(
         next_actions=next_actions,
         katana_url=katana_url,
         message=message,
+        extras=extras or {},
     )
 
 

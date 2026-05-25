@@ -542,6 +542,37 @@ def _make_delete_bom_row_apply(services: Any, row_id: UUID):
 # ----------------------------------------------------------------------------
 
 
+def _collect_ingredient_ids(
+    request: ManageProductBomRequest,
+    existing_snapshot: GetProductBomResponse | None,
+) -> set[int]:
+    """Union of every ingredient_variant_id touched by the plan.
+
+    Adds + updates contribute their request-side ingredient id (when the
+    update swaps the ingredient). Updates + deletes also contribute the
+    *existing* row's ingredient id (resolved via the snapshot) so the
+    builder can render the pre-patch identity. Falls back gracefully
+    when the snapshot is None (skip the existing-row contributions).
+    """
+    ids: set[int] = set()
+    for add in request.add_bom_rows or []:
+        ids.add(add.ingredient_variant_id)
+    for patch in request.update_bom_rows or []:
+        if patch.ingredient_variant_id is not None:
+            ids.add(patch.ingredient_variant_id)
+    if existing_snapshot is not None:
+        rows_by_id = {row.id: row for row in existing_snapshot.rows}
+        for patch in request.update_bom_rows or []:
+            row = rows_by_id.get(str(patch.id))
+            if row is not None:
+                ids.add(row.ingredient_variant_id)
+        for row_id in request.delete_bom_row_ids or []:
+            row = rows_by_id.get(str(row_id))
+            if row is not None:
+                ids.add(row.ingredient_variant_id)
+    return ids
+
+
 async def _modify_product_bom_impl(request: ManageProductBomRequest, context: Context):
     services = get_services(context)
 
@@ -555,19 +586,65 @@ async def _modify_product_bom_impl(request: ManageProductBomRequest, context: Co
     # ``prior_state`` for manual revert if the plan partially applies
     # (fail-fast halts after the first error). Best-effort: a list
     # failure shouldn't block the modify call itself.
+    #
+    # Also resolve the parent variant + product (same path
+    # ``_get_product_bom_impl`` uses) so the modify card's tier-1 header
+    # carries ``product_name``, ``variant_sku``, ``uom`` and a
+    # ``katana_url``. Without these the card falls back to a bare
+    # "BOM for variant {id}" header — usable but not user-identifiable.
+    #
+    # The row-fetch and parent-resolution failure modes are independent
+    # (split try blocks): a typed-cache miss on the parent shouldn't
+    # discard rows we already successfully listed (loses diff context +
+    # revert reference). Each call falls back to its own degraded state:
+    # row-fetch failure → ``existing_snapshot=None`` (the dispatcher
+    # warns "could not fetch"); parent-resolution failure → snapshot
+    # with rows + None header fields (card renders the placeholder
+    # title but the table + revert reference stay intact).
+    existing_rows: list[BomRowInfo] | None = None
     try:
         existing_rows = await _fetch_bom_row_infos(services, request.id)
-        existing_snapshot: GetProductBomResponse | None = GetProductBomResponse(
-            product_variant_id=request.id,
-            rows=existing_rows,
-            total_count=len(existing_rows),
-        )
     except asyncio.CancelledError:
         # Never swallow cooperative cancellation — request timeouts and
         # shutdown have to propagate cleanly.
         raise
     except Exception:
+        existing_rows = None
+
+    existing_snapshot: GetProductBomResponse | None
+    if existing_rows is None:
         existing_snapshot = None
+    else:
+        try:
+            variant, product = await _resolve_parent_for_card(services, request.id)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            variant, product = None, None
+        existing_snapshot = GetProductBomResponse(
+            product_variant_id=request.id,
+            rows=existing_rows,
+            total_count=len(existing_rows),
+            product_id=(getattr(product, "id", None) if product is not None else None),
+            product_name=(
+                getattr(product, "name", None) if product is not None else None
+            ),
+            variant_sku=(
+                getattr(variant, "sku", None) if variant is not None else None
+            ),
+            variant_display_name=(
+                getattr(variant, "display_name", None) if variant is not None else None
+            ),
+            is_producible=(
+                getattr(product, "is_producible", None) if product is not None else None
+            ),
+            uom=getattr(product, "uom", None) if product is not None else None,
+            katana_url=(
+                katana_web_url("product", product.id)
+                if product is not None and getattr(product, "id", None) is not None
+                else None
+            ),
+        )
 
     # Adds need the parent product/material id; fetch once if needed.
     product_item_id: int | None = None
@@ -620,6 +697,25 @@ async def _modify_product_bom_impl(request: ManageProductBomRequest, context: Co
             )
         )
 
+    # Resolve ingredient SKU / display_name for every variant id touched
+    # by the plan so ``build_bom_modify_ui`` can render user-facing row
+    # identities on *added* rows (the prior_state snapshot already
+    # resolves SKUs for existing rows via ``_fetch_bom_row_infos``). One
+    # batched cache lookup; misses degrade to ``(None, None)``.
+    ingredient_ids = _collect_ingredient_ids(request, existing_snapshot)
+    resolved_pairs = (
+        await _resolve_ingredient_fields(services, ingredient_ids)
+        if ingredient_ids
+        else {}
+    )
+    # Flatten the (sku, display_name) tuple into a serializable dict so
+    # the wire shape carries through ``model_dump`` cleanly and the
+    # renderer reads typed string fields.
+    resolved_ingredients: dict[int, dict[str, str | None]] = {
+        vid: {"sku": sku, "display_name": display_name}
+        for vid, (sku, display_name) in resolved_pairs.items()
+    }
+
     # No web URL for variant-scoped BOMs (Katana's URL pattern is
     # /product/{id} on the product id, not the variant id; the BOM tab
     # is reached by navigating from the product page). Skip katana_url
@@ -630,7 +726,7 @@ async def _modify_product_bom_impl(request: ManageProductBomRequest, context: Co
     # dispatcher's labels match ``entity_id=product_variant_id`` — the
     # whole BOM is the entity being modified; individual rows are the
     # per-action ``operation`` targets.
-    return await run_modify_plan(
+    response = await run_modify_plan(
         request=request,
         naming=EntityNaming(
             entity_type="product_bom",
@@ -646,7 +742,118 @@ async def _modify_product_bom_impl(request: ManageProductBomRequest, context: Co
         # "could not fetch" warning is informative when that happens.
         has_get_endpoint=True,
         cache_merge=None,
+        # Thread the resolved ingredients map onto the response so
+        # ``build_bom_modify_ui`` can render added-row SKUs + display
+        # names without a second cache hit at render time.
+        extras={"resolved_ingredients": resolved_ingredients},
     )
+
+    # On the apply path, precompute the post-apply DataTable rows + the
+    # apply-outcome chrome (Tier-1 header Badge label/variant, failed-
+    # row Alert summary) and stuff into ``response.extras``. From there
+    # the apply-time call to ``build_bom_modify_ui`` seeds these into
+    # its OWN PrefabApp ``state.*`` slots, and the preview iframe's
+    # ``on_success`` SetState chain reads off ``{{ $result.state.<slot> }}``
+    # (the apply tool's wire envelope is keyed by ``$prefab`` / ``view``
+    # / ``state`` — not ``extras`` — which is why ``$result.state`` is
+    # the correct path; documented in
+    # ``test_apply_button_morphs_card_to_applied_state``).
+    #
+    # The slots that flow extras → state → preview-morph:
+    #
+    # - ``applied_plan_rows`` — DataTable row dicts with per-row
+    #   APPLIED / FAILED Status decoration.
+    # - ``applied_outcome_label`` — Tier-1 state Badge text
+    #   (APPLIED / PARTIAL FAILURE / FAILED). Without this the badge
+    #   would stay frozen on the preview-time "APPLIED" default even
+    #   when actions failed.
+    # - ``applied_outcome_variant`` — pairs with the label so the
+    #   renderer picks ``default`` vs ``destructive`` based on the
+    #   actual outcome.
+    # - ``applied_failed_count`` / ``applied_failed_summary`` — drives
+    #   the consolidated failed-row Alert in the morphed state. We
+    #   pre-format the summary string server-side (one line per failed
+    #   row) because Prefab's Alert children are fixed at build time —
+    #   a state-driven list of AlertDescription rows is not expressible
+    #   in the current component vocabulary.
+    #
+    # The underscore-helper imports from prefab_ui are a known coupling
+    # smell — tracked in #850 for a follow-up extraction into a shared
+    # non-UI module.
+    if not response.is_preview:
+        from katana_mcp.tools.prefab_ui import (
+            _merge_bom_rows_for_modify_card,
+            _prepare_bom_table_rows,
+            _summarize_apply_outcome,
+        )
+
+        # ``execute_plan`` is fail-fast: ``response.actions`` ends at the
+        # first failed action; plan entries past that point are never
+        # attempted and so don't appear in ``response.actions``. Without
+        # synthesizing them here the morphed table would silently HIDE
+        # the never-run rows — the user sees "1 succeeded, 1 failed" but
+        # the original plan was "1 succeeded, 1 failed, 3 not run". The
+        # not-run rows still belong on the table so the operator knows
+        # what's still pending. We synthesize ``succeeded=None`` entries
+        # for the plan tail (matches the preview "PLANNED" status, which
+        # is correct semantically — those rows ARE still planned).
+        executed_results = list(response.actions)
+        not_run_specs = plan[len(executed_results) :]
+        not_run_actions = [
+            {
+                "operation": spec.operation,
+                "target_id": spec.target_id,
+                "succeeded": None,
+                "error": None,
+                "changes": [
+                    c.model_dump() if hasattr(c, "model_dump") else dict(c)
+                    for c in spec.diff
+                ],
+                "status_label": "NOT RUN",
+            }
+            for spec in not_run_specs
+        ]
+        actions_dicts = [a.model_dump() for a in executed_results] + not_run_actions
+        merged = _merge_bom_rows_for_modify_card(
+            response.prior_state, actions_dicts, resolved_ingredients
+        )
+        applied_plan_rows = _prepare_bom_table_rows(merged)
+        # Summarize against the EXECUTED actions only — "PARTIAL FAILURE"
+        # vs "FAILED" buckets on what was attempted, not the full plan.
+        outcome_label, outcome_variant = _summarize_apply_outcome(
+            [a.model_dump() for a in executed_results]
+        )
+        failed_rows = [
+            r for r in applied_plan_rows if r.get("status_label") == "FAILED"
+        ]
+        failed_summary_lines: list[str] = []
+        for r in failed_rows:
+            sku = r.get("sku") or f"variant {r.get('ingredient_variant_id')}"
+            err = r.get("error") or "unknown error"
+            failed_summary_lines.append(f"Failed — {sku}: {err}")
+        if not_run_specs:
+            failed_summary_lines.append(
+                f"({len(not_run_specs)} planned action(s) NOT RUN — "
+                f"fail-fast halted the plan; re-issue manage_product_bom "
+                f"after fixing the failure to apply the remaining changes.)"
+            )
+        # Footer ``applied_verb`` mirrors the Tier-1 outcome label so the
+        # in-place morph after Confirm reads the right verb instead of
+        # the build-time "applied" default. See the comment in
+        # ``build_bom_modify_ui``'s ``extra_on_success`` for the path.
+        verb_map = {
+            "APPLIED": "applied",
+            "FAILED": "failed",
+            "PARTIAL FAILURE": "partially applied",
+        }
+        response.extras["applied_plan_rows"] = applied_plan_rows
+        response.extras["applied_outcome_label"] = outcome_label
+        response.extras["applied_outcome_variant"] = outcome_variant
+        response.extras["applied_failed_count"] = len(failed_rows)
+        response.extras["applied_failed_summary"] = "\n".join(failed_summary_lines)
+        response.extras["applied_verb"] = verb_map.get(outcome_label, "applied")
+
+    return response
 
 
 @observe_tool

@@ -15,7 +15,9 @@ import pytest
 from katana_mcp.tools.prefab_ui import (
     PREVIEW_APPLY_COACHING,
     _format_money,
+    _merge_bom_rows_for_modify_card,
     build_batch_recipe_update_ui,
+    build_bom_modify_ui,
     build_fulfill_preview_ui,
     build_fulfill_success_ui,
     build_inventory_check_batch_ui,
@@ -2742,6 +2744,762 @@ class TestBuildPOModifyUI:
         result = app.state.get("result")
         assert isinstance(result, dict)
         assert result["entity_id"] == 9001
+
+
+class TestMergeBomRowsForModifyCard:
+    """``_merge_bom_rows_for_modify_card`` projects ``prior_state.rows`` +
+    plan actions into the row-shape the BOM modify DataTable consumes.
+    These tests pin the kind-discriminator + cell-decoration contract so
+    downstream renderer changes don't regress the user-facing shape.
+    """
+
+    _EXISTING_ROW_A: ClassVar[dict[str, Any]] = {
+        "id": "11111111-1111-1111-1111-111111111111",
+        "product_item_id": 100,
+        "product_variant_id": 200,
+        "ingredient_variant_id": 401,
+        "sku": "BLT-M5-10",
+        "display_name": "M5 chainring bolt",
+        "quantity": 6.0,
+        "notes": None,
+        "rank": 10000,
+    }
+    _EXISTING_ROW_B: ClassVar[dict[str, Any]] = {
+        "id": "22222222-2222-2222-2222-222222222222",
+        "product_item_id": 100,
+        "product_variant_id": 200,
+        "ingredient_variant_id": 402,
+        "sku": "BLT-M6-12",
+        "display_name": "M6 hex screw",
+        "quantity": 4.0,
+        "notes": "optional",
+        "rank": 20000,
+    }
+    _PRIOR_STATE: ClassVar[dict[str, Any]] = {
+        "rows": [_EXISTING_ROW_A, _EXISTING_ROW_B],
+    }
+    _RESOLVED: ClassVar[dict[int, dict[str, str | None]]] = {
+        301: {"sku": "FS90250", "display_name": "M5 chain pin"},
+        401: {"sku": "BLT-M5-10", "display_name": "M5 chainring bolt"},
+        402: {"sku": "BLT-M6-12", "display_name": "M6 hex screw"},
+    }
+
+    def test_existing_rows_carry_existing_kind_with_empty_status(self):
+        """No actions → both rows render as existing-untouched with empty
+        status (the per-row Status badge would mislead if it said
+        PLANNED/APPLIED for rows that aren't part of the plan)."""
+        rows = _merge_bom_rows_for_modify_card(self._PRIOR_STATE, [], self._RESOLVED)
+        assert len(rows) == 2
+        assert all(r["kind"] == "existing" for r in rows)
+        assert all(r["status_label"] == "" for r in rows)
+
+    def test_add_row_synthesized_with_resolved_sku_and_display_name(self):
+        """``add_bom_row`` actions have no target_id — the row is synthesized
+        from the action's changes; SKU/display_name come from
+        ``resolved_ingredients``. The row appends after existing rows."""
+        action = {
+            "operation": "add_bom_row",
+            "target_id": None,
+            "succeeded": None,
+            "changes": [
+                {
+                    "field": "ingredient_variant_id",
+                    "old": None,
+                    "new": 301,
+                    "is_added": True,
+                },
+                {"field": "quantity", "old": None, "new": 2.0, "is_added": True},
+            ],
+            "status_label": "PLANNED",
+        }
+        rows = _merge_bom_rows_for_modify_card(
+            self._PRIOR_STATE, [action], self._RESOLVED
+        )
+        assert len(rows) == 3
+        # Adds trail existing rows.
+        added = rows[-1]
+        assert added["kind"] == "added"
+        assert added["sku"] == "FS90250"
+        assert added["display_name"] == "M5 chain pin"
+        assert added["quantity_label"] == "2"
+        assert added["status_label"] == "PLANNED"
+        assert added["status_prefix"] == "+ "
+
+    def test_add_row_with_unresolved_ingredient_degrades_to_null_sku(self):
+        """If the cache miss prevented resolution, the row still renders
+        with the ingredient_variant_id so the user has *something* —
+        ``sku=None`` and ``display_name=None`` mean the SKU column shows
+        "(unresolved)" via the prepare-rows step (covered in builder
+        tests). Here we pin the underlying merge contract."""
+        action = {
+            "operation": "add_bom_row",
+            "target_id": None,
+            "succeeded": None,
+            "changes": [
+                {
+                    "field": "ingredient_variant_id",
+                    "old": None,
+                    "new": 999,
+                    "is_added": True,
+                },
+                {"field": "quantity", "old": None, "new": 1.0, "is_added": True},
+            ],
+        }
+        rows = _merge_bom_rows_for_modify_card(self._PRIOR_STATE, [action], {})
+        added = rows[-1]
+        assert added["kind"] == "added"
+        assert added["ingredient_variant_id"] == 999
+        assert added["sku"] is None
+        assert added["display_name"] is None
+
+    def test_update_row_decorates_quantity_with_unknown_prior(self):
+        """``update_bom_row`` actions emit ``is_unknown_prior=True``
+        (BOM has no GET-by-id). The merged row reflects the targeted
+        existing row's identity with a diff-decorated quantity cell."""
+        action = {
+            "operation": "update_bom_row",
+            "target_id": "11111111-1111-1111-1111-111111111111",
+            "succeeded": None,
+            "changes": [
+                {
+                    "field": "quantity",
+                    "old": None,
+                    "new": 8.0,
+                    "is_unknown_prior": True,
+                },
+            ],
+            "status_label": "PLANNED",
+        }
+        rows = _merge_bom_rows_for_modify_card(
+            self._PRIOR_STATE, [action], self._RESOLVED
+        )
+        updated = next(r for r in rows if r["kind"] == "updated")
+        # Identity preserved from the snapshot.
+        assert updated["sku"] == "BLT-M5-10"
+        assert updated["display_name"] == "M5 chainring bolt"
+        # Quantity diff renders with prior-unknown prefix.
+        assert updated["quantity_label"] == "(prior unknown) → 8"
+        assert updated["status_label"] == "PLANNED"
+        assert updated["status_prefix"] == "~ "
+
+    def test_update_row_with_ingredient_swap_surfaces_new_sku(self):
+        """Patching ``ingredient_variant_id`` swaps the row's SKU /
+        display_name to the post-patch identity so users see what the
+        row will *become*. Existing rank + status reflect the patch."""
+        action = {
+            "operation": "update_bom_row",
+            "target_id": "11111111-1111-1111-1111-111111111111",
+            "succeeded": None,
+            "changes": [
+                {
+                    "field": "ingredient_variant_id",
+                    "old": None,
+                    "new": 301,
+                    "is_unknown_prior": True,
+                },
+            ],
+            "status_label": "PLANNED",
+        }
+        rows = _merge_bom_rows_for_modify_card(
+            self._PRIOR_STATE, [action], self._RESOLVED
+        )
+        updated = next(r for r in rows if r["kind"] == "updated")
+        assert updated["sku"] == "FS90250"
+        assert updated["display_name"] == "M5 chain pin"
+
+    def test_delete_row_flips_kind_and_status(self):
+        """``delete_bom_row`` actions flip the matched row's kind to
+        ``deleted`` and pull the action's status_label onto it. The row's
+        original identity stays so the user sees *what* is going away."""
+        action = {
+            "operation": "delete_bom_row",
+            "target_id": "22222222-2222-2222-2222-222222222222",
+            "succeeded": None,
+            "changes": [],
+            "status_label": "PLANNED",
+        }
+        rows = _merge_bom_rows_for_modify_card(
+            self._PRIOR_STATE, [action], self._RESOLVED
+        )
+        deleted = next(r for r in rows if r["kind"] == "deleted")
+        assert deleted["sku"] == "BLT-M6-12"  # original identity preserved
+        assert deleted["status_label"] == "PLANNED"
+        assert deleted["status_prefix"] == "- "
+
+    def test_applied_failure_carries_error_per_row(self):
+        """When an action fails, its row carries the FAILED status and the
+        error message (rendered in the consolidated bottom Alert; not
+        inline). Verified ``True`` vs ``None`` is not relevant here —
+        only succeeded/error/status_label."""
+        action = {
+            "operation": "update_bom_row",
+            "target_id": "11111111-1111-1111-1111-111111111111",
+            "succeeded": False,
+            "error": "422 Unprocessable: quantity must be > 0",
+            "changes": [
+                {"field": "quantity", "old": None, "new": -1, "is_unknown_prior": True}
+            ],
+            "status_label": "FAILED",
+        }
+        rows = _merge_bom_rows_for_modify_card(
+            self._PRIOR_STATE, [action], self._RESOLVED
+        )
+        failed = next(r for r in rows if r["status_label"] == "FAILED")
+        assert failed["kind"] == "updated"
+        assert failed["error"] == "422 Unprocessable: quantity must be > 0"
+        assert failed["status_variant"] == "destructive"
+
+    def test_empty_prior_state_with_only_adds_renders_added_rows_only(self):
+        """A BOM that doesn't exist yet (or fetch failed) with an add-only
+        plan → only the added rows surface; no existing rows."""
+        action = {
+            "operation": "add_bom_row",
+            "target_id": None,
+            "succeeded": None,
+            "changes": [
+                {
+                    "field": "ingredient_variant_id",
+                    "old": None,
+                    "new": 301,
+                    "is_added": True,
+                },
+                {"field": "quantity", "old": None, "new": 5.0, "is_added": True},
+            ],
+        }
+        rows = _merge_bom_rows_for_modify_card(None, [action], self._RESOLVED)
+        assert len(rows) == 1
+        assert rows[0]["kind"] == "added"
+        assert rows[0]["sku"] == "FS90250"
+
+    def test_empty_plan_with_no_existing_rows_returns_empty(self):
+        """No prior + no plan → empty list (caller renders a placeholder)."""
+        rows = _merge_bom_rows_for_modify_card(None, [], {})
+        assert rows == []
+
+    def test_existing_rows_preserve_rank_order(self):
+        """Snapshot order (by rank) must survive the merge — DataTable
+        renders rows in input order; users expect rank-1 above rank-2."""
+        reversed_prior = {
+            "rows": [self._EXISTING_ROW_B, self._EXISTING_ROW_A]  # rank 20000, 10000
+        }
+        rows = _merge_bom_rows_for_modify_card(reversed_prior, [], self._RESOLVED)
+        # Sorted by rank ascending — A before B.
+        assert rows[0]["sku"] == "BLT-M5-10"
+        assert rows[1]["sku"] == "BLT-M6-12"
+
+    def test_update_row_with_orphan_target_id_synthesizes_placeholder(self):
+        """``update_bom_row`` targeting an id not in the snapshot still
+        surfaces — the merge synthesizes a placeholder so the action is
+        visible. Rare in practice (stale snapshot or partial fetch),
+        but the alternative (silent drop) would be worse."""
+        orphan_id = "99999999-9999-9999-9999-999999999999"
+        action = {
+            "operation": "update_bom_row",
+            "target_id": orphan_id,
+            "succeeded": None,
+            "changes": [
+                {
+                    "field": "quantity",
+                    "old": None,
+                    "new": 3.0,
+                    "is_unknown_prior": True,
+                },
+            ],
+            "status_label": "PLANNED",
+        }
+        rows = _merge_bom_rows_for_modify_card(
+            self._PRIOR_STATE, [action], self._RESOLVED
+        )
+        # 2 existing + 1 synthesized orphan with updated decoration.
+        assert len(rows) == 3
+        orphan = next(r for r in rows if r["id"] == orphan_id)
+        assert orphan["kind"] == "updated"
+        assert orphan["sku"] is None  # no identity to resolve from
+        assert orphan["display_name"] is None
+        assert orphan["quantity_label"] == "(prior unknown) → 3"
+        assert orphan["status_label"] == "PLANNED"
+        assert orphan["status_prefix"] == "~ "
+
+    def test_delete_row_with_orphan_target_id_synthesizes_placeholder(self):
+        """``delete_bom_row`` targeting an id not in the snapshot still
+        surfaces — same rationale as the update-orphan case."""
+        orphan_id = "99999999-9999-9999-9999-999999999999"
+        action = {
+            "operation": "delete_bom_row",
+            "target_id": orphan_id,
+            "succeeded": None,
+            "changes": [],
+            "status_label": "PLANNED",
+        }
+        rows = _merge_bom_rows_for_modify_card(
+            self._PRIOR_STATE, [action], self._RESOLVED
+        )
+        assert len(rows) == 3
+        orphan = next(r for r in rows if r["id"] == orphan_id)
+        assert orphan["kind"] == "deleted"
+        assert orphan["sku"] is None
+        assert orphan["status_label"] == "PLANNED"
+        assert orphan["status_prefix"] == "- "
+
+    def test_all_deletes_plan_renders_every_row_as_deleted(self):
+        """A "clear the recipe" plan — every existing row marked for
+        deletion. Symmetric inverse of the all-adds-to-empty-BOM case;
+        validates that the merge handles homogeneous delete plans."""
+        delete_a = {
+            "operation": "delete_bom_row",
+            "target_id": "11111111-1111-1111-1111-111111111111",
+            "succeeded": None,
+            "changes": [],
+            "status_label": "PLANNED",
+        }
+        delete_b = {
+            "operation": "delete_bom_row",
+            "target_id": "22222222-2222-2222-2222-222222222222",
+            "succeeded": None,
+            "changes": [],
+            "status_label": "PLANNED",
+        }
+        rows = _merge_bom_rows_for_modify_card(
+            self._PRIOR_STATE, [delete_a, delete_b], self._RESOLVED
+        )
+        assert len(rows) == 2
+        assert all(r["kind"] == "deleted" for r in rows)
+        assert all(r["status_prefix"] == "- " for r in rows)
+        # Identity preserved so the user sees *what* is being removed.
+        skus = {r["sku"] for r in rows}
+        assert skus == {"BLT-M5-10", "BLT-M6-12"}
+
+    def test_unknown_operation_is_logged_and_dropped(self, caplog):
+        """Future operation strings (e.g. ``reorder_bom_rows``) that the
+        merge doesn't know about should emit a warning rather than
+        silently vanishing. Surfaces gaps during dev when a new op lands
+        on the planner side without a renderer update.
+        """
+        import logging
+
+        from katana_mcp.logging import setup_logging
+
+        # Force structlog through stdlib + JSONRenderer so caplog sees the
+        # emitted warning. Without this the test depends on whether some
+        # earlier test in the same xdist worker happened to call
+        # ``setup_logging`` — flaky between sequential and parallel runs.
+        setup_logging(log_level="WARNING", log_format="json")
+        action = {
+            "operation": "reorder_bom_rows",
+            "target_id": "11111111-1111-1111-1111-111111111111",
+            "succeeded": None,
+            "changes": [],
+            "status_label": "PLANNED",
+        }
+        with caplog.at_level(logging.WARNING, logger="katana_mcp.tools.prefab_ui"):
+            rows = _merge_bom_rows_for_modify_card(
+                self._PRIOR_STATE, [action], self._RESOLVED
+            )
+        # The unknown action doesn't pollute the rendered rows.
+        assert len(rows) == 2
+        assert all(r["kind"] == "existing" for r in rows)
+        # The merge logs a warning so the dev sees the dropped action.
+        matched = [
+            rec
+            for rec in caplog.records
+            if rec.name == "katana_mcp.tools.prefab_ui"
+            and rec.levelname == "WARNING"
+            and "reorder_bom_rows" in rec.getMessage()
+        ]
+        assert matched, (
+            "Expected a WARNING log record mentioning reorder_bom_rows; "
+            f"saw {len(caplog.records)} record(s): "
+            f"{[(r.name, r.levelname, r.getMessage()[:80]) for r in caplog.records]}"
+        )
+
+
+class TestBuildBOMModifyUI:
+    """``build_bom_modify_ui`` (#811) — the diff-decorated BOM modify card.
+
+    Table-as-entity-view variant of the modify-card family: existing rows
+    render unchanged, plan adds appear with a ``+`` prefix, plan updates
+    show ``old → new`` quantity diffs, plan deletes carry a ``-`` prefix
+    + FAILED/APPLIED status. The summary line under the header reads
+    ``+N added, ~M updated, -K deleted``.
+    """
+
+    _BOM_PRIOR: ClassVar[dict[str, Any]] = {
+        "product_variant_id": 200,
+        "product_id": 100,
+        "product_name": "Mayhem 140 Frame",
+        "variant_sku": "MA14025RTLG",
+        "variant_display_name": "Mayhem 140 Frame / Large",
+        "is_producible": True,
+        "uom": "pcs",
+        "katana_url": "https://factory.katanamrp.com/product/100",
+        "total_count": 2,
+        "rows": [
+            {
+                "id": "11111111-1111-1111-1111-111111111111",
+                "product_item_id": 100,
+                "product_variant_id": 200,
+                "ingredient_variant_id": 401,
+                "sku": "BLT-M5-10",
+                "display_name": "M5 chainring bolt",
+                "quantity": 6.0,
+                "notes": None,
+                "rank": 10000,
+            },
+            {
+                "id": "22222222-2222-2222-2222-222222222222",
+                "product_item_id": 100,
+                "product_variant_id": 200,
+                "ingredient_variant_id": 402,
+                "sku": "BLT-M6-12",
+                "display_name": "M6 hex screw",
+                "quantity": 4.0,
+                "notes": "optional",
+                "rank": 20000,
+            },
+        ],
+    }
+    _RESOLVED: ClassVar[dict[int, dict[str, str | None]]] = {
+        301: {"sku": "FS90250", "display_name": "M5 chain pin"},
+        302: {"sku": "FS90251", "display_name": "M6 hex screw v2"},
+        401: {"sku": "BLT-M5-10", "display_name": "M5 chainring bolt"},
+        402: {"sku": "BLT-M6-12", "display_name": "M6 hex screw"},
+    }
+
+    @classmethod
+    def _preview(
+        cls,
+        actions: list[dict[str, Any]] | None = None,
+        **overrides: Any,
+    ) -> dict[str, Any]:
+        return {
+            "entity_type": "product_bom",
+            "entity_id": 200,
+            "is_preview": True,
+            "actions": actions or [],
+            "prior_state": dict(cls._BOM_PRIOR),
+            "extras": {"resolved_ingredients": dict(cls._RESOLVED)},
+            "warnings": [],
+            "next_actions": [],
+            "message": "Preview",
+            "katana_url": None,
+            **overrides,
+        }
+
+    @classmethod
+    def _applied(
+        cls,
+        actions: list[dict[str, Any]] | None = None,
+        **overrides: Any,
+    ) -> dict[str, Any]:
+        from katana_mcp.tools.prefab_ui import (
+            _merge_bom_rows_for_modify_card,
+            _prepare_bom_table_rows,
+            _summarize_apply_outcome,
+        )
+
+        actions_list = actions or []
+        merged = _merge_bom_rows_for_modify_card(
+            cls._BOM_PRIOR, actions_list, cls._RESOLVED
+        )
+        applied_plan_rows = _prepare_bom_table_rows(merged)
+        outcome_label, outcome_variant = _summarize_apply_outcome(actions_list)
+        failed_rows = [
+            r for r in applied_plan_rows if r.get("status_label") == "FAILED"
+        ]
+        summary_lines: list[str] = []
+        for r in failed_rows:
+            sku = r.get("sku") or f"variant {r.get('ingredient_variant_id')}"
+            err = r.get("error") or "unknown error"
+            summary_lines.append(f"Failed — {sku}: {err}")
+
+        base = cls._preview(actions_list, is_preview=False, **overrides)
+        # Mirror what ``_modify_product_bom_impl`` packs into
+        # ``response.extras`` on the apply branch so the state-driven
+        # Tier-1 Badge + failed-row Alert have the same data they'd get
+        # in production. Callers that pass an explicit ``extras=`` retain
+        # full control.
+        if "extras" not in overrides:
+            base["extras"] = {
+                **base["extras"],
+                "applied_plan_rows": applied_plan_rows,
+                "applied_outcome_label": outcome_label,
+                "applied_outcome_variant": outcome_variant,
+                "applied_failed_count": len(failed_rows),
+                "applied_failed_summary": "\n".join(summary_lines),
+            }
+        return base
+
+    @staticmethod
+    def _add_action(*, ingredient_id: int, quantity: float, **overrides: Any) -> dict:
+        return {
+            "operation": "add_bom_row",
+            "target_id": None,
+            "succeeded": None,
+            "changes": [
+                {
+                    "field": "ingredient_variant_id",
+                    "old": None,
+                    "new": ingredient_id,
+                    "is_added": True,
+                },
+                {
+                    "field": "quantity",
+                    "old": None,
+                    "new": quantity,
+                    "is_added": True,
+                },
+            ],
+            "status_label": "PLANNED",
+            **overrides,
+        }
+
+    @staticmethod
+    def _update_action(
+        *, target_id: str, new_quantity: float, **overrides: Any
+    ) -> dict:
+        return {
+            "operation": "update_bom_row",
+            "target_id": target_id,
+            "succeeded": None,
+            "changes": [
+                {
+                    "field": "quantity",
+                    "old": None,
+                    "new": new_quantity,
+                    "is_unknown_prior": True,
+                },
+            ],
+            "status_label": "PLANNED",
+            **overrides,
+        }
+
+    @staticmethod
+    def _delete_action(*, target_id: str, **overrides: Any) -> dict:
+        return {
+            "operation": "delete_bom_row",
+            "target_id": target_id,
+            "succeeded": None,
+            "changes": [],
+            "status_label": "PLANNED",
+            **overrides,
+        }
+
+    def test_preview_with_mixed_plan_renders_all_kinds_and_summary(self):
+        """The canonical multi-kind scenario: 1 add + 1 update + 1 delete +
+        2 existing untouched. Pins every kind of row appearing in the card
+        and the summary line counting them."""
+        actions = [
+            self._add_action(ingredient_id=301, quantity=2.0),
+            self._update_action(
+                target_id="11111111-1111-1111-1111-111111111111", new_quantity=8.0
+            ),
+            self._delete_action(target_id="22222222-2222-2222-2222-222222222222"),
+        ]
+        app = build_bom_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="manage_product_bom",
+        )
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        # Header carries the product identity.
+        assert "Mayhem 140 Frame" in rendered
+        assert "MA14025RTLG" in rendered
+        assert "pcs" in rendered
+        # Added row's resolved SKU surfaces (the user-centric piece).
+        assert "FS90250" in rendered
+        assert "M5 chain pin" in rendered
+        # Updated row's quantity diff arrow.
+        assert "(prior unknown) → 8" in rendered
+        # Deleted row's original identity surfaces.
+        assert "BLT-M6-12" in rendered
+        # Summary line.
+        assert "+1 added" in rendered
+        assert "~1 updated" in rendered
+        assert "-1 deleted" in rendered
+
+    def test_added_row_with_unresolved_ingredient_degrades_gracefully(self):
+        """If the cache miss prevented resolution (extras lookup is empty),
+        the added row shows ``(unresolved)`` in the SKU column and falls
+        back to ``variant <id>`` in the display name — the user still sees
+        *something* to identify the row by."""
+        actions = [self._add_action(ingredient_id=99999, quantity=1.0)]
+        app = build_bom_modify_ui(
+            self._preview(actions, extras={"resolved_ingredients": {}}),
+            confirm_request=_StubRequest(),
+            confirm_tool="manage_product_bom",
+        )
+        rendered = str(app.to_json())
+        assert "(unresolved)" in rendered
+        assert "variant 99999" in rendered
+
+    def test_applied_state_renders_per_row_status_pills(self):
+        """The applied card carries per-row APPLIED / FAILED pills on each
+        plan-derived row. The card-level state badge tracks the aggregate
+        outcome (APPLIED for all-success, FAILED for all-failure, PARTIAL
+        FAILURE for mixed)."""
+        actions = [
+            self._add_action(
+                ingredient_id=301,
+                quantity=2.0,
+                succeeded=True,
+                status_label="APPLIED",
+            ),
+            self._update_action(
+                target_id="11111111-1111-1111-1111-111111111111",
+                new_quantity=8.0,
+                succeeded=True,
+                status_label="APPLIED",
+            ),
+        ]
+        app = build_bom_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="manage_product_bom",
+        )
+        rendered = str(app.to_json())
+        # Aggregate header badge.
+        assert "APPLIED" in rendered
+        # Per-row status pills land in plan_rows state so they ride the
+        # DataTable rows binding. Two rows = two APPLIED pills minimum.
+        state_rows = app.state.get("plan_rows") if app.state else []
+        assert isinstance(state_rows, list)
+        statuses = [r["status_label"] for r in state_rows]
+        assert statuses.count("APPLIED") == 2
+
+    def test_partial_failure_surfaces_failed_error_in_alert(self):
+        """A mixed applied outcome (1 success + 1 fail) renders the
+        consolidated failed-rows Alert at the bottom of the table so the
+        actual error message reaches the user without crowding the row
+        cells. The row's per-row pill says FAILED."""
+        actions = [
+            self._add_action(
+                ingredient_id=301,
+                quantity=2.0,
+                succeeded=True,
+                status_label="APPLIED",
+            ),
+            self._update_action(
+                target_id="11111111-1111-1111-1111-111111111111",
+                new_quantity=8.0,
+                succeeded=False,
+                error="422 Unprocessable: quantity must be > 0",
+                status_label="FAILED",
+            ),
+        ]
+        app = build_bom_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="manage_product_bom",
+        )
+        rendered = str(app.to_json())
+        # Card-level state badge.
+        assert "PARTIAL FAILURE" in rendered
+        # Error surfaces in the consolidated Alert at the bottom.
+        assert "422 Unprocessable" in rendered
+
+    def test_empty_plan_with_existing_rows_renders_table_with_no_summary(self):
+        """A no-op plan (no actions) → the table shows existing rows
+        without the +/~/- summary line (empty plan, nothing to count)."""
+        app = build_bom_modify_ui(
+            self._preview([]),
+            confirm_request=_StubRequest(),
+            confirm_tool="manage_product_bom",
+        )
+        rendered = str(app.to_json())
+        # Existing rows surface.
+        assert "BLT-M5-10" in rendered
+        assert "BLT-M6-12" in rendered
+        # No summary fragments.
+        assert "+0 added" not in rendered
+        assert "~0 updated" not in rendered
+
+    def test_empty_prior_with_only_adds_renders_added_rows(self):
+        """First-time BOM (no existing rows, prior_state is None or empty)
+        + add-only plan → the card renders the added rows with their
+        resolved identities. Common case: setting up a recipe for a new
+        product."""
+        actions = [
+            self._add_action(ingredient_id=301, quantity=2.0),
+            self._add_action(ingredient_id=302, quantity=4.0),
+        ]
+        app = build_bom_modify_ui(
+            self._preview(actions, prior_state=None),
+            confirm_request=_StubRequest(),
+            confirm_tool="manage_product_bom",
+        )
+        rendered = str(app.to_json())
+        assert "FS90250" in rendered
+        assert "FS90251" in rendered
+        assert "+2 added" in rendered
+
+    def test_confirm_label_pluralizes_with_action_count(self):
+        """Confirm button label reads ``Confirm 3 BOM changes`` so the user
+        knows what they're committing to. Singular form for 1 action."""
+        single = build_bom_modify_ui(
+            self._preview([self._add_action(ingredient_id=301, quantity=1.0)]),
+            confirm_request=_StubRequest(),
+            confirm_tool="manage_product_bom",
+        )
+        assert "Confirm 1 BOM change" in str(single.to_json())
+
+        multi = build_bom_modify_ui(
+            self._preview(
+                [
+                    self._add_action(ingredient_id=301, quantity=1.0),
+                    self._add_action(ingredient_id=302, quantity=1.0),
+                    self._add_action(ingredient_id=303, quantity=1.0),
+                ]
+            ),
+            confirm_request=_StubRequest(),
+            confirm_tool="manage_product_bom",
+        )
+        assert "Confirm 3 BOM changes" in str(multi.to_json())
+
+    def test_card_does_not_leak_internal_action_labels(self):
+        """Anti-pattern guard (per ``feedback-user-centric-card-content``):
+        the rendered card MUST NOT carry the internal ActionResult model's
+        ``Add Bom Row`` / ``Update Bom Row`` / ``N field(s) set`` labels —
+        those are exactly what #811 exists to eliminate."""
+        actions = [
+            self._add_action(ingredient_id=301, quantity=2.0),
+            self._update_action(
+                target_id="11111111-1111-1111-1111-111111111111", new_quantity=8.0
+            ),
+        ]
+        app = build_bom_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="manage_product_bom",
+        )
+        rendered = str(app.to_json())
+        # Anti-pattern strings — these would indicate the legacy
+        # _ACTION_COLUMNS shape leaked through.
+        assert "Add Bom Row" not in rendered
+        assert "Update Bom Row" not in rendered
+        assert "Delete Bom Row" not in rendered
+        assert "field(s) set" not in rendered
+        assert "field(s) changed" not in rendered
+
+    def test_state_seeds_plan_rows_for_datatable_binding(self):
+        """The DataTable binds rows via ``{{ plan_rows }}`` — the merged
+        row list must seed ``state.plan_rows`` so the mustache reference
+        resolves at render time. ``_assert_state_bindings_resolve`` checks
+        the mustache form; this test pins the underlying state shape."""
+        actions = [self._add_action(ingredient_id=301, quantity=2.0)]
+        app = build_bom_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="manage_product_bom",
+        )
+        assert app.state is not None
+        plan_rows = app.state.get("plan_rows")
+        assert isinstance(plan_rows, list)
+        # 2 existing + 1 added.
+        assert len(plan_rows) == 3
+        kinds = [r["kind"] for r in plan_rows]
+        assert kinds.count("existing") == 2
+        assert kinds.count("added") == 1
 
 
 class TestPOEntityViewSharedBetweenCreateAndModify:

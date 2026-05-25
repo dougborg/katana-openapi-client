@@ -71,6 +71,48 @@ class TestModificationCardRender:
         # Every action shows APPLIED (verified).
         assert frame.locator("td").filter(has_text="APPLIED").count() == 12
 
+    def test_bom_modify_mixed_preview_renders_all_kinds(self, render_scenario):
+        """#811 BOM modify card — a 5-row recipe + (1 add + 1 update + 2
+        delete) plan renders the full table with every kind visible:
+        existing rows untouched, added row's resolved SKU surfaces,
+        updated row shows the diff arrow, deleted rows carry their
+        original SKU + a PLANNED status.
+        """
+        frame = render_scenario("bom_modify_mixed_preview")
+        assert frame.locator("table").count() == 1
+        # Header product identity.
+        assert frame.locator("text=Mayhem 140 Frame").count() >= 1
+        # Added row's resolved SKU (the user-centric piece — #811's
+        # acceptance criterion: no "Add Bom Row" placeholder).
+        assert frame.locator("td").filter(has_text="FS90250").count() >= 1
+        # Existing-untouched SKUs still in the table (frame raw + 2
+        # surviving rows).
+        assert frame.locator("td").filter(has_text="FRM-AL-140").count() >= 1
+        # Deleted SKUs (still in the table with deleted kind).
+        assert frame.locator("td").filter(has_text="PNT-MTB").count() >= 1
+        # Plan summary line shows the per-kind tally.
+        assert frame.locator("text=+1 added").count() >= 1
+        assert frame.locator("text=~1 updated").count() >= 1
+        assert frame.locator("text=-2 deleted").count() >= 1
+        # Confirm button (preview state).
+        assert frame.locator("button").filter(has_text="Confirm").count() == 1
+        # Anti-pattern guard: no internal-ActionResult-model labels.
+        assert frame.locator("td").filter(has_text="Add Bom Row").count() == 0
+        assert frame.locator("td").filter(has_text="Update Bom Row").count() == 0
+        assert frame.locator("td").filter(has_text="field(s) set").count() == 0
+
+    def test_bom_modify_mixed_applied_renders_per_row_status(self, render_scenario):
+        """Result card after a successful apply — every plan-derived row
+        shows APPLIED in the Status column. Existing-untouched rows show
+        no status (empty cell). Aggregate header badge says APPLIED.
+        """
+        frame = render_scenario("bom_modify_mixed_applied")
+        assert frame.locator("table").count() == 1
+        # Per-row APPLIED pills land in the Status column. The plan has
+        # 4 actions (1 add + 1 update + 2 delete), so 4 APPLIED cells in
+        # the rendered table.
+        assert frame.locator("td").filter(has_text="APPLIED").count() >= 4
+
     def test_apply_button_morphs_card_to_applied_state(self, render_scenario):
         """Click-through: Confirm fires the apply call, the on_success
         chain flips ``state.applied=True``, and the button morphs from
