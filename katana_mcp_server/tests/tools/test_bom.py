@@ -386,6 +386,247 @@ async def test_manage_bom_apply_populates_prior_state_from_snapshot():
 
 
 @pytest.mark.asyncio
+async def test_manage_bom_response_carries_resolved_ingredients_for_renderer():
+    """#811: the BOM modify card needs ingredient SKU + display_name for
+    rows that *don't* have the identity inline on the snapshot.
+
+    Renderer contract (per ``_merge_bom_rows_for_modify_card``):
+    - **Existing / deleted rows** — read SKU / display_name directly off
+      the snapshot row dict. The snapshot already resolved them via
+      ``_fetch_bom_row_infos`` so no further lookup is needed.
+    - **Added rows** — synthesized from the ``add_bom_row`` action's
+      ``changes``; the new ingredient_variant_id has no snapshot row to
+      reference, so the SKU / display_name come from
+      ``resolved_ingredients[ingredient_id]``.
+    - **Updated rows with an ingredient swap** — the post-patch identity
+      replaces the snapshot identity, again sourced from
+      ``resolved_ingredients`` for the swapped-in variant id.
+
+    The impl (see :func:`_collect_ingredient_ids`) batches a single
+    cache lookup across the targeted union: every add's target ingredient,
+    every update's NEW ingredient when swap-shaped, plus every
+    update / delete TARGET row's existing ingredient (resolved via the
+    snapshot so the renderer can render the pre-patch identity). Rows
+    that aren't touched by the plan don't contribute — their identity
+    is already in the snapshot's ``rows[*].sku`` / ``display_name``.
+    This test pins that union: one add + one update + one delete →
+    those three ingredient_variant_ids are in the map.
+    """
+    from katana_mcp.tools.foundation.bom import BomRowInfo
+
+    context, lifespan = create_mock_context()
+    existing_rows = [
+        BomRowInfo(
+            id="11111111-1111-1111-1111-111111111111",
+            product_item_id=100,
+            product_variant_id=200,
+            ingredient_variant_id=401,  # gets updated
+            sku="BLT-M5-10",
+            quantity=6.0,
+        ),
+        BomRowInfo(
+            id="22222222-2222-2222-2222-222222222222",
+            product_item_id=100,
+            product_variant_id=200,
+            ingredient_variant_id=402,  # gets deleted
+            sku="BLT-M6-12",
+            quantity=4.0,
+        ),
+    ]
+
+    def _resolve(model, variant_ids, **kwargs):
+        return {
+            vid: _mock_variant(id=vid, sku=f"SKU-{vid}", product_id=100)
+            for vid in variant_ids
+        }
+
+    lifespan.typed_cache.catalog.get_many_by_ids = AsyncMock(side_effect=_resolve)
+
+    with patch(
+        "katana_mcp.tools.foundation.bom._fetch_bom_row_infos",
+        new_callable=AsyncMock,
+        return_value=existing_rows,
+    ):
+        request = ManageProductBomRequest(
+            id=200,
+            add_bom_rows=[BomRowAdd(ingredient_variant_id=301, quantity=2.0)],
+            update_bom_rows=[
+                BomRowUpdate(
+                    id=UUID("11111111-1111-1111-1111-111111111111"),
+                    quantity=8.0,
+                )
+            ],
+            delete_bom_row_ids=[UUID("22222222-2222-2222-2222-222222222222")],
+            preview=True,
+        )
+        response = await _modify_product_bom_impl(request, context)
+
+    resolved = response.extras.get("resolved_ingredients")
+    assert isinstance(resolved, dict)
+    # Every ingredient_variant_id from add + delete + update target's
+    # existing row appears in the resolved map. (Updates that don't swap
+    # the ingredient still need the existing row's id resolved so the
+    # row identity surfaces in the card.)
+    assert 301 in resolved  # add
+    assert 401 in resolved  # update target's existing ingredient
+    assert 402 in resolved  # delete target's existing ingredient
+    # Resolved entries carry the typed sku/display_name shape the
+    # renderer reads.
+    assert resolved[301]["sku"] == "SKU-301"
+    # Preview response: applied_plan_rows NOT populated (computed only
+    # on the apply branch). The iframe seeds state.plan_rows from the
+    # preview table_rows at first render; applied_plan_rows is reserved
+    # for the on_success SetState morph.
+    assert "applied_plan_rows" not in response.extras
+
+
+@pytest.mark.asyncio
+async def test_manage_bom_apply_response_carries_applied_plan_rows():
+    """#811 follow-up: the apply response must precompute the
+    resolved-status table rows so the iframe's Confirm chain can
+    SetState the DataTable bindings to the actual outcome (APPLIED /
+    FAILED) instead of leaving the seeded preview rows stuck on
+    PLANNED. Reads from ``response.extras["applied_plan_rows"]``;
+    each row carries the merged-row shape (kind / status_prefix /
+    sku_label / status_label / etc.) — i.e. the same row dicts
+    ``_prepare_bom_table_rows`` produces.
+    """
+    from katana_mcp.tools.foundation.bom import BomRowInfo
+
+    context, lifespan = create_mock_context()
+    lifespan.typed_cache.catalog.get_many_by_ids = AsyncMock(
+        return_value={
+            200: _mock_variant(id=200, sku="SP0502", product_id=17092695),
+        }
+    )
+
+    async def fake_create(*, client, body):
+        resp = MagicMock()
+        resp.status_code = 204
+        resp.parsed = None
+        return resp
+
+    existing_rows = [
+        BomRowInfo(
+            id="11111111-1111-1111-1111-111111111111",
+            product_item_id=100,
+            product_variant_id=200,
+            ingredient_variant_id=401,
+            sku="BLT-M5-10",
+            quantity=6.0,
+        ),
+    ]
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.bom._fetch_bom_row_infos",
+            new_callable=AsyncMock,
+            return_value=existing_rows,
+        ),
+        patch(
+            "katana_mcp.tools.foundation.bom.api_create_bom_row.asyncio_detailed",
+            side_effect=fake_create,
+        ),
+    ):
+        request = ManageProductBomRequest(
+            id=200,
+            add_bom_rows=[BomRowAdd(ingredient_variant_id=301, quantity=2.0)],
+            preview=False,
+        )
+        response = await _modify_product_bom_impl(request, context)
+
+    assert response.is_preview is False
+    applied_rows = response.extras.get("applied_plan_rows")
+    assert isinstance(applied_rows, list)
+    # One existing row (untouched) + one added row.
+    assert len(applied_rows) == 2
+    # The added row reflects the resolved status (APPLIED) — not the
+    # PLANNED-stuck-on-preview state. ``_prepare_bom_table_rows`` glues
+    # the kind-prefix gutter onto sku_label.
+    added = next(r for r in applied_rows if r["kind"] == "added")
+    assert added["status_label"] == "APPLIED"
+    assert added["status_prefix"] == "+ "
+    # The existing untouched row stays as such — applied_plan_rows
+    # carries the FULL post-merge table, not just the planned actions.
+    untouched = next(r for r in applied_rows if r["kind"] == "existing")
+    assert untouched["sku"] == "BLT-M5-10"
+
+
+@pytest.mark.asyncio
+async def test_manage_bom_apply_synthesizes_not_run_for_fail_fast_tail():
+    """``execute_plan`` is fail-fast: ``response.actions`` ends at the
+    first failed action. The impl must synthesize NOT RUN entries for
+    plan tail entries that were never attempted, otherwise the morphed
+    DataTable would silently hide them — the operator sees "1 added"
+    when the plan was actually "1 added, 2 never-attempted".
+
+    Pins ``applied_plan_rows`` includes the never-run entries with
+    ``status_label="NOT RUN"`` and ``applied_failed_summary`` calls
+    out the count.
+    """
+    context, lifespan = create_mock_context()
+    lifespan.typed_cache.catalog.get_many_by_ids = AsyncMock(
+        return_value={
+            200: _mock_variant(id=200, sku="SP0502", product_id=17092695),
+        }
+    )
+
+    call_count = {"n": 0}
+
+    async def fake_create(*, client, body):
+        call_count["n"] += 1
+        if call_count["n"] == 1:
+            # First add fails — execute_plan halts here.
+            raise RuntimeError("422 ingredient_variant_id is required")
+        # Should never be reached because fail-fast halts after the first.
+        resp = MagicMock()
+        resp.status_code = 204
+        resp.parsed = None
+        return resp
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.bom._fetch_bom_row_infos",
+            new_callable=AsyncMock,
+            return_value=[],
+        ),
+        patch(
+            "katana_mcp.tools.foundation.bom.api_create_bom_row.asyncio_detailed",
+            side_effect=fake_create,
+        ),
+    ):
+        request = ManageProductBomRequest(
+            id=200,
+            add_bom_rows=[
+                BomRowAdd(ingredient_variant_id=301, quantity=1.0),
+                BomRowAdd(ingredient_variant_id=302, quantity=1.0),
+                BomRowAdd(ingredient_variant_id=303, quantity=1.0),
+            ],
+            preview=False,
+        )
+        response = await _modify_product_bom_impl(request, context)
+
+    # Only the first action was attempted (and failed); the rest were
+    # never run.
+    assert call_count["n"] == 1
+    assert len(response.actions) == 1
+    assert response.actions[0].succeeded is False
+
+    applied_rows = response.extras.get("applied_plan_rows")
+    assert isinstance(applied_rows, list)
+    # 3 added rows (one FAILED, two NOT RUN). Existing snapshot was empty.
+    assert len(applied_rows) == 3
+    statuses = [r.get("status_label") for r in applied_rows]
+    assert statuses.count("FAILED") == 1
+    assert statuses.count("NOT RUN") == 2
+    # The summary tells the operator how to recover.
+    assert "NOT RUN" in response.extras.get("applied_failed_summary", "")
+    assert "re-issue manage_product_bom" in response.extras.get(
+        "applied_failed_summary", ""
+    )
+
+
+@pytest.mark.asyncio
 async def test_manage_bom_apply_calls_create_for_each_add():
     """Confirm mode executes per-action POST /bom_rows for each add.
 

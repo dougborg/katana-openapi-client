@@ -294,6 +294,13 @@ class ModificationResponse(BaseModel):
     next_actions: list[str] = Field(default_factory=list)
     katana_url: str | None = None
     message: str
+    # Entity-view extras keyed by an entity-specific contract. Today
+    # ``product_bom`` uses ``resolved_ingredients`` (int → {sku, display_name})
+    # so ``build_bom_modify_ui`` can render the per-row identity for *added*
+    # rows (the prior_state snapshot already resolves SKUs for existing rows).
+    # Other entity types may add their own keys without polluting the universal
+    # response shape. The renderer accesses them by name; absence is graceful.
+    extras: dict[str, Any] = Field(default_factory=dict)
 
     DEFAULT_EXCLUDED: ClassVar[tuple[str, ...]] = ("id", "preview")
 
@@ -575,6 +582,7 @@ def to_tool_result(
     every #721 child PR has shipped.
     """
     from katana_mcp.tools.prefab_ui import (
+        build_bom_modify_ui,
         build_modification_preview_ui,
         build_modification_result_ui,
         build_po_modify_ui,
@@ -582,11 +590,19 @@ def to_tool_result(
 
     response_dict = response.model_dump()
 
-    # Per-entity dispatch — PO migrated in #722; remaining entities
-    # (SO, MO, stock_transfer, item) fall through to the legacy
+    # Per-entity dispatch — PO migrated in #722, BOM in #811; remaining
+    # entities (SO, MO, stock_transfer, item) fall through to the legacy
     # builders until their respective child PRs land.
     if response.entity_type == "purchase_order":
         ui = build_po_modify_ui(
+            response_dict,
+            confirm_request=confirm_request,
+            confirm_tool=confirm_tool,
+        )
+        return make_tool_result(response, ui=ui)
+
+    if response.entity_type == "product_bom":
+        ui = build_bom_modify_ui(
             response_dict,
             confirm_request=confirm_request,
             confirm_tool=confirm_tool,

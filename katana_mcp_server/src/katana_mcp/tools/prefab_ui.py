@@ -106,8 +106,11 @@ from prefab_ui.components.slot import Slot
 from prefab_ui.rx import EVENT, RESULT, Rx
 from pydantic import BaseModel
 
+from katana_mcp.logging import get_logger
 from katana_mcp.tools.tool_result_utils import BLOCK_WARNING_PREFIX
 from katana_mcp.web_urls import EntityKind, katana_web_url
+
+logger = get_logger(__name__)
 
 
 def _split_warnings(
@@ -4096,6 +4099,784 @@ def build_po_modify_ui(
             # also have nothing useful to suggest (the PO is gone).
             next_action_buttons=(),
             applied_verb=applied_verb,
+        )
+    return app
+
+
+# ============================================================================
+# BOM modify card — table-as-entity-view variant of the modify-card family
+# (#811). Unlike PO/SO/MO/etc. which modify scalar header fields, a BOM
+# modify plan is N row creates / row updates / row deletes on a list. The
+# entity view here IS the table — each plan action projects onto a row in
+# the merged before-state + planned-changes view.
+# ============================================================================
+
+
+# Per-row status pill variants. Mirrors the action status_label vocabulary
+# from ``_modification._derive_status_label`` but bucketed for Badge variants
+# (success / warn / fail / neutral) so the per-row rendering is consistent
+# across preview and applied states.
+_BOM_ROW_STATUS_VARIANTS: dict[str, str] = {
+    "PLANNED": "secondary",
+    "APPLIED": "default",
+    "APPLIED (verified)": "default",
+    "APPLIED (verification mismatch)": "destructive",
+    "FAILED": "destructive",
+    # ``execute_plan`` is fail-fast — plan entries past the first failure
+    # are never attempted. ``_modify_product_bom_impl`` synthesizes these
+    # into the rendered ``actions`` list with status_label="NOT RUN" so
+    # the morphed table shows what didn't execute (instead of silently
+    # hiding the never-run rows).
+    "NOT RUN": "secondary",
+    # Existing rows that aren't part of the plan render with no status —
+    # we use an empty string so the DataTable cell stays empty rather than
+    # showing a misleading "PLANNED" badge for context rows.
+    "": "outline",
+}
+
+
+# Wire shape of an existing row in ``prior_state.rows`` — pre-serialized by
+# ``serialize_for_prior_state`` from ``BomRowInfo.model_dump()``. Carries
+# ``id`` (UUID string), ``ingredient_variant_id``, ``sku``, ``display_name``,
+# ``quantity``, ``notes``, ``rank``.
+_BomMergedRowKind = Literal["existing", "added", "updated", "deleted"]
+
+
+def _bom_change_lookup(
+    changes: list[dict[str, Any]] | None,
+) -> dict[str, dict[str, Any]]:
+    """Index an action's ``changes`` list by field name for quick lookup.
+
+    Each entry is the raw ``FieldChange`` dict (``field``, ``old``, ``new``,
+    plus the ``is_*`` flags). Used by the row-merge helper to pluck out
+    quantity / notes / ingredient_variant_id changes per action.
+    """
+    out: dict[str, dict[str, Any]] = {}
+    for c in changes or []:
+        if isinstance(c, dict) and isinstance(c.get("field"), str):
+            out[c["field"]] = c
+    return out
+
+
+def _format_bom_quantity(value: Any) -> str:
+    """Render a BOM-row quantity for the table cell.
+
+    Quantity is a numeric field in Katana but the wire shape may serialize
+    floats as strings (decimal-padded) or as Python floats. ``None`` renders
+    as em-dash. Floats with an integer value render without the trailing
+    ``.0`` (so ``2.0`` reads as ``2`` — typical recipe quantities are whole
+    units; the decimal only matters when it's non-trivial).
+    """
+    if value is None:
+        return "—"
+    if isinstance(value, str):
+        # Strip pure-integer decimal strings like "2.0000000000".
+        try:
+            numeric: float = float(value)
+        except (TypeError, ValueError):
+            return value
+        if numeric.is_integer():
+            return str(int(numeric))
+        return f"{numeric:g}"
+    if isinstance(value, (int, float)):
+        if float(value).is_integer():
+            return str(int(value))
+        return f"{value:g}"
+    return str(value)
+
+
+def _format_bom_quantity_diff(old: Any, new: Any, *, unknown_prior: bool) -> str:
+    """Render a quantity update as ``old → new`` (or ``(prior unknown) → new``).
+
+    Used in the Quantity cell for updated rows.
+    """
+    after = _format_bom_quantity(new)
+    if unknown_prior:
+        return f"(prior unknown) → {after}"
+    return f"{_format_bom_quantity(old)} → {after}"
+
+
+def _bom_existing_row_from_snapshot(row: dict[str, Any]) -> dict[str, Any]:
+    """Project a snapshot row into the merge-row shape with ``kind=existing``.
+
+    Helper for :func:`_merge_bom_rows_for_modify_card` — extracted so the
+    main merge stays under ruff's complexity threshold. The snapshot row
+    is the wire shape of ``BomRowInfo.model_dump()``.
+    """
+    return {
+        "id": row.get("id"),
+        "ingredient_variant_id": row.get("ingredient_variant_id"),
+        "sku": row.get("sku"),
+        "display_name": row.get("display_name"),
+        "rank": row.get("rank"),
+        "rank_label": (str(row["rank"]) if isinstance(row.get("rank"), int) else "—"),
+        "quantity_label": _format_bom_quantity(row.get("quantity")),
+        "notes": row.get("notes"),
+        "notes_label": row.get("notes") or "—",
+        "kind": "existing",
+        "status_label": "",
+        "status_variant": _BOM_ROW_STATUS_VARIANTS[""],
+        "status_prefix": "  ",
+        "error": None,
+    }
+
+
+def _bom_synth_orphan_row(target_id: str) -> dict[str, Any]:
+    """Synthesize a minimal row for an update/delete target absent from the
+    snapshot (rare — partial fetch failure or stale id). Lets the action
+    surface in the table even without resolved identity context.
+    """
+    return {
+        "id": target_id,
+        "ingredient_variant_id": None,
+        "sku": None,
+        "display_name": None,
+        "rank": None,
+        "rank_label": "—",
+        "quantity_label": "—",
+        "notes": None,
+        "notes_label": "—",
+        "kind": "existing",
+        "status_label": "",
+        "status_variant": _BOM_ROW_STATUS_VARIANTS[""],
+        "status_prefix": "  ",
+        "error": None,
+    }
+
+
+def _bom_add_action_to_row(
+    *,
+    changes: dict[str, dict[str, Any]],
+    resolved_ingredients: dict[int, dict[str, str | None]],
+    status_label: str,
+    status_variant: str,
+    error: str | None,
+) -> dict[str, Any]:
+    """Synthesize an ``added``-kind merge row from an ``add_bom_row`` action."""
+    ingredient_id_change = changes.get("ingredient_variant_id")
+    ingredient_id = ingredient_id_change.get("new") if ingredient_id_change else None
+    quantity_change = changes.get("quantity")
+    new_qty = quantity_change.get("new") if quantity_change else None
+    notes_change = changes.get("notes")
+    new_notes = notes_change.get("new") if notes_change else None
+    resolved = (
+        resolved_ingredients.get(int(ingredient_id))
+        if isinstance(ingredient_id, int)
+        else None
+    )
+    return {
+        "id": "",  # No UUID yet — server assigns on POST.
+        "ingredient_variant_id": ingredient_id,
+        "sku": (resolved or {}).get("sku"),
+        "display_name": (resolved or {}).get("display_name"),
+        "rank": None,
+        "rank_label": "—",
+        "quantity_label": _format_bom_quantity(new_qty),
+        "notes": new_notes,
+        "notes_label": new_notes or "—",
+        "kind": "added",
+        "status_label": status_label,
+        "status_variant": status_variant,
+        "status_prefix": "+ ",
+        "error": error,
+    }
+
+
+def _apply_bom_update_to_row(
+    row: dict[str, Any],
+    *,
+    changes: dict[str, dict[str, Any]],
+    resolved_ingredients: dict[int, dict[str, str | None]],
+    status_label: str,
+    status_variant: str,
+    error: str | None,
+) -> None:
+    """Decorate a snapshot row in-place with an ``update_bom_row`` action's diff.
+
+    Flips ``kind`` to ``updated``, applies quantity/notes/ingredient_swap
+    decoration, and overlays the per-row status. Existing identity stays
+    unless the ingredient_variant_id is swapped.
+    """
+    row["kind"] = "updated"
+    row["status_label"] = status_label
+    row["status_variant"] = status_variant
+    row["status_prefix"] = "~ "
+    row["error"] = error
+    qty_change = changes.get("quantity")
+    if qty_change is not None:
+        row["quantity_label"] = _format_bom_quantity_diff(
+            qty_change.get("old"),
+            qty_change.get("new"),
+            unknown_prior=bool(qty_change.get("is_unknown_prior")),
+        )
+    notes_change = changes.get("notes")
+    if notes_change is not None:
+        new_notes = notes_change.get("new")
+        if notes_change.get("is_unknown_prior"):
+            row["notes_label"] = f"(prior unknown) → {new_notes or '—'}"
+        else:
+            old_notes = notes_change.get("old") or "—"
+            row["notes_label"] = f"{old_notes} → {new_notes or '—'}"
+    ingredient_change = changes.get("ingredient_variant_id")
+    if ingredient_change is not None:
+        new_ingredient = ingredient_change.get("new")
+        if isinstance(new_ingredient, int):
+            resolved = resolved_ingredients.get(new_ingredient)
+            row["ingredient_variant_id"] = new_ingredient
+            row["sku"] = (resolved or {}).get("sku")
+            row["display_name"] = (resolved or {}).get("display_name")
+
+
+def _apply_bom_delete_to_row(
+    row: dict[str, Any],
+    *,
+    status_label: str,
+    status_variant: str,
+    error: str | None,
+) -> None:
+    """Decorate a snapshot row in-place with a ``delete_bom_row`` action."""
+    row["kind"] = "deleted"
+    row["status_label"] = status_label
+    row["status_variant"] = status_variant
+    row["status_prefix"] = "- "
+    row["error"] = error
+
+
+def _merge_bom_rows_for_modify_card(
+    prior_state: dict[str, Any] | None,
+    actions: list[dict[str, Any]],
+    resolved_ingredients: dict[int, dict[str, str | None]] | None,
+) -> list[dict[str, Any]]:
+    """Project the existing BOM snapshot + plan actions into a unified row list.
+
+    Each row carries everything the DataTable needs:
+
+    - ``kind``: ``existing`` | ``added`` | ``updated`` | ``deleted``
+    - ``rank`` / ``rank_label``: rank for sortable column; ``rank_label`` is
+      the display text (``"—"`` for adds with no rank yet, the rank number
+      for everything else).
+    - ``ingredient_variant_id``, ``sku``, ``display_name``: row identity.
+      Adds resolve SKU / display_name from ``resolved_ingredients``; existing
+      rows pull from the snapshot (already resolved by ``_fetch_bom_row_infos``).
+    - ``quantity_label``: cell text — bare number for existing/added,
+      ``old → new`` diff for updated. For deleted rows the snapshot
+      quantity is preserved (so the user sees *what* is going away —
+      the ``- `` SKU-column gutter + ``deleted`` kind already signal
+      the action).
+    - ``notes`` / ``notes_label``: notes value, with diff decoration on update.
+    - ``status_label`` / ``status_variant``: per-row Badge text + variant.
+    - ``error``: failure message (None when not failed). Surfaced in the
+      consolidated bottom Alert; not rendered inline.
+    - ``status_prefix``: ``"+ "`` / ``"- "`` / ``"  "`` — leading 2-char
+      gutter on the SKU / Display Name cells so adds and deletes are
+      visually distinct without depending on row-styling that Prefab
+      doesn't currently expose. Same layout-stability trick as
+      ``_render_field_diff_line``.
+
+    Match rules:
+
+    - delete actions are looked up by ``target_id`` (UUID string) against the
+      snapshot rows.
+    - update actions are looked up the same way; the resolved ingredient
+      reflects the post-patch ingredient (when the update swaps it).
+    - add actions are synthesized fresh from the action's ``changes`` —
+      they have no ``target_id`` in the plan. SKU/display_name come from
+      ``resolved_ingredients``; missing entries gracefully degrade to
+      "(unresolved)" so the row still renders with the ingredient_variant_id.
+
+    Empty plan + empty existing → empty list (the caller renders a friendly
+    placeholder). The merge is robust against partial data: missing
+    ``prior_state`` reduces existing rows to zero but still surfaces planned
+    adds + updates + deletes (the latter two with no resolved row to base
+    off of — they degrade gracefully).
+    """
+    resolved_ingredients = resolved_ingredients or {}
+    prior_rows: list[dict[str, Any]] = []
+    if isinstance(prior_state, dict):
+        candidate = prior_state.get("rows")
+        if isinstance(candidate, list):
+            prior_rows = [r for r in candidate if isinstance(r, dict)]
+
+    # Build a working copy keyed by UUID string for fast update/delete
+    # lookup. ``existing_by_id`` is mutated in place as we apply plan
+    # decorations, so the final pass over it yields rows in the snapshot's
+    # original rank order regardless of plan iteration order.
+    existing_by_id: dict[str, dict[str, Any]] = {}
+    for row in prior_rows:
+        row_id = row.get("id")
+        if not isinstance(row_id, str):
+            continue
+        existing_by_id[row_id] = _bom_existing_row_from_snapshot(row)
+
+    added_rows: list[dict[str, Any]] = []
+
+    for action in actions:
+        op = str(action.get("operation") or "").lower()
+        status_label = action.get("status_label") or _derive_status_label(action) or ""
+        status_variant = _BOM_ROW_STATUS_VARIANTS.get(status_label, "secondary")
+        error = action.get("error") if action.get("succeeded") is False else None
+        changes = _bom_change_lookup(action.get("changes"))
+        target_id = action.get("target_id")
+        target_str = str(target_id) if target_id is not None else None
+
+        if op == "add_bom_row":
+            added_rows.append(
+                _bom_add_action_to_row(
+                    changes=changes,
+                    resolved_ingredients=resolved_ingredients,
+                    status_label=status_label,
+                    status_variant=status_variant,
+                    error=error,
+                )
+            )
+            continue
+
+        if op == "update_bom_row" and target_str:
+            row = existing_by_id.get(target_str)
+            if row is None:
+                row = _bom_synth_orphan_row(target_str)
+                existing_by_id[target_str] = row
+            _apply_bom_update_to_row(
+                row,
+                changes=changes,
+                resolved_ingredients=resolved_ingredients,
+                status_label=status_label,
+                status_variant=status_variant,
+                error=error,
+            )
+            continue
+
+        if op == "delete_bom_row" and target_str:
+            row = existing_by_id.get(target_str)
+            if row is None:
+                row = _bom_synth_orphan_row(target_str)
+                existing_by_id[target_str] = row
+            _apply_bom_delete_to_row(
+                row,
+                status_label=status_label,
+                status_variant=status_variant,
+                error=error,
+            )
+            continue
+
+        # Unmatched: either an unknown ``operation`` string (future
+        # ``reorder_bom_rows`` etc.) or a known op with a missing
+        # ``target_id``. Either way the action would silently vanish from
+        # the rendered card — log so the gap is visible during dev.
+        logger.warning(
+            "BOM merge dropped action — unknown operation or missing target",
+            operation=op,
+            target_id=target_str,
+            succeeded=action.get("succeeded"),
+        )
+
+    # Materialize: existing-rows (snapshot order, then rank), then adds
+    # appended at the end (server assigns the rank, so we don't know
+    # where they slot yet). Stable sort on rank: existing rows preserve
+    # their snapshot order on equal ranks; adds always trail.
+    def _sort_key(r: dict[str, Any]) -> tuple[int, int]:
+        rank = r.get("rank")
+        return (0, rank) if isinstance(rank, int) else (1, 0)
+
+    materialized = sorted(existing_by_id.values(), key=_sort_key)
+    materialized.extend(added_rows)
+    return materialized
+
+
+def _bom_row_summary(rows: list[dict[str, Any]]) -> str:
+    """Build the ``+N added, ~M updated, -K deleted`` summary line.
+
+    Only emits buckets that have non-zero counts so the line stays compact
+    on simpler plans. Returns the empty string when the plan is a no-op
+    (existing-only rows) — the caller skips rendering in that case.
+    """
+    added = sum(1 for r in rows if r.get("kind") == "added")
+    updated = sum(1 for r in rows if r.get("kind") == "updated")
+    deleted = sum(1 for r in rows if r.get("kind") == "deleted")
+    parts: list[str] = []
+    if added:
+        parts.append(f"+{added} added")
+    if updated:
+        parts.append(f"~{updated} updated")
+    if deleted:
+        parts.append(f"-{deleted} deleted")
+    return ", ".join(parts)
+
+
+# DataTable columns for the BOM modify card. The Status column renders
+# plain text (PLANNED / APPLIED / FAILED) — DataTable doesn't expose a
+# Badge component per cell, so kind discrimination is carried by the
+# SKU column's leading 2-char gutter (``+ ``/``- ``/``~ ``/``  ``) glued
+# on in ``_prepare_bom_table_rows``. ``status_variant`` is still computed
+# per merged row, but currently only consumed by the consolidated failure
+# Alert (``_render_bom_failed_rows_block``), not the table itself.
+_BOM_MODIFY_COLUMNS: list[DataTableColumn] = [
+    DataTableColumn(key="rank_label", header="Rank", width="4rem"),
+    DataTableColumn(key="sku_label", header="Ingredient SKU"),
+    DataTableColumn(key="display_name", header="Display Name"),
+    DataTableColumn(
+        key="quantity_label", header="Quantity", align="right", width="9rem"
+    ),
+    DataTableColumn(key="notes_label", header="Notes"),
+    DataTableColumn(key="status_label", header="Status", width="7rem"),
+]
+
+_BOM_MODIFY_PLAN_KEY = "plan_rows"
+_BOM_MODIFY_PLAN_REF = f"{{{{ {_BOM_MODIFY_PLAN_KEY} }}}}"
+
+
+def _prepare_bom_table_rows(merged: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Compose the final per-row dicts passed to the DataTable.
+
+    The SKU column shows the kind prefix (``+ ``/``- ``/``~ ``/``  ``) inline
+    so adds vs deletes are visually obvious even without per-row styling.
+    The display_name cell carries the resolved name with a ``(unresolved)``
+    fallback so unresolved adds (missing from cache) still render meaningfully.
+    """
+    out: list[dict[str, Any]] = []
+    for r in merged:
+        sku = r.get("sku") or "(unresolved)"
+        display_name = r.get("display_name") or ""
+        if not display_name and r.get("ingredient_variant_id") is not None:
+            display_name = f"variant {r['ingredient_variant_id']}"
+        out.append(
+            {
+                **r,
+                "sku_label": f"{r['status_prefix']}{sku}",
+                "display_name": display_name,
+                # For deleted rows, the row identity carries the strike
+                # semantically via the kind prefix + status pill — text-
+                # decoration isn't available in DataTable cells, so we
+                # encode the signal lexically (``- ``) instead.
+            }
+        )
+    return out
+
+
+def _resolve_bom_table_rows(
+    *,
+    is_preview: bool,
+    prior_state: dict[str, Any] | None,
+    actions: list[dict[str, Any]],
+    resolved_ingredients: dict[int, dict[str, str | None]],
+    extras: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Pick the right source for the BOM DataTable rows.
+
+    On the apply path ``_modify_product_bom_impl`` already ran the same
+    ``_merge → _prepare`` pipeline against the resolved actions and
+    stuffed the result into ``extras["applied_plan_rows"]`` (also visible
+    to the LLM via the response.content channel). Reuse it instead of
+    recomputing — avoids drift between two computation paths.
+
+    Preview path has no precomputed list, so fall back to local merge.
+    Also fall back if the extras list is missing/malformed (defensive
+    — shouldn't happen with the current impl but keeps the renderer
+    robust to future schema changes).
+    """
+    extras_applied_plan_rows = extras.get("applied_plan_rows")
+    if (
+        not is_preview
+        and isinstance(extras_applied_plan_rows, list)
+        and all(isinstance(r, dict) for r in extras_applied_plan_rows)
+    ):
+        return extras_applied_plan_rows
+    merged_rows = _merge_bom_rows_for_modify_card(
+        prior_state, actions, resolved_ingredients
+    )
+    return _prepare_bom_table_rows(merged_rows)
+
+
+def build_bom_modify_ui(
+    response: dict[str, Any],
+    *,
+    confirm_request: BaseModel,
+    confirm_tool: str,
+) -> PrefabApp:
+    """Build the manage-product-BOM modify card (#811).
+
+    Table-as-entity-view variant of the modify-card family (#721). Unlike
+    PO/SO/MO/etc. which modify scalar header fields, a BOM modify plan is
+    N row creates / updates / deletes on a list. The entity view IS the
+    table — existing rows render unchanged, ``add_bom_row`` actions appear
+    as new rows with an ``added`` kind, ``update_bom_row`` actions show
+    the original row with diff-decorated quantity / notes / ingredient,
+    and ``delete_bom_row`` actions render with a ``deleted`` kind.
+
+    The pre-action BOM snapshot arrives in ``response["prior_state"]``
+    (populated by ``_modify_product_bom_impl`` via ``existing_snapshot``).
+    The ingredient SKU + display_name resolution for *added* rows comes
+    from ``response["extras"]["resolved_ingredients"]`` — the impl batches
+    a single cache lookup across every variant id touched by the plan,
+    so the renderer reads the result without a second hit at build time.
+
+    Four-tier structure (#537):
+
+    - Tier 1 — Identity: product name (linked to Katana), variant SKU pill,
+      UoM badge, state badge (PREVIEW / APPLIED / PARTIAL / FAILED).
+    - Tier 2 — Decision metrics: ``+N added, ~M updated, -K deleted``
+      summary line above the table.
+    - Tier 3 — Reference: the diff-decorated DataTable.
+    - Tier 4 — Actions: Confirm / Cancel (preview); applied-state footer
+      (applied / failed / cancelled).
+    """
+    actions = response.get("actions") or []
+    is_preview = bool(response.get("is_preview", True))
+    prior_state: dict[str, Any] | None = response.get("prior_state")
+    extras: dict[str, Any] = response.get("extras") or {}
+    resolved_ingredients_raw = extras.get("resolved_ingredients") or {}
+    # JSON keys arrive as strings (pydantic round-trips dict[int, Any] as
+    # str keys on the wire); coerce back to int for in-Python lookup.
+    resolved_ingredients: dict[int, dict[str, str | None]] = {}
+    for key, value in resolved_ingredients_raw.items():
+        try:
+            int_key = int(key)
+        except (TypeError, ValueError):
+            continue
+        if isinstance(value, dict):
+            resolved_ingredients[int_key] = {
+                "sku": value.get("sku"),
+                "display_name": value.get("display_name"),
+            }
+
+    table_rows = _resolve_bom_table_rows(
+        is_preview=is_preview,
+        prior_state=prior_state,
+        actions=actions,
+        resolved_ingredients=resolved_ingredients,
+        extras=extras,
+    )
+    # ``_bom_row_summary`` reads ``kind`` per row which is preserved
+    # through ``_prepare_bom_table_rows``, so it works against
+    # table_rows directly.
+    summary_line = _bom_row_summary(table_rows)
+
+    # Header content — pulled from the prior_state snapshot (the wire
+    # shape of ``GetProductBomResponse.model_dump()``, populated by
+    # ``_modify_product_bom_impl``). Falls back gracefully when fetch
+    # failed (prior_state is None).
+    snapshot = prior_state or {}
+    product_name = (
+        snapshot.get("product_name")
+        or snapshot.get("variant_display_name")
+        or f"BOM for variant {response.get('entity_id')}"
+    )
+    variant_sku = snapshot.get("variant_sku")
+    uom = snapshot.get("uom")
+    katana_url = snapshot.get("katana_url")
+
+    # Footer ``applied_verb`` is passed to ``_render_preview_footer`` as
+    # a mustache template (``"{{ applied_verb }}"``); the underlying
+    # ``Muted(content=f"{title_prefix} {applied_verb}.")`` then resolves
+    # against ``state.applied_verb`` at iframe render time. This makes
+    # the footer body morph in lockstep with the Tier-1 state Badge —
+    # otherwise the build-time-fixed verb would read "BOM applied."
+    # even when ``applied_outcome_label`` morphed to FAILED / PARTIAL
+    # FAILURE on the preview iframe's in-place apply.
+
+    n_actions = len(actions)
+    confirm_label = (
+        f"Confirm {n_actions} BOM change{'s' if n_actions != 1 else ''}"
+        if n_actions
+        else "Confirm Changes"
+    )
+
+    # The apply response (when the iframe re-issues with preview=false)
+    # carries multiple precomputed extras the iframe needs to morph the
+    # whole applied-state chrome, not just the table rows.
+    #
+    # Data flow:
+    # 1. ``_modify_product_bom_impl`` (apply path) computes
+    #    ``response.extras.applied_plan_rows``, ``applied_outcome_label``,
+    #    ``applied_outcome_variant``, ``applied_failed_count``, and
+    #    ``applied_failed_summary``.
+    # 2. The apply-time call to ``build_bom_modify_ui`` seeds these
+    #    values into its OWN ``state.*`` slots (see ``state[...]`` block
+    #    below). So the apply card's PrefabApp envelope carries them in
+    #    ``state``, NOT ``extras``.
+    # 3. The preview iframe's ``on_success`` SetState chain reads
+    #    ``{{ $result.state.<slot> }}`` and writes into the preview
+    #    iframe's matching state slot, morphing the rendered chrome.
+    #
+    # Without the SetStates below the preview iframe would morph
+    # ``state.applied=True`` but every other applied-state visual would
+    # stay frozen at preview-time defaults:
+    # - DataTable stuck on PLANNED rows.
+    # - Header Badge stuck on "APPLIED" / default even when some or all
+    #   actions failed.
+    # - Failed-row Alert never rendered because the build-time guard
+    #   was ``if not is_preview`` (which is False under the preview
+    #   render). Now we render the Alert under ``If("applied")`` driven
+    #   by ``state.applied_failed_count`` and its summary description.
+    #
+    # ``$result`` in the on_success Rx context resolves to the apply
+    # tool's wire-shape ``structured_content`` — a PrefabApp envelope
+    # keyed by ``$prefab`` / ``view`` / ``state``, NOT the raw
+    # :class:`~katana_mcp.tools._modification.ModificationResponse`. Same
+    # limitation documented in ``test_apply_button_morphs_card_to_applied_state``.
+    # So we read from ``$result.state.<slot>`` — never ``$result.extras``,
+    # which doesn't exist at the envelope's top level.
+    apply_action = _build_apply_action(
+        confirm_tool,
+        confirm_request,
+        extra_on_success=[
+            SetState(_BOM_MODIFY_PLAN_KEY, "{{ $result.state.plan_rows }}"),
+            SetState(
+                "applied_outcome_label",
+                "{{ $result.state.applied_outcome_label }}",
+            ),
+            SetState(
+                "applied_outcome_variant",
+                "{{ $result.state.applied_outcome_variant }}",
+            ),
+            SetState(
+                "applied_failed_count",
+                "{{ $result.state.applied_failed_count }}",
+            ),
+            SetState(
+                "applied_failed_summary",
+                "{{ $result.state.applied_failed_summary }}",
+            ),
+            SetState(
+                "applied_verb",
+                "{{ $result.state.applied_verb }}",
+            ),
+        ],
+    )
+    cancel_action = _build_cancel_action("those BOM changes")
+
+    state = _init_modify_card_state(response)
+    state[_BOM_MODIFY_PLAN_KEY] = table_rows
+    # Seed the apply-outcome state slots with preview-time defaults so the
+    # If-branches below render cleanly even before the apply lands. The
+    # apply ``on_success`` chain overwrites these with the real outcome
+    # values from ``$result.state.<slot>`` (read off the apply tool's
+    # envelope — see the rationale on ``extra_on_success`` above).
+    state["applied_outcome_label"] = (
+        response.get("extras", {}).get("applied_outcome_label") or "APPLIED"
+    )
+    state["applied_outcome_variant"] = (
+        response.get("extras", {}).get("applied_outcome_variant") or "default"
+    )
+    state["applied_failed_count"] = (
+        response.get("extras", {}).get("applied_failed_count") or 0
+    )
+    state["applied_failed_summary"] = (
+        response.get("extras", {}).get("applied_failed_summary") or ""
+    )
+    state["applied_verb"] = response.get("extras", {}).get("applied_verb") or "applied"
+
+    with PrefabApp(state=state, css_class="p-4") as app, Card():
+        # Tier 1 — Identity header. Same shape as the read-side BOM card
+        # (``_bom_header_section``): product name linked to Katana, SKU
+        # pill, UoM badge, then the state badge so the modify-vs-preview
+        # signal lives in the same visual slot as the other modify cards.
+        #
+        # The applied-state Badge fans out across three branches so the
+        # variant tracks the outcome (default for success, destructive
+        # for PARTIAL FAILURE / FAILED). Badge.variant isn't reactive on
+        # its own — we render parallel components and let the If chain
+        # pick the right one at morph time.
+        with CardHeader(), Row(gap=2):
+            with CardTitle():
+                if katana_url:
+                    Link(content=product_name, href=katana_url, target="_blank")
+                else:
+                    Text(content=product_name)
+            if variant_sku:
+                Badge(label=variant_sku, variant="outline")
+            if uom:
+                Badge(label=uom, variant="secondary")
+            with If("applied"):
+                with If(Rx("applied_outcome_variant") == "destructive"):
+                    Badge(
+                        label="{{ applied_outcome_label }}",
+                        variant="destructive",
+                        css_class="min-w-32 text-center",
+                    )
+                with Else():
+                    Badge(
+                        label="{{ applied_outcome_label }}",
+                        variant="default",
+                        css_class="min-w-32 text-center",
+                    )
+            with Else():
+                Badge(
+                    label="PREVIEW",
+                    variant="secondary",
+                    css_class="min-w-32 text-center",
+                )
+
+        # Tier 2 — Decision summary. Reads "+N added, ~M updated, -K
+        # deleted" so the user knows the shape of the plan before
+        # scanning the table.
+        with CardContent(), Column(gap=3):
+            if response.get("message"):
+                Muted(content=response["message"])
+            if summary_line:
+                Text(content=summary_line)
+
+            # Tier 3 — Diff-decorated table. Bound to ``state.plan_rows``
+            # via mustache (the same contract every state-bound DataTable
+            # in this module uses; bare-string refs crash the renderer).
+            if table_rows:
+                DataTable(
+                    columns=_BOM_MODIFY_COLUMNS,
+                    rows=_BOM_MODIFY_PLAN_REF,
+                    paginated=True,
+                    pageSize=20,
+                )
+            else:
+                Muted(
+                    content=(
+                        "No rows in the BOM and no planned changes. "
+                        "Provide add_bom_rows / update_bom_rows / "
+                        "delete_bom_row_ids to manage the recipe."
+                    )
+                )
+
+            block_warnings = _render_warnings_block(response.get("warnings"))
+
+            # Consolidated failed-rows Alert — driven by state so the
+            # preview iframe's in-place morph after Confirm can surface
+            # failures (the previous ``if not is_preview`` guard was
+            # build-time and stayed False through the morph). Pre-formatted
+            # ``applied_failed_summary`` string seeded into the apply
+            # card's ``state`` slot by the builder below; the morph picks
+            # it up via SetState from ``$result.state.applied_failed_summary``.
+            # Each line is ``Failed — <sku>: <error>``.
+            with (
+                If(Rx("applied_failed_count") > 0),
+                Alert(variant="destructive", icon="circle-alert"),
+            ):
+                AlertTitle(content="{{ applied_failed_count }} failed row(s)")
+                AlertDescription(content="{{ applied_failed_summary }}")
+
+            if is_preview:
+                with If("error"):
+                    Separator()
+                    with Alert(variant="destructive", icon="circle-alert"):
+                        AlertTitle(content="Apply failed")
+                        AlertDescription(content="{{ error }}")
+
+        # Tier 4 — Footer. Reuse the shared preview-footer helper so the
+        # apply/cancel/morph state machine and the next-action buttons
+        # match the rest of the modify-card family. No next-action
+        # buttons today — BOM operations don't have a deterministic
+        # follow-up tool (the user already had the recipe they wanted to
+        # change).
+        _render_preview_footer(
+            title_prefix="BOM",
+            block_warnings=block_warnings,
+            confirm_label=confirm_label,
+            apply_action=apply_action,
+            cancel_action=cancel_action,
+            next_action_buttons=(),
+            # Mustache template against ``state.applied_verb`` (seeded
+            # above + overwritten by the on_success chain) so the footer
+            # body morphs to "BOM partially applied." / "BOM failed." in
+            # lockstep with the Tier-1 outcome Badge.
+            applied_verb="{{ applied_verb }}",
         )
     return app
 
