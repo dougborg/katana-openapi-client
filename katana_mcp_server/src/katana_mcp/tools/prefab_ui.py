@@ -3833,7 +3833,7 @@ def build_customer_create_ui(
     apply_action = _build_apply_action(confirm_tool, confirm_request)
     cancel_action = _build_cancel_action("that customer")
     extra_badges: tuple[tuple[str, str], ...] = (
-        ((currency, "outline"),) if currency else ()
+        ((currency, "secondary"),) if currency else ()
     )
 
     with (
