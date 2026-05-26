@@ -491,6 +491,29 @@ class TestWireNullTolerance:
         )
         assert attrs_variant.id == 1
 
+    def test_service_variant_from_dict_with_null_custom_fields(self) -> None:
+        """``ServiceVariant.custom_fields = null`` (observed on every create_service).
+
+        Pre-fix this broke ``create_item(type="service")`` end-to-end:
+        the API returns ``custom_fields: null`` on the nested variant and
+        the parser tried to iterate it. Live-API shape captured 2026-05-26
+        via ``scripts/probe_create_service_response.py``.
+        """
+        from katana_public_api_client.models import (
+            ServiceVariant as AttrsServiceVariant,
+        )
+
+        attrs_variant = AttrsServiceVariant.from_dict(
+            {
+                "id": 1,
+                "sku": "SVC-TEST",
+                "service_id": 100,
+                "custom_fields": None,
+            }
+        )
+        assert attrs_variant.id == 1
+        assert attrs_variant.custom_fields is None
+
     def test_variant_response_from_dict_with_null_custom_fields(self) -> None:
         """``VariantResponse.custom_fields = null`` (single-variant endpoint)."""
         from katana_public_api_client.models import VariantResponse as AttrsVR

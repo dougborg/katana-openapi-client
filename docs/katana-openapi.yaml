@@ -2816,8 +2816,15 @@ components:
             type:
               $ref: "#/components/schemas/VariantType"
             custom_fields:
-              type: array
-              description: Custom field values specific to this service variant
+              type:
+                - array
+                - "null"
+              description: |
+                Custom field values specific to this service variant. The
+                API returns ``null`` (not ``[]``) when the variant has no
+                custom-field assignments — non-nullable here causes the
+                generated parser to fail with "NoneType is not iterable"
+                on every create_service / get_service response.
               items:
                 type: object
                 properties:

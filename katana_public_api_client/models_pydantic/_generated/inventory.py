@@ -244,7 +244,9 @@ class ServiceVariant(UpdatableEntity, DeletableEntity):
     type: VariantType | None = None
     custom_fields: Annotated[
         list[CustomField1] | None,
-        Field(description="Custom field values specific to this service variant"),
+        Field(
+            description='Custom field values specific to this service variant. The\nAPI returns ``null`` (not ``[]``) when the variant has no\ncustom-field assignments — non-nullable here causes the\ngenerated parser to fail with "NoneType is not iterable"\non every create_service / get_service response.\n'
+        ),
     ] = None
 
 
