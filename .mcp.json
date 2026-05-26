@@ -29,6 +29,13 @@
         "../stocktrim-openapi-client/stocktrim_mcp_server",
         "stocktrim-mcp-server"
       ]
+    },
+    "katana-official": {
+      "type": "http",
+      "url": "https://mcp.katanamrp.com/",
+      "oauth": {
+        "callbackPort": 59999
+      }
     }
   }
 }

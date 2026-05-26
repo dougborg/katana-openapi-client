@@ -1,5 +1,7 @@
 # Retrieve a custom field definition
 
+> 🚧 **Beta — feature-flagged.** Contact support@katanamrp.com to enable.
+
 Retrieves a custom field definition by id.
 
 # OpenAPI definition
@@ -37,7 +39,7 @@ Retrieves a custom field definition by id.
         "tags": [
           "Custom Field Definition"
         ],
-        "description": "Retrieves a custom field definition by id.",
+        "description": "> 🚧 **Beta — feature-flagged.** Contact support@katanamrp.com to enable.\n\nRetrieves a custom field definition by id.",
         "operationId": "getCustomFieldDefinition",
         "parameters": [
           {

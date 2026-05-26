@@ -1,5 +1,7 @@
 # Delete a custom field definition
 
+> 🚧 **Beta — feature-flagged.** Contact support@katanamrp.com to enable.
+
 Deletes a custom field definition by id.
 
 # OpenAPI definition
@@ -37,7 +39,7 @@ Deletes a custom field definition by id.
         "tags": [
           "Custom Field Definition"
         ],
-        "description": "Deletes a custom field definition by id.",
+        "description": "> 🚧 **Beta — feature-flagged.** Contact support@katanamrp.com to enable.\n\nDeletes a custom field definition by id.",
         "operationId": "deleteCustomFieldDefinition",
         "parameters": [
           {

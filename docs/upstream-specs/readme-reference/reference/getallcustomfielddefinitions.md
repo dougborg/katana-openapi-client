@@ -1,5 +1,7 @@
 # List all custom field definitions
 
+> 🚧 **Beta — feature-flagged.** Contact support@katanamrp.com to enable.
+
 Returns a list of custom field definitions in the factory, optionally filtered by label, field type, or entity type.
 
 # OpenAPI definition
@@ -37,7 +39,7 @@ Returns a list of custom field definitions in the factory, optionally filtered b
         "tags": [
           "Custom Field Definition"
         ],
-        "description": "Returns a list of custom field definitions in the factory, optionally filtered by label, field type, or entity type.",
+        "description": "> 🚧 **Beta — feature-flagged.** Contact support@katanamrp.com to enable.\n\nReturns a list of custom field definitions in the factory, optionally filtered by label, field type, or entity type.",
         "operationId": "getAllCustomFieldDefinitions",
         "parameters": [
           {
@@ -73,7 +75,8 @@ Returns a list of custom field definitions in the factory, optionally filtered b
             "schema": {
               "type": "string",
               "enum": [
-                "SalesOrder"
+                "SalesOrder",
+                "SalesOrderRow"
               ]
             },
             "in": "query"
