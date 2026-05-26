@@ -613,6 +613,37 @@ async def test_list_stock_transfers_include_rows(context_with_typed_cache, no_sy
 
 
 @pytest.mark.asyncio
+async def test_list_stock_transfers_excludes_soft_deleted_rows(
+    context_with_typed_cache, no_sync
+):
+    """Soft-deleted transfer rows are hidden from both ``include_rows`` paths (#803)."""
+    context, _, typed_cache = context_with_typed_cache
+    live_row = make_stock_transfer_row(
+        id=1, stock_transfer_id=7, variant_id=100, quantity=5.0
+    )
+    tombstoned_row = make_stock_transfer_row(
+        id=2, stock_transfer_id=7, variant_id=200, quantity=2.0
+    )
+    tombstoned_row.deleted_at = datetime(2026, 5, 20)
+    await seed_cache(
+        typed_cache,
+        [make_stock_transfer(id=7, rows=[live_row, tombstoned_row])],
+    )
+
+    with_rows = await _list_stock_transfers_impl(
+        ListStockTransfersRequest(include_rows=True), context
+    )
+    without_rows = await _list_stock_transfers_impl(
+        ListStockTransfersRequest(include_rows=False), context
+    )
+
+    assert with_rows.transfers[0].rows is not None
+    assert [r.id for r in with_rows.transfers[0].rows] == [1]
+    assert with_rows.transfers[0].row_count == 1
+    assert without_rows.transfers[0].row_count == 1
+
+
+@pytest.mark.asyncio
 async def test_list_stock_transfers_pagination_meta_when_page_set(
     context_with_typed_cache, no_sync
 ):

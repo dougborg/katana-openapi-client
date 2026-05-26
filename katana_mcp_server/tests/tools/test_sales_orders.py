@@ -1074,6 +1074,64 @@ async def test_list_sales_orders_returns_summary_rows(
 
 
 @pytest.mark.asyncio
+async def test_list_sales_orders_include_rows_excludes_soft_deleted_rows(
+    context_with_typed_cache, no_sync
+):
+    """Soft-deleted rows are hidden from ``include_rows=True`` payload (#803).
+
+    Without the ``deleted_at IS NULL`` filter on the ``selectinload``, the
+    cache surfaces tombstoned children — diverging from ``get_sales_order``,
+    which reads live from Katana.
+    """
+    context, _, typed_cache = context_with_typed_cache
+    live_row = make_sales_order_row(id=1, sales_order_id=42, variant_id=100, quantity=2)
+    tombstoned_row = make_sales_order_row(
+        id=2, sales_order_id=42, variant_id=101, quantity=1
+    )
+    tombstoned_row.deleted_at = datetime(2026, 5, 20)
+    await seed_cache(
+        typed_cache,
+        [make_sales_order(id=42, order_no="SO-42", rows=[live_row, tombstoned_row])],
+    )
+
+    result = await _list_sales_orders_impl(
+        ListSalesOrdersRequest(include_rows=True), context
+    )
+
+    assert result.total_count == 1
+    summary = result.orders[0]
+    assert summary.row_count == 1
+    assert summary.rows is not None
+    assert [r.id for r in summary.rows] == [1]
+
+
+@pytest.mark.asyncio
+async def test_list_sales_orders_row_count_excludes_soft_deleted_rows(
+    context_with_typed_cache, no_sync
+):
+    """``row_count`` (the COUNT subquery path) also excludes soft-deleted rows.
+
+    Default ``include_rows=False`` swaps to a correlated COUNT subquery;
+    the same filter must apply there or summary counts stay inflated.
+    """
+    context, _, typed_cache = context_with_typed_cache
+    live_row = make_sales_order_row(id=1, sales_order_id=42, variant_id=100, quantity=2)
+    tombstoned_row = make_sales_order_row(
+        id=2, sales_order_id=42, variant_id=101, quantity=1
+    )
+    tombstoned_row.deleted_at = datetime(2026, 5, 20)
+    await seed_cache(
+        typed_cache,
+        [make_sales_order(id=42, order_no="SO-42", rows=[live_row, tombstoned_row])],
+    )
+
+    result = await _list_sales_orders_impl(ListSalesOrdersRequest(), context)
+
+    assert result.total_count == 1
+    assert result.orders[0].row_count == 1
+
+
+@pytest.mark.asyncio
 async def test_list_sales_orders_page_populates_pagination_meta(
     context_with_typed_cache, no_sync
 ):
