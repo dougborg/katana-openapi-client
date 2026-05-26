@@ -311,10 +311,14 @@ async def _fetch_mo_recipe_rows_raw(
     state snapshot and ``_resolve_recipe_row`` match user-supplied
     ``old_variant_id`` against *live* recipe rows so corrections can PATCH
     them. Surfacing tombstoned rows would let a correction target a
-    soft-deleted row that Katana would reject downstream. The MCP layer's
-    read tool (``foundation.manufacturing_orders._fetch_mo_recipe_rows``)
-    intentionally does pass ``include_deleted=True`` because it renders
-    diff context — different use case, different default.
+    soft-deleted row that Katana would reject downstream. The cache-merge
+    fetcher (``manufacturing_orders._fetch_mo_recipe_row_attrs_for_cache_merge``)
+    is the one that does pass ``include_deleted=True`` — it has to see
+    tombstones so the merged cache row goes away when Katana hard-deletes
+    via the soft-delete flow. The agent-facing read
+    (``manufacturing_orders._fetch_mo_recipe_rows``) is also live-only;
+    different surfaces, different defaults, same "agents never see
+    tombstones" rule.
     """
     from katana_public_api_client.api.manufacturing_order_recipe import (
         get_all_manufacturing_order_recipe_rows,

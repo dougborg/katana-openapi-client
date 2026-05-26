@@ -157,8 +157,10 @@ class LocationStock(BaseModel):
     average_cost: float | None = None
     # Per-row archive state — Katana lets an inventory row at a single
     # warehouse be archived independent of the variant's parent. Derived
-    # from ``Inventory.archived_at`` (non-null = archived). Surfaces only
-    # when the request opted in via ``include_archived=True`` (#539).
+    # from ``Inventory.archived_at`` (non-null = archived). Always present
+    # in the response schema; only ever ``True`` when the request opted
+    # in via ``include_archived=True`` (#539), since Katana's default
+    # ``/inventory`` filter omits archived rows entirely.
     is_archived: bool = False
 
 
@@ -676,8 +678,10 @@ class LowStockItem(BaseModel):
     default_supplier_name: str | None = None
     minimum_order_quantity: float | None = None
     # Variant-level archive state lifted from ``CachedVariant.parent_archived_at``
-    # — true when the parent product/material is archived. Surfaces only
-    # when the request opted in via ``include_archived=True`` (#539).
+    # — true when the parent product/material is archived. Always present
+    # in the response schema; only ever ``True`` when the request opted
+    # in via ``include_archived=True`` (#539), since archived-parent
+    # variants are otherwise filtered out before they reach this builder.
     is_archived: bool = False
     # Per-row inventory archive state — true when at least one of the
     # ``/inventory`` rows contributing to ``current_stock`` for this
