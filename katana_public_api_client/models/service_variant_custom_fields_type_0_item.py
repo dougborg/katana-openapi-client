@@ -10,11 +10,11 @@ from attrs import (
 
 from ..client_types import UNSET, Unset
 
-T = TypeVar("T", bound="ServiceVariantCustomFieldsItem")
+T = TypeVar("T", bound="ServiceVariantCustomFieldsType0Item")
 
 
 @_attrs_define
-class ServiceVariantCustomFieldsItem:
+class ServiceVariantCustomFieldsType0Item:
     field_name: str | Unset = UNSET
     field_value: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -41,13 +41,13 @@ class ServiceVariantCustomFieldsItem:
 
         field_value = d.pop("field_value", UNSET)
 
-        service_variant_custom_fields_item = cls(
+        service_variant_custom_fields_type_0_item = cls(
             field_name=field_name,
             field_value=field_value,
         )
 
-        service_variant_custom_fields_item.additional_properties = d
-        return service_variant_custom_fields_item
+        service_variant_custom_fields_type_0_item.additional_properties = d
+        return service_variant_custom_fields_type_0_item
 
     @property
     def additional_keys(self) -> list[str]:

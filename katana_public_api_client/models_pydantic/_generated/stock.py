@@ -202,7 +202,7 @@ class SerialNumber(KatanaPydanticBase):
     transaction_id: Annotated[
         str | None,
         Field(
-            description='Identifier of the transaction that affected this serial number.\nMay be the literal string ``"undefined"`` on a transfer\nresponse; expect ``null`` in some edge cases.\n'
+            description="Identifier of the transaction that affected this serial number.\nMay be the literal string ``undefined`` on a transfer\nresponse; expect ``null`` in some edge cases.\n"
         ),
     ] = None
     serial_number: Annotated[

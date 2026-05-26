@@ -443,7 +443,9 @@ from .service import Service
 from .service_list_response import ServiceListResponse
 from .service_type import ServiceType
 from .service_variant import ServiceVariant
-from .service_variant_custom_fields_item import ServiceVariantCustomFieldsItem
+from .service_variant_custom_fields_type_0_item import (
+    ServiceVariantCustomFieldsType0Item,
+)
 from .stock_adjustment import StockAdjustment
 from .stock_adjustment_batch_transaction import StockAdjustmentBatchTransaction
 from .stock_adjustment_list_response import StockAdjustmentListResponse
@@ -917,7 +919,7 @@ __all__ = (
     "ServiceListResponse",
     "ServiceType",
     "ServiceVariant",
-    "ServiceVariantCustomFieldsItem",
+    "ServiceVariantCustomFieldsType0Item",
     "StockAdjustment",
     "StockAdjustmentBatchTransaction",
     "StockAdjustmentListResponse",

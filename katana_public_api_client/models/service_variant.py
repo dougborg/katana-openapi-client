@@ -14,8 +14,8 @@ from ..client_types import UNSET, Unset
 from ..models.variant_type import VariantType
 
 if TYPE_CHECKING:
-    from ..models.service_variant_custom_fields_item import (
-        ServiceVariantCustomFieldsItem,
+    from ..models.service_variant_custom_fields_type_0_item import (
+        ServiceVariantCustomFieldsType0Item,
     )
 
 
@@ -42,7 +42,7 @@ class ServiceVariant:
     sales_price: float | None | Unset = UNSET
     default_cost: float | None | Unset = UNSET
     type_: VariantType | Unset = UNSET
-    custom_fields: list[ServiceVariantCustomFieldsItem] | Unset = UNSET
+    custom_fields: list[ServiceVariantCustomFieldsType0Item] | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -84,12 +84,17 @@ class ServiceVariant:
         if not isinstance(self.type_, Unset):
             type_ = self.type_.value
 
-        custom_fields: list[dict[str, Any]] | Unset = UNSET
-        if not isinstance(self.custom_fields, Unset):
+        custom_fields: list[dict[str, Any]] | None | Unset
+        if isinstance(self.custom_fields, Unset):
+            custom_fields = UNSET
+        elif isinstance(self.custom_fields, list):
             custom_fields = []
-            for custom_fields_item_data in self.custom_fields:
-                custom_fields_item = custom_fields_item_data.to_dict()
-                custom_fields.append(custom_fields_item)
+            for custom_fields_type_0_item_data in self.custom_fields:
+                custom_fields_type_0_item = custom_fields_type_0_item_data.to_dict()
+                custom_fields.append(custom_fields_type_0_item)
+
+        else:
+            custom_fields = self.custom_fields
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -119,8 +124,8 @@ class ServiceVariant:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.service_variant_custom_fields_item import (
-            ServiceVariantCustomFieldsItem,
+        from ..models.service_variant_custom_fields_type_0_item import (
+            ServiceVariantCustomFieldsType0Item,
         )
 
         d = dict(src_dict)
@@ -186,16 +191,36 @@ class ServiceVariant:
         else:
             type_ = VariantType(_type_)
 
-        _custom_fields = d.pop("custom_fields", UNSET)
-        custom_fields: list[ServiceVariantCustomFieldsItem] | Unset = UNSET
-        if _custom_fields is not UNSET:
-            custom_fields = []
-            for custom_fields_item_data in _custom_fields:
-                custom_fields_item = ServiceVariantCustomFieldsItem.from_dict(
-                    cast(Mapping[str, Any], custom_fields_item_data)
-                )
+        def _parse_custom_fields(
+            data: object,
+        ) -> list[ServiceVariantCustomFieldsType0Item] | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            # Empty dict -> None (Katana wire quirk; see #509).
+            if isinstance(data, dict) and not data:
+                return None
+            try:
+                if not isinstance(data, list):
+                    raise TypeError()
+                custom_fields_type_0 = []
+                _custom_fields_type_0 = data
+                for custom_fields_type_0_item_data in _custom_fields_type_0:
+                    custom_fields_type_0_item = (
+                        ServiceVariantCustomFieldsType0Item.from_dict(
+                            cast(Mapping[str, Any], custom_fields_type_0_item_data)
+                        )
+                    )
 
-                custom_fields.append(custom_fields_item)
+                    custom_fields_type_0.append(custom_fields_type_0_item)
+
+                return custom_fields_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(list[ServiceVariantCustomFieldsType0Item] | None | Unset, data)
+
+        custom_fields = _parse_custom_fields(d.pop("custom_fields", UNSET))
 
         service_variant = cls(
             id=id,
