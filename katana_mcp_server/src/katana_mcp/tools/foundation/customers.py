@@ -20,6 +20,7 @@ from katana_mcp.services import get_services
 from katana_mcp.tools.decorators import cache_read
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
+    SoftDeletableResponse,
     make_json_result,
     make_tool_result,
 )
@@ -136,7 +137,7 @@ class GetCustomerRequest(BaseModel):
     customer_id: int = Field(..., description="Customer ID to look up")
 
 
-class CustomerAddressInfo(BaseModel):
+class CustomerAddressInfo(SoftDeletableResponse):
     """Full customer address — one entry in ``GetCustomerResponse.addresses``.
 
     Mirrors the wire-shape of ``katana_public_api_client.models.CustomerAddress``
@@ -163,10 +164,9 @@ class CustomerAddressInfo(BaseModel):
     country: str | None = None
     created_at: str | None = None
     updated_at: str | None = None
-    deleted_at: str | None = None
 
 
-class GetCustomerResponse(BaseModel):
+class GetCustomerResponse(SoftDeletableResponse):
     """Full customer details. Exhaustive — every field Katana exposes on
     ``Customer`` is surfaced (including nested addresses) so callers don't
     need follow-up lookups for standard fields.
@@ -189,7 +189,6 @@ class GetCustomerResponse(BaseModel):
     default_shipping_id: int | None = None
     created_at: str | None = None
     updated_at: str | None = None
-    deleted_at: str | None = None
     addresses: list[CustomerAddressInfo] = Field(default_factory=list)
 
 

@@ -8,6 +8,7 @@ headers that LLM consumers misread (the SW7083 supplier_item_codes bug).
 
 from __future__ import annotations
 
+import datetime
 import json
 from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -777,7 +778,7 @@ async def test_get_variant_details_mixed_skus_and_variant_ids_partial():
         2: {"id": 2, "sku": "VAR-OK", "display_name": "Variant OK"},
     }
 
-    async def _fetch(_services, vid):
+    async def _fetch(_services, vid, **_kwargs):
         return by_id.get(vid)
 
     with patch(
@@ -835,6 +836,165 @@ async def test_get_variant_details_batch_json_includes_not_found():
     payload = json.loads(_content_text(result))
     assert [v["sku"] for v in payload["variants"]] == ["WIDGET-B"]
     assert payload["not_found"] == [{"sku": "MISSING-A"}]
+
+
+# ============================================================================
+# Soft-state defaults (#539) — request flags thread through to get_by_sku
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_defaults_to_active_only():
+    """Default request → ``get_by_sku`` called with both flags False (#539).
+
+    Regression: previously the tool hard-coded ``include_*=True``, so a
+    deleted variant could win a SKU lookup over its live sibling. The
+    typed-cache ``get_by_sku`` tiebreaker is the belt; the default-False
+    flags are the suspenders.
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=None)
+
+    with pytest.raises(ValueError, match="DELETED-SKU"):
+        await _get_variant_details_impl(
+            GetVariantDetailsRequest(sku="DELETED-SKU"), context
+        )
+
+    lifespan_ctx.typed_cache.catalog.get_by_sku.assert_called_with(
+        "DELETED-SKU", include_archived=False, include_deleted=False
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_variant_details_opt_in_threads_flags_to_get_by_sku():
+    """Request flags thread through verbatim so cleanup workflows can
+    resolve an archived-only or deleted-only SKU."""
+    context, lifespan_ctx = create_mock_context()
+    variant_dict = dict(_FULL_VARIANT_DICT)
+    variant_dict["deleted_at"] = "2024-09-01T12:00:00+00:00"
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=variant_dict)
+
+    request = GetVariantDetailsRequest(
+        sku="DELETED-SKU", include_archived=True, include_deleted=True
+    )
+    result = await _get_variant_details_impl(request, context)
+
+    assert len(result.found) == 1
+    lifespan_ctx.typed_cache.catalog.get_by_sku.assert_called_with(
+        "DELETED-SKU", include_archived=True, include_deleted=True
+    )
+
+
+# ============================================================================
+# _fetch_variant_by_id — API-fallback soft-state filtering (#539)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_fetch_variant_by_id_api_fallback_filters_archived_parent():
+    """``include_archived=False`` post-filters an API-fallback variant whose
+    extended ``product_or_material.archived_at`` is non-null.
+
+    Regression: previously the API-fallback path only post-filtered on
+    ``variant_obj.deleted_at``, so a cold-cache miss could still return an
+    archived-parent variant even when callers relied on default live-only
+    semantics. The ``extend=[PRODUCT_OR_MATERIAL]`` payload already carries
+    ``archived_at``, so honoring the flag costs no extra round trip.
+    """
+    from katana_mcp.tools.foundation.items import _fetch_variant_by_id
+
+    from katana_public_api_client.models.product import Product
+    from katana_public_api_client.models.product_type import ProductType
+    from katana_public_api_client.models.variant_response import VariantResponse
+    from katana_public_api_client.models.variant_type import VariantType
+
+    _, lifespan_ctx = create_mock_context()
+    services = lifespan_ctx
+    services.client = MagicMock()
+    services.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
+
+    archived_parent = Product(
+        id=42,
+        name="Archived Knife Set",
+        type_=ProductType.PRODUCT,
+        archived_at=datetime.datetime(2025, 1, 1, tzinfo=datetime.UTC),
+    )
+    api_variant = VariantResponse(
+        id=9001,
+        sku="ARCHIVED-PARENT",
+        product_id=42,
+        material_id=None,
+        type_=VariantType.PRODUCT,
+        product_or_material=archived_parent,
+    )
+
+    api_response = MagicMock()
+    with (
+        patch(
+            "katana_public_api_client.api.variant.get_variant.asyncio_detailed",
+            new_callable=AsyncMock,
+            return_value=api_response,
+        ),
+        patch(
+            "katana_public_api_client.utils.unwrap",
+            return_value=api_variant,
+        ),
+    ):
+        live_only = await _fetch_variant_by_id(
+            services, 9001, include_archived=False, include_deleted=False
+        )
+        with_archived = await _fetch_variant_by_id(
+            services, 9001, include_archived=True, include_deleted=False
+        )
+
+    assert live_only is None
+    assert with_archived is api_variant
+
+
+@pytest.mark.asyncio
+async def test_fetch_variant_by_id_api_fallback_filters_deleted_variant():
+    """``include_deleted=False`` post-filters an API-fallback variant whose
+    ``deleted_at`` is non-null."""
+    from katana_mcp.tools.foundation.items import _fetch_variant_by_id
+
+    from katana_public_api_client.models.variant_response import VariantResponse
+    from katana_public_api_client.models.variant_type import VariantType
+
+    _, lifespan_ctx = create_mock_context()
+    services = lifespan_ctx
+    services.client = MagicMock()
+    services.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
+
+    api_variant = VariantResponse(
+        id=9002,
+        sku="DELETED-VAR",
+        product_id=43,
+        material_id=None,
+        type_=VariantType.PRODUCT,
+        deleted_at=datetime.datetime(2025, 2, 1, tzinfo=datetime.UTC),
+    )
+
+    api_response = MagicMock()
+    with (
+        patch(
+            "katana_public_api_client.api.variant.get_variant.asyncio_detailed",
+            new_callable=AsyncMock,
+            return_value=api_response,
+        ),
+        patch(
+            "katana_public_api_client.utils.unwrap",
+            return_value=api_variant,
+        ),
+    ):
+        live_only = await _fetch_variant_by_id(
+            services, 9002, include_archived=False, include_deleted=False
+        )
+        with_deleted = await _fetch_variant_by_id(
+            services, 9002, include_archived=False, include_deleted=True
+        )
+
+    assert live_only is None
+    assert with_deleted is api_variant
 
 
 # ============================================================================

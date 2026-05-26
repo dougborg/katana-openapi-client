@@ -537,6 +537,12 @@ invocations.
 - `variant_id` (optional): Single variant ID to look up directly
 - `skus` (optional): Batch — list of SKUs to look up
 - `variant_ids` (optional): Batch — list of variant IDs to look up
+- `include_archived` (optional, default `false`): Include variants whose
+  parent product/material is archived. On a duplicate SKU the live row
+  always wins via the `get_by_sku` tiebreaker; set `true` only when
+  inspecting an archived-only variant directly.
+- `include_deleted` (optional, default `false`): Include soft-deleted
+  variants. Same default rationale — `true` is for cleanup workflows.
 
 **Examples:**
 ```json
@@ -544,6 +550,7 @@ invocations.
 {"variant_id": 12345}
 {"skus": ["BOLT-M8", "NUT-M8"]}
 {"variant_ids": [12345, 12346]}
+{"sku": "ARCHIVED-SKU", "include_archived": true}
 ```
 
 **Returns:** Full variant details including pricing, barcodes,
@@ -573,15 +580,24 @@ Check current stock levels for one or more SKUs or variant IDs — pass a list f
 
 **Parameters:**
 - `skus_or_variant_ids` (required, min 1): List of SKUs (strings) or variant IDs (integers) — mix freely. Pass one for a stock card, many for a summary table.
+- `location_id` (optional): Filter to a single warehouse/facility.
+- `include_archived` (optional, default `false`): Include variants whose
+  parent is archived, and surface archived per-location inventory rows
+  (threaded through to `/inventory`). On a duplicate SKU the live row
+  always wins; `true` is for cleanup workflows. Per-row `is_archived`
+  surfaces on each `LocationStock`.
+- `include_deleted` (optional, default `false`): Include soft-deleted
+  variants when resolving the SKU. Same live-wins-on-duplicates default.
 
 **Examples:**
 ```json
 {"skus_or_variant_ids": ["WIDGET-001"]}
 {"skus_or_variant_ids": ["WIDGET-001", "WIDGET-002"]}
 {"skus_or_variant_ids": ["WIDGET-001", 12345]}
+{"skus_or_variant_ids": ["ARCHIVED-SKU"], "include_archived": true}
 ```
 
-**Returns:** Stock levels (in_stock, available_stock, committed, expected) per variant.
+**Returns:** Stock levels (in_stock, available_stock, committed, expected) per variant. Each per-location row carries `is_archived`; the top-level item carries `is_archived` derived from the variant's parent archive state.
 
 ---
 
@@ -591,6 +607,13 @@ Find items that are below their reorder threshold.
 **Parameters:**
 - `threshold` (optional): Stock threshold level (default: 10)
 - `limit` (optional): Maximum items to return (default: 50)
+- `include_archived` (optional, default `false`): Include archived
+  inventory rows. Archived rows are filtered by default so they can't
+  carry phantom signals into reorder planning; pass `true` for cleanup
+  workflows. Each row reports two distinct archive signals:
+  `is_archived` (variant's parent product/material is archived) and
+  `has_archived_inventory` (at least one per-warehouse inventory row
+  contributing to `current_stock` is archived).
 
 **Returns:** List of items needing reorder with current stock vs threshold.
 
@@ -614,6 +637,11 @@ timestamps, and rank) so no follow-up lookups are needed for standard fields.
   on when the movement record was first written
 - `updated_at_min` / `updated_at_max` (optional, ISO-8601): When the record was
   last modified — useful for incremental sync
+- `include_archived` / `include_deleted` (optional, default `false`):
+  See `get_variant_details` for the soft-state defaults. The live row
+  always wins on duplicate SKUs via the `get_by_sku` tiebreaker; flags
+  are for cleanup workflows that need to inspect an archived/deleted
+  variant's movement history directly.
 
 **Returns:** Movement history with `id`, `variant_id`, `location_id`, `resource_type`,
 `resource_id`, `caused_by_order_no`, `caused_by_resource_id`, `movement_date`,
@@ -640,6 +668,9 @@ picks the most recent matching row — reading its `balance_after`,
   point are ignored.
 - `location_id` (optional): Filter to a single warehouse/facility — only movements
   at that location are considered.
+- `include_archived` / `include_deleted` (optional, default `false`):
+  See `get_variant_details` for the soft-state defaults. Live wins on
+  duplicates; flags for cleanup workflows only.
 
 **Returns:** `{as_of, items, not_found}`. Each item carries `variant_id`, `sku`,
 `display_name`, per-location rows (`location_id`, `location_name`, `balance_at`,
@@ -673,6 +704,13 @@ Create a stock adjustment to correct inventory levels.
   occurred. Leave None to stamp the current call time. Supply for
   back-fills (e.g. recording a physical count from yesterday).
 - `preview` (optional, default true): Set true to preview, false to create
+- `include_archived` (optional, default `false`): Include variants whose
+  parent is archived when resolving row SKUs. Default `false` fails fast
+  with "SKU not found" rather than letting Katana reject downstream; set
+  `true` for cleanup workflows that need to adjust stock on an archived
+  item.
+- `include_deleted` (optional, default `false`): Include soft-deleted
+  variants when resolving row SKUs. Live wins on duplicates regardless.
 
 **Returns:** Adjustment ID and summary of changes.
 
@@ -1792,14 +1830,19 @@ SQL against the typed cache.
 - `page` (optional): Page number (1-based); when set, the response includes
   `pagination` metadata (total_records, total_pages) computed via SQL COUNT
   against the same filter predicate
+- `ids` (optional): Filter by explicit list of stock transfer IDs
 - `status` (optional): "DRAFT", "IN_TRANSIT", or "RECEIVED" (mapped to the
   Katana wire values "draft" / "inTransit" / "received" against the cache
   column)
 - `source_location_id` (optional): Filter by source location ID
 - `destination_location_id` (optional): Filter by destination (target) location ID
 - `stock_transfer_number` (optional): Exact match on the transfer number
+- `include_deleted` (optional, default `false`): When `true`, surface
+  soft-deleted transfers. Mirrors the peer list-tool default (#539, #484).
 - `created_after` / `created_before` (optional): ISO-8601 datetime bounds on
   created_at — indexed SQL range filter
+- `updated_after` / `updated_before` (optional): ISO-8601 datetime bounds on
+  updated_at — indexed SQL range filter (peer parity with PO/SO/MO lists)
 - `include_rows` (optional, default false): Populate per-transfer row details
 
 **Returns:** Summary rows (id, number, status, source/destination, row_count,

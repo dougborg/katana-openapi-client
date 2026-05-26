@@ -57,13 +57,24 @@ by contrast, is *read-side only* — Katana exposes deletion through DELETE endp
 as a writable boolean on update bodies. Items expose `is_archived` on `ItemInfo` and
 `ItemDetailsResponse` as of #526.
 
-Don't add a new opt-in flag without the matching derived bool, and vice versa.
+Don't add a new opt-in flag without the matching derived bool, and vice versa. The
+shared `SoftDeletableResponse` mixin in `katana_mcp/tools/tool_result_utils.py` provides
+the `deleted_at` + `is_deleted` field plumbing and the derivation validator — soft-
+deletable response models inherit from it so the `is_deleted = deleted_at is not None`
+mapping can't drift across files.
 
-**Known gaps** (filed for follow-up):
+### Three categories of soft-state filtering — keep them separate
 
-- `list_stock_transfers` lacks `include_deleted` parity (#484).
-- `check_inventory` lacks `include_archived` and the `is_archived` row field (#539).
-- Transactional response models lack the `is_deleted` derived bool (#540).
+| Category                             | Default                 | Mechanism                      | Why                                                                                                                                                                             |
+| ------------------------------------ | ----------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Direct lookup** (SKU + ID getters) | `include_*=False`       | request flag on the tool       | the matched entity IS the answer; agent opts in to see soft-state rows. SKU lookups also use `get_by_sku`'s ORDER BY tiebreaker so a live row beats a deleted/archived sibling. |
+| **List filtering** (`list_*` tools)  | `include_*=False`       | request flag; `CatalogQueries` | which parents appear in the list                                                                                                                                                |
+| **Enrichment** (batch lookups by ID) | always `include_*=True` | no flag, hard-coded            | a deleted parent referenced from a live child must still render its identity — e.g. a live SO row referencing a deleted variant still needs to surface its display name         |
+
+The distinction matters because SKUs are non-unique in Katana but IDs are. Direct SKU
+lookups need the tiebreaker + the opt-out default (so a deleted-vs-live sibling resolves
+to live). Enrichment by ID always wants the row regardless of soft state, because the
+parent's response references it by ID and the renderer needs the identity.
 
 ______________________________________________________________________
 

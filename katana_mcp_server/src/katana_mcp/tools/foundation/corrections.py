@@ -306,6 +306,15 @@ async def _fetch_mo_recipe_rows_raw(
     Distinct from :func:`foundation.manufacturing_orders._fetch_mo_recipe_rows`
     which returns SKU-enriched ``RecipeRowInfo`` for the read tool. Here we
     need the raw entity for diff and ID resolution.
+
+    ``include_deleted`` is intentionally **not** passed (#693): the close-
+    state snapshot and ``_resolve_recipe_row`` match user-supplied
+    ``old_variant_id`` against *live* recipe rows so corrections can PATCH
+    them. Surfacing tombstoned rows would let a correction target a
+    soft-deleted row that Katana would reject downstream. The MCP layer's
+    read tool (``foundation.manufacturing_orders._fetch_mo_recipe_rows``)
+    intentionally does pass ``include_deleted=True`` because it renders
+    diff context — different use case, different default.
     """
     from katana_public_api_client.api.manufacturing_order_recipe import (
         get_all_manufacturing_order_recipe_rows,

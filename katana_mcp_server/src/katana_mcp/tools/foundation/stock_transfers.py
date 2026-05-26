@@ -42,6 +42,7 @@ from katana_mcp.tools._modification_dispatch import (
     run_modify_plan,
     unset_dict,
 )
+from katana_mcp.tools.list_coercion import CoercedIntListOpt
 from katana_mcp.tools.tool_result_utils import (
     BLOCK_WARNING_PREFIX,
     UI_META,
@@ -492,6 +493,13 @@ class ListStockTransfersRequest(BaseModel):
     )
 
     # Domain filters
+    ids: CoercedIntListOpt = Field(
+        default=None,
+        description=(
+            "Filter by explicit list of stock transfer IDs. "
+            "JSON array of integers, e.g. [101, 202, 303]."
+        ),
+    )
     status: StatusLiteral | None = Field(
         default=None,
         description="Filter by transfer status (DRAFT, IN_TRANSIT, RECEIVED)",
@@ -510,6 +518,13 @@ class ListStockTransfersRequest(BaseModel):
     stock_transfer_number: str | None = Field(
         default=None, description="Filter by exact stock transfer number"
     )
+    include_deleted: bool = Field(
+        default=False,
+        description=(
+            "When true, include soft-deleted stock transfers. Default "
+            "`False` matches the peer list-tool convention (#539, #484)."
+        ),
+    )
 
     # Time-window filters
     created_after: str | None = Field(
@@ -517,6 +532,12 @@ class ListStockTransfersRequest(BaseModel):
     )
     created_before: str | None = Field(
         default=None, description="ISO-8601 datetime upper bound on created_at."
+    )
+    updated_after: str | None = Field(
+        default=None, description="ISO-8601 datetime lower bound on updated_at."
+    )
+    updated_before: str | None = Field(
+        default=None, description="ISO-8601 datetime upper bound on updated_at."
     )
 
     # Row inclusion
@@ -537,6 +558,8 @@ class ListStockTransfersResponse(BaseModel):
 _STOCK_TRANSFER_DATE_FIELDS = (
     "created_after",
     "created_before",
+    "updated_after",
+    "updated_before",
 )
 
 
@@ -559,6 +582,8 @@ def _apply_stock_transfer_filters(
         CachedStockTransfer,
     )
 
+    if request.ids is not None:
+        stmt = stmt.where(CachedStockTransfer.id.in_(request.ids))
     if request.status is not None:
         api_value = _STATUS_API_VALUE[request.status]
         stmt = stmt.where(CachedStockTransfer.status == api_value.value)
@@ -574,13 +599,20 @@ def _apply_stock_transfer_filters(
         stmt = stmt.where(
             CachedStockTransfer.stock_transfer_number == request.stock_transfer_number
         )
-    stmt = stmt.where(CachedStockTransfer.deleted_at.is_(None))
+    if not request.include_deleted:
+        stmt = stmt.where(CachedStockTransfer.deleted_at.is_(None))
 
     return apply_date_window_filters(
         stmt,
         parsed_dates,
-        ge_pairs={"created_after": CachedStockTransfer.created_at},
-        le_pairs={"created_before": CachedStockTransfer.created_at},
+        ge_pairs={
+            "created_after": CachedStockTransfer.created_at,
+            "updated_after": CachedStockTransfer.updated_at,
+        },
+        le_pairs={
+            "created_before": CachedStockTransfer.created_at,
+            "updated_before": CachedStockTransfer.updated_at,
+        },
     )
 
 

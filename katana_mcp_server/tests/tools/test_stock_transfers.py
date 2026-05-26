@@ -562,6 +562,77 @@ async def test_list_stock_transfers_date_filters(context_with_typed_cache, no_sy
 
 
 @pytest.mark.asyncio
+async def test_list_stock_transfers_filters_by_ids(context_with_typed_cache, no_sync):
+    """`ids=[...]` filters to the explicit ID set (#484)."""
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_stock_transfer(id=1),
+            make_stock_transfer(id=2),
+            make_stock_transfer(id=3),
+        ],
+    )
+
+    result = await _list_stock_transfers_impl(
+        ListStockTransfersRequest(ids=[1, 3]), context
+    )
+
+    assert {t.id for t in result.transfers} == {1, 3}
+
+
+@pytest.mark.asyncio
+async def test_list_stock_transfers_updated_date_filters(
+    context_with_typed_cache, no_sync
+):
+    """`updated_after` / `updated_before` apply as indexed range filters (#484)."""
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_stock_transfer(id=1, updated_at=datetime(2025, 12, 15)),  # before
+            make_stock_transfer(id=2, updated_at=datetime(2026, 2, 15)),  # inside
+            make_stock_transfer(id=3, updated_at=datetime(2026, 5, 1)),  # after
+        ],
+    )
+
+    result = await _list_stock_transfers_impl(
+        ListStockTransfersRequest(
+            updated_after="2026-01-01T00:00:00+00:00",
+            updated_before="2026-04-01T00:00:00+00:00",
+        ),
+        context,
+    )
+
+    assert {t.id for t in result.transfers} == {2}
+
+
+@pytest.mark.asyncio
+async def test_list_stock_transfers_include_deleted_default_excludes(
+    context_with_typed_cache, no_sync
+):
+    """`include_deleted` defaults to False — tombstoned rows stay hidden (#484, #539)."""
+    context, _, typed_cache = context_with_typed_cache
+    await seed_cache(
+        typed_cache,
+        [
+            make_stock_transfer(id=1),
+            make_stock_transfer(id=2, deleted_at=datetime(2026, 3, 1)),
+        ],
+    )
+
+    default_result = await _list_stock_transfers_impl(
+        ListStockTransfersRequest(), context
+    )
+    assert {t.id for t in default_result.transfers} == {1}
+
+    opt_in_result = await _list_stock_transfers_impl(
+        ListStockTransfersRequest(include_deleted=True), context
+    )
+    assert {t.id for t in opt_in_result.transfers} == {1, 2}
+
+
+@pytest.mark.asyncio
 async def test_list_stock_transfers_caps_to_limit(context_with_typed_cache, no_sync):
     """`limit` caps the result size even when more rows match."""
     context, _, typed_cache = context_with_typed_cache

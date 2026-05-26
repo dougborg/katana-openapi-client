@@ -16,6 +16,7 @@ from unittest.mock import AsyncMock
 import pytest
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
+    SoftDeletableResponse,
     make_tool_result,
     resolve_entity_name,
     resolve_factory_base_currency,
@@ -223,3 +224,54 @@ async def test_resolve_factory_base_currency_returns_none_for_empty_code():
     code = await resolve_factory_base_currency(cache)
 
     assert code is None
+
+
+# ============================================================================
+# SoftDeletableResponse — derives is_deleted from deleted_at (#540)
+# ============================================================================
+
+
+class _SoftStub(SoftDeletableResponse):
+    """Minimal subclass to exercise the mixin's validator behavior."""
+
+    id: int
+
+
+def test_soft_deletable_response_derives_is_deleted_when_timestamp_set():
+    """`deleted_at` non-null → `is_deleted` set to True by the validator."""
+    stub = _SoftStub(id=1, deleted_at="2025-01-01T00:00:00+00:00")
+    assert stub.is_deleted is True
+
+
+def test_soft_deletable_response_keeps_is_deleted_false_when_timestamp_null():
+    """`deleted_at` None → `is_deleted` stays at the field default (False)."""
+    stub = _SoftStub(id=2)
+    assert stub.is_deleted is False
+    assert stub.deleted_at is None
+
+
+def test_soft_deletable_response_honors_explicit_is_deleted():
+    """An explicit `is_deleted=True` survives even when `deleted_at` is None.
+
+    Pin the precedence: the validator only fires when `deleted_at` is set
+    AND `is_deleted` was not explicitly provided. That keeps round-tripping
+    serialized payloads (where both fields may be present) lossless.
+    """
+    stub = _SoftStub(id=3, is_deleted=True)
+    assert stub.is_deleted is True
+    assert stub.deleted_at is None
+
+
+def test_soft_deletable_response_preserves_explicit_false_with_deleted_at():
+    """Explicit `is_deleted=False` survives even when `deleted_at` is set.
+
+    Regression: previously the validator used `not self.is_deleted` and
+    couldn't distinguish the field default (False) from an explicit
+    False, so a round-tripped payload like
+    `{"deleted_at": "...", "is_deleted": false}` would silently
+    flip `is_deleted` to True. Now keyed off `model_fields_set` so
+    explicit values are preserved.
+    """
+    stub = _SoftStub(id=4, deleted_at="2025-01-01T00:00:00+00:00", is_deleted=False)
+    assert stub.is_deleted is False
+    assert stub.deleted_at == "2025-01-01T00:00:00+00:00"

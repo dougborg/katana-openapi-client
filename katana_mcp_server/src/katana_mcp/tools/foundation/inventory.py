@@ -112,6 +112,27 @@ class CheckInventoryRequest(BaseModel):
             "Look up via `list_locations`."
         ),
     )
+    include_archived: bool = Field(
+        default=False,
+        description=(
+            "Include archived rows across both surfaces of this tool: "
+            "(1) variants whose parent product/material is archived (the "
+            "identifier-resolution side), and (2) per-location inventory "
+            "rows individually archived at a single warehouse (threaded to "
+            "`/inventory` and surfaced via `LocationStock.is_archived`). "
+            "Default `False` returns only active rows; on a duplicate SKU, "
+            "the live row always wins. Set `True` for cleanup workflows."
+        ),
+    )
+    include_deleted: bool = Field(
+        default=False,
+        description=(
+            "Include soft-deleted variants on the identifier-resolution "
+            "side (SKU or variant-ID). Default `False` returns only live "
+            "rows; on a duplicate SKU, the live row always wins. Set "
+            "`True` only when inspecting a deleted variant directly."
+        ),
+    )
 
 
 class LocationStock(BaseModel):
@@ -134,6 +155,11 @@ class LocationStock(BaseModel):
     safety_stock_level: float | None = None
     value_in_stock: float | None = None
     average_cost: float | None = None
+    # Per-row archive state — Katana lets an inventory row at a single
+    # warehouse be archived independent of the variant's parent. Derived
+    # from ``Inventory.archived_at`` (non-null = archived). Surfaces only
+    # when the request opted in via ``include_archived=True`` (#539).
+    is_archived: bool = False
 
 
 class StockInfo(BaseModel):
@@ -170,6 +196,11 @@ class StockInfo(BaseModel):
     default_supplier_name: str | None = None
     parent_type: Literal["product", "material"] | None = None
     katana_url: str | None = None  # deep-link to parent page
+    # Variant-level archive state lifted from ``CachedVariant.parent_archived_at``
+    # — true when the parent product/material is archived. Mirrors the
+    # ``ItemInfo.is_archived`` / ``ItemDetailsResponse.is_archived``
+    # convention from #526 so callers don't have to inspect the timestamp.
+    is_archived: bool = False
 
 
 class _InventoryRow(NamedTuple):
@@ -188,6 +219,7 @@ class _InventoryRow(NamedTuple):
     safety_stock_level: float | None
     value_in_stock: float | None
     average_cost: float | None
+    is_archived: bool
 
 
 async def _fetch_stock_for_variant(
@@ -196,6 +228,8 @@ async def _fetch_stock_for_variant(
     sku: str,
     product_name: str,
     location_id: int | None = None,
+    *,
+    include_archived: bool = False,
 ) -> StockInfo:
     """Query the inventory endpoint and return totals + per-location breakdown.
 
@@ -203,7 +237,13 @@ async def _fetch_stock_for_variant(
     location (so totals and ``by_location`` only cover one warehouse).
     Without the filter, totals are the sum across every location the
     variant has stock at, and ``by_location`` is sorted by ``in_stock``
-    descending so the largest holding shows first."""
+    descending so the largest holding shows first.
+
+    ``include_archived`` threads through to ``get_all_inventory_point`` so
+    archived per-location inventory rows surface only on explicit opt-in
+    (#539). The default keeps the active-only contract used by reorder
+    planning callers.
+    """
     from katana_public_api_client.api.inventory import get_all_inventory_point
     from katana_public_api_client.domain.converters import unwrap_unset
     from katana_public_api_client.utils import unwrap_data
@@ -211,6 +251,8 @@ async def _fetch_stock_for_variant(
     api_kwargs: dict[str, Any] = {"client": services.client, "variant_id": variant_id}
     if location_id is not None:
         api_kwargs["location_id"] = location_id
+    if include_archived:
+        api_kwargs["include_archived"] = True
     response = await get_all_inventory_point.asyncio_detailed(**api_kwargs)
     inventory_items = unwrap_data(response)
 
@@ -244,6 +286,7 @@ async def _fetch_stock_for_variant(
                 ),
                 value_in_stock=_opt_float(unwrap_unset(inv.value_in_stock, None)),
                 average_cost=_opt_float(unwrap_unset(inv.average_cost, None)),
+                is_archived=unwrap_unset(inv.archived_at, None) is not None,
             )
         )
 
@@ -270,6 +313,7 @@ async def _fetch_stock_for_variant(
             safety_stock_level=row.safety_stock_level,
             value_in_stock=row.value_in_stock,
             average_cost=row.average_cost,
+            is_archived=row.is_archived,
         )
         for row in rows
     ]
@@ -343,6 +387,11 @@ async def _enrich_stock_info_with_parent(
         if r.variant_id is None:
             continue
         variant = variants.get(r.variant_id)
+        # ``parent_archived_at`` is lifted onto the variant during sync;
+        # surface it on the response as ``is_archived`` so callers don't
+        # have to inspect the timestamp (mirrors #526's items-side
+        # convention).
+        r.is_archived = _attr(variant, "parent_archived_at") is not None
         # Variants carry exactly one of product_id / material_id; pick whichever
         # is set so the right parent map and URL kind get used.
         kind: Literal["product", "material"] | None
@@ -417,14 +466,15 @@ async def _check_inventory_impl(
             during enrichment without a redundant lookup that would also
             silently drop API-fallback rows on a cold cache."""
             if isinstance(item, str):
-                # ``get_by_sku`` defaults filter archived parents and
-                # soft-deleted variants; pass ``include_*=True`` so
-                # ``check_inventory("ARCHIVED-SKU")`` still returns the
-                # row instead of silently looking like the SKU doesn't
-                # exist (matches the legacy cache's "show everything"
-                # semantics for direct lookups).
+                # Soft-state defaults are off (#539): on a duplicate SKU
+                # the live row always wins via the ``get_by_sku``
+                # tiebreaker. Cleanup workflows opt in via the request
+                # flags so an archived-only or deleted-only SKU can still
+                # be resolved.
                 variant = await services.typed_cache.catalog.get_by_sku(
-                    item, include_archived=True, include_deleted=True
+                    item,
+                    include_archived=request.include_archived,
+                    include_deleted=request.include_deleted,
                 )
                 if not variant:
                     logger.warning("inventory_check_not_found", sku=item)
@@ -446,10 +496,16 @@ async def _check_inventory_impl(
                     item,
                     _attr(variant, "display_name") or _attr(variant, "sku") or "",
                     location_id=request.location_id,
+                    include_archived=request.include_archived,
                 )
                 return stock, variant
 
-            variant = await _fetch_variant_by_id(services, item)
+            variant = await _fetch_variant_by_id(
+                services,
+                item,
+                include_archived=request.include_archived,
+                include_deleted=request.include_deleted,
+            )
             if not variant:
                 logger.warning("inventory_check_not_found", variant_id=item)
                 return (
@@ -475,7 +531,12 @@ async def _check_inventory_impl(
                 _attr(variant, "display_name") or sku or _attr(parent, "name") or ""
             )
             stock = await _fetch_stock_for_variant(
-                services, item, sku, product_name, location_id=request.location_id
+                services,
+                item,
+                sku,
+                product_name,
+                location_id=request.location_id,
+                include_archived=request.include_archived,
             )
             return stock, variant
 
@@ -578,6 +639,19 @@ class LowStockRequest(BaseModel):
 
     threshold: int = Field(default=10, description="Stock threshold level")
     limit: int = Field(default=50, description="Maximum items to return")
+    include_archived: bool = Field(
+        default=False,
+        description=(
+            "Include archived rows across both surfaces: per-location "
+            "inventory records marked archived (threaded to `/inventory`, "
+            "counted into `current_stock` and reported via "
+            "`has_archived_inventory`) AND variants whose parent "
+            "product/material is archived (reported via `is_archived`). "
+            "Default `False` — archived rows shouldn't carry phantom "
+            "stock signals into normal reorder planning. Set `True` "
+            "for cleanup workflows."
+        ),
+    )
 
 
 class LowStockItem(BaseModel):
@@ -601,6 +675,19 @@ class LowStockItem(BaseModel):
     default_supplier_id: int | None = None
     default_supplier_name: str | None = None
     minimum_order_quantity: float | None = None
+    # Variant-level archive state lifted from ``CachedVariant.parent_archived_at``
+    # — true when the parent product/material is archived. Surfaces only
+    # when the request opted in via ``include_archived=True`` (#539).
+    is_archived: bool = False
+    # Per-row inventory archive state — true when at least one of the
+    # ``/inventory`` rows contributing to ``current_stock`` for this
+    # variant is itself archived (``Inventory.archived_at`` non-null).
+    # Distinct from ``is_archived`` (parent-archived); a variant with a
+    # live parent can still have archived inventory rows at individual
+    # warehouses. Only meaningful when the request opted in via
+    # ``include_archived=True`` — otherwise archived rows never enter
+    # the aggregation and the flag stays ``False``.
+    has_archived_inventory: bool = False
 
 
 class LowStockResponse(BaseModel):
@@ -654,15 +741,24 @@ async def _list_low_stock_items_impl(
 
         services = get_services(context)
 
+        # ``include_archived`` threads through so reorder planning stays
+        # active-only by default (#539). Cleanup workflows pass
+        # ``include_archived=True`` to surface archived rows.
+        inventory_api_kwargs: dict[str, Any] = {"client": services.client}
+        if request.include_archived:
+            inventory_api_kwargs["include_archived"] = True
         response = await get_all_inventory_point.asyncio_detailed(
-            client=services.client
+            **inventory_api_kwargs
         )
         inventory_rows = unwrap_data(response)
 
         totals: dict[int, float] = {}
+        has_archived_rows: dict[int, bool] = {}
         for inv in inventory_rows:
             qty = float(unwrap_unset(inv.quantity_in_stock, "0"))
             totals[inv.variant_id] = totals.get(inv.variant_id, 0.0) + qty
+            if unwrap_unset(inv.archived_at, None) is not None:
+                has_archived_rows[inv.variant_id] = True
 
         low_stock = sorted(
             (
@@ -743,6 +839,8 @@ async def _list_low_stock_items_impl(
                     default_supplier_id=default_supplier_id,
                     default_supplier_name=_attr(supplier, "name"),
                     minimum_order_quantity=_attr(variant, "minimum_order_quantity"),
+                    is_archived=_attr(variant, "parent_archived_at") is not None,
+                    has_archived_inventory=has_archived_rows.get(variant_id, False),
                 )
             )
 
@@ -844,6 +942,24 @@ class GetInventoryMovementsRequest(BaseModel):
         default=None,
         description="ISO-8601 upper bound on `updated_at`.",
     )
+    include_archived: bool = Field(
+        default=False,
+        description=(
+            "Include movements for variants whose parent product/material "
+            "is archived. Default `False` returns only active rows; on a "
+            "duplicate SKU, the live row always wins. Set `True` for "
+            "cleanup workflows."
+        ),
+    )
+    include_deleted: bool = Field(
+        default=False,
+        description=(
+            "Include movements for soft-deleted variants. Default `False` "
+            "returns only live rows; on a duplicate SKU, the live row "
+            "always wins. Set `True` only when inspecting a deleted "
+            "variant directly."
+        ),
+    )
 
 
 class MovementInfo(BaseModel):
@@ -918,12 +1034,14 @@ async def _get_inventory_movements_impl(
     try:
         services = get_services(context)
 
-        # Resolve SKU → variant_id via the cached catalog. Surface
-        # archived/deleted variants too so the user sees movements
-        # for items they're cleaning up — direct-lookup parity with
-        # the legacy cache's behavior.
+        # Soft-state defaults are off (#539): on a duplicate SKU the live
+        # row always wins via the ``get_by_sku`` tiebreaker. Cleanup
+        # workflows opt in via the request flags so movements for an
+        # archived-only or deleted-only SKU can still be inspected.
         variant = await services.typed_cache.catalog.get_by_sku(
-            request.sku, include_archived=True, include_deleted=True
+            request.sku,
+            include_archived=request.include_archived,
+            include_deleted=request.include_deleted,
         )
         if variant is None:
             duration_ms = round((time.monotonic() - start_time) * 1000, 2)
@@ -1098,6 +1216,22 @@ class InventoryAtRequest(BaseModel):
             "movements at this location are considered."
         ),
     )
+    include_archived: bool = Field(
+        default=False,
+        description=(
+            "Include variants whose parent product/material is archived. "
+            "Default `False` returns only active rows; on a duplicate SKU, "
+            "the live row always wins. Set `True` for cleanup workflows."
+        ),
+    )
+    include_deleted: bool = Field(
+        default=False,
+        description=(
+            "Include soft-deleted variants. Default `False` returns only "
+            "live rows; on a duplicate SKU, the live row always wins. "
+            "Set `True` only when inspecting a deleted variant directly."
+        ),
+    )
 
 
 class InventoryAtLocation(BaseModel):
@@ -1191,10 +1325,17 @@ async def _inventory_at_impl(
         async def _resolve(item: str | int) -> tuple[str | int, Any | None]:
             if isinstance(item, str):
                 v = await services.typed_cache.catalog.get_by_sku(
-                    item, include_archived=True, include_deleted=True
+                    item,
+                    include_archived=request.include_archived,
+                    include_deleted=request.include_deleted,
                 )
             else:
-                v = await _fetch_variant_by_id(services, item)
+                v = await _fetch_variant_by_id(
+                    services,
+                    item,
+                    include_archived=request.include_archived,
+                    include_deleted=request.include_deleted,
+                )
             return (item, v)
 
         resolved_pairs = list(await asyncio.gather(*(_resolve(i) for i in items)))
@@ -1447,6 +1588,24 @@ class CreateStockAdjustmentRequest(BaseModel):
         default=True,
         description="Set true (default) to preview, false to create",
     )
+    include_archived: bool = Field(
+        default=False,
+        description=(
+            "Include variants whose parent product/material is archived "
+            "when resolving row SKUs. Default `False` errors on archived-"
+            "only SKUs ('SKU not found'); set `True` for cleanup workflows "
+            "that need to adjust stock on an archived item."
+        ),
+    )
+    include_deleted: bool = Field(
+        default=False,
+        description=(
+            "Include soft-deleted variants when resolving row SKUs. Default "
+            "`False` errors on deleted-only SKUs; on a duplicate SKU, the "
+            "live row always wins regardless. Set `True` only for "
+            "exceptional cleanup workflows."
+        ),
+    )
 
 
 class StockAdjustmentRowSummary(BaseModel):
@@ -1504,11 +1663,15 @@ async def _create_stock_adjustment_impl(
     rows_summary_parts = []
     structured_rows: list[StockAdjustmentRowSummary] = []
     for row in request.rows:
-        # Direct-lookup path: include archived/deleted so a CLI user
-        # adjusting an in-progress cleanup workflow can still resolve
-        # the SKU. The live API will reject genuinely bad SKUs.
+        # Soft-state defaults are off (#539): on a duplicate SKU the live
+        # row always wins via the ``get_by_sku`` tiebreaker. A bare
+        # ``create_stock_adjustment`` against an archived-only / deleted-
+        # only SKU fails fast with "SKU not found" rather than letting
+        # Katana reject downstream. Cleanup workflows opt in explicitly.
         variant = await services.typed_cache.catalog.get_by_sku(
-            row.sku, include_archived=True, include_deleted=True
+            row.sku,
+            include_archived=request.include_archived,
+            include_deleted=request.include_deleted,
         )
         if variant is None:
             raise ValueError(f"SKU '{row.sku}' not found")
