@@ -183,13 +183,23 @@ async def test_check_inventory_not_found():
     assert result.in_stock == 0
 
 
-def _mock_inventory_row(variant_id: int, quantity_in_stock: str) -> MagicMock:
-    """Build an attrs-shaped Inventory mock for one variant/location row."""
+def _mock_inventory_row(
+    variant_id: int,
+    quantity_in_stock: str,
+    *,
+    archived_at: str | None = None,
+) -> MagicMock:
+    """Build an attrs-shaped Inventory mock for one variant/location row.
+
+    ``archived_at`` defaults to ``None`` so mocks behave as live rows;
+    pass an ISO timestamp to simulate an archived warehouse row.
+    """
     inv = MagicMock()
     inv.variant_id = variant_id
     inv.quantity_in_stock = quantity_in_stock
     inv.quantity_committed = "0"
     inv.quantity_expected = "0"
+    inv.archived_at = archived_at
     return inv
 
 
@@ -329,6 +339,68 @@ async def test_list_low_stock_sums_across_locations():
     assert len(result.items) == 1
     assert result.items[0].sku == "MULTI-LOC"
     assert result.items[0].current_stock == 8
+
+
+@pytest.mark.asyncio
+async def test_list_low_stock_surfaces_distinct_parent_and_inventory_archive_signals():
+    """`is_archived` and `has_archived_inventory` track distinct surfaces.
+
+    ``include_archived=True`` threads through to ``/inventory`` so
+    archived warehouse rows enter the aggregation, AND surfaces a
+    variant's parent archive state. The two are independent: a variant
+    with a live parent can have archived inventory rows at some
+    warehouses, and a variant with an archived parent can have all
+    rows live. Pin both signals so callers (reorder planners,
+    cleanup workflows) can branch on them separately (#539).
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    # Variant 6001: live parent, mixed inventory rows (one archived).
+    # Variant 6002: archived parent, all-live inventory rows.
+    # Variant 6003: live parent, all-live rows (both flags False).
+    inventory_rows = [
+        _mock_inventory_row(6001, "2", archived_at=None),
+        _mock_inventory_row(6001, "1", archived_at="2025-06-01T00:00:00Z"),
+        _mock_inventory_row(6002, "3", archived_at=None),
+        _mock_inventory_row(6003, "4", archived_at=None),
+    ]
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
+        return_value={
+            6001: {
+                "id": 6001,
+                "sku": "LIVE-PARENT-ARCHIVED-INV",
+                "display_name": "Mixed inv archive",
+                "parent_archived_at": None,
+            },
+            6002: {
+                "id": 6002,
+                "sku": "ARCHIVED-PARENT-LIVE-INV",
+                "display_name": "Archived parent",
+                "parent_archived_at": "2025-01-01T00:00:00Z",
+            },
+            6003: {
+                "id": 6003,
+                "sku": "ALL-LIVE",
+                "display_name": "Fully live",
+                "parent_archived_at": None,
+            },
+        }
+    )
+
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=inventory_rows),
+    ):
+        request = LowStockRequest(threshold=10, include_archived=True)
+        result = await _list_low_stock_items_impl(request, context)
+
+    by_sku = {item.sku: item for item in result.items}
+    assert by_sku["LIVE-PARENT-ARCHIVED-INV"].is_archived is False
+    assert by_sku["LIVE-PARENT-ARCHIVED-INV"].has_archived_inventory is True
+    assert by_sku["ARCHIVED-PARENT-LIVE-INV"].is_archived is True
+    assert by_sku["ARCHIVED-PARENT-LIVE-INV"].has_archived_inventory is False
+    assert by_sku["ALL-LIVE"].is_archived is False
+    assert by_sku["ALL-LIVE"].has_archived_inventory is False
 
 
 @pytest.mark.asyncio
@@ -2252,6 +2324,66 @@ async def test_check_inventory_single_variant_id():
 
 
 @pytest.mark.asyncio
+async def test_check_inventory_variant_id_threads_default_live_only_flags():
+    """Variant-ID branch defaults to live-only (include_archived=False / include_deleted=False).
+
+    Regression: previously ``_fetch_variant_by_id`` hard-coded
+    ``include_archived=True, include_deleted=True`` so the variant-ID
+    direct-lookup path could resolve a soft-deleted variant even when
+    the request defaulted to live-only — diverging from the SKU
+    branch's default behavior. Now keyed off the request flags so
+    both identifiers honor the same front-door rule (#539).
+    """
+    context, _ = create_mock_context()
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.items._fetch_variant_by_id",
+            new_callable=AsyncMock,
+            return_value={"id": 42, "sku": "WIDGET-42", "display_name": "Widget 42"},
+        ) as mock_fetch,
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[]),
+    ):
+        request = CheckInventoryRequest(skus_or_variant_ids=[42])
+        await _check_inventory_impl(request, context)
+
+    mock_fetch.assert_awaited_once()
+    call = mock_fetch.await_args
+    assert call is not None
+    assert call.kwargs.get("include_archived") is False
+    assert call.kwargs.get("include_deleted") is False
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_variant_id_threads_explicit_opt_in_flags():
+    """Variant-ID branch threads explicit include_archived=True / include_deleted=True."""
+    context, _ = create_mock_context()
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.items._fetch_variant_by_id",
+            new_callable=AsyncMock,
+            return_value={"id": 42, "sku": "WIDGET-42", "display_name": "Widget 42"},
+        ) as mock_fetch,
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[]),
+    ):
+        request = CheckInventoryRequest(
+            skus_or_variant_ids=[42],
+            include_archived=True,
+            include_deleted=True,
+        )
+        await _check_inventory_impl(request, context)
+
+    mock_fetch.assert_awaited_once()
+    call = mock_fetch.await_args
+    assert call is not None
+    assert call.kwargs.get("include_archived") is True
+    assert call.kwargs.get("include_deleted") is True
+
+
+@pytest.mark.asyncio
 async def test_check_inventory_mixed_sku_and_variant_id():
     """Mixed string + integer input exercises both the cache-by-sku and fetch-by-id routes.
 
@@ -2287,7 +2419,13 @@ async def test_check_inventory_mixed_sku_and_variant_id():
     }
 
     async def _fake_fetch_stock(
-        _services, variant_id, _sku, _product_name, location_id=None
+        _services,
+        variant_id,
+        _sku,
+        _product_name,
+        location_id=None,
+        *,
+        include_archived=False,
     ):
         return stock_by_id[variant_id]
 
@@ -4051,3 +4189,200 @@ async def test_inventory_at_rejects_bad_as_of():
     request = InventoryAtRequest(skus_or_variant_ids=["W-1"], as_of="not-a-datetime")
     with pytest.raises(ValueError, match="as_of"):
         await _inventory_at_impl(request, context)
+
+
+# ============================================================================
+# Soft-state defaults (#539) — request flags thread through to get_by_sku
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_defaults_to_active_only():
+    """Default request → ``get_by_sku`` called with both flags False (#539).
+
+    Regression: previously hard-coded ``include_*=True``, so a deleted
+    variant could win a SKU lookup over its live sibling.
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=None)
+
+    request = CheckInventoryRequest(skus_or_variant_ids=["DELETED-SKU"])
+    await _check_inventory_impl(request, context)
+
+    lifespan_ctx.typed_cache.catalog.get_by_sku.assert_called_with(
+        "DELETED-SKU", include_archived=False, include_deleted=False
+    )
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_opt_in_threads_flags_to_get_by_sku():
+    """Request flags thread through verbatim for cleanup workflows."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "DELETED-SKU", "display_name": "X"}
+    )
+
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[]),
+    ):
+        request = CheckInventoryRequest(
+            skus_or_variant_ids=["DELETED-SKU"],
+            include_archived=True,
+            include_deleted=True,
+        )
+        await _check_inventory_impl(request, context)
+
+    lifespan_ctx.typed_cache.catalog.get_by_sku.assert_called_with(
+        "DELETED-SKU", include_archived=True, include_deleted=True
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_inventory_movements_defaults_to_active_only():
+    """Default request → ``get_by_sku`` called with both flags False (#539)."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=None)
+
+    request = GetInventoryMovementsRequest(sku="DELETED-SKU")
+    await _get_inventory_movements_impl(request, context)
+
+    lifespan_ctx.typed_cache.catalog.get_by_sku.assert_called_with(
+        "DELETED-SKU", include_archived=False, include_deleted=False
+    )
+
+
+@pytest.mark.asyncio
+async def test_inventory_at_defaults_to_active_only():
+    """Default request → ``get_by_sku`` called with both flags False (#539)."""
+    from katana_mcp.tools.foundation.inventory import (
+        InventoryAtRequest,
+        _inventory_at_impl,
+    )
+
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=None)
+
+    request = InventoryAtRequest(
+        skus_or_variant_ids=["DELETED-SKU"], as_of="2026-01-01T00:00:00+00:00"
+    )
+    await _inventory_at_impl(request, context)
+
+    lifespan_ctx.typed_cache.catalog.get_by_sku.assert_called_with(
+        "DELETED-SKU", include_archived=False, include_deleted=False
+    )
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_threads_include_archived_to_inventory_api():
+    """include_archived=True on the request reaches get_all_inventory_point (#539)."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "X"}
+    )
+
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
+        patch(_UNWRAP_DATA, return_value=[]),
+    ):
+        request = CheckInventoryRequest(
+            skus_or_variant_ids=["WIDGET-001"], include_archived=True
+        )
+        await _check_inventory_impl(request, context)
+
+    # The kwargs passed to get_all_inventory_point must carry the flag.
+    assert mock_api.await_args is not None
+    assert mock_api.await_args.kwargs.get("include_archived") is True
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_default_omits_include_archived_kwarg():
+    """Default request → ``include_archived`` not sent so Katana applies its
+    default (active-only). Avoids changing wire behavior for legacy callers."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "X"}
+    )
+
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
+        patch(_UNWRAP_DATA, return_value=[]),
+    ):
+        request = CheckInventoryRequest(skus_or_variant_ids=["WIDGET-001"])
+        await _check_inventory_impl(request, context)
+
+    assert mock_api.await_args is not None
+    assert "include_archived" not in mock_api.await_args.kwargs
+
+
+@pytest.mark.asyncio
+async def test_check_inventory_surfaces_is_archived_on_location_row():
+    """Per-location ``LocationStock.is_archived`` reflects the inventory
+    row's own ``archived_at`` so callers can identify archived warehouse
+    rows when they opt in via ``include_archived=True`` (#539)."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
+        return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "X"}
+    )
+
+    archived_row = MagicMock()
+    archived_row.variant_id = 3001
+    archived_row.location_id = 100
+    archived_row.quantity_in_stock = "5.0"
+    archived_row.quantity_committed = "0"
+    archived_row.quantity_expected = "0"
+    archived_row.reorder_point = None
+    archived_row.safety_stock_level = None
+    archived_row.value_in_stock = None
+    archived_row.average_cost = None
+    archived_row.archived_at = "2025-09-01T00:00:00+00:00"
+
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_UNWRAP_DATA, return_value=[archived_row]),
+    ):
+        request = CheckInventoryRequest(
+            skus_or_variant_ids=["WIDGET-001"], include_archived=True
+        )
+        results = await _check_inventory_impl(request, context)
+
+    assert results[0].by_location[0].is_archived is True
+
+
+@pytest.mark.asyncio
+async def test_list_low_stock_items_threads_include_archived_to_inventory_api():
+    """include_archived=True on the request reaches get_all_inventory_point (#539)."""
+    context, _ = create_mock_context()
+
+    with (
+        patch(f"{_INVENTORY_API}.asyncio_detailed", new_callable=AsyncMock) as mock_api,
+        patch(_UNWRAP_DATA, return_value=[]),
+    ):
+        request = LowStockRequest(threshold=10, include_archived=True)
+        await _list_low_stock_items_impl(request, context)
+
+    assert mock_api.await_args is not None
+    assert mock_api.await_args.kwargs.get("include_archived") is True
+
+
+@pytest.mark.asyncio
+async def test_create_stock_adjustment_defaults_to_active_only():
+    """Default request → ``get_by_sku`` called with both flags False (#539).
+
+    The write path defaults to ``False`` so an archived-only / deleted-only
+    SKU fails fast with "SKU not found" rather than letting Katana reject
+    downstream.
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(return_value=None)
+
+    request = CreateStockAdjustmentRequest(
+        location_id=1,
+        rows=[StockAdjustmentRow(sku="DELETED-SKU", quantity=1)],
+    )
+    with pytest.raises(ValueError, match="DELETED-SKU"):
+        await _create_stock_adjustment_impl(request, context)
+
+    lifespan_ctx.typed_cache.catalog.get_by_sku.assert_called_with(
+        "DELETED-SKU", include_archived=False, include_deleted=False
+    )

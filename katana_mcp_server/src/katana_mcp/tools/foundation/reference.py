@@ -17,7 +17,10 @@ from sqlmodel import SQLModel
 from katana_mcp.logging import observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.decorators import cache_read
-from katana_mcp.tools.tool_result_utils import make_json_result
+from katana_mcp.tools.tool_result_utils import (
+    SoftDeletableResponse,
+    make_json_result,
+)
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_public_api_client.models_pydantic._generated import (
     CachedAdditionalCost,
@@ -172,7 +175,7 @@ class GetSupplierRequest(BaseModel):
     supplier_id: int = Field(..., description="Supplier ID to look up")
 
 
-class GetSupplierResponse(BaseModel):
+class GetSupplierResponse(SoftDeletableResponse):
     id: int
     name: str
     email: str | None = None
@@ -189,7 +192,6 @@ class GetSupplierResponse(BaseModel):
     country: str | None = None
     created_at: str | None = None
     updated_at: str | None = None
-    deleted_at: str | None = None
 
 
 def _iso_or_none(value: Any) -> str | None:

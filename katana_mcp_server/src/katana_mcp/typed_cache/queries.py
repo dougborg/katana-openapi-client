@@ -286,6 +286,16 @@ class CatalogQueries:
             include_archived=include_archived,
             include_deleted=include_deleted,
         )
+        # SKU is non-unique on the wire — duplicate live + soft-state rows
+        # are real. Without an ORDER BY, ``result.first()`` is undefined
+        # and a deleted variant can win over its live sibling (#539). Sort
+        # live before archived before deleted so the live row always
+        # surfaces even when the caller opts in to soft-state rows.
+        stmt = stmt.order_by(
+            CachedVariant.deleted_at.is_(None).desc(),
+            CachedVariant.parent_archived_at.is_(None).desc(),
+            CachedVariant.id.desc(),
+        )
         async with self._engine.session() as session:
             result = await session.exec(stmt)
             return result.first()

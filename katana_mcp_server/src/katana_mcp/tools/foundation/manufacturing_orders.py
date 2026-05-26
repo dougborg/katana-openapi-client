@@ -57,6 +57,7 @@ from katana_mcp.tools.tool_result_utils import (
     BLOCK_WARNING_PREFIX,
     UI_META,
     PaginationMeta,
+    SoftDeletableResponse,
     apply_date_window_filters,
     coerce_enum,
     enum_to_str,
@@ -593,14 +594,13 @@ class SerialNumberInfo(BaseModel):
     quantity_change: int | None = None
 
 
-class AssignedOperatorInfo(BaseModel):
+class AssignedOperatorInfo(SoftDeletableResponse):
     """One entry in an operation row's ``assigned_operators`` /
     ``completed_by_operators`` list. Mirrors the generated ``AssignedOperator``.
     """
 
     operator_id: int
     name: str
-    deleted_at: str | None = None
 
 
 class RecipeRowBatchTransactionInfo(BaseModel):
@@ -612,7 +612,7 @@ class RecipeRowBatchTransactionInfo(BaseModel):
     quantity: float | None = None
 
 
-class RecipeRowInfo(BaseModel):
+class RecipeRowInfo(SoftDeletableResponse):
     """Full manufacturing-order recipe row. Exhaustive — every field on
     ``ManufacturingOrderRecipeRow`` is surfaced, plus the resolved SKU
     and canonical ``display_name`` for display convenience.
@@ -646,10 +646,9 @@ class RecipeRowInfo(BaseModel):
     cost: float | None = None
     created_at: str | None = None
     updated_at: str | None = None
-    deleted_at: str | None = None
 
 
-class OperationRowInfo(BaseModel):
+class OperationRowInfo(SoftDeletableResponse):
     """Full manufacturing-order operation row. Exhaustive — every field on
     ``ManufacturingOrderOperationRow`` is surfaced.
     """
@@ -690,10 +689,9 @@ class OperationRowInfo(BaseModel):
     completed_at: str | None = None
     created_at: str | None = None
     updated_at: str | None = None
-    deleted_at: str | None = None
 
 
-class ProductionIngredientInfo(BaseModel):
+class ProductionIngredientInfo(SoftDeletableResponse):
     """One entry in a production's ``ingredients`` list. Mirrors the
     generated ``ManufacturingOrderProductionIngredient``.
     """
@@ -709,10 +707,9 @@ class ProductionIngredientInfo(BaseModel):
     cost: float | None = None
     created_at: str | None = None
     updated_at: str | None = None
-    deleted_at: str | None = None
 
 
-class ProductionOperationInfo(BaseModel):
+class ProductionOperationInfo(SoftDeletableResponse):
     """One entry in a production's ``operations`` list. Mirrors the
     generated ``ManufacturingOrderOperationProduction``.
     """
@@ -727,10 +724,9 @@ class ProductionOperationInfo(BaseModel):
     cost: float | None = None
     created_at: str | None = None
     updated_at: str | None = None
-    deleted_at: str | None = None
 
 
-class ProductionInfo(BaseModel):
+class ProductionInfo(SoftDeletableResponse):
     """Full manufacturing-order production record. Exhaustive — every field
     on ``ManufacturingOrderProduction`` is surfaced.
     """
@@ -754,10 +750,9 @@ class ProductionInfo(BaseModel):
     )
     created_at: str | None = None
     updated_at: str | None = None
-    deleted_at: str | None = None
 
 
-class GetManufacturingOrderResponse(BaseModel):
+class GetManufacturingOrderResponse(SoftDeletableResponse):
     """Full manufacturing order details. Exhaustive — every field Katana
     exposes on ``ManufacturingOrder`` is surfaced (including nested recipe
     rows, operation rows, and production records) so callers don't need
@@ -800,7 +795,6 @@ class GetManufacturingOrderResponse(BaseModel):
     )
     created_at: str | None = None
     updated_at: str | None = None
-    deleted_at: str | None = None
     recipe_rows: list[RecipeRowInfo] = Field(
         default_factory=list,
         description="Recipe rows (ingredients) on the manufacturing order.",
