@@ -68,7 +68,10 @@ host primitives based on intent:
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
+
+if TYPE_CHECKING:
+    from katana_mcp.tools.foundation.orders import FulfillOrderRequest
 
 from babel.numbers import format_currency
 from prefab_ui.actions import Action, SetState, ShowToast
@@ -4425,12 +4428,21 @@ def _render_fulfill_per_row_table(
 
 def build_fulfill_preview_ui(
     response: dict[str, Any],
+    *,
+    request: FulfillOrderRequest | None = None,
 ) -> PrefabApp:
     """Build a fulfillment preview card.
 
     The "Confirm Fulfillment" button re-invokes ``fulfill_order`` with
-    ``preview=False`` and the original ``order_id`` / ``order_type``
-    inlined from the response. No LLM round-trip.
+    ``preview=False`` and the original request args inlined. ``request``
+    is the original ``FulfillOrderRequest`` — passing it preserves every
+    non-default arg the user supplied (``completed_at``,
+    ``serial_numbers``, ``acknowledge_inventory_ordering``, ``rows``).
+    The default ``None`` is for back-compat with any caller that still
+    builds the card from response-only data; new callsites must pass
+    ``request=``. See #845.
+
+    No LLM round-trip.
 
     Layout follows the #537 four-tier framework (#553):
 
@@ -4450,15 +4462,35 @@ def build_fulfill_preview_ui(
     # Keep them named distinctly so a future edit can't quietly substitute
     # the display value into the request constructor.
     order_type_display, order_number, status = _extract_fulfill_fields(response)
+    # Direct lookup, not ``.get()`` — ``FulfillOrderResponse`` declares
+    # both fields required. A missing key signals a malformed response
+    # dict and we want to fail at preview-build time, not at click time.
+    # Run BEFORE the if/else so both branches enjoy the same fail-fast
+    # contract (the pre-#845 code path constructed from these fields
+    # unconditionally; now ``order_id`` is only referenced by the
+    # back-compat fallback, so probe it explicitly here too).
+    response_order_id = response["order_id"]
     raw_order_type = response["order_type"]
-    # Direct lookup, not .get() — FulfillOrderResponse declares both fields
-    # required; a missing key signals a malformed response dict and we
-    # want to fail at preview-build time, not at click time.
-    confirm_request = FulfillOrderRequest(
-        order_id=response["order_id"],
-        order_type=raw_order_type,
-        preview=True,
-    )
+    # The confirm_request must carry every non-default arg the user supplied
+    # to the preview call — otherwise the Confirm button's apply payload
+    # defaults them out and the order completes at click-time `now()` rather
+    # than the backdated `completed_at` the preview promised (#845). Pass
+    # the original request through when available; fall back to the
+    # response-only reconstruction for back-compat with any caller still
+    # invoking ``build_fulfill_preview_ui(response)`` directly.
+    if isinstance(request, FulfillOrderRequest):
+        # ``preview=True`` is forced — ``_build_apply_action`` flips it to
+        # False when materializing the apply payload, so the source value
+        # would be ignored either way. Setting it explicitly here keeps
+        # the iframe state's request snapshot consistent with the card's
+        # "PREVIEW" rendering.
+        confirm_request = request.model_copy(update={"preview": True})
+    else:
+        confirm_request = FulfillOrderRequest(
+            order_id=response_order_id,
+            order_type=raw_order_type,
+            preview=True,
+        )
     block_warnings, regular_warnings = _split_warnings(response.get("warnings"))
     apply_action = _build_apply_action("fulfill_order", confirm_request)
     cancel_action = _build_cancel_action(
