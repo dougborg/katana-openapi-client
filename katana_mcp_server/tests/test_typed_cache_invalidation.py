@@ -648,3 +648,418 @@ class TestBulkUpsert:
                 )
             ).one()
         assert count == 250
+
+
+@contextlib.contextmanager
+def _stub_so_row_sync():
+    """Stub ``/sales_order_rows`` so SO-spec tests don't need to model the related sync."""
+    with patch(
+        "katana_mcp.typed_cache.sync.get_all_sales_order_rows.asyncio_detailed",
+        new=AsyncMock(return_value=_empty_response()),
+    ):
+        yield
+
+
+def _so_attrs(*, so_id: int, row_ids: list[int]) -> object:
+    """Build a SalesOrder attrs payload with the given nested row IDs."""
+    from katana_public_api_client.models import SalesOrder as AttrsSalesOrder
+
+    return AttrsSalesOrder.from_dict(
+        {
+            "id": so_id,
+            "customer_id": 42,
+            "order_no": f"SO-{so_id}",
+            "location_id": 1,
+            "status": "NOT_SHIPPED",
+            "sales_order_rows": [
+                {
+                    "id": row_id,
+                    "sales_order_id": so_id,
+                    "variant_id": 100 + row_id,
+                    "quantity": 1,
+                }
+                for row_id in row_ids
+            ],
+        }
+    )
+
+
+def _so_response(attrs_orders: list[object]) -> MagicMock:
+    parsed = MagicMock()
+    parsed.data = attrs_orders
+    response = MagicMock()
+    response.status_code = 200
+    response.parsed = parsed
+    return response
+
+
+async def _seed_so_with_rows(
+    typed_cache_engine, *, so_id: int, row_ids: list[int]
+) -> None:
+    """Seed the cache with a minimal-but-valid SO + nested rows.
+
+    Bypasses the factory's status-resolution magic and inserts directly
+    to keep the test setup tight. Uses the live ``CachedSalesOrder`` /
+    ``CachedSalesOrderRow`` defaults satisfying their NOT-NULL columns.
+    """
+    from katana_public_api_client.models_pydantic._generated import (
+        CachedSalesOrder,
+        CachedSalesOrderRow,
+        SalesOrderStatus,
+    )
+
+    async with typed_cache_engine.session() as session:
+        session.add(
+            CachedSalesOrder(
+                id=so_id,
+                customer_id=42,
+                order_no=f"SO-{so_id}",
+                location_id=1,
+                status=SalesOrderStatus.not_shipped,
+            )
+        )
+        for row_id in row_ids:
+            session.add(
+                CachedSalesOrderRow(
+                    id=row_id,
+                    sales_order_id=so_id,
+                    variant_id=100 + row_id,
+                    quantity=1,
+                )
+            )
+        await session.commit()
+
+
+class TestReconcileChildren:
+    """``EntitySpec.reconcile_children``: parent payload is authoritative (#803).
+
+    When a row is dropped in the Katana UI without leaving a soft-delete or
+    bumping the row's ``updated_at``, the watermarked row sync misses it
+    entirely. The reconciliation block treats the parent's nested row list
+    as ground truth and deletes any cached child whose ID isn't in that
+    list, scoped to that parent.
+    """
+
+    @pytest.mark.asyncio
+    async def test_reconcile_deletes_rows_missing_from_parent_response(
+        self, typed_cache_engine
+    ):
+        """Cached row 3 vanishes when the parent payload only shows rows {1, 2}."""
+        from katana_mcp.typed_cache.sync import ensure_sales_orders_synced
+        from sqlmodel import select
+
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedSalesOrderRow,
+        )
+
+        await _seed_so_with_rows(typed_cache_engine, so_id=100, row_ids=[1, 2, 3])
+
+        with (
+            patch(
+                "katana_mcp.typed_cache.sync.get_all_sales_orders.asyncio_detailed",
+                new=AsyncMock(
+                    return_value=_so_response([_so_attrs(so_id=100, row_ids=[1, 2])])
+                ),
+            ),
+            _stub_so_row_sync(),
+        ):
+            await ensure_sales_orders_synced(MagicMock(), typed_cache_engine)
+
+        async with typed_cache_engine.session() as session:
+            rows = (await session.exec(select(CachedSalesOrderRow))).all()
+        assert sorted(r.id for r in rows) == [1, 2]
+
+    @pytest.mark.asyncio
+    async def test_reconcile_handles_empty_rows_array(self, typed_cache_engine):
+        """A parent with zero children in the payload wipes the cache for that parent.
+
+        The reconciliation seeds ``seen_by_parent`` with every parent in the
+        batch — without that, an empty-rows response would silently skip
+        the parent and leave stale rows behind.
+        """
+        from katana_mcp.typed_cache.sync import ensure_sales_orders_synced
+        from sqlmodel import select
+
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedSalesOrderRow,
+        )
+
+        await _seed_so_with_rows(typed_cache_engine, so_id=100, row_ids=[1, 2, 3])
+
+        with (
+            patch(
+                "katana_mcp.typed_cache.sync.get_all_sales_orders.asyncio_detailed",
+                new=AsyncMock(
+                    return_value=_so_response([_so_attrs(so_id=100, row_ids=[])])
+                ),
+            ),
+            _stub_so_row_sync(),
+        ):
+            await ensure_sales_orders_synced(MagicMock(), typed_cache_engine)
+
+        async with typed_cache_engine.session() as session:
+            rows = (await session.exec(select(CachedSalesOrderRow))).all()
+        assert rows == []
+
+    @pytest.mark.asyncio
+    async def test_reconcile_does_not_touch_unrelated_parents(self, typed_cache_engine):
+        """Reconciliation is scoped per-parent: an SO not in the batch keeps its rows.
+
+        Pins the ``WHERE fk = parent_id`` predicate. A naive global
+        ``DELETE … WHERE id NOT IN (seen_ids)`` would wipe row 2 under SO
+        200 (which wasn't in this sync batch); the scoped predicate must
+        leave it alone.
+        """
+        from katana_mcp.typed_cache.sync import ensure_sales_orders_synced
+        from sqlmodel import select
+
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedSalesOrderRow,
+        )
+
+        await _seed_so_with_rows(typed_cache_engine, so_id=100, row_ids=[1])
+        await _seed_so_with_rows(typed_cache_engine, so_id=200, row_ids=[2])
+
+        with (
+            patch(
+                "katana_mcp.typed_cache.sync.get_all_sales_orders.asyncio_detailed",
+                new=AsyncMock(
+                    return_value=_so_response([_so_attrs(so_id=100, row_ids=[])])
+                ),
+            ),
+            _stub_so_row_sync(),
+        ):
+            await ensure_sales_orders_synced(MagicMock(), typed_cache_engine)
+
+        async with typed_cache_engine.session() as session:
+            rows = (await session.exec(select(CachedSalesOrderRow))).all()
+        assert [r.id for r in rows] == [2]
+        assert rows[0].sales_order_id == 200
+
+    @pytest.mark.asyncio
+    async def test_reconcile_disabled_leaves_extra_rows(self, typed_cache_engine):
+        """A spec with ``reconcile_children=False`` does not delete missing rows.
+
+        Pins the default-off contract: only specs that opt in get the
+        DELETE pass. Manufacturing orders (no inline rows; recipe rows
+        live behind a separate watermark) must keep upsert-only semantics.
+        """
+        from katana_mcp.typed_cache.sync import (
+            ensure_manufacturing_orders_synced,
+        )
+        from sqlmodel import select
+
+        from katana_public_api_client.models import (
+            ManufacturingOrder as AttrsMO,
+        )
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedManufacturingOrder,
+            CachedManufacturingOrderRecipeRow,
+        )
+
+        async with typed_cache_engine.session() as session:
+            session.add(CachedManufacturingOrder(id=300, order_no="MO-300"))
+            session.add(
+                CachedManufacturingOrderRecipeRow(
+                    id=1,
+                    manufacturing_order_id=300,
+                    variant_id=999,
+                    planned_quantity_per_unit="1.0",
+                )
+            )
+            await session.commit()
+
+        attrs_mo = AttrsMO.from_dict(
+            {
+                "id": 300,
+                "order_no": "MO-300",
+                "status": "NOT_STARTED",
+                "variant_id": 1,
+                "location_id": 1,
+                "planned_quantity": "1",
+                "actual_quantity": "0",
+            }
+        )
+        with (
+            patch(
+                "katana_mcp.typed_cache.sync.get_all_manufacturing_orders.asyncio_detailed",
+                new=AsyncMock(return_value=_so_response([attrs_mo])),
+            ),
+            patch(
+                "katana_mcp.typed_cache.sync.get_all_manufacturing_order_recipe_rows.asyncio_detailed",
+                new=AsyncMock(return_value=_empty_response()),
+            ),
+        ):
+            await ensure_manufacturing_orders_synced(MagicMock(), typed_cache_engine)
+
+        async with typed_cache_engine.session() as session:
+            rows = (await session.exec(select(CachedManufacturingOrderRecipeRow))).all()
+        # Reconcile is off on the MO spec; the recipe row from before
+        # the sync survives even though the watermarked recipe-row feed
+        # returned empty.
+        assert [r.id for r in rows] == [1]
+
+    def test_reconcile_post_init_requires_children(self):
+        """``reconcile_children=True`` without ``child_cls`` raises at construction."""
+        from katana_mcp.typed_cache.sync import EntitySpec
+
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedSalesOrder,
+            SalesOrder as PydanticSalesOrder,
+        )
+
+        with pytest.raises(ValueError, match="reconcile_children"):
+            EntitySpec(
+                entity_key="bad",
+                api_fn=MagicMock(),
+                cache_cls=CachedSalesOrder,
+                pydantic_cls=PydanticSalesOrder,
+                reconcile_children=True,
+            )
+
+    @pytest.mark.asyncio
+    async def test_reconcile_leaves_soft_deleted_rows_in_place(
+        self, typed_cache_engine
+    ):
+        """Tombstoned rows survive reconciliation — the dedicated row sync owns them.
+
+        ``find_sales_orders`` hides soft-deleted rows even with
+        ``include_deleted=True``, so a tombstone never appears in the
+        parent payload. If reconciliation wiped *every* cached child
+        under each parent, it would race with the parallel
+        ``_SALES_ORDER_ROW_SPEC`` (which fetches tombstones via the
+        ``/sales_order_rows?include_deleted=true`` endpoint) and erase
+        soft-delete history. Scoping the DELETE to ``deleted_at IS NULL``
+        keeps tombstones intact regardless of who lands first.
+        """
+        from datetime import datetime
+
+        from katana_mcp.typed_cache.sync import ensure_sales_orders_synced
+        from sqlmodel import select
+
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedSalesOrder,
+            CachedSalesOrderRow,
+            SalesOrderStatus,
+        )
+
+        async with typed_cache_engine.session() as session:
+            session.add(
+                CachedSalesOrder(
+                    id=100,
+                    customer_id=42,
+                    order_no="SO-100",
+                    location_id=1,
+                    status=SalesOrderStatus.not_shipped,
+                )
+            )
+            session.add(
+                CachedSalesOrderRow(
+                    id=1, sales_order_id=100, variant_id=101, quantity=1
+                )
+            )
+            tombstoned = CachedSalesOrderRow(
+                id=2, sales_order_id=100, variant_id=102, quantity=1
+            )
+            tombstoned.deleted_at = datetime(2026, 5, 20)
+            session.add(tombstoned)
+            await session.commit()
+
+        with (
+            patch(
+                "katana_mcp.typed_cache.sync.get_all_sales_orders.asyncio_detailed",
+                new=AsyncMock(
+                    return_value=_so_response([_so_attrs(so_id=100, row_ids=[1])])
+                ),
+            ),
+            _stub_so_row_sync(),
+        ):
+            await ensure_sales_orders_synced(MagicMock(), typed_cache_engine)
+
+        async with typed_cache_engine.session() as session:
+            rows = (await session.exec(select(CachedSalesOrderRow))).all()
+        by_id = {r.id: r for r in rows}
+        assert sorted(by_id.keys()) == [1, 2]
+        assert by_id[2].deleted_at is not None
+
+    @pytest.mark.asyncio
+    async def test_reconcile_handles_many_children_without_param_limit(
+        self, typed_cache_engine
+    ):
+        """Reconciliation handles 1000+ children per parent without binding 1000+ params.
+
+        A naive ``NOT IN (seen_ids)`` formulation binds one parameter per ID
+        and would blow past SQLite's ``_SQLITE_PARAM_BUDGET`` (900) — and
+        eventually the engine's default 999-variable cap — for a single
+        fat parent. The current DELETE-all-then-upsert path issues one
+        ``WHERE fk = ?`` DELETE (1 param) per parent regardless of row
+        count, so this scales independently of children-per-parent.
+        """
+        from katana_mcp.typed_cache.sync import ensure_sales_orders_synced
+        from sqlmodel import select
+
+        from katana_public_api_client.models_pydantic._generated import (
+            CachedSalesOrderRow,
+        )
+
+        await _seed_so_with_rows(
+            typed_cache_engine, so_id=100, row_ids=list(range(1, 1201))
+        )
+        # Response keeps half the rows; the other half should vanish from
+        # the cache via reconciliation.
+        kept_row_ids = list(range(1, 601))
+        with (
+            patch(
+                "katana_mcp.typed_cache.sync.get_all_sales_orders.asyncio_detailed",
+                new=AsyncMock(
+                    return_value=_so_response(
+                        [_so_attrs(so_id=100, row_ids=kept_row_ids)]
+                    )
+                ),
+            ),
+            _stub_so_row_sync(),
+        ):
+            await ensure_sales_orders_synced(MagicMock(), typed_cache_engine)
+
+        async with typed_cache_engine.session() as session:
+            rows = (await session.exec(select(CachedSalesOrderRow))).all()
+        assert sorted(r.id for r in rows) == kept_row_ids
+
+    @pytest.mark.asyncio
+    async def test_phantom_rows_cleared_on_next_list_sales_orders(
+        self, context_with_typed_cache
+    ):
+        """End-to-end: a stale cached row vanishes after the next ``list_sales_orders``.
+
+        Wires both fixes together for the hard-delete case from the #803
+        repros (#WEB20523, #WEB20561, …). A row sitting in the cache with
+        ``deleted_at=None`` (because the watermarked row sync never saw a
+        tombstone) gets removed when the parent fetch reports a smaller
+        row set — and the next list call surfaces the truth.
+        """
+        from katana_mcp.tools.foundation.sales_orders import (
+            ListSalesOrdersRequest,
+            _list_sales_orders_impl,
+        )
+
+        context, _, typed_cache = context_with_typed_cache
+        await _seed_so_with_rows(typed_cache, so_id=100, row_ids=[1, 2])
+
+        with (
+            patch(
+                "katana_mcp.typed_cache.sync.get_all_sales_orders.asyncio_detailed",
+                new=AsyncMock(
+                    return_value=_so_response([_so_attrs(so_id=100, row_ids=[1])])
+                ),
+            ),
+            _stub_so_row_sync(),
+        ):
+            result = await _list_sales_orders_impl(
+                ListSalesOrdersRequest(include_rows=True), context
+            )
+
+        assert result.total_count == 1
+        summary = result.orders[0]
+        assert summary.row_count == 1
+        assert summary.rows is not None
+        assert [r.id for r in summary.rows] == [1]
