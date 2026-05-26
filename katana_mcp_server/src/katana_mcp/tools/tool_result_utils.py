@@ -41,8 +41,9 @@ class SoftDeletableResponse(BaseModel):
     that escape hatch must set the field explicitly.
 
     Read-side only — Katana exposes deletion via DELETE endpoints, not
-    via a writable boolean on update bodies. See ``typed_cache/README.md``
-    "Archive / deleted state" for the asymmetry vs. ``is_archived``.
+    via a writable boolean on update bodies. See
+    ``katana_mcp_server/docs/typed_cache/README.md`` "Archive / deleted
+    state" for the asymmetry vs. ``is_archived``.
     """
 
     deleted_at: str | None = None
