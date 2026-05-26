@@ -247,8 +247,19 @@ class FulfillOrderResponse(BaseModel):
     )
 
 
-def _fulfill_response_to_tool_result(response: FulfillOrderResponse) -> ToolResult:
-    """Convert FulfillOrderResponse to ToolResult with the appropriate Prefab UI."""
+def _fulfill_response_to_tool_result(
+    response: FulfillOrderResponse, *, request: FulfillOrderRequest
+) -> ToolResult:
+    """Convert FulfillOrderResponse to ToolResult with the appropriate Prefab UI.
+
+    ``request`` is the original tool input. The preview branch threads it
+    into ``build_fulfill_preview_ui`` so the rendered Confirm button's
+    apply payload carries every non-default arg the user supplied
+    (``completed_at`` / ``serial_numbers`` / ``acknowledge_inventory_ordering``
+    / ``rows``). Without this plumbing the apply re-issue defaults those
+    fields out and silently completes the order at click-time ``now()``
+    instead of the backdated timestamp the preview promised. See #845.
+    """
     from katana_mcp.tools.prefab_ui import (
         build_fulfill_preview_ui,
         build_fulfill_success_ui,
@@ -256,7 +267,7 @@ def _fulfill_response_to_tool_result(response: FulfillOrderResponse) -> ToolResu
 
     response_dict = response.model_dump()
     if response.is_preview:
-        ui = build_fulfill_preview_ui(response_dict)
+        ui = build_fulfill_preview_ui(response_dict, request=request)
     else:
         ui = build_fulfill_success_ui(response_dict)
 
@@ -1652,7 +1663,7 @@ async def fulfill_order(
     Sales: creates a fulfillment record, reduces available inventory.
     """
     response = await _fulfill_order_impl(request, context)
-    return _fulfill_response_to_tool_result(response)
+    return _fulfill_response_to_tool_result(response, request=request)
 
 
 def register_tools(mcp: FastMCP) -> None:

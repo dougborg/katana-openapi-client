@@ -4816,6 +4816,79 @@ class TestConfirmButtonEmitsCallTool:
         assert args["order_id"] == 9999
         assert args["order_type"] == "sales"
 
+    def test_fulfill_preview_confirm_carries_request_args(self):
+        """Apply payload must propagate every non-default arg from the
+        preview request — #845. Pre-fix, ``completed_at`` /
+        ``serial_numbers`` / ``acknowledge_inventory_ordering`` all
+        defaulted out at apply time, silently completing the order at
+        click-time ``now()`` instead of the backdated timestamp.
+        """
+        from datetime import UTC, datetime
+
+        from katana_mcp.tools.foundation.orders import FulfillOrderRequest
+
+        backdated = datetime(2026, 5, 1, 22, 43, 0, tzinfo=UTC)
+        request = FulfillOrderRequest(
+            order_id=9999,
+            order_type="manufacturing",
+            preview=True,
+            completed_at=backdated,
+            serial_numbers=[12345, 12346],
+            acknowledge_inventory_ordering=True,
+        )
+        app = build_fulfill_preview_ui(
+            {
+                "order_id": 9999,
+                "order_type": "manufacturing",
+                "order_number": "MO-1",
+                "status": "NOT_STARTED",
+                "warnings": [],
+            },
+            request=request,
+        )
+        envelope = app.to_json()
+        on_click = _confirm_button_on_click(envelope, "Confirm Fulfillment")
+        call = self._assert_apply_actions(on_click, "fulfill_order")
+        args = call["arguments"]
+        assert args["order_id"] == 9999
+        assert args["order_type"] == "manufacturing"
+        # ISO 8601 string after pydantic ``model_dump(mode="json")``.
+        assert args["completed_at"] == "2026-05-01T22:43:00Z"
+        assert args["serial_numbers"] == [12345, 12346]
+        assert args["acknowledge_inventory_ordering"] is True
+
+    def test_fulfill_preview_confirm_carries_sales_row_overrides(self):
+        """The ``rows`` field (sales-side per-row overrides) round-trips
+        through the apply payload the same way as the MO-side
+        scalars — #845.
+        """
+        from katana_mcp.tools.foundation.orders import (
+            FulfillOrderRequest,
+            FulfillRowOverride,
+        )
+
+        request = FulfillOrderRequest(
+            order_id=8888,
+            order_type="sales",
+            preview=True,
+            rows=[FulfillRowOverride(sales_order_row_id=42, serial_numbers=[111])],
+        )
+        app = build_fulfill_preview_ui(
+            {
+                "order_id": 8888,
+                "order_type": "sales",
+                "order_number": "SO-2",
+                "status": "NOT_SHIPPED",
+                "warnings": [],
+            },
+            request=request,
+        )
+        envelope = app.to_json()
+        on_click = _confirm_button_on_click(envelope, "Confirm Fulfillment")
+        call = self._assert_apply_actions(on_click, "fulfill_order")
+        args = call["arguments"]
+        assert args["rows"] == [{"sales_order_row_id": 42, "serial_numbers": [111]}]
+
     def test_receipt_preview_confirm_emits_call_tool(self):
         from katana_mcp.tools.foundation.purchase_orders import (
             ReceiveItemRequest,
