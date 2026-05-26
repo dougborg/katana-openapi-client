@@ -1,5 +1,7 @@
 # Create a custom field definition
 
+> 🚧 **Beta — feature-flagged.** Contact support@katanamrp.com to enable.
+
 Creates a new custom field definition for a given entity type. A factory may have at most 50 definitions.
 
 # OpenAPI definition
@@ -37,7 +39,7 @@ Creates a new custom field definition for a given entity type. A factory may hav
         "tags": [
           "Custom Field Definition"
         ],
-        "description": "Creates a new custom field definition for a given entity type. A factory may have at most 50 definitions.",
+        "description": "> 🚧 **Beta — feature-flagged.** Contact support@katanamrp.com to enable.\n\nCreates a new custom field definition for a given entity type. A factory may have at most 50 definitions.",
         "operationId": "createCustomFieldDefinition",
         "requestBody": {
           "description": "New custom field definition details",
@@ -74,9 +76,10 @@ Creates a new custom field definition for a given entity type. A factory may hav
                   "entity_type": {
                     "type": "string",
                     "enum": [
-                      "SalesOrder"
+                      "SalesOrder",
+                      "SalesOrderRow"
                     ],
-                    "description": "Entity the custom field applies to. Currently only `SalesOrder` is supported via the public API. Immutable after creation."
+                    "description": "Entity the custom field applies to. Immutable after creation."
                   },
                   "source": {
                     "type": "string",

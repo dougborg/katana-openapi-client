@@ -1,5 +1,7 @@
 # Update a custom field definition
 
+> 🚧 **Beta — feature-flagged.** Contact support@katanamrp.com to enable.
+
 Updates the `label`, `description`, or `options` of a custom field definition. Other properties (`field_type`, `entity_type`, `source`) are immutable.
 
 # OpenAPI definition
@@ -37,7 +39,7 @@ Updates the `label`, `description`, or `options` of a custom field definition. O
         "tags": [
           "Custom Field Definition"
         ],
-        "description": "Updates the `label`, `description`, or `options` of a custom field definition. Other properties (`field_type`, `entity_type`, `source`) are immutable.",
+        "description": "> 🚧 **Beta — feature-flagged.** Contact support@katanamrp.com to enable.\n\nUpdates the `label`, `description`, or `options` of a custom field definition. Other properties (`field_type`, `entity_type`, `source`) are immutable.",
         "operationId": "updateCustomFieldDefinition",
         "parameters": [
           {

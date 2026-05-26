@@ -2774,75 +2774,2685 @@ components:
           type: integer
       title: SalesReturnRowPatchDto
       type: object
-    SearchFilterDto:
+    SearchSalesOrderRowsDto:
       additionalProperties: false
       properties:
         filter:
           additionalProperties: false
           properties:
             limit:
+              description: Page size (max 200)
+              maximum: 200
               minimum: 0
               type: integer
             order:
+              description: 'Order clause(s). Format: `<field> ASC|DESC`.'
               oneOf:
               - type: string
               - items:
                   type: string
                 type: array
             page:
+              description: 1-based page number — matches the rest of the public API
               minimum: 1
               type: integer
-            skip:
-              minimum: 0
-              type: integer
             where:
-              additionalProperties:
-                anyOf:
-                - type: string
-                - type: number
-                - type: boolean
-                - type: 'null'
-                - additionalProperties: false
-                  properties:
-                    between:
-                      items: {}
-                      maxItems: 2
-                      minItems: 2
-                      type: array
-                    exists:
-                      type: boolean
-                    gt: {}
-                    gte: {}
-                    ilike: {}
-                    inq:
-                      items: {}
-                      type: array
-                    like: {}
-                    lt: {}
-                    lte: {}
-                    neq: {}
-                    nilike: {}
-                    nin:
-                      items: {}
-                      type: array
-                    nlike: {}
-                    regexp:
-                      type: string
-                  type: object
+              additionalProperties: false
+              patternProperties:
+                ^custom_fields\..+$:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
               properties:
                 and:
                   items:
                     additionalProperties: true
                     type: object
                   type: array
+                created_at:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                currency:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                custom_fields:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                delivery_date:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                id:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                location_id:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
                 or:
                   items:
                     additionalProperties: true
                     type: object
                   type: array
+                price_per_unit:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                product_availability:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                quantity:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                sales_order_id:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                shipping_date:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                tax_rate:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                tax_rate_id:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                total_discount:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                updated_at:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                variant_id:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
               type: object
           type: object
-      title: SearchFilterDto
+      title: SearchSalesOrderRowsDto
+      type: object
+    SearchSalesOrdersDto:
+      additionalProperties: false
+      properties:
+        filter:
+          additionalProperties: false
+          properties:
+            limit:
+              description: Page size (max 200)
+              maximum: 200
+              minimum: 0
+              type: integer
+            order:
+              description: 'Order clause(s). Format: `<field> ASC|DESC`.'
+              oneOf:
+              - type: string
+              - items:
+                  type: string
+                type: array
+            page:
+              description: 1-based page number — matches the rest of the public API
+              minimum: 1
+              type: integer
+            where:
+              additionalProperties: false
+              patternProperties:
+                ^custom_fields\..+$:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+              properties:
+                and:
+                  items:
+                    additionalProperties: true
+                    type: object
+                  type: array
+                created_at:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                currency:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                custom_fields:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                customer_id:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                customer_ref:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                delivery_date:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                ecommerce_order_id:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                ecommerce_order_type:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                ecommerce_store_name:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                id:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                ingredient_availability:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                invoicing_status:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                location_id:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                or:
+                  items:
+                    additionalProperties: true
+                    type: object
+                  type: array
+                order_created_date:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                order_no:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                picked_date:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                product_availability:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                production_status:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                source:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                status:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                tracking_number:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+                updated_at:
+                  anyOf:
+                  - maxLength: 256
+                    type: string
+                  - type: number
+                  - type: boolean
+                  - type: 'null'
+                  - additionalProperties: false
+                    properties:
+                      between:
+                        description: Inclusive range [low, high]
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 2
+                        minItems: 2
+                        type: array
+                      exists:
+                        description: Match rows where this field is non-null (true) or null (false)
+                        type: boolean
+                      gt:
+                        description: Greater than
+                      gte:
+                        description: Greater than or equal
+                      ilike:
+                        description: SQL LIKE pattern, case-insensitive — UI `contains` / `starts with` / `ends with`
+                        maxLength: 256
+                        type: string
+                      inq:
+                        description: Value is in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                      like:
+                        description: SQL LIKE pattern, case-sensitive (`%` and `_` wildcards)
+                        maxLength: 256
+                        type: string
+                      lt:
+                        description: Less than
+                      lte:
+                        description: Less than or equal
+                      neq:
+                        description: Not equal
+                      nin:
+                        description: Value is not in this list
+                        items:
+                          anyOf:
+                          - maxLength: 256
+                            type: string
+                          - type: number
+                          - type: boolean
+                          - type: 'null'
+                        maxItems: 100
+                        type: array
+                    type: object
+              type: object
+          type: object
+      title: SearchSalesOrdersDto
       type: object
     SupplierAddressCreateDto:
       additionalProperties: false
@@ -7725,7 +10335,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SearchFilterDto'
+              $ref: '#/components/schemas/SearchSalesOrderRowsDto'
         required: true
       responses:
         '200':
@@ -8035,7 +10645,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SearchFilterDto'
+              $ref: '#/components/schemas/SearchSalesOrdersDto'
         required: true
       responses:
         '200':
