@@ -5,9 +5,18 @@ consistency across endpoints, extractable parameters worth promoting to
 shared definitions, etc. Direct yaml inspection — no external scripts.
 """
 
-from typing import Any
+from typing import Any, TypedDict
 
 import pytest
+
+
+class ExtractableParameter(TypedDict):
+    """Heuristic candidate for promotion to a reusable component parameter."""
+
+    name: str | None
+    signature: str
+    usage_count: int
+    endpoints: list[str]
 
 
 class TestAPIQualityAnalysis:
@@ -209,7 +218,7 @@ class TestAPIQualityAnalysis:
                     )
 
         # Find parameters that appear 3+ times (good extraction candidates)
-        extractable = []
+        extractable: list[ExtractableParameter] = []
         for signature, usages in parameter_signatures.items():
             if len(usages) >= 3:
                 # Check if all usages are consistent
