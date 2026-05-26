@@ -1,5 +1,8 @@
 {
   "enabledPlugins": {
     "harness-kit@harness-kit": true
-  }
+  },
+  "disabledMcpjsonServers": [
+    "katana-official"
+  ]
 }
