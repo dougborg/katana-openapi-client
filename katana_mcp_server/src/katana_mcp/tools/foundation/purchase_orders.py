@@ -2304,15 +2304,21 @@ async def _list_purchase_orders_impl(
 
     # When ``include_rows`` is set, ``selectinload`` eager-loads the
     # children, so ``len(po.purchase_order_rows)`` is free at materialization
-    # time and we skip the correlated COUNT subquery.
+    # time and we skip the correlated COUNT subquery. Both paths filter
+    # ``deleted_at IS NULL`` so soft-deleted rows never surface (see #803).
     if request.include_rows:
         stmt = select(CachedPurchaseOrder).options(
-            selectinload(CachedPurchaseOrder.purchase_order_rows)
+            selectinload(
+                CachedPurchaseOrder.purchase_order_rows.and_(
+                    CachedPurchaseOrderRow.deleted_at.is_(None)
+                )
+            )
         )
     else:
         row_count_subq = (
             select(func.count(CachedPurchaseOrderRow.id))
             .where(CachedPurchaseOrderRow.purchase_order_id == CachedPurchaseOrder.id)
+            .where(CachedPurchaseOrderRow.deleted_at.is_(None))
             .correlate(CachedPurchaseOrder)
             .scalar_subquery()
             .label("row_count")
