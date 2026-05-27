@@ -171,22 +171,65 @@ def _augment_prior_state_with_snapshot(
 
 async def _run_phases_until_failure(
     phases: list[list[ActionSpec]],
-) -> tuple[list[ActionResult], bool]:
+) -> tuple[list[ActionResult], bool, list[ActionSpec]]:
     """Run each phase via :func:`execute_plan`; halt on the first failed action.
 
-    Returns ``(aggregated_results, failed)`` — ``failed=True`` means an
-    action raised in some phase and subsequent phases were skipped. Callers
-    use the boolean to branch into success vs failure response building.
+    Returns ``(aggregated_results, failed, not_run_specs)`` —
+    ``failed=True`` means an action raised in some phase and subsequent
+    phases were skipped. ``not_run_specs`` carries every :class:`ActionSpec`
+    from the unattempted plan tail (the rest of the current failing phase
+    plus every later phase). Callers use the boolean to branch into success
+    vs failure response building, and the spec tail to synthesize NOT-RUN
+    extras for the per-section row morph in :func:`build_so_modify_ui`
+    (#858 finding B; mirrors ``_modify_sales_order_impl``).
+
     Empty phases are skipped silently.
     """
     aggregated: list[ActionResult] = []
-    for phase in phases:
+    for phase_idx, phase in enumerate(phases):
         if not phase:
             continue
-        aggregated.extend(await execute_plan(phase))
-        if any(a.succeeded is False for a in aggregated):
-            return aggregated, True
-    return aggregated, False
+        phase_results = await execute_plan(phase)
+        aggregated.extend(phase_results)
+        if any(a.succeeded is False for a in phase_results):
+            # Unattempted tail = leftover specs in this phase (after the
+            # failing action) + every spec in every later phase. Mirrors
+            # ``execute_plan``'s fail-fast contract: it returns results
+            # only up through the failed action, so any specs past that
+            # index in the phase never ran.
+            executed_in_phase = len(phase_results)
+            not_run_specs = list(phase[executed_in_phase:])
+            for later_phase in phases[phase_idx + 1 :]:
+                not_run_specs.extend(later_phase)
+            return aggregated, True, not_run_specs
+    return aggregated, False, []
+
+
+def _synthesize_correction_not_run_actions(
+    specs: list[ActionSpec],
+) -> list[dict[str, Any]]:
+    """Build NOT-RUN action dicts for the unattempted phase tail.
+
+    Same shape as :func:`_modify_sales_order_impl`'s NOT-RUN synthesis so
+    :func:`build_so_modify_ui` (via :func:`_so_actions_with_not_run_tail`)
+    can merge them into the per-section row morph without distinguishing
+    apply-vs-correction provenance. ``succeeded=None`` + ``status_label=
+    "NOT RUN"`` sets the "secondary" Badge variant.
+    """
+    return [
+        {
+            "operation": spec.operation,
+            "target_id": spec.target_id,
+            "succeeded": None,
+            "error": None,
+            "changes": [
+                c.model_dump() if hasattr(c, "model_dump") else dict(c)
+                for c in spec.diff
+            ],
+            "status_label": "NOT RUN",
+        }
+        for spec in specs
+    ]
 
 
 def _make_tolerant_patch_apply(
@@ -622,8 +665,11 @@ async def _correct_manufacturing_order_impl(
                 f"({len(full_plan)} action(s))"
             ),
         )
-    aggregated, failed = await _run_phases_until_failure(phases)
+    aggregated, failed, _not_run_specs = await _run_phases_until_failure(phases)
     if failed:
+        # MO modify card doesn't merge NOT-RUN extras yet — drop the spec
+        # tail here. SO failure path below synthesizes them for the SO
+        # modify-card morph (#858 finding B).
         return _build_failure_response(
             request.id, aggregated, prior_state, katana_url, snapshot
         )
@@ -1144,11 +1190,22 @@ async def _correct_sales_order_impl(
                 f"{request.id} ({len(full_plan)} action(s))"
             ),
         )
-    aggregated, failed = await _run_phases_until_failure(phases)
+    aggregated, failed, not_run_specs = await _run_phases_until_failure(phases)
     if failed:
-        return _build_failure_response(
+        response = _build_failure_response(
             request.id, aggregated, prior_state, katana_url, snapshot
         )
+        # Synthesize NOT-RUN entries for the unattempted plan tail so
+        # :func:`build_so_modify_ui` (which handles ``correct_sales_order``
+        # alongside ``modify_sales_order``) renders skipped restore /
+        # recreate / close phases instead of silently overwriting the
+        # preview's full sub-entity rows with only the executed prefix
+        # (#858 finding B — Copilot comment 3312071378). Mirrors the
+        # equivalent synthesis in ``_modify_sales_order_impl``.
+        not_run_actions = _synthesize_correction_not_run_actions(not_run_specs)
+        if not_run_actions:
+            response.extras["not_run_actions"] = not_run_actions
+        return response
 
     return ModificationResponse(
         entity_type="sales_order",
@@ -1585,8 +1642,11 @@ async def _correct_purchase_order_impl(
                 f"{request.id} ({len(full_plan)} action(s))"
             ),
         )
-    aggregated, failed = await _run_phases_until_failure(phases)
+    aggregated, failed, _not_run_specs = await _run_phases_until_failure(phases)
     if failed:
+        # PO modify card doesn't merge NOT-RUN extras yet — drop the spec
+        # tail here. The SO failure path above synthesizes them for the SO
+        # modify-card morph (#858 finding B).
         return _build_failure_response(
             request.id, aggregated, prior_state, katana_url, snapshot
         )

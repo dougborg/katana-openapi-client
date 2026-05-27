@@ -113,6 +113,330 @@ class TestModificationCardRender:
         # the rendered table.
         assert frame.locator("td").filter(has_text="APPLIED").count() >= 4
 
+    def test_so_modify_partial_failure_applied_renders(self, render_scenario):
+        """#723 SO modify card — partial-failure applied state renders the
+        card-level PARTIAL FAILURE badge, the per-action APPLIED / FAILED
+        Badges in the Line items + Shipping fees sections, and the
+        consolidated sub-entity failed-action Alert with retry coaching.
+
+        Pins end-to-end browser-render correctness for the SO modify
+        card's most complex state — multiple parallel sub-entity outcomes
+        where some succeed and some fail.
+        """
+        frame = render_scenario("so_modify_partial_failure_applied")
+        # Header carries the SO order_no badge.
+        assert frame.locator("text=SO-2026-001").count() >= 1
+        # Card-level PARTIAL FAILURE state Badge (the build-time outcome
+        # bucketing — ``_summarize_apply_outcome`` reads the response
+        # actions on the standalone-applied path).
+        assert frame.locator("text=PARTIAL FAILURE").count() >= 1
+        # Per-section headers — Line items and Shipping fees are present
+        # because the plan touches both; Fulfillments and Addresses are
+        # not (no actions, no section header).
+        assert frame.locator("text=Line items:").count() >= 1
+        assert frame.locator("text=Shipping fees:").count() >= 1
+        # Per-action status pills surface APPLIED on the successful
+        # actions; FAILED on the failed one. ``count() >= 1`` because
+        # multiple APPLIED Badges (one for the row that succeeded plus
+        # potentially the card-level chrome).
+        assert frame.locator("text=APPLIED").count() >= 1
+        assert frame.locator("text=FAILED").count() >= 1
+        # Sub-entity failed-action Alert — title + retry-coaching tail.
+        assert frame.locator("text=404 Not Found").count() >= 1
+        assert frame.locator("text=modify_sales_order(id=42").count() >= 1
+
+    def test_so_modify_partial_failure_morphs_preview_to_applied(self, render_scenario):
+        """#723 / #858 — Click-through morph test for the SO modify card.
+
+        The standalone-applied scenario seeds the partial-failure state
+        slots directly in Python; a slot-name typo in the
+        :func:`build_so_modify_ui` Confirm-button SetState chain would
+        sneak past that test. This test wires the **preview→Confirm→
+        on_success morph path** end to end:
+
+        1. Render the SO modify preview card via
+           ``so_modify_partial_failure_preview``.
+        2. Confirm a baseline preview shape — Confirm button visible,
+           no sub-entity failed-action Alert yet, no per-row FAILED
+           Badge / ``✗`` gutter (preview rows render as PLANNED with no
+           Badge).
+        3. Click Confirm. The iframe re-issues ``modify_sales_order``
+           with ``preview=False``; the stub tool in
+           :mod:`render_test_server` returns the partial-failure apply
+           response.
+        4. After the morph lands, assert (a) the state-driven sub-entity
+           failed-action Alert has appeared with the error text and (b)
+           the per-row chrome has morphed — the failed row carries a
+           FAILED Badge and the ``✗`` gutter (#858 finding A). Without
+           the row-binding fix the row text + Badge stayed frozen on
+           the preview-time PLANNED state.
+
+        Each per-section row list lives in ``state.so_<section>_rows``
+        (see ``_build_so_subentity_row_lists``) and renders via
+        ``ForEach``. The on_success chain SetStates each section list
+        from ``$result.state.so_<section>_rows`` so the row chrome
+        re-paints in lockstep with the apply outcome.
+        """
+        frame = render_scenario("so_modify_partial_failure_preview")
+
+        # Pre-state: Confirm button visible, no failure alert yet (the
+        # preview seeds ``applied_subentity_failed_count=0`` so the If
+        # gate is closed).
+        assert frame.locator("button").filter(has_text="Confirm").first.is_visible()
+        # The failed-row error text only shows when the Alert is open
+        # (the morph hasn't fired yet, so the bound text is the empty
+        # preview seed).
+        assert frame.locator("text=404 Not Found").count() == 0
+        # Per-row chrome: preview-time rows are PLANNED, so no per-row
+        # FAILED Badge yet and no ✗ gutter. Pre-fix the per-row chrome
+        # stayed frozen here even after Confirm.
+        assert frame.locator("text=FAILED").count() == 0
+        # The delete_row line item renders with the kind gutter (``-``)
+        # at preview time, not the failure gutter (``✗``).
+        assert frame.locator("text=✗ row #9999").count() == 0
+
+        # Fire the Confirm button — re-issues ``modify_sales_order``
+        # with ``preview=False``, the stub returns the partial-failure
+        # apply response, and the on_success chain seeds the failed-
+        # subentity state slots from ``$result.state.*``.
+        frame.locator("button").filter(has_text="Confirm").first.click()
+
+        # Wait for the morph: the failed-action error text from the
+        # apply response surfaces inside the now-visible Alert.
+        frame.locator("text=404 Not Found").first.wait_for(
+            state="visible", timeout=30000
+        )
+        # Retry-coaching tail from ``_so_subentity_failed_summary``
+        # (references the SO id via ``modify_sales_order(id=42, ...)``).
+        assert frame.locator("text=modify_sales_order(id=42").count() >= 1
+        # Row-binding morph (#858 finding A): the failed row's gutter
+        # glyph flipped to ``✗`` and the per-row FAILED Badge appeared.
+        # Pre-fix these stayed at the preview-time PLANNED chrome.
+        frame.locator("text=✗ row #9999").first.wait_for(state="visible", timeout=10000)
+        assert frame.locator("text=FAILED").count() >= 1
+
+    def test_so_failed_delete_applied_renders_error_text(self, render_scenario):
+        """#858 finding B — A failed top-level ``delete`` action renders
+        the FAILED chrome AND surfaces the :attr:`ActionResult.error`
+        text via the state-driven header-op Alert.
+
+        Pre-fix the FAILED chrome rendered without the error message
+        — delete actions have no field changes (so
+        :func:`_render_failed_changes_block` was empty) and ``delete`` is
+        filtered out of :func:`_so_subentity_failed_summary` (so that
+        Alert was empty too). Operator saw "FAILED" with no way to tell
+        why.
+
+        Pins end-to-end browser-render correctness for the new
+        header-op Alert.
+        """
+        frame = render_scenario("so_delete_failed_applied")
+        # FAILED chrome (the state-driven header Badge).
+        assert frame.locator("text=FAILED").count() >= 1
+        # Sales Order Failed title suffix (driven by ``applied_title_suffix``
+        # on the standalone-applied failure path).
+        assert frame.locator("text=Sales Order Failed").count() >= 1
+        # The new state-driven header-op Alert surfaces the
+        # ActionResult.error text verbatim (the load-bearing fix for
+        # finding B).
+        assert frame.locator("text=Sales order operation failed").count() >= 1
+        assert frame.locator("text=Failed to delete the sales order").count() >= 1
+        # And the actual error string from the response.
+        assert (
+            frame.locator("text=404 Not Found: sales order 42 does not exist").count()
+            >= 1
+        )
+
+    def test_so_failed_delete_morphs_preview_to_applied(self, render_scenario):
+        """#858 finding B — Click-through morph: the failed-delete error
+        text surfaces only after Confirm fires, driven by the on_success
+        ``SetState`` chain seeding ``applied_header_failed_summary`` from
+        ``$result.state.applied_header_failed_summary``.
+
+        Mistyped slot names in either side of the chain would leave the
+        Alert empty (the preview seed) even after the apply lands. This
+        test catches the slot-name typo that the standalone-applied test
+        couldn't (the standalone path seeds the slot directly in
+        Python).
+        """
+        frame = render_scenario("so_delete_failed_preview")
+        # Pre-state: Confirm visible, no error text yet (header-op
+        # Alert is gated on the ``applied_header_failed_count > 0``
+        # condition; preview seeds it to 0).
+        assert frame.locator("button").filter(has_text="Confirm").first.is_visible()
+        assert (
+            frame.locator("text=404 Not Found: sales order 42 does not exist").count()
+            == 0
+        )
+        assert frame.locator("text=Sales order operation failed").count() == 0
+
+        # Fire Confirm — stub returns the failed-delete apply response,
+        # on_success chain seeds ``applied_header_failed_*`` from
+        # ``$result.state.*``.
+        frame.locator("button").filter(has_text="Confirm Delete").first.click()
+
+        # Wait for the morph: the failed-delete error text appears
+        # inside the now-visible header-op Alert.
+        frame.locator(
+            "text=404 Not Found: sales order 42 does not exist"
+        ).first.wait_for(state="visible", timeout=30000)
+        assert frame.locator("text=Sales order operation failed").count() >= 1
+
+    def test_so_modify_fail_fast_not_run_morphs_preview_to_applied(
+        self, render_scenario
+    ):
+        """#858 finding B (NOT-RUN morph) — Click-through: a 4-row plan
+        that fails on row 2 must morph to a card showing all 4 rows
+        (APPLIED + FAILED + NOT RUN + NOT RUN) instead of silently
+        dropping rows 3-4.
+
+        Pre-fix: ``execute_plan`` fail-fast truncated ``response.actions``
+        at row 2 (the failure boundary). The morph overwrote each
+        section's ``so_<section>_rows`` slot with the apply response's
+        shorter list — rows 3-4 silently disappeared from the Line items
+        section. Operator saw "1 succeeded, 1 failed" with no indication
+        that 2 more changes were never attempted.
+
+        Post-fix: ``_modify_sales_order_impl`` stashes the unattempted
+        plan tail under ``response.extras["not_run_actions"]``;
+        :func:`build_so_modify_ui` merges it back into the per-section
+        row bucketing. The morph contract is preserved through the same
+        ``$result.state.so_<section>_rows`` on_success chain — the
+        merged actions list seeds those slots build-time + apply-time
+        identically.
+        """
+        frame = render_scenario("so_modify_fail_fast_not_run_preview")
+        # Pre-state: preview shows all 4 rows as PLANNED (no Badges).
+        # The morph hasn't fired yet, so no NOT RUN / APPLIED / FAILED
+        # chrome on the per-row Badges.
+        assert frame.locator("button").filter(has_text="Confirm").first.is_visible()
+        assert frame.locator("text=NOT RUN").count() == 0
+        assert frame.locator("text=APPLIED").count() == 0
+        assert frame.locator("text=FAILED").count() == 0
+
+        # Fire Confirm — stub returns the fail-fast apply response with
+        # 2 executed + 2 NOT-RUN extras. The on_success chain seeds the
+        # ``so_rows_rows`` slot from ``$result.state.so_rows_rows`` so
+        # the merged 4-row list re-paints the Line items section.
+        frame.locator("button").filter(has_text="Confirm").first.click()
+
+        # Wait for the morph: the NOT-RUN rows must materialize.
+        frame.locator("text=NOT RUN").first.wait_for(state="visible", timeout=30000)
+        # All four row states are visible on the morphed card —
+        # APPLIED + FAILED + NOT RUN x2. Pre-fix the NOT RUN entries
+        # were silently dropped.
+        assert frame.locator("text=APPLIED").count() >= 1
+        assert frame.locator("text=FAILED").count() >= 1
+        assert frame.locator("text=NOT RUN").count() >= 2
+
+    def test_so_correct_fail_fast_not_run_applied_renders(self, render_scenario):
+        """#858 Copilot follow-up (comment 3312071378) — ``build_so_modify_ui``
+        also handles ``correct_sales_order``; its failure path must also
+        populate ``extras["not_run_actions"]`` so the morph picks up the
+        unattempted restore / recreate / close phases instead of silently
+        dropping them.
+
+        Same wire shape as the ``modify_sales_order`` fail-fast scenario
+        above — proves the row merge in :func:`_so_actions_with_not_run_tail`
+        is tool-agnostic (it keys on ``response.extras``, not ``confirm_tool``).
+        Standalone-applied test, not click-through: the impl-side fix is
+        verified in :file:`test_corrections.py`; this proves the JS-side
+        render reads the extras correctly for the correction tool too.
+        """
+        frame = render_scenario("so_correct_fail_fast_not_run_applied")
+        # Pre-fix: failure response would have shown only the executed
+        # prefix (1 APPLIED + 1 FAILED row); the NOT-RUN tail was hidden.
+        # Post-fix: all 4 rows visible on the applied card.
+        assert frame.locator("text=APPLIED").count() >= 1
+        assert frame.locator("text=FAILED").count() >= 1
+        assert frame.locator("text=NOT RUN").count() >= 2
+
+    def test_so_correct_fail_fast_header_skipped_applied_surfaces_alert(
+        self, render_scenario
+    ):
+        """#858 round-8 — A fail-fast ``correct_sales_order`` whose
+        close-phase ``update_header`` lands in the NOT-RUN tail must
+        surface that skipped step via the ``applied_header_skipped_*``
+        Alert. Pre-round-8 the skipped header step had no rendering
+        surface: sub-entity row lists only bucket sub-entity ops
+        (rows / addresses / fulfillments / shipping fees), and the
+        header field map filters NOT-RUN out per round 7. The result
+        was a failed correction where the operator could see "edit
+        row failed" but could NOT see that the SO close step never
+        ran — the SO was left in PENDING status with no indication.
+
+        Post-round-8 the state-driven Alert surfaces the count + the
+        user-facing summary ("Step skipped: modify the sales order
+        header (NOT RUN — earlier phase failed before this step ran).").
+        """
+        frame = render_scenario("so_correct_fail_fast_header_skipped_applied")
+        # Alert title (gated by ``applied_header_skipped_count > 0``).
+        assert (
+            frame.locator("text=1 header step(s) skipped").count() >= 1
+            or frame.locator("text=header step(s) skipped").count() >= 1
+        )
+        # User-facing verb derived from ``_SO_HEADER_OP_VERBS["update_header"]``
+        # — the operator sees the *operation* they care about
+        # ("modify the sales order header"), not the wire name.
+        assert (
+            frame.locator("text=Step skipped: modify the sales order header").count()
+            >= 1
+        )
+        # Causal phrase makes it obvious why the step was skipped
+        # (otherwise the operator might think the step ran and the
+        # status was already correct).
+        assert frame.locator("text=earlier phase failed").count() >= 1
+
+    def test_so_modify_header_failed_with_changes_morphs_preview_to_applied(
+        self, render_scenario
+    ):
+        """#858 finding C — Click-through: a failed ``update_header``
+        action WITH field changes must surface the state-driven
+        ``applied_header_failed_*`` Alert on the morph, NOT stay frozen
+        on the preview-time "no failures" state of the build-time
+        :func:`_render_failed_changes_block`.
+
+        Pre-fix: the build-time block read off the preview ``changes``
+        map (every action's ``succeeded=None``), painted "no failures"
+        into the view tree, and stayed there on the morph. The
+        ``applied_header_failed_*`` Alert deliberately excluded ops
+        WITH changes to avoid double-render, leaving the failure
+        completely invisible on the morphed iframe.
+
+        Post-fix: :func:`_so_header_op_failure_alert_text` is the single
+        source of truth for header-op failures (no-change ops AND
+        update_header WITH changes). The build-time block was removed
+        from the SO entity view so the error surfaces exactly once,
+        from state, on BOTH the standalone-applied path and the
+        preview→Confirm morph path.
+        """
+        frame = render_scenario("so_modify_header_failed_with_changes_preview")
+        # Pre-state: Confirm visible, no error text yet (the state
+        # Alert is gated on ``applied_header_failed_count > 0`` — the
+        # preview seeds it to 0).
+        assert frame.locator("button").filter(has_text="Confirm").first.is_visible()
+        assert frame.locator("text=422 Unprocessable").count() == 0
+        assert frame.locator("text=Sales order operation failed").count() == 0
+
+        # Fire Confirm — stub returns the failed-update-header apply
+        # response. The on_success chain copies
+        # ``$result.state.applied_header_failed_summary`` into the
+        # preview iframe's matching slot.
+        frame.locator("button").filter(has_text="Confirm").first.click()
+
+        # Wait for the morph: the 422 error text appears inside the
+        # now-visible state Alert.
+        frame.locator("text=422 Unprocessable").first.wait_for(
+            state="visible", timeout=30000
+        )
+        # The dedicated header-op Alert title is visible.
+        assert frame.locator("text=Sales order operation failed").count() >= 1
+        # And the user-facing verb derived from the operation
+        # (``_SO_HEADER_OP_VERBS["update_header"]``).
+        assert (
+            frame.locator("text=Failed to modify the sales order header").count() >= 1
+        )
+
     def test_apply_button_morphs_card_to_applied_state(self, render_scenario):
         """Click-through: Confirm fires the apply call, the on_success
         chain flips ``state.applied=True``, and the button morphs from

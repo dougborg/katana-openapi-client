@@ -2417,7 +2417,7 @@ async def _modify_sales_order_impl(
         )
     )
 
-    return await run_modify_plan(
+    response = await run_modify_plan(
         request=request,
         naming=EntityNaming(
             entity_type="sales_order",
@@ -2443,6 +2443,39 @@ async def _modify_sales_order_impl(
             ),
         ),
     )
+
+    # Apply-path: synthesize NOT-RUN entries for the unattempted plan tail.
+    # ``execute_plan`` is fail-fast: ``response.actions`` ends at the first
+    # failed action. Without these synthetic entries the modify card's
+    # per-section row morph would silently HIDE every planned action past
+    # the failure — the operator would see "1 succeeded, 1 failed" with
+    # no indication that 3 more actions were never attempted. Mirror
+    # ``_modify_product_bom_impl``'s NOT RUN pattern (#811): emit one
+    # entry per leftover ``ActionSpec`` with ``status_label="NOT RUN"``
+    # and ``succeeded=None`` (so per-row chrome renders the "secondary"
+    # Badge variant via :data:`_SO_SUB_STATUS_VARIANTS`). The renderer
+    # picks them up via ``response.extras["not_run_actions"]`` and merges
+    # them into the per-section row bucketing in
+    # :func:`build_so_modify_ui` — #858 finding B.
+    if not response.is_preview:
+        not_run_specs = plan[len(response.actions) :]
+        not_run_actions = [
+            {
+                "operation": spec.operation,
+                "target_id": spec.target_id,
+                "succeeded": None,
+                "error": None,
+                "changes": [
+                    c.model_dump() if hasattr(c, "model_dump") else dict(c)
+                    for c in spec.diff
+                ],
+                "status_label": "NOT RUN",
+            }
+            for spec in not_run_specs
+        ]
+        if not_run_actions:
+            response.extras["not_run_actions"] = not_run_actions
+    return response
 
 
 @observe_tool
