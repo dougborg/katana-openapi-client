@@ -158,13 +158,13 @@ from katana_public_api_client.utils import (
 )
 from katana_public_api_client.domain.converters import unwrap_unset, to_unset
 
-# Single object (200 OK)
+# Single object (200 OK — includes POST creates; Katana returns 200, not 201)
 order = unwrap_as(response, ManufacturingOrder)
 
 # List endpoint (200 OK with `data` array)
 items = unwrap_data(response, default=[])
 
-# Success-only (201 Created, 204 No Content)
+# Success-only (204 No Content — typically DELETE)
 if is_success(response):
     ...
 

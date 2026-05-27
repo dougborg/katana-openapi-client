@@ -112,6 +112,37 @@ production accounts should not be committed.
 
 ______________________________________________________________________
 
+## POST create endpoints return `200`, not `201`
+
+Katana's convention across virtually every create endpoint is to return HTTP **200** on
+success — not the REST-orthodox **201**. Authoring or copy-pasting `"201":` for a new
+`post:` block is a recurring footgun: the generated `_parse_response` only handles the
+documented status code, so when Katana actually returns 200 the parser falls through to
+"unknown status", leaves `response.parsed = None`, and `unwrap_as` raises
+`UnexpectedResponse` — *even though the mutation landed server-side*. The bug looks like
+a failure to the caller and invites a destructive retry.
+
+Verified live (`make_test_client()` probe, 2026-05-27):
+
+- `POST /sales_order_fulfillments` → 200
+- `POST /stock_transfers` → 200
+- `POST /sales_return_rows` → 200
+- `POST /inventory_reorder_points` → 200
+
+Pinned by
+`tests/test_openapi_specification.py::test_create_endpoint_success_status_codes`.
+
+Not yet live-verified (test tenant has no fixtures to probe against; fix when verified):
+`POST /outsourced_purchase_order_recipe_rows` still declares 201 and is almost certainly
+the same drift.
+
+If you genuinely encounter a Katana create endpoint that returns 201 (none confirmed to
+date), accept *both* by declaring `"200"` and `"201"` in the same `responses:` map
+pointing at the same schema — this future-proofs against Katana flipping the status code
+and is what the generator handles cleanly.
+
+______________________________________________________________________
+
 ## Fix bugs at the client/generator layer when the root cause lives there
 
 The Katana client (`katana_public_api_client`) is a published, standalone package.

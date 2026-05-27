@@ -13,7 +13,8 @@ from typing import Any, TypeVar
 
 from katana_public_api_client import KatanaClient
 from katana_public_api_client.api.sales_order import create_sales_order
-from katana_public_api_client.models import CreateSalesOrderRequest
+from katana_public_api_client.models import CreateSalesOrderRequest, SalesOrder
+from katana_public_api_client.utils import unwrap_as
 
 T = TypeVar("T")
 
@@ -73,11 +74,9 @@ async def create_order_with_retry(order_data: dict[str, Any]):
             response = await create_sales_order.asyncio_detailed(
                 client=client, body=request
             )
-
-            if response.status_code != 201:
-                raise ValueError(f"Failed to create order: {response.status_code}")
-
-            return response.parsed
+            # unwrap_as raises APIError on non-2xx — retry_with_backoff catches
+            # the exception and retries. On success returns the typed model.
+            return unwrap_as(response, SalesOrder)
 
         return await retry_with_backoff(create_op, max_attempts=3)
 

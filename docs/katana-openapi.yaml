@@ -18121,7 +18121,7 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateSalesReturnRowRequest"
       responses:
-        "201":
+        "200":
           description: Sales return row created successfully
           headers:
             X-Ratelimit-Limit:
@@ -19467,7 +19467,7 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateStockTransferRequest"
       responses:
-        "201":
+        "200":
           description: Stock transfer created successfully
           headers:
             X-Ratelimit-Limit:
@@ -20079,7 +20079,7 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateSalesOrderFulfillmentRequest"
       responses:
-        "201":
+        "200":
           description: Sales order fulfillment created successfully
           headers:
             X-Ratelimit-Limit:
@@ -21892,7 +21892,7 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateInventoryReorderPointRequest"
       responses:
-        "201":
+        "200":
           description: Inventory reorder point created successfully
           headers:
             X-Ratelimit-Limit:
