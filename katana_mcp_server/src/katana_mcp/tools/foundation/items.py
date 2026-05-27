@@ -44,6 +44,7 @@ from katana_mcp.tools.decorators import cache_read
 from katana_mcp.tools.list_coercion import CoercedIntListOpt, CoercedStrListOpt
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
+    SoftDeletableResponse,
     make_tool_result,
     resolve_factory_base_currency,
 )
@@ -616,7 +617,7 @@ class ItemVariantSummary(BaseModel):
     """
 
 
-class ItemDetailsResponse(BaseModel):
+class ItemDetailsResponse(SoftDeletableResponse):
     """Full item details. Exhaustive — every field Katana exposes on
     ``Product`` / ``Material`` / ``Service`` is surfaced per-type (the API is
     polymorphic, so not every field applies to every type; product-only and
@@ -643,7 +644,6 @@ class ItemDetailsResponse(BaseModel):
     created_at: str | None = None
     updated_at: str | None = None
     archived_at: str | None = None
-    deleted_at: str | None = None
 
     # Convenience boolean derived from ``archived_at`` — saves callers from
     # having to know the timestamp/null convention. Pair with
@@ -1609,9 +1609,26 @@ class GetVariantDetailsRequest(BaseModel):
         default=None,
         description="Batch lookup: JSON array of variant IDs, e.g. [12345, 67890].",
     )
+    include_archived: bool = Field(
+        default=False,
+        description=(
+            "Include variants whose parent product/material is archived. "
+            "Default `False` returns only active rows; on a duplicate SKU, "
+            "the live row always wins. Set `True` for cleanup workflows "
+            "where you need to inspect an archived variant directly."
+        ),
+    )
+    include_deleted: bool = Field(
+        default=False,
+        description=(
+            "Include soft-deleted variants. Default `False` returns only "
+            "live rows; on a duplicate SKU, the live row always wins. "
+            "Set `True` only when inspecting a deleted variant directly."
+        ),
+    )
 
 
-class VariantDetailsResponse(BaseModel):
+class VariantDetailsResponse(SoftDeletableResponse):
     """Full variant details. Exhaustive — every field Katana exposes on the
     ``Variant`` attrs model is surfaced, including nested configuration
     attributes and custom fields, so callers don't need follow-up lookups.
@@ -1698,7 +1715,6 @@ class VariantDetailsResponse(BaseModel):
     # Metadata
     created_at: str | None = None
     updated_at: str | None = None
-    deleted_at: str | None = None
 
 
 class VariantNotFound(BaseModel):
@@ -1930,7 +1946,13 @@ async def _enrich_variants_with_parent(
     return products, materials, supplier_by_id
 
 
-async def _fetch_variant_by_id(services: Any, variant_id: int) -> Any | None:
+async def _fetch_variant_by_id(
+    services: Any,
+    variant_id: int,
+    *,
+    include_archived: bool = True,
+    include_deleted: bool = True,
+) -> Any | None:
     """Look up a variant by ID — cache first, then API fallback.
 
     Returns either a ``CachedVariant`` (cache hit) or a ``VariantResponse``
@@ -1946,13 +1968,27 @@ async def _fetch_variant_by_id(services: Any, variant_id: int) -> Any | None:
 
     Uses ``raise_on_error=False`` so a 404 (or an ErrorResponse body)
     becomes ``None`` instead of a raw ``APIError``, which is what
-    callers expect as the "not found" sentinel. Passes
-    ``include_archived=True`` / ``include_deleted=True`` to the
-    cache lookup so direct-lookup parity matches the legacy cache
-    (every row regardless of soft-state).
+    callers expect as the "not found" sentinel.
+
+    ``include_archived`` / ``include_deleted`` gate the cache lookup —
+    direct-lookup callers (``check_inventory``, ``inventory_at``,
+    ``get_variant_details``) pass the request flags to keep the
+    front-door rule "default to live-only" consistent across SKU and
+    variant-ID identifiers (#539). Enrichment callers (cold-cache
+    backfill for list tools, PO row hydration) accept the ``True``
+    defaults so soft-state variants still resolve to a displayable
+    row. On the API-fallback path, ``include_deleted=False`` post-
+    filters a soft-deleted ``VariantResponse`` to ``None`` (read off
+    ``variant_obj.deleted_at``); ``include_archived=False`` post-filters
+    a variant whose nested ``product_or_material.archived_at`` is non-
+    null (the ``extend=[PRODUCT_OR_MATERIAL]`` payload already carries
+    that field, so no extra round trip is needed).
     """
     v = await services.typed_cache.catalog.get_by_id(
-        CachedVariant, variant_id, include_archived=True, include_deleted=True
+        CachedVariant,
+        variant_id,
+        include_archived=include_archived,
+        include_deleted=include_deleted,
     )
     if v is not None:
         return v
@@ -1969,6 +2005,19 @@ async def _fetch_variant_by_id(services: Any, variant_id: int) -> Any | None:
     variant_obj = unwrap(response, raise_on_error=False)
     if variant_obj is None or isinstance(variant_obj, ErrorResponse):
         return None
+    if not include_deleted:
+        deleted_at = unwrap_unset(getattr(variant_obj, "deleted_at", UNSET), None)
+        if deleted_at is not None:
+            return None
+    if not include_archived:
+        parent = unwrap_unset(getattr(variant_obj, "product_or_material", UNSET), None)
+        parent_archived_at = (
+            unwrap_unset(getattr(parent, "archived_at", UNSET), None)
+            if parent is not None
+            else None
+        )
+        if parent_archived_at is not None:
+            return None
     return variant_obj
 
 
@@ -2074,17 +2123,32 @@ async def _get_variant_details_impl(
     services = get_services(context)
     catalog = services.typed_cache.catalog
 
-    # Parallelize both groups of lookups. Direct-lookup parity with the
-    # legacy cache: include archived/deleted variants so the user can
-    # still inspect rows they're cleaning up.
+    # Parallelize both groups of lookups. Soft-state defaults are off
+    # (#539): on a duplicate SKU the live row always wins via the
+    # ``get_by_sku`` tiebreaker. Cleanup workflows opt in via the
+    # request flags.
     sku_variants, id_variants = await asyncio.gather(
         asyncio.gather(
             *(
-                catalog.get_by_sku(s, include_archived=True, include_deleted=True)
+                catalog.get_by_sku(
+                    s,
+                    include_archived=request.include_archived,
+                    include_deleted=request.include_deleted,
+                )
                 for s in sku_cleaned
             )
         ),
-        asyncio.gather(*(_fetch_variant_by_id(services, v) for v in variant_ids)),
+        asyncio.gather(
+            *(
+                _fetch_variant_by_id(
+                    services,
+                    v,
+                    include_archived=request.include_archived,
+                    include_deleted=request.include_deleted,
+                )
+                for v in variant_ids
+            )
+        ),
     )
 
     hits, not_found = _partition_variant_lookups(

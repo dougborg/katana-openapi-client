@@ -51,6 +51,7 @@ from katana_mcp.tools.tool_result_utils import (
     BLOCK_WARNING_PREFIX,
     UI_META,
     PaginationMeta,
+    SoftDeletableResponse,
     apply_date_window_filters,
     coerce_enum,
     enum_to_str,
@@ -964,7 +965,7 @@ class GetPurchaseOrderRequest(BaseModel):
     order_id: int | None = Field(default=None, description="Purchase order ID")
 
 
-class PurchaseOrderRowInfo(BaseModel):
+class PurchaseOrderRowInfo(SoftDeletableResponse):
     """Full purchase order line item — every field Katana exposes on
     ``PurchaseOrderRow`` is surfaced so callers don't need follow-up lookups
     for standard row fields (UOM conversion, currency, landed_cost, etc.).
@@ -973,7 +974,6 @@ class PurchaseOrderRowInfo(BaseModel):
     id: int
     created_at: str | None = None
     updated_at: str | None = None
-    deleted_at: str | None = None
     quantity: float | None = None
     variant_id: int | None = None
     sku: str | None = None
@@ -1008,7 +1008,7 @@ class PurchaseOrderRowInfo(BaseModel):
     )
 
 
-class PurchaseOrderAdditionalCostRowInfo(BaseModel):
+class PurchaseOrderAdditionalCostRowInfo(SoftDeletableResponse):
     """Full additional cost row — every field Katana exposes on
     ``PurchaseOrderAdditionalCostRow`` (shipping, duties, handling, etc.).
     """
@@ -1016,7 +1016,6 @@ class PurchaseOrderAdditionalCostRowInfo(BaseModel):
     id: int
     created_at: str | None = None
     updated_at: str | None = None
-    deleted_at: str | None = None
     additional_cost_id: int | None = None
     group_id: int | None = None
     name: str | None = None
@@ -1043,7 +1042,7 @@ class PurchaseOrderAccountingMetadataInfo(BaseModel):
     created_at: str | None = None
 
 
-class SupplierInfo(BaseModel):
+class SupplierInfo(SoftDeletableResponse):
     """Embedded supplier details — every field Katana exposes on
     ``Supplier`` when the PO payload includes the inline supplier record.
     """
@@ -1061,10 +1060,9 @@ class SupplierInfo(BaseModel):
     )
     created_at: str | None = None
     updated_at: str | None = None
-    deleted_at: str | None = None
 
 
-class GetPurchaseOrderResponse(BaseModel):
+class GetPurchaseOrderResponse(SoftDeletableResponse):
     """Full purchase-order details. Exhaustive — every field Katana exposes
     on ``RegularPurchaseOrder`` is surfaced, plus nested inline rows and
     fetched-on-demand additional cost rows and accounting metadata. Callers
@@ -1075,7 +1073,6 @@ class GetPurchaseOrderResponse(BaseModel):
     katana_url: str | None = None
     created_at: str | None = None
     updated_at: str | None = None
-    deleted_at: str | None = None
     status: str | None = None
     order_no: str | None = None
     entity_type: str | None = None

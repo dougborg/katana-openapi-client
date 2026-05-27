@@ -454,6 +454,76 @@ class TestCatalogQueriesGetters:
         assert result_upper.id == result_lower.id == result_mixed.id == 1
 
     @pytest.mark.asyncio
+    async def test_get_by_sku_prefers_live_over_deleted_duplicate(
+        self, typed_cache_engine
+    ):
+        """A live variant outranks a soft-deleted sibling sharing the SKU.
+
+        Regression for #539: SKUs aren't unique in Katana, and without
+        an ORDER BY the cache returned whichever row SQLite happened to
+        scan first — which could be the deleted one.
+        """
+        deleted_dt = datetime(2025, 3, 1, tzinfo=UTC)
+        async with typed_cache_engine.session() as session:
+            session.add(CachedVariant(id=1, sku="DUP-SKU", deleted_at=deleted_dt))
+            session.add(CachedVariant(id=2, sku="DUP-SKU"))
+            await session.commit()
+
+        default = await typed_cache_engine.catalog.get_by_sku("DUP-SKU")
+        opted_in = await typed_cache_engine.catalog.get_by_sku(
+            "DUP-SKU", include_deleted=True
+        )
+
+        assert default is not None
+        assert default.id == 2
+        # Tiebreaker still picks the live row even when the caller opts in.
+        assert opted_in is not None
+        assert opted_in.id == 2
+
+    @pytest.mark.asyncio
+    async def test_get_by_sku_prefers_live_over_archived_parent_duplicate(
+        self, typed_cache_engine
+    ):
+        """A live variant outranks an archived-parent sibling sharing the SKU."""
+        archived_dt = datetime(2025, 3, 1, tzinfo=UTC)
+        async with typed_cache_engine.session() as session:
+            session.add(
+                CachedVariant(id=1, sku="DUP-SKU", parent_archived_at=archived_dt)
+            )
+            session.add(CachedVariant(id=2, sku="DUP-SKU"))
+            await session.commit()
+
+        default = await typed_cache_engine.catalog.get_by_sku("DUP-SKU")
+        opted_in = await typed_cache_engine.catalog.get_by_sku(
+            "DUP-SKU", include_archived=True
+        )
+
+        assert default is not None
+        assert default.id == 2
+        assert opted_in is not None
+        assert opted_in.id == 2
+
+    @pytest.mark.asyncio
+    async def test_get_by_sku_orders_archived_before_deleted_when_no_live(
+        self, typed_cache_engine
+    ):
+        """No live row: archived beats deleted under full opt-in."""
+        deleted_dt = datetime(2025, 3, 1, tzinfo=UTC)
+        archived_dt = datetime(2025, 3, 2, tzinfo=UTC)
+        async with typed_cache_engine.session() as session:
+            session.add(CachedVariant(id=1, sku="DUP-SKU", deleted_at=deleted_dt))
+            session.add(
+                CachedVariant(id=2, sku="DUP-SKU", parent_archived_at=archived_dt)
+            )
+            await session.commit()
+
+        result = await typed_cache_engine.catalog.get_by_sku(
+            "DUP-SKU", include_archived=True, include_deleted=True
+        )
+        assert result is not None
+        assert result.id == 2
+
+    @pytest.mark.asyncio
     async def test_get_many_by_ids_dedupes_and_returns_dict(self, typed_cache_engine):
         """Duplicates collapse; the result is keyed by id for hits only."""
         async with typed_cache_engine.session() as session:

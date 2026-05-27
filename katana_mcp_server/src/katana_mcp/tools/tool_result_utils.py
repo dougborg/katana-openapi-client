@@ -15,10 +15,10 @@ import json
 from collections.abc import Iterable
 from datetime import UTC, datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self
 
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from katana_mcp.logging import get_logger
 
@@ -26,6 +26,41 @@ if TYPE_CHECKING:
     from prefab_ui.app import PrefabApp
 
 logger = get_logger(__name__)
+
+
+class SoftDeletableResponse(BaseModel):
+    """Mixin: derives ``is_deleted: bool`` from ``deleted_at`` after validation.
+
+    Mirrors #526's ``is_archived`` convention so callers don't need to
+    parse the timestamp/null shape. Subclasses get the field plumbing
+    for free; the ``mode="after"`` validator fires on any construction
+    path that runs validation — direct ``__init__``, ``model_validate``,
+    ``model_validate_json`` — and sets ``is_deleted=True`` when
+    ``deleted_at`` is non-null. ``model_construct`` bypasses validation
+    in Pydantic v2 and will **not** derive ``is_deleted``; callers using
+    that escape hatch must set the field explicitly.
+
+    Read-side only — Katana exposes deletion via DELETE endpoints, not
+    via a writable boolean on update bodies. See
+    ``katana_mcp_server/docs/typed_cache/README.md`` "Archive / deleted
+    state" for the asymmetry vs. ``is_archived``.
+    """
+
+    deleted_at: str | None = None
+    is_deleted: bool = False
+
+    @model_validator(mode="after")
+    def _derive_is_deleted(self) -> Self:
+        # Only derive when ``is_deleted`` wasn't explicitly provided —
+        # ``not self.is_deleted`` can't distinguish the default ``False``
+        # from an explicit ``is_deleted=False`` and would silently override
+        # an explicit ``False`` on a round-tripped payload that also
+        # carries a non-null ``deleted_at``. ``model_fields_set`` is the
+        # pydantic-native signal for "was this field passed by the
+        # caller?" — true only when explicitly provided at construction.
+        if self.deleted_at is not None and "is_deleted" not in self.model_fields_set:
+            self.is_deleted = True
+        return self
 
 
 # Opt-in marker for Prefab UI rendering. Pass as ``meta=UI_META`` in

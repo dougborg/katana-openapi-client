@@ -52,6 +52,7 @@ from katana_mcp.tools.list_coercion import CoercedIntListOpt
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
     PaginationMeta,
+    SoftDeletableResponse,
     apply_date_window_filters,
     coerce_enum,
     enum_to_str,
@@ -978,7 +979,7 @@ class GetSalesOrderRequest(BaseModel):
     order_id: int | None = Field(default=None, description="Sales order ID")
 
 
-class SalesOrderRowDetail(BaseModel):
+class SalesOrderRowDetail(SoftDeletableResponse):
     """Full sales order row — every field on ``SalesOrderRow`` surfaced.
 
     Used inside ``GetSalesOrderResponse.rows`` where we want the exhaustive
@@ -1019,10 +1020,9 @@ class SalesOrderRowDetail(BaseModel):
     )
     created_at: str | None = None
     updated_at: str | None = None
-    deleted_at: str | None = None
 
 
-class SalesOrderAddressInfo(BaseModel):
+class SalesOrderAddressInfo(SoftDeletableResponse):
     """Full sales order address — one entry in ``GetSalesOrderResponse.addresses``.
 
     Mirrors every field on the ``SalesOrderAddress`` attrs model. The attrs
@@ -1045,7 +1045,6 @@ class SalesOrderAddressInfo(BaseModel):
     country: str | None = None
     created_at: str | None = None
     updated_at: str | None = None
-    deleted_at: str | None = None
 
 
 class SalesOrderShippingFeeInfo(BaseModel):
@@ -1058,7 +1057,7 @@ class SalesOrderShippingFeeInfo(BaseModel):
     description: str | None = None
 
 
-class GetSalesOrderResponse(BaseModel):
+class GetSalesOrderResponse(SoftDeletableResponse):
     """Full sales order details. Exhaustive — every field Katana exposes on
     ``SalesOrder`` is surfaced (including nested rows, addresses, and
     shipping fee) so callers don't need follow-up lookups for standard fields.
@@ -1121,7 +1120,6 @@ class GetSalesOrderResponse(BaseModel):
     # Timestamps
     created_at: str | None = None
     updated_at: str | None = None
-    deleted_at: str | None = None
 
     # Line items — exhaustive per-row detail
     rows: list[SalesOrderRowDetail] = Field(

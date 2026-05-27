@@ -90,13 +90,15 @@ class TestMCPParameterPassing:
         sig = inspect.signature(list_low_stock_items)
         params = list(sig.parameters.keys())
 
-        assert params == ["threshold", "limit", "context"], (
-            "list_low_stock_items has flattened params: threshold, limit, context"
+        assert params == ["threshold", "limit", "include_archived", "context"], (
+            "list_low_stock_items has flattened params: "
+            "threshold, limit, include_archived, context"
         )
         assert sig.parameters["threshold"].annotation is int
         assert sig.parameters["limit"].annotation is int
         assert sig.parameters["threshold"].default == 10
         assert sig.parameters["limit"].default == 50
+        assert sig.parameters["include_archived"].default is False
 
         # Check check_inventory signature
         sig2 = inspect.signature(check_inventory)
@@ -105,10 +107,12 @@ class TestMCPParameterPassing:
         assert params2 == [
             "skus_or_variant_ids",
             "location_id",
+            "include_archived",
+            "include_deleted",
             "context",
         ], (
             "check_inventory has flattened params: "
-            "skus_or_variant_ids, location_id, context"
+            "skus_or_variant_ids, location_id, include_archived, include_deleted, context"
         )
         # skus_or_variant_ids is required (no default) so the MCP schema marks
         # it required; the min_length=1 Pydantic constraint also rejects [].
