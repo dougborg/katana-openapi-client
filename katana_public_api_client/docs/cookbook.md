@@ -34,10 +34,11 @@ Keep Katana inventory synchronized with an external warehouse management system.
 import asyncio
 from typing import Any
 
-from katana_public_api_client import KatanaClient
+from katana_public_api_client import APIError, KatanaClient
 from katana_public_api_client.api.inventory import get_all_inventory_point
 from katana_public_api_client.api.variant import get_all_variants
-from katana_public_api_client.utils import unwrap_data
+from katana_public_api_client.models import StockAdjustment
+from katana_public_api_client.utils import unwrap_as, unwrap_data
 
 
 async def sync_inventory_from_warehouse(warehouse_data: list[dict[str, Any]]) -> dict[str, int]:
@@ -96,12 +97,13 @@ async def sync_inventory_from_warehouse(warehouse_data: list[dict[str, Any]]) ->
                     body=adjustment
                 )
 
-                if response.status_code == 201:
+                try:
+                    unwrap_as(response, StockAdjustment)
                     stats["updated"] += 1
                     print(f"✓ Updated {sku}: {new_quantity} units")
-                else:
+                except APIError as e:
                     stats["errors"] += 1
-                    print(f"✗ Failed to update {sku}: {response.status_code}")
+                    print(f"✗ Failed to update {sku}: {e}")
 
             except Exception as e:
                 stats["errors"] += 1
@@ -248,9 +250,10 @@ Efficiently create multiple sales orders from an external system.
 import asyncio
 from typing import Any
 
-from katana_public_api_client import KatanaClient
+from katana_public_api_client import APIError, KatanaClient
 from katana_public_api_client.api.sales_order import create_sales_order
-from katana_public_api_client.models import CreateSalesOrderRequest
+from katana_public_api_client.models import CreateSalesOrderRequest, SalesOrder
+from katana_public_api_client.utils import unwrap_as
 
 
 async def process_bulk_orders(
@@ -299,14 +302,14 @@ async def process_bulk_orders(
                     body=sales_order
                 )
 
-                if response.status_code == 201 and response.parsed:
-                    successful.append(response.parsed.id)
-                    print(f"✓ Created order {response.parsed.id}")
-                else:
+                try:
+                    created = unwrap_as(response, SalesOrder)
+                    successful.append(created.id)
+                    print(f"✓ Created order {created.id}")
+                except APIError as e:
                     failed.append({
                         "order": order_data,
-                        "status": response.status_code,
-                        "error": "Failed to create order"
+                        "error": str(e),
                     })
 
             except Exception as e:
@@ -461,9 +464,13 @@ Automatically create manufacturing orders when sales orders are received.
 ```python
 import asyncio
 
-from katana_public_api_client import KatanaClient
+from katana_public_api_client import APIError, KatanaClient
 from katana_public_api_client.api.manufacturing_order import make_to_order_manufacturing_order
-from katana_public_api_client.models import MakeToOrderManufacturingOrderRequest
+from katana_public_api_client.models import (
+    MakeToOrderManufacturingOrderRequest,
+    ManufacturingOrder,
+)
+from katana_public_api_client.utils import unwrap_as
 
 
 async def create_manufacturing_from_sales(sales_order_id: int) -> int | None:
@@ -487,12 +494,12 @@ async def create_manufacturing_from_sales(sales_order_id: int) -> int | None:
                 body=request
             )
 
-            if response.status_code == 201 and response.parsed:
-                mo_id = response.parsed.id
-                print(f"✓ Created manufacturing order {mo_id} for sales order {sales_order_id}")
-                return mo_id
-            else:
-                print(f"✗ Failed to create MO: {response.status_code}")
+            try:
+                mo = unwrap_as(response, ManufacturingOrder)
+                print(f"✓ Created manufacturing order {mo.id} for sales order {sales_order_id}")
+                return mo.id
+            except APIError as e:
+                print(f"✗ Failed to create MO: {e}")
                 return None
 
         except Exception as e:
@@ -520,6 +527,7 @@ from typing import Any, TypeVar, Callable
 import httpx
 
 from katana_public_api_client import KatanaClient
+from katana_public_api_client.utils import unwrap_as
 
 T = TypeVar('T')
 
@@ -570,7 +578,7 @@ async def create_order_with_retry(order_data: dict[str, Any]):
     """Create order with custom retry logic."""
     async with KatanaClient() as client:
         from katana_public_api_client.api.sales_order import create_sales_order
-        from katana_public_api_client.models import CreateSalesOrderRequest
+        from katana_public_api_client.models import CreateSalesOrderRequest, SalesOrder
 
         async def create_op():
             request = CreateSalesOrderRequest(**order_data)
@@ -578,11 +586,9 @@ async def create_order_with_retry(order_data: dict[str, Any]):
                 client=client,
                 body=request
             )
-
-            if response.status_code != 201:
-                raise ValueError(f"Failed to create order: {response.status_code}")
-
-            return response.parsed
+            # unwrap_as raises APIError on non-2xx — retry_with_backoff catches
+            # the exception and retries. On success returns the typed model.
+            return unwrap_as(response, SalesOrder)
 
         return await retry_with_backoff(create_op, max_attempts=3)
 

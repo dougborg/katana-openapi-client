@@ -173,7 +173,7 @@ class TestPostIdentityGuard:
         document the absent-vs-null asymmetry."""
 
         def handler(_: httpx.Request) -> httpx.Response:
-            return httpx.Response(201, json={"id": 99, "order_no": "auto-gen"})
+            return httpx.Response(200, json={"id": 99, "order_no": "auto-gen"})
 
         client = _build_safe_client(handler)
         try:
@@ -181,7 +181,7 @@ class TestPostIdentityGuard:
                 "/sales_orders",
                 json={"customer_id": 1, "location_id": 2},  # no order_no key
             )
-            assert resp.status_code == 201
+            assert resp.status_code == 200
         finally:
             client.close()
 
@@ -192,7 +192,7 @@ class TestPostIdentityGuard:
         guard therefore looks at ``description``."""
 
         def handler(_: httpx.Request) -> httpx.Response:
-            return httpx.Response(201, json={"id": 1})
+            return httpx.Response(200, json={"id": 1})
 
         client = _build_safe_client(handler)
         try:
@@ -204,7 +204,7 @@ class TestPostIdentityGuard:
                     "description": "[SDT-2026-05-19] probe-webhook",
                 },
             )
-            assert resp.status_code == 201
+            assert resp.status_code == 200
         finally:
             client.close()
 

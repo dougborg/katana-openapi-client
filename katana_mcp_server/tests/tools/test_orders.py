@@ -440,7 +440,7 @@ async def test_fulfill_sales_order_confirm_creates_fulfillment():
 
     fulfillment_obj = MagicMock(spec=SalesOrderFulfillment)
     fulfillment_obj.id = 9999
-    mock_create_response = MagicMock(status_code=201, parsed=fulfillment_obj)
+    mock_create_response = MagicMock(status_code=200, parsed=fulfillment_obj)
     create_mock = AsyncMock(return_value=mock_create_response)
     cast(Any, create_sales_order_fulfillment).asyncio_detailed = create_mock
 
@@ -759,7 +759,7 @@ async def test_fulfill_sales_order_apply_passes_serials_to_api():
     )
     fulfillment_obj = MagicMock(spec=SalesOrderFulfillment)
     fulfillment_obj.id = 7777
-    mock_create_response = MagicMock(status_code=201, parsed=fulfillment_obj)
+    mock_create_response = MagicMock(status_code=200, parsed=fulfillment_obj)
     create_mock = AsyncMock(return_value=mock_create_response)
     cast(Any, create_sales_order_fulfillment).asyncio_detailed = create_mock
 
@@ -1051,7 +1051,7 @@ async def test_fulfill_sales_order_non_serial_tracked_no_change():
     )
     fulfillment_obj = MagicMock(spec=SalesOrderFulfillment)
     fulfillment_obj.id = 8888
-    mock_create_response = MagicMock(status_code=201, parsed=fulfillment_obj)
+    mock_create_response = MagicMock(status_code=200, parsed=fulfillment_obj)
     create_mock = AsyncMock(return_value=mock_create_response)
     cast(Any, create_sales_order_fulfillment).asyncio_detailed = create_mock
 
@@ -1814,7 +1814,7 @@ async def test_fulfill_so_with_completed_at_one_call():
     )
     fulfillment_obj = MagicMock(spec=SalesOrderFulfillment)
     fulfillment_obj.id = 11111
-    mock_create_response = MagicMock(status_code=201, parsed=fulfillment_obj)
+    mock_create_response = MagicMock(status_code=200, parsed=fulfillment_obj)
     create_mock = AsyncMock(return_value=mock_create_response)
     cast(Any, create_sales_order_fulfillment).asyncio_detailed = create_mock
 
@@ -1864,7 +1864,7 @@ async def test_fulfill_so_without_completed_at_omits_picked_date():
     )
     fulfillment_obj = MagicMock(spec=SalesOrderFulfillment)
     fulfillment_obj.id = 22222
-    mock_create_response = MagicMock(status_code=201, parsed=fulfillment_obj)
+    mock_create_response = MagicMock(status_code=200, parsed=fulfillment_obj)
     create_mock = AsyncMock(return_value=mock_create_response)
     cast(Any, create_sales_order_fulfillment).asyncio_detailed = create_mock
 
@@ -1905,7 +1905,7 @@ async def test_fulfill_so_completed_at_with_row_overrides():
     )
     fulfillment_obj = MagicMock(spec=SalesOrderFulfillment)
     fulfillment_obj.id = 33333
-    mock_create_response = MagicMock(status_code=201, parsed=fulfillment_obj)
+    mock_create_response = MagicMock(status_code=200, parsed=fulfillment_obj)
     create_mock = AsyncMock(return_value=mock_create_response)
     cast(Any, create_sales_order_fulfillment).asyncio_detailed = create_mock
 
@@ -2415,7 +2415,7 @@ async def test_fulfill_sales_order_confirm_carries_enrichment():
 
     fulfillment_obj = MagicMock(spec=SalesOrderFulfillment)
     fulfillment_obj.id = 7777
-    mock_create_response = MagicMock(status_code=201, parsed=fulfillment_obj)
+    mock_create_response = MagicMock(status_code=200, parsed=fulfillment_obj)
     cast(Any, create_sales_order_fulfillment).asyncio_detailed = AsyncMock(
         return_value=mock_create_response
     )
@@ -2641,7 +2641,7 @@ async def test_so_inventory_ordering_override_demotes_block_and_applies():
     fulfillment_obj = MagicMock(spec=SalesOrderFulfillment)
     fulfillment_obj.id = 99999
     create_mock = AsyncMock(
-        return_value=MagicMock(status_code=201, parsed=fulfillment_obj)
+        return_value=MagicMock(status_code=200, parsed=fulfillment_obj)
     )
     cast(Any, create_sales_order_fulfillment).asyncio_detailed = create_mock
 

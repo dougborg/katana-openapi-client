@@ -62,13 +62,13 @@ handling. They replace manual status-code checks, give you typed errors, and han
 from katana_public_api_client.utils import unwrap, unwrap_as, unwrap_data, is_success
 from katana_public_api_client.domain.converters import unwrap_unset
 
-# Single-object responses (200 OK with parsed model)
+# Single-object responses (200 OK with parsed model — includes POST creates)
 order = unwrap_as(response, ManufacturingOrder)  # type-safe, raises on error
 
 # List responses (200 OK with `data` array)
 items = unwrap_data(response, default=[])  # extracts the .data field
 
-# Success-only responses (201 Created, 204 No Content)
+# Success-only responses (204 No Content — typically DELETE)
 if is_success(response):
     ...
 
@@ -76,15 +76,18 @@ if is_success(response):
 status = unwrap_unset(order.status, None)  # returns None if UNSET
 ```
 
+> **Katana POST creates return 200, not 201.** Treat them like any other
+> 200-with-parsed-body response — use `unwrap_as(response, Type)`. See
+> [spec-authoring.md](spec-authoring.md) for the full convention.
+
 ### When to use each
 
-| Scenario            | Pattern                             | Example               |
-| ------------------- | ----------------------------------- | --------------------- |
-| Single object (200) | `unwrap_as(response, Type)`         | Get/update operations |
-| List endpoint (200) | `unwrap_data(response, default=[])` | List operations       |
-| Create (201)        | `is_success(response)`              | POST with no body     |
-| Delete/action (204) | `is_success(response)`              | DELETE, fulfill       |
-| attrs UNSET field   | `unwrap_unset(field, default)`      | Optional API fields   |
+| Scenario            | Pattern                             | Example                       |
+| ------------------- | ----------------------------------- | ----------------------------- |
+| Single object (200) | `unwrap_as(response, Type)`         | Get / update / **create** ops |
+| List endpoint (200) | `unwrap_data(response, default=[])` | List operations               |
+| Delete (204)        | `is_success(response)`              | DELETE                        |
+| attrs UNSET field   | `unwrap_unset(field, default)`      | Optional API fields           |
 
 ### Anti-patterns
 

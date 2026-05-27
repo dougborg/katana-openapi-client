@@ -264,9 +264,13 @@ uv run poe regenerate-client  # ~2+ minutes
 Follow the pattern from `purchase_orders.py`:
 
 ```python
-from katana_mcp.server import ServerContext, get_services
-from pydantic import BaseModel, Field
 import logging
+
+from katana_mcp.server import ServerContext, get_services
+from katana_public_api_client import APIError
+from katana_public_api_client.models import SalesOrder
+from katana_public_api_client.utils import unwrap_as
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -303,14 +307,13 @@ async def create_order(params: CreateOrderParams) -> str:
             items=params.items
         )
 
-        if response.status_code == 201:
-            order_id = response.parsed.id
-            logger.info(f"Order {order_id} created successfully")
-            return f"✓ Created order {order_id}"
-        else:
-            logger.error(f"Failed to create order: HTTP {response.status_code}")
-            return f"Error: Failed to create order (HTTP {response.status_code})"
+        order = unwrap_as(response, SalesOrder)
+        logger.info(f"Order {order.id} created successfully")
+        return f"✓ Created order {order.id}"
 
+    except APIError as e:
+        logger.error(f"Failed to create order: {e}")
+        return f"Error: Failed to create order ({e})"
     except Exception as e:
         logger.error(f"Error creating order: {e}")
         return f"Error: {str(e)}"
