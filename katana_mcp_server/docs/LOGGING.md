@@ -231,6 +231,34 @@ Example with metrics:
 }
 ```
 
+### Modify-pipeline sub-step timing (`modify_manufacturing_order`)
+
+`_modify_manufacturing_order_impl`
+(`katana_mcp_server/src/katana_mcp/tools/foundation/manufacturing_orders.py`) emits
+three sub-step `duration_ms` events on the `preview=false` path so the next 30s+ slow
+call leaves a diagnostic breadcrumb (#853, refs #786). Grep your structlog output for:
+
+| Event                                | Step                                        | Wraps                                                      |
+| ------------------------------------ | ------------------------------------------- | ---------------------------------------------------------- |
+| `mo_modify_patch_completed`          | The Katana PATCH apply (header update)      | `api_update_manufacturing_order.asyncio_detailed`          |
+| `mo_modify_verify_refetch_completed` | Sibling recipe-row re-fetch for cache merge | `_fetch_mo_recipe_row_attrs_for_cache_merge`               |
+| `mo_modify_cache_merge_completed`    | Parent MO GET re-fetch inside cache merge   | `_fetch_manufacturing_order_attrs` via `refetch_for_merge` |
+
+Each event carries `step`, `duration_ms`, `success`, and `manufacturing_order_id` (the
+`success` field name matches the sibling `tool_completed` /
+`service_operation_completed` events in `katana_mcp/logging.py`, so any log-aggregation
+query that joins on the `success` boolean will see all of these events too). Note that
+not every `preview=false` call emits all three: `mo_modify_patch_completed` only fires
+when the plan includes a header PATCH (`request.update_header is not None`), and the
+cache-merge / verify-refetch events only fire when at least one action runs (the
+cache-merge pass is gated on `actions` inside `run_modify_plan`). The pre-existing
+`tool_completed` event (from `@observe_tool`) gives end-to-end `duration_ms`; subtract
+whichever sub-step events were emitted to see how much fell to local work (plan build,
+action dispatch, cache write-through).
+
+Pattern is MO-only today — once #786 picks a fix path, the equivalent timing can be
+extracted into a shared dispatcher helper.
+
 ## Observability Decorators
 
 The Katana MCP Server provides convenience decorators to automatically instrument tools

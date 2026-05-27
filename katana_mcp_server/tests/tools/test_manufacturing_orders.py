@@ -2763,6 +2763,136 @@ async def test_modify_mo_confirm_executes_in_canonical_order():
     assert response.prior_state is not None
 
 
+@pytest.mark.asyncio
+async def test_modify_mo_emits_substep_timing_events(caplog):
+    """#853 / refs #786 — ``_modify_manufacturing_order_impl`` emits three
+    ``mo_modify_*_completed`` events on the apply path so the next 30s+
+    slow call leaves a diagnostic breadcrumb. Pattern mirrors
+    ``test_unknown_operation_is_logged_and_dropped`` in
+    ``tests/test_prefab_ui.py`` (force structlog through stdlib + caplog).
+
+    The three events correspond to the three candidate slow steps:
+
+    - ``mo_modify_patch_completed`` — the Katana PATCH apply
+    - ``mo_modify_verify_refetch_completed`` — the sibling recipe-rows
+      re-fetch (``CacheMerge.refetch_related``)
+    - ``mo_modify_cache_merge_completed`` — the parent MO GET re-fetch
+      (``CacheMerge.refetch_for_merge`` inside ``_post_apply_cache_merge``)
+    """
+    import logging
+
+    import structlog
+    from katana_mcp.logging import setup_logging
+    from katana_mcp.tools.foundation import manufacturing_orders as mo_module
+
+    # Force structlog through stdlib + JSONRenderer so caplog sees the
+    # emitted info events. Without this the test depends on whether some
+    # earlier test in the same xdist worker happened to call
+    # ``setup_logging`` — flaky between sequential and parallel runs.
+    #
+    # ``setup_logging`` uses ``cache_logger_on_first_use=True``, so the
+    # module-level ``logger = get_logger(__name__)`` in
+    # ``manufacturing_orders.py`` was bound *at import time* under
+    # whatever structlog config was active then — possibly a no-op
+    # ``BoundLoggerBase`` from before any earlier test called
+    # ``setup_logging``. Reconfiguring structlog *after* the proxy has
+    # cached its concrete bound logger has no effect on subsequent
+    # ``logger.info()`` calls. (CI 3.13 failure mode: empty
+    # ``caplog.records`` because the cached bound logger drops info-level
+    # events.) Fix: reconfigure structlog, then re-bind the module's
+    # ``logger`` attribute to a freshly-obtained logger under the new
+    # config.
+    setup_logging(log_level="INFO", log_format="json")
+    mo_module.logger = structlog.get_logger(
+        "katana_mcp.tools.foundation.manufacturing_orders"
+    )
+
+    context, _ = create_mock_context()
+    existing = _mock_mo(mo_id=42, order_no="MO-1")
+    updated = _mock_mo(mo_id=42, order_no="MO-1")
+
+    # ``_post_apply_cache_merge`` does its own ``merge_filtered_fetch``
+    # against the (mocked) cache; patching the late import to a no-op
+    # keeps the test focused on the timing events and avoids touching the
+    # typed-cache schema. The parent GET refetch still fires (timed by
+    # ``cache_merge``), and the related recipe-row fetcher still fires
+    # (timed by ``verify_refetch``).
+    with (
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_manufacturing_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(
+            f"{_MODIFY_MO_UPDATE}.asyncio_detailed",
+            new_callable=AsyncMock,
+            return_value=MagicMock(parsed=updated),
+        ),
+        patch(
+            "katana_mcp.tools.foundation.manufacturing_orders._fetch_mo_recipe_row_attrs_for_cache_merge",
+            new_callable=AsyncMock,
+            return_value=[],
+        ),
+        patch(_MODIFY_MO_UNWRAP_AS, side_effect=[updated]),
+        patch(
+            "katana_mcp.typed_cache.sync.merge_filtered_fetch",
+            new_callable=AsyncMock,
+            return_value=None,
+        ),
+    ):
+        request = ModifyManufacturingOrderRequest(
+            id=42,
+            update_header=MOHeaderPatch(status="IN_PROGRESS"),
+            preview=False,
+        )
+        with caplog.at_level(
+            logging.INFO,
+            logger="katana_mcp.tools.foundation.manufacturing_orders",
+        ):
+            response = await _modify_manufacturing_order_impl(request, context)
+
+    assert response.is_preview is False
+    assert all(a.succeeded is True for a in response.actions)
+
+    # Verify all three sub-step events fire, each with a ``duration_ms``.
+    # ``setup_logging(json)`` routes structlog through ``JSONRenderer``,
+    # so ``rec.getMessage()`` is a JSON blob carrying the ``event`` field.
+    # Substring-match the event name (same pattern as
+    # ``test_unknown_operation_is_logged_and_dropped`` in
+    # ``tests/test_prefab_ui.py``). Also pin the ``success`` field name
+    # (matches sibling ``tool_completed`` / ``service_operation_completed``
+    # events in ``katana_mcp/logging.py`` — so any log-aggregation query
+    # that joins on the ``success`` boolean will see these events too).
+    expected_events = {
+        "mo_modify_patch_completed",
+        "mo_modify_verify_refetch_completed",
+        "mo_modify_cache_merge_completed",
+    }
+    matched: set[str] = set()
+    for rec in caplog.records:
+        if rec.name != "katana_mcp.tools.foundation.manufacturing_orders":
+            continue
+        if rec.levelname != "INFO":
+            continue
+        msg = rec.getMessage()
+        for event_name in expected_events:
+            if event_name in msg and "duration_ms" in msg:
+                matched.add(event_name)
+                # Pin the field name — convention is ``success`` not
+                # ``succeeded`` (sibling events in
+                # ``katana_mcp/logging.py``). Any future drift away from
+                # the convention should turn this assertion red.
+                assert '"success":' in msg, (
+                    f"Expected ``success`` field in {event_name} event; "
+                    f"got: {msg[:200]}"
+                )
+    assert matched == expected_events, (
+        f"Expected all three sub-step events {expected_events}; "
+        f"saw {sorted(matched)}. Records: "
+        f"{[(r.name, r.levelname, r.getMessage()[:120]) for r in caplog.records]}"
+    )
+
+
 # ============================================================================
 # delete_manufacturing_order
 # ============================================================================

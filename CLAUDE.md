@@ -420,6 +420,7 @@ Configured in `.claude/settings.local.json` (gitignored):
 | Client guide           | [katana_public_api_client/docs/guide.md](katana_public_api_client/docs/guide.md)                                 |
 | OpenAPI spec authoring | [katana_public_api_client/docs/spec-authoring.md](katana_public_api_client/docs/spec-authoring.md)               |
 | MCP docs               | [katana_mcp_server/docs/README.md](katana_mcp_server/docs/README.md)                                             |
+| Modify-pipeline timing | [katana_mcp_server/docs/LOGGING.md](katana_mcp_server/docs/LOGGING.md) — "Modify-pipeline sub-step timing"       |
 | Prefab UI pitfalls     | [katana_mcp_server/docs/prefab/README.md](katana_mcp_server/docs/prefab/README.md)                               |
 | Typed cache patterns   | [katana_mcp_server/docs/typed_cache/README.md](katana_mcp_server/docs/typed_cache/README.md)                     |
 | TypeScript client      | [packages/katana-client/README.md](packages/katana-client/README.md)                                             |
