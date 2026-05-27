@@ -2,6 +2,56 @@
 
 <!-- version list -->
 
+## v0.71.0 (2026-05-27)
+
+### Bug Fixes
+
+- **mcp**: Fulfill_order preview Confirm now propagates completed_at / serials / etc —
+  closes #845
+  ([`1c306d4`](https://github.com/dougborg/katana-openapi-client/commit/1c306d4e028a1c6b2d3d1a608e04686f6b2b80bb))
+
+### Chores
+
+- **mcp**: Update client dependency to v0.70.0
+  ([`e0c8dde`](https://github.com/dougborg/katana-openapi-client/commit/e0c8dde33d98c2898d26efc16ad71b1ad443b31f))
+
+- **release**: Mcp v0.94.0
+  ([`448adc7`](https://github.com/dougborg/katana-openapi-client/commit/448adc734d427060d8ef712d43a0db6cf0b4d932))
+
+- **release**: Mcp v0.95.0
+  ([`dcb0aee`](https://github.com/dougborg/katana-openapi-client/commit/dcb0aee397b265f322c3bbfd65871664575a30df))
+
+- **release**: Mcp v0.96.0
+  ([`bbba231`](https://github.com/dougborg/katana-openapi-client/commit/bbba2317d151ec493e150b0d41c0d4a91cf159b3))
+
+- **release**: Mcp v0.97.0
+  ([`760dabe`](https://github.com/dougborg/katana-openapi-client/commit/760dabe048b1c6841091ae355544313049a8ce65))
+
+- **release**: Mcp v0.98.0
+  ([`f18054e`](https://github.com/dougborg/katana-openapi-client/commit/f18054e0b3bee57e2c3b52b086d1a448bfdffadb))
+
+### Features
+
+- **client**: Add make_test_client() helper for live-tenant integration testing
+  ([`6cde5b4`](https://github.com/dougborg/katana-openapi-client/commit/6cde5b4c002eaacb530376f446c177238243d57d))
+
+- **mcp**: Add sub-step timing to \_modify_manufacturing_order_impl
+  ([`880d027`](https://github.com/dougborg/katana-openapi-client/commit/880d02760a439a9497bd6ba223f6af0487f28a81))
+
+- **mcp**: Build_bom_modify_ui — per-row diff-decorated BOM modify card (closes #811)
+  ([`170fba6`](https://github.com/dougborg/katana-openapi-client/commit/170fba69b9ab51503d9e5dd3748981d8ff166b6e))
+
+- **mcp**: Consistent soft-state defaults across direct-lookup + list tools
+  ([`4fa2eb0`](https://github.com/dougborg/katana-openapi-client/commit/4fa2eb02b21f067a914ddc680bca546033d93dad))
+
+- **mcp**: Create_sales_order accepts shipping fees inline
+  ([`70d0575`](https://github.com/dougborg/katana-openapi-client/commit/70d057579c1b9541be200f56ee86d8185c21b358))
+
+### Refactoring
+
+- **mcp**: Extract BOM table-merge helpers into shared bom_table module (closes #850)
+  ([`4ac739a`](https://github.com/dougborg/katana-openapi-client/commit/4ac739abc985a4ea47e076d98a89d7a98e26a0f4))
+
 ## v0.70.0 (2026-05-26)
 
 ### Bug Fixes
