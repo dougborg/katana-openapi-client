@@ -9,6 +9,7 @@ with automatic resilience, rate limiting, and pagination.
 [![OpenAPI 3.1.0](https://img.shields.io/badge/OpenAPI-3.1.0-green.svg)](https://spec.openapis.org/oas/v3.1.0)
 [![CI](https://github.com/dougborg/katana-openapi-client/actions/workflows/ci.yml/badge.svg)](https://github.com/dougborg/katana-openapi-client/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/dougborg/katana-openapi-client/branch/main/graph/badge.svg)](https://codecov.io/gh/dougborg/katana-openapi-client)
+[![SafeSkill 90/100](https://img.shields.io/badge/SafeSkill-90%2F100_Verified%20Safe-brightgreen)](https://safeskill.dev/scan/dougborg-katana-openapi-client)
 
 ## Packages
 
