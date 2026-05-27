@@ -777,11 +777,11 @@ async def _modify_product_bom_impl(request: ManageProductBomRequest, context: Co
     #   a state-driven list of AlertDescription rows is not expressible
     #   in the current component vocabulary.
     #
-    # The underscore-helper imports from prefab_ui are a known coupling
-    # smell — tracked in #850 for a follow-up extraction into a shared
-    # non-UI module.
+    # Domain helpers live in ``foundation.bom_table`` (#850) — no
+    # cross-import from ``prefab_ui`` here. The rendering layer imports
+    # the same helpers; the table-merge math is shared.
     if not response.is_preview:
-        from katana_mcp.tools.prefab_ui import (
+        from katana_mcp.tools.foundation.bom_table import (
             _merge_bom_rows_for_modify_card,
             _prepare_bom_table_rows,
             _summarize_apply_outcome,

@@ -12,10 +12,10 @@ import re
 from typing import Any, ClassVar
 
 import pytest
+from katana_mcp.tools.foundation.bom_table import _merge_bom_rows_for_modify_card
 from katana_mcp.tools.prefab_ui import (
     PREVIEW_APPLY_COACHING,
     _format_money,
-    _merge_bom_rows_for_modify_card,
     build_batch_recipe_update_ui,
     build_bom_modify_ui,
     build_fulfill_preview_ui,
@@ -2261,7 +2261,7 @@ class TestFieldDiffIndex:
         return ``APPLIED`` / ``default``, not the destructive
         ``PARTIAL FAILURE`` fallback that ``succeeded=0 + failed=0``
         otherwise lands on. Caught by Copilot review on #755."""
-        from katana_mcp.tools.prefab_ui import _summarize_apply_outcome
+        from katana_mcp.tools.foundation.bom_table import _summarize_apply_outcome
 
         label, variant = _summarize_apply_outcome([])
         assert label == "APPLIED"
@@ -3264,7 +3264,9 @@ class TestMergeBomRowsForModifyCard:
             "changes": [],
             "status_label": "PLANNED",
         }
-        with caplog.at_level(logging.WARNING, logger="katana_mcp.tools.prefab_ui"):
+        with caplog.at_level(
+            logging.WARNING, logger="katana_mcp.tools.foundation.bom_table"
+        ):
             rows = _merge_bom_rows_for_modify_card(
                 self._PRIOR_STATE, [action], self._RESOLVED
             )
@@ -3275,7 +3277,7 @@ class TestMergeBomRowsForModifyCard:
         matched = [
             rec
             for rec in caplog.records
-            if rec.name == "katana_mcp.tools.prefab_ui"
+            if rec.name == "katana_mcp.tools.foundation.bom_table"
             and rec.levelname == "WARNING"
             and "reorder_bom_rows" in rec.getMessage()
         ]
@@ -3364,7 +3366,7 @@ class TestBuildBOMModifyUI:
         actions: list[dict[str, Any]] | None = None,
         **overrides: Any,
     ) -> dict[str, Any]:
-        from katana_mcp.tools.prefab_ui import (
+        from katana_mcp.tools.foundation.bom_table import (
             _merge_bom_rows_for_modify_card,
             _prepare_bom_table_rows,
             _summarize_apply_outcome,
