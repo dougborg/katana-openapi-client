@@ -407,6 +407,26 @@ Configured in `.claude/settings.local.json` (gitignored):
   `/harness retro` to capture learnings. (When the harness-kit plugin is installed, also
   consider `/session-retro` — see harness-kit#30 — for project-side learnings.)
 
+## Test environment
+
+Anything that talks to a *live* Katana tenant from test code, probes, or CI smoke tests
+goes through **`make_test_client()`** in
+[`katana_public_api_client/testing.py`](katana_public_api_client/testing.py) — not
+`KatanaClient()` directly. The helper reads `KATANA_TEST_API_KEY` (required) and
+`KATANA_TEST_BASE_URL` (optional, defaults to the prod base URL — same Katana
+deployment, different tenant).
+
+**Safety rule: no silent fallback to `KATANA_API_KEY`.** If `KATANA_TEST_API_KEY` is
+unset, the helper raises `RuntimeError`. Falling back to the prod key would let a
+misconfigured CI run mutate production state — exactly the failure mode the helper
+exists to prevent. Tests that want graceful skipping wire the skip in the fixture, not
+in the helper.
+
+Set the env vars in `.env` (uncommented in `.env.example`). Phase 1 landed the helper,
+`.env` updates, and probe-script refactors. Later phases add pytest fixtures, GitHub
+Actions wiring, and the actual live smoke tests — track progress on the
+[project board](https://github.com/users/dougborg/projects/5).
+
 ## Detailed Documentation
 
 **Discover on-demand** - read these when working on specific areas:
@@ -419,6 +439,7 @@ Configured in `.claude/settings.local.json` (gitignored):
 | Architecture           | [.github/agents/guides/shared/ARCHITECTURE_QUICK_REF.md](.github/agents/guides/shared/ARCHITECTURE_QUICK_REF.md) |
 | Client guide           | [katana_public_api_client/docs/guide.md](katana_public_api_client/docs/guide.md)                                 |
 | OpenAPI spec authoring | [katana_public_api_client/docs/spec-authoring.md](katana_public_api_client/docs/spec-authoring.md)               |
+| Test environment       | [katana_public_api_client/testing.py](katana_public_api_client/testing.py) (`make_test_client()`)                |
 | MCP docs               | [katana_mcp_server/docs/README.md](katana_mcp_server/docs/README.md)                                             |
 | Modify-pipeline timing | [katana_mcp_server/docs/LOGGING.md](katana_mcp_server/docs/LOGGING.md) — "Modify-pipeline sub-step timing"       |
 | Prefab UI pitfalls     | [katana_mcp_server/docs/prefab/README.md](katana_mcp_server/docs/prefab/README.md)                               |
