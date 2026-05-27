@@ -2487,6 +2487,66 @@ async def test_modify_so_fail_fast_halts_on_first_error():
     assert "boom" in (response.actions[1].error or "")
 
 
+@pytest.mark.asyncio
+async def test_modify_so_fail_fast_synthesizes_not_run_tail_for_morph():
+    """Fail-fast apply truncates ``response.actions`` at the first failure
+    — but the modify card's per-section row morph needs the unattempted
+    plan tail so those rows render as NOT RUN instead of silently
+    disappearing from the post-apply card (#858 finding B).
+
+    Mirrors :func:`_modify_product_bom_impl`'s NOT-RUN synthesis pattern
+    (#811): the impl pushes one NOT-RUN action dict per leftover
+    :class:`ActionSpec` into ``response.extras["not_run_actions"]`` so
+    :func:`build_so_modify_ui` can merge them into the per-section row
+    buckets. Without this, a 5-row plan that fails on row 2 would morph
+    to a card showing only rows 1 (APPLIED) + 2 (FAILED), with rows 3-5
+    silently dropped from the Line items section.
+    """
+    context, _ = create_mock_context()
+    existing = _mock_so(order_id=42, order_no="SO-1")
+    updated_so = _mock_so(order_id=42, order_no="SO-1")
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.sales_orders._fetch_sales_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(f"{_MODIFY_SO_UPDATE}.asyncio_detailed", new_callable=AsyncMock),
+        patch(
+            f"{_MODIFY_SO_ROW_CREATE}.asyncio_detailed",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("boom"),
+        ),
+        patch(_MODIFY_SO_UNWRAP_AS_LOCAL, return_value=updated_so),
+    ):
+        # Plan = 1 header update (succeeds) + 3 row adds (first fails,
+        # next 2 are NEVER attempted).
+        request = ModifySalesOrderRequest(
+            id=42,
+            update_header=SOHeaderPatch(status="PACKED"),
+            add_rows=[
+                SORowAdd(variant_id=100, quantity=2),
+                SORowAdd(variant_id=101, quantity=3),
+                SORowAdd(variant_id=102, quantity=4),
+            ],
+            preview=False,
+        )
+        response = await _modify_sales_order_impl(request, context)
+
+    # Fail-fast: 2 actions executed (header succeeded, first row failed).
+    assert len(response.actions) == 2
+    # The 2 leftover row adds must surface as NOT-RUN entries on extras
+    # so the morph picks them up. Each carries ``succeeded=None`` +
+    # ``status_label="NOT RUN"`` so the renderer's row-builder sets the
+    # "secondary" Badge variant.
+    not_run = response.extras.get("not_run_actions") or []
+    assert len(not_run) == 2
+    assert all(a["operation"] == "add_row" for a in not_run)
+    assert all(a["succeeded"] is None for a in not_run)
+    assert all(a["status_label"] == "NOT RUN" for a in not_run)
+
+
 # ============================================================================
 # delete_sales_order — destructive sibling
 # ============================================================================

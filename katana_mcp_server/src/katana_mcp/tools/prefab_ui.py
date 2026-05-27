@@ -68,6 +68,8 @@ host primitives based on intent:
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -102,7 +104,7 @@ from prefab_ui.components import (
     Separator,
     Text,
 )
-from prefab_ui.components.control_flow import Elif, Else, If
+from prefab_ui.components.control_flow import Elif, Else, ForEach, If
 from prefab_ui.components.slot import Slot
 from prefab_ui.rx import EVENT, RESULT, Rx
 from pydantic import BaseModel
@@ -2559,6 +2561,8 @@ class FieldChangeView(BaseModel):
 
 def _index_changes_by_field(
     actions: list[dict[str, Any]],
+    *,
+    include_operations: frozenset[str] | None = None,
 ) -> dict[str, FieldChangeView]:
     """Flatten ``ActionResult.changes`` lists into a field-name keyed map.
 
@@ -2573,9 +2577,39 @@ def _index_changes_by_field(
     in two actions (rare) takes the last write — the iteration order
     matches the action plan's execution order, so the last write is the
     one that ran (or would have run) most recently.
+
+    ``include_operations`` restricts the flatten to actions whose
+    ``operation`` value (case-insensitive) is in the set — used by the SO
+    modify card to keep header-field rendering from picking up sub-entity
+    changes whose field names overlap header names (``status``,
+    ``picked_date``, ``tracking_number`` exist on both fulfillments and
+    the SO header). When ``None`` (the default), every action contributes
+    — same behavior as before this parameter was added, keeps PO/test
+    call sites unchanged.
+
+    Synthesized NOT-RUN actions (``status_label == "NOT RUN"``, emitted by
+    :func:`_synthesize_correction_not_run_actions` and the per-tool
+    NOT-RUN synthesizers for the unattempted phase tail of a failed
+    correction) are filtered out — these are placeholders for plan steps
+    that never ran, not real diffs. Last-write-wins on the field map
+    would otherwise let a synthesized late ``update_header`` (e.g., the
+    close-phase header step in a sales-order correction) overwrite an
+    earlier EXECUTED ``update_header`` diff and render as an applied
+    scalar change with no NOT RUN indication. NOT RUN status surfaces
+    via row-level chrome (the NOT RUN Badge on the per-action row),
+    not via the header field diff map. Caught by Copilot review on #858.
     """
     out: dict[str, FieldChangeView] = {}
     for action in actions:
+        if include_operations is not None:
+            op = str(action.get("operation") or "").lower()
+            if op not in include_operations:
+                continue
+        # NOT-RUN synthesized actions are plan placeholders, not real
+        # diffs — never let them write into the field map (would mask
+        # an earlier executed action's diff via last-write-wins).
+        if str(action.get("status_label") or "") == "NOT RUN":
+            continue
         succeeded = action.get("succeeded")
         action_error = action.get("error")
         # ``succeeded`` is None during preview, True/False after apply.
@@ -4901,6 +4935,1405 @@ def build_so_create_ui(
                     ),
                 ),
             ),
+        )
+    return app
+
+
+# ============================================================================
+# Sales-order modify card — diff-decorated SO modify/delete/correct card
+# (#723). Reuses ``_render_field_diff_line`` / ``_render_party_diff_line``
+# from the PO modify card, but intentionally does NOT call
+# ``_render_failed_changes_block`` — all header-failure rendering is
+# routed through the state-driven ``applied_header_failed_*`` Alert (seeded
+# by :func:`_so_header_op_failure_alert_text`) so the preview→Confirm
+# in-place morph has a single source of truth. Adds dedicated sub-sections
+# for SO's parallel-outcome sub-entities (rows, addresses, fulfillments,
+# shipping fees). Each sub-section follows the BOM modify card's
+# table-as-entity-view pattern adapted to a per-section row list with
+# per-action status pills.
+# ============================================================================
+
+
+# Per-action sub-entity status variants — same buckets as BOM_ROW_STATUS_VARIANTS
+# so SO sub-entity rows render with the same Badge variants as BOM rows.
+_SO_SUB_STATUS_VARIANTS: dict[str, str] = {
+    "PLANNED": "secondary",
+    "APPLIED": "default",
+    "APPLIED (verified)": "default",
+    "APPLIED (verification mismatch)": "destructive",
+    "FAILED": "destructive",
+    "NOT RUN": "secondary",
+    "": "outline",
+}
+
+
+# Wire field → user-facing label map for the consolidated failed-changes
+# Alert. Reads "Failed — Customer: 422 Bad Request" instead of the wire-
+# name "Failed — customer_id: ...". Keys cover every SOHeaderPatch field
+# the API can produce a FieldChange for; missing keys fall through to
+# a Title-cased version of the wire name inside
+# :func:`_so_header_op_failure_alert_text`.
+_SO_HEADER_LABEL_OVERRIDES: dict[str, str] = {
+    "customer_id": "Customer",
+    "customer_name": "Customer",
+    "location_id": "Location",
+    "location_name": "Location",
+    "additional_info": "Notes",
+    "notes": "Notes",
+    "order_no": "Order #",
+    "order_number": "Order #",
+    "delivery_date": "Delivery date",
+    "picked_date": "Picked date",
+    "order_created_date": "Order created date",
+    "currency": "Currency",
+    "conversion_rate": "Conversion rate",
+    "conversion_date": "Conversion date",
+    "customer_ref": "Customer ref",
+    "tracking_number": "Tracking #",
+    "tracking_number_url": "Tracking URL",
+    "status": "Status",
+}
+
+
+def _normalize_so_prior_state(prior_state: dict[str, Any] | None) -> dict[str, Any]:
+    """Map an SO ``prior_state`` snapshot from the wire shape produced by
+    ``SalesOrder.to_dict()`` (server-side) to the response shape
+    :func:`_render_so_entity_view` consumes.
+
+    Field renames between the wire snapshot and the response shape:
+
+    - ``order_no`` (wire) → ``order_number`` (response shape; SO create
+      response surfaces it under ``order_number``).
+    - ``additional_info`` (wire) → also kept under ``notes`` so the
+      renderer can read either key.
+
+    Derived metrics:
+
+    - ``item_count`` — :class:`ModificationResponse` doesn't carry
+      ``item_count`` (only :class:`SalesOrderResponse` does), so the
+      modify card's Tier-2 "Line Items" Metric would render blank on a
+      real apply response. Derive it from ``len(prior_state["sales_order_rows"])``
+      when ``item_count`` is missing so the Metric renders consistently
+      across the create and modify cards (#858 Copilot finding —
+      comment 3313163122).
+
+    SO's wire snapshot does NOT carry a nested ``customer`` object the way
+    PO carries ``supplier``; it only has ``customer_id``. The
+    ``customer_name`` lookup the response shape may surface is added by
+    upstream cache-merge; if the snapshot doesn't have it, the renderer
+    falls back to ``#<id>``.
+
+    Without this adapter the modify card renders mostly-empty header rows
+    in production: ``entity.get("order_number")`` falls through to ``None``
+    because the wire-shape snapshot only has ``order_no``. Same shape-
+    mismatch bug Copilot caught on PO #755.
+    """
+    if not prior_state:
+        return {}
+    out = dict(prior_state)
+    if "order_no" in prior_state and "order_number" not in out:
+        out["order_number"] = prior_state["order_no"]
+    if "additional_info" in prior_state and "notes" not in out:
+        out["notes"] = prior_state["additional_info"]
+    if "item_count" not in out:
+        rows = prior_state.get("sales_order_rows")
+        if isinstance(rows, list):
+            out["item_count"] = len(rows)
+    return out
+
+
+def _so_change_new(changes: list[Any], field: str) -> Any:
+    """Pluck the ``new`` value for ``field`` from an action's changes list,
+    or ``None`` if the field isn't present. Helper for the SO sub-entity
+    summary formatters."""
+    for c in changes:
+        if isinstance(c, dict) and c.get("field") == field:
+            return c.get("new")
+    return None
+
+
+def _format_so_diff_pairs(
+    changes: list[Any],
+    *,
+    address_style: bool = False,
+) -> list[str]:
+    """Format an action's changes list into ``field: before → after`` (or
+    ``field: (prior unknown) → after``) strings.
+
+    Used by the ``update_*`` formatters across rows / addresses /
+    fulfillments / shipping fees. ``address_style=True`` skips the diff
+    arrow and renders only the after value — address updates always
+    carry ``is_unknown_prior=True`` (no per-address GET), so the
+    arrow form would always read ``(prior unknown) → new``; collapsing
+    to the bare ``field: new`` form keeps the summary line compact.
+    """
+    diffs: list[str] = []
+    for c in changes:
+        if not isinstance(c, dict):
+            continue
+        field = c.get("field")
+        if not isinstance(field, str):
+            continue
+        new = c.get("new")
+        if address_style:
+            diffs.append(f"{field}: {_format_diff_value(new)}")
+            continue
+        old = c.get("old")
+        unknown_prior = bool(c.get("is_unknown_prior"))
+        after = _format_diff_value(new)
+        if unknown_prior:
+            diffs.append(f"{field}: (prior unknown) → {after}")
+        else:
+            diffs.append(f"{field}: {_format_diff_value(old)} → {after}")
+    return diffs
+
+
+def _so_anchor_with_diffs(
+    *,
+    kind: str,
+    target_id: Any,
+    diffs: list[str],
+) -> str:
+    """Compose ``<kind> #<target_id> — <diff>, <diff>`` (or the bare
+    anchor when no diffs are present). Shared anchor-builder for the
+    SO ``update_*`` / ``delete_*`` summary formatters.
+    """
+    anchor = f"{kind} #{target_id}" if target_id is not None else kind
+    if diffs:
+        return f"{anchor} — {', '.join(diffs)}"
+    return anchor
+
+
+def _format_so_add_row(changes: list[Any]) -> str:
+    """One-line summary for an ``add_row`` action."""
+    variant_id = _so_change_new(changes, "variant_id")
+    quantity = _so_change_new(changes, "quantity")
+    bits: list[str] = []
+    if variant_id is not None:
+        bits.append(f"variant {variant_id}")
+    if quantity is not None:
+        bits.append(f"qty {quantity}")
+    return ", ".join(bits) or "new line item"
+
+
+def _format_so_add_address(changes: list[Any]) -> str:
+    """One-line summary for an ``add_address`` action."""
+    entity_type = _so_change_new(changes, "entity_type") or "address"
+    city = _so_change_new(changes, "city")
+    zip_ = _so_change_new(changes, "zip")
+    bits: list[str] = []
+    if city:
+        bits.append(str(city))
+    if zip_:
+        bits.append(str(zip_))
+    return f"{entity_type}: {', '.join(bits)}" if bits else str(entity_type)
+
+
+def _format_so_add_fulfillment(changes: list[Any]) -> str:
+    """One-line summary for an ``add_fulfillment`` action.
+
+    Labels are field-specific — ``status`` and ``picked_date`` get their
+    own ``status <value>`` / ``picked <value>`` prefixes so the rendered
+    summary doesn't read ``status 2026-05-08T14:30:00Z`` when only the
+    pick timestamp is supplied (the old first-truthy fallback conflated
+    the two and surfaced a timestamp under the ``status`` label).
+    """
+    status = _so_change_new(changes, "status")
+    picked = _so_change_new(changes, "picked_date")
+    tracking = _so_change_new(changes, "tracking_number")
+    bits: list[str] = []
+    if status:
+        bits.append(f"status {status}")
+    if picked:
+        bits.append(f"picked {picked}")
+    if tracking:
+        bits.append(f"tracking {tracking}")
+    return ", ".join(bits) or "new fulfillment"
+
+
+def _format_so_add_shipping_fee(changes: list[Any]) -> str:
+    """One-line summary for an ``add_shipping_fee`` action."""
+    description = _so_change_new(changes, "description") or "shipping fee"
+    amount = _so_change_new(changes, "amount")
+    if amount is not None:
+        return f"{description}: {amount}"
+    return str(description)
+
+
+# Dispatch table for ``add_*`` summaries — keeps the main formatter
+# under ruff's complexity budget. ``update_*`` and ``delete_*`` ops use
+# the shared :func:`_so_anchor_with_diffs` helper so they don't need
+# per-kind entries.
+_SO_ADD_FORMATTERS: dict[str, Callable[[list[Any]], str]] = {
+    "add_row": _format_so_add_row,
+    "add_address": _format_so_add_address,
+    "add_fulfillment": _format_so_add_fulfillment,
+    "add_shipping_fee": _format_so_add_shipping_fee,
+}
+
+
+# Map of ``update_*`` / ``delete_*`` op → (kind label, address_style).
+# ``address_style`` flips the diff renderer to the unknown-prior-friendly
+# bare-after form for address updates.
+_SO_KIND_FOR_OP: dict[str, tuple[str, bool]] = {
+    "update_row": ("row", False),
+    "delete_row": ("row", False),
+    "update_address": ("address", True),
+    "delete_address": ("address", False),
+    "update_fulfillment": ("fulfillment", False),
+    "delete_fulfillment": ("fulfillment", False),
+    "update_shipping_fee": ("shipping fee", False),
+    "delete_shipping_fee": ("shipping fee", False),
+}
+
+
+def _format_so_action_summary(action: dict[str, Any]) -> str:
+    """Build a one-line label summarizing an SO sub-entity action.
+
+    Picks the most identifying field from the action's changes to anchor
+    the line — e.g. ``variant_id`` for row adds, ``id`` (target_id) for
+    row updates, etc. Falls back to ``target_id`` (the wire row UUID/id)
+    when no obvious anchor field is present, then to a generic counter.
+
+    Dispatched via two tables:
+
+    - :data:`_SO_ADD_FORMATTERS` handles ``add_*`` ops (each kind has its
+      own identifying fields — variant_id+quantity, city+zip, etc.).
+    - :data:`_SO_KIND_FOR_OP` covers ``update_*`` / ``delete_*`` via the
+      shared anchor builder. ``update_address`` uses the
+      ``address_style=True`` path because Katana has no per-address GET,
+      so every diff carries ``is_unknown_prior=True`` and the bare-after
+      form reads better than ``(prior unknown) → X`` per field.
+
+    The output is the *body* of the per-action row text — callers prefix
+    it with the kind gutter (``+ `` / ``~ `` / ``- ``).
+    """
+    op = str(action.get("operation") or "").lower()
+    target_id = action.get("target_id")
+    changes = action.get("changes") or []
+
+    if op in _SO_ADD_FORMATTERS:
+        return _SO_ADD_FORMATTERS[op](changes)
+
+    if op in _SO_KIND_FOR_OP:
+        kind, address_style = _SO_KIND_FOR_OP[op]
+        if op.startswith("delete_"):
+            # Delete summaries are just the anchor — no field diffs to
+            # surface (the action carries empty ``changes``; the kind
+            # gutter already signals the removal).
+            return _so_anchor_with_diffs(kind=kind, target_id=target_id, diffs=[])
+        diffs = _format_so_diff_pairs(changes, address_style=address_style)
+        return _so_anchor_with_diffs(kind=kind, target_id=target_id, diffs=diffs)
+
+    # Fallback — operation name + target_id when nothing else fits.
+    if target_id is not None:
+        return f"{op} #{target_id}"
+    return op or "(action)"
+
+
+# Per-sub-entity ``operation`` prefix for grouping actions into sections.
+# Section headers read "Line items", "Addresses", "Fulfillments", "Shipping
+# fees" so the modify card scans naturally; the grouping is keyed off the
+# wire ``operation`` enum so future schema additions land in a sensible
+# bucket without renderer churn.
+_SO_SUBENTITY_GROUPS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
+    (
+        "rows",
+        "Line items",
+        ("add_row", "update_row", "delete_row"),
+    ),
+    (
+        "addresses",
+        "Addresses",
+        ("add_address", "update_address", "delete_address"),
+    ),
+    (
+        "fulfillments",
+        "Fulfillments",
+        ("add_fulfillment", "update_fulfillment", "delete_fulfillment"),
+    ),
+    (
+        "shipping_fees",
+        "Shipping fees",
+        ("add_shipping_fee", "update_shipping_fee", "delete_shipping_fee"),
+    ),
+)
+
+
+# Derived set of every operation that belongs to a sub-entity row group.
+# Used by :func:`_so_subentity_failed_summary` to gate the sub-entity Alert
+# on operations that actually render in the sub-entity sections —
+# ``update_header`` / ``delete_sales_order`` failures are surfaced by the
+# state-driven ``applied_header_failed_*`` Alert (seeded by
+# :func:`_so_header_op_failure_alert_text`) instead, so including them in
+# the sub-entity Alert would double-render the same error.
+_SO_SUBENTITY_OPS: frozenset[str] = frozenset(
+    op for _key, _label, ops in _SO_SUBENTITY_GROUPS for op in ops
+)
+
+
+# Header-level operations for the SO modify card. Used to filter
+# :func:`_index_changes_by_field` so the header-field scalar-diff
+# rendering doesn't pick up sub-entity field changes (sub-entity actions
+# for fulfillments / rows / shipping fees can carry field names like
+# ``status``, ``picked_date``, ``tracking_number``, ``description``,
+# ``amount``, ``quantity`` that overlap or look-like header names —
+# flattening them into the header map would render a stale
+# "Status: PACKED → DELIVERED" header diff driven by a fulfillment
+# update).
+#
+# ``delete`` is the top-level SO delete operation emitted by
+# ``delete_sales_order``; ``update_header`` covers ``modify_sales_order``
+# header writes and the header-touching legs of ``correct_sales_order``.
+_SO_HEADER_OPS: frozenset[str] = frozenset({"update_header", "delete"})
+
+
+def _so_action_kind_gutter(operation: str) -> str:
+    """Return the 2-char gutter prefix for an SO sub-entity action.
+
+    Mirrors the BOM modify card's ``status_prefix`` convention: adds get
+    ``+ ``, updates ``~ ``, deletes ``- ``. The leading 2 chars reserve
+    visual space so a status-pill morph doesn't reflow the row.
+    """
+    if operation.startswith("add_"):
+        return "+ "
+    if operation.startswith("update_"):
+        return "~ "
+    if operation.startswith("delete_"):
+        return "- "
+    return "  "
+
+
+def _build_so_subentity_row(action: dict[str, Any]) -> dict[str, Any]:
+    """Project one sub-entity action onto the row-dict shape consumed by
+    the state-bound ``ForEach`` renderer (see :func:`_render_so_subentity_section`).
+
+    Each row dict carries the pre-rendered text + Badge metadata so the
+    DOM tree built by ``ForEach`` is purely state-driven — the preview
+    iframe's apply-time morph just swaps in a new row list (via
+    ``SetState`` from ``$result.state.so_<section>_rows``) and the
+    per-action chrome (gutter glyph, status label, badge variant)
+    updates in lockstep with the apply outcome.
+
+    Schema:
+
+    - ``gutter_summary`` — ``"<gutter><summary>"``. Pre-painted so the
+      ``ForEach`` body is a single ``Text(content="{{ $item.gutter_summary }}")``
+      — no Mustache compose needed inside the loop. The gutter encodes
+      both kind (``+ ``/``~ ``/``- ``) and outcome (``x `` when failed).
+    - ``status_label`` — ``"PLANNED" / "APPLIED" / "FAILED" / "NOT RUN"``
+      or ``""`` when unknown. The build-time render uses
+      :func:`_derive_status_label` to bucket per-action outcome.
+    - ``has_badge`` — ``True`` when the row should show a Badge alongside
+      its text (applied / failed / NOT RUN); ``False`` for preview-time
+      ``PLANNED`` rows (the card-level state Badge already carries the
+      planned-state signal and per-row Badges would be noise).
+    - ``status_variant`` — ``"default" / "destructive" / "secondary"``.
+      Drives the Badge color via the ``If(Rx("$item.status_variant") ==
+      "destructive")`` branch inside the ``ForEach`` body.
+
+    Shared between preview-time row seeding and apply-time row recompute
+    so the wire shape matches across the morph.
+    """
+    op = str(action.get("operation") or "").lower()
+    gutter = _so_action_kind_gutter(op)
+    succeeded = action.get("succeeded")
+    # Failed actions get the failure glyph in the gutter slot (replacing
+    # the +/~/- kind glyph) so the failure is at-a-glance visible. The
+    # kind is still readable from the section header + the diff body.
+    if succeeded is False:
+        gutter = "✗ "
+    summary = _format_so_action_summary(action)
+    status_label = action.get("status_label") or _derive_status_label(action) or ""
+    has_badge = bool(status_label) and status_label != "PLANNED"
+    status_variant = _SO_SUB_STATUS_VARIANTS.get(status_label, "secondary")
+    return {
+        "gutter_summary": f"{gutter}{summary}",
+        "status_label": status_label,
+        "has_badge": has_badge,
+        "status_variant": status_variant,
+    }
+
+
+def _build_so_subentity_row_lists(
+    actions: list[dict[str, Any]],
+) -> dict[str, list[dict[str, Any]]]:
+    """Bucket SO actions into per-section row-dict lists keyed by the
+    :data:`_SO_SUBENTITY_GROUPS` section key (``rows`` / ``addresses`` /
+    ``fulfillments`` / ``shipping_fees``).
+
+    Threads :func:`_build_so_subentity_row` over each action and groups
+    by operation prefix. Used by :func:`build_so_modify_ui` to seed
+    ``state.so_<section>_rows`` slots at build time; the apply-time call
+    recomputes against the apply response's actions, and the on_success
+    ``SetState`` chain reads ``{{ $result.state.so_<section>_rows }}``
+    so the preview iframe morphs each section's rows in lockstep with
+    the apply outcome.
+
+    The returned dict always contains all four section keys (empty list
+    when the section had no actions) so the renderer can bind
+    unconditionally without ``None``-guards.
+    """
+    by_section: dict[str, list[dict[str, Any]]] = {
+        section_key: [] for section_key, _label, _ops in _SO_SUBENTITY_GROUPS
+    }
+    for action in actions:
+        op = str(action.get("operation") or "").lower()
+        for section_key, _label, section_ops in _SO_SUBENTITY_GROUPS:
+            if op in section_ops:
+                by_section[section_key].append(_build_so_subentity_row(action))
+                break
+    return by_section
+
+
+def _render_so_subentity_section(
+    section_label: str,
+    section_key: str,
+    actions: list[dict[str, Any]],
+) -> None:
+    """Render one sub-entity action section (Line items / Addresses /
+    Fulfillments / Shipping fees) inside the SO modify card body.
+
+    State-bound: the per-action rows render inside a ``ForEach`` keyed
+    to ``state.so_<section_key>_rows`` so the preview→Confirm in-place
+    morph re-paints each row's gutter glyph + Badge label + Badge
+    variant from the apply response (via the on_success ``SetState``
+    chain). Pre-fix the rows were Python-painted at build time and
+    stayed frozen on the preview-time PLANNED state even after the
+    apply landed (#858, Copilot finding).
+
+    Each row's content lives in ``state.so_<section_key>_rows[i]`` as
+    a dict (see :func:`_build_so_subentity_row` for the schema). The
+    ``ForEach`` body renders ``Text`` for the gutter + summary and a
+    conditional ``Badge`` gated by ``$item.has_badge`` — the destructive
+    vs default variant branches on ``$item.status_variant``.
+
+    The failed-row error message is NOT rendered inline — it aggregates
+    into the consolidated state-driven Alert via
+    :func:`_so_subentity_failed_summary` (sub-entity ops) and (for
+    header-level ops) :func:`_so_header_op_failure_alert_text`. Same
+    layout-stability rule as the PO entity view.
+
+    The ``actions`` arg only gates whether the section header renders
+    (an empty plan section stays absent so the card doesn't paint
+    "Fulfillments:" headers with no rows below them). The row content
+    itself comes from state, not from ``actions`` at render time.
+
+    Called inside ``CardContent`` → ``Column(gap=3)``.
+    """
+    if not actions:
+        return
+
+    Separator()
+    Muted(content=f"{section_label}:")
+    # ForEach iterates over the state-bound row list — the same slot
+    # the on_success chain writes from ``$result.state.so_<section>_rows``,
+    # so the row chrome morphs in-place when the apply lands. Inside the
+    # loop, ``$item`` resolves per-row to one of the row dicts built by
+    # :func:`_build_so_subentity_row`.
+    with ForEach(f"so_{section_key}_rows") as item, Row(gap=2):
+        Text(content=f"{item.gutter_summary}")
+        # Per-item Badge: only render when the row has reached a
+        # post-preview status. ``has_badge`` is False at preview
+        # time (PLANNED rows hide their per-row Badge); True after
+        # the morph for any row that reached APPLIED / FAILED /
+        # NOT RUN.
+        with If(item.has_badge):
+            # Badge.variant isn't reactive on its own; render parallel
+            # If/Else branches so the morph picks the right variant.
+            with If(item.status_variant == "destructive"):
+                Badge(
+                    label=f"{item.status_label}",
+                    variant="destructive",
+                )
+            with Elif(item.status_variant == "secondary"):
+                Badge(
+                    label=f"{item.status_label}",
+                    variant="secondary",
+                )
+            with Else():
+                Badge(
+                    label=f"{item.status_label}",
+                    variant="default",
+                )
+
+
+def _so_subentity_failed_summary(
+    actions: list[dict[str, Any]],
+    *,
+    so_id: int | None,
+    confirm_tool: str | None = None,
+) -> tuple[int, str]:
+    """Pre-format the consolidated sub-entity failed-action summary text.
+
+    Walks the applied actions, picks the ones with ``succeeded is False``,
+    and emits one ``Failed — <op> #<target>: <error>`` line each. Returns
+    ``(failed_count, summary_lines_joined)``.
+
+    The retry-coaching tail mirrors the SO create card's shipping-fees
+    summary (#818): tells the operator how to re-run the failed sub-
+    entity operations through the same tool they invoked. The recovery
+    tool is derived from ``confirm_tool`` so that a partial failure on
+    ``correct_sales_order`` doesn't misdirect the operator to
+    ``modify_sales_order`` (#858 review follow-up). ``delete_sales_order``
+    is atomic and shouldn't reach this code path, but if it ever does
+    we fall back to a generic "Retry the failed action(s)" phrasing.
+
+    Used to seed ``state.applied_subentity_failed_count`` /
+    ``state.applied_subentity_failed_summary`` so the in-place morph
+    after Confirm can surface failures (the Python-painted per-action
+    rows above carry ✗ glyphs but the textual error messages aggregate
+    into the morph-bound Alert below).
+
+    Filters to operations in :data:`_SO_SUBENTITY_OPS` only — a failed
+    ``update_header`` or top-level ``delete`` would otherwise render in
+    BOTH this sub-entity Alert and the state-driven
+    ``applied_header_failed_*`` Alert (seeded by
+    :func:`_so_header_op_failure_alert_text`), double-surfacing the same
+    error under a misleading "sub-entity failure(s)" title.
+    """
+    failed = [
+        a
+        for a in actions
+        if a.get("succeeded") is False
+        and str(a.get("operation") or "").lower() in _SO_SUBENTITY_OPS
+    ]
+    if not failed:
+        return 0, ""
+    lines: list[str] = []
+    for action in failed:
+        op = str(action.get("operation") or "(action)")
+        target = action.get("target_id")
+        error = action.get("error") or "unknown error"
+        anchor = f"{op} #{target}" if target is not None else op
+        lines.append(f"Failed — {anchor}: {error}")
+    if so_id is not None:
+        retry_tool = _so_retry_tool_for(confirm_tool)
+        lines.append("")
+        if retry_tool is not None:
+            lines.append(
+                f"Retry the failed action(s) via {retry_tool}(id={so_id}, "
+                "<sub-payload>=[...]). The original request kwargs are still "
+                "valid — re-supply only the failed entries."
+            )
+        else:
+            lines.append(
+                "Retry the failed action(s) by re-issuing the original "
+                "request with only the failed entries."
+            )
+    return len(failed), "\n".join(lines)
+
+
+# Maps the SO write tool the operator invoked to the tool they should
+# re-issue to recover from a partial sub-entity failure. ``correct_*``
+# corrections must round-trip back through ``correct_sales_order`` —
+# the partial-failure rows belong to the correction plan, not to a
+# regular modify, and the two paths have different downstream side
+# effects (correction emits a different audit trail). ``delete_*`` is
+# atomic; it shouldn't reach the sub-entity failure code path, but if
+# it ever does we drop the tool-specific phrasing rather than misdirect.
+_SO_RETRY_TOOLS: dict[str, str] = {
+    "modify_sales_order": "modify_sales_order",
+    "correct_sales_order": "correct_sales_order",
+}
+
+
+def _so_retry_tool_for(confirm_tool: str | None) -> str | None:
+    """Return the tool name to suggest in the sub-entity retry tail.
+
+    Returns ``None`` when ``confirm_tool`` doesn't have a meaningful
+    retry path (e.g. ``delete_sales_order``, or an unrecognized tool).
+    Callers fall back to a generic phrasing in that case.
+    """
+    if confirm_tool is None:
+        return None
+    return _SO_RETRY_TOOLS.get(confirm_tool)
+
+
+# Verb labels for the header-level op failure Alert. Keeps the user-facing
+# language ("Failed to delete the sales order: <error>") aligned with the
+# tool the operator called; "modify" is the catch-all for the
+# update_header leg (used by both ``modify_sales_order`` and the
+# header-touching legs of ``correct_sales_order``).
+_SO_HEADER_OP_VERBS: dict[str, str] = {
+    "delete": "delete the sales order",
+    "update_header": "modify the sales order header",
+}
+
+
+def _so_header_op_failure_alert_text(
+    actions: list[dict[str, Any]],
+) -> tuple[int, str]:
+    """Pre-format the consolidated header-level failed-op summary text.
+
+    Walks the applied actions, picks the ones with ``succeeded is False``
+    AND whose operation is in :data:`_SO_HEADER_OPS`. This is the
+    state-driven Alert that fires on the preview→Confirm morph path
+    (gated by ``If(Rx("applied_header_failed_count") > 0)``); it owns
+    every header-op failure surface so the build-time-only
+    :func:`_render_failed_changes_block` doesn't need to be called from
+    the SO entity view at all (avoids double-rendering and prevents the
+    morph path's stale build-time block from misrepresenting the apply
+    outcome — #858 finding C).
+
+    Two failure shapes:
+
+    - **No-change ops** (``delete``; ``update_header`` with no fields):
+      one ``"Failed to <verb>: <error>"`` line per failed op.
+    - **update_header with field changes**: one ``"Failed to <verb>:
+      <error>"`` action-level line PLUS one ``"Failed — <Field>:
+      <field_error>"`` line per changed field carrying a per-field
+      error. The action-level error already covers the canonical
+      Katana 4xx for a header PATCH (a single error for the whole
+      PATCH), but Katana occasionally returns per-field
+      ``validation_errors`` on a 422 — surface those when present so
+      the operator sees which field failed validation. Pre-fix #858
+      finding C: failed ``update_header`` actions WITH changes morphed
+      to ``applied=True`` with neither the ✗ gutter nor the field-
+      level error visible because the build-time
+      ``_render_failed_changes_block`` was painted from preview
+      actions (``succeeded=None``) and stayed at "no failures" after
+      the morph.
+
+    Returns ``(failure_count, alert_text)``. The alert text reads as
+    ``"Failed to <verb>: <error>"`` one line per failed op; the empty
+    string when no header ops failed (the Alert is gated by
+    ``If(Rx("applied_header_failed_count") > 0)``).
+    """
+    failed = [
+        a
+        for a in actions
+        if a.get("succeeded") is False
+        and str(a.get("operation") or "").lower() in _SO_HEADER_OPS
+    ]
+    if not failed:
+        return 0, ""
+    lines: list[str] = []
+    for action in failed:
+        op = str(action.get("operation") or "").lower()
+        verb = _SO_HEADER_OP_VERBS.get(op, op or "(action)")
+        error = action.get("error") or "unknown error"
+        lines.append(f"Failed to {verb}: {error}")
+        # Per-field errors (rare — Katana usually returns a single
+        # error string on header PATCHes; this picks up the
+        # ``validation_errors``-style cases).
+        for change in action.get("changes") or []:
+            field_error = change.get("error") if isinstance(change, dict) else None
+            if not field_error:
+                continue
+            field_name = (
+                change.get("field") if isinstance(change, dict) else None
+            ) or "(field)"
+            label = _SO_HEADER_LABEL_OVERRIDES.get(
+                field_name, field_name.replace("_", " ").title()
+            )
+            lines.append(f"Failed — {label}: {field_error}")
+    return len(failed), "\n".join(lines)
+
+
+def _so_header_op_skipped_alert_text(
+    actions: list[dict[str, Any]],
+) -> tuple[int, str]:
+    """Pre-format the consolidated header-level NOT-RUN summary text.
+
+    Walks the merged action list (executed + synthesized NOT-RUN tail, see
+    :func:`_so_actions_with_not_run_tail`), picks the ones whose
+    ``status_label == "NOT RUN"`` AND whose operation is in
+    :data:`_SO_HEADER_OPS`. Emits one ``"Step skipped: <verb> (NOT RUN —
+    earlier phase failed before this step ran)."`` line per skipped op.
+
+    Mirrors :func:`_so_header_op_failure_alert_text`'s shape so the
+    state-driven Alert pattern is symmetric (failed / skipped). Header
+    NOT-RUN actions have no other rendering surface today:
+    :func:`_index_changes_by_field` filters them out (last-write-wins
+    would let a skipped close-phase update_header overwrite the executed
+    revert-phase update_header diff — #858 round 7), and
+    :func:`_build_so_subentity_row_lists` only buckets sub-entity ops
+    (rows / addresses / fulfillments / shipping fees). Without this
+    helper a failed ``correct_sales_order`` whose close-phase
+    ``update_header`` is skipped renders only sub-entity NOT-RUN rows —
+    the operator can't tell the SO close/restore step never ran. Round-8
+    follow-up to #858, restoring the option-(B) surface the round-6
+    reviewer originally suggested.
+
+    Returns ``(skipped_count, alert_text)``. Empty string when no header
+    ops were skipped — the Alert is gated by
+    ``If(Rx("applied_header_skipped_count") > 0)`` so it stays hidden in
+    that case.
+    """
+    skipped = [
+        a
+        for a in actions
+        if str(a.get("status_label") or "") == "NOT RUN"
+        and str(a.get("operation") or "").lower() in _SO_HEADER_OPS
+    ]
+    if not skipped:
+        return 0, ""
+    lines: list[str] = []
+    for action in skipped:
+        op = str(action.get("operation") or "").lower()
+        verb = _SO_HEADER_OP_VERBS.get(op, op or "(action)")
+        lines.append(
+            f"Step skipped: {verb} "
+            "(NOT RUN — earlier phase failed before this step ran)."
+        )
+    return len(skipped), "\n".join(lines)
+
+
+# Header scalar field-spec: (label, change-key fallbacks, value-key
+# fallbacks, render_when_unchanged). When ``render_when_unchanged`` is
+# True the field renders even with no change present, as long as the
+# entity carries a truthy value for it — keeps the card showing
+# meaningful context (Notes, Tracking #) without padding it with empty
+# "Delivery date: (unset)" lines for fields the user isn't modifying.
+#
+# A field appears at most once per render: the first change-key that
+# resolves wins, and the first value-key that resolves wins. Fall-back
+# chains exist because ``additional_info`` (wire) and ``notes``
+# (response shape) both alias to the same display label, and
+# ``order_no`` / ``order_number`` likewise. Picking the right value-key
+# matters for unchanged fields — both lookups are nearly free, so a
+# fall-back chain is cheaper than a normalization pass.
+_SO_HEADER_FIELD_SPEC: tuple[
+    tuple[str, tuple[str, ...], tuple[str, ...], bool], ...
+] = (
+    ("Notes", ("additional_info", "notes"), ("notes", "additional_info"), True),
+    ("Delivery date", ("delivery_date",), (), False),
+    ("Picked date", ("picked_date",), (), False),
+    ("Order created date", ("order_created_date",), (), False),
+    ("Currency", ("currency",), (), False),
+    # ``conversion_rate`` / ``conversion_date`` are SOHeaderPatch fields but
+    # they don't surface a steady-state value worth rendering on every card
+    # (Katana's SO response shape doesn't include them on read), so
+    # ``render_when_unchanged=False`` — they only appear in the diff body
+    # when the user is actively patching them. Pre-fix #858 finding A:
+    # omitting them from the spec meant a header-only conversion-rate /
+    # conversion-date update rendered NO diff lines on the card.
+    ("Conversion rate", ("conversion_rate",), (), False),
+    ("Conversion date", ("conversion_date",), (), False),
+    ("Customer ref", ("customer_ref",), ("customer_ref",), True),
+    ("Tracking #", ("tracking_number",), ("tracking_number",), True),
+    ("Tracking URL", ("tracking_number_url",), (), False),
+    ("Order #", ("order_no", "order_number"), (), False),
+    ("Status", ("status",), (), False),
+)
+
+
+def _render_so_header_scalar_diffs(
+    entity: dict[str, Any],
+    changes: dict[str, FieldChangeView],
+) -> None:
+    """Walk :data:`_SO_HEADER_FIELD_SPEC` and emit a field-diff line per
+    entry that has either a present change or a truthy unchanged value.
+
+    Each spec row reads ``(label, change_keys, value_keys, render_when_unchanged)``:
+
+    - ``label`` is the user-facing field name.
+    - ``change_keys`` is the ordered candidates for ``changes.get(...)`` —
+      first non-None wins. Lets Notes pick up either ``additional_info``
+      (wire) or ``notes`` (response shape) without two separate lookups.
+    - ``value_keys`` is the ordered candidates for the unchanged-value
+      fall-back; empty tuple means "no fallback — only render on change".
+    - ``render_when_unchanged`` gates rendering of fields that should
+      surface their current value even when not part of the modify plan
+      (Notes, Customer ref, Tracking #).
+
+    Extracted from :func:`_render_so_entity_view` to keep the main entity
+    view under ruff's complexity budget. The table-driven shape is also
+    cheaper to evolve as Katana adds new header fields — add a tuple,
+    no branch.
+    """
+    for label, change_keys, value_keys, render_unchanged in _SO_HEADER_FIELD_SPEC:
+        change: FieldChangeView | None = None
+        for key in change_keys:
+            candidate = changes.get(key)
+            if candidate is not None:
+                change = candidate
+                break
+        value: Any = None
+        if render_unchanged:
+            for key in value_keys:
+                candidate_value = entity.get(key)
+                if candidate_value:
+                    value = candidate_value
+                    break
+        if change is None and value is None:
+            continue
+        _render_field_diff_line(label, value=value, change=change)
+
+
+def _render_so_entity_view(
+    entity: dict[str, Any],
+    *,
+    actions: list[dict[str, Any]],
+    changes: dict[str, FieldChangeView] | None = None,
+) -> list[str]:
+    """Render the sales-order entity view (Tier 2 metrics + Tier 3
+    reference fields + per-sub-entity action sections + warnings).
+
+    Companion to :func:`_render_po_entity_view` for the SO modify card.
+    Unlike the PO entity view which is shared with ``build_po_create_ui``,
+    the SO create card today uses a tighter inline shape (no notes /
+    delivery-date diff lines, dedicated shipping-fees section). This
+    helper is modify-specific — create cards keep their existing inline
+    rendering until/unless a future consolidation pass merges them.
+
+    Diff-decoration rules (when ``changes`` is set, same as PO):
+
+    - Each rendered field line looks up ``changes.get("<wire_field>")``
+      and, if present, swaps its rendering for the before→after form.
+    - Unchanged fields render the same as the create card.
+    - Sub-entity actions (rows / addresses / fulfillments / shipping fees)
+      render grouped by section under their own labelled header, each
+      action becoming one summary line with kind gutter + per-action
+      status Badge (applied path only).
+
+    Returns the block-warning list so callers can gate the Confirm
+    button. Must be called inside
+    ``with PrefabApp(...) as app, Card(): with CardContent(), Column(gap=3):``.
+    """
+    changes = changes or {}
+    total = entity.get("total")
+    currency = entity.get("currency")
+    item_count = entity.get("item_count")
+    delivery_date = entity.get("delivery_date")
+
+    # Tier 2 — Decision metrics (un-decorated; the per-field rows below
+    # carry the diff signal for changed scalars).
+    if total is not None or item_count is not None or delivery_date:
+        with Row(gap=4):
+            if total is not None:
+                Metric(label="Total", value=_format_money(total, currency))
+            if item_count is not None:
+                Metric(label="Line Items", value=str(item_count))
+            if delivery_date:
+                Metric(label="Delivery", value=str(delivery_date))
+
+    # Tier 3 — Reference fields. Customer + Location handled as party
+    # lines; everything else via the shared field-diff helper.
+    customer_change = changes.get("customer_id")
+    prior_customer_name = entity.get("customer_name")
+    if customer_change is not None and customer_change.kind != "unchanged":
+        _render_party_diff_line(
+            "Customer",
+            id_change=customer_change,
+            name_change=changes.get("customer_name"),
+            prior_name=prior_customer_name,
+        )
+    else:
+        _render_party_line(
+            "Customer",
+            name=prior_customer_name,
+            entity_id=entity.get("customer_id"),
+            entity_kind="customer",
+        )
+
+    location_change = changes.get("location_id")
+    prior_location_name = entity.get("location_name")
+    if location_change is not None and location_change.kind != "unchanged":
+        _render_party_diff_line(
+            "Location",
+            id_change=location_change,
+            name_change=changes.get("location_name"),
+            prior_name=prior_location_name,
+        )
+    else:
+        # SalesOrderResponse has no location_name today — pass None for
+        # the name; ``_render_party_line`` falls back to the ID-only
+        # form.
+        _render_party_line(
+            "Location",
+            name=prior_location_name,
+            entity_id=entity.get("location_id"),
+        )
+
+    # Header scalar diffs — driven by ``_SO_HEADER_FIELD_SPEC``. Each
+    # entry maps a user-facing label to (change-key candidates,
+    # entity-value keys, render_value_when_unchanged). The renderer
+    # emits the diff line only when the field is changing OR carries a
+    # value worth showing (so the card stays compact on a small modify
+    # plan but still surfaces unchanged context for the long-form
+    # update).
+    _render_so_header_scalar_diffs(entity, changes)
+
+    # Per-sub-entity sections — Line items / Addresses / Fulfillments /
+    # Shipping fees. Each group reads the operation prefix off the
+    # action's ``operation`` field and renders the section only when
+    # actions of that kind are present. The section's rows render from
+    # ``state.so_<section_key>_rows`` (state-bound via ``ForEach``) so
+    # the preview→Confirm morph re-paints per-action chrome — see
+    # :func:`_render_so_subentity_section`.
+    for section_key, label, ops in _SO_SUBENTITY_GROUPS:
+        section_actions = [
+            a for a in actions if str(a.get("operation") or "").lower() in ops
+        ]
+        _render_so_subentity_section(label, section_key, section_actions)
+
+    # NOTE: SO has no build-time ``_render_failed_changes_block`` call.
+    # The state-driven ``applied_header_failed_*`` Alert (seeded by
+    # :func:`_so_header_op_failure_alert_text`) is the single source of
+    # truth for every header-op failure — no-change ops AND update_header
+    # with field changes — so both the preview→Confirm morph path and the
+    # standalone-applied path render the failure exactly once, from state.
+    # Pre-fix #858 finding C: the build-time block was painted from
+    # preview actions (``succeeded=None``) and stayed at "no failures"
+    # after the morph, leaving a failed ``update_header`` with changes
+    # rendering ``applied=True`` chrome with no error text. Sub-entity
+    # failures still aggregate into their own state-driven Alert (see
+    # ``build_so_modify_ui``).
+
+    return _render_warnings_block(entity.get("warnings"))
+
+
+# State slots the SO modify card's apply on_success chain must propagate
+# from ``$result.state.*`` (the apply tool's PrefabApp envelope) into the
+# preview iframe's matching slots so the preview→Confirm in-place morph
+# re-paints from the apply outcome. Centralized here so adding a new
+# state slot (e.g. ``applied_header_skipped_*`` in #858 round-8) is a
+# one-line edit rather than three concurrent edits across seed, render,
+# and morph-chain sites. The ``so_*_rows`` slots drive the per-sub-entity
+# section ``ForEach`` loops; everything else drives state-bound Badge /
+# Alert / mustache strings.
+_SO_MODIFY_MORPH_STATE_SLOTS: tuple[str, ...] = (
+    "applied_outcome_label",
+    "applied_outcome_variant",
+    "applied_subentity_failed_count",
+    "applied_subentity_failed_summary",
+    "applied_header_failed_count",
+    "applied_header_failed_summary",
+    "applied_header_skipped_count",
+    "applied_header_skipped_summary",
+    "so_rows_rows",
+    "so_addresses_rows",
+    "so_fulfillments_rows",
+    "so_shipping_fees_rows",
+    "applied_verb",
+)
+
+
+def _so_modify_morph_setstate_chain() -> list[Action]:
+    """Build the ``on_success`` SetState chain that morphs the preview
+    iframe's state slots from the apply tool's ``$result.state.*``
+    envelope.
+
+    Mustache form ``{{ $result.state.<slot> }}`` is mandatory — bare
+    ``$result.<slot>`` resolves to the apply tool's PrefabApp envelope's
+    top level (not the raw :class:`ModificationResponse`), which would
+    leave every slot empty after the morph. Pinned by
+    ``test_apply_action_morph_chain_writes_*_slots`` in
+    :file:`test_prefab_ui.py`.
+
+    Returns ``list[Action]`` (not ``list[SetState]``) to match
+    :func:`_build_apply_action`'s ``extra_on_success`` contract — the
+    apply-action builder accepts any :class:`Action`, and SetState is
+    just the concrete one we emit today.
+    """
+    return [
+        SetState(slot, f"{{{{ $result.state.{slot} }}}}")
+        for slot in _SO_MODIFY_MORPH_STATE_SLOTS
+    ]
+
+
+@dataclass(frozen=True)
+class _SOModifyStateSeed:
+    """Pre-computed state-slot values for the SO modify card.
+
+    Bundled into a dataclass because the slot list has grown over time
+    (#858 round-8 added ``applied_header_skipped_*``) and a flat keyword
+    arg list exceeded ruff's :data:`PLR0913` threshold. The dataclass is
+    construction-only; the caller passes it to
+    :func:`_seed_so_modify_card_state` which writes the values into the
+    PrefabApp state dict.
+    """
+
+    outcome_label: str
+    outcome_variant: str
+    subentity_failed_count: int
+    subentity_failed_summary: str
+    header_failed_count: int
+    header_failed_summary: str
+    header_skipped_count: int
+    header_skipped_summary: str
+    applied_verb: str
+    subentity_row_lists: dict[str, list[dict[str, Any]]]
+
+
+def _seed_so_modify_card_state(
+    response: dict[str, Any],
+    *,
+    is_preview: bool,
+    seed: _SOModifyStateSeed,
+) -> dict[str, Any]:
+    """Seed the SO modify card's state slots with build-time pre-morph
+    defaults.
+
+    Extracted from :func:`build_so_modify_ui` to keep that builder under
+    ruff's complexity budget — the slot list has grown over time
+    (#858 round-8 added ``applied_header_skipped_*``) and centralizing
+    the seeding here means a new slot is a one-line edit, not a 3-site
+    edit across seed + morph chain + render.
+
+    On the preview path (``is_preview=True``), the outcome slots seed
+    with ``"APPLIED"`` / ``"default"`` so the preview-time render shows
+    success chrome by default and the on_success ``SetState`` chain
+    morphs them to the actual apply outcome. On the standalone-applied
+    path (``is_preview=False``), the seeded values match the actual
+    outcome so a fully-failed apply doesn't show success chrome.
+
+    The ``so_<section_key>_rows`` slots are bound 1:1 to the ``ForEach``
+    inside :func:`_render_so_subentity_section`; the on_success chain
+    copies ``$result.state.so_<section>_rows`` straight in.
+    """
+    state = _init_modify_card_state(response)
+    state["applied_outcome_label"] = seed.outcome_label if not is_preview else "APPLIED"
+    state["applied_outcome_variant"] = (
+        seed.outcome_variant if not is_preview else "default"
+    )
+    state["applied_subentity_failed_count"] = seed.subentity_failed_count
+    state["applied_subentity_failed_summary"] = seed.subentity_failed_summary
+    state["applied_header_failed_count"] = seed.header_failed_count
+    state["applied_header_failed_summary"] = seed.header_failed_summary
+    state["applied_header_skipped_count"] = seed.header_skipped_count
+    state["applied_header_skipped_summary"] = seed.header_skipped_summary
+    state["applied_verb"] = seed.applied_verb
+    for section_key, row_list in seed.subentity_row_lists.items():
+        state[f"so_{section_key}_rows"] = row_list
+    return state
+
+
+def _so_actions_with_not_run_tail(
+    response: dict[str, Any],
+    *,
+    is_preview: bool,
+) -> list[dict[str, Any]]:
+    """Return the SO modify card's effective action list, extended (on
+    the apply path only) with the unattempted plan tail synthesized by
+    :func:`_modify_sales_order_impl`.
+
+    ``execute_plan`` is fail-fast — ``response.actions`` ends at the
+    first failed action. The impl stashes the leftover :class:`ActionSpec`
+    entries under ``response.extras["not_run_actions"]`` so they
+    participate in per-section row bucketing in :func:`build_so_modify_ui`
+    (bucketed by ``operation`` prefix the same way executed actions are).
+    Without this merge the morph path's per-section ``so_<section>_rows``
+    slot would overwrite the preview's full row list with the apply
+    response's SHORTER list, silently HIDING every planned action past
+    the failure (#858 finding B; same family as the BOM fix in
+    ``_modify_product_bom_impl``).
+
+    On the preview path we deliberately ignore the extras (every action
+    is already PLANNED) — guards against accidental leakage from a test
+    or future code path that puts NOT-RUN entries on a preview response.
+    """
+    actions: list[dict[str, Any]] = list(response.get("actions") or [])
+    if is_preview:
+        return actions
+    extras = response.get("extras") or {}
+    not_run_actions = extras.get("not_run_actions") or []
+    if not_run_actions:
+        actions.extend(not_run_actions)
+    return actions
+
+
+def build_so_modify_ui(
+    response: dict[str, Any],
+    *,
+    confirm_request: BaseModel,
+    confirm_tool: str,
+) -> PrefabApp:
+    """Build the modify-/delete-/correct-sales-order card (#723).
+
+    Handles every SO write path that returns a :class:`ModificationResponse`:
+    ``modify_sales_order``, ``delete_sales_order``, ``correct_sales_order``.
+    Title verb derives from ``confirm_tool`` via :func:`_verb_label`
+    (``Modify`` / ``Delete`` / ``Correct``).
+
+    SO is more complex than PO because the modify plan can touch multiple
+    sub-entity types in parallel (header, rows, addresses, fulfillments,
+    shipping fees). Each sub-entity group renders as its own section
+    under the entity-view body, grouped by ``operation`` prefix:
+
+    - **Line items** — ``add_row`` / ``update_row`` / ``delete_row``.
+    - **Addresses** — ``add_address`` / ``update_address`` /
+      ``delete_address``. Updates render as bare ``field: new`` (no
+      arrow) because Katana has no per-address GET endpoint to diff
+      against — every address update would otherwise read
+      ``(prior unknown) → new`` for every changed field, which is
+      visual noise that just restates the unknown-prior fact. The
+      ``address_style=True`` branch in :func:`_format_so_diff_pairs`
+      collapses to the new-only form so address summary lines stay
+      compact.
+    - **Fulfillments** — ``add_fulfillment`` / ``update_fulfillment``
+      / ``delete_fulfillment``.
+    - **Shipping fees** — ``add_shipping_fee`` / ``update_shipping_fee``
+      / ``delete_shipping_fee``.
+
+    Apply-state morph (per the BOM modify card's pattern, #811):
+
+    - Header Badge variant: ``state.applied_outcome_label`` /
+      ``applied_outcome_variant`` flip between APPLIED / PARTIAL
+      FAILURE / FAILED on the morph; on_success chain SetState reads
+      ``{{ $result.state.applied_outcome_label }}`` (NOT
+      ``$result.<field>``; ``$result`` resolves to the apply tool's
+      PrefabApp envelope, not the raw ``ModificationResponse``).
+    - Sub-entity failed-action Alert: gated by
+      ``If(Rx("applied_subentity_failed_count") > 0)``; its summary
+      text seeds via ``applied_subentity_failed_summary``.
+    - Footer body verb: passed as ``"{{ applied_verb }}"`` mustache so
+      it morphs in lockstep with the outcome Badge.
+    """
+    is_preview = bool(response.get("is_preview", True))
+    actions: list[dict[str, Any]] = _so_actions_with_not_run_tail(
+        response, is_preview=is_preview
+    )
+    entity_id = response.get("entity_id")
+    prior_state = _normalize_so_prior_state(response.get("prior_state"))
+
+    verb_label = _verb_label(confirm_tool)
+    # Compose the entity view's source-of-truth dict by overlaying the
+    # response on top of the normalized prior_state. Same shape as the
+    # PO modify card.
+    entity = {**prior_state, **{k: v for k, v in response.items() if v is not None}}
+    if entity_id is not None:
+        entity.setdefault("id", entity_id)
+
+    # Header-only changes map — drives the header scalar-diff rendering
+    # (:func:`_render_so_header_scalar_diffs`) only. Header failures are
+    # NOT painted from this map; they flow through the state-driven
+    # ``applied_header_failed_*`` Alert seeded by
+    # :func:`_so_header_op_failure_alert_text`. Sub-entity actions render
+    # in their own sections via ``_SO_SUBENTITY_GROUPS`` — including their
+    # field changes here would let sub-entity field names that overlap
+    # header names (``status``, ``picked_date``, ``tracking_number`` on
+    # fulfillments) overwrite real header diffs.
+    changes_by_field = _index_changes_by_field(
+        actions, include_operations=_SO_HEADER_OPS
+    )
+
+    # Sub-entity failed-action summary — pre-formatted at build time and
+    # seeded into state slots so the preview→Confirm in-place morph can
+    # surface failures (the Python-painted per-action rows above carry
+    # ✗ glyphs but the textual errors aggregate here).
+    subentity_failed_count, subentity_failed_summary = _so_subentity_failed_summary(
+        actions,
+        so_id=entity_id if isinstance(entity_id, int) else None,
+        confirm_tool=confirm_tool,
+    )
+
+    # Header-level failed-op summary — the SINGLE source of truth for
+    # header failures on the SO modify card. Intentionally includes
+    # failed ``update_header`` actions WITH field changes (round 8) as
+    # well as failed top-level ``delete`` actions; sub-entity failures
+    # are surfaced separately by ``_so_subentity_failed_summary``
+    # (which filters out header ops to avoid double-rendering).
+    header_failed_count, header_failed_summary = _so_header_op_failure_alert_text(
+        actions
+    )
+
+    # Header-level NOT-RUN (skipped) summary — covers the round-8 gap
+    # left by ``_index_changes_by_field`` filtering NOT-RUN ops out of
+    # the header field map (#858 round 7) combined with
+    # :func:`_build_so_subentity_row_lists` only bucketing sub-entity
+    # ops. Without this Alert, a failed ``correct_sales_order`` whose
+    # close-phase ``update_header`` is skipped renders only sub-entity
+    # NOT-RUN rows — the operator can't tell the SO close/restore step
+    # never ran.
+    header_skipped_count, header_skipped_summary = _so_header_op_skipped_alert_text(
+        actions
+    )
+
+    # Per-sub-entity row dicts — seed every section's row list with the
+    # build-time view (PLANNED at preview, APPLIED/FAILED on the
+    # standalone-applied path). The on_success ``SetState`` chain below
+    # reads ``$result.state.so_<section>_rows`` to overwrite these on
+    # the in-place morph so per-row chrome (gutter glyph, status Badge)
+    # updates from the apply outcome — see #858 Copilot finding A.
+    subentity_row_lists = _build_so_subentity_row_lists(actions)
+
+    # Outcome bucketing — same vocabulary as PO modify (APPLIED /
+    # PARTIAL FAILURE / FAILED).
+    outcome_label, outcome_variant = _summarize_apply_outcome(actions)
+
+    # SetState chain is extracted into ``_so_modify_morph_setstate_chain``
+    # so the per-slot ``{{ $result.state.<slot> }}`` mustache pattern stays
+    # centralized. See :data:`_SO_MODIFY_MORPH_STATE_SLOTS` for the
+    # canonical slot list and the Rx-context contract that drives every
+    # state-bound Badge, Alert, and section row-list on this card.
+    apply_action = _build_apply_action(
+        confirm_tool,
+        confirm_request,
+        extra_on_success=_so_modify_morph_setstate_chain(),
+    )
+    # ``_build_cancel_action`` interpolates its arg into "Cancel: do not
+    # apply X." — noun-phrase forms so the message reads naturally. Same
+    # pattern as PO #755.
+    if verb_label == "Delete":
+        cancel_operation_label = "that sales order deletion"
+    elif verb_label == "Correct":
+        cancel_operation_label = "those sales order corrections"
+    else:
+        cancel_operation_label = "those sales order changes"
+    cancel_action = _build_cancel_action(cancel_operation_label)
+
+    # Delete cards say "Deleted" / "DELETED" / "deleted." in applied
+    # state; modify and correct cards say "Applied" / "APPLIED" /
+    # "applied.". Failure overrides the applied copy below.
+    if verb_label == "Delete":
+        applied_title_suffix = "Deleted"
+        applied_state_label = "DELETED"
+        applied_verb = "deleted"
+    else:
+        applied_title_suffix = "Applied"
+        applied_state_label = "APPLIED"
+        applied_verb = "applied"
+    applied_state_variant: str = "default"
+
+    # Standalone-applied path (is_preview=False): drive the state
+    # label + variant + title + verb from the actual outcome so a
+    # fully-failed apply doesn't render with success chrome. Same
+    # contract as PO modify (caught by Copilot on #755).
+    if not is_preview and outcome_label != "APPLIED":
+        applied_state_label = outcome_label
+        applied_state_variant = outcome_variant
+        if outcome_label == "FAILED":
+            applied_title_suffix = "Failed"
+            applied_verb = "failed"
+        else:  # PARTIAL FAILURE
+            applied_title_suffix = "Partially Applied"
+            applied_verb = "partially applied"
+
+    # State seeding is extracted into ``_seed_so_modify_card_state`` to
+    # keep this builder under ruff's complexity budget — the slot list
+    # has grown (#858 round-8 added ``applied_header_skipped_*``) and a
+    # future addition shouldn't force a refactor each time. The seeded
+    # values are the build-time pre-morph defaults; the on_success
+    # ``SetState`` chain (see :func:`_so_modify_morph_setstate_chain`)
+    # overwrites them from ``$result.state.*`` on the morph.
+    state = _seed_so_modify_card_state(
+        response,
+        is_preview=is_preview,
+        seed=_SOModifyStateSeed(
+            outcome_label=outcome_label,
+            outcome_variant=outcome_variant,
+            subentity_failed_count=subentity_failed_count,
+            subentity_failed_summary=subentity_failed_summary,
+            header_failed_count=header_failed_count,
+            header_failed_summary=header_failed_summary,
+            header_skipped_count=header_skipped_count,
+            header_skipped_summary=header_skipped_summary,
+            applied_verb=applied_verb,
+            subentity_row_lists=subentity_row_lists,
+        ),
+    )
+
+    with (
+        PrefabApp(state=state, css_class="p-4") as app,
+        Card(),
+    ):
+        _render_preview_header(
+            title_prefix=f"{verb_label} Sales Order",
+            entity="sales_order",
+            order_number=str(entity.get("order_number") or entity_id or "N/A"),
+            status=entity.get("status"),
+            applied_title_suffix=applied_title_suffix,
+            applied_state_label=applied_state_label,
+            applied_state_variant=applied_state_variant,
+        )
+        with CardContent(), Column(gap=3):
+            if response.get("message"):
+                Muted(content=response["message"])
+            block_warnings = _render_so_entity_view(
+                entity,
+                actions=actions,
+                changes=changes_by_field,
+            )
+
+            # State-driven sub-entity failed-action Alert. Mirrors the
+            # BOM modify card's ``applied_failed_count`` / ``applied_failed_summary``
+            # pattern — gated by ``If(Rx(...) > 0)`` so it stays hidden
+            # at preview time and after a fully-successful apply, then
+            # pops in after a partial/full failure morph. Seeded from
+            # ``$result.state.*`` so the preview→Confirm in-place morph
+            # surfaces failures the build-time render couldn't predict.
+            with (
+                If(Rx("applied_subentity_failed_count") > 0),
+                Alert(variant="destructive", icon="circle-alert"),
+            ):
+                AlertTitle(
+                    content="{{ applied_subentity_failed_count }} sub-entity failure(s)"
+                )
+                AlertDescription(content="{{ applied_subentity_failed_summary }}")
+
+            # State-driven header-op failure Alert (#858 finding B).
+            # SINGLE source of truth for header failures on the SO modify
+            # card — covers BOTH failed top-level ``delete`` actions AND
+            # failed ``update_header`` actions WITH field changes (round
+            # 8). ``_so_subentity_failed_summary`` filters out header ops
+            # so this Alert is the only surface they appear on. Gated
+            # separately from the sub-entity Alert so header failures
+            # surface under a truthful "header op" title instead of being
+            # misattributed as a sub-entity failure.
+            with (
+                If(Rx("applied_header_failed_count") > 0),
+                Alert(variant="destructive", icon="circle-alert"),
+            ):
+                AlertTitle(content="Sales order operation failed")
+                AlertDescription(content="{{ applied_header_failed_summary }}")
+
+            # State-driven header-op NOT-RUN Alert (#858 round-8 follow-up).
+            # Mirrors the failed-op Alert above but for skipped header
+            # steps — fires when a fail-fast ``correct_sales_order`` halts
+            # before its close-phase ``update_header`` runs. Variant
+            # ``info`` (neutral, the closest fit in :data:`AlertVariant` to
+            # "didn't happen") so the destructive variant above keeps
+            # exclusive ownership of the failure surface. Without this
+            # Alert the operator couldn't tell the SO close/restore step
+            # never ran — sub-entity NOT-RUN rows render in their own
+            # section but a skipped header op had no rendering surface
+            # (header field map filters NOT-RUN out per round 7, and the
+            # sub-entity row lists only bucket sub-entity ops).
+            with (
+                If(Rx("applied_header_skipped_count") > 0),
+                Alert(variant="info", icon="circle-info"),
+            ):
+                AlertTitle(
+                    content="{{ applied_header_skipped_count }} header step(s) skipped"
+                )
+                AlertDescription(content="{{ applied_header_skipped_summary }}")
+
+            if is_preview:
+                with If("error"):
+                    Separator()
+                    with Alert(variant="destructive", icon="circle-alert"):
+                        AlertTitle(content="Apply failed")
+                        AlertDescription(content="{{ error }}")
+
+        # Confirm label scales with the planned-action count. Delete
+        # cards use "Confirm Delete" to mirror the destructive
+        # affordance.
+        n_actions = len(actions)
+        if verb_label == "Delete":
+            confirm_label = "Confirm Delete"
+        elif n_actions > 1:
+            confirm_label = f"Confirm {n_actions} changes"
+        else:
+            confirm_label = "Confirm Changes"
+
+        _render_preview_footer(
+            title_prefix=f"Sales Order {verb_label}",
+            block_warnings=block_warnings,
+            confirm_label=confirm_label,
+            apply_action=apply_action,
+            cancel_action=cancel_action,
+            # No next-action buttons on modify cards by default — same
+            # rationale as PO. The user already had the SO they wanted
+            # to change; surfacing "Fulfill Order" here would be noise.
+            next_action_buttons=(),
+            # Mustache template against ``state.applied_verb`` (seeded
+            # above + overwritten by the on_success chain) so the footer
+            # body morphs to "Sales Order partially applied." / "Sales
+            # Order failed." in lockstep with the Tier-1 outcome Badge.
+            applied_verb="{{ applied_verb }}",
         )
     return app
 

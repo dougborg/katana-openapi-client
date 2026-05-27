@@ -779,6 +779,191 @@ async def test_correct_so_apply_executes_phases_in_canonical_order():
     assert response.prior_state is not None
 
 
+@pytest.mark.asyncio
+async def test_correct_so_fail_fast_synthesizes_not_run_tail_for_morph():
+    """Fail-fast mid-correction must surface the unattempted phases as
+    NOT-RUN extras (#858 finding B — Copilot comment 3312071378).
+
+    ``build_so_modify_ui`` handles ``correct_sales_order`` alongside
+    ``modify_sales_order``; both rely on ``response.extras[\"not_run_actions\"]``
+    so the per-section row morph can render skipped restore / recreate /
+    close phases instead of silently overwriting the preview's full
+    sub-entity rows with only the executed prefix.
+
+    Plan: delete fulfillment (phase 1, succeeds) → revert SO (phase 2,
+    succeeds) → edit row (phase 3, FAILS). Phases 4 (recreate fulfillment)
+    + 5 (close SO) must surface as NOT-RUN entries.
+    """
+    context, _ = create_mock_context()
+    picked = datetime(2026, 4, 15, 21, 18, 0, tzinfo=UTC)
+    so = _make_so(status="DELIVERED", picked_date=picked)
+    so_row = _make_so_row(row_id=10, variant_id=500)
+    so.sales_order_rows = [so_row]
+    fulfillments = [
+        _make_fulfillment(ful_id=77, so_id=99, row_id=10, picked_date=picked)
+    ]
+
+    async def fake_delete_ful(*, id, client):
+        resp = MagicMock()
+        resp.status_code = 204
+        return resp
+
+    async def fake_update_so(*, id, client, body):
+        resp = MagicMock()
+        resp.parsed = so
+        return resp
+
+    async def boom_update_row(*, id, client, body):
+        raise RuntimeError("Katana refused the row edit")
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.corrections._fetch_sales_order_attrs",
+            new_callable=AsyncMock,
+            return_value=so,
+        ),
+        patch(
+            "katana_mcp.tools.foundation.corrections._fetch_so_fulfillments",
+            new_callable=AsyncMock,
+            return_value=fulfillments,
+        ),
+        patch(
+            "katana_mcp.tools.foundation.corrections."
+            "api_delete_so_fulfillment.asyncio_detailed",
+            side_effect=fake_delete_ful,
+        ),
+        patch(
+            "katana_mcp.tools.foundation.corrections."
+            "api_update_sales_order.asyncio_detailed",
+            side_effect=fake_update_so,
+        ),
+        patch(
+            "katana_mcp.tools.foundation.corrections."
+            "api_update_so_row.asyncio_detailed",
+            side_effect=boom_update_row,
+        ),
+        patch(
+            "katana_mcp.tools.foundation.corrections.is_success",
+            return_value=True,
+        ),
+    ):
+        response = await _correct_sales_order_impl(
+            CorrectSalesOrderRequest(
+                id=99,
+                line_changes=[SOLineCorrection(old_variant_id=500, new_variant_id=501)],
+                preview=False,
+            ),
+            context,
+        )
+
+    # Phases 1+2 succeeded, phase 3 (edit) failed → 3 executed actions.
+    assert response.is_preview is False
+    assert len(response.actions) == 3
+    assert response.actions[0].succeeded is True  # delete_fulfillment
+    assert response.actions[1].succeeded is True  # update_header (revert)
+    assert response.actions[2].succeeded is False  # update_row (boom)
+
+    # The two unattempted phases must surface as NOT-RUN extras so the
+    # SO modify-card morph picks them up via ``_so_actions_with_not_run_tail``.
+    not_run = response.extras.get("not_run_actions") or []
+    assert len(not_run) == 2, (
+        f"Expected 2 NOT-RUN entries (recreate + close); got {len(not_run)}: "
+        f"{[a.get('operation') for a in not_run]}"
+    )
+    assert [a["operation"] for a in not_run] == ["add_fulfillment", "update_header"]
+    assert all(a["succeeded"] is None for a in not_run)
+    assert all(a["status_label"] == "NOT RUN" for a in not_run)
+
+
+@pytest.mark.asyncio
+async def test_correct_so_fail_fast_morph_renders_not_run_rows():
+    """End-to-end check: feed the failed-correction response into
+    :func:`build_so_modify_ui` and confirm the NOT-RUN tail makes it into
+    the action list the morph paints from (#858 finding B).
+
+    This is the consumer-side proof — the impl-side test above proves
+    extras are populated; this one proves the renderer actually reads them.
+    """
+    from katana_mcp.tools.prefab_ui import _so_actions_with_not_run_tail
+
+    context, _ = create_mock_context()
+    picked = datetime(2026, 4, 15, 21, 18, 0, tzinfo=UTC)
+    so = _make_so(status="DELIVERED", picked_date=picked)
+    so_row = _make_so_row(row_id=10, variant_id=500)
+    so.sales_order_rows = [so_row]
+    fulfillments = [
+        _make_fulfillment(ful_id=77, so_id=99, row_id=10, picked_date=picked)
+    ]
+
+    async def fake_delete_ful(*, id, client):
+        resp = MagicMock()
+        resp.status_code = 204
+        return resp
+
+    async def fake_update_so(*, id, client, body):
+        resp = MagicMock()
+        resp.parsed = so
+        return resp
+
+    async def boom_update_row(*, id, client, body):
+        raise RuntimeError("Katana refused the row edit")
+
+    with (
+        patch(
+            "katana_mcp.tools.foundation.corrections._fetch_sales_order_attrs",
+            new_callable=AsyncMock,
+            return_value=so,
+        ),
+        patch(
+            "katana_mcp.tools.foundation.corrections._fetch_so_fulfillments",
+            new_callable=AsyncMock,
+            return_value=fulfillments,
+        ),
+        patch(
+            "katana_mcp.tools.foundation.corrections."
+            "api_delete_so_fulfillment.asyncio_detailed",
+            side_effect=fake_delete_ful,
+        ),
+        patch(
+            "katana_mcp.tools.foundation.corrections."
+            "api_update_sales_order.asyncio_detailed",
+            side_effect=fake_update_so,
+        ),
+        patch(
+            "katana_mcp.tools.foundation.corrections."
+            "api_update_so_row.asyncio_detailed",
+            side_effect=boom_update_row,
+        ),
+        patch(
+            "katana_mcp.tools.foundation.corrections.is_success",
+            return_value=True,
+        ),
+    ):
+        response = await _correct_sales_order_impl(
+            CorrectSalesOrderRequest(
+                id=99,
+                line_changes=[SOLineCorrection(old_variant_id=500, new_variant_id=501)],
+                preview=False,
+            ),
+            context,
+        )
+
+    # Hand the response to the merge helper exactly as ``build_so_modify_ui``
+    # does. Result: 3 executed + 2 NOT-RUN = 5 rows visible on the morph.
+    response_dict = response.model_dump()
+    merged = _so_actions_with_not_run_tail(response_dict, is_preview=False)
+    assert len(merged) == 5
+
+    # Plan order preserved: APPLIED, APPLIED, FAILED, NOT RUN, NOT RUN.
+    status_labels = [a.get("status_label") for a in merged]
+    assert status_labels[-2:] == ["NOT RUN", "NOT RUN"]
+    # The trailing two are the recreate + close that never ran.
+    assert [a.get("operation") for a in merged[-2:]] == [
+        "add_fulfillment",
+        "update_header",
+    ]
+
+
 # ============================================================================
 # correct_purchase_order — fixtures
 # ============================================================================

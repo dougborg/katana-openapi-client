@@ -37,6 +37,7 @@ from katana_mcp.tools.prefab_ui import (
     build_product_bom_ui,
     build_search_results_ui,
     build_so_create_ui,
+    build_so_modify_ui,
     build_stock_adjustment_create_ui,
     build_stock_adjustment_delete_ui,
     build_stock_adjustment_update_ui,
@@ -966,6 +967,487 @@ def _bom_modify_response(*, is_preview: bool, succeeded: bool | None) -> dict:
     }
 
 
+def _so_failed_delete_response(*, is_preview: bool = False) -> dict:
+    """Build a canned SO delete response where the apply fails.
+
+    Mirrors the failure shape Katana returns when the SO is already
+    gone (404) or in a state that blocks the cascade. Pre-fix #858
+    finding B the FAILED chrome rendered without the actual error text
+    — delete actions carry no field changes (so the header-changes
+    block was empty) and the sub-entity failure summary filters out
+    top-level ``delete`` (so that block was empty too). Post-fix the
+    dedicated header-op Alert surfaces the :attr:`ActionResult.error`.
+
+    ``is_preview`` flips between the pre-Confirm preview shape (delete
+    pending) and the post-Confirm apply result (delete FAILED).
+    """
+    delete_succeeded = None if is_preview else False
+    actions = [
+        ActionResult(
+            index=1,
+            operation="delete",
+            target_id=42,
+            changes=[],
+            succeeded=delete_succeeded,
+            error=None
+            if is_preview
+            else "404 Not Found: sales order 42 does not exist",
+            status_label="" if is_preview else "FAILED",
+        ).model_dump(),
+    ]
+    return {
+        "entity_type": "sales_order",
+        "entity_id": 42,
+        "is_preview": is_preview,
+        "operation": "",
+        "changes": [],
+        "actions": actions,
+        "prior_state": {
+            "id": 42,
+            "order_no": "SO-2026-001",
+            "customer_id": 1501,
+            "customer_name": "Sarah Johnson",
+            "location_id": 1,
+            "status": "NOT_SHIPPED",
+            "currency": "USD",
+            "total": 1250.0,
+        },
+        "warnings": [],
+        "next_actions": [],
+        "katana_url": "https://factory.katanamrp.com/salesorder/42",
+        "message": "Preview: 1 action(s) planned" if is_preview else "Delete failed",
+    }
+
+
+def _so_modify_partial_failure_response(*, is_preview: bool = False) -> dict:
+    """Build a canned SO modify response with a partial-failure plan.
+
+    Mirrors the production shape for the #723 SO modify card:
+
+    - Header change (status: NOT_SHIPPED → PACKED) — applies cleanly.
+    - One shipping_fee add — applies cleanly.
+    - One row delete — FAILS (404 — stale row id) on apply.
+
+    ``is_preview`` flips the response between the pre-Confirm preview
+    (every action ``succeeded=None``) and the post-Confirm apply result
+    (header + shipping_fee succeeded, delete_row failed). The same
+    actions are returned in both cases so the morph test can assert
+    that the Confirm-time apply call produces the partial-failure
+    chrome (Alert + per-action FAILED Badge + card-level
+    PARTIAL FAILURE state) on top of the preview tree.
+
+    On the applied path the card-level state badge reads PARTIAL
+    FAILURE, the state-driven sub-entity failed-action Alert shows
+    the failed row's error + retry coaching, and the Python-painted
+    action rows in the Line items + Shipping fees sections carry
+    per-action APPLIED / FAILED Badges.
+    """
+    # On preview every action is pending (``succeeded=None``); on apply
+    # the header + shipping_fee succeed and the row delete fails. The
+    # failure path is what makes this the "interesting" morph fixture.
+    header_succeeded = None if is_preview else True
+    fee_succeeded = None if is_preview else True
+    row_succeeded = None if is_preview else False
+    actions = [
+        ActionResult(
+            index=1,
+            operation="update_header",
+            target_id=42,
+            changes=[
+                FieldChange(field="status", old="NOT_SHIPPED", new="PACKED"),
+            ],
+            succeeded=header_succeeded,
+        ).model_dump(),
+        ActionResult(
+            index=2,
+            operation="add_shipping_fee",
+            target_id=None,
+            changes=[
+                FieldChange(
+                    field="description",
+                    old=None,
+                    new="Express ground",
+                    is_added=True,
+                ),
+                FieldChange(field="amount", old=None, new="12.99", is_added=True),
+            ],
+            succeeded=fee_succeeded,
+            status_label="" if is_preview else "APPLIED",
+        ).model_dump(),
+        ActionResult(
+            index=3,
+            operation="delete_row",
+            target_id=9999,
+            changes=[],
+            succeeded=row_succeeded,
+            error=None
+            if is_preview
+            else "404 Not Found: row 9999 does not exist on SO 42",
+            status_label="" if is_preview else "FAILED",
+        ).model_dump(),
+    ]
+    if is_preview:
+        message = "Preview: 3 action(s) planned"
+    else:
+        message = "Applied 2 of 3 action(s); 1 failure"
+    return {
+        "entity_type": "sales_order",
+        "entity_id": 42,
+        "is_preview": is_preview,
+        "operation": "",
+        "changes": [],
+        "actions": actions,
+        "prior_state": {
+            "id": 42,
+            "order_no": "SO-2026-001",
+            "customer_id": 1501,
+            "customer_name": "Sarah Johnson",
+            "location_id": 1,
+            "status": "NOT_SHIPPED",
+            "currency": "USD",
+            "total": 1250.0,
+            "additional_info": "Customer requested expedited delivery",
+            "delivery_date": "2026-05-08T14:30:00Z",
+        },
+        "warnings": [],
+        "next_actions": [],
+        "katana_url": "https://factory.katanamrp.com/salesorder/42",
+        "message": message,
+    }
+
+
+def _so_modify_fail_fast_not_run_response(*, is_preview: bool = False) -> dict:
+    """Build a canned SO modify response exercising the fail-fast NOT-RUN
+    tail (#858 finding B).
+
+    The plan has 4 row adds — the first succeeds, the second fails, and
+    the third + fourth NEVER RUN (fail-fast halts after the second).
+    The apply path mirrors what ``_modify_sales_order_impl`` produces:
+    ``response.actions`` holds the 2 executed entries; the unattempted
+    tail rides on ``response.extras["not_run_actions"]`` as NOT-RUN
+    action dicts. :func:`build_so_modify_ui` merges the two so the
+    morphed Line items section renders all 4 rows (APPLIED + FAILED +
+    NOT RUN + NOT RUN) instead of silently dropping the leftover plan.
+
+    On preview, every action is pending (``succeeded=None``) and the
+    extras dict is empty — the preview already shows the full 4-row
+    plan via the regular ``actions`` list. The morph between preview
+    and apply is the load-bearing assertion: pre-fix the apply morph
+    would HIDE the NOT-RUN rows; post-fix they remain visible.
+    """
+    succeeded_states = [
+        # Action 1: succeeds.
+        None if is_preview else True,
+        # Action 2: fails — execute_plan stops here on apply.
+        None if is_preview else False,
+        # Actions 3-4: never attempted on apply.
+        None,
+        None,
+    ]
+    error_states = [
+        None,
+        None if is_preview else "422 Unprocessable: variant 999 archived",
+        None,
+        None,
+    ]
+    actions_full = [
+        ActionResult(
+            index=i + 1,
+            operation="add_row",
+            target_id=None,
+            changes=[
+                FieldChange(
+                    field="variant_id",
+                    old=None,
+                    new=100 + i,
+                    is_added=True,
+                ),
+                FieldChange(
+                    field="quantity",
+                    old=None,
+                    new=f"{i + 1}.0",
+                    is_added=True,
+                ),
+            ],
+            succeeded=succeeded_states[i],
+            error=error_states[i],
+        ).model_dump()
+        for i in range(4)
+    ]
+    # On apply, ``response.actions`` is truncated to the 2 executed
+    # entries (fail-fast) and the unattempted tail rides on extras as
+    # NOT-RUN dicts (matches what ``_modify_sales_order_impl`` produces
+    # post-#858-fix).
+    if is_preview:
+        actions = actions_full
+        extras: dict[str, Any] = {}
+        message = "Preview: 4 action(s) planned"
+    else:
+        actions = actions_full[:2]
+        extras = {
+            "not_run_actions": [
+                {
+                    "operation": "add_row",
+                    "target_id": None,
+                    "succeeded": None,
+                    "error": None,
+                    "status_label": "NOT RUN",
+                    "changes": [
+                        {
+                            "field": "variant_id",
+                            "old": None,
+                            "new": 100 + i,
+                            "is_added": True,
+                        },
+                        {
+                            "field": "quantity",
+                            "old": None,
+                            "new": f"{i + 1}.0",
+                            "is_added": True,
+                        },
+                    ],
+                }
+                for i in (2, 3)
+            ]
+        }
+        message = "Applied 1 of 4 action(s); 1 failure; 2 not run"
+    return {
+        "entity_type": "sales_order",
+        "entity_id": 42,
+        "is_preview": is_preview,
+        "operation": "",
+        "changes": [],
+        "actions": actions,
+        "prior_state": {
+            "id": 42,
+            "order_no": "SO-2026-001",
+            "customer_id": 1501,
+            "customer_name": "Sarah Johnson",
+            "location_id": 1,
+            "status": "NOT_SHIPPED",
+            "currency": "USD",
+            "total": 1250.0,
+            "additional_info": "Customer requested expedited delivery",
+            "delivery_date": "2026-05-08T14:30:00Z",
+        },
+        "warnings": [],
+        "next_actions": [],
+        "katana_url": "https://factory.katanamrp.com/salesorder/42",
+        "message": message,
+        "extras": extras,
+    }
+
+
+def _so_modify_header_failed_with_changes_response(*, is_preview: bool = False) -> dict:
+    """Build a canned SO modify response exercising the failed
+    ``update_header`` WITH field changes morph path (#858 finding C).
+
+    A single ``update_header`` action changes ``status`` from
+    NOT_SHIPPED → DELIVERED; on apply the Katana API rejects the
+    transition (e.g. invalid state machine move). Pre-fix, the build-
+    time ``_render_failed_changes_block`` (read at preview time when
+    ``succeeded=None``) painted "no failures" into the view tree and
+    NEVER updated on the morph — the operator saw APPLIED chrome
+    despite the failure.
+
+    Post-fix, :func:`_so_header_op_failure_alert_text` is the single
+    source of truth: it includes failed ``update_header`` actions WITH
+    changes too, so the state-driven Alert pops in after the morph
+    with the error text. The build-time
+    ``_render_failed_changes_block`` was removed from the SO entity
+    view to avoid double-render.
+    """
+    succeeded = None if is_preview else False
+    error = None if is_preview else "422 Unprocessable: invalid status transition"
+    actions = [
+        ActionResult(
+            index=1,
+            operation="update_header",
+            target_id=42,
+            changes=[
+                FieldChange(field="status", old="PACKED", new="DELIVERED"),
+            ],
+            succeeded=succeeded,
+            error=error,
+        ).model_dump(),
+    ]
+    if is_preview:
+        message = "Preview: 1 action(s) planned"
+    else:
+        message = "Failed: 1 action(s); 1 failure"
+    return {
+        "entity_type": "sales_order",
+        "entity_id": 42,
+        "is_preview": is_preview,
+        "operation": "",
+        "changes": [],
+        "actions": actions,
+        "prior_state": {
+            "id": 42,
+            "order_no": "SO-2026-001",
+            "customer_id": 1501,
+            "customer_name": "Sarah Johnson",
+            "location_id": 1,
+            "status": "PACKED",
+            "currency": "USD",
+            "total": 1250.0,
+            "additional_info": "Customer requested expedited delivery",
+            "delivery_date": "2026-05-08T14:30:00Z",
+        },
+        "warnings": [],
+        "next_actions": [],
+        "katana_url": "https://factory.katanamrp.com/salesorder/42",
+        "message": message,
+    }
+
+
+def _so_correct_fail_fast_header_skipped_response(*, is_preview: bool = False) -> dict:
+    """Build a canned ``correct_sales_order`` response exercising the
+    header-step NOT-RUN morph path (#858 round-8).
+
+    Plan: delete fulfillment (phase 1, succeeds) → revert SO header
+    (phase 2, succeeds) → edit SO row (phase 3, FAILS). Phase 4
+    (re-create fulfillment) and phase 5 (close SO via update_header)
+    never run. The close-phase ``update_header`` is the load-bearing
+    NOT-RUN entry: pre-round-8 it had no rendering surface (sub-entity
+    row lists only bucket sub-entity ops; the header field map filters
+    NOT-RUN out per round 7), so the operator couldn't tell the SO
+    close step was skipped. Post-round-8 the state-driven
+    ``applied_header_skipped_*`` Alert surfaces the skipped step.
+    """
+    actions_executed: list[dict[str, Any]] = []
+    if not is_preview:
+        actions_executed = [
+            ActionResult(
+                index=1,
+                operation="delete_fulfillment",
+                target_id=77,
+                changes=[],
+                succeeded=True,
+                error=None,
+            ).model_dump(),
+            ActionResult(
+                index=2,
+                operation="update_header",
+                target_id=99,
+                changes=[FieldChange(field="status", new="PENDING")],
+                succeeded=True,
+                error=None,
+            ).model_dump(),
+            ActionResult(
+                index=3,
+                operation="update_row",
+                target_id=10,
+                changes=[FieldChange(field="variant_id", old=500, new=501)],
+                succeeded=False,
+                error="Katana refused the row edit",
+            ).model_dump(),
+        ]
+    else:
+        # Preview: every action is pending (succeeded=None), no extras.
+        actions_executed = [
+            ActionResult(
+                index=1,
+                operation="delete_fulfillment",
+                target_id=77,
+                changes=[],
+                succeeded=None,
+                error=None,
+            ).model_dump(),
+            ActionResult(
+                index=2,
+                operation="update_header",
+                target_id=99,
+                changes=[FieldChange(field="status", new="PENDING")],
+                succeeded=None,
+                error=None,
+            ).model_dump(),
+            ActionResult(
+                index=3,
+                operation="update_row",
+                target_id=10,
+                changes=[FieldChange(field="variant_id", old=500, new=501)],
+                succeeded=None,
+                error=None,
+            ).model_dump(),
+            ActionResult(
+                index=4,
+                operation="add_fulfillment",
+                target_id=None,
+                changes=[],
+                succeeded=None,
+                error=None,
+            ).model_dump(),
+            ActionResult(
+                index=5,
+                operation="update_header",
+                target_id=99,
+                changes=[FieldChange(field="status", new="DELIVERED")],
+                succeeded=None,
+                error=None,
+            ).model_dump(),
+        ]
+
+    extras: dict[str, Any] = {}
+    if not is_preview:
+        extras = {
+            "not_run_actions": [
+                {
+                    "operation": "add_fulfillment",
+                    "target_id": None,
+                    "succeeded": None,
+                    "error": None,
+                    "status_label": "NOT RUN",
+                    "changes": [],
+                },
+                {
+                    "operation": "update_header",
+                    "target_id": 99,
+                    "succeeded": None,
+                    "error": None,
+                    "status_label": "NOT RUN",
+                    "changes": [
+                        {
+                            "field": "status",
+                            "old": None,
+                            "new": "DELIVERED",
+                        }
+                    ],
+                },
+            ]
+        }
+
+    if is_preview:
+        message = "Preview: 5 action(s) planned"
+    else:
+        message = "Applied 2 of 3 action(s); 1 failure; 2 not run"
+    return {
+        "entity_type": "sales_order",
+        "entity_id": 99,
+        "is_preview": is_preview,
+        "operation": "",
+        "changes": [],
+        "actions": actions_executed,
+        "prior_state": {
+            "id": 99,
+            "order_no": "SO-2026-002",
+            "customer_id": 1501,
+            "customer_name": "Sarah Johnson",
+            "location_id": 1,
+            "status": "DELIVERED",
+            "currency": "USD",
+            "total": 1250.0,
+            "additional_info": "Customer requested expedited delivery",
+            "delivery_date": "2026-05-08T14:30:00Z",
+        },
+        "warnings": [],
+        "next_actions": [],
+        "katana_url": "https://factory.katanamrp.com/salesorder/99",
+        "message": message,
+        "extras": extras,
+    }
+
+
 SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
     # The bug-repro: 12 mixed actions on the preview card. Pre-fix this
     # rendered as a blank iframe; post-fix it renders one DataTable with 12
@@ -1201,6 +1683,100 @@ SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
         confirm_request=_StubRequest(),
         confirm_tool="manage_product_bom",
     ),
+    # #723 — SO modify card with a partial-failure applied state. Pins
+    # the card-level PARTIAL FAILURE badge, the state-driven sub-entity
+    # failed-action Alert, the per-action APPLIED / FAILED Badges in
+    # the Line items + Shipping fees sections, and the failed-row
+    # ``✗ `` gutter in a real browser render.
+    "so_modify_partial_failure_applied": lambda: build_so_modify_ui(
+        _so_modify_partial_failure_response(),
+        confirm_request=_StubRequest(),
+        confirm_tool="modify_sales_order",
+    ),
+    # #723 / #858 — preview side of the same partial-failure plan. Used
+    # by the click-through morph test: the iframe renders this preview
+    # tree, the user clicks Confirm, the apply call returns the applied
+    # response (via the ``modify_sales_order`` stub tool below), and the
+    # on_success SetState chain flips the state slots so the sub-entity
+    # failed-action Alert pops in. Catches slot-name-typo regressions
+    # the standalone-applied test cannot.
+    "so_modify_partial_failure_preview": lambda: build_so_modify_ui(
+        _so_modify_partial_failure_response(is_preview=True),
+        confirm_request=_StubRequest(id=42),
+        confirm_tool="modify_sales_order",
+    ),
+    # #858 finding B — failed top-level delete renders FAILED chrome WITH
+    # the dedicated header-op Alert surfacing the ActionResult.error text.
+    # Pre-fix this rendered with no visible error message.
+    "so_delete_failed_applied": lambda: build_so_modify_ui(
+        _so_failed_delete_response(is_preview=False),
+        confirm_request=_StubRequest(id=42),
+        confirm_tool="delete_sales_order",
+    ),
+    "so_delete_failed_preview": lambda: build_so_modify_ui(
+        _so_failed_delete_response(is_preview=True),
+        confirm_request=_StubRequest(id=42),
+        confirm_tool="delete_sales_order",
+    ),
+    # #858 finding B (NOT-RUN morph) — fail-fast leaves the unattempted
+    # plan tail visible as NOT-RUN rows on the morphed card instead of
+    # silently dropping them. Pre-fix: 4-row plan that fails on row 2
+    # morphed to a card showing only 2 rows.
+    "so_modify_fail_fast_not_run_applied": lambda: build_so_modify_ui(
+        _so_modify_fail_fast_not_run_response(is_preview=False),
+        confirm_request=_StubRequest(id=42),
+        confirm_tool="modify_sales_order_fail_fast",
+    ),
+    "so_modify_fail_fast_not_run_preview": lambda: build_so_modify_ui(
+        _so_modify_fail_fast_not_run_response(is_preview=True),
+        confirm_request=_StubRequest(id=42),
+        confirm_tool="modify_sales_order_fail_fast",
+    ),
+    # #858 Copilot follow-up (comment 3312071378) — same NOT-RUN morph
+    # contract, but for ``correct_sales_order``. ``build_so_modify_ui``
+    # handles both tools and merges ``extras["not_run_actions"]`` the
+    # same way; this scenario pins that ``_correct_sales_order_impl``'s
+    # failure path populates those extras correctly so the morphed card
+    # surfaces the unattempted restore / recreate / close phases.
+    "so_correct_fail_fast_not_run_applied": lambda: build_so_modify_ui(
+        _so_modify_fail_fast_not_run_response(is_preview=False),
+        confirm_request=_StubRequest(id=42),
+        confirm_tool="correct_sales_order",
+    ),
+    "so_correct_fail_fast_not_run_preview": lambda: build_so_modify_ui(
+        _so_modify_fail_fast_not_run_response(is_preview=True),
+        confirm_request=_StubRequest(id=42),
+        confirm_tool="correct_sales_order",
+    ),
+    # #858 round-8 — fail-fast ``correct_sales_order`` whose close-phase
+    # ``update_header`` lands in the NOT-RUN tail. Surfaces the
+    # ``applied_header_skipped_*`` Alert that owns the rendering surface
+    # for skipped header steps (sub-entity row lists only bucket sub-
+    # entity ops; the header field map filters NOT-RUN out per round 7).
+    "so_correct_fail_fast_header_skipped_applied": lambda: build_so_modify_ui(
+        _so_correct_fail_fast_header_skipped_response(is_preview=False),
+        confirm_request=_StubRequest(id=99),
+        confirm_tool="correct_sales_order",
+    ),
+    "so_correct_fail_fast_header_skipped_preview": lambda: build_so_modify_ui(
+        _so_correct_fail_fast_header_skipped_response(is_preview=True),
+        confirm_request=_StubRequest(id=99),
+        confirm_tool="correct_sales_order",
+    ),
+    # #858 finding C — failed update_header WITH field changes morphs
+    # to a card with the state-driven header-op Alert visible (was
+    # invisible pre-fix because the build-time ``_render_failed_changes_block``
+    # painted preview-time content into the view tree).
+    "so_modify_header_failed_with_changes_applied": lambda: build_so_modify_ui(
+        _so_modify_header_failed_with_changes_response(is_preview=False),
+        confirm_request=_StubRequest(id=42),
+        confirm_tool="modify_sales_order_header_fail",
+    ),
+    "so_modify_header_failed_with_changes_preview": lambda: build_so_modify_ui(
+        _so_modify_header_failed_with_changes_response(is_preview=True),
+        confirm_request=_StubRequest(id=42),
+        confirm_tool="modify_sales_order_header_fail",
+    ),
 }
 
 
@@ -1271,6 +1847,142 @@ async def modify_manufacturing_order(
     response = ModificationResponse.model_validate(response_dict)
     ui = build_modification_result_ui(
         response_dict, tool_name="modify_manufacturing_order"
+    )
+    return make_tool_result(response, ui=ui)
+
+
+@mcp.tool(meta={"ui": True})
+async def modify_sales_order(
+    id: int,
+    preview: bool = True,
+    update_header: Any = None,
+    add_rows: Any = None,
+    update_rows: Any = None,
+    delete_row_ids: Any = None,
+    add_addresses: Any = None,
+    update_addresses: Any = None,
+    delete_address_ids: Any = None,
+    add_fulfillments: Any = None,
+    update_fulfillments: Any = None,
+    delete_fulfillment_ids: Any = None,
+    add_shipping_fees: Any = None,
+    update_shipping_fees: Any = None,
+    delete_shipping_fee_ids: Any = None,
+) -> ToolResult:
+    """Stub for the SO modify click-through test — when the Confirm button
+    on the preview card fires, the iframe calls this with ``preview=False``
+    and we return the canned partial-failure apply response so the
+    on_success SetState chain in :func:`build_so_modify_ui` fires.
+
+    Sub-payload args mirror :class:`ModifySalesOrderRequest` so FastMCP's
+    signature validator accepts the full Confirm-button payload. All
+    values are ignored — the stub always returns the same canned envelope.
+
+    Uses ``make_tool_result`` (same helper the real ``modify_sales_order``
+    tool uses) so the wire shape matches production exactly: ``content``
+    carries the response JSON, ``structured_content`` carries the apply
+    result card's Prefab envelope (which is what ``$result.state.*``
+    resolves against in the on_success chain).
+    """
+    del (
+        id,
+        update_header,
+        add_rows,
+        update_rows,
+        delete_row_ids,
+        add_addresses,
+        update_addresses,
+        delete_address_ids,
+        add_fulfillments,
+        update_fulfillments,
+        delete_fulfillment_ids,
+        add_shipping_fees,
+        update_shipping_fees,
+        delete_shipping_fee_ids,
+    )  # unused — canned response
+    response_dict = _so_modify_partial_failure_response(is_preview=preview)
+    response = ModificationResponse.model_validate(response_dict)
+    ui = build_so_modify_ui(
+        response_dict,
+        confirm_request=_StubRequest(id=42),
+        confirm_tool="modify_sales_order",
+    )
+    return make_tool_result(response, ui=ui)
+
+
+@mcp.tool(meta={"ui": True})
+async def delete_sales_order(
+    id: int,
+    preview: bool = True,
+) -> ToolResult:
+    """Stub for the SO delete click-through test (#858 finding B) —
+    Confirm on the preview card fires this with ``preview=False`` and
+    the stub returns the failed-delete apply response so the
+    state-driven header-op Alert pops in via the on_success chain.
+
+    Wire shape matches the real ``delete_sales_order`` tool exactly so
+    the morph contract pins the same behavior production does.
+    """
+    del id  # unused — canned response
+    response_dict = _so_failed_delete_response(is_preview=preview)
+    response = ModificationResponse.model_validate(response_dict)
+    ui = build_so_modify_ui(
+        response_dict,
+        confirm_request=_StubRequest(id=42),
+        confirm_tool="delete_sales_order",
+    )
+    return make_tool_result(response, ui=ui)
+
+
+@mcp.tool(meta={"ui": True})
+async def modify_sales_order_fail_fast(
+    id: int,
+    preview: bool = True,
+) -> ToolResult:
+    """Stub for the #858 finding B (NOT-RUN) click-through test —
+    distinct ``confirm_tool`` so the click-through test can target a
+    different canned response than the ``modify_sales_order`` partial-
+    failure stub above. Confirm on the preview re-issues this with
+    ``preview=False``; the canned apply response carries 2 executed
+    actions + 2 NOT-RUN entries on ``extras["not_run_actions"]``, which
+    :func:`build_so_modify_ui` merges into the Line items section so
+    all 4 rows remain visible on the morphed card.
+    """
+    del id  # unused — canned response
+    response_dict = _so_modify_fail_fast_not_run_response(is_preview=preview)
+    response = ModificationResponse.model_validate(response_dict)
+    ui = build_so_modify_ui(
+        response_dict,
+        confirm_request=_StubRequest(id=42),
+        confirm_tool="modify_sales_order_fail_fast",
+    )
+    return make_tool_result(response, ui=ui)
+
+
+@mcp.tool(meta={"ui": True})
+async def modify_sales_order_header_fail(
+    id: int,
+    preview: bool = True,
+) -> ToolResult:
+    """Stub for the #858 finding C click-through test — failed
+    ``update_header`` WITH field changes. Confirm re-issues with
+    ``preview=False``; the canned apply response has ``succeeded=False``
+    on the update_header action with a field change in ``changes``.
+
+    The morph-target assertion is that the state-driven
+    ``applied_header_failed_*`` Alert pops in (gated by
+    ``If(Rx("applied_header_failed_count") > 0)``) with the 422 error
+    text — pre-fix the build-time ``_render_failed_changes_block``
+    painted preview-time content into the view tree and stayed at
+    "no failures" on the morph.
+    """
+    del id  # unused — canned response
+    response_dict = _so_modify_header_failed_with_changes_response(is_preview=preview)
+    response = ModificationResponse.model_validate(response_dict)
+    ui = build_so_modify_ui(
+        response_dict,
+        confirm_request=_StubRequest(id=42),
+        confirm_tool="modify_sales_order_header_fail",
     )
     return make_tool_result(response, ui=ui)
 

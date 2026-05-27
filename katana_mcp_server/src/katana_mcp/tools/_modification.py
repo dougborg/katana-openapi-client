@@ -586,13 +586,14 @@ def to_tool_result(
         build_modification_preview_ui,
         build_modification_result_ui,
         build_po_modify_ui,
+        build_so_modify_ui,
     )
 
     response_dict = response.model_dump()
 
-    # Per-entity dispatch — PO migrated in #722, BOM in #811; remaining
-    # entities (SO, MO, stock_transfer, item) fall through to the legacy
-    # builders until their respective child PRs land.
+    # Per-entity dispatch — PO migrated in #722, BOM in #811, SO in #723;
+    # remaining entities (MO, stock_transfer, item) fall through to the
+    # legacy builders until their respective child PRs land.
     if response.entity_type == "purchase_order":
         ui = build_po_modify_ui(
             response_dict,
@@ -603,6 +604,14 @@ def to_tool_result(
 
     if response.entity_type == "product_bom":
         ui = build_bom_modify_ui(
+            response_dict,
+            confirm_request=confirm_request,
+            confirm_tool=confirm_tool,
+        )
+        return make_tool_result(response, ui=ui)
+
+    if response.entity_type == "sales_order":
+        ui = build_so_modify_ui(
             response_dict,
             confirm_request=confirm_request,
             confirm_tool=confirm_tool,

@@ -33,6 +33,7 @@ from katana_mcp.tools.prefab_ui import (
     build_receipt_ui,
     build_search_results_ui,
     build_so_create_ui,
+    build_so_modify_ui,
     build_variant_details_ui,
     build_verification_ui,
     status_badge_variant,
@@ -2319,6 +2320,140 @@ class TestFieldDiffIndex:
         )
         assert idx["status"].unknown_prior is True
 
+    def test_include_operations_filters_to_header_actions(self):
+        """``include_operations`` filters the flatten to header-level
+        actions so sub-entity field changes whose names overlap header
+        names (``status`` on fulfillments vs SO header status,
+        ``tracking_number`` on fulfillments, row ``quantity`` /
+        shipping-fee ``description`` / ``amount``) don't pollute the
+        header-field map driving :func:`_render_so_header_scalar_diffs`
+        and the header-level :func:`_render_failed_changes_block`.
+
+        Caught by Copilot review on #858 (PR feat/723-so-modify-card)."""
+        from katana_mcp.tools.prefab_ui import _index_changes_by_field
+
+        actions = [
+            # Header action — should pass through.
+            {
+                "operation": "update_header",
+                "succeeded": True,
+                "changes": [
+                    {"field": "status", "old": "NOT_SHIPPED", "new": "PACKED"},
+                    {"field": "additional_info", "old": "Net-30", "new": "Net-45"},
+                ],
+            },
+            # Sub-entity action with overlapping field name —
+            # ``status`` on fulfillment, NOT the header status. Must
+            # NOT overwrite the header's status diff.
+            {
+                "operation": "update_fulfillment",
+                "target_id": 555,
+                "succeeded": True,
+                "changes": [
+                    {"field": "status", "old": "PACKED", "new": "DELIVERED"},
+                    {"field": "tracking_number", "old": None, "new": "1Z999"},
+                ],
+            },
+            # Sub-entity action with non-overlapping name (row
+            # quantity). Also must not appear in the header map.
+            {
+                "operation": "update_row",
+                "target_id": 999,
+                "succeeded": False,
+                "error": "422 Unprocessable: quantity > stock",
+                "changes": [
+                    {"field": "quantity", "old": 5, "new": 100},
+                ],
+            },
+        ]
+        idx = _index_changes_by_field(
+            actions, include_operations=frozenset({"update_header", "delete"})
+        )
+        # Header fields present.
+        assert "additional_info" in idx
+        # Status came from the header action, NOT the fulfillment.
+        assert idx["status"].before == "NOT_SHIPPED"
+        assert idx["status"].after == "PACKED"
+        # Sub-entity fields filtered out — quantity / tracking_number
+        # only appear on row / fulfillment actions.
+        assert "quantity" not in idx
+        assert "tracking_number" not in idx
+
+    def test_include_operations_none_preserves_all_actions(self):
+        """``include_operations=None`` (the default) flattens every
+        action — preserves the pre-filter behavior PO modify + tests
+        rely on. Pins the back-compat contract."""
+        from katana_mcp.tools.prefab_ui import _index_changes_by_field
+
+        actions = [
+            {
+                "operation": "update_header",
+                "succeeded": True,
+                "changes": [{"field": "status", "old": "OPEN", "new": "CLOSED"}],
+            },
+            {
+                "operation": "update_row",
+                "succeeded": True,
+                "changes": [{"field": "quantity", "old": 5, "new": 10}],
+            },
+        ]
+        idx = _index_changes_by_field(actions)
+        assert set(idx.keys()) == {"status", "quantity"}
+
+    def test_not_run_synthesized_action_does_not_overwrite_executed_diff(self):
+        """A synthesized NOT-RUN ``update_header`` (the unattempted
+        close-phase tail of a failed ``correct_sales_order``) must NOT
+        overwrite an earlier EXECUTED ``update_header`` diff via
+        last-write-wins on the field map. NOT RUN actions are plan
+        placeholders; their "diff" is what *would have* run, not what
+        ran. Without this filter the rendered header would show the
+        skipped step's planned change as an applied scalar diff and
+        suppress the NOT RUN indication entirely.
+
+        Caught by Copilot review on #858 (PR feat/723-so-modify-card).
+        Repro: a correction sequence with an executed open-phase
+        ``update_header`` (succeeded=True, status: NOT_SHIPPED →
+        DELIVERED) followed by a synthesized close-phase
+        ``update_header`` (succeeded=None, status_label="NOT RUN",
+        status: DELIVERED → NOT_SHIPPED). Without the filter,
+        last-write-wins lets the NOT RUN diff masquerade as applied."""
+        from katana_mcp.tools.prefab_ui import _index_changes_by_field
+
+        actions = [
+            # EXECUTED open-phase header update — real diff.
+            {
+                "operation": "update_header",
+                "target_id": 7777,
+                "succeeded": True,
+                "error": None,
+                "changes": [
+                    {"field": "status", "old": "NOT_SHIPPED", "new": "DELIVERED"},
+                ],
+            },
+            # SKIPPED close-phase header update — synthesized NOT-RUN
+            # placeholder from a failed correction tail. Its "diff" is
+            # the plan's intended close-phase revert; it never ran.
+            {
+                "operation": "update_header",
+                "target_id": 7777,
+                "succeeded": None,
+                "error": None,
+                "changes": [
+                    {"field": "status", "old": "DELIVERED", "new": "NOT_SHIPPED"},
+                ],
+                "status_label": "NOT RUN",
+            },
+        ]
+        idx = _index_changes_by_field(
+            actions, include_operations=frozenset({"update_header", "delete"})
+        )
+        # The EXECUTED diff wins, not the synthesized NOT-RUN tail.
+        assert idx["status"].before == "NOT_SHIPPED"
+        assert idx["status"].after == "DELIVERED"
+        assert idx["status"].failed is False
+        # The executed action succeeded — no error propagates.
+        assert idx["status"].error is None
+
 
 class TestBuildPOModifyUI:
     """``build_po_modify_ui`` handles preview/applied/partial-failure for
@@ -2917,6 +3052,1459 @@ class TestBuildPOModifyUI:
         result = app.state.get("result")
         assert isinstance(result, dict)
         assert result["entity_id"] == 9001
+
+
+class TestBuildSOModifyUI:
+    """``build_so_modify_ui`` handles preview/applied/partial-failure for
+    every SO write tool (``modify_sales_order``, ``delete_sales_order``,
+    ``correct_sales_order``). Mirrors ``TestBuildPOModifyUI``'s coverage
+    shape — title verb derivation, diff-decoration, layout-stability,
+    failure-state chrome, applied-state morph seeding.
+
+    SO is more complex than PO because of the parallel-outcome
+    sub-entities (rows, addresses, fulfillments, shipping fees). The
+    sub-entity tests pin each section's rendering contract.
+    """
+
+    # Wire-shape prior_state matching ``SalesOrder.to_dict()`` — wire
+    # keys ``order_no`` / ``additional_info`` (NOT ``order_number`` /
+    # ``notes`` from the response shape). Catches shape-mismatch bugs
+    # at the ``_normalize_so_prior_state`` boundary.
+    _SO_PRIOR: ClassVar[dict[str, Any]] = {
+        "id": 42,
+        "order_no": "SO-2026-001",
+        "customer_id": 1501,
+        "customer_name": "Sarah Johnson",
+        "location_id": 1,
+        "status": "NOT_SHIPPED",
+        "currency": "USD",
+        "total": 1250.0,
+        "additional_info": "Customer requested expedited delivery",
+        "delivery_date": "2026-05-08T14:30:00Z",
+    }
+
+    @classmethod
+    def _preview(
+        cls,
+        actions: list[dict[str, Any]] | None = None,
+        **overrides: Any,
+    ) -> dict[str, Any]:
+        return {
+            "entity_type": "sales_order",
+            "entity_id": cls._SO_PRIOR["id"],
+            "is_preview": True,
+            "actions": actions or [],
+            "prior_state": dict(cls._SO_PRIOR),
+            "warnings": [],
+            "next_actions": [],
+            "message": "Preview",
+            "katana_url": "https://factory.katanamrp.com/salesorder/42",
+            **overrides,
+        }
+
+    @classmethod
+    def _applied(
+        cls,
+        actions: list[dict[str, Any]] | None = None,
+        **overrides: Any,
+    ) -> dict[str, Any]:
+        return cls._preview(actions, is_preview=False, **overrides)
+
+    def test_smoke_preview_header_only_change(self):
+        """Single status-update preview renders the title verb, diff line,
+        and the cancel-phrase that ``_build_cancel_action`` interpolates."""
+        actions = [
+            {
+                "operation": "update_header",
+                "target_id": 42,
+                "succeeded": None,
+                "changes": [
+                    {"field": "status", "old": "NOT_SHIPPED", "new": "PACKED"},
+                ],
+            }
+        ]
+        app = build_so_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "Modify Sales Order" in rendered
+        assert "NOT_SHIPPED" in rendered and "PACKED" in rendered
+        assert "→" in rendered
+
+    def test_customer_change_renders_composite_diff(self):
+        """A customer change surfaces ``Customer: <old> (<old_id>) → <new>``
+        — the composite name+ID rendering keeps the diff readable. Same
+        contract as PO's supplier-change rendering."""
+        actions = [
+            {
+                "operation": "update_header",
+                "target_id": 42,
+                "succeeded": None,
+                "changes": [
+                    {"field": "customer_id", "old": 1501, "new": 1502},
+                    {
+                        "field": "customer_name",
+                        "old": "Sarah Johnson",
+                        "new": "Mike Smith",
+                    },
+                ],
+            }
+        ]
+        app = build_so_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        rendered = str(app.to_json())
+        assert "Customer:" in rendered
+        assert "Sarah Johnson" in rendered
+        assert "Mike Smith" in rendered
+        assert "→" in rendered
+        # Regression-guard: the bug shape (old name on both sides) must
+        # not appear.
+        assert "Sarah Johnson (1501) → Sarah Johnson" not in rendered
+
+    def test_delete_card_uses_delete_verb_and_confirm_label(self):
+        """Delete cards use "Confirm Delete" and the "Delete Sales Order"
+        title; the cancel phrase reads naturally as a noun."""
+        app = build_so_modify_ui(
+            self._preview([{"operation": "delete", "succeeded": None, "changes": []}]),
+            confirm_request=_StubRequest(),
+            confirm_tool="delete_sales_order",
+        )
+        rendered = str(app.to_json())
+        assert "Delete Sales Order" in rendered
+        assert "Confirm Delete" in rendered
+
+    def test_cancel_messages_use_natural_noun_phrases_per_verb(self):
+        """``_build_cancel_action`` interpolates noun phrases — modify/
+        correct cards say "those sales order changes" / "those sales
+        order corrections"; delete cards say "that sales order deletion"."""
+        for tool, expected_phrase in [
+            ("modify_sales_order", "those sales order changes"),
+            ("correct_sales_order", "those sales order corrections"),
+            ("delete_sales_order", "that sales order deletion"),
+        ]:
+            app = build_so_modify_ui(
+                self._preview(
+                    [{"operation": "update_header", "succeeded": None, "changes": []}]
+                ),
+                confirm_request=_StubRequest(),
+                confirm_tool=tool,
+            )
+            rendered = str(app.to_json())
+            assert expected_phrase in rendered, (
+                f"Cancel message for {tool} should interpolate "
+                f"{expected_phrase!r}; got rendered tree without it."
+            )
+
+    def test_failed_action_surfaces_glyph_inline_and_error_in_alert(self):
+        """Hybrid status approach — per-field ✗ glyph in the gutter +
+        consolidated error message in the bottom Alert. Layout-stability
+        rule from PO #722: failed apply doesn't reflow diff lines."""
+        actions = [
+            {
+                "operation": "update_header",
+                "target_id": 42,
+                "succeeded": False,
+                "error": "422 Unprocessable: invalid customer transition",
+                "changes": [
+                    {
+                        "field": "status",
+                        "old": "NOT_SHIPPED",
+                        "new": "PACKED",
+                    },
+                ],
+            }
+        ]
+        app = build_so_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        rendered = str(app.to_json())
+        assert "✗" in rendered
+        assert "422 Unprocessable" in rendered
+
+    def test_applied_partial_failure_renders_overall_badge(self):
+        """A mixed applied outcome (1 success + 1 fail) renders the
+        ``PARTIAL FAILURE`` state badge with the destructive variant.
+        Same contract as PO modify."""
+        actions = [
+            {
+                "operation": "update_header",
+                "succeeded": True,
+                "changes": [
+                    {"field": "status", "old": "NOT_SHIPPED", "new": "PACKED"},
+                ],
+            },
+            {
+                "operation": "add_shipping_fee",
+                "succeeded": False,
+                "error": "422: tax_rate_id required",
+                "target_id": None,
+                "changes": [
+                    {
+                        "field": "description",
+                        "new": "Express ground",
+                        "is_added": True,
+                    },
+                    {"field": "amount", "new": "12.99", "is_added": True},
+                ],
+            },
+        ]
+        app = build_so_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        rendered = str(app.to_json())
+        assert "PARTIAL FAILURE" in rendered
+
+    def test_applied_all_failed_uses_failed_state_label(self):
+        """Fully-failed apply — header state badge MUST read ``FAILED``,
+        not ``APPLIED``. ``applied_state_label`` overrides based on
+        ``_summarize_apply_outcome``."""
+        actions = [
+            {
+                "operation": "update_header",
+                "succeeded": False,
+                "error": "422: invalid status transition",
+                "changes": [{"field": "status", "old": "PACKED", "new": "DELIVERED"}],
+            },
+        ]
+        app = build_so_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        rendered = str(app.to_json())
+        assert "FAILED" in rendered
+
+    def test_failed_apply_uses_destructive_badge_variant(self):
+        """The FAILED state badge MUST render with variant=destructive
+        (red), NOT default (green). Pinned via envelope walk because
+        rendered-text alone can't distinguish FAILED-in-red from
+        FAILED-in-green. Same contract as PO modify."""
+        actions = [
+            {
+                "operation": "update_header",
+                "succeeded": False,
+                "error": "422: invalid",
+                "changes": [{"field": "status", "old": "OPEN", "new": "PACKED"}],
+            },
+        ]
+        app = build_so_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        envelope = app.to_json()
+        found_destructive = False
+
+        def walk(node: Any) -> None:
+            nonlocal found_destructive
+            if isinstance(node, dict):
+                if (
+                    node.get("type") == "Badge"
+                    and node.get("label") == "FAILED"
+                    and node.get("variant") == "destructive"
+                ):
+                    found_destructive = True
+                for v in node.values():
+                    walk(v)
+            elif isinstance(node, list):
+                for v in node:
+                    walk(v)
+
+        walk(envelope)
+        assert found_destructive, (
+            "FAILED Badge with variant=destructive not found — the state "
+            "badge variant must reflect the apply outcome, not the verb."
+        )
+
+    def test_failed_delete_overrides_title_and_verb_to_match_failure(self):
+        """A failed delete reads "Sales Order Failed" / verb="failed" — not
+        "Sales Order Deleted" / "deleted." which would contradict the
+        FAILED badge.
+
+        Unlike the PO modify card (which passes a literal verb to the
+        footer at build time), the SO modify card passes
+        ``applied_verb="{{ applied_verb }}"`` as a mustache template so
+        the footer body morphs in lockstep with the state-driven outcome
+        Badge. The literal verb lives in ``state.applied_verb``.
+        Same morph contract as ``build_bom_modify_ui`` (#811)."""
+        actions = [
+            {
+                "operation": "delete",
+                "succeeded": False,
+                "error": "404: not found",
+                "changes": [],
+            }
+        ]
+        app = build_so_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="delete_sales_order",
+        )
+        rendered = str(app.to_json())
+        assert "Delete Sales Order Failed" in rendered
+        assert "FAILED" in rendered
+        assert "Delete Sales Order Deleted" not in rendered
+        # State-driven verb: failed apply seeds applied_verb="failed"
+        # so the morph reads "Sales Order Delete failed." after the
+        # in-place state seeding lands.
+        assert app.state is not None
+        assert app.state["applied_verb"] == "failed"
+
+    def test_applied_state_renders_applied_terminology_not_created(self):
+        """Modify cards pass ``applied_title_suffix="Applied"`` so the
+        rendered applied state reads ``"Sales Order Applied"`` — not the
+        create-card default "Created"."""
+        app = build_so_modify_ui(
+            self._applied(
+                [{"operation": "update_header", "succeeded": True, "changes": []}]
+            ),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        rendered = str(app.to_json())
+        assert "Modify Sales Order Applied" in rendered
+        assert "APPLIED" in rendered
+        assert "Modify Sales Order Created" not in rendered
+
+    def test_delete_card_renders_deleted_terminology_not_applied(self):
+        """Delete cards override the applied copy to "Deleted" / "DELETED"."""
+        app = build_so_modify_ui(
+            self._applied([{"operation": "delete", "succeeded": True, "changes": []}]),
+            confirm_request=_StubRequest(),
+            confirm_tool="delete_sales_order",
+        )
+        rendered = str(app.to_json())
+        assert "Delete Sales Order Deleted" in rendered
+        assert "DELETED" in rendered
+
+    def test_state_seeds_result_on_applied_path(self):
+        """Standalone-applied path seeds ``state.result`` from the response
+        so the applied-state Buttons resolve their ``{{ result.X }}``
+        templates without an apply round-trip."""
+        app = build_so_modify_ui(
+            self._applied(
+                [{"operation": "update_header", "succeeded": True, "changes": []}]
+            ),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        assert app.state is not None
+        assert app.state["applied"] is True
+        result = app.state.get("result")
+        assert isinstance(result, dict)
+        assert result["entity_id"] == 42
+
+    def test_state_seeds_morph_slots_for_applied_outcome(self):
+        """The Confirm button's on_success chain morphs the card via
+        ``SetState`` from ``$result.state.<slot>``. The build-time state
+        MUST seed each morph slot so the bindings have something to
+        resolve to before the apply lands."""
+        app = build_so_modify_ui(
+            self._preview(
+                [{"operation": "update_header", "succeeded": None, "changes": []}]
+            ),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        assert app.state is not None
+        # Preview path — slots seeded with safe defaults so the
+        # If/Elif/Else branches have something to bind to.
+        assert app.state["applied_outcome_label"] == "APPLIED"
+        assert app.state["applied_outcome_variant"] == "default"
+        assert app.state["applied_subentity_failed_count"] == 0
+        assert app.state["applied_subentity_failed_summary"] == ""
+        assert app.state["applied_verb"] == "applied"
+
+    def test_sub_entity_section_renders_row_adds_with_gutter(self):
+        """Add-row actions render in the Line items section with a ``+ ``
+        gutter and the variant identity inline. Mirrors BOM's adds
+        rendering convention."""
+        actions = [
+            {
+                "operation": "add_row",
+                "target_id": None,
+                "succeeded": None,
+                "changes": [
+                    {"field": "variant_id", "old": None, "new": 2101, "is_added": True},
+                    {"field": "quantity", "old": None, "new": 3.0, "is_added": True},
+                ],
+            }
+        ]
+        app = build_so_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        rendered = str(app.to_json())
+        # Section header.
+        assert "Line items" in rendered
+        # Add gutter + variant identity.
+        assert "+ " in rendered
+        assert "variant 2101" in rendered
+        assert "qty 3" in rendered
+
+    def test_sub_entity_section_groups_actions_by_kind(self):
+        """A mixed plan touching rows + addresses + shipping fees renders
+        three section headers in the entity-view body, each grouping its
+        own actions. Pins the operation→section bucketing contract."""
+        actions = [
+            {
+                "operation": "add_row",
+                "target_id": None,
+                "succeeded": None,
+                "changes": [
+                    {"field": "variant_id", "old": None, "new": 100, "is_added": True},
+                    {"field": "quantity", "old": None, "new": 1.0, "is_added": True},
+                ],
+            },
+            {
+                "operation": "delete_address",
+                "target_id": 9001,
+                "succeeded": None,
+                "changes": [],
+            },
+            {
+                "operation": "add_shipping_fee",
+                "target_id": None,
+                "succeeded": None,
+                "changes": [
+                    {
+                        "field": "description",
+                        "new": "Express",
+                        "is_added": True,
+                    },
+                    {"field": "amount", "new": "12.99", "is_added": True},
+                ],
+            },
+        ]
+        app = build_so_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        rendered = str(app.to_json())
+        assert "Line items" in rendered
+        assert "Addresses" in rendered
+        assert "Shipping fees" in rendered
+        # Fulfillments has no actions — section should not render
+        # (otherwise the card would have a "Fulfillments:" header with
+        # no rows below it).
+        assert "Fulfillments:" not in rendered
+
+    def test_applied_sub_entity_failure_seeds_morph_summary(self):
+        """Applied path with a failed sub-entity action seeds the
+        ``applied_subentity_failed_count`` / ``applied_subentity_failed_summary``
+        state slots — the in-place morph after Confirm reads ``$result.state.*``
+        to surface failures the build-time render couldn't predict.
+
+        Pre-formatted ``Failed — <op> #<target>: <error>`` lines, plus a
+        retry-coaching tail referencing the SO id so the operator knows
+        how to recover via ``modify_sales_order``."""
+        actions = [
+            {
+                "operation": "add_shipping_fee",
+                "target_id": None,
+                "succeeded": True,
+                "changes": [
+                    {"field": "description", "new": "Express", "is_added": True},
+                    {"field": "amount", "new": "12.99", "is_added": True},
+                ],
+            },
+            {
+                "operation": "delete_row",
+                "target_id": 9999,
+                "succeeded": False,
+                "error": "404 Not Found: row 9999",
+                "changes": [],
+            },
+        ]
+        app = build_so_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        assert app.state is not None
+        assert app.state["applied_subentity_failed_count"] == 1
+        summary = app.state["applied_subentity_failed_summary"]
+        assert "Failed — delete_row #9999" in summary
+        assert "404 Not Found" in summary
+        # Retry coaching references the SO id literally so the operator
+        # can copy/paste without bouncing through the response object.
+        assert "modify_sales_order(id=42" in summary
+
+    def test_subentity_failure_retry_text_matches_confirm_tool(self):
+        """The retry-coaching tail in the sub-entity failure summary must
+        name the tool the operator actually invoked. ``correct_sales_order``
+        partial failures must recommend re-issuing ``correct_sales_order``,
+        not ``modify_sales_order`` — corrections and modifies have different
+        audit-trail side effects, so misdirection here would silently
+        drop a customer's correction off the books (#858 review follow-up).
+        """
+        actions = [
+            {
+                "operation": "delete_row",
+                "target_id": 9999,
+                "succeeded": False,
+                "error": "404 Not Found: row 9999",
+                "changes": [],
+            },
+        ]
+
+        modify_app = build_so_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        assert modify_app.state is not None
+        modify_summary = modify_app.state["applied_subentity_failed_summary"]
+        assert "modify_sales_order(id=42" in modify_summary
+        assert "correct_sales_order(id=42" not in modify_summary
+
+        correct_app = build_so_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="correct_sales_order",
+        )
+        assert correct_app.state is not None
+        correct_summary = correct_app.state["applied_subentity_failed_summary"]
+        assert "correct_sales_order(id=42" in correct_summary
+        # Regression-guard: the bug shape — a correction partial failure
+        # MUST NOT direct the operator back through ``modify_sales_order``.
+        assert "modify_sales_order(id=42" not in correct_summary
+
+    def test_failed_subentity_action_uses_x_gutter_and_status_pill(self):
+        """On the applied path, a failed sub-entity action row gets the
+        ``✗ `` gutter + a destructive FAILED Badge alongside the summary."""
+        actions = [
+            {
+                "operation": "delete_row",
+                "target_id": 9999,
+                "succeeded": False,
+                "error": "404 Not Found",
+                "status_label": "FAILED",
+                "changes": [],
+            },
+        ]
+        app = build_so_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        envelope = app.to_json()
+        rendered = str(envelope)
+        assert "✗ row #9999" in rendered
+        # FAILED Badge alongside the row.
+        found_failed = False
+
+        def walk(node: Any) -> None:
+            nonlocal found_failed
+            if isinstance(node, dict):
+                if (
+                    node.get("type") == "Badge"
+                    and node.get("label") == "FAILED"
+                    and node.get("variant") == "destructive"
+                ):
+                    found_failed = True
+                for v in node.values():
+                    walk(v)
+            elif isinstance(node, list):
+                for v in node:
+                    walk(v)
+
+        walk(envelope)
+        assert found_failed, (
+            "Failed sub-entity action must render with a FAILED + destructive "
+            "Badge alongside its row text."
+        )
+
+    def test_address_update_collapses_to_bare_after_form(self):
+        """Address updates collapse to the bare ``field: new`` form (no
+        arrow) because Katana has no per-address GET endpoint —
+        ``_format_so_diff_pairs(address_style=True)`` deliberately skips
+        the ``is_unknown_prior`` arrow path so the summary line stays
+        compact (otherwise every field would read
+        ``(prior unknown) → new``, which is noise without signal).
+
+        Pins the bare-after contract: the rendered output MUST surface
+        the new field values and MUST NOT contain ``(prior unknown)``.
+        A refactor that flips ``address_style=True`` to the arrow form
+        would regress this test.
+        """
+        actions = [
+            {
+                "operation": "update_address",
+                "target_id": 9001,
+                "succeeded": None,
+                "changes": [
+                    {
+                        "field": "city",
+                        "old": None,
+                        "new": "Springfield",
+                        "is_unknown_prior": True,
+                    },
+                    {
+                        "field": "zip",
+                        "old": None,
+                        "new": "12345",
+                        "is_unknown_prior": True,
+                    },
+                ],
+            }
+        ]
+        app = build_so_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        rendered = str(app.to_json())
+        assert "Addresses" in rendered
+        # The update summary surfaces the supplied fields' new values
+        # in the bare ``field: new`` form.
+        assert "Springfield" in rendered
+        assert "12345" in rendered
+        # Pin the bare-after contract: the address-style renderer MUST
+        # NOT emit ``(prior unknown)`` (the arrow path is skipped for
+        # address updates, per ``_format_so_diff_pairs(address_style=True)``).
+        assert "(prior unknown)" not in rendered
+        # And no arrow glyph either — address rows are bare-after only.
+        assert "→" not in rendered
+
+    def test_party_id_swap_without_name_falls_back_to_id_only(self):
+        """When customer_id changes without an accompanying customer_name
+        FieldChange (the common case — ``customer_name`` isn't a request
+        field), the after side renders as ``#<id>``, NOT the old name.
+        Same contract as PO #755."""
+        actions = [
+            {
+                "operation": "update_header",
+                "succeeded": None,
+                "changes": [
+                    {"field": "customer_id", "old": 1501, "new": 1502},
+                ],
+            }
+        ]
+        app = build_so_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        rendered = str(app.to_json())
+        assert "Sarah Johnson (1501)" in rendered
+        assert "→" in rendered
+        assert "#1502" in rendered
+        # Regression-guard: old name must not show on the after side.
+        assert "Sarah Johnson (1502)" not in rendered
+
+    def test_unchanged_kind_customer_change_falls_through_to_link_render(self):
+        """A no-op customer_id patch (request set customer_id=1501 when it
+        was already 1501) emits a ``FieldChangeView(kind="unchanged")``.
+        The composite diff line MUST NOT render — fall through to the
+        normal ``_render_party_line`` Link form."""
+        actions = [
+            {
+                "operation": "update_header",
+                "succeeded": True,
+                "changes": [
+                    {
+                        "field": "customer_id",
+                        "old": 1501,
+                        "new": 1501,
+                        "is_unchanged": True,
+                    },
+                ],
+            }
+        ]
+        app = build_so_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        rendered = str(app.to_json())
+        assert "Sarah Johnson" in rendered
+        assert "Sarah Johnson (1501) → Sarah Johnson (1501)" not in rendered
+
+    def test_diff_lines_use_2char_gutter_for_layout_stability(self):
+        """Every changed-field line starts with a 2-char gutter (``"  "``
+        when not failed, ``"✗ "`` when failed). Failed apply doesn't
+        reflow the field text position."""
+        actions = [
+            {
+                "operation": "update_header",
+                "succeeded": None,
+                "changes": [
+                    {"field": "status", "old": "NOT_SHIPPED", "new": "PACKED"},
+                ],
+            }
+        ]
+        app = build_so_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        rendered = str(app.to_json())
+        assert "  Status:" in rendered
+
+    def test_warnings_block_warnings_gate_confirm(self):
+        """``BLOCK:``-prefixed warnings suppress the Confirm button via the
+        ``_render_warnings_block`` → ``block_warnings`` → footer gating
+        chain. Same contract as PO modify and every other card."""
+        app = build_so_modify_ui(
+            self._preview(
+                [{"operation": "update_header", "succeeded": None, "changes": []}],
+                warnings=["BLOCK: cannot proceed — invalid request shape"],
+            ),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        rendered = str(app.to_json())
+        # Block warning surfaces in the body.
+        assert "cannot proceed" in rendered
+        # Footer copy switches to the "cannot proceed" muted line.
+        assert "Cannot proceed" in rendered
+
+    # --------------------------------------------------------------
+    # #858 finding A — per-row chrome morphs from state, not from
+    # Python-painted build-time values. Pin the state-bound row shape
+    # so a refactor that drops the ``so_<section>_rows`` slots would
+    # be caught at unit-test tier (mirroring BOM's ``plan_rows``
+    # contract test).
+    # --------------------------------------------------------------
+
+    def test_subentity_row_lists_seeded_per_section_on_preview(self):
+        """Preview-path build seeds one ``so_<section>_rows`` slot per
+        sub-entity section in :data:`_SO_SUBENTITY_GROUPS`. Each slot's
+        list mirrors the actions for that section, projected through
+        :func:`_build_so_subentity_row` (preview rows carry
+        ``status_label="PLANNED"`` + ``has_badge=False`` so the
+        card-level state Badge is the only planned-state signal).
+
+        Pin contract: state slots exist on every preview render so the
+        on_success ``SetState`` chain reading ``$result.state.so_<section>_rows``
+        always has a destination slot — empty list for sections the plan
+        doesn't touch (no None-guard needed in the on_success target).
+        """
+        actions = [
+            {
+                "operation": "add_row",
+                "target_id": None,
+                "succeeded": None,
+                "changes": [
+                    {"field": "variant_id", "old": None, "new": 100, "is_added": True},
+                    {"field": "quantity", "old": None, "new": 1.0, "is_added": True},
+                ],
+            },
+            {
+                "operation": "delete_address",
+                "target_id": 9001,
+                "succeeded": None,
+                "changes": [],
+            },
+        ]
+        app = build_so_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        assert app.state is not None
+        # All four section slots exist (empty when no actions).
+        assert app.state["so_rows_rows"] == [
+            {
+                "gutter_summary": "+ variant 100, qty 1.0",
+                "status_label": "PLANNED",
+                "has_badge": False,
+                "status_variant": "secondary",
+            }
+        ]
+        assert app.state["so_addresses_rows"] == [
+            {
+                "gutter_summary": "- address #9001",
+                "status_label": "PLANNED",
+                "has_badge": False,
+                "status_variant": "secondary",
+            }
+        ]
+        assert app.state["so_fulfillments_rows"] == []
+        assert app.state["so_shipping_fees_rows"] == []
+
+    def test_subentity_row_lists_apply_path_carries_per_action_outcome(self):
+        """Standalone-applied path seeds row dicts with the apply-time
+        ``status_label`` + ``status_variant`` so the result card
+        renders the right per-row chrome without bouncing through the
+        morph. Catches the symmetry the morph relies on — the apply
+        tool's envelope ``state.*`` is what ``$result.state.*`` reads,
+        so apply-time seeding MUST match the morph target's shape."""
+        actions = [
+            {
+                "operation": "add_shipping_fee",
+                "target_id": None,
+                "succeeded": True,
+                "status_label": "APPLIED",
+                "changes": [
+                    {"field": "description", "new": "Express", "is_added": True},
+                    {"field": "amount", "new": "12.99", "is_added": True},
+                ],
+            },
+            {
+                "operation": "delete_row",
+                "target_id": 9999,
+                "succeeded": False,
+                "error": "404 Not Found",
+                "status_label": "FAILED",
+                "changes": [],
+            },
+        ]
+        app = build_so_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        assert app.state is not None
+        # The shipping fee row carries the APPLIED chrome — has_badge=True,
+        # default variant for the green-success Badge.
+        shipping_rows = app.state["so_shipping_fees_rows"]
+        assert len(shipping_rows) == 1
+        assert shipping_rows[0]["status_label"] == "APPLIED"
+        assert shipping_rows[0]["has_badge"] is True
+        assert shipping_rows[0]["status_variant"] == "default"
+        # The row delete carries the FAILED chrome — ✗ gutter + destructive
+        # Badge variant.
+        rows_rows = app.state["so_rows_rows"]
+        assert len(rows_rows) == 1
+        assert rows_rows[0]["status_label"] == "FAILED"
+        assert rows_rows[0]["has_badge"] is True
+        assert rows_rows[0]["status_variant"] == "destructive"
+        assert rows_rows[0]["gutter_summary"].startswith("✗ ")
+
+    def test_subentity_row_lists_merge_not_run_tail_from_extras(self):
+        """Apply path: ``response.extras["not_run_actions"]`` carries the
+        unattempted plan tail (synthesized by
+        :func:`_modify_sales_order_impl`). The renderer must merge those
+        into the per-section row bucketing so the morphed card shows
+        APPLIED + FAILED + NOT-RUN rows instead of silently HIDING the
+        leftover plan past the fail-fast boundary (#858 finding B).
+
+        Without this merge, a 5-row plan that fails on row 2 morphs to
+        a card with only 2 rows — operator sees "1 succeeded, 1 failed"
+        and never realizes 3 more changes were never attempted.
+        """
+        actions = [
+            {
+                "operation": "add_row",
+                "target_id": None,
+                "succeeded": True,
+                "status_label": "APPLIED",
+                "changes": [
+                    {"field": "variant_id", "new": 100, "is_added": True},
+                    {"field": "quantity", "new": "1.0", "is_added": True},
+                ],
+            },
+            {
+                "operation": "add_row",
+                "target_id": None,
+                "succeeded": False,
+                "error": "422 invalid variant",
+                "status_label": "FAILED",
+                "changes": [
+                    {"field": "variant_id", "new": 999, "is_added": True},
+                    {"field": "quantity", "new": "2.0", "is_added": True},
+                ],
+            },
+        ]
+        not_run = [
+            {
+                "operation": "add_row",
+                "target_id": None,
+                "succeeded": None,
+                "error": None,
+                "status_label": "NOT RUN",
+                "changes": [
+                    {"field": "variant_id", "new": 101, "is_added": True},
+                    {"field": "quantity", "new": "3.0", "is_added": True},
+                ],
+            },
+            {
+                "operation": "add_row",
+                "target_id": None,
+                "succeeded": None,
+                "error": None,
+                "status_label": "NOT RUN",
+                "changes": [
+                    {"field": "variant_id", "new": 102, "is_added": True},
+                    {"field": "quantity", "new": "4.0", "is_added": True},
+                ],
+            },
+        ]
+        # Synthesize the apply-response shape the impl produces post-fix
+        # (executed actions + ``extras["not_run_actions"]``).
+        response = self._applied(actions)
+        response["extras"] = {"not_run_actions": not_run}
+        app = build_so_modify_ui(
+            response,
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        assert app.state is not None
+        rows_rows = app.state["so_rows_rows"]
+        # 2 executed + 2 NOT RUN = 4 rows visible on the morphed card.
+        assert len(rows_rows) == 4
+        # Plan order preserved: APPLIED, FAILED, NOT RUN, NOT RUN.
+        assert [r["status_label"] for r in rows_rows] == [
+            "APPLIED",
+            "FAILED",
+            "NOT RUN",
+            "NOT RUN",
+        ]
+        # NOT RUN rows render with the "secondary" Badge variant per
+        # :data:`_SO_SUB_STATUS_VARIANTS` (neutral chrome — neither
+        # success nor failure).
+        assert rows_rows[2]["status_variant"] == "secondary"
+        assert rows_rows[2]["has_badge"] is True
+        assert rows_rows[3]["status_variant"] == "secondary"
+        # And the per-row Badge dispatch inside the so_rows_rows ForEach
+        # must include a ``variant="secondary"`` branch — the dispatch is
+        # a parallel If/Elif/Else chain (destructive / secondary /
+        # default). Without the Elif, NOT RUN rows fall through to the
+        # ``default`` Else and render success-green instead of neutral.
+        # The card-level "PREVIEW" badge also uses ``secondary``, so we
+        # must inspect the ForEach body specifically, not the whole tree.
+        envelope = app.to_json()
+        per_row_foreach: dict[str, Any] | None = None
+
+        def find_foreach(node: Any) -> None:
+            nonlocal per_row_foreach
+            if per_row_foreach is not None:
+                return
+            if isinstance(node, dict):
+                if node.get("type") == "ForEach" and node.get("key") == "so_rows_rows":
+                    per_row_foreach = node
+                    return
+                for v in node.values():
+                    find_foreach(v)
+            elif isinstance(node, list):
+                for v in node:
+                    find_foreach(v)
+
+        find_foreach(envelope)
+        assert per_row_foreach is not None, (
+            "Expected so_rows_rows ForEach in the rendered envelope."
+        )
+        found_secondary_branch = False
+
+        def walk_for_secondary_branch(node: Any) -> None:
+            nonlocal found_secondary_branch
+            if isinstance(node, dict):
+                if node.get("type") == "Badge" and node.get("variant") == ("secondary"):
+                    found_secondary_branch = True
+                for v in node.values():
+                    walk_for_secondary_branch(v)
+            elif isinstance(node, list):
+                for v in node:
+                    walk_for_secondary_branch(v)
+
+        walk_for_secondary_branch(per_row_foreach)
+        assert found_secondary_branch, (
+            "Per-row Badge dispatch inside so_rows_rows ForEach must "
+            "include a Badge with variant='secondary' — without the "
+            "Elif branch between destructive and the default Else, "
+            "NOT RUN rows fall through to the green-success default "
+            "variant instead of rendering neutral."
+        )
+
+    def test_subentity_row_lists_ignore_not_run_on_preview_path(self):
+        """The NOT-RUN extras only attach to apply responses (the
+        ``not is_preview`` branch in :func:`_modify_sales_order_impl`).
+        On preview, every action is already PLANNED so a NOT-RUN merge
+        would be a duplicate. Guard against accidental leakage by
+        asserting preview ignores ``extras["not_run_actions"]`` even if
+        present (e.g. a mock test that doesn't separate paths)."""
+        actions = [
+            {
+                "operation": "add_row",
+                "target_id": None,
+                "succeeded": None,
+                "changes": [
+                    {"field": "variant_id", "new": 100, "is_added": True},
+                    {"field": "quantity", "new": "1.0", "is_added": True},
+                ],
+            }
+        ]
+        response = self._preview(actions)
+        response["extras"] = {
+            "not_run_actions": [
+                {
+                    "operation": "add_row",
+                    "target_id": None,
+                    "succeeded": None,
+                    "status_label": "NOT RUN",
+                    "changes": [],
+                }
+            ]
+        }
+        app = build_so_modify_ui(
+            response,
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        assert app.state is not None
+        # Preview path: only the one planned action, not the NOT-RUN
+        # entry from extras.
+        rows_rows = app.state["so_rows_rows"]
+        assert len(rows_rows) == 1
+        assert rows_rows[0]["status_label"] == "PLANNED"
+
+    def test_subentity_sections_render_state_bound_foreach(self):
+        """The sub-entity sections render row content via ``ForEach``
+        keyed to ``state.so_<section>_rows`` — NOT via build-time Python
+        iteration. Pins the morph contract so a refactor that reverts
+        to static rendering would regress finding A.
+
+        Walks the rendered envelope looking for a ``ForEach`` node keyed
+        to ``so_rows_rows`` (the Line items section's row slot). The
+        existence of this node is the load-bearing morph guarantee:
+        with ``ForEach`` reading state, the apply-time ``SetState`` of
+        ``$result.state.so_rows_rows`` swaps the row list and Prefab's
+        renderer re-paints each row's text + Badge from the new dicts.
+        """
+        actions = [
+            {
+                "operation": "add_row",
+                "target_id": None,
+                "succeeded": None,
+                "changes": [
+                    {"field": "variant_id", "old": None, "new": 100, "is_added": True},
+                    {"field": "quantity", "old": None, "new": 1.0, "is_added": True},
+                ],
+            }
+        ]
+        app = build_so_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        envelope = app.to_json()
+        found_foreach_keys: set[str] = set()
+
+        def walk(node: Any) -> None:
+            if isinstance(node, dict):
+                if node.get("type") == "ForEach":
+                    key = node.get("key")
+                    if isinstance(key, str):
+                        found_foreach_keys.add(key)
+                for v in node.values():
+                    walk(v)
+            elif isinstance(node, list):
+                for v in node:
+                    walk(v)
+
+        walk(envelope)
+        # At minimum, the Line items section's ForEach must be present.
+        # (Other sections render their ForEach too, but only when their
+        # action list is non-empty — gated by the section header guard.)
+        assert "so_rows_rows" in found_foreach_keys, (
+            "Sub-entity rows must render via ForEach(state.so_rows_rows) — "
+            "without this the per-row chrome can't morph after apply (#858 "
+            "finding A)."
+        )
+
+    def test_apply_action_morph_chain_writes_per_section_row_slots(self):
+        """The Confirm button's on_success ``SetState`` chain MUST write
+        ``$result.state.so_<section>_rows`` into the preview iframe's
+        matching state slot, for every section in
+        :data:`_SO_SUBENTITY_GROUPS`. A mistyped slot name in either
+        side of the chain would leave the preview rows frozen at their
+        ``PLANNED`` state even after the apply lands.
+
+        Walks the rendered envelope for SetState nodes whose ``key``
+        matches each section's row slot and confirms the matching
+        ``value`` template reads from ``$result.state.<same-slot>``.
+        """
+        app = build_so_modify_ui(
+            self._preview(
+                [{"operation": "update_header", "succeeded": None, "changes": []}]
+            ),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        envelope = app.to_json()
+        morph_targets: dict[str, str] = {}
+
+        def walk(node: Any) -> None:
+            if isinstance(node, dict):
+                # SetState actions serialize as {"action": "setState",
+                # "key": ..., "value": ...} (not as components with a
+                # "type" field — they're attached to button on_success
+                # / on_click slots, not rendered as elements).
+                if node.get("action") == "setState":
+                    key = node.get("key")
+                    value = node.get("value")
+                    if isinstance(key, str) and isinstance(value, str):
+                        morph_targets[key] = value
+                for v in node.values():
+                    walk(v)
+            elif isinstance(node, list):
+                for v in node:
+                    walk(v)
+
+        walk(envelope)
+        # Each section MUST have a SetState that copies $result.state.<slot>
+        # into the same-name preview slot. Mistyping the template (e.g.
+        # $result.so_rows_rows instead of $result.state.so_rows_rows)
+        # would leave the row slot frozen — caught here.
+        for section_key in ("rows", "addresses", "fulfillments", "shipping_fees"):
+            slot = f"so_{section_key}_rows"
+            assert slot in morph_targets, (
+                f"on_success chain missing SetState for {slot} — the "
+                f"{section_key} section's rows would stay frozen at the "
+                f"preview-time PLANNED state after apply."
+            )
+            assert morph_targets[slot] == ("{{ $result.state." + slot + " }}"), (
+                f"SetState for {slot} reads from {morph_targets[slot]!r}; "
+                f"must read from '$result.state.{slot}' (NOT $result.<slot>) "
+                f"because $result resolves to the apply tool's PrefabApp "
+                f"envelope, not the raw ModificationResponse."
+            )
+
+    # --------------------------------------------------------------
+    # #858 finding B — failed top-level delete must surface its error
+    # in a dedicated state-driven Alert. Pre-fix the FAILED chrome
+    # rendered without the error text from ActionResult.error because
+    # delete actions have no field changes (header-changes block
+    # rendered nothing) and they're filtered out of the sub-entity
+    # Alert (delete is a top-level op, not a sub-entity op).
+    # --------------------------------------------------------------
+
+    def test_failed_delete_seeds_header_failed_summary_with_error_text(self):
+        """A failed top-level ``delete`` action seeds the
+        ``applied_header_failed_count`` + ``applied_header_failed_summary``
+        state slots so the dedicated header-op Alert can surface the
+        :attr:`ActionResult.error` text. Pre-fix this slot didn't exist
+        and the FAILED chrome rendered with no visible error message
+        (#858 finding B)."""
+        actions = [
+            {
+                "operation": "delete",
+                "target_id": 42,
+                "succeeded": False,
+                "error": "404 Not Found: sales order 42 does not exist",
+                "changes": [],
+            }
+        ]
+        app = build_so_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="delete_sales_order",
+        )
+        assert app.state is not None
+        assert app.state["applied_header_failed_count"] == 1
+        summary = app.state["applied_header_failed_summary"]
+        # User-facing verb (not the bare wire name "delete") + the
+        # ActionResult.error string verbatim. Pre-fix the error message
+        # never made it to the rendered card.
+        assert "Failed to delete the sales order" in summary
+        assert "404 Not Found: sales order 42 does not exist" in summary
+
+    def test_successful_delete_omits_header_failed_alert(self):
+        """A successful delete leaves the header-failed slots at 0/empty
+        so the state-driven Alert stays hidden (the ``If(Rx(...) > 0)``
+        gate keeps the card compact in the success case)."""
+        app = build_so_modify_ui(
+            self._applied([{"operation": "delete", "succeeded": True, "changes": []}]),
+            confirm_request=_StubRequest(),
+            confirm_tool="delete_sales_order",
+        )
+        assert app.state is not None
+        assert app.state["applied_header_failed_count"] == 0
+        assert app.state["applied_header_failed_summary"] == ""
+
+    def test_failed_header_update_with_changes_surfaces_on_state_alert(self):
+        """A failed ``update_header`` action with field changes must
+        increment the state-driven ``applied_header_failed_count`` so
+        the morph path (preview→Confirm) can surface the error.
+
+        Pre-fix #858 finding C: the SO entity view called the build-time
+        :func:`_render_failed_changes_block` which read off the preview-
+        time ``changes`` map (every action's ``succeeded=None``). After
+        Confirm morphed ``state.applied=True``, that block stayed at
+        preview-time content — the ✗ gutter and the per-field error
+        Alert never appeared even though the apply had failed.
+
+        Post-fix: :func:`_so_header_op_failure_alert_text` is the single
+        source of truth for header-op failures (no-change ops AND
+        update_header with field changes). The build-time block was
+        removed from the SO entity view so the error renders exactly
+        once, from state, on BOTH the standalone-applied path and the
+        preview→Confirm morph path.
+        """
+        actions = [
+            {
+                "operation": "update_header",
+                "target_id": 42,
+                "succeeded": False,
+                "error": "422 Unprocessable: invalid status transition",
+                "changes": [
+                    {"field": "status", "old": "PACKED", "new": "DELIVERED"},
+                ],
+            }
+        ]
+        app = build_so_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        assert app.state is not None
+        # State-driven Alert now owns the failure; ``count == 1`` so the
+        # ``If(Rx("applied_header_failed_count") > 0)`` gate fires on the
+        # morphed iframe.
+        assert app.state["applied_header_failed_count"] == 1
+        summary = app.state["applied_header_failed_summary"]
+        assert "Failed to modify the sales order header" in summary
+        assert "422 Unprocessable: invalid status transition" in summary
+        # The error must be reachable in the rendered card too — same
+        # text as the state summary, painted by the state-bound Alert
+        # (no duplicate build-time block).
+        rendered = str(app.to_json())
+        assert "422 Unprocessable" in rendered
+        # No double-render in the *visible* view tree: pre-fix, the
+        # build-time ``_render_failed_changes_block`` painted an
+        # ``AlertDescription`` with the verbatim error text into the
+        # view tree, AND the state-driven Alert also picked it up,
+        # giving the operator two competing error blocks. Post-fix the
+        # build-time block is removed for SO — the only AlertDescription
+        # carrying the error text references it via mustache
+        # ``{{ applied_header_failed_summary }}``, not as a literal.
+        envelope = app.to_json()
+        view_str = str(envelope.get("view"))
+        assert "422 Unprocessable: invalid status transition" not in view_str, (
+            "Build-time _render_failed_changes_block must not paint the "
+            "error literal into the view tree on SO — only the state-driven "
+            "Alert may surface it (via mustache binding)."
+        )
+
+    def test_apply_action_morph_chain_writes_header_failed_slots(self):
+        """The Confirm button's on_success chain MUST write
+        ``$result.state.applied_header_failed_count`` /
+        ``applied_header_failed_summary`` into the preview iframe's
+        matching slots so the header-op Alert can pop in after the
+        morph lands. Mistyped slot names would leave a failed delete
+        rendering FAILED chrome without the error text the operator
+        needs to diagnose the failure (#858 finding B)."""
+        app = build_so_modify_ui(
+            self._preview([{"operation": "delete", "succeeded": None, "changes": []}]),
+            confirm_request=_StubRequest(),
+            confirm_tool="delete_sales_order",
+        )
+        envelope = app.to_json()
+        morph_targets: dict[str, str] = {}
+
+        def walk(node: Any) -> None:
+            if isinstance(node, dict):
+                # SetState actions serialize as {"action": "setState",
+                # "key": ..., "value": ...} (not as components with a
+                # "type" field — they're attached to button on_success
+                # / on_click slots, not rendered as elements).
+                if node.get("action") == "setState":
+                    key = node.get("key")
+                    value = node.get("value")
+                    if isinstance(key, str) and isinstance(value, str):
+                        morph_targets[key] = value
+                for v in node.values():
+                    walk(v)
+            elif isinstance(node, list):
+                for v in node:
+                    walk(v)
+
+        walk(envelope)
+        for slot in ("applied_header_failed_count", "applied_header_failed_summary"):
+            assert slot in morph_targets, (
+                f"on_success chain missing SetState for {slot} — a failed "
+                f"delete after Confirm would render with no error text "
+                f"(#858 finding B)."
+            )
+            assert morph_targets[slot] == ("{{ $result.state." + slot + " }}")
+
+    # --------------------------------------------------------------
+    # #858 round-8 — Header NOT-RUN must have a rendering surface.
+    # _index_changes_by_field filters NOT-RUN out (round 7 fix) and
+    # _build_so_subentity_row_lists only buckets sub-entity ops, so a
+    # synthesized NOT-RUN ``update_header`` (e.g. the close-phase step
+    # of a failed correct_sales_order) had nowhere to surface. The
+    # state-driven Alert below covers the gap.
+    # --------------------------------------------------------------
+
+    def test_skipped_header_seeds_skipped_state_and_alert_text(self):
+        """A NOT-RUN ``update_header`` action (synthesized when a
+        fail-fast ``correct_sales_order`` skips its close-phase header
+        step) seeds ``applied_header_skipped_count`` /
+        ``applied_header_skipped_summary`` so the dedicated Alert can
+        surface "Step skipped: modify the sales order header" to the
+        operator. Pre-fix this slot didn't exist and the skipped close-
+        phase step had no rendering surface — sub-entity NOT-RUN rows
+        rendered but the header step was invisible (#858 round-8)."""
+        actions = [
+            {
+                "operation": "update_row",
+                "target_id": 10,
+                "succeeded": False,
+                "error": "Katana refused the row edit",
+                "changes": [{"field": "variant_id", "old": 500, "new": 501}],
+            },
+            {
+                "operation": "update_header",
+                "target_id": 42,
+                "succeeded": None,
+                "error": None,
+                "changes": [{"field": "status", "old": None, "new": "DELIVERED"}],
+                "status_label": "NOT RUN",
+            },
+        ]
+        app = build_so_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="correct_sales_order",
+        )
+        assert app.state is not None
+        assert app.state["applied_header_skipped_count"] == 1
+        summary = app.state["applied_header_skipped_summary"]
+        # User-facing verb (not the bare wire name "update_header") +
+        # the "earlier phase failed" causal phrase so the operator can
+        # tell at a glance why the step didn't run.
+        assert "Step skipped: modify the sales order header" in summary
+        assert "NOT RUN" in summary
+        assert "earlier phase failed" in summary
+
+    def test_no_skipped_header_omits_skipped_alert(self):
+        """When every header step ran (or there were none), the
+        skipped slots stay at 0/empty so the ``If(Rx(...) > 0)`` gate
+        keeps the Alert hidden — same compactness rule as the failed-
+        op Alert."""
+        app = build_so_modify_ui(
+            self._applied(
+                [{"operation": "update_header", "succeeded": True, "changes": []}]
+            ),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        assert app.state is not None
+        assert app.state["applied_header_skipped_count"] == 0
+        assert app.state["applied_header_skipped_summary"] == ""
+
+    def test_apply_action_morph_chain_writes_header_skipped_slots(self):
+        """The Confirm button's on_success chain MUST also propagate the
+        ``applied_header_skipped_*`` slots from the apply tool's
+        ``$result.state.*`` envelope into the preview iframe so the
+        Alert can pop in on the morph. Mistyped slot names would leave
+        a skipped close-phase step silently invisible after Confirm
+        (#858 round-8)."""
+        app = build_so_modify_ui(
+            self._preview(
+                [{"operation": "update_header", "succeeded": None, "changes": []}]
+            ),
+            confirm_request=_StubRequest(),
+            confirm_tool="correct_sales_order",
+        )
+        envelope = app.to_json()
+        morph_targets: dict[str, str] = {}
+
+        def walk(node: Any) -> None:
+            if isinstance(node, dict):
+                if node.get("action") == "setState":
+                    key = node.get("key")
+                    value = node.get("value")
+                    if isinstance(key, str) and isinstance(value, str):
+                        morph_targets[key] = value
+                for v in node.values():
+                    walk(v)
+            elif isinstance(node, list):
+                for v in node:
+                    walk(v)
+
+        walk(envelope)
+        for slot in (
+            "applied_header_skipped_count",
+            "applied_header_skipped_summary",
+        ):
+            assert slot in morph_targets, (
+                f"on_success chain missing SetState for {slot} — a "
+                f"skipped header step after Confirm would have no "
+                f"rendering surface (#858 round-8)."
+            )
+            assert morph_targets[slot] == ("{{ $result.state." + slot + " }}")
+
+    # --------------------------------------------------------------
+    # #858 Copilot 3313163122 — Line Items metric must render on a
+    # real ModificationResponse (which has no item_count field) by
+    # deriving from prior_state.sales_order_rows.
+    # --------------------------------------------------------------
+
+    def test_item_count_derived_from_prior_state_rows_when_absent(self):
+        """``ModificationResponse`` doesn't carry ``item_count`` (only
+        ``SalesOrderResponse`` does), so the modify card's Tier-2
+        "Line Items" Metric would render blank on a real apply response.
+        The build-side derivation in :func:`_normalize_so_prior_state`
+        falls back to ``len(prior_state["sales_order_rows"])`` so the
+        Metric renders consistently across create and modify cards
+        (#858 Copilot 3313163122)."""
+        prior_with_rows = dict(self._SO_PRIOR)
+        prior_with_rows["sales_order_rows"] = [
+            {"id": 10, "variant_id": 500, "quantity": 1},
+            {"id": 11, "variant_id": 501, "quantity": 2},
+            {"id": 12, "variant_id": 502, "quantity": 3},
+        ]
+        # Build a response that mimics the real shape: no top-level
+        # item_count, prior_state carries sales_order_rows.
+        response = self._applied(
+            [{"operation": "update_header", "succeeded": True, "changes": []}],
+            prior_state=prior_with_rows,
+        )
+        assert "item_count" not in response  # guardrail
+        app = build_so_modify_ui(
+            response,
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        rendered = str(app.to_json())
+        # Metric renders "Line Items" label + the derived count value.
+        # Both must appear in the view tree; pre-fix the value side
+        # rendered blank because entity.get("item_count") returned None.
+        assert "Line Items" in rendered
+        assert "3" in rendered
+
+    def test_item_count_explicit_overrides_derived(self):
+        """If the response carries an explicit ``item_count`` (rare
+        but possible for non-MorphedResponse paths), the explicit
+        value wins — the derivation is a fallback, not an override.
+        Otherwise a stale prior_state row list could shadow the
+        canonical response count."""
+        prior_with_rows = dict(self._SO_PRIOR)
+        prior_with_rows["sales_order_rows"] = [
+            {"id": 10, "variant_id": 500, "quantity": 1},
+        ]
+        # The explicit item_count (7) must win over the derived count
+        # (1 row in prior_state) — entity overlays response on top of
+        # normalized prior_state.
+        response = self._applied(
+            [{"operation": "update_header", "succeeded": True, "changes": []}],
+            prior_state=prior_with_rows,
+            item_count=7,
+        )
+        app = build_so_modify_ui(
+            response,
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        rendered = str(app.to_json())
+        assert "Line Items" in rendered
+        assert "7" in rendered
 
 
 class TestMergeBomRowsForModifyCard:
