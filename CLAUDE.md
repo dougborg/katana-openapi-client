@@ -441,6 +441,7 @@ Actions wiring, and the actual live smoke tests — track progress on the
 | OpenAPI spec authoring | [katana_public_api_client/docs/spec-authoring.md](katana_public_api_client/docs/spec-authoring.md)               |
 | Test environment       | [katana_public_api_client/testing.py](katana_public_api_client/testing.py) (`make_test_client()`)                |
 | MCP docs               | [katana_mcp_server/docs/README.md](katana_mcp_server/docs/README.md)                                             |
+| Modify-pipeline timing | [katana_mcp_server/docs/LOGGING.md](katana_mcp_server/docs/LOGGING.md) — "Modify-pipeline sub-step timing"       |
 | Prefab UI pitfalls     | [katana_mcp_server/docs/prefab/README.md](katana_mcp_server/docs/prefab/README.md)                               |
 | Typed cache patterns   | [katana_mcp_server/docs/typed_cache/README.md](katana_mcp_server/docs/typed_cache/README.md)                     |
 | TypeScript client      | [packages/katana-client/README.md](packages/katana-client/README.md)                                             |

@@ -13,6 +13,9 @@ Tools:
 from __future__ import annotations
 
 import asyncio
+import time
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -123,6 +126,79 @@ from katana_public_api_client.models_pydantic._generated import (
 from katana_public_api_client.utils import unwrap_as
 
 logger = get_logger(__name__)
+
+
+# ============================================================================
+# Sub-step timing instrumentation (#853, refs #786)
+#
+# ``modify_manufacturing_order`` with a header-only payload occasionally
+# takes 30s+ end-to-end. The three candidate slow steps are:
+#
+#   1. The Katana PATCH call (``api_update_manufacturing_order``).
+#   2. The post-apply verify re-fetch
+#      (``_fetch_mo_recipe_row_attrs_for_cache_merge`` — recipe rows live at
+#      a sibling endpoint, see ``CacheMerge.refetch_related``).
+#   3. The cache-merge parent re-fetch (``refetch_for_merge`` lambda inside
+#      ``_post_apply_cache_merge``).
+#
+# ``@observe_tool`` already emits ``tool_completed`` with the end-to-end
+# ``duration_ms`` per call; what's missing is which sub-step dominates.
+# The :func:`_log_step_duration` helper wraps each lambda with a
+# ``time.perf_counter``-bracketed structlog event so the next 30s+ session
+# leaves a breadcrumb. The wrapper is intentionally inline (not a
+# decorator) because the steps are lambdas the dispatcher invokes, not
+# named coroutines we can decorate. See
+# ``katana_mcp_server/docs/LOGGING.md`` (the "Modify-pipeline sub-step
+# timing" section) for grep patterns to extract these events from logs.
+# ============================================================================
+
+
+@asynccontextmanager
+async def _log_step_duration(step_name: str, **context: Any) -> AsyncIterator[None]:
+    """Log ``duration_ms`` for a sub-step of ``_modify_manufacturing_order_impl``.
+
+    Emits a single structlog ``info`` event named ``mo_modify_<step>_completed``
+    on exit (success or exception) with the elapsed wall-clock time in
+    milliseconds. The event name is fixed by ``step_name`` so downstream
+    log analyzers can grep deterministically.
+
+    Args:
+        step_name: Short tag identifying the sub-step (e.g. ``"patch"``,
+            ``"verify_refetch"``, ``"cache_merge"``). Used to construct the
+            event name ``mo_modify_<step_name>_completed``.
+        **context: Extra fields merged into the log event (e.g.
+            ``manufacturing_order_id``) for correlation.
+    """
+    # Guard the fixed-schema fields up-front: downstream log-aggregation
+    # joins depend on ``step`` / ``duration_ms`` / ``success`` always being
+    # set by this helper. If a caller passes one of those keys in
+    # ``context`` they would silently override the instrumentation contract
+    # (because ``**context`` is expanded after the explicit kwargs in the
+    # ``logger.info`` call, the dict-merge semantics let the caller win).
+    # Fail loudly instead — this is dev-time misuse, not a runtime path.
+    reserved = {"step", "duration_ms", "success"} & context.keys()
+    if reserved:
+        raise TypeError(
+            f"_log_step_duration: caller passed reserved key(s) {sorted(reserved)} "
+            "in context — these fields are set by the helper to keep the "
+            "instrumentation schema stable. Rename the offending kwarg."
+        )
+    start = time.perf_counter()
+    success = True
+    try:
+        yield
+    except Exception:
+        success = False
+        raise
+    finally:
+        duration_ms = (time.perf_counter() - start) * 1000
+        logger.info(
+            f"mo_modify_{step_name}_completed",
+            step=step_name,
+            duration_ms=round(duration_ms, 2),
+            success=success,
+            **context,
+        )
 
 
 # ============================================================================
@@ -2939,17 +3015,30 @@ async def _modify_manufacturing_order_impl(
         diff = compute_field_diff(
             existing_mo, request.update_header, unknown_prior=existing_mo is None
         )
+        # Sub-step timing (#853): wrap the header PATCH apply so we can
+        # tell how much of a slow ``modify_manufacturing_order`` call is
+        # spent waiting on Katana vs. local work. The base ``apply``
+        # is the closure built by ``make_patch_apply`` — it issues the
+        # ``api_update_manufacturing_order.asyncio_detailed(...)`` call.
+        _base_patch_apply = make_patch_apply(
+            api_update_manufacturing_order,
+            services,
+            request.id,
+            _build_update_header_request(request.update_header, existing_mo),
+            return_type=ManufacturingOrder,
+        )
+
+        async def _timed_patch_apply() -> ManufacturingOrder:
+            # Closes over ``request.id`` — captured eagerly at this call
+            # frame, so it's safe even though the closure runs later.
+            async with _log_step_duration("patch", manufacturing_order_id=request.id):
+                return await _base_patch_apply()
+
         header_action = ActionSpec(
             operation=MOOperation.UPDATE_HEADER,
             target_id=request.id,
             diff=diff,
-            apply=make_patch_apply(
-                api_update_manufacturing_order,
-                services,
-                request.id,
-                _build_update_header_request(request.update_header, existing_mo),
-                return_type=ManufacturingOrder,
-            ),
+            apply=_timed_patch_apply,
             verify=make_response_verifier(diff),
         )
         header_phase = _classify_status_transition(
@@ -3079,6 +3168,27 @@ async def _modify_manufacturing_order_impl(
     if header_action is not None and header_phase is _HeaderPhase.LAST:
         plan.append(header_action)
 
+    # Sub-step timing (#853): wrap both cache-merge re-fetchers so we
+    # can see how the post-apply cache merge spends its wall clock.
+    # ``cache_merge`` step = parent MO GET refetch (the ``refetch_for_merge``
+    # lambda — invoked by ``_post_apply_cache_merge`` to drive
+    # ``merge_filtered_fetch``).
+    # ``verify_refetch`` step = the sibling recipe-rows GET
+    # (``_fetch_mo_recipe_row_attrs_for_cache_merge`` — fans out via
+    # ``CacheMerge.refetch_related`` because recipe rows live at the
+    # separate ``/manufacturing_order_recipe_rows`` endpoint).
+    async def _timed_refetch_for_merge(eid: int) -> Any:
+        async with _log_step_duration("cache_merge", manufacturing_order_id=eid):
+            return await _fetch_manufacturing_order_attrs(services, eid)
+
+    async def _timed_refetch_recipe_rows(eid: int) -> list[Any]:
+        # The outer ``_post_apply_cache_merge`` handler wraps this in
+        # ``except Exception: logger.warning(); continue`` — ``success=False``
+        # events still fire from the ``finally`` block, but the raise is
+        # swallowed and the caller never sees it.
+        async with _log_step_duration("verify_refetch", manufacturing_order_id=eid):
+            return await _fetch_mo_recipe_row_attrs_for_cache_merge(services, eid)
+
     return await run_modify_plan(
         request=request,
         naming=EntityNaming(
@@ -3091,9 +3201,7 @@ async def _modify_manufacturing_order_impl(
         plan=plan,
         cache_merge=CacheMerge(
             cache=services.typed_cache,
-            refetch_for_merge=lambda eid: _fetch_manufacturing_order_attrs(
-                services, eid
-            ),
+            refetch_for_merge=_timed_refetch_for_merge,
             # Recipe rows live at the separate
             # ``/manufacturing_order_recipe_rows`` endpoint (per
             # ``MANUFACTURING_ORDER_SPEC.related_specs``), not embedded
@@ -3105,9 +3213,7 @@ async def _modify_manufacturing_order_impl(
             refetch_related=(
                 (
                     "manufacturing_order_recipe_row",
-                    lambda eid: _fetch_mo_recipe_row_attrs_for_cache_merge(
-                        services, eid
-                    ),
+                    _timed_refetch_recipe_rows,
                 ),
             ),
         ),
