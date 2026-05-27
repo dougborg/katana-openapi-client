@@ -11,15 +11,13 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from dotenv import load_dotenv
 from fastmcp import Context
 
-from katana_public_api_client import KatanaClient
+from katana_public_api_client.testing import make_test_client
 
 # Add project root to path for local MCP server imports
 _project_root = Path(__file__).parent.parent
@@ -121,34 +119,20 @@ async def run_resource_test(resource_name: str, resource_func, context: Context)
 
 async def main():
     """Main test function."""
-    # Load environment variables
-    load_dotenv()
-
-    # Get API key
-    api_key = os.getenv("KATANA_API_KEY")
-    if not api_key:
-        print("ERROR: KATANA_API_KEY environment variable is required")
-        print("Set it in your .env file or export it:")
-        print("  export KATANA_API_KEY=your-api-key-here")
+    # make_test_client() reads KATANA_TEST_API_KEY (no silent fallback to
+    # KATANA_API_KEY) so this script can't accidentally exercise prod.
+    try:
+        client = make_test_client(timeout=30.0, max_retries=3, max_pages=10)
+    except RuntimeError as exc:
+        print(f"ERROR: {exc}")
         sys.exit(1)
-
-    assert api_key is not None  # Type narrowing for type checker
-    base_url = os.getenv("KATANA_BASE_URL", "https://api.katanamrp.com/v1")
 
     print("=" * 60)
     print("MCP Resources Test")
     print("=" * 60)
-    print(f"API Base URL: {base_url}")
     print("API Key: [configured]")
 
-    # Initialize KatanaClient and open catalog cache
-    async with KatanaClient(
-        api_key=api_key,
-        base_url=base_url,
-        timeout=30.0,
-        max_retries=3,
-        max_pages=10,
-    ) as client:
+    async with client:
         cache = CatalogCache()
         await cache.open()
         try:

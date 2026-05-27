@@ -21,12 +21,11 @@ angles on the result.
 from __future__ import annotations
 
 import asyncio
-import os
 import sys
 from pathlib import Path
 
-from katana_public_api_client import KatanaClient
 from katana_public_api_client.models import DetailedErrorResponse
+from katana_public_api_client.testing import make_test_client
 from katana_public_api_client.utils import (
     APIError,
     ValidationError,
@@ -110,11 +109,15 @@ async def _post_and_inspect(client_httpx, url: str, payload: dict, label: str) -
 
 
 async def main() -> int:
-    if not os.environ.get("KATANA_API_KEY"):
-        print("KATANA_API_KEY not set — source .env first.", file=sys.stderr)
+    # make_test_client() raises RuntimeError when KATANA_TEST_API_KEY is unset —
+    # no silent fallback to KATANA_API_KEY so this probe can't hit prod.
+    try:
+        client = make_test_client()
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
         return 2
 
-    async with KatanaClient() as client:
+    async with client:
         httpx_client = client.get_async_httpx_client()
 
         # Labels are SDT-tagged so any accidentally-created definition
