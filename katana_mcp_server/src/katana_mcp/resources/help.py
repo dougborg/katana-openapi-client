@@ -1793,7 +1793,7 @@ Complete a manufacturing or sales order.
 **Returns:** Standard fulfillment envelope (`order_id`, `order_type`,
 `order_number`, `status`, `is_preview`, `inventory_updates`, `warnings`,
 `next_actions`, `message`) plus the Tier 2 metrics + Tier 3 per-row
-breakdown introduced in #553:
+breakdown introduced in #553 + the post-#card-ux reference block:
 - `fulfilled_rows`: Per-row breakdown — list of `{row_id, variant_id, sku,
   display_name, quantity, serial_numbers, batch_summary, price_per_unit,
   row_total, currency}`. For manufacturing orders this is always a single
@@ -1808,6 +1808,20 @@ breakdown introduced in #553:
 - `currency`: ISO 4217 currency code (sales orders only; `None` for MOs).
 - `katana_url`: Deep link to the order in the Katana web UI (drives the
   Tier 4 "View in Katana" action on the success card).
+- `customer_id` / `customer_name` *(sales orders only)*: Customer placing
+  the SO. `customer_name` is resolved through the typed cache and drives
+  the Tier-3 `Customer:` party-line on the card. `None` on manufacturing
+  orders (MOs have no customer).
+- `shipping_address` / `billing_address` *(sales orders only)*:
+  `SalesOrderAddress.to_dict()` dicts fetched from
+  `/sales_order_addresses`. `billing_address` is `None` when it duplicates
+  shipping (the card hides the second block in that case).
+- `picked_date`: ISO-8601 timestamp surfaced as the `Picked` (sales) or
+  `Completed` (manufacturing) Metric. On the success path the impl
+  prefers the server-stamped value (`fulfillment.picked_date` for SOs,
+  `MO.done_date` for MOs) over the caller-supplied `completed_at`.
+  `None` when no timestamp is known (preview without `completed_at` and
+  server hasn't stamped yet).
 
 ---
 

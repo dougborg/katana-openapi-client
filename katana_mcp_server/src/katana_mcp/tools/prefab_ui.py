@@ -110,6 +110,7 @@ from prefab_ui.rx import EVENT, RESULT, Rx
 from pydantic import BaseModel
 
 from katana_mcp.logging import get_logger
+from katana_mcp.tools._addresses import addresses_are_equivalent
 from katana_mcp.tools.foundation.bom_table import (
     _derive_status_label,
     _merge_bom_rows_for_modify_card,
@@ -1224,17 +1225,34 @@ def _item_supplier_line(item: dict[str, Any]) -> None:
     # the flat top-level default_supplier_id. Common for materials
     # where Katana doesn't embed the supplier object even though the
     # FK is set.
+    #
+    # Anti-pattern #7 (helper-fallback masking): when the nested object
+    # is absent the impl should resolve the supplier name via the typed
+    # cache (``resolve_entity_name(catalog, CachedSupplier, id, …)``)
+    # and feed the resolved name through so this fallback never shows a
+    # raw ``#<id>``. ``get_item`` / ``search_items`` / ``modify_item``
+    # all funnel through ``_item_supplier_line``; threading a resolved
+    # name through each is a follow-up — until then the link works (it
+    # navigates to the right supplier) but the visible text is the ID.
     fallback_sid = item.get("default_supplier_id")
     if fallback_sid:
+        # Prefer a sibling-resolved ``default_supplier_name`` when the
+        # caller threaded one through — keeps existing callers (which
+        # pass only the ID) backward-compatible while letting newer
+        # callers fill in the user-facing name.
+        fallback_name = item.get("default_supplier_name")
+        link_text = fallback_name or f"#{fallback_sid}"
         supplier_url = katana_web_url("supplier", fallback_sid)
         if supplier_url:
             with Row(gap=1):
                 Text(content="Default Supplier:")
                 Link(
-                    content=f"#{fallback_sid}",
+                    content=link_text,
                     href=supplier_url,
                     target="_blank",
                 )
+        elif fallback_name:
+            Text(content=f"Default Supplier: {fallback_name}")
         else:
             Text(content=f"Default Supplier ID: {fallback_sid}")
 
@@ -1736,14 +1754,15 @@ def _inventory_reference_section(stock: dict[str, Any]) -> None:
     if len(by_location) > 1:
         Separator()
         Muted(content="By location:")
+        # ``location_name`` is allowed to be ``None`` when the location
+        # cache misses; that's the case where the impl side should be
+        # resolving the name (typed cache lookup), not the card adding
+        # an ID column. Pre-#card-ux this section carried a permanent
+        # ``location_id`` "ID" column "so rows are never unidentifiable"
+        # — that's exactly anti-pattern #2 (raw IDs as a user surface).
         DataTable(
             columns=[
                 DataTableColumn(key="location_name", header="Location"),
-                # ``location_name`` is allowed to be ``None`` when the
-                # location-cache lookup misses; the ID column stays as
-                # an always-present fallback so rows are never
-                # unidentifiable. Same shape the pre-#549 card had.
-                DataTableColumn(key="location_id", header="ID", align="right"),
                 DataTableColumn(key="in_stock", header="In Stock", align="right"),
                 DataTableColumn(key="available", header="Available", align="right"),
                 DataTableColumn(key="committed", header="Committed", align="right"),
@@ -1991,19 +2010,32 @@ def build_inventory_check_batch_ui(
             Metric(label="Committed", value=str(totals["committed"]))
             Metric(label="Expected", value=str(totals["expected"]))
 
-        DataTable(
-            columns=[
-                DataTableColumn(key="sku", header="SKU", sortable=True),
-                # Variant ID is the row's other primary identifier. A
-                # not-found stub from a variant-ID lookup has empty SKU
-                # and empty product_name — without this column the row
-                # has no visible identity at all and the user can't tell
-                # which input was missing. SKU-bearing rows also get to
-                # show their variant_id so downstream tools (which key
-                # on variant_id) can copy it directly off the table.
+        # Variant ID column is reserved for the unidentifiable-row case:
+        # a row that lacks BOTH ``sku`` AND ``product_name`` has no
+        # human-facing identity (e.g., a variant-ID lookup that resolved
+        # no row, or a stub from a deleted variant). A SKU-less variant
+        # that still has a ``product_name`` (legitimate NetSuite import,
+        # per CLAUDE.md "Variants can have null SKUs") is identifiable
+        # via the Product column — the variant_id column would just
+        # surface a raw wire ID (anti-pattern #2). Only fall back when
+        # the row genuinely has nothing else to anchor the operator.
+        needs_variant_id_column = any(
+            not r.get("sku") and not r.get("product_name") for r in summary_items
+        )
+        columns: list[Any] = [
+            DataTableColumn(key="sku", header="SKU", sortable=True),
+        ]
+        if needs_variant_id_column:
+            columns.append(
                 DataTableColumn(
-                    key="variant_id", header="Variant ID", sortable=True, align="right"
-                ),
+                    key="variant_id",
+                    header="Variant ID",
+                    sortable=True,
+                    align="right",
+                )
+            )
+        columns.extend(
+            [
                 DataTableColumn(key="product_name", header="Product", sortable=True),
                 DataTableColumn(key="uom", header="UoM"),
                 DataTableColumn(
@@ -2028,7 +2060,10 @@ def build_inventory_check_batch_ui(
                     align="right",
                 ),
                 DataTableColumn(key="status_label", header="Status", sortable=True),
-            ],
+            ]
+        )
+        DataTable(
+            columns=columns,
             rows="{{ items }}",
             search=True,
             paginated=True,
@@ -2050,7 +2085,6 @@ def build_inventory_check_batch_ui(
             DataTable(
                 columns=[
                     DataTableColumn(key="location_name", header="Location"),
-                    DataTableColumn(key="location_id", header="ID", align="right"),
                     DataTableColumn(key="in_stock", header="In Stock", align="right"),
                     DataTableColumn(key="available", header="Available", align="right"),
                     DataTableColumn(key="committed", header="Committed", align="right"),
@@ -2263,6 +2297,7 @@ def build_inventory_at_ui(
     items: list[dict[str, Any]],
     as_of: str,
     location_id: int | None = None,
+    location_name: str | None = None,
     not_found: list[str | int] | None = None,
     currency: str | None = None,
 ) -> PrefabApp:
@@ -2305,7 +2340,12 @@ def build_inventory_at_ui(
                 variant="secondary",
             )
             if location_id is not None:
-                Badge(label=f"Location {location_id}", variant="outline")
+                # Use the resolved ``location_name`` when supplied —
+                # ``"Warehouse A"`` reads better than ``"Location 17"``
+                # (anti-pattern #2). Fallback to the bare ID only when
+                # the caller couldn't resolve a name.
+                badge_label = location_name or f"Location {location_id}"
+                Badge(label=badge_label, variant="outline")
             if is_single and items:
                 only = items[0]
                 Badge(label=only.get("sku") or "(no SKU)", variant="outline")
@@ -2436,7 +2476,13 @@ _STOCK_ADJUSTMENT_ROW_COLUMNS: list[DataTableColumn] = [
 
 _STOCK_ADJUSTMENT_FIELD_DIFF_COLUMNS: list[DataTableColumn] = [
     DataTableColumn(key="field", header="Field"),
-    DataTableColumn(key="new_value", header="New Value"),
+    # Before column added post-#card-ux (anti-pattern #5: a diff without
+    # the before-side is uninterpretable — the operator can't tell if
+    # they're changing a field or restating its current value). When the
+    # impl can't resolve the prior_state (e.g., the SA was created before
+    # this enrichment landed), the cell shows "(prior unknown)".
+    DataTableColumn(key="old_value", header="Before"),
+    DataTableColumn(key="new_value", header="After"),
 ]
 
 
@@ -2793,6 +2839,7 @@ def build_stock_adjustment_create_ui(
         cancel_action = _build_cancel_action("the stock adjustment")
 
     location_id = response.get("location_id")
+    location_name = response.get("location_name")
     adj_id = response.get("id")
     reason = response.get("reason")
 
@@ -2802,7 +2849,11 @@ def build_stock_adjustment_create_ui(
             if adj_id is not None:
                 Badge(label=f"#{adj_id}", variant="outline")
             if location_id is not None:
-                Badge(label=f"Location {location_id}", variant="outline")
+                # Resolved ``location_name`` when impl-side filled it,
+                # else fall back to ``"Location <id>"`` (anti-pattern #2
+                # fallback acknowledged in the audit catalog).
+                badge_label = location_name or f"Location {location_id}"
+                Badge(label=badge_label, variant="outline")
             Badge(
                 label="PREVIEW" if is_preview else "APPLIED",
                 variant="secondary" if is_preview else "default",
@@ -2819,6 +2870,12 @@ def build_stock_adjustment_create_ui(
                     columns=_STOCK_ADJUSTMENT_ROW_COLUMNS,
                     rows="{{ plan_rows }}",
                 )
+
+            # Surface cache-miss advisories so the operator sees *why*
+            # the Tier-1 badge fell back to ``"Location <id>"`` when
+            # impl-side location name resolution missed. Pre-fix the
+            # warnings were emitted by the impl but never rendered.
+            _render_warnings_block(response.get("warnings"))
 
             if is_preview:
                 with If("error"):
@@ -2851,6 +2908,99 @@ def build_stock_adjustment_create_ui(
     return app
 
 
+_PRIOR_UNSET = object()
+
+
+def _stock_adjustment_diff_cell(
+    field: str,
+    label: str,
+    display_value: Any,
+    *,
+    prior_state: dict[str, Any],
+    prior_override: Any = _PRIOR_UNSET,
+) -> dict[str, str]:
+    """Build one Before/After diff row for the stock-adjustment update card.
+
+    Three Before-side states:
+
+    - ``prior_override`` supplied (anything, including ``None``) wins —
+      the caller did its own resolution. Used by the Location row,
+      which threads in the resolved prior location name. ``None``
+      means the caller tried to resolve but couldn't (cache miss).
+    - ``field`` is a key on ``prior_state`` → that value. A stored
+      ``None`` renders as ``"(blank)"`` (the field WAS resolved, it
+      was just empty — distinct from "we couldn't resolve at all";
+      Copilot finding on PR #861).
+    - ``field`` is NOT a key on ``prior_state`` → ``"(prior unknown)"``.
+      prior_state was either missing entirely or omitted this field
+      (impl-side pre-fetch failure / forward-compat for a new field
+      that lands after this snapshot was taken).
+    """
+    if prior_override is not _PRIOR_UNSET:
+        old_value = "(prior unknown)" if prior_override is None else str(prior_override)
+    elif field in prior_state:
+        prior_value = prior_state[field]
+        old_value = "(blank)" if prior_value is None else str(prior_value)
+    else:
+        old_value = "(prior unknown)"
+    return {
+        "field": label,
+        "old_value": old_value,
+        "new_value": str(display_value),
+    }
+
+
+def _build_stock_adjustment_diff_rows(
+    response: dict[str, Any], prior_state: dict[str, Any]
+) -> list[dict[str, str]]:
+    """Project the response + prior_state into per-field Before/After rows.
+
+    Pre-#card-ux the diff table carried a ``Location ID`` row with the
+    raw integer ID — anti-pattern #2. Post-#card-ux: location surfaces
+    via the ``location_name`` field (resolved impl-side); the row in
+    the diff table reads "Location" with the resolved name.
+    """
+    diff_rows: list[dict[str, str]] = []
+    for field, label in (
+        ("stock_adjustment_number", "Number"),
+        ("stock_adjustment_date", "Date"),
+        ("reason", "Reason"),
+        ("additional_info", "Additional Info"),
+    ):
+        value = response.get(field)
+        if value is not None:
+            diff_rows.append(
+                _stock_adjustment_diff_cell(
+                    field, label, value, prior_state=prior_state
+                )
+            )
+    if response.get("location_id") is not None:
+        # Before-side reads ``prior_state["location_name"]`` so the
+        # Before/After columns compare resolved name against resolved
+        # name (review item #10).
+        new_location = response.get("location_name") or (
+            f"Location ID: {response['location_id']}"
+        )
+        prior_loc_id = prior_state.get("location_id")
+        prior_loc_name = prior_state.get("location_name")
+        if prior_loc_name:
+            prior_location: str | None = prior_loc_name
+        elif prior_loc_id is not None:
+            prior_location = f"Location ID: {prior_loc_id}"
+        else:
+            prior_location = None
+        diff_rows.append(
+            _stock_adjustment_diff_cell(
+                "location_id",
+                "Location",
+                new_location,
+                prior_state=prior_state,
+                prior_override=prior_location,
+            )
+        )
+    return diff_rows
+
+
 def build_stock_adjustment_update_ui(
     response: dict[str, Any],
     *,
@@ -2863,17 +3013,8 @@ def build_stock_adjustment_update_ui(
     the user can sanity-check what's about to be patched.
     """
     is_preview = bool(response.get("is_preview"))
-    diff_rows: list[dict[str, str]] = []
-    for field, label in (
-        ("stock_adjustment_number", "Number"),
-        ("stock_adjustment_date", "Date"),
-        ("location_id", "Location ID"),
-        ("reason", "Reason"),
-        ("additional_info", "Additional Info"),
-    ):
-        value = response.get(field)
-        if value is not None:
-            diff_rows.append({"field": label, "new_value": str(value)})
+    prior_state = response.get("prior_state") or {}
+    diff_rows = _build_stock_adjustment_diff_rows(response, prior_state)
 
     state: dict[str, Any] = {"diff_rows": diff_rows}
     apply_action: list[Action] | None = None
@@ -2903,6 +3044,12 @@ def build_stock_adjustment_update_ui(
                 )
             else:
                 Muted(content="No field changes supplied.")
+
+            # Surface cache-miss advisories so the operator sees *why*
+            # the Location row may render as ``"Location ID: <id>"`` or
+            # the Before column as ``"(prior unknown)"``. Pre-fix the
+            # warnings were emitted by the impl but never rendered.
+            _render_warnings_block(response.get("warnings"))
 
             if is_preview:
                 with If("error"):
@@ -2976,14 +3123,31 @@ def build_stock_adjustment_delete_ui(
                     label="Number",
                     value=str(response.get("stock_adjustment_number") or "—"),
                 )
-                Metric(
-                    label="Location",
-                    value=str(response.get("location_id") or "—"),
-                )
+                # Location is not a number that belongs on a Metric;
+                # pre-#card-ux it rendered the raw ``location_id`` here
+                # which was meaningless to the operator (anti-pattern #2).
+                # The resolved location name now ships as its own
+                # party-line below.
                 Metric(
                     label="Rows",
                     value=str(response.get("row_count", 0)),
                 )
+
+            # Location party-line below the Metric row — same Tier-3
+            # convention as the fulfill and receipt cards. Falls back to
+            # ``"Location ID: <id>"`` only when impl-side resolution couldn't
+            # fill ``location_name``.
+            _render_party_line(
+                "Location",
+                name=response.get("location_name"),
+                entity_id=response.get("location_id"),
+            )
+
+            # Surface cache-miss advisories so the operator sees *why*
+            # the Location party-line may have fallen back to
+            # ``"Location ID: <id>"``. Pre-fix the warnings were emitted
+            # by the impl but never rendered.
+            _render_warnings_block(response.get("warnings"))
 
             if is_preview:
                 Muted(
@@ -3233,12 +3397,26 @@ def _render_party_line(
 ) -> None:
     """Render a 'Supplier:' / 'Customer:' / 'Location:' line.
 
-    When ``entity_kind`` resolves to a Katana web URL and a ``name`` is
-    present, renders ``<label>: <Link name>`` so users can click through
-    to the source-of-truth entity (mirrors the variant card's parent and
-    default-supplier link pattern; matches this module's "Link Katana
-    entities wherever possible" convention). Falls back to plain text
-    otherwise. Skips entirely when ``entity_id`` is None.
+    Three render shapes, in order:
+
+    1. ``name`` + ``entity_kind`` (which yields a web URL) → ``<label>:
+       <Link name>``. The Link is the user's click-through to the
+       source-of-truth Katana page. Used for Customer / Supplier /
+       Product / Material parties that have per-entity web pages.
+    2. ``name`` only (no ``entity_kind``, or ``entity_kind`` has no web
+       URL) → ``<label>: <name>``. Used for Location / Variant — entity
+       types Katana doesn't expose per-page in the web UI. The
+       entity_id is still on the response for programmatic use, but the
+       card text doesn't echo it (anti-pattern #2: don't double-print
+       a raw ID next to its resolved name when there's no click-through
+       to anchor).
+    3. No name → ``<label> ID: <entity_id>``. The fallback when impl-side
+       name resolution couldn't fill ``name``; surfacing the ID is the
+       only way the operator can identify the entity at all. The matching
+       impl path should also append a cache-miss advisory to ``warnings``
+       so the operator sees *why* the name is missing.
+
+    Skips entirely when ``entity_id`` is None.
     """
     if entity_id is None:
         return
@@ -3248,7 +3426,7 @@ def _render_party_line(
             Text(content=f"{label}:")
             Link(content=name, href=url, target="_blank")
     elif name:
-        Text(content=f"{label}: {name} (ID: {entity_id})")
+        Text(content=f"{label}: {name}")
     else:
         Text(content=f"{label} ID: {entity_id}")
 
@@ -3685,27 +3863,12 @@ def _render_address_block(label: str, address: dict[str, Any]) -> bool:
     return True
 
 
-def _addresses_are_equivalent(a: dict[str, Any], b: dict[str, Any]) -> bool:
-    """Two addresses are equivalent if every user-visible field matches.
-
-    Compares the fields ``_render_address_block`` surfaces — entity_type is
-    irrelevant here (that's what's labelling each block), and server-side
-    fields (id, customer_id, timestamps) don't enter into "is the same
-    place" judgement.
-    """
-    keys = (
-        "first_name",
-        "last_name",
-        "company",
-        "phone",
-        "line_1",
-        "line_2",
-        "city",
-        "state",
-        "zip",
-        "country",
-    )
-    return all((a.get(k) or None) == (b.get(k) or None) for k in keys)
+# Re-export so existing call sites in this module keep working. The real
+# helper now lives in ``_addresses`` so impl-side ``foundation/*`` modules
+# can use it without depending on the Prefab UI module (avoids a latent
+# circular import; ``prefab_ui`` already imports several foundation
+# modules).
+_addresses_are_equivalent = addresses_are_equivalent
 
 
 def _render_customer_entity_view(
@@ -4883,7 +5046,7 @@ def build_so_create_ui(
             )
             _render_party_line(
                 "Location",
-                name=None,  # SalesOrderResponse has no location_name
+                name=response.get("location_name"),
                 entity_id=response.get("location_id"),
             )
             _render_so_shipping_fees_section(
@@ -6391,15 +6554,34 @@ def build_mo_create_ui(
                             label="Deadline",
                             value=_iso_date_only(production_deadline_date),
                         )
-            if variant_id is not None or sku:
-                if sku and variant_id is not None:
-                    Text(content=f"Variant: {sku} (ID: {variant_id})")
-                elif sku:
-                    Text(content=f"Variant: {sku}")
-                else:
-                    Text(content=f"Variant ID: {variant_id}")
-            if location_id is not None:
-                Text(content=f"Location ID: {location_id}")
+            # Variant identity: render SKU as the user-facing name when
+            # resolved. Variants have no per-variant page in Katana web
+            # UI (their parent product/material pages own the variant
+            # configuration), so no ``entity_kind`` — the line stays as
+            # plain text. When SKU is missing we still drop a "Variant
+            # ID: <id>" fallback via ``_render_party_line`` so a
+            # SKU-less variant (NetSuite imports — see CLAUDE.md "Variants
+            # can have null SKUs") isn't invisible to the operator.
+            if sku:
+                Text(content=f"Variant: {sku}")
+            else:
+                _render_party_line(
+                    "Variant",
+                    name=None,
+                    entity_id=variant_id,
+                )
+            # Location resolves to ``location_name`` impl-side via
+            # ``resolve_entity_name(catalog, CachedLocation, ...)``;
+            # ``entity_kind`` is omitted because Katana web UI has no
+            # per-location page (the resolved name is the user-facing
+            # identifier). The helper's fallback shows ``"Location ID:
+            # <id>"`` only when the cache miss can't be filled, and the
+            # underlying response carries a warning explaining why.
+            _render_party_line(
+                "Location",
+                name=response.get("location_name"),
+                entity_id=location_id,
+            )
             if order_created_date:
                 Text(content=f"Created: {_iso_date_only(order_created_date)}")
             if additional_info:
@@ -6449,14 +6631,67 @@ def _extract_fulfill_fields(
     )
 
 
-def _render_inventory_updates(
-    response: dict[str, Any], *, label: str = "Inventory Changes:"
-) -> None:
-    """Render inventory update list if present."""
-    if response.get("inventory_updates"):
-        Muted(content=label)
-        for update in response["inventory_updates"]:
-            Text(content=f"  {update}")
+def _render_fulfill_reference_block(response: dict[str, Any]) -> None:
+    """Render Tier-3 reference data on the fulfill card.
+
+    Two branches:
+
+    - **Sales order** (``order_type == "sales"``): Customer party-line +
+      shipping address (+ billing block when it differs from shipping
+      via ``_addresses_are_equivalent``). The operator-anchoring "who
+      does this ship to / where" facts the #card-ux fulfill card is
+      built around.
+    - **Manufacturing order** (``order_type == "manufacturing"``):
+      ``inventory_updates`` rendered as a side-effects list (review
+      item #6). MOs have no customer or shipping address, but they DO
+      have inventory side-effects the operator needs to confirm
+      ("Raw materials will be consumed from inventory based on BOM",
+      finished-good serial attach, etc.). Pre-fix the MO branch
+      silently dropped this content — the SO-branch deletion was
+      correct (the per-row DataTable carried the same data); the
+      MO-branch loss was a regression.
+    """
+    order_type = response.get("order_type")
+    if order_type == "sales":
+        _render_party_line(
+            "Customer",
+            name=response.get("customer_name"),
+            entity_id=response.get("customer_id"),
+            entity_kind="customer",
+        )
+        shipping = response.get("shipping_address")
+        if shipping:
+            _render_address_block("Shipping Address", shipping)
+        billing = response.get("billing_address")
+        # Defense-in-depth dedup: the impl side
+        # (``_fetch_so_addresses`` in ``foundation/orders.py``) already
+        # returns ``billing=None`` when the two addresses are
+        # equivalent, but older/direct UI payloads that bypass that
+        # impl path can still carry both. Hide the duplicate block here
+        # — mirrors the customer-entity-view's card-side dedup.
+        if billing and not (shipping and addresses_are_equivalent(shipping, billing)):
+            _render_address_block("Billing Address", billing)
+        return
+    if order_type == "manufacturing":
+        # Drop the now-redundant "completed_date will be set to ..." line —
+        # ``picked_date`` is its own Metric on the card. Same for the
+        # serial-attach line, which lands as a row in the per-row table.
+        # What remains is genuinely useful BOM-consumption context.
+        updates = response.get("inventory_updates") or []
+        if not updates:
+            return
+        filtered = [
+            u
+            for u in updates
+            if isinstance(u, str)
+            and not u.startswith("completed_date / done_date will be set to")
+            and not u.startswith("Finished-good serials to attach:")
+        ]
+        if not filtered:
+            return
+        Muted(content="Side effects:")
+        for line in filtered:
+            Text(content=f"  {line}")
 
 
 # Max serial IDs to render verbatim in the fulfill card's "Serials" column
@@ -6512,13 +6747,16 @@ def _build_fulfill_row_display(row: dict[str, Any]) -> dict[str, Any]:
 def _render_fulfill_metrics(response: dict[str, Any]) -> None:
     """Render the Tier 2 metric row for the fulfill card (#553).
 
-    Three metrics:
+    Four metrics:
     - **Rows** — count of rows being fulfilled (always present, never zero
       on a real response — the MO branch synthesizes a single-row entry).
     - **Total Qty** — sum of quantities across rows, rendered via ``:g``.
     - **Total Value** — sum of ``row_total`` across rows, formatted via
       babel. Omitted when no row carries a price (MO branch — MOs track
       cost, not price; the cost ledger lives on a separate surface).
+    - **Picked** (or **Completed** on MO) — the backdated timestamp the
+      caller supplied via ``completed_at``. Omitted when the caller didn't
+      supply one (server-stamps at apply time).
 
     Skipped entirely when the response carries no enrichment
     (back-compat with older payloads that pre-dated #553).
@@ -6529,12 +6767,23 @@ def _render_fulfill_metrics(response: dict[str, Any]) -> None:
     total_qty = response.get("total_quantity")
     total_value = response.get("total_value")
     currency = response.get("currency")
+    picked_date = response.get("picked_date")
+    # Pre-#card-ux the picked_date lived in an ``inventory_updates`` text
+    # blob ("picked_date will be set to …") that rendered above the
+    # per-row table. Promoting to a Metric puts the most operator-relevant
+    # field — when does this fulfillment count? — at eye level alongside
+    # row count + qty + value, instead of buried in a side panel.
+    date_label = (
+        "Completed" if response.get("order_type") == "manufacturing" else "Picked"
+    )
     with Row(gap=4):
         Metric(label="Rows", value=str(rows_count))
         if isinstance(total_qty, int | float):
             Metric(label="Total Qty", value=f"{total_qty:g}")
         if total_value is not None:
             Metric(label="Total Value", value=_format_money(total_value, currency))
+        if picked_date:
+            Metric(label=date_label, value=str(picked_date))
 
 
 def _render_fulfill_per_row_table(
@@ -6670,7 +6919,7 @@ def build_fulfill_preview_ui(
 
         with CardContent(), Column(gap=2):
             _render_fulfill_metrics(response)
-            _render_inventory_updates(response)
+            _render_fulfill_reference_block(response)
             _render_fulfill_per_row_table(
                 fulfilled_rows_display,
                 order_type=raw_order_type,
@@ -6733,14 +6982,20 @@ def build_fulfill_success_ui(
             if response.get("message"):
                 Text(content=response["message"])
             _render_fulfill_metrics(response)
-            if response.get("inventory_updates"):
-                Separator()
-            _render_inventory_updates(response, label="Inventory Updates:")
+            _render_fulfill_reference_block(response)
             _render_fulfill_per_row_table(
                 fulfilled_rows_display,
                 order_type=raw_order_type,
                 is_preview=False,
             )
+            # Surface cache-miss advisories so the operator sees *why*
+            # a Customer / Location party-line may have fallen back to
+            # the raw-ID rendering. Both SO and MO impls populate the
+            # advisories on the success response, but pre-fix the
+            # success card never rendered them — a direct ``preview=
+            # false`` caller would see ``"Customer ID: <id>"`` with no
+            # explanation. Mirrors the preview-card warnings block.
+            _render_warnings_block(response.get("warnings"))
 
         # ``check_inventory`` accepts SKUs OR variant_ids in the same arg
         # (``skus_or_variant_ids``), so coalesce on ``sku or variant_id``
@@ -7059,52 +7314,35 @@ _PLAN_ACTIONS_KEY = "plan_actions"
 _PLAN_ACTIONS_REF = f"{{{{ {_PLAN_ACTIONS_KEY} }}}}"
 
 
-def _derive_summary(action: dict[str, Any]) -> str:
-    """Fallback summary derivation when the action lacks a server-supplied one."""
-    op = str(action.get("operation") or "").lower()
-    changes = action.get("changes") or []
-    if op.startswith("delete"):
-        return "deleted"
-    if op.startswith("add") or op.startswith("create"):
-        return f"{len(changes)} field(s) set"
-    n_changed = sum(
-        1 for c in changes if isinstance(c, dict) and not c.get("is_unchanged")
-    )
-    if n_changed == 0 and changes:
-        return f"{len(changes)} field(s) — no change"
-    return f"{n_changed} field(s) changed"
-
-
 def _action_to_row(idx: int, action: dict[str, Any]) -> dict[str, Any]:
     """Project one ActionResult dict into a DataTable row.
 
-    Returns a dict that carries display-only derived fields (``index``,
-    ``operation_label``, ``target_label``) on top of the underlying
-    ActionResult fields. Pre-populating the same shape both at preview-
-    build time and on the apply RESULT means the on_success
-    ``SetState("plan_actions", RESULT.actions)`` swap doesn't need any
-    transformation — the server's ``status_label``/``summary`` already
-    travel on every ActionResult.
-
-    Falls back to local derivation when ``status_label``/``summary`` are
-    absent (legacy single-action shape, older response generators, tests).
+    Production callers pass already-populated dicts (the ActionResult
+    ``@model_validator`` filled ``operation_label`` / ``target_label`` /
+    ``summary`` / ``status_label`` before ``model_dump()``). Tests and the
+    legacy single-action path pass partial dicts; we round-trip them
+    through ``ActionResult.model_validate`` so the same validator fires
+    and we get the same content-rich summary the production path
+    produces (previously a stale duplicate-validator path lived here and
+    masked anti-pattern #4 — see post-PR #card-ux review finding #2).
     """
-    target = action.get("target_id")
+    from katana_mcp.tools._modification import ActionResult
+
+    populated = ActionResult.model_validate(action).model_dump()
+    target = populated.get("target_id")
     return {
-        "index": action.get("index") or idx,
-        "operation_label": action.get("operation_label")
-        or (_humanize_snake_case(str(action.get("operation") or "")) or "Action"),
-        "target_label": action.get("target_label")
-        or (f"#{target}" if target is not None else "—"),
-        "summary": action.get("summary") or _derive_summary(action),
-        "status_label": action.get("status_label") or _derive_status_label(action),
+        "index": populated.get("index") or idx,
+        "operation_label": populated["operation_label"],
+        "target_label": populated["target_label"],
+        "summary": populated["summary"],
+        "status_label": populated["status_label"],
         # Pass through the underlying fields so RESULT.actions replacement
         # preserves shape (the server's ActionResults carry these too).
-        "operation": action.get("operation"),
+        "operation": populated.get("operation"),
         "target_id": target,
-        "succeeded": action.get("succeeded"),
-        "verified": action.get("verified"),
-        "error": action.get("error"),
+        "succeeded": populated.get("succeeded"),
+        "verified": populated.get("verified"),
+        "error": populated.get("error"),
     }
 
 
@@ -7114,13 +7352,17 @@ def _legacy_action(response: dict[str, Any]) -> dict[str, Any] | None:
     The legacy single-action response carries top-level ``operation`` +
     ``changes`` (instead of an ``actions`` list). Wrap it as one synthetic
     action so both card builders flow through the same row builder.
+
+    Returns a partial dict (``summary`` / ``operation_label`` / etc.
+    omitted); ``_action_to_row`` round-trips it through ``ActionResult``
+    so the validator populates the same content-rich derived fields the
+    multi-action path receives from the dispatcher.
     """
     legacy_changes = response.get("changes") or []
     legacy_op = response.get("operation") or ""
     if not legacy_op and not legacy_changes:
         return None
     is_preview = bool(response.get("is_preview"))
-    n = len(legacy_changes)
     return {
         "operation": legacy_op,
         "target_id": response.get("entity_id"),
@@ -7128,8 +7370,6 @@ def _legacy_action(response: dict[str, Any]) -> dict[str, Any] | None:
         "succeeded": None if is_preview else True,
         "verified": None,
         "error": None,
-        "status_label": "PLANNED" if is_preview else "APPLIED",
-        "summary": f"{n} field(s) changed" if n else "—",
     }
 
 
@@ -7199,8 +7439,11 @@ def build_modification_preview_ui(
 
     with PrefabApp(state=state, css_class="p-4") as app, Card():
         with CardHeader(), Row(gap=2):
-            title_suffix = f" — {n_actions} action(s)" if n_actions > 0 else ""
-            CardTitle(content=f"{verb_label} {entity_type_label}{title_suffix}")
+            # Pre-#card-ux the title carried a "— N action(s)" suffix; the
+            # action count is now a column count in the DataTable below,
+            # which is where it belongs (anti-pattern #4: abstract counts in
+            # titles drown the entity identity that anchors the operator).
+            CardTitle(content=f"{verb_label} {entity_type_label}")
             entity_id = response.get("entity_id")
             if entity_id is not None:
                 Badge(label=f"#{entity_id}", variant="outline")
@@ -7243,11 +7486,10 @@ def build_modification_preview_ui(
                 with Else():
                     Muted(content="This is a preview. No changes have been made.")
 
-            confirm_label = (
-                f"Confirm {n_actions} action(s)" if n_actions > 1 else "Confirm Changes"
-            )
+            # ``Confirm Changes`` reads cleanly regardless of action count;
+            # the per-action breakdown is already visible in the table above.
             _render_apply_button_row(
-                confirm_label=confirm_label,
+                confirm_label="Confirm Changes",
                 apply_action=apply_action,
                 cancel_action=cancel_action,
                 disabled=bool(block_warnings),
@@ -7351,7 +7593,11 @@ def build_item_mutation_ui(
                 Badge(label=str(item["type"]), variant="secondary")
 
         with CardContent(), Column(gap=2):
-            Text(content=f"ID: {item.get('id', 'N/A')}")
+            # Pre-#card-ux this card led with ``"ID: <numeric id>"`` —
+            # anti-pattern #2 (raw IDs as the primary surface). The
+            # Name + SKU lines below carry the user-facing identity;
+            # the numeric id is still available in the structured tool
+            # result for programmatic follow-ups.
             Text(content=f"Name: {item.get('name', 'N/A')}")
             if item.get("sku"):
                 Text(content=f"SKU: {item['sku']}")
@@ -7486,13 +7732,26 @@ def build_receipt_ui(
             )
             if response.get("status"):
                 Text(content=f"PO Status: {response['status']}")
-            if response.get("supplier_id"):
-                name = response.get("supplier_name")
-                Text(
-                    content=f"Supplier: {name} (ID: {response['supplier_id']})"
-                    if name
-                    else f"Supplier ID: {response['supplier_id']}"
-                )
+            # Pre-#card-ux the supplier line manually built
+            # ``"Supplier: <name> (ID: <id>)"``, bypassing
+            # ``_render_party_line``. Using the helper picks up the
+            # Katana web Link decoration for free and routes the
+            # name-resolution fallback through the documented path.
+            _render_party_line(
+                "Supplier",
+                name=response.get("supplier_name"),
+                entity_id=response.get("supplier_id"),
+                entity_kind="supplier",
+            )
+            # Receiving location: shows where the goods physically land.
+            # Pre-#card-ux the receipt card surfaced no Location at all —
+            # the operator confirming a receipt couldn't tell which
+            # warehouse they were committing inventory into.
+            _render_party_line(
+                "Location",
+                name=response.get("location_name"),
+                entity_id=response.get("location_id"),
+            )
             if response.get("total_cost") is not None:
                 Metric(
                     label="PO Total",
@@ -7882,11 +8141,20 @@ def build_batch_recipe_update_ui(
         f"the batch recipe update ({total} planned operation(s))"
     )
 
+    # The pre-#card-ux table carried a separate "Row ID" column rendering
+    # the raw ``recipe_row_id`` (or "(new)"). That ID has no user value —
+    # the ``Action`` column already says ADD/UPDATE/DELETE which captures
+    # the new-vs-existing distinction the integer was standing in for —
+    # and the structured response carries the ID for any programmatic
+    # follow-up. The ``MO`` column still surfaces ``manufacturing_order_id``
+    # as a per-row anchor; resolving it to the MO's order_no via the
+    # typed cache is a follow-up (CachedManufacturingOrder lookup at the
+    # response builder, similar to how customer_name is resolved for
+    # the fulfill card).
     columns = [
         DataTableColumn(key="group", header="Group", sortable=True),
         DataTableColumn(key="mo_id", header="MO", sortable=True),
         DataTableColumn(key="action", header="Action"),
-        DataTableColumn(key="row_id", header="Row ID"),
         DataTableColumn(key="item", header="Item"),
         DataTableColumn(key="sku", header="SKU"),
         DataTableColumn(key="qty", header="Qty", align="right"),

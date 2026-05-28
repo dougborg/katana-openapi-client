@@ -1379,11 +1379,14 @@ class TestBuildInventoryCheckUI:
         column_keys = [c.get("key") for c in tables[0].get("columns", [])]
         assert "reorder_point" in column_keys
         assert "status_label" in column_keys
-        # ``location_id`` must be present as an always-rendered fallback
-        # for the multi-location case where ``location_name`` may be
-        # ``None`` on a cache miss — without it the row is unidentifiable.
-        assert "location_id" in column_keys, (
-            f"Per-location table must keep location_id as a fallback identifier; "
+        # Post-#card-ux: ``location_id`` is NOT a visible column. The
+        # raw ID had no user value (anti-pattern #2); rows where
+        # ``location_name`` resolves null should be fixed impl-side
+        # (typed cache + ``resolve_entity_name``), not patched with a
+        # fallback ID column. Pre-#card-ux comment: "location_id is an
+        # always-rendered fallback so rows are never unidentifiable."
+        assert "location_id" not in column_keys, (
+            f"Per-location table must drop the raw location_id column; "
             f"got columns {column_keys!r}"
         )
         # Ensure the builder annotated the rows in state with status_label
@@ -2104,11 +2107,29 @@ class TestBuildMOCreateUI:
             confirm_tool="create_manufacturing_order",
         )
         rendered = str(app.to_json())
-        # MO carries the variant in tier 3 as "Variant: WIDGET-42 (ID: 555)"
-        assert "WIDGET-42" in rendered
-        assert "555" in rendered
+        # Post-#card-ux: variant line surfaces SKU only (no "(ID: 555)"
+        # parenthetical) when SKU is resolved — variant_id is a wire
+        # identifier with no user value (anti-pattern #2). The SKU
+        # itself, ``WIDGET-42``, IS the user-facing identifier.
+        assert "Variant: WIDGET-42" in rendered
         # Deadline metric uses the date portion only.
         assert "2026-06-01" in rendered
+
+    def test_variant_id_only_renders_when_sku_missing(self):
+        """SKU-less variants (legacy NetSuite imports — CLAUDE.md
+        ``Variants can have null SKUs``) fall back to ``"Variant ID:
+        <id>"`` so the row stays identifiable. Confirmed by SKU-bearing
+        rows above, which must NOT carry the ID parenthetical."""
+        response = dict(self._MO_RESPONSE)
+        response["sku"] = None
+        app = build_mo_create_ui(
+            response,
+            confirm_request=_StubRequest(),
+            confirm_tool="create_manufacturing_order",
+        )
+        rendered = str(app.to_json())
+        # SKU is None → fall back path emits "Variant ID: 555".
+        assert "Variant ID: 555" in rendered
 
     def test_uses_order_no_field_not_order_number(self):
         """MO response uses ``order_no``; verify the badge reads that
@@ -5653,6 +5674,222 @@ class TestBuildFulfillUI:
         assert state["fulfilled_rows"][0]["batch_summary"] == "batch 42x30, batch 51x20"
 
     # ------------------------------------------------------------------
+    # Tier 3 reference block (#card-ux): customer + addresses + picked
+    # ------------------------------------------------------------------
+
+    def _so_response_with_reference(
+        self,
+        *,
+        billing_address: dict[str, Any] | None = None,
+        picked_date: str | None = "2026-05-08T23:14:00+00:00",
+    ) -> dict[str, Any]:
+        response = self._so_response()
+        response["customer_id"] = 1500
+        response["customer_name"] = "Acme Bikes Inc."
+        response["shipping_address"] = {
+            "entity_type": "shipping",
+            "first_name": "Sarah",
+            "last_name": "Johnson",
+            "company": "Acme Bikes Inc.",
+            "line_1": "123 Main Street",
+            "line_2": "Suite 4B",
+            "city": "Portland",
+            "state": "OR",
+            "zip": "97201",
+            "country": "US",
+            "phone": "+1-503-555-0123",
+        }
+        response["billing_address"] = billing_address
+        response["picked_date"] = picked_date
+        return response
+
+    def test_preview_renders_customer_party_line_with_name(self):
+        """The fulfill card surfaces ``customer_name`` as a Link to the
+        Katana customer page — not a bare ``Customer ID: <id>`` line.
+        Pinned for the #card-ux user-centric content rule: the operator
+        must be able to see *who* the shipment goes to without consulting
+        the raw response or the Katana web UI."""
+        envelope = build_fulfill_preview_ui(
+            self._so_response_with_reference()
+        ).to_json()
+        links = _find_components_by_type(envelope, "Link")
+        link_contents = [link.get("content") for link in links]
+        assert "Acme Bikes Inc." in link_contents, (
+            f"Expected Customer name 'Acme Bikes Inc.' to render as a Link "
+            f"(party-line helper); got Link contents {link_contents!r}"
+        )
+
+    def test_preview_renders_shipping_address_block(self):
+        """``_render_address_block`` composes a multi-line block from the
+        SalesOrderAddress dict — recipient, company, street, locality,
+        country/phone — so the operator confirms shipment destination
+        in human terms, not by clicking through to the Katana UI."""
+        envelope = build_fulfill_preview_ui(
+            self._so_response_with_reference()
+        ).to_json()
+        texts = _find_components_by_type(envelope, "Text")
+        contents = [t.get("content", "") for t in texts]
+        assert any("Shipping Address" in c for c in contents)
+        # Recipient + locality + country should all appear in the rendered
+        # block per ``_render_address_block``'s composition rules.
+        assert any("Sarah Johnson" in c for c in contents)
+        assert any("Portland" in c for c in contents)
+        assert any("OR 97201" in c for c in contents)
+
+    def test_preview_omits_billing_block_when_equal_to_shipping(self):
+        """``_fetch_so_addresses`` returns ``billing=None`` when the two
+        addresses are equivalent — the card must not render a duplicate
+        Billing Address block. Pinned for the dedup rule that mirrors
+        ``_render_customer_entity_view``."""
+        envelope = build_fulfill_preview_ui(
+            self._so_response_with_reference(billing_address=None)
+        ).to_json()
+        contents = [
+            t.get("content", "") for t in _find_components_by_type(envelope, "Text")
+        ]
+        assert not any("Billing Address" in c for c in contents), (
+            "Billing Address block must be hidden when impl-side dedup "
+            "found it equivalent to shipping."
+        )
+
+    def test_preview_card_side_dedup_when_impl_passes_equivalent_addresses(self):
+        """Defense-in-depth: when a caller bypasses ``_fetch_so_addresses``
+        (older payload, direct UI call) and supplies both shipping +
+        billing as equivalent dicts, the card MUST still dedup. Pre-fix
+        the card unconditionally rendered the billing block whenever the
+        field was truthy — Copilot caught this on PR #861."""
+        response = self._so_response_with_reference()
+        # Equivalent dicts that the impl-side dedup would have collapsed
+        # but the response carried through unchanged.
+        equivalent_billing = dict(response["shipping_address"])
+        equivalent_billing["entity_type"] = "billing"
+        response["billing_address"] = equivalent_billing
+        envelope = build_fulfill_preview_ui(response).to_json()
+        contents = [
+            t.get("content", "") for t in _find_components_by_type(envelope, "Text")
+        ]
+        assert not any("Billing Address" in c for c in contents), (
+            "Card must dedup an equivalent billing block even when the "
+            "impl side passed both addresses through unchanged."
+        )
+
+    def test_preview_renders_billing_block_when_different(self):
+        """When billing differs from shipping the card renders both
+        blocks so the operator sees the discrepancy (rare, but it happens
+        for net-30 customers whose AP department is at a different
+        address than the receiving location)."""
+        billing = {
+            "entity_type": "billing",
+            "first_name": "Accounts",
+            "last_name": "Payable",
+            "company": "Acme Bikes Inc.",
+            "line_1": "999 Finance Ave",
+            "city": "Beaverton",
+            "state": "OR",
+            "zip": "97005",
+            "country": "US",
+        }
+        envelope = build_fulfill_preview_ui(
+            self._so_response_with_reference(billing_address=billing)
+        ).to_json()
+        contents = [
+            t.get("content", "") for t in _find_components_by_type(envelope, "Text")
+        ]
+        assert any("Billing Address" in c for c in contents)
+        assert any("Beaverton" in c for c in contents)
+
+    def test_preview_renders_picked_date_metric(self):
+        """Pre-#card-ux the picked_date lived in an ``inventory_updates``
+        text blob; #card-ux promotes it to a Tier-2 Metric so the
+        operator sees *when* this fulfillment counts at eye level."""
+        envelope = build_fulfill_preview_ui(
+            self._so_response_with_reference()
+        ).to_json()
+        metrics = _find_components_by_type(envelope, "Metric")
+        picked = next((m for m in metrics if m.get("label") == "Picked"), None)
+        assert picked is not None, (
+            f"Expected a 'Picked' Metric; got labels "
+            f"{[m.get('label') for m in metrics]!r}"
+        )
+        assert picked.get("value") == "2026-05-08T23:14:00+00:00"
+
+    def test_preview_omits_picked_metric_when_unset(self):
+        """No ``picked_date`` on the response (caller didn't pass
+        ``completed_at``) → server-stamps at apply time → no Picked
+        Metric on the card."""
+        envelope = build_fulfill_preview_ui(
+            self._so_response_with_reference(picked_date=None)
+        ).to_json()
+        labels = [m.get("label") for m in _find_components_by_type(envelope, "Metric")]
+        assert "Picked" not in labels
+
+    def test_mo_card_skips_customer_and_address_block(self):
+        """Manufacturing orders have no customer and no shipping address
+        (the work happens at a single location). The MO branch of the
+        fulfill card must skip the Tier-3 reference block entirely —
+        a Customer party-line would be nonsense, and a missing-shipping
+        warning would create noise. Pinned by ``order_type`` discriminator
+        in ``_render_fulfill_reference_block``."""
+        response = {
+            "order_type": "manufacturing",
+            "order_number": "MO-001",
+            "order_id": 456,
+            "status": "IN_PROGRESS",
+            "is_preview": True,
+            "rows_count": 1,
+            "total_quantity": 1.0,
+            "total_value": None,
+            "customer_id": None,
+            "customer_name": None,
+            "shipping_address": None,
+            "billing_address": None,
+            "fulfilled_rows": [
+                {
+                    "row_id": None,
+                    "variant_id": 555,
+                    "sku": "FG-001",
+                    "display_name": "Finished Good",
+                    "quantity": 1.0,
+                    "serial_numbers": [],
+                    "batch_summary": None,
+                    "price_per_unit": None,
+                    "row_total": None,
+                    "currency": None,
+                }
+            ],
+        }
+        envelope = build_fulfill_preview_ui(response).to_json()
+        contents = [
+            t.get("content", "") for t in _find_components_by_type(envelope, "Text")
+        ]
+        assert not any("Shipping Address" in c for c in contents)
+        assert not any("Customer:" in c for c in contents)
+
+    def test_preview_does_not_dump_inventory_updates(self):
+        """Pre-#card-ux the preview card listed every row twice — once
+        as a Muted text dump (``Row 108854645: ship 1 of …``) and once
+        as a DataTable. The dump is gone; the DataTable carries all the
+        structured columns. Pinned so a future re-introduction of the
+        dump (e.g. accidentally adding ``_render_inventory_updates`` back)
+        breaks the build."""
+        response = self._so_response_with_reference()
+        # Even if the response carries inventory_updates strings (back-compat),
+        # the card must NOT render them above the per-row DataTable.
+        response["inventory_updates"] = [
+            "Row 501: ship 5 of WIDGET-100 (full ordered quantity)",
+            "Row 502: ship 2 of WIDGET-200 (full ordered quantity)",
+        ]
+        envelope = build_fulfill_preview_ui(response).to_json()
+        contents = [
+            t.get("content", "") for t in _find_components_by_type(envelope, "Text")
+        ]
+        for line in response["inventory_updates"]:
+            assert all(line not in c for c in contents), (
+                f"Inventory-updates dump line {line!r} must not appear "
+                f"as Text on the preview card (it duplicates the DataTable)."
+            )
+
+    # ------------------------------------------------------------------
     # Tier 4 success-side actions
     # ------------------------------------------------------------------
 
@@ -8675,11 +8912,145 @@ class TestBuildModificationPreviewUI:
             f"delete_item card title must start with 'Delete'; got {titles!r}"
         )
 
-    def test_title_action_count_suffix_uses_n_actions(self):
-        """The action-count suffix must be present whenever there's at
-        least one planned action, including the legacy single-action
-        shape (where ``actions`` is empty but ``changes`` is populated).
-        Closes Copilot review finding.
+    def test_single_change_summary_renders_old_to_new(self):
+        """Post-#card-ux ``_derive_summary`` projects a single
+        ``FieldChange`` to the inline ``"<field>: <old> → <new>"`` form
+        — content-rich, not a "1 field changed" count. Pinned for
+        anti-pattern #4 absence."""
+        response = _modification_preview_response(
+            actions=[
+                {
+                    "operation": "update_header",
+                    "target_id": 42,
+                    "changes": [
+                        {
+                            "field": "status",
+                            "old": "DRAFT",
+                            "new": "ACTIVE",
+                            "is_added": False,
+                            "is_unchanged": False,
+                            "is_unknown_prior": False,
+                        }
+                    ],
+                    "succeeded": None,
+                    "error": None,
+                    "verified": None,
+                    "actual_after": None,
+                }
+            ],
+        )
+        app = build_modification_preview_ui(
+            response,
+            confirm_request=_ModifyStubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        envelope = app.to_json()
+        plan_rows = envelope["state"]["plan_actions"]
+        assert len(plan_rows) == 1
+        assert plan_rows[0]["summary"] == "status: DRAFT → ACTIVE", (
+            f"Single-change summary must inline old → new; got "
+            f"{plan_rows[0]['summary']!r}"
+        )
+
+    def test_multi_change_summary_lists_field_names(self):
+        """Multi-field changes surface the field names (truncated +
+        ``(+N more)`` for long lists) instead of an abstract count.
+        Pinned for anti-pattern #4 absence."""
+        response = _modification_preview_response(
+            actions=[
+                {
+                    "operation": "update_header",
+                    "target_id": 42,
+                    "changes": [
+                        {
+                            "field": f"field_{i}",
+                            "old": "a",
+                            "new": "b",
+                            "is_added": False,
+                            "is_unchanged": False,
+                            "is_unknown_prior": False,
+                        }
+                        for i in range(5)
+                    ],
+                    "succeeded": None,
+                    "error": None,
+                    "verified": None,
+                    "actual_after": None,
+                }
+            ],
+        )
+        app = build_modification_preview_ui(
+            response,
+            confirm_request=_ModifyStubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        envelope = app.to_json()
+        plan_rows = envelope["state"]["plan_actions"]
+        # First three names render inline; the rest collapse to "(+N more)".
+        assert "field_0" in plan_rows[0]["summary"]
+        assert "field_1" in plan_rows[0]["summary"]
+        assert "field_2" in plan_rows[0]["summary"]
+        assert "(+2 more)" in plan_rows[0]["summary"]
+        # The pre-#card-ux "N field(s) changed" form must NOT appear.
+        assert "field(s) changed" not in plan_rows[0]["summary"]
+
+    def test_confirm_label_is_constant_not_action_count(self):
+        """Confirm button reads ``"Confirm Changes"`` for any action
+        count — the count is column-level info, not a button label.
+        Pinned for anti-pattern #4 absence (count abstraction in the
+        primary CTA)."""
+        response = _modification_preview_response(
+            actions=[
+                {
+                    "operation": "update_header",
+                    "target_id": 42,
+                    "changes": [],
+                    "succeeded": None,
+                    "error": None,
+                    "verified": None,
+                    "actual_after": None,
+                },
+                {
+                    "operation": "update_header",
+                    "target_id": 43,
+                    "changes": [],
+                    "succeeded": None,
+                    "error": None,
+                    "verified": None,
+                    "actual_after": None,
+                },
+                {
+                    "operation": "update_header",
+                    "target_id": 44,
+                    "changes": [],
+                    "succeeded": None,
+                    "error": None,
+                    "verified": None,
+                    "actual_after": None,
+                },
+            ],
+        )
+        app = build_modification_preview_ui(
+            response,
+            confirm_request=_ModifyStubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        envelope = app.to_json()
+        buttons = _find_components_by_type(envelope, "Button")
+        labels = [b.get("label") for b in buttons]
+        assert "Confirm Changes" in labels, (
+            f"Confirm button must read 'Confirm Changes'; got {labels!r}"
+        )
+        assert not any(
+            isinstance(label, str) and "action(s)" in label for label in labels
+        ), f"No button label may include 'N action(s)'; got {labels!r}"
+
+    def test_title_omits_abstract_action_count(self):
+        """Post-#card-ux the title drops the ``"— N action(s)"`` suffix.
+        Count is column-level information (visible in the DataTable
+        below); putting it in the title was anti-pattern #4 (abstract
+        counts in identity slots). Pinned to break any future regression
+        that reintroduces the verb-count title shape.
         """
         response = _modification_preview_response(
             actions=[],
@@ -8713,8 +9084,16 @@ class TestBuildModificationPreviewUI:
                     collect_titles(v)
 
         collect_titles(envelope)
-        assert any("1 action(s)" in t for t in titles), (
-            f"Legacy single-action title must include the count suffix; got {titles!r}"
+        # Title must read clean — entity type only, no abstract count.
+        # ``_modification_preview_response`` uses entity_type="product";
+        # ``confirm_tool="modify_purchase_order"`` only drives the verb
+        # (``_verb_label`` reads the leading token), so the rendered title
+        # is "Modify Product".
+        assert any("Modify Product" in t for t in titles), (
+            f"Title should carry the verb + entity type; got {titles!r}"
+        )
+        assert not any("action(s)" in t for t in titles), (
+            f"Title must not include 'N action(s)' abstract suffix; got {titles!r}"
         )
 
     def test_twelve_action_mixed_plan_renders_single_state_bound_table(self):
@@ -8800,10 +9179,16 @@ class TestBuildModificationPreviewUI:
         assert [r["index"] for r in plan_rows] == list(range(1, 13))
         assert all(r["status_label"] == "PLANNED" for r in plan_rows)
 
-        # Adds have target_label "—", deletes have "#<id>".
+        # Adds have target_label "—", deletes have "#<id>". Summary text
+        # is the post-#card-ux content-rich form: add operations list
+        # the field names being set (anti-pattern #4 — count alone was
+        # uninformative); deletes use the neutral "deleted" verb.
         for r in plan_rows[:6]:
             assert r["target_label"] == "—"
-            assert "field(s) set" in r["summary"]
+            # The "added: <field>, <field>, ..." shape replaces the old
+            # "N field(s) set" count summary.
+            assert r["summary"].startswith("added: ")
+            assert "variant_id" in r["summary"]
         for r in plan_rows[6:]:
             assert r["target_label"].startswith("#")
             assert r["summary"] == "deleted"

@@ -2699,7 +2699,9 @@ async def test_update_stock_adjustment_skips_echo_when_existing_is_empty():
 
 @pytest.mark.asyncio
 async def test_update_stock_adjustment_caller_explicit_additional_info_wins():
-    """Caller-supplied additional_info wins; no pre-fetch needed (saves a round trip)."""
+    """Caller-supplied additional_info wins on the PATCH body — even though
+    the impl always pre-fetches the prior SA (now used to populate
+    ``prior_state`` for the card's Before column, review item #4)."""
     context, _ = create_mock_context()
 
     updated = _make_mock_adjustment(id=42, additional_info="new notes")
@@ -2708,8 +2710,14 @@ async def test_update_stock_adjustment_caller_explicit_additional_info_wins():
         id=42, additional_info="new notes", preview=False
     )
 
+    # Pre-fetch returns an SA with the OLD additional_info — the impl
+    # must NOT use it to override the caller's explicit "new notes".
+    prior_mock_response = MagicMock(
+        status_code=200,
+        parsed=MagicMock(data=[_make_mock_adjustment(id=42, additional_info="old")]),
+    )
     update_mock = AsyncMock(return_value=MagicMock())
-    fetch_mock = AsyncMock()
+    fetch_mock = AsyncMock(return_value=prior_mock_response)
     with (
         patch(f"{_SA_GET_ALL}.asyncio_detailed", new=fetch_mock),
         patch(f"{_SA_UPDATE}.asyncio_detailed", new=update_mock),
@@ -2719,7 +2727,6 @@ async def test_update_stock_adjustment_caller_explicit_additional_info_wins():
 
     body = update_mock.call_args.kwargs["body"]
     assert body.additional_info == "new notes"
-    fetch_mock.assert_not_awaited()  # No pre-fetch when caller supplied the field
 
 
 @pytest.mark.asyncio
@@ -2752,6 +2759,53 @@ async def test_update_stock_adjustment_pre_fetch_failure_is_best_effort():
     # The user's update lands even though the pre-fetch failed.
     assert result.is_preview is False
     update_mock.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_update_stock_adjustment_preview_populates_prior_state():
+    """Preview fetches the existing SA so the card's Before column shows
+    what the operator is changing from. prior_state carries the same
+    field names the diff card reads (review item #4 — pre-fix every
+    Before cell rendered "(prior unknown)" because the impl never fetched).
+    location_name resolution lands on prior_state so the Before/After
+    diff compares resolved name against resolved name (review item #10).
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    from katana_public_api_client.models_pydantic._generated import CachedLocation
+
+    # The cache resolves the prior location to "Warehouse A".
+    cached_loc = CachedLocation(id=99, name="Warehouse A")
+
+    async def _get_by_id(cls, entity_id, **_kw):
+        if cls is CachedLocation and entity_id == 99:
+            return cached_loc
+        return None
+
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(side_effect=_get_by_id)
+
+    prior_sa = _make_mock_adjustment(
+        id=42,
+        stock_adjustment_number="SA-OLD",
+        location_id=99,
+        reason="old reason",
+        additional_info="old notes",
+    )
+    fetch_mock = AsyncMock(
+        return_value=MagicMock(status_code=200, parsed=MagicMock(data=[prior_sa]))
+    )
+
+    request = UpdateStockAdjustmentParams(id=42, reason="new reason", preview=True)
+    with patch(f"{_SA_GET_ALL}.asyncio_detailed", new=fetch_mock):
+        result = await _update_stock_adjustment_impl(request, context)
+
+    assert result.is_preview is True
+    assert result.prior_state is not None
+    assert result.prior_state["stock_adjustment_number"] == "SA-OLD"
+    assert result.prior_state["location_id"] == 99
+    assert result.prior_state["location_name"] == "Warehouse A"
+    assert result.prior_state["reason"] == "old reason"
+    assert result.prior_state["additional_info"] == "old notes"
 
 
 # ============================================================================
@@ -2867,10 +2921,11 @@ async def test_check_inventory_zero_stock_returns_empty_by_location():
 
 
 @pytest.mark.asyncio
-async def test_check_inventory_location_name_falls_back_to_none_on_cache_miss():
+async def test_check_inventory_location_name_falls_back_to_id_on_cache_miss():
     """If the cache doesn't have the location (cold cache, lag, etc.),
-    `location_name` is None — the location_id alone is still useful and
-    cache lag shouldn't block the inventory lookup."""
+    ``location_name`` falls back to ``"Location {id}"`` so the card's
+    Location cell is never blank (review item #14 — the cards dropped
+    the raw-ID fallback column post-#card-ux; impl owns the fallback)."""
     context, lifespan_ctx = create_mock_context()
     lifespan_ctx.typed_cache.catalog.get_by_sku = AsyncMock(
         return_value={"id": 3001, "sku": "WIDGET-001", "display_name": "Test Widget"}
@@ -2894,7 +2949,7 @@ async def test_check_inventory_location_name_falls_back_to_none_on_cache_miss():
 
     assert len(results[0].by_location) == 1
     assert results[0].by_location[0].location_id == 999999
-    assert results[0].by_location[0].location_name is None
+    assert results[0].by_location[0].location_name == "Location 999999"
     assert results[0].by_location[0].in_stock == 5.0
 
 

@@ -70,6 +70,7 @@ from katana_mcp.tools.tool_result_utils import (
     make_tool_result,
     none_coro,
     parse_request_dates,
+    resolve_entity_name,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_mcp.web_urls import katana_web_url
@@ -120,6 +121,7 @@ from katana_public_api_client.models import (
     UpdateManufacturingOrderRequest as APIUpdateManufacturingOrderRequest,
 )
 from katana_public_api_client.models_pydantic._generated import (
+    CachedLocation,
     CachedVariant,
     OutsourcedPurchaseOrderIngredientAvailability,
 )
@@ -288,6 +290,15 @@ class ManufacturingOrderResponse(BaseModel):
     sku: str | None = None
     planned_quantity: float | None = None
     location_id: int | None = None
+    location_name: str | None = Field(
+        default=None,
+        description=(
+            "Resolved location display name (typed cache lookup via "
+            "``resolve_entity_name``). Drives the Tier-3 'Location:' line "
+            "on the create card; ``None`` falls back to ``'Location ID: <id>'`` "
+            "and emits a non-fatal warning explaining why."
+        ),
+    )
     status: str | None = None
     order_created_date: datetime | None = None
     production_deadline_date: datetime | None = None
@@ -337,6 +348,15 @@ async def _create_manufacturing_order_impl(
     action = "Previewing" if request.preview else "Starting"
     logger.info(f"{action} manufacturing order ({mode})")
 
+    # Services obtained up front so the impl-side ``resolve_entity_name``
+    # for location_name (anti-pattern #7 fix) is available on every
+    # return path — preview AND apply. Pre-#card-ux the card emitted
+    # ``"Location ID: <id>"`` because ``location_name`` was never resolved;
+    # post-#card-ux the typed cache resolves the human-facing name once,
+    # the card-side ``_render_party_line`` shows it as ``"Location: <name>"``,
+    # and the structured response carries it for non-card consumers.
+    services = get_services(context)
+
     # Make-to-order: fetch the sales_order_row upfront so both preview and
     # apply paths see the same backing data. The duplicate-create guard runs
     # on the apply path too — programmatic callers skipping the preview
@@ -347,7 +367,6 @@ async def _create_manufacturing_order_impl(
     linked_mo: int | None = None
     if is_make_to_order:
         assert request.sales_order_row_id is not None
-        services = get_services(context)
         from katana_public_api_client.api.sales_order_row import (
             get_sales_order_row as api_get_sor,
         )
@@ -366,8 +385,25 @@ async def _create_manufacturing_order_impl(
         # the user to recognize what's being made.
         linked_mo = unwrap_unset(sor.linked_manufacturing_order_id, None)
 
+    # Resolve the location's display name once for every return path
+    # below (preview / apply / refuse). The location_id source depends
+    # on the mode: make-to-order pulls it off the SO row; standalone
+    # reads it from the caller's request.
+    location_id_for_name = sor_location_id if is_make_to_order else request.location_id
+    location_name: str | None = None
+    location_name_warning: str | None = None
+    if location_id_for_name is not None:
+        location_name, location_name_warning = await resolve_entity_name(
+            services.typed_cache.catalog,
+            CachedLocation,
+            location_id_for_name,
+            entity_label="Location",
+        )
+
     if request.preview:
         warnings: list[str] = []
+        if location_name_warning:
+            warnings.append(location_name_warning)
         next_actions = [
             "Review the order details",
             "Set preview=false to create the manufacturing order",
@@ -396,6 +432,7 @@ async def _create_manufacturing_order_impl(
                 variant_id=sor_variant_id,
                 planned_quantity=sor_quantity,
                 location_id=sor_location_id,
+                location_name=location_name,
                 is_preview=True,
                 warnings=warnings,
                 next_actions=next_actions,
@@ -421,6 +458,7 @@ async def _create_manufacturing_order_impl(
             variant_id=request.variant_id,
             planned_quantity=request.planned_quantity,
             location_id=request.location_id,
+            location_name=location_name,
             order_created_date=request.order_created_date,
             production_deadline_date=request.production_deadline_date,
             additional_info=request.additional_info,
@@ -432,16 +470,24 @@ async def _create_manufacturing_order_impl(
 
     # Confirm-path defense-in-depth: refuse if the SO row is already linked.
     if is_make_to_order and linked_mo is not None:
+        # Refusal carries the location-name cache-miss advisory alongside
+        # the BLOCK warning so the operator sees both reasons — review
+        # item #12. Pre-fix this branch hard-coded a single-string list
+        # and silently dropped ``location_name_warning``.
+        refusal_warnings: list[str] = [
+            f"{BLOCK_WARNING_PREFIX} sales_order_row "
+            f"{request.sales_order_row_id} is already linked to "
+            f"manufacturing order {linked_mo}. No new order was created."
+        ]
+        if location_name_warning:
+            refusal_warnings.append(location_name_warning)
         return ManufacturingOrderResponse(
             variant_id=sor_variant_id,
             planned_quantity=sor_quantity,
             location_id=sor_location_id,
+            location_name=location_name,
             is_preview=False,
-            warnings=[
-                f"{BLOCK_WARNING_PREFIX} sales_order_row "
-                f"{request.sales_order_row_id} is already linked to "
-                f"manufacturing order {linked_mo}. No new order was created."
-            ],
+            warnings=refusal_warnings,
             next_actions=[
                 f"Use get_manufacturing_order with order_id={linked_mo} "
                 "to inspect the existing order."
@@ -453,8 +499,6 @@ async def _create_manufacturing_order_impl(
         )
 
     try:
-        services = get_services(context)
-
         if is_make_to_order:
             from katana_public_api_client.api.manufacturing_order import (
                 make_to_order_manufacturing_order as api_mto,
@@ -519,17 +563,24 @@ async def _create_manufacturing_order_impl(
             )
         next_actions.append("Use production tools to track and complete the order")
 
+        # Apply-path warnings include the location-resolution advisory
+        # so a cache miss surfaces even after a successful create.
+        apply_warnings: list[str] = []
+        if location_name_warning:
+            apply_warnings.append(location_name_warning)
         return ManufacturingOrderResponse(
             id=mo.id,
             order_no=order_no,
             variant_id=variant_id,
             planned_quantity=planned_quantity,
             location_id=location_id,
+            location_name=location_name,
             status=status,
             order_created_date=order_created_date,
             production_deadline_date=production_deadline_date,
             additional_info=additional_info,
             is_preview=False,
+            warnings=apply_warnings,
             katana_url=katana_web_url("manufacturing_order", mo.id),
             next_actions=next_actions,
             message=f"Successfully created manufacturing order {order_no or mo.id} (ID: {mo.id})",

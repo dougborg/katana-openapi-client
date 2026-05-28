@@ -293,12 +293,15 @@ async def test_fulfill_sales_order_preview():
     assert result.order_number == "SO-001"
     assert result.status == "NOT_SHIPPED"
     assert result.is_preview is True
-    # Preview now lists the rows that will ship — one entry per SO row.
-    # On cold cache (no display_name resolved) the line falls back to the
-    # ``variant {id}`` sentinel, same as the legacy contract.
-    assert len(result.inventory_updates) == 2
-    assert any("variant 100" in u for u in result.inventory_updates)
-    assert any("variant 200" in u for u in result.inventory_updates)
+    # Per-row identity now flows through ``fulfilled_rows`` (the Tier-3
+    # DataTable on the card) — the pre-#card-ux ``inventory_updates``
+    # text dump duplicated the same data row-for-row, was the source of
+    # the user-cited card redundancy, and is now intentionally empty on
+    # the SO branch. Cold-cache rows surface variant_id without a
+    # display_name; the row entry is still emitted.
+    assert result.inventory_updates == []
+    assert len(result.fulfilled_rows) == 2
+    assert {row.variant_id for row in result.fulfilled_rows} == {100, 200}
     # Last next_action should mention preview=false.
     assert any("preview=false" in a for a in result.next_actions)
 
@@ -358,10 +361,15 @@ async def test_fulfill_sales_order_preview_lifts_display_name():
     request = FulfillOrderRequest(order_id=5678, order_type="sales", preview=True)
     result = await _fulfill_order_impl(request, context)
 
-    # Both lines lead with the canonical display name (parent / config1).
-    assert len(result.inventory_updates) == 2
-    assert any("Big Widget / Red" in u for u in result.inventory_updates)
-    assert any("Small Widget / Blue" in u for u in result.inventory_updates)
+    # Per-row display_name now lands on ``fulfilled_rows[i].display_name``
+    # (the structured data feeding the Tier-3 DataTable on the card) —
+    # the legacy ``inventory_updates`` text dump that previously carried
+    # the canonical Katana-UI display name was removed because it
+    # duplicated the table one row at a time and exposed internal row IDs
+    # the operator doesn't care about.
+    display_names = [row.display_name for row in result.fulfilled_rows]
+    assert "Big Widget / Red" in display_names
+    assert "Small Widget / Blue" in display_names
 
 
 @pytest.mark.asyncio
@@ -732,7 +740,222 @@ async def test_fulfill_sales_order_preview_accepts_serial_override():
     result = await _fulfill_order_impl(request, context)
 
     assert not [w for w in result.warnings if w.startswith("BLOCK:")]
-    assert any("serials [501]" in u for u in result.inventory_updates)
+    # Per-row serial overrides now flow through ``fulfilled_rows[i].serial_numbers``
+    # (the structured Tier-3 payload that drives the DataTable's Serials
+    # column). Pre-#card-ux the serial overrides were dumped into
+    # ``inventory_updates`` as ``"with serials [501]"`` text — gone with
+    # the rest of the redundant text dump.
+    serials_by_row = {row.row_id: row.serial_numbers for row in result.fulfilled_rows}
+    assert serials_by_row.get(1) == [501]
+
+
+@pytest.mark.asyncio
+async def test_fulfill_sales_order_preview_surfaces_customer_and_addresses():
+    """The fulfill card needs Customer name + Shipping/Billing addresses
+    to answer the operator's question "who is this for and where does
+    it go?" (#card-ux). The impl resolves the customer name via the
+    typed cache and fetches addresses from the ``/sales_order_addresses``
+    sub-resource (raw ``GET /sales_orders/{id}`` does NOT inline them) —
+    with billing deduped against shipping when they're equivalent."""
+    from katana_public_api_client.models import SalesOrderAddress
+    from katana_public_api_client.models.address_entity_type import AddressEntityType
+    from katana_public_api_client.models_pydantic._generated import CachedCustomer
+
+    context, lifespan_ctx = create_mock_context()
+
+    # Address rows come from a SEPARATE /sales_order_addresses fetch
+    # (review item #3) — the raw GET /sales_orders/{id} response does not
+    # inline addresses. Mock the sub-resource endpoint so the production
+    # flow that _fulfill_sales_order actually exercises is covered.
+    ship_addr = MagicMock(spec=SalesOrderAddress)
+    ship_addr.entity_type = AddressEntityType.SHIPPING
+    ship_addr.to_dict = lambda: {
+        "entity_type": "shipping",
+        "first_name": "Sarah",
+        "last_name": "Johnson",
+        "company": "Acme Bikes Inc.",
+        "line_1": "123 Main Street",
+        "city": "Portland",
+        "state": "OR",
+        "zip": "97201",
+        "country": "US",
+    }
+    bill_addr = MagicMock(spec=SalesOrderAddress)
+    bill_addr.entity_type = AddressEntityType.BILLING
+    bill_addr.to_dict = lambda: {
+        "entity_type": "billing",
+        "first_name": "Accounts",
+        "last_name": "Payable",
+        "company": "Acme Bikes Inc.",
+        "line_1": "999 Finance Ave",
+        "city": "Beaverton",
+        "state": "OR",
+        "zip": "97005",
+        "country": "US",
+    }
+
+    mock_so = MagicMock(spec=SalesOrder)
+    mock_so.order_no = "SO-ADDR"
+    mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.sales_order_rows = [_make_so_row(1, 100, 1.0)]
+    mock_so.customer_id = 1500
+
+    mock_response = MagicMock(status_code=200, parsed=mock_so)
+    from katana_public_api_client.api.sales_order import get_sales_order
+    from katana_public_api_client.api.sales_order_address import (
+        get_all_sales_order_addresses,
+    )
+
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(return_value=mock_response)
+
+    # /sales_order_addresses returns a list-response envelope; unwrap_data
+    # expects ``.data`` on the parsed body.
+    mock_addresses_body = MagicMock()
+    mock_addresses_body.data = [ship_addr, bill_addr]
+    mock_addresses_response = MagicMock(status_code=200, parsed=mock_addresses_body)
+    cast(Any, get_all_sales_order_addresses).asyncio_detailed = AsyncMock(
+        return_value=mock_addresses_response
+    )
+
+    cached_customer = CachedCustomer(
+        id=1500,
+        name="Acme Bikes Inc.",
+        email="orders@acmebikes.example",
+    )
+
+    async def _get_many(cls, ids, **_kw):
+        if cls is CachedCustomer and 1500 in set(ids):
+            return {1500: cached_customer}
+        return {}
+
+    async def _get_by_id(cls, entity_id, **_kw):
+        # ``resolve_entity_name`` reads via ``get_by_id`` (not
+        # ``get_many_by_ids``); the rest of the SO fulfill impl uses
+        # ``get_many_by_ids`` for batched variant lookups. Wire both.
+        if cls is CachedCustomer and entity_id == 1500:
+            return cached_customer
+        return None
+
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(side_effect=_get_many)
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(side_effect=_get_by_id)
+
+    request = FulfillOrderRequest(
+        order_id=99,
+        order_type="sales",
+        preview=True,
+        completed_at=datetime(2026, 5, 8, 23, 14, tzinfo=UTC),
+    )
+    result = await _fulfill_order_impl(request, context)
+
+    assert result.customer_id == 1500
+    assert result.customer_name == "Acme Bikes Inc."
+    assert result.shipping_address is not None
+    assert result.shipping_address["city"] == "Portland"
+    # Billing differs from shipping → both blocks carry through.
+    assert result.billing_address is not None
+    assert result.billing_address["city"] == "Beaverton"
+    # picked_date is promoted to its own response field for the Metric.
+    assert result.picked_date == "2026-05-08T23:14:00+00:00"
+
+
+@pytest.mark.asyncio
+async def test_fulfill_sales_order_preview_dedups_billing_address():
+    """When shipping and billing describe the same place, the impl
+    returns ``billing_address=None`` so the card doesn't render two
+    identical blocks. Pinned with ``_addresses_are_equivalent`` semantics
+    (every user-visible field matches; entity_type / timestamps are
+    excluded from comparison)."""
+    from katana_public_api_client.models import SalesOrderAddress
+    from katana_public_api_client.models.address_entity_type import AddressEntityType
+
+    context, _lifespan_ctx = create_mock_context()
+
+    shared = {
+        "first_name": "Sarah",
+        "last_name": "Johnson",
+        "company": "Acme Bikes Inc.",
+        "line_1": "123 Main Street",
+        "city": "Portland",
+        "state": "OR",
+        "zip": "97201",
+        "country": "US",
+    }
+    ship_addr = MagicMock(spec=SalesOrderAddress)
+    ship_addr.entity_type = AddressEntityType.SHIPPING
+    ship_addr.to_dict = lambda: {"entity_type": "shipping", **shared}
+    bill_addr = MagicMock(spec=SalesOrderAddress)
+    bill_addr.entity_type = AddressEntityType.BILLING
+    bill_addr.to_dict = lambda: {"entity_type": "billing", **shared}
+
+    mock_so = MagicMock(spec=SalesOrder)
+    mock_so.order_no = "SO-DEDUP"
+    mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.sales_order_rows = [_make_so_row(1, 100, 1.0)]
+    mock_so.customer_id = None
+
+    mock_response = MagicMock(status_code=200, parsed=mock_so)
+    from katana_public_api_client.api.sales_order import get_sales_order
+    from katana_public_api_client.api.sales_order_address import (
+        get_all_sales_order_addresses,
+    )
+
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(return_value=mock_response)
+    # /sales_order_addresses returns ship + bill via the sub-resource.
+    mock_addresses_body = MagicMock()
+    mock_addresses_body.data = [ship_addr, bill_addr]
+    cast(Any, get_all_sales_order_addresses).asyncio_detailed = AsyncMock(
+        return_value=MagicMock(status_code=200, parsed=mock_addresses_body)
+    )
+
+    request = FulfillOrderRequest(order_id=100, order_type="sales", preview=True)
+    result = await _fulfill_order_impl(request, context)
+
+    assert result.shipping_address is not None
+    assert result.billing_address is None, (
+        "Billing matches shipping field-for-field — impl must return "
+        "billing_address=None so the card doesn't render a duplicate block."
+    )
+
+
+@pytest.mark.asyncio
+async def test_fulfill_sales_order_preview_handles_addresses_endpoint_empty():
+    """When /sales_order_addresses returns no rows for the SO (caller
+    skipped the addresses fetch, transient endpoint hiccup, or a real
+    SO without addresses), the impl returns shipping_address=None /
+    billing_address=None without raising. Pinned for review item #3 —
+    the production failure mode the original MagicMock-on-so.addresses
+    test failed to cover."""
+    context, _lifespan_ctx = create_mock_context()
+
+    mock_so = MagicMock(spec=SalesOrder)
+    mock_so.order_no = "SO-NOADDR"
+    mock_so.status = SalesOrderStatus.NOT_SHIPPED
+    mock_so.sales_order_rows = [_make_so_row(1, 100, 1.0)]
+    mock_so.customer_id = None
+
+    mock_response = MagicMock(status_code=200, parsed=mock_so)
+    from katana_public_api_client.api.sales_order import get_sales_order
+    from katana_public_api_client.api.sales_order_address import (
+        get_all_sales_order_addresses,
+    )
+
+    cast(Any, get_sales_order).asyncio_detailed = AsyncMock(return_value=mock_response)
+
+    # /sales_order_addresses returns an empty data list.
+    empty_addresses_body = MagicMock()
+    empty_addresses_body.data = []
+    cast(Any, get_all_sales_order_addresses).asyncio_detailed = AsyncMock(
+        return_value=MagicMock(status_code=200, parsed=empty_addresses_body)
+    )
+
+    request = FulfillOrderRequest(order_id=101, order_type="sales", preview=True)
+    result = await _fulfill_order_impl(request, context)
+
+    assert result.shipping_address is None
+    assert result.billing_address is None
+    # No exception, no BLOCK warning — the card simply elides the Tier-3
+    # address block when no addresses come back.
+    assert not [w for w in result.warnings if w.startswith("BLOCK:")]
 
 
 @pytest.mark.asyncio

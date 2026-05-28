@@ -32,6 +32,7 @@ from katana_mcp.tools.tool_result_utils import (
     naive_utc,
     parse_iso_datetime,
     parse_request_dates,
+    resolve_entity_name,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_mcp.web_urls import katana_web_url
@@ -293,15 +294,19 @@ async def _fetch_stock_for_variant(
         )
 
     # Batch the location-name lookups via the cache's bulk helper —
-    # one query for N IDs instead of N round trips. Cache misses are
-    # non-fatal (location_id alone is still useful to the caller).
-    loc_names: dict[int, str | None] = {}
+    # one query for N IDs instead of N round trips. Cache misses fall
+    # back to ``"Location {id}"`` so the card's Location cell is never
+    # blank — review item #14 (post-#card-ux the cards dropped the
+    # raw-ID fallback column, so the impl owns the fallback now).
+    loc_names: dict[int, str] = {}
     if rows:
         unique_loc_ids = {row.location_id for row in rows}
         loc_lookups = await services.typed_cache.catalog.get_many_by_ids(
             CachedLocation, unique_loc_ids
         )
-        loc_names = {lid: _attr(loc_lookups.get(lid), "name") for lid in unique_loc_ids}
+        for lid in unique_loc_ids:
+            resolved = _attr(loc_lookups.get(lid), "name")
+            loc_names[lid] = resolved if resolved else f"Location {lid}"
 
     by_location = [
         LocationStock(
@@ -1395,14 +1400,18 @@ async def _inventory_at_impl(
                 latest[key] = m
 
         unique_loc_ids = {loc_id for _, loc_id in latest}
-        loc_names: dict[int, str | None] = {}
+        loc_names: dict[int, str] = {}
         if unique_loc_ids:
             loc_lookups = await services.typed_cache.catalog.get_many_by_ids(
                 CachedLocation, unique_loc_ids
             )
-            loc_names = {
-                lid: _attr(loc_lookups.get(lid), "name") for lid in unique_loc_ids
-            }
+            # Cache-miss fallback: ``"Location {id}"`` so the card's
+            # Location cell is never blank (review item #14). The card
+            # dropped the raw-ID column post-#card-ux, so the impl owns
+            # the fallback.
+            for lid in unique_loc_ids:
+                resolved = _attr(loc_lookups.get(lid), "name")
+                loc_names[lid] = resolved if resolved else f"Location {lid}"
 
         result_items: list[InventoryAtItem] = []
         for _input, (vid, sku, display_name) in input_to_variant.items():
@@ -1503,10 +1512,27 @@ async def inventory_at(
     }
     content = json.dumps(payload, indent=2, default=str)
 
+    # Resolve the location's display name so the Tier-1 badge reads
+    # ``"Warehouse A"`` instead of ``"Location 17"`` (anti-pattern #2).
+    # Cache-miss falls back silently to the bare ID (the badge handles
+    # the None case); no advisory warning here because the inventory_at
+    # tool returns a JSON content envelope, not a Pydantic response with
+    # a ``warnings`` field.
+    location_name: str | None = None
+    if request.location_id is not None:
+        services = get_services(context)
+        location_name, _loc_warn = await resolve_entity_name(
+            services.typed_cache.catalog,
+            CachedLocation,
+            request.location_id,
+            entity_label="Location",
+        )
+
     ui = build_inventory_at_ui(
         items=items_dump,
         as_of=response.as_of,
         location_id=request.location_id,
+        location_name=location_name,
         not_found=list(response.not_found),
     )
     return ToolResult(content=content, structured_content=ui)
@@ -1633,10 +1659,22 @@ class StockAdjustmentResponse(BaseModel):
     id: int | None
     is_preview: bool
     location_id: int
+    location_name: str | None = Field(
+        default=None,
+        description=(
+            "Resolved location display name (via ``resolve_entity_name`` on "
+            "``CachedLocation``) for the Tier-1 badge — falls back to "
+            "``'Location <id>'`` when the cache miss can't be filled."
+        ),
+    )
     message: str
     rows: list[StockAdjustmentRowSummary] = Field(default_factory=list)
     rows_summary: str
     reason: str | None = None
+    warnings: list[str] = Field(
+        default_factory=list,
+        description="Operator-facing warnings (cache-miss advisories, etc.).",
+    )
     katana_url: str | None = None
 
 
@@ -1708,16 +1746,30 @@ async def _create_stock_adjustment_impl(
 
     rows_summary = "\n".join(rows_summary_parts)
 
+    # Resolve location_name for the Tier-1 badge (anti-pattern #2 fix).
+    # location_id is required on this request so we always have an ID
+    # to resolve against; a cache miss falls back to ``"Location <id>"``
+    # at the card layer.
+    location_name, loc_warn = await resolve_entity_name(
+        services.typed_cache.catalog,
+        CachedLocation,
+        request.location_id,
+        entity_label="Location",
+    )
+    location_warnings: list[str] = [loc_warn] if loc_warn else []
+
     # Preview mode
     if request.preview:
         return StockAdjustmentResponse(
             id=None,
             is_preview=True,
             location_id=request.location_id,
+            location_name=location_name,
             message="Preview — call again with preview=false to create",
             rows=structured_rows,
             rows_summary=rows_summary,
             reason=request.reason,
+            warnings=location_warnings,
         )
 
     # Caller-supplied stock_adjustment_number takes precedence; otherwise
@@ -1770,10 +1822,12 @@ async def _create_stock_adjustment_impl(
         id=adj_id,
         is_preview=False,
         location_id=request.location_id,
+        location_name=location_name,
         message="Stock adjustment created successfully",
         rows=structured_rows,
         rows_summary=rows_summary,
         reason=request.reason,
+        warnings=location_warnings,
         katana_url=katana_web_url("stock_adjustment", adj_id),
     )
 
@@ -2184,11 +2238,36 @@ class UpdateStockAdjustmentResponse(BaseModel):
     is_preview: bool
     stock_adjustment_number: str | None = None
     location_id: int | None = None
+    location_name: str | None = Field(
+        default=None,
+        description=(
+            "Resolved location display name (via ``resolve_entity_name`` on "
+            "``CachedLocation``) for the Tier-3 diff row. ``None`` falls back "
+            "to ``'Location ID: <id>'`` and a non-fatal advisory warning."
+        ),
+    )
     stock_adjustment_date: str | None = None
     reason: str | None = None
     additional_info: str | None = None
     changes_summary: str
+    prior_state: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Snapshot of the SA's pre-update field values keyed by the same "
+            "names the request supplies (``stock_adjustment_number``, "
+            "``stock_adjustment_date``, ``location_id``, ``reason``, "
+            "``additional_info``) plus ``location_name`` resolved through "
+            "the typed cache. Drives the Before column on the Tier-3 diff "
+            "table; ``None`` falls back to ``'(prior unknown)'`` per cell. "
+            "Fetched via /stock_adjustments?ids=[id] on both preview and "
+            "apply paths so the operator sees what they're changing from."
+        ),
+    )
     message: str
+    warnings: list[str] = Field(
+        default_factory=list,
+        description="Operator-facing warnings (cache-miss advisories, etc.).",
+    )
     katana_url: str | None = None
 
 
@@ -2244,7 +2323,73 @@ async def _update_stock_adjustment_impl(
             "reason, additional_info)"
         )
 
-    # Preview mode — no API call.
+    # Resolve location_name once (when the caller's update changes
+    # location_id) so the card's Tier-3 diff row shows the new location
+    # by name, not a raw ID (anti-pattern #2). Shared between preview
+    # and apply branches — same impl-side resolution rule fulfill +
+    # receipt cards use.
+    services = get_services(context)
+    location_name: str | None = None
+    location_warnings: list[str] = []
+    if request.location_id is not None:
+        location_name, loc_warn = await resolve_entity_name(
+            services.typed_cache.catalog,
+            CachedLocation,
+            request.location_id,
+            entity_label="Location",
+        )
+        if loc_warn:
+            location_warnings.append(loc_warn)
+
+    # Fetch the existing SA so the card's Tier-3 diff table can show the
+    # operator both sides of every change (Before / After columns). The
+    # apply path also pre-fetches for additional_info echo workarounds
+    # (see ``patch_additional_info``); preview adds the same fetch to
+    # populate prior_state. Best-effort: a transient list-endpoint
+    # failure silently leaves prior_state=None and the card falls back
+    # to "(prior unknown)" per row.
+    prior_state: dict[str, Any] | None = None
+    try:
+        existing_response = await get_all_stock_adjustments.asyncio_detailed(
+            client=services.client, ids=[request.id]
+        )
+        existing_rows = unwrap_data(existing_response, raise_on_error=False, default=[])
+        if existing_rows:
+            existing = existing_rows[0]
+            existing_loc_id = unwrap_unset(existing.location_id, None)
+            # Resolve the prior location's display name so the Before
+            # cell shows the same shape (resolved name) as the After
+            # cell — without this normalization the diff renders
+            # ``"17 → Warehouse B"`` (raw int vs resolved name), the
+            # apples-to-oranges defect from review item #10.
+            prior_location_name: str | None = None
+            if existing_loc_id is not None:
+                prior_location_name, prior_loc_warn = await resolve_entity_name(
+                    services.typed_cache.catalog,
+                    CachedLocation,
+                    existing_loc_id,
+                    entity_label="Location",
+                )
+                if prior_loc_warn:
+                    location_warnings.append(prior_loc_warn)
+            prior_state = {
+                "stock_adjustment_number": existing.stock_adjustment_number,
+                "stock_adjustment_date": iso_or_none(
+                    unwrap_unset(existing.stock_adjustment_date, None)
+                ),
+                "location_id": existing_loc_id,
+                "location_name": prior_location_name,
+                "reason": unwrap_unset(existing.reason, None),
+                "additional_info": unwrap_unset(existing.additional_info, None),
+            }
+    except Exception as exc:
+        logger.warning(
+            "stock_adjustment_update: prior_state fetch failed",
+            id=request.id,
+            error=str(exc),
+        )
+
+    # Preview mode — no further API call.
     if request.preview:
         logger.info(
             "stock_adjustment_update_preview",
@@ -2255,12 +2400,15 @@ async def _update_stock_adjustment_impl(
             is_preview=True,
             stock_adjustment_number=request.stock_adjustment_number,
             location_id=request.location_id,
+            location_name=location_name,
             stock_adjustment_date=request.stock_adjustment_date.isoformat()
             if request.stock_adjustment_date
             else None,
             reason=request.reason,
             additional_info=request.additional_info,
             changes_summary=changes_summary,
+            prior_state=prior_state,
+            warnings=location_warnings,
             message=(
                 f"Preview — call again with preview=false to update stock "
                 f"adjustment {request.id}"
@@ -2268,24 +2416,16 @@ async def _update_stock_adjustment_impl(
             katana_url=katana_web_url("stock_adjustment", request.id),
         )
 
-    services = get_services(context)
-
-    # Pre-fetch only when echo might be needed (caller didn't supply
-    # additional_info) so the common-case PATCH stays a single round trip.
-    # ``raise_on_error=False`` keeps the workaround best-effort: if the
-    # pre-fetch fails (transient 5xx, permission gap, etc.) we treat it
-    # as "no existing snapshot" rather than aborting the user's actual
-    # update. Worst case the wipe still fires; the caller's intended
-    # write still lands. See :func:`patch_additional_info` for the
-    # workaround story.
+    # Echo workaround for additional_info wipe (see
+    # :func:`patch_additional_info`): if the caller didn't supply
+    # additional_info, we need to re-send the existing value so the
+    # PATCH doesn't blank it. We already fetched prior_state above for
+    # the diff card; reuse that here instead of doing a second fetch.
     existing_info_field: str | None | Unset = UNSET
-    if request.additional_info is None:
-        existing_response = await get_all_stock_adjustments.asyncio_detailed(
-            client=services.client, ids=[request.id]
-        )
-        existing_rows = unwrap_data(existing_response, raise_on_error=False, default=[])
-        if existing_rows:
-            existing_info_field = existing_rows[0].additional_info
+    if request.additional_info is None and prior_state is not None:
+        existing_info_field = prior_state.get("additional_info")
+        if existing_info_field is None:
+            existing_info_field = UNSET
 
     api_request = APIUpdateStockAdjustmentRequest(
         stock_adjustment_number=to_unset(request.stock_adjustment_number),
@@ -2319,17 +2459,35 @@ async def _update_stock_adjustment_impl(
         id=updated.id,
     )
 
+    # When the caller didn't change location, the up-front
+    # ``location_name`` resolve was skipped (request.location_id is
+    # None) but ``updated.location_id`` echoes the existing ID — so a
+    # naive ``location_name=location_name`` would leave it None and
+    # the card would fall back to ``"Location ID: <id>"`` for an
+    # unchanged location, undoing the anti-pattern #2 fix on every
+    # SA update that doesn't touch location. Reuse the resolved
+    # prior name (which we already fetched + resolved for the diff
+    # Before column) so the response always carries a name when the
+    # cache had one.
+    if request.location_id is None and prior_state is not None:
+        effective_location_name = prior_state.get("location_name")
+    else:
+        effective_location_name = location_name
+
     return UpdateStockAdjustmentResponse(
         id=updated.id,
         is_preview=False,
         stock_adjustment_number=updated.stock_adjustment_number,
         location_id=updated.location_id,
+        location_name=effective_location_name,
         stock_adjustment_date=iso_or_none(
             unwrap_unset(updated.stock_adjustment_date, None)
         ),
         reason=unwrap_unset(updated.reason, None),
         additional_info=unwrap_unset(updated.additional_info, None),
         changes_summary=changes_summary,
+        prior_state=prior_state,
+        warnings=location_warnings,
         message=f"Stock adjustment {updated.id} updated successfully",
         katana_url=katana_web_url("stock_adjustment", updated.id),
     )
@@ -2385,8 +2543,20 @@ class DeleteStockAdjustmentResponse(BaseModel):
     is_preview: bool
     stock_adjustment_number: str | None
     location_id: int | None
+    location_name: str | None = Field(
+        default=None,
+        description=(
+            "Resolved location display name (via ``resolve_entity_name`` on "
+            "``CachedLocation``). Drives the Tier-3 ``Location:`` party-line "
+            "on the delete card; ``None`` falls back to ``'Location ID: <id>'``."
+        ),
+    )
     row_count: int
     message: str
+    warnings: list[str] = Field(
+        default_factory=list,
+        description="Operator-facing warnings (cache-miss advisories, etc.).",
+    )
 
 
 async def _delete_stock_adjustment_impl(
@@ -2426,6 +2596,22 @@ async def _delete_stock_adjustment_impl(
     stock_adjustment_number = existing.stock_adjustment_number
     location_id = existing.location_id
 
+    # Resolve the location's display name so the card's Tier-3 party-line
+    # reads "Location: <name>" instead of "Location ID: <id>" (anti-pattern
+    # #2/#7). Cache-miss surfaces as a non-fatal advisory on warnings —
+    # parallel to fulfill/receipt/update.
+    location_name: str | None = None
+    location_warnings: list[str] = []
+    if location_id is not None:
+        location_name, loc_warn = await resolve_entity_name(
+            services.typed_cache.catalog,
+            CachedLocation,
+            location_id,
+            entity_label="Location",
+        )
+        if loc_warn:
+            location_warnings.append(loc_warn)
+
     if request.preview:
         logger.info(
             "stock_adjustment_delete_preview",
@@ -2437,7 +2623,9 @@ async def _delete_stock_adjustment_impl(
             is_preview=True,
             stock_adjustment_number=stock_adjustment_number,
             location_id=location_id,
+            location_name=location_name,
             row_count=row_count,
+            warnings=location_warnings,
             message=(
                 f"Preview — call again with preview=false to delete stock "
                 f"adjustment {stock_adjustment_number} "
@@ -2464,7 +2652,9 @@ async def _delete_stock_adjustment_impl(
         is_preview=False,
         stock_adjustment_number=stock_adjustment_number,
         location_id=location_id,
+        location_name=location_name,
         row_count=row_count,
+        warnings=location_warnings,
         message=(
             f"Stock adjustment {stock_adjustment_number} (id={request.id}) "
             "deleted; associated inventory movements reversed"

@@ -60,8 +60,16 @@ class TestModificationCardRender:
         assert frame.locator("table").count() == 1
         # Header + 12 action rows.
         assert frame.locator("table tr").count() == 13
-        # Every action shows PLANNED (none have been applied yet).
-        assert frame.locator("td").filter(has_text="PLANNED").count() == 12
+        # Every action shows PLANNED (none have been applied yet). Use a
+        # regex anchored to whole-cell content — the post-#card-ux
+        # content-rich summary cell ("added: variant_id,
+        # planned_quantity_per_unit, notes") would otherwise match the
+        # case-insensitive substring "planned" inside the field name.
+        import re
+
+        assert (
+            frame.locator("td").filter(has_text=re.compile(r"^PLANNED$")).count() == 12
+        )
 
     def test_modify_twelve_actions_applied_renders(self, render_scenario):
         """Result card after a successful apply: all 12 rows APPLIED."""
@@ -476,8 +484,14 @@ class TestModificationCardRender:
         frame = render_scenario("modify_mo_12_actions_preview")
 
         # Pre-state: 12 PLANNED actions, Confirm button visible, neither
-        # post-apply primary visible.
-        assert frame.locator("td").filter(has_text="PLANNED").count() == 12
+        # post-apply primary visible. Whole-cell regex to avoid matching
+        # the content-rich summary cell's "planned_quantity_per_unit"
+        # field-name substring (case-insensitive partial would catch it).
+        import re
+
+        assert (
+            frame.locator("td").filter(has_text=re.compile(r"^PLANNED$")).count() == 12
+        )
         assert frame.locator("button").filter(has_text="Confirm").first.is_visible()
         assert frame.locator("button").filter(has_text="View in Katana").count() == 0
         # Use exact-match locator for "Applied" to avoid matching the

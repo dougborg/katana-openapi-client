@@ -407,6 +407,98 @@ def test_render_action_block_status_labels():
         assert expected_label in md, f"missing {expected_label} for {action}"
 
 
+class TestDeriveSummary:
+    """ActionResult ``@model_validator`` populates ``summary`` via
+    :func:`_modification._derive_summary`. The post-#card-ux derivation
+    is content-rich (field names + ``old → new`` inline) — pinned here
+    against the production path (the model validator), not against a
+    duplicate dict-side helper that the prefab UI used to carry.
+    """
+
+    def test_single_change_renders_inline_old_to_new(self):
+        action = ActionResult(
+            operation="update_header",
+            target_id=42,
+            changes=[
+                FieldChange(field="status", old="DRAFT", new="ACTIVE"),
+            ],
+        )
+        assert action.summary == "status: DRAFT → ACTIVE"
+
+    def test_multi_change_surfaces_field_names_with_overflow_tail(self):
+        action = ActionResult(
+            operation="update_header",
+            target_id=42,
+            changes=[FieldChange(field=f"f{i}", old="a", new="b") for i in range(5)],
+        )
+        assert action.summary == "f0, f1, f2 (+2 more)"
+        assert "field(s) changed" not in action.summary
+
+    def test_add_operation_lists_field_names_not_count(self):
+        action = ActionResult(
+            operation="add_recipe_row",
+            target_id=None,
+            changes=[
+                FieldChange(field="variant_id", new=100, is_added=True),
+                FieldChange(field="quantity", new=2, is_added=True),
+            ],
+        )
+        assert action.summary == "added: variant_id, quantity"
+        assert "field(s) set" not in action.summary
+
+    def test_delete_operation_summary(self):
+        action = ActionResult(operation="delete_recipe_row", target_id=5)
+        assert action.summary == "deleted"
+
+    def test_unknown_prior_renders_with_explicit_marker_not_em_dash(self):
+        """`is_unknown_prior` must be visually distinct from a `None`
+        prior value. Otherwise the operator can't tell whether the
+        field was blank or just unresolvable."""
+        action = ActionResult(
+            operation="update_addresses",
+            target_id=42,
+            changes=[
+                FieldChange(
+                    field="line_1",
+                    old=None,
+                    new="123 Main St",
+                    is_unknown_prior=True,
+                ),
+            ],
+        )
+        assert action.summary == "line_1: (prior unknown) → 123 Main St"
+        # The em-dash must NOT appear — it would mean "the field was blank
+        # before" which is a different statement than "we don't know".
+        assert "—" not in action.summary
+
+    def test_no_changes_renders_em_dash(self):
+        action = ActionResult(operation="update_header", target_id=42, changes=[])
+        assert action.summary == "—"
+
+    def test_all_unchanged_renders_no_change(self):
+        action = ActionResult(
+            operation="update_header",
+            target_id=42,
+            changes=[
+                FieldChange(
+                    field="status", old="DRAFT", new="DRAFT", is_unchanged=True
+                ),
+            ],
+        )
+        assert action.summary == "no change"
+
+    def test_validator_does_not_overwrite_explicit_summary(self):
+        """A caller-supplied summary string wins over the derived one —
+        the validator only fills when ``summary`` is empty."""
+        action = ActionResult(
+            operation="update_header",
+            target_id=42,
+            changes=[FieldChange(field="status", old="A", new="B")],
+            summary="custom note",
+        )
+        assert action.summary == "custom note"
+
+
 def test_render_includes_prior_state_block_when_set():
     response = ModificationResponse(
         entity_type="purchase_order",

@@ -128,6 +128,7 @@ from katana_public_api_client.models import (
 )
 from katana_public_api_client.models_pydantic._generated import (
     CachedCustomer,
+    CachedLocation,
     CachedVariant,
 )
 from katana_public_api_client.utils import unwrap_as
@@ -417,6 +418,17 @@ class SalesOrderResponse(BaseModel):
     customer_id: int
     customer_name: str | None = None
     location_id: int | None = None
+    location_name: str | None = Field(
+        default=None,
+        description=(
+            "Resolved location display name (via ``resolve_entity_name`` on "
+            "``CachedLocation``). Pre-#card-ux ``build_so_create_ui`` called "
+            "``_render_party_line(name=None, ...)`` and the helper degraded "
+            "to ``'Location ID: <id>'`` (anti-pattern #7). Now the impl side "
+            "resolves the name; the card-side party-line shows ``'Location: "
+            "<name>'`` instead of the bare id."
+        ),
+    )
     status: str | None = None
     total: float | None = None
     currency: str | None = None
@@ -559,19 +571,38 @@ async def _create_sales_order_impl(
 
     requested_fees = request.shipping_fees or []
 
+    # Resolve customer + location names once, up front, so every return
+    # path (preview / refusal / success) carries the resolved Tier-3
+    # reference fields. Pre-fix the apply-path shipping-fee refusal
+    # silently dropped them and the card fell back to ``"Customer ID: <id>"``
+    # — review item #5. The cache-miss advisories thread through
+    # ``resolution_warnings`` so refusal-branch responses can include
+    # them too (mirrors PO RECEIVED / MO duplicate-link refusal fixes).
+    services = get_services(context)
+    customer_name, cust_warn = await resolve_entity_name(
+        services.typed_cache.catalog,
+        CachedCustomer,
+        request.customer_id,
+        entity_label="Customer",
+    )
+    resolution_warnings: list[str] = [cust_warn] if cust_warn else []
+    location_name: str | None = None
+    if request.location_id is not None:
+        location_name, loc_warn = await resolve_entity_name(
+            services.typed_cache.catalog,
+            CachedLocation,
+            request.location_id,
+            entity_label="Location",
+        )
+        if loc_warn:
+            resolution_warnings.append(loc_warn)
+
     if request.preview:
         logger.info(
             f"Preview mode: SO {request.order_number} would have {len(request.items)} items"
         )
 
-        services = get_services(context)
-        customer_name, cust_warn = await resolve_entity_name(
-            services.typed_cache.catalog,
-            CachedCustomer,
-            request.customer_id,
-            entity_label="Customer",
-        )
-        warnings: list[str] = [cust_warn] if cust_warn else []
+        warnings: list[str] = list(resolution_warnings)
         if request.location_id is None:
             warnings.append(
                 "No location_id specified - order will use default location"
@@ -591,6 +622,7 @@ async def _create_sales_order_impl(
             customer_id=request.customer_id,
             customer_name=customer_name,
             location_id=request.location_id,
+            location_name=location_name,
             status="PENDING",
             total=total_estimate if total_estimate > 0 else None,
             currency=request.currency,
@@ -610,7 +642,8 @@ async def _create_sales_order_impl(
         )
 
     try:
-        services = get_services(context)
+        # ``services`` already obtained above for the name-resolution
+        # pass; no second ``get_services`` call needed.
 
         # Apply-path BLOCK validation: amounts must parse to non-negative
         # decimals BEFORE we POST the SO. We don't roll back the SO on a
@@ -633,9 +666,12 @@ async def _create_sales_order_impl(
                 return SalesOrderResponse(
                     order_number=request.order_number,
                     customer_id=request.customer_id,
+                    customer_name=customer_name,
+                    location_id=request.location_id,
+                    location_name=location_name,
                     is_preview=True,
                     shipping_fee_outcomes=_outcomes_from_planned_fees(requested_fees),
-                    warnings=block_warnings,
+                    warnings=block_warnings + resolution_warnings,
                     next_actions=[
                         "Fix the failing shipping_fees amounts and retry",
                     ],
@@ -791,17 +827,53 @@ async def _create_sales_order_impl(
             ok_count = sum(1 for o in fee_outcomes if o.succeeded is True)
             message += f" with {ok_count}/{len(requested_fees)} shipping fee(s) applied"
 
+        # Reuse the customer + location names resolved up front in the
+        # common case where Katana echoed back the IDs we sent — saves a
+        # typed-cache round-trip per name and prevents duplicate
+        # cache-miss advisories in ``resolution_warnings`` (Copilot
+        # finding on PR #861). Only re-resolve when Katana assigned a
+        # different ID (e.g., the caller omitted ``location_id`` and
+        # the server picked a default).
+        apply_customer_name = customer_name
+        apply_resolution_warnings: list[str] = []
+        if so.customer_id != request.customer_id:
+            apply_customer_name, cust_warn = await resolve_entity_name(
+                services.typed_cache.catalog,
+                CachedCustomer,
+                so.customer_id,
+                entity_label="Customer",
+            )
+            if cust_warn:
+                apply_resolution_warnings.append(cust_warn)
+
+        apply_location_id = unwrap_unset(so.location_id, None)
+        if apply_location_id == request.location_id:
+            apply_location_name = location_name
+        elif apply_location_id is not None:
+            apply_location_name, loc_warn = await resolve_entity_name(
+                services.typed_cache.catalog,
+                CachedLocation,
+                apply_location_id,
+                entity_label="Location",
+            )
+            if loc_warn:
+                apply_resolution_warnings.append(loc_warn)
+        else:
+            apply_location_name = None
+
         return SalesOrderResponse(
             id=so.id,
             order_number=so.order_no,
             customer_id=so.customer_id,
+            customer_name=apply_customer_name,
             location_id=so.location_id,
+            location_name=apply_location_name,
             status=so.status.value if so.status else "UNKNOWN",
             total=total,
             currency=currency,
             is_preview=False,
             shipping_fee_outcomes=fee_outcomes,
-            warnings=fee_warnings,
+            warnings=(fee_warnings + resolution_warnings + apply_resolution_warnings),
             katana_url=katana_web_url("sales_order", so.id),
             next_actions=next_actions,
             message=message,
