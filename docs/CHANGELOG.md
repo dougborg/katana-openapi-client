@@ -2,6 +2,18 @@
 
 <!-- version list -->
 
+## v0.72.1 (2026-05-28)
+
+### Bug Fixes
+
+- **client**: POST /outsourced_purchase_order_recipe_rows returns 200, not 201
+  ([`862d584`](https://github.com/dougborg/katana-openapi-client/commit/862d584db81943237f98b3ea085d250063c8d2b5))
+
+### Chores
+
+- **mcp**: Update client dependency to v0.72.0
+  ([`641ce42`](https://github.com/dougborg/katana-openapi-client/commit/641ce424aae059b24bd0b00a315d1a8ac5474bd8))
+
 ## v0.72.0 (2026-05-28)
 
 ### Bug Fixes
