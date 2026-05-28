@@ -198,22 +198,18 @@ class TestOpenAPISpecification:
         """Pin live-verified POST create endpoints to status 200.
 
         Katana's actual API returns ``200`` from create endpoints, not ``201``.
-        The spec previously misdeclared four endpoints as ``201``, which caused
+        The spec previously misdeclared five endpoints as ``201``, which caused
         the generated parser to return ``parsed=None`` for what was actually a
         successful response — leading to ``UnexpectedResponse`` errors in
         ``unwrap_as`` even though the mutation had landed server-side.
 
-        All four have been verified live via ``make_test_client()``:
+        All five have been verified live via ``make_test_client()``:
 
         - ``POST /sales_order_fulfillments`` → 200
         - ``POST /stock_transfers`` → 200
         - ``POST /sales_return_rows`` → 200
         - ``POST /inventory_reorder_points`` → 200
-
-        One additional outlier — ``POST /outsourced_purchase_order_recipe_rows`` —
-        also currently declares 201 but has not been live-verified (test tenant
-        has no outsourced POs to probe against). It is intentionally absent from
-        this list; fix when verified.
+        - ``POST /outsourced_purchase_order_recipe_rows`` → 200
         """
         paths = spec.get("paths", {})
         live_verified_endpoints = [
@@ -221,6 +217,7 @@ class TestOpenAPISpecification:
             "/stock_transfers",
             "/sales_return_rows",
             "/inventory_reorder_points",
+            "/outsourced_purchase_order_recipe_rows",
         ]
         for endpoint in live_verified_endpoints:
             post_spec = paths.get(endpoint, {}).get("post", {})

@@ -122,19 +122,20 @@ documented status code, so when Katana actually returns 200 the parser falls thr
 `UnexpectedResponse` — *even though the mutation landed server-side*. The bug looks like
 a failure to the caller and invites a destructive retry.
 
-Verified live (`make_test_client()` probe, 2026-05-27):
+Verified live (`make_test_client()` probe, 2026-05-27 and 2026-05-28):
 
 - `POST /sales_order_fulfillments` → 200
 - `POST /stock_transfers` → 200
 - `POST /sales_return_rows` → 200
 - `POST /inventory_reorder_points` → 200
+- `POST /outsourced_purchase_order_recipe_rows` → 200
 
 Pinned by
-`tests/test_openapi_specification.py::test_create_endpoint_success_status_codes`.
+`tests/test_openapi_specification.py::test_create_endpoint_success_status_codes` and
+exercised end-to-end by `tests/test_create_endpoint_regression.py`.
 
-Not yet live-verified (test tenant has no fixtures to probe against; fix when verified):
-`POST /outsourced_purchase_order_recipe_rows` still declares 201 and is almost certainly
-the same drift.
+The full sweep is complete — every `POST` create endpoint in the spec now declares 200.
+A baseline survey at the time of the sweep found these five outliers and no others.
 
 If you genuinely encounter a Katana create endpoint that returns 201 (none confirmed to
 date), accept *both* by declaring `"200"` and `"201"` in the same `responses:` map
