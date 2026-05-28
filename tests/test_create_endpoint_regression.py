@@ -25,6 +25,9 @@ import pytest
 
 from katana_public_api_client import KatanaClient
 from katana_public_api_client.api.inventory import create_inventory_reorder_point
+from katana_public_api_client.api.purchase_orders import (
+    create_outsourced_purchase_order_recipe_row,
+)
 from katana_public_api_client.api.sales_order_fulfillment import (
     create_sales_order_fulfillment,
 )
@@ -32,10 +35,12 @@ from katana_public_api_client.api.sales_return_row import create_sales_return_ro
 from katana_public_api_client.api.stock_transfer import create_stock_transfer
 from katana_public_api_client.models import (
     CreateInventoryReorderPointRequest,
+    CreateOutsourcedPurchaseOrderRecipeRowRequest,
     CreateSalesOrderFulfillmentRequest,
     CreateSalesReturnRowRequest,
     CreateStockTransferRequest,
     InventoryReorderPoint,
+    OutsourcedPurchaseOrderRecipeRow,
     SalesOrderFulfillment,
     SalesOrderFulfillmentRowRequest,
     SalesOrderFulfillmentStatus,
@@ -201,3 +206,45 @@ async def test_create_inventory_reorder_point_parses_200_body() -> None:
     assert isinstance(reorder, InventoryReorderPoint)
     assert reorder.location_id == 184871
     assert reorder.variant_id == 40699264
+
+
+@pytest.mark.asyncio
+async def test_create_outsourced_purchase_order_recipe_row_parses_200_body() -> None:
+    """Successful POST /outsourced_purchase_order_recipe_rows returns a parsed model.
+
+    Fifth and final spec-drift outlier from the 201→200 sweep. Live-verified
+    2026-05-28 against the test tenant after creating an outsourced PO fixture.
+    """
+    recipe_row_payload = {
+        "id": 719973,
+        "purchase_order_id": 2751274,
+        "purchase_order_row_id": 7949057,
+        "ingredient_variant_id": 40699264,
+        "planned_quantity_per_unit": "2.00000000000000000000",
+        "notes": None,
+        "batch_transactions": [],
+        "cost": None,
+        "created_at": "2026-05-28T19:07:45.541Z",
+        "updated_at": "2026-05-28T19:07:45.541Z",
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert request.url.path == "/outsourced_purchase_order_recipe_rows"
+        return httpx.Response(200, json=recipe_row_payload)
+
+    async with _client_with_mock_transport(handler) as client:
+        response = await create_outsourced_purchase_order_recipe_row.asyncio_detailed(
+            client=client,
+            body=CreateOutsourcedPurchaseOrderRecipeRowRequest(
+                purchase_order_row_id=7949057,
+                ingredient_variant_id=40699264,
+                planned_quantity_per_unit=2.0,
+            ),
+        )
+
+    row = unwrap_as(response, OutsourcedPurchaseOrderRecipeRow)
+    assert isinstance(row, OutsourcedPurchaseOrderRecipeRow)
+    assert row.id == 719973
+    assert row.purchase_order_row_id == 7949057
+    assert row.ingredient_variant_id == 40699264
