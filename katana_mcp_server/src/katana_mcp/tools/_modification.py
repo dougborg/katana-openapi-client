@@ -23,7 +23,7 @@ operating on the same response model.
 from __future__ import annotations
 
 import json
-from collections.abc import Awaitable, Callable, Iterable
+from collections.abc import Awaitable, Callable, Iterable, Mapping
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from enum import Enum
@@ -455,7 +455,10 @@ def compute_field_diff(
 
 
 def make_response_verifier(
-    diff: list[FieldChange], *, field_map: dict[str, str] | None = None
+    diff: list[FieldChange],
+    *,
+    field_map: dict[str, str] | None = None,
+    value_source: Mapping[str, Callable[[Any], Any]] | None = None,
 ) -> Callable[[Any], Awaitable[tuple[bool, dict[str, Any] | None]]]:
     """Build a verify closure that checks the API response body against ``diff``.
 
@@ -466,8 +469,18 @@ def make_response_verifier(
     :func:`compute_field_diff` parameter for fields with names that
     differ between request and response. Used by every
     ``modify_<entity>`` update action's ``ActionSpec.verify``.
+
+    ``value_source`` overrides *where* a field's actual value is read from:
+    a ``{field_name: callable(outcome) -> value}`` map for fields that don't
+    live on the top-level response object. The service update endpoint, for
+    example, echoes a ``Service`` whose pricing (``sales_price`` /
+    ``default_cost`` / ``sku``) lives on the nested first variant, not the
+    header — without an override those fields read as ``None`` and verify
+    spuriously as ``False`` on a successful update. Fields not in the map fall
+    back to ``getattr(outcome, attr)`` as before.
     """
     name_map = field_map or {}
+    source_map = value_source or {}
 
     async def verify(outcome: Any) -> tuple[bool, dict[str, Any] | None]:
         if outcome is None:
@@ -475,8 +488,12 @@ def make_response_verifier(
         actual: dict[str, Any] = {}
         verified = True
         for change in diff:
-            attr = name_map.get(change.field, change.field)
-            raw = getattr(outcome, attr, None)
+            source = source_map.get(change.field)
+            if source is not None:
+                raw = source(outcome)
+            else:
+                attr = name_map.get(change.field, change.field)
+                raw = getattr(outcome, attr, None)
             actual_val = _normalize(unwrap_unset(raw, None))
             actual[change.field] = actual_val
             if change.new is not None and actual_val != change.new:

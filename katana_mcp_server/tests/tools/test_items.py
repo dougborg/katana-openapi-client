@@ -2040,6 +2040,72 @@ async def test_modify_item_service_header_dispatches_to_services_endpoint():
 
 
 @pytest.mark.asyncio
+async def test_modify_item_service_header_verifies_pricing_from_variant():
+    """Service update_header verifies sales_price/sku off the echoed variant.
+
+    Katana echoes service pricing on the nested first variant, not the
+    Service header. The service-aware verifier must read those fields from
+    ``outcome.variants[0]`` — otherwise a successful price update reports
+    ``verified=False`` (the bug). ``name`` still verifies off the header.
+    """
+    from katana_mcp.tools.foundation.items import (
+        ItemHeaderPatch,
+        ModifyItemRequest,
+        _modify_item_impl,
+    )
+
+    context, _ = create_mock_context()
+
+    # Prior state for the diff fetch. ``compute_field_diff`` reads old values
+    # off ``existing`` (the Service header) for each patched field — here
+    # ``name`` and ``sales_price``. On a real ``Service`` the header has no
+    # ``sales_price`` (it lives on the variant), so we set it to None
+    # explicitly: a bare MagicMock would otherwise auto-vivify it to a mock and
+    # the diff's ``old`` would be that mock rather than a real prior value.
+    existing = MagicMock()
+    existing.id = 7
+    existing.name = "Old Name"
+    existing.sales_price = None
+    existing.additional_info = None
+    existing.variants = []
+
+    # Apply outcome — new name on the header, new price/sku on the variant.
+    outcome = MagicMock()
+    outcome.id = 7
+    outcome.name = "Wheel Build Labor"
+    outcome_variant = MagicMock()
+    outcome_variant.sales_price = 120.0
+    outcome_variant.sku = "LABOR-WHEELBUILD"
+    outcome.variants = [outcome_variant]
+
+    with (
+        patch(
+            "katana_public_api_client.api.services.update_service.asyncio_detailed",
+            new_callable=AsyncMock,
+        ),
+        patch(
+            "katana_public_api_client.api.services.get_service.asyncio_detailed",
+            new_callable=AsyncMock,
+        ),
+        # diff-fetch unwrap_as -> existing; apply unwrap_as -> outcome.
+        patch(_MODIFY_ITEM_UNWRAP_AS, side_effect=[existing, outcome]),
+    ):
+        request = ModifyItemRequest(
+            id=7,
+            type=ItemType.SERVICE,
+            update_header=ItemHeaderPatch(name="Wheel Build Labor", sales_price=120.0),
+            preview=False,
+        )
+        response = await _modify_item_impl(request, context)
+
+    action = response.actions[0]
+    assert action.succeeded is True
+    # name verifies off the header, sales_price off the nested variant — both
+    # match, so the action verifies end-to-end (was False before the fix).
+    assert action.verified is True
+
+
+@pytest.mark.asyncio
 async def test_modify_item_add_variant_injects_parent_id_for_product():
     from katana_mcp.tools.foundation.items import (
         ModifyItemRequest,
