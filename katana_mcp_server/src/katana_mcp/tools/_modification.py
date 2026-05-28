@@ -249,19 +249,69 @@ def _derive_status_label(action: ActionResult) -> str:
     return "FAILED"
 
 
+def _format_change_value(value: Any) -> str:
+    """Render a ``FieldChange.old`` / ``.new`` value for the Changes column.
+
+    Strings render verbatim; everything else through ``str()``. ``None``
+    becomes ``"—"`` for cleared / unset fields, **except** when the field
+    is flagged ``is_unknown_prior`` (handled by the caller) — see
+    :class:`FieldChange` docstring on why the distinction matters.
+    """
+    if value is None:
+        return "—"
+    if isinstance(value, str):
+        return value
+    return str(value)
+
+
 def _derive_summary(action: ActionResult) -> str:
-    """One-line description of what an action does, for the Changes column."""
+    """Content-rich one-line description of what an action does.
+
+    Drives the Changes column on the modification card (#card-ux,
+    anti-pattern #4). Three shapes:
+
+    - **delete**: ``"deleted"``.
+    - **add / create**: ``"added: <field>, <field>, ..."`` (+ ``(+N more)``
+      tail when the change list is long).
+    - **update / modify / correct**: a single FieldChange renders inline
+      as ``"<field>: <old> → <new>"``; multi-field changes surface field
+      names + an optional ``(+N more)`` tail.
+
+    The ``is_unknown_prior`` flag is honored: a field whose prior state
+    couldn't be resolved renders as ``"<field>: (prior unknown) → <new>"``
+    rather than ``"— → <new>"`` which would lie about the prior having
+    been blank (per :class:`FieldChange` docstring at line 137).
+
+    Pre-#card-ux this emitted ``"N field(s) changed"`` count-only strings
+    that gave the operator nothing actionable.
+    """
     op = action.operation.lower()
     if op.startswith("delete"):
         return "deleted"
     if op.startswith("add") or op.startswith("create"):
-        n = len(action.changes)
-        return f"{n} field(s) set"
+        if not action.changes:
+            return "added"
+        field_names = [c.field for c in action.changes]
+        head = ", ".join(field_names[:3])
+        tail = f" (+{len(field_names) - 3} more)" if len(field_names) > 3 else ""
+        return f"added: {head}{tail}"
     # update_*, modify_*, correct_*, etc.
-    n = sum(1 for c in action.changes if not c.is_unchanged)
-    if n == 0 and action.changes:
-        return f"{len(action.changes)} field(s) — no change"
-    return f"{n} field(s) changed"
+    changed = [c for c in action.changes if not c.is_unchanged]
+    if not changed and action.changes:
+        return "no change"
+    if not changed:
+        return "—"
+    if len(changed) == 1:
+        c = changed[0]
+        new = _format_change_value(c.new)
+        old = "(prior unknown)" if c.is_unknown_prior else _format_change_value(c.old)
+        return f"{c.field}: {old} → {new}"
+    # Multi-field case: surface field names so the operator knows *what*
+    # changed without reading the underlying tool blob.
+    field_names = [c.field for c in changed]
+    head = ", ".join(field_names[:3])
+    tail = f" (+{len(field_names) - 3} more)" if len(field_names) > 3 else ""
+    return f"{head}{tail}"
 
 
 class ModificationResponse(BaseModel):

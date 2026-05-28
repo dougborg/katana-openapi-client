@@ -68,7 +68,15 @@ async def test_create_manufacturing_order_preview():
     assert result.id is None
     assert "preview" in result.message.lower()
     assert len(result.next_actions) > 0
-    assert len(result.warnings) == 0  # All optional fields provided
+    # Filter out the location-resolution cache-miss advisory that #card-ux
+    # introduced — the conftest stub cache doesn't carry the location row
+    # so resolve_entity_name surfaces a "Location with id=N was not found"
+    # advisory (non-fatal, no BLOCK prefix). Real warnings come from
+    # missing optional fields; all of those are populated here.
+    non_advisory_warnings = [
+        w for w in result.warnings if not w.startswith("Location with id=")
+    ]
+    assert non_advisory_warnings == []  # All optional fields provided
 
 
 @pytest.mark.asyncio
@@ -294,10 +302,15 @@ async def test_create_manufacturing_order_missing_optional_fields():
     assert result.order_created_date is None
     assert result.production_deadline_date is None
     assert result.additional_info is None
-    # Verify warnings for missing optional fields
-    assert len(result.warnings) == 2
-    assert any("production_deadline_date" in w for w in result.warnings)
-    assert any("additional_info" in w for w in result.warnings)
+    # Verify warnings for missing optional fields. Filter out the
+    # cache-miss advisory for the location name (#card-ux); it surfaces
+    # on every test that doesn't pre-seed CachedLocation.
+    non_advisory_warnings = [
+        w for w in result.warnings if not w.startswith("Location with id=")
+    ]
+    assert len(non_advisory_warnings) == 2
+    assert any("production_deadline_date" in w for w in non_advisory_warnings)
+    assert any("additional_info" in w for w in non_advisory_warnings)
 
 
 @pytest.mark.asyncio

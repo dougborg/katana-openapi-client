@@ -24,6 +24,7 @@ from katana_mcp.tools.tool_result_utils import (
     BLOCK_WARNING_PREFIX,
     UI_META,
     make_tool_result,
+    resolve_entity_name,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_mcp.web_urls import katana_web_url
@@ -33,7 +34,9 @@ from katana_public_api_client.models import (
     ManufacturingOrderProduction,
     SalesOrder,
 )
+from katana_public_api_client.models.address_entity_type import AddressEntityType
 from katana_public_api_client.models_pydantic._generated import (
+    CachedCustomer,
     CachedMaterial,
     CachedProduct,
     CachedVariant,
@@ -246,6 +249,60 @@ class FulfillOrderResponse(BaseModel):
         ),
     )
 
+    # ---- Tier 3 reference fields surfaced on the fulfill card (sales only) ----
+    customer_id: int | None = Field(
+        default=None,
+        description=(
+            "Customer placing the sales order. Drives the Tier 3 'Customer:' "
+            "party line. ``None`` on manufacturing orders (MOs have no customer)."
+        ),
+    )
+    customer_name: str | None = Field(
+        default=None,
+        description=(
+            "Resolved customer display name (from typed cache via "
+            "``resolve_entity_name``). When ``None`` the card falls back to "
+            "``'Customer ID: <id>'`` — a non-fatal warning is appended to "
+            "``warnings`` so the operator sees why the name is missing."
+        ),
+    )
+    shipping_address: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Shipping ``SalesOrderAddress.to_dict()`` for the SO. Drives the "
+            "Tier 3 'Shipping Address' block. ``None`` when the SO carries no "
+            "shipping address or on manufacturing orders."
+        ),
+    )
+    billing_address: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Billing ``SalesOrderAddress.to_dict()`` for the SO. Only set when "
+            "the billing address differs from shipping (via "
+            "``_addresses_are_equivalent``) — when they match, the card hides "
+            "the billing block to avoid duplication."
+        ),
+    )
+    picked_date: str | None = Field(
+        default=None,
+        description=(
+            "ISO-8601 timestamp surfaced as the 'Picked' (sales) or "
+            "'Completed' (manufacturing) Metric on the card. Population "
+            "rules:\n\n"
+            "- **Preview**: caller's ``completed_at`` if supplied, else "
+            "  ``None`` (Metric is omitted; the server stamps at apply "
+            "  time).\n"
+            "- **SO apply-success**: prefers the server-stamped "
+            "  ``fulfillment.picked_date`` over ``completed_at`` — so a "
+            "  caller that omitted ``completed_at`` still sees the real "
+            "  timestamp Katana recorded.\n"
+            "- **MO apply-success**: prefers ``final_mo.done_date`` over "
+            "  ``completed_at`` for the same reason.\n"
+            "- **Refusal paths**: carries the caller's ``completed_at`` "
+            "  (no server stamp yet)."
+        ),
+    )
+
 
 def _fulfill_response_to_tool_result(
     response: FulfillOrderResponse, *, request: FulfillOrderRequest
@@ -386,6 +443,18 @@ async def _fulfill_manufacturing_order(
             )
         )
 
+    # MO ``picked_date`` carries the caller-supplied ``completed_at`` on
+    # preview so the card surfaces a "Completed" Metric (review item #8).
+    # Pre-fix this field was never set on the MO branch, leaving the
+    # documented "Completed" Metric branch in ``_render_fulfill_metrics``
+    # unreachable. The success path overrides this with the actual
+    # ``done_date`` Katana stamped on the post-completion MO header
+    # (review item #7) so the operator sees the server's authoritative
+    # timestamp even when ``completed_at`` was not supplied.
+    mo_picked_date_iso = (
+        request.completed_at.isoformat() if request.completed_at is not None else None
+    )
+
     if request.preview:
         has_block = any(w.startswith(BLOCK_WARNING_PREFIX) for w in warnings)
         if current_status == "DONE":
@@ -414,6 +483,7 @@ async def _fulfill_manufacturing_order(
             rows_count=rows_count,
             total_quantity=total_qty,
             total_value=total_value,
+            picked_date=mo_picked_date_iso,
             katana_url=katana_url,
         )
 
@@ -432,6 +502,7 @@ async def _fulfill_manufacturing_order(
             warnings=warnings,
             next_actions=["Order is already completed"],
             message=f"Manufacturing order {order_number} is already completed",
+            picked_date=mo_picked_date_iso,
             katana_url=katana_url,
         )
     if has_block:
@@ -451,6 +522,7 @@ async def _fulfill_manufacturing_order(
                 f"{sum(1 for w in warnings if w.startswith(BLOCK_WARNING_PREFIX))} "
                 "issue(s); no status change made."
             ),
+            picked_date=mo_picked_date_iso,
             katana_url=katana_url,
         )
 
@@ -529,6 +601,18 @@ async def _fulfill_manufacturing_order(
         _summarize_fulfilled_rows(success_rows)
     )
 
+    # Prefer the server-stamped ``done_date`` over the caller's
+    # ``completed_at`` so the success card shows what Katana actually
+    # recorded (review item #7, MO-side). Falls back to the caller-
+    # supplied timestamp when ``done_date`` is unset (legacy fixtures /
+    # transient stamp lag). Defensive isinstance() check — same MagicMock
+    # contract trap as the SO branch.
+    server_done_date = unwrap_unset(final_mo.done_date, None)
+    if isinstance(server_done_date, datetime):
+        success_picked_date_iso: str | None = server_done_date.isoformat()
+    else:
+        success_picked_date_iso = mo_picked_date_iso
+
     logger.info(f"Successfully marked manufacturing order {order_number} as DONE")
     return FulfillOrderResponse(
         order_id=request.order_id,
@@ -544,6 +628,7 @@ async def _fulfill_manufacturing_order(
         rows_count=success_rows_count,
         total_quantity=success_total_qty,
         total_value=success_total_value,
+        picked_date=success_picked_date_iso,
         katana_url=katana_url,
     )
 
@@ -789,6 +874,85 @@ def _format_batch_summary(batch_transactions: Any) -> str | None:
             continue
         parts.append(f"batch {batch_id}x{qty:g}")
     return ", ".join(parts) if parts else None
+
+
+async def _fetch_so_addresses(
+    services: Any, sales_order_id: int
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    """Fetch shipping + billing address dicts via ``/sales_order_addresses``.
+
+    Returns ``(shipping, billing)`` where each is a
+    ``SalesOrderAddress.to_dict()``-shaped dict ready for
+    ``_render_address_block`` (wire-name keys — ``zip``, not ``zip_``).
+
+    GET /sales_orders/{id} does NOT return addresses inline on the
+    response — the field is ``Unset`` on the wire and only populated when
+    the caller explicitly fetches /sales_order_addresses. The high-level
+    ``get_sales_order`` tool does that fetch via
+    :func:`_fetch_sales_order_addresses` (sales_orders.py:1517); the
+    fulfill tool mirrors the pattern so the Tier-3 reference block
+    actually appears in production. Pre-fix this function read
+    ``so.addresses`` directly and quietly returned ``(None, None)`` on
+    every live tenant.
+
+    Billing is returned as ``None`` when it duplicates shipping — the
+    operator only needs one block in that case (mirrors
+    ``build_customer_create_ui``). Equivalence reuses
+    ``addresses_are_equivalent`` from ``katana_mcp.tools._addresses``:
+    same fields the block renders, no entity_type / timestamp noise.
+
+    Returns ``(None, None)`` when the SO has no addresses; the card
+    branch elides the entire Tier-3 address row in that case. Cache /
+    network failures are swallowed (best-effort) so a fulfill preview
+    isn't blocked by a transient address-endpoint hiccup.
+    """
+    from katana_mcp.tools._addresses import addresses_are_equivalent
+    from katana_public_api_client.api.sales_order_address import (
+        get_all_sales_order_addresses,
+    )
+    from katana_public_api_client.utils import unwrap_data
+
+    try:
+        response = await get_all_sales_order_addresses.asyncio_detailed(
+            client=services.client,
+            sales_order_ids=[sales_order_id],
+            limit=250,
+        )
+    except Exception as exc:
+        logger.warning(
+            "fulfill_sales_order: addresses fetch failed",
+            sales_order_id=sales_order_id,
+            error=str(exc),
+        )
+        return None, None
+    rows = unwrap_data(response, raise_on_error=False, default=[])
+    if not rows:
+        return None, None
+
+    shipping_dict: dict[str, Any] | None = None
+    billing_dict: dict[str, Any] | None = None
+    for row in rows:
+        # The /sales_order_addresses endpoint returns rows as attrs
+        # SalesOrderAddress models when parsed; ``to_dict()`` emits the
+        # wire-shape (``zip`` not ``zip_``). Be defensive for the
+        # already-dict path that fixture-side tests use.
+        row_dict = row.to_dict() if hasattr(row, "to_dict") else row
+        entity_type = row_dict.get("entity_type")
+        if isinstance(entity_type, AddressEntityType):
+            entity_type = entity_type.value
+        if entity_type == "shipping" and shipping_dict is None:
+            shipping_dict = row_dict
+        elif entity_type == "billing" and billing_dict is None:
+            billing_dict = row_dict
+
+    if (
+        shipping_dict is not None
+        and billing_dict is not None
+        and addresses_are_equivalent(shipping_dict, billing_dict)
+    ):
+        billing_dict = None
+
+    return shipping_dict, billing_dict
 
 
 def _build_fulfilled_rows_sales(
@@ -1385,30 +1549,43 @@ async def _fulfill_sales_order(
         display_name_by_row,
     ) = await _resolve_row_serial_info(services, so_rows)
 
-    # Inventory-update lines lead with the canonical Katana-UI display
-    # name (parent / value1 / value2) when the typed cache resolved the
-    # variant, falling back through SKU to ``variant {id}`` so each line
-    # always says something more useful than a bare numeric ID. Matches
-    # the resolution order used by the batch recipe update card.
-    inventory_updates: list[str] = []
-    for row in so_rows:
-        rid = row.id
-        vid = row.variant_id
-        qty = row.quantity
-        serials = overrides_by_row.get(rid)
-        suffix = f" with serials {serials}" if serials else ""
-        label = display_name_by_row.get(rid) or sku_by_row.get(rid) or f"variant {vid}"
-        inventory_updates.append(
-            f"Row {rid}: ship {qty} of {label} (full ordered quantity){suffix}"
-        )
-    if not inventory_updates:
-        inventory_updates.append("(no rows on this sales order)")
-    if request.completed_at is not None:
-        inventory_updates.append(
-            f"picked_date will be set to {request.completed_at.isoformat()}"
-        )
-
     warnings: list[str] = []
+
+    # Tier 3 reference data (#card-ux): resolve customer name + extract
+    # shipping/billing addresses so the fulfill card can show the operator
+    # *who* the package goes to and *where*. Pre-#card-ux the card surfaced
+    # only the order number + status; nothing identifying the recipient.
+    # ``inventory_updates`` is intentionally left empty for the SO branch —
+    # the per-row text dump it carried before duplicated ``fulfilled_rows``
+    # one-for-one (the source of the user-cited redundancy). Structured
+    # consumers read ``fulfilled_rows``; the card reads the resolved name +
+    # addresses below.
+    customer_id = unwrap_unset(so.customer_id, None)
+    customer_name: str | None = None
+    if customer_id is not None:
+        customer_name, customer_name_warning = await resolve_entity_name(
+            services.typed_cache.catalog,
+            CachedCustomer,
+            customer_id,
+            entity_label="Customer",
+        )
+        if customer_name_warning:
+            warnings.append(customer_name_warning)
+    # /sales_order_addresses is a sibling endpoint — GET /sales_orders/{id}
+    # does NOT inline addresses on the response (so.addresses is Unset on
+    # the wire). The high-level ``get_sales_order`` tool does this same
+    # fetch via _fetch_sales_order_addresses; mirroring that pattern here
+    # keeps the fulfill card's Tier-3 reference block actually visible in
+    # production. Pre-fix this function read so.addresses directly and
+    # silently returned (None, None) on every live tenant.
+    shipping_address, billing_address = await _fetch_so_addresses(
+        services, request.order_id
+    )
+    picked_date_iso = (
+        request.completed_at.isoformat() if request.completed_at is not None else None
+    )
+
+    inventory_updates: list[str] = []
     if current_status in ("DELIVERED", "PARTIALLY_DELIVERED"):
         warnings.append(
             f"{BLOCK_WARNING_PREFIX} Sales order {order_number} status is "
@@ -1486,6 +1663,19 @@ async def _fulfill_sales_order(
             )
         )
 
+    # Shared Tier-3 reference kwargs threaded through every SO-branch
+    # response constructor — preview, refusal paths, and success. Keeps
+    # the customer / shipping / billing / picked_date payload consistent
+    # whether the operator sees a preview card or an "already delivered"
+    # refusal card.
+    reference_kwargs: dict[str, Any] = {
+        "customer_id": customer_id,
+        "customer_name": customer_name,
+        "shipping_address": shipping_address,
+        "billing_address": billing_address,
+        "picked_date": picked_date_iso,
+    }
+
     if request.preview:
         has_block = any(w.startswith(BLOCK_WARNING_PREFIX) for w in warnings)
         next_actions = (
@@ -1515,6 +1705,7 @@ async def _fulfill_sales_order(
             total_value=total_value,
             currency=currency,
             katana_url=katana_url,
+            **reference_kwargs,
         )
 
     # Refuse on apply if any BLOCK warning is present — the preview would have
@@ -1536,6 +1727,7 @@ async def _fulfill_sales_order(
                 "to create a duplicate fulfillment"
             ),
             katana_url=katana_url,
+            **reference_kwargs,
         )
     if not so_rows:
         return FulfillOrderResponse(
@@ -1552,6 +1744,7 @@ async def _fulfill_sales_order(
                 "no fulfillment created."
             ),
             katana_url=katana_url,
+            **reference_kwargs,
         )
     if has_block:
         return FulfillOrderResponse(
@@ -1571,6 +1764,7 @@ async def _fulfill_sales_order(
                 "issue(s); no fulfillment created."
             ),
             katana_url=katana_url,
+            **reference_kwargs,
         )
 
     from katana_public_api_client.api.sales_order_fulfillment import (
@@ -1602,6 +1796,19 @@ async def _fulfill_sales_order(
     )
     fulfillment = unwrap_as(fulfill_response, SalesOrderFulfillment)
 
+    # Prefer the server-stamped ``picked_date`` over the caller's
+    # ``completed_at`` (review item #7). Pre-fix the success card hid
+    # the Picked Metric whenever the caller didn't pass ``completed_at``
+    # despite Katana stamping a real timestamp on the fulfillment.
+    # Override the ``picked_date`` slot in reference_kwargs so the spread
+    # below picks up the server's value. Defensive: only override when
+    # the server value is a real ``datetime`` — MagicMock fixtures leak
+    # a child mock through ``unwrap_unset`` and pydantic would then
+    # reject the field at construction time.
+    server_picked = unwrap_unset(fulfillment.picked_date, None)
+    if isinstance(server_picked, datetime):
+        reference_kwargs["picked_date"] = server_picked.isoformat()
+
     logger.info(
         f"Created sales order fulfillment {fulfillment.id} for SO {order_number} "
         f"({len(fulfill_rows)} row(s) DELIVERED)"
@@ -1630,6 +1837,7 @@ async def _fulfill_sales_order(
         total_value=total_value,
         currency=currency,
         katana_url=katana_url,
+        **reference_kwargs,
     )
 
 

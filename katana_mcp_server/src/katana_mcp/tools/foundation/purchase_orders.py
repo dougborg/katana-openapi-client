@@ -588,6 +588,23 @@ class ReceivePurchaseOrderResponse(BaseModel):
     status: str | None = None
     supplier_id: int | None = None
     supplier_name: str | None = None
+    location_id: int | None = Field(
+        default=None,
+        description=(
+            "Receiving location — where the received inventory physically "
+            "lands. Pulled off the PO header for the receipt card so the "
+            "operator confirming a receipt sees the destination at a glance "
+            "(post-#card-ux Tier-3 reference data)."
+        ),
+    )
+    location_name: str | None = Field(
+        default=None,
+        description=(
+            "Resolved receiving-location display name (via ``resolve_entity_name`` "
+            "on ``CachedLocation``). ``None`` falls back to ``'Location ID: <id>'`` "
+            "on the card and surfaces a non-fatal warning."
+        ),
+    )
     currency: str | None = None
     total_cost: float | None = None
     items_received: int = 0
@@ -777,29 +794,52 @@ async def _receive_purchase_order_impl(
         order_no = unwrap_unset(po.order_no, f"PO-{request.order_id}")
         po_status = enum_to_str(unwrap_unset(po.status, None))
         supplier_id = unwrap_unset(po.supplier_id, None)
+        location_id = unwrap_unset(po.location_id, None)
         currency = unwrap_unset(po.currency, None)
         total_cost = unwrap_unset(po.total, None)
+
+        # Resolve supplier + location names up front so all return paths
+        # (preview / refusal / success) carry the same Tier-3 reference
+        # block (#card-ux). Pre-#card-ux only the preview path resolved
+        # supplier_name (and never location_name) — the success card
+        # silently dropped both, leaving the operator without the names
+        # they needed to confirm what they'd just committed inventory to.
+        supplier_name: str | None = None
+        location_name: str | None = None
+        resolution_warnings: list[str] = []
+        if supplier_id is not None:
+            from katana_public_api_client.models_pydantic._generated import (
+                CachedSupplier,
+            )
+
+            supplier_name, sup_warn = await resolve_entity_name(
+                services.typed_cache.catalog,
+                CachedSupplier,
+                supplier_id,
+                entity_label="Supplier",
+            )
+            if sup_warn:
+                resolution_warnings.append(sup_warn)
+        if location_id is not None:
+            from katana_public_api_client.models_pydantic._generated import (
+                CachedLocation,
+            )
+
+            location_name, loc_warn = await resolve_entity_name(
+                services.typed_cache.catalog,
+                CachedLocation,
+                location_id,
+                entity_label="Location",
+            )
+            if loc_warn:
+                resolution_warnings.append(loc_warn)
 
         if request.preview:
             logger.info(
                 f"Preview mode: Would receive {len(request.items)} items for PO {order_no}"
             )
 
-            supplier_name: str | None = None
-            warnings: list[str] = []
-            if supplier_id is not None:
-                from katana_public_api_client.models_pydantic._generated import (
-                    CachedSupplier,
-                )
-
-                supplier_name, sup_warn = await resolve_entity_name(
-                    services.typed_cache.catalog,
-                    CachedSupplier,
-                    supplier_id,
-                    entity_label="Supplier",
-                )
-                if sup_warn:
-                    warnings.append(sup_warn)
+            warnings: list[str] = list(resolution_warnings)
 
             next_actions = [
                 "Review the items to receive",
@@ -829,6 +869,8 @@ async def _receive_purchase_order_impl(
                 status=po_status,
                 supplier_id=supplier_id,
                 supplier_name=supplier_name,
+                location_id=location_id,
+                location_name=location_name,
                 currency=currency,
                 total_cost=total_cost,
                 items_received=len(request.items),
@@ -843,18 +885,27 @@ async def _receive_purchase_order_impl(
         # would otherwise be able to receive items against an already-fully-
         # received PO and create duplicate inventory.
         if po_status == "RECEIVED":
+            # Refusal carries the cache-miss advisories alongside the
+            # BLOCK warning so the operator sees both "why we refused"
+            # AND "why these names didn't resolve" — review item #11.
+            # Pre-fix this branch hard-coded a single-string list and
+            # silently dropped ``resolution_warnings``.
             return ReceivePurchaseOrderResponse(
                 order_id=request.order_id,
                 order_number=order_no,
                 status=po_status,
                 supplier_id=supplier_id,
+                supplier_name=supplier_name,
+                location_id=location_id,
+                location_name=location_name,
                 currency=currency,
                 total_cost=total_cost,
                 items_received=0,
                 is_preview=False,
                 warnings=[
                     f"{BLOCK_WARNING_PREFIX} Purchase order {order_no} is already "
-                    "RECEIVED. No items were received."
+                    "RECEIVED. No items were received.",
+                    *resolution_warnings,
                 ],
                 next_actions=["No action needed — order is already fully received."],
                 message=(
@@ -911,11 +962,15 @@ async def _receive_purchase_order_impl(
             order_number=order_no,
             status=po_status,
             supplier_id=supplier_id,
+            supplier_name=supplier_name,
+            location_id=location_id,
+            location_name=location_name,
             currency=currency,
             total_cost=total_cost,
             items_received=len(request.items),
             received_items=received_items_info,
             is_preview=False,
+            warnings=resolution_warnings,
             next_actions=[
                 f"Received {len(request.items)} items",
                 "Inventory has been updated",
