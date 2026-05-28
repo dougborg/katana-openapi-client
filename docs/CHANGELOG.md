@@ -2,6 +2,23 @@
 
 <!-- version list -->
 
+## v0.72.0 (2026-05-28)
+
+### Bug Fixes
+
+- **client**: Correct POST create status codes — Katana returns 200, not 201
+  ([`c766fd8`](https://github.com/dougborg/katana-openapi-client/commit/c766fd85ccb9c89091f9f85b974fc9451e272715))
+
+### Chores
+
+- **release**: Mcp v0.99.0
+  ([`0dff9f8`](https://github.com/dougborg/katana-openapi-client/commit/0dff9f8a648a56b2772d18bc16071403e4e1249a))
+
+### Features
+
+- **mcp**: Build_so_modify_ui — diff-decorated SO modify card (closes #723)
+  ([`f030742`](https://github.com/dougborg/katana-openapi-client/commit/f030742a671f4b0c34089775f9678f2dfce94c28))
+
 ## v0.71.0 (2026-05-27)
 
 ### Bug Fixes
