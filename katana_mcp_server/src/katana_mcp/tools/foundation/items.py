@@ -7,6 +7,7 @@ Items are things with SKUs - they appear in the "Items" tab of the Katana UI.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from enum import StrEnum
 from typing import Annotated, Any
 
@@ -40,7 +41,7 @@ from katana_mcp.tools._modification_dispatch import (
     safe_fetch_for_diff,
     unset_dict,
 )
-from katana_mcp.tools.decorators import cache_read
+from katana_mcp.tools.decorators import cache_read, ensure_cache_synced
 from katana_mcp.tools.list_coercion import CoercedIntListOpt, CoercedStrListOpt
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
@@ -97,6 +98,7 @@ from katana_public_api_client.models_pydantic._generated import (
     CachedFactory,
     CachedMaterial,
     CachedProduct,
+    CachedService,
     CachedSupplier,
     CachedVariant,
 )
@@ -163,6 +165,16 @@ class ItemInfo(BaseModel):
     """Item information."""
 
     id: int
+    parent_id: int | None = Field(
+        default=None,
+        description=(
+            "Parent item id — pass this to modify_item / get_item / delete_item "
+            "(type-routed to /products|materials|services/{id}). Distinct from "
+            "``id``, which is the variant id used by get_variant_details and "
+            "order / PO / MO rows. None only when the parent can't be resolved "
+            "(e.g. a service whose parent isn't in the cache yet)."
+        ),
+    )
     sku: str
     name: str
     item_type: str = "unknown"
@@ -235,17 +247,62 @@ async def _search_items_impl(
             return "unknown"
         return type_val.value if hasattr(type_val, "value") else str(type_val)
 
+    # Resolve each row's type once and reuse it below (the parent-id join, the
+    # service guard, and the ItemInfo build all need it).
+    typed_variants = [(v, _item_type(v)) for v in variants]
+
+    # The parent *item* id that modify_item/get_item need differs from the
+    # variant ``id`` search returns. Products/materials carry it on the row
+    # (``product_id``/``material_id``); a service variant has null
+    # ``product_id`` AND null ``material_id`` and no dedicated parent column,
+    # so resolve the service item id from ``CachedService`` (whose ``id`` is
+    # the service item id, with the variant id in its nested ``variants[].id``).
+    # Only sync + read the service table when a service is actually in the
+    # result set, so product/material-only searches pay nothing — the common
+    # case. Pass ``include_archived`` through so an archived service hit
+    # (surfaced when the caller opts in) still resolves its parent.
+    service_variant_to_item: dict[int, int] = {}
+    if any(item_type == "service" for _, item_type in typed_variants):
+        await ensure_cache_synced(services, CachedService)
+        cached_services = await services.typed_cache.catalog.get_all(
+            CachedService, include_archived=request.include_archived
+        )
+        for svc in cached_services:
+            svc_id = _attr(svc, "id")
+            if svc_id is None:
+                continue
+            for sv in _attr(svc, "variants") or []:
+                sv_id = _attr(sv, "id")
+                if sv_id is not None:
+                    service_variant_to_item[int(sv_id)] = int(svc_id)
+
+    def _parent_id(v: Any, item_type: str) -> int | None:
+        if item_type == "product":
+            return _attr(v, "product_id")
+        if item_type == "material":
+            return _attr(v, "material_id")
+        if item_type == "service":
+            # None when CachedService is empty/stale (or the variant id is
+            # missing) — degrade gracefully rather than emitting the (wrong)
+            # variant id as the parent.
+            variant_id = _attr(v, "id")
+            if variant_id is None:
+                return None
+            return service_variant_to_item.get(int(variant_id))
+        return None
+
     items_info = [
         ItemInfo(
             id=_attr(v, "id"),
+            parent_id=_parent_id(v, item_type),
             sku=_attr(v, "sku") or "",
             name=_attr(v, "display_name") or _attr(v, "sku") or "",
-            item_type=_item_type(v),
-            is_sellable=_item_type(v) == "product",
+            item_type=item_type,
+            is_sellable=item_type == "product",
             stock_level=None,
             is_archived=_attr(v, "parent_archived_at") is not None,
         )
-        for v in variants
+        for v, item_type in typed_variants
     ]
 
     return SearchItemsResponse(items=items_info, total_count=len(items_info))
@@ -258,9 +315,13 @@ async def search_items(
 ) -> ToolResult:
     """Search for items (products, materials, services) by name or SKU — returns multiple matching items.
 
-    Use this as the starting point when you need to find items. Returns item IDs
-    and SKUs needed by other tools like create_purchase_order or check_inventory.
-    For full details on a specific item, follow up with get_variant_details.
+    Use this as the starting point when you need to find items. Each result
+    carries two ids: ``id`` is the **variant id** (pass to get_variant_details,
+    check_inventory, and order / PO / MO line items), and ``parent_id`` is the
+    **item id** (pass to modify_item, get_item, delete_item — they route by
+    ``type`` to /products|materials|services/{id} and require the item id, not
+    the variant id). For full details on a specific item, follow up with
+    get_variant_details.
 
     By default, archived items are excluded. Pass ``include_archived=true`` to
     surface them (each row carries an ``is_archived`` flag). To unarchive an
@@ -926,8 +987,11 @@ async def get_item(
     set, and type-specific fields (``is_producible`` on products, etc.)
     stay ``None`` for the other types.
 
-    Use after search_items. For variant-level detail (barcodes, supplier
-    codes, custom fields), follow up with ``get_variant_details``.
+    Use after search_items: pass the item's ``parent_id`` (the item id), NOT
+    the ``id`` (variant id). A service/product/material item id differs from
+    its variant id; passing the variant id here 404s. For variant-level detail
+    (barcodes, supplier codes, custom fields), follow up with
+    ``get_variant_details`` (which takes the variant ``id``).
     """
     response = await _get_item_impl(request, context)
     return _item_details_to_tool_result(response)
@@ -1263,6 +1327,33 @@ def coerce_variant_config_attributes(
     ]
 
 
+# Service header fields that Katana echoes on the nested first variant of the
+# updated ``Service`` rather than on the Service object itself — the response
+# verifier must read them from ``outcome.variants[0]`` or they read as ``None``
+# and verify spuriously as False on a successful update. Only these three need
+# the override: the other ``ItemHeaderPatch`` fields valid for services
+# (``name``, ``uom``, ``category_name``, ``is_sellable``, ``additional_info``,
+# ``is_archived``) echo correctly on the top-level ``Service`` and verify via
+# the default ``getattr(outcome, ...)`` path.
+_SERVICE_VARIANT_VERIFY_FIELDS = ("sales_price", "default_cost", "sku")
+
+
+def _service_variant_value(field: str) -> Callable[[Any], Any]:
+    """Build a ``value_source`` reader for a service field on the first variant.
+
+    Returns ``None`` when the echoed ``Service`` carries no variants (so the
+    verifier records a mismatch rather than crashing).
+    """
+
+    def read(outcome: Any) -> Any:
+        variants = unwrap_unset(getattr(outcome, "variants", None), None) or []
+        if not variants:
+            return None
+        return getattr(variants[0], field, None)
+
+    return read
+
+
 def _build_update_header_request(
     patch: ItemHeaderPatch, item_type: ItemType, existing_item: Any | None = None
 ) -> Any:
@@ -1409,6 +1500,13 @@ async def _modify_item_impl(
         diff = compute_field_diff(
             existing_item, request.update_header, unknown_prior=existing_item is None
         )
+        # Services echo pricing/SKU on the nested first variant, not the
+        # Service header — point the verifier at the variant for those fields.
+        header_value_source = (
+            {f: _service_variant_value(f) for f in _SERVICE_VARIANT_VERIFY_FIELDS}
+            if request.type == ItemType.SERVICE
+            else None
+        )
         plan.append(
             ActionSpec(
                 operation=ItemOperation.UPDATE_HEADER,
@@ -1423,7 +1521,7 @@ async def _modify_item_impl(
                     ),
                     return_type=cfg["return_type"],
                 ),
-                verify=make_response_verifier(diff),
+                verify=make_response_verifier(diff, value_source=header_value_source),
             )
         )
 
@@ -1497,12 +1595,16 @@ async def modify_item(
 ) -> ToolResult:
     """Modify an item — unified surface across header + variant CRUD.
 
-    The required ``type`` discriminator (PRODUCT / MATERIAL / SERVICE)
-    routes header updates to the matching API endpoint family. Variant
-    sub-payloads (``add_variants`` / ``update_variants`` /
-    ``delete_variant_ids``) route to the shared ``/variant`` family —
-    available for PRODUCT and MATERIAL only; services carry pricing on
-    the header itself (``sales_price``, ``default_cost``, ``sku``).
+    ``id`` is the **item id** (search_items' ``parent_id``), NOT the variant
+    ``id``: the item id differs from its variant id, and passing the variant
+    id routes to /products|materials|services/{id} and 404s — most visibly for
+    services, whose only modify path is ``update_header``. The required
+    ``type`` discriminator (PRODUCT / MATERIAL / SERVICE) routes header updates
+    to the matching API endpoint family. Variant sub-payloads
+    (``add_variants`` / ``update_variants`` / ``delete_variant_ids``) route to
+    the shared ``/variant`` family — available for PRODUCT and MATERIAL only;
+    services carry pricing on the header itself (``sales_price``,
+    ``default_cost``, ``sku``).
 
     Sub-payloads (any subset, all optional):
 

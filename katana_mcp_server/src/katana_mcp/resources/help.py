@@ -501,8 +501,12 @@ Include archived rows:
 {"query": "old style", "include_archived": true}
 ```
 
-**Returns:** List of matching items with ID, SKU, name, sellable status,
-and archived state.
+**Returns:** List of matching items, each with two ids — `id` (the **variant
+id**, for `get_variant_details` / `check_inventory` / order / PO / MO line
+items) and `parent_id` (the **item id**, for `get_item` / `modify_item` /
+`delete_item`) — plus SKU, name, sellable status, and archived state. The two
+differ (a service/product/material item id is not its variant id); pass
+`parent_id`, not `id`, to the item CRUD tools or they 404.
 
 **Archive workflow:** Katana doesn't expose dedicated archive/unarchive
 endpoints. Instead, archive state is a writable boolean on the item header
@@ -925,11 +929,12 @@ polymorphic Product / Material / Service record, plus nested `variants`
 (`is_producible` on products, etc.) stay `null` for the other types.
 
 **Parameters:**
-- `id` (required): Item ID
+- `id` (required): Item id — `search_items`' `parent_id`, NOT the variant
+  `id`. They differ; the variant id 404s here.
 - `type` (required): "product" | "material" | "service"
 
 For per-variant detail (barcodes, supplier codes, custom fields), follow
-up with `get_variant_details`.
+up with `get_variant_details` (which takes the variant `id`).
 
 ---
 
@@ -967,7 +972,10 @@ endpoint; variant sub-payloads route to the shared `/variant` family.
   for SERVICE.
 
 **Parameters:**
-- `id` (required): Item ID
+- `id` (required): Item id — `search_items`' `parent_id`, NOT the variant
+  `id`. They differ; passing the variant id routes to
+  `/products|materials|services/{id}` and 404s (most visibly for services,
+  whose only modify path is `update_header`).
 - `type` (required): "product" | "material" | "service"
 - Any subset of the sub-payloads above
 - `preview` (optional, default true): true=preview, false=execute
@@ -998,7 +1006,7 @@ To find an archived item before unarchiving it, call `search_items` with
 Delete an item. Destructive — Katana cascades child variants server-side.
 
 **Parameters:**
-- `id` (required): Item ID
+- `id` (required): Item id — `search_items`' `parent_id`, NOT the variant `id`.
 - `type` (required): "product" | "material" | "service"
 - `preview` (optional, default true): true=preview, false=delete
 

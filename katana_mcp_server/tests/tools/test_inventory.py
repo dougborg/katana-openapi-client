@@ -727,6 +727,178 @@ async def test_search_items_multiple_results():
     assert result.items[1].is_sellable is False
 
 
+@pytest.mark.asyncio
+async def test_search_items_parent_id_for_product_and_material():
+    """parent_id is the product/material item id (not the variant id)."""
+    context, lifespan_ctx = create_mock_context()
+
+    cached_variants = [
+        {
+            "id": 111,
+            "product_id": 222,
+            "sku": "PROD-1",
+            "type": "product",
+            "display_name": "Product One",
+        },
+        {
+            "id": 333,
+            "material_id": 444,
+            "sku": "MAT-1",
+            "type": "material",
+            "display_name": "Material One",
+        },
+    ]
+    lifespan_ctx.typed_cache.catalog.smart_search = AsyncMock(
+        return_value=cached_variants
+    )
+
+    result = await _search_items_impl(SearchItemsRequest(query="one"), context)
+
+    by_sku = {item.sku: item for item in result.items}
+    # id stays the variant id; parent_id carries the item id for modify_item.
+    assert by_sku["PROD-1"].id == 111
+    assert by_sku["PROD-1"].parent_id == 222
+    assert by_sku["MAT-1"].id == 333
+    assert by_sku["MAT-1"].parent_id == 444
+
+
+@pytest.mark.asyncio
+async def test_search_items_parent_id_for_service_resolves_via_cached_service():
+    """Service rows resolve parent_id (service item id) from CachedService.
+
+    A service variant carries null product_id/material_id and no parent
+    column; the parent service item id lives on CachedService (its ``id``,
+    with the variant id in its nested ``variants``). This is the bug case:
+    the variant id (what search returns as ``id``) differs from the service
+    item id (``parent_id``) that modify_item/get_item require.
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    lifespan_ctx.typed_cache.catalog.smart_search = AsyncMock(
+        return_value=[
+            {
+                "id": 40722022,  # service VARIANT id
+                "product_id": None,
+                "material_id": None,
+                "sku": "LABOR",
+                "type": "service",
+                "display_name": "LABOR",
+            }
+        ]
+    )
+    lifespan_ctx.typed_cache.catalog.get_all = AsyncMock(
+        return_value=[
+            {
+                "id": 17253805,  # service ITEM id (parent)
+                "variants": [{"id": 40722022, "service_id": 17253805, "sku": "LABOR"}],
+            }
+        ]
+    )
+
+    result = await _search_items_impl(SearchItemsRequest(query="labor"), context)
+
+    assert result.items[0].id == 40722022
+    assert result.items[0].parent_id == 17253805
+    assert result.items[0].parent_id != result.items[0].id
+    # CachedService is queried to build the variant->service map.
+    from katana_public_api_client.models_pydantic._generated import CachedService
+
+    lifespan_ctx.typed_cache.catalog.get_all.assert_awaited_once_with(
+        CachedService, include_archived=False
+    )
+
+
+@pytest.mark.asyncio
+async def test_search_items_service_parent_id_resolves_archived_service():
+    """include_archived=true must reach get_all so archived service hits resolve.
+
+    Without threading the flag through, get_all defaults to excluding archived
+    services and an archived service hit would lose its parent_id.
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    lifespan_ctx.typed_cache.catalog.smart_search = AsyncMock(
+        return_value=[
+            {
+                "id": 40722022,
+                "product_id": None,
+                "material_id": None,
+                "sku": "LABOR",
+                "type": "service",
+                "display_name": "LABOR",
+            }
+        ]
+    )
+    lifespan_ctx.typed_cache.catalog.get_all = AsyncMock(
+        return_value=[
+            {"id": 17253805, "variants": [{"id": 40722022, "service_id": 17253805}]}
+        ]
+    )
+
+    result = await _search_items_impl(
+        SearchItemsRequest(query="labor", include_archived=True), context
+    )
+
+    assert result.items[0].parent_id == 17253805
+    from katana_public_api_client.models_pydantic._generated import CachedService
+
+    lifespan_ctx.typed_cache.catalog.get_all.assert_awaited_once_with(
+        CachedService, include_archived=True
+    )
+
+
+@pytest.mark.asyncio
+async def test_search_items_service_parent_id_none_when_services_empty():
+    """A service row degrades to parent_id=None when CachedService is empty.
+
+    Better to return None (the caller learns the parent isn't resolvable)
+    than to emit the wrong-id-space variant id as the parent.
+    """
+    context, lifespan_ctx = create_mock_context()
+
+    lifespan_ctx.typed_cache.catalog.smart_search = AsyncMock(
+        return_value=[
+            {
+                "id": 40722022,
+                "product_id": None,
+                "material_id": None,
+                "sku": "LABOR",
+                "type": "service",
+                "display_name": "LABOR",
+            }
+        ]
+    )
+    # get_all returns [] by default in create_mock_context — no service rows.
+
+    result = await _search_items_impl(SearchItemsRequest(query="labor"), context)
+
+    assert result.items[0].id == 40722022
+    assert result.items[0].parent_id is None
+    # The join WAS attempted (service in results) but found nothing — pins that
+    # parent_id=None is the empty-cache degrade path, not a skipped lookup.
+    from katana_public_api_client.models_pydantic._generated import CachedService
+
+    lifespan_ctx.typed_cache.catalog.get_all.assert_awaited_once_with(
+        CachedService, include_archived=False
+    )
+
+
+@pytest.mark.asyncio
+async def test_search_items_skips_service_join_when_no_service_rows():
+    """The CachedService read is skipped entirely for product/material-only hits."""
+    context, lifespan_ctx = create_mock_context()
+
+    lifespan_ctx.typed_cache.catalog.smart_search = AsyncMock(
+        return_value=[
+            {"id": 1, "product_id": 2, "sku": "P", "type": "product"},
+        ]
+    )
+
+    await _search_items_impl(SearchItemsRequest(query="p"), context)
+
+    lifespan_ctx.typed_cache.catalog.get_all.assert_not_awaited()
+
+
 # ============================================================================
 # get_inventory_movements Tests
 # ============================================================================

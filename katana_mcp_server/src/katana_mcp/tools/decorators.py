@@ -104,6 +104,33 @@ async def _run_sync(
     await sync_fn(services.client, services.typed_cache)
 
 
+async def ensure_cache_synced(
+    services: Services, *cached_classes: type[SQLModel]
+) -> None:
+    """Imperatively sync ``Cached*`` classes — the runtime twin of ``@cache_read``.
+
+    For syncs a decorator can't express because the need is *conditional* on
+    the tool's own results: ``search_items`` only needs the service table when
+    a service actually appears in the result set, which it can't know until
+    after the variant search runs. Routed through the same ``_get_sync_fns()``
+    registry as the decorator, so tests that patch ``_sync_fns`` (e.g. the
+    ``_patch_cache_sync`` fixture) neutralize it for free.
+
+    Unlike ``@cache_read`` — which validates eagerly and raises ``ValueError``
+    at decoration time for an unregistered ``Cached*`` class — this runtime
+    helper silently skips classes absent from the registry. That difference is
+    deliberate: the decorator's classes are import-time literals (a typo should
+    fail loudly at import), whereas here a class can be legitimately absent at
+    call time (the ``_patch_cache_sync`` fixture swaps in a registry that omits
+    ``CachedService``), and skipping is exactly how that no-ops in tests.
+    """
+    sync_fns = _get_sync_fns()
+    for cached_cls in cached_classes:
+        sync_fn = sync_fns.get(cached_cls)
+        if sync_fn is not None:
+            await _run_sync(services, sync_fn)
+
+
 def cache_read(*cached_classes: type[SQLModel]) -> Callable:
     """Sync the typed cache for given ``Cached*`` classes before the tool runs.
 
