@@ -165,9 +165,22 @@ class CreatePurchaseOrderRequest(BaseModel):
     currency: str | None = Field(
         default=None, description="Currency code (e.g., USD, EUR)"
     )
-    status: Literal["DRAFT", "NOT_RECEIVED"] | None = Field(
-        default=None,
-        description="Initial status — 'DRAFT' or 'NOT_RECEIVED' (default: NOT_RECEIVED)",
+    status: Literal["DRAFT", "NOT_RECEIVED"] = Field(
+        default="DRAFT",
+        description=(
+            "Initial status for the new PO. Defaults to 'DRAFT'.\n"
+            "- 'DRAFT': an unsent draft you can review and edit before "
+            "committing the order to the supplier. This is the safe default "
+            "for orders created programmatically that a human hasn't approved "
+            "yet.\n"
+            "- 'NOT_RECEIVED': the order is already placed/sent to the "
+            "supplier and awaiting receipt — use this only when the PO has "
+            "genuinely been ordered.\n"
+            "The later lifecycle states (PARTIALLY_RECEIVED, RECEIVED) are "
+            "reached via receive_purchase_order, not at creation. To move a "
+            "PO between DRAFT and NOT_RECEIVED after creation, use "
+            "modify_purchase_order."
+        ),
     )
     entity_type: PurchaseOrderEntityType | None = Field(
         default=None,
@@ -325,7 +338,7 @@ async def _create_purchase_order_impl(
             supplier_name=supplier_name,
             location_id=request.location_id,
             location_name=location_name,
-            status=request.status or "NOT_RECEIVED",
+            status=request.status,
             entity_type=request.entity_type or "regular",
             total_cost=total_cost,
             currency=request.currency,
@@ -381,9 +394,12 @@ async def _create_purchase_order_impl(
             purchase_order_rows=po_rows,
             entity_type=entity_type_attr,
             currency=to_unset(request.currency),
-            status=CreatePurchaseOrderInitialStatus(request.status)
-            if request.status is not None
-            else UNSET,
+            # Always send status explicitly. The field defaults to DRAFT (see
+            # CreatePurchaseOrderRequest.status) — a programmatically created PO
+            # that a human hasn't approved is a draft, not an already-placed
+            # order — so we never leave it UNSET and inherit Katana's
+            # NOT_RECEIVED default.
+            status=CreatePurchaseOrderInitialStatus(request.status),
             order_created_date=to_unset(request.order_created_date),
             expected_arrival_date=to_unset(request.expected_arrival_date),
             tracking_location_id=to_unset(request.tracking_location_id),
@@ -454,6 +470,13 @@ async def create_purchase_order(
     then preview=false to create. Requires supplier_id,
     location_id, order_number, and at least one line item with variant_id,
     quantity, and price_per_unit. Use get_variant_details to look up variant IDs.
+
+    Status: new POs are created in DRAFT by default — an unsent draft you can
+    review and edit before committing it to the supplier. Pass
+    status="NOT_RECEIVED" to create an order that's already been placed and is
+    awaiting receipt. (The later RECEIVED / PARTIALLY_RECEIVED states are
+    reached via receive_purchase_order; flip a PO between DRAFT and
+    NOT_RECEIVED after creation with modify_purchase_order.)
     """
     response = await _create_purchase_order_impl(request, context)
     return _po_response_to_tool_result(response, request=request)

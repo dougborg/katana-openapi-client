@@ -497,6 +497,122 @@ async def test_create_purchase_order_apply_omits_unset_header_fields():
 
 
 @pytest.mark.asyncio
+async def test_create_purchase_order_apply_defaults_to_draft_status():
+    """When status is omitted, the API body must carry an explicit DRAFT — a
+    programmatically created PO that a human hasn't approved is a draft, not an
+    already-placed order. Katana's own default is NOT_RECEIVED, so the MCP layer
+    sends DRAFT explicitly rather than leaving status UNSET.
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
+
+    from katana_public_api_client.models import (
+        CreatePurchaseOrderInitialStatus,
+        PurchaseOrderStatus as APIPurchaseOrderStatus,
+    )
+
+    mock_po = mock_entity_for_modify(
+        RegularPurchaseOrder,
+        id=9110,
+        order_no="PO-DRAFT-001",
+        supplier_id=4001,
+        location_id=1,
+        status=APIPurchaseOrderStatus.DRAFT,
+    )
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = mock_po
+    mock_api_call = AsyncMock(return_value=mock_response)
+
+    import katana_public_api_client.api.purchase_order.create_purchase_order as create_po_module
+
+    original = create_po_module.asyncio_detailed
+    cast(Any, create_po_module).asyncio_detailed = mock_api_call
+    try:
+        request = CreatePurchaseOrderRequest(
+            supplier_id=4001,
+            location_id=1,
+            order_number="PO-DRAFT-001",
+            items=[PurchaseOrderItem(variant_id=1, quantity=1, price_per_unit=1.0)],
+            preview=False,
+        )
+        await _create_purchase_order_impl(request, context)
+    finally:
+        cast(Any, create_po_module).asyncio_detailed = original
+
+    api_body = mock_api_call.call_args.kwargs["body"]
+    assert api_body.status is CreatePurchaseOrderInitialStatus.DRAFT
+
+
+@pytest.mark.asyncio
+async def test_create_purchase_order_apply_forwards_explicit_not_received():
+    """An explicit status='NOT_RECEIVED' must override the DRAFT default and
+    reach the API body unchanged — callers can still create already-placed
+    orders awaiting receipt.
+    """
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
+
+    from katana_public_api_client.models import (
+        CreatePurchaseOrderInitialStatus,
+        PurchaseOrderStatus as APIPurchaseOrderStatus,
+    )
+
+    mock_po = mock_entity_for_modify(
+        RegularPurchaseOrder,
+        id=9111,
+        order_no="PO-NR-001",
+        supplier_id=4001,
+        location_id=1,
+        status=APIPurchaseOrderStatus.NOT_RECEIVED,
+    )
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = mock_po
+    mock_api_call = AsyncMock(return_value=mock_response)
+
+    import katana_public_api_client.api.purchase_order.create_purchase_order as create_po_module
+
+    original = create_po_module.asyncio_detailed
+    cast(Any, create_po_module).asyncio_detailed = mock_api_call
+    try:
+        request = CreatePurchaseOrderRequest(
+            supplier_id=4001,
+            location_id=1,
+            order_number="PO-NR-001",
+            items=[PurchaseOrderItem(variant_id=1, quantity=1, price_per_unit=1.0)],
+            status="NOT_RECEIVED",
+            preview=False,
+        )
+        await _create_purchase_order_impl(request, context)
+    finally:
+        cast(Any, create_po_module).asyncio_detailed = original
+
+    api_body = mock_api_call.call_args.kwargs["body"]
+    assert api_body.status is CreatePurchaseOrderInitialStatus.NOT_RECEIVED
+
+
+@pytest.mark.asyncio
+async def test_create_purchase_order_preview_defaults_to_draft_status():
+    """The preview card must reflect the DRAFT default so the operator sees the
+    state the PO will be created in before applying.
+    """
+    context, _ = create_mock_context()
+
+    request = CreatePurchaseOrderRequest(
+        supplier_id=4001,
+        location_id=1,
+        order_number="PO-PREVIEW-DRAFT",
+        items=[PurchaseOrderItem(variant_id=1, quantity=1, price_per_unit=1.0)],
+        preview=True,
+    )
+    result = await _create_purchase_order_impl(request, context)
+
+    assert result.is_preview is True
+    assert result.status == "DRAFT"
+
+
+@pytest.mark.asyncio
 async def test_create_purchase_order_apply_fails_fast_on_outsourced_without_tracking():
     """Apply path must raise ValueError immediately when entity_type='outsourced'
     without tracking_location_id, instead of relying on Katana to 422.
