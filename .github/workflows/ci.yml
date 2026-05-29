@@ -192,3 +192,48 @@ jobs:
           CI_DOCS_BUILD: "true"
           NO_MKDOCS_2_WARNING: "true"
           DISABLE_MKDOCS_2_WARNING: "true"
+
+  # Regenerate the client + pydantic models from the spec and fail if the
+  # committed output drifts from what the (now exactly-pinned) generators
+  # produce. Catches the failure mode in #874: a loose codegen floor silently
+  # changed generated types and nothing flagged it because no check regenerated.
+  generated-files:
+    needs: changes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip for docs-only changes
+        if: needs.changes.outputs.code == 'false' && needs.changes.outputs.spec == 'false'
+        run: echo "Skipping generated-file freshness check for documentation-only changes"
+
+      - name: Checkout code
+        if: needs.changes.outputs.code == 'true' || needs.changes.outputs.spec == 'true'
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        if: needs.changes.outputs.code == 'true' || needs.changes.outputs.spec == 'true'
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.14"
+
+      - name: Install dependencies
+        if: needs.changes.outputs.code == 'true' || needs.changes.outputs.spec == 'true'
+        run: uv sync --all-extras
+
+      - name: Regenerate client + pydantic models
+        if: needs.changes.outputs.code == 'true' || needs.changes.outputs.spec == 'true'
+        run: uv run poe regenerate-all
+
+      - name: Fail if generated files are stale
+        if: needs.changes.outputs.code == 'true' || needs.changes.outputs.spec == 'true'
+        run: |
+          if ! git diff --exit-code -- \
+            katana_public_api_client/api \
+            katana_public_api_client/models \
+            katana_public_api_client/client.py \
+            katana_public_api_client/models_pydantic/_generated \
+            katana_public_api_client/models_pydantic/_auto_registry.py; then
+            echo "::error::Generated files are out of date. Run 'uv run poe regenerate-all' and commit the result."
+            exit 1
+          fi
