@@ -42,8 +42,12 @@ class TestModificationCardRender:
         assert templated.locator("td").count() >= 4  # 2 rows x 2 cells
 
     def test_modify_single_action_preview_renders(self, render_scenario):
-        """Single-action modify card: 1 action row, Confirm button visible."""
-        frame = render_scenario("modify_item_single_preview")
+        """Single-action generic modify card: 1 action row, Confirm visible.
+
+        Uses an MO modify (still on the legacy generic card) now that item
+        modify routes to its dedicated ``build_item_modify_ui`` (#726).
+        """
+        frame = render_scenario("modify_mo_single_preview")
         assert frame.locator("table").count() == 1
         # Header + 1 action row.
         assert frame.locator("table tr").count() == 2
@@ -120,6 +124,42 @@ class TestModificationCardRender:
         # 4 actions (1 add + 1 update + 2 delete), so 4 APPLIED cells in
         # the rendered table.
         assert frame.locator("td").filter(has_text="APPLIED").count() >= 4
+
+    def test_item_modify_mixed_preview_renders_dual_diff(self, render_scenario):
+        """#726 item modify card — a header ``uom`` change + (1 variant add +
+        1 update + 1 delete) renders both diff surfaces: the decorated header
+        line and the variant diff table with every kind visible. The resolved
+        supplier name surfaces (never a bare ``#id``).
+        """
+        frame = render_scenario("item_modify_mixed_preview")
+        # Header identity + resolved supplier name (anti-pattern #7).
+        assert frame.locator("text=Carbon Wheelset").count() >= 1
+        assert frame.locator("text=Acme Carbon Co").count() >= 1
+        # Header scalar diff arrow.
+        assert frame.locator("text=pcs → set").count() >= 1
+        # Variant diff table: added SKU (+ gutter), updated price arrow,
+        # deleted SKU (- gutter).
+        assert frame.locator("td").filter(has_text="WHL-CARB-DISC").count() >= 1
+        assert frame.locator("td").filter(has_text="1200 → 1250").count() >= 1
+        assert frame.locator("td").filter(has_text="WHL-CARB-650B").count() >= 1
+        # Plan summary line.
+        assert frame.locator("text=+1 added").count() >= 1
+        assert frame.locator("text=~1 updated").count() >= 1
+        assert frame.locator("text=-1 deleted").count() >= 1
+        # Confirm button (preview state).
+        assert frame.locator("button").filter(has_text="Confirm").count() == 1
+        # Anti-pattern guard: no internal ActionResult labels leak.
+        assert frame.locator("td").filter(has_text="Add Variant").count() == 0
+        assert frame.locator("td").filter(has_text="field(s) set").count() == 0
+
+    def test_item_modify_mixed_applied_renders_per_row_status(self, render_scenario):
+        """#726 applied item modify card — every plan-derived variant row
+        shows APPLIED in the Status column; the header badge says APPLIED.
+        """
+        frame = render_scenario("item_modify_mixed_applied")
+        assert frame.locator("table").count() >= 1
+        # 3 variant actions (add + update + delete) → 3 APPLIED status cells.
+        assert frame.locator("td").filter(has_text="APPLIED").count() >= 3
 
     def test_so_modify_partial_failure_applied_renders(self, render_scenario):
         """#723 SO modify card — partial-failure applied state renders the
@@ -345,7 +385,7 @@ class TestModificationCardRender:
         dropping them.
 
         Same wire shape as the ``modify_sales_order`` fail-fast scenario
-        above — proves the row merge in :func:`_so_actions_with_not_run_tail`
+        above — proves the row merge in :func:`_actions_with_not_run_tail`
         is tool-agnostic (it keys on ``response.extras``, not ``confirm_tool``).
         Standalone-applied test, not click-through: the impl-side fix is
         verified in :file:`test_corrections.py`; this proves the JS-side

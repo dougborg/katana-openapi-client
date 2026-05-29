@@ -24,6 +24,7 @@ from katana_mcp.tools.prefab_ui import (
     build_inventory_check_ui,
     build_item_create_ui,
     build_item_detail_ui,
+    build_item_modify_ui,
     build_low_stock_ui,
     build_mo_create_ui,
     build_modification_preview_ui,
@@ -5287,6 +5288,486 @@ class TestBuildBOMModifyUI:
         kinds = [r["kind"] for r in plan_rows]
         assert kinds.count("existing") == 2
         assert kinds.count("added") == 1
+
+
+class TestBuildItemModifyUI:
+    """``build_item_modify_ui`` (#726) — the diff-decorated item modify/delete
+    card.
+
+    Two diff surfaces: header scalar fields (``_render_item_entity_view``
+    overlay) and the variants collection (shared collection-diff table). Sub-
+    type variance: product/material render the variant table, services don't.
+    Mirrors the BOM modify card's preview→apply morph + outcome chrome.
+    """
+
+    # Raw ``Product.to_dict()`` shape — the wire form ``serialize_for_prior_state``
+    # produces for the item modify ``prior_state`` snapshot. ``default_supplier_name``
+    # is stamped on server-side (``_resolve_prior_supplier_name``); the card
+    # reads it for the supplier line.
+    _ITEM_PRIOR: ClassVar[dict[str, Any]] = {
+        "id": 500,
+        "name": "Carbon Wheelset",
+        "uom": "pcs",
+        "category_name": "Wheels",
+        "additional_info": "Hand-built",
+        "is_sellable": True,
+        "is_producible": True,
+        "batch_tracked": False,
+        "serial_tracked": False,
+        "archived_at": None,
+        "default_supplier_id": 77,
+        "default_supplier_name": "Acme Carbon Co",
+        "lead_time": 14,
+        "minimum_order_quantity": 2,
+        "variants": [
+            {
+                "id": 9001,
+                "sku": "WHL-CARB-700C",
+                "sales_price": 1200.0,
+                "purchase_price": 800.0,
+            },
+            {
+                "id": 9002,
+                "sku": "WHL-CARB-650B",
+                "sales_price": 1150.0,
+                "purchase_price": 760.0,
+            },
+        ],
+    }
+
+    @classmethod
+    def _preview(
+        cls,
+        actions: list[dict[str, Any]] | None = None,
+        *,
+        entity_type: str = "product",
+        **overrides: Any,
+    ) -> dict[str, Any]:
+        return {
+            "entity_type": entity_type,
+            "entity_id": 500,
+            "is_preview": True,
+            "actions": actions or [],
+            "prior_state": dict(cls._ITEM_PRIOR),
+            "extras": {},
+            "warnings": [],
+            "next_actions": [],
+            "message": "Preview",
+            "katana_url": "https://factory.katanamrp.com/product/500",
+            **overrides,
+        }
+
+    @classmethod
+    def _applied(
+        cls, actions: list[dict[str, Any]] | None = None, **overrides: Any
+    ) -> dict[str, Any]:
+        return cls._preview(actions, is_preview=False, **overrides)
+
+    @staticmethod
+    def _header_action(*, field: str, old: Any, new: Any, **overrides: Any) -> dict:
+        return {
+            "operation": "update_header",
+            "target_id": 500,
+            "succeeded": None,
+            "changes": [{"field": field, "old": old, "new": new}],
+            "status_label": "PLANNED",
+            **overrides,
+        }
+
+    @staticmethod
+    def _add_variant_action(
+        *, sku: str, sales_price: float | None = None, **overrides: Any
+    ) -> dict:
+        changes: list[dict[str, Any]] = [
+            {"field": "sku", "old": None, "new": sku, "is_added": True}
+        ]
+        if sales_price is not None:
+            changes.append(
+                {
+                    "field": "sales_price",
+                    "old": None,
+                    "new": sales_price,
+                    "is_added": True,
+                }
+            )
+        return {
+            "operation": "add_variant",
+            "target_id": None,
+            "succeeded": None,
+            "changes": changes,
+            "status_label": "PLANNED",
+            **overrides,
+        }
+
+    @staticmethod
+    def _update_variant_action(
+        *, target_id: int, old_price: float, new_price: float, **overrides: Any
+    ) -> dict:
+        return {
+            "operation": "update_variant",
+            "target_id": target_id,
+            "succeeded": None,
+            "changes": [
+                {"field": "sales_price", "old": old_price, "new": new_price},
+            ],
+            "status_label": "PLANNED",
+            **overrides,
+        }
+
+    @staticmethod
+    def _delete_variant_action(*, target_id: int, **overrides: Any) -> dict:
+        return {
+            "operation": "delete_variant",
+            "target_id": target_id,
+            "succeeded": None,
+            "changes": [],
+            "status_label": "PLANNED",
+            **overrides,
+        }
+
+    def test_header_only_modify_decorates_scalar_diff(self):
+        """A header-field change renders a before→after diff line; the resolved
+        supplier name surfaces (never a bare ``#id``)."""
+        actions = [self._header_action(field="uom", old="pcs", new="set")]
+        app = build_item_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_item",
+        )
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "Carbon Wheelset" in rendered
+        # Diff arrow on the changed UoM line.
+        assert "pcs → set" in rendered
+        # Supplier name resolved server-side — not a raw "#77".
+        assert "Acme Carbon Co" in rendered
+        assert "#77" not in rendered
+
+    def test_rename_surfaces_name_diff(self):
+        """A header ``name`` rename must surface a before→after diff — the
+        card title is built from the prior snapshot, so without the name diff
+        line the rename would show nowhere (Copilot #875)."""
+        actions = [
+            self._header_action(field="name", old="Carbon Wheelset", new="Carbon Pro")
+        ]
+        app = build_item_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_item",
+        )
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "Carbon Wheelset → Carbon Pro" in rendered
+
+    def test_service_pricing_change_surfaces_diff(self):
+        """Services carry pricing/SKU on the header and have no variant table,
+        so a service ``sales_price`` / ``sku`` modify must still render a
+        field-level diff. Prices arrive as Decimal (compute_field_diff →
+        _normalize), so the shared diff formatter must trim them, not ``repr``
+        as ``Decimal('50.00…')`` (Copilot #875)."""
+        from decimal import Decimal
+
+        actions = [
+            self._header_action(
+                field="sales_price",
+                old=Decimal("50.0000000000"),
+                new=Decimal("65.0000000000"),
+            ),
+            self._header_action(field="sku", old="SVC-OLD", new="SVC-NEW"),
+        ]
+        app = build_item_modify_ui(
+            self._preview(actions, entity_type="service"),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_item",
+        )
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "50 → 65" in rendered
+        assert "Decimal" not in rendered
+        assert "SVC-OLD → SVC-NEW" in rendered
+
+    def test_status_flag_change_surfaces_diff(self):
+        """Boolean header flags (is_sellable / is_producible / tracking) aren't
+        carried by the diff-unaware Tier-1 pills, so a flag modify must render
+        an explicit ``yes → no`` diff line (Copilot #875)."""
+        actions = [
+            self._header_action(field="is_sellable", old=True, new=False),
+            self._header_action(field="batch_tracked", old=False, new=True),
+        ]
+        app = build_item_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_item",
+        )
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "yes → no" in rendered  # is_sellable True → False
+        assert "no → yes" in rendered  # batch_tracked False → True
+
+    def test_variant_crud_renders_all_kinds_and_summary(self):
+        """1 add + 1 update + 1 delete + 1 untouched: every row kind appears
+        in the variant table and the summary line counts them."""
+        actions = [
+            self._add_variant_action(sku="WHL-CARB-DISC", sales_price=1300.0),
+            self._update_variant_action(
+                target_id=9001, old_price=1200.0, new_price=1250.0
+            ),
+            self._delete_variant_action(target_id=9002),
+        ]
+        app = build_item_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_item",
+        )
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        # Added variant SKU with the "+ " gutter.
+        assert "+ WHL-CARB-DISC" in rendered
+        # Updated variant's price diff arrow.
+        assert "1200 → 1250" in rendered
+        # Deleted variant's identity preserved with the "- " gutter.
+        assert "- WHL-CARB-650B" in rendered
+        # Summary line.
+        assert "+1 added" in rendered
+        assert "~1 updated" in rendered
+        assert "-1 deleted" in rendered
+
+    def test_variant_rows_land_in_state_for_datatable_binding(self):
+        """The variant rows seed ``state.variant_rows`` so the state-bound
+        DataTable resolves (and morphs on apply)."""
+        actions = [self._add_variant_action(sku="WHL-NEW")]
+        app = build_item_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_item",
+        )
+        assert app.state is not None
+        rows = app.state.get("variant_rows")
+        assert isinstance(rows, list)
+        # 2 existing + 1 added.
+        assert len(rows) == 3
+        kinds = [r["kind"] for r in rows]
+        assert kinds.count("existing") == 2
+        assert kinds.count("added") == 1
+
+    def test_service_has_no_variant_table(self):
+        """Services carry pricing on the header, not on variants — the variant
+        diff table is suppressed even if the snapshot carries variants."""
+        actions = [self._header_action(field="sales_price", old=50.0, new=60.0)]
+        app = build_item_modify_ui(
+            self._preview(actions, entity_type="service"),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_item",
+        )
+        assert app.state is not None
+        # No variant rows seeded for a service.
+        assert app.state.get("variant_rows") == []
+
+    def test_subtype_badge_reflects_entity_type(self):
+        """The type badge reads from the response entity_type (the raw item
+        snapshot has no ``type`` echo)."""
+        for entity_type in ("product", "material", "service"):
+            app = build_item_modify_ui(
+                self._preview(
+                    [self._header_action(field="uom", old="pcs", new="kg")],
+                    entity_type=entity_type,
+                ),
+                confirm_request=_StubRequest(),
+                confirm_tool="modify_item",
+            )
+            rendered = str(app.to_json())
+            assert entity_type in rendered
+
+    def test_delete_uses_delete_verb_and_confirm_label(self):
+        """A delete routes through the same card with the Delete verb +
+        ``Confirm Delete`` affordance."""
+        actions = [
+            {
+                "operation": "delete",
+                "target_id": 500,
+                "succeeded": None,
+                "changes": [],
+                "status_label": "PLANNED",
+            }
+        ]
+        app = build_item_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="delete_item",
+        )
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "Confirm Delete" in rendered
+
+    def test_applied_state_seeds_outcome_slots(self):
+        """On the standalone-applied path the outcome label/variant track the
+        real action outcomes (all-success → APPLIED / default)."""
+        actions = [
+            self._update_variant_action(
+                target_id=9001,
+                old_price=1200.0,
+                new_price=1250.0,
+                succeeded=True,
+                status_label="APPLIED",
+            )
+        ]
+        app = build_item_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_item",
+        )
+        assert app.state is not None
+        assert app.state.get("applied_outcome_label") == "APPLIED"
+        assert app.state.get("applied_outcome_variant") == "default"
+
+    def test_partial_failure_surfaces_failed_summary(self):
+        """A mixed applied outcome seeds the failed-count + summary slots and
+        flips the outcome variant to destructive."""
+        actions = [
+            self._update_variant_action(
+                target_id=9001,
+                old_price=1200.0,
+                new_price=1250.0,
+                succeeded=True,
+                status_label="APPLIED",
+            ),
+            self._delete_variant_action(
+                target_id=9002,
+                succeeded=False,
+                status_label="FAILED",
+                error="variant in use by an open SO",
+            ),
+        ]
+        app = build_item_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_item",
+        )
+        assert app.state is not None
+        assert app.state.get("applied_outcome_label") == "PARTIAL FAILURE"
+        assert app.state.get("applied_outcome_variant") == "destructive"
+        assert app.state.get("applied_failed_count") == 1
+        assert "variant in use by an open SO" in str(
+            app.state.get("applied_failed_summary")
+        )
+
+    def test_not_run_tail_surfaces_in_variant_table(self):
+        """Fail-fast partial apply: the impl stashes the unattempted plan tail
+        in ``extras["not_run_actions"]``; the card must merge them so the
+        morphed table shows the not-run variant rows (NOT RUN) instead of
+        silently dropping them (Copilot #875)."""
+        # Action 1 (delete 9001) failed → execute_plan stopped; the planned
+        # update of 9002 never ran and is synthesized as NOT RUN.
+        applied_actions = [
+            self._delete_variant_action(
+                target_id=9001,
+                succeeded=False,
+                status_label="FAILED",
+                error="variant in use",
+            )
+        ]
+        not_run = [
+            {
+                "operation": "update_variant",
+                "target_id": 9002,
+                "succeeded": None,
+                "error": None,
+                "changes": [{"field": "sales_price", "old": 1150.0, "new": 1200.0}],
+                "status_label": "NOT RUN",
+            }
+        ]
+        app = build_item_modify_ui(
+            self._applied(applied_actions, extras={"not_run_actions": not_run}),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_item",
+        )
+        _assert_valid_prefab(app)
+        assert app.state is not None
+        rows = app.state.get("variant_rows")
+        assert isinstance(rows, list)
+        # Both variants surface: 9001 deleted (FAILED), 9002 updated (NOT RUN).
+        statuses = {r["id"]: r["status_label"] for r in rows}
+        assert statuses.get(9001) == "FAILED"
+        assert statuses.get(9002) == "NOT RUN"
+
+    def test_decimal_prices_render_trimmed_in_card(self):
+        """Prices arrive as Decimal from `compute_field_diff`; the variant
+        table must render them trimmed, not `1200.0000000000` (Copilot #875)."""
+        from decimal import Decimal
+
+        actions = [
+            {
+                "operation": "update_variant",
+                "target_id": 9001,
+                "succeeded": None,
+                "status_label": "PLANNED",
+                "changes": [
+                    {
+                        "field": "sales_price",
+                        "old": Decimal("1200.0000000000"),
+                        "new": Decimal("1250.5000000000"),
+                    }
+                ],
+            }
+        ]
+        app = build_item_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_item",
+        )
+        rendered = str(app.to_json())
+        assert "1200 → 1250.5" in rendered
+        assert "0000000000" not in rendered
+
+    def test_preview_shows_preview_badge_default_outcome(self):
+        """On preview the outcome slots seed the optimistic APPLIED default
+        (the Tier-1 badge shows PREVIEW until the morph overwrites them)."""
+        app = build_item_modify_ui(
+            self._preview([self._add_variant_action(sku="X")]),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_item",
+        )
+        assert app.state is not None
+        # Preview-time defaults — never bucketed from succeeded=None actions.
+        assert app.state.get("applied_outcome_label") == "APPLIED"
+        rendered = str(app.to_json())
+        assert "PREVIEW" in rendered
+
+
+class TestItemModifyDispatch:
+    """``to_tool_result`` routes product / material / service modify responses
+    to ``build_item_modify_ui`` (not the legacy generic card)."""
+
+    @pytest.mark.parametrize("entity_type", ["product", "material", "service"])
+    def test_item_types_route_to_item_modify_card(self, entity_type):
+        from katana_mcp.tools._modification import (
+            ConfirmableRequest,
+            ModificationResponse,
+            to_tool_result,
+        )
+
+        class _StubConfirmable(ConfirmableRequest):
+            id: int = 500
+
+        response = ModificationResponse(
+            entity_type=entity_type,
+            entity_id=500,
+            is_preview=True,
+            actions=[],
+            prior_state={"id": 500, "name": "Thing", "variants": []},
+            warnings=[],
+            next_actions=[],
+            message="Preview",
+        )
+        result = to_tool_result(
+            response, confirm_request=_StubConfirmable(), confirm_tool="modify_item"
+        )
+        envelope = result.structured_content
+        # The item card titles its footer "Item Modify ..."; the generic
+        # legacy card does not. Presence of the item name in the identity
+        # header confirms the item builder ran.
+        rendered = str(envelope)
+        assert "Thing" in rendered
 
 
 class TestPOEntityViewSharedBetweenCreateAndModify:
