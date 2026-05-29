@@ -248,6 +248,26 @@ cycle-detection at engine open, but not load-bearing for variant denormalization
 Cold-start ordering today is handled explicitly: `ensure_variants_synced`
 `asyncio.gather`s the product + material syncs before running the variant sync.
 
+### `service_id` — a *cross-table* cache-only column (`post_sync` + preserve-on-conflict)
+
+`CachedVariant.service_id` is also cache-only, but it's populated differently from the
+four fields above, and the difference matters. A service variant's parent **item** id
+lives on the `/services` payload (`ServiceVariant.service_id`), **not** on `/variants` —
+so `attrs_postprocess` (which only sees the variant's own payload) can't lift it.
+Instead the **service** spec carries a `post_sync` hook
+(`_backfill_service_variant_links`) that, after each service sync, writes `service_id`
+onto the matching `CachedVariant` rows. `search_items` then reads it as a plain column
+to resolve a service's `parent_id` (the id `modify_item` / `get_item` need), and
+`@cache_read(CachedVariant, CachedService)` syncs services before the search so the
+value is in place.
+
+Because `/variants` never carries `service_id`, the variant upsert's blanket
+`ON CONFLICT DO UPDATE SET <every non-id column>` would re-null it on every variant
+delta. The variant spec therefore lists it in
+`preserve_columns_on_conflict=frozenset({"service_id"})` so the backfilled link
+survives. This is a general contract for any cross-table cache-only column — see
+[Cache-only columns written cross-table need preserve-on-conflict](../typed_cache/README.md#cache-only-columns-written-cross-table-need-preserve-on-conflict).
+
 ## Soft-state filtering
 
 The `CatalogQueries` adapter defaults to filtering archived and soft-deleted rows from
