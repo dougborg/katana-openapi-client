@@ -22,16 +22,19 @@ need to change.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Iterable
+from collections.abc import Awaitable, Callable, Iterable
 from contextlib import AsyncExitStack
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from itertools import batched
 from typing import TYPE_CHECKING, Any, Protocol
 
-from sqlalchemy import inspect as sqla_inspect
+from sqlalchemy import (
+    inspect as sqla_inspect,
+    update,
+)
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
-from sqlmodel import SQLModel, delete
+from sqlmodel import SQLModel, delete, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from katana_mcp.logging import get_logger
@@ -197,6 +200,15 @@ class EntitySpec:
     - ``single_record`` — when True, the endpoint returns one record
       directly (Factory) rather than a list-wrapped response. Bypasses
       ``unwrap_data`` and constructs a one-element list internally.
+
+    - ``post_sync`` — an awaitable ``(cache) -> None`` run *after* the
+      entity's rows land (inside the entity lock, after the upsert commit).
+      Used for cross-table denormalization the per-row ``attrs_postprocess``
+      can't do because it has no session — e.g. the service spec backfills
+      ``CachedVariant.service_id`` from each ``CachedService``'s nested
+      variant. Lives on the spec (not just the ``ensure_*`` wrapper) so
+      ``force_resync`` inherits it: a ``rebuild_cache`` of services
+      re-establishes the variant links rather than leaving them stale.
     """
 
     entity_key: str
@@ -210,6 +222,7 @@ class EntitySpec:
     related_specs: tuple[EntitySpec, ...] = field(default_factory=tuple)
     depends_on: tuple[str, ...] = ()
     attrs_postprocess: Callable[[Any, Any], None] | None = None
+    post_sync: Callable[[TypedCacheEngine], Awaitable[None]] | None = None
     extra_fetch_kwargs: dict[str, Any] = field(default_factory=dict)
     supports_incremental: bool = True
     supports_include_deleted: bool = True
@@ -597,6 +610,12 @@ async def _sync_one_locked(
         )
         await session.commit()
 
+    # Cross-table denormalization (e.g. service_id onto variant rows) runs
+    # after the upsert commit, in its own session, still under the entity
+    # lock. Reached by both the normal sync and ``force_resync``.
+    if spec.post_sync is not None:
+        await spec.post_sync(cache)
+
 
 async def merge_filtered_fetch(
     cache: TypedCacheEngine,
@@ -841,6 +860,58 @@ def _variant_postprocess(attrs_obj: Any, cache_row: CachedVariant) -> None:
     cache_row.supplier_item_codes_text = " ".join(codes) if codes else None
 
 
+async def _backfill_service_variant_links(cache: TypedCacheEngine) -> None:
+    """Denormalize ``service_id`` onto the service-type ``CachedVariant`` rows.
+
+    Wired as ``_SERVICE_SPEC.post_sync``; runs after every service sync
+    (normal *and* ``force_resync``), under the service lock, in its own
+    session.
+
+    The parent link only exists on the ``/services`` payload
+    (``ServiceVariant.service_id``); ``/variants`` (the endpoint the variant
+    sync uses) returns service variants with ``product_id=null``,
+    ``material_id=null``, and *no* ``service_id`` — so it can't be lifted in
+    ``_variant_postprocess``, and ``attrs_postprocess`` has no session to
+    reach across tables. Writing the link here lets ``search_items`` read a
+    service's parent item id from the variant row (a keyed lookup) instead of
+    scanning every ``CachedService``.
+
+    Services are 1:1 with variants (the API rejects >1), so each is a
+    single-row ``UPDATE`` keyed on the variant PK. The ``IS DISTINCT FROM``
+    guard makes the steady state a true no-op — no row is touched (and the
+    ``variant_au`` FTS trigger doesn't fire) once the column is already
+    correct, so the full pass on every service sync stays cheap.
+
+    The full pass (not a delta-scoped one) is deliberate: ``_bulk_upsert``
+    sets every non-id column from the payload, so a ``/variants`` delta can
+    transiently null a previously-backfilled ``service_id`` *without* the
+    service itself reappearing in the service delta. Re-linking every service
+    each pass self-heals that case; a delta-scoped backfill would not.
+    ``search_items`` re-reads the variant rows after triggering this sync, so
+    it never observes the pre-backfill value.
+    """
+    variant_id_col: Any = CachedVariant.id
+    service_id_col: Any = CachedVariant.service_id
+    async with cache.session() as session:
+        services = (await session.exec(select(CachedService))).all()
+        for service in services:
+            # ``CachedService.variants`` is a ``PydanticJSON`` column; the read
+            # path returns plain dicts (not ``ServiceVariant`` instances), so
+            # index by key rather than attribute.
+            for sv in service.variants or []:
+                variant_id = sv["id"] if isinstance(sv, dict) else sv.id
+                if variant_id is None:
+                    continue
+                stmt = (
+                    update(CachedVariant)
+                    .where(variant_id_col == variant_id)
+                    .where(service_id_col.is_distinct_from(service.id))
+                    .values(service_id=service.id)
+                )
+                await session.exec(stmt)
+        await session.commit()
+
+
 _PRODUCT_SPEC = EntitySpec(
     entity_key="product",
     api_fn=get_all_products,
@@ -892,6 +963,7 @@ _SERVICE_SPEC = EntitySpec(
     cache_cls=CachedService,
     pydantic_cls=PydanticService,
     extra_fetch_kwargs={"include_archived": True},
+    post_sync=_backfill_service_variant_links,
 )
 
 
@@ -1072,7 +1144,13 @@ async def ensure_variants_synced(client: KatanaClient, cache: TypedCacheEngine) 
 
 
 async def ensure_services_synced(client: KatanaClient, cache: TypedCacheEngine) -> None:
-    """Pull updated services from Katana and upsert into the cache."""
+    """Pull updated services from Katana and upsert into the cache.
+
+    The ``_SERVICE_SPEC.post_sync`` hook then backfills
+    ``CachedVariant.service_id`` from each service's nested variant so
+    ``search_items`` can resolve service ``parent_id`` from a variant row
+    (see :func:`_backfill_service_variant_links`).
+    """
     await _ensure_synced(client, cache, _SERVICE_SPEC)
 
 
