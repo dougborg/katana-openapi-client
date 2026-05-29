@@ -4873,8 +4873,11 @@ class TestMergeBomRowsForModifyCard:
             "changes": [],
             "status_label": "PLANNED",
         }
+        # The drop-warning now fires from the shared collection-diff skeleton
+        # (``merge_collection_diff_rows``) that ``_merge_bom_rows_for_modify_card``
+        # delegates to, not from ``bom_table`` itself.
         with caplog.at_level(
-            logging.WARNING, logger="katana_mcp.tools.foundation.bom_table"
+            logging.WARNING, logger="katana_mcp.tools.foundation.collection_diff"
         ):
             rows = _merge_bom_rows_for_modify_card(
                 self._PRIOR_STATE, [action], self._RESOLVED
@@ -4886,7 +4889,7 @@ class TestMergeBomRowsForModifyCard:
         matched = [
             rec
             for rec in caplog.records
-            if rec.name == "katana_mcp.tools.foundation.bom_table"
+            if rec.name == "katana_mcp.tools.foundation.collection_diff"
             and rec.levelname == "WARNING"
             and "reorder_bom_rows" in rec.getMessage()
         ]

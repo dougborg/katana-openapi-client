@@ -117,6 +117,7 @@ from katana_mcp.tools.foundation.bom_table import (
     _prepare_bom_table_rows,
     _summarize_apply_outcome,
 )
+from katana_mcp.tools.foundation.collection_diff import collection_diff_summary
 from katana_mcp.tools.tool_result_utils import BLOCK_WARNING_PREFIX
 from katana_mcp.web_urls import EntityKind, katana_web_url
 
@@ -4373,26 +4374,6 @@ def build_po_modify_ui(
 # ============================================================================
 
 
-def _bom_row_summary(rows: list[dict[str, Any]]) -> str:
-    """Build the ``+N added, ~M updated, -K deleted`` summary line.
-
-    Only emits buckets that have non-zero counts so the line stays compact
-    on simpler plans. Returns the empty string when the plan is a no-op
-    (existing-only rows) — the caller skips rendering in that case.
-    """
-    added = sum(1 for r in rows if r.get("kind") == "added")
-    updated = sum(1 for r in rows if r.get("kind") == "updated")
-    deleted = sum(1 for r in rows if r.get("kind") == "deleted")
-    parts: list[str] = []
-    if added:
-        parts.append(f"+{added} added")
-    if updated:
-        parts.append(f"~{updated} updated")
-    if deleted:
-        parts.append(f"-{deleted} deleted")
-    return ", ".join(parts)
-
-
 # DataTable columns for the BOM modify card. The Status column renders
 # plain text (PLANNED / APPLIED / FAILED) — DataTable doesn't expose a
 # Badge component per cell, so kind discrimination is carried by the
@@ -4508,10 +4489,10 @@ def build_bom_modify_ui(
         resolved_ingredients=resolved_ingredients,
         extras=extras,
     )
-    # ``_bom_row_summary`` reads ``kind`` per row which is preserved
+    # ``collection_diff_summary`` reads ``kind`` per row which is preserved
     # through ``_prepare_bom_table_rows``, so it works against
     # table_rows directly.
-    summary_line = _bom_row_summary(table_rows)
+    summary_line = collection_diff_summary(table_rows)
 
     # Header content — pulled from the prior_state snapshot (the wire
     # shape of ``GetProductBomResponse.model_dump()``, populated by
