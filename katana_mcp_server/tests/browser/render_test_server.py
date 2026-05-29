@@ -32,6 +32,7 @@ from katana_mcp.tools.prefab_ui import (
     build_inventory_at_ui,
     build_inventory_check_ui,
     build_item_detail_ui,
+    build_item_modify_ui,
     build_modification_preview_ui,
     build_modification_result_ui,
     build_product_bom_ui,
@@ -967,6 +968,98 @@ def _bom_modify_response(*, is_preview: bool, succeeded: bool | None) -> dict:
     }
 
 
+def _item_modify_response(*, is_preview: bool, succeeded: bool | None) -> dict:
+    """Build a canned item modify response with a header change + variant CRUD.
+
+    Mirrors the production shape for the #726 item modify card: a header
+    ``uom`` change plus 1 variant add + 1 variant update + 1 variant delete
+    against a 2-variant product, with the pre-action snapshot threaded as
+    ``prior_state`` (raw ``Product.to_dict()`` shape) and the supplier name
+    pre-resolved (``_resolve_prior_supplier_name``). Pins the dual diff
+    surface — header scalar diff + variant diff table — end to end.
+    """
+    actions = [
+        ActionResult(
+            index=1,
+            operation="update_header",
+            target_id=500,
+            changes=[FieldChange(field="uom", old="pcs", new="set")],
+            succeeded=succeeded,
+            verified=True if succeeded else None,
+        ).model_dump(),
+        ActionResult(
+            index=2,
+            operation="add_variant",
+            target_id=None,
+            changes=[
+                FieldChange(field="sku", old=None, new="WHL-CARB-DISC", is_added=True),
+                FieldChange(field="sales_price", old=None, new=1300.0, is_added=True),
+            ],
+            succeeded=succeeded,
+        ).model_dump(),
+        ActionResult(
+            index=3,
+            operation="update_variant",
+            target_id=9001,
+            changes=[FieldChange(field="sales_price", old=1200.0, new=1250.0)],
+            succeeded=succeeded,
+            verified=True if succeeded else None,
+        ).model_dump(),
+        ActionResult(
+            index=4,
+            operation="delete_variant",
+            target_id=9002,
+            changes=[],
+            succeeded=succeeded,
+        ).model_dump(),
+    ]
+    return {
+        "entity_type": "product",
+        "entity_id": 500,
+        "is_preview": is_preview,
+        "operation": "",
+        "changes": [],
+        "actions": actions,
+        "prior_state": {
+            "id": 500,
+            "name": "Carbon Wheelset",
+            "uom": "pcs",
+            "category_name": "Wheels",
+            "additional_info": "Hand-built",
+            "is_sellable": True,
+            "is_producible": True,
+            "batch_tracked": False,
+            "serial_tracked": False,
+            "archived_at": None,
+            "default_supplier_id": 77,
+            "default_supplier_name": "Acme Carbon Co",
+            "lead_time": 14,
+            "minimum_order_quantity": 2,
+            "variants": [
+                {
+                    "id": 9001,
+                    "sku": "WHL-CARB-700C",
+                    "sales_price": 1200.0,
+                    "purchase_price": 800.0,
+                },
+                {
+                    "id": 9002,
+                    "sku": "WHL-CARB-650B",
+                    "sales_price": 1150.0,
+                    "purchase_price": 760.0,
+                },
+            ],
+        },
+        "extras": {},
+        "warnings": [],
+        "next_actions": [],
+        "katana_url": "https://factory.katanamrp.com/product/500",
+        "message": (
+            "Preview: 4 action(s) planned" if is_preview else "Applied 4 action(s)"
+        ),
+    }
+
+
 def _so_failed_delete_response(*, is_preview: bool = False) -> dict:
     """Build a canned SO delete response where the apply fails.
 
@@ -1646,9 +1739,12 @@ SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
         confirm_request=_StubRequest(),
         confirm_tool="create_sales_order",
     ),
-    "modify_item_single_preview": lambda: build_modification_preview_ui(
+    # Generic single-action modify card (manufacturing_order — not yet
+    # migrated to a per-entity card, so it exercises the legacy
+    # ``build_modification_preview_ui`` single-action path).
+    "modify_mo_single_preview": lambda: build_modification_preview_ui(
         {
-            "entity_type": "product",
+            "entity_type": "manufacturing_order",
             "entity_id": 1,
             "is_preview": True,
             "operation": "",
@@ -1657,7 +1753,7 @@ SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
                 ActionResult(
                     operation="update_header",
                     target_id=1,
-                    changes=[FieldChange(field="name", old="x", new="y")],
+                    changes=[FieldChange(field="status", old="x", new="y")],
                     succeeded=None,
                 ).model_dump()
             ],
@@ -1667,6 +1763,19 @@ SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
             "katana_url": None,
             "message": "Preview: 1 action(s) planned",
         },
+        confirm_request=_StubRequest(),
+        confirm_tool="modify_manufacturing_order",
+    ),
+    # #726 — item modify card: header scalar diff + variant diff table (add +
+    # update + delete). Pins the dual diff surface + the resolved supplier name
+    # + the per-variant status pills end-to-end in a real browser render.
+    "item_modify_mixed_preview": lambda: build_item_modify_ui(
+        _item_modify_response(is_preview=True, succeeded=None),
+        confirm_request=_StubRequest(),
+        confirm_tool="modify_item",
+    ),
+    "item_modify_mixed_applied": lambda: build_item_modify_ui(
+        _item_modify_response(is_preview=False, succeeded=True),
         confirm_request=_StubRequest(),
         confirm_tool="modify_item",
     ),

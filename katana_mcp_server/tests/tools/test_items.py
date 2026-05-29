@@ -2463,3 +2463,89 @@ def test_build_update_variant_request_passes_config_attributes():
     assert body["config_attributes"] == [{"config_name": "Teeth", "config_value": "34"}]
     # ``id`` is the path parameter, not a body field — must not appear in body.
     assert "id" not in body
+
+
+# ============================================================================
+# Modify-card supplier-name resolution (anti-pattern #7) — the modify/delete
+# prior_state snapshot carries only the supplier FK; the impl resolves the
+# name from the typed cache so the card never shows a bare "#id".
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_resolve_prior_supplier_name_fills_name_from_cache():
+    from katana_mcp.tools._modification import ModificationResponse
+    from katana_mcp.tools.foundation.items import _resolve_prior_supplier_name
+
+    response = ModificationResponse(
+        entity_type="product",
+        entity_id=500,
+        is_preview=True,
+        actions=[],
+        prior_state={"id": 500, "default_supplier_id": 77},
+        warnings=[],
+        next_actions=[],
+        message="Preview",
+    )
+    services = MagicMock()
+    with patch(
+        "katana_mcp.tools.foundation.items.resolve_entity_name",
+        new=AsyncMock(return_value=("Acme Carbon Co", None)),
+    ):
+        await _resolve_prior_supplier_name(services, response)
+
+    assert response.prior_state is not None
+    assert response.prior_state["default_supplier_name"] == "Acme Carbon Co"
+
+
+@pytest.mark.asyncio
+async def test_resolve_prior_supplier_name_noop_without_fk():
+    from katana_mcp.tools._modification import ModificationResponse
+    from katana_mcp.tools.foundation.items import _resolve_prior_supplier_name
+
+    response = ModificationResponse(
+        entity_type="service",
+        entity_id=500,
+        is_preview=True,
+        actions=[],
+        prior_state={"id": 500},
+        warnings=[],
+        next_actions=[],
+        message="Preview",
+    )
+    services = MagicMock()
+    resolver = AsyncMock(return_value=("X", None))
+    with patch("katana_mcp.tools.foundation.items.resolve_entity_name", new=resolver):
+        await _resolve_prior_supplier_name(services, response)
+
+    # No FK → no cache hit, no name written.
+    resolver.assert_not_awaited()
+    assert response.prior_state is not None
+    assert "default_supplier_name" not in response.prior_state
+
+
+@pytest.mark.asyncio
+async def test_resolve_prior_supplier_name_warning_appended_on_miss():
+    from katana_mcp.tools._modification import ModificationResponse
+    from katana_mcp.tools.foundation.items import _resolve_prior_supplier_name
+
+    response = ModificationResponse(
+        entity_type="material",
+        entity_id=500,
+        is_preview=True,
+        actions=[],
+        prior_state={"id": 500, "default_supplier_id": 999},
+        warnings=[],
+        next_actions=[],
+        message="Preview",
+    )
+    services = MagicMock()
+    with patch(
+        "katana_mcp.tools.foundation.items.resolve_entity_name",
+        new=AsyncMock(return_value=(None, "Default supplier 999 not in cache")),
+    ):
+        await _resolve_prior_supplier_name(services, response)
+
+    assert response.prior_state is not None
+    assert "default_supplier_name" not in response.prior_state
+    assert any("999" in w for w in response.warnings)
