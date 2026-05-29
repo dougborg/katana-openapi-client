@@ -16,14 +16,16 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from katana_mcp.logging import get_logger, observe_tool
 from katana_mcp.services import get_services
 from katana_mcp.tools.foundation.items import (
+    ItemCreateView,
     VariantConfigAttributePatch,
     _validate_purchase_uom_pair,
+    build_item_create_view,
     coerce_variant_config_attributes,
 )
 from katana_mcp.tools.tool_result_utils import UI_META, make_tool_result
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from katana_mcp.web_urls import katana_web_url
-from katana_public_api_client.domain.converters import to_unset, unwrap_unset
+from katana_public_api_client.domain.converters import to_unset
 from katana_public_api_client.models import (
     CreateMaterialRequest as ApiCreateMaterialRequest,
     CreateProductRequest as ApiCreateProductRequest,
@@ -124,19 +126,20 @@ class CreateProductRequest(BaseModel):
         return self
 
 
-class CreateProductResponse(BaseModel):
-    """Response from creating a product."""
+class CreateProductResponse(ItemCreateView):
+    """Response from creating a product.
+
+    Inherits the four-tier card fields from :class:`ItemCreateView`
+    (uom, katana_url, variants, configs, supplier, status flags, …),
+    populated from the ``.create()`` result via :func:`build_item_create_view`.
+    """
 
     id: int
     name: str
     sku: str
     type: str = "product"
-    uom: str | None = None
-    purchase_uom: str | None = None
-    purchase_uom_conversion_rate: float | None = None
     success: bool = True
     message: str = "Product created successfully"
-    katana_url: str | None = None
 
 
 async def _create_product_impl(
@@ -213,17 +216,17 @@ async def _create_product_impl(
         )
 
         product_name = product.name or request.name
+        view = await build_item_create_view(
+            services,
+            product,
+            katana_url=katana_web_url("product", product.id),
+        )
         return CreateProductResponse(
             id=product.id,
             name=product_name,
             sku=request.sku,
-            uom=unwrap_unset(product.uom),
-            purchase_uom=unwrap_unset(product.purchase_uom),
-            purchase_uom_conversion_rate=unwrap_unset(
-                product.purchase_uom_conversion_rate
-            ),
             message=f"Product '{product_name}' created successfully with SKU {request.sku}",
-            katana_url=katana_web_url("product", product.id),
+            **view,
         )
 
     except Exception as e:
@@ -251,10 +254,10 @@ async def create_product(
     Products are sellable items (finished goods). For raw materials and components,
     use create_material. Creates the product with a single variant.
     """
-    from katana_mcp.tools.prefab_ui import build_item_mutation_ui
+    from katana_mcp.tools.prefab_ui import build_item_create_ui
 
     response = await _create_product_impl(request, context)
-    ui = build_item_mutation_ui(response.model_dump(), "Created")
+    ui = build_item_create_ui(response.model_dump())
 
     return make_tool_result(response, ui=ui)
 
@@ -347,19 +350,20 @@ class CreateMaterialRequest(BaseModel):
         return self
 
 
-class CreateMaterialResponse(BaseModel):
-    """Response from creating a material."""
+class CreateMaterialResponse(ItemCreateView):
+    """Response from creating a material.
+
+    Inherits the four-tier card fields from :class:`ItemCreateView`
+    (uom, katana_url, variants, configs, supplier, status flags, …),
+    populated from the ``.create()`` result via :func:`build_item_create_view`.
+    """
 
     id: int
     name: str
     sku: str
     type: str = "material"
-    uom: str | None = None
-    purchase_uom: str | None = None
-    purchase_uom_conversion_rate: float | None = None
     success: bool = True
     message: str = "Material created successfully"
-    katana_url: str | None = None
 
 
 async def _create_material_impl(
@@ -434,17 +438,17 @@ async def _create_material_impl(
         )
 
         material_name = material.name or request.name
+        view = await build_item_create_view(
+            services,
+            material,
+            katana_url=katana_web_url("material", material.id),
+        )
         return CreateMaterialResponse(
             id=material.id,
             name=material_name,
             sku=request.sku,
-            uom=unwrap_unset(material.uom),
-            purchase_uom=unwrap_unset(material.purchase_uom),
-            purchase_uom_conversion_rate=unwrap_unset(
-                material.purchase_uom_conversion_rate
-            ),
             message=f"Material '{material_name}' created successfully with SKU {request.sku}",
-            katana_url=katana_web_url("material", material.id),
+            **view,
         )
 
     except Exception as e:
@@ -472,10 +476,10 @@ async def create_material(
     Materials are items used in manufacturing (not typically sold directly).
     For finished goods, use create_product. Creates the material with a single variant.
     """
-    from katana_mcp.tools.prefab_ui import build_item_mutation_ui
+    from katana_mcp.tools.prefab_ui import build_item_create_ui
 
     response = await _create_material_impl(request, context)
-    ui = build_item_mutation_ui(response.model_dump(), "Created")
+    ui = build_item_create_ui(response.model_dump())
 
     return make_tool_result(response, ui=ui)
 

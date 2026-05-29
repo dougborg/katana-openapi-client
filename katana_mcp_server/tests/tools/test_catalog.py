@@ -728,3 +728,104 @@ async def test_create_material_integration(katana_context):
                 "already exists",
             ]
         ), f"Unexpected error: {e}"
+
+
+# ============================================================================
+# Four-tier card enrichment (#555) — the create response now carries the
+# variants / configs / status flags / resolved supplier name the create card
+# renders, mapped from the .create() result with no second fetch.
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_create_product_enriches_four_tier_fields_from_result():
+    """The create result's variants / configs / status flags flow onto the
+    response via ``build_item_create_view`` — no second fetch."""
+    context, lifespan_ctx = create_mock_context()
+
+    mock_product = _mock_item(id=1000, name="Enriched Widget")
+    mock_product.is_sellable = True
+    mock_product.is_producible = True
+    mock_product.category_name = "Finished Goods"
+    mock_product.variants = [
+        {"id": 5001, "sku": "ENR-001", "sales_price": 12.5, "purchase_price": 4.0}
+    ]
+    mock_product.configs = [{"id": 9, "name": "Size", "values": ["S", "M"]}]
+    lifespan_ctx.client.products.create = AsyncMock(return_value=mock_product)
+
+    request = CreateProductRequest(name="Enriched Widget", sku="ENR-001")
+    result = await _create_product_impl(request, context)
+
+    assert result.is_sellable is True
+    assert result.is_producible is True
+    assert result.category_name == "Finished Goods"
+    assert len(result.variants) == 1
+    assert result.variants[0].sku == "ENR-001"
+    assert result.variants[0].sales_price == 12.5
+    assert len(result.configs) == 1
+    assert result.configs[0].name == "Size"
+    assert result.configs[0].values == ["S", "M"]
+
+
+@pytest.mark.asyncio
+async def test_create_material_resolves_default_supplier_name_from_cache():
+    """When the create result carries only a supplier FK, the impl resolves
+    the supplier *name* from the typed cache (anti-pattern #7 fix) so the card
+    renders a name, not a bare ID."""
+    context, lifespan_ctx = create_mock_context()
+
+    mock_material = _mock_item(id=1001, name="Steel")
+    mock_material.default_supplier_id = 555
+    lifespan_ctx.client.materials.create = AsyncMock(return_value=mock_material)
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(
+        return_value={"id": 555, "name": "Acme Metals"}
+    )
+
+    request = CreateMaterialRequest(name="Steel", sku="MAT-RESOLVE-1")
+    result = await _create_material_impl(request, context)
+
+    assert result.default_supplier_id == 555
+    assert result.default_supplier_name == "Acme Metals"
+    assert result.warnings == []
+
+
+@pytest.mark.asyncio
+async def test_create_material_warns_when_supplier_name_unresolved():
+    """A cache miss on the supplier surfaces an advisory warning rather than a
+    silent ID-only line."""
+    context, lifespan_ctx = create_mock_context()
+
+    mock_material = _mock_item(id=1002, name="Steel")
+    mock_material.default_supplier_id = 999
+    lifespan_ctx.client.materials.create = AsyncMock(return_value=mock_material)
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
+
+    request = CreateMaterialRequest(name="Steel", sku="MAT-RESOLVE-2")
+    result = await _create_material_impl(request, context)
+
+    assert result.default_supplier_name is None
+    assert len(result.warnings) == 1
+    assert "999" in result.warnings[0]
+
+
+@pytest.mark.asyncio
+async def test_create_product_tolerates_null_and_missing_sku_variants():
+    """``_variant_to_summary`` keeps a variant whose ``sku`` is None (the
+    documented null-SKU wire contract — key present, value None) and silently
+    drops one missing the ``sku`` key entirely (malformed/stripped), without
+    crashing the create card."""
+    context, lifespan_ctx = create_mock_context()
+
+    mock_product = _mock_item(id=1003, name="Null SKU Widget")
+    mock_product.variants = [
+        {"id": 1, "sku": None, "sales_price": 5.0},  # null SKU — kept
+        {"id": 2, "sales_price": 9.0},  # missing sku key — dropped
+    ]
+    lifespan_ctx.client.products.create = AsyncMock(return_value=mock_product)
+
+    request = CreateProductRequest(name="Null SKU Widget", sku="NULLSKU-1")
+    result = await _create_product_impl(request, context)
+
+    assert len(result.variants) == 1
+    assert result.variants[0].id == 1
+    assert result.variants[0].sku is None

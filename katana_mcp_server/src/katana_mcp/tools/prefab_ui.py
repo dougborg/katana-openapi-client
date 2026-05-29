@@ -1114,7 +1114,9 @@ def build_variant_batch_ui(
     return app
 
 
-def _item_header_section(item: dict[str, Any]) -> None:
+def _item_header_section(
+    item: dict[str, Any], *, state_badge: str | None = None
+) -> None:
     """Render item card header: title (linked to Katana page), type badge,
     and status pills.
 
@@ -1122,6 +1124,9 @@ def _item_header_section(item: dict[str, Any]) -> None:
     the Katana product / material / service page directly — same
     convention as the variant card (see module docstring on linking
     Katana entities).
+
+    ``state_badge`` renders a leading state pill (e.g. ``"Created"``) for the
+    post-action create card; the detail card omits it.
 
     Status badges vary by sub-type:
     - Sellable / Not Sellable (all types)
@@ -1140,6 +1145,10 @@ def _item_header_section(item: dict[str, Any]) -> None:
                 Link(content=title_content, href=katana_url, target="_blank")
             else:
                 Text(content=title_content)
+        if state_badge:
+            # Post-action state pill (e.g. "Created"); the detail card
+            # passes None — it's a steady-state read, not a mutation result.
+            Badge(label=state_badge, variant="default")
         if item_type:
             Badge(label=str(item_type), variant="secondary")
         if item.get("is_archived"):
@@ -1166,16 +1175,27 @@ def _item_header_section(item: dict[str, Any]) -> None:
             Badge(label="Serial tracked", variant="secondary")
 
 
-def _item_metrics_section(item: dict[str, Any]) -> None:
+def _item_metrics_section(
+    item: dict[str, Any], *, collapse_single_variant: bool = False
+) -> None:
     """Render Tier 2 — decision metrics as text rows (not Metric components).
 
     Items typically have ≤3 numeric facts (variant count, lead time, MOQ),
     so the Metric layout would be visually heavy for a sparse row. Plain
     text rows still give the agent the facts without competing visually
     with the more important variants table below.
+
+    ``collapse_single_variant`` is set by the create card: a freshly-created
+    item always has exactly one variant, so "Variants: 1" is noise (the
+    single variant's SKU surfaces inline in the reference section instead).
+    The count still renders for genuine multi-variant items — and for
+    ``Variants: 0``, which is *not* hidden even when collapsing: an empty
+    variants list on a just-created item is an unexpected/malformed response
+    worth surfacing, not noise to suppress.
     """
     variants = item.get("variants") or []
-    Text(content=f"Variants: {len(variants)}")
+    if not (collapse_single_variant and len(variants) == 1):
+        Text(content=f"Variants: {len(variants)}")
     if item.get("lead_time") is not None:
         Text(content=f"Lead Time: {item['lead_time']} days")
     if item.get("minimum_order_quantity") is not None:
@@ -1335,10 +1355,39 @@ def _item_variants_table(item: dict[str, Any]) -> None:
         Muted(content="Click a row to see variant details")
 
 
-def _item_reference_section(item: dict[str, Any]) -> None:
+def _item_single_variant_lines(
+    *, sku: str | None, variant: dict[str, Any] | None
+) -> None:
+    """Render a single variant's facts as inline reference lines.
+
+    Used by the create card (and any single-variant entity view) in place of
+    a one-row DataTable — a searchable/paginated table for one row is heavy
+    chrome (anti-pattern: single-row table). Surfaces the same three facts the
+    multi-variant table column-set carries: SKU, sales price, purchase price.
+    Prices render plain (``:g`` trims trailing zeros) to match the table's
+    currency-less cells; ``0.0`` prices (free samples) still render because the
+    guard is an explicit ``is not None`` check, not truthiness.
+    """
+    if sku:
+        Text(content=f"SKU: {sku}")
+    if variant:
+        if variant.get("sales_price") is not None:
+            Text(content=f"Sales Price: {variant['sales_price']:g}")
+        if variant.get("purchase_price") is not None:
+            Text(content=f"Purchase Price: {variant['purchase_price']:g}")
+
+
+def _item_reference_section(
+    item: dict[str, Any], *, collapse_single_variant: bool = False
+) -> None:
     """Render Tier 3 reference data: UoM, category, purchase UoM,
     default supplier (Linked), configs, additional info, and the
     nested variants table.
+
+    When ``collapse_single_variant`` is set (create card) and the item has a
+    single variant, render that variant's SKU + prices inline instead of a
+    one-row DataTable. Falls back to the item-level ``sku`` when the create
+    result didn't echo a variants array so the SKU is never lost.
     """
     if item.get("uom"):
         Text(content=f"UoM: {item['uom']}")
@@ -1350,7 +1399,13 @@ def _item_reference_section(item: dict[str, Any]) -> None:
     additional_info = item.get("additional_info")
     if additional_info:
         Text(content=f"Notes: {additional_info}")
-    _item_variants_table(item)
+    variants = item.get("variants") or []
+    if collapse_single_variant and len(variants) <= 1:
+        variant = variants[0] if variants else None
+        sku = (variant or {}).get("sku") or item.get("sku")
+        _item_single_variant_lines(sku=sku, variant=variant)
+    else:
+        _item_variants_table(item)
 
 
 def _item_footer_section(item: dict[str, Any]) -> None:
@@ -1436,6 +1491,33 @@ def _item_footer_section(item: dict[str, Any]) -> None:
     )
 
 
+def _render_item_entity_view(
+    item: dict[str, Any],
+    *,
+    changes: dict[str, FieldChangeView] | None = None,
+    collapse_single_variant: bool = False,
+) -> list[str]:
+    """Render the item entity view (Tier 2 metrics + Tier 3 reference),
+    returning the block-warning list for the caller to surface/gate on.
+
+    The item analogue of :func:`_render_po_entity_view`: shared between
+    ``build_item_detail_ui`` (multi-variant read card, ``collapse_single_variant
+    =False``) and ``build_item_create_ui`` (a freshly-created single-variant
+    item, ``collapse_single_variant=True``). The ``changes`` parameter is the
+    seam for the #726 modify card's before→after diff overlay — accepted now
+    so the create/modify pair shares one renderer, but unused until #726 wires
+    a diff decorator into the metric/reference lines.
+
+    Must be called inside ``with CardContent(), Column(gap=3):``.
+    """
+    # ``changes`` reserved for the #726 modify-card diff overlay.
+    _ = changes
+    _item_metrics_section(item, collapse_single_variant=collapse_single_variant)
+    Separator()
+    _item_reference_section(item, collapse_single_variant=collapse_single_variant)
+    return _render_warnings_block(item.get("warnings"))
+
+
 def build_item_detail_ui(
     item: dict[str, Any],
 ) -> PrefabApp:
@@ -1484,9 +1566,9 @@ def build_item_detail_ui(
             _item_header_section(item)
 
         with CardContent(), Column(gap=3):
-            _item_metrics_section(item)
-            Separator()
-            _item_reference_section(item)
+            # block_warnings return discarded — read-only detail card, no
+            # Confirm gate to disable.
+            _render_item_entity_view(item)
 
         with CardFooter(), Row(gap=2):
             _item_footer_section(item)
@@ -3359,9 +3441,6 @@ def _render_preview_footer(
                 apply_action=apply_action,
                 cancel_action=cancel_action,
             )
-
-
-ItemAction = Literal["Created", "Updated", "Deleted"]
 
 
 def _init_create_card_state(response: dict[str, Any]) -> dict[str, Any]:
@@ -7581,52 +7660,125 @@ def build_modification_result_ui(
 # ============================================================================
 
 
-def build_item_mutation_ui(
-    item: dict[str, Any],
-    action: ItemAction,
-) -> PrefabApp:
-    """Build a card for item created/updated/deleted responses."""
-    with PrefabApp(state={"item": item}, css_class="p-4") as app, Card():
-        with CardHeader(), Row(gap=2):
-            CardTitle(content=f"Item {action}")
-            if item.get("type"):
-                Badge(label=str(item["type"]), variant="secondary")
+def _item_create_footer_section(item: dict[str, Any]) -> None:
+    """Render Tier 4 actions for the create card.
 
-        with CardContent(), Column(gap=2):
-            # Pre-#card-ux this card led with ``"ID: <numeric id>"`` —
-            # anti-pattern #2 (raw IDs as the primary surface). The
-            # Name + SKU lines below carry the user-facing identity;
-            # the numeric id is still available in the structured tool
-            # result for programmatic follow-ups.
-            Text(content=f"Name: {item.get('name', 'N/A')}")
-            if item.get("sku"):
-                Text(content=f"SKU: {item['sku']}")
-            _variant_purchase_uom_line(item)
-            if item.get("message"):
-                Text(content=item["message"])
+    The agent just shipped a SKU to Katana; the likely next steps are to
+    inspect it, set its opening stock, or put it to work. SKU-keyed actions
+    (View Details / Check Inventory) fire ``CallTool`` directly — both tools
+    accept a SKU and need no further composition. Set Initial Stock and the
+    type-specific actions hand off via ``UpdateContext`` because the
+    underlying tools need fields the create response can't supply (quantity,
+    location, target variant). The title's external Link covers "open in
+    Katana", so there's no footer button for that.
+    """
+    variants = item.get("variants") or []
+    sku = item.get("sku") or (variants[0].get("sku") if variants else None)
+    item_id = item.get("id")
+    item_type = item.get("type") or "item"
+
+    if sku:
+        Button(
+            label="View Details",
+            variant="outline",
+            on_click=CallTool("get_variant_details", arguments={"sku": sku}),
+        )
+        Button(
+            label="Check Inventory",
+            variant="outline",
+            on_click=CallTool(
+                "check_inventory", arguments={"skus_or_variant_ids": [sku]}
+            ),
+        )
+        Button(
+            label="Set Initial Stock",
+            variant="outline",
+            on_click=UpdateContext(
+                content=(
+                    f"User just created {item_type} '{sku}' and wants to set "
+                    "its opening stock level. Ask for the quantity and "
+                    "location, then call create_stock_adjustment with "
+                    "preview=True."
+                ),
+            ),
+        )
+
+    if item_type == "material" and item_id is not None:
+        Button(
+            label="Create Purchase Order",
+            variant="outline",
+            on_click=UpdateContext(
+                content=(
+                    f"User wants to draft a purchase order for material_id "
+                    f"{item_id}. Resolve the variant_id, default supplier, "
+                    "and location, then call create_purchase_order with "
+                    "preview=True."
+                ),
+            ),
+        )
+    elif item_type == "product" and item.get("is_producible") and item_id is not None:
+        Button(
+            label="Create Manufacturing Order",
+            variant="outline",
+            on_click=UpdateContext(
+                content=(
+                    f"User wants to draft a manufacturing order for "
+                    f"product_id {item_id}. Resolve the target variant_id "
+                    "(the product may have multiple), planned_quantity, and "
+                    "location, then call create_manufacturing_order with "
+                    "preview=True."
+                ),
+            ),
+        )
+
+    if item_id is not None:
+        Button(
+            label="Modify Item",
+            variant="outline",
+            on_click=UpdateContext(
+                content=(
+                    f"User wants to modify {item_type} {item_id}. Ask which "
+                    "fields to change, then call modify_item with preview=True."
+                ),
+            ),
+        )
+
+
+def build_item_create_ui(item: dict[str, Any]) -> PrefabApp:
+    """Build the post-creation card for ``create_product`` / ``create_material``
+    / ``create_item``.
+
+    Four-tier framework (#537), mirroring ``build_item_detail_ui`` but for a
+    just-created single-variant item:
+
+    - **Tier 1 — Identity:** name linked to ``katana_url``, a ``"Created"``
+      state badge, type badge, and the sub-type status pills
+      (sellable / producible / batch / serial).
+    - **Tier 2 + 3:** :func:`_render_item_entity_view` with
+      ``collapse_single_variant=True`` — a freshly-created item has exactly one
+      variant, so its SKU + prices render inline instead of as a one-row table.
+    - **Tier 4 — Actions:** :func:`_item_create_footer_section` (View Details,
+      Check Inventory, Set Initial Stock, plus type-specific next steps).
+
+    The ``create_*`` tools don't preview, so this is a success card with no
+    Confirm gate. Replaces the former ``build_item_mutation_ui`` — modify /
+    delete route through the generic modification cards (#615), so the only
+    live path was always "Created".
+    """
+    with (
+        PrefabApp(state={"item": item, "detail": None}, css_class="p-4") as app,
+        Card(),
+    ):
+        with CardHeader(), Column(gap=2):
+            _item_header_section(item, state_badge="Created")
+
+        with CardContent(), Column(gap=3):
+            # block_warnings return discarded — success card, no Confirm gate
+            # to disable. Warnings still render inside the entity view.
+            _render_item_entity_view(item, collapse_single_variant=True)
 
         with CardFooter(), Row(gap=2):
-            sku = item.get("sku")
-            if sku:
-                # Both follow-ups are deterministic tool invocations
-                # keyed off the SKU — SKU is the one identifier both
-                # tools accept directly.
-                Button(
-                    label="View Details",
-                    variant="outline",
-                    on_click=CallTool(
-                        "get_variant_details",
-                        arguments={"sku": sku},
-                    ),
-                )
-                Button(
-                    label="Check Inventory",
-                    variant="outline",
-                    on_click=CallTool(
-                        "check_inventory",
-                        arguments={"skus_or_variant_ids": [sku]},
-                    ),
-                )
+            _item_create_footer_section(item)
     return app
 
 

@@ -158,8 +158,8 @@ The `destructiveHint` annotation is settled by uniform policy:
 
 - **`build_apply_success_ui` / `build_apply_error_ui`** are added as generic
   apply-result builders. Existing per-entity success cards (`build_order_created_ui`,
-  `build_fulfill_success_ui`, `build_item_mutation_ui`) keep their custom affordances
-  and are not replaced. The generics are available for tools that don't have a dedicated
+  `build_fulfill_success_ui`, `build_item_create_ui`) keep their custom affordances and
+  are not replaced. The generics are available for tools that don't have a dedicated
   card.
 
 ## Alternatives Considered
