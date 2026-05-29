@@ -45,7 +45,7 @@ grep -n "^def build_.*_ui" katana_mcp_server/src/katana_mcp/tools/prefab_ui.py
 Pick by name or audit all. Each `build_*_ui` consumes a response dict (see the impl
 side in `katana_mcp_server/src/katana_mcp/tools/foundation/*.py`).
 
-### 2. Scan against the seven anti-patterns
+### 2. Scan against the eight anti-patterns
 
 Run each grep pattern against the card's function body. Detail + remediation is in
 [references/prefab-anti-patterns.md](references/prefab-anti-patterns.md).
@@ -59,6 +59,7 @@ Run each grep pattern against the card's function body. Detail + remediation is 
 | 5 | Wire shape leaking to UI (snake_case headers, raw enum values, `model_dump()` dumps) | `header="\w*_\w+"`, `\.value\b` inside `Text(content=` |
 | 6 | Buried decision context (table below 3+ warnings/metrics) | inspect layout order: identity → metrics → reference → decision-driver → footer |
 | 7 | Helper-fallback masking (`name=None` passed to a party-line helper) | `_render_party_line\(.*name=None`, or a `_render_party_line` call whose source dict has no `*_name` field |
+| 8 | Thin post-action DTO / single-row table (create card shows only name+SKU+message; one-row DataTable) | `build_\w+_(create\|success)_ui` body with no `_render_\w+_entity_view`; thin `Create\w+Response` vs exhaustive `get_<entity>` response |
 
 ### 3. Cross-reference positive helpers
 
@@ -94,6 +95,8 @@ the total report scannable — under ~50 lines per band.
 - **Success card vs preview card divergence** — the post-action card often inherits the preview's reference block. Audit both branches; the `is_preview` switch is not an excuse to drop user-facing content.
 - **MO branch on shared card** — manufacturing orders legitimately lack a customer + shipping address. The audit should skip the missing-reference-info check when `order_type == "manufacturing"` and the card has a per-branch guard.
 - **Generic fallback cards** (`build_modification_preview_ui`, `build_modification_result_ui`) — these are the "no per-entity builder yet" fallback. The right fix is usually to *promote* the path to a per-entity builder (model: `build_po_modify_ui`), not to polish the generic one.
+- **One entity-view helper across create / modify / detail** — an entity with multiple card surfaces should share a single `_render_<entity>_entity_view` (Tier 2+3), like `_render_po_entity_view` / `_render_item_entity_view`. A create card that re-renders the metric/reference block inline (instead of delegating) is anti-pattern #8 — flag it. The helper carries a `changes=None` diff-overlay seam for the modify card and a `collapse_single_variant` flag so the create card renders a single child inline rather than a one-row table.
+- **Create cards enrich from the result, not a second fetch** — when a create card looks thin, the fix is to widen the response DTO and map it from the `.create()` result (which is already fully populated), resolving the party *name* from the typed cache. Don't flag a create card as needing a `get_<entity>` round-trip.
 
 ## RELATED
 
