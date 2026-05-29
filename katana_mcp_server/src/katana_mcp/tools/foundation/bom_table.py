@@ -22,31 +22,28 @@ from __future__ import annotations
 from typing import Any, Literal
 
 from katana_mcp.logging import get_logger
+from katana_mcp.tools.foundation.collection_diff import (
+    STATUS_VARIANTS as _BOM_ROW_STATUS_VARIANTS,
+    CollectionDiffSpec,
+    derive_status_label as _derive_status_label,
+    merge_collection_diff_rows,
+    summarize_apply_outcome as _summarize_apply_outcome,
+)
 
 logger = get_logger(__name__)
 
-
-# Per-row status pill variants. Mirrors the action status_label vocabulary
-# from ``_modification._derive_status_label`` but bucketed for Badge variants
-# (success / warn / fail / neutral) so the per-row rendering is consistent
-# across preview and applied states.
-_BOM_ROW_STATUS_VARIANTS: dict[str, str] = {
-    "PLANNED": "secondary",
-    "APPLIED": "default",
-    "APPLIED (verified)": "default",
-    "APPLIED (verification mismatch)": "destructive",
-    "FAILED": "destructive",
-    # ``execute_plan`` is fail-fast — plan entries past the first failure
-    # are never attempted. ``_modify_product_bom_impl`` synthesizes these
-    # into the rendered ``actions`` list with status_label="NOT RUN" so
-    # the morphed table shows what didn't execute (instead of silently
-    # hiding the never-run rows).
-    "NOT RUN": "secondary",
-    # Existing rows that aren't part of the plan render with no status —
-    # we use an empty string so the DataTable cell stays empty rather than
-    # showing a misleading "PLANNED" badge for context rows.
-    "": "outline",
-}
+# ``_BOM_ROW_STATUS_VARIANTS`` / ``_derive_status_label`` /
+# ``_summarize_apply_outcome`` were hoisted into :mod:`collection_diff` (the
+# generic home for the modify-card collection-diff machinery, per the old
+# ``TODO(#859)``). They're re-exported here under their original private names
+# so existing importers (``prefab_ui``, ``bom``, tests) keep working unchanged.
+__all__ = [
+    "_BOM_ROW_STATUS_VARIANTS",
+    "_derive_status_label",
+    "_merge_bom_rows_for_modify_card",
+    "_prepare_bom_table_rows",
+    "_summarize_apply_outcome",
+]
 
 
 # Wire shape of an existing row in ``prior_state.rows`` — pre-serialized by
@@ -54,71 +51,6 @@ _BOM_ROW_STATUS_VARIANTS: dict[str, str] = {
 # ``id`` (UUID string), ``ingredient_variant_id``, ``sku``, ``display_name``,
 # ``quantity``, ``notes``, ``rank``.
 _BomMergedRowKind = Literal["existing", "added", "updated", "deleted"]
-
-
-def _derive_status_label(action: dict[str, Any]) -> str:
-    """Compute a status label from raw ``succeeded`` / ``verified`` fields.
-
-    Used as a fallback for action dicts that don't already carry the
-    server-derived ``status_label`` (legacy responses, older clients,
-    test fixtures). Mirrors
-    :func:`katana_mcp.tools._modification._derive_status_label`.
-
-    Generic across entity kinds — lives here (rather than in ``prefab_ui``)
-    so the non-UI BOM merge can call it without a reverse import. The
-    rendering layer (``_action_to_row`` in ``prefab_ui``) imports it back.
-    """
-    succeeded = action.get("succeeded")
-    if succeeded is None:
-        return "PLANNED"
-    if succeeded is True:
-        verified = action.get("verified")
-        if verified is False:
-            return "APPLIED (verification mismatch)"
-        if verified is True:
-            return "APPLIED (verified)"
-        return "APPLIED"
-    return "FAILED"
-
-
-def _summarize_apply_outcome(
-    actions: list[dict[str, Any]],
-) -> tuple[str, str]:
-    """Bucket a modify response's action outcomes for the header Badge.
-
-    Returns ``(state_label, badge_variant)``. Variants align with the
-    create-card Tier 1 vocabulary (``default`` / ``secondary`` /
-    ``destructive`` / ``outline``).
-
-    - **Empty actions**: ``APPLIED`` / default. A modify/delete plan
-      can legitimately produce zero actions (no-op patch, or all
-      requested changes turned out to be unchanged). The card has
-      nothing to "fail" — render success chrome, not destructive.
-    - **All succeeded** (any ``verified`` value): ``APPLIED`` / default.
-      Note: per the agreed design, verification mismatch is surfaced
-      at the card-level header alone; per-field decoration ignores
-      ``verified`` because most users don't differentiate.
-    - **All failed**: ``FAILED`` / destructive.
-    - **Mixed**: ``PARTIAL FAILURE`` / destructive.
-
-    Generic across entity kinds (used by PO modify and BOM modify cards)
-    — lives here so ``foundation/bom.py`` can call it without importing
-    ``prefab_ui``. The rendering layer imports it back.
-
-    TODO(#859): hoist this + the dict-typed ``_derive_status_label`` into a
-    dedicated ``foundation/modify_outcome.py`` once a third caller appears
-    (SO/MO modify cards or a generic modify-result renderer). Housed here
-    today to keep #857's diff focused.
-    """
-    if not actions:
-        return "APPLIED", "default"
-    succeeded = sum(1 for a in actions if a.get("succeeded") is True)
-    failed = sum(1 for a in actions if a.get("succeeded") is False)
-    if failed == 0 and succeeded > 0:
-        return "APPLIED", "default"
-    if succeeded == 0 and failed > 0:
-        return "FAILED", "destructive"
-    return "PARTIAL FAILURE", "destructive"
 
 
 def _bom_change_lookup(
@@ -381,90 +313,84 @@ def _merge_bom_rows_for_modify_card(
         if isinstance(candidate, list):
             prior_rows = [r for r in candidate if isinstance(r, dict)]
 
-    # Build a working copy keyed by UUID string for fast update/delete
-    # lookup. ``existing_by_id`` is mutated in place as we apply plan
-    # decorations, so the final pass over it yields rows in the snapshot's
-    # original rank order regardless of plan iteration order.
-    existing_by_id: dict[str, dict[str, Any]] = {}
-    for row in prior_rows:
-        row_id = row.get("id")
-        if not isinstance(row_id, str):
-            continue
-        existing_by_id[row_id] = _bom_existing_row_from_snapshot(row)
-
-    added_rows: list[dict[str, Any]] = []
-
-    for action in actions:
-        op = str(action.get("operation") or "").lower()
-        status_label = action.get("status_label") or _derive_status_label(action) or ""
-        status_variant = _BOM_ROW_STATUS_VARIANTS.get(status_label, "secondary")
-        error = action.get("error") if action.get("succeeded") is False else None
-        changes = _bom_change_lookup(action.get("changes"))
-        target_id = action.get("target_id")
-        target_str = str(target_id) if target_id is not None else None
-
-        if op == "add_bom_row":
-            added_rows.append(
-                _bom_add_action_to_row(
-                    changes=changes,
-                    resolved_ingredients=resolved_ingredients,
-                    status_label=status_label,
-                    status_variant=status_variant,
-                    error=error,
-                )
-            )
-            continue
-
-        if op == "update_bom_row" and target_str:
-            row = existing_by_id.get(target_str)
-            if row is None:
-                row = _bom_synth_orphan_row(target_str)
-                existing_by_id[target_str] = row
-            _apply_bom_update_to_row(
-                row,
-                changes=changes,
-                resolved_ingredients=resolved_ingredients,
-                status_label=status_label,
-                status_variant=status_variant,
-                error=error,
-            )
-            continue
-
-        if op == "delete_bom_row" and target_str:
-            row = existing_by_id.get(target_str)
-            if row is None:
-                row = _bom_synth_orphan_row(target_str)
-                existing_by_id[target_str] = row
-            _apply_bom_delete_to_row(
-                row,
-                status_label=status_label,
-                status_variant=status_variant,
-                error=error,
-            )
-            continue
-
-        # Unmatched: either an unknown ``operation`` string (future
-        # ``reorder_bom_rows`` etc.) or a known op with a missing
-        # ``target_id``. Either way the action would silently vanish from
-        # the rendered card — log so the gap is visible during dev.
-        logger.warning(
-            "BOM merge dropped action — unknown operation or missing target",
-            operation=op,
-            target_id=target_str,
-            succeeded=action.get("succeeded"),
+    # Delegate the snapshot+actions → rows projection to the shared
+    # collection-diff skeleton (:func:`merge_collection_diff_rows`), supplying
+    # the BOM-specific cell builders as closures. The skeleton owns the
+    # add/update/delete classification, status stamping, orphan handling, and
+    # materialization order; the closures own ingredient resolution + the
+    # quantity/notes diff formatting. ``resolved_ingredients`` is bound here so
+    # the generic add/update callbacks stay entity-agnostic.
+    def _add(
+        action: dict[str, Any],
+        *,
+        status_label: str,
+        status_variant: str,
+        error: str | None,
+    ) -> dict[str, Any]:
+        return _bom_add_action_to_row(
+            changes=_bom_change_lookup(action.get("changes")),
+            resolved_ingredients=resolved_ingredients,
+            status_label=status_label,
+            status_variant=status_variant,
+            error=error,
         )
 
-    # Materialize: existing-rows (snapshot order, then rank), then adds
-    # appended at the end (server assigns the rank, so we don't know
-    # where they slot yet). Stable sort on rank: existing rows preserve
-    # their snapshot order on equal ranks; adds always trail.
+    def _update(
+        row: dict[str, Any],
+        action: dict[str, Any],
+        *,
+        status_label: str,
+        status_variant: str,
+        error: str | None,
+    ) -> None:
+        _apply_bom_update_to_row(
+            row,
+            changes=_bom_change_lookup(action.get("changes")),
+            resolved_ingredients=resolved_ingredients,
+            status_label=status_label,
+            status_variant=status_variant,
+            error=error,
+        )
+
+    def _delete(
+        row: dict[str, Any],
+        action: dict[str, Any],
+        *,
+        status_label: str,
+        status_variant: str,
+        error: str | None,
+    ) -> None:
+        _apply_bom_delete_to_row(
+            row,
+            status_label=status_label,
+            status_variant=status_variant,
+            error=error,
+        )
+
+    # Materialize: existing rows in rank order (snapshot order on equal ranks),
+    # then adds appended (server assigns their rank, so we don't know the slot).
     def _sort_key(r: dict[str, Any]) -> tuple[int, int]:
         rank = r.get("rank")
         return (0, rank) if isinstance(rank, int) else (1, 0)
 
-    materialized = sorted(existing_by_id.values(), key=_sort_key)
-    materialized.extend(added_rows)
-    return materialized
+    return merge_collection_diff_rows(
+        prior_rows=prior_rows,
+        actions=actions,
+        spec=CollectionDiffSpec(
+            add_ops=frozenset({"add_bom_row"}),
+            update_ops=frozenset({"update_bom_row"}),
+            delete_ops=frozenset({"delete_bom_row"}),
+            key_of=lambda row: (
+                row.get("id") if isinstance(row.get("id"), str) else None
+            ),
+            existing_row=_bom_existing_row_from_snapshot,
+            synth_orphan=_bom_synth_orphan_row,
+            add_row=_add,
+            apply_update=_update,
+            apply_delete=_delete,
+            sort_key=_sort_key,
+        ),
+    )
 
 
 def _prepare_bom_table_rows(merged: list[dict[str, Any]]) -> list[dict[str, Any]]:
