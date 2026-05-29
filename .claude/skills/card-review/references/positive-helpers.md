@@ -167,6 +167,49 @@ _render_preview_footer(
 
 ---
 
+## `_render_<entity>_entity_view` (the shared Tier 2+3 renderer)
+
+**Examples:** `_render_po_entity_view`, `_render_item_entity_view`,
+`_render_so_entity_view`, `_render_customer_entity_view`.
+
+**Signature shape:**
+
+```python
+def _render_item_entity_view(
+    item: dict[str, Any],
+    *,
+    changes: dict[str, FieldChangeView] | None = None,
+    collapse_single_variant: bool = False,
+) -> list[str]  # returns the block-warning list
+```
+
+**Use when:** an entity (PO / SO / item / customer) has both a *create* card and
+a *modify* card — and often a *detail* read card too. Factor the Tier 2 metrics +
+Tier 3 reference block into ONE `_render_<entity>_entity_view` that all of them call,
+rather than re-rendering the same fields three times (and drifting). This is the
+structural fix behind anti-pattern #4 ("promote to a per-entity renderer").
+
+**Behavior contract:**
+
+- Takes the entity dict; renders metrics + reference lines; returns the
+  block-warning list (`_render_warnings_block(entity.get("warnings"))`) so the caller
+  gates its Confirm button.
+- `changes=None` → no diff overlay (create + detail cards). The modify card passes a
+  `{wire_field: FieldChangeView}` map and the helper swaps changed lines for their
+  before→after form. **Add the `changes=` seam when you build the create card** even
+  if the modify card doesn't exist yet — it's far cheaper than retrofitting the
+  signature later (#555 left the seam for #726).
+- Must be called inside `with CardContent(), Column(gap=3):`.
+
+**Single-row collapse:** `collapse_single_variant=True` (create card) renders a
+single child's facts inline instead of a one-row DataTable — see anti-pattern #8. The
+multi-child read card leaves it `False` to keep the table + per-row drill-down.
+
+**Reach for it instead of:** copy-pasting the metric/reference block across
+`build_<entity>_create_ui` and `build_<entity>_modify_ui`.
+
+---
+
 ## Resolving names impl-side
 
 Helpers above all assume the response already carries the user-facing `*_name` field.
@@ -190,6 +233,8 @@ Returns `(name, warning)`. If the cache miss / API fallback can't resolve a name
 
 - `sales_orders.py` — customer + location name on SO create.
 - `purchase_orders.py` — supplier name on PO create.
+- `catalog.py` / `items.py` — default-supplier name on item create
+  (`build_item_create_view`); the create result carries only the FK.
 - `stock_transfers.py` — location names on stock transfer.
 - `orders.py` — customer name on fulfill SO.
 - `inventory.py` — location name on stock-adjustment create/update/delete.

@@ -218,6 +218,53 @@ When the cache miss + API fallback can't resolve a name, `resolve_entity_name` r
 
 ---
 
+## 8. Thin post-action DTO (and the single-row table it spawns)
+
+**Symptom.** A *create* / post-action card renders only id + name + a success
+message because the tool's response model is thin — even though the Katana
+`.create()` call returned a fully-populated entity. The operator just shipped a SKU
+and the card can't tell them whether it's sellable, what the price is, who the
+supplier is, or what to do next. The card looks "done" but answers nothing.
+
+**Root cause.** The MCP response DTO (`CreateProductResponse`,
+`CreateItemResponse`, …) was authored thin (id/name/sku/uom/message) while the API
+result object (`Product` / `Material` attrs model) already carries `variants[]`,
+`configs`, `is_sellable`, `is_producible`, `batch_tracked`, `serial_tracked`,
+`category_name`, `additional_info`, and the supplier FK. The fix is to **widen the
+DTO and map from the result you already have — not to add a second fetch** and not to
+ship a bare card.
+
+**Detection:**
+
+```text
+# A build_*_create / *_success card whose body is just Name + SKU + message,
+# with no _render_<entity>_entity_view call:
+rg -nE "^def build_\w+_(create|success)_ui" katana_mcp_server/src/katana_mcp/tools/prefab_ui.py
+# Cross-check the response model — if it's id/name/sku/message only while a
+# get_<entity> response is exhaustive, the create DTO is thin.
+```
+
+**Fix.** Add an `ItemCreateView`-style mixin of the four-tier fields to the create
+response models; populate it in the impl from the `.create()` result via a
+`build_<entity>_create_view(...)` helper that reuses the same converters as the read
+path (`_variant_to_summary`, `_config_to_info`, `_supplier_to_info`). Resolve the
+supplier/customer/location *name* from the typed cache (the result carries only the
+FK) — see anti-pattern #7. Then render via the shared `_render_<entity>_entity_view`.
+
+**Single-row table corollary.** A freshly-created item always has exactly *one*
+variant. Rendering it as a searchable/paginated DataTable is needless chrome (a
+table-of-one). Surface the single child's facts as inline reference lines instead
+(SKU + prices), keyed off a `collapse_single_variant=True` flag on the shared entity
+view. Reserve the DataTable + per-row drill-down for the genuine multi-child read
+card. Generalizes the "pick one rendering" rule of anti-pattern #1 and the layout
+economy of anti-pattern #6.
+
+> **Drift note.** `configs` / `config_attributes` landed on **`modify_item`** (#581),
+> *not* on the create response models — don't assume a create DTO surfaces configs
+> just because the modify path does. Verify the model before relying on a field.
+
+---
+
 ## Process notes
 
 - New anti-patterns spotted during a `/card-review` run should land here, not in the SKILL.md. The skill loads `references/` lazily; the catalog can grow without bloating the skill's main file.
