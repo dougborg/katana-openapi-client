@@ -360,6 +360,17 @@ CACHE_TABLES: dict[str, CacheTableSpec] = {
                     "without parsing JSON at query time."
                 ),
             ),
+            CacheExtraField(
+                name="service_id",
+                python_type="int | None",
+                description=(
+                    "(cache-only) Parent service item id for service-type "
+                    "variants. Sourced from the /services payload "
+                    "(ServiceVariant.service_id) at sync time — /variants does "
+                    "not carry it. Lets search_items return parent_id for "
+                    "services as a plain row read, like product_id/material_id."
+                ),
+            ),
         ),
         # ``custom_fields`` and ``config_attributes`` are lists of nested
         # objects SQLAlchemy can't auto-map. ``supplier_item_codes`` is a
@@ -842,6 +853,10 @@ def parse_generated_file(
     # Add extra="ignore" to BaseEntity for API response tolerance (#295)
     classes = add_base_entity_extra_ignore(classes)
 
+    # Re-type ``<timestamp>: Any`` phantom fields (datamodel-codegen 0.58.0
+    # regression on allOf+required inherited timestamps) back to AwareDatetime.
+    classes = restore_phantom_any_timestamps(classes)
+
     # #342 cache-table transforms — emit a ``Cached<Name>`` sibling for
     # each CACHE_TABLES entry. The original API class stays pure pydantic;
     # the cache class carries SQLModel ``table=True``, primary keys, FKs,
@@ -1139,6 +1154,51 @@ def add_base_entity_extra_ignore(classes: list[ClassInfo]) -> list[ClassInfo]:
             )
         else:
             fixed_classes.append(cls)
+    return fixed_classes
+
+
+# Inherited entity timestamps that ``datamodel-codegen`` 0.58.0 emits as a
+# bare ``<field>: Any`` when a schema re-lists them in its own ``required``
+# array through an ``allOf`` ``$ref`` merge (it can't resolve the type across
+# the merge). Earlier codegen versions merged the type correctly. The base
+# entity classes (``UpdatableEntity`` etc.) declare these as
+# ``AwareDatetime | None``; when ``required`` they're non-optional. Map each to
+# its canonical description so the restored field matches the base-class
+# semantics and we don't silently regress type safety. See ``InventoryMovement``.
+_REQUIRED_TIMESTAMP_DESCRIPTIONS = {
+    "created_at": "Timestamp when the entity was first created",
+    "updated_at": "Timestamp when the entity was last updated",
+}
+
+
+def restore_phantom_any_timestamps(classes: list[ClassInfo]) -> list[ClassInfo]:
+    """Re-type ``<timestamp>: Any`` phantom fields back to ``AwareDatetime``.
+
+    ``datamodel-codegen`` 0.58.0 emits a bare, required ``created_at: Any`` /
+    ``updated_at: Any`` for an inherited entity timestamp that a schema promotes
+    to ``required`` via an ``allOf`` ``$ref`` (it loses the type through the
+    merge). Rewrite that bare ``Any`` to the concrete required ``AwareDatetime``
+    form the base entity declares, so consumers keep date-aware typing. Only the
+    exact bare-``Any`` shape is touched — legitimately typed fields are left
+    alone, and the trailing ``Any`` import is dropped by the ruff pass if it
+    becomes unused.
+    """
+    fixed_classes = []
+    for cls in classes:
+        new_source = cls.source
+        for field_name, description in _REQUIRED_TIMESTAMP_DESCRIPTIONS.items():
+            replacement = (
+                f"    {field_name}: Annotated[\n"
+                f'        AwareDatetime, Field(description="{description}")\n'
+                f"    ]"
+            )
+            new_source = re.sub(
+                rf"^    {field_name}: Any$",
+                replacement,
+                new_source,
+                flags=re.MULTILINE,
+            )
+        fixed_classes.append(cls.with_source(new_source))
     return fixed_classes
 
 

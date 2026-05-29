@@ -763,14 +763,18 @@ async def test_search_items_parent_id_for_product_and_material():
 
 
 @pytest.mark.asyncio
-async def test_search_items_parent_id_for_service_resolves_via_cached_service():
-    """Service rows resolve parent_id (service item id) from CachedService.
+async def test_search_items_parent_id_for_service_reads_refetched_service_id():
+    """Service rows resolve parent_id from a FRESH re-read after the backfill.
 
-    A service variant carries null product_id/material_id and no parent
-    column; the parent service item id lives on CachedService (its ``id``,
-    with the variant id in its nested ``variants``). This is the bug case:
-    the variant id (what search returns as ``id``) differs from the service
-    item id (``parent_id``) that modify_item/get_item require.
+    ``smart_search`` returns *detached* rows whose ``service_id`` is frozen at
+    fetch time — possibly null (cold cache, or a /variants delta that nulled
+    it). search_items syncs services (running the backfill that writes
+    ``service_id`` onto the variant rows), then re-reads those rows via
+    ``get_many_by_ids`` and resolves parent_id from the fresh value. Pin that
+    the resolved parent_id comes from the re-fetch, NOT the stale search row:
+    the search row carries ``service_id=None`` here, yet parent_id resolves.
+    This is the bug case — the variant id (search ``id``) differs from the
+    service item id (``parent_id``) that modify_item/get_item require.
     """
     context, lifespan_ctx = create_mock_context()
 
@@ -780,40 +784,43 @@ async def test_search_items_parent_id_for_service_resolves_via_cached_service():
                 "id": 40722022,  # service VARIANT id
                 "product_id": None,
                 "material_id": None,
+                "service_id": None,  # STALE: detached row, pre-backfill
                 "sku": "LABOR",
                 "type": "service",
                 "display_name": "LABOR",
             }
         ]
     )
-    lifespan_ctx.typed_cache.catalog.get_all = AsyncMock(
-        return_value=[
-            {
-                "id": 17253805,  # service ITEM id (parent)
-                "variants": [{"id": 40722022, "service_id": 17253805, "sku": "LABOR"}],
-            }
-        ]
+    # The re-fetch (after the backfill) returns the linked row.
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
+        return_value={
+            40722022: {"id": 40722022, "service_id": 17253805, "type": "service"}
+        }
     )
 
     result = await _search_items_impl(SearchItemsRequest(query="labor"), context)
 
-    assert result.items[0].id == 40722022
-    assert result.items[0].parent_id == 17253805
-    assert result.items[0].parent_id != result.items[0].id
-    # CachedService is queried to build the variant->service map.
-    from katana_public_api_client.models_pydantic._generated import CachedService
+    from katana_public_api_client.models_pydantic._generated import CachedVariant
 
-    lifespan_ctx.typed_cache.catalog.get_all.assert_awaited_once_with(
-        CachedService, include_archived=False
-    )
+    assert result.items[0].id == 40722022
+    assert result.items[0].parent_id == 17253805  # from re-fetch, not search row
+    assert result.items[0].parent_id != result.items[0].id
+    # Re-read is keyed by the service variant ids — no full CachedService scan.
+    lifespan_ctx.typed_cache.catalog.get_all.assert_not_awaited()
+    refetch = lifespan_ctx.typed_cache.catalog.get_many_by_ids
+    refetch.assert_awaited_once()
+    assert refetch.await_args is not None
+    assert refetch.await_args.args[0] is CachedVariant
+    assert list(refetch.await_args.args[1]) == [40722022]
 
 
 @pytest.mark.asyncio
-async def test_search_items_service_parent_id_resolves_archived_service():
-    """include_archived=true must reach get_all so archived service hits resolve.
+async def test_search_items_service_in_results_triggers_service_sync():
+    """A service hit triggers the incremental service sync before the row read.
 
-    Without threading the flag through, get_all defaults to excluding archived
-    services and an archived service hit would lose its parent_id.
+    The sync runs the backfill (``post_sync``) that links ``service_id`` onto
+    freshly created/edited service variant rows; search re-reads them after.
+    The sync is conditional — only fired when a service is in the result set.
     """
     context, lifespan_ctx = create_mock_context()
 
@@ -823,36 +830,40 @@ async def test_search_items_service_parent_id_resolves_archived_service():
                 "id": 40722022,
                 "product_id": None,
                 "material_id": None,
+                "service_id": None,
                 "sku": "LABOR",
                 "type": "service",
                 "display_name": "LABOR",
             }
         ]
     )
-    lifespan_ctx.typed_cache.catalog.get_all = AsyncMock(
-        return_value=[
-            {"id": 17253805, "variants": [{"id": 40722022, "service_id": 17253805}]}
-        ]
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
+        return_value={40722022: {"id": 40722022, "service_id": 17253805}}
     )
 
-    result = await _search_items_impl(
-        SearchItemsRequest(query="labor", include_archived=True), context
-    )
+    with patch(
+        "katana_mcp.tools.foundation.items.ensure_cache_synced",
+        new=AsyncMock(),
+    ) as mock_sync:
+        result = await _search_items_impl(SearchItemsRequest(query="labor"), context)
 
     assert result.items[0].parent_id == 17253805
+    # The conditional service sync ran (a service was in the results).
     from katana_public_api_client.models_pydantic._generated import CachedService
 
-    lifespan_ctx.typed_cache.catalog.get_all.assert_awaited_once_with(
-        CachedService, include_archived=True
-    )
+    mock_sync.assert_awaited_once()
+    await_args = mock_sync.await_args
+    assert await_args is not None
+    assert await_args.args[1:] == (CachedService,)
 
 
 @pytest.mark.asyncio
-async def test_search_items_service_parent_id_none_when_services_empty():
-    """A service row degrades to parent_id=None when CachedService is empty.
+async def test_search_items_service_parent_id_none_when_refetch_unlinked():
+    """A service row degrades to parent_id=None when the re-fetch has no link.
 
     Better to return None (the caller learns the parent isn't resolvable)
-    than to emit the wrong-id-space variant id as the parent.
+    than to emit the wrong-id-space variant id as the parent. Covers both the
+    re-fetch missing the row and the row carrying a null ``service_id``.
     """
     context, lifespan_ctx = create_mock_context()
 
@@ -862,30 +873,27 @@ async def test_search_items_service_parent_id_none_when_services_empty():
                 "id": 40722022,
                 "product_id": None,
                 "material_id": None,
+                "service_id": None,
                 "sku": "LABOR",
                 "type": "service",
                 "display_name": "LABOR",
             }
         ]
     )
-    # get_all returns [] by default in create_mock_context — no service rows.
+    # Re-fetch returns the row but it still isn't linked (service_id null).
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids = AsyncMock(
+        return_value={40722022: {"id": 40722022, "service_id": None}}
+    )
 
     result = await _search_items_impl(SearchItemsRequest(query="labor"), context)
 
     assert result.items[0].id == 40722022
     assert result.items[0].parent_id is None
-    # The join WAS attempted (service in results) but found nothing — pins that
-    # parent_id=None is the empty-cache degrade path, not a skipped lookup.
-    from katana_public_api_client.models_pydantic._generated import CachedService
-
-    lifespan_ctx.typed_cache.catalog.get_all.assert_awaited_once_with(
-        CachedService, include_archived=False
-    )
 
 
 @pytest.mark.asyncio
-async def test_search_items_skips_service_join_when_no_service_rows():
-    """The CachedService read is skipped entirely for product/material-only hits."""
+async def test_search_items_skips_service_sync_when_no_service_rows():
+    """The service sync + re-fetch are skipped entirely for product/material hits."""
     context, lifespan_ctx = create_mock_context()
 
     lifespan_ctx.typed_cache.catalog.smart_search = AsyncMock(
@@ -894,9 +902,14 @@ async def test_search_items_skips_service_join_when_no_service_rows():
         ]
     )
 
-    await _search_items_impl(SearchItemsRequest(query="p"), context)
+    with patch(
+        "katana_mcp.tools.foundation.items.ensure_cache_synced",
+        new=AsyncMock(),
+    ) as mock_sync:
+        await _search_items_impl(SearchItemsRequest(query="p"), context)
 
-    lifespan_ctx.typed_cache.catalog.get_all.assert_not_awaited()
+    mock_sync.assert_not_awaited()
+    lifespan_ctx.typed_cache.catalog.get_many_by_ids.assert_not_awaited()
 
 
 # ============================================================================

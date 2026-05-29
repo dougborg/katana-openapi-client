@@ -1585,6 +1585,12 @@ class CachedVariant(UpdatableEntity, DeletableEntity, table=True):
             description="(cache-only) Space-joined ``supplier_item_codes`` so the FTS5 tokenizer can index multi-token supplier codes without parsing JSON at query time."
         ),
     ] = None
+    service_id: Annotated[
+        Mapped[int | None],
+        Field(
+            description="(cache-only) Parent service item id for service-type variants. Sourced from the /services payload (ServiceVariant.service_id) at sync time — /variants does not carry it. Lets search_items return parent_id for services as a plain row read, like product_id/material_id."
+        ),
+    ] = None
 
 
 class CachedService(ArchivableDeletableEntity, table=True):
