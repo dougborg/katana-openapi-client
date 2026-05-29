@@ -22,8 +22,8 @@ from katana_mcp.tools.prefab_ui import (
     build_fulfill_success_ui,
     build_inventory_check_batch_ui,
     build_inventory_check_ui,
+    build_item_create_ui,
     build_item_detail_ui,
-    build_item_mutation_ui,
     build_low_stock_ui,
     build_mo_create_ui,
     build_modification_preview_ui,
@@ -6465,16 +6465,178 @@ class TestBuildVerificationUI:
         assert len(_find_buttons_by_label(partial_envelope, "Receive Anyway")) == 1
 
 
-class TestBuildItemMutationUI:
-    @pytest.mark.parametrize("action", ["Created", "Updated", "Deleted"])
-    def test_actions(self, action):
-        item = {"id": 1, "name": "Widget", "type": "product", "sku": "SKU-001"}
-        app = build_item_mutation_ui(item, action)
+class TestBuildItemCreateUI:
+    """The post-creation card (formerly ``build_item_mutation_ui``) implements
+    the four-tier framework: Identity (name + Created badge + status pills),
+    Decision metrics, Reference (single-variant SKU/prices inline, supplier,
+    configs), and type-specific Action buttons.
+    """
+
+    def _full_product(self) -> dict:
+        return {
+            "id": 1,
+            "name": "Widget",
+            "type": "product",
+            "sku": "SKU-001",
+            "katana_url": "https://factory.katanamrp.com/product/1",
+            "uom": "pcs",
+            "category_name": "Finished Goods",
+            "is_sellable": True,
+            "is_producible": True,
+            "additional_info": "ships flat-packed",
+            "variants": [
+                {
+                    "id": 11,
+                    "sku": "SKU-001",
+                    "sales_price": 19.5,
+                    "purchase_price": 8.0,
+                    "display_name": "Widget",
+                }
+            ],
+            "configs": [{"id": 3, "name": "Size", "values": ["S", "M", "L"]}],
+        }
+
+    def test_valid_envelope_full_product(self):
+        app = build_item_create_ui(self._full_product())
         _assert_valid_prefab(app)
 
     def test_minimal(self):
-        app = build_item_mutation_ui({"id": 1}, "Created")
+        app = build_item_create_ui({"id": 1})
         _assert_valid_prefab(app)
+
+    def test_identity_tier_created_badge_and_title_link(self):
+        """Tier 1: a "Created" state badge, the name, and a Link to the
+        Katana page."""
+        app = build_item_create_ui(self._full_product())
+        envelope = app.to_json()
+        rendered = str(envelope)
+        assert "Created" in rendered
+        links = _find_components_by_type(envelope, "Link")
+        hrefs = [link.get("href") for link in links]
+        assert "https://factory.katanamrp.com/product/1" in hrefs
+
+    def test_single_variant_renders_inline_not_datatable(self):
+        """A freshly-created item has exactly one variant — its SKU + prices
+        render as inline reference lines, NOT a one-row DataTable (single-row
+        table is needless chrome)."""
+        app = build_item_create_ui(self._full_product())
+        envelope = app.to_json()
+        assert not _has_node_of_type(envelope, "DataTable")
+        rendered = str(envelope)
+        assert "SKU: SKU-001" in rendered
+        assert "Sales Price: 19.5" in rendered
+        assert "Purchase Price: 8" in rendered
+
+    def test_zero_price_renders(self):
+        """A 0.0 price (free sample) still renders — the guard is an explicit
+        ``is not None`` check, not truthiness."""
+        item = self._full_product()
+        item["variants"][0]["sales_price"] = 0.0
+        app = build_item_create_ui(item)
+        assert "Sales Price: 0" in str(app.to_json())
+
+    def test_sku_falls_back_to_item_level_when_no_variants(self):
+        """If the create result didn't echo a variants array, the item-level
+        ``sku`` still surfaces so identity is never lost — and ``Variants: 0``
+        is *shown* (not collapsed) because an empty variants list on a freshly
+        created item is a malformed-response signal, not noise."""
+        item = {"id": 1, "name": "Widget", "type": "product", "sku": "SKU-XYZ"}
+        app = build_item_create_ui(item)
+        rendered = str(app.to_json())
+        assert "SKU: SKU-XYZ" in rendered
+        assert "Variants: 0" in rendered
+
+    def test_configs_render_as_axis_rows(self):
+        app = build_item_create_ui(self._full_product())
+        assert "Size: S, M, L" in str(app.to_json())
+
+    def test_supplier_renders_as_link_not_bare_id(self):
+        """Reference tier resolves the supplier name (anti-pattern #7): a
+        ``default_supplier_name`` threaded from the impl renders as a Link with
+        the name as visible text, not a bare ``#id``."""
+        item = {
+            "id": 2,
+            "name": "Steel Bar",
+            "type": "material",
+            "sku": "MAT-1",
+            "default_supplier_id": 555,
+            "default_supplier_name": "Acme Metals",
+            "variants": [{"id": 21, "sku": "MAT-1"}],
+        }
+        app = build_item_create_ui(item)
+        envelope = app.to_json()
+        links = _find_components_by_type(envelope, "Link")
+        supplier_links = [
+            link
+            for link in links
+            if "/contacts/suppliers/" in str(link.get("href", ""))
+        ]
+        assert len(supplier_links) == 1
+        assert supplier_links[0].get("content") == "Acme Metals"
+
+    def test_footer_actions_for_product(self):
+        """Producible product: View Details, Check Inventory, Set Initial
+        Stock, Create Manufacturing Order, Modify Item — and NOT Create
+        Purchase Order (that's the material affordance)."""
+        envelope = build_item_create_ui(self._full_product()).to_json()
+        for label in [
+            "View Details",
+            "Check Inventory",
+            "Set Initial Stock",
+            "Create Manufacturing Order",
+            "Modify Item",
+        ]:
+            assert len(_find_buttons_by_label(envelope, label)) == 1, label
+        assert _find_buttons_by_label(envelope, "Create Purchase Order") == []
+
+    def test_footer_actions_for_material(self):
+        """Material: Create Purchase Order (not Manufacturing Order)."""
+        item = {
+            "id": 3,
+            "name": "Steel",
+            "type": "material",
+            "sku": "MAT-2",
+            "variants": [{"id": 31, "sku": "MAT-2"}],
+        }
+        envelope = build_item_create_ui(item).to_json()
+        assert len(_find_buttons_by_label(envelope, "Create Purchase Order")) == 1
+        assert _find_buttons_by_label(envelope, "Create Manufacturing Order") == []
+
+    def test_non_producible_product_has_no_mo_button(self):
+        item = self._full_product()
+        item["is_producible"] = False
+        envelope = build_item_create_ui(item).to_json()
+        assert _find_buttons_by_label(envelope, "Create Manufacturing Order") == []
+
+    def test_service_has_no_supplier_or_stock_actions(self):
+        """A service: no supplier line, and no Create PO / MO buttons; still
+        offers View Details + Modify Item."""
+        item = {
+            "id": 4,
+            "name": "Assembly Labor",
+            "type": "service",
+            "sku": "SVC-1",
+            "variants": [{"id": 41, "sku": "SVC-1", "sales_price": 50.0}],
+        }
+        envelope = build_item_create_ui(item).to_json()
+        assert _find_buttons_by_label(envelope, "Create Purchase Order") == []
+        assert _find_buttons_by_label(envelope, "Create Manufacturing Order") == []
+        assert len(_find_buttons_by_label(envelope, "View Details")) == 1
+        assert len(_find_buttons_by_label(envelope, "Modify Item")) == 1
+
+    def test_warnings_surface(self):
+        """A supplier-name resolution warning threaded onto ``warnings`` is
+        rendered so the operator sees why a name couldn't be pretty-printed."""
+        item = {
+            "id": 5,
+            "name": "Steel",
+            "type": "material",
+            "sku": "MAT-3",
+            "default_supplier_id": 999,
+            "warnings": ["Default supplier with id=999 was not found in the cache"],
+        }
+        rendered = str(build_item_create_ui(item).to_json())
+        assert "not found in the cache" in rendered
 
 
 class TestBuildReceiptUI:

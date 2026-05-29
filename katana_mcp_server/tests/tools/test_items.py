@@ -1756,6 +1756,31 @@ async def test_create_item_service_ignores_purchase_uom():
 
 
 @pytest.mark.asyncio
+async def test_create_item_derives_variant_id_and_enriches_from_result():
+    """``variant_id`` is lifted from the created variant, and the four-tier
+    view fields (variants/configs) flow onto the response from the result."""
+    from katana_mcp.tools.foundation.items import (
+        CreateItemRequest,
+        _create_item_impl,
+    )
+
+    context, lifespan_ctx = create_mock_context()
+    mock_product = _mock_item(id=920, name="VarId Item")
+    mock_product.is_sellable = True
+    mock_product.variants = [{"id": 7777, "sku": "VID-1", "sales_price": 9.0}]
+    lifespan_ctx.client.products.create = AsyncMock(return_value=mock_product)
+
+    request = CreateItemRequest(type=ItemType.PRODUCT, name="VarId Item", sku="VID-1")
+    response = await _create_item_impl(request, context)
+
+    assert response.variant_id == 7777
+    assert response.sku == "VID-1"
+    assert response.is_sellable is True
+    assert len(response.variants) == 1
+    assert response.variants[0].sales_price == 9.0
+
+
+@pytest.mark.asyncio
 async def test_create_item_service_ignores_variant_fields():
     """Services don't have variants in the same sense — pricing lives on the
     header. Variant-level fields supplied with type=service must not crash and

@@ -135,13 +135,21 @@ def mock_item(*, id: int, name: str | None) -> MagicMock:
     """Build a Product/Material/Service MagicMock for create-tool tests.
 
     The MCP create-tool impls read item-header fields off the returned attrs
-    entity to populate their response models. A bare ``MagicMock()``
-    auto-vivifies those attributes to nested MagicMocks, which then fail
-    pydantic validation — so this helper sets ``uom``, ``purchase_uom``, and
-    ``purchase_uom_conversion_rate`` to ``UNSET`` (the typical wire shape
-    when Katana omits a field), matching real-API behavior. Override the
-    sentinels by reassigning after the call when a test needs specific
-    values.
+    entity (via ``to_dict()``, mirroring the real generated attrs models) to
+    populate their response models — ``build_item_create_view`` then maps that
+    dict into the four-tier ``ItemCreateView`` fields. A bare ``MagicMock()``
+    auto-vivifies attributes to nested MagicMocks, which then fail pydantic
+    validation, so:
+
+    - ``uom`` / ``purchase_uom`` / ``purchase_uom_conversion_rate`` default to
+      ``UNSET`` (the typical wire shape when Katana omits a field). Override by
+      reassigning after the call when a test needs specific values.
+    - ``to_dict()`` returns a real dict reflecting the mock's *currently set*
+      header fields, skipping ``UNSET`` and still-auto-vivified MagicMock
+      attributes — matching how a real ``Product.to_dict()`` omits ``UNSET``
+      keys. Reassignments made after the call (e.g. ``mock.uom = "pcs"``,
+      ``mock.variants = [...]``) are reflected because the dict is rebuilt on
+      each ``to_dict()`` call.
     """
     from katana_public_api_client.client_types import UNSET
 
@@ -151,6 +159,41 @@ def mock_item(*, id: int, name: str | None) -> MagicMock:
     mock.uom = UNSET
     mock.purchase_uom = UNSET
     mock.purchase_uom_conversion_rate = UNSET
+
+    # Header fields the create impls read through ``to_dict()``. Only those
+    # explicitly set on the mock (not UNSET, not auto-vivified) appear in the
+    # dict — so an unset ``is_sellable`` is absent rather than a MagicMock.
+    _to_dict_fields = (
+        "id",
+        "name",
+        "uom",
+        "purchase_uom",
+        "purchase_uom_conversion_rate",
+        "category_name",
+        "additional_info",
+        "is_sellable",
+        "is_producible",
+        "batch_tracked",
+        "serial_tracked",
+        "archived_at",
+        "lead_time",
+        "minimum_order_quantity",
+        "default_supplier_id",
+        "variants",
+        "configs",
+        "supplier",
+    )
+
+    def _to_dict() -> dict:
+        out: dict = {}
+        for field in _to_dict_fields:
+            value = getattr(mock, field)
+            if value is UNSET or isinstance(value, MagicMock):
+                continue
+            out[field] = value
+        return out
+
+    mock.to_dict = _to_dict
     return mock
 
 

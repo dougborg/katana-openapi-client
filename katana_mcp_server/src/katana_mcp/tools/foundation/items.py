@@ -47,6 +47,7 @@ from katana_mcp.tools.tool_result_utils import (
     UI_META,
     SoftDeletableResponse,
     make_tool_result,
+    resolve_entity_name,
     resolve_factory_base_currency,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
@@ -136,6 +137,95 @@ class ItemType(StrEnum):
     PRODUCT = "product"
     MATERIAL = "material"
     SERVICE = "service"
+
+
+class ItemSupplierInfo(BaseModel):
+    """Supplier record embedded on a product or material."""
+
+    id: int
+    name: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    currency: str | None = None
+    comment: str | None = None
+    default_address_id: int | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+class ItemConfigInfo(BaseModel):
+    """Configuration attribute definition (e.g. Size / Color)."""
+
+    id: int
+    name: str
+    values: list[str] = Field(default_factory=list)
+    product_id: int | None = None
+    material_id: int | None = None
+
+
+class ItemVariantSummary(BaseModel):
+    """Brief variant summary embedded in the product/material/service detail."""
+
+    id: int
+    sku: str | None = None
+    """Variant SKU. ``None``-able to match Katana's wire contract —
+    the platform has no DB-level constraint forcing SKU non-null, so
+    consumers must tolerate ``None``. Display-side consumers should
+    coalesce to ``""`` when rendering; ``display_name`` below already
+    provides a non-empty title in the rare SKU-less case.
+    """
+    sales_price: float | None = None
+    purchase_price: float | None = None
+    type: str | None = None
+    display_name: str = ""
+    """Katana-UI-format human-readable name: ``"{parent_name} / {config1} / {config2}"``.
+
+    Built via :func:`katana_public_api_client.domain.variant.build_variant_display_name`
+    so it stays consistent with every other variant-displaying surface
+    (typed-cache ``CachedVariant.display_name``, ``KatanaVariant.get_display_name``,
+    ``VariantDetailsResponse.display_name``). The summary is embedded in the parent
+    ``ItemDetailsResponse`` so the parent name is known at build time — that means
+    ``display_name`` is always populated when the parent has variants.
+    """
+
+
+class ItemCreateView(BaseModel):
+    """Four-tier card fields shared by the create-item response models.
+
+    A freshly-created item carries the same Identity / Decision-metric /
+    Reference content as a fetched one, so ``build_item_create_ui`` renders
+    via the same ``_render_item_entity_view`` helper as ``build_item_detail_ui``.
+    These fields are populated from the ``.create()`` API result (a fully
+    enriched ``Product`` / ``Material`` / ``Service`` attrs model) via
+    :func:`build_item_create_view` — no second fetch. ``default_supplier_name``
+    is the one field the API result doesn't carry inline; the impl resolves it
+    from the typed cache so the card never shows a bare supplier ID
+    (anti-pattern #7).
+
+    Mixed into ``CreateProductResponse`` / ``CreateMaterialResponse`` (catalog.py)
+    and ``CreateItemResponse`` (items.py). Sub-type-inapplicable fields stay at
+    their defaults (e.g. ``is_producible`` is ``None`` for materials/services).
+    """
+
+    katana_url: str | None = None
+    uom: str | None = None
+    purchase_uom: str | None = None
+    purchase_uom_conversion_rate: float | None = None
+    category_name: str | None = None
+    additional_info: str | None = None
+    is_sellable: bool | None = None
+    is_producible: bool | None = None
+    batch_tracked: bool | None = None
+    serial_tracked: bool | None = None
+    is_archived: bool = False
+    lead_time: int | None = None
+    minimum_order_quantity: float | None = None
+    default_supplier_id: int | None = None
+    default_supplier_name: str | None = None
+    supplier: ItemSupplierInfo | None = None
+    variants: list[ItemVariantSummary] = Field(default_factory=list)
+    configs: list[ItemConfigInfo] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
 
 
 # ============================================================================
@@ -475,20 +565,21 @@ def _item_katana_url(item_type: ItemType, id: int | None) -> str | None:
     return katana_web_url(kind, id)
 
 
-class CreateItemResponse(BaseModel):
-    """Response from creating an item."""
+class CreateItemResponse(ItemCreateView):
+    """Response from creating an item.
+
+    Inherits the four-tier card fields from :class:`ItemCreateView` (uom,
+    purchase_uom, katana_url, variants, configs, supplier, status flags, …),
+    populated from the ``.create()`` result via :func:`build_item_create_view`.
+    """
 
     id: int
     name: str
     type: ItemType
     variant_id: int | None = None
     sku: str | None = None
-    uom: str | None = None
-    purchase_uom: str | None = None
-    purchase_uom_conversion_rate: float | None = None
     success: bool = True
     message: str = "Item created successfully"
-    katana_url: str | None = None
 
 
 async def _create_item_impl(
@@ -572,24 +663,25 @@ async def _create_item_impl(
     # call, so the next ``search_items`` / ``get_variant_details`` sees
     # the new row without a manual dirty bit.
 
-    # Service items don't carry purchase_uom — Product/Material do.
-    result_uom = unwrap_unset(getattr(result, "uom", None))
-    result_purchase_uom = unwrap_unset(getattr(result, "purchase_uom", None))
-    result_conversion_rate = unwrap_unset(
-        getattr(result, "purchase_uom_conversion_rate", None)
-    )
-
+    # Enrich the four-tier card view directly from the create result —
+    # the attrs model carries variants/configs/status-flags/supplier-FK, so
+    # ``build_item_create_view`` populates the whole Identity/Metrics/Reference
+    # block with no second fetch. uom / purchase_uom land in the view too.
     result_name = result.name or request.name
+    view = await build_item_create_view(
+        services,
+        result,
+        katana_url=_item_katana_url(request.type, result.id),
+    )
+    variant_id = view["variants"][0].id if view["variants"] else None
     return CreateItemResponse(
         id=result.id,
         name=result_name,
         type=request.type,
+        variant_id=variant_id,
         sku=request.sku,
-        uom=result_uom,
-        purchase_uom=result_purchase_uom,
-        purchase_uom_conversion_rate=result_conversion_rate,
         message=f"{request.type.value.title()} '{result_name}' created successfully with SKU {request.sku}",
-        katana_url=_item_katana_url(request.type, result.id),
+        **view,
     )
 
 
@@ -606,10 +698,10 @@ async def create_item(
 
     Creates the item with a single variant. Returns the new item ID.
     """
-    from katana_mcp.tools.prefab_ui import build_item_mutation_ui
+    from katana_mcp.tools.prefab_ui import build_item_create_ui
 
     response = await _create_item_impl(request, context)
-    ui = build_item_mutation_ui(response.model_dump(), "Created")
+    ui = build_item_create_ui(response.model_dump())
 
     return make_tool_result(response, ui=ui)
 
@@ -626,56 +718,6 @@ class GetItemRequest(BaseModel):
 
     id: int = Field(..., description="Item ID")
     type: ItemType = Field(..., description="Type of item (product, material, service)")
-
-
-class ItemSupplierInfo(BaseModel):
-    """Supplier record embedded on a product or material."""
-
-    id: int
-    name: str | None = None
-    email: str | None = None
-    phone: str | None = None
-    currency: str | None = None
-    comment: str | None = None
-    default_address_id: int | None = None
-    created_at: str | None = None
-    updated_at: str | None = None
-
-
-class ItemConfigInfo(BaseModel):
-    """Configuration attribute definition (e.g. Size / Color)."""
-
-    id: int
-    name: str
-    values: list[str] = Field(default_factory=list)
-    product_id: int | None = None
-    material_id: int | None = None
-
-
-class ItemVariantSummary(BaseModel):
-    """Brief variant summary embedded in the product/material/service detail."""
-
-    id: int
-    sku: str | None = None
-    """Variant SKU. ``None``-able to match Katana's wire contract —
-    the platform has no DB-level constraint forcing SKU non-null, so
-    consumers must tolerate ``None``. Display-side consumers should
-    coalesce to ``""`` when rendering; ``display_name`` below already
-    provides a non-empty title in the rare SKU-less case.
-    """
-    sales_price: float | None = None
-    purchase_price: float | None = None
-    type: str | None = None
-    display_name: str = ""
-    """Katana-UI-format human-readable name: ``"{parent_name} / {config1} / {config2}"``.
-
-    Built via :func:`katana_public_api_client.domain.variant.build_variant_display_name`
-    so it stays consistent with every other variant-displaying surface
-    (typed-cache ``CachedVariant.display_name``, ``KatanaVariant.get_display_name``,
-    ``VariantDetailsResponse.display_name``). The summary is embedded in the parent
-    ``ItemDetailsResponse`` so the parent name is known at build time — that means
-    ``display_name`` is always populated when the parent has variants.
-    """
 
 
 class ItemDetailsResponse(SoftDeletableResponse):
@@ -817,6 +859,81 @@ def _item_attrs_to_dict(item: Any) -> dict[str, Any]:
     if hasattr(item, "to_dict"):
         return item.to_dict()
     return dict(item) if isinstance(item, dict) else {}
+
+
+async def build_item_create_view(
+    services: Any,
+    result: Any,
+    *,
+    katana_url: str | None,
+) -> dict[str, Any]:
+    """Map a ``.create()`` result to the :class:`ItemCreateView` field dict.
+
+    Mirrors :func:`_get_item_impl`'s enrichment but reads the object the
+    create call already returned — the ``Product`` / ``Material`` /
+    ``Service`` attrs model is fully populated (variants, configs, status
+    flags, supplier FK), so the create card renders the full four-tier view
+    with **no second fetch**.
+
+    The one field the create result doesn't carry inline is the default
+    supplier *name* — only its FK. Resolve it from the typed cache
+    (:func:`resolve_entity_name`) so the card never shows a bare supplier ID
+    (anti-pattern #7); any resolution warning is threaded onto ``warnings``.
+    Returned kwargs splat directly into a :class:`ItemCreateView` subclass.
+    """
+    d = _item_attrs_to_dict(result)
+    parent_name = d.get("name") or ""
+    variants = [
+        v
+        for v in (
+            _variant_to_summary(raw, parent_name=parent_name)
+            for raw in d.get("variants") or []
+        )
+        if v
+    ]
+    configs = [c for c in (_config_to_info(raw) for raw in d.get("configs") or []) if c]
+    supplier = _supplier_to_info(d.get("supplier"))
+
+    warnings: list[str] = []
+    default_supplier_id = d.get("default_supplier_id")
+    # Prefer the embedded supplier object's name; fall back to a cache
+    # lookup on the bare FK. Create responses usually carry only the FK,
+    # so the cache resolution is the common path. ``or None`` collapses an
+    # empty-string embedded name to None so it triggers the cache lookup
+    # (and never renders a blank Link) — matching ``resolve_entity_name``'s
+    # own ``name or None`` coalescing.
+    default_supplier_name = (supplier.name or None) if supplier else None
+    if default_supplier_name is None and default_supplier_id is not None:
+        default_supplier_name, warning = await resolve_entity_name(
+            services.typed_cache.catalog,
+            CachedSupplier,
+            default_supplier_id,
+            entity_label="Default supplier",
+        )
+        if warning:
+            warnings.append(warning)
+
+    return {
+        "katana_url": katana_url,
+        "uom": d.get("uom"),
+        "purchase_uom": d.get("purchase_uom"),
+        "purchase_uom_conversion_rate": d.get("purchase_uom_conversion_rate"),
+        "category_name": d.get("category_name"),
+        "additional_info": d.get("additional_info"),
+        "is_sellable": d.get("is_sellable"),
+        "is_producible": d.get("is_producible"),
+        "batch_tracked": d.get("batch_tracked"),
+        "serial_tracked": d.get("serial_tracked"),
+        "is_archived": d.get("archived_at") is not None,
+        "lead_time": d.get("lead_time"),
+        "minimum_order_quantity": d.get("minimum_order_quantity"),
+        "default_supplier_id": default_supplier_id,
+        "default_supplier_name": default_supplier_name,
+        "supplier": supplier,
+        "variants": variants,
+        "configs": configs,
+        "warnings": warnings,
+    }
 
 
 async def _fetch_item_attrs(services: Any, item_id: int, item_type: ItemType) -> Any:
