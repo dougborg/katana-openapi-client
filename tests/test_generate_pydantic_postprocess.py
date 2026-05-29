@@ -516,3 +516,80 @@ def test_rewrite_preserves_whitespace_and_layout(gen: ModuleType) -> None:
     source = "class Foo:\n    x: int = 1\n    y: str = 'hello'\n"
     rewritten = gen._rewrite_identifiers_outside_strings(source, {"NotPresent": "X"})
     assert rewritten == source
+
+
+# ─── restore_phantom_any_timestamps ─────────────────────────────────────
+
+
+def test_restore_phantom_any_created_updated(gen: ModuleType) -> None:
+    """Bare ``created_at: Any`` / ``updated_at: Any`` → required ``AwareDatetime``.
+
+    datamodel-codegen 0.58.0 emits these phantom ``Any`` fields when a schema
+    promotes an inherited timestamp to ``required`` via allOf (e.g.
+    ``InventoryMovement``). The pass restores the concrete type.
+    """
+    cls = gen.ClassInfo(
+        name="InventoryMovement",
+        source=(
+            "class InventoryMovement(UpdatableEntity):\n"
+            "    rank: Annotated[int | None, Field(description='x')] = None\n"
+            "    created_at: Any\n"
+            "    updated_at: Any\n"
+        ),
+        bases=["UpdatableEntity"],
+        line_start=1,
+        line_end=4,
+    )
+    [out] = gen.restore_phantom_any_timestamps([cls])
+    assert "created_at: Any" not in out.source
+    assert "updated_at: Any" not in out.source
+    assert (
+        "    created_at: Annotated[\n"
+        '        AwareDatetime, Field(description="Timestamp when the entity '
+        'was first created")\n'
+        "    ]"
+    ) in out.source
+    assert (
+        "    updated_at: Annotated[\n"
+        '        AwareDatetime, Field(description="Timestamp when the entity '
+        'was last updated")\n'
+        "    ]"
+    ) in out.source
+
+
+def test_restore_phantom_leaves_typed_timestamps_untouched(gen: ModuleType) -> None:
+    """A correctly-typed ``created_at`` is not rewritten (only bare ``Any`` is)."""
+    typed = (
+        "class Foo(UpdatableEntity):\n"
+        "    created_at: Annotated[\n"
+        '        AwareDatetime | None, Field(description="x")\n'
+        "    ] = None\n"
+    )
+    cls = gen.ClassInfo(
+        name="Foo", source=typed, bases=["UpdatableEntity"], line_start=1, line_end=4
+    )
+    [out] = gen.restore_phantom_any_timestamps([cls])
+    assert out.source == typed
+
+
+def test_restore_phantom_ignores_unrelated_any_fields(gen: ModuleType) -> None:
+    """A non-timestamp ``: Any`` field is left alone — only the mapped names match."""
+    src = "class Foo:\n    metadata: Any\n    created_at: Any\n"
+    cls = gen.ClassInfo(name="Foo", source=src, bases=[], line_start=1, line_end=3)
+    [out] = gen.restore_phantom_any_timestamps([cls])
+    assert "    metadata: Any" in out.source  # untouched
+    assert "created_at: Any" not in out.source  # restored
+
+
+def test_generated_inventory_movement_timestamps_typed() -> None:
+    """End-to-end: the generated InventoryMovement keeps AwareDatetime timestamps."""
+    from katana_public_api_client.models_pydantic._generated.inventory import (
+        InventoryMovement,
+    )
+
+    for field_name in ("created_at", "updated_at"):
+        annotation = InventoryMovement.model_fields[field_name].annotation
+        assert annotation is not Any, (
+            f"{field_name} regressed to Any — restore_phantom_any_timestamps "
+            "should keep it AwareDatetime"
+        )

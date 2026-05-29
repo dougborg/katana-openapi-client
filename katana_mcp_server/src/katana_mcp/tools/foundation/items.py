@@ -344,27 +344,37 @@ async def _search_items_impl(
     # The parent *item* id that modify_item/get_item need differs from the
     # variant ``id`` search returns. Products/materials carry it on the row
     # (``product_id``/``material_id``); a service variant has null
-    # ``product_id`` AND null ``material_id`` and no dedicated parent column,
-    # so resolve the service item id from ``CachedService`` (whose ``id`` is
-    # the service item id, with the variant id in its nested ``variants[].id``).
-    # Only sync + read the service table when a service is actually in the
-    # result set, so product/material-only searches pay nothing — the common
-    # case. Pass ``include_archived`` through so an archived service hit
-    # (surfaced when the caller opts in) still resolves its parent.
-    service_variant_to_item: dict[int, int] = {}
-    if any(item_type == "service" for _, item_type in typed_variants):
+    # ``product_id`` AND null ``material_id``, so it reads from the cache-only
+    # ``service_id`` column denormalized at sync time (see
+    # ``_backfill_service_variant_links`` in ``typed_cache/sync.py``).
+    #
+    # Only do this when a service is actually in the result set, so
+    # product/material-only searches pay nothing (the common case). Two-step,
+    # because ``smart_search`` above returned *detached* rows whose
+    # ``service_id`` was frozen at fetch time — possibly before this sync's
+    # backfill, or stale from a ``/variants`` delta that nulled it: (1) sync
+    # services, which runs the ``post_sync`` backfill onto the variant rows;
+    # (2) re-read just the service variant rows so we see the backfilled
+    # value. ``include_archived/deleted=True`` so a row ``smart_search``
+    # already surfaced isn't dropped by the re-fetch's soft-state filter.
+    service_parent_by_variant: dict[int, int] = {}
+    service_variant_ids = [
+        int(vid)
+        for v, item_type in typed_variants
+        if item_type == "service" and (vid := _attr(v, "id")) is not None
+    ]
+    if service_variant_ids:
         await ensure_cache_synced(services, CachedService)
-        cached_services = await services.typed_cache.catalog.get_all(
-            CachedService, include_archived=request.include_archived
+        fresh = await services.typed_cache.catalog.get_many_by_ids(
+            CachedVariant,
+            service_variant_ids,
+            include_archived=True,
+            include_deleted=True,
         )
-        for svc in cached_services:
-            svc_id = _attr(svc, "id")
-            if svc_id is None:
-                continue
-            for sv in _attr(svc, "variants") or []:
-                sv_id = _attr(sv, "id")
-                if sv_id is not None:
-                    service_variant_to_item[int(sv_id)] = int(svc_id)
+        for vid, row in fresh.items():
+            service_id = _attr(row, "service_id")
+            if service_id is not None:
+                service_parent_by_variant[int(vid)] = int(service_id)
 
     def _parent_id(v: Any, item_type: str) -> int | None:
         if item_type == "product":
@@ -372,13 +382,12 @@ async def _search_items_impl(
         if item_type == "material":
             return _attr(v, "material_id")
         if item_type == "service":
-            # None when CachedService is empty/stale (or the variant id is
-            # missing) — degrade gracefully rather than emitting the (wrong)
-            # variant id as the parent.
+            # None when the service sync hasn't backfilled this row yet —
+            # degrade gracefully rather than emitting the (wrong) variant id.
             variant_id = _attr(v, "id")
             if variant_id is None:
                 return None
-            return service_variant_to_item.get(int(variant_id))
+            return service_parent_by_variant.get(int(variant_id))
         return None
 
     items_info = [

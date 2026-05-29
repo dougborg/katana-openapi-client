@@ -39,6 +39,7 @@ from katana_mcp.typed_cache import (
     ensure_suppliers_synced,
     ensure_tax_rates_synced,
     ensure_variants_synced,
+    force_resync,
 )
 from katana_mcp.typed_cache.sync import _validate_dependency_graph
 
@@ -389,6 +390,267 @@ class TestVariantPostprocess:
         # ``_variant_to_cache_dict``).
         assert cached.display_name == "FALLBACK-SKU"
         assert cached.parent_archived_at is None
+
+
+class TestServiceVariantLinkBackfill:
+    """``ensure_services_synced`` denormalizes ``service_id`` onto the variant row."""
+
+    @pytest.mark.asyncio
+    async def test_service_id_backfilled_onto_variant(self, typed_cache_engine):
+        """The service sync writes the parent link the /variants payload lacks.
+
+        ``/variants`` returns a service variant with null ``product_id`` /
+        ``material_id`` and no ``service_id`` — the link only exists on
+        ``/services`` (``ServiceVariant.service_id``). The backfill writes it
+        onto ``CachedVariant.service_id`` so ``search_items`` resolves service
+        ``parent_id`` as a plain column read. Mirrors
+        ``test_parent_archived_at_lifted`` (cache-only field, sourced at sync).
+        """
+        # 1. Sync the service-type variant first. Off the /variants wire it
+        #    carries no service_id (null product_id/material_id too).
+        variant_attrs = AttrsVariantResponse.from_dict(
+            {
+                "id": 40722022,
+                "sku": "LABOR",
+                "type": "service",
+                "product_id": None,
+                "material_id": None,
+            }
+        )
+        empty = _list_response([])
+        with (
+            _stub_endpoint("get_all_products", empty),
+            _stub_endpoint("get_all_materials", empty),
+            _stub_endpoint("get_all_variants", _list_response([variant_attrs])),
+        ):
+            await ensure_variants_synced(MagicMock(), typed_cache_engine)
+
+        # Precondition: service_id is null straight off the /variants sync.
+        async with typed_cache_engine.session() as session:
+            pre = await session.get(CachedVariant, 40722022)
+        assert pre is not None
+        assert pre.service_id is None
+
+        # 2. Sync the service whose nested variant carries the parent link.
+        service_attrs = AttrsService.from_dict(
+            {
+                "id": 17253805,
+                "name": "Labor",
+                "variants": [{"id": 40722022, "sku": "LABOR", "service_id": 17253805}],
+            }
+        )
+        with _stub_endpoint("get_all_services", _list_response([service_attrs])):
+            await ensure_services_synced(MagicMock(), typed_cache_engine)
+
+        # 3. The backfill linked the variant row to its parent service item.
+        async with typed_cache_engine.session() as session:
+            cached = await session.get(CachedVariant, 40722022)
+        assert cached is not None
+        assert cached.service_id == 17253805
+
+    @pytest.mark.asyncio
+    async def test_backfill_noop_when_variant_row_absent(self, typed_cache_engine):
+        """A service whose variant row isn't cached yet backfills nothing (no crash).
+
+        The variant sync materializes the row; if it hasn't run, the single-row
+        ``UPDATE ... WHERE id = :variant_id`` matches zero rows and the service
+        sync still completes.
+        """
+        service_attrs = AttrsService.from_dict(
+            {
+                "id": 17253805,
+                "name": "Labor",
+                "variants": [{"id": 99999999, "sku": "LABOR", "service_id": 17253805}],
+            }
+        )
+        with _stub_endpoint("get_all_services", _list_response([service_attrs])):
+            await ensure_services_synced(MagicMock(), typed_cache_engine)
+
+        async with typed_cache_engine.session() as session:
+            cached = await session.get(CachedVariant, 99999999)
+        assert cached is None
+
+    @pytest.mark.asyncio
+    async def test_force_resync_service_reestablishes_variant_link(
+        self, typed_cache_engine
+    ):
+        """``force_resync("service")`` runs the backfill, not just a raw re-fetch.
+
+        ``rebuild_cache`` routes through ``force_resync`` → ``_sync_one_locked``,
+        which bypasses ``ensure_services_synced``. The backfill is wired as
+        ``_SERVICE_SPEC.post_sync`` (not just in the ``ensure_*`` wrapper) so it
+        still fires here. Without that, a service rebuild would leave every
+        ``CachedVariant.service_id`` stale and ``search_items`` would return
+        ``parent_id=None`` after a fresh rebuild.
+        """
+        # Sync the variant row only — service_id is null and never backfilled
+        # (no ensure_services_synced call yet).
+        variant_attrs = AttrsVariantResponse.from_dict(
+            {"id": 40722022, "sku": "LABOR", "type": "service"}
+        )
+        empty = _list_response([])
+        with (
+            _stub_endpoint("get_all_products", empty),
+            _stub_endpoint("get_all_materials", empty),
+            _stub_endpoint("get_all_variants", _list_response([variant_attrs])),
+        ):
+            await ensure_variants_synced(MagicMock(), typed_cache_engine)
+
+        async with typed_cache_engine.session() as session:
+            pre = await session.get(CachedVariant, 40722022)
+        assert pre is not None
+        assert pre.service_id is None
+
+        # Rebuild the service entity via force_resync (the rebuild_cache path).
+        service_attrs = AttrsService.from_dict(
+            {
+                "id": 17253805,
+                "name": "Labor",
+                "variants": [{"id": 40722022, "sku": "LABOR", "service_id": 17253805}],
+            }
+        )
+        with _stub_endpoint("get_all_services", _list_response([service_attrs])):
+            await force_resync(MagicMock(), typed_cache_engine, "service")
+
+        async with typed_cache_engine.session() as session:
+            cached = await session.get(CachedVariant, 40722022)
+        assert cached is not None
+        assert cached.service_id == 17253805
+
+    @pytest.mark.asyncio
+    async def test_backfill_idempotent_when_already_linked(self, typed_cache_engine):
+        """Re-running the service sync over already-linked rows is a stable no-op.
+
+        Validates the ``IS DISTINCT FROM`` guard: a second sync with the same
+        link leaves ``service_id`` intact (and doesn't error). The guard also
+        suppresses the ``variant_au`` FTS trigger, but the observable contract
+        here is value-stability across repeated syncs.
+        """
+        variant_attrs = AttrsVariantResponse.from_dict(
+            {"id": 40722022, "sku": "LABOR", "type": "service"}
+        )
+        service_attrs = AttrsService.from_dict(
+            {
+                "id": 17253805,
+                "name": "Labor",
+                "variants": [{"id": 40722022, "sku": "LABOR", "service_id": 17253805}],
+            }
+        )
+        empty = _list_response([])
+        with (
+            _stub_endpoint("get_all_products", empty),
+            _stub_endpoint("get_all_materials", empty),
+            _stub_endpoint("get_all_variants", _list_response([variant_attrs])),
+        ):
+            await ensure_variants_synced(MagicMock(), typed_cache_engine)
+
+        with _stub_endpoint("get_all_services", _list_response([service_attrs])):
+            await ensure_services_synced(MagicMock(), typed_cache_engine)
+            await ensure_services_synced(MagicMock(), typed_cache_engine)
+
+        async with typed_cache_engine.session() as session:
+            cached = await session.get(CachedVariant, 40722022)
+        assert cached is not None
+        assert cached.service_id == 17253805
+
+    @pytest.mark.asyncio
+    async def test_backfill_links_archived_service_variant(self, typed_cache_engine):
+        """An archived service still backfills — the pass intentionally has no archive filter.
+
+        ``search_items`` with ``include_archived=true`` surfaces archived service
+        hits; their ``parent_id`` must still resolve, so the backfill's
+        ``SELECT`` over ``CachedService`` is unfiltered by archive state.
+        """
+        variant_attrs = AttrsVariantResponse.from_dict(
+            {"id": 40722022, "sku": "LABOR", "type": "service"}
+        )
+        service_attrs = AttrsService.from_dict(
+            {
+                "id": 17253805,
+                "name": "Labor",
+                "archived_at": "2025-02-01T00:00:00Z",
+                "variants": [{"id": 40722022, "sku": "LABOR", "service_id": 17253805}],
+            }
+        )
+        empty = _list_response([])
+        with (
+            _stub_endpoint("get_all_products", empty),
+            _stub_endpoint("get_all_materials", empty),
+            _stub_endpoint("get_all_variants", _list_response([variant_attrs])),
+        ):
+            await ensure_variants_synced(MagicMock(), typed_cache_engine)
+
+        with _stub_endpoint("get_all_services", _list_response([service_attrs])):
+            await ensure_services_synced(MagicMock(), typed_cache_engine)
+
+        async with typed_cache_engine.session() as session:
+            cached = await session.get(CachedVariant, 40722022)
+        assert cached is not None
+        assert cached.service_id == 17253805
+
+    @pytest.mark.asyncio
+    async def test_search_items_resolves_service_parent_end_to_end(
+        self, typed_cache_engine
+    ):
+        """Integration: real ``_search_items_impl`` resolves service ``parent_id``.
+
+        Reproduces the original ordering bug end-to-end against a real engine:
+        the variant row is synced with ``service_id=None`` and the service is
+        NOT yet synced, so ``smart_search`` returns a detached row whose
+        ``service_id`` is null. ``_search_items_impl`` then syncs services
+        (firing the ``post_sync`` backfill) and re-reads the variant rows —
+        resolving ``parent_id`` from the fresh value. Reading the stale
+        ``smart_search`` row directly (the pre-fix behavior) returned
+        ``parent_id=None`` here.
+        """
+        from katana_mcp.tools.foundation.items import (
+            SearchItemsRequest,
+            _search_items_impl,
+        )
+        from katana_mcp_server.tests.conftest import create_mock_context
+
+        # Seed only the service-type variant row (service_id null in DB).
+        variant_attrs = AttrsVariantResponse.from_dict(
+            {"id": 40722022, "sku": "LABOR", "type": "service"}
+        )
+        empty = _list_response([])
+        with (
+            _stub_endpoint("get_all_products", empty),
+            _stub_endpoint("get_all_materials", empty),
+            _stub_endpoint("get_all_variants", _list_response([variant_attrs])),
+        ):
+            await ensure_variants_synced(MagicMock(), typed_cache_engine)
+
+        context, lifespan_ctx = create_mock_context()
+        lifespan_ctx.typed_cache = typed_cache_engine
+
+        # The service sync that _search_items_impl triggers internally returns
+        # the parent link; the post_sync backfill writes it onto the variant row.
+        service_attrs = AttrsService.from_dict(
+            {
+                "id": 17253805,
+                "name": "Labor",
+                "variants": [{"id": 40722022, "sku": "LABOR", "service_id": 17253805}],
+            }
+        )
+        # ``_search_items_impl`` carries ``@cache_read(CachedVariant)``, which
+        # re-syncs variants (and its product/material parents) before running;
+        # stub those endpoints empty so the in-cache variant row persists. The
+        # service stub feeds the conditional service sync triggered for the hit.
+        with (
+            _stub_endpoint("get_all_products", empty),
+            _stub_endpoint("get_all_materials", empty),
+            _stub_endpoint("get_all_variants", empty),
+            _stub_endpoint("get_all_services", _list_response([service_attrs])),
+        ):
+            result = await _search_items_impl(
+                SearchItemsRequest(query="LABOR"), context
+            )
+
+        service_rows = [item for item in result.items if item.item_type == "service"]
+        assert len(service_rows) == 1
+        assert service_rows[0].id == 40722022  # variant id
+        assert service_rows[0].parent_id == 17253805  # resolved service item id
 
 
 class TestCatalogQueriesGetters:
