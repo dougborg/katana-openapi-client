@@ -118,3 +118,50 @@ If a bug surfaces in `sync.py` but originates in generated client code (attrs, p
 See
 [Fix bugs at the client/generator layer](../../../katana_public_api_client/docs/spec-authoring.md#fix-bugs-at-the-clientgenerator-layer-when-the-root-cause-lives-there)
 in the spec-authoring guide.
+
+______________________________________________________________________
+
+## Cache-only columns written cross-table need preserve-on-conflict
+
+A cache-only column is populated one of two ways, and the distinction is load-bearing:
+
+- **From the entity's own wire payload**, during its conversion — via the
+  `EntitySpec.attrs_postprocess` hook. Example: `CachedVariant.parent_archived_at` /
+  `display_name` / `parent_name` / `supplier_item_codes_text`, all derived from the
+  extended `/variants` payload in `_variant_postprocess`. These are **re-derived on
+  every sync**, so the upsert naturally rewrites the correct value each time. No special
+  handling needed.
+
+- **From a *different* entity's sync** (cross-table), because the value doesn't exist on
+  this entity's wire payload at all — via the source entity's `EntitySpec.post_sync`
+  hook. Example: `CachedVariant.service_id` is backfilled by the **service** spec's
+  `post_sync` (`_backfill_service_variant_links`), because the variant→service link
+  lives only on `/services`, never on `/variants`.
+
+The trap is in the second case. `_bulk_upsert` issues
+`INSERT ... ON CONFLICT(id) DO UPDATE SET <every non-id column>`. When the owning entity
+re-syncs, its payload has **no value** for the cross-table column, so the upsert writes
+the column's default (`NULL`) — silently clobbering whatever the `post_sync` backfill
+wrote. The column would then only be correct for the brief window between a
+source-entity sync and the next owning-entity delta.
+
+**The contract:** any cache-only column written by another entity's `post_sync` (not by
+the owning entity's own payload) **must** be listed in the owning spec's
+`preserve_columns_on_conflict`. `_bulk_upsert` excludes those columns from the
+`ON CONFLICT DO UPDATE SET` clause, so a re-sync preserves the existing value (INSERT
+still lands the default for brand-new rows). The variant spec does exactly this:
+
+```python
+_VARIANT_SPEC = EntitySpec(
+    entity_key="variant",
+    ...
+    attrs_postprocess=_variant_postprocess,        # owns: parent_*, display_name, etc.
+    preserve_columns_on_conflict=frozenset({"service_id"}),  # owned by the service spec
+)
+```
+
+With the column durable, readers can treat it as a plain row read. `search_items` reads
+`service_id` directly (its `@cache_read(CachedVariant, CachedService)` refreshes
+services — and runs the backfill — before the search), rather than re-syncing and
+re-fetching to dodge a stale value. Pinned by
+`test_typed_cache_catalog.py::TestServiceVariantLinkBackfill::test_variant_resync_preserves_backfilled_service_id`.
