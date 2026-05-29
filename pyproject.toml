@@ -114,9 +114,14 @@ dev = [
   "types-python-dateutil>=2.9.0",
   "types-PyYAML>=6.0.0",
   "types-urllib3>=1.26.0",
-  # OpenAPI tools
-  "openapi-python-client>=0.25.2",
-  "datamodel-code-generator>=0.27.0",
+  # OpenAPI tools — PINNED EXACTLY (not floors): codegen output is part of the
+  # committed source (api/, models/, client.py, models_pydantic/_generated/), so
+  # the generator version must be reproducible. A loose floor let datamodel-codegen
+  # drift to 0.58.0 and silently change InventoryMovement timestamp types (#874).
+  # Bump deliberately: change the pin, run `uv run poe regenerate-all`, commit the
+  # regenerated diff. The regen-freshness CI check guards this.
+  "openapi-python-client==0.28.4",
+  "datamodel-code-generator==0.58.0",
   # Semantic release
   "python-semantic-release>=10.5.0",
   # MCP server (workspace member) — needed to run katana_mcp_server/tests/
