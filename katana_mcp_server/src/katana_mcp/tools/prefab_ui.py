@@ -1177,7 +1177,10 @@ def _item_header_section(
 
 
 def _item_metrics_section(
-    item: dict[str, Any], *, collapse_single_variant: bool = False
+    item: dict[str, Any],
+    *,
+    collapse_single_variant: bool = False,
+    changes: dict[str, FieldChangeView] | None = None,
 ) -> None:
     """Render Tier 2 — decision metrics as text rows (not Metric components).
 
@@ -1193,17 +1196,31 @@ def _item_metrics_section(
     ``Variants: 0``, which is *not* hidden even when collapsing: an empty
     variants list on a just-created item is an unexpected/malformed response
     worth surfacing, not noise to suppress.
+
+    ``changes`` (modify card) decorates the editable scalar lines with their
+    before→after diff. The variant *count* is never editable, so it never
+    decorates. When ``changes`` is empty (create / detail cards) every line
+    falls through to its plain ``Text`` form — byte-identical to before.
     """
+    changes = changes or {}
     variants = item.get("variants") or []
     if not (collapse_single_variant and len(variants) == 1):
         Text(content=f"Variants: {len(variants)}")
-    if item.get("lead_time") is not None:
+    lead_time_change = changes.get("lead_time")
+    if lead_time_change is not None and lead_time_change.kind != "unchanged":
+        _render_field_diff_line("Lead Time", change=lead_time_change)
+    elif item.get("lead_time") is not None:
         Text(content=f"Lead Time: {item['lead_time']} days")
-    if item.get("minimum_order_quantity") is not None:
+    moq_change = changes.get("minimum_order_quantity")
+    if moq_change is not None and moq_change.kind != "unchanged":
+        _render_field_diff_line("Min Order Qty", change=moq_change)
+    elif item.get("minimum_order_quantity") is not None:
         Text(content=f"Min Order Qty: {item['minimum_order_quantity']}")
 
 
-def _item_supplier_line(item: dict[str, Any]) -> None:
+def _item_supplier_line(
+    item: dict[str, Any], *, changes: dict[str, FieldChangeView] | None = None
+) -> None:
     """Render the default supplier — preferring the nested ``supplier``
     dict (carries name + id), falling back to the flat
     ``default_supplier_id`` field when the nested record is absent.
@@ -1224,10 +1241,28 @@ def _item_supplier_line(item: dict[str, Any]) -> None:
        authoritative identifier and the link still works).
 
     Supplier appears on Products and Materials (not Services).
+
+    ``changes`` (modify card): when ``default_supplier_id`` is changing,
+    render the before→after party-diff line via :func:`_render_party_diff_line`
+    instead of the Link form (mirrors ``_render_po_entity_view``'s supplier
+    branch). The before-side name comes from the nested supplier / the
+    ``default_supplier_name`` prior; the after name from the
+    ``default_supplier_name`` FieldChange when present.
     """
+    changes = changes or {}
     supplier = item.get("supplier")
     nested_name = supplier.get("name") if isinstance(supplier, dict) else None
     nested_id = supplier.get("id") if isinstance(supplier, dict) else None
+
+    supplier_change = changes.get("default_supplier_id")
+    if supplier_change is not None and supplier_change.kind != "unchanged":
+        _render_party_diff_line(
+            "Default Supplier",
+            id_change=supplier_change,
+            name_change=changes.get("default_supplier_name"),
+            prior_name=nested_name or item.get("default_supplier_name"),
+        )
+        return
 
     if nested_name and nested_id:
         supplier_url = katana_web_url("supplier", nested_id)
@@ -1379,7 +1414,10 @@ def _item_single_variant_lines(
 
 
 def _item_reference_section(
-    item: dict[str, Any], *, collapse_single_variant: bool = False
+    item: dict[str, Any],
+    *,
+    collapse_single_variant: bool = False,
+    changes: dict[str, FieldChangeView] | None = None,
 ) -> None:
     """Render Tier 3 reference data: UoM, category, purchase UoM,
     default supplier (Linked), configs, additional info, and the
@@ -1389,17 +1427,33 @@ def _item_reference_section(
     single variant, render that variant's SKU + prices inline instead of a
     one-row DataTable. Falls back to the item-level ``sku`` when the create
     result didn't echo a variants array so the SKU is never lost.
+
+    ``changes`` (modify card) decorates the editable scalar lines (UoM,
+    Category, Notes) and the supplier line with before→after diffs. Purchase
+    UoM (a composite line) and config axes (a nested collection) keep their
+    plain rendering for now; the variants collection diffs via the separate
+    variant diff-table the modify card renders below this section. Empty
+    ``changes`` → every line falls through to its plain form.
     """
-    if item.get("uom"):
+    changes = changes or {}
+    uom_change = changes.get("uom")
+    if uom_change is not None and uom_change.kind != "unchanged":
+        _render_field_diff_line("UoM", change=uom_change)
+    elif item.get("uom"):
         Text(content=f"UoM: {item['uom']}")
-    if item.get("category_name"):
+    category_change = changes.get("category_name")
+    if category_change is not None and category_change.kind != "unchanged":
+        _render_field_diff_line("Category", change=category_change)
+    elif item.get("category_name"):
         Text(content=f"Category: {item['category_name']}")
     _variant_purchase_uom_line(item)
-    _item_supplier_line(item)
+    _item_supplier_line(item, changes=changes)
     _item_configs_section(item)
-    additional_info = item.get("additional_info")
-    if additional_info:
-        Text(content=f"Notes: {additional_info}")
+    notes_change = changes.get("additional_info")
+    if notes_change is not None and notes_change.kind != "unchanged":
+        _render_field_diff_line("Notes", change=notes_change)
+    elif item.get("additional_info"):
+        Text(content=f"Notes: {item['additional_info']}")
     variants = item.get("variants") or []
     if collapse_single_variant and len(variants) <= 1:
         variant = variants[0] if variants else None
@@ -1503,19 +1557,21 @@ def _render_item_entity_view(
 
     The item analogue of :func:`_render_po_entity_view`: shared between
     ``build_item_detail_ui`` (multi-variant read card, ``collapse_single_variant
-    =False``) and ``build_item_create_ui`` (a freshly-created single-variant
-    item, ``collapse_single_variant=True``). The ``changes`` parameter is the
-    seam for the #726 modify card's before→after diff overlay — accepted now
-    so the create/modify pair shares one renderer, but unused until #726 wires
-    a diff decorator into the metric/reference lines.
+    =False``), ``build_item_create_ui`` (a freshly-created single-variant item,
+    ``collapse_single_variant=True``), and ``build_item_modify_ui`` (which passes
+    ``changes`` to overlay before→after diffs on the editable header/reference
+    lines, #726). Empty ``changes`` → plain rendering, byte-identical to the
+    create/detail cards.
 
     Must be called inside ``with CardContent(), Column(gap=3):``.
     """
-    # ``changes`` reserved for the #726 modify-card diff overlay.
-    _ = changes
-    _item_metrics_section(item, collapse_single_variant=collapse_single_variant)
+    _item_metrics_section(
+        item, collapse_single_variant=collapse_single_variant, changes=changes
+    )
     Separator()
-    _item_reference_section(item, collapse_single_variant=collapse_single_variant)
+    _item_reference_section(
+        item, collapse_single_variant=collapse_single_variant, changes=changes
+    )
     return _render_warnings_block(item.get("warnings"))
 
 
