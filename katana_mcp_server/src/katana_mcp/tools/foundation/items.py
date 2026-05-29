@@ -1557,6 +1557,48 @@ async def _invalidate_item_cache(_services: Any, _item_type: ItemType) -> None:
     return None
 
 
+async def _resolve_prior_supplier_name(
+    services: Any, response: ModificationResponse
+) -> None:
+    """Stamp the default supplier's display name onto ``response.prior_state``.
+
+    The ``prior_state`` snapshot (raw ``Product`` / ``Material`` ``.to_dict()``)
+    carries only the supplier FK (``default_supplier_id``), so the modify card's
+    supplier line would render a bare ``#<id>`` (anti-pattern #7). Resolve the
+    name from the typed cache here — the card builder is sync and can't — and
+    write it back as ``prior_state["default_supplier_name"]`` for the renderer
+    to pick up. Best-effort: a cache miss leaves the name unset (the link still
+    navigates to the right supplier) and the resolution warning is appended to
+    the response so the gap is visible.
+
+    No-op when the snapshot already carries a name (embedded supplier object)
+    or has no supplier FK (services, or items without a default supplier).
+    """
+    prior_state = response.prior_state
+    if not prior_state:
+        return
+    if prior_state.get("default_supplier_name"):
+        return
+    supplier_id = prior_state.get("default_supplier_id")
+    if supplier_id is None:
+        return
+    # Embedded supplier object (rare for items) wins without a cache hit.
+    embedded = prior_state.get("supplier")
+    if isinstance(embedded, dict) and embedded.get("name"):
+        prior_state["default_supplier_name"] = embedded["name"]
+        return
+    name, warning = await resolve_entity_name(
+        services.typed_cache.catalog,
+        CachedSupplier,
+        supplier_id,
+        entity_label="Default supplier",
+    )
+    if name:
+        prior_state["default_supplier_name"] = name
+    if warning:
+        response.warnings.append(warning)
+
+
 async def _modify_item_impl(
     request: ModifyItemRequest, context: Context
 ) -> ModificationResponse:
@@ -1684,6 +1726,37 @@ async def _modify_item_impl(
     if not request.preview:
         await _invalidate_item_cache(services, request.type)
 
+    # Apply-path: synthesize NOT-RUN entries for the unattempted plan tail.
+    # ``execute_plan`` is fail-fast — ``response.actions`` ends at the first
+    # failed action. Without these the item card's variant-table morph would
+    # silently HIDE every planned variant action past the failure (the morph
+    # replaces the preview rows with the shorter apply list). The card merges
+    # these via ``extras["not_run_actions"]`` (``_actions_with_not_run_tail``),
+    # rendering them with the "NOT RUN" status pill. Mirrors the SO / BOM
+    # fail-fast handling. Caught by Copilot review on #875.
+    if not request.preview:
+        not_run_specs = plan[len(response.actions) :]
+        not_run_actions = [
+            {
+                "operation": spec.operation,
+                "target_id": spec.target_id,
+                "succeeded": None,
+                "error": None,
+                "changes": [
+                    c.model_dump() if hasattr(c, "model_dump") else dict(c)
+                    for c in spec.diff
+                ],
+                "status_label": "NOT RUN",
+            }
+            for spec in not_run_specs
+        ]
+        if not_run_actions:
+            response.extras["not_run_actions"] = not_run_actions
+
+    # Resolve the default supplier's name for the modify card (anti-pattern
+    # #7) — the prior_state snapshot carries only the FK.
+    await _resolve_prior_supplier_name(services, response)
+
     return response
 
 
@@ -1758,6 +1831,10 @@ async def _delete_item_impl(
 
     if not request.preview:
         await _invalidate_item_cache(services, request.type)
+
+    # Resolve the default supplier's name for the delete card (anti-pattern
+    # #7) — the prior_state snapshot carries only the FK.
+    await _resolve_prior_supplier_name(services, response)
 
     return response
 
