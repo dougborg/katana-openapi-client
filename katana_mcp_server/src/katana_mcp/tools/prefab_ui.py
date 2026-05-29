@@ -118,6 +118,10 @@ from katana_mcp.tools.foundation.bom_table import (
     _summarize_apply_outcome,
 )
 from katana_mcp.tools.foundation.collection_diff import collection_diff_summary
+from katana_mcp.tools.foundation.item_variant_table import (
+    merge_variant_rows_for_modify_card,
+    prepare_variant_table_rows,
+)
 from katana_mcp.tools.tool_result_utils import BLOCK_WARNING_PREFIX
 from katana_mcp.web_urls import EntityKind, katana_web_url
 
@@ -1155,10 +1159,22 @@ def _item_header_section(
         if item.get("is_archived"):
             Badge(label="Archived", variant="secondary")
 
-    # Status pills row. Order chosen to match the agent's typical
-    # decision sequence — sellable first (can this be sold?), then
-    # producible (can this be made?), then tracking flags (will I
-    # need to specify a batch / serial when transacting?).
+    _item_status_pills_row(item)
+
+
+def _item_status_pills_row(item: dict[str, Any]) -> None:
+    """Render the sub-type status-pills row (sellable / producible / batch /
+    serial tracked).
+
+    Order chosen to match the agent's typical decision sequence — sellable
+    first (can this be sold?), then producible (can this be made?), then
+    tracking flags (will I need to specify a batch / serial when
+    transacting?). Shared between :func:`_item_header_section` (create /
+    detail cards) and :func:`build_item_modify_ui`'s header so the modify
+    card carries the same identity signal alongside its reactive state badge.
+
+    Must be called inside a ``CardHeader`` column block.
+    """
     with Row(gap=2):
         if item.get("is_sellable") is not None:
             Badge(
@@ -1177,7 +1193,10 @@ def _item_header_section(
 
 
 def _item_metrics_section(
-    item: dict[str, Any], *, collapse_single_variant: bool = False
+    item: dict[str, Any],
+    *,
+    collapse_single_variant: bool = False,
+    changes: dict[str, FieldChangeView] | None = None,
 ) -> None:
     """Render Tier 2 — decision metrics as text rows (not Metric components).
 
@@ -1193,17 +1212,61 @@ def _item_metrics_section(
     ``Variants: 0``, which is *not* hidden even when collapsing: an empty
     variants list on a just-created item is an unexpected/malformed response
     worth surfacing, not noise to suppress.
+
+    ``changes`` (modify card) decorates the editable scalar lines with their
+    before→after diff, plus a leading ``Name`` diff line on a rename (the card
+    title is built from the prior snapshot, so a rename would otherwise surface
+    nowhere) and ``yes → no`` diff lines for changed boolean status flags
+    (``is_sellable`` / ``is_producible`` / tracking flags — the Tier-1 pills
+    render the prior snapshot and aren't diff-aware). The variant *count* is
+    never editable, so it never decorates. When ``changes`` is empty (create /
+    detail cards) every line falls through to its plain ``Text`` form —
+    byte-identical to before.
     """
+    changes = changes or {}
+    # Name diff (modify card only) — the card title is built from the prior
+    # snapshot, so a rename would otherwise surface nowhere. Diff-only: on
+    # create/detail ``changes`` is empty and the title carries the name.
+    name_change = changes.get("name")
+    if name_change is not None and name_change.kind != "unchanged":
+        _render_field_diff_line("Name", change=name_change)
+    # Boolean status-flag diffs (modify card only). The Tier-1 status pills
+    # render from the prior snapshot and aren't diff-aware, so a header change
+    # to ``is_sellable`` / ``is_producible`` / tracking flags etc. would show
+    # the stale pill (or nothing). Surface each changed flag as an explicit
+    # ``yes → no`` diff line. Diff-only: empty ``changes`` (create/detail)
+    # renders nothing here — the pills carry the steady-state signal.
+    for flag_field, flag_label in (
+        ("is_sellable", "Sellable"),
+        ("is_producible", "Producible"),
+        ("is_purchasable", "Purchasable"),
+        ("is_auto_assembly", "Auto-assembly"),
+        ("batch_tracked", "Batch tracked"),
+        ("serial_tracked", "Serial tracked"),
+        ("operations_in_sequence", "Operations in sequence"),
+        ("is_archived", "Archived"),
+    ):
+        flag_change = changes.get(flag_field)
+        if flag_change is not None and flag_change.kind != "unchanged":
+            _render_field_diff_line(flag_label, change=flag_change)
     variants = item.get("variants") or []
     if not (collapse_single_variant and len(variants) == 1):
         Text(content=f"Variants: {len(variants)}")
-    if item.get("lead_time") is not None:
+    lead_time_change = changes.get("lead_time")
+    if lead_time_change is not None and lead_time_change.kind != "unchanged":
+        _render_field_diff_line("Lead Time", change=lead_time_change)
+    elif item.get("lead_time") is not None:
         Text(content=f"Lead Time: {item['lead_time']} days")
-    if item.get("minimum_order_quantity") is not None:
+    moq_change = changes.get("minimum_order_quantity")
+    if moq_change is not None and moq_change.kind != "unchanged":
+        _render_field_diff_line("Min Order Qty", change=moq_change)
+    elif item.get("minimum_order_quantity") is not None:
         Text(content=f"Min Order Qty: {item['minimum_order_quantity']}")
 
 
-def _item_supplier_line(item: dict[str, Any]) -> None:
+def _item_supplier_line(
+    item: dict[str, Any], *, changes: dict[str, FieldChangeView] | None = None
+) -> None:
     """Render the default supplier — preferring the nested ``supplier``
     dict (carries name + id), falling back to the flat
     ``default_supplier_id`` field when the nested record is absent.
@@ -1224,10 +1287,28 @@ def _item_supplier_line(item: dict[str, Any]) -> None:
        authoritative identifier and the link still works).
 
     Supplier appears on Products and Materials (not Services).
+
+    ``changes`` (modify card): when ``default_supplier_id`` is changing,
+    render the before→after party-diff line via :func:`_render_party_diff_line`
+    instead of the Link form (mirrors ``_render_po_entity_view``'s supplier
+    branch). The before-side name comes from the nested supplier / the
+    ``default_supplier_name`` prior; the after name from the
+    ``default_supplier_name`` FieldChange when present.
     """
+    changes = changes or {}
     supplier = item.get("supplier")
     nested_name = supplier.get("name") if isinstance(supplier, dict) else None
     nested_id = supplier.get("id") if isinstance(supplier, dict) else None
+
+    supplier_change = changes.get("default_supplier_id")
+    if supplier_change is not None and supplier_change.kind != "unchanged":
+        _render_party_diff_line(
+            "Default Supplier",
+            id_change=supplier_change,
+            name_change=changes.get("default_supplier_name"),
+            prior_name=nested_name or item.get("default_supplier_name"),
+        )
+        return
 
     if nested_name and nested_id:
         supplier_url = katana_web_url("supplier", nested_id)
@@ -1379,7 +1460,11 @@ def _item_single_variant_lines(
 
 
 def _item_reference_section(
-    item: dict[str, Any], *, collapse_single_variant: bool = False
+    item: dict[str, Any],
+    *,
+    collapse_single_variant: bool = False,
+    changes: dict[str, FieldChangeView] | None = None,
+    suppress_variants: bool = False,
 ) -> None:
     """Render Tier 3 reference data: UoM, category, purchase UoM,
     default supplier (Linked), configs, additional info, and the
@@ -1389,17 +1474,56 @@ def _item_reference_section(
     single variant, render that variant's SKU + prices inline instead of a
     one-row DataTable. Falls back to the item-level ``sku`` when the create
     result didn't echo a variants array so the SKU is never lost.
+
+    ``changes`` (modify card) decorates the editable scalar lines (UoM,
+    Category, Notes), the supplier line, and the service-only pricing/SKU
+    fields (``sku`` / ``sales_price`` / ``default_cost`` — services have no
+    variant table to carry them) with before→after diffs. Purchase UoM (a
+    composite line) and config axes (a nested collection) keep their plain
+    rendering for now; the product/material variants collection diffs via the
+    separate variant diff-table the modify card renders below this section.
+    Empty ``changes`` → every line falls through to its plain form.
+
+    ``suppress_variants`` (modify card) skips the embedded read-only variants
+    table entirely — the modify card renders the per-row variant *diff* table
+    in its place, so rendering both would duplicate the collection.
     """
-    if item.get("uom"):
+    changes = changes or {}
+    uom_change = changes.get("uom")
+    if uom_change is not None and uom_change.kind != "unchanged":
+        _render_field_diff_line("UoM", change=uom_change)
+    elif item.get("uom"):
         Text(content=f"UoM: {item['uom']}")
-    if item.get("category_name"):
+    category_change = changes.get("category_name")
+    if category_change is not None and category_change.kind != "unchanged":
+        _render_field_diff_line("Category", change=category_change)
+    elif item.get("category_name"):
         Text(content=f"Category: {item['category_name']}")
     _variant_purchase_uom_line(item)
-    _item_supplier_line(item)
+    _item_supplier_line(item, changes=changes)
     _item_configs_section(item)
-    additional_info = item.get("additional_info")
-    if additional_info:
-        Text(content=f"Notes: {additional_info}")
+    notes_change = changes.get("additional_info")
+    if notes_change is not None and notes_change.kind != "unchanged":
+        _render_field_diff_line("Notes", change=notes_change)
+    elif item.get("additional_info"):
+        Text(content=f"Notes: {item['additional_info']}")
+    # Service-only header pricing/SKU diffs (modify card). Services carry SKU +
+    # pricing on the header itself and have no variant table, so without these
+    # lines a service price/SKU modify would surface no field-level diff. Diff-
+    # only: products/materials never set these header fields, and on create/
+    # detail ``changes`` is empty, so this loop renders nothing there.
+    for field_name, label in (
+        ("sku", "SKU"),
+        ("sales_price", "Sales Price"),
+        ("default_cost", "Default Cost"),
+    ):
+        field_change = changes.get(field_name)
+        if field_change is not None and field_change.kind != "unchanged":
+            _render_field_diff_line(label, change=field_change)
+    if suppress_variants:
+        # Modify card: the per-row variant diff table replaces the embedded
+        # read-only table; rendering both would duplicate the collection.
+        return
     variants = item.get("variants") or []
     if collapse_single_variant and len(variants) <= 1:
         variant = variants[0] if variants else None
@@ -1497,25 +1621,32 @@ def _render_item_entity_view(
     *,
     changes: dict[str, FieldChangeView] | None = None,
     collapse_single_variant: bool = False,
+    suppress_variants: bool = False,
 ) -> list[str]:
     """Render the item entity view (Tier 2 metrics + Tier 3 reference),
     returning the block-warning list for the caller to surface/gate on.
 
     The item analogue of :func:`_render_po_entity_view`: shared between
     ``build_item_detail_ui`` (multi-variant read card, ``collapse_single_variant
-    =False``) and ``build_item_create_ui`` (a freshly-created single-variant
-    item, ``collapse_single_variant=True``). The ``changes`` parameter is the
-    seam for the #726 modify card's before→after diff overlay — accepted now
-    so the create/modify pair shares one renderer, but unused until #726 wires
-    a diff decorator into the metric/reference lines.
+    =False``), ``build_item_create_ui`` (a freshly-created single-variant item,
+    ``collapse_single_variant=True``), and ``build_item_modify_ui`` (which passes
+    ``changes`` to overlay before→after diffs on the editable header/reference
+    lines, plus ``suppress_variants=True`` so its per-row variant *diff* table
+    replaces the embedded read-only one, #726). Empty ``changes`` → plain
+    rendering, byte-identical to the create/detail cards.
 
     Must be called inside ``with CardContent(), Column(gap=3):``.
     """
-    # ``changes`` reserved for the #726 modify-card diff overlay.
-    _ = changes
-    _item_metrics_section(item, collapse_single_variant=collapse_single_variant)
+    _item_metrics_section(
+        item, collapse_single_variant=collapse_single_variant, changes=changes
+    )
     Separator()
-    _item_reference_section(item, collapse_single_variant=collapse_single_variant)
+    _item_reference_section(
+        item,
+        collapse_single_variant=collapse_single_variant,
+        changes=changes,
+        suppress_variants=suppress_variants,
+    )
     return _render_warnings_block(item.get("warnings"))
 
 
@@ -2783,16 +2914,26 @@ def _index_changes_by_field(
 def _format_diff_value(value: Any) -> str:
     """Coerce a diff-side value (old or new) to display text.
 
-    Wire shape allows None, str, int, float, bool, list, dict; the entity
-    view renders each as text. Strings, numbers, and booleans render
+    Wire shape allows None, str, int, float, bool, Decimal, list, dict; the
+    entity view renders each as text. Strings, ints, and booleans render
     directly; lists/dicts fall back to ``repr`` (rare — the diff producer
-    avoids nested types). None renders as ``(unset)`` so a transition
-    from blank to populated reads naturally as ``(unset) → Net-30``.
+    avoids nested types). None renders as ``(unset)`` so a transition from
+    blank to populated reads naturally as ``(unset) → Net-30``.
+
+    ``Decimal`` renders trimmed via ``:g`` — every modify diff flows through
+    ``compute_field_diff`` → ``_normalize``, which coerces numeric /
+    decimal-looking values (prices, quantities, costs) to
+    :class:`~decimal.Decimal`. Without the explicit branch a price change would
+    ``repr`` as ``Decimal('50.0000000000')`` instead of ``50``. ``float`` keeps
+    its plain ``str`` form (raw test fixtures; production values are already
+    Decimal by the time they reach here).
     """
     if value is None:
         return "(unset)"
     if isinstance(value, bool):
         return "yes" if value else "no"
+    if isinstance(value, Decimal):
+        return f"{float(value):g}"
     if isinstance(value, (int, float, str)):
         return str(value)
     return repr(value)
@@ -4183,6 +4324,40 @@ def _init_modify_card_state(response: dict[str, Any]) -> dict[str, Any]:
     return _init_create_card_state(response)
 
 
+def _render_apply_outcome_badge(*, css_class: str = "min-w-32 text-center") -> None:
+    """Render the reactive Tier-1 state Badge for a collection modify card.
+
+    Shows ``PREVIEW`` until the apply lands, then morphs to the outcome label
+    (``APPLIED`` / ``PARTIAL FAILURE`` / ``FAILED``) with the variant tracking
+    the outcome (``destructive`` for partial/total failure, ``default`` for
+    success). Reads the state slots ``applied`` / ``applied_outcome_label`` /
+    ``applied_outcome_variant`` — seeded by the builder with preview-time
+    defaults and overwritten by the apply ``on_success`` SetState chain from
+    ``$result.state.<slot>``.
+
+    Badge.variant isn't reactive on its own, so the success/failure split is
+    rendered as parallel components under an ``If`` chain and the renderer
+    picks the right one at morph time. Shared by ``build_bom_modify_ui`` and
+    ``build_item_modify_ui`` (both render a collection diff table whose header
+    needs the same morphing outcome pill). Must be called inside a header Row.
+    """
+    with If("applied"):
+        with If(Rx("applied_outcome_variant") == "destructive"):
+            Badge(
+                label="{{ applied_outcome_label }}",
+                variant="destructive",
+                css_class=css_class,
+            )
+        with Else():
+            Badge(
+                label="{{ applied_outcome_label }}",
+                variant="default",
+                css_class=css_class,
+            )
+    with Else():
+        Badge(label="PREVIEW", variant="secondary", css_class=css_class)
+
+
 def build_po_modify_ui(
     response: dict[str, Any],
     *,
@@ -4630,25 +4805,7 @@ def build_bom_modify_ui(
                 Badge(label=variant_sku, variant="outline")
             if uom:
                 Badge(label=uom, variant="secondary")
-            with If("applied"):
-                with If(Rx("applied_outcome_variant") == "destructive"):
-                    Badge(
-                        label="{{ applied_outcome_label }}",
-                        variant="destructive",
-                        css_class="min-w-32 text-center",
-                    )
-                with Else():
-                    Badge(
-                        label="{{ applied_outcome_label }}",
-                        variant="default",
-                        css_class="min-w-32 text-center",
-                    )
-            with Else():
-                Badge(
-                    label="PREVIEW",
-                    variant="secondary",
-                    css_class="min-w-32 text-center",
-                )
+            _render_apply_outcome_badge()
 
         # Tier 2 — Decision summary. Reads "+N added, ~M updated, -K
         # deleted" so the user knows the shape of the plan before
@@ -4719,6 +4876,316 @@ def build_bom_modify_ui(
             # above + overwritten by the on_success chain) so the footer
             # body morphs to "BOM partially applied." / "BOM failed." in
             # lockstep with the Tier-1 outcome Badge.
+            applied_verb="{{ applied_verb }}",
+        )
+    return app
+
+
+# ============================================================================
+# Item modify / delete card (#726) — the second collection-bearing modify card
+# (after BOM). Header scalar fields diff via the shared
+# ``_render_item_entity_view`` overlay (#555); the variants collection diffs via
+# the shared collection-diff table element (``item_variant_table`` →
+# ``merge_collection_diff_rows``). Mirrors ``build_po_modify_ui`` for the
+# preview→apply rail and ``build_bom_modify_ui`` for the diff-table morph.
+# ============================================================================
+
+
+# DataTable columns for the item modify card's variant diff table. The SKU
+# column carries the kind gutter (``+ ``/``- ``/``~ ``/``  ``) glued on in
+# ``prepare_variant_table_rows``; the Status column renders plain text
+# (PLANNED / APPLIED / FAILED) since DataTable has no per-cell Badge.
+_ITEM_MODIFY_VARIANT_COLUMNS: list[DataTableColumn] = [
+    DataTableColumn(key="sku_label", header="SKU"),
+    DataTableColumn(
+        key="sales_price_label", header="Sales Price", align="right", width="11rem"
+    ),
+    DataTableColumn(
+        key="purchase_price_label",
+        header="Purchase Price",
+        align="right",
+        width="11rem",
+    ),
+    DataTableColumn(key="status_label", header="Status", width="7rem"),
+]
+
+_ITEM_MODIFY_VARIANT_KEY = "variant_rows"
+_ITEM_MODIFY_VARIANT_REF = f"{{{{ {_ITEM_MODIFY_VARIANT_KEY} }}}}"
+
+
+def _normalize_item_prior_state(prior_state: dict[str, Any] | None) -> dict[str, Any]:
+    """Map an item ``prior_state`` snapshot (wire shape of
+    ``Product`` / ``Material`` / ``Service`` ``.to_dict()``) to the shape the
+    item entity-view renderer consumes.
+
+    The attrs snapshot mostly shares field names with the render shape
+    (``name`` / ``uom`` / ``category_name`` / ``additional_info`` /
+    ``default_supplier_id`` / ``variants`` / ``configs`` / the status flags),
+    so it passes through. The two derivations the renderer needs:
+
+    - ``is_archived`` ← ``archived_at is not None`` (the snapshot carries the
+      timestamp; the card renders a boolean badge).
+    - ``default_supplier_name`` is *not* on the raw snapshot — only the FK is.
+      ``_modify_item_impl`` resolves it server-side via the typed cache
+      (anti-pattern #7) and stamps it onto ``prior_state`` before the response
+      leaves the impl, so it's already present here when resolution succeeded.
+
+    Returns ``{}`` for a missing snapshot (failed diff fetch) so the renderer
+    falls back to whatever the response payload carries.
+    """
+    if not prior_state:
+        return {}
+    out = dict(prior_state)
+    if "archived_at" in prior_state and "is_archived" not in out:
+        out["is_archived"] = prior_state.get("archived_at") is not None
+    return out
+
+
+def _item_failed_summary(actions: list[dict[str, Any]]) -> str:
+    """Pre-format the consolidated failed-action summary for the morph Alert.
+
+    One ``Failed — <op> <target>: <error>`` line per failed action. Empty on
+    preview (no action has ``succeeded is False`` yet) and on a clean apply.
+    """
+    lines: list[str] = []
+    for a in actions:
+        if a.get("succeeded") is not False:
+            continue
+        op = str(a.get("operation") or "change").replace("_", " ")
+        target_id = a.get("target_id")
+        label = f"{op} {target_id}" if target_id is not None else op
+        err = a.get("error") or "unknown error"
+        lines.append(f"Failed — {label}: {err}")
+    return "\n".join(lines)
+
+
+def _item_applied_verb(verb_label: str, outcome_label: str) -> str:
+    """Footer verb for the applied state — tracks both the operation and the
+    outcome so the copy never contradicts the Tier-1 badge.
+    """
+    if outcome_label == "FAILED":
+        return "failed"
+    if outcome_label == "PARTIAL FAILURE":
+        return "partially applied"
+    return "deleted" if verb_label == "Delete" else "applied"
+
+
+def _item_modify_labels(verb_label: str, n_actions: int) -> tuple[str, str]:
+    """Return ``(confirm_label, cancel_operation_label)`` for the item card.
+
+    Delete cards say "Confirm Delete" + "that item deletion"; modify cards
+    scale the confirm label with the action count and read "those item
+    changes" for the cancel phrasing.
+    """
+    if verb_label == "Delete":
+        return "Confirm Delete", "that item deletion"
+    confirm = f"Confirm {n_actions} changes" if n_actions > 1 else "Confirm Changes"
+    return confirm, "those item changes"
+
+
+def _render_item_modify_header(entity: dict[str, Any], *, entity_id: Any) -> None:
+    """Render the item modify card's Tier-1 header.
+
+    Item name (linked to Katana when a URL is present), the sub-type badge,
+    an archived badge, then the reactive PREVIEW → outcome state badge; the
+    sub-type status-pills row follows (shared with the create / detail cards).
+    Must be called inside ``with PrefabApp(...) as app, Card():``.
+    """
+    katana_url = entity.get("katana_url")
+    title_content = entity.get("name") or f"Item {entity_id}"
+    item_type = entity.get("type")
+    with CardHeader(), Column(gap=2):
+        with Row(gap=2):
+            with CardTitle():
+                if katana_url:
+                    Link(content=title_content, href=katana_url, target="_blank")
+                else:
+                    Text(content=title_content)
+            if item_type:
+                Badge(label=str(item_type), variant="secondary")
+            if entity.get("is_archived"):
+                Badge(label="Archived", variant="secondary")
+            _render_apply_outcome_badge()
+        _item_status_pills_row(entity)
+
+
+def build_item_modify_ui(
+    response: dict[str, Any],
+    *,
+    confirm_request: BaseModel,
+    confirm_tool: str,
+) -> PrefabApp:
+    """Build the modify-/delete-item card (#726).
+
+    Handles every item write path that returns a :class:`ModificationResponse`:
+    ``modify_item`` (header + variant CRUD) and ``delete_item``. Sub-type
+    variance (product / material / service) shows in the type badge + status
+    pills; the variant diff table renders only for product / material (services
+    carry pricing on the header, not on variants).
+
+    Two diff surfaces, both from the shared modify-card machinery:
+
+    - **Header scalars** — ``_render_item_entity_view`` with the per-field
+      ``changes`` overlay (built from the ``update_header`` action's
+      ``changes`` via :func:`_index_changes_by_field`, scoped to that
+      operation so variant-field diffs don't leak into header lines).
+    - **Variants collection** — the shared collection-diff table
+      (:func:`merge_variant_rows_for_modify_card`): existing variants render
+      plain, ``add_variant`` rows append with a ``+ `` gutter, ``update_variant``
+      rows show before→after on SKU / prices, ``delete_variant`` rows mark
+      ``- ``. The table is state-bound (``state.variant_rows``) and morphs in
+      place on apply via the SetState chain reading ``$result.state.variant_rows``.
+
+    The preview→Confirm→apply rail mirrors ``build_po_modify_ui`` /
+    ``build_bom_modify_ui``: a build-time ``summarize_apply_outcome`` seeds the
+    outcome label/variant/failed-summary state slots (preview-time defaults on
+    the preview render; real outcome on the apply rebuild), and the apply
+    ``on_success`` chain copies them from ``$result.state.<slot>`` so the whole
+    applied-state chrome morphs in lockstep. Inherits the #760 in-place-morph
+    optimism for per-field ``✗`` glyphs (build-time-fixed from the preview
+    actions); the table rows + header/footer outcome chrome do morph.
+    """
+    is_preview = bool(response.get("is_preview", True))
+    # Apply path: extend with the unattempted plan tail (synthesized NOT-RUN
+    # actions in ``extras``) so a fail-fast partial doesn't silently drop the
+    # not-run variant rows from the morphed table. Inert on preview.
+    actions = _actions_with_not_run_tail(response, is_preview=is_preview)
+    entity_id = response.get("entity_id")
+    entity_type = response.get("entity_type")
+    verb_label = _verb_label(confirm_tool)
+
+    prior_state = _normalize_item_prior_state(response.get("prior_state"))
+    # Compose the entity-view source: prior_state (full pre-change snapshot)
+    # overlaid with non-None response scalars (katana_url, warnings). Same
+    # overlay shape as ``build_po_modify_ui``.
+    entity = {**prior_state, **{k: v for k, v in response.items() if v is not None}}
+    if entity_id is not None:
+        entity.setdefault("id", entity_id)
+    # Raw ``Product``/``Material``/``Service`` snapshots have no ``type`` echo
+    # the header badge can read; seed it from the response's entity_type.
+    if entity_type:
+        entity.setdefault("type", entity_type)
+
+    # Header field diffs — scope to ``update_header`` so variant-field changes
+    # (sku / sales_price / lead_time / MOQ, which overlap header-ish names)
+    # never decorate the header lines; they belong in the variant table.
+    changes_by_field = _index_changes_by_field(
+        actions, include_operations=frozenset({"update_header"})
+    )
+
+    # Variant diff table — product / material only (services have no variant
+    # CRUD; their pricing diffs surface on the header lines instead).
+    show_variant_table = entity_type in ("product", "material")
+    variant_rows = (
+        prepare_variant_table_rows(
+            merge_variant_rows_for_modify_card(prior_state, actions)
+        )
+        if show_variant_table
+        else []
+    )
+    summary_line = collection_diff_summary(variant_rows)
+
+    # Outcome chrome. On the standalone-applied path and the apply rebuild the
+    # actions carry real succeeded flags, so ``summarize_apply_outcome`` gives
+    # the true label; on the preview render every action is ``succeeded=None``
+    # (which ``summarize_apply_outcome`` can't bucket), so seed the optimistic
+    # ``APPLIED`` default — the Tier-1 badge shows PREVIEW until the morph
+    # overwrites these slots from ``$result.state.<slot>`` anyway.
+    if is_preview:
+        outcome_label, outcome_variant = "APPLIED", "default"
+    else:
+        outcome_label, outcome_variant = _summarize_apply_outcome(actions)
+    applied_verb = _item_applied_verb(verb_label, outcome_label)
+    failed_summary = _item_failed_summary(actions)
+    failed_count = sum(1 for a in actions if a.get("succeeded") is False)
+
+    apply_action = _build_apply_action(
+        confirm_tool,
+        confirm_request,
+        extra_on_success=[
+            SetState(_ITEM_MODIFY_VARIANT_KEY, "{{ $result.state.variant_rows }}"),
+            SetState(
+                "applied_outcome_label", "{{ $result.state.applied_outcome_label }}"
+            ),
+            SetState(
+                "applied_outcome_variant",
+                "{{ $result.state.applied_outcome_variant }}",
+            ),
+            SetState(
+                "applied_failed_count", "{{ $result.state.applied_failed_count }}"
+            ),
+            SetState(
+                "applied_failed_summary",
+                "{{ $result.state.applied_failed_summary }}",
+            ),
+            SetState("applied_verb", "{{ $result.state.applied_verb }}"),
+        ],
+    )
+    confirm_label, cancel_operation_label = _item_modify_labels(
+        verb_label, len(actions)
+    )
+    cancel_action = _build_cancel_action(cancel_operation_label)
+
+    state = _init_modify_card_state(response)
+    state[_ITEM_MODIFY_VARIANT_KEY] = variant_rows
+    state["applied_outcome_label"] = outcome_label
+    state["applied_outcome_variant"] = outcome_variant
+    state["applied_failed_count"] = failed_count
+    state["applied_failed_summary"] = failed_summary
+    state["applied_verb"] = applied_verb
+
+    with PrefabApp(state=state, css_class="p-4") as app, Card():
+        _render_item_modify_header(entity, entity_id=entity_id)
+
+        with CardContent(), Column(gap=3):
+            if response.get("message"):
+                Muted(content=response["message"])
+
+            # Tier 2 + 3 — header metrics + reference fields with diff overlay.
+            # Variants suppressed here; the diff table below replaces them.
+            block_warnings = _render_item_entity_view(
+                entity, changes=changes_by_field, suppress_variants=True
+            )
+
+            # Variant diff table (product / material). Summary line first so
+            # the user sees "+N ~M -K" before scanning the rows.
+            if show_variant_table:
+                if summary_line:
+                    Text(content=summary_line)
+                if variant_rows:
+                    DataTable(
+                        columns=_ITEM_MODIFY_VARIANT_COLUMNS,
+                        rows=_ITEM_MODIFY_VARIANT_REF,
+                        paginated=True,
+                        pageSize=20,
+                    )
+
+            # Consolidated failed-rows Alert — state-driven so the in-place
+            # morph after Confirm surfaces failures (mirrors the BOM card).
+            with (
+                If(Rx("applied_failed_count") > 0),
+                Alert(variant="destructive", icon="circle-alert"),
+            ):
+                AlertTitle(content="{{ applied_failed_count }} failed action(s)")
+                AlertDescription(content="{{ applied_failed_summary }}")
+
+            if is_preview:
+                with If("error"):
+                    Separator()
+                    with Alert(variant="destructive", icon="circle-alert"):
+                        AlertTitle(content="Apply failed")
+                        AlertDescription(content="{{ error }}")
+
+        # Tier 4 — Footer. Shared apply/cancel/morph rail. No next-action
+        # buttons (the user already had the item they wanted to change; a
+        # deleted item has nothing useful to suggest).
+        _render_preview_footer(
+            title_prefix=f"Item {verb_label}",
+            block_warnings=block_warnings,
+            confirm_label=confirm_label,
+            apply_action=apply_action,
+            cancel_action=cancel_action,
+            next_action_buttons=(),
             applied_verb="{{ applied_verb }}",
         )
     return app
@@ -5860,7 +6327,7 @@ def _so_header_op_skipped_alert_text(
     """Pre-format the consolidated header-level NOT-RUN summary text.
 
     Walks the merged action list (executed + synthesized NOT-RUN tail, see
-    :func:`_so_actions_with_not_run_tail`), picks the ones whose
+    :func:`_actions_with_not_run_tail`), picks the ones whose
     ``status_label == "NOT RUN"`` AND whose operation is in
     :data:`_SO_HEADER_OPS`. Emits one ``"Step skipped: <verb> (NOT RUN —
     earlier phase failed before this step ran)."`` line per skipped op.
@@ -6224,29 +6691,29 @@ def _seed_so_modify_card_state(
     return state
 
 
-def _so_actions_with_not_run_tail(
+def _actions_with_not_run_tail(
     response: dict[str, Any],
     *,
     is_preview: bool,
 ) -> list[dict[str, Any]]:
-    """Return the SO modify card's effective action list, extended (on
-    the apply path only) with the unattempted plan tail synthesized by
-    :func:`_modify_sales_order_impl`.
+    """Return a modify card's effective action list, extended (on the apply
+    path only) with the unattempted plan tail synthesized by the impl.
 
-    ``execute_plan`` is fail-fast — ``response.actions`` ends at the
-    first failed action. The impl stashes the leftover :class:`ActionSpec`
-    entries under ``response.extras["not_run_actions"]`` so they
-    participate in per-section row bucketing in :func:`build_so_modify_ui`
-    (bucketed by ``operation`` prefix the same way executed actions are).
-    Without this merge the morph path's per-section ``so_<section>_rows``
-    slot would overwrite the preview's full row list with the apply
-    response's SHORTER list, silently HIDING every planned action past
-    the failure (#858 finding B; same family as the BOM fix in
-    ``_modify_product_bom_impl``).
+    ``execute_plan`` is fail-fast — ``response.actions`` ends at the first
+    failed action. The impl stashes the leftover :class:`ActionSpec` entries
+    under ``response.extras["not_run_actions"]`` so they participate in the
+    collection-table row merge (classified by ``operation`` the same way
+    executed actions are, rendered with the ``NOT RUN`` status pill). Without
+    this merge the morph path would overwrite the preview's full row list with
+    the apply response's SHORTER list, silently HIDING every planned action
+    past the failure (#858 finding B / Copilot #875; same family as the BOM
+    fix in ``_modify_product_bom_impl``).
 
-    On the preview path we deliberately ignore the extras (every action
-    is already PLANNED) — guards against accidental leakage from a test
-    or future code path that puts NOT-RUN entries on a preview response.
+    Shared by ``build_so_modify_ui`` and ``build_item_modify_ui`` — both feed
+    the result into their collection-diff merge. On the preview path the extras
+    are deliberately ignored (every action is already PLANNED) — guards against
+    accidental leakage from a test or future code path that puts NOT-RUN
+    entries on a preview response.
     """
     actions: list[dict[str, Any]] = list(response.get("actions") or [])
     if is_preview:
@@ -6306,7 +6773,7 @@ def build_so_modify_ui(
       it morphs in lockstep with the outcome Badge.
     """
     is_preview = bool(response.get("is_preview", True))
-    actions: list[dict[str, Any]] = _so_actions_with_not_run_tail(
+    actions: list[dict[str, Any]] = _actions_with_not_run_tail(
         response, is_preview=is_preview
     )
     entity_id = response.get("entity_id")

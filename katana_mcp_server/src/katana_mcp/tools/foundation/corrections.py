@@ -211,7 +211,7 @@ def _synthesize_correction_not_run_actions(
     """Build NOT-RUN action dicts for the unattempted phase tail.
 
     Same shape as :func:`_modify_sales_order_impl`'s NOT-RUN synthesis so
-    :func:`build_so_modify_ui` (via :func:`_so_actions_with_not_run_tail`)
+    :func:`build_so_modify_ui` (via :func:`_actions_with_not_run_tail`)
     can merge them into the per-section row morph without distinguishing
     apply-vs-correction provenance. ``succeeded=None`` + ``status_label=
     "NOT RUN"`` sets the "secondary" Badge variant.

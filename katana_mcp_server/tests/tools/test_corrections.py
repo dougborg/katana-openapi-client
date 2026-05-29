@@ -864,7 +864,7 @@ async def test_correct_so_fail_fast_synthesizes_not_run_tail_for_morph():
     assert response.actions[2].succeeded is False  # update_row (boom)
 
     # The two unattempted phases must surface as NOT-RUN extras so the
-    # SO modify-card morph picks them up via ``_so_actions_with_not_run_tail``.
+    # SO modify-card morph picks them up via ``_actions_with_not_run_tail``.
     not_run = response.extras.get("not_run_actions") or []
     assert len(not_run) == 2, (
         f"Expected 2 NOT-RUN entries (recreate + close); got {len(not_run)}: "
@@ -884,7 +884,7 @@ async def test_correct_so_fail_fast_morph_renders_not_run_rows():
     This is the consumer-side proof — the impl-side test above proves
     extras are populated; this one proves the renderer actually reads them.
     """
-    from katana_mcp.tools.prefab_ui import _so_actions_with_not_run_tail
+    from katana_mcp.tools.prefab_ui import _actions_with_not_run_tail
 
     context, _ = create_mock_context()
     picked = datetime(2026, 4, 15, 21, 18, 0, tzinfo=UTC)
@@ -951,7 +951,7 @@ async def test_correct_so_fail_fast_morph_renders_not_run_rows():
     # Hand the response to the merge helper exactly as ``build_so_modify_ui``
     # does. Result: 3 executed + 2 NOT-RUN = 5 rows visible on the morph.
     response_dict = response.model_dump()
-    merged = _so_actions_with_not_run_tail(response_dict, is_preview=False)
+    merged = _actions_with_not_run_tail(response_dict, is_preview=False)
     assert len(merged) == 5
 
     # Plan order preserved: APPLIED, APPLIED, FAILED, NOT RUN, NOT RUN.
