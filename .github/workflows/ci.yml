@@ -228,12 +228,13 @@ jobs:
       - name: Fail if generated files are stale
         if: needs.changes.outputs.code == 'true' || needs.changes.outputs.spec == 'true'
         run: |
-          if ! git diff --exit-code -- \
-            katana_public_api_client/api \
-            katana_public_api_client/models \
-            katana_public_api_client/client.py \
-            katana_public_api_client/models_pydantic/_generated \
-            katana_public_api_client/models_pydantic/_auto_registry.py; then
+          # Scope to the whole client package, not an enumerated list: besides
+          # api/, models/, client.py, and models_pydantic/_generated/,
+          # regenerate_client.py also rewrites errors.py, client_types.py,
+          # py.typed, and the templated __init__.py. Hand-maintained files in the
+          # package (katana_client.py, helpers/, domain/, etc.) aren't rewritten
+          # by the generators, so they never produce a spurious diff here.
+          if ! git diff --exit-code -- katana_public_api_client/; then
             echo "::error::Generated files are out of date. Run 'uv run poe regenerate-all' and commit the result."
             exit 1
           fi
