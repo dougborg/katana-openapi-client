@@ -1122,6 +1122,14 @@ Receive items from a purchase order.
 
 **Safety:** When preview=false, prompts user for confirmation.
 
+**Landed costs:** `receive_purchase_order` does not set customs / freight /
+duties. After receiving, apportion them with
+`modify_purchase_order(add_additional_costs=[{additional_cost_id, price,
+tax_rate_id, distribution_method, group_id}])`, which can target a specific
+receipt group via `group_id`. Look up `additional_cost_id` via
+`list_additional_costs`. This is MCP-native — it does not require the Katana
+UI.
+
 ---
 
 ### verify_order_document
@@ -1774,6 +1782,14 @@ Complete a manufacturing or sales order.
   equal the row's ordered quantity. **Required** when the row's variant is
   serial-tracked — without it, the tool emits a `BLOCK:` warning at preview
   and refuses on direct apply (Katana would 422 the request).
+  **Caveat (serial minted on a linked MO):** the public-API write paths
+  cannot *transfer* a serial that is currently attached to the row's linked
+  manufacturing order — `POST /sales_order_fulfillments` returns "serial
+  numbers have already been assigned" and `add_serial_numbers(SalesOrderRow)`
+  returns "is linked, serial info must be updated on MO". That common
+  close-out case (finished good came off an MO with the serial already
+  minted) has no MCP-native path today; fulfill it from the Katana UI
+  ("Deliver all"), which performs the MO→SO transfer atomically.
 - `serial_numbers` (optional, manufacturing orders only): List of pre-existing
   `SerialNumber` IDs to attach to the produced units when marking the MO
   DONE. Length must equal `actual_quantity`. **Required** when the MO's
@@ -1783,6 +1799,9 @@ Complete a manufacturing or sales order.
 - `completed_at` (optional, ISO-8601): Backdated completion timestamp. MO →
   production POST `completed_date` (Katana propagates to `MO.done_date`);
   SO → fulfillment `picked_date`. Omit to let Katana stamp server-time.
+  **There is no separate `picked_date` / `delivery_date` parameter** — set
+  the SO picked date (or MO done date) through `completed_at`; it is the
+  single backdating knob for both order types.
 - `acknowledge_inventory_ordering` (optional, default false): Override flag
   for the inventory-ordering guard. The guard fires when `completed_at` is
   supplied and a linked entity's timestamp is known — Katana's
