@@ -209,6 +209,15 @@ class EntitySpec:
       variant. Lives on the spec (not just the ``ensure_*`` wrapper) so
       ``force_resync`` inherits it: a ``rebuild_cache`` of services
       re-establishes the variant links rather than leaving them stale.
+
+    - ``preserve_columns_on_conflict`` — column names excluded from the
+      ``ON CONFLICT DO UPDATE SET`` clause of this entity's upsert, so their
+      existing value survives a re-sync instead of being overwritten by the
+      incoming payload. For cache-only columns a *different* sync owns: the
+      variant spec preserves ``service_id`` (written by the service spec's
+      ``post_sync``) so a ``/variants`` delta — whose payload has no
+      ``service_id`` — can't null it back out. Without this the column would
+      only be trustworthy immediately after a service sync.
     """
 
     entity_key: str
@@ -223,6 +232,7 @@ class EntitySpec:
     depends_on: tuple[str, ...] = ()
     attrs_postprocess: Callable[[Any, Any], None] | None = None
     post_sync: Callable[[TypedCacheEngine], Awaitable[None]] | None = None
+    preserve_columns_on_conflict: frozenset[str] = frozenset()
     extra_fetch_kwargs: dict[str, Any] = field(default_factory=dict)
     supports_incremental: bool = True
     supports_include_deleted: bool = True
@@ -405,7 +415,10 @@ _SQLITE_PARAM_BUDGET = 900
 
 
 async def _bulk_upsert(
-    session: AsyncSession, table_cls: type[SQLModel], rows: list[Any]
+    session: AsyncSession,
+    table_cls: type[SQLModel],
+    rows: list[Any],
+    preserve_columns: frozenset[str] = frozenset(),
 ) -> None:
     """One ``INSERT ... ON CONFLICT(id) DO UPDATE`` per chunk; no-op on empty rows.
 
@@ -417,6 +430,16 @@ async def _bulk_upsert(
     The include-set is driven from ``__table__.columns`` rather than a
     hardcoded exclude list, so adding a new ``Relationship`` field to a
     cache class can never silently leak into the values payload.
+
+    ``preserve_columns`` are excluded from the ``ON CONFLICT DO UPDATE SET``
+    clause: their existing value survives the upsert instead of being
+    overwritten by the incoming payload. This protects cache-only columns
+    that the entity's own wire payload never carries — e.g. a service
+    variant's ``service_id`` is denormalized from ``/services`` by a
+    ``post_sync`` backfill, so re-upserting that row from a ``/variants``
+    delta (whose payload has no ``service_id``) must not null it back out.
+    On INSERT the column still lands its default; only UPDATE-on-conflict
+    is suppressed.
     """
     if not rows:
         return
@@ -427,6 +450,7 @@ async def _bulk_upsert(
     mapper = sqla_inspect(table_cls)
     column_names = {col.name for col in mapper.columns}
     chunk_size = max(1, _SQLITE_PARAM_BUDGET // len(column_names))
+    frozen = {"id", *preserve_columns}
 
     # ``model_dump`` per chunk (not eagerly across the whole batch) so a
     # cold sync of thousands of rows doesn't double-buffer the cache rows
@@ -434,7 +458,7 @@ async def _bulk_upsert(
     for chunk in batched(rows, chunk_size):
         values = [r.model_dump(include=column_names) for r in chunk]
         stmt = sqlite_insert(table_cls).values(values)
-        update_cols = {c.name: c for c in stmt.excluded if c.name != "id"}
+        update_cols = {c.name: c for c in stmt.excluded if c.name not in frozen}
         stmt = stmt.on_conflict_do_update(index_elements=["id"], set_=update_cols)
         await session.exec(stmt)
 
@@ -551,7 +575,12 @@ async def _sync_one_locked(
         # SQLAlchemy mapper events would silently miss this Core path,
         # but SQLite triggers fire for every write mode (ORM, Core,
         # raw SQL).
-        await _bulk_upsert(session, spec.cache_cls, cached_parents)
+        await _bulk_upsert(
+            session,
+            spec.cache_cls,
+            cached_parents,
+            preserve_columns=spec.preserve_columns_on_conflict,
+        )
 
         if (
             spec.reconcile_children
@@ -882,13 +911,12 @@ async def _backfill_service_variant_links(cache: TypedCacheEngine) -> None:
     ``variant_au`` FTS trigger doesn't fire) once the column is already
     correct, so the full pass on every service sync stays cheap.
 
-    The full pass (not a delta-scoped one) is deliberate: ``_bulk_upsert``
-    sets every non-id column from the payload, so a ``/variants`` delta can
-    transiently null a previously-backfilled ``service_id`` *without* the
-    service itself reappearing in the service delta. Re-linking every service
-    each pass self-heals that case; a delta-scoped backfill would not.
-    ``search_items`` re-reads the variant rows after triggering this sync, so
-    it never observes the pre-backfill value.
+    Durability is owned by ``_VARIANT_SPEC.preserve_columns_on_conflict``,
+    which excludes ``service_id`` from the ``/variants`` upsert — once written
+    here it survives subsequent variant deltas. This backfill therefore only
+    has to *establish* the link (cold start, newly-created services). A full
+    pass (rather than delta-scoped) keeps it order-independent: it links any
+    service whose variant row now exists, regardless of which sync ran first.
     """
     variant_id_col: Any = CachedVariant.id
     service_id_col: Any = CachedVariant.service_id
@@ -954,6 +982,11 @@ _VARIANT_SPEC = EntitySpec(
     },
     depends_on=("product", "material"),
     attrs_postprocess=_variant_postprocess,
+    # ``service_id`` is denormalized onto service variants by the service
+    # spec's ``post_sync`` (it lives on /services, never on /variants).
+    # Preserve it across /variants deltas so a re-upsert of a service
+    # variant row can't null the backfilled link.
+    preserve_columns_on_conflict=frozenset({"service_id"}),
 )
 
 

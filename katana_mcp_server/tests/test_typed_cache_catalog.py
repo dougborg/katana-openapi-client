@@ -594,14 +594,13 @@ class TestServiceVariantLinkBackfill:
     ):
         """Integration: real ``_search_items_impl`` resolves service ``parent_id``.
 
-        Reproduces the original ordering bug end-to-end against a real engine:
-        the variant row is synced with ``service_id=None`` and the service is
-        NOT yet synced, so ``smart_search`` returns a detached row whose
-        ``service_id`` is null. ``_search_items_impl`` then syncs services
-        (firing the ``post_sync`` backfill) and re-reads the variant rows —
-        resolving ``parent_id`` from the fresh value. Reading the stale
-        ``smart_search`` row directly (the pre-fix behavior) returned
-        ``parent_id=None`` here.
+        End-to-end against a real engine: the variant row is synced with
+        ``service_id=None`` and the service is not yet synced. When
+        ``_search_items_impl`` runs, its ``@cache_read(CachedVariant,
+        CachedService)`` decorator syncs services first — firing the
+        ``post_sync`` backfill onto the variant row — so ``smart_search`` then
+        returns the row with ``service_id`` already set and ``parent_id`` is a
+        plain column read (no second-pass re-fetch).
         """
         from katana_mcp.tools.foundation.items import (
             SearchItemsRequest,
@@ -633,10 +632,11 @@ class TestServiceVariantLinkBackfill:
                 "variants": [{"id": 40722022, "sku": "LABOR", "service_id": 17253805}],
             }
         )
-        # ``_search_items_impl`` carries ``@cache_read(CachedVariant)``, which
-        # re-syncs variants (and its product/material parents) before running;
-        # stub those endpoints empty so the in-cache variant row persists. The
-        # service stub feeds the conditional service sync triggered for the hit.
+        # ``_search_items_impl`` carries ``@cache_read(CachedVariant,
+        # CachedService)``, which re-syncs variants (and their product/material
+        # parents) and services before running; stub those endpoints empty so
+        # the in-cache variant row persists. The service stub feeds the service
+        # sync whose post_sync backfill links service_id onto the variant row.
         with (
             _stub_endpoint("get_all_products", empty),
             _stub_endpoint("get_all_materials", empty),
@@ -651,6 +651,58 @@ class TestServiceVariantLinkBackfill:
         assert len(service_rows) == 1
         assert service_rows[0].id == 40722022  # variant id
         assert service_rows[0].parent_id == 17253805  # resolved service item id
+
+    @pytest.mark.asyncio
+    async def test_variant_resync_preserves_backfilled_service_id(
+        self, typed_cache_engine
+    ):
+        """A ``/variants`` delta must NOT null a backfilled ``service_id``.
+
+        ``_VARIANT_SPEC.preserve_columns_on_conflict`` excludes ``service_id``
+        from the variant upsert's ``ON CONFLICT DO UPDATE SET``. Without it, the
+        ``/variants`` payload (which never carries ``service_id``) would re-write
+        the column to NULL on every re-sync, making the link trustworthy only
+        immediately after a service sync. Pin durability across variant deltas.
+        """
+        variant_attrs = AttrsVariantResponse.from_dict(
+            {"id": 40722022, "sku": "LABOR", "type": "service"}
+        )
+        service_attrs = AttrsService.from_dict(
+            {
+                "id": 17253805,
+                "name": "Labor",
+                "variants": [{"id": 40722022, "sku": "LABOR", "service_id": 17253805}],
+            }
+        )
+        empty = _list_response([])
+        # Initial sync: variant row in, then service backfill links service_id.
+        with (
+            _stub_endpoint("get_all_products", empty),
+            _stub_endpoint("get_all_materials", empty),
+            _stub_endpoint("get_all_variants", _list_response([variant_attrs])),
+        ):
+            await ensure_variants_synced(MagicMock(), typed_cache_engine)
+        with _stub_endpoint("get_all_services", _list_response([service_attrs])):
+            await ensure_services_synced(MagicMock(), typed_cache_engine)
+
+        async with typed_cache_engine.session() as session:
+            linked = await session.get(CachedVariant, 40722022)
+        assert linked is not None
+        assert linked.service_id == 17253805
+
+        # Re-sync variants (a delta re-upserts the same service variant row,
+        # payload has no service_id). Preserve-on-conflict must keep the link.
+        with (
+            _stub_endpoint("get_all_products", empty),
+            _stub_endpoint("get_all_materials", empty),
+            _stub_endpoint("get_all_variants", _list_response([variant_attrs])),
+        ):
+            await ensure_variants_synced(MagicMock(), typed_cache_engine)
+
+        async with typed_cache_engine.session() as session:
+            after = await session.get(CachedVariant, 40722022)
+        assert after is not None
+        assert after.service_id == 17253805  # NOT nulled by the variant re-sync
 
 
 class TestCatalogQueriesGetters:

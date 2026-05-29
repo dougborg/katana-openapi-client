@@ -41,7 +41,7 @@ from katana_mcp.tools._modification_dispatch import (
     safe_fetch_for_diff,
     unset_dict,
 )
-from katana_mcp.tools.decorators import cache_read, ensure_cache_synced
+from katana_mcp.tools.decorators import cache_read
 from katana_mcp.tools.list_coercion import CoercedIntListOpt, CoercedStrListOpt
 from katana_mcp.tools.tool_result_utils import (
     UI_META,
@@ -309,7 +309,7 @@ def _search_response_to_tool_result(
     )
 
 
-@cache_read(CachedVariant)
+@cache_read(CachedVariant, CachedService)
 async def _search_items_impl(
     request: SearchItemsRequest, context: Context
 ) -> SearchItemsResponse:
@@ -337,57 +337,30 @@ async def _search_items_impl(
             return "unknown"
         return type_val.value if hasattr(type_val, "value") else str(type_val)
 
-    # Resolve each row's type once and reuse it below (the parent-id join, the
-    # service guard, and the ItemInfo build all need it).
+    # Resolve each row's type once and reuse it below (the parent-id resolution
+    # and the ItemInfo build both need it).
     typed_variants = [(v, _item_type(v)) for v in variants]
 
     # The parent *item* id that modify_item/get_item need differs from the
     # variant ``id`` search returns. Products/materials carry it on the row
     # (``product_id``/``material_id``); a service variant has null
     # ``product_id`` AND null ``material_id``, so it reads from the cache-only
-    # ``service_id`` column denormalized at sync time (see
-    # ``_backfill_service_variant_links`` in ``typed_cache/sync.py``).
-    #
-    # Only do this when a service is actually in the result set, so
-    # product/material-only searches pay nothing (the common case). Two-step,
-    # because ``smart_search`` above returned *detached* rows whose
-    # ``service_id`` was frozen at fetch time — possibly before this sync's
-    # backfill, or stale from a ``/variants`` delta that nulled it: (1) sync
-    # services, which runs the ``post_sync`` backfill onto the variant rows;
-    # (2) re-read just the service variant rows so we see the backfilled
-    # value. ``include_archived/deleted=True`` so a row ``smart_search``
-    # already surfaced isn't dropped by the re-fetch's soft-state filter.
-    service_parent_by_variant: dict[int, int] = {}
-    service_variant_ids = [
-        int(vid)
-        for v, item_type in typed_variants
-        if item_type == "service" and (vid := _attr(v, "id")) is not None
-    ]
-    if service_variant_ids:
-        await ensure_cache_synced(services, CachedService)
-        fresh = await services.typed_cache.catalog.get_many_by_ids(
-            CachedVariant,
-            service_variant_ids,
-            include_archived=True,
-            include_deleted=True,
-        )
-        for vid, row in fresh.items():
-            service_id = _attr(row, "service_id")
-            if service_id is not None:
-                service_parent_by_variant[int(vid)] = int(service_id)
-
+    # ``service_id`` column. That column is a plain row read here because the
+    # ``@cache_read(CachedVariant, CachedService)`` decorator syncs services
+    # (running ``_backfill_service_variant_links``) *before* this function's
+    # ``smart_search``, and ``_VARIANT_SPEC.preserve_columns_on_conflict``
+    # keeps a backfilled ``service_id`` from being nulled by a ``/variants``
+    # delta — so the value ``smart_search`` returns is already correct, with
+    # no second sync-and-re-read needed.
     def _parent_id(v: Any, item_type: str) -> int | None:
         if item_type == "product":
             return _attr(v, "product_id")
         if item_type == "material":
             return _attr(v, "material_id")
         if item_type == "service":
-            # None when the service sync hasn't backfilled this row yet —
-            # degrade gracefully rather than emitting the (wrong) variant id.
-            variant_id = _attr(v, "id")
-            if variant_id is None:
-                return None
-            return service_parent_by_variant.get(int(variant_id))
+            # None only for a service variant whose row predates any service
+            # sync — degrade gracefully rather than emitting the variant id.
+            return _attr(v, "service_id")
         return None
 
     items_info = [
