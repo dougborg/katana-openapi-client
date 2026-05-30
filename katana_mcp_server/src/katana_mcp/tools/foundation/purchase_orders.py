@@ -2965,6 +2965,68 @@ def _build_update_cost_request(
     )
 
 
+def _collect_po_row_variant_ids(
+    existing_po: RegularPurchaseOrder | None,
+    request: ModifyPurchaseOrderRequest,
+) -> set[int]:
+    """Gather every variant id the PO modify card's row table needs resolved.
+
+    Union of the existing rows' variants (the snapshot the card renders) and
+    the variants referenced by ``add_rows`` / ``update_rows`` (so added /
+    variant-swapped rows show a SKU + name, not a bare id). One set → one
+    batched cache lookup in :func:`_resolve_po_row_variants`.
+    """
+    ids: set[int] = set()
+    if existing_po is not None:
+        for r in unwrap_unset(existing_po.purchase_order_rows, None) or []:
+            vid = unwrap_unset(getattr(r, "variant_id", None), None)
+            if vid is not None:
+                ids.add(int(vid))
+    for add in request.add_rows or []:
+        ids.add(int(add.variant_id))
+    for upd in request.update_rows or []:
+        if upd.variant_id is not None:
+            ids.add(int(upd.variant_id))
+    return ids
+
+
+async def _resolve_po_row_variants(
+    services: Any, variant_ids: set[int]
+) -> dict[int, dict[str, str | None]]:
+    """Batch-resolve ``{variant_id: {"sku", "display_name"}}`` via the typed
+    cache for the PO modify card's row table. Misses degrade to ``None`` fields
+    so the row still renders (``variant <id>`` fallback). Serializable dict so
+    it round-trips through ``response.extras`` + ``model_dump``.
+    """
+    if not variant_ids:
+        return {}
+    from katana_public_api_client.models_pydantic._generated import CachedVariant
+
+    # Enrichment lookup by ID — include archived + deleted so a PO row that
+    # references an archived/deleted variant still resolves its SKU + name
+    # (per typed_cache/README "Enrichment (batch lookups by ID) — always
+    # include_*=True"). Without this the card falls back to "variant <id>".
+    variants = await services.typed_cache.catalog.get_many_by_ids(
+        CachedVariant, variant_ids, include_archived=True, include_deleted=True
+    )
+    resolved: dict[int, dict[str, str | None]] = {}
+    for vid in variant_ids:
+        v = variants.get(vid)
+        if v is None:
+            resolved[vid] = {"sku": None, "display_name": None}
+        elif isinstance(v, dict):
+            resolved[vid] = {
+                "sku": v.get("sku"),
+                "display_name": v.get("display_name"),
+            }
+        else:
+            resolved[vid] = {
+                "sku": getattr(v, "sku", None),
+                "display_name": getattr(v, "display_name", None),
+            }
+    return resolved
+
+
 async def _modify_purchase_order_impl(
     request: ModifyPurchaseOrderRequest, context: Context
 ) -> ModificationResponse:
@@ -3094,7 +3156,17 @@ async def _modify_purchase_order_impl(
         )
     )
 
-    return await run_modify_plan(
+    # Resolve variant SKU / display_name for every row variant the card's row
+    # diff table touches (existing rows + add/update variants) so it renders
+    # user-facing identities, not bare ids (anti-pattern #2 / #7). One batched
+    # cache lookup; threaded onto the response so ``build_po_modify_ui`` reads
+    # it without a second hit at render time. Mirrors the BOM card's
+    # ``resolved_ingredients``.
+    resolved_variants = await _resolve_po_row_variants(
+        services, _collect_po_row_variant_ids(existing_po, request)
+    )
+
+    response = await run_modify_plan(
         request=request,
         naming=EntityNaming(
             entity_type="purchase_order",
@@ -3104,6 +3176,7 @@ async def _modify_purchase_order_impl(
         web_url_kind="purchase_order",
         existing=existing_po,
         plan=plan,
+        extras={"resolved_variants": resolved_variants},
         cache_merge=CacheMerge(
             cache=services.typed_cache,
             refetch_for_merge=lambda eid: _fetch_purchase_order_attrs(services, eid),
@@ -3121,6 +3194,33 @@ async def _modify_purchase_order_impl(
             ),
         ),
     )
+
+    # Apply-path: synthesize NOT-RUN entries for the unattempted plan tail.
+    # ``execute_plan`` is fail-fast — ``response.actions`` ends at the first
+    # failed action. Without these the card's row-table morph would silently
+    # HIDE every planned row action past the failure. The card merges them via
+    # ``extras["not_run_actions"]`` (``_actions_with_not_run_tail``), rendering
+    # the "NOT RUN" status pill. Mirrors the SO / BOM / item fail-fast handling.
+    if not response.is_preview:
+        not_run_specs = plan[len(response.actions) :]
+        not_run_actions = [
+            {
+                "operation": spec.operation,
+                "target_id": spec.target_id,
+                "succeeded": None,
+                "error": None,
+                "changes": [
+                    c.model_dump() if hasattr(c, "model_dump") else dict(c)
+                    for c in spec.diff
+                ],
+                "status_label": "NOT RUN",
+            }
+            for spec in not_run_specs
+        ]
+        if not_run_actions:
+            response.extras["not_run_actions"] = not_run_actions
+
+    return response
 
 
 @observe_tool
