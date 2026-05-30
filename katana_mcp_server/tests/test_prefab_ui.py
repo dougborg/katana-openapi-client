@@ -3076,6 +3076,330 @@ class TestBuildPOModifyUI:
         assert result["entity_id"] == 9001
 
 
+class TestPOModifyRowTable:
+    """``build_po_modify_ui`` line-item diff table (#722 follow-up under #721).
+
+    The card previously rendered header scalar diffs only and silently dropped
+    every ``modify_purchase_order`` row CRUD action. These pin the row table:
+    add/update/delete rows render with resolved SKU/name, the table is
+    state-bound + morphs, and a header-only modify renders no table.
+    """
+
+    _PO_PRIOR: ClassVar[dict[str, Any]] = {
+        "id": 9001,
+        "order_no": "PO-2026-001",
+        "supplier_id": 100,
+        "supplier": {"id": 100, "name": "Acme Supply Co"},
+        "location_id": 1,
+        "status": "NOT_RECEIVED",
+        "entity_type": "regular",
+        "total": 1250.0,
+        "currency": "USD",
+        "additional_info": "Net-30",
+        # Raw PurchaseOrderRow.to_dict() shape — variant_id + qty + price,
+        # NO resolved sku/display_name (those come from extras.resolved_variants).
+        "purchase_order_rows": [
+            {"id": 7001, "variant_id": 401, "quantity": 10.0, "price_per_unit": 25.0},
+            {"id": 7002, "variant_id": 402, "quantity": 5.0, "price_per_unit": 40.0},
+        ],
+    }
+    _RESOLVED: ClassVar[dict[int, dict[str, Any]]] = {
+        401: {"sku": "BOLT-M5", "display_name": "M5 bolt"},
+        402: {"sku": "NUT-M5", "display_name": "M5 nut"},
+        403: {"sku": "WASHER-M5", "display_name": "M5 washer"},
+    }
+
+    @classmethod
+    def _preview(
+        cls, actions: list[dict[str, Any]] | None = None, **overrides: Any
+    ) -> dict[str, Any]:
+        return {
+            "entity_type": "purchase_order",
+            "entity_id": 9001,
+            "is_preview": True,
+            "actions": actions or [],
+            "prior_state": dict(cls._PO_PRIOR),
+            "extras": {"resolved_variants": dict(cls._RESOLVED)},
+            "warnings": [],
+            "next_actions": [],
+            "message": "Preview",
+            "katana_url": "https://factory.katanamrp.com/purchaseorder/9001",
+            **overrides,
+        }
+
+    @classmethod
+    def _applied(
+        cls, actions: list[dict[str, Any]] | None = None, **overrides: Any
+    ) -> dict[str, Any]:
+        return cls._preview(actions, is_preview=False, **overrides)
+
+    @staticmethod
+    def _add_row(*, variant_id: int, qty: float, price: float, **o: Any) -> dict:
+        return {
+            "operation": "add_row",
+            "target_id": None,
+            "succeeded": None,
+            "status_label": "PLANNED",
+            "changes": [
+                {
+                    "field": "variant_id",
+                    "old": None,
+                    "new": variant_id,
+                    "is_added": True,
+                },
+                {"field": "quantity", "old": None, "new": qty, "is_added": True},
+                {
+                    "field": "price_per_unit",
+                    "old": None,
+                    "new": price,
+                    "is_added": True,
+                },
+            ],
+            **o,
+        }
+
+    @staticmethod
+    def _update_row(
+        *, target_id: int, old_qty: float, new_qty: float, **o: Any
+    ) -> dict:
+        return {
+            "operation": "update_row",
+            "target_id": target_id,
+            "succeeded": None,
+            "status_label": "PLANNED",
+            "changes": [{"field": "quantity", "old": old_qty, "new": new_qty}],
+            **o,
+        }
+
+    @staticmethod
+    def _delete_row(*, target_id: int, **o: Any) -> dict:
+        return {
+            "operation": "delete_row",
+            "target_id": target_id,
+            "succeeded": None,
+            "status_label": "PLANNED",
+            "changes": [],
+            **o,
+        }
+
+    def test_row_crud_renders_all_kinds_and_summary(self):
+        actions = [
+            self._add_row(variant_id=403, qty=20.0, price=2.5),
+            self._update_row(target_id=7001, old_qty=10.0, new_qty=15.0),
+            self._delete_row(target_id=7002),
+        ]
+        app = build_po_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        # Added row's resolved SKU + name (the user-centric piece — no bare id).
+        assert "+ WASHER-M5" in rendered
+        assert "M5 washer" in rendered
+        # Updated row's quantity diff arrow.
+        assert "10 → 15" in rendered
+        # Deleted row's preserved identity.
+        assert "- NUT-M5" in rendered
+        # Summary line.
+        assert "+1 added" in rendered
+        assert "~1 updated" in rendered
+        assert "-1 deleted" in rendered
+
+    def test_rows_seed_state_for_datatable_binding(self):
+        app = build_po_modify_ui(
+            self._preview([self._add_row(variant_id=403, qty=1.0, price=1.0)]),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        assert app.state is not None
+        rows = app.state.get("po_row_rows")
+        assert isinstance(rows, list)
+        # 2 existing + 1 added.
+        assert len(rows) == 3
+        assert [r["kind"] for r in rows].count("added") == 1
+
+    def test_header_only_modify_renders_no_row_table(self):
+        actions = [
+            {
+                "operation": "update_header",
+                "target_id": 9001,
+                "succeeded": None,
+                "changes": [
+                    {"field": "status", "old": "NOT_RECEIVED", "new": "RECEIVED"}
+                ],
+            }
+        ]
+        app = build_po_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        # No row change → the line-item diff table isn't rendered (the header
+        # diff carries the change); existing rows aren't listed as noise.
+        assert "Line items:" not in rendered
+        # The header diff still shows.
+        assert "NOT_RECEIVED" in rendered and "RECEIVED" in rendered
+
+    def test_unresolved_variant_falls_back_to_variant_id(self):
+        # Add a variant absent from resolved_variants → "variant <id>" fallback.
+        app = build_po_modify_ui(
+            self._preview(
+                [self._add_row(variant_id=99999, qty=1.0, price=1.0)],
+                extras={"resolved_variants": {}},
+            ),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        rendered = str(app.to_json())
+        assert "(unresolved)" in rendered
+        assert "variant 99999" in rendered
+
+    def test_decimal_price_renders_trimmed(self):
+        from decimal import Decimal
+
+        actions = [
+            {
+                "operation": "update_row",
+                "target_id": 7001,
+                "succeeded": None,
+                "status_label": "PLANNED",
+                "changes": [
+                    {
+                        "field": "price_per_unit",
+                        "old": Decimal("25.0000000000"),
+                        "new": Decimal("27.5000000000"),
+                    }
+                ],
+            }
+        ]
+        app = build_po_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        rendered = str(app.to_json())
+        assert "25 → 27.5" in rendered
+        assert "0000000000" not in rendered
+
+    def test_malformed_resolved_variants_does_not_crash(self):
+        """A missing / malformed ``extras.resolved_variants`` (None, list) must
+        not crash the card — it degrades to the ``variant <id>`` fallback
+        (Copilot #881)."""
+        from katana_mcp.tools.prefab_ui import _coerce_resolved_id_map
+
+        assert _coerce_resolved_id_map(None) == {}
+        assert _coerce_resolved_id_map([1, 2, 3]) == {}
+        assert _coerce_resolved_id_map("nope") == {}
+        # Well-formed still works (string keys coerced back to int).
+        assert _coerce_resolved_id_map({"401": {"sku": "X", "display_name": "Y"}}) == {
+            401: {"sku": "X", "display_name": "Y"}
+        }
+        # End-to-end: a non-dict extras value renders the row with the fallback.
+        app = build_po_modify_ui(
+            self._preview(
+                [self._add_row(variant_id=403, qty=1.0, price=1.0)],
+                extras={"resolved_variants": ["malformed"]},
+            ),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        _assert_valid_prefab(app)
+        assert "variant 403" in str(app.to_json())
+
+    def test_header_only_modify_short_circuits_row_merge(self):
+        """Header-only / additional-cost-only plans skip the row merge entirely
+        — ``_po_modify_row_rows`` returns ``([], "")`` without projecting over
+        the PO's row snapshot (Copilot #881)."""
+        from katana_mcp.tools.prefab_ui import _po_modify_row_rows
+
+        header_actions = [
+            {
+                "operation": "update_header",
+                "target_id": 9001,
+                "succeeded": None,
+                "changes": [{"field": "status", "old": "X", "new": "Y"}],
+            },
+            {
+                "operation": "add_additional_cost",
+                "target_id": None,
+                "succeeded": None,
+                "changes": [],
+            },
+        ]
+        rows, summary = _po_modify_row_rows(
+            dict(self._PO_PRIOR), header_actions, extras={}
+        )
+        assert rows == []
+        assert summary == ""
+        # A row op does produce rows.
+        rows2, summary2 = _po_modify_row_rows(
+            dict(self._PO_PRIOR),
+            [self._add_row(variant_id=403, qty=1.0, price=1.0)],
+            extras={"resolved_variants": dict(self._RESOLVED)},
+        )
+        assert len(rows2) == 3 and summary2 == "+1 added"
+
+    def test_header_only_modify_does_not_seed_row_state(self):
+        """Header-only modify: no row change → the (potentially large) PO row
+        snapshot is NOT copied into UI state (Copilot #881)."""
+        actions = [
+            {
+                "operation": "update_header",
+                "target_id": 9001,
+                "succeeded": None,
+                "changes": [
+                    {"field": "status", "old": "NOT_RECEIVED", "new": "RECEIVED"}
+                ],
+            }
+        ]
+        app = build_po_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        assert app.state is not None
+        assert "po_row_rows" not in app.state
+
+    def test_not_run_tail_surfaces_in_row_table(self):
+        applied_actions = [
+            self._add_row(
+                variant_id=403,
+                qty=1.0,
+                price=1.0,
+                succeeded=False,
+                status_label="FAILED",
+                error="variant archived",
+            )
+        ]
+        not_run = [
+            self._update_row(
+                target_id=7001, old_qty=10.0, new_qty=15.0, status_label="NOT RUN"
+            )
+        ]
+        app = build_po_modify_ui(
+            self._applied(
+                applied_actions,
+                extras={
+                    "resolved_variants": dict(self._RESOLVED),
+                    "not_run_actions": not_run,
+                },
+            ),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        assert app.state is not None
+        rows = app.state.get("po_row_rows")
+        assert isinstance(rows, list)
+        statuses = {r["id"]: r["status_label"] for r in rows}
+        # Added row FAILED; the not-run update of 7001 shows NOT RUN.
+        assert statuses.get(7001) == "NOT RUN"
+        assert any(r["status_label"] == "FAILED" for r in rows)
+
+
 class TestBuildSOModifyUI:
     """``build_so_modify_ui`` handles preview/applied/partial-failure for
     every SO write tool (``modify_sales_order``, ``delete_sales_order``,

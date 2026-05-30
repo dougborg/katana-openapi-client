@@ -3912,6 +3912,61 @@ async def test_modify_po_preview_emits_planned_actions(patch_fetch_po):
 
 
 @pytest.mark.asyncio
+async def test_modify_po_header_only_skips_variant_resolution(patch_fetch_po):
+    """Header-only / additional-cost-only modifies skip ``_resolve_po_row_variants``
+    — the card never renders the row table, so resolving every existing-row
+    variant would be wasted work + a large extras payload (Copilot #881)."""
+    context, _ = create_mock_context()
+    existing = create_mock_po(order_id=42, order_no="PO-1", rows=[])
+
+    with (
+        patch_fetch_po(existing),
+        patch(
+            "katana_mcp.tools.foundation.purchase_orders._resolve_po_row_variants",
+            new=AsyncMock(return_value={}),
+        ) as mock_resolve,
+    ):
+        request = ModifyPurchaseOrderRequest(
+            id=42,
+            update_header=POHeaderPatch(
+                expected_arrival_date=datetime(2026, 2, 15, tzinfo=UTC)
+            ),
+            preview=True,
+        )
+        response = await _modify_purchase_order_impl(request, context)
+
+    mock_resolve.assert_not_awaited()
+    assert response.extras.get("resolved_variants") == {}
+
+
+@pytest.mark.asyncio
+async def test_modify_po_with_row_crud_resolves_variants(patch_fetch_po):
+    """A plan with row CRUD DOES resolve variants so the row table renders
+    user-facing identities (Copilot #881)."""
+    context, _ = create_mock_context()
+    existing = create_mock_po(order_id=42, order_no="PO-1", rows=[])
+
+    with (
+        patch_fetch_po(existing),
+        patch(
+            "katana_mcp.tools.foundation.purchase_orders._resolve_po_row_variants",
+            new=AsyncMock(return_value={100: {"sku": "X", "display_name": "Y"}}),
+        ) as mock_resolve,
+    ):
+        request = ModifyPurchaseOrderRequest(
+            id=42,
+            add_rows=[PORowAdd(variant_id=100, quantity=10, price_per_unit=5.0)],
+            preview=True,
+        )
+        response = await _modify_purchase_order_impl(request, context)
+
+    mock_resolve.assert_awaited_once()
+    assert response.extras.get("resolved_variants") == {
+        100: {"sku": "X", "display_name": "Y"}
+    }
+
+
+@pytest.mark.asyncio
 async def test_modify_po_confirm_executes_plan_in_canonical_order(patch_fetch_po):
     """Header → row adds → row updates → row deletes → cost adds/updates/deletes."""
     context, _ = create_mock_context()
