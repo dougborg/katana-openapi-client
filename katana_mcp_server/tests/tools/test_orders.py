@@ -712,6 +712,11 @@ async def test_fulfill_sales_order_preview_blocks_serial_tracked_without_overrid
     assert len(block_warnings) == 1
     assert "serial-tracked" in block_warnings[0]
     assert "WIDGET-V2" in block_warnings[0]
+    # The message must warn about the MO-linked transfer dead-end (Bug 7):
+    # following "pass serial_numbers" blindly hits a 422 when the serial was
+    # minted on the linked MO, so the guidance names the UI fallback.
+    assert "already been assigned" in block_warnings[0]
+    assert "Deliver all" in block_warnings[0]
     assert "Resolve the issue" in result.next_actions[0]
 
 

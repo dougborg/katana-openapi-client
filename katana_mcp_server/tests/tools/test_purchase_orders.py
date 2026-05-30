@@ -1603,6 +1603,10 @@ async def test_receive_purchase_order_confirm_success():
     assert result.is_preview is False
     assert "Successfully received" in result.message
     assert "Inventory has been updated" in result.next_actions
+    # Landed-cost discoverability: the success path points operators at the
+    # MCP-native apportionment route (modify_purchase_order add_additional_costs)
+    # instead of leaving it as an undiscovered UI-only step.
+    assert any("add_additional_costs" in a for a in result.next_actions)
 
     # Verify API was called with correct data
     cast(Any, api_receive_purchase_order.asyncio_detailed).assert_called_once()
