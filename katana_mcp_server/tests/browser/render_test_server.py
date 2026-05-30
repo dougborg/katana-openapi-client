@@ -35,6 +35,7 @@ from katana_mcp.tools.prefab_ui import (
     build_item_modify_ui,
     build_modification_preview_ui,
     build_modification_result_ui,
+    build_po_modify_ui,
     build_product_bom_ui,
     build_search_results_ui,
     build_so_create_ui,
@@ -1060,6 +1061,99 @@ def _item_modify_response(*, is_preview: bool, succeeded: bool | None) -> dict:
     }
 
 
+def _po_modify_rows_response(*, is_preview: bool, succeeded: bool | None) -> dict:
+    """Build a canned PO modify response with line-item row CRUD.
+
+    Mirrors the production shape for the PO row-table content-drop fix (#722
+    follow-up): a header change + (1 add + 1 update + 1 delete) on the line
+    items, with the raw ``purchase_order_rows`` snapshot as ``prior_state`` and
+    the resolved-variant map in ``extras`` so the row table renders SKU + name.
+    """
+    actions = [
+        ActionResult(
+            index=1,
+            operation="update_header",
+            target_id=9001,
+            changes=[FieldChange(field="status", old="NOT_RECEIVED", new="RECEIVED")],
+            succeeded=succeeded,
+            verified=True if succeeded else None,
+        ).model_dump(),
+        ActionResult(
+            index=2,
+            operation="add_row",
+            target_id=None,
+            changes=[
+                FieldChange(field="variant_id", old=None, new=403, is_added=True),
+                FieldChange(field="quantity", old=None, new=20.0, is_added=True),
+                FieldChange(field="price_per_unit", old=None, new=2.5, is_added=True),
+            ],
+            succeeded=succeeded,
+        ).model_dump(),
+        ActionResult(
+            index=3,
+            operation="update_row",
+            target_id=7001,
+            changes=[FieldChange(field="quantity", old=10.0, new=15.0)],
+            succeeded=succeeded,
+            verified=True if succeeded else None,
+        ).model_dump(),
+        ActionResult(
+            index=4,
+            operation="delete_row",
+            target_id=7002,
+            changes=[],
+            succeeded=succeeded,
+        ).model_dump(),
+    ]
+    return {
+        "entity_type": "purchase_order",
+        "entity_id": 9001,
+        "is_preview": is_preview,
+        "operation": "",
+        "changes": [],
+        "actions": actions,
+        "prior_state": {
+            "id": 9001,
+            "order_no": "PO-2026-001",
+            "supplier_id": 100,
+            "supplier": {"id": 100, "name": "Acme Supply Co"},
+            "location_id": 1,
+            "status": "NOT_RECEIVED",
+            "entity_type": "regular",
+            "total": 1250.0,
+            "currency": "USD",
+            "additional_info": "Net-30",
+            "purchase_order_rows": [
+                {
+                    "id": 7001,
+                    "variant_id": 401,
+                    "quantity": 10.0,
+                    "price_per_unit": 25.0,
+                },
+                {
+                    "id": 7002,
+                    "variant_id": 402,
+                    "quantity": 5.0,
+                    "price_per_unit": 40.0,
+                },
+            ],
+        },
+        "extras": {
+            "resolved_variants": {
+                401: {"sku": "BOLT-M5", "display_name": "M5 bolt"},
+                402: {"sku": "NUT-M5", "display_name": "M5 nut"},
+                403: {"sku": "WASHER-M5", "display_name": "M5 washer"},
+            }
+        },
+        "warnings": [],
+        "next_actions": [],
+        "katana_url": "https://factory.katanamrp.com/purchaseorder/9001",
+        "message": (
+            "Preview: 4 action(s) planned" if is_preview else "Applied 4 action(s)"
+        ),
+    }
+
+
 def _so_failed_delete_response(*, is_preview: bool = False) -> dict:
     """Build a canned SO delete response where the apply fails.
 
@@ -1778,6 +1872,19 @@ SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
         _item_modify_response(is_preview=False, succeeded=True),
         confirm_request=_StubRequest(),
         confirm_tool="modify_item",
+    ),
+    # #722 follow-up — PO modify card line-item diff table: a header change +
+    # (1 add + 1 update + 1 delete) on the rows. Pins the content-drop fix —
+    # row CRUD now renders with resolved SKU/name + per-row status — end to end.
+    "po_modify_rows_preview": lambda: build_po_modify_ui(
+        _po_modify_rows_response(is_preview=True, succeeded=None),
+        confirm_request=_StubRequest(),
+        confirm_tool="modify_purchase_order",
+    ),
+    "po_modify_rows_applied": lambda: build_po_modify_ui(
+        _po_modify_rows_response(is_preview=False, succeeded=True),
+        confirm_request=_StubRequest(),
+        confirm_tool="modify_purchase_order",
     ),
     # #811 — BOM modify card with adds + updates + deletes against a
     # realistic 5-row existing recipe. Pins the row-content + status-pill
