@@ -161,6 +161,39 @@ class TestModificationCardRender:
         # 3 variant actions (add + update + delete) → 3 APPLIED status cells.
         assert frame.locator("td").filter(has_text="APPLIED").count() >= 3
 
+    def test_po_modify_rows_preview_renders_line_item_table(self, render_scenario):
+        """#722 follow-up — PO modify card line-item table renders the row CRUD
+        that was previously dropped: added row's resolved SKU/name, updated
+        row's qty diff arrow, deleted row's preserved identity, summary line.
+        """
+        frame = render_scenario("po_modify_rows_preview")
+        # Header diff still present.
+        assert frame.locator("text=RECEIVED").count() >= 1
+        # Line-item section + table.
+        assert frame.locator("text=Line items:").count() >= 1
+        assert frame.locator("table").count() >= 1
+        # Added row's resolved SKU/name (the content-drop fix — no bare id).
+        assert frame.locator("td").filter(has_text="WASHER-M5").count() >= 1
+        assert frame.locator("td").filter(has_text="M5 washer").count() >= 1
+        # Updated row's qty diff arrow + deleted row identity.
+        assert frame.locator("td").filter(has_text="10 → 15").count() >= 1
+        assert frame.locator("td").filter(has_text="NUT-M5").count() >= 1
+        # Summary line.
+        assert frame.locator("text=+1 added").count() >= 1
+        assert frame.locator("text=~1 updated").count() >= 1
+        assert frame.locator("text=-1 deleted").count() >= 1
+        # Anti-pattern guard: no internal ActionResult labels leak.
+        assert frame.locator("td").filter(has_text="Add Row").count() == 0
+
+    def test_po_modify_rows_applied_renders_per_row_status(self, render_scenario):
+        """#722 follow-up — applied PO modify: the row actions (add + update +
+        delete) show APPLIED in the line-item table's Status column.
+        """
+        frame = render_scenario("po_modify_rows_applied")
+        assert frame.locator("table").count() >= 1
+        # 3 row actions → 3 APPLIED status cells.
+        assert frame.locator("td").filter(has_text="APPLIED").count() >= 3
+
     def test_so_modify_partial_failure_applied_renders(self, render_scenario):
         """#723 SO modify card — partial-failure applied state renders the
         card-level PARTIAL FAILURE badge, the per-action APPLIED / FAILED

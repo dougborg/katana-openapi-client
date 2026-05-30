@@ -122,6 +122,10 @@ from katana_mcp.tools.foundation.item_variant_table import (
     merge_variant_rows_for_modify_card,
     prepare_variant_table_rows,
 )
+from katana_mcp.tools.foundation.po_row_table import (
+    merge_po_row_rows_for_modify_card,
+    prepare_po_row_table_rows,
+)
 from katana_mcp.tools.tool_result_utils import BLOCK_WARNING_PREFIX
 from katana_mcp.web_urls import EntityKind, katana_web_url
 
@@ -4358,6 +4362,107 @@ def _render_apply_outcome_badge(*, css_class: str = "min-w-32 text-center") -> N
         Badge(label="PREVIEW", variant="secondary", css_class=css_class)
 
 
+def _coerce_resolved_id_map(value: Any) -> dict[int, dict[str, str | None]]:
+    """Coerce a wire ``{variant_id: {sku, display_name}}`` map back to int keys.
+
+    ``model_dump`` round-trips a ``dict[int, ...]`` with string keys on the
+    wire; coerce them back so the row-table merge's ``int`` variant-id lookups
+    hit. Non-int keys / non-dict values are skipped. Shared shape with the BOM
+    card's ``resolved_ingredients`` coercion.
+    """
+    out: dict[int, dict[str, str | None]] = {}
+    if not isinstance(value, dict):
+        # Missing / malformed extras (None, list, …) → no resolved names; the
+        # table still renders with the ``variant <id>`` fallback.
+        return out
+    for key, val in value.items():
+        try:
+            int_key = int(key)
+        except (TypeError, ValueError):
+            continue
+        if isinstance(val, dict):
+            out[int_key] = {
+                "sku": val.get("sku"),
+                "display_name": val.get("display_name"),
+            }
+    return out
+
+
+def _po_applied_state_labels(
+    verb_label: str, *, is_preview: bool, actions: list[dict[str, Any]]
+) -> tuple[str, str, str, str]:
+    """Compute ``(title_suffix, state_label, state_variant, verb)`` for the PO
+    modify card's applied-state chrome.
+
+    Delete reads "Deleted" / "deleted"; modify / correct read "Applied" /
+    "applied". On the standalone-applied path (``is_preview=False``) the actual
+    outcome overrides — a fully-failed apply reads "Failed" / FAILED /
+    destructive, a partial reads "Partially Applied" / PARTIAL FAILURE /
+    destructive — so the title + badge + footer verb never contradict the
+    outcome. The in-place-morph path keeps the optimistic defaults (#760).
+    """
+    if verb_label == "Delete":
+        title_suffix, state_label, verb = "Deleted", "DELETED", "deleted"
+    else:
+        title_suffix, state_label, verb = "Applied", "APPLIED", "applied"
+    variant = "default"
+    if not is_preview:
+        outcome_label, outcome_variant = _summarize_apply_outcome(actions)
+        if outcome_label != "APPLIED":
+            state_label, variant = outcome_label, outcome_variant
+            if outcome_label == "FAILED":
+                title_suffix, verb = "Failed", "failed"
+            else:  # PARTIAL FAILURE
+                title_suffix, verb = "Partially Applied", "partially applied"
+    return title_suffix, state_label, variant, verb
+
+
+_PO_ROW_OP_NAMES = frozenset({"add_row", "update_row", "delete_row"})
+
+
+def _po_modify_row_rows(
+    prior_state: dict[str, Any] | None,
+    actions: list[dict[str, Any]],
+    *,
+    extras: dict[str, Any],
+) -> tuple[list[dict[str, Any]], str]:
+    """Build the PO line-item diff rows + summary, short-circuiting when the
+    plan has no row CRUD.
+
+    A header-only / additional-cost-only modify never touches the rows, so we
+    skip the merge entirely (no projection over a large PO's row snapshot) and
+    return ``([], "")`` — the card then renders just the header diffs. Resolved
+    SKU / name come from ``extras["resolved_variants"]`` (the impl's batched
+    cache lookup); JSON re-stringifies the int keys, which
+    :func:`_coerce_resolved_id_map` coerces back.
+    """
+    if not any(
+        str(a.get("operation") or "").lower() in _PO_ROW_OP_NAMES for a in actions
+    ):
+        return [], ""
+    resolved_variants = _coerce_resolved_id_map(extras.get("resolved_variants"))
+    rows = prepare_po_row_table_rows(
+        merge_po_row_rows_for_modify_card(prior_state, actions, resolved_variants)
+    )
+    return rows, collection_diff_summary(rows)
+
+
+# DataTable columns for the PO modify card's line-item diff table. SKU carries
+# the kind gutter (``+ ``/``- ``/``~ ``/``  ``); Status renders plain text
+# (PLANNED / APPLIED / FAILED / NOT RUN). Mirrors the BOM / item variant tables.
+_PO_MODIFY_ROW_COLUMNS: list[DataTableColumn] = [
+    DataTableColumn(key="sku_label", header="SKU"),
+    DataTableColumn(key="display_name", header="Item"),
+    DataTableColumn(key="quantity_label", header="Qty", align="right", width="9rem"),
+    DataTableColumn(
+        key="price_label", header="Unit Price", align="right", width="11rem"
+    ),
+    DataTableColumn(key="status_label", header="Status", width="7rem"),
+]
+_PO_MODIFY_ROW_KEY = "po_row_rows"
+_PO_MODIFY_ROW_REF = f"{{{{ {_PO_MODIFY_ROW_KEY} }}}}"
+
+
 def build_po_modify_ui(
     response: dict[str, Any],
     *,
@@ -4387,15 +4492,19 @@ def build_po_modify_ui(
     response payload (rare — `ModificationResponse` keeps the full
     pre-change snapshot for revert reference and for renderer use).
     """
-    actions = response.get("actions") or []
     is_preview = bool(response.get("is_preview", True))
+    # Apply path: extend with the unattempted plan tail (synthesized NOT-RUN
+    # actions in ``extras``) so a fail-fast partial doesn't drop the not-run
+    # row actions from the morphed line-item table. Inert on preview.
+    actions = _actions_with_not_run_tail(response, is_preview=is_preview)
     entity_id = response.get("entity_id")
     # ``prior_state`` arrives in the wire shape from ``serialize_for_prior_state``
     # (``RegularPurchaseOrder.to_dict()`` etc.) — ``order_no``, ``total``,
-    # ``additional_info``, nested ``supplier``. Normalize to the response
-    # shape the entity-view renderer reads so unchanged-field rows
-    # surface real values in the rendered card.
-    prior_state = _normalize_po_prior_state(response.get("prior_state"))
+    # ``additional_info``, nested ``supplier``, ``purchase_order_rows``.
+    # Normalize to the response shape the entity-view renderer reads so
+    # unchanged-field rows surface real values in the rendered card.
+    raw_prior_state = response.get("prior_state")
+    prior_state = _normalize_po_prior_state(raw_prior_state)
     # Note: katana_url is read from RESULT via the Prefab template
     # ``{{ result.katana_url }}`` in _render_preview_footer's
     # applied-state View-in-Katana button — no need to pass it through
@@ -4432,9 +4541,38 @@ def build_po_modify_ui(
     # Prefab Rx-bound rendering of every field-level decision from
     # ``state.result.actions`` or a rebuild-on-morph primitive. Tracked
     # at #760 — see issue for design options.
-    changes_by_field = _index_changes_by_field(actions)
+    # Scope header field diffs to ``update_header`` so row / additional-cost
+    # changes (which share field names like ``currency``) don't leak into the
+    # header entity-view lines — they belong in the line-item table below.
+    changes_by_field = _index_changes_by_field(
+        actions, include_operations=frozenset({"update_header"})
+    )
 
-    apply_action = _build_apply_action(confirm_tool, confirm_request)
+    # PO line-item diff table — the content-drop fix (#722 follow-up): the card
+    # previously rendered header scalar diffs only and silently dropped every
+    # row CRUD action. ``_po_modify_row_rows`` short-circuits to ``([], "")``
+    # for header-only / additional-cost-only plans (no merge over a large PO's
+    # rows). When the table renders, we seed ``state.po_row_rows`` + wire the
+    # apply-morph SetState; otherwise neither, avoiding copying the row
+    # snapshot into UI state for no benefit.
+    po_row_rows, po_row_summary = _po_modify_row_rows(
+        raw_prior_state, actions, extras=response.get("extras") or {}
+    )
+    show_row_table = bool(po_row_summary)
+
+    apply_action = _build_apply_action(
+        confirm_tool,
+        confirm_request,
+        # Morph the line-item table in place on apply — the apply rebuild seeds
+        # ``state.po_row_rows`` with the merged-with-outcomes rows; this copies
+        # them off the apply tool's envelope (``$result.state.<key>``). Only
+        # wired when the table is rendered.
+        extra_on_success=(
+            [SetState(_PO_MODIFY_ROW_KEY, "{{ $result.state.po_row_rows }}")]
+            if show_row_table
+            else None
+        ),
+    )
     # ``_build_cancel_action`` interpolates its arg into "Cancel: do not
     # apply X.", so the noun phrase has to read naturally there. Verb
     # forms like ``"that purchase order modify"`` (the previous shape)
@@ -4454,46 +4592,20 @@ def build_po_modify_ui(
     # the rendered state-badge in Tier 1 is the create-card-style
     # PREVIEW → APPLIED (or DELETED / FAILED / PARTIAL FAILURE) switch.
 
+    state = _init_modify_card_state(response)
+    if show_row_table:
+        state[_PO_MODIFY_ROW_KEY] = po_row_rows
+
     with (
-        PrefabApp(state=_init_modify_card_state(response), css_class="p-4") as app,
+        PrefabApp(state=state, css_class="p-4") as app,
         Card(),
     ):
-        # Delete: applied-state copy reads "Deleted" / "deleted"; modify
-        # and correct read "Applied" / "applied". The verb_label drives
-        # the title-suffix mapping so e.g. ``"Purchase Order Modify"``
-        # title in preview becomes ``"Purchase Order Applied"`` in the
-        # rendered applied state — not the misleading "Created" the
-        # shared helpers default to.
-        if verb_label == "Delete":
-            applied_title_suffix = "Deleted"
-            applied_state_label = "DELETED"
-            applied_verb = "deleted"
-        else:
-            applied_title_suffix = "Applied"
-            applied_state_label = "APPLIED"
-            applied_verb = "applied"
-        applied_state_variant = "default"
-
-        # On the standalone-applied path (is_preview=False), let the
-        # actual outcome drive both the state label AND the badge
-        # variant — so a fully-failed apply reads "FAILED" with the
-        # destructive (red) variant, not "APPLIED" with the success
-        # (green) variant. Partial failures also surface in the
-        # destructive variant. The title suffix and footer verb track
-        # the outcome too — a failed delete reads "Purchase Order
-        # Failed" / "failed.", NOT "Purchase Order Deleted" / "deleted."
-        # which would contradict the FAILED badge.
-        if not is_preview:
-            outcome_label, outcome_variant = _summarize_apply_outcome(actions)
-            if outcome_label != "APPLIED":
-                applied_state_label = outcome_label
-                applied_state_variant = outcome_variant
-                if outcome_label == "FAILED":
-                    applied_title_suffix = "Failed"
-                    applied_verb = "failed"
-                else:  # PARTIAL FAILURE
-                    applied_title_suffix = "Partially Applied"
-                    applied_verb = "partially applied"
+        (
+            applied_title_suffix,
+            applied_state_label,
+            applied_state_variant,
+            applied_verb,
+        ) = _po_applied_state_labels(verb_label, is_preview=is_preview, actions=actions)
 
         _render_preview_header(
             title_prefix=f"{verb_label} Purchase Order",
@@ -4508,6 +4620,24 @@ def build_po_modify_ui(
             if response.get("message"):
                 Muted(content=response["message"])
             block_warnings = _render_po_entity_view(entity, changes=changes_by_field)
+            # Line-item diff table — rendered only when the plan actually
+            # changes a row (``po_row_summary`` is non-empty). A header-only /
+            # additional-cost-only modify leaves the existing rows untouched,
+            # so listing them here would be noise; the header diffs above
+            # carry the change. The full merged list (existing + changed)
+            # seeds ``state.po_row_rows`` so when the table shows, unchanged
+            # rows provide context alongside the diffs (BOM-style), and the
+            # per-row Status morphs in place on apply.
+            if show_row_table:
+                Separator()
+                Muted(content="Line items:")
+                Text(content=po_row_summary)
+                DataTable(
+                    columns=_PO_MODIFY_ROW_COLUMNS,
+                    rows=_PO_MODIFY_ROW_REF,
+                    paginated=True,
+                    pageSize=20,
+                )
         # Confirm label scales with the number of planned actions —
         # ``Confirm 4 changes`` is more informative than the generic
         # form. Delete cards say "Delete" not "Confirm" to mirror the
