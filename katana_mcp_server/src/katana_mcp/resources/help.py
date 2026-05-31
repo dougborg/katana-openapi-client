@@ -1085,7 +1085,9 @@ Create a purchase order with preview/apply pattern.
   purchase_uom_conversion_rate, arrival_date)
 - `notes` (optional): Internal notes (additional_info on the wire)
 - `currency` (optional): Currency code (e.g., USD, EUR)
-- `status` (optional): "DRAFT" or "NOT_RECEIVED" (default NOT_RECEIVED)
+- `status` (optional): "DRAFT" (default) or "NOT_RECEIVED". DRAFT is an unsent
+  draft to review before committing the order; NOT_RECEIVED is an already-placed
+  order awaiting receipt. Move between them later with `modify_purchase_order`.
 - `entity_type` (optional): "regular" (default) or "outsourced". Outsourced
   orders track subcontractor manufacturing. **When `entity_type="outsourced"`,
   `tracking_location_id` is required** — Katana will reject the create call
