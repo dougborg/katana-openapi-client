@@ -194,6 +194,35 @@ class TestModificationCardRender:
         # 3 row actions → 3 APPLIED status cells.
         assert frame.locator("td").filter(has_text="APPLIED").count() >= 3
 
+    def test_mo_modify_preview_renders_three_collection_tables(self, render_scenario):
+        """#721 Phase 4 — MO modify card renders all three collection diff
+        tables (recipe / operation / production) + the header diff, with
+        resolved recipe SKU + operation status diff, in a real browser.
+        """
+        frame = render_scenario("mo_modify_preview")
+        # Header scalar diff.
+        assert frame.locator("text=10 → 20").count() >= 1
+        # Three collection sections.
+        assert frame.locator("text=Recipe (ingredients):").count() >= 1
+        assert frame.locator("text=Operations:").count() >= 1
+        assert frame.locator("text=Productions:").count() >= 1
+        # Recipe add resolved SKU (no bare id) + operation status diff.
+        assert frame.locator("td").filter(has_text="WASHER").count() >= 1
+        assert (
+            frame.locator("td").filter(has_text="NOT_STARTED → COMPLETED").count() >= 1
+        )
+        # Three diff tables rendered.
+        assert frame.locator("table").count() >= 3
+
+    def test_mo_modify_applied_renders_per_row_status(self, render_scenario):
+        """#721 Phase 4 — applied MO modify: collection row actions show APPLIED
+        in their Status columns across the three tables.
+        """
+        frame = render_scenario("mo_modify_applied")
+        assert frame.locator("table").count() >= 3
+        # recipe add + operation update + production add → ≥3 APPLIED cells.
+        assert frame.locator("td").filter(has_text="APPLIED").count() >= 3
+
     def test_so_modify_partial_failure_applied_renders(self, render_scenario):
         """#723 SO modify card — partial-failure applied state renders the
         card-level PARTIAL FAILURE badge, the per-action APPLIED / FAILED

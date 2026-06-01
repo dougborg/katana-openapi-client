@@ -2724,6 +2724,73 @@ async def test_modify_mo_preview_emits_planned_actions():
 
 
 @pytest.mark.asyncio
+async def test_modify_mo_header_only_skips_collection_fetches():
+    """A header-only modify must not fetch the recipe / operation / production
+    collections for the card (the card renders no collection tables) — gated
+    per-collection on that collection having CRUD (#721 Phase 4)."""
+    context, _ = create_mock_context()
+    existing = _mock_mo(mo_id=42, order_no="MO-1")
+    mod = "katana_mcp.tools.foundation.manufacturing_orders"
+
+    with (
+        patch(
+            f"{mod}._fetch_manufacturing_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(f"{mod}._fetch_mo_recipe_rows", new_callable=AsyncMock) as recipe,
+        patch(f"{mod}._fetch_mo_operation_rows", new_callable=AsyncMock) as operation,
+        patch(f"{mod}._fetch_mo_productions", new_callable=AsyncMock) as production,
+    ):
+        await _modify_manufacturing_order_impl(
+            ModifyManufacturingOrderRequest(
+                id=42, update_header=MOHeaderPatch(status="IN_PROGRESS"), preview=True
+            ),
+            context,
+        )
+
+    recipe.assert_not_awaited()
+    operation.assert_not_awaited()
+    production.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_modify_mo_recipe_crud_fetches_only_recipe_collection():
+    """A recipe-only modify fetches the recipe collection (for the card's
+    recipe table) but not operations / productions (#721 Phase 4)."""
+    context, _ = create_mock_context()
+    existing = _mock_mo(mo_id=42, order_no="MO-1")
+    mod = "katana_mcp.tools.foundation.manufacturing_orders"
+
+    with (
+        patch(
+            f"{mod}._fetch_manufacturing_order_attrs",
+            new_callable=AsyncMock,
+            return_value=existing,
+        ),
+        patch(
+            f"{mod}._fetch_mo_recipe_rows", new_callable=AsyncMock, return_value=[]
+        ) as recipe,
+        patch(f"{mod}._fetch_mo_operation_rows", new_callable=AsyncMock) as operation,
+        patch(f"{mod}._fetch_mo_productions", new_callable=AsyncMock) as production,
+    ):
+        await _modify_manufacturing_order_impl(
+            ModifyManufacturingOrderRequest(
+                id=42,
+                add_recipe_rows=[
+                    MORecipeRowAdd(variant_id=100, planned_quantity_per_unit=2.0)
+                ],
+                preview=True,
+            ),
+            context,
+        )
+
+    recipe.assert_awaited_once()
+    operation.assert_not_awaited()
+    production.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_modify_mo_confirm_executes_in_canonical_order():
     """Header → recipe adds → recipe updates → ..."""
     context, _ = create_mock_context()
