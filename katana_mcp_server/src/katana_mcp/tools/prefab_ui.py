@@ -122,6 +122,14 @@ from katana_mcp.tools.foundation.item_variant_table import (
     merge_variant_rows_for_modify_card,
     prepare_variant_table_rows,
 )
+from katana_mcp.tools.foundation.mo_tables import (
+    merge_operation_rows_for_modify_card,
+    merge_productions_for_modify_card,
+    merge_recipe_rows_for_modify_card,
+    prepare_operation_table_rows,
+    prepare_production_table_rows,
+    prepare_recipe_table_rows,
+)
 from katana_mcp.tools.foundation.po_row_table import (
     merge_po_row_rows_for_modify_card,
     prepare_po_row_table_rows,
@@ -4388,11 +4396,21 @@ def _coerce_resolved_id_map(value: Any) -> dict[int, dict[str, str | None]]:
     return out
 
 
-def _po_applied_state_labels(
+def _modify_confirm_label(verb_label: str, n_actions: int) -> str:
+    """Confirm-button label for a modify card — ``Confirm Delete`` for deletes,
+    else scaled with the action count (``Confirm 4 changes`` / ``Confirm
+    Changes``). Shared by the PO + MO modify cards.
+    """
+    if verb_label == "Delete":
+        return "Confirm Delete"
+    return f"Confirm {n_actions} changes" if n_actions > 1 else "Confirm Changes"
+
+
+def _modify_applied_state_labels(
     verb_label: str, *, is_preview: bool, actions: list[dict[str, Any]]
 ) -> tuple[str, str, str, str]:
-    """Compute ``(title_suffix, state_label, state_variant, verb)`` for the PO
-    modify card's applied-state chrome.
+    """Compute ``(title_suffix, state_label, state_variant, verb)`` for a
+    modify card's applied-state chrome (shared by the PO + MO modify cards).
 
     Delete reads "Deleted" / "deleted"; modify / correct read "Applied" /
     "applied". On the standalone-applied path (``is_preview=False``) the actual
@@ -4605,7 +4623,9 @@ def build_po_modify_ui(
             applied_state_label,
             applied_state_variant,
             applied_verb,
-        ) = _po_applied_state_labels(verb_label, is_preview=is_preview, actions=actions)
+        ) = _modify_applied_state_labels(
+            verb_label, is_preview=is_preview, actions=actions
+        )
 
         _render_preview_header(
             title_prefix=f"{verb_label} Purchase Order",
@@ -7158,6 +7178,114 @@ def build_so_modify_ui(
     return app
 
 
+def _render_mo_identity_lines(
+    mo: dict[str, Any], changes: dict[str, FieldChangeView]
+) -> None:
+    """Render the MO Variant + Location identity lines (diff-aware).
+
+    Variants have no per-variant page in Katana web UI (their parent product /
+    material page owns the variant configuration), so the line stays plain
+    text; a SKU-less variant still drops a ``Variant ID: <id>`` fallback via
+    :func:`_render_party_line`. Location resolves to ``location_name``
+    impl-side (anti-pattern #7); the fallback shows ``Location ID: <id>`` only
+    on a cache miss. A swap on either renders the composite before→after party
+    diff. Extracted from :func:`_render_mo_entity_view` to keep it under the
+    branch limit.
+    """
+    variant_change = changes.get("variant_id")
+    if variant_change is not None and variant_change.kind != "unchanged":
+        _render_party_diff_line(
+            "Variant",
+            id_change=variant_change,
+            name_change=changes.get("variant_name"),
+            prior_name=mo.get("sku"),
+        )
+    elif mo.get("sku"):
+        Text(content=f"Variant: {mo['sku']}")
+    else:
+        _render_party_line("Variant", name=None, entity_id=mo.get("variant_id"))
+
+    location_change = changes.get("location_id")
+    if location_change is not None and location_change.kind != "unchanged":
+        _render_party_diff_line(
+            "Location",
+            id_change=location_change,
+            name_change=changes.get("location_name"),
+            prior_name=mo.get("location_name"),
+        )
+    else:
+        _render_party_line(
+            "Location",
+            name=mo.get("location_name"),
+            entity_id=mo.get("location_id"),
+        )
+
+
+def _render_mo_entity_view(
+    mo: dict[str, Any],
+    *,
+    changes: dict[str, FieldChangeView] | None = None,
+) -> list[str]:
+    """Render the MO entity view (Tier 2 metrics + Tier 3 reference fields +
+    warnings), returning the block-warning list for the caller to gate on.
+
+    Shared between ``build_mo_create_ui`` (no diff overlay) and
+    ``build_mo_modify_ui`` (``changes`` overlay, #721 Phase 4). When ``changes``
+    is empty every line falls through to its plain form — byte-identical to the
+    create card. Changing scalar header fields (planned_quantity / deadline /
+    status / order_no / variant / location / notes) render their before→after
+    diff instead; ``planned_quantity`` / ``Deadline`` drop their Metric when
+    changing (the diff line carries the value) and stay Metrics otherwise.
+
+    Must be called inside ``with CardContent(), Column(gap=3):``.
+    """
+    changes = changes or {}
+    planned_change = changes.get("planned_quantity")
+    deadline_change = changes.get("production_deadline_date")
+    planned_changing = planned_change is not None and planned_change.kind != "unchanged"
+    deadline_changing = (
+        deadline_change is not None and deadline_change.kind != "unchanged"
+    )
+
+    # Tier 2 — Metrics row, for the metric fields that AREN'T changing (a
+    # changing one renders as a before→after diff line below so old→new shows).
+    metric_items: list[tuple[str, str]] = []
+    if not planned_changing and mo.get("planned_quantity") is not None:
+        metric_items.append(("Planned Qty", str(mo["planned_quantity"])))
+    if not deadline_changing and mo.get("production_deadline_date"):
+        metric_items.append(
+            ("Deadline", _iso_date_only(mo["production_deadline_date"]))
+        )
+    if metric_items:
+        with Row(gap=4):
+            for label, value in metric_items:
+                Metric(label=label, value=value)
+
+    # Changing scalar header diffs.
+    if planned_changing:
+        _render_field_diff_line("Planned Qty", change=planned_change)
+    if deadline_changing:
+        _render_field_diff_line("Deadline", change=deadline_change)
+    status_change = changes.get("status")
+    if status_change is not None and status_change.kind != "unchanged":
+        _render_field_diff_line("Status", change=status_change)
+    order_no_change = changes.get("order_no")
+    if order_no_change is not None and order_no_change.kind != "unchanged":
+        _render_field_diff_line("Order No", change=order_no_change)
+
+    _render_mo_identity_lines(mo, changes)
+
+    if mo.get("order_created_date"):
+        Text(content=f"Created: {_iso_date_only(mo['order_created_date'])}")
+    notes_change = changes.get("additional_info")
+    if notes_change is not None and notes_change.kind != "unchanged":
+        _render_field_diff_line("Notes", change=notes_change)
+    elif mo.get("additional_info"):
+        Text(content=f"Notes: {mo['additional_info']}")
+
+    return _render_warnings_block(mo.get("warnings"))
+
+
 def build_mo_create_ui(
     response: dict[str, Any],
     *,
@@ -7172,21 +7300,14 @@ def build_mo_create_ui(
     Four-tier content:
     - Tier 1: title, order_no badge, PREVIEW/CREATED, status (variant from
       ``status_badge_variant("manufacturing_order", status)``).
-    - Tier 2: Planned Qty, Deadline.
-    - Tier 3: variant (sku + id), location ID, created date, notes
-      (additional_info), warnings.
+    - Tier 2 + 3: :func:`_render_mo_entity_view` (Planned Qty / Deadline
+      metrics; variant / location / created / notes; warnings) — shared with
+      ``build_mo_modify_ui``.
     - Tier 4: Confirm/Cancel (preview) or View in Katana + Complete Order
       (applied).
     """
     order_number = response.get("order_no") or "N/A"
     status = response.get("status")
-    variant_id = response.get("variant_id")
-    sku = response.get("sku")
-    planned_quantity = response.get("planned_quantity")
-    location_id = response.get("location_id")
-    order_created_date = response.get("order_created_date")
-    production_deadline_date = response.get("production_deadline_date")
-    additional_info = response.get("additional_info")
 
     apply_action = _build_apply_action(confirm_tool, confirm_request)
     cancel_action = _build_cancel_action("that manufacturing order")
@@ -7202,48 +7323,7 @@ def build_mo_create_ui(
             status=status,
         )
         with CardContent(), Column(gap=3):
-            if planned_quantity is not None or production_deadline_date:
-                with Row(gap=4):
-                    if planned_quantity is not None:
-                        Metric(label="Planned Qty", value=str(planned_quantity))
-                    if production_deadline_date:
-                        Metric(
-                            label="Deadline",
-                            value=_iso_date_only(production_deadline_date),
-                        )
-            # Variant identity: render SKU as the user-facing name when
-            # resolved. Variants have no per-variant page in Katana web
-            # UI (their parent product/material pages own the variant
-            # configuration), so no ``entity_kind`` — the line stays as
-            # plain text. When SKU is missing we still drop a "Variant
-            # ID: <id>" fallback via ``_render_party_line`` so a
-            # SKU-less variant (NetSuite imports — see CLAUDE.md "Variants
-            # can have null SKUs") isn't invisible to the operator.
-            if sku:
-                Text(content=f"Variant: {sku}")
-            else:
-                _render_party_line(
-                    "Variant",
-                    name=None,
-                    entity_id=variant_id,
-                )
-            # Location resolves to ``location_name`` impl-side via
-            # ``resolve_entity_name(catalog, CachedLocation, ...)``;
-            # ``entity_kind`` is omitted because Katana web UI has no
-            # per-location page (the resolved name is the user-facing
-            # identifier). The helper's fallback shows ``"Location ID:
-            # <id>"`` only when the cache miss can't be filled, and the
-            # underlying response carries a warning explaining why.
-            _render_party_line(
-                "Location",
-                name=response.get("location_name"),
-                entity_id=location_id,
-            )
-            if order_created_date:
-                Text(content=f"Created: {_iso_date_only(order_created_date)}")
-            if additional_info:
-                Text(content=f"Notes: {additional_info}")
-            block_warnings = _render_warnings_block(response.get("warnings"))
+            block_warnings = _render_mo_entity_view(response)
         _render_preview_footer(
             title_prefix="Manufacturing Order",
             block_warnings=block_warnings,
@@ -7268,6 +7348,255 @@ def build_mo_create_ui(
                     ),
                 ),
             ),
+        )
+    return app
+
+
+# ============================================================================
+# MO modify / delete card (#721 Phase 4) — header entity-view + three
+# collection diff tables (recipe rows / operation rows / productions), each on
+# the shared collection-diff element (``mo_tables``). Replaces the generic
+# ActionResult table for modify_/delete_manufacturing_order.
+# ============================================================================
+
+_MO_RECIPE_COLUMNS: list[DataTableColumn] = [
+    DataTableColumn(key="sku_label", header="SKU"),
+    DataTableColumn(key="display_name", header="Ingredient"),
+    DataTableColumn(
+        key="quantity_label", header="Qty / unit", align="right", width="11rem"
+    ),
+    DataTableColumn(key="status_label", header="Status", width="7rem"),
+]
+_MO_OPERATION_COLUMNS: list[DataTableColumn] = [
+    DataTableColumn(key="operation_label_gutter", header="Operation"),
+    DataTableColumn(key="op_status_label", header="Op Status"),
+    DataTableColumn(key="status_label", header="Status", width="7rem"),
+]
+_MO_PRODUCTION_COLUMNS: list[DataTableColumn] = [
+    DataTableColumn(
+        key="quantity_label_gutter", header="Quantity", align="right", width="11rem"
+    ),
+    DataTableColumn(key="date_label", header="Date", width="12rem"),
+    DataTableColumn(key="status_label", header="Status", width="7rem"),
+]
+_MO_RECIPE_KEY = "mo_recipe_rows"
+_MO_OPERATION_KEY = "mo_operation_rows"
+_MO_PRODUCTION_KEY = "mo_production_rows"
+
+
+def _mo_recipe_rows(
+    prior_state: dict[str, Any] | None,
+    actions: list[dict[str, Any]],
+    extras: dict[str, Any],
+) -> tuple[list[dict[str, Any]], str]:
+    """Recipe-row diff rows + summary, short-circuiting when no recipe CRUD."""
+    if not any(
+        str(a.get("operation") or "").lower()
+        in ("add_recipe_row", "update_recipe_row", "delete_recipe_row")
+        for a in actions
+    ):
+        return [], ""
+    rows = prepare_recipe_table_rows(
+        merge_recipe_rows_for_modify_card(
+            prior_state,
+            actions,
+            _coerce_resolved_id_map(extras.get("resolved_variants")),
+        )
+    )
+    return rows, collection_diff_summary(rows)
+
+
+def _mo_operation_rows(
+    prior_state: dict[str, Any] | None, actions: list[dict[str, Any]]
+) -> tuple[list[dict[str, Any]], str]:
+    """Operation-row diff rows + summary, short-circuiting when no op CRUD."""
+    if not any(
+        str(a.get("operation") or "").lower()
+        in ("add_operation_row", "update_operation_row", "delete_operation_row")
+        for a in actions
+    ):
+        return [], ""
+    rows = prepare_operation_table_rows(
+        merge_operation_rows_for_modify_card(prior_state, actions)
+    )
+    return rows, collection_diff_summary(rows)
+
+
+def _mo_production_rows(
+    prior_state: dict[str, Any] | None, actions: list[dict[str, Any]]
+) -> tuple[list[dict[str, Any]], str]:
+    """Production diff rows + summary, short-circuiting when no production CRUD."""
+    if not any(
+        str(a.get("operation") or "").lower()
+        in ("add_production", "update_production", "delete_production")
+        for a in actions
+    ):
+        return [], ""
+    rows = prepare_production_table_rows(
+        merge_productions_for_modify_card(prior_state, actions)
+    )
+    return rows, collection_diff_summary(rows)
+
+
+def _render_mo_collection_table(
+    *, summary: str, label: str, columns: list[DataTableColumn], state_key: str
+) -> None:
+    """Render one MO collection diff table (summary line + state-bound table).
+
+    Caller gates on ``summary`` being non-empty (the collection changed).
+    """
+    Separator()
+    Muted(content=label)
+    Text(content=summary)
+    DataTable(
+        columns=columns,
+        rows=f"{{{{ {state_key} }}}}",
+        paginated=True,
+        pageSize=20,
+    )
+
+
+def _mo_modify_rail(
+    response: dict[str, Any],
+    shown: list[tuple[Any, ...]],
+    *,
+    verb_label: str,
+    confirm_tool: str,
+    confirm_request: BaseModel,
+) -> tuple[list[Action] | None, list[Action], dict[str, Any]]:
+    """Build the MO modify card's apply/cancel actions + seeded state.
+
+    The apply ``on_success`` morph-wires only the shown collections'
+    state keys; ``state`` seeds those same collections' rows. Factored out
+    to keep ``build_mo_modify_ui`` under the branch limit.
+    """
+    apply_action = _build_apply_action(
+        confirm_tool,
+        confirm_request,
+        extra_on_success=[
+            SetState(key, f"{{{{ $result.state.{key} }}}}") for _, _, key, _, _ in shown
+        ]
+        or None,
+    )
+    cancel_label = (
+        "that manufacturing order deletion"
+        if verb_label == "Delete"
+        else "those manufacturing order changes"
+    )
+    cancel_action = _build_cancel_action(cancel_label)
+    state = _init_modify_card_state(response)
+    for _, rows, key, _, _ in shown:
+        state[key] = rows
+    return apply_action, cancel_action, state
+
+
+def build_mo_modify_ui(
+    response: dict[str, Any],
+    *,
+    confirm_request: BaseModel,
+    confirm_tool: str,
+) -> PrefabApp:
+    """Build the modify-/delete-manufacturing-order card (#721 Phase 4).
+
+    Header scalar diffs share :func:`_render_mo_entity_view` with
+    ``build_mo_create_ui`` (the ``changes`` overlay decorates planned_quantity /
+    deadline / status / variant / location / notes). The three editable
+    collections — recipe rows, operation rows, production records — each render
+    a diff table on the shared collection-diff element (:mod:`mo_tables`),
+    shown only when that collection changes; a header-only modify shows just
+    the header diffs. Tables are state-bound and morph in place on apply.
+
+    Replaces the generic ActionResult card for ``modify_manufacturing_order`` /
+    ``delete_manufacturing_order``.
+    """
+    is_preview = bool(response.get("is_preview", True))
+    actions = _actions_with_not_run_tail(response, is_preview=is_preview)
+    entity_id = response.get("entity_id")
+    verb_label = _verb_label(confirm_tool)
+
+    raw_prior_state = response.get("prior_state")
+    prior_state = raw_prior_state if isinstance(raw_prior_state, dict) else {}
+    entity = {**prior_state, **{k: v for k, v in response.items() if v is not None}}
+    if entity_id is not None:
+        entity.setdefault("id", entity_id)
+
+    changes_by_field = _index_changes_by_field(
+        actions, include_operations=frozenset({"update_header"})
+    )
+
+    extras = response.get("extras") or {}
+    recipe_rows, recipe_summary = _mo_recipe_rows(raw_prior_state, actions, extras)
+    operation_rows, operation_summary = _mo_operation_rows(raw_prior_state, actions)
+    production_rows, production_summary = _mo_production_rows(raw_prior_state, actions)
+
+    # (summary, rows, state_key, columns, section_label) per collection — each
+    # rendered / seeded / morph-wired only when its summary is non-empty (the
+    # collection changed). Looping over the shown ones keeps the three
+    # collections from tripling the function's branch count.
+    collections = [
+        (
+            recipe_summary,
+            recipe_rows,
+            _MO_RECIPE_KEY,
+            _MO_RECIPE_COLUMNS,
+            "Recipe (ingredients):",
+        ),
+        (
+            operation_summary,
+            operation_rows,
+            _MO_OPERATION_KEY,
+            _MO_OPERATION_COLUMNS,
+            "Operations:",
+        ),
+        (
+            production_summary,
+            production_rows,
+            _MO_PRODUCTION_KEY,
+            _MO_PRODUCTION_COLUMNS,
+            "Productions:",
+        ),
+    ]
+    shown = [c for c in collections if c[0]]
+    apply_action, cancel_action, state = _mo_modify_rail(
+        response,
+        shown,
+        verb_label=verb_label,
+        confirm_tool=confirm_tool,
+        confirm_request=confirm_request,
+    )
+    confirm_label = _modify_confirm_label(verb_label, len(actions))
+
+    with PrefabApp(state=state, css_class="p-4") as app, Card():
+        title_suffix, state_label, state_variant, applied_verb = (
+            _modify_applied_state_labels(
+                verb_label, is_preview=is_preview, actions=actions
+            )
+        )
+        _render_preview_header(
+            title_prefix=f"{verb_label} Manufacturing Order",
+            entity="manufacturing_order",
+            order_number=str(entity.get("order_no") or entity_id or "N/A"),
+            status=entity.get("status"),
+            applied_title_suffix=title_suffix,
+            applied_state_label=state_label,
+            applied_state_variant=state_variant,
+        )
+        with CardContent(), Column(gap=3):
+            if response.get("message"):
+                Muted(content=response["message"])
+            block_warnings = _render_mo_entity_view(entity, changes=changes_by_field)
+            for summary, _, key, columns, label in shown:
+                _render_mo_collection_table(
+                    summary=summary, label=label, columns=columns, state_key=key
+                )
+        _render_preview_footer(
+            title_prefix=f"Manufacturing Order {verb_label}",
+            block_warnings=block_warnings,
+            confirm_label=confirm_label,
+            apply_action=apply_action,
+            cancel_action=cancel_action,
+            next_action_buttons=(),
+            applied_verb=applied_verb,
         )
     return app
 

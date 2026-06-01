@@ -651,6 +651,7 @@ def to_tool_result(
     from katana_mcp.tools.prefab_ui import (
         build_bom_modify_ui,
         build_item_modify_ui,
+        build_mo_modify_ui,
         build_modification_preview_ui,
         build_modification_result_ui,
         build_po_modify_ui,
@@ -660,9 +661,9 @@ def to_tool_result(
     response_dict = response.model_dump()
 
     # Per-entity dispatch — PO migrated in #722, BOM in #811, SO in #723,
-    # item (product / material / service) in #726; remaining entities
-    # (MO, stock_transfer) fall through to the legacy builders until their
-    # respective child PRs land.
+    # item (product / material / service) in #726, MO in #724; remaining
+    # entities (stock_transfer) fall through to the legacy builders until
+    # their respective child PRs land.
     if response.entity_type == "purchase_order":
         ui = build_po_modify_ui(
             response_dict,
@@ -689,6 +690,14 @@ def to_tool_result(
 
     if response.entity_type in ("product", "material", "service"):
         ui = build_item_modify_ui(
+            response_dict,
+            confirm_request=confirm_request,
+            confirm_tool=confirm_tool,
+        )
+        return make_tool_result(response, ui=ui)
+
+    if response.entity_type == "manufacturing_order":
+        ui = build_mo_modify_ui(
             response_dict,
             confirm_request=confirm_request,
             confirm_tool=confirm_tool,

@@ -3240,7 +3240,7 @@ async def _modify_manufacturing_order_impl(
         async with _log_step_duration("verify_refetch", manufacturing_order_id=eid):
             return await _fetch_mo_recipe_row_attrs_for_cache_merge(services, eid)
 
-    return await run_modify_plan(
+    response = await run_modify_plan(
         request=request,
         naming=EntityNaming(
             entity_type="manufacturing_order",
@@ -3269,6 +3269,170 @@ async def _modify_manufacturing_order_impl(
             ),
         ),
     )
+
+    # Populate the modify card's three collection diff tables (#721 Phase 4).
+    # The MO snapshot doesn't embed recipe / operation / production rows (they
+    # live at separate endpoints), so fetch each — gated on whether that
+    # collection has CRUD in this plan — and attach to ``prior_state`` so the
+    # card shows existing rows as context alongside the diffs. Added recipe
+    # rows carry only ``variant_id``; resolve their SKU / name into
+    # ``extras["resolved_variants"]`` (existing recipe rows already carry
+    # resolved names via ``RecipeRowInfo``). All best-effort: a fetch failure
+    # degrades that table to changed-rows-only, never blocks the modify.
+    await _populate_mo_modify_collections(services, request, response)
+
+    # Apply-path: synthesize NOT-RUN entries for the unattempted plan tail so
+    # a fail-fast partial doesn't drop the not-run rows from the morphed
+    # tables. Mirrors the SO / BOM / item / PO fail-fast handling.
+    if not response.is_preview:
+        not_run_actions = [
+            {
+                "operation": spec.operation,
+                "target_id": spec.target_id,
+                "succeeded": None,
+                "error": None,
+                "changes": [
+                    c.model_dump() if hasattr(c, "model_dump") else dict(c)
+                    for c in spec.diff
+                ],
+                "status_label": "NOT RUN",
+            }
+            for spec in plan[len(response.actions) :]
+        ]
+        if not_run_actions:
+            response.extras["not_run_actions"] = not_run_actions
+
+    return response
+
+
+def _collect_recipe_variant_ids(request: ModifyManufacturingOrderRequest) -> set[int]:
+    """Variant ids referenced by added / variant-swapped recipe rows — the only
+    ones the card's recipe table can't resolve from the enriched existing rows.
+    """
+    ids: set[int] = set()
+    for add in request.add_recipe_rows or []:
+        ids.add(int(add.variant_id))
+    for upd in request.update_recipe_rows or []:
+        if upd.variant_id is not None:
+            ids.add(int(upd.variant_id))
+    return ids
+
+
+async def _resolve_mo_recipe_variants(
+    services: Any, variant_ids: set[int]
+) -> dict[int, dict[str, str | None]]:
+    """Batch-resolve ``{variant_id: {sku, display_name}}`` for added recipe rows.
+
+    Enrichment lookup by id — include archived + deleted so a recipe row
+    referencing an archived/deleted variant still resolves (per
+    typed_cache/README). Serializable dict for ``response.extras``.
+    """
+    if not variant_ids:
+        return {}
+    variants = await services.typed_cache.catalog.get_many_by_ids(
+        CachedVariant, variant_ids, include_archived=True, include_deleted=True
+    )
+
+    def _field(v: Any, name: str) -> Any:
+        if v is None:
+            return None
+        return v.get(name) if isinstance(v, dict) else getattr(v, name, None)
+
+    return {
+        vid: {
+            "sku": _field(variants.get(vid), "sku"),
+            "display_name": _field(variants.get(vid), "display_name"),
+        }
+        for vid in variant_ids
+    }
+
+
+async def _populate_mo_modify_collections(
+    services: Any,
+    request: ModifyManufacturingOrderRequest,
+    response: ModificationResponse,
+) -> None:
+    """Attach the recipe / operation / production collections + resolved
+    recipe variants to the modify response for the card's diff tables.
+
+    Each collection fetch is gated on that collection having CRUD in the plan
+    (header-only / single-collection modifies skip the others' fetches) and is
+    best-effort — a failure leaves that table to changed-rows-only.
+    """
+    prior_state = response.prior_state if isinstance(response.prior_state, dict) else {}
+
+    has_recipe = bool(
+        request.add_recipe_rows
+        or request.update_recipe_rows
+        or request.delete_recipe_row_ids
+    )
+    has_operation = bool(
+        request.add_operation_rows
+        or request.update_operation_rows
+        or request.delete_operation_row_ids
+    )
+    has_production = bool(
+        request.add_productions
+        or request.update_productions
+        or request.delete_production_ids
+    )
+
+    async def _safe(coro: Any, label: str) -> list[Any] | None:
+        try:
+            return await coro
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.info(
+                f"Could not fetch MO {label} for modify card: "
+                f"{type(exc).__name__}: {exc} — table shows changed rows only."
+            )
+            return None
+
+    if has_recipe:
+        rows = await _safe(_fetch_mo_recipe_rows(services, request.id), "recipe rows")
+        if rows is not None:
+            prior_state["recipe_rows"] = [r.model_dump(mode="json") for r in rows]
+        resolved = await _resolve_mo_recipe_variants(
+            services, _collect_recipe_variant_ids(request)
+        )
+        if resolved:
+            response.extras["resolved_variants"] = resolved
+    if has_operation:
+        rows = await _safe(
+            _fetch_mo_operation_rows(services, request.id), "operation rows"
+        )
+        if rows is not None:
+            prior_state["operation_rows"] = [r.model_dump(mode="json") for r in rows]
+    if has_production:
+        rows = await _safe(_fetch_mo_productions(services, request.id), "productions")
+        if rows is not None:
+            prior_state["productions"] = [r.model_dump(mode="json") for r in rows]
+
+    # Resolve the MO's own produced-variant SKU + production-location name for
+    # the card header (anti-pattern #7) — the raw snapshot carries only the
+    # FKs, so without this the header Variant / Location lines show bare ids.
+    mo_variant_id = prior_state.get("variant_id")
+    if mo_variant_id is not None and not prior_state.get("sku"):
+        vmap = await _resolve_mo_recipe_variants(services, {int(mo_variant_id)})
+        hit = vmap.get(int(mo_variant_id))
+        if hit and hit.get("sku"):
+            prior_state["sku"] = hit["sku"]
+    mo_location_id = prior_state.get("location_id")
+    if mo_location_id is not None and not prior_state.get("location_name"):
+        location_name, warning = await resolve_entity_name(
+            services.typed_cache.catalog,
+            CachedLocation,
+            mo_location_id,
+            entity_label="Production location",
+        )
+        if location_name:
+            prior_state["location_name"] = location_name
+        if warning:
+            response.warnings.append(warning)
+
+    if prior_state:
+        response.prior_state = prior_state
 
 
 @observe_tool
