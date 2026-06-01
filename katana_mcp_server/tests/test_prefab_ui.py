@@ -27,6 +27,7 @@ from katana_mcp.tools.prefab_ui import (
     build_item_modify_ui,
     build_low_stock_ui,
     build_mo_create_ui,
+    build_mo_modify_ui,
     build_modification_preview_ui,
     build_modification_result_ui,
     build_po_create_ui,
@@ -3398,6 +3399,253 @@ class TestPOModifyRowTable:
         # Added row FAILED; the not-run update of 7001 shows NOT RUN.
         assert statuses.get(7001) == "NOT RUN"
         assert any(r["status_label"] == "FAILED" for r in rows)
+
+
+class TestBuildMOModifyUI:
+    """``build_mo_modify_ui`` (#721 Phase 4) — header diffs + three collection
+    diff tables (recipe / operation / production), each shown only when that
+    collection changes. Net-new card replacing the generic ActionResult table.
+    """
+
+    _PRIOR: ClassVar[dict[str, Any]] = {
+        "order_no": "MO-2026-001",
+        "status": "NOT_STARTED",
+        "variant_id": 9,
+        "sku": "WIDGET-A",
+        "planned_quantity": 10,
+        "location_id": 1,
+        "location_name": "Main Factory",
+        "additional_info": "rush",
+        # Collections fetched + attached impl-side (RecipeRowInfo /
+        # OperationRowInfo / ProductionInfo dumps).
+        "recipe_rows": [
+            {
+                "id": 11,
+                "variant_id": 402,
+                "sku": "BOLT",
+                "display_name": "M5 bolt",
+                "planned_quantity_per_unit": 4.0,
+            },
+        ],
+        "operation_rows": [
+            {"id": 21, "operation_name": "Cut", "status": "NOT_STARTED"},
+        ],
+        "productions": [
+            {"id": 31, "quantity": 5.0, "production_date": "2026-05-01T00:00:00Z"},
+        ],
+    }
+
+    @classmethod
+    def _preview(
+        cls, actions: list[dict[str, Any]] | None = None, **overrides: Any
+    ) -> dict[str, Any]:
+        return {
+            "entity_type": "manufacturing_order",
+            "entity_id": 500,
+            "is_preview": True,
+            "order_no": "MO-2026-001",
+            "status": "NOT_STARTED",
+            "actions": actions or [],
+            "prior_state": dict(cls._PRIOR),
+            "extras": {
+                "resolved_variants": {
+                    403: {"sku": "WASHER", "display_name": "M5 washer"}
+                }
+            },
+            "warnings": [],
+            "next_actions": [],
+            "message": "Preview",
+            "katana_url": "https://factory.katanamrp.com/manufacturingorder/500",
+            **overrides,
+        }
+
+    @classmethod
+    def _applied(
+        cls, actions: list[dict[str, Any]] | None = None, **overrides: Any
+    ) -> dict[str, Any]:
+        return cls._preview(actions, is_preview=False, **overrides)
+
+    @staticmethod
+    def _header(field: str, old: Any, new: Any) -> dict:
+        return {
+            "operation": "update_header",
+            "target_id": 500,
+            "succeeded": None,
+            "status_label": "PLANNED",
+            "changes": [{"field": field, "old": old, "new": new}],
+        }
+
+    def test_header_diff_and_collections_render(self):
+        actions = [
+            self._header("planned_quantity", 10, 20),
+            {
+                "operation": "add_recipe_row",
+                "target_id": None,
+                "succeeded": None,
+                "status_label": "PLANNED",
+                "changes": [
+                    {"field": "variant_id", "old": None, "new": 403, "is_added": True},
+                    {
+                        "field": "planned_quantity_per_unit",
+                        "old": None,
+                        "new": 2.0,
+                        "is_added": True,
+                    },
+                ],
+            },
+            {
+                "operation": "update_operation_row",
+                "target_id": 21,
+                "succeeded": None,
+                "status_label": "PLANNED",
+                "changes": [
+                    {"field": "status", "old": "NOT_STARTED", "new": "COMPLETED"}
+                ],
+            },
+            {
+                "operation": "add_production",
+                "target_id": None,
+                "succeeded": None,
+                "status_label": "PLANNED",
+                "changes": [
+                    {
+                        "field": "completed_quantity",
+                        "old": None,
+                        "new": 3.0,
+                        "is_added": True,
+                    }
+                ],
+            },
+        ]
+        app = build_mo_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_manufacturing_order",
+        )
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        # Header scalar diff.
+        assert "Modify Manufacturing Order" in rendered
+        assert "10 → 20" in rendered
+        # All three collection sections present.
+        assert "Recipe (ingredients):" in rendered
+        assert "Operations:" in rendered
+        assert "Productions:" in rendered
+        # Recipe add resolved SKU; operation status diff.
+        assert "+ WASHER" in rendered
+        assert "NOT_STARTED → COMPLETED" in rendered
+
+    def test_header_only_modify_renders_no_collection_tables(self):
+        app = build_mo_modify_ui(
+            self._preview([self._header("status", "NOT_STARTED", "IN_PROGRESS")]),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_manufacturing_order",
+        )
+        assert app.state is not None
+        rendered = str(app.to_json())
+        # Header diff shows; no collection sections / state keys.
+        assert "NOT_STARTED → IN_PROGRESS" in rendered
+        assert "Recipe (ingredients):" not in rendered
+        assert "Operations:" not in rendered
+        assert "Productions:" not in rendered
+        for key in ("mo_recipe_rows", "mo_operation_rows", "mo_production_rows"):
+            assert key not in app.state
+
+    def test_single_collection_seeds_only_that_state_key(self):
+        actions = [
+            {
+                "operation": "delete_recipe_row",
+                "target_id": 11,
+                "succeeded": None,
+                "status_label": "PLANNED",
+                "changes": [],
+            },
+        ]
+        app = build_mo_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_manufacturing_order",
+        )
+        assert app.state is not None
+        assert "mo_recipe_rows" in app.state
+        assert "mo_operation_rows" not in app.state
+        assert "mo_production_rows" not in app.state
+        rendered = str(app.to_json())
+        assert "- BOLT" in rendered  # deleted recipe row keeps identity
+
+    def test_delete_verb(self):
+        actions = [
+            {
+                "operation": "delete",
+                "target_id": 500,
+                "succeeded": None,
+                "status_label": "PLANNED",
+                "changes": [],
+            }
+        ]
+        app = build_mo_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="delete_manufacturing_order",
+        )
+        _assert_valid_prefab(app)
+        assert "Confirm Delete" in str(app.to_json())
+
+    def test_applied_recipe_row_morph_state(self):
+        actions = [
+            {
+                "operation": "add_recipe_row",
+                "target_id": None,
+                "succeeded": True,
+                "status_label": "APPLIED",
+                "changes": [
+                    {"field": "variant_id", "old": None, "new": 403, "is_added": True}
+                ],
+            },
+        ]
+        app = build_mo_modify_ui(
+            self._applied(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_manufacturing_order",
+        )
+        assert app.state is not None
+        rows = app.state.get("mo_recipe_rows")
+        assert isinstance(rows, list)
+        assert any(r["status_label"] == "APPLIED" for r in rows)
+
+
+class TestMOModifyDispatch:
+    """``to_tool_result`` routes manufacturing_order modify responses to
+    ``build_mo_modify_ui`` (not the legacy generic card)."""
+
+    def test_mo_routes_to_mo_modify_card(self):
+        from katana_mcp.tools._modification import (
+            ConfirmableRequest,
+            ModificationResponse,
+            to_tool_result,
+        )
+
+        class _StubConfirmable(ConfirmableRequest):
+            id: int = 500
+
+        response = ModificationResponse(
+            entity_type="manufacturing_order",
+            entity_id=500,
+            is_preview=True,
+            actions=[],
+            prior_state={"order_no": "MO-9", "status": "NOT_STARTED"},
+            warnings=[],
+            next_actions=[],
+            message="Preview",
+        )
+        result = to_tool_result(
+            response,
+            confirm_request=_StubConfirmable(),
+            confirm_tool="modify_manufacturing_order",
+        )
+        # The MO card titles "Modify Manufacturing Order"; the generic card
+        # does not — its presence confirms the MO builder ran.
+        assert "Manufacturing Order" in str(result.structured_content)
 
 
 class TestBuildSOModifyUI:

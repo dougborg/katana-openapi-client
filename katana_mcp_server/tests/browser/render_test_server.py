@@ -33,6 +33,7 @@ from katana_mcp.tools.prefab_ui import (
     build_inventory_check_ui,
     build_item_detail_ui,
     build_item_modify_ui,
+    build_mo_modify_ui,
     build_modification_preview_ui,
     build_modification_result_ui,
     build_po_modify_ui,
@@ -1154,6 +1155,98 @@ def _po_modify_rows_response(*, is_preview: bool, succeeded: bool | None) -> dic
     }
 
 
+def _mo_modify_response(*, is_preview: bool, succeeded: bool | None) -> dict:
+    """Build a canned MO modify response exercising all three collection diff
+    tables (#721 Phase 4): a header change + recipe add + operation status
+    update + production add, with the collections attached to ``prior_state``
+    and the added recipe variant resolved in ``extras``.
+    """
+    actions = [
+        ActionResult(
+            index=1,
+            operation="update_header",
+            target_id=500,
+            changes=[FieldChange(field="planned_quantity", old=10, new=20)],
+            succeeded=succeeded,
+            verified=True if succeeded else None,
+        ).model_dump(),
+        ActionResult(
+            index=2,
+            operation="add_recipe_row",
+            target_id=None,
+            changes=[
+                FieldChange(field="variant_id", old=None, new=403, is_added=True),
+                FieldChange(
+                    field="planned_quantity_per_unit", old=None, new=2.0, is_added=True
+                ),
+            ],
+            succeeded=succeeded,
+        ).model_dump(),
+        ActionResult(
+            index=3,
+            operation="update_operation_row",
+            target_id=21,
+            changes=[FieldChange(field="status", old="NOT_STARTED", new="COMPLETED")],
+            succeeded=succeeded,
+            verified=True if succeeded else None,
+        ).model_dump(),
+        ActionResult(
+            index=4,
+            operation="add_production",
+            target_id=None,
+            changes=[
+                FieldChange(
+                    field="completed_quantity", old=None, new=3.0, is_added=True
+                )
+            ],
+            succeeded=succeeded,
+        ).model_dump(),
+    ]
+    return {
+        "entity_type": "manufacturing_order",
+        "entity_id": 500,
+        "is_preview": is_preview,
+        "order_no": "MO-2026-001",
+        "status": "NOT_STARTED",
+        "operation": "",
+        "changes": [],
+        "actions": actions,
+        "prior_state": {
+            "order_no": "MO-2026-001",
+            "status": "NOT_STARTED",
+            "variant_id": 9,
+            "sku": "WIDGET-A",
+            "planned_quantity": 10,
+            "location_id": 1,
+            "location_name": "Main Factory",
+            "recipe_rows": [
+                {
+                    "id": 11,
+                    "variant_id": 402,
+                    "sku": "BOLT",
+                    "display_name": "M5 bolt",
+                    "planned_quantity_per_unit": 4.0,
+                },
+            ],
+            "operation_rows": [
+                {"id": 21, "operation_name": "Cut", "status": "NOT_STARTED"},
+            ],
+            "productions": [
+                {"id": 31, "quantity": 5.0, "production_date": "2026-05-01T00:00:00Z"},
+            ],
+        },
+        "extras": {
+            "resolved_variants": {403: {"sku": "WASHER", "display_name": "M5 washer"}}
+        },
+        "warnings": [],
+        "next_actions": [],
+        "katana_url": "https://factory.katanamrp.com/manufacturingorder/500",
+        "message": (
+            "Preview: 4 action(s) planned" if is_preview else "Applied 4 action(s)"
+        ),
+    }
+
+
 def _so_failed_delete_response(*, is_preview: bool = False) -> dict:
     """Build a canned SO delete response where the apply fails.
 
@@ -1885,6 +1978,19 @@ SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
         _po_modify_rows_response(is_preview=False, succeeded=True),
         confirm_request=_StubRequest(),
         confirm_tool="modify_purchase_order",
+    ),
+    # #721 Phase 4 — MO modify card with all three collection diff tables
+    # (recipe / operation / production) + a header diff. Pins the multi-table
+    # render + resolved recipe SKU + operation status diff end to end.
+    "mo_modify_preview": lambda: build_mo_modify_ui(
+        _mo_modify_response(is_preview=True, succeeded=None),
+        confirm_request=_StubRequest(),
+        confirm_tool="modify_manufacturing_order",
+    ),
+    "mo_modify_applied": lambda: build_mo_modify_ui(
+        _mo_modify_response(is_preview=False, succeeded=True),
+        confirm_request=_StubRequest(),
+        confirm_tool="modify_manufacturing_order",
     ),
     # #811 — BOM modify card with adds + updates + deletes against a
     # realistic 5-row existing recipe. Pins the row-content + status-pill
