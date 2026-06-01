@@ -2,6 +2,124 @@
 
 <!-- version list -->
 
+## v0.73.0 (2026-06-01)
+
+### Bug Fixes
+
+- **client**: Make ManufacturingOrder.production_deadline_date nullable
+  ([`f68e6da`](https://github.com/dougborg/katana-openapi-client/commit/f68e6da2882e6e084a987127e411dc8c8966716b))
+
+- **mcp**: Return parent_id from search_items so item CRUD gets the right id
+  ([`01aa81a`](https://github.com/dougborg/katana-openapi-client/commit/01aa81a4c5233ad70cf3bf4e83d8ffe4dd749336))
+
+- **mcp**: Truthful serial-tracked SO block message + close-out discoverability
+  ([`a2c5cff`](https://github.com/dougborg/katana-openapi-client/commit/a2c5cff74d35143ce2b033416f2ed872257bdf70))
+
+### Chores
+
+- **mcp**: Update client dependency to v0.72.1
+  ([`6b24a4b`](https://github.com/dougborg/katana-openapi-client/commit/6b24a4b552ee040e5314f59a86fe7ca8d59155d3))
+
+- **release**: Mcp v0.100.0
+  ([`dadb283`](https://github.com/dougborg/katana-openapi-client/commit/dadb283a886f7b8d117b8f0517c913326dab0d6a))
+
+- **release**: Mcp v0.100.1
+  ([`e430344`](https://github.com/dougborg/katana-openapi-client/commit/e430344e27fe2f021d8d24927244809b2367e0d7))
+
+- **release**: Mcp v0.101.0
+  ([`52d729b`](https://github.com/dougborg/katana-openapi-client/commit/52d729b4963ab65ad3d7fa93c753235c757652c1))
+
+- **release**: Mcp v0.102.0
+  ([`a5f87cd`](https://github.com/dougborg/katana-openapi-client/commit/a5f87cde724ab056f25d467c59cc1f48ae6256ab))
+
+- **release**: Mcp v0.103.0
+  ([`9beb3b2`](https://github.com/dougborg/katana-openapi-client/commit/9beb3b2dd74e3f147f3081442bd6a6f791183638))
+
+- **release**: Mcp v0.104.0
+  ([`0d9adb4`](https://github.com/dougborg/katana-openapi-client/commit/0d9adb42b4855c4305633d163df2d5be2b7e1fcd))
+
+- **release**: Mcp v0.105.0
+  ([`5151de5`](https://github.com/dougborg/katana-openapi-client/commit/5151de5f6ab71cfc9f51fbe4394c31aa0fa7bb48))
+
+- **release**: Mcp v0.105.1
+  ([`f15602c`](https://github.com/dougborg/katana-openapi-client/commit/f15602c9ae97b60376c7f7ba31b2d80b2d7bc155))
+
+- **release**: Mcp v0.106.0
+  ([`cdb2c19`](https://github.com/dougborg/katana-openapi-client/commit/cdb2c1943df15099e6c9d27e804b14f6cdefb5f2))
+
+### Continuous Integration
+
+- Broaden generated-file freshness check to the whole client package
+  ([`06023f4`](https://github.com/dougborg/katana-openapi-client/commit/06023f423fa6bca406fa9033f7856df43f0aa692))
+
+- Pin codegen tools exactly + guard generated-file freshness
+  ([`992379f`](https://github.com/dougborg/katana-openapi-client/commit/992379fc2261ce061354f5f94096aad53279c0e3))
+
+### Documentation
+
+- **harness**: Teach card-review the thin-DTO / single-row-table anti-pattern
+  ([`10ed2e1`](https://github.com/dougborg/katana-openapi-client/commit/10ed2e1bb7aa200c3a8809ba15d3232c413e80e0))
+
+- **mcp**: Address #882 review round 2 — self-contained, copy-pasteable examples
+  ([`6aade0f`](https://github.com/dougborg/katana-openapi-client/commit/6aade0f96545529a53f06241d4974ea5812244ab))
+
+- **mcp**: Address #882 review — accurate group_id guidance, truthful caveat framing
+  ([`400654b`](https://github.com/dougborg/katana-openapi-client/commit/400654bd12f903183a20cbf130310dde0eb96ead))
+
+- **mcp**: Reconcile add_serial_numbers transfer contract with the MO-linked limitation
+  ([`1163875`](https://github.com/dougborg/katana-openapi-client/commit/11638758bf7f142ea223cc07b2dfda96ed5f7370))
+
+- **typed-cache**: Document the preserve-on-conflict contract
+  ([`254658a`](https://github.com/dougborg/katana-openapi-client/commit/254658a41b483122326e172985be7e33500bb4aa))
+
+### Features
+
+- **harness**: Add /card-review skill for prefab UI UX audit
+  ([`c787b70`](https://github.com/dougborg/katana-openapi-client/commit/c787b70651d6d5b0fd79b8e641380f0467007567))
+
+- **mcp**: Default create_purchase_order to DRAFT status
+  ([`b7d77b0`](https://github.com/dougborg/katana-openapi-client/commit/b7d77b0552fd3131566631ca29c65d6c80ccb154))
+
+- **mcp**: Denormalize service_id onto CachedVariant; drop search_items O(N) scan
+  ([`367cc2b`](https://github.com/dougborg/katana-openapi-client/commit/367cc2bad803880cbc31d95d6348e8d5cd38a3fe))
+
+- **mcp**: Diff-decorated item modify/delete card (closes #726)
+  ([`3ec8020`](https://github.com/dougborg/katana-openapi-client/commit/3ec8020d4183adaa87e94cbd58d237e18210ac25))
+
+- **mcp**: Make CachedVariant.service_id durable; drop search_items re-read
+  ([`2a1a2de`](https://github.com/dougborg/katana-openapi-client/commit/2a1a2de3188701548158875c46298168d8e03cd9))
+
+- **mcp**: Redesign create-item card to four-tier framework
+  ([`617a567`](https://github.com/dougborg/katana-openapi-client/commit/617a567e01a8ca3b393761a6679d79b57b3cadd5))
+
+- **mcp**: Render PO line-item diff table in the modify card (refs #721)
+  ([`a7d2659`](https://github.com/dougborg/katana-openapi-client/commit/a7d26594bbb238e5f6466f00a108aca39b599fae))
+
+- **mcp**: Thread diff overlay through the item entity view
+  ([`e389a61`](https://github.com/dougborg/katana-openapi-client/commit/e389a61cc25d0e92eb76e7e847df8e1dd2392235))
+
+- **mcp**: User-centric content on prefab UI cards (closes #861)
+  ([`d06f239`](https://github.com/dougborg/katana-openapi-client/commit/d06f2391d6e7ef9150c308dd2a700962920cea8a))
+
+### Refactoring
+
+- **mcp**: Extract reusable collection-diff element from the BOM modify card
+  ([`aa5b909`](https://github.com/dougborg/katana-openapi-client/commit/aa5b90982c6a549941ce6bd3edd873e2c80a05c0))
+
+### Testing
+
+- **mcp**: Cover item modify card + variant diff-table
+  ([`19b56dc`](https://github.com/dougborg/katana-openapi-client/commit/19b56dcbd11a2896684b53561afcded4286cf851))
+
+- **mcp**: Cover PO line-item diff table + browser render
+  ([`5dc79c8`](https://github.com/dougborg/katana-openapi-client/commit/5dc79c85538e6ed6e803560729a3ac27b4503178))
+
+### Breaking Changes
+
+- **client**: `ManufacturingOrder.production_deadline_date` is now
+  `datetime | None | Unset` (was `datetime | Unset`). Consumers that assumed a non-null
+  datetime must handle None.
+
 ## v0.72.1 (2026-05-28)
 
 ### Bug Fixes
