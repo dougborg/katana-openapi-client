@@ -485,8 +485,9 @@ async def add_serial_numbers(
     MO with the serial already minted on it), Katana rejects the transfer
     outright with ``422 "SalesOrderRow <id> is linked, serial info must be
     updated on MO"``. Serials on such a row are controlled by the MO, and
-    ``fulfill_order(order_type="sales", rows=[{serial_numbers: [...]}])``
-    likewise 422s ("serial numbers have already been assigned"). There is no
+    ``fulfill_order(order_type="sales", rows=[{"sales_order_row_id": <id>,
+    "serial_numbers": [<sn_id>]}])`` likewise 422s ("serial numbers have
+    already been assigned"). There is no
     public-API path to complete that MO→SO transfer today; perform it from
     the Katana UI ("Deliver all"), which moves the serial atomically. (The
     transfer path above works normally for SO rows *not* linked to an MO.)
