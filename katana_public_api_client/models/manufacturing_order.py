@@ -59,7 +59,7 @@ class ManufacturingOrder:
     batch_transactions: list[BatchTransaction] | Unset = UNSET
     location_id: int | Unset = UNSET
     order_created_date: datetime.datetime | Unset = UNSET
-    production_deadline_date: datetime.datetime | Unset = UNSET
+    production_deadline_date: datetime.datetime | None | Unset = UNSET
     done_date: datetime.datetime | None | Unset = UNSET
     additional_info: str | Unset = UNSET
     is_linked_to_sales_order: bool | Unset = UNSET
@@ -138,9 +138,13 @@ class ManufacturingOrder:
         if not isinstance(self.order_created_date, Unset):
             order_created_date = self.order_created_date.isoformat()
 
-        production_deadline_date: str | Unset = UNSET
-        if not isinstance(self.production_deadline_date, Unset):
+        production_deadline_date: None | str | Unset
+        if isinstance(self.production_deadline_date, Unset):
+            production_deadline_date = UNSET
+        elif isinstance(self.production_deadline_date, datetime.datetime):
             production_deadline_date = self.production_deadline_date.isoformat()
+        else:
+            production_deadline_date = self.production_deadline_date
 
         done_date: None | str | Unset
         if isinstance(self.done_date, Unset):
@@ -368,12 +372,26 @@ class ManufacturingOrder:
         else:
             order_created_date = isoparse(_order_created_date)
 
-        _production_deadline_date = d.pop("production_deadline_date", UNSET)
-        production_deadline_date: datetime.datetime | Unset
-        if isinstance(_production_deadline_date, Unset):
-            production_deadline_date = UNSET
-        else:
-            production_deadline_date = isoparse(_production_deadline_date)
+        def _parse_production_deadline_date(
+            data: object,
+        ) -> datetime.datetime | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                production_deadline_date_type_0 = isoparse(data)
+
+                return production_deadline_date_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(datetime.datetime | None | Unset, data)
+
+        production_deadline_date = _parse_production_deadline_date(
+            d.pop("production_deadline_date", UNSET)
+        )
 
         def _parse_done_date(data: object) -> datetime.datetime | None | Unset:
             if data is None:

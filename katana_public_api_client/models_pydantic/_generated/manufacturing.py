@@ -620,7 +620,9 @@ class ManufacturingOrder(DeletableEntity):
     ] = None
     production_deadline_date: Annotated[
         AwareDatetime | None,
-        Field(description="Target deadline for completing production"),
+        Field(
+            description="Target deadline for completing production (null when none is set)"
+        ),
     ] = None
     done_date: Annotated[
         AwareDatetime | None,
@@ -1141,7 +1143,9 @@ class CachedManufacturingOrder(DeletableEntity, table=True):
     ] = None
     production_deadline_date: Annotated[
         Mapped[datetime | None],
-        Field(description="Target deadline for completing production"),
+        Field(
+            description="Target deadline for completing production (null when none is set)"
+        ),
     ] = None
     done_date: Annotated[
         Mapped[datetime | None],

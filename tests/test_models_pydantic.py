@@ -396,6 +396,54 @@ class TestVariantNullSku:
         assert pydantic_product.variants[1].sku is None
 
 
+class TestManufacturingOrderNullDeadline:
+    """ManufacturingOrder.production_deadline_date must accept None.
+
+    Pinning the wire-contract relaxation in this PR: the spec previously declared
+    ``production_deadline_date: type: string`` (non-nullable), so the generated
+    ``ManufacturingOrder.from_dict`` parsed it with a bare ``isoparse(value)`` that
+    only guarded ``Unset`` — an API ``null`` (key present, value None) raised
+    ``TypeError: object of type 'NoneType' has no len()`` inside ``isoparse``.
+    ``POST /manufacturing_order_make_to_order`` returns exactly that shape (an MO
+    with no deadline), which crashed any typed read of the response (get / list /
+    make_to_order). Spec corrected to ``[string, "null"]``; pinned here so a
+    future regen can't silently revert it.
+    """
+
+    def test_attrs_from_dict_accepts_null_deadline(self) -> None:
+        """The crash path: ``ManufacturingOrder.from_dict`` with a null deadline."""
+        from katana_public_api_client.models import ManufacturingOrder
+
+        mo = ManufacturingOrder.from_dict(
+            {"id": 16920725, "production_deadline_date": None}
+        )
+        assert mo.production_deadline_date is None
+        assert mo.id == 16920725
+
+    def test_pydantic_accepts_null_deadline(self) -> None:
+        from katana_public_api_client.models_pydantic._generated import (
+            ManufacturingOrder,
+        )
+
+        mo = ManufacturingOrder(id=16920725, production_deadline_date=None)
+        assert mo.production_deadline_date is None
+
+    def test_from_attrs_with_null_deadline(self) -> None:
+        from katana_public_api_client.models import (
+            ManufacturingOrder as AttrsManufacturingOrder,
+        )
+        from katana_public_api_client.models_pydantic._generated import (
+            ManufacturingOrder,
+        )
+
+        attrs_mo = AttrsManufacturingOrder.from_dict(
+            {"id": 16920725, "production_deadline_date": None}
+        )
+        pydantic_mo = ManufacturingOrder.from_attrs(attrs_mo)
+        assert pydantic_mo.production_deadline_date is None
+        assert pydantic_mo.id == 16920725
+
+
 class TestProductionSerialNumbers:
     """Wire-shape pin for ``CreateManufacturingOrderProductionRequest.serial_numbers``.
 
