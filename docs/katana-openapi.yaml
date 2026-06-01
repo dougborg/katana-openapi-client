@@ -3255,9 +3255,11 @@ components:
               format: date-time
               description: Date and time when the manufacturing order was created
             production_deadline_date:
-              type: string
+              type:
+                - string
+                - "null"
               format: date-time
-              description: Target deadline for completing production
+              description: Target deadline for completing production (null when none is set)
             done_date:
               type:
                 - string
