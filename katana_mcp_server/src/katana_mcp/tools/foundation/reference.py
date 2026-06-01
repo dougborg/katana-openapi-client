@@ -552,9 +552,8 @@ async def list_additional_costs(
 ) -> ToolResult:
     """List or search the additional-cost catalog (freight, duties, handling
     fees, etc.). Returns id and name. Use the ``id`` value when calling
-    ``modify_purchase_order`` with ``add_additional_costs=[...]`` — including
-    to apportion landed costs to a receipt group after
-    ``receive_purchase_order`` (pass the receipt's ``group_id``). Pair
+    ``modify_purchase_order`` with ``add_additional_costs=[...]`` — e.g. to
+    apportion landed costs after ``receive_purchase_order``. Pair
     with ``list_tax_rates`` for the matching ``tax_rate_id``.
 
     Pass ``query`` to fuzzy-match by name; omit to browse.

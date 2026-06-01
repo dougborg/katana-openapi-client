@@ -1303,9 +1303,9 @@ def _build_row_override_warnings(
             warnings.append(
                 f"{BLOCK_WARNING_PREFIX} Row {rid} ({sku_by_row.get(rid)}) is "
                 "serial-tracked. Pass serial_numbers via the rows= override "
-                "(one SerialNumber ID per unit) when the serials are "
-                "unassigned. Caveat: if a serial was minted on the linked "
-                "manufacturing order, Katana's public API cannot transfer it "
+                "(one SerialNumber ID per unit). Caveat: if this row is "
+                "fulfilled from a linked manufacturing order that already "
+                "minted the serial, Katana's public API cannot transfer it "
                 "onto this row (it returns 'serial numbers have already been "
                 "assigned'); fulfill that row from the Katana UI (\"Deliver "
                 'all") instead.'

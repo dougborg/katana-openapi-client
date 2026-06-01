@@ -997,12 +997,12 @@ async def _receive_purchase_order_impl(
             next_actions=[
                 f"Received {len(request.items)} items",
                 "Inventory has been updated",
-                "To apportion landed costs (customs, freight, duties) to this "
-                "receipt, call modify_purchase_order(add_additional_costs="
-                "[{additional_cost_id, price, tax_rate_id, distribution_method, "
-                "group_id}]) — look up additional_cost_id via "
-                "list_additional_costs and target the receipt's group_id (find "
-                "it on the PO via get_purchase_order).",
+                "To apportion landed costs (customs, freight, duties), call "
+                "modify_purchase_order(add_additional_costs=[{additional_cost_id, "
+                "price, tax_rate_id, distribution_method}]) — look up "
+                "additional_cost_id via list_additional_costs. Omit group_id to "
+                "apply to the PO's default cost group; pass a specific group_id "
+                "to target one.",
             ],
             message=f"Successfully received {len(request.items)} items for PO {order_no}",
         )
@@ -1028,10 +1028,11 @@ async def receive_purchase_order(
     Landed costs (customs, freight, duties) are *not* set here. After
     receiving, apportion them with
     ``modify_purchase_order(add_additional_costs=[{additional_cost_id, price,
-    tax_rate_id, distribution_method, group_id}])`` — ``add_additional_costs``
-    can target a specific receipt group via ``group_id``. Look up
-    ``additional_cost_id`` via ``list_additional_costs``. This is an MCP-native
-    path; it does not require the Katana UI.
+    tax_rate_id, distribution_method}])``. Look up ``additional_cost_id`` via
+    ``list_additional_costs``. Omit ``group_id`` and the dispatcher applies the
+    cost to the PO's ``default_group_id``; pass a specific ``group_id`` to
+    target one cost group. This is an MCP-native path; it does not require the
+    Katana UI.
     """
     response = await _receive_purchase_order_impl(request, context)
     return _receive_response_to_tool_result(response, request=request)

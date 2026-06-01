@@ -712,9 +712,11 @@ async def test_fulfill_sales_order_preview_blocks_serial_tracked_without_overrid
     assert len(block_warnings) == 1
     assert "serial-tracked" in block_warnings[0]
     assert "WIDGET-V2" in block_warnings[0]
-    # The message must warn about the MO-linked transfer dead-end (Bug 7):
-    # following "pass serial_numbers" blindly hits a 422 when the serial was
-    # minted on the linked MO, so the guidance names the UI fallback.
+    # The block carries the MO-linked transfer caveat (Bug 7).
+    # _build_row_override_warnings can't see linked_manufacturing_order_id, so
+    # the caveat is stated conditionally in every serial-tracked block rather
+    # than gated on linkage; this asserts the caveat text (the 422 wording +
+    # the UI fallback) is present in the warning.
     assert "already been assigned" in block_warnings[0]
     assert "Deliver all" in block_warnings[0]
     assert "Resolve the issue" in result.next_actions[0]
