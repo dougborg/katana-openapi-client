@@ -1127,10 +1127,10 @@ Receive items from a purchase order.
 **Landed costs:** `receive_purchase_order` does not set customs / freight /
 duties. After receiving, apportion them with
 `modify_purchase_order(add_additional_costs=[{additional_cost_id, price,
-tax_rate_id, distribution_method, group_id}])`, which can target a specific
-receipt group via `group_id`. Look up `additional_cost_id` via
-`list_additional_costs`. This is MCP-native — it does not require the Katana
-UI.
+tax_rate_id, distribution_method}])`. Look up `additional_cost_id` via
+`list_additional_costs`. Omit `group_id` and the dispatcher applies the cost
+to the PO's `default_group_id`; pass a specific `group_id` to target one cost
+group. This is MCP-native — it does not require the Katana UI.
 
 ---
 
