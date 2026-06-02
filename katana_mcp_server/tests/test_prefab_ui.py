@@ -29,14 +29,13 @@ from katana_mcp.tools.prefab_ui import (
     build_low_stock_ui,
     build_mo_create_ui,
     build_mo_modify_ui,
-    build_modification_preview_ui,
-    build_modification_result_ui,
     build_po_create_ui,
     build_po_modify_ui,
     build_receipt_ui,
     build_search_results_ui,
     build_so_create_ui,
     build_so_modify_ui,
+    build_stock_transfer_modify_ui,
     build_variant_details_ui,
     build_verification_ui,
     status_badge_variant,
@@ -3680,6 +3679,297 @@ class TestMOModifyDispatch:
         # The MO card titles "Modify Manufacturing Order"; the generic card
         # does not — its presence confirms the MO builder ran.
         assert "Manufacturing Order" in str(result.structured_content)
+
+
+class TestBuildStockTransferModifyUI:
+    """``build_stock_transfer_modify_ui`` (#721 Phase 5) — header-only card.
+
+    Stock transfers have no GET-by-id endpoint, so ``prior_state`` is always
+    ``None`` and every field diff reads ``(prior unknown) → new``; rows are
+    immutable post-creation, so the card never renders a collection table.
+    """
+
+    @staticmethod
+    def _preview(actions: list[dict[str, Any]], **overrides: Any) -> dict[str, Any]:
+        return {
+            "entity_type": "stock_transfer",
+            "entity_id": 42,
+            "is_preview": True,
+            "actions": actions,
+            "prior_state": None,
+            "warnings": [],
+            "next_actions": [],
+            "message": "Preview: 2 action(s) planned for stock transfer 42",
+            "katana_url": "https://factory.katanamrp.com/stocktransfer/42",
+            **overrides,
+        }
+
+    @staticmethod
+    def _unknown_prior(field: str, new: Any) -> dict[str, Any]:
+        # Mirrors ``compute_field_diff(None, patch, unknown_prior=True)`` — the
+        # impl's only diff shape for stock transfers (no GET to diff against).
+        return {"field": field, "old": None, "new": new, "is_unknown_prior": True}
+
+    def test_header_and_status_diffs_render(self):
+        actions = [
+            {
+                "operation": "update_header",
+                "target_id": 42,
+                "succeeded": None,
+                "status_label": "PLANNED",
+                "changes": [
+                    self._unknown_prior("stock_transfer_number", "ST-002"),
+                    self._unknown_prior(
+                        "expected_arrival_date", "2026-06-10T00:00:00Z"
+                    ),
+                ],
+            },
+            {
+                "operation": "update_status",
+                "target_id": 42,
+                "succeeded": None,
+                "status_label": "PLANNED",
+                "changes": [self._unknown_prior("new_status", "IN_TRANSIT")],
+            },
+        ]
+        app = build_stock_transfer_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_stock_transfer",
+        )
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "Modify Stock Transfer" in rendered
+        # Every line reads "(prior unknown) → new" — there's no prior snapshot.
+        assert "Transfer No: (prior unknown) → ST-002" in rendered
+        assert "Expected Arrival: (prior unknown) → 2026-06-10T00:00:00Z" in rendered
+        # ``new_status`` renders under the "Status" label.
+        assert "Status: (prior unknown) → IN_TRANSIT" in rendered
+
+    def test_no_collection_table_ever(self):
+        actions = [
+            {
+                "operation": "update_header",
+                "target_id": 42,
+                "succeeded": None,
+                "status_label": "PLANNED",
+                "changes": [self._unknown_prior("additional_info", "rush delivery")],
+            }
+        ]
+        app = build_stock_transfer_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_stock_transfer",
+        )
+        # Header-only: rows are immutable post-create, so no DataTable, ever.
+        assert not _has_node_of_type(app.to_json(), "DataTable")
+        assert "Notes: (prior unknown) → rush delivery" in str(app.to_json())
+
+    def test_delete_verb_and_message_body(self):
+        actions = [
+            {
+                "operation": "delete",
+                "target_id": 42,
+                "succeeded": None,
+                "status_label": "PLANNED",
+                "changes": [],
+            }
+        ]
+        app = build_stock_transfer_modify_ui(
+            self._preview(actions, message="Preview: delete stock transfer 42"),
+            confirm_request=_StubRequest(),
+            confirm_tool="delete_stock_transfer",
+        )
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "Delete Stock Transfer" in rendered
+        assert "Confirm Delete" in rendered
+        # Delete carries no field changes — the message anchors the body.
+        assert "Preview: delete stock transfer 42" in rendered
+
+    def test_applied_status_chrome(self):
+        actions = [
+            {
+                "operation": "update_status",
+                "target_id": 42,
+                "succeeded": True,
+                "status_label": "APPLIED",
+                "changes": [self._unknown_prior("new_status", "RECEIVED")],
+            }
+        ]
+        app = build_stock_transfer_modify_ui(
+            self._preview(actions, is_preview=False),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_stock_transfer",
+        )
+        _assert_valid_prefab(app)
+        assert "APPLIED" in str(app.to_json())
+
+    def test_failed_apply_surfaces_error_in_consolidated_block(self):
+        """A failed action (standalone-applied path) surfaces its error TEXT in
+        the consolidated failure Alert — not just the inline ✗ gutter — so a
+        failed/partial apply stays interpretable (Copilot #888). The label reads
+        in card vocabulary ("Status"), not the wire field name ("new_status").
+        """
+        actions = [
+            {
+                "operation": "update_status",
+                "target_id": 42,
+                "succeeded": False,
+                "status_label": "FAILED",
+                "error": "422: invalid transition DRAFT → RECEIVED",
+                "changes": [self._unknown_prior("new_status", "RECEIVED")],
+            }
+        ]
+        app = build_stock_transfer_modify_ui(
+            self._preview(actions, is_preview=False),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_stock_transfer",
+        )
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        # Consolidated Alert carries the user-facing label + the error text.
+        assert "Failed — Status: 422: invalid transition" in rendered
+
+    def test_block_warning_suppresses_confirm(self):
+        """``BLOCK:``-prefixed warnings suppress the Confirm button via the
+        ``_render_warnings_block`` → ``block_warnings`` → footer gating chain.
+        Same contract as every other modify card — the header-only ST card
+        still surfaces a server-side BLOCK warning (e.g. an invalid status
+        transition flagged pre-preview).
+        """
+        actions = [
+            {
+                "operation": "update_status",
+                "target_id": 42,
+                "succeeded": None,
+                "status_label": "PLANNED",
+                "changes": [self._unknown_prior("new_status", "RECEIVED")],
+            }
+        ]
+        app = build_stock_transfer_modify_ui(
+            self._preview(
+                actions, warnings=["BLOCK: status already RECEIVED — cannot advance"]
+            ),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_stock_transfer",
+        )
+        rendered = str(app.to_json())
+        # Block warning surfaces in the body (BLOCK: prefix stripped).
+        assert "status already RECEIVED" in rendered
+        # Footer copy switches to the "Cannot proceed" muted line.
+        assert "Cannot proceed" in rendered
+
+    def test_header_identity_prefers_transfer_number_over_id(self):
+        """Tier-1 identity badge shows the (proposed) transfer number from a
+        rename diff rather than the raw entity_id — keeps the header human-
+        facing even with no GET endpoint (Copilot #888).
+        """
+        actions = [
+            {
+                "operation": "update_header",
+                "target_id": 42,
+                "succeeded": None,
+                "status_label": "PLANNED",
+                "changes": [self._unknown_prior("stock_transfer_number", "ST-002")],
+            }
+        ]
+        app = build_stock_transfer_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_stock_transfer",
+        )
+        badge_labels = [
+            b.get("label") for b in _find_components_by_type(app.to_json(), "Badge")
+        ]
+        assert "ST-002" in badge_labels
+        # Raw id is NOT used as identity when a human-readable number exists.
+        assert "42" not in badge_labels
+
+    def test_header_identity_falls_back_to_id_without_number(self):
+        """A status-only modify carries no transfer number, so the identity
+        badge falls back to the entity_id — the honest best available without
+        a GET endpoint.
+        """
+        actions = [
+            {
+                "operation": "update_status",
+                "target_id": 42,
+                "succeeded": None,
+                "status_label": "PLANNED",
+                "changes": [self._unknown_prior("new_status", "IN_TRANSIT")],
+            }
+        ]
+        app = build_stock_transfer_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_stock_transfer",
+        )
+        badge_labels = [
+            b.get("label") for b in _find_components_by_type(app.to_json(), "Badge")
+        ]
+        assert "42" in badge_labels
+
+
+class TestStockTransferModifyDispatch:
+    """``to_tool_result`` routes stock_transfer responses to
+    ``build_stock_transfer_modify_ui`` — the last entity migrated off the
+    generic card (#721 Phase 5). Unknown entity types now raise (Phase 6
+    removed the generic fallback).
+    """
+
+    def test_stock_transfer_routes_to_st_card(self):
+        from katana_mcp.tools._modification import (
+            ConfirmableRequest,
+            ModificationResponse,
+            to_tool_result,
+        )
+
+        class _StubConfirmable(ConfirmableRequest):
+            id: int = 42
+
+        response = ModificationResponse(
+            entity_type="stock_transfer",
+            entity_id=42,
+            is_preview=True,
+            actions=[],
+            prior_state=None,
+            warnings=[],
+            next_actions=[],
+            message="Preview",
+        )
+        result = to_tool_result(
+            response,
+            confirm_request=_StubConfirmable(),
+            confirm_tool="modify_stock_transfer",
+        )
+        assert "Stock Transfer" in str(result.structured_content)
+
+    def test_unknown_entity_type_raises(self):
+        from katana_mcp.tools._modification import (
+            ConfirmableRequest,
+            ModificationResponse,
+            to_tool_result,
+        )
+
+        class _StubConfirmable(ConfirmableRequest):
+            id: int = 1
+
+        response = ModificationResponse(
+            entity_type="totally_unknown_entity",
+            entity_id=1,
+            is_preview=True,
+            actions=[],
+            warnings=[],
+            next_actions=[],
+            message="Preview",
+        )
+        with pytest.raises(ValueError, match="no modify-card builder"):
+            to_tool_result(
+                response,
+                confirm_request=_StubConfirmable(),
+                confirm_tool="modify_totally_unknown",
+            )
 
 
 class TestBuildSOModifyUI:
@@ -9915,784 +10205,6 @@ class TestBlockWarningSuppressesConfirm:
         )
         assert not diagnostic_label.startswith("BLOCK:"), (
             f"Badge label still has literal BLOCK: prefix: {diagnostic_label!r}"
-        )
-
-
-class _ModifyStubRequest(BaseModel):
-    """Stub for ``ConfirmableRequest`` used by modification-card tests.
-
-    Mirrors the load-bearing fields ``_build_apply_action`` reads
-    (``id``, ``preview``) without pulling a real entity request shape into
-    these unit tests.
-    """
-
-    id: int = 1
-    preview: bool = True
-
-
-def _modification_preview_response(
-    *,
-    actions: list[dict] | None = None,
-    legacy_changes: list[dict] | None = None,
-    warnings: list[str] | None = None,
-    katana_url: str | None = None,
-) -> dict:
-    """Build a minimal preview-shaped ``ModificationResponse`` dict."""
-    return {
-        "entity_type": "product",
-        "entity_id": 17058420,
-        "is_preview": True,
-        "operation": "" if actions is not None else "update",
-        "changes": legacy_changes or [],
-        "actions": actions or [],
-        "prior_state": None,
-        "warnings": warnings or [],
-        "next_actions": ["Review the planned actions", "Set preview=false to apply"],
-        "katana_url": katana_url,
-        "message": "Preview: 2 action(s) planned",
-    }
-
-
-class TestBuildModificationPreviewUI:
-    """Preview card for ``modify_*`` / ``delete_*`` / ``correct_*`` tools.
-
-    The card must render a per-action diff DataTable and a Confirm button
-    on the direct-apply rail (Confirm fires ``tools/call`` directly + the
-    iframe pushes the result via ``ui/update-model-context``).
-    """
-
-    def test_basic_two_action_preview_renders_envelope(self):
-        response = _modification_preview_response(
-            actions=[
-                {
-                    "operation": "update_header",
-                    "target_id": 17058420,
-                    "changes": [
-                        {
-                            "field": "name",
-                            "old": "Old Name",
-                            "new": "New Name",
-                            "is_added": False,
-                            "is_unchanged": False,
-                            "is_unknown_prior": False,
-                        }
-                    ],
-                    "succeeded": None,
-                    "error": None,
-                    "verified": None,
-                    "actual_after": None,
-                },
-                {
-                    "operation": "update_variant",
-                    "target_id": 40371805,
-                    "changes": [
-                        {
-                            "field": "internal_barcode",
-                            "old": None,
-                            "new": "LD0739",
-                            "is_added": False,
-                            "is_unchanged": False,
-                            "is_unknown_prior": True,
-                        }
-                    ],
-                    "succeeded": None,
-                    "error": None,
-                    "verified": None,
-                    "actual_after": None,
-                },
-            ],
-        )
-        app = build_modification_preview_ui(
-            response,
-            confirm_request=_ModifyStubRequest(id=17058420, preview=True),
-            confirm_tool="modify_item",
-        )
-        _assert_valid_prefab(app)
-
-    def test_confirm_button_uses_direct_apply_call_tool(self):
-        """Confirm wires CallTool(modify_item, ..., preview=False)."""
-        response = _modification_preview_response(
-            actions=[
-                {
-                    "operation": "update_header",
-                    "target_id": 1,
-                    "changes": [
-                        {
-                            "field": "name",
-                            "old": "x",
-                            "new": "y",
-                            "is_added": False,
-                            "is_unchanged": False,
-                            "is_unknown_prior": False,
-                        }
-                    ],
-                    "succeeded": None,
-                    "error": None,
-                    "verified": None,
-                    "actual_after": None,
-                }
-            ],
-        )
-        app = build_modification_preview_ui(
-            response,
-            confirm_request=_ModifyStubRequest(id=1, preview=True),
-            confirm_tool="modify_item",
-        )
-        envelope = app.to_json()
-
-        # Find the CallTool action — it's nested under a Button's onClick.
-        def find_call_tool(tree: Any) -> dict | None:
-            if isinstance(tree, dict):
-                if tree.get("action") == "toolCall":
-                    return tree
-                for v in tree.values():
-                    found = find_call_tool(v)
-                    if found is not None:
-                        return found
-            elif isinstance(tree, list):
-                for v in tree:
-                    found = find_call_tool(v)
-                    if found is not None:
-                        return found
-            return None
-
-        call_tool = find_call_tool(envelope)
-        assert call_tool is not None, "Confirm button must wire a CallTool action"
-        assert call_tool["tool"] == "modify_item"
-        assert call_tool["arguments"]["preview"] is False, (
-            "CallTool arguments must flip preview=False so the direct-apply "
-            "fires the apply branch."
-        )
-
-    def test_block_warning_suppresses_confirm_button(self):
-        """A ``BLOCK:``-prefixed warning must drop the Confirm button (only
-        Cancel remains), matching the shape used by the other preview cards.
-        """
-        response = _modification_preview_response(
-            actions=[
-                {
-                    "operation": "delete",
-                    "target_id": 1,
-                    "changes": [],
-                    "succeeded": None,
-                    "error": None,
-                    "verified": None,
-                    "actual_after": None,
-                }
-            ],
-            warnings=["BLOCK: cannot proceed — already deleted"],
-        )
-        app = build_modification_preview_ui(
-            response,
-            confirm_request=_ModifyStubRequest(),
-            confirm_tool="delete_item",
-        )
-        envelope = app.to_json()
-        confirm = _find_buttons_by_label(envelope, "Confirm Changes")
-        confirm_n = _find_buttons_by_label(envelope, "Confirm 1 action(s)")
-        assert len(confirm) + len(confirm_n) == 0, (
-            "Confirm button must be suppressed when a BLOCK: warning is set."
-        )
-        cancel = _find_buttons_by_label(envelope, "Cancel")
-        assert len(cancel) == 1, "Cancel button must remain on BLOCK warning."
-
-    def test_legacy_single_action_shape_renders_diff_table(self):
-        """Tools that still emit the legacy single-action shape (top-level
-        ``operation`` + ``changes``, empty ``actions``) must still get a
-        diff table rendered."""
-        response = _modification_preview_response(
-            actions=[],
-            legacy_changes=[
-                {
-                    "field": "status",
-                    "old": "DRAFT",
-                    "new": "RECEIVED",
-                    "is_added": False,
-                    "is_unchanged": False,
-                    "is_unknown_prior": False,
-                }
-            ],
-        )
-        app = build_modification_preview_ui(
-            response,
-            confirm_request=_ModifyStubRequest(),
-            confirm_tool="modify_purchase_order",
-        )
-        envelope = app.to_json()
-        assert _has_node_of_type(envelope, "DataTable"), (
-            "Legacy single-action shape must still render a diff DataTable."
-        )
-
-    def test_title_verb_derives_from_tool_name(self):
-        """``modify_item`` → "Modify", ``delete_item`` → "Delete",
-        ``correct_purchase_order`` → "Correct" — closes Copilot review
-        finding that the title was hard-coded as "Modify".
-        """
-        response = _modification_preview_response(
-            actions=[
-                {
-                    "operation": "delete",
-                    "target_id": 1,
-                    "changes": [],
-                    "succeeded": None,
-                    "error": None,
-                    "verified": None,
-                    "actual_after": None,
-                }
-            ],
-        )
-        app = build_modification_preview_ui(
-            response,
-            confirm_request=_ModifyStubRequest(),
-            confirm_tool="delete_item",
-        )
-        envelope = app.to_json()
-        titles: list[str] = []
-
-        def collect_titles(o: Any) -> None:
-            if isinstance(o, dict):
-                if o.get("type") == "CardTitle" and isinstance(o.get("content"), str):
-                    titles.append(o["content"])
-                for v in o.values():
-                    collect_titles(v)
-            elif isinstance(o, list):
-                for v in o:
-                    collect_titles(v)
-
-        collect_titles(envelope)
-        assert any(t.startswith("Delete ") for t in titles), (
-            f"delete_item card title must start with 'Delete'; got {titles!r}"
-        )
-
-    def test_single_change_summary_renders_old_to_new(self):
-        """Post-#card-ux ``_derive_summary`` projects a single
-        ``FieldChange`` to the inline ``"<field>: <old> → <new>"`` form
-        — content-rich, not a "1 field changed" count. Pinned for
-        anti-pattern #4 absence."""
-        response = _modification_preview_response(
-            actions=[
-                {
-                    "operation": "update_header",
-                    "target_id": 42,
-                    "changes": [
-                        {
-                            "field": "status",
-                            "old": "DRAFT",
-                            "new": "ACTIVE",
-                            "is_added": False,
-                            "is_unchanged": False,
-                            "is_unknown_prior": False,
-                        }
-                    ],
-                    "succeeded": None,
-                    "error": None,
-                    "verified": None,
-                    "actual_after": None,
-                }
-            ],
-        )
-        app = build_modification_preview_ui(
-            response,
-            confirm_request=_ModifyStubRequest(),
-            confirm_tool="modify_purchase_order",
-        )
-        envelope = app.to_json()
-        plan_rows = envelope["state"]["plan_actions"]
-        assert len(plan_rows) == 1
-        assert plan_rows[0]["summary"] == "status: DRAFT → ACTIVE", (
-            f"Single-change summary must inline old → new; got "
-            f"{plan_rows[0]['summary']!r}"
-        )
-
-    def test_multi_change_summary_lists_field_names(self):
-        """Multi-field changes surface the field names (truncated +
-        ``(+N more)`` for long lists) instead of an abstract count.
-        Pinned for anti-pattern #4 absence."""
-        response = _modification_preview_response(
-            actions=[
-                {
-                    "operation": "update_header",
-                    "target_id": 42,
-                    "changes": [
-                        {
-                            "field": f"field_{i}",
-                            "old": "a",
-                            "new": "b",
-                            "is_added": False,
-                            "is_unchanged": False,
-                            "is_unknown_prior": False,
-                        }
-                        for i in range(5)
-                    ],
-                    "succeeded": None,
-                    "error": None,
-                    "verified": None,
-                    "actual_after": None,
-                }
-            ],
-        )
-        app = build_modification_preview_ui(
-            response,
-            confirm_request=_ModifyStubRequest(),
-            confirm_tool="modify_purchase_order",
-        )
-        envelope = app.to_json()
-        plan_rows = envelope["state"]["plan_actions"]
-        # First three names render inline; the rest collapse to "(+N more)".
-        assert "field_0" in plan_rows[0]["summary"]
-        assert "field_1" in plan_rows[0]["summary"]
-        assert "field_2" in plan_rows[0]["summary"]
-        assert "(+2 more)" in plan_rows[0]["summary"]
-        # The pre-#card-ux "N field(s) changed" form must NOT appear.
-        assert "field(s) changed" not in plan_rows[0]["summary"]
-
-    def test_confirm_label_is_constant_not_action_count(self):
-        """Confirm button reads ``"Confirm Changes"`` for any action
-        count — the count is column-level info, not a button label.
-        Pinned for anti-pattern #4 absence (count abstraction in the
-        primary CTA)."""
-        response = _modification_preview_response(
-            actions=[
-                {
-                    "operation": "update_header",
-                    "target_id": 42,
-                    "changes": [],
-                    "succeeded": None,
-                    "error": None,
-                    "verified": None,
-                    "actual_after": None,
-                },
-                {
-                    "operation": "update_header",
-                    "target_id": 43,
-                    "changes": [],
-                    "succeeded": None,
-                    "error": None,
-                    "verified": None,
-                    "actual_after": None,
-                },
-                {
-                    "operation": "update_header",
-                    "target_id": 44,
-                    "changes": [],
-                    "succeeded": None,
-                    "error": None,
-                    "verified": None,
-                    "actual_after": None,
-                },
-            ],
-        )
-        app = build_modification_preview_ui(
-            response,
-            confirm_request=_ModifyStubRequest(),
-            confirm_tool="modify_purchase_order",
-        )
-        envelope = app.to_json()
-        buttons = _find_components_by_type(envelope, "Button")
-        labels = [b.get("label") for b in buttons]
-        assert "Confirm Changes" in labels, (
-            f"Confirm button must read 'Confirm Changes'; got {labels!r}"
-        )
-        assert not any(
-            isinstance(label, str) and "action(s)" in label for label in labels
-        ), f"No button label may include 'N action(s)'; got {labels!r}"
-
-    def test_title_omits_abstract_action_count(self):
-        """Post-#card-ux the title drops the ``"— N action(s)"`` suffix.
-        Count is column-level information (visible in the DataTable
-        below); putting it in the title was anti-pattern #4 (abstract
-        counts in identity slots). Pinned to break any future regression
-        that reintroduces the verb-count title shape.
-        """
-        response = _modification_preview_response(
-            actions=[],
-            legacy_changes=[
-                {
-                    "field": "status",
-                    "old": "DRAFT",
-                    "new": "RECEIVED",
-                    "is_added": False,
-                    "is_unchanged": False,
-                    "is_unknown_prior": False,
-                }
-            ],
-        )
-        app = build_modification_preview_ui(
-            response,
-            confirm_request=_ModifyStubRequest(),
-            confirm_tool="modify_purchase_order",
-        )
-        envelope = app.to_json()
-        titles: list[str] = []
-
-        def collect_titles(o: Any) -> None:
-            if isinstance(o, dict):
-                if o.get("type") == "CardTitle" and isinstance(o.get("content"), str):
-                    titles.append(o["content"])
-                for v in o.values():
-                    collect_titles(v)
-            elif isinstance(o, list):
-                for v in o:
-                    collect_titles(v)
-
-        collect_titles(envelope)
-        # Title must read clean — entity type only, no abstract count.
-        # ``_modification_preview_response`` uses entity_type="product";
-        # ``confirm_tool="modify_purchase_order"`` only drives the verb
-        # (``_verb_label`` reads the leading token), so the rendered title
-        # is "Modify Product".
-        assert any("Modify Product" in t for t in titles), (
-            f"Title should carry the verb + entity type; got {titles!r}"
-        )
-        assert not any("action(s)" in t for t in titles), (
-            f"Title must not include 'N action(s)' abstract suffix; got {titles!r}"
-        )
-
-    def test_twelve_action_mixed_plan_renders_single_state_bound_table(self):
-        """Reproduces #629: 12-action mixed plans (6 adds + 6 deletes)
-        previously emitted N separate state-bound DataTables, blowing the
-        renderer. The fix is one DataTable bound to ``state.plan_actions``.
-        """
-        actions = []
-        for i in range(6):
-            actions.append(
-                {
-                    "operation": "add_recipe_row",
-                    "target_id": None,
-                    "changes": [
-                        {
-                            "field": "variant_id",
-                            "old": None,
-                            "new": 40000000 + i,
-                            "is_added": True,
-                            "is_unchanged": False,
-                            "is_unknown_prior": False,
-                        },
-                        {
-                            "field": "planned_quantity_per_unit",
-                            "old": None,
-                            "new": 1,
-                            "is_added": True,
-                            "is_unchanged": False,
-                            "is_unknown_prior": False,
-                        },
-                        {
-                            "field": "notes",
-                            "old": None,
-                            "new": f"AM swap {i}: notes with (parens) and #{i}",
-                            "is_added": True,
-                            "is_unchanged": False,
-                            "is_unknown_prior": False,
-                        },
-                    ],
-                    "succeeded": None,
-                    "error": None,
-                    "verified": None,
-                    "actual_after": None,
-                }
-            )
-        for i in range(6):
-            actions.append(
-                {
-                    "operation": "delete_recipe_row",
-                    "target_id": 97411400 + i,
-                    "changes": [],
-                    "succeeded": None,
-                    "error": None,
-                    "verified": None,
-                    "actual_after": None,
-                }
-            )
-        response = _modification_preview_response(actions=actions)
-        app = build_modification_preview_ui(
-            response,
-            confirm_request=_ModifyStubRequest(id=16467730, preview=True),
-            confirm_tool="modify_manufacturing_order",
-        )
-        envelope = app.to_json()
-
-        # Sanity: full envelope serializes and bindings resolve.
-        _assert_valid_prefab(app)
-
-        # Exactly one DataTable, bound to plan_actions via mustache template.
-        # Bare-string state references crash the JS renderer with
-        # "t.some is not a function" — discovered via headless apps_dev tests.
-        tables = [
-            n
-            for n in _walk_view_tree(envelope.get("view"))
-            if n.get("type") == "DataTable"
-        ]
-        assert len(tables) == 1, f"expected 1 DataTable, got {len(tables)}"
-        assert tables[0]["rows"] == "{{ plan_actions }}"
-
-        # plan_actions has 12 rows, all PLANNED.
-        plan_rows = envelope["state"]["plan_actions"]
-        assert len(plan_rows) == 12
-        assert [r["index"] for r in plan_rows] == list(range(1, 13))
-        assert all(r["status_label"] == "PLANNED" for r in plan_rows)
-
-        # Adds have target_label "—", deletes have "#<id>". Summary text
-        # is the post-#card-ux content-rich form: add operations list
-        # the field names being set (anti-pattern #4 — count alone was
-        # uninformative); deletes use the neutral "deleted" verb.
-        for r in plan_rows[:6]:
-            assert r["target_label"] == "—"
-            # The "added: <field>, <field>, ..." shape replaces the old
-            # "N field(s) set" count summary.
-            assert r["summary"].startswith("added: ")
-            assert "variant_id" in r["summary"]
-        for r in plan_rows[6:]:
-            assert r["target_label"].startswith("#")
-            assert r["summary"] == "deleted"
-
-    def test_apply_button_does_not_set_state_plan_actions(self):
-        """Pin: the live-tick design (``SetState("plan_actions", RESULT.actions)``)
-        was attempted in #634 but turned out to be broken — ``$result`` in
-        the on_success Rx context resolves to the apply tool's
-        ``structured_content`` (a PrefabApp wire envelope), not to the raw
-        ``ModificationResponse``. The SetState was a no-op in production.
-
-        Until the right Rx path is identified (tracked as a follow-up), the
-        on_success chain MUST NOT include a SetState targeting plan_actions
-        — a no-op SetState is misleading. The apply path morphs the card via
-        the existing ``applied=True`` flag instead.
-        """
-        response = _modification_preview_response(
-            actions=[
-                {
-                    "operation": "update_header",
-                    "target_id": 1,
-                    "changes": [],
-                    "succeeded": None,
-                    "error": None,
-                    "verified": None,
-                    "actual_after": None,
-                }
-            ],
-        )
-        app = build_modification_preview_ui(
-            response,
-            confirm_request=_ModifyStubRequest(),
-            confirm_tool="modify_item",
-        )
-        envelope = app.to_json()
-
-        def find_action(o: Any, action_name: str) -> dict[str, Any] | None:
-            if isinstance(o, dict):
-                if o.get("action") == action_name:
-                    return o
-                for v in o.values():
-                    found = find_action(v, action_name)
-                    if found is not None:
-                        return found
-            elif isinstance(o, list):
-                for v in o:
-                    found = find_action(v, action_name)
-                    if found is not None:
-                        return found
-            return None
-
-        call_tool = find_action(envelope, "toolCall")
-        assert call_tool is not None
-        on_success = call_tool.get("onSuccess") or call_tool.get("on_success") or []
-        plan_action_set = next(
-            (
-                a
-                for a in on_success
-                if isinstance(a, dict)
-                and a.get("action") == "setState"
-                and a.get("key") == "plan_actions"
-            ),
-            None,
-        )
-        assert plan_action_set is None, (
-            f"on_success must NOT SetState('plan_actions', ...) — it would "
-            f"be a no-op until the live-tick Rx path is fixed. Found: "
-            f"{plan_action_set!r}"
-        )
-
-
-class TestBuildModificationResultUI:
-    """Result card for an applied (non-preview) ModificationResponse."""
-
-    def _response(self, actions: list[dict]) -> dict:
-        return {
-            "entity_type": "purchase_order",
-            "entity_id": 99,
-            "is_preview": False,
-            "operation": "",
-            "changes": [],
-            "actions": actions,
-            "prior_state": None,
-            "warnings": [],
-            "next_actions": [],
-            "katana_url": "https://factory.katanamrp.com/purchaseorder/99",
-            "message": "Applied 2 action(s)",
-        }
-
-    def test_all_succeeded_renders_applied_status(self):
-        response = self._response(
-            [
-                {
-                    "operation": "update_header",
-                    "target_id": 99,
-                    "changes": [
-                        {
-                            "field": "status",
-                            "old": "DRAFT",
-                            "new": "OPEN",
-                            "is_added": False,
-                            "is_unchanged": False,
-                            "is_unknown_prior": False,
-                        }
-                    ],
-                    "succeeded": True,
-                    "error": None,
-                    "verified": True,
-                    "actual_after": None,
-                }
-            ]
-        )
-        app = build_modification_result_ui(response)
-        envelope = app.to_json()
-        labels: list[str] = []
-
-        def collect_badges(o: Any) -> None:
-            if isinstance(o, dict):
-                if o.get("type") == "Badge" and isinstance(o.get("label"), str):
-                    labels.append(o["label"])
-                for v in o.values():
-                    collect_badges(v)
-            elif isinstance(o, list):
-                for v in o:
-                    collect_badges(v)
-
-        collect_badges(envelope)
-        assert "APPLIED" in labels, (
-            f"Top-level status badge must read APPLIED on full success; got {labels!r}"
-        )
-
-    def test_partial_failure_marks_overall_partial_failure(self):
-        response = self._response(
-            [
-                {
-                    "operation": "update_header",
-                    "target_id": 99,
-                    "changes": [],
-                    "succeeded": True,
-                    "error": None,
-                    "verified": None,
-                    "actual_after": None,
-                },
-                {
-                    "operation": "update_row",
-                    "target_id": 1234,
-                    "changes": [],
-                    "succeeded": False,
-                    "error": "422 row already shipped",
-                    "verified": None,
-                    "actual_after": None,
-                },
-            ]
-        )
-        app = build_modification_result_ui(response)
-        envelope = app.to_json()
-        labels: list[str] = []
-
-        def collect_badges(o: Any) -> None:
-            if isinstance(o, dict):
-                if o.get("type") == "Badge" and isinstance(o.get("label"), str):
-                    labels.append(o["label"])
-                for v in o.values():
-                    collect_badges(v)
-            elif isinstance(o, list):
-                for v in o:
-                    collect_badges(v)
-
-        collect_badges(envelope)
-        assert "PARTIAL FAILURE" in labels, (
-            f"Mixed succeed/fail must surface PARTIAL FAILURE; got {labels!r}"
-        )
-        # Per-action FAILED status must surface in the row data (status_label
-        # column of the plan_actions DataTable). After the live-tick redesign
-        # (#629), per-action status lives in the table cells, not in Badges.
-        plan_rows = envelope["state"]["plan_actions"]
-        statuses = [r["status_label"] for r in plan_rows]
-        assert "APPLIED" in statuses, f"expected APPLIED in {statuses!r}"
-        assert "FAILED" in statuses, f"expected FAILED in {statuses!r}"
-
-    def test_view_in_katana_button_present_when_url_set(self):
-        response = self._response(
-            [
-                {
-                    "operation": "update_header",
-                    "target_id": 99,
-                    "changes": [],
-                    "succeeded": True,
-                    "error": None,
-                    "verified": None,
-                    "actual_after": None,
-                }
-            ]
-        )
-        app = build_modification_result_ui(response)
-        envelope = app.to_json()
-        assert len(_find_buttons_by_label(envelope, "View in Katana")) == 1
-
-    def test_no_katana_url_drops_view_button(self):
-        response = self._response(
-            [
-                {
-                    "operation": "delete",
-                    "target_id": 99,
-                    "changes": [],
-                    "succeeded": True,
-                    "error": None,
-                    "verified": None,
-                    "actual_after": None,
-                }
-            ]
-        )
-        response["katana_url"] = None  # delete nulls it
-        app = build_modification_result_ui(response)
-        envelope = app.to_json()
-        assert len(_find_buttons_by_label(envelope, "View in Katana")) == 0
-
-    def test_title_verb_derives_from_tool_name(self):
-        """Result-card title verb mirrors the preview-card behavior —
-        ``delete_purchase_order`` reads "Purchase Order Delete" rather
-        than the misleading "Purchase Order Modification".
-        """
-        response = self._response(
-            [
-                {
-                    "operation": "delete",
-                    "target_id": 99,
-                    "changes": [],
-                    "succeeded": True,
-                    "error": None,
-                    "verified": None,
-                    "actual_after": None,
-                }
-            ]
-        )
-        app = build_modification_result_ui(response, tool_name="delete_purchase_order")
-        envelope = app.to_json()
-        titles: list[str] = []
-
-        def collect_titles(o: Any) -> None:
-            if isinstance(o, dict):
-                if o.get("type") == "CardTitle" and isinstance(o.get("content"), str):
-                    titles.append(o["content"])
-                for v in o.values():
-                    collect_titles(v)
-            elif isinstance(o, list):
-                for v in o:
-                    collect_titles(v)
-
-        collect_titles(envelope)
-        assert any(t.endswith("Delete") for t in titles), (
-            f"delete_* result title must end with 'Delete'; got {titles!r}"
         )
 
 

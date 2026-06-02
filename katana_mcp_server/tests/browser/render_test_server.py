@@ -34,8 +34,6 @@ from katana_mcp.tools.prefab_ui import (
     build_item_detail_ui,
     build_item_modify_ui,
     build_mo_modify_ui,
-    build_modification_preview_ui,
-    build_modification_result_ui,
     build_po_modify_ui,
     build_product_bom_ui,
     build_search_results_ui,
@@ -44,6 +42,7 @@ from katana_mcp.tools.prefab_ui import (
     build_stock_adjustment_create_ui,
     build_stock_adjustment_delete_ui,
     build_stock_adjustment_update_ui,
+    build_stock_transfer_modify_ui,
     build_variant_batch_ui,
     build_verification_ui,
 )
@@ -63,58 +62,6 @@ class _StubRequest(BaseModel):
 
     id: int = 16467730
     preview: bool = True
-
-
-def _twelve_action_response(*, is_preview: bool, succeeded: bool | None) -> dict:
-    """Build a 12-action mixed (6 add + 6 delete) response dict."""
-    actions: list[dict] = []
-    for i in range(6):
-        action = ActionResult(
-            index=i + 1,
-            operation="add_recipe_row",
-            target_id=None,
-            changes=[
-                FieldChange(
-                    field="variant_id", old=None, new=40000000 + i, is_added=True
-                ),
-                FieldChange(
-                    field="planned_quantity_per_unit", old=None, new=1, is_added=True
-                ),
-                FieldChange(
-                    field="notes",
-                    old=None,
-                    new=f"AM swap {i}: example note with (parens)",
-                    is_added=True,
-                ),
-            ],
-            succeeded=succeeded,
-            verified=True if succeeded else None,
-        )
-        actions.append(action.model_dump())
-    for i in range(6):
-        action = ActionResult(
-            index=7 + i,
-            operation="delete_recipe_row",
-            target_id=97411400 + i,
-            changes=[],
-            succeeded=succeeded,
-        )
-        actions.append(action.model_dump())
-    return {
-        "entity_type": "manufacturing_order",
-        "entity_id": 16467730,
-        "is_preview": is_preview,
-        "operation": "",
-        "changes": [],
-        "actions": actions,
-        "prior_state": None,
-        "warnings": [],
-        "next_actions": [],
-        "katana_url": "https://factory.katanamrp.com/manufacturingorder/16467730",
-        "message": (
-            "Preview: 12 action(s) planned" if is_preview else "Applied 12 action(s)"
-        ),
-    }
 
 
 def _trivial_text_app() -> PrefabApp:
@@ -1247,6 +1194,72 @@ def _mo_modify_response(*, is_preview: bool, succeeded: bool | None) -> dict:
     }
 
 
+def _stock_transfer_modify_response(
+    *, is_preview: bool, succeeded: bool | None
+) -> dict:
+    """Build a canned stock-transfer modify response (#721 Phase 5).
+
+    Header-only — stock transfers have no GET endpoint, so ``prior_state`` is
+    ``None`` and every change is flagged ``is_unknown_prior`` (renders
+    ``(prior unknown) → new``). Exercises a header patch (transfer number +
+    expected-arrival date) plus a status transition.
+    """
+    actions = [
+        ActionResult(
+            index=1,
+            operation="update_header",
+            target_id=42,
+            changes=[
+                FieldChange(
+                    field="stock_transfer_number",
+                    old=None,
+                    new="ST-002",
+                    is_unknown_prior=True,
+                ),
+                FieldChange(
+                    field="expected_arrival_date",
+                    old=None,
+                    new="2026-06-10T00:00:00Z",
+                    is_unknown_prior=True,
+                ),
+            ],
+            succeeded=succeeded,
+            verified=True if succeeded else None,
+        ).model_dump(),
+        ActionResult(
+            index=2,
+            operation="update_status",
+            target_id=42,
+            changes=[
+                FieldChange(
+                    field="new_status",
+                    old=None,
+                    new="IN_TRANSIT",
+                    is_unknown_prior=True,
+                )
+            ],
+            succeeded=succeeded,
+        ).model_dump(),
+    ]
+    return {
+        "entity_type": "stock_transfer",
+        "entity_id": 42,
+        "is_preview": is_preview,
+        "operation": "",
+        "changes": [],
+        "actions": actions,
+        "prior_state": None,
+        "warnings": [],
+        "next_actions": [],
+        "katana_url": "https://factory.katanamrp.com/stocktransfer/42",
+        "message": (
+            "Preview: 2 action(s) planned for stock transfer 42"
+            if is_preview
+            else "Applied 2 action(s)"
+        ),
+    }
+
+
 def _so_failed_delete_response(*, is_preview: bool = False) -> dict:
     """Build a canned SO delete response where the apply fails.
 
@@ -1729,20 +1742,6 @@ def _so_correct_fail_fast_header_skipped_response(*, is_preview: bool = False) -
 
 
 SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
-    # The bug-repro: 12 mixed actions on the preview card. Pre-fix this
-    # rendered as a blank iframe; post-fix it renders one DataTable with 12
-    # rows.
-    "modify_mo_12_actions_preview": lambda: build_modification_preview_ui(
-        _twelve_action_response(is_preview=True, succeeded=None),
-        confirm_request=_StubRequest(),
-        confirm_tool="modify_manufacturing_order",
-    ),
-    # Same 12-action plan after apply — every action APPLIED.
-    "modify_mo_12_actions_applied": lambda: build_modification_result_ui(
-        _twelve_action_response(is_preview=False, succeeded=True),
-        tool_name="modify_manufacturing_order",
-    ),
-    # Single-action smoke.
     # Trivial sanity card — minimal Prefab tree with no DataTable. Used to
     # isolate whether the iframe pipeline works at all vs. a card-specific
     # rendering bug.
@@ -1926,33 +1925,6 @@ SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
         confirm_request=_StubRequest(),
         confirm_tool="create_sales_order",
     ),
-    # Generic single-action modify card (manufacturing_order — not yet
-    # migrated to a per-entity card, so it exercises the legacy
-    # ``build_modification_preview_ui`` single-action path).
-    "modify_mo_single_preview": lambda: build_modification_preview_ui(
-        {
-            "entity_type": "manufacturing_order",
-            "entity_id": 1,
-            "is_preview": True,
-            "operation": "",
-            "changes": [],
-            "actions": [
-                ActionResult(
-                    operation="update_header",
-                    target_id=1,
-                    changes=[FieldChange(field="status", old="x", new="y")],
-                    succeeded=None,
-                ).model_dump()
-            ],
-            "prior_state": None,
-            "warnings": [],
-            "next_actions": [],
-            "katana_url": None,
-            "message": "Preview: 1 action(s) planned",
-        },
-        confirm_request=_StubRequest(),
-        confirm_tool="modify_manufacturing_order",
-    ),
     # #726 — item modify card: header scalar diff + variant diff table (add +
     # update + delete). Pins the dual diff surface + the resolved supplier name
     # + the per-variant status pills end-to-end in a real browser render.
@@ -1991,6 +1963,19 @@ SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
         _mo_modify_response(is_preview=False, succeeded=True),
         confirm_request=_StubRequest(),
         confirm_tool="modify_manufacturing_order",
+    ),
+    # #721 Phase 5 — stock-transfer modify card. Header-only (rows are
+    # immutable post-create), so no DataTable; every diff reads
+    # "(prior unknown) → new" since stock transfers have no GET endpoint.
+    "stock_transfer_modify_preview": lambda: build_stock_transfer_modify_ui(
+        _stock_transfer_modify_response(is_preview=True, succeeded=None),
+        confirm_request=_StubRequest(),
+        confirm_tool="modify_stock_transfer",
+    ),
+    "stock_transfer_modify_applied": lambda: build_stock_transfer_modify_ui(
+        _stock_transfer_modify_response(is_preview=False, succeeded=True),
+        confirm_request=_StubRequest(),
+        confirm_tool="modify_stock_transfer",
     ),
     # #811 — BOM modify card with adds + updates + deletes against a
     # realistic 5-row existing recipe. Pins the row-content + status-pill
@@ -2163,12 +2148,14 @@ async def modify_manufacturing_order(
         update_productions,
         delete_production_ids,
     )  # unused — canned response
-    response_dict = _twelve_action_response(
+    response_dict = _mo_modify_response(
         is_preview=preview, succeeded=None if preview else True
     )
     response = ModificationResponse.model_validate(response_dict)
-    ui = build_modification_result_ui(
-        response_dict, tool_name="modify_manufacturing_order"
+    ui = build_mo_modify_ui(
+        response_dict,
+        confirm_request=_StubRequest(),
+        confirm_tool="modify_manufacturing_order",
     )
     return make_tool_result(response, ui=ui)
 

@@ -41,48 +41,6 @@ class TestModificationCardRender:
         assert templated.locator("table").count() == 1
         assert templated.locator("td").count() >= 4  # 2 rows x 2 cells
 
-    def test_modify_single_action_preview_renders(self, render_scenario):
-        """Single-action generic modify card: 1 action row, Confirm visible.
-
-        Uses an MO modify (still on the legacy generic card) now that item
-        modify routes to its dedicated ``build_item_modify_ui`` (#726).
-        """
-        frame = render_scenario("modify_mo_single_preview")
-        assert frame.locator("table").count() == 1
-        # Header + 1 action row.
-        assert frame.locator("table tr").count() == 2
-        assert frame.locator("text=PLANNED").count() >= 1
-        assert frame.locator("button").filter(has_text="Confirm").count() == 1
-
-    def test_modify_twelve_actions_preview_renders(self, render_scenario):
-        """Reproduces #629: 12-action mixed plan must render all rows.
-
-        Pre-fix this rendered as a blank iframe. With the mustache fix
-        and one-DataTable design, all 12 rows show with PLANNED status.
-        """
-        frame = render_scenario("modify_mo_12_actions_preview")
-        assert frame.locator("table").count() == 1
-        # Header + 12 action rows.
-        assert frame.locator("table tr").count() == 13
-        # Every action shows PLANNED (none have been applied yet). Use a
-        # regex anchored to whole-cell content — the post-#card-ux
-        # content-rich summary cell ("added: variant_id,
-        # planned_quantity_per_unit, notes") would otherwise match the
-        # case-insensitive substring "planned" inside the field name.
-        import re
-
-        assert (
-            frame.locator("td").filter(has_text=re.compile(r"^PLANNED$")).count() == 12
-        )
-
-    def test_modify_twelve_actions_applied_renders(self, render_scenario):
-        """Result card after a successful apply: all 12 rows APPLIED."""
-        frame = render_scenario("modify_mo_12_actions_applied")
-        assert frame.locator("table").count() == 1
-        assert frame.locator("table tr").count() == 13
-        # Every action shows APPLIED (verified).
-        assert frame.locator("td").filter(has_text="APPLIED").count() == 12
-
     def test_bom_modify_mixed_preview_renders_all_kinds(self, render_scenario):
         """#811 BOM modify card — a 5-row recipe + (1 add + 1 update + 2
         delete) plan renders the full table with every kind visible:
@@ -222,6 +180,29 @@ class TestModificationCardRender:
         assert frame.locator("table").count() >= 3
         # recipe add + operation update + production add → ≥3 APPLIED cells.
         assert frame.locator("td").filter(has_text="APPLIED").count() >= 3
+
+    def test_stock_transfer_modify_preview_renders_header_diffs(self, render_scenario):
+        """#721 Phase 5 — stock-transfer modify card. Header-only (rows are
+        immutable post-create), so NO table renders; every header diff reads
+        "(prior unknown) → new" since stock transfers have no GET endpoint.
+        """
+        frame = render_scenario("stock_transfer_modify_preview")
+        assert frame.locator("text=Modify Stock Transfer").count() >= 1
+        # Header-only card — no DataTable, ever.
+        assert frame.locator("table").count() == 0
+        # Header + status diffs, all "(prior unknown) → new".
+        assert frame.locator("text=Transfer No: (prior unknown) → ST-002").count() >= 1
+        assert frame.locator("text=Status: (prior unknown) → IN_TRANSIT").count() >= 1
+        assert frame.locator("button").filter(has_text="Confirm").count() == 1
+
+    def test_stock_transfer_modify_applied_renders_status_chrome(self, render_scenario):
+        """#721 Phase 5 — applied stock-transfer modify shows the APPLIED
+        state chrome (the header-only card carries the outcome on the card-
+        level state Badge, not per-row since there are no rows).
+        """
+        frame = render_scenario("stock_transfer_modify_applied")
+        assert frame.locator("table").count() == 0
+        assert frame.locator("text=APPLIED").count() >= 1
 
     def test_so_modify_partial_failure_applied_renders(self, render_scenario):
         """#723 SO modify card — partial-failure applied state renders the
@@ -548,75 +529,45 @@ class TestModificationCardRender:
         )
 
     def test_apply_button_morphs_card_to_applied_state(self, render_scenario):
-        """Click-through: Confirm fires the apply call, the on_success
-        chain flips ``state.applied=True``, and the button morphs from
-        ``Confirm Changes`` into the applied-state primary button — per
-        the button-state-machine design in ``_render_apply_button_row``
-        (#755 "fold status into button"):
+        """Click-through: Confirm fires the apply call, the on_success chain
+        flips ``state.applied=True``, and :func:`_render_preview_footer`'s
+        ``If("applied")`` branch swaps the Confirm/Cancel button row for the
+        applied-state body (a "<Entity> <verb> applied." Muted line + a gated
+        "View in Katana" button).
 
-        - Preview: ``Confirm Changes`` (default variant, fires apply)
-        - Applied + ``result.katana_url`` truthy: ``View in Katana``
-          (success variant, opens link)
-        - Applied no url: ``Applied`` (success variant, disabled)
-        - Error: ``Retry`` (warning variant, re-fires apply)
+        Exercised on the dedicated MO modify card (``mo_modify_preview``) —
+        the same direct-apply rail (``_build_apply_action`` +
+        ``_render_preview_footer``) backs every per-entity modify card, so
+        this pins the shared morph contract now that the generic
+        ``build_modification_*`` cards are gone (#721 Phase 6).
 
-        Pre-existing limitation: ``$result`` in the on_success Rx
-        context resolves to the apply tool's ``structured_content`` (a
-        PrefabApp wire envelope keyed by ``$prefab``/``view``/``state``),
-        NOT the raw ``ModificationResponse``. So
-        ``If("result.katana_url")`` evaluates against the envelope dict
-        and finds no ``katana_url`` field — the Else branch fires and
-        we get the "Applied" Button, not "View in Katana". This is the
-        same Rx-context limitation that prevents ``RESULT.actions``
-        from driving live-tick row morphs (see in-code comment in
-        ``build_modification_preview_ui``). Both gaps will lift if/when
-        the rail can extract the raw response payload from the apply.
-
-        The test pins the *current* behavior: post-Confirm, the Confirm
-        button is replaced with a post-apply Button — either "View in
-        Katana" (when the envelope happens to expose a katana_url, which
-        no production tool does today) or "Applied" (the fallback).
-        Either pass the morph contract; both fail the morph regression.
+        Pre-existing limitation: ``$result`` in the on_success Rx context
+        resolves to the apply tool's ``structured_content`` (a PrefabApp wire
+        envelope), NOT the raw ``ModificationResponse`` — so
+        ``If("result.katana_url")`` finds no ``katana_url`` and the View-in-
+        Katana button stays hidden. The morph itself (Confirm row → applied
+        body) is the contract under test and is unaffected (#760).
 
         The stub ``modify_manufacturing_order`` tool in
         ``render_test_server.py`` matches production wire shape via
-        ``make_tool_result``, so this test fails the same way production
-        would if the apply path regresses.
+        ``make_tool_result``, so this test fails the same way production would
+        if the apply path regresses.
         """
-        frame = render_scenario("modify_mo_12_actions_preview")
+        frame = render_scenario("mo_modify_preview")
 
-        # Pre-state: 12 PLANNED actions, Confirm button visible, neither
-        # post-apply primary visible. Whole-cell regex to avoid matching
-        # the content-rich summary cell's "planned_quantity_per_unit"
-        # field-name substring (case-insensitive partial would catch it).
-        import re
-
-        assert (
-            frame.locator("td").filter(has_text=re.compile(r"^PLANNED$")).count() == 12
-        )
+        # Pre-state: Confirm button visible, no applied-state body yet.
         assert frame.locator("button").filter(has_text="Confirm").first.is_visible()
-        assert frame.locator("button").filter(has_text="View in Katana").count() == 0
-        # Use exact-match locator for "Applied" to avoid matching the
-        # "Applied" inside the "Modification Applied" Muted footer text
-        # that legacy ``build_modification_preview_ui`` renders.
-        assert frame.locator("button[role='button']", has_text="Applied").count() == 0
+        assert frame.locator("text=Manufacturing Order Modify applied.").count() == 0
 
         # Fire the Confirm button.
         frame.locator("button").filter(has_text="Confirm").first.click()
 
-        # Wait for the applied-state morph: the Confirm button is
-        # REPLACED with a post-apply primary Button. Whether the morph
-        # lands on "View in Katana" or "Applied" depends on whether the
-        # on_success Rx context exposes ``result.katana_url`` (today's
-        # rail wraps the response in a PrefabApp envelope, so the
-        # Else/"Applied" branch fires — but either button is acceptable
-        # for "the morph succeeded").
-        frame.locator(
-            "button:has-text('View in Katana'), button:has-text('Applied')"
-        ).first.wait_for(state="visible", timeout=30000)
+        # Wait for the applied-state morph: the footer's ``If("applied")``
+        # branch renders the "<Entity> <verb> applied." Muted line.
+        frame.locator("text=Manufacturing Order Modify applied.").wait_for(
+            state="visible", timeout=30000
+        )
 
-        # After the morph, the original Confirm button is gone — the
-        # If/Elif/Else state machine swapped the button slot to a
-        # post-apply primary. (Cancel stays visible-but-disabled in
-        # all terminal states so the row width stays stable.)
+        # After the morph, the Confirm/Cancel preview row is gone — the
+        # If/Elif/Else footer state machine swapped it for the applied body.
         assert frame.locator("button").filter(has_text="Confirm").count() == 0

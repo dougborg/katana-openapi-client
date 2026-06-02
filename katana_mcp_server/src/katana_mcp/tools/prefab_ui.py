@@ -7638,6 +7638,175 @@ def build_mo_modify_ui(
 
 
 # ============================================================================
+# Stock-transfer modify / delete card (#721 Phase 5) — header-only. Stock
+# transfer rows are immutable post-creation (Katana exposes no row-CRUD
+# endpoints), so unlike MO/PO/item this card has NO collection diff tables —
+# just the header scalar diffs + the preview/apply rail. Replaces the generic
+# ActionResult table for modify_/delete_stock_transfer, the last entity that
+# routed through it.
+# ============================================================================
+
+# (wire_field, label) for the stock-transfer header scalar diffs, in display
+# order. ``new_status`` is the field name ``compute_field_diff`` emits for the
+# ``update_status`` sub-payload (StockTransferStatusPatch.new_status); it
+# renders as the "Status" line. Stock transfers have no GET-by-id endpoint, so
+# every line renders ``(prior unknown) → new`` — there is no prior snapshot to
+# diff against (see ``_modify_stock_transfer_impl``'s ``unknown_prior=True``).
+_ST_HEADER_FIELDS: tuple[tuple[str, str], ...] = (
+    ("stock_transfer_number", "Transfer No"),
+    ("transfer_date", "Transfer Date"),
+    ("expected_arrival_date", "Expected Arrival"),
+    ("additional_info", "Notes"),
+    ("new_status", "Status"),
+)
+
+
+def _render_stock_transfer_entity_view(
+    st: dict[str, Any],
+    *,
+    changes: dict[str, FieldChangeView] | None = None,
+) -> list[str]:
+    """Render the stock-transfer entity view (header scalar diffs + warnings),
+    returning the block-warning list for the caller to gate the Confirm button.
+
+    Modify-specific today — there is no ``build_stock_transfer_create_ui`` to
+    share it with (stock transfers are created via ``create_stock_transfer``
+    which renders its own card). The ``changes`` overlay + ``changes=None``
+    default mirror the other entity views so a future create card can adopt it
+    without a signature change.
+
+    Each ``_ST_HEADER_FIELDS`` entry renders its before→after diff when the
+    field is changing, else its plain value when present. In practice the plain
+    branch rarely fires: stock transfers have no GET endpoint, so the response
+    carries no prior field values — every shown line is a changing diff
+    (``(prior unknown) → new``). A delete plan has no field changes, so the
+    loop renders nothing and the card body falls back to ``response.message``.
+
+    Must be called inside ``with CardContent(), Column(gap=3):``.
+    """
+    changes = changes or {}
+    for field, label in _ST_HEADER_FIELDS:
+        change = changes.get(field)
+        if change is not None and change.kind != "unchanged":
+            _render_field_diff_line(label, change=change)
+        elif st.get(field) is not None:
+            _render_field_diff_line(label, value=st.get(field))
+
+    # Trailer — consolidated failure block (only renders when an action
+    # failed; the per-field ✗ glyphs above carry the inline signal, but the
+    # error TEXT lives here so a failed/partial apply is interpretable). The
+    # label map reuses _ST_HEADER_FIELDS so the block reads in card vocabulary
+    # ("Status", "Transfer No") rather than wire field names.
+    _render_failed_changes_block(changes, field_label_overrides=dict(_ST_HEADER_FIELDS))
+    return _render_warnings_block(st.get("warnings"))
+
+
+def build_stock_transfer_modify_ui(
+    response: dict[str, Any],
+    *,
+    confirm_request: BaseModel,
+    confirm_tool: str,
+) -> PrefabApp:
+    """Build the modify-/delete-stock-transfer card (#721 Phase 5).
+
+    Header-only — stock-transfer rows are immutable post-creation, so there are
+    no collection diff tables (the simplest modify card in the family). Header
+    scalar diffs (transfer number / transfer & expected-arrival dates / notes /
+    status) render via :func:`_render_stock_transfer_entity_view`. Title verb
+    derives from ``confirm_tool`` via :func:`_verb_label` (``Modify`` /
+    ``Delete``).
+
+    Stock transfers have no GET-by-id endpoint, so ``prior_state`` is always
+    ``None`` and every diff line reads ``(prior unknown) → new``. No status
+    Badge renders in the header — not by explicit suppression, but because the
+    ``entity`` dict carries no ``status`` field (``ModificationResponse`` has
+    none and there's no prior-state fetch), so ``_render_preview_header``'s
+    ``if status:`` guard skips it. Replaces the generic ActionResult card for
+    ``modify_stock_transfer`` / ``delete_stock_transfer``.
+    """
+    is_preview = bool(response.get("is_preview", True))
+    # Apply path: extend with the unattempted plan tail so a fail-fast partial
+    # doesn't drop not-run actions from the count/outcome. Inert on preview and
+    # for the header-only shape, but kept for parity with the other cards.
+    actions = _actions_with_not_run_tail(response, is_preview=is_preview)
+    entity_id = response.get("entity_id")
+    verb_label = _verb_label(confirm_tool)
+
+    # ``prior_state`` is always None for stock transfers (no GET endpoint);
+    # overlay the response scalars so the header/identity lines pick up
+    # whatever the response carries.
+    raw_prior_state = response.get("prior_state")
+    prior_state = raw_prior_state if isinstance(raw_prior_state, dict) else {}
+    entity = {**prior_state, **{k: v for k, v in response.items() if v is not None}}
+    if entity_id is not None:
+        entity.setdefault("id", entity_id)
+
+    # Header + status field diffs both belong on the header view; scope to the
+    # two header-ish operations so any future field-name overlap can't leak.
+    changes_by_field = _index_changes_by_field(
+        actions, include_operations=frozenset({"update_header", "update_status"})
+    )
+
+    # Tier-1 identity: prefer a human-readable transfer number over the raw ID.
+    # There's no GET endpoint, so the entity dict never carries the current
+    # number — but a rename plan puts the new value in
+    # ``changes_by_field["stock_transfer_number"].after``. Use it when present
+    # so the header reads "ST-002" rather than the bare id (anti-pattern #2;
+    # ``_render_preview_header`` renders ``order_number`` verbatim, so the
+    # fallback shows "42", not "#42"). A status-/dates-only modify has no
+    # number to show, so the ID is the honest fallback.
+    number_change = changes_by_field.get("stock_transfer_number")
+    header_number = (
+        entity.get("stock_transfer_number")
+        or (number_change.after if number_change is not None else None)
+        or entity_id
+        or "N/A"
+    )
+
+    apply_action = _build_apply_action(confirm_tool, confirm_request)
+    cancel_label = (
+        "that stock transfer deletion"
+        if verb_label == "Delete"
+        else "those stock transfer changes"
+    )
+    cancel_action = _build_cancel_action(cancel_label)
+    confirm_label = _modify_confirm_label(verb_label, len(actions))
+    state = _init_modify_card_state(response)
+
+    with PrefabApp(state=state, css_class="p-4") as app, Card():
+        title_suffix, state_label, state_variant, applied_verb = (
+            _modify_applied_state_labels(
+                verb_label, is_preview=is_preview, actions=actions
+            )
+        )
+        _render_preview_header(
+            title_prefix=f"{verb_label} Stock Transfer",
+            entity="stock_transfer",
+            order_number=str(header_number),
+            status=entity.get("status"),
+            applied_title_suffix=title_suffix,
+            applied_state_label=state_label,
+            applied_state_variant=state_variant,
+        )
+        with CardContent(), Column(gap=3):
+            if response.get("message"):
+                Muted(content=response["message"])
+            block_warnings = _render_stock_transfer_entity_view(
+                entity, changes=changes_by_field
+            )
+        _render_preview_footer(
+            title_prefix=f"Stock Transfer {verb_label}",
+            block_warnings=block_warnings,
+            confirm_label=confirm_label,
+            apply_action=apply_action,
+            cancel_action=cancel_action,
+            next_action_buttons=(),
+            applied_verb=applied_verb,
+        )
+    return app
+
+
+# ============================================================================
 # Fulfillment & Receipt UIs
 # ============================================================================
 
@@ -8297,11 +8466,6 @@ _VERB_DISPLAY: dict[str, str] = {
 }
 
 
-def _humanize_snake_case(raw: str) -> str:
-    """Convert a snake_case identifier to a Title Case display label."""
-    return raw.replace("_", " ").title()
-
-
 def _verb_label(tool_name: str | None) -> str:
     """Pick the human-readable verb for the modification card title.
 
@@ -8312,290 +8476,6 @@ def _verb_label(tool_name: str | None) -> str:
     if not tool_name:
         return "Modify"
     return _VERB_DISPLAY.get(tool_name.split("_", 1)[0], "Modify")
-
-
-# Single column set used by both preview and result modification cards.
-# One row per planned action — server-derived ``status_label`` and
-# ``summary`` fields land directly here so the apply path's
-# ``SetState("plan_actions", RESULT.actions)`` swap preserves shape.
-_ACTION_COLUMNS: list[DataTableColumn] = [
-    DataTableColumn(key="index", header="#", width="3rem"),
-    DataTableColumn(key="operation_label", header="Operation"),
-    DataTableColumn(key="target_label", header="Target"),
-    DataTableColumn(key="summary", header="Changes"),
-    DataTableColumn(key="status_label", header="Status"),
-]
-
-_PLAN_ACTIONS_KEY = "plan_actions"
-# DataTable.rows requires the mustache template form (``{{ key }}``) for
-# state-bound rows — the JS renderer interprets bare strings as the rows
-# array itself and crashes with ``t.some is not a function``. Discovered
-# via headless apps_dev render tests after #634; the Python pydantic
-# field type accepts bare strings, but the wire format only resolves
-# mustache references.
-_PLAN_ACTIONS_REF = f"{{{{ {_PLAN_ACTIONS_KEY} }}}}"
-
-
-def _action_to_row(idx: int, action: dict[str, Any]) -> dict[str, Any]:
-    """Project one ActionResult dict into a DataTable row.
-
-    Production callers pass already-populated dicts (the ActionResult
-    ``@model_validator`` filled ``operation_label`` / ``target_label`` /
-    ``summary`` / ``status_label`` before ``model_dump()``). Tests and the
-    legacy single-action path pass partial dicts; we round-trip them
-    through ``ActionResult.model_validate`` so the same validator fires
-    and we get the same content-rich summary the production path
-    produces (previously a stale duplicate-validator path lived here and
-    masked anti-pattern #4 — see post-PR #card-ux review finding #2).
-    """
-    from katana_mcp.tools._modification import ActionResult
-
-    populated = ActionResult.model_validate(action).model_dump()
-    target = populated.get("target_id")
-    return {
-        "index": populated.get("index") or idx,
-        "operation_label": populated["operation_label"],
-        "target_label": populated["target_label"],
-        "summary": populated["summary"],
-        "status_label": populated["status_label"],
-        # Pass through the underlying fields so RESULT.actions replacement
-        # preserves shape (the server's ActionResults carry these too).
-        "operation": populated.get("operation"),
-        "target_id": target,
-        "succeeded": populated.get("succeeded"),
-        "verified": populated.get("verified"),
-        "error": populated.get("error"),
-    }
-
-
-def _legacy_action(response: dict[str, Any]) -> dict[str, Any] | None:
-    """Synthesize a single ActionResult-shaped dict from the legacy shape.
-
-    The legacy single-action response carries top-level ``operation`` +
-    ``changes`` (instead of an ``actions`` list). Wrap it as one synthetic
-    action so both card builders flow through the same row builder.
-
-    Returns a partial dict (``summary`` / ``operation_label`` / etc.
-    omitted); ``_action_to_row`` round-trips it through ``ActionResult``
-    so the validator populates the same content-rich derived fields the
-    multi-action path receives from the dispatcher.
-    """
-    legacy_changes = response.get("changes") or []
-    legacy_op = response.get("operation") or ""
-    if not legacy_op and not legacy_changes:
-        return None
-    is_preview = bool(response.get("is_preview"))
-    return {
-        "operation": legacy_op,
-        "target_id": response.get("entity_id"),
-        "changes": legacy_changes,
-        "succeeded": None if is_preview else True,
-        "verified": None,
-        "error": None,
-    }
-
-
-def _actions_to_rows(actions: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Map ActionResult dicts to DataTable rows for ``state.plan_actions``."""
-    return [_action_to_row(idx, action) for idx, action in enumerate(actions, start=1)]
-
-
-def _count_outcomes(actions: list[dict[str, Any]]) -> tuple[int, int]:
-    """Tally ``(succeeded, failed)`` across an action list."""
-    s = sum(1 for a in actions if a.get("succeeded") is True)
-    f = sum(1 for a in actions if a.get("succeeded") is False)
-    return s, f
-
-
-def build_modification_preview_ui(
-    response: dict[str, Any],
-    *,
-    confirm_request: BaseModel,
-    confirm_tool: str,
-) -> PrefabApp:
-    """Preview card for a :class:`ModificationResponse` with the direct-apply rail.
-
-    Used by every tool that returns a ``ModificationResponse`` from
-    ``_modification.py`` — ``modify_*``, ``delete_*``, ``correct_*``.
-
-    The card renders **one DataTable** bound to ``state.plan_actions``
-    (one row per planned action: # / Operation / Target / Changes / Status).
-    Confirm fires ``tools/call`` directly; the on_success chain pushes
-    ``RESULT.actions`` into ``state.plan_actions`` so each row's status
-    cell ticks PLANNED → APPLIED/FAILED in place without re-rendering
-    the iframe (ADR-0021 unified direct-apply rail). The iframe also
-    pushes the structured result to the agent via
-    ``ui/update-model-context``.
-    """
-    actions = response.get("actions") or []
-    if not actions:
-        legacy = _legacy_action(response)
-        if legacy is not None:
-            actions = [legacy]
-
-    apply_action = _build_apply_action(confirm_tool, confirm_request)
-    # NOTE: A live-tick design (rows ticking PLANNED -> APPLIED in place via
-    # ``SetState("plan_actions", RESULT.actions)``) was attempted in #634 but
-    # turned out to be broken: ``$result`` in the on_success Rx context
-    # resolves to the apply tool's ``structured_content`` (a PrefabApp wire
-    # envelope from ``make_tool_result``), not to the raw
-    # ``ModificationResponse``. ``$result.actions`` therefore doesn't
-    # resolve and the SetState was a no-op in production. Caught by Copilot
-    # review; verified by the browser harness when its stub was switched to
-    # match production shape. Tracked as a follow-up — until then the
-    # apply path morphs the card via the existing ``applied=True`` flag.
-    entity_type_raw = str(response.get("entity_type") or "entity")
-    entity_type_label = _humanize_snake_case(entity_type_raw)
-    verb_label = _verb_label(confirm_tool)
-    cancel_action = _build_cancel_action(
-        f"the {entity_type_raw.replace('_', ' ')} {verb_label.lower()}"
-    )
-
-    block_warnings, regular_warnings = _split_warnings(response.get("warnings"))
-    n_actions = len(actions)
-
-    state: dict[str, Any] = {
-        **_APPLY_RAIL_STATE_INIT,
-        _PLAN_ACTIONS_KEY: _actions_to_rows(actions),
-    }
-
-    with PrefabApp(state=state, css_class="p-4") as app, Card():
-        with CardHeader(), Row(gap=2):
-            # Pre-#card-ux the title carried a "— N action(s)" suffix; the
-            # action count is now a column count in the DataTable below,
-            # which is where it belongs (anti-pattern #4: abstract counts in
-            # titles drown the entity identity that anchors the operator).
-            CardTitle(content=f"{verb_label} {entity_type_label}")
-            entity_id = response.get("entity_id")
-            if entity_id is not None:
-                Badge(label=f"#{entity_id}", variant="outline")
-            Badge(label="PREVIEW", variant="secondary")
-
-        with CardContent(), Column(gap=3):
-            if response.get("message"):
-                Text(content=response["message"])
-
-            if n_actions > 0:
-                DataTable(columns=_ACTION_COLUMNS, rows=_PLAN_ACTIONS_REF)
-
-            if block_warnings or regular_warnings:
-                Separator()
-                for warning in block_warnings:
-                    Badge(label=warning, variant="destructive")
-                for warning in regular_warnings:
-                    Badge(label=warning, variant="secondary")
-
-            with If("error"):
-                Separator()
-                with Alert(variant="destructive", icon="circle-alert"):
-                    AlertTitle(content="Apply failed")
-                    AlertDescription(content="{{ error }}")
-
-        with CardFooter():
-            if block_warnings:
-                Muted(
-                    content="Cannot proceed — see warnings above. No changes have been made."
-                )
-            else:
-                with If("applied"):
-                    Muted(
-                        content="Changes applied — see status column for per-action outcome."
-                    )
-                with Elif("error"):
-                    Muted(content="Apply failed — see error above.")
-                with Elif("cancelled"):
-                    Muted(content="Cancelled. No changes were made.")
-                with Else():
-                    Muted(content="This is a preview. No changes have been made.")
-
-            # ``Confirm Changes`` reads cleanly regardless of action count;
-            # the per-action breakdown is already visible in the table above.
-            _render_apply_button_row(
-                confirm_label="Confirm Changes",
-                apply_action=apply_action,
-                cancel_action=cancel_action,
-                disabled=bool(block_warnings),
-            )
-    return app
-
-
-def build_modification_result_ui(
-    response: dict[str, Any], *, tool_name: str | None = None
-) -> PrefabApp:
-    """Result card for an *applied* :class:`ModificationResponse`.
-
-    Mirrors :func:`build_modification_preview_ui` but without Confirm/Cancel
-    — every action carries its terminal status (APPLIED / APPLIED (verified) /
-    APPLIED (verification mismatch) / FAILED) and the card surfaces the
-    aggregate outcome plus a "View in Katana" button when a ``katana_url``
-    is present (deletes successfully applied null out the URL upstream).
-
-    ``tool_name`` is the registered MCP tool name (e.g. ``"delete_item"``) —
-    used to derive the title's verb so a successful delete reads "Product
-    Delete" rather than the misleading "Product Modification". Optional
-    for backwards compatibility with the legacy single-action shape, which
-    falls back to the response's top-level ``operation`` field.
-    """
-    entity_type_label = _humanize_snake_case(
-        str(response.get("entity_type") or "entity")
-    )
-    actions = response.get("actions") or []
-    legacy_op = _humanize_snake_case(str(response.get("operation") or ""))
-    if not actions:
-        legacy = _legacy_action(response)
-        if legacy is not None:
-            actions = [legacy]
-
-    success_count, failed_count = _count_outcomes(actions)
-
-    overall_status: str
-    overall_variant: Literal["default", "secondary", "outline", "destructive"]
-    if failed_count > 0 and success_count > 0:
-        overall_status, overall_variant = "PARTIAL FAILURE", "destructive"
-    elif failed_count > 0:
-        overall_status, overall_variant = "FAILED", "destructive"
-    else:
-        overall_status, overall_variant = "APPLIED", "default"
-
-    state: dict[str, Any] = {_PLAN_ACTIONS_KEY: _actions_to_rows(actions)}
-
-    # Title verb: prefer the tool-derived verb (works for delete/correct
-    # tools); fall back to the legacy single-action ``operation`` field;
-    # finally to a neutral "Modification".
-    if tool_name:
-        title_op = _verb_label(tool_name)
-    else:
-        title_op = legacy_op or "Modification"
-
-    with PrefabApp(state=state, css_class="p-4") as app, Card():
-        with CardHeader(), Row(gap=2):
-            CardTitle(content=f"{entity_type_label} {title_op}")
-            entity_id = response.get("entity_id")
-            if entity_id is not None:
-                Badge(label=f"#{entity_id}", variant="outline")
-            Badge(label=overall_status, variant=overall_variant)
-
-        with CardContent(), Column(gap=3):
-            if response.get("message"):
-                Text(content=response["message"])
-
-            if actions:
-                Muted(
-                    content=(
-                        f"{success_count} succeeded, {failed_count} failed "
-                        f"of {len(actions)}"
-                    )
-                )
-                DataTable(columns=_ACTION_COLUMNS, rows=_PLAN_ACTIONS_REF)
-
-        if response.get("katana_url"):
-            with CardFooter(), Row(gap=2):
-                Button(
-                    label="View in Katana",
-                    variant="outline",
-                    on_click=OpenLink(url=response["katana_url"]),
-                )
-    return app
 
 
 # ============================================================================
