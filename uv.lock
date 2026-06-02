@@ -1344,7 +1344,7 @@ wheels = [
 
 [[package]]
 name = "katana-mcp-server"
-version = "0.107.0"
+version = "0.107.1"
 source = { editable = "katana_mcp_server" }
 dependencies = [
     { name = "aiosqlite" },
@@ -1384,7 +1384,6 @@ dependencies = [
     { name = "httpx-retries" },
     { name = "pydantic" },
     { name = "pyrate-limiter" },
-    { name = "python-dateutil" },
     { name = "python-dotenv" },
     { name = "sqlmodel" },
     { name = "tenacity" },
@@ -1416,7 +1415,6 @@ dev = [
     { name = "pyyaml" },
     { name = "ruff" },
     { name = "tox" },
-    { name = "types-python-dateutil" },
     { name = "types-pyyaml" },
     { name = "types-urllib3" },
     { name = "yamllint" },
@@ -1474,7 +1472,6 @@ requires-dist = [
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.14.0" },
     { name = "pytest-timeout", marker = "extra == 'dev'", specifier = ">=2.4.0" },
     { name = "pytest-xdist", marker = "extra == 'dev'", specifier = ">=3.6.1" },
-    { name = "python-dateutil", specifier = ">=2.9.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "python-semantic-release", marker = "extra == 'dev'", specifier = ">=10.5.0" },
     { name = "pyyaml", marker = "extra == 'dev'", specifier = ">=6.0.0" },
@@ -1482,7 +1479,6 @@ requires-dist = [
     { name = "sqlmodel", specifier = ">=0.0.22" },
     { name = "tenacity", specifier = ">=9.1.0" },
     { name = "tox", marker = "extra == 'dev'", specifier = ">=4.25.0" },
-    { name = "types-python-dateutil", marker = "extra == 'dev'", specifier = ">=2.9.0" },
     { name = "types-pyyaml", marker = "extra == 'dev'", specifier = ">=6.0.0" },
     { name = "types-urllib3", marker = "extra == 'dev'", specifier = ">=1.26.0" },
     { name = "typing-extensions", specifier = ">=4.13.0" },
@@ -3319,15 +3315,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/dd/46/73b6a5d61a61015c4248030a8cb07e5bdddb4041430fae9e585a68692578/types_jsonschema-4.26.0.20260518.tar.gz", hash = "sha256:e1dd53dc97a64f5eccdd6fa9839666e09bb500a8ebba2db6fdaf1789faea81a6", size = 16638, upload-time = "2026-05-18T06:06:44.106Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/07/d5/134f8a147dcecda10db7f60cfc6af0578a25a5c53c87b3907a64385e0184/types_jsonschema-4.26.0.20260518-py3-none-any.whl", hash = "sha256:30b30a518c7fe335df85c919fcbcc631b69c03d4a4b5b632fa916bea03065307", size = 16072, upload-time = "2026-05-18T06:06:43.264Z" },
-]
-
-[[package]]
-name = "types-python-dateutil"
-version = "2.9.0.20260518"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/8d/e8/c01bdf0d7c3659428c091fbd693177093639565bcbc86bc20098e6d37cc6/types_python_dateutil-2.9.0.20260518.tar.gz", hash = "sha256:51f02dc03b61c7f6a07df45797d4dfe8a1aa47f0b7db9ad89f6fd3a1a70e1b51", size = 17082, upload-time = "2026-05-18T06:05:24.508Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/36/22/169273273ca34e9ab0ae2f387ba72ed7e09faaaf834da01d6b89c2bea71a/types_python_dateutil-2.9.0.20260518-py3-none-any.whl", hash = "sha256:d6a9c5bd0de61460c8fdef8ab2b400f956a1a1075cce08d4e2b4434e478c50b8", size = 18431, upload-time = "2026-05-18T06:05:23.641Z" },
 ]
 
 [[package]]

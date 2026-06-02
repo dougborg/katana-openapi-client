@@ -41,7 +41,6 @@ dependencies = [
   # Generated client dependencies
   "httpx>=0.28.1",
   "attrs>=24.0.0",
-  "python-dateutil>=2.9.0",
   # Enhanced client dependencies
   "tenacity>=9.1.0",
   "python-dotenv>=1.0.0",
@@ -111,7 +110,6 @@ dev = [
   "mdformat-tables>=1.0.0",
   "mdformat-toc>=0.3.0",
   # Type stubs
-  "types-python-dateutil>=2.9.0",
   "types-PyYAML>=6.0.0",
   "types-urllib3>=1.26.0",
   # OpenAPI tools — PINNED EXACTLY (not floors): codegen output is part of the
