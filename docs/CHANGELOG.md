@@ -2,6 +2,42 @@
 
 <!-- version list -->
 
+## v0.75.0 (2026-06-02)
+
+### Bug Fixes
+
+- **client**: Declare ServiceVariant.sku as nullable to match wire contract
+  ([#892](https://github.com/dougborg/katana-openapi-client/pull/892),
+  [`e1fc86b`](https://github.com/dougborg/katana-openapi-client/commit/e1fc86bb98381dde526c134adb20063aeff82c3c))
+
+### Chores
+
+- **release**: Mcp v0.108.0
+  ([`99f4dae`](https://github.com/dougborg/katana-openapi-client/commit/99f4dae104a4fbf2b64c832f835428d43def3adb))
+
+### Documentation
+
+- Clean up null-SKU pitfall test list formatting (review)
+  ([#892](https://github.com/dougborg/katana-openapi-client/pull/892),
+  [`e1fc86b`](https://github.com/dougborg/katana-openapi-client/commit/e1fc86bb98381dde526c134adb20063aeff82c3c))
+
+- Mark serial-fulfillment escalation submitted + caveat fulfill_order
+  ([`92313d9`](https://github.com/dougborg/katana-openapi-client/commit/92313d983ece1cabcc4adf3a1b183a0e4ef6348f))
+
+- **mcp**: Drop internal repo path from fulfill_order serial-gap caveat
+  ([`c7d47c9`](https://github.com/dougborg/katana-openapi-client/commit/c7d47c9cc2ceedd8e6d56e4e289eda2a83c0db20))
+
+### Features
+
+- **mcp**: Stock-transfer modify card; retire generic ActionResult cards (refs #721)
+  ([`cb643b1`](https://github.com/dougborg/katana-openapi-client/commit/cb643b169c03fbc86db1a10187b351fd8d7e6f1f))
+
+### Breaking Changes
+
+- **mcp**: Build_modification_preview_ui and build_modification_result_ui are removed.
+  Any caller rendering a ModificationResponse must route through to_tool_result, which
+  dispatches to the per-entity build\_<entity>\_modify_ui.
+
 ## v0.74.0 (2026-06-02)
 
 ### Bug Fixes
