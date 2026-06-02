@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+import time_machine
 from katana_mcp.tools.foundation.cache_admin import (
     RebuildCacheRequest,
     _rebuild_cache_impl,
@@ -292,8 +293,12 @@ class TestWatermark:
     @pytest.mark.asyncio
     async def test_sync_state_is_repopulated_after_rebuild(self, typed_cache_engine):
         """``ensure_*_synced`` writes a fresh ``SyncState`` row at the end of
-        the cold-start pull — so after rebuild, the watermark exists with a
-        recent timestamp, not the stale one we started with."""
+        the cold-start pull — so after rebuild, the watermark is the new sync
+        time, not the stale one we started with.
+
+        The sync's "now" is frozen with ``time_machine`` (see CLAUDE.md:
+        time-based tests must fake time) so we assert the new watermark
+        *exactly* rather than with a ``>= before_call`` wall-clock comparison."""
         async with typed_cache_engine.session() as session:
             session.add(
                 SyncState(
@@ -307,8 +312,14 @@ class TestWatermark:
         context = _build_context(typed_cache_engine)
         po_patch, row_patch = _patch_purchase_order_api(_empty_paginated_response())
 
-        before_call = datetime.now(tz=UTC).replace(tzinfo=None)
-        with po_patch, row_patch:
+        # Freeze the clock the sync writes its watermark from
+        # (sync.py: last_synced = datetime.now(tz=UTC).replace(tzinfo=None)).
+        # time_machine freezes datetime.now() while keeping the real datetime
+        # class, so production isinstance/constructor calls are unaffected.
+        frozen = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
+        frozen_naive = frozen.replace(tzinfo=None)
+
+        with time_machine.travel(frozen, tick=False), po_patch, row_patch:
             await _rebuild_cache_impl(
                 RebuildCacheRequest(entity_types=["purchase_order"], preview=False),
                 context,
@@ -318,8 +329,8 @@ class TestWatermark:
             state = await session.get(SyncState, "purchase_order")
 
         assert state is not None
-        # New watermark, not the 2020 stale one.
-        assert state.last_synced >= before_call
+        # New watermark = the frozen sync time, not the 2020 stale one.
+        assert state.last_synced == frozen_naive
 
 
 # ============================================================================

@@ -12,7 +12,7 @@ behavior (``test_open_creates_db_file``) use ``tmp_path`` directly.
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -421,14 +421,15 @@ class TestSyncState:
 
     @pytest.mark.asyncio
     async def test_sync_state_roundtrip(self, typed_cache_engine):
-        # SQLite DateTime columns don't preserve tzinfo by default — values
-        # round-trip as naive UTC. Using a naive UTC datetime here avoids a
-        # comparison mismatch and matches how the sync helpers already
-        # work with SyncState under the hood.
-        now = datetime.now(tz=UTC).replace(tzinfo=None)
+        # Fixed naive whole-second timestamp — no wall-clock read (this is a
+        # round-trip test, not a timing test; see CLAUDE.md: time-based tests
+        # must fake time). SQLite DateTime columns drop tzinfo and store naive
+        # UTC, and a whole second round-trips with no sub-second truncation,
+        # so we assert *exact* equality instead of a fuzzy tolerance.
+        fixed = datetime(2026, 1, 1, 12, 0, 0)
         async with typed_cache_engine.session() as session:
             session.add(
-                SyncState(entity_type="sales_order", last_synced=now, row_count=42)
+                SyncState(entity_type="sales_order", last_synced=fixed, row_count=42)
             )
             await session.commit()
 
@@ -437,7 +438,7 @@ class TestSyncState:
             assert fetched is not None
             assert fetched.entity_type == "sales_order"
             assert fetched.row_count == 42
-            assert abs((fetched.last_synced - now).total_seconds()) < 1
+            assert fetched.last_synced == fixed
 
 
 class TestCacheTables:
