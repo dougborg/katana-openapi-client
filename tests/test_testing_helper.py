@@ -15,7 +15,10 @@ from unittest.mock import patch
 import pytest
 
 from katana_public_api_client import KatanaClient
-from katana_public_api_client.testing import make_test_client
+from katana_public_api_client.testing import (
+    MissingTestCredentialsError,
+    make_test_client,
+)
 
 
 @pytest.mark.unit
@@ -59,8 +62,14 @@ class TestMakeTestClient:
 
         assert client._base_url == "https://api.katanamrp.com/v1"
 
-    def test_raises_runtime_error_when_test_key_missing(self):
-        """Safety guarantee: no silent fallback to KATANA_API_KEY."""
+    def test_raises_missing_credentials_error_when_test_key_missing(self):
+        """Safety guarantee: no silent fallback to KATANA_API_KEY.
+
+        Raises :class:`MissingTestCredentialsError` specifically (a
+        ``RuntimeError`` subclass) so test fixtures can skip on *this*
+        while letting other helper failures propagate — see the
+        ``live_client`` fixture in ``tests/integration/conftest.py``.
+        """
         # Even with a prod key present in the environment, the helper
         # must refuse — this is the entire point of the no-fallback rule.
         with (
@@ -69,10 +78,13 @@ class TestMakeTestClient:
                 lambda *_a, **_kw: {},
             ),
             patch.dict(os.environ, {"KATANA_API_KEY": "prod-key"}, clear=True),
-            pytest.raises(RuntimeError) as exc_info,
+            pytest.raises(MissingTestCredentialsError) as exc_info,
         ):
             make_test_client()
 
+        assert isinstance(exc_info.value, RuntimeError), (
+            "must stay a RuntimeError subclass for backward compatibility"
+        )
         msg = str(exc_info.value)
         assert "KATANA_TEST_API_KEY" in msg
         assert "KATANA_API_KEY" in msg, (

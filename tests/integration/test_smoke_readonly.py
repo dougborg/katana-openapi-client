@@ -30,7 +30,7 @@ from katana_public_api_client.models import (
 )
 from katana_public_api_client.utils import is_success, unwrap_as, unwrap_data
 
-pytestmark = [pytest.mark.integration, pytest.mark.asyncio]
+pytestmark = [pytest.mark.integration, pytest.mark.live, pytest.mark.asyncio]
 
 
 async def test_get_factory(live_client: KatanaClient) -> None:

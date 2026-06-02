@@ -4,8 +4,11 @@ The single entry point is the ``live_client`` fixture: it builds a
 :class:`~katana_public_api_client.KatanaClient` bound to the test tenant via
 :func:`~katana_public_api_client.testing.make_test_client` and yields it inside
 an ``async with`` block. If ``KATANA_TEST_API_KEY`` is unset the helper raises
-``RuntimeError`` and the fixture turns that into a ``pytest.skip`` — so the
-whole ``tests/integration/`` suite is a no-op for anyone without a test key.
+:class:`~katana_public_api_client.testing.MissingTestCredentialsError` and the
+fixture turns *that specific* error into a ``pytest.skip`` — so the whole
+``tests/integration/`` suite is a no-op for anyone without a test key. Any
+*other* failure from the helper propagates and fails the test loudly, rather
+than being masked as a skip.
 
 This is the *only* place the skip lives. ``make_test_client`` itself fails
 loud (never falls back to the prod key); the auto-skip is a test-harness
@@ -20,7 +23,10 @@ import pytest
 import pytest_asyncio
 
 from katana_public_api_client import KatanaClient
-from katana_public_api_client.testing import make_test_client
+from katana_public_api_client.testing import (
+    MissingTestCredentialsError,
+    make_test_client,
+)
 
 
 @pytest_asyncio.fixture
@@ -35,7 +41,7 @@ async def live_client() -> AsyncIterator[KatanaClient]:
     """
     try:
         client = make_test_client(max_retries=2, max_pages=5)
-    except RuntimeError as exc:
+    except MissingTestCredentialsError as exc:
         pytest.skip(str(exc))
 
     async with client:
