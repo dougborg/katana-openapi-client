@@ -12,8 +12,8 @@ import enum
 from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any, ClassVar, TypeVar, cast, get_args, get_origin
 
-from pydantic import ConfigDict
 from sqlmodel import SQLModel
+from sqlmodel._compat import SQLModelConfig
 
 if TYPE_CHECKING:
     pass
@@ -67,7 +67,11 @@ class KatanaPydanticBase(SQLModel):
         ```
     """
 
-    model_config = ConfigDict(
+    # SQLModel re-declares ``model_config`` as ``SQLModelConfig`` (a ConfigDict
+    # subclass adding ``table`` / ``registry``). Construct that exact type rather
+    # than a plain ``ConfigDict`` so the assignment matches the inherited
+    # attribute's declared type — ty 0.0.42+ flags the supertype as invalid.
+    model_config = SQLModelConfig(
         frozen=True,
         validate_assignment=True,
         extra="forbid",

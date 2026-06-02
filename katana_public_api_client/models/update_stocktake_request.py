@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 from ..models.stocktake_status import StocktakeStatus
@@ -101,14 +100,14 @@ class UpdateStocktakeRequest:
         if isinstance(_created_date, Unset):
             created_date = UNSET
         else:
-            created_date = isoparse(_created_date)
+            created_date = datetime.datetime.fromisoformat(_created_date)
 
         _completed_date = d.pop("completed_date", UNSET)
         completed_date: datetime.datetime | Unset
         if isinstance(_completed_date, Unset):
             completed_date = UNSET
         else:
-            completed_date = isoparse(_completed_date)
+            completed_date = datetime.datetime.fromisoformat(_completed_date)
 
         set_remaining_items_as_counted = d.pop("set_remaining_items_as_counted", UNSET)
 

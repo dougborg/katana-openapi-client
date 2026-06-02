@@ -2,6 +2,52 @@
 
 <!-- version list -->
 
+## v0.74.0 (2026-06-02)
+
+### Bug Fixes
+
+- **client**: Construct model_config as SQLModelConfig for ty 0.0.42
+  ([`34ba6ac`](https://github.com/dougborg/katana-openapi-client/commit/34ba6aca88e4ced10ab45b4a623ecaf40644f05a))
+
+- **mcp**: Paginate DataTables only when rows overflow one page
+  ([`ce9368c`](https://github.com/dougborg/katana-openapi-client/commit/ce9368ccfaaf4980505f2092ca3158ac82cc6406))
+
+### Chores
+
+- Regenerate client + pydantic models for codegen bump
+  ([`f3e537f`](https://github.com/dougborg/katana-openapi-client/commit/f3e537f5c0fbcb11430da969b3b2d87798c8c540))
+
+- **deps**: Drop now-redundant direct python-dateutil dependency
+  ([`1993334`](https://github.com/dougborg/katana-openapi-client/commit/199333428bd2511df42b8bd2ce92d88355a0681a))
+
+- **deps)(deps**: Bump the python-minor-patch group across 1 directory with 9 updates
+  ([`190f6c1`](https://github.com/dougborg/katana-openapi-client/commit/190f6c10171f7012a3caa5f386b762a5ec83e7c0))
+
+- **mcp**: Update client dependency to v0.73.0
+  ([`a450018`](https://github.com/dougborg/katana-openapi-client/commit/a4500188fefc2cceee5d97066f00ac32a8a1ed53))
+
+- **release**: Mcp v0.107.0
+  ([`372a2d7`](https://github.com/dougborg/katana-openapi-client/commit/372a2d79a176c74bbcb3f7169ec1eff51e43ca6e))
+
+- **release**: Mcp v0.107.1
+  ([`4dd40a4`](https://github.com/dougborg/katana-openapi-client/commit/4dd40a4a5304a75320a3c0f17ac4739e1d1f211b))
+
+### Documentation
+
+- **escalations**: Public-API gap — serial-tracked make-to-order SO fulfillment
+  ([#784](https://github.com/dougborg/katana-openapi-client/pull/784),
+  [`40af388`](https://github.com/dougborg/katana-openapi-client/commit/40af3880c35b8fb05dab8c06876dd32a27f3b5ca))
+
+### Features
+
+- **mcp**: Diff-decorated MO modify/delete card (refs #721)
+  ([`69e89c2`](https://github.com/dougborg/katana-openapi-client/commit/69e89c2587b22d4ffd15b840bb00e5e48d035b76))
+
+### Testing
+
+- **mcp**: Cover MO modify card + three collection tables
+  ([`caf4638`](https://github.com/dougborg/katana-openapi-client/commit/caf46382f04af82aa31853d3a03e275dca055b2c))
+
 ## v0.73.0 (2026-06-01)
 
 ### Bug Fixes

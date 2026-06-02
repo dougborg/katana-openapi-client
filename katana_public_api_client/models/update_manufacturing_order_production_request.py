@@ -8,7 +8,6 @@ from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 
@@ -47,7 +46,7 @@ class UpdateManufacturingOrderProductionRequest:
         if isinstance(_production_date, Unset):
             production_date = UNSET
         else:
-            production_date = isoparse(_production_date)
+            production_date = datetime.datetime.fromisoformat(_production_date)
 
         update_manufacturing_order_production_request = cls(
             production_date=production_date,

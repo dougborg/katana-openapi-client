@@ -8,7 +8,6 @@ from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 from ..models.stocktake_status import StocktakeStatus
@@ -157,14 +156,14 @@ class Stocktake:
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
-            created_at = isoparse(_created_at)
+            created_at = datetime.datetime.fromisoformat(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
         updated_at: datetime.datetime | Unset
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
-            updated_at = isoparse(_updated_at)
+            updated_at = datetime.datetime.fromisoformat(_updated_at)
 
         def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
             if data is None:
@@ -174,7 +173,7 @@ class Stocktake:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                deleted_at_type_0 = isoparse(data)
+                deleted_at_type_0 = datetime.datetime.fromisoformat(data)
 
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -188,7 +187,9 @@ class Stocktake:
         if isinstance(_stocktake_created_date, Unset):
             stocktake_created_date = UNSET
         else:
-            stocktake_created_date = isoparse(_stocktake_created_date)
+            stocktake_created_date = datetime.datetime.fromisoformat(
+                _stocktake_created_date
+            )
 
         def _parse_started_date(data: object) -> datetime.datetime | None | Unset:
             if data is None:
@@ -198,7 +199,7 @@ class Stocktake:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                started_date_type_0 = isoparse(data)
+                started_date_type_0 = datetime.datetime.fromisoformat(data)
 
                 return started_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -215,7 +216,7 @@ class Stocktake:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                completed_date_type_0 = isoparse(data)
+                completed_date_type_0 = datetime.datetime.fromisoformat(data)
 
                 return completed_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):

@@ -8,7 +8,6 @@ from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 from ..models.document_send_status import DocumentSendStatus
@@ -212,14 +211,14 @@ class OutsourcedPurchaseOrder:
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
-            created_at = isoparse(_created_at)
+            created_at = datetime.datetime.fromisoformat(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
         updated_at: datetime.datetime | Unset
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
-            updated_at = isoparse(_updated_at)
+            updated_at = datetime.datetime.fromisoformat(_updated_at)
 
         def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
             if data is None:
@@ -229,7 +228,7 @@ class OutsourcedPurchaseOrder:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                deleted_at_type_0 = isoparse(data)
+                deleted_at_type_0 = datetime.datetime.fromisoformat(data)
 
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -265,14 +264,16 @@ class OutsourcedPurchaseOrder:
         if isinstance(_expected_arrival_date, Unset):
             expected_arrival_date = UNSET
         else:
-            expected_arrival_date = isoparse(_expected_arrival_date)
+            expected_arrival_date = datetime.datetime.fromisoformat(
+                _expected_arrival_date
+            )
 
         _order_created_date = d.pop("order_created_date", UNSET)
         order_created_date: datetime.datetime | Unset
         if isinstance(_order_created_date, Unset):
             order_created_date = UNSET
         else:
-            order_created_date = isoparse(_order_created_date)
+            order_created_date = datetime.datetime.fromisoformat(_order_created_date)
 
         additional_info = d.pop("additional_info", UNSET)
 
@@ -333,7 +334,7 @@ class OutsourcedPurchaseOrder:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                ingredient_expected_date_type_0 = isoparse(data)
+                ingredient_expected_date_type_0 = datetime.datetime.fromisoformat(data)
 
                 return ingredient_expected_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):

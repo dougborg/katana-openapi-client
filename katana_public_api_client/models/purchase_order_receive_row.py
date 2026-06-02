@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 
@@ -76,7 +75,7 @@ class PurchaseOrderReceiveRow:
         if isinstance(_received_date, Unset):
             received_date = UNSET
         else:
-            received_date = isoparse(_received_date)
+            received_date = datetime.datetime.fromisoformat(_received_date)
 
         _batch_transactions = d.pop("batch_transactions", UNSET)
         batch_transactions: (
