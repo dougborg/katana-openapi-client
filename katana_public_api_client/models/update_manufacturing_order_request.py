@@ -8,7 +8,6 @@ from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 from ..models.manufacturing_order_status import ManufacturingOrderStatus
@@ -140,21 +139,23 @@ class UpdateManufacturingOrderRequest:
         if isinstance(_order_created_date, Unset):
             order_created_date = UNSET
         else:
-            order_created_date = isoparse(_order_created_date)
+            order_created_date = datetime.datetime.fromisoformat(_order_created_date)
 
         _production_deadline_date = d.pop("production_deadline_date", UNSET)
         production_deadline_date: datetime.datetime | Unset
         if isinstance(_production_deadline_date, Unset):
             production_deadline_date = UNSET
         else:
-            production_deadline_date = isoparse(_production_deadline_date)
+            production_deadline_date = datetime.datetime.fromisoformat(
+                _production_deadline_date
+            )
 
         _done_date = d.pop("done_date", UNSET)
         done_date: datetime.datetime | Unset
         if isinstance(_done_date, Unset):
             done_date = UNSET
         else:
-            done_date = isoparse(_done_date)
+            done_date = datetime.datetime.fromisoformat(_done_date)
 
         additional_info = d.pop("additional_info", UNSET)
 

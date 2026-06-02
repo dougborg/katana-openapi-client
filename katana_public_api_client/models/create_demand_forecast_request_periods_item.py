@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
-from dateutil.parser import isoparse
 
 T = TypeVar("T", bound="CreateDemandForecastRequestPeriodsItem")
 
@@ -38,9 +37,9 @@ class CreateDemandForecastRequestPeriodsItem:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        period_start = isoparse(d.pop("period_start"))
+        period_start = datetime.datetime.fromisoformat(d.pop("period_start"))
 
-        period_end = isoparse(d.pop("period_end"))
+        period_end = datetime.datetime.fromisoformat(d.pop("period_end"))
 
         committed = d.pop("committed")
 

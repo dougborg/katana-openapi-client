@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 
@@ -66,7 +65,9 @@ class UpdateStockAdjustmentRequest:
         if isinstance(_stock_adjustment_date, Unset):
             stock_adjustment_date = UNSET
         else:
-            stock_adjustment_date = isoparse(_stock_adjustment_date)
+            stock_adjustment_date = datetime.datetime.fromisoformat(
+                _stock_adjustment_date
+            )
 
         location_id = d.pop("location_id", UNSET)
 

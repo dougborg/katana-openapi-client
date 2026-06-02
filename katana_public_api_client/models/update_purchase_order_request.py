@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 from ..models.purchase_order_status import PurchaseOrderStatus
@@ -104,14 +103,16 @@ class UpdatePurchaseOrderRequest:
         if isinstance(_expected_arrival_date, Unset):
             expected_arrival_date = UNSET
         else:
-            expected_arrival_date = isoparse(_expected_arrival_date)
+            expected_arrival_date = datetime.datetime.fromisoformat(
+                _expected_arrival_date
+            )
 
         _order_created_date = d.pop("order_created_date", UNSET)
         order_created_date: datetime.datetime | Unset
         if isinstance(_order_created_date, Unset):
             order_created_date = UNSET
         else:
-            order_created_date = isoparse(_order_created_date)
+            order_created_date = datetime.datetime.fromisoformat(_order_created_date)
 
         location_id = d.pop("location_id", UNSET)
 

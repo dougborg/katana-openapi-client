@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 
@@ -67,14 +66,14 @@ class BatchStockUpdate:
         if isinstance(_expiration_date, Unset):
             expiration_date = UNSET
         else:
-            expiration_date = isoparse(_expiration_date)
+            expiration_date = datetime.datetime.fromisoformat(_expiration_date)
 
         _batch_created_date = d.pop("batch_created_date", UNSET)
         batch_created_date: datetime.datetime | Unset
         if isinstance(_batch_created_date, Unset):
             batch_created_date = UNSET
         else:
-            batch_created_date = isoparse(_batch_created_date)
+            batch_created_date = datetime.datetime.fromisoformat(_batch_created_date)
 
         def _parse_batch_barcode(data: object) -> None | str | Unset:
             if data is None:

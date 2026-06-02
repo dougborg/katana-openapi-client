@@ -8,7 +8,6 @@ from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 
@@ -62,9 +61,9 @@ class DemandForecastPeriod:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        period_start = isoparse(d.pop("period_start"))
+        period_start = datetime.datetime.fromisoformat(d.pop("period_start"))
 
-        period_end = isoparse(d.pop("period_end"))
+        period_end = datetime.datetime.fromisoformat(d.pop("period_end"))
 
         in_stock = d.pop("in_stock", UNSET)
 

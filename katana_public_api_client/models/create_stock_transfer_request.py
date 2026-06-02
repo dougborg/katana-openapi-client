@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 
@@ -101,21 +100,23 @@ class CreateStockTransferRequest:
         if isinstance(_transfer_date, Unset):
             transfer_date = UNSET
         else:
-            transfer_date = isoparse(_transfer_date)
+            transfer_date = datetime.datetime.fromisoformat(_transfer_date)
 
         _order_created_date = d.pop("order_created_date", UNSET)
         order_created_date: datetime.datetime | Unset
         if isinstance(_order_created_date, Unset):
             order_created_date = UNSET
         else:
-            order_created_date = isoparse(_order_created_date)
+            order_created_date = datetime.datetime.fromisoformat(_order_created_date)
 
         _expected_arrival_date = d.pop("expected_arrival_date", UNSET)
         expected_arrival_date: datetime.datetime | Unset
         if isinstance(_expected_arrival_date, Unset):
             expected_arrival_date = UNSET
         else:
-            expected_arrival_date = isoparse(_expected_arrival_date)
+            expected_arrival_date = datetime.datetime.fromisoformat(
+                _expected_arrival_date
+            )
 
         additional_info = d.pop("additional_info", UNSET)
 

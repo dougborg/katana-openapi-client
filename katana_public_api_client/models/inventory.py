@@ -8,7 +8,6 @@ from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 
@@ -189,7 +188,7 @@ class Inventory:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                archived_at_type_0 = isoparse(data)
+                archived_at_type_0 = datetime.datetime.fromisoformat(data)
 
                 return archived_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):

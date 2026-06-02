@@ -8,7 +8,6 @@ from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 
@@ -89,7 +88,9 @@ class NegativeStock:
         if isinstance(_latest_negative_stock_date, Unset):
             latest_negative_stock_date = UNSET
         else:
-            latest_negative_stock_date = isoparse(_latest_negative_stock_date)
+            latest_negative_stock_date = datetime.datetime.fromisoformat(
+                _latest_negative_stock_date
+            )
 
         name = d.pop("name", UNSET)
 

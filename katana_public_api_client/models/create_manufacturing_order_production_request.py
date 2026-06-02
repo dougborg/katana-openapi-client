@@ -8,7 +8,6 @@ from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 
@@ -124,7 +123,7 @@ class CreateManufacturingOrderProductionRequest:
         if isinstance(_completed_date, Unset):
             completed_date = UNSET
         else:
-            completed_date = isoparse(_completed_date)
+            completed_date = datetime.datetime.fromisoformat(_completed_date)
 
         is_final = d.pop("is_final", UNSET)
 

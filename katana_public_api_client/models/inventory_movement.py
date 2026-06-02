@@ -8,7 +8,6 @@ from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 from ..models.inventory_movement_resource_type import InventoryMovementResourceType
@@ -113,9 +112,9 @@ class InventoryMovement:
         d = dict(src_dict)
         id = d.pop("id")
 
-        created_at = isoparse(d.pop("created_at"))
+        created_at = datetime.datetime.fromisoformat(d.pop("created_at"))
 
-        updated_at = isoparse(d.pop("updated_at"))
+        updated_at = datetime.datetime.fromisoformat(d.pop("updated_at"))
 
         variant_id = d.pop("variant_id")
 
@@ -123,7 +122,7 @@ class InventoryMovement:
 
         resource_type = InventoryMovementResourceType(d.pop("resource_type"))
 
-        movement_date = isoparse(d.pop("movement_date"))
+        movement_date = datetime.datetime.fromisoformat(d.pop("movement_date"))
 
         quantity_change = d.pop("quantity_change")
 
