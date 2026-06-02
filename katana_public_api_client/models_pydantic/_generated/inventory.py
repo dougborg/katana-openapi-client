@@ -210,7 +210,9 @@ class Variant(UpdatableEntity, DeletableEntity):
     ] = None
     custom_fields: Annotated[
         list[CustomField] | None,
-        Field(description="Custom field values specific to this variant"),
+        Field(
+            description="Custom field values specific to this variant (legacy [{field_name, field_value}] array via /custom_fields_collections; distinct from the sales-order custom_fields dict — see CustomFieldValue)"
+        ),
     ] = None
     config_attributes: Annotated[
         list[ConfigAttribute] | None,
@@ -250,7 +252,7 @@ class ServiceVariant(UpdatableEntity, DeletableEntity):
     custom_fields: Annotated[
         list[CustomField1] | None,
         Field(
-            description='Custom field values specific to this service variant. The\nAPI returns ``null`` (not ``[]``) when the variant has no\ncustom-field assignments — non-nullable here causes the\ngenerated parser to fail with "NoneType is not iterable"\non every create_service / get_service response.\n'
+            description='Custom field values specific to this service variant, in\nthe legacy ``[{field_name, field_value}]`` array shape\n(configured via ``/custom_fields_collections``; distinct\nfrom the sales-order ``custom_fields`` dict — see\n``CustomFieldValue``). The API returns ``null`` (not\n``[]``) when the variant has no custom-field assignments —\nnon-nullable here causes the generated parser to fail with\n"NoneType is not iterable" on every create_service /\nget_service response.\n'
         ),
     ] = None
 
@@ -567,7 +569,10 @@ class CreateVariantRequest(KatanaPydanticBase):
     ] = None
     custom_fields: Annotated[
         list[CustomField2] | None,
-        Field(description="Custom field values specific to this variant", max_length=3),
+        Field(
+            description="Custom field values specific to this variant (legacy [{field_name, field_value}] array via /custom_fields_collections; distinct from the sales-order custom_fields dict — see CustomFieldValue)",
+            max_length=3,
+        ),
     ] = None
 
 
@@ -638,7 +643,7 @@ class UpdateVariantRequest(KatanaPydanticBase):
     custom_fields: Annotated[
         list[CustomField4] | None,
         Field(
-            description="Additional custom field values associated with this variant"
+            description="Additional custom field values associated with this variant, in\nthe legacy ``[{field_name, field_value}]`` array shape\n(configured via ``/custom_fields_collections``; distinct from\nthe sales-order ``custom_fields`` dict — see ``CustomFieldValue``).\n"
         ),
     ] = None
 
@@ -1225,7 +1230,7 @@ class UpdateServiceRequest(KatanaPydanticBase):
     custom_fields: Annotated[
         list[CustomFieldValue] | None,
         Field(
-            description="Custom field values to attach to the service. Field names must\nmatch those configured for the ``service`` resource type (see\n``GET /custom_fields_collections``).\n",
+            description="Custom field values to attach to the service, in the legacy\n``[{field_name, field_value}]`` array shape. Field names must\nmatch those configured for the ``service`` resource type (see\n``GET /custom_fields_collections``). This is distinct from the\nsales-order ``custom_fields`` dict keyed by\n``/custom_field_definitions`` UUIDs — see ``CustomFieldValue``.\n",
             max_length=3,
         ),
     ] = None
@@ -1459,7 +1464,9 @@ class VariantResponse(DeletableEntity):
     ] = None
     custom_fields: Annotated[
         list[CustomField3] | None,
-        Field(description="Custom field values specific to this variant"),
+        Field(
+            description="Custom field values specific to this variant (legacy [{field_name, field_value}] array via /custom_fields_collections; distinct from the sales-order custom_fields dict — see CustomFieldValue)"
+        ),
     ] = None
     product_or_material: Annotated[
         Product | Material | None,
@@ -1550,7 +1557,7 @@ class CachedVariant(UpdatableEntity, DeletableEntity, table=True):
         Mapped[list[CustomField] | None],
         SQLField(
             sa_column=Column(PydanticJSON),
-            description="Custom field values specific to this variant",
+            description="Custom field values specific to this variant (legacy [{field_name, field_value}] array via /custom_fields_collections; distinct from the sales-order custom_fields dict — see CustomFieldValue)",
         ),
     ] = None
     config_attributes: Annotated[

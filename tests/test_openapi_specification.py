@@ -232,3 +232,138 @@ class TestOpenAPISpecification:
                 f"Mis-declaring this breaks the generated parser. "
                 f"Declared response codes: {sorted(responses.keys())}"
             )
+
+
+class TestCustomFieldsSurfaceAlignment:
+    """Pin the custom-fields surface to Katana's live API (issue #805).
+
+    These invariants were verified against the live official Katana catalog
+    (``/custom_field_definitions``, ``/sales_orders/search``,
+    ``/sales_order_rows/search``) on 2026-06-02. The live API supersedes the
+    pre-GA partner PDF on three points captured here: only 6 field types (no
+    ``multiSelect``), entity_type limited to ``SalesOrder`` / ``SalesOrderRow``,
+    and a narrower search operator set.
+    """
+
+    @pytest.fixture(scope="class")
+    def schemas(self, openapi_spec: dict[str, Any]) -> dict[str, Any]:
+        return openapi_spec["components"]["schemas"]
+
+    def test_entity_type_narrowed_to_live_values(self, schemas: dict[str, Any]):
+        """Only sales orders and rows carry partner custom fields today."""
+        assert schemas["CustomFieldEntityType"]["enum"] == [
+            "SalesOrder",
+            "SalesOrderRow",
+        ], "entity_type must match the live allowlist; add a value only once live."
+
+    def test_field_type_has_no_multiselect(self, schemas: dict[str, Any]):
+        """The live API enumerates 6 types; multiSelect is not yet live."""
+        enum = schemas["CustomFieldType"]["enum"]
+        assert "multiSelect" not in enum, (
+            "multiSelect is announced but the live API rejects it — do not add "
+            "it to the enum until the live catalog accepts it."
+        )
+        assert set(enum) == {
+            "shortText",
+            "number",
+            "singleSelect",
+            "date",
+            "boolean",
+            "url",
+        }
+
+    def test_options_choice_shapes_split_create_vs_read(self, schemas: dict[str, Any]):
+        """Create choices carry only ``label``; read/update add ``id`` + ``deleted``."""
+        create_props = schemas["CustomFieldChoiceCreate"]["properties"]
+        assert set(create_props) == {"label"}
+
+        rw_props = schemas["CustomFieldChoice"]["properties"]
+        assert {"id", "label", "deleted"} == set(rw_props)
+        assert schemas["CustomFieldChoice"]["required"] == ["label"]
+
+    def test_options_schemas_wire_to_correct_choice_type(self, schemas: dict[str, Any]):
+        """Guard against swapping the create-side and read/update-side $refs.
+
+        A swap (e.g. CustomFieldOptions pointing at CustomFieldChoiceCreate)
+        would let a create payload omit ``id``/``deleted`` on update, or demand
+        them on create — and every shape-only test above would still pass.
+        """
+        assert schemas["CustomFieldOptions"]["properties"]["choices"]["items"][
+            "$ref"
+        ].endswith("/CustomFieldChoice")
+        assert schemas["CustomFieldOptionsCreate"]["properties"]["choices"]["items"][
+            "$ref"
+        ].endswith("/CustomFieldChoiceCreate")
+
+        def _options_ref(schema_name: str) -> str:
+            # options is `anyOf: [{$ref}, {type: null}]` — find the $ref branch.
+            options = schemas[schema_name]["properties"]["options"]
+            return next(b["$ref"] for b in options["anyOf"] if "$ref" in b)
+
+        assert _options_ref("CreateCustomFieldDefinitionRequest").endswith(
+            "/CustomFieldOptionsCreate"
+        )
+        assert _options_ref("UpdateCustomFieldDefinitionRequest").endswith(
+            "/CustomFieldOptions"
+        )
+        assert _options_ref("CustomFieldDefinition").endswith("/CustomFieldOptions")
+
+    def test_search_comparator_uses_live_operator_set(self, schemas: dict[str, Any]):
+        """No nlike/nilike/regexp/eq/exists — match the live structured schema."""
+        ops = set(schemas["SearchComparator"]["properties"])
+        assert ops == {
+            "neq",
+            "gt",
+            "gte",
+            "lt",
+            "lte",
+            "inq",
+            "nin",
+            "between",
+            "like",
+            "ilike",
+        }
+        assert schemas["SearchComparator"]["additionalProperties"] is False
+
+    def test_search_filter_request_retired(self, schemas: dict[str, Any]):
+        """The generic envelope is replaced by per-endpoint request schemas."""
+        assert "SearchFilterRequest" not in schemas
+        for name in (
+            "SalesOrderSearchRequest",
+            "SalesOrderRowSearchRequest",
+        ):
+            assert name in schemas
+
+    def test_search_endpoints_reference_typed_requests(
+        self, openapi_spec: dict[str, Any]
+    ):
+        """Both search endpoints point at their per-endpoint request schema."""
+        paths = openapi_spec["paths"]
+        so = paths["/sales_orders/search"]["post"]["requestBody"]["content"][
+            "application/json"
+        ]["schema"]["$ref"]
+        row = paths["/sales_order_rows/search"]["post"]["requestBody"]["content"][
+            "application/json"
+        ]["schema"]["$ref"]
+        assert so.endswith("/SalesOrderSearchRequest")
+        assert row.endswith("/SalesOrderRowSearchRequest")
+
+    def test_search_where_uses_snake_case_custom_fields_path(
+        self, schemas: dict[str, Any]
+    ):
+        """Pin the live-verified snake_case ``custom_fields.<uuid>`` search path.
+
+        Verified live (2026-06-02): the API accepts ``custom_fields.<uuid>`` in
+        ``where`` and rejects camelCase ``customFields.<uuid>`` as an unknown
+        field. The where schemas allow the dynamic UUID keys via
+        ``additionalProperties: true`` and must NOT declare a ``customFields``
+        property (which would reintroduce the pre-GA camelCase footgun).
+        """
+        for name in ("SalesOrderSearchWhere", "SalesOrderRowSearchWhere"):
+            where = schemas[name]
+            assert where["additionalProperties"] is True, (
+                f"{name} must allow custom_fields.<uuid> dynamic keys"
+            )
+            assert "customFields" not in where.get("properties", {}), (
+                f"{name} must not declare a camelCase customFields property"
+            )

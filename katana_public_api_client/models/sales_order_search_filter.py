@@ -8,28 +8,25 @@ from attrs import define as _attrs_define
 from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.search_filter_request_filter_where import (
-        SearchFilterRequestFilterWhere,
-    )
+    from ..models.sales_order_search_where import SalesOrderSearchWhere
 
 
-T = TypeVar("T", bound="SearchFilterRequestFilter")
+T = TypeVar("T", bound="SalesOrderSearchFilter")
 
 
 @_attrs_define
-class SearchFilterRequestFilter:
+class SalesOrderSearchFilter:
+    """Filter envelope for ``POST /sales_orders/search``."""
+
+    where: SalesOrderSearchWhere | Unset = UNSET
+    order: list[str] | str | Unset = UNSET
     limit: int | Unset = UNSET
     page: int | Unset = UNSET
-    skip: int | Unset = UNSET
-    order: list[str] | str | Unset = UNSET
-    where: SearchFilterRequestFilterWhere | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        limit = self.limit
-
-        page = self.page
-
-        skip = self.skip
+        where: dict[str, Any] | Unset = UNSET
+        if not isinstance(self.where, Unset):
+            where = self.where.to_dict()
 
         order: list[str] | str | Unset
         if isinstance(self.order, Unset):
@@ -40,38 +37,35 @@ class SearchFilterRequestFilter:
         else:
             order = self.order
 
-        where: dict[str, Any] | Unset = UNSET
-        if not isinstance(self.where, Unset):
-            where = self.where.to_dict()
+        limit = self.limit
+
+        page = self.page
 
         field_dict: dict[str, Any] = {}
 
         field_dict.update({})
+        if where is not UNSET:
+            field_dict["where"] = where
+        if order is not UNSET:
+            field_dict["order"] = order
         if limit is not UNSET:
             field_dict["limit"] = limit
         if page is not UNSET:
             field_dict["page"] = page
-        if skip is not UNSET:
-            field_dict["skip"] = skip
-        if order is not UNSET:
-            field_dict["order"] = order
-        if where is not UNSET:
-            field_dict["where"] = where
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.search_filter_request_filter_where import (
-            SearchFilterRequestFilterWhere,
-        )
+        from ..models.sales_order_search_where import SalesOrderSearchWhere
 
         d = dict(src_dict)
-        limit = d.pop("limit", UNSET)
-
-        page = d.pop("page", UNSET)
-
-        skip = d.pop("skip", UNSET)
+        _where = d.pop("where", UNSET)
+        where: SalesOrderSearchWhere | Unset
+        if isinstance(_where, Unset):
+            where = UNSET
+        else:
+            where = SalesOrderSearchWhere.from_dict(_where)
 
         def _parse_order(data: object) -> list[str] | str | Unset:
             if isinstance(data, Unset):
@@ -88,19 +82,15 @@ class SearchFilterRequestFilter:
 
         order = _parse_order(d.pop("order", UNSET))
 
-        _where = d.pop("where", UNSET)
-        where: SearchFilterRequestFilterWhere | Unset
-        if isinstance(_where, Unset):
-            where = UNSET
-        else:
-            where = SearchFilterRequestFilterWhere.from_dict(_where)
+        limit = d.pop("limit", UNSET)
 
-        search_filter_request_filter = cls(
+        page = d.pop("page", UNSET)
+
+        sales_order_search_filter = cls(
+            where=where,
+            order=order,
             limit=limit,
             page=page,
-            skip=skip,
-            order=order,
-            where=where,
         )
 
-        return search_filter_request_filter
+        return sales_order_search_filter

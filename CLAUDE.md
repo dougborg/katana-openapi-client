@@ -465,8 +465,13 @@ exists to prevent. Tests that want graceful skipping wire the skip in the fixtur
 in the helper.
 
 Set the env vars in `.env` (uncommented in `.env.example`). Phase 1 landed the helper,
-`.env` updates, and probe-script refactors. Later phases add pytest fixtures, GitHub
-Actions wiring, and the actual live smoke tests — track progress on the
+`.env` updates, and probe-script refactors. Phase 2 added the live client suite at
+[`tests/integration/`](tests/integration/) — read-only smoke tests built on
+`make_test_client()`, run via `uv run poe test-integration-live`, auto-skipping when
+`KATANA_TEST_API_KEY` is unset (the skip lives in the `live_client` fixture, not the
+helper). See [`tests/integration/README.md`](tests/integration/README.md) for the
+SDT-tagging + cleanup contract any *write* test must follow. Later phases add GitHub
+Actions wiring and MCP-server smoke tests — track progress on the
 [project board](https://github.com/users/dougborg/projects/5).
 
 ## Detailed Documentation

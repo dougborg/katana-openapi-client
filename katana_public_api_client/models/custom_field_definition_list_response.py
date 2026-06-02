@@ -24,7 +24,8 @@ class CustomFieldDefinitionListResponse:
     Example:
         {'data': [{'id': '0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef', 'label': 'Channel', 'field_type': 'shortText',
             'entity_type': 'SalesOrder', 'source': 'your-integration', 'description': 'Customer-facing sales channel
-            classification', 'options': None, 'created_at': '2026-05-14T10:00:00Z', 'updated_at': '2026-05-14T10:00:00Z'}]}
+            classification', 'options': None, 'created_at': '2026-05-14T10:00:00Z', 'updated_at': '2026-05-14T10:00:00Z',
+            'deleted_at': None}]}
     """
 
     data: list[CustomFieldDefinition] | Unset = UNSET

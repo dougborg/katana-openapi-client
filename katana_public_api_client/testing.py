@@ -20,9 +20,19 @@ from dotenv import dotenv_values
 
 from .katana_client import KatanaClient
 
-__all__ = ["make_test_client"]
+__all__ = ["MissingTestCredentialsError", "make_test_client"]
 
 _DEFAULT_TEST_BASE_URL = "https://api.katanamrp.com/v1"
+
+
+class MissingTestCredentialsError(RuntimeError):
+    """Raised when ``KATANA_TEST_API_KEY`` is unset.
+
+    A subclass of :class:`RuntimeError` so existing ``except RuntimeError``
+    callers keep working, but a distinct type so test fixtures can skip on
+    *this* specifically (missing credentials) while letting any *other*
+    helper failure propagate loudly instead of masking it as a skip.
+    """
 
 
 def _read_test_env(name: str, env_values: Mapping[str, str | None]) -> str | None:
@@ -52,10 +62,10 @@ def make_test_client(**kwargs: Any) -> KatanaClient:
     rate limiter, etc.
 
     Raises:
-        RuntimeError: when ``KATANA_TEST_API_KEY`` is unset. There is
-            **no** fallback to ``KATANA_API_KEY`` — test code must not
-            be able to accidentally hit prod when the env is
-            misconfigured.
+        MissingTestCredentialsError: when ``KATANA_TEST_API_KEY`` is unset
+            (a :class:`RuntimeError` subclass). There is **no** fallback to
+            ``KATANA_API_KEY`` — test code must not be able to accidentally
+            hit prod when the env is misconfigured.
 
     Example:
         >>> from katana_public_api_client.testing import make_test_client
@@ -66,7 +76,7 @@ def make_test_client(**kwargs: Any) -> KatanaClient:
     env_values = dotenv_values()
     api_key = _read_test_env("KATANA_TEST_API_KEY", env_values)
     if not api_key:
-        raise RuntimeError(
+        raise MissingTestCredentialsError(
             "KATANA_TEST_API_KEY is not set. make_test_client() will NOT "
             "fall back to KATANA_API_KEY — that fallback would let test "
             "code accidentally hit the production tenant. Set "

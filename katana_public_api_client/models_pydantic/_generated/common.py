@@ -748,41 +748,70 @@ class Quantity(IntEnum):
     integer_1 = 1
 
 
-class Filter(KatanaPydanticBase):
+class SearchScalarValue1(RootModel[str]):
+    root: Annotated[
+        str,
+        Field(
+            description="A scalar filter value used in search ``where`` predicates — the\nbare-equality value and the operand type inside\n``SearchComparator`` operator objects. Covers the full range of\nKatana field value types: string (max 256 chars), number, boolean,\nor ``null``. Note: the pydantic generator emits the ``str`` branch\nas a separate ``RootModel[str]`` class (``SearchScalarValue1``)\nrather than producing a single named union — ``SearchScalarValue1``\nis the string branch only, not the full union.\n",
+            max_length=256,
+        ),
+    ]
+
+
+class SearchComparator(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    limit: Annotated[
-        int | None, Field(description="Maximum number of results to return", ge=0)
+    neq: Annotated[
+        SearchScalarValue1 | float | bool | None,
+        Field(description="Not equal."),
     ] = None
-    page: Annotated[int | None, Field(description="Page number, 1-indexed", ge=1)] = (
-        None
-    )
-    skip: Annotated[
-        int | None,
+    gt: Annotated[
+        SearchScalarValue1 | float | bool | None,
+        Field(description="Greater than."),
+    ] = None
+    gte: Annotated[
+        SearchScalarValue1 | float | bool | None,
+        Field(description="Greater than or equal."),
+    ] = None
+    lt: Annotated[
+        SearchScalarValue1 | float | bool | None,
+        Field(description="Less than."),
+    ] = None
+    lte: Annotated[
+        SearchScalarValue1 | float | bool | None,
+        Field(description="Less than or equal."),
+    ] = None
+    inq: Annotated[
+        list[SearchScalarValue1 | float | bool | None] | None,
+        Field(description="Value is in this list (max 100 entries).", max_length=100),
+    ] = None
+    nin: Annotated[
+        list[SearchScalarValue1 | float | bool | None] | None,
         Field(
-            description="Number of results to skip before returning the first row", ge=0
+            description="Value is not in this list (max 100 entries).", max_length=100
         ),
     ] = None
-    order: Annotated[
-        str | list[str] | None,
+    between: Annotated[
+        list[SearchScalarValue1 | float | bool | None] | None,
         Field(
-            description='Sort order, either a single ``"field DIR"`` string or an array\nof such strings to break ties between multiple fields.',
+            description="Inclusive range ``[low, high]``.", max_length=2, min_length=2
         ),
     ] = None
-    where: Annotated[
-        dict[str, Any] | None,
+    like: Annotated[
+        str | None,
         Field(
-            description='Filter predicates keyed by field name. Each value is either a\nscalar (for equality matching) or an operator object such as\n``{"gt": 10}`` or ``{"inq": [1, 2, 3]}``. Use the ``and`` and\n``or`` keys at the top level of ``where`` to compose multiple\npredicates.'
+            description="Pattern match, case-sensitive. ``%`` matches any sequence,\n``_`` matches any single character.\n",
+            max_length=256,
         ),
     ] = None
-
-
-class SearchFilterRequest(KatanaPydanticBase):
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    filter: Filter | None = None
+    ilike: Annotated[
+        str | None,
+        Field(
+            description="Pattern match, case-insensitive (see ``like``).",
+            max_length=256,
+        ),
+    ] = None
 
 
 class Attribute3(KatanaPydanticBase):
@@ -998,121 +1027,54 @@ class CustomFieldType(StrEnum):
 class CustomFieldEntityType(StrEnum):
     sales_order = "SalesOrder"
     sales_order_row = "SalesOrderRow"
-    sales_recipe_row = "SalesRecipeRow"
-    sales_order_fulfillment_row = "SalesOrderFulfillmentRow"
-    manufacturing_order = "ManufacturingOrder"
-    manufacturing_order_recipe_row = "ManufacturingOrderRecipeRow"
-    purchase_order = "PurchaseOrder"
-    purchase_order_row = "PurchaseOrderRow"
-    purchase_order_recipe_row = "PurchaseOrderRecipeRow"
-    outsourced_purchase_order_row = "OutsourcedPurchaseOrderRow"
-    stock_adjustment = "StockAdjustment"
-    stock_adjustment_row = "StockAdjustmentRow"
-    stock_transfer_row = "StockTransferRow"
-    production = "Production"
-    production_ingredient = "ProductionIngredient"
-    customer = "Customer"
-    product_variant = "ProductVariant"
-    material_variant = "MaterialVariant"
-    service_variant = "ServiceVariant"
 
 
-class CustomFieldDefinition(KatanaPydanticBase):
+class CustomFieldChoice(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    id: Annotated[UUID, Field(description="Server-assigned UUID identifier")]
-    label: Annotated[
-        str, Field(description="Display label shown in the Katana UI", max_length=255)
-    ]
-    field_type: Annotated[
-        CustomFieldType,
-        Field(description="Field input type. Immutable after creation."),
-    ]
-    entity_type: Annotated[
-        CustomFieldEntityType,
+    id: Annotated[
+        int | None,
         Field(
-            description="Resource type the definition applies to. Immutable after creation."
-        ),
-    ]
-    source: Annotated[
-        str,
-        Field(
-            description="Origin / namespace of the definition (e.g. ``katana``, ``user``).",
-            max_length=255,
-        ),
-    ]
-    description: Annotated[
-        str | None,
-        Field(description="Optional long-form description of the field's purpose"),
-    ] = None
-    options: Annotated[
-        dict[str, Any] | None,
-        Field(
-            description="Configuration object. Only meaningful when ``field_type`` is\n``singleSelect`` — option choices are carried here.\nThe internal shape is unspecified here; see the README\nreference's per-``field_type`` semantics.\n"
+            description="Server-assigned choice identifier. The value actually stored on\na sales order for this field. Present on read; on\n``PATCH /custom_field_definitions/{id}`` it must be supplied to\nidentify an existing choice (omit it to create a new choice).\n"
         ),
     ] = None
-    created_at: Annotated[
-        AwareDatetime | None,
-        Field(description="Timestamp when the definition was created"),
-    ] = None
-    updated_at: Annotated[
-        AwareDatetime | None,
-        Field(description="Timestamp when the definition was last updated"),
+    label: Annotated[str, Field(description="Human-readable label for the choice.")]
+    deleted: Annotated[
+        bool | None,
+        Field(
+            description="Soft-delete marker. On update, set ``true`` to retire an\nexisting choice while keeping it in the array so historical\nvalues referencing its ``id`` stay resolvable. Choices are\nnever hard-deleted.\n"
+        ),
     ] = None
 
 
-class CreateCustomFieldDefinitionRequest(KatanaPydanticBase):
+class CustomFieldChoiceCreate(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    label: Annotated[
-        str, Field(description="Display label shown in the Katana UI", max_length=255)
-    ]
-    field_type: Annotated[
-        CustomFieldType,
-        Field(description="Field input type. Immutable after creation."),
-    ]
-    entity_type: Annotated[
-        CustomFieldEntityType,
-        Field(
-            description="Resource type the definition applies to. Immutable after creation."
-        ),
-    ]
-    source: Annotated[
-        str, Field(description="Origin / namespace of the definition.", max_length=255)
-    ]
-    description: Annotated[
-        str | None, Field(description="Optional long-form description")
-    ] = None
-    options: Annotated[
-        dict[str, Any] | None,
-        Field(
-            description="Configuration object. Only meaningful when ``field_type`` is\n``singleSelect``; omit (or send ``null``) for other types.\nThe internal shape is unspecified here; see the README\nreference's per-``field_type`` semantics.\n"
-        ),
-    ] = None
+    label: Annotated[str, Field(description="Human-readable label for the choice.")]
 
 
-class UpdateCustomFieldDefinitionRequest(KatanaPydanticBase):
+class CustomFieldOptions(KatanaPydanticBase):
     model_config = ConfigDict(
         extra="forbid",
     )
-    label: Annotated[
-        str | None, Field(description="Updated display label", max_length=255)
-    ] = None
-    description: Annotated[
-        str | None, Field(description="Updated long-form description")
-    ] = None
-    options: Annotated[
-        dict[str, Any] | None, Field(description="Updated configuration object")
-    ] = None
+    choices: Annotated[
+        list[CustomFieldChoice],
+        Field(
+            description="The allowed choices, each with its server-assigned integer\n``id`` and ``label``. Soft-deleted choices remain present so\nhistorical values stay resolvable.\n"
+        ),
+    ]
 
 
-class CustomFieldDefinitionListResponse(KatanaPydanticBase):
-    data: Annotated[
-        list[CustomFieldDefinition] | None,
-        Field(description="Array of custom field definitions"),
-    ] = None
+class CustomFieldOptionsCreate(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    choices: Annotated[
+        list[CustomFieldChoiceCreate],
+        Field(description="The choices to create, each identified by ``label`` only."),
+    ]
 
 
 class Transaction(KatanaPydanticBase):
@@ -1266,6 +1228,113 @@ class CustomFieldsCollectionListResponse(KatanaPydanticBase):
         Field(
             description="Array of custom field collections with their field definitions and configuration"
         ),
+    ] = None
+
+
+class CustomFieldDefinition(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    id: Annotated[UUID, Field(description="Server-assigned UUID identifier")]
+    label: Annotated[
+        str, Field(description="Display label shown in the Katana UI", max_length=255)
+    ]
+    field_type: Annotated[
+        CustomFieldType,
+        Field(description="Field input type. Immutable after creation."),
+    ]
+    entity_type: Annotated[
+        CustomFieldEntityType,
+        Field(
+            description="Resource type the definition applies to. Immutable after creation."
+        ),
+    ]
+    source: Annotated[
+        str,
+        Field(
+            description="Caller-provided identifier of the integration that owns the\nfield (e.g. your application slug). Namespaces and audits\ndefinitions. Immutable after creation.\n",
+            max_length=255,
+        ),
+    ]
+    description: Annotated[
+        str | None,
+        Field(description="Optional long-form description of the field's purpose"),
+    ] = None
+    options: Annotated[
+        CustomFieldOptions | None,
+        Field(
+            description="Choice configuration. Present and meaningful only when\n``field_type`` is ``singleSelect``; ``null`` for every other\ntype. Each choice carries its server-assigned integer ``id``\n(the value stored on the entity) and ``label``; soft-deleted\nchoices remain in the array so historical values stay\nresolvable.\n",
+        ),
+    ] = None
+    created_at: Annotated[
+        AwareDatetime | None,
+        Field(description="Timestamp when the definition was created"),
+    ] = None
+    updated_at: Annotated[
+        AwareDatetime | None,
+        Field(description="Timestamp when the definition was last updated"),
+    ] = None
+    deleted_at: Annotated[
+        AwareDatetime | None,
+        Field(
+            description="Soft-delete timestamp; ``null`` for a live definition. Deleting\na definition (``DELETE /custom_field_definitions/{id}``) is a\nsoft delete — its values are stripped from read responses but\nthe definition is retained.\n"
+        ),
+    ] = None
+
+
+class CreateCustomFieldDefinitionRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    label: Annotated[
+        str, Field(description="Display label shown in the Katana UI", max_length=255)
+    ]
+    field_type: Annotated[
+        CustomFieldType,
+        Field(description="Field input type. Immutable after creation."),
+    ]
+    entity_type: Annotated[
+        CustomFieldEntityType,
+        Field(
+            description="Resource type the definition applies to. Immutable after creation."
+        ),
+    ]
+    source: Annotated[
+        str, Field(description="Origin / namespace of the definition.", max_length=255)
+    ]
+    description: Annotated[
+        str | None, Field(description="Optional long-form description")
+    ] = None
+    options: Annotated[
+        CustomFieldOptionsCreate | None,
+        Field(
+            description="Choice configuration. Required when ``field_type`` is\n``singleSelect``; omit (or send ``null``) for every other type.\nOn create, send each choice with just a ``label`` — the server\nassigns each one an integer ``id`` and returns the resolved\narray. Use those ``id`` values when setting the field on a\nsales order.\n",
+        ),
+    ] = None
+
+
+class UpdateCustomFieldDefinitionRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    label: Annotated[
+        str | None, Field(description="Updated display label", max_length=255)
+    ] = None
+    description: Annotated[
+        str | None, Field(description="Updated long-form description")
+    ] = None
+    options: Annotated[
+        CustomFieldOptions | None,
+        Field(
+            description='Updated choice configuration (``singleSelect`` only). Send the\n**full** ``choices`` array — every existing choice must be\nincluded and identified by its server-assigned ``id``. A choice\npresent in the array without an ``id`` is created. A choice\nomitted from the array is removed from the active choices list\n(it can no longer be selected), but its past values on existing\nrecords are not resolvable after removal. Use ``"deleted": true``\ninstead to soft-delete a choice — it stays in the array so\nhistorical values referencing its ``id`` remain resolvable, but\nit is no longer offered as a new selection. Choices are never\nhard-deleted.\n',
+        ),
+    ] = None
+
+
+class CustomFieldDefinitionListResponse(KatanaPydanticBase):
+    data: Annotated[
+        list[CustomFieldDefinition] | None,
+        Field(description="Array of custom field definitions"),
     ] = None
 
 

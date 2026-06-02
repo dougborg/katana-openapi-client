@@ -70,16 +70,17 @@ class CreateSalesOrderRequest:
         ecommerce_store_name (None | str | Unset): Name of the ecommerce store if order originated from online
         ecommerce_order_id (None | str | Unset): Original order ID from the ecommerce platform
         custom_fields (CreateSalesOrderRequestCustomFieldsType0 | None | Unset): Custom field values for the sales
-            order, keyed by configured
-            field name. Keys correspond to fields defined for the
-            ``SalesOrder`` entity type on the tenant's
-            ``custom_field_collection`` (see
-            ``GET /custom_fields_collections``). Each value matches the
-            corresponding field's ``CustomFieldType`` (``shortText`` /
-            ``number`` / ``singleSelect`` / ``date`` / ``boolean`` /
-            ``url``). The valid key set is tenant-specific runtime
-            config, so the schema declares ``additionalProperties: true``
-            rather than enumerating keys.
+            order, keyed by the
+            definition ``id`` (UUID) — the ``id`` returned by
+            ``GET /custom_field_definitions``, not the field label. Each
+            value matches the definition's ``field_type``: string for
+            ``shortText`` / ``url``, number for ``number``, boolean for
+            ``boolean``, a ``YYYY-MM-DD`` string for ``date``, or the
+            integer choice ``id`` for ``singleSelect``. Example (keys are
+            definition UUIDs): ``{"0c8f1d6e-…": "EMEA", "7a21b4c2-…": 2}``
+            — a ``shortText`` value and a ``singleSelect`` choice ``id``.
+            Keys are tenant-specific, so the schema declares
+            ``additionalProperties: true`` rather than enumerating them.
     """
 
     customer_id: int

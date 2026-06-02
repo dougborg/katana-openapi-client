@@ -192,11 +192,23 @@ from katana_public_api_client.models.create_webhook_request import (
     CreateWebhookRequest as AttrsCreateWebhookRequest,
 )
 from katana_public_api_client.models.custom_field import CustomField as AttrsCustomField
+from katana_public_api_client.models.custom_field_choice import (
+    CustomFieldChoice as AttrsCustomFieldChoice,
+)
+from katana_public_api_client.models.custom_field_choice_create import (
+    CustomFieldChoiceCreate as AttrsCustomFieldChoiceCreate,
+)
 from katana_public_api_client.models.custom_field_definition import (
     CustomFieldDefinition as AttrsCustomFieldDefinition,
 )
 from katana_public_api_client.models.custom_field_definition_list_response import (
     CustomFieldDefinitionListResponse as AttrsCustomFieldDefinitionListResponse,
+)
+from katana_public_api_client.models.custom_field_options import (
+    CustomFieldOptions as AttrsCustomFieldOptions,
+)
+from katana_public_api_client.models.custom_field_options_create import (
+    CustomFieldOptionsCreate as AttrsCustomFieldOptionsCreate,
 )
 from katana_public_api_client.models.custom_field_value import (
     CustomFieldValue as AttrsCustomFieldValue,
@@ -482,6 +494,24 @@ from katana_public_api_client.models.sales_order_row import (
 from katana_public_api_client.models.sales_order_row_list_response import (
     SalesOrderRowListResponse as AttrsSalesOrderRowListResponse,
 )
+from katana_public_api_client.models.sales_order_row_search_filter import (
+    SalesOrderRowSearchFilter as AttrsSalesOrderRowSearchFilter,
+)
+from katana_public_api_client.models.sales_order_row_search_request import (
+    SalesOrderRowSearchRequest as AttrsSalesOrderRowSearchRequest,
+)
+from katana_public_api_client.models.sales_order_row_search_where import (
+    SalesOrderRowSearchWhere as AttrsSalesOrderRowSearchWhere,
+)
+from katana_public_api_client.models.sales_order_search_filter import (
+    SalesOrderSearchFilter as AttrsSalesOrderSearchFilter,
+)
+from katana_public_api_client.models.sales_order_search_request import (
+    SalesOrderSearchRequest as AttrsSalesOrderSearchRequest,
+)
+from katana_public_api_client.models.sales_order_search_where import (
+    SalesOrderSearchWhere as AttrsSalesOrderSearchWhere,
+)
 from katana_public_api_client.models.sales_order_shipping_fee import (
     SalesOrderShippingFee as AttrsSalesOrderShippingFee,
 )
@@ -501,8 +531,8 @@ from katana_public_api_client.models.sales_return_row import (
 from katana_public_api_client.models.sales_return_row_list_response import (
     SalesReturnRowListResponse as AttrsSalesReturnRowListResponse,
 )
-from katana_public_api_client.models.search_filter_request import (
-    SearchFilterRequest as AttrsSearchFilterRequest,
+from katana_public_api_client.models.search_comparator import (
+    SearchComparator as AttrsSearchComparator,
 )
 from katana_public_api_client.models.serial_number import (
     SerialNumber as AttrsSerialNumber,
@@ -764,8 +794,12 @@ from ._generated.common import (
     CreateDemandForecastRequest as PydanticCreateDemandForecastRequest,
     CreateTaxRateRequest as PydanticCreateTaxRateRequest,
     CustomField as PydanticCustomField,
+    CustomFieldChoice as PydanticCustomFieldChoice,
+    CustomFieldChoiceCreate as PydanticCustomFieldChoiceCreate,
     CustomFieldDefinition as PydanticCustomFieldDefinition,
     CustomFieldDefinitionListResponse as PydanticCustomFieldDefinitionListResponse,
+    CustomFieldOptions as PydanticCustomFieldOptions,
+    CustomFieldOptionsCreate as PydanticCustomFieldOptionsCreate,
     CustomFieldsCollection as PydanticCustomFieldsCollection,
     CustomFieldsCollectionListResponse as PydanticCustomFieldsCollectionListResponse,
     CustomFieldValue as PydanticCustomFieldValue,
@@ -781,7 +815,7 @@ from ._generated.common import (
     ProductOperationRerankRequest as PydanticProductOperationRerankRequest,
     ProductOperationRow as PydanticProductOperationRow,
     ProductOperationRowListResponse as PydanticProductOperationRowListResponse,
-    SearchFilterRequest as PydanticSearchFilterRequest,
+    SearchComparator as PydanticSearchComparator,
     TaxRate as PydanticTaxRate,
     TaxRateListResponse as PydanticTaxRateListResponse,
     UnlinkVariantBinLocationRequest as PydanticUnlinkVariantBinLocationRequest,
@@ -962,6 +996,12 @@ from ._generated.sales_orders import (
     SalesOrderListResponse as PydanticSalesOrderListResponse,
     SalesOrderRow as PydanticSalesOrderRow,
     SalesOrderRowListResponse as PydanticSalesOrderRowListResponse,
+    SalesOrderRowSearchFilter as PydanticSalesOrderRowSearchFilter,
+    SalesOrderRowSearchRequest as PydanticSalesOrderRowSearchRequest,
+    SalesOrderRowSearchWhere as PydanticSalesOrderRowSearchWhere,
+    SalesOrderSearchFilter as PydanticSalesOrderSearchFilter,
+    SalesOrderSearchRequest as PydanticSalesOrderSearchRequest,
+    SalesOrderSearchWhere as PydanticSalesOrderSearchWhere,
     SalesOrderShippingFee as PydanticSalesOrderShippingFee,
     SalesOrderShippingFeeListResponse as PydanticSalesOrderShippingFeeListResponse,
     SalesReturn as PydanticSalesReturn,
@@ -1141,11 +1181,15 @@ def register_all_models() -> None:
     register(AttrsCreateVariantRequest, PydanticCreateVariantRequest)
     register(AttrsCreateWebhookRequest, PydanticCreateWebhookRequest)
     register(AttrsCustomField, PydanticCustomField)
+    register(AttrsCustomFieldChoice, PydanticCustomFieldChoice)
+    register(AttrsCustomFieldChoiceCreate, PydanticCustomFieldChoiceCreate)
     register(AttrsCustomFieldDefinition, PydanticCustomFieldDefinition)
     register(
         AttrsCustomFieldDefinitionListResponse,
         PydanticCustomFieldDefinitionListResponse,
     )
+    register(AttrsCustomFieldOptions, PydanticCustomFieldOptions)
+    register(AttrsCustomFieldOptionsCreate, PydanticCustomFieldOptionsCreate)
     register(AttrsCustomFieldValue, PydanticCustomFieldValue)
     register(AttrsCustomFieldsCollection, PydanticCustomFieldsCollection)
     register(
@@ -1308,6 +1352,12 @@ def register_all_models() -> None:
     register(AttrsSalesOrderListResponse, PydanticSalesOrderListResponse)
     register(AttrsSalesOrderRow, PydanticSalesOrderRow)
     register(AttrsSalesOrderRowListResponse, PydanticSalesOrderRowListResponse)
+    register(AttrsSalesOrderRowSearchFilter, PydanticSalesOrderRowSearchFilter)
+    register(AttrsSalesOrderRowSearchRequest, PydanticSalesOrderRowSearchRequest)
+    register(AttrsSalesOrderRowSearchWhere, PydanticSalesOrderRowSearchWhere)
+    register(AttrsSalesOrderSearchFilter, PydanticSalesOrderSearchFilter)
+    register(AttrsSalesOrderSearchRequest, PydanticSalesOrderSearchRequest)
+    register(AttrsSalesOrderSearchWhere, PydanticSalesOrderSearchWhere)
     register(AttrsSalesOrderShippingFee, PydanticSalesOrderShippingFee)
     register(
         AttrsSalesOrderShippingFeeListResponse,
@@ -1318,7 +1368,7 @@ def register_all_models() -> None:
     register(AttrsSalesReturnReason, PydanticSalesReturnReason)
     register(AttrsSalesReturnRow, PydanticSalesReturnRow)
     register(AttrsSalesReturnRowListResponse, PydanticSalesReturnRowListResponse)
-    register(AttrsSearchFilterRequest, PydanticSearchFilterRequest)
+    register(AttrsSearchComparator, PydanticSearchComparator)
     register(AttrsSerialNumber, PydanticSerialNumber)
     register(AttrsSerialNumberListResponse, PydanticSerialNumberListResponse)
     register(AttrsSerialNumberStock, PydanticSerialNumberStock)
