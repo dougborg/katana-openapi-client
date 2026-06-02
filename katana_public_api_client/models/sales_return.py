@@ -8,7 +8,6 @@ from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 from ..models.sales_return_refund_status import SalesReturnRefundStatus
@@ -210,14 +209,14 @@ class SalesReturn:
         if isinstance(_created_at, Unset):
             created_at = UNSET
         else:
-            created_at = isoparse(_created_at)
+            created_at = datetime.datetime.fromisoformat(_created_at)
 
         _updated_at = d.pop("updated_at", UNSET)
         updated_at: datetime.datetime | Unset
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
-            updated_at = isoparse(_updated_at)
+            updated_at = datetime.datetime.fromisoformat(_updated_at)
 
         def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
             if data is None:
@@ -227,7 +226,7 @@ class SalesReturn:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                deleted_at_type_0 = isoparse(data)
+                deleted_at_type_0 = datetime.datetime.fromisoformat(data)
 
                 return deleted_at_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -255,7 +254,7 @@ class SalesReturn:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                return_date_type_0 = isoparse(data)
+                return_date_type_0 = datetime.datetime.fromisoformat(data)
 
                 return return_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -269,7 +268,7 @@ class SalesReturn:
         if isinstance(_order_created_date, Unset):
             order_created_date = UNSET
         else:
-            order_created_date = isoparse(_order_created_date)
+            order_created_date = datetime.datetime.fromisoformat(_order_created_date)
 
         def _parse_additional_info(data: object) -> None | str | Unset:
             if data is None:

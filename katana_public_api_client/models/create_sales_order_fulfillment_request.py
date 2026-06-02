@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 from ..models.sales_order_fulfillment_status import SalesOrderFulfillmentStatus
@@ -117,7 +116,7 @@ class CreateSalesOrderFulfillmentRequest:
         if isinstance(_picked_date, Unset):
             picked_date = UNSET
         else:
-            picked_date = isoparse(_picked_date)
+            picked_date = datetime.datetime.fromisoformat(_picked_date)
 
         conversion_rate = d.pop("conversion_rate", UNSET)
 
@@ -126,7 +125,7 @@ class CreateSalesOrderFulfillmentRequest:
         if isinstance(_conversion_date, Unset):
             conversion_date = UNSET
         else:
-            conversion_date = isoparse(_conversion_date)
+            conversion_date = datetime.datetime.fromisoformat(_conversion_date)
 
         tracking_number = d.pop("tracking_number", UNSET)
 
