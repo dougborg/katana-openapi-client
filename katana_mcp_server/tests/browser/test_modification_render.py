@@ -207,8 +207,9 @@ class TestModificationCardRender:
     def test_so_modify_partial_failure_applied_renders(self, render_scenario):
         """#723 SO modify card — partial-failure applied state renders the
         card-level PARTIAL FAILURE badge, the per-action APPLIED / FAILED
-        Badges in the Line items + Shipping fees sections, and the
-        consolidated sub-entity failed-action Alert with retry coaching.
+        status in the Line items + Shipping fees DataTable Status columns
+        (#721 Phase 3 columnar), and the consolidated sub-entity
+        failed-action Alert with retry coaching.
 
         Pins end-to-end browser-render correctness for the SO modify
         card's most complex state — multiple parallel sub-entity outcomes
@@ -226,10 +227,10 @@ class TestModificationCardRender:
         # not (no actions, no section header).
         assert frame.locator("text=Line items:").count() >= 1
         assert frame.locator("text=Shipping fees:").count() >= 1
-        # Per-action status pills surface APPLIED on the successful
+        # Per-action Status cells surface APPLIED on the successful
         # actions; FAILED on the failed one. ``count() >= 1`` because
-        # multiple APPLIED Badges (one for the row that succeeded plus
-        # potentially the card-level chrome).
+        # APPLIED appears in the succeeded row's Status cell plus
+        # potentially the card-level chrome.
         assert frame.locator("text=APPLIED").count() >= 1
         assert frame.locator("text=FAILED").count() >= 1
         # Sub-entity failed-action Alert — title + retry-coaching tail.
@@ -257,16 +258,16 @@ class TestModificationCardRender:
            response.
         4. After the morph lands, assert (a) the state-driven sub-entity
            failed-action Alert has appeared with the error text and (b)
-           the per-row chrome has morphed — the failed row carries a
-           FAILED Badge and the ``✗`` gutter (#858 finding A). Without
-           the row-binding fix the row text + Badge stayed frozen on
-           the preview-time PLANNED state.
+           the per-row chrome has morphed — the failed row's Status cell
+           reads FAILED and its gutter flips to ``✗`` (#858 finding A).
+           Without the row-binding fix the row's Status + gutter stayed
+           frozen on the preview-time PLANNED state.
 
         Each per-section row list lives in ``state.so_<section>_rows``
-        (see ``_build_so_subentity_row_lists``) and renders via
-        ``ForEach``. The on_success chain SetStates each section list
-        from ``$result.state.so_<section>_rows`` so the row chrome
-        re-paints in lockstep with the apply outcome.
+        (see ``_build_so_subentity_row_lists``) and renders via a
+        state-bound ``DataTable`` (#721 Phase 3). The on_success chain
+        SetStates each section list from ``$result.state.so_<section>_rows``
+        so the Status column re-paints in lockstep with the apply outcome.
         """
         frame = render_scenario("so_modify_partial_failure_preview")
 
@@ -301,7 +302,7 @@ class TestModificationCardRender:
         # (references the SO id via ``modify_sales_order(id=42, ...)``).
         assert frame.locator("text=modify_sales_order(id=42").count() >= 1
         # Row-binding morph (#858 finding A): the failed row's gutter
-        # glyph flipped to ``✗`` and the per-row FAILED Badge appeared.
+        # glyph flipped to ``✗`` and its Status cell now reads FAILED.
         # Pre-fix these stayed at the preview-time PLANNED chrome.
         frame.locator("text=✗ row #9999").first.wait_for(state="visible", timeout=10000)
         assert frame.locator("text=FAILED").count() >= 1
@@ -397,9 +398,9 @@ class TestModificationCardRender:
         identically.
         """
         frame = render_scenario("so_modify_fail_fast_not_run_preview")
-        # Pre-state: preview shows all 4 rows as PLANNED (no Badges).
-        # The morph hasn't fired yet, so no NOT RUN / APPLIED / FAILED
-        # chrome on the per-row Badges.
+        # Pre-state: preview shows all 4 rows with PLANNED in their Status
+        # column. The morph hasn't fired yet, so no NOT RUN / APPLIED /
+        # FAILED status appears in any cell.
         assert frame.locator("button").filter(has_text="Confirm").first.is_visible()
         assert frame.locator("text=NOT RUN").count() == 0
         assert frame.locator("text=APPLIED").count() == 0

@@ -255,7 +255,7 @@ class TestRateLimitTransportResetGate:
     @pytest.mark.asyncio
     @pytest.mark.looptime
     async def test_blocks_subsequent_request_until_gate_releases(
-        self, mock_wrapped_transport: AsyncMock
+        self, mock_wrapped_transport: AsyncMock, monkeypatch
     ) -> None:
         """Integration: a closed gate blocks subsequent requests until ``loop.call_later`` fires.
 
@@ -272,13 +272,15 @@ class TestRateLimitTransportResetGate:
         - the gate reopens automatically once the virtual deadline elapses
         - the parked request then completes
         """
-        # Important — looptime fast-forwards ``loop.time()`` but
-        # ``time.time()`` (used by ``_engage_reset_gate`` for epoch-ms math)
-        # is real wall-clock. Use a small offset so the wait_ms math lands
-        # on a small positive value relative to the virtual loop clock.
-        # The actual ``loop.call_later(wait_s, ...)`` schedules against
-        # the loop's clock, so ``looptime`` advances over wait_s of
-        # virtual time when the test ``awaits`` the gate.
+        # The gate's epoch-ms math reads ``time.time()`` (wall clock), so we
+        # freeze it (see CLAUDE.md: time-based tests must fake time). With a
+        # frozen ``time.time``, both the reset header built by
+        # ``_build_response`` AND the gate's ``now_ms`` read the same instant,
+        # so ``wait_s`` is *exactly* ``gate_seconds`` — no drift between the
+        # two reads. Freezing ``time.time`` is looptime-safe: looptime drives
+        # the asyncio clock via ``perf_counter``/``monotonic``, which we leave
+        # alone, so ``loop.call_later(wait_s)`` still fast-forwards virtually.
+        monkeypatch.setattr(time, "time", lambda: 1_700_000_000.0)
         gate_seconds = 5.0
 
         transport = RateLimitTransport(
@@ -303,13 +305,12 @@ class TestRateLimitTransportResetGate:
         await transport.handle_async_request(_make_request())
         elapsed = loop.time() - start
 
-        # Loop time should have advanced by ~gate_seconds; real wall time
-        # is ~zero (looptime). Without looptime this would take 5 real
-        # seconds — slow and timing-jittery. With looptime the same code
-        # path runs through the actual production scheduler.
-        assert elapsed >= gate_seconds * 0.5, (
-            f"gate should have blocked ≥{gate_seconds * 0.5}s of loop time; "
-            f"got {elapsed:.2f}s"
+        # With time.time frozen, wait_s == gate_seconds exactly, and looptime
+        # advances loop.time by exactly that when the parked request awaits
+        # the gate — so the elapsed virtual time is deterministic.
+        assert elapsed == pytest.approx(gate_seconds, abs=1e-6), (
+            f"gate should have blocked exactly {gate_seconds}s of loop time; "
+            f"got {elapsed}s"
         )
         assert transport._reset_gate.is_set(), (
             "gate should have reopened via the real call_later → release chain"
