@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 
@@ -107,14 +106,14 @@ class UpdatePurchaseOrderRowRequest:
         if isinstance(_received_date, Unset):
             received_date = UNSET
         else:
-            received_date = isoparse(_received_date)
+            received_date = datetime.datetime.fromisoformat(_received_date)
 
         _arrival_date = d.pop("arrival_date", UNSET)
         arrival_date: datetime.datetime | Unset
         if isinstance(_arrival_date, Unset):
             arrival_date = UNSET
         else:
-            arrival_date = isoparse(_arrival_date)
+            arrival_date = datetime.datetime.fromisoformat(_arrival_date)
 
         update_purchase_order_row_request = cls(
             quantity=quantity,

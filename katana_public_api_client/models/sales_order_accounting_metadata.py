@@ -8,7 +8,6 @@ from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
-from dateutil.parser import isoparse
 
 from ..models.accounting_integration_type import AccountingIntegrationType
 
@@ -73,7 +72,7 @@ class SalesOrderAccountingMetadata:
 
         integration_type = AccountingIntegrationType(d.pop("integration_type"))
 
-        created_at = isoparse(d.pop("created_at"))
+        created_at = datetime.datetime.fromisoformat(d.pop("created_at"))
 
         sales_order_accounting_metadata = cls(
             id=id,

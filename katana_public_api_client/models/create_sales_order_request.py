@@ -8,7 +8,6 @@ from attrs import (
     define as _attrs_define,
     field as _attrs_field,
 )
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 from ..models.create_sales_order_status import CreateSalesOrderStatus
@@ -307,7 +306,7 @@ class CreateSalesOrderRequest:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                order_created_date_type_0 = isoparse(data)
+                order_created_date_type_0 = datetime.datetime.fromisoformat(data)
 
                 return order_created_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
@@ -326,7 +325,7 @@ class CreateSalesOrderRequest:
             try:
                 if not isinstance(data, str):
                     raise TypeError()
-                delivery_date_type_0 = isoparse(data)
+                delivery_date_type_0 = datetime.datetime.fromisoformat(data)
 
                 return delivery_date_type_0
             except (TypeError, ValueError, AttributeError, KeyError):

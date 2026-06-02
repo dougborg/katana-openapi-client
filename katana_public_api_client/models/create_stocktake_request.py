@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 
@@ -100,7 +99,7 @@ class CreateStocktakeRequest:
         if isinstance(_created_date, Unset):
             created_date = UNSET
         else:
-            created_date = isoparse(_created_date)
+            created_date = datetime.datetime.fromisoformat(_created_date)
 
         set_remaining_items_as_counted = d.pop("set_remaining_items_as_counted", UNSET)
 

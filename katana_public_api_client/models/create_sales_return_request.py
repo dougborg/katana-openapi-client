@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 
@@ -105,7 +104,7 @@ class CreateSalesReturnRequest:
         if isinstance(_order_created_date, Unset):
             order_created_date = UNSET
         else:
-            order_created_date = isoparse(_order_created_date)
+            order_created_date = datetime.datetime.fromisoformat(_order_created_date)
 
         order_no = d.pop("order_no", UNSET)
 

@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
-from dateutil.parser import isoparse
 
 from ..client_types import UNSET, Unset
 from ..models.sales_return_status import SalesReturnStatus
@@ -121,14 +120,14 @@ class UpdateSalesReturnRequest:
         if isinstance(_return_date, Unset):
             return_date = UNSET
         else:
-            return_date = isoparse(_return_date)
+            return_date = datetime.datetime.fromisoformat(_return_date)
 
         _order_created_date = d.pop("order_created_date", UNSET)
         order_created_date: datetime.datetime | Unset
         if isinstance(_order_created_date, Unset):
             order_created_date = UNSET
         else:
-            order_created_date = isoparse(_order_created_date)
+            order_created_date = datetime.datetime.fromisoformat(_order_created_date)
 
         return_location_id = d.pop("return_location_id", UNSET)
 
