@@ -2796,8 +2796,13 @@ components:
         - type: object
           properties:
             sku:
-              type: string
-              description: A unique service code
+              type:
+                - string
+                - "null"
+              description: |-
+                A unique service code. Katana allows services to be created without
+                a SKU; the field is always present in the response but may be null
+                for such rows (mirrors Variant.sku).
             sales_price:
               type:
                 - number

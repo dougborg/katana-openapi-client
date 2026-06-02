@@ -227,7 +227,12 @@ class Variant(UpdatableEntity, DeletableEntity):
 
 
 class ServiceVariant(UpdatableEntity, DeletableEntity):
-    sku: Annotated[str, Field(description="A unique service code")]
+    sku: Annotated[
+        str | None,
+        Field(
+            description="A unique service code. Katana allows services to be created without\na SKU; the field is always present in the response but may be null\nfor such rows (mirrors Variant.sku)."
+        ),
+    ]
     sales_price: Annotated[
         float | None,
         Field(

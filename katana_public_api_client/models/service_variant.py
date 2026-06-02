@@ -33,7 +33,7 @@ class ServiceVariant:
     """
 
     id: int
-    sku: str
+    sku: None | str
     service_id: int
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
@@ -47,6 +47,7 @@ class ServiceVariant:
     def to_dict(self) -> dict[str, Any]:
         id = self.id
 
+        sku: None | str
         sku = self.sku
 
         service_id = self.service_id
@@ -130,7 +131,12 @@ class ServiceVariant:
         d = dict(src_dict)
         id = d.pop("id")
 
-        sku = d.pop("sku")
+        def _parse_sku(data: object) -> None | str:
+            if data is None:
+                return data
+            return cast(None | str, data)
+
+        sku = _parse_sku(d.pop("sku"))
 
         service_id = d.pop("service_id")
 
