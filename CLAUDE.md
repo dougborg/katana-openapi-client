@@ -174,6 +174,47 @@ fits topically — to one of the linked docs below if it's subsystem-scoped, or 
   - `katana_mcp_server/tests/test_typed_cache_catalog.py::TestVariantPostprocess::test_sync_tolerates_null_sku_in_nested_variants`
   - `katana_mcp_server/tests/test_typed_cache_catalog.py::TestCatalogSync::test_sync_tolerates_null_sku_in_service_variants`
 
+- **Fake time in time-based tests — NEVER read the real wall clock.** Any test whose
+  assertion depends on elapsed time, a current timestamp, or an expiry/freshness window
+  must fake time. Real-clock reads (`time.time()`, `time.monotonic()`, `datetime.now()`,
+  `date.today()`) make tests flaky on slow/loaded CI and force tolerance bands
+  (`assert 3.5 <= elapsed <= 6.5`) that paper over non-determinism instead of fixing it.
+  The tells: a tolerance band, an `abs(...) < 1` slop, or a `before <= x <= after`
+  bracket around two clock reads. Two faking tools, picked by *what* time you're
+  controlling:
+
+  - **Asyncio time** (`asyncio.sleep`, `loop.call_later`, timeouts) → the **`looptime`**
+    pytest plugin (`@pytest.mark.looptime`). It virtualizes the loop clock so
+    `asyncio.sleep(5)` advances `loop.time()` by exactly 5 with zero real delay.
+  - **Wall-clock reads** (`datetime.now()`, `time.time()`) → **`time_machine`**
+    (`with time_machine.travel(fixed_instant, tick=False): ...`). It freezes
+    `now()`/`time.time()` while keeping the real `datetime` class, so production
+    `isinstance(x, datetime)` checks and constructors still work. **Do NOT** freeze time
+    by monkeypatching the `datetime` *name* of the code under test (your own module) to
+    a subclass — that swaps the class out from under that module's own
+    `isinstance`/constructor calls and breaks them (cost us a debugging cycle here). Use
+    `time_machine` for code you own. (Shimming a *third-party* library's `datetime` is a
+    different, narrower move — see the looptime exception below.)
+  - **Both in one test** → prefer NOT mixing `time_machine` + `looptime`. `time_machine`
+    freezes `time.time` / `datetime.now` (it does **not** touch `time.monotonic` /
+    `perf_counter`, which is what `looptime` builds its virtual clock on). The risk is
+    the frozen `time.time`: asyncio reads it for some absolute timeout math, so a
+    process-wide freeze can interact unpredictably with `looptime`'s virtual selector.
+    So for a test that needs both faked async sleep AND a faked wall-clock read, patch
+    only the narrow wall-clock seam the code reads — monkeypatch the third-party
+    module's `datetime`, or freeze `time.time` alone — rather than reaching for
+    `time_machine`. Examples:
+    `tests/test_rate_limit_retry.py::...test_http_date_retry_after_paces_end_to_end`
+    (shims `httpx_retries.retry.datetime`) and
+    `tests/test_rate_limit_transport.py::...test_blocks_subsequent_request_until_gate_releases`
+    (freezes `time.time`).
+
+  **The one exception**: harness code that genuinely waits on a *real external process*
+  (browser-render polling, a subprocess dev-server) legitimately uses real
+  `time.monotonic()` + `time.sleep()` — that's real I/O, not a logic-time assertion.
+  Keep those (e.g. `katana_mcp_server/tests/browser/conftest.py::_wait_http_ok`), but
+  never copy that pattern into a unit test.
+
 - **Editing generated files** — `api/**/*.py`, `models/**/*.py`, `client.py`,
   `models_pydantic/_generated/**`, and `models_pydantic/_auto_registry.py` are
   generated. Other modules in `models_pydantic/` (e.g. `_base.py`, `_mapped_shim.py`,

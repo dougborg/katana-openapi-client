@@ -7,6 +7,7 @@ from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+import time_machine
 from katana_mcp.tools.foundation.purchase_orders import (
     CreatePurchaseOrderRequest,
     DeletePurchaseOrderRequest,
@@ -1921,7 +1922,12 @@ async def test_receive_purchase_order_order_no_unset():
 
 @pytest.mark.asyncio
 async def test_receive_purchase_order_received_date_falls_back_to_now():
-    """Without a caller-supplied received_date, rows land on the call time."""
+    """Without a caller-supplied received_date, rows land on "now".
+
+    "now" is frozen with ``time_machine`` (see CLAUDE.md: time-based tests
+    must fake time) so we can assert the defaulted ``received_date`` *exactly*,
+    instead of bracketing it between two real wall-clock reads.
+    """
     context, lifespan_ctx = create_mock_context()
 
     # Mock successful get and receive
@@ -1965,23 +1971,22 @@ async def test_receive_purchase_order_received_date_falls_back_to_now():
         preview=False,
     )
 
-    # Record time before call
-    before_time = datetime.now(UTC)
+    # Freeze the clock the impl reads (purchase_orders.py defaults
+    # received_date to datetime.now(UTC)) so the result is deterministic.
+    # time_machine freezes datetime.now() while keeping the real datetime
+    # class, so the impl's isinstance(...) checks still work.
+    frozen = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
+    with time_machine.travel(frozen, tick=False):
+        await _receive_purchase_order_impl(request, context)
 
-    await _receive_purchase_order_impl(request, context)
-
-    # Record time after call
-    after_time = datetime.now(UTC)
-
-    # Verify received_date was set
+    # The defaulted received_date is exactly the frozen "now".
     call_args = cast(Any, api_receive_purchase_order.asyncio_detailed).call_args
     body = call_args.kwargs["body"]
     received_date = body[0].received_date
 
-    # Verify it's a datetime in UTC and within reasonable bounds
     assert isinstance(received_date, datetime)
     assert received_date.tzinfo == UTC
-    assert before_time <= received_date <= after_time
+    assert received_date == frozen
 
 
 @pytest.mark.asyncio
