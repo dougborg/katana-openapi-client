@@ -2,6 +2,35 @@
 
 <!-- version list -->
 
+## v0.76.0 (2026-06-02)
+
+### Bug Fixes
+
+- **client**: Align custom-fields surface with Katana's live API
+  ([#893](https://github.com/dougborg/katana-openapi-client/pull/893),
+  [`a8fdc6d`](https://github.com/dougborg/katana-openapi-client/commit/a8fdc6dd9e5d6db0eef112a08d3b3baba9e2ad72))
+
+- **client**: Align custom-fields surface with Katana's live API (#805)
+  ([#893](https://github.com/dougborg/katana-openapi-client/pull/893),
+  [`a8fdc6d`](https://github.com/dougborg/katana-openapi-client/commit/a8fdc6dd9e5d6db0eef112a08d3b3baba9e2ad72))
+
+- **client**: Regenerate CustomFieldDefinition after merging v0.74.0
+  ([#893](https://github.com/dougborg/katana-openapi-client/pull/893),
+  [`a8fdc6d`](https://github.com/dougborg/katana-openapi-client/commit/a8fdc6dd9e5d6db0eef112a08d3b3baba9e2ad72))
+
+### Chores
+
+- Sync root uv.lock to katana-mcp-server 0.108.0
+  ([`2caf250`](https://github.com/dougborg/katana-openapi-client/commit/2caf250dcd9f3f3a7bb072982d3f39fa256f9a98))
+
+### Testing
+
+- **client**: Address PR #889 review — live marker + typed skip exception
+  ([`f306818`](https://github.com/dougborg/katana-openapi-client/commit/f3068184edb80ce2ead426967f2346fb19397e17))
+
+- **client**: Live-tenant integration scaffolding — tests/integration/ (#837 Phase 2)
+  ([`728f5cf`](https://github.com/dougborg/katana-openapi-client/commit/728f5cf6406fd3ac1ee8433bf51e4c120dddf4b2))
+
 ## v0.75.0 (2026-06-02)
 
 ### Bug Fixes
