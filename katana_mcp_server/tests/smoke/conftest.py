@@ -53,8 +53,14 @@ async def live_smoke_context() -> AsyncIterator[MagicMock]:
         await cache.open()
         try:
             services = Services(client=client, typed_cache=cache)
+            # Build the nested shape explicitly (rather than leaning on
+            # MagicMock's implicit attribute creation) so the context matches
+            # what FastMCP provides and stays robust if get_services() tightens
+            # its checks. Mirrors the `katana_context` fixture in tests/conftest.
+            request_context = MagicMock()
+            request_context.lifespan_context = services
             context = MagicMock()
-            context.request_context.lifespan_context = services
+            context.request_context = request_context
             yield context
         finally:
             await cache.close()
