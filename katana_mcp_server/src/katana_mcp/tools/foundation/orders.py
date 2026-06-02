@@ -1874,6 +1874,15 @@ async def fulfill_order(
 
     Manufacturing: marks order DONE, adds finished goods, consumes raw materials.
     Sales: creates a fulfillment record, reduces available inventory.
+
+    Known gap — serial-tracked make-to-order sales rows: a sales-order row whose
+    serial was produced by a *linked* make-to-order MO cannot be fulfilled via the
+    public API. Passing the serial is rejected ("already assigned"); omitting it is
+    rejected ("serial quantity must match"). This is a Katana-side gap (escalated
+    2026-06-02 — see ``docs/escalations/katana-serial-fulfillment-gap.md`` and #784);
+    until Katana exposes a serial-transfer verb these orders must be delivered in the
+    Katana web UI. Serial-tracked sales rows NOT linked to an MO, and all
+    manufacturing-order completions, fulfill normally.
     """
     response = await _fulfill_order_impl(request, context)
     return _fulfill_response_to_tool_result(response, request=request)
