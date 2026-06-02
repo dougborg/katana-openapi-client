@@ -139,6 +139,34 @@ from katana_mcp.web_urls import EntityKind, katana_web_url
 
 logger = get_logger(__name__)
 
+# Default rows-per-page for the module's DataTables. See ``_paginate`` for why
+# pagination is opt-in rather than always-on.
+_DEFAULT_TABLE_PAGE_SIZE = 20
+
+
+def _paginate(
+    row_count: int, *, page_size: int = _DEFAULT_TABLE_PAGE_SIZE
+) -> dict[str, Any]:
+    """DataTable pagination kwargs that avoid blank filler rows.
+
+    The renderer pads a *paginated* table with empty filler rows up to
+    ``pageSize`` to keep height stable across pages, and there's no prop to
+    disable that — so a short table that fits on one page renders blank rows
+    below its data (the renderer gate is ``paginated && rowCount < pageSize``).
+    The only lever we control is whether to paginate at all.
+
+    Returns ``paginated=True`` (with ``pageSize``) only when ``row_count``
+    overflows a single page; otherwise pagination — and the filler rows and
+    now-pointless ``Page 1 of 1`` footer — is disabled. Pass the length of the
+    Python list backing the table's ``rows`` (whatever it's named at the call
+    site), then spread the result into ``DataTable``::
+
+        DataTable(columns=..., rows="{{ items }}", **_paginate(len(items)))
+    """
+    if row_count > page_size:
+        return {"paginated": True, "pageSize": page_size}
+    return {"paginated": False}
+
 
 def _split_warnings(
     warnings: list[str] | None,
@@ -623,7 +651,8 @@ def build_search_results_ui(
     """Build an interactive search results table with drill-down.
 
     Features:
-    - Sortable, searchable, paginated DataTable
+    - Sortable, searchable DataTable (paginated only when results overflow
+      one page — see ``_paginate``)
     - Row-click fires CallTool to get_variant_details, renders in Slot
     - Summary badges for query and count
 
@@ -676,8 +705,7 @@ def build_search_results_ui(
             ],
             rows="{{ items }}",
             search=True,
-            paginated=True,
-            pageSize=20,
+            **_paginate(len(items)),
             # Per-row binding via ``$event``: the renderer spreads the
             # clicked row's dict into the action-scope as ``$event``, so
             # ``{{ $event.sku }}`` resolves to the row's SKU. The naive
@@ -1094,8 +1122,7 @@ def build_variant_batch_ui(
                     ],
                     rows="{{ rows }}",
                     search=True,
-                    paginated=True,
-                    pageSize=20,
+                    **_paginate(len(rows)),
                     # Drill into the single-variant card by id (the
                     # row dict's ``id`` is the variant's primary key
                     # from ``VariantDetailsResponse.model_dump()``).
@@ -1425,8 +1452,7 @@ def _item_variants_table(item: dict[str, Any]) -> None:
         ],
         rows="{{ item.variants }}",
         search=True,
-        paginated=True,
-        pageSize=20,
+        **_paginate(len(variants)),
         # Per-row click invokes get_variant_details using the row's
         # variant id, not its SKU. ``ItemVariantSummary.sku`` is
         # nullable (Katana allows variants without a SKU on the wire),
@@ -1796,8 +1822,7 @@ def _bom_rows_table(bom: dict[str, Any]) -> None:
         ],
         rows="{{ bom.rows }}",
         search=True,
-        paginated=True,
-        pageSize=20,
+        **_paginate(len(rows)),
         # Per-row click drills into the ingredient's variant card.
         # ``EVENT.ingredient_variant_id`` is always present on
         # ``BomRowInfo`` — every row carries the FK, even when the
@@ -2292,8 +2317,7 @@ def build_inventory_check_batch_ui(
             columns=columns,
             rows="{{ items }}",
             search=True,
-            paginated=True,
-            pageSize=25,
+            **_paginate(total_items, page_size=25),
         )
 
         for slot, item in multi_location_slots:
@@ -2425,7 +2449,12 @@ def build_low_stock_ui(
             ],
             rows="{{ items }}",
             search=True,
-            paginated=True,
+            # Deliberate per-card policy: 10 rows/page (smaller than the
+            # module's 20 because the restock list is meant to be scanned and
+            # acted on, not browsed). This was the prior behavior — the table
+            # carried no explicit pageSize and the component defaults to 10 —
+            # now pinned explicitly so it's independent of component updates.
+            **_paginate(len(items), page_size=10),
         )
 
         # "Create Restock Orders" is batch-composition work (group rows
@@ -4655,8 +4684,7 @@ def build_po_modify_ui(
                 DataTable(
                     columns=_PO_MODIFY_ROW_COLUMNS,
                     rows=_PO_MODIFY_ROW_REF,
-                    paginated=True,
-                    pageSize=20,
+                    **_paginate(len(po_row_rows)),
                 )
         # Confirm label scales with the number of planned actions —
         # ``Confirm 4 changes`` is more informative than the generic
@@ -4973,8 +5001,7 @@ def build_bom_modify_ui(
                 DataTable(
                     columns=_BOM_MODIFY_COLUMNS,
                     rows=_BOM_MODIFY_PLAN_REF,
-                    paginated=True,
-                    pageSize=20,
+                    **_paginate(len(table_rows)),
                 )
             else:
                 Muted(
@@ -5306,8 +5333,7 @@ def build_item_modify_ui(
                     DataTable(
                         columns=_ITEM_MODIFY_VARIANT_COLUMNS,
                         rows=_ITEM_MODIFY_VARIANT_REF,
-                        paginated=True,
-                        pageSize=20,
+                        **_paginate(len(variant_rows)),
                     )
 
             # Consolidated failed-rows Alert — state-driven so the in-place
@@ -7439,11 +7465,18 @@ def _mo_production_rows(
 
 
 def _render_mo_collection_table(
-    *, summary: str, label: str, columns: list[DataTableColumn], state_key: str
+    *,
+    summary: str,
+    label: str,
+    columns: list[DataTableColumn],
+    state_key: str,
+    row_count: int,
 ) -> None:
     """Render one MO collection diff table (summary line + state-bound table).
 
     Caller gates on ``summary`` being non-empty (the collection changed).
+    ``row_count`` is the collection's row count, used to suppress the
+    renderer's blank filler rows when the table fits on one page.
     """
     Separator()
     Muted(content=label)
@@ -7451,8 +7484,7 @@ def _render_mo_collection_table(
     DataTable(
         columns=columns,
         rows=f"{{{{ {state_key} }}}}",
-        paginated=True,
-        pageSize=20,
+        **_paginate(row_count),
     )
 
 
@@ -7585,9 +7617,13 @@ def build_mo_modify_ui(
             if response.get("message"):
                 Muted(content=response["message"])
             block_warnings = _render_mo_entity_view(entity, changes=changes_by_field)
-            for summary, _, key, columns, label in shown:
+            for summary, rows, key, columns, label in shown:
                 _render_mo_collection_table(
-                    summary=summary, label=label, columns=columns, state_key=key
+                    summary=summary,
+                    label=label,
+                    columns=columns,
+                    state_key=key,
+                    row_count=len(rows),
                 )
         _render_preview_footer(
             title_prefix=f"Manufacturing Order {verb_label}",
@@ -9259,8 +9295,7 @@ def build_batch_recipe_update_ui(
             columns=columns,
             rows="{{ rows }}",
             search=True,
-            paginated=True,
-            pageSize=25,
+            **_paginate(len(flat_rows), page_size=25),
         )
 
         if warnings:
