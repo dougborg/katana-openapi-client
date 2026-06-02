@@ -192,11 +192,15 @@ fits topically — to one of the linked docs below if it's subsystem-scoped, or 
     `isinstance(x, datetime)` checks and constructors still work. **Do NOT** monkeypatch
     a module's `datetime` *name* to a subclass — that breaks `isinstance`/constructors
     in the code under test (cost us a debugging cycle here).
-  - **Both in one test** → do NOT use `time_machine` + `looptime` together:
-    `time_machine` patches `time.monotonic`, which `looptime` drives its virtual clock
-    from. Patch only the narrow wall-clock seam the code reads (e.g. monkeypatch the
-    third-party module's `datetime`, or freeze `time.time` alone — both are
-    `looptime`-safe). Examples:
+  - **Both in one test** → prefer NOT mixing `time_machine` + `looptime`. `time_machine`
+    freezes `time.time` / `datetime.now` (it does **not** touch `time.monotonic` /
+    `perf_counter`, which is what `looptime` builds its virtual clock on). The risk is
+    the frozen `time.time`: asyncio reads it for some absolute timeout math, so a
+    process-wide freeze can interact unpredictably with `looptime`'s virtual selector.
+    So for a test that needs both faked async sleep AND a faked wall-clock read, patch
+    only the narrow wall-clock seam the code reads — monkeypatch the third-party
+    module's `datetime`, or freeze `time.time` alone — rather than reaching for
+    `time_machine`. Examples:
     `tests/test_rate_limit_retry.py::...test_http_date_retry_after_paces_end_to_end`
     (shims `httpx_retries.retry.datetime`) and
     `tests/test_rate_limit_transport.py::...test_blocks_subsequent_request_until_gate_releases`

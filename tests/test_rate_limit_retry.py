@@ -608,7 +608,9 @@ class TestRetryAfterEndToEndIntegration:
 
         class _FrozenDateTime(datetime):
             @classmethod
-            def now(cls, tz=None):  # type: ignore[override]
+            def now(cls, tz=None):
+                # Returns the frozen *plain* datetime (not a _FrozenDateTime
+                # instance) — all httpx_retries needs is a datetime to subtract.
                 return frozen if tz is None else frozen.astimezone(tz)
 
         # Shim the module's ``datetime`` reference: ``datetime.datetime.now``

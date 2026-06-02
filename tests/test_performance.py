@@ -40,12 +40,12 @@ class TestPerformance:
         mock_api_method = AsyncMock()
         mock_api_method.side_effect = mock_responses
 
-        # Verify automatic pagination completes correctly across all 10 pages.
-        # Note: this used to assert a wall-clock ``duration < 2.0`` bound, but
-        # wall-clock thresholds flake on slow CI runners (see #446 and the
-        # sibling test_concurrent_requests). Pagination speed is covered
-        # structurally elsewhere; here we only assert it completes — no real
-        # clock is read (see CLAUDE.md: time-based tests must fake time).
+        # Removed the wall-clock ``duration < 2.0`` assertion: wall-clock
+        # thresholds flake on slow CI runners (see #446 and the sibling
+        # test_concurrent_requests), and it was really measuring network
+        # latency since the mock above is never wired in — no real clock is
+        # read now (CLAUDE.md: time-based tests must fake time). The disconnected
+        # mock / hollow assertion is pre-existing and tracked in #897.
         from katana_public_api_client.api.product import get_all_products
 
         try:

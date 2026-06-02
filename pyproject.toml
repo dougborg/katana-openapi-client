@@ -91,10 +91,12 @@ dev = [
   # (freshness watermarks, default timestamps). Freezes the clock while
   # preserving ``datetime`` identity so ``isinstance(x, datetime)`` still holds
   # — unlike monkeypatching a module's ``datetime`` name. See the "fake time in
-  # time-based tests" rule in CLAUDE.md. NOTE: do not combine with ``looptime``
-  # in one test — time-machine patches ``time.monotonic``, which looptime drives
-  # its virtual clock from; patch the narrow wall-clock seam instead.
-  "time-machine>=2.13.0",
+  # time-based tests" rule in CLAUDE.md. NOTE: prefer not combining with
+  # ``looptime`` in one test — time-machine freezes ``time.time`` (not
+  # ``monotonic``, which looptime uses), and that frozen ``time.time`` can
+  # interfere with asyncio's absolute-timeout math under looptime; patch the
+  # narrow wall-clock seam instead.
+  "time-machine>=3.0",
   # Headless browser testing for Prefab UI cards via fastmcp dev-apps.
   # We use the raw ``playwright`` sync API (not pytest-playwright fixtures)
   # to avoid pytest-base-url's ``base_url`` fixture colliding with our

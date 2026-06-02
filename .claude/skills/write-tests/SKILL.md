@@ -85,9 +85,13 @@ Pick the faker by *what* time you control (full rule + rationale in CLAUDE.md
 - **Wall clock** (`datetime.now()`, `time.time()`) → `with time_machine.travel(fixed, tick=False):`.
   Don't monkeypatch a module's `datetime` *name* — it breaks `isinstance` in the code
   under test.
-- **Both at once** → don't mix `time_machine` + `looptime` (time-machine patches
-  `time.monotonic`, which looptime needs). Freeze only the narrow seam (the lib's
-  `datetime`, or `time.time` alone).
+- **Both at once** (code that sleeps via asyncio AND reads `datetime.now()`/`time.time()`)
+  → prefer NOT mixing `time_machine` + `looptime`. `time_machine` freezes `time.time` /
+  `datetime.now` (not `monotonic`/`perf_counter`, which looptime uses), but its frozen
+  `time.time` can still interfere with asyncio's absolute-timeout math under looptime's
+  virtual selector. Freeze only the narrow seam the code reads — monkeypatch the lib's
+  `datetime`, or freeze `time.time` alone (see `test_rate_limit_retry.py` and
+  `test_rate_limit_transport.py`).
 - Prefer **exact** assertions (`assert elapsed == pytest.approx(5.0, abs=1e-6)`) over
   tolerance bands once time is faked.
 - Real-I/O polling on a real subprocess/browser is the one allowed real-clock case.
