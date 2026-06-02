@@ -5,7 +5,10 @@
 via make-to-order\
 **Public API base:** `https://api.katanamrp.com/v1`
 
-> **Status:** Submitted to Katana 2026-06-02 (awaiting response).\
+> **Status:** Submitted to Katana 2026-06-02 (awaiting response). A second investigation
+> (2026-06-02) narrowed the gap to **make-to-order specifically** and found that
+> **make-to-stock has a clean public path** — see
+> [Update — second investigation](#update--second-investigation-2026-06-02) below.\
 > Internal tracking:
 > [#784](https://github.com/dougborg/katana-openapi-client/issues/784),
 > [#849](https://github.com/dougborg/katana-openapi-client/issues/849).
@@ -132,6 +135,146 @@ serial.
 1. **Accept the already-assigned serial** on `POST /sales_order_fulfillments` when the
    serial is already bound to the *same* SO row being fulfilled (treat "already assigned
    to this row" as valid rather than an error).
+
+## Update — second investigation (2026-06-02)
+
+A deeper probe refined the picture. **The gap is specific to make-to-order.** The public
+API *does* expose the transfer verb the UI uses — `serial_number_transactions` on
+`PATCH /sales_order_rows/{id}` (`{serial_number_id, quantity}`, the same
+`UpdateSerialNumberTransactionDto` shape as the UI's `serialNumberTransactions`). It
+just cannot be applied in a make-to-order flow, because make-to-order auto-consumes the
+serial onto the row at production time.
+
+### Make-to-STOCK works cleanly (verified end-to-end)
+
+Producing to stock first, then selling, has a fully working public path that preserves
+the serial ledger:
+
+```http
+1. POST /manufacturing_orders                      # standalone MO (NOT make_to_order)
+2. POST /serial_numbers (ManufacturingOrder)        # mint on the MO
+   POST /manufacturing_order_productions (serial)   # → serial enters stock
+3. POST /sales_orders                               # order the same variant
+4. PATCH /sales_order_rows/{id}
+   { "serial_number_transactions": [ { "serial_number_id": <id>, "quantity": 1 } ] }
+                                                     # ← the transfer (in-stock serial → row)
+5. POST /sales_order_fulfillments  { …, "serial_numbers": [ <id> ] }   # → 200, DELIVERED
+```
+
+Resulting serial trail (`GET /serial_numbers_stock`) is **identical to the UI's**:
+
+```text
+Production#…           qty_change=+1
+ManufacturingOrder#…   qty_change=+1
+SalesOrderRow#…        qty_change=-1      (net +1, in_stock=false)
+```
+
+So integrators who can produce-to-stock have a supportable public path today. The only
+cost is the lost formal SO↔MO link (the MO is standalone, not make-to-order).
+
+### Make-to-order is still blocked (representation ruled out)
+
+On a make-to-order row whose serial was produced through the linked MO, every
+representation of the fulfillment serial fails:
+
+| `POST /sales_order_fulfillments` row payload                 | Result                                                             |
+| ------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `serial_numbers: [<integer id>]`                             | `422` "given serial numbers have already been assigned" (semantic) |
+| `serial_numbers: ["<name>"]`                                 | `422` schema — *must be number*                                    |
+| `serial_numbers: ["<id-as-string>"]`                         | `422` schema — *must be number*                                    |
+| `serial_number_transactions: [{serial_number_id, quantity}]` | `422` "Unexpected property" (not a fulfillment-row field)          |
+
+And the row-level transfer that works for make-to-stock is rejected here:
+`PATCH /sales_order_rows` `serial_number_transactions` → `422` "row already has serial
+number with id (…)" — the make-to-order link already consumed it onto the row. Producing
+*without* a serial and minting afterward doesn't help: minting on a make-to-order MO
+immediately writes a `SalesOrderRow -1` with **no** `Production +1`, i.e. a different
+broken trail.
+
+### The make-to-order serial-ledger lifecycle (UI-traced, 2026-06-02)
+
+Tracing `GET /serial_numbers_stock` after each UI action — with the browser network
+panel open to capture the UI-API calls — pins down exactly which transition the public
+API is missing. A serial-tracked make-to-order order books its serial ledger in three
+steps, and **delivery does not add a transaction — it stamps a reservation already
+written at serial-generation time**:
+
+| UI action                                        | Serial-ledger effect (`quantity_change`)                                                |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| Generate the serial on the make-to-order MO      | `SalesOrderRow -1` written **undated** (a reservation)                                  |
+| Build / complete the MO                          | `Production +1`, `ManufacturingOrder +1` (the `MO 0` placeholder becomes `+1`)          |
+| Deliver (UI `salesFulfillmentEvents/createMany`) | the existing `SalesOrderRow -1` is **stamped** with the delivery timestamp — no new row |
+
+Observed verbatim (serial `904176` on row `111966287`):
+
+```text
+after MO build:   SalesOrderRow -1 (date=null)   Production +1   ManufacturingOrder +1   net=+1
+after delivery:   SalesOrderRow -1 (date=19:58:42) Production +1  ManufacturingOrder +1   net=+1
+```
+
+So by the time you deliver, the serial is already fully consumed onto its row; the
+ledger is complete (`net=+1`, `in_stock=false`) **before** any fulfillment call. The
+delivery step only needs to *confirm* that reservation.
+
+The UI does this via its internal endpoint (captured from the browser, real values):
+
+```http
+POST https://sales-fulfillments.katanamrp.com/api/salesFulfillmentEvents/createMany
+[
+  { "salesOrderId": 46356252, "status": "delivered",
+    "serialNumberTransactions": [
+      { "salesOrderRowId": 111966287,
+        "serialNumber":   "784-UI-429952/1-0001",   // name
+        "serialNumberId": 904176 }                  // id — the UI sends BOTH
+    ] }
+]
+```
+
+Response row carries the serial as **traceability**, not an assignment:
+
+```json
+"rows": [ { "salesOrderRowId": 111966287, "quantity": 1,
+            "traceability": [ { "serialNumberId": 904176, "quantity": "1" } ] } ]
+```
+
+`serialNumberTransactions` is therefore a **confirm-the-reservation** verb. The public
+`POST /sales_order_fulfillments` only exposes `serial_numbers` (an
+**assign-a-new-serial** operation): passing the already-reserved serial → "already
+assigned"; omitting it → "current 0" (nothing new to assign). **There is no public verb
+to confirm/stamp the existing make-to-order reservation** — which is the single missing
+primitive.
+
+### The `DELETE /serial_numbers` path returns 200 but corrupts the ledger — do not use it
+
+`DELETE /serial_numbers` ("unassign from a resource") *can* free the serial from
+Production + ManufacturingOrder, after which `POST /sales_order_fulfillments` returns
+`200` and the SO shows `DELIVERED`. **It is data corruption, not a workaround.** It
+deletes the `+1` production transactions, leaving the serial with a lone
+`SalesOrderRow -1` (net **-1**) — a unit shipped that the ledger says was never
+produced. Side by side:
+
+```text
+UI / make-to-stock (correct):  Production +1 | MO +1 | SalesOrderRow -1   net +1
+DELETE-then-fulfill (broken):                              SalesOrderRow -1   net -1
+```
+
+(Note: the `DELETE /serial_numbers` `ids` field is typed `string` in the published docs
+but the live API requires **integer** ids — sending the documented type returns
+"`/ids/0` must be number".)
+
+### Narrowed ask
+
+The blocker is precisely: **a serial that has been consumed onto its own make-to-order
+SO row cannot have a delivered fulfillment recorded against it via the public API.** Any
+one of these resolves it, mirroring what already works for make-to-stock:
+
+1. Accept the already-consumed serial on `POST /sales_order_fulfillments` when it is
+   bound to the *same* row being fulfilled; **or**
+1. Auto-adopt the row's serial when `serial_numbers` is omitted for a serial-tracked,
+   make-to-order row; **or**
+1. Don't auto-consume the serial onto the row at production — leave it in stock and let
+   `serial_number_transactions` / the fulfillment record the consumption (as in
+   make-to-stock).
 
 ## Minor adjacent findings (not blocking, FYI)
 
