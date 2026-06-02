@@ -83,8 +83,10 @@ Pick the faker by *what* time you control (full rule + rationale in CLAUDE.md
 
 - **Asyncio time** (`asyncio.sleep`, `loop.call_later`, timeouts) → `@pytest.mark.looptime`.
 - **Wall clock** (`datetime.now()`, `time.time()`) → `with time_machine.travel(fixed, tick=False):`.
-  Don't monkeypatch a module's `datetime` *name* — it breaks `isinstance` in the code
-  under test.
+  Don't freeze time by monkeypatching the `datetime` *name* of the code under test (your
+  own module) — it swaps the class out from under that module's `isinstance`/constructor
+  calls. Use `time_machine` for code you own. (Shimming a *third-party* lib's `datetime`
+  is the separate narrow-seam move for the looptime case below.)
 - **Both at once** (code that sleeps via asyncio AND reads `datetime.now()`/`time.time()`)
   → prefer NOT mixing `time_machine` + `looptime`. `time_machine` freezes `time.time` /
   `datetime.now` (not `monotonic`/`perf_counter`, which looptime uses), but its frozen

@@ -189,9 +189,12 @@ fits topically — to one of the linked docs below if it's subsystem-scoped, or 
   - **Wall-clock reads** (`datetime.now()`, `time.time()`) → **`time_machine`**
     (`with time_machine.travel(fixed_instant, tick=False): ...`). It freezes
     `now()`/`time.time()` while keeping the real `datetime` class, so production
-    `isinstance(x, datetime)` checks and constructors still work. **Do NOT** monkeypatch
-    a module's `datetime` *name* to a subclass — that breaks `isinstance`/constructors
-    in the code under test (cost us a debugging cycle here).
+    `isinstance(x, datetime)` checks and constructors still work. **Do NOT** freeze time
+    by monkeypatching the `datetime` *name* of the code under test (your own module) to
+    a subclass — that swaps the class out from under that module's own
+    `isinstance`/constructor calls and breaks them (cost us a debugging cycle here). Use
+    `time_machine` for code you own. (Shimming a *third-party* library's `datetime` is a
+    different, narrower move — see the looptime exception below.)
   - **Both in one test** → prefer NOT mixing `time_machine` + `looptime`. `time_machine`
     freezes `time.time` / `datetime.now` (it does **not** touch `time.monotonic` /
     `perf_counter`, which is what `looptime` builds its virtual clock on). The risk is
