@@ -166,13 +166,13 @@ fits topically — to one of the linked docs below if it's subsystem-scoped, or 
   `KatanaVariant` domain model and `CachedVariant` table both accept null SKU;
   `get_by_sku` won't match these rows (NULL ≠ string), so they're effectively
   unreachable by SKU lookup but still surface in ID-based reads and FTS fuzzy search.
-  Both verticals are pinned by tests —
-  `tests/test_models_pydantic.py::TestVariantNullSku`
+  Both verticals are pinned by these tests — relaxing or re-tightening any SKU field
+  must keep all four green:
 
-  - `::TestServiceVariantNullSku`, and
-    `katana_mcp_server/tests/test_typed_cache_catalog.py::TestVariantPostprocess::test_sync_tolerates_null_sku_in_nested_variants`
-  - `::TestCatalogSync::test_sync_tolerates_null_sku_in_service_variants`. Relaxing or
-    re-tightening any SKU field must keep all four green.
+  - `tests/test_models_pydantic.py::TestVariantNullSku`
+  - `tests/test_models_pydantic.py::TestServiceVariantNullSku`
+  - `katana_mcp_server/tests/test_typed_cache_catalog.py::TestVariantPostprocess::test_sync_tolerates_null_sku_in_nested_variants`
+  - `katana_mcp_server/tests/test_typed_cache_catalog.py::TestCatalogSync::test_sync_tolerates_null_sku_in_service_variants`
 
 - **Editing generated files** — `api/**/*.py`, `models/**/*.py`, `client.py`,
   `models_pydantic/_generated/**`, and `models_pydantic/_auto_registry.py` are
