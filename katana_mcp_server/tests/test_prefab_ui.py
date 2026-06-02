@@ -4702,9 +4702,10 @@ class TestBuildSOModifyUI:
         """Preview-path build seeds one ``so_<section>_rows`` slot per
         sub-entity section in :data:`_SO_SUBENTITY_GROUPS`. Each slot's
         list mirrors the actions for that section, projected through
-        :func:`_build_so_subentity_row` (preview rows carry
-        ``status_label="PLANNED"`` + ``has_badge=False`` so the
-        card-level state Badge is the only planned-state signal).
+        :func:`_build_so_subentity_row` into the columnar cell shape
+        (``gutter_summary`` + ``status_label``; #721 Phase 3). Preview rows
+        carry ``status_label="PLANNED"`` — shown in the DataTable's Status
+        column, consistent with the other modify cards.
 
         Pin contract: state slots exist on every preview render so the
         on_success ``SetState`` chain reading ``$result.state.so_<section>_rows``
@@ -4739,16 +4740,12 @@ class TestBuildSOModifyUI:
             {
                 "gutter_summary": "+ variant 100, qty 1.0",
                 "status_label": "PLANNED",
-                "has_badge": False,
-                "status_variant": "secondary",
             }
         ]
         assert app.state["so_addresses_rows"] == [
             {
                 "gutter_summary": "- address #9001",
                 "status_label": "PLANNED",
-                "has_badge": False,
-                "status_variant": "secondary",
             }
         ]
         assert app.state["so_fulfillments_rows"] == []
@@ -4756,8 +4753,8 @@ class TestBuildSOModifyUI:
 
     def test_subentity_row_lists_apply_path_carries_per_action_outcome(self):
         """Standalone-applied path seeds row dicts with the apply-time
-        ``status_label`` + ``status_variant`` so the result card
-        renders the right per-row chrome without bouncing through the
+        ``status_label`` so the result card's DataTable Status column
+        renders the right per-row outcome without bouncing through the
         morph. Catches the symmetry the morph relies on — the apply
         tool's envelope ``state.*`` is what ``$result.state.*`` reads,
         so apply-time seeding MUST match the morph target's shape."""
@@ -4787,20 +4784,14 @@ class TestBuildSOModifyUI:
             confirm_tool="modify_sales_order",
         )
         assert app.state is not None
-        # The shipping fee row carries the APPLIED chrome — has_badge=True,
-        # default variant for the green-success Badge.
+        # The shipping fee row carries the APPLIED status in its Status cell.
         shipping_rows = app.state["so_shipping_fees_rows"]
         assert len(shipping_rows) == 1
         assert shipping_rows[0]["status_label"] == "APPLIED"
-        assert shipping_rows[0]["has_badge"] is True
-        assert shipping_rows[0]["status_variant"] == "default"
-        # The row delete carries the FAILED chrome — ✗ gutter + destructive
-        # Badge variant.
+        # The row delete carries the FAILED status + the ✗ failure gutter.
         rows_rows = app.state["so_rows_rows"]
         assert len(rows_rows) == 1
         assert rows_rows[0]["status_label"] == "FAILED"
-        assert rows_rows[0]["has_badge"] is True
-        assert rows_rows[0]["status_variant"] == "destructive"
         assert rows_rows[0]["gutter_summary"].startswith("✗ ")
 
     def test_subentity_row_lists_merge_not_run_tail_from_extras(self):
@@ -4882,61 +4873,10 @@ class TestBuildSOModifyUI:
             "NOT RUN",
             "NOT RUN",
         ]
-        # NOT RUN rows render with the "secondary" Badge variant per
-        # :data:`_SO_SUB_STATUS_VARIANTS` (neutral chrome — neither
-        # success nor failure).
-        assert rows_rows[2]["status_variant"] == "secondary"
-        assert rows_rows[2]["has_badge"] is True
-        assert rows_rows[3]["status_variant"] == "secondary"
-        # And the per-row Badge dispatch inside the so_rows_rows ForEach
-        # must include a ``variant="secondary"`` branch — the dispatch is
-        # a parallel If/Elif/Else chain (destructive / secondary /
-        # default). Without the Elif, NOT RUN rows fall through to the
-        # ``default`` Else and render success-green instead of neutral.
-        # The card-level "PREVIEW" badge also uses ``secondary``, so we
-        # must inspect the ForEach body specifically, not the whole tree.
-        envelope = app.to_json()
-        per_row_foreach: dict[str, Any] | None = None
-
-        def find_foreach(node: Any) -> None:
-            nonlocal per_row_foreach
-            if per_row_foreach is not None:
-                return
-            if isinstance(node, dict):
-                if node.get("type") == "ForEach" and node.get("key") == "so_rows_rows":
-                    per_row_foreach = node
-                    return
-                for v in node.values():
-                    find_foreach(v)
-            elif isinstance(node, list):
-                for v in node:
-                    find_foreach(v)
-
-        find_foreach(envelope)
-        assert per_row_foreach is not None, (
-            "Expected so_rows_rows ForEach in the rendered envelope."
-        )
-        found_secondary_branch = False
-
-        def walk_for_secondary_branch(node: Any) -> None:
-            nonlocal found_secondary_branch
-            if isinstance(node, dict):
-                if node.get("type") == "Badge" and node.get("variant") == ("secondary"):
-                    found_secondary_branch = True
-                for v in node.values():
-                    walk_for_secondary_branch(v)
-            elif isinstance(node, list):
-                for v in node:
-                    walk_for_secondary_branch(v)
-
-        walk_for_secondary_branch(per_row_foreach)
-        assert found_secondary_branch, (
-            "Per-row Badge dispatch inside so_rows_rows ForEach must "
-            "include a Badge with variant='secondary' — without the "
-            "Elif branch between destructive and the default Else, "
-            "NOT RUN rows fall through to the green-success default "
-            "variant instead of rendering neutral."
-        )
+        # NOT RUN rows surface in the DataTable's Status column (the leftover
+        # plan past the fail-fast boundary stays visible, not silently hidden).
+        assert rows_rows[2]["status_label"] == "NOT RUN"
+        assert rows_rows[3]["status_label"] == "NOT RUN"
 
     def test_subentity_row_lists_ignore_not_run_on_preview_path(self):
         """The NOT-RUN extras only attach to apply responses (the
@@ -4980,18 +4920,19 @@ class TestBuildSOModifyUI:
         assert len(rows_rows) == 1
         assert rows_rows[0]["status_label"] == "PLANNED"
 
-    def test_subentity_sections_render_state_bound_foreach(self):
-        """The sub-entity sections render row content via ``ForEach``
-        keyed to ``state.so_<section>_rows`` — NOT via build-time Python
-        iteration. Pins the morph contract so a refactor that reverts
-        to static rendering would regress finding A.
+    def test_subentity_sections_render_state_bound_datatable(self):
+        """The sub-entity sections render row content via a ``DataTable``
+        whose ``rows`` bind to ``state.so_<section>_rows`` (mustache form)
+        — NOT via build-time Python iteration (#721 Phase 3 replaced the
+        prior ``ForEach`` line-list with a columnar table). Pins the morph
+        contract so a refactor that reverts to static rendering would
+        regress finding A.
 
-        Walks the rendered envelope looking for a ``ForEach`` node keyed
-        to ``so_rows_rows`` (the Line items section's row slot). The
-        existence of this node is the load-bearing morph guarantee:
-        with ``ForEach`` reading state, the apply-time ``SetState`` of
+        Walks the rendered envelope for a ``DataTable`` node whose ``rows``
+        is ``"{{ so_rows_rows }}"`` (the Line items section). That binding
+        is the load-bearing morph guarantee: the apply-time ``SetState`` of
         ``$result.state.so_rows_rows`` swaps the row list and Prefab's
-        renderer re-paints each row's text + Badge from the new dicts.
+        renderer re-paints each row's Status cell from the new dicts.
         """
         actions = [
             {
@@ -5010,14 +4951,14 @@ class TestBuildSOModifyUI:
             confirm_tool="modify_sales_order",
         )
         envelope = app.to_json()
-        found_foreach_keys: set[str] = set()
+        found_datatable_rows: set[str] = set()
 
         def walk(node: Any) -> None:
             if isinstance(node, dict):
-                if node.get("type") == "ForEach":
-                    key = node.get("key")
-                    if isinstance(key, str):
-                        found_foreach_keys.add(key)
+                if node.get("type") == "DataTable":
+                    rows = node.get("rows")
+                    if isinstance(rows, str):
+                        found_datatable_rows.add(rows)
                 for v in node.values():
                     walk(v)
             elif isinstance(node, list):
@@ -5025,13 +4966,13 @@ class TestBuildSOModifyUI:
                     walk(v)
 
         walk(envelope)
-        # At minimum, the Line items section's ForEach must be present.
-        # (Other sections render their ForEach too, but only when their
-        # action list is non-empty — gated by the section header guard.)
-        assert "so_rows_rows" in found_foreach_keys, (
-            "Sub-entity rows must render via ForEach(state.so_rows_rows) — "
-            "without this the per-row chrome can't morph after apply (#858 "
-            "finding A)."
+        # The Line items section's DataTable must bind to the state slot
+        # (mustache form). Bare-string row refs crash the JS renderer, and a
+        # build-time static row list wouldn't morph after apply.
+        assert "{{ so_rows_rows }}" in found_datatable_rows, (
+            "Sub-entity rows must render via DataTable(rows='{{ so_rows_rows }}') "
+            "— without the state binding the Status column can't morph after "
+            "apply (#858 finding A)."
         )
 
     def test_apply_action_morph_chain_writes_per_section_row_slots(self):

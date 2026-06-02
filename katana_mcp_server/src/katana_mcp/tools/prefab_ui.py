@@ -104,7 +104,7 @@ from prefab_ui.components import (
     Separator,
     Text,
 )
-from prefab_ui.components.control_flow import Elif, Else, ForEach, If
+from prefab_ui.components.control_flow import Elif, Else, If
 from prefab_ui.components.slot import Slot
 from prefab_ui.rx import EVENT, RESULT, Rx
 from pydantic import BaseModel
@@ -5820,19 +5820,6 @@ def build_so_create_ui(
 # ============================================================================
 
 
-# Per-action sub-entity status variants — same buckets as BOM_ROW_STATUS_VARIANTS
-# so SO sub-entity rows render with the same Badge variants as BOM rows.
-_SO_SUB_STATUS_VARIANTS: dict[str, str] = {
-    "PLANNED": "secondary",
-    "APPLIED": "default",
-    "APPLIED (verified)": "default",
-    "APPLIED (verification mismatch)": "destructive",
-    "FAILED": "destructive",
-    "NOT RUN": "secondary",
-    "": "outline",
-}
-
-
 # Wire field → user-facing label map for the consolidated failed-changes
 # Alert. Reads "Failed — Customer: 422 Bad Request" instead of the wire-
 # name "Failed — customer_id: ...". Keys cover every SOHeaderPatch field
@@ -6171,32 +6158,31 @@ def _so_action_kind_gutter(operation: str) -> str:
 
 
 def _build_so_subentity_row(action: dict[str, Any]) -> dict[str, Any]:
-    """Project one sub-entity action onto the row-dict shape consumed by
-    the state-bound ``ForEach`` renderer (see :func:`_render_so_subentity_section`).
+    """Project one sub-entity action onto the DataTable row-dict shape
+    consumed by the state-bound table (see :func:`_render_so_subentity_section`).
 
-    Each row dict carries the pre-rendered text + Badge metadata so the
-    DOM tree built by ``ForEach`` is purely state-driven — the preview
-    iframe's apply-time morph just swaps in a new row list (via
-    ``SetState`` from ``$result.state.so_<section>_rows``) and the
-    per-action chrome (gutter glyph, status label, badge variant)
-    updates in lockstep with the apply outcome.
+    Columnar since #721 Phase 3: each row is a cell dict keyed to
+    :data:`_SO_SUBENTITY_COLUMNS`. The rows are state-bound (``DataTable
+    rows="{{ so_<section>_rows }}"``) so the preview→Confirm apply-time
+    morph swaps in a new row list via ``SetState`` from
+    ``$result.state.so_<section>_rows`` and the Status column re-paints in
+    lockstep with the apply outcome — the same contract every other modify
+    card's diff table uses.
 
     Schema:
 
-    - ``gutter_summary`` — ``"<gutter><summary>"``. Pre-painted so the
-      ``ForEach`` body is a single ``Text(content="{{ $item.gutter_summary }}")``
-      — no Mustache compose needed inside the loop. The gutter encodes
-      both kind (``+ ``/``~ ``/``- ``) and outcome (``x `` when failed).
+    - ``gutter_summary`` — ``"<gutter><summary>"`` (the "Change" column).
+      The 2-char gutter encodes both kind (``+ ``/``~ ``/``- ``) and outcome
+      (``✗ `` when failed), mirroring the kind-prefix every other card puts
+      on its key column.
     - ``status_label`` — ``"PLANNED" / "APPLIED" / "FAILED" / "NOT RUN"``
-      or ``""`` when unknown. The build-time render uses
-      :func:`_derive_status_label` to bucket per-action outcome.
-    - ``has_badge`` — ``True`` when the row should show a Badge alongside
-      its text (applied / failed / NOT RUN); ``False`` for preview-time
-      ``PLANNED`` rows (the card-level state Badge already carries the
-      planned-state signal and per-row Badges would be noise).
-    - ``status_variant`` — ``"default" / "destructive" / "secondary"``.
-      Drives the Badge color via the ``If(Rx("$item.status_variant") ==
-      "destructive")`` branch inside the ``ForEach`` body.
+      or ``""`` when unknown (the "Status" column). Bucketed via
+      :func:`_derive_status_label`. Unlike the prior line-list, PLANNED
+      renders in the Status column at preview time — consistent with the
+      BOM/PO/MO/item diff tables (the card-level Badge no longer needs to
+      be the sole planned-state signal). DataTable cells can't carry the
+      colored per-row Badge the line-list used; the kind gutter + text
+      Status column carry the signal (#721 Phase 3 tradeoff).
 
     Shared between preview-time row seeding and apply-time row recompute
     so the wire shape matches across the morph.
@@ -6211,13 +6197,9 @@ def _build_so_subentity_row(action: dict[str, Any]) -> dict[str, Any]:
         gutter = "✗ "
     summary = _format_so_action_summary(action)
     status_label = action.get("status_label") or _derive_status_label(action) or ""
-    has_badge = bool(status_label) and status_label != "PLANNED"
-    status_variant = _SO_SUB_STATUS_VARIANTS.get(status_label, "secondary")
     return {
         "gutter_summary": f"{gutter}{summary}",
         "status_label": status_label,
-        "has_badge": has_badge,
-        "status_variant": status_variant,
     }
 
 
@@ -6252,6 +6234,18 @@ def _build_so_subentity_row_lists(
     return by_section
 
 
+# Columns for the SO sub-entity diff tables (#721 Phase 3). The kind-
+# prefixed free-text "Change" summary plus a text Status column — the same
+# two-axis shape (what-changed + outcome) every other modify card's diff
+# table uses. DataTable cells can't carry the colored per-row Badge the
+# old line-list rendered, so Status is plain text; the gutter glyph
+# (``+``/``~``/``-``/``✗``) carries the kind + failure signal.
+_SO_SUBENTITY_COLUMNS: list[DataTableColumn] = [
+    DataTableColumn(key="gutter_summary", header="Change"),
+    DataTableColumn(key="status_label", header="Status", width="7rem"),
+]
+
+
 def _render_so_subentity_section(
     section_label: str,
     section_key: str,
@@ -6260,30 +6254,30 @@ def _render_so_subentity_section(
     """Render one sub-entity action section (Line items / Addresses /
     Fulfillments / Shipping fees) inside the SO modify card body.
 
-    State-bound: the per-action rows render inside a ``ForEach`` keyed
-    to ``state.so_<section_key>_rows`` so the preview→Confirm in-place
-    morph re-paints each row's gutter glyph + Badge label + Badge
-    variant from the apply response (via the on_success ``SetState``
-    chain). Pre-fix the rows were Python-painted at build time and
-    stayed frozen on the preview-time PLANNED state even after the
-    apply landed (#858, Copilot finding).
+    Columnar since #721 Phase 3 — a state-bound ``DataTable`` (rows
+    ``"{{ so_<section_key>_rows }}"``) replaces the prior ``ForEach``
+    line-list, so every modify card renders its collection diffs through
+    the same widget. The state binding preserves the preview→Confirm
+    in-place morph: the on_success ``SetState`` chain overwrites
+    ``so_<section_key>_rows`` from ``$result.state.so_<section_key>_rows``
+    so the Status column re-paints from the apply outcome (#858 finding A
+    contract, unchanged).
 
-    Each row's content lives in ``state.so_<section_key>_rows[i]`` as
-    a dict (see :func:`_build_so_subentity_row` for the schema). The
-    ``ForEach`` body renders ``Text`` for the gutter + summary and a
-    conditional ``Badge`` gated by ``$item.has_badge`` — the destructive
-    vs default variant branches on ``$item.status_variant``.
+    Each row lives in ``state.so_<section_key>_rows[i]`` as a cell dict
+    (see :func:`_build_so_subentity_row`): a kind-prefixed ``gutter_summary``
+    "Change" cell + a text ``status_label``. The per-row colored Badge the
+    line-list carried is gone (DataTable cells can't hold one) — the gutter
+    glyph + Status column carry the signal (#721 Phase 3 tradeoff).
 
-    The failed-row error message is NOT rendered inline — it aggregates
-    into the consolidated state-driven Alert via
+    The failed-row error message is NOT rendered in the table — it
+    aggregates into the consolidated state-driven Alert via
     :func:`_so_subentity_failed_summary` (sub-entity ops) and (for
-    header-level ops) :func:`_so_header_op_failure_alert_text`. Same
-    layout-stability rule as the PO entity view.
+    header-level ops) :func:`_so_header_op_failure_alert_text`.
 
-    The ``actions`` arg only gates whether the section header renders
-    (an empty plan section stays absent so the card doesn't paint
-    "Fulfillments:" headers with no rows below them). The row content
-    itself comes from state, not from ``actions`` at render time.
+    The ``actions`` arg only gates whether the section renders (an empty
+    plan section stays absent so the card doesn't paint a "Fulfillments:"
+    header + empty table). The row content itself comes from state, not
+    from ``actions`` at render time.
 
     Called inside ``CardContent`` → ``Column(gap=3)``.
     """
@@ -6292,36 +6286,18 @@ def _render_so_subentity_section(
 
     Separator()
     Muted(content=f"{section_label}:")
-    # ForEach iterates over the state-bound row list — the same slot
-    # the on_success chain writes from ``$result.state.so_<section>_rows``,
-    # so the row chrome morphs in-place when the apply lands. Inside the
-    # loop, ``$item`` resolves per-row to one of the row dicts built by
-    # :func:`_build_so_subentity_row`.
-    with ForEach(f"so_{section_key}_rows") as item, Row(gap=2):
-        Text(content=f"{item.gutter_summary}")
-        # Per-item Badge: only render when the row has reached a
-        # post-preview status. ``has_badge`` is False at preview
-        # time (PLANNED rows hide their per-row Badge); True after
-        # the morph for any row that reached APPLIED / FAILED /
-        # NOT RUN.
-        with If(item.has_badge):
-            # Badge.variant isn't reactive on its own; render parallel
-            # If/Else branches so the morph picks the right variant.
-            with If(item.status_variant == "destructive"):
-                Badge(
-                    label=f"{item.status_label}",
-                    variant="destructive",
-                )
-            with Elif(item.status_variant == "secondary"):
-                Badge(
-                    label=f"{item.status_label}",
-                    variant="secondary",
-                )
-            with Else():
-                Badge(
-                    label=f"{item.status_label}",
-                    variant="default",
-                )
+    # State-bound rows — the same slot the on_success chain writes from
+    # ``$result.state.so_<section>_rows``, so the Status column morphs
+    # in-place when the apply lands. Mustache form is mandatory for
+    # state-bound DataTable rows (bare strings crash the JS renderer).
+    # ``len(actions)`` is the build-time row count for this section (one row
+    # per action, including any synthesized NOT-RUN tail) — routed through
+    # ``_paginate`` so a short section doesn't render blank filler rows.
+    DataTable(
+        columns=_SO_SUBENTITY_COLUMNS,
+        rows=f"{{{{ so_{section_key}_rows }}}}",
+        **_paginate(len(actions)),
+    )
 
 
 def _so_subentity_failed_summary(
@@ -6347,9 +6323,9 @@ def _so_subentity_failed_summary(
 
     Used to seed ``state.applied_subentity_failed_count`` /
     ``state.applied_subentity_failed_summary`` so the in-place morph
-    after Confirm can surface failures (the Python-painted per-action
-    rows above carry ✗ glyphs but the textual error messages aggregate
-    into the morph-bound Alert below).
+    after Confirm can surface failures (the per-action DataTable rows
+    above carry the ✗ gutter + FAILED Status cell, but the textual error
+    messages aggregate into the morph-bound Alert below).
 
     Filters to operations in :data:`_SO_SUBENTITY_OPS` only — a failed
     ``update_header`` or top-level ``delete`` would otherwise render in
@@ -6726,8 +6702,8 @@ def _render_so_entity_view(
     # Shipping fees. Each group reads the operation prefix off the
     # action's ``operation`` field and renders the section only when
     # actions of that kind are present. The section's rows render from
-    # ``state.so_<section_key>_rows`` (state-bound via ``ForEach``) so
-    # the preview→Confirm morph re-paints per-action chrome — see
+    # ``state.so_<section_key>_rows`` (state-bound ``DataTable``) so
+    # the preview→Confirm morph re-paints the Status column — see
     # :func:`_render_so_subentity_section`.
     for section_key, label, ops in _SO_SUBENTITY_GROUPS:
         section_actions = [
@@ -6758,7 +6734,7 @@ def _render_so_entity_view(
 # state slot (e.g. ``applied_header_skipped_*`` in #858 round-8) is a
 # one-line edit rather than three concurrent edits across seed, render,
 # and morph-chain sites. The ``so_*_rows`` slots drive the per-sub-entity
-# section ``ForEach`` loops; everything else drives state-bound Badge /
+# section ``DataTable`` rows; everything else drives state-bound Badge /
 # Alert / mustache strings.
 _SO_MODIFY_MORPH_STATE_SLOTS: tuple[str, ...] = (
     "applied_outcome_label",
@@ -6846,7 +6822,7 @@ def _seed_so_modify_card_state(
     path (``is_preview=False``), the seeded values match the actual
     outcome so a fully-failed apply doesn't show success chrome.
 
-    The ``so_<section_key>_rows`` slots are bound 1:1 to the ``ForEach``
+    The ``so_<section_key>_rows`` slots are bound 1:1 to the ``DataTable``
     inside :func:`_render_so_subentity_section`; the on_success chain
     copies ``$result.state.so_<section>_rows`` straight in.
     """
