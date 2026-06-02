@@ -9,12 +9,12 @@ from ...client_types import Response
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.sales_order_list_response import SalesOrderListResponse
-from ...models.search_filter_request import SearchFilterRequest
+from ...models.sales_order_search_request import SalesOrderSearchRequest
 
 
 def _get_kwargs(
     *,
-    body: SearchFilterRequest,
+    body: SalesOrderSearchRequest,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -84,25 +84,28 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: SearchFilterRequest,
+    body: SalesOrderSearchRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | SalesOrderListResponse]:
     """Search sales orders
 
-     Searches sales orders using arbitrary filter criteria. Returns the
-    same shape as ``GET /sales_orders`` — paginated list of
+     Searches sales orders using a structured filter body with nested
+    logical operators (``and`` / ``or``) and per-field comparators.
+    Only the fields in the request schema may appear in ``where`` /
+    ``order``; unknown fields return 422. Custom field values are
+    addressable via ``custom_fields.<uuid>`` nested paths. Returns the
+    same shape as ``GET /sales_orders`` — a paginated list of
     ``SalesOrder`` records.
 
     Args:
-        body (SearchFilterRequest): LoopBack-style filter envelope used by POST search endpoints.
-            The
-            ``filter`` body supports pagination (``limit`` / ``page`` / ``skip``),
-            ordering, and a ``where`` clause with comparison operators
-            (``eq`` / ``neq`` / ``gt`` / ``gte`` / ``lt`` / ``lte`` / ``like`` /
-            ``ilike`` / ``inq`` / ``nin`` / ``between`` / ``regexp`` / ``exists``)
-            plus ``and`` / ``or`` composition. Where clause values are
-            intentionally left as free-form because Katana's filter grammar is
-            the same regardless of which field is being filtered. Example: {'filter': {'limit': 50,
-            'where': {'sales_order_id': {'inq': [1, 2, 3]}}, 'order': 'created_at DESC'}}.
+        body (SalesOrderSearchRequest): Structured filter body for ``POST /sales_orders/search``.
+            Returns
+            the same paginated ``{"data": [...]}`` shape as
+            ``GET /sales_orders`` plus an ``X-Pagination`` header. Beta —
+            request/response shape may evolve before GA.
+             Example: {'filter': {'where': {'and': [{'status': {'inq': ['NOT_SHIPPED', 'PACKED']}},
+            {'created_at': {'gte': '2026-01-01T00:00:00.000Z'}},
+            {'custom_fields.0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef': 2}]}, 'order': ['created_at DESC',
+            'id DESC'], 'limit': 50, 'page': 1}}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -127,25 +130,28 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    body: SearchFilterRequest,
+    body: SalesOrderSearchRequest,
 ) -> DetailedErrorResponse | ErrorResponse | SalesOrderListResponse | None:
     """Search sales orders
 
-     Searches sales orders using arbitrary filter criteria. Returns the
-    same shape as ``GET /sales_orders`` — paginated list of
+     Searches sales orders using a structured filter body with nested
+    logical operators (``and`` / ``or``) and per-field comparators.
+    Only the fields in the request schema may appear in ``where`` /
+    ``order``; unknown fields return 422. Custom field values are
+    addressable via ``custom_fields.<uuid>`` nested paths. Returns the
+    same shape as ``GET /sales_orders`` — a paginated list of
     ``SalesOrder`` records.
 
     Args:
-        body (SearchFilterRequest): LoopBack-style filter envelope used by POST search endpoints.
-            The
-            ``filter`` body supports pagination (``limit`` / ``page`` / ``skip``),
-            ordering, and a ``where`` clause with comparison operators
-            (``eq`` / ``neq`` / ``gt`` / ``gte`` / ``lt`` / ``lte`` / ``like`` /
-            ``ilike`` / ``inq`` / ``nin`` / ``between`` / ``regexp`` / ``exists``)
-            plus ``and`` / ``or`` composition. Where clause values are
-            intentionally left as free-form because Katana's filter grammar is
-            the same regardless of which field is being filtered. Example: {'filter': {'limit': 50,
-            'where': {'sales_order_id': {'inq': [1, 2, 3]}}, 'order': 'created_at DESC'}}.
+        body (SalesOrderSearchRequest): Structured filter body for ``POST /sales_orders/search``.
+            Returns
+            the same paginated ``{"data": [...]}`` shape as
+            ``GET /sales_orders`` plus an ``X-Pagination`` header. Beta —
+            request/response shape may evolve before GA.
+             Example: {'filter': {'where': {'and': [{'status': {'inq': ['NOT_SHIPPED', 'PACKED']}},
+            {'created_at': {'gte': '2026-01-01T00:00:00.000Z'}},
+            {'custom_fields.0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef': 2}]}, 'order': ['created_at DESC',
+            'id DESC'], 'limit': 50, 'page': 1}}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -165,25 +171,28 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: SearchFilterRequest,
+    body: SalesOrderSearchRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | SalesOrderListResponse]:
     """Search sales orders
 
-     Searches sales orders using arbitrary filter criteria. Returns the
-    same shape as ``GET /sales_orders`` — paginated list of
+     Searches sales orders using a structured filter body with nested
+    logical operators (``and`` / ``or``) and per-field comparators.
+    Only the fields in the request schema may appear in ``where`` /
+    ``order``; unknown fields return 422. Custom field values are
+    addressable via ``custom_fields.<uuid>`` nested paths. Returns the
+    same shape as ``GET /sales_orders`` — a paginated list of
     ``SalesOrder`` records.
 
     Args:
-        body (SearchFilterRequest): LoopBack-style filter envelope used by POST search endpoints.
-            The
-            ``filter`` body supports pagination (``limit`` / ``page`` / ``skip``),
-            ordering, and a ``where`` clause with comparison operators
-            (``eq`` / ``neq`` / ``gt`` / ``gte`` / ``lt`` / ``lte`` / ``like`` /
-            ``ilike`` / ``inq`` / ``nin`` / ``between`` / ``regexp`` / ``exists``)
-            plus ``and`` / ``or`` composition. Where clause values are
-            intentionally left as free-form because Katana's filter grammar is
-            the same regardless of which field is being filtered. Example: {'filter': {'limit': 50,
-            'where': {'sales_order_id': {'inq': [1, 2, 3]}}, 'order': 'created_at DESC'}}.
+        body (SalesOrderSearchRequest): Structured filter body for ``POST /sales_orders/search``.
+            Returns
+            the same paginated ``{"data": [...]}`` shape as
+            ``GET /sales_orders`` plus an ``X-Pagination`` header. Beta —
+            request/response shape may evolve before GA.
+             Example: {'filter': {'where': {'and': [{'status': {'inq': ['NOT_SHIPPED', 'PACKED']}},
+            {'created_at': {'gte': '2026-01-01T00:00:00.000Z'}},
+            {'custom_fields.0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef': 2}]}, 'order': ['created_at DESC',
+            'id DESC'], 'limit': 50, 'page': 1}}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -206,25 +215,28 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    body: SearchFilterRequest,
+    body: SalesOrderSearchRequest,
 ) -> DetailedErrorResponse | ErrorResponse | SalesOrderListResponse | None:
     """Search sales orders
 
-     Searches sales orders using arbitrary filter criteria. Returns the
-    same shape as ``GET /sales_orders`` — paginated list of
+     Searches sales orders using a structured filter body with nested
+    logical operators (``and`` / ``or``) and per-field comparators.
+    Only the fields in the request schema may appear in ``where`` /
+    ``order``; unknown fields return 422. Custom field values are
+    addressable via ``custom_fields.<uuid>`` nested paths. Returns the
+    same shape as ``GET /sales_orders`` — a paginated list of
     ``SalesOrder`` records.
 
     Args:
-        body (SearchFilterRequest): LoopBack-style filter envelope used by POST search endpoints.
-            The
-            ``filter`` body supports pagination (``limit`` / ``page`` / ``skip``),
-            ordering, and a ``where`` clause with comparison operators
-            (``eq`` / ``neq`` / ``gt`` / ``gte`` / ``lt`` / ``lte`` / ``like`` /
-            ``ilike`` / ``inq`` / ``nin`` / ``between`` / ``regexp`` / ``exists``)
-            plus ``and`` / ``or`` composition. Where clause values are
-            intentionally left as free-form because Katana's filter grammar is
-            the same regardless of which field is being filtered. Example: {'filter': {'limit': 50,
-            'where': {'sales_order_id': {'inq': [1, 2, 3]}}, 'order': 'created_at DESC'}}.
+        body (SalesOrderSearchRequest): Structured filter body for ``POST /sales_orders/search``.
+            Returns
+            the same paginated ``{"data": [...]}`` shape as
+            ``GET /sales_orders`` plus an ``X-Pagination`` header. Beta —
+            request/response shape may evolve before GA.
+             Example: {'filter': {'where': {'and': [{'status': {'inq': ['NOT_SHIPPED', 'PACKED']}},
+            {'created_at': {'gte': '2026-01-01T00:00:00.000Z'}},
+            {'custom_fields.0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef': 2}]}, 'order': ['created_at DESC',
+            'id DESC'], 'limit': 50, 'page': 1}}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

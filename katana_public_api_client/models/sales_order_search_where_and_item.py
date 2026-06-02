@@ -8,13 +8,11 @@ from attrs import (
     field as _attrs_field,
 )
 
-T = TypeVar("T", bound="UpdateCustomFieldDefinitionRequestOptionsType0")
+T = TypeVar("T", bound="SalesOrderSearchWhereAndItem")
 
 
 @_attrs_define
-class UpdateCustomFieldDefinitionRequestOptionsType0:
-    """Updated configuration object"""
-
+class SalesOrderSearchWhereAndItem:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -27,10 +25,10 @@ class UpdateCustomFieldDefinitionRequestOptionsType0:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        update_custom_field_definition_request_options_type_0 = cls()
+        sales_order_search_where_and_item = cls()
 
-        update_custom_field_definition_request_options_type_0.additional_properties = d
-        return update_custom_field_definition_request_options_type_0
+        sales_order_search_where_and_item.additional_properties = d
+        return sales_order_search_where_and_item
 
     @property
     def additional_keys(self) -> list[str]:

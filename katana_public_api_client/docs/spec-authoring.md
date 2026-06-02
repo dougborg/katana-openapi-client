@@ -144,6 +144,39 @@ and is what the generator handles cleanly.
 
 ______________________________________________________________________
 
+## Two custom-fields surfaces coexist — never unify them
+
+Katana exposes **two unrelated** custom-fields mechanisms. They look similar but have
+different wire shapes, different configuration endpoints, and different key semantics.
+Keep them separate in the spec; do not "DRY" one into the other.
+
+|                      | Legacy (items)                          | New (sales orders)             |
+| -------------------- | --------------------------------------- | ------------------------------ |
+| **Entities**         | Variant / Product / Material / Service  | `SalesOrder` / `SalesOrderRow` |
+| **Wire shape**       | `[{field_name, field_value}]` **array** | `{<uuid>: value}` **dict**     |
+| **Configured via**   | `/custom_fields_collections`            | `/custom_field_definitions`    |
+| **Key**              | configured field **name**               | definition **`id`** (UUID)     |
+| **Canonical schema** | `CustomFieldValue`                      | `CustomFieldDefinition`        |
+
+The array surface is modelled by `CustomFieldValue` and the dict surface by
+`CustomFieldDefinition` + the `CustomFieldOptions` choice schemas. The dict values are
+typed by the definition's `field_type` (string / number / boolean / `YYYY-MM-DD` / URL
+string / integer choice `id` for `singleSelect`). `entity_type` is intentionally
+narrowed to the two live values — add a new entity type only once the live API accepts
+it. Katana has **not** migrated items/variants to the dict shape; if/when it does, that
+is a deliberate, separately-tracked spec change, not a silent unification here.
+
+Sales-order custom-field **search** paths use snake_case `custom_fields.<uuid>` in
+`where`/`order` (matching the request/response body), per Katana's live
+`/sales_orders/search` schema. Pre-GA partner docs showed a camelCase
+`customFields.<id>` asymmetry, but the shipped API uses snake_case — **verified live**
+against the test tenant (`make_test_client()` probe, 2026-06-02): `custom_fields.<uuid>`
+passes `where` validation, while `customFields.<uuid>` is rejected with the same
+`additionalProperties` / "unexpected property" 422 as any unknown field. Do not
+reintroduce the camelCase form.
+
+______________________________________________________________________
+
 ## Fix bugs at the client/generator layer when the root cause lives there
 
 The Katana client (`katana_public_api_client`) is a published, standalone package.

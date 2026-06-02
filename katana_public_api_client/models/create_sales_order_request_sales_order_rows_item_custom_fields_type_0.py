@@ -13,17 +13,16 @@ T = TypeVar("T", bound="CreateSalesOrderRequestSalesOrderRowsItemCustomFieldsTyp
 
 @_attrs_define
 class CreateSalesOrderRequestSalesOrderRowsItemCustomFieldsType0:
-    """Row-level custom field values, keyed by configured field
-    name. Keys correspond to fields defined for the
-    ``SalesOrderRow`` entity type on the tenant's
-    ``custom_field_collection`` (see
-    ``GET /custom_fields_collections``). Each value matches
-    the corresponding field's ``CustomFieldType``
-    (``shortText`` / ``number`` / ``singleSelect`` /
-    ``date`` / ``boolean`` / ``url``). The valid key set is
-    tenant-specific runtime config, so the schema declares
-    ``additionalProperties: true`` rather than enumerating
-    keys.
+    """Row-level custom field values, keyed by the
+    definition ``id`` (UUID) — the ``id`` returned by
+    ``GET /custom_field_definitions``, not the field label.
+    Each value matches the definition's ``field_type``:
+    string for ``shortText`` / ``url``, number for
+    ``number``, boolean for ``boolean``, a ``YYYY-MM-DD``
+    string for ``date``, or the integer choice ``id`` for
+    ``singleSelect``. Keys are tenant-specific, so the schema
+    declares ``additionalProperties: true`` rather than
+    enumerating them.
 
     """
 
