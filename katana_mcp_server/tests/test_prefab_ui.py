@@ -16,6 +16,7 @@ from katana_mcp.tools.foundation.bom_table import _merge_bom_rows_for_modify_car
 from katana_mcp.tools.prefab_ui import (
     PREVIEW_APPLY_COACHING,
     _format_money,
+    _paginate,
     build_batch_recipe_update_ui,
     build_bom_modify_ui,
     build_fulfill_preview_ui,
@@ -3220,6 +3221,39 @@ class TestPOModifyRowTable:
         # 2 existing + 1 added.
         assert len(rows) == 3
         assert [r["kind"] for r in rows].count("added") == 1
+
+    def test_short_row_table_disables_pagination(self):
+        """End-to-end guard that the state-bound row table is wired through
+        ``_paginate`` (not a hardcoded ``paginated=True``): a 3-row table
+        fits one page, so the renderer's blank filler rows are suppressed.
+        """
+        app = build_po_modify_ui(
+            self._preview([self._add_row(variant_id=403, qty=1.0, price=1.0)]),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        table = _bound_data_table(app.to_json(), "{{ po_row_rows }}")
+        assert table.get("paginated") is False
+
+    def test_overflowing_row_table_enables_pagination(self):
+        """The same row table paginates (page size 20) once the rows
+        overflow one page — confirms ``_paginate`` is fed the real row
+        count, not a constant.
+        """
+        actions = [
+            self._add_row(variant_id=403, qty=float(i), price=1.0) for i in range(25)
+        ]
+        app = build_po_modify_ui(
+            self._preview(actions),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_purchase_order",
+        )
+        # 2 prior rows + 25 added = 27 > 20.
+        assert app.state is not None
+        assert len(app.state["po_row_rows"]) == 27
+        table = _bound_data_table(app.to_json(), "{{ po_row_rows }}")
+        assert table.get("paginated") is True
+        assert table.get("pageSize") == 20
 
     def test_header_only_modify_renders_no_row_table(self):
         actions = [
@@ -10723,3 +10757,90 @@ class TestPreviewCoachingLeadsWithNoIframeFallback:
         result = with_preview_coaching(fn)
         assert result.startswith("My tool's own purpose.")
         assert "does NOT render" in result
+
+
+def _bound_data_table(envelope: dict[str, Any], rows_ref: str) -> dict[str, Any]:
+    """The single DataTable in ``envelope`` whose ``rows`` binds ``rows_ref``.
+
+    Pins a pagination assertion to a specific table (by its ``{{ key }}``
+    binding) rather than "the only DataTable" — robust if a card later grows
+    a second table. Built on the file's existing ``_find_components_by_type``.
+    """
+    tables = [
+        t
+        for t in _find_components_by_type(envelope, "DataTable")
+        if t.get("rows") == rows_ref
+    ]
+    assert len(tables) == 1, f"expected exactly one DataTable bound to {rows_ref!r}"
+    return tables[0]
+
+
+class TestDataTablePagination:
+    """``_paginate`` opts into pagination only when the data overflows one
+    page, so short tables don't render the renderer's blank filler rows
+    (the renderer pads a *paginated* table up to ``pageSize``). Guards the
+    module-wide DataTable fix.
+    """
+
+    @pytest.mark.parametrize(
+        ("row_count", "page_size", "expected"),
+        [
+            (0, 20, {"paginated": False}),
+            (1, 20, {"paginated": False}),
+            (19, 20, {"paginated": False}),
+            # Boundary: rowCount == pageSize fits one page with no filler.
+            (20, 20, {"paginated": False}),
+            (21, 20, {"paginated": True, "pageSize": 20}),
+            (50, 25, {"paginated": True, "pageSize": 25}),
+            (25, 25, {"paginated": False}),
+        ],
+    )
+    def test_paginate_thresholds(
+        self, row_count: int, page_size: int, expected: dict[str, Any]
+    ) -> None:
+        assert _paginate(row_count, page_size=page_size) == expected
+
+    @pytest.mark.parametrize(
+        ("n_items", "paginated"),
+        [
+            (1, False),  # short → no pagination, no blank filler rows
+            (50, True),  # overflow → paginate at the configured page size
+        ],
+    )
+    def test_search_results_paginate_only_on_overflow(
+        self, n_items: int, paginated: bool
+    ) -> None:
+        """End-to-end: ``build_search_results_ui`` routes its ``{{ items }}``
+        table through ``_paginate`` — short results don't paginate (so the
+        renderer adds no filler rows), overflowing results do.
+        """
+        items = [
+            {"id": i, "sku": f"SKU-{i:03d}", "name": "Widget", "is_sellable": True}
+            for i in range(n_items)
+        ]
+        table = _bound_data_table(
+            build_search_results_ui(items, "widget", n_items).to_json(), "{{ items }}"
+        )
+        assert table.get("paginated") is paginated
+        if paginated:
+            assert table.get("pageSize") == 20
+
+    def test_no_hardcoded_paginated_true_in_module(self) -> None:
+        """Enforce the convention for the next DataTable author: pagination
+        is decided by ``_paginate``, never a hardcoded ``paginated=True``
+        kwarg (which would reintroduce blank filler rows for any table that
+        fits on one page). Converts the convention into a tripwire.
+        """
+        from pathlib import Path
+
+        import katana_mcp.tools.prefab_ui as prefab_ui_module
+
+        source = Path(prefab_ui_module.__file__).read_text(encoding="utf-8")
+        # Match the kwarg form (``paginated=True``) but not backtick-quoted
+        # prose mentions of it in the ``_paginate`` docstring.
+        offenders = re.findall(r"(?<!`)paginated=True", source)
+        assert not offenders, (
+            "Found a hardcoded `paginated=True` DataTable kwarg in prefab_ui.py "
+            "— route pagination through `**_paginate(len(rows))` instead so "
+            "short tables don't render blank filler rows."
+        )
