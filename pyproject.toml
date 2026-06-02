@@ -588,6 +588,11 @@ test-coverage = "pytest -n 4 --cov=katana_public_api_client --cov-report=term-mi
 test-coverage-html = "pytest -n 4 --cov=katana_public_api_client --cov-report=html -m 'not docs and not schema_validation and not integration and not browser'"
 test-unit = "pytest -n 4 -m 'unit and not schema_validation'"
 test-integration = "pytest -n 4 -m 'integration and not schema_validation'"
+# Live client smoke tests against a real Katana *test* tenant (issue #837).
+# Sequential by design: hits a live API, so we don't fan out concurrent calls.
+# Auto-skips when KATANA_TEST_API_KEY is unset (the live_client fixture skips),
+# so this is a green no-op on forks / in CI without the secret.
+test-integration-live = "pytest tests/integration/ --timeout=60"
 test-docs = { shell = "CI_DOCS_BUILD=true pytest -m docs -v --timeout=600" }  # 10 minute timeout for docs
 test-no-docs = "pytest -n 4 -m 'not docs and not schema_validation and not integration and not browser'"
 test-all = "pytest -n 4 -m 'not schema_validation and not integration and not browser'"  # Run everything except schema_validation, integration, and browser (each parallel-incompatible or stateful)
@@ -702,6 +707,7 @@ echo "   poe test                - Run all tests"
 echo "   poe test-coverage       - Run tests with coverage report"
 echo "   poe test-unit           - Run unit tests only"
 echo "   poe test-integration    - Run integration tests only"
+echo "   poe test-integration-live - Live client smoke tests (test tenant; skips w/o KATANA_TEST_API_KEY)"
 echo "   poe analyze-coverage    - Analyze coverage by file type"
 echo ""
 echo "📁 Documentation:"
