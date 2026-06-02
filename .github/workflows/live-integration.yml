@@ -27,7 +27,9 @@ name: Live integration
 # the job summary + an uploaded artifact; a red suite does not block. Promote
 # to a hard gate once the suite is proven stable on the test tenant.
 #
-# Phase 4 (#837) adds an MCP-server smoke-test job alongside this one.
+# Two jobs: the client live suite (`poe test-integration-live`) and the MCP
+# server smoke suite (`poe test-smoke-mcp`, Phase 4 of #837). They share the
+# gating / secret / soft-fail contract but report independently.
 
 on:
   schedule:
@@ -107,5 +109,71 @@ jobs:
             echo
             echo '```'
             cat live-integration-report.txt 2>/dev/null || echo "(no report)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  mcp-smoke:
+    # Phase 4 of #837: live MCP-server smoke tests. Same gating / secret /
+    # soft-fail contract as the client suite above, kept as a separate job so
+    # the two concerns (client vs MCP server) report independently.
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains(github.event.pull_request.labels.*.name, 'needs-live-test')
+    runs-on: ubuntu-latest
+    env:
+      KATANA_TEST_API_KEY: ${{ secrets.KATANA_TEST_API_KEY }}
+      KATANA_TEST_BASE_URL: ${{ vars.KATANA_TEST_BASE_URL }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Warn when the test key is absent
+        if: env.KATANA_TEST_API_KEY == ''
+        run: |
+          echo "::notice title=MCP smoke skipped::KATANA_TEST_API_KEY is not \
+          set, so the MCP smoke suite will skip. Set it with \`gh secret set \
+          KATANA_TEST_API_KEY\` to exercise the test tenant."
+
+      - name: Run MCP server smoke tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          # pipefail so the step reflects pytest's exit code, not tee's.
+          set -o pipefail
+          uv run poe test-smoke-mcp | tee mcp-smoke-report.txt
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mcp-smoke-report
+          path: mcp-smoke-report.txt
+          retention-days: 30
+
+      - name: Render summary
+        if: always()
+        run: |
+          {
+            echo "# MCP server smoke"
+            echo
+            if [ -z "$KATANA_TEST_API_KEY" ]; then
+              echo "> \`KATANA_TEST_API_KEY\` is not set — the suite skipped."
+              echo "> Set the repo secret to exercise the test tenant."
+              echo
+            fi
+            echo '## `poe test-smoke-mcp`'
+            echo
+            echo '```'
+            cat mcp-smoke-report.txt 2>/dev/null || echo "(no report)"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"

@@ -240,6 +240,7 @@ markers = [
   "slow: marks tests as slow",
   "integration: marks tests as integration tests",
   "live: marks live test-tenant integration tests (built on make_test_client(); auto-skip without KATANA_TEST_API_KEY; run sequentially via `poe test-integration-live` since they hit a real API)",
+  "smoke: marks live MCP-server smoke tests (built on make_test_client() + a real typed cache; auto-skip without KATANA_TEST_API_KEY; run via `poe test-smoke-mcp`)",
   "unit: marks tests as unit tests",
   "asyncio: marks tests as async tests",
   "docs: marks tests as documentation tests (slow, only run in CI docs jobs)",
@@ -588,7 +589,7 @@ test-verbose = "pytest -n 4 -v -m 'not docs and not schema_validation and not in
 test-coverage = "pytest -n 4 --cov=katana_public_api_client --cov-report=term-missing -m 'not docs and not schema_validation and not integration and not browser'"
 test-coverage-html = "pytest -n 4 --cov=katana_public_api_client --cov-report=html -m 'not docs and not schema_validation and not integration and not browser'"
 test-unit = "pytest -n 4 -m 'unit and not schema_validation'"
-test-integration = "pytest -n 4 -m 'integration and not schema_validation and not live'"
+test-integration = "pytest -n 4 -m 'integration and not schema_validation and not live and not smoke'"
 # Live client smoke tests against a real Katana *test* tenant (issue #837).
 # Selected by the `live` marker (not just the path) so a bare `pytest -m live`
 # also picks exactly these — and so `test-integration` above can exclude them.
@@ -596,6 +597,10 @@ test-integration = "pytest -n 4 -m 'integration and not schema_validation and no
 # Auto-skips when KATANA_TEST_API_KEY is unset (the live_client fixture skips),
 # so this is a green no-op on forks / in CI without the secret.
 test-integration-live = "pytest -m live --timeout=60"
+# Live MCP-server smoke tests (issue #837 Phase 4). Selected by the `smoke`
+# marker; exercises read-only MCP tool impls through a real Services (client +
+# typed cache) against the test tenant. Auto-skips without KATANA_TEST_API_KEY.
+test-smoke-mcp = "pytest -m smoke --timeout=120"
 test-docs = { shell = "CI_DOCS_BUILD=true pytest -m docs -v --timeout=600" }  # 10 minute timeout for docs
 test-no-docs = "pytest -n 4 -m 'not docs and not schema_validation and not integration and not browser'"
 test-all = "pytest -n 4 -m 'not schema_validation and not integration and not browser'"  # Run everything except schema_validation, integration, and browser (each parallel-incompatible or stateful)
@@ -711,6 +716,7 @@ echo "   poe test-coverage       - Run tests with coverage report"
 echo "   poe test-unit           - Run unit tests only"
 echo "   poe test-integration    - Run integration tests only"
 echo "   poe test-integration-live - Live client smoke tests (test tenant; skips w/o KATANA_TEST_API_KEY)"
+echo "   poe test-smoke-mcp      - Live MCP-server smoke tests (test tenant; skips w/o KATANA_TEST_API_KEY)"
 echo "   poe analyze-coverage    - Analyze coverage by file type"
 echo ""
 echo "📁 Documentation:"
