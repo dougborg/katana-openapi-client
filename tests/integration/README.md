@@ -27,6 +27,27 @@ export KATANA_TEST_API_KEY=...                       # test tenant, NOT prod
 export KATANA_TEST_BASE_URL=https://api.katanamrp.com/v1   # optional; this is the default
 ```
 
+## Running in CI
+
+The [`live-integration.yml`](../../.github/workflows/live-integration.yml) workflow runs
+this suite on a nightly schedule, on manual dispatch, and on any PR carrying the
+`needs-live-test` label (no automatic live run on every PR). It is **soft-fail** — a red
+suite surfaces in the job summary + an uploaded artifact but does not block.
+
+One-time setup by a repo owner — the workflow is a green no-op until the secret exists:
+
+```bash
+gh secret set KATANA_TEST_API_KEY            # test-tenant key
+gh variable set KATANA_TEST_BASE_URL --body 'https://api.katanamrp.com/v1'  # optional
+```
+
+> **CI safety net.** It's worth also setting the repo's `KATANA_API_KEY` secret to the
+> **same test-tenant key**. Nothing maps it to an env var today, but if a workflow ever
+> accidentally constructs a default `KatanaClient()` (which reads `KATANA_API_KEY`), it
+> then lands on the *test* tenant instead of production. The trade-off: don't assume
+> `KATANA_API_KEY` means "production" in CI — in this repo's CI it points at the test
+> tenant by design.
+
 ## Safety model — why this can't hit prod
 
 - **No prod fallback.** The `live_client` fixture calls

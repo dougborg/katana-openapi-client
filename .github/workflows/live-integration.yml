@@ -1,0 +1,179 @@
+name: Live integration
+
+# Phase 3 of #837: run the live-tenant integration suite against a real
+# Katana *test* tenant (separate ``KATANA_TEST_API_KEY``, same
+# ``api.katanamrp.com/v1`` base URL — different tenant, never production).
+#
+# REQUIRED ONE-TIME SETUP (repo owner):
+#
+#     gh secret set KATANA_TEST_API_KEY --body '<test-tenant-key>'
+#     # optional, only if the test tenant lives on a non-default base URL:
+#     gh variable set KATANA_TEST_BASE_URL --body 'https://api.katanamrp.com/v1'
+#
+# Until ``KATANA_TEST_API_KEY`` exists, this workflow is a green no-op:
+# ``make_test_client()`` raises ``MissingTestCredentialsError`` and the
+# ``live_client`` fixture turns that into a skip. The same is true for PRs
+# from forks (secrets aren't exposed there) — by design.
+#
+# Triggers:
+#   - schedule  : nightly, surfaces drift even when nobody touches the code
+#   - dispatch  : manual run from the Actions tab
+#   - PR + label: opt-in only, via the ``needs-live-test`` label. There is no
+#                 automatic live run on every PR (live calls cost real API
+#                 quota and mutate nothing only because these tests are
+#                 read-only — a write test would need the SDT-cleanup path).
+#
+# Soft-fail by design (mirrors ``spec-drift-audit.yml``): results surface via
+# the job summary + an uploaded artifact; a red suite does not block. Promote
+# to a hard gate once the suite is proven stable on the test tenant.
+#
+# Two jobs: the client live suite (`poe test-integration-live`) and the MCP
+# server smoke suite (`poe test-smoke-mcp`, Phase 4 of #837). They share the
+# gating / secret / soft-fail contract but report independently.
+
+on:
+  schedule:
+    - cron: '0 7 * * *'  # nightly at 07:00 UTC (off-peak)
+  workflow_dispatch:
+  pull_request:
+    types: [labeled, synchronize, reopened]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  live-integration:
+    # Schedule / manual dispatch always run. PRs run only when explicitly
+    # opted in with the ``needs-live-test`` label.
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains(github.event.pull_request.labels.*.name, 'needs-live-test')
+    runs-on: ubuntu-latest
+    # Map the secret to a job-level env var so steps can branch on its
+    # presence (the ``secrets`` context isn't available in ``if:``).
+    env:
+      KATANA_TEST_API_KEY: ${{ secrets.KATANA_TEST_API_KEY }}
+      KATANA_TEST_BASE_URL: ${{ vars.KATANA_TEST_BASE_URL }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Warn when the test key is absent
+        if: env.KATANA_TEST_API_KEY == ''
+        run: |
+          echo "::notice title=Live tests skipped::KATANA_TEST_API_KEY is not \
+          set, so the live suite will skip. Set it with \`gh secret set \
+          KATANA_TEST_API_KEY\` to exercise the test tenant."
+
+      - name: Run live client integration tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          # pipefail so the step reflects pytest's exit code, not tee's —
+          # otherwise a failing suite would show green and defeat the
+          # "visible but non-blocking" intent of continue-on-error.
+          set -o pipefail
+          uv run poe test-integration-live | tee live-integration-report.txt
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: live-integration-report
+          path: live-integration-report.txt
+          retention-days: 30
+
+      - name: Render summary
+        if: always()
+        run: |
+          {
+            echo "# Live integration"
+            echo
+            if [ -z "$KATANA_TEST_API_KEY" ]; then
+              echo "> \`KATANA_TEST_API_KEY\` is not set — the suite skipped."
+              echo "> Set the repo secret to exercise the test tenant."
+              echo
+            fi
+            echo '## `poe test-integration-live`'
+            echo
+            echo '```'
+            cat live-integration-report.txt 2>/dev/null || echo "(no report)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  mcp-smoke:
+    # Phase 4 of #837: live MCP-server smoke tests. Same gating / secret /
+    # soft-fail contract as the client suite above, kept as a separate job so
+    # the two concerns (client vs MCP server) report independently.
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains(github.event.pull_request.labels.*.name, 'needs-live-test')
+    runs-on: ubuntu-latest
+    env:
+      KATANA_TEST_API_KEY: ${{ secrets.KATANA_TEST_API_KEY }}
+      KATANA_TEST_BASE_URL: ${{ vars.KATANA_TEST_BASE_URL }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Warn when the test key is absent
+        if: env.KATANA_TEST_API_KEY == ''
+        run: |
+          echo "::notice title=MCP smoke skipped::KATANA_TEST_API_KEY is not \
+          set, so the MCP smoke suite will skip. Set it with \`gh secret set \
+          KATANA_TEST_API_KEY\` to exercise the test tenant."
+
+      - name: Run MCP server smoke tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          # pipefail so the step reflects pytest's exit code, not tee's.
+          set -o pipefail
+          uv run poe test-smoke-mcp | tee mcp-smoke-report.txt
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mcp-smoke-report
+          path: mcp-smoke-report.txt
+          retention-days: 30
+
+      - name: Render summary
+        if: always()
+        run: |
+          {
+            echo "# MCP server smoke"
+            echo
+            if [ -z "$KATANA_TEST_API_KEY" ]; then
+              echo "> \`KATANA_TEST_API_KEY\` is not set — the suite skipped."
+              echo "> Set the repo secret to exercise the test tenant."
+              echo
+            fi
+            echo '## `poe test-smoke-mcp`'
+            echo
+            echo '```'
+            cat mcp-smoke-report.txt 2>/dev/null || echo "(no report)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
