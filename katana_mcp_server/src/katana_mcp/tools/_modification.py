@@ -643,27 +643,25 @@ def to_tool_result(
     create cards call it with no diff overlay; modify cards pass the
     per-field diff lookup built from ``response.actions[*].changes``.
 
-    Entities not yet migrated fall back to ``build_modification_preview_ui``
-    / ``build_modification_result_ui`` — the legacy single-entrypoint pair
-    today's modify/delete/correct tools render through. Removed once
-    every #721 child PR has shipped.
+    Every modification entity is now on a dedicated card (#721 complete) —
+    an ``entity_type`` with no registered branch is a programming error and
+    raises (the generic ``ActionResult`` fallback was removed in Phase 6).
     """
     from katana_mcp.tools.prefab_ui import (
         build_bom_modify_ui,
         build_item_modify_ui,
         build_mo_modify_ui,
-        build_modification_preview_ui,
-        build_modification_result_ui,
         build_po_modify_ui,
         build_so_modify_ui,
+        build_stock_transfer_modify_ui,
     )
 
     response_dict = response.model_dump()
 
     # Per-entity dispatch — PO migrated in #722, BOM in #811, SO in #723,
-    # item (product / material / service) in #726, MO in #724; remaining
-    # entities (stock_transfer) fall through to the legacy builders until
-    # their respective child PRs land.
+    # item (product / material / service) in #726, MO in #724,
+    # stock_transfer in #721 Phase 5 (the last one). No fallback: every
+    # entity_type has a branch, and an unknown one raises below.
     if response.entity_type == "purchase_order":
         ui = build_po_modify_ui(
             response_dict,
@@ -704,14 +702,17 @@ def to_tool_result(
         )
         return make_tool_result(response, ui=ui)
 
-    # Legacy path — preserves today's behavior for not-yet-migrated
-    # entity types so #722 can land without cross-entity test churn.
-    if response.is_preview:
-        ui = build_modification_preview_ui(
+    if response.entity_type == "stock_transfer":
+        ui = build_stock_transfer_modify_ui(
             response_dict,
             confirm_request=confirm_request,
             confirm_tool=confirm_tool,
         )
-    else:
-        ui = build_modification_result_ui(response_dict, tool_name=confirm_tool)
-    return make_tool_result(response, ui=ui)
+        return make_tool_result(response, ui=ui)
+
+    raise ValueError(
+        f"to_tool_result: no modify-card builder registered for "
+        f"entity_type={response.entity_type!r}. Every modification entity is "
+        f"migrated to a dedicated card (#721); a new entity type needs its own "
+        f"dispatch branch + ``build_<entity>_modify_ui``."
+    )
