@@ -6,9 +6,10 @@ This module tests the custom retry logic that distinguishes between:
 """
 
 import asyncio
-import time
+from datetime import UTC, datetime, timedelta, timezone
 from email.utils import formatdate
 from http import HTTPStatus
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import httpx
@@ -581,18 +582,46 @@ class TestRetryAfterEndToEndIntegration:
 
     @pytest.mark.asyncio
     @pytest.mark.looptime
-    async def test_http_date_retry_after_paces_end_to_end(self) -> None:
+    async def test_http_date_retry_after_paces_end_to_end(self, monkeypatch) -> None:
         """RFC 7231 HTTP-date Retry-After format paces the retry by the absolute deadline.
 
-        Builds a retry-after date 5 seconds in the future (real wall-clock
-        ``time.time()``, since httpx-retries computes the delay as
-        ``deadline - now`` against the wall clock). Under ``looptime``,
-        the loop's clock is virtual but ``time.time()`` is real — so we
-        format an absolute date that resolves to ~5s of delay when
-        ``asleep()`` parses it, and looptime fast-forwards the resulting
-        ``asyncio.sleep`` virtually.
+        ``httpx_retries`` computes the delay as ``parsed_date -
+        datetime.now(utc)`` (retry.py) — i.e. it reads the **wall clock**. A
+        time-based test must not depend on the real clock (see CLAUDE.md
+        "fake time in time-based tests"), so we freeze *that* ``now()`` at a
+        fixed whole-second instant and build the Retry-After date exactly 5s
+        ahead of it. The parsed delay is then exactly 5.0s — no wall-clock
+        truncation or format→parse jitter — and ``looptime`` fast-forwards the
+        resulting ``asyncio.sleep(5)`` virtually.
+
+        We freeze only the ``datetime`` that ``httpx_retries.retry`` reads,
+        NOT ``time.monotonic``/``perf_counter`` — ``looptime`` relies on those
+        to sync its virtual clock, so a process-wide time freezer (freezegun /
+        time-machine) would fight it. Patching the single seam keeps both
+        clocks independent and deterministic.
         """
-        retry_at = formatdate(timeval=time.time() + 5, usegmt=True)
+        import httpx_retries.retry as retry_mod
+
+        # Fixed UTC instant on a whole-second boundary (HTTP-date has 1s
+        # resolution; a whole second means formatdate loses nothing).
+        frozen = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC)
+
+        class _FrozenDateTime(datetime):
+            @classmethod
+            def now(cls, tz=None):  # type: ignore[override]
+                return frozen if tz is None else frozen.astimezone(tz)
+
+        # Shim the module's ``datetime`` reference: ``datetime.datetime.now``
+        # is frozen while ``datetime.timezone`` still resolves normally.
+        monkeypatch.setattr(
+            retry_mod,
+            "datetime",
+            SimpleNamespace(datetime=_FrozenDateTime, timezone=timezone),
+        )
+
+        retry_at = formatdate(
+            timeval=(frozen + timedelta(seconds=5)).timestamp(), usegmt=True
+        )
         transport, _inner = self._build_transport(
             [
                 self._resp(429, {"Retry-After": retry_at}),
@@ -608,11 +637,11 @@ class TestRetryAfterEndToEndIntegration:
         elapsed = loop.time() - start
 
         assert response.status_code == 200
-        # HTTP-date has 1-second resolution; the parse may land in
-        # [4s, 6s] depending on how time.time() ticked between format and
-        # parse. Tolerance is wider than the numeric integration test.
-        assert 4.0 <= elapsed <= 6.5, (
-            f"HTTP-date Retry-After should pace ~5s of loop time; got {elapsed:.2f}s"
+        # Frozen now + an exact 5s-ahead deadline → exactly 5s of virtual
+        # delay. Deterministic, so no tolerance band is needed (the tiny
+        # abs= only guards float representation).
+        assert elapsed == pytest.approx(5.0, abs=1e-6), (
+            f"HTTP-date Retry-After should pace exactly 5s of loop time; got {elapsed}s"
         )
 
     @pytest.mark.asyncio

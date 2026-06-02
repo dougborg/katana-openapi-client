@@ -48,6 +48,10 @@ For every function, walk this checklist:
 - **None / UNSET** — None where a value is expected; UNSET attrs fields
 - **Error conditions** — network failures, API errors (401, 404, 422, 429, 500)
 - **Concurrency** — race conditions in async code where applicable
+- **Time** — if the assertion depends on elapsed time, a current timestamp, or an
+  expiry/freshness window, **fake the clock** (see "Time-based tests" below). Never read
+  the real wall clock — no `time.time()` / `datetime.now()` in assertions, no tolerance
+  bands like `assert 3.5 <= elapsed <= 6.5`.
 
 ### 4. Write tests
 
@@ -71,6 +75,22 @@ Use `@pytest.mark.parametrize` when the same logic is tested with multiple input
 - `unittest.mock` for non-HTTP mocking
 - Mock list responses with `{"data": [...]}` envelope
 - See `katana_public_api_client/utils.py` for `unwrap_*` helpers
+
+#### Time-based tests (fake the clock)
+
+Pick the faker by *what* time you control (full rule + rationale in CLAUDE.md
+"Fake time in time-based tests"):
+
+- **Asyncio time** (`asyncio.sleep`, `loop.call_later`, timeouts) → `@pytest.mark.looptime`.
+- **Wall clock** (`datetime.now()`, `time.time()`) → `with time_machine.travel(fixed, tick=False):`.
+  Don't monkeypatch a module's `datetime` *name* — it breaks `isinstance` in the code
+  under test.
+- **Both at once** → don't mix `time_machine` + `looptime` (time-machine patches
+  `time.monotonic`, which looptime needs). Freeze only the narrow seam (the lib's
+  `datetime`, or `time.time` alone).
+- Prefer **exact** assertions (`assert elapsed == pytest.approx(5.0, abs=1e-6)`) over
+  tolerance bands once time is faked.
+- Real-I/O polling on a real subprocess/browser is the one allowed real-clock case.
 
 ### 6. Run and verify
 

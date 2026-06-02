@@ -87,6 +87,14 @@ dev = [
   # Lets ``asyncio.sleep(5)`` and ``loop.call_later(5, ...)`` fire instantly
   # in real time while the loop perceives 5 seconds elapsed.
   "looptime>=0.7",
+  # Wall-clock fake-time for tests that read ``datetime.now()`` / ``time.time()``
+  # (freshness watermarks, default timestamps). Freezes the clock while
+  # preserving ``datetime`` identity so ``isinstance(x, datetime)`` still holds
+  # — unlike monkeypatching a module's ``datetime`` name. See the "fake time in
+  # time-based tests" rule in CLAUDE.md. NOTE: do not combine with ``looptime``
+  # in one test — time-machine patches ``time.monotonic``, which looptime drives
+  # its virtual clock from; patch the narrow wall-clock seam instead.
+  "time-machine>=2.13.0",
   # Headless browser testing for Prefab UI cards via fastmcp dev-apps.
   # We use the raw ``playwright`` sync API (not pytest-playwright fixtures)
   # to avoid pytest-base-url's ``base_url`` fixture colliding with our
