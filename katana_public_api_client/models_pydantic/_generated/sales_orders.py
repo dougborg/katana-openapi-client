@@ -28,6 +28,8 @@ from .common import (
     Attribute,
     Attribute3,
     ProductAvailability,
+    SearchComparator,
+    SearchScalarValue1,
 )
 from .purchase_orders import OutsourcedPurchaseOrderIngredientAvailability
 from .stock import (
@@ -199,7 +201,7 @@ class SalesOrderRow(DeletableEntity):
     custom_fields: Annotated[
         dict[str, Any] | None,
         Field(
-            description="Row-level custom field values, keyed by configured field\nname. ``null`` when no values are set on the row; ``{}``\nwhen a collection is bound but no values are set. Keys\ncorrespond to fields defined for the ``SalesOrderRow``\nentity type (``GET /custom_fields_collections``); each\nvalue matches the corresponding field's\n``CustomFieldType`` (``shortText`` / ``number`` /\n``singleSelect`` / ``date`` / ``boolean`` / ``url``).\nThe valid key set is tenant-specific runtime config, so\nthe schema declares ``additionalProperties: true``\nrather than enumerating keys.\n"
+            description="Row-level custom field values, keyed by the\ndefinition ``id`` (UUID) — the ``id`` returned by\n``GET /custom_field_definitions``, not the field label.\nEach value matches the definition's ``field_type``: string\nfor ``shortText`` / ``url``, number for ``number``, boolean\nfor ``boolean``, a ``YYYY-MM-DD`` string for ``date``, or\nthe integer choice ``id`` for ``singleSelect``. ``null``\nwhen no values are set on the row. Values for soft-deleted\ndefinitions are stripped from read responses. Keys are\ntenant-specific, so the schema declares\n``additionalProperties: true`` rather than enumerating\nthem.\n"
         ),
     ] = None
 
@@ -269,7 +271,7 @@ class CreateSalesOrderRowRequest(KatanaPydanticBase):
     custom_fields: Annotated[
         dict[str, Any] | None,
         Field(
-            description="Row-level custom field values, keyed by configured field\nname. Keys correspond to fields defined for the\n``SalesOrderRow`` entity type on the tenant's\n``custom_field_collection`` (see\n``GET /custom_fields_collections``). Each value matches the\ncorresponding field's ``CustomFieldType`` (``shortText`` /\n``number`` / ``singleSelect`` / ``date`` / ``boolean`` /\n``url``). The valid key set is tenant-specific runtime\nconfig, so the schema declares ``additionalProperties: true``\nrather than enumerating keys.\n"
+            description="Row-level custom field values, keyed by the\ndefinition ``id`` (UUID) — the ``id`` returned by\n``GET /custom_field_definitions``, not the field label. Each\nvalue matches the definition's ``field_type``: string for\n``shortText`` / ``url``, number for ``number``, boolean for\n``boolean``, a ``YYYY-MM-DD`` string for ``date``, or the\ninteger choice ``id`` for ``singleSelect``. Keys are\ntenant-specific, so the schema declares\n``additionalProperties: true`` rather than enumerating them.\n"
         ),
     ] = None
 
@@ -313,7 +315,235 @@ class UpdateSalesOrderRowRequest(KatanaPydanticBase):
     custom_fields: Annotated[
         dict[str, Any] | None,
         Field(
-            description="Row-level custom field values, keyed by configured field\nname. Keys correspond to fields defined for the\n``SalesOrderRow`` entity type on the tenant's\n``custom_field_collection`` (see\n``GET /custom_fields_collections``). Each value matches the\ncorresponding field's ``CustomFieldType`` (``shortText`` /\n``number`` / ``singleSelect`` / ``date`` / ``boolean`` /\n``url``). The valid key set is tenant-specific runtime\nconfig, so the schema declares ``additionalProperties: true``\nrather than enumerating keys.\n"
+            description='Row-level custom field values, keyed by the\ndefinition ``id`` (UUID) — the ``id`` returned by\n``GET /custom_field_definitions``, not the field label. Each\nvalue matches the definition\'s ``field_type``: string for\n``shortText`` / ``url``, number for ``number``, boolean for\n``boolean``, a ``YYYY-MM-DD`` string for ``date``, or the\ninteger choice ``id`` for ``singleSelect``.\n\nOn ``PATCH`` the object is **merged** with the existing values,\nnot replaced:\n\n- omit the ``custom_fields`` key — existing values unchanged;\n- ``{"<id>": value}`` — that key is set / overwritten, all\n  other keys kept;\n- ``null`` — all custom field values on the row are cleared.\n\nKeys are tenant-specific, so the schema declares\n``additionalProperties: true`` rather than enumerating them.\n'
+        ),
+    ] = None
+
+
+class SalesOrderSearchWhere(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="allow",
+    )
+    and_: Annotated[
+        list[dict[str, Any]] | None,
+        Field(
+            alias="and",
+            description="Logical AND — every nested where-clause must match. Max nesting depth 2.",
+        ),
+    ] = None
+    or_: Annotated[
+        list[dict[str, Any]] | None,
+        Field(
+            alias="or",
+            description="Logical OR — at least one nested where-clause must match. Max nesting depth 2.",
+        ),
+    ] = None
+    id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Sales order id."),
+    ] = None
+    order_no: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Order number."),
+    ] = None
+    customer_id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Customer id."),
+    ] = None
+    customer_ref: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Caller-supplied customer reference.",
+        ),
+    ] = None
+    location_id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Location id the order ships from.", union_mode="left_to_right"
+        ),
+    ] = None
+    status: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Delivery status. Allowed values: ``PENDING``, ``NOT_SHIPPED``,\n``PACKED``, ``DELIVERED``, ``PARTIALLY_PACKED``,\n``PARTIALLY_DELIVERED``.\n",
+        ),
+    ] = None
+    invoicing_status: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Invoicing status. Allowed values: ``invoiced``,\n``partiallyInvoiced``, ``notInvoiced``.\n",
+        ),
+    ] = None
+    production_status: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Production status. Allowed values: ``NOT_STARTED``, ``NONE``,\n``NOT_APPLICABLE``, ``IN_PROGRESS``, ``BLOCKED``, ``DONE``.\n",
+        ),
+    ] = None
+    source: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Source the order was created from (e.g. ``api``, ``shopify``).",
+        ),
+    ] = None
+    currency: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="ISO 4217 currency code."),
+    ] = None
+    product_availability: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Product availability rollup. Allowed values: ``IN_STOCK``,\n``EXPECTED``, ``PICKED``, ``NOT_AVAILABLE``, ``NOT_APPLICABLE``.\n",
+        ),
+    ] = None
+    ingredient_availability: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Ingredient (material) availability rollup. Allowed values:\n``PROCESSED``, ``IN_STOCK``, ``NOT_AVAILABLE``, ``EXPECTED``,\n``NO_RECIPE``, ``NOT_APPLICABLE``.\n",
+        ),
+    ] = None
+    ecommerce_order_type: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Ecommerce platform identifier."),
+    ] = None
+    ecommerce_store_name: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Ecommerce store name."),
+    ] = None
+    ecommerce_order_id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="External order id from the ecommerce platform.",
+        ),
+    ] = None
+    tracking_number: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Carrier tracking number."),
+    ] = None
+    created_at: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="ISO 8601 timestamp the order was created.",
+        ),
+    ] = None
+    updated_at: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="ISO 8601 timestamp the order was last updated.",
+        ),
+    ] = None
+    order_created_date: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Business-meaningful order creation date (separate from ``created_at``).",
+        ),
+    ] = None
+    delivery_date: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Planned delivery date."),
+    ] = None
+    picked_date: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Date the order was picked / shipped.",
+        ),
+    ] = None
+
+
+class SalesOrderRowSearchWhere(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="allow",
+    )
+    and_: Annotated[
+        list[dict[str, Any]] | None,
+        Field(
+            alias="and",
+            description="Logical AND — every nested where-clause must match. Max nesting depth 2.",
+        ),
+    ] = None
+    or_: Annotated[
+        list[dict[str, Any]] | None,
+        Field(
+            alias="or",
+            description="Logical OR — at least one nested where-clause must match. Max nesting depth 2.",
+        ),
+    ] = None
+    id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Sales order row id."),
+    ] = None
+    sales_order_id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Parent sales order id."),
+    ] = None
+    variant_id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Variant id sold on this row."),
+    ] = None
+    location_id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Location id this row ships from.", union_mode="left_to_right"
+        ),
+    ] = None
+    tax_rate_id: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Tax rate id applied to this row.", union_mode="left_to_right"
+        ),
+    ] = None
+    quantity: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Ordered quantity."),
+    ] = None
+    price_per_unit: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="Unit price."),
+    ] = None
+    total_discount: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Total discount applied to this row.",
+        ),
+    ] = None
+    tax_rate: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Tax rate percentage applied to this row.",
+        ),
+    ] = None
+    currency: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(description="ISO 4217 currency code."),
+    ] = None
+    product_availability: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Product availability rollup. Allowed values: ``IN_STOCK``,\n``EXPECTED``, ``PICKED``, ``NOT_AVAILABLE``, ``NOT_APPLICABLE``.\n",
+        ),
+    ] = None
+    created_at: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="ISO 8601 timestamp the row was created.",
+        ),
+    ] = None
+    updated_at: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="ISO 8601 timestamp the row was last updated.",
+        ),
+    ] = None
+    delivery_date: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Planned delivery date for this row.",
+        ),
+    ] = None
+    shipping_date: Annotated[
+        SearchComparator | SearchScalarValue1 | float | bool | None,
+        Field(
+            description="Actual shipping date for this row.", union_mode="left_to_right"
         ),
     ] = None
 
@@ -398,7 +628,7 @@ class SalesOrderRow1(KatanaPydanticBase):
     custom_fields: Annotated[
         dict[str, Any] | None,
         Field(
-            description="Row-level custom field values, keyed by configured field\nname. Keys correspond to fields defined for the\n``SalesOrderRow`` entity type on the tenant's\n``custom_field_collection`` (see\n``GET /custom_fields_collections``). Each value matches\nthe corresponding field's ``CustomFieldType``\n(``shortText`` / ``number`` / ``singleSelect`` /\n``date`` / ``boolean`` / ``url``). The valid key set is\ntenant-specific runtime config, so the schema declares\n``additionalProperties: true`` rather than enumerating\nkeys.\n"
+            description="Row-level custom field values, keyed by the\ndefinition ``id`` (UUID) — the ``id`` returned by\n``GET /custom_field_definitions``, not the field label.\nEach value matches the definition's ``field_type``:\nstring for ``shortText`` / ``url``, number for\n``number``, boolean for ``boolean``, a ``YYYY-MM-DD``\nstring for ``date``, or the integer choice ``id`` for\n``singleSelect``. Keys are tenant-specific, so the schema\ndeclares ``additionalProperties: true`` rather than\nenumerating them.\n"
         ),
     ] = None
 
@@ -501,7 +731,7 @@ class CreateSalesOrderRequest(KatanaPydanticBase):
     custom_fields: Annotated[
         dict[str, Any] | None,
         Field(
-            description="Custom field values for the sales order, keyed by configured\nfield name. Keys correspond to fields defined for the\n``SalesOrder`` entity type on the tenant's\n``custom_field_collection`` (see\n``GET /custom_fields_collections``). Each value matches the\ncorresponding field's ``CustomFieldType`` (``shortText`` /\n``number`` / ``singleSelect`` / ``date`` / ``boolean`` /\n``url``). The valid key set is tenant-specific runtime\nconfig, so the schema declares ``additionalProperties: true``\nrather than enumerating keys.\n"
+            description='Custom field values for the sales order, keyed by the\ndefinition ``id`` (UUID) — the ``id`` returned by\n``GET /custom_field_definitions``, not the field label. Each\nvalue matches the definition\'s ``field_type``: string for\n``shortText`` / ``url``, number for ``number``, boolean for\n``boolean``, a ``YYYY-MM-DD`` string for ``date``, or the\ninteger choice ``id`` for ``singleSelect``. Example (keys are\ndefinition UUIDs): ``{"0c8f1d6e-…": "EMEA", "7a21b4c2-…": 2}``\n— a ``shortText`` value and a ``singleSelect`` choice ``id``.\nKeys are tenant-specific, so the schema declares\n``additionalProperties: true`` rather than enumerating them.\n'
         ),
     ] = None
 
@@ -1015,7 +1245,7 @@ class UpdateSalesOrderRequest(KatanaPydanticBase):
     custom_fields: Annotated[
         dict[str, Any] | None,
         Field(
-            description="Custom field values for the sales order, keyed by configured\nfield name. Keys correspond to fields defined for the\n``SalesOrder`` entity type on the tenant's\n``custom_field_collection`` (see\n``GET /custom_fields_collections``). Each value matches the\ncorresponding field's ``CustomFieldType`` (``shortText`` /\n``number`` / ``singleSelect`` / ``date`` / ``boolean`` /\n``url``). The valid key set is tenant-specific runtime\nconfig, so the schema declares ``additionalProperties: true``\nrather than enumerating keys.\n"
+            description='Custom field values for the sales order, keyed by the\ndefinition ``id`` (UUID) — the ``id`` returned by\n``GET /custom_field_definitions``, not the field label. Each\nvalue matches the definition\'s ``field_type``: string for\n``shortText`` / ``url``, number for ``number``, boolean for\n``boolean``, a ``YYYY-MM-DD`` string for ``date``, or the\ninteger choice ``id`` for ``singleSelect``.\n\nOn ``PATCH`` the object is **merged** with the existing values,\nnot replaced:\n\n- omit the ``custom_fields`` key — existing values unchanged;\n- ``{"<id>": value}`` — that key is set / overwritten, all\n  other keys kept;\n- ``null`` — all custom field values on the order are cleared.\n\nKeys are tenant-specific, so the schema declares\n``additionalProperties: true`` rather than enumerating them.\n'
         ),
     ] = None
 
@@ -1241,7 +1471,63 @@ class SalesOrder(DeletableEntity):
     custom_fields: Annotated[
         dict[str, Any] | None,
         Field(
-            description="Custom field values for the sales order, keyed by\nconfigured field name. ``null`` when the order's\n``custom_field_collection`` is unset; ``{}`` when a\ncollection is bound but no values are set. Keys\ncorrespond to fields defined for the ``SalesOrder``\nentity type (``GET /custom_fields_collections``); each\nvalue matches the corresponding field's\n``CustomFieldType`` (``shortText`` / ``number`` /\n``singleSelect`` / ``date`` / ``boolean`` / ``url``).\nThe valid key set is tenant-specific runtime config, so\nthe schema declares ``additionalProperties: true``\nrather than enumerating keys.\n"
+            description='Custom field values for the sales order, keyed by the\ndefinition ``id`` (UUID) — the ``id`` returned by\n``GET /custom_field_definitions``, not the field label.\nEach value matches the definition\'s ``field_type``: string\nfor ``shortText`` / ``url``, number for ``number``, boolean\nfor ``boolean``, a ``YYYY-MM-DD`` string for ``date``, or\nthe integer choice ``id`` for ``singleSelect``. Example\n(keys are definition UUIDs):\n``{"0c8f1d6e-…": "EMEA", "7a21b4c2-…": 2}`` — a\n``shortText`` value and a ``singleSelect`` choice ``id``.\n``null`` when no values are set. Values for soft-deleted\ndefinitions are stripped from read responses. Keys are\ntenant-specific, so the schema declares\n``additionalProperties: true`` rather than enumerating\nthem.\n'
+        ),
+    ] = None
+
+
+class SalesOrderSearchFilter(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    where: SalesOrderSearchWhere | None = None
+    order: Annotated[
+        str | list[str] | None,
+        Field(
+            description="Sort directive(s). Each entry is ``<field> ASC|DESC``\n(direction defaults to ASC). Only filterable fields may be\nused; ``custom_fields.<uuid>`` paths are orderable.\n",
+        ),
+    ] = None
+    limit: Annotated[
+        int | None,
+        Field(
+            description="Page size; maximum 200. Omit to let the server apply its\ndefault of 50 (the client omits the key when unset rather than\nsending a default, so direct construction and round-tripped\n``from_dict`` payloads behave identically).\n",
+            ge=0,
+            le=200,
+        ),
+    ] = None
+    page: Annotated[
+        int | None,
+        Field(
+            description="1-based page number. Omit to let the server default to 1.\n",
+            ge=1,
+        ),
+    ] = None
+
+
+class SalesOrderRowSearchFilter(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    where: SalesOrderRowSearchWhere | None = None
+    order: Annotated[
+        str | list[str] | None,
+        Field(
+            description="Sort directive(s). Each entry is ``<field> ASC|DESC``\n(direction defaults to ASC). Only filterable fields may be\nused; ``custom_fields.<uuid>`` paths are orderable.\n",
+        ),
+    ] = None
+    limit: Annotated[
+        int | None,
+        Field(
+            description="Page size; maximum 200. Omit to let the server apply its\ndefault of 50 (the client omits the key when unset rather than\nsending a default, so direct construction and round-tripped\n``from_dict`` payloads behave identically).\n",
+            ge=0,
+            le=200,
+        ),
+    ] = None
+    page: Annotated[
+        int | None,
+        Field(
+            description="1-based page number. Omit to let the server default to 1.\n",
+            ge=1,
         ),
     ] = None
 
@@ -1345,6 +1631,20 @@ class SalesOrderShippingFeeListResponse(KatanaPydanticBase):
             description="Array of shipping fee records with costs and tax information"
         ),
     ] = None
+
+
+class SalesOrderSearchRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    filter: SalesOrderSearchFilter | None = None
+
+
+class SalesOrderRowSearchRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    filter: SalesOrderRowSearchFilter | None = None
 
 
 class CachedSalesOrderRow(DeletableEntity, table=True):
@@ -1468,7 +1768,7 @@ class CachedSalesOrderRow(DeletableEntity, table=True):
         Mapped[dict[str, Any] | None],
         SQLField(
             sa_column=Column(PydanticJSON),
-            description="Row-level custom field values, keyed by configured field\nname. ``null`` when no values are set on the row; ``{}``\nwhen a collection is bound but no values are set. Keys\ncorrespond to fields defined for the ``SalesOrderRow``\nentity type (``GET /custom_fields_collections``); each\nvalue matches the corresponding field's\n``CustomFieldType`` (``shortText`` / ``number`` /\n``singleSelect`` / ``date`` / ``boolean`` / ``url``).\nThe valid key set is tenant-specific runtime config, so\nthe schema declares ``additionalProperties: true``\nrather than enumerating keys.\n",
+            description="Row-level custom field values, keyed by the\ndefinition ``id`` (UUID) — the ``id`` returned by\n``GET /custom_field_definitions``, not the field label.\nEach value matches the definition's ``field_type``: string\nfor ``shortText`` / ``url``, number for ``number``, boolean\nfor ``boolean``, a ``YYYY-MM-DD`` string for ``date``, or\nthe integer choice ``id`` for ``singleSelect``. ``null``\nwhen no values are set on the row. Values for soft-deleted\ndefinitions are stripped from read responses. Keys are\ntenant-specific, so the schema declares\n``additionalProperties: true`` rather than enumerating\nthem.\n",
         ),
     ] = None
     sales_order: Mapped[Optional["CachedSalesOrder"]] = Relationship(
@@ -1645,6 +1945,6 @@ class CachedSalesOrder(DeletableEntity, table=True):
         Mapped[dict[str, Any] | None],
         SQLField(
             sa_column=Column(PydanticJSON),
-            description="Custom field values for the sales order, keyed by\nconfigured field name. ``null`` when the order's\n``custom_field_collection`` is unset; ``{}`` when a\ncollection is bound but no values are set. Keys\ncorrespond to fields defined for the ``SalesOrder``\nentity type (``GET /custom_fields_collections``); each\nvalue matches the corresponding field's\n``CustomFieldType`` (``shortText`` / ``number`` /\n``singleSelect`` / ``date`` / ``boolean`` / ``url``).\nThe valid key set is tenant-specific runtime config, so\nthe schema declares ``additionalProperties: true``\nrather than enumerating keys.\n",
+            description='Custom field values for the sales order, keyed by the\ndefinition ``id`` (UUID) — the ``id`` returned by\n``GET /custom_field_definitions``, not the field label.\nEach value matches the definition\'s ``field_type``: string\nfor ``shortText`` / ``url``, number for ``number``, boolean\nfor ``boolean``, a ``YYYY-MM-DD`` string for ``date``, or\nthe integer choice ``id`` for ``singleSelect``. Example\n(keys are definition UUIDs):\n``{"0c8f1d6e-…": "EMEA", "7a21b4c2-…": 2}`` — a\n``shortText`` value and a ``singleSelect`` choice ``id``.\n``null`` when no values are set. Values for soft-deleted\ndefinitions are stripped from read responses. Keys are\ntenant-specific, so the schema declares\n``additionalProperties: true`` rather than enumerating\nthem.\n',
         ),
     ] = None

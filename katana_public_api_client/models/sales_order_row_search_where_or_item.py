@@ -8,19 +8,11 @@ from attrs import (
     field as _attrs_field,
 )
 
-T = TypeVar("T", bound="SearchFilterRequestFilterWhere")
+T = TypeVar("T", bound="SalesOrderRowSearchWhereOrItem")
 
 
 @_attrs_define
-class SearchFilterRequestFilterWhere:
-    """Filter predicates keyed by field name. Each value is either a
-    scalar (for equality matching) or an operator object such as
-    ``{"gt": 10}`` or ``{"inq": [1, 2, 3]}``. Use the ``and`` and
-    ``or`` keys at the top level of ``where`` to compose multiple
-    predicates.
-
-    """
-
+class SalesOrderRowSearchWhereOrItem:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -33,10 +25,10 @@ class SearchFilterRequestFilterWhere:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        search_filter_request_filter_where = cls()
+        sales_order_row_search_where_or_item = cls()
 
-        search_filter_request_filter_where.additional_properties = d
-        return search_filter_request_filter_where
+        sales_order_row_search_where_or_item.additional_properties = d
+        return sales_order_row_search_where_or_item
 
     @property
     def additional_keys(self) -> list[str]:

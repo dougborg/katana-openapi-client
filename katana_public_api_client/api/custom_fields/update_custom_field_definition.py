@@ -106,8 +106,11 @@ def sync_detailed(
     Args:
         id (UUID):
         body (UpdateCustomFieldDefinitionRequest): Request payload for updating an existing custom
-            field definition. Example: {'label': 'Quality Grade (revised)', 'description': 'Updated
-            customer-facing quality classification'}.
+            field definition.
+            Only ``label``, ``description``, and ``options`` may be updated;
+            ``field_type``, ``entity_type``, and ``source`` are immutable.
+             Example: {'label': 'Quality Grade (revised)', 'description': 'Updated customer-facing
+            quality classification'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -143,8 +146,11 @@ def sync(
     Args:
         id (UUID):
         body (UpdateCustomFieldDefinitionRequest): Request payload for updating an existing custom
-            field definition. Example: {'label': 'Quality Grade (revised)', 'description': 'Updated
-            customer-facing quality classification'}.
+            field definition.
+            Only ``label``, ``description``, and ``options`` may be updated;
+            ``field_type``, ``entity_type``, and ``source`` are immutable.
+             Example: {'label': 'Quality Grade (revised)', 'description': 'Updated customer-facing
+            quality classification'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -175,8 +181,11 @@ async def asyncio_detailed(
     Args:
         id (UUID):
         body (UpdateCustomFieldDefinitionRequest): Request payload for updating an existing custom
-            field definition. Example: {'label': 'Quality Grade (revised)', 'description': 'Updated
-            customer-facing quality classification'}.
+            field definition.
+            Only ``label``, ``description``, and ``options`` may be updated;
+            ``field_type``, ``entity_type``, and ``source`` are immutable.
+             Example: {'label': 'Quality Grade (revised)', 'description': 'Updated customer-facing
+            quality classification'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -210,8 +219,11 @@ async def asyncio(
     Args:
         id (UUID):
         body (UpdateCustomFieldDefinitionRequest): Request payload for updating an existing custom
-            field definition. Example: {'label': 'Quality Grade (revised)', 'description': 'Updated
-            customer-facing quality classification'}.
+            field definition.
+            Only ``label``, ``description``, and ``options`` may be updated;
+            ``field_type``, ``entity_type``, and ``source`` are immutable.
+             Example: {'label': 'Quality Grade (revised)', 'description': 'Updated customer-facing
+            quality classification'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

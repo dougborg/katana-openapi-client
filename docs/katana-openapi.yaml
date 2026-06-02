@@ -2729,7 +2729,7 @@ components:
               type:
                 - array
                 - "null"
-              description: Custom field values specific to this variant
+              description: 'Custom field values specific to this variant (legacy [{field_name, field_value}] array via /custom_fields_collections; distinct from the sales-order custom_fields dict — see CustomFieldValue)'
               items:
                 type: object
                 properties:
@@ -2825,11 +2825,15 @@ components:
                 - array
                 - "null"
               description: |
-                Custom field values specific to this service variant. The
-                API returns ``null`` (not ``[]``) when the variant has no
-                custom-field assignments — non-nullable here causes the
-                generated parser to fail with "NoneType is not iterable"
-                on every create_service / get_service response.
+                Custom field values specific to this service variant, in
+                the legacy ``[{field_name, field_value}]`` array shape
+                (configured via ``/custom_fields_collections``; distinct
+                from the sales-order ``custom_fields`` dict — see
+                ``CustomFieldValue``). The API returns ``null`` (not
+                ``[]``) when the variant has no custom-field assignments —
+                non-nullable here causes the generated parser to fail with
+                "NoneType is not iterable" on every create_service /
+                get_service response.
               items:
                 type: object
                 properties:
@@ -6815,7 +6819,7 @@ components:
         custom_fields:
           type: array
           maxItems: 3
-          description: Custom field values specific to this variant
+          description: 'Custom field values specific to this variant (legacy [{field_name, field_value}] array via /custom_fields_collections; distinct from the sales-order custom_fields dict — see CustomFieldValue)'
           items:
             type: object
             additionalProperties: false
@@ -6931,7 +6935,7 @@ components:
               type:
                 - array
                 - "null"
-              description: Custom field values specific to this variant
+              description: 'Custom field values specific to this variant (legacy [{field_name, field_value}] array via /custom_fields_collections; distinct from the sales-order custom_fields dict — see CustomFieldValue)'
               items:
                 type: object
                 properties:
@@ -7049,7 +7053,11 @@ components:
                 description: Value of the configuration attribute for this variant
         custom_fields:
           type: array
-          description: Additional custom field values associated with this variant
+          description: |
+            Additional custom field values associated with this variant, in
+            the legacy ``[{field_name, field_value}]`` array shape
+            (configured via ``/custom_fields_collections``; distinct from
+            the sales-order ``custom_fields`` dict — see ``CustomFieldValue``).
           items:
             type: object
             properties:
@@ -7860,9 +7868,12 @@ components:
           type: array
           maxItems: 3
           description: |
-            Custom field values to attach to the service. Field names must
+            Custom field values to attach to the service, in the legacy
+            ``[{field_name, field_value}]`` array shape. Field names must
             match those configured for the ``service`` resource type (see
-            ``GET /custom_fields_collections``).
+            ``GET /custom_fields_collections``). This is distinct from the
+            sales-order ``custom_fields`` dict keyed by
+            ``/custom_field_definitions`` UUIDs — see ``CustomFieldValue``.
           items:
             $ref: "#/components/schemas/CustomFieldValue"
       example:
@@ -8594,18 +8605,21 @@ components:
                 - "null"
               additionalProperties: true
               description: |
-                Custom field values for the sales order, keyed by
-                configured field name. ``null`` when the order's
-                ``custom_field_collection`` is unset; ``{}`` when a
-                collection is bound but no values are set. Keys
-                correspond to fields defined for the ``SalesOrder``
-                entity type (``GET /custom_fields_collections``); each
-                value matches the corresponding field's
-                ``CustomFieldType`` (``shortText`` / ``number`` /
-                ``singleSelect`` / ``date`` / ``boolean`` / ``url``).
-                The valid key set is tenant-specific runtime config, so
-                the schema declares ``additionalProperties: true``
-                rather than enumerating keys.
+                Custom field values for the sales order, keyed by the
+                definition ``id`` (UUID) — the ``id`` returned by
+                ``GET /custom_field_definitions``, not the field label.
+                Each value matches the definition's ``field_type``: string
+                for ``shortText`` / ``url``, number for ``number``, boolean
+                for ``boolean``, a ``YYYY-MM-DD`` string for ``date``, or
+                the integer choice ``id`` for ``singleSelect``. Example
+                (keys are definition UUIDs):
+                ``{"0c8f1d6e-…": "EMEA", "7a21b4c2-…": 2}`` — a
+                ``shortText`` value and a ``singleSelect`` choice ``id``.
+                ``null`` when no values are set. Values for soft-deleted
+                definitions are stripped from read responses. Keys are
+                tenant-specific, so the schema declares
+                ``additionalProperties: true`` rather than enumerating
+                them.
           required:
             - customer_id
             - order_no
@@ -8810,17 +8824,18 @@ components:
                 - "null"
               additionalProperties: true
               description: |
-                Row-level custom field values, keyed by configured field
-                name. ``null`` when no values are set on the row; ``{}``
-                when a collection is bound but no values are set. Keys
-                correspond to fields defined for the ``SalesOrderRow``
-                entity type (``GET /custom_fields_collections``); each
-                value matches the corresponding field's
-                ``CustomFieldType`` (``shortText`` / ``number`` /
-                ``singleSelect`` / ``date`` / ``boolean`` / ``url``).
-                The valid key set is tenant-specific runtime config, so
-                the schema declares ``additionalProperties: true``
-                rather than enumerating keys.
+                Row-level custom field values, keyed by the
+                definition ``id`` (UUID) — the ``id`` returned by
+                ``GET /custom_field_definitions``, not the field label.
+                Each value matches the definition's ``field_type``: string
+                for ``shortText`` / ``url``, number for ``number``, boolean
+                for ``boolean``, a ``YYYY-MM-DD`` string for ``date``, or
+                the integer choice ``id`` for ``singleSelect``. ``null``
+                when no values are set on the row. Values for soft-deleted
+                definitions are stripped from read responses. Keys are
+                tenant-specific, so the schema declares
+                ``additionalProperties: true`` rather than enumerating
+                them.
           required:
             - id
             - quantity
@@ -8984,16 +8999,15 @@ components:
             - "null"
           additionalProperties: true
           description: |
-            Row-level custom field values, keyed by configured field
-            name. Keys correspond to fields defined for the
-            ``SalesOrderRow`` entity type on the tenant's
-            ``custom_field_collection`` (see
-            ``GET /custom_fields_collections``). Each value matches the
-            corresponding field's ``CustomFieldType`` (``shortText`` /
-            ``number`` / ``singleSelect`` / ``date`` / ``boolean`` /
-            ``url``). The valid key set is tenant-specific runtime
-            config, so the schema declares ``additionalProperties: true``
-            rather than enumerating keys.
+            Row-level custom field values, keyed by the
+            definition ``id`` (UUID) — the ``id`` returned by
+            ``GET /custom_field_definitions``, not the field label. Each
+            value matches the definition's ``field_type``: string for
+            ``shortText`` / ``url``, number for ``number``, boolean for
+            ``boolean``, a ``YYYY-MM-DD`` string for ``date``, or the
+            integer choice ``id`` for ``singleSelect``. Keys are
+            tenant-specific, so the schema declares
+            ``additionalProperties: true`` rather than enumerating them.
       example:
         sales_order_id: 2001
         variant_id: 2101
@@ -9057,73 +9071,386 @@ components:
             - "null"
           additionalProperties: true
           description: |
-            Row-level custom field values, keyed by configured field
-            name. Keys correspond to fields defined for the
-            ``SalesOrderRow`` entity type on the tenant's
-            ``custom_field_collection`` (see
-            ``GET /custom_fields_collections``). Each value matches the
-            corresponding field's ``CustomFieldType`` (``shortText`` /
-            ``number`` / ``singleSelect`` / ``date`` / ``boolean`` /
-            ``url``). The valid key set is tenant-specific runtime
-            config, so the schema declares ``additionalProperties: true``
-            rather than enumerating keys.
+            Row-level custom field values, keyed by the
+            definition ``id`` (UUID) — the ``id`` returned by
+            ``GET /custom_field_definitions``, not the field label. Each
+            value matches the definition's ``field_type``: string for
+            ``shortText`` / ``url``, number for ``number``, boolean for
+            ``boolean``, a ``YYYY-MM-DD`` string for ``date``, or the
+            integer choice ``id`` for ``singleSelect``.
+
+            On ``PATCH`` the object is **merged** with the existing values,
+            not replaced:
+
+            - omit the ``custom_fields`` key — existing values unchanged;
+            - ``{"<id>": value}`` — that key is set / overwritten, all
+              other keys kept;
+            - ``null`` — all custom field values on the row are cleared.
+
+            Keys are tenant-specific, so the schema declares
+            ``additionalProperties: true`` rather than enumerating them.
       example:
         quantity: 3
         price_per_unit: 549.99
-    SearchFilterRequest:
-      description: |-
-        LoopBack-style filter envelope used by POST search endpoints. The
-        ``filter`` body supports pagination (``limit`` / ``page`` / ``skip``),
-        ordering, and a ``where`` clause with comparison operators
-        (``eq`` / ``neq`` / ``gt`` / ``gte`` / ``lt`` / ``lte`` / ``like`` /
-        ``ilike`` / ``inq`` / ``nin`` / ``between`` / ``regexp`` / ``exists``)
-        plus ``and`` / ``or`` composition. Where clause values are
-        intentionally left as free-form because Katana's filter grammar is
-        the same regardless of which field is being filtered.
+    SearchScalarValue:
+      description: |
+        A scalar filter value used in search ``where`` predicates — the
+        bare-equality value and the operand type inside
+        ``SearchComparator`` operator objects. Covers the full range of
+        Katana field value types: string (max 256 chars), number, boolean,
+        or ``null``. Note: the pydantic generator emits the ``str`` branch
+        as a separate ``RootModel[str]`` class (``SearchScalarValue1``)
+        rather than producing a single named union — ``SearchScalarValue1``
+        is the string branch only, not the full union.
+      anyOf:
+        - type: string
+          maxLength: 256
+        - type: number
+        - type: boolean
+        - type: "null"
+    SearchComparator:
+      description: |
+        Operator object for a search ``where`` predicate. Supply this only
+        when you need something other than equality — for equality, pass a
+        bare ``SearchScalarValue`` instead. Only the operators listed below
+        are accepted; the server rejects any other key with 422.
+      type: object
+      additionalProperties: false
+      properties:
+        neq:
+          $ref: "#/components/schemas/SearchScalarValue"
+          description: Not equal.
+        gt:
+          $ref: "#/components/schemas/SearchScalarValue"
+          description: Greater than.
+        gte:
+          $ref: "#/components/schemas/SearchScalarValue"
+          description: Greater than or equal.
+        lt:
+          $ref: "#/components/schemas/SearchScalarValue"
+          description: Less than.
+        lte:
+          $ref: "#/components/schemas/SearchScalarValue"
+          description: Less than or equal.
+        inq:
+          type: array
+          maxItems: 100
+          description: Value is in this list (max 100 entries).
+          items:
+            $ref: "#/components/schemas/SearchScalarValue"
+        nin:
+          type: array
+          maxItems: 100
+          description: Value is not in this list (max 100 entries).
+          items:
+            $ref: "#/components/schemas/SearchScalarValue"
+        between:
+          type: array
+          minItems: 2
+          maxItems: 2
+          description: Inclusive range ``[low, high]``.
+          items:
+            $ref: "#/components/schemas/SearchScalarValue"
+        like:
+          type: string
+          maxLength: 256
+          description: |
+            Pattern match, case-sensitive. ``%`` matches any sequence,
+            ``_`` matches any single character.
+        ilike:
+          type: string
+          maxLength: 256
+          description: Pattern match, case-insensitive (see ``like``).
+    SearchPredicate:
+      description: |
+        A single ``where`` predicate: either a bare ``SearchScalarValue``
+        (equality) or a ``SearchComparator`` operator object.
+      anyOf:
+        - $ref: "#/components/schemas/SearchScalarValue"
+        - $ref: "#/components/schemas/SearchComparator"
+    SalesOrderSearchRequest:
+      description: |
+        Structured filter body for ``POST /sales_orders/search``. Returns
+        the same paginated ``{"data": [...]}`` shape as
+        ``GET /sales_orders`` plus an ``X-Pagination`` header. Beta —
+        request/response shape may evolve before GA.
       type: object
       additionalProperties: false
       properties:
         filter:
-          type: object
-          additionalProperties: false
-          properties:
-            limit:
-              type: integer
-              minimum: 0
-              description: Maximum number of results to return
-            page:
-              type: integer
-              minimum: 1
-              description: Page number, 1-indexed
-            skip:
-              type: integer
-              minimum: 0
-              description: Number of results to skip before returning the first row
-            order:
-              description: |-
-                Sort order, either a single ``"field DIR"`` string or an array
-                of such strings to break ties between multiple fields.
-              oneOf:
-                - type: string
-                - type: array
-                  items:
-                    type: string
-            where:
-              type: object
-              additionalProperties: true
-              description: |-
-                Filter predicates keyed by field name. Each value is either a
-                scalar (for equality matching) or an operator object such as
-                ``{"gt": 10}`` or ``{"inq": [1, 2, 3]}``. Use the ``and`` and
-                ``or`` keys at the top level of ``where`` to compose multiple
-                predicates.
+          $ref: "#/components/schemas/SalesOrderSearchFilter"
       example:
         filter:
-          limit: 50
           where:
-            sales_order_id:
-              inq: [1, 2, 3]
-          order: created_at DESC
+            and:
+              - status:
+                  inq: [NOT_SHIPPED, PACKED]
+              - created_at:
+                  gte: "2026-01-01T00:00:00.000Z"
+              - custom_fields.0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef: 2
+          order:
+            - created_at DESC
+            - id DESC
+          limit: 50
+          page: 1
+    SalesOrderSearchFilter:
+      description: Filter envelope for ``POST /sales_orders/search``.
+      type: object
+      additionalProperties: false
+      properties:
+        where:
+          $ref: "#/components/schemas/SalesOrderSearchWhere"
+        order:
+          description: |
+            Sort directive(s). Each entry is ``<field> ASC|DESC``
+            (direction defaults to ASC). Only filterable fields may be
+            used; ``custom_fields.<uuid>`` paths are orderable.
+          anyOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+        limit:
+          type: integer
+          minimum: 0
+          maximum: 200
+          description: |
+            Page size; maximum 200. Omit to let the server apply its
+            default of 50 (the client omits the key when unset rather than
+            sending a default, so direct construction and round-tripped
+            ``from_dict`` payloads behave identically).
+        page:
+          type: integer
+          minimum: 1
+          description: |
+            1-based page number. Omit to let the server default to 1.
+    SalesOrderSearchWhere:
+      description: |
+        ``where`` clause for ``POST /sales_orders/search``. Only the fields
+        listed here may appear; unknown fields are rejected with 422.
+        Custom field values are addressable via additional
+        ``custom_fields.<uuid>`` keys (snake_case, matching the
+        request/response body), where ``<uuid>`` is the custom field
+        definition id — its value is a bare value or a ``SearchComparator``
+        like any other predicate (for ``singleSelect`` the value is the
+        integer choice ``id``). Compose with ``and`` / ``or`` (max nesting
+        depth 2).
+      type: object
+      additionalProperties: true
+      properties:
+        and:
+          type: array
+          description: Logical AND — every nested where-clause must match. Max nesting depth 2.
+          items:
+            type: object
+            additionalProperties: true
+        or:
+          type: array
+          description: Logical OR — at least one nested where-clause must match. Max nesting depth 2.
+          items:
+            type: object
+            additionalProperties: true
+        id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Sales order id.
+        order_no:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Order number.
+        customer_id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Customer id.
+        customer_ref:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Caller-supplied customer reference.
+        location_id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Location id the order ships from.
+        status:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: |
+            Delivery status. Allowed values: ``PENDING``, ``NOT_SHIPPED``,
+            ``PACKED``, ``DELIVERED``, ``PARTIALLY_PACKED``,
+            ``PARTIALLY_DELIVERED``.
+        invoicing_status:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: |
+            Invoicing status. Allowed values: ``invoiced``,
+            ``partiallyInvoiced``, ``notInvoiced``.
+        production_status:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: |
+            Production status. Allowed values: ``NOT_STARTED``, ``NONE``,
+            ``NOT_APPLICABLE``, ``IN_PROGRESS``, ``BLOCKED``, ``DONE``.
+        source:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Source the order was created from (e.g. ``api``, ``shopify``).
+        currency:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: ISO 4217 currency code.
+        product_availability:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: |
+            Product availability rollup. Allowed values: ``IN_STOCK``,
+            ``EXPECTED``, ``PICKED``, ``NOT_AVAILABLE``, ``NOT_APPLICABLE``.
+        ingredient_availability:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: |
+            Ingredient (material) availability rollup. Allowed values:
+            ``PROCESSED``, ``IN_STOCK``, ``NOT_AVAILABLE``, ``EXPECTED``,
+            ``NO_RECIPE``, ``NOT_APPLICABLE``.
+        ecommerce_order_type:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Ecommerce platform identifier.
+        ecommerce_store_name:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Ecommerce store name.
+        ecommerce_order_id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: External order id from the ecommerce platform.
+        tracking_number:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Carrier tracking number.
+        created_at:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: ISO 8601 timestamp the order was created.
+        updated_at:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: ISO 8601 timestamp the order was last updated.
+        order_created_date:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Business-meaningful order creation date (separate from ``created_at``).
+        delivery_date:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Planned delivery date.
+        picked_date:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Date the order was picked / shipped.
+    SalesOrderRowSearchRequest:
+      description: |
+        Structured filter body for ``POST /sales_order_rows/search``.
+        Returns the same paginated ``{"data": [...]}`` shape as
+        ``GET /sales_order_rows`` plus an ``X-Pagination`` header. Beta —
+        request/response shape may evolve before GA.
+      type: object
+      additionalProperties: false
+      properties:
+        filter:
+          $ref: "#/components/schemas/SalesOrderRowSearchFilter"
+      example:
+        filter:
+          where:
+            and:
+              - sales_order_id:
+                  inq: [12345, 12346, 12347]
+              - quantity:
+                  gt: 0
+              - product_availability: IN_STOCK
+          order:
+            - delivery_date ASC
+            - id ASC
+          limit: 100
+          page: 1
+    SalesOrderRowSearchFilter:
+      description: Filter envelope for ``POST /sales_order_rows/search``.
+      type: object
+      additionalProperties: false
+      properties:
+        where:
+          $ref: "#/components/schemas/SalesOrderRowSearchWhere"
+        order:
+          description: |
+            Sort directive(s). Each entry is ``<field> ASC|DESC``
+            (direction defaults to ASC). Only filterable fields may be
+            used; ``custom_fields.<uuid>`` paths are orderable.
+          anyOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+        limit:
+          type: integer
+          minimum: 0
+          maximum: 200
+          description: |
+            Page size; maximum 200. Omit to let the server apply its
+            default of 50 (the client omits the key when unset rather than
+            sending a default, so direct construction and round-tripped
+            ``from_dict`` payloads behave identically).
+        page:
+          type: integer
+          minimum: 1
+          description: |
+            1-based page number. Omit to let the server default to 1.
+    SalesOrderRowSearchWhere:
+      description: |
+        ``where`` clause for ``POST /sales_order_rows/search``. Only the
+        fields listed here may appear; unknown fields are rejected with
+        422. Custom field values are addressable via additional
+        ``custom_fields.<uuid>`` keys (snake_case), where ``<uuid>`` is the
+        custom field definition id. Compose with ``and`` / ``or`` (max
+        nesting depth 2).
+      type: object
+      additionalProperties: true
+      properties:
+        and:
+          type: array
+          description: Logical AND — every nested where-clause must match. Max nesting depth 2.
+          items:
+            type: object
+            additionalProperties: true
+        or:
+          type: array
+          description: Logical OR — at least one nested where-clause must match. Max nesting depth 2.
+          items:
+            type: object
+            additionalProperties: true
+        id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Sales order row id.
+        sales_order_id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Parent sales order id.
+        variant_id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Variant id sold on this row.
+        location_id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Location id this row ships from.
+        tax_rate_id:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Tax rate id applied to this row.
+        quantity:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Ordered quantity.
+        price_per_unit:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Unit price.
+        total_discount:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Total discount applied to this row.
+        tax_rate:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Tax rate percentage applied to this row.
+        currency:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: ISO 4217 currency code.
+        product_availability:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: |
+            Product availability rollup. Allowed values: ``IN_STOCK``,
+            ``EXPECTED``, ``PICKED``, ``NOT_AVAILABLE``, ``NOT_APPLICABLE``.
+        created_at:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: ISO 8601 timestamp the row was created.
+        updated_at:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: ISO 8601 timestamp the row was last updated.
+        delivery_date:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Planned delivery date for this row.
+        shipping_date:
+          $ref: "#/components/schemas/SearchPredicate"
+          description: Actual shipping date for this row.
     CreateSalesOrderAddressRequest:
       description: Request payload for creating a new sales order address
       type: object
@@ -9321,17 +9648,16 @@ components:
                   - "null"
                 additionalProperties: true
                 description: |
-                  Row-level custom field values, keyed by configured field
-                  name. Keys correspond to fields defined for the
-                  ``SalesOrderRow`` entity type on the tenant's
-                  ``custom_field_collection`` (see
-                  ``GET /custom_fields_collections``). Each value matches
-                  the corresponding field's ``CustomFieldType``
-                  (``shortText`` / ``number`` / ``singleSelect`` /
-                  ``date`` / ``boolean`` / ``url``). The valid key set is
-                  tenant-specific runtime config, so the schema declares
-                  ``additionalProperties: true`` rather than enumerating
-                  keys.
+                  Row-level custom field values, keyed by the
+                  definition ``id`` (UUID) — the ``id`` returned by
+                  ``GET /custom_field_definitions``, not the field label.
+                  Each value matches the definition's ``field_type``:
+                  string for ``shortText`` / ``url``, number for
+                  ``number``, boolean for ``boolean``, a ``YYYY-MM-DD``
+                  string for ``date``, or the integer choice ``id`` for
+                  ``singleSelect``. Keys are tenant-specific, so the schema
+                  declares ``additionalProperties: true`` rather than
+                  enumerating them.
             required:
               - quantity
               - variant_id
@@ -9447,16 +9773,17 @@ components:
             - "null"
           additionalProperties: true
           description: |
-            Custom field values for the sales order, keyed by configured
-            field name. Keys correspond to fields defined for the
-            ``SalesOrder`` entity type on the tenant's
-            ``custom_field_collection`` (see
-            ``GET /custom_fields_collections``). Each value matches the
-            corresponding field's ``CustomFieldType`` (``shortText`` /
-            ``number`` / ``singleSelect`` / ``date`` / ``boolean`` /
-            ``url``). The valid key set is tenant-specific runtime
-            config, so the schema declares ``additionalProperties: true``
-            rather than enumerating keys.
+            Custom field values for the sales order, keyed by the
+            definition ``id`` (UUID) — the ``id`` returned by
+            ``GET /custom_field_definitions``, not the field label. Each
+            value matches the definition's ``field_type``: string for
+            ``shortText`` / ``url``, number for ``number``, boolean for
+            ``boolean``, a ``YYYY-MM-DD`` string for ``date``, or the
+            integer choice ``id`` for ``singleSelect``. Example (keys are
+            definition UUIDs): ``{"0c8f1d6e-…": "EMEA", "7a21b4c2-…": 2}``
+            — a ``shortText`` value and a ``singleSelect`` choice ``id``.
+            Keys are tenant-specific, so the schema declares
+            ``additionalProperties: true`` rather than enumerating them.
       required:
         - customer_id
         - sales_order_rows
@@ -10802,10 +11129,19 @@ components:
         updated_at: "2024-01-12T15:30:00Z"
     CustomFieldValue:
       description: |
-        A single custom field value attached to a resource (e.g., a sales
-        order, service, product). Custom fields are configured via
-        ``GET /custom_fields_collections``; each value pairs the field's
-        configured name with the value to set.
+        A single custom field value in the **legacy** ``{field_name,
+        field_value}`` shape used by Variant / Product / Material / Service
+        resources. These fields are configured via the
+        ``/custom_fields_collections`` surface and attached as an **array**
+        of name/value pairs.
+
+        This is distinct from — and must not be unified with — the newer
+        sales-order custom-fields surface, where ``custom_fields`` is a
+        **dict keyed by custom field definition ``id`` (UUID)** registered
+        through ``/custom_field_definitions`` (see ``CustomFieldDefinition``
+        and the ``custom_fields`` property on ``SalesOrder`` /
+        ``SalesOrderRow``). The two surfaces coexist intentionally; Katana
+        has not migrated items/variants to the dict shape.
       type: object
       additionalProperties: false
       required:
@@ -10920,45 +11256,65 @@ components:
         - boolean
         - url
       description: |
-        Field input type for a ``CustomFieldDefinition`` — determines
-        how Katana renders and validates the field's stored values.
-        Immutable after creation.
+        Field input type for a ``CustomFieldDefinition`` — determines how
+        Katana renders and validates the field's stored values, and what
+        JSON type the value takes when set on a sales order. Immutable
+        after creation.
+
+        Value stored on the entity, by ``field_type``:
+
+        - ``shortText`` — string
+        - ``number`` — number
+        - ``date`` — ``YYYY-MM-DD`` string
+        - ``boolean`` — ``true`` / ``false``
+        - ``url`` — string
+        - ``singleSelect`` — the integer choice ``id`` (not the label).
+          Requires ``options.choices``; the server assigns each choice an
+          integer ``id``. Resolve labels client-side from
+          ``options.choices`` (soft-deleted choices remain in the array).
+
+        Note: a ``multiSelect`` type has been announced on the Katana
+        roadmap but is **not yet live** — the API rejects it today, so it
+        is intentionally absent from this enum. Add it here only once the
+        live API accepts it.
 
     CustomFieldEntityType:
       type: string
       enum:
         - SalesOrder
         - SalesOrderRow
-        - SalesRecipeRow
-        - SalesOrderFulfillmentRow
-        - ManufacturingOrder
-        - ManufacturingOrderRecipeRow
-        - PurchaseOrder
-        - PurchaseOrderRow
-        - PurchaseOrderRecipeRow
-        - OutsourcedPurchaseOrderRow
-        - StockAdjustment
-        - StockAdjustmentRow
-        - StockTransferRow
-        - Production
-        - ProductionIngredient
-        - Customer
-        - ProductVariant
-        - MaterialVariant
-        - ServiceVariant
       description: |
-        Resource type a ``CustomFieldDefinition`` applies to. Many
-        resources accept custom fields even when their request DTOs
-        don't explicitly document the ``custom_fields`` property — the
-        field is universally available on the entities listed here.
-        Immutable after creation.
+        Resource type a ``CustomFieldDefinition`` applies to. Immutable
+        after creation.
+
+        The partner-defined custom-fields surface (``/custom_field_definitions``)
+        is live for **sales orders and sales order rows only**. These are
+        the sole values the API accepts today; creating a definition with
+        any other ``entity_type`` is rejected.
+
+        Katana has signalled on its roadmap that custom fields will expand
+        to further entities (items / variants, and others). Each new entity
+        type must be added here only once the live API accepts it — keeping
+        this enum honest forces a deliberate spec edit per rollout rather
+        than advertising values that 422.
+
+        Note: the legacy ``[{field_name, field_value}]`` custom-fields shape
+        on Variant / Product / Material / Service is a **separate** surface
+        (see ``/custom_fields_collections``) and is unrelated to this enum.
 
     CustomFieldDefinition:
       description: |
-        A configured custom field definition that callers can attach to a
-        resource (sales order, service, product, etc.) via the resource's
-        ``custom_fields`` property. Definitions are scoped to a specific
-        ``entity_type`` and shape what values consumers can store.
+        A partner-defined custom field that callers register once via
+        ``POST /custom_field_definitions`` and then attach values for on a
+        sales order (or sales order row) through that resource's
+        ``custom_fields`` property, keyed by this definition's ``id``
+        (UUID).
+
+        Scope today: ``entity_type`` is limited to ``SalesOrder`` /
+        ``SalesOrderRow`` (see ``CustomFieldEntityType``). A factory may
+        hold at most **50 definitions**. ``field_type``, ``entity_type``,
+        and ``source`` are **immutable** after creation; only ``label``,
+        ``description``, and ``options`` may be updated.
       type: object
       additionalProperties: false
       properties:
@@ -10979,22 +11335,26 @@ components:
         source:
           type: string
           maxLength: 255
-          description: Origin / namespace of the definition (e.g. ``katana``, ``user``).
+          description: |
+            Caller-provided identifier of the integration that owns the
+            field (e.g. your application slug). Namespaces and audits
+            definitions. Immutable after creation.
         description:
           type:
             - string
             - "null"
           description: Optional long-form description of the field's purpose
         options:
-          type:
-            - object
-            - "null"
-          additionalProperties: true
           description: |
-            Configuration object. Only meaningful when ``field_type`` is
-            ``singleSelect`` — option choices are carried here.
-            The internal shape is unspecified here; see the README
-            reference's per-``field_type`` semantics.
+            Choice configuration. Present and meaningful only when
+            ``field_type`` is ``singleSelect``; ``null`` for every other
+            type. Each choice carries its server-assigned integer ``id``
+            (the value stored on the entity) and ``label``; soft-deleted
+            choices remain in the array so historical values stay
+            resolvable.
+          anyOf:
+            - $ref: "#/components/schemas/CustomFieldOptions"
+            - type: "null"
         created_at:
           type: string
           format: date-time
@@ -11003,6 +11363,16 @@ components:
           type: string
           format: date-time
           description: Timestamp when the definition was last updated
+        deleted_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: |
+            Soft-delete timestamp; ``null`` for a live definition. Deleting
+            a definition (``DELETE /custom_field_definitions/{id}``) is a
+            soft delete — its values are stripped from read responses but
+            the definition is retained.
       required:
         - id
         - label
@@ -11019,6 +11389,7 @@ components:
         options: null
         created_at: "2026-05-14T10:00:00Z"
         updated_at: "2026-05-14T10:00:00Z"
+        deleted_at: null
     CreateCustomFieldDefinitionRequest:
       description: Request payload for creating a new custom field definition.
       type: object
@@ -11049,15 +11420,16 @@ components:
             - "null"
           description: Optional long-form description
         options:
-          type:
-            - object
-            - "null"
-          additionalProperties: true
           description: |
-            Configuration object. Only meaningful when ``field_type`` is
-            ``singleSelect``; omit (or send ``null``) for other types.
-            The internal shape is unspecified here; see the README
-            reference's per-``field_type`` semantics.
+            Choice configuration. Required when ``field_type`` is
+            ``singleSelect``; omit (or send ``null``) for every other type.
+            On create, send each choice with just a ``label`` — the server
+            assigns each one an integer ``id`` and returns the resolved
+            array. Use those ``id`` values when setting the field on a
+            sales order.
+          anyOf:
+            - $ref: "#/components/schemas/CustomFieldOptionsCreate"
+            - type: "null"
       example:
         label: Channel
         field_type: shortText
@@ -11065,7 +11437,10 @@ components:
         source: your-integration
         description: Customer-facing sales channel classification
     UpdateCustomFieldDefinitionRequest:
-      description: Request payload for updating an existing custom field definition.
+      description: |
+        Request payload for updating an existing custom field definition.
+        Only ``label``, ``description``, and ``options`` may be updated;
+        ``field_type``, ``entity_type``, and ``source`` are immutable.
       type: object
       additionalProperties: false
       properties:
@@ -11079,11 +11454,21 @@ components:
             - "null"
           description: Updated long-form description
         options:
-          type:
-            - object
-            - "null"
-          additionalProperties: true
-          description: Updated configuration object
+          description: |
+            Updated choice configuration (``singleSelect`` only). Send the
+            **full** ``choices`` array — every existing choice must be
+            included and identified by its server-assigned ``id``. A choice
+            present in the array without an ``id`` is created. A choice
+            omitted from the array is removed from the active choices list
+            (it can no longer be selected), but its past values on existing
+            records are not resolvable after removal. Use ``"deleted": true``
+            instead to soft-delete a choice — it stays in the array so
+            historical values referencing its ``id`` remain resolvable, but
+            it is no longer offered as a new selection. Choices are never
+            hard-deleted.
+          anyOf:
+            - $ref: "#/components/schemas/CustomFieldOptions"
+            - type: "null"
       example:
         label: Quality Grade (revised)
         description: Updated customer-facing quality classification
@@ -11107,6 +11492,97 @@ components:
             options: null
             created_at: "2026-05-14T10:00:00Z"
             updated_at: "2026-05-14T10:00:00Z"
+            deleted_at: null
+    CustomFieldChoice:
+      description: |
+        A single ``singleSelect`` choice as it appears on read and update.
+        The integer ``id`` is what gets stored on the entity; ``label`` is
+        the human-readable text resolved client-side.
+      type: object
+      additionalProperties: false
+      required:
+        - label
+      properties:
+        id:
+          type: integer
+          description: |
+            Server-assigned choice identifier. The value actually stored on
+            a sales order for this field. Present on read; on
+            ``PATCH /custom_field_definitions/{id}`` it must be supplied to
+            identify an existing choice (omit it to create a new choice).
+        label:
+          type: string
+          description: Human-readable label for the choice.
+        deleted:
+          type: boolean
+          description: |
+            Soft-delete marker. On update, set ``true`` to retire an
+            existing choice while keeping it in the array so historical
+            values referencing its ``id`` stay resolvable. Choices are
+            never hard-deleted.
+      example:
+        id: 1
+        label: Online
+    CustomFieldChoiceCreate:
+      description: |
+        A single ``singleSelect`` choice as supplied on
+        ``POST /custom_field_definitions``. Send only the ``label`` — the
+        server assigns the integer ``id`` and returns it in the response.
+      type: object
+      additionalProperties: false
+      required:
+        - label
+      properties:
+        label:
+          type: string
+          description: Human-readable label for the choice.
+      example:
+        label: Online
+    CustomFieldOptions:
+      description: |
+        Choice configuration for a ``singleSelect`` custom field definition,
+        as returned on read and supplied on update.
+      type: object
+      additionalProperties: false
+      required:
+        - choices
+      properties:
+        choices:
+          type: array
+          description: |
+            The allowed choices, each with its server-assigned integer
+            ``id`` and ``label``. Soft-deleted choices remain present so
+            historical values stay resolvable.
+          items:
+            $ref: "#/components/schemas/CustomFieldChoice"
+      example:
+        choices:
+          - id: 1
+            label: Online
+          - id: 2
+            label: Retail
+          - id: 3
+            label: Wholesale
+    CustomFieldOptionsCreate:
+      description: |
+        Choice configuration supplied when creating a ``singleSelect``
+        custom field definition. Each choice carries only a ``label``; the
+        server assigns each one an integer ``id``.
+      type: object
+      additionalProperties: false
+      required:
+        - choices
+      properties:
+        choices:
+          type: array
+          description: The choices to create, each identified by ``label`` only.
+          items:
+            $ref: "#/components/schemas/CustomFieldChoiceCreate"
+      example:
+        choices:
+          - label: Online
+          - label: Retail
+          - label: Wholesale
     Stocktake:
       description: Physical inventory count process for reconciling actual stock levels with system records
       allOf:
@@ -12951,16 +13427,24 @@ components:
             - "null"
           additionalProperties: true
           description: |
-            Custom field values for the sales order, keyed by configured
-            field name. Keys correspond to fields defined for the
-            ``SalesOrder`` entity type on the tenant's
-            ``custom_field_collection`` (see
-            ``GET /custom_fields_collections``). Each value matches the
-            corresponding field's ``CustomFieldType`` (``shortText`` /
-            ``number`` / ``singleSelect`` / ``date`` / ``boolean`` /
-            ``url``). The valid key set is tenant-specific runtime
-            config, so the schema declares ``additionalProperties: true``
-            rather than enumerating keys.
+            Custom field values for the sales order, keyed by the
+            definition ``id`` (UUID) — the ``id`` returned by
+            ``GET /custom_field_definitions``, not the field label. Each
+            value matches the definition's ``field_type``: string for
+            ``shortText`` / ``url``, number for ``number``, boolean for
+            ``boolean``, a ``YYYY-MM-DD`` string for ``date``, or the
+            integer choice ``id`` for ``singleSelect``.
+
+            On ``PATCH`` the object is **merged** with the existing values,
+            not replaced:
+
+            - omit the ``custom_fields`` key — existing values unchanged;
+            - ``{"<id>": value}`` — that key is set / overwritten, all
+              other keys kept;
+            - ``null`` — all custom field values on the order are cleared.
+
+            Keys are tenant-specific, so the schema declares
+            ``additionalProperties: true`` rather than enumerating them.
     UpdateSalesReturnRowRequest:
       description: Request payload for updating a sales return row
       type: object
@@ -18939,17 +19423,21 @@ paths:
       tags:
         - Sales order
       description: |
-        Searches sales orders using arbitrary filter criteria. Returns the
-        same shape as ``GET /sales_orders`` — paginated list of
+        Searches sales orders using a structured filter body with nested
+        logical operators (``and`` / ``or``) and per-field comparators.
+        Only the fields in the request schema may appear in ``where`` /
+        ``order``; unknown fields return 422. Custom field values are
+        addressable via ``custom_fields.<uuid>`` nested paths. Returns the
+        same shape as ``GET /sales_orders`` — a paginated list of
         ``SalesOrder`` records.
       operationId: searchSalesOrders
       requestBody:
-        description: LoopBack-style filter envelope
+        description: Structured filter body. See the schema for the field allowlist, operators, and caps.
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/SearchFilterRequest"
+              $ref: "#/components/schemas/SalesOrderSearchRequest"
       responses:
         "200":
           description: Matching sales orders
@@ -19714,18 +20202,21 @@ paths:
       tags:
         - Sales order row
       description: |-
-        Search sales order rows using a LoopBack-style filter body. Unlike
+        Search sales order rows using a structured filter body. Unlike
         ``GET /sales_order_rows`` (which uses simple query parameters), this
-        endpoint accepts a rich ``filter`` object with comparison operators,
-        boolean composition, and explicit pagination.
+        endpoint accepts a rich ``filter`` object with per-field
+        comparators and ``and`` / ``or`` composition. Only the fields in
+        the request schema may appear in ``where`` / ``order``; unknown
+        fields return 422. Custom field values are addressable via
+        ``custom_fields.<uuid>`` nested paths.
       operationId: searchSalesOrderRows
       requestBody:
-        description: LoopBack-style filter envelope
+        description: Structured filter body. See the schema for the field allowlist, operators, and caps.
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/SearchFilterRequest"
+              $ref: "#/components/schemas/SalesOrderRowSearchRequest"
       responses:
         "200":
           description: Matching sales order rows

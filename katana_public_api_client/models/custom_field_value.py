@@ -10,10 +10,19 @@ T = TypeVar("T", bound="CustomFieldValue")
 
 @_attrs_define
 class CustomFieldValue:
-    """A single custom field value attached to a resource (e.g., a sales
-    order, service, product). Custom fields are configured via
-    ``GET /custom_fields_collections``; each value pairs the field's
-    configured name with the value to set.
+    """A single custom field value in the **legacy** ``{field_name,
+    field_value}`` shape used by Variant / Product / Material / Service
+    resources. These fields are configured via the
+    ``/custom_fields_collections`` surface and attached as an **array**
+    of name/value pairs.
+
+    This is distinct from — and must not be unified with — the newer
+    sales-order custom-fields surface, where ``custom_fields`` is a
+    **dict keyed by custom field definition ``id`` (UUID)** registered
+    through ``/custom_field_definitions`` (see ``CustomFieldDefinition``
+    and the ``custom_fields`` property on ``SalesOrder`` /
+    ``SalesOrderRow``). The two surfaces coexist intentionally; Katana
+    has not migrated items/variants to the dict shape.
 
         Example:
             {'field_name': 'quality_grade', 'field_value': 'A'}

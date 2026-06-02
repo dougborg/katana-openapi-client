@@ -12,9 +12,7 @@ from ..models.custom_field_entity_type import CustomFieldEntityType
 from ..models.custom_field_type import CustomFieldType
 
 if TYPE_CHECKING:
-    from ..models.custom_field_definition_options_type_0 import (
-        CustomFieldDefinitionOptionsType0,
-    )
+    from ..models.custom_field_options import CustomFieldOptions
 
 
 T = TypeVar("T", bound="CustomFieldDefinition")
@@ -22,15 +20,22 @@ T = TypeVar("T", bound="CustomFieldDefinition")
 
 @_attrs_define
 class CustomFieldDefinition:
-    """A configured custom field definition that callers can attach to a
-    resource (sales order, service, product, etc.) via the resource's
-    ``custom_fields`` property. Definitions are scoped to a specific
-    ``entity_type`` and shape what values consumers can store.
+    """A partner-defined custom field that callers register once via
+    ``POST /custom_field_definitions`` and then attach values for on a
+    sales order (or sales order row) through that resource's
+    ``custom_fields`` property, keyed by this definition's ``id``
+    (UUID).
+
+    Scope today: ``entity_type`` is limited to ``SalesOrder`` /
+    ``SalesOrderRow`` (see ``CustomFieldEntityType``). A factory may
+    hold at most **50 definitions**. ``field_type``, ``entity_type``,
+    and ``source`` are **immutable** after creation; only ``label``,
+    ``description``, and ``options`` may be updated.
 
         Example:
             {'id': '0c8f1d6e-3c2a-4f5b-9d77-12ab34cd56ef', 'label': 'Channel', 'field_type': 'shortText', 'entity_type':
                 'SalesOrder', 'source': 'your-integration', 'description': 'Customer-facing sales channel classification',
-                'options': None, 'created_at': '2026-05-14T10:00:00Z', 'updated_at': '2026-05-14T10:00:00Z'}
+                'options': None, 'created_at': '2026-05-14T10:00:00Z', 'updated_at': '2026-05-14T10:00:00Z', 'deleted_at': None}
     """
 
     id: UUID
@@ -39,14 +44,13 @@ class CustomFieldDefinition:
     entity_type: CustomFieldEntityType
     source: str
     description: None | str | Unset = UNSET
-    options: CustomFieldDefinitionOptionsType0 | None | Unset = UNSET
+    options: CustomFieldOptions | None | Unset = UNSET
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET
+    deleted_at: datetime.datetime | None | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.custom_field_definition_options_type_0 import (
-            CustomFieldDefinitionOptionsType0,
-        )
+        from ..models.custom_field_options import CustomFieldOptions
 
         id = str(self.id)
 
@@ -67,7 +71,7 @@ class CustomFieldDefinition:
         options: dict[str, Any] | None | Unset
         if isinstance(self.options, Unset):
             options = UNSET
-        elif isinstance(self.options, CustomFieldDefinitionOptionsType0):
+        elif isinstance(self.options, CustomFieldOptions):
             options = self.options.to_dict()
         else:
             options = self.options
@@ -79,6 +83,14 @@ class CustomFieldDefinition:
         updated_at: str | Unset = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
+
+        deleted_at: None | str | Unset
+        if isinstance(self.deleted_at, Unset):
+            deleted_at = UNSET
+        elif isinstance(self.deleted_at, datetime.datetime):
+            deleted_at = self.deleted_at.isoformat()
+        else:
+            deleted_at = self.deleted_at
 
         field_dict: dict[str, Any] = {}
 
@@ -99,14 +111,14 @@ class CustomFieldDefinition:
             field_dict["created_at"] = created_at
         if updated_at is not UNSET:
             field_dict["updated_at"] = updated_at
+        if deleted_at is not UNSET:
+            field_dict["deleted_at"] = deleted_at
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.custom_field_definition_options_type_0 import (
-            CustomFieldDefinitionOptionsType0,
-        )
+        from ..models.custom_field_options import CustomFieldOptions
 
         d = dict(src_dict)
         id = UUID(d.pop("id"))
@@ -128,9 +140,7 @@ class CustomFieldDefinition:
 
         description = _parse_description(d.pop("description", UNSET))
 
-        def _parse_options(
-            data: object,
-        ) -> CustomFieldDefinitionOptionsType0 | None | Unset:
+        def _parse_options(data: object) -> CustomFieldOptions | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -141,14 +151,14 @@ class CustomFieldDefinition:
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
-                options_type_0 = CustomFieldDefinitionOptionsType0.from_dict(
+                options_type_0 = CustomFieldOptions.from_dict(
                     cast(Mapping[str, Any], data)
                 )
 
                 return options_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(CustomFieldDefinitionOptionsType0 | None | Unset, data)
+            return cast(CustomFieldOptions | None | Unset, data)
 
         options = _parse_options(d.pop("options", UNSET))
 
@@ -166,6 +176,23 @@ class CustomFieldDefinition:
         else:
             updated_at = datetime.datetime.fromisoformat(_updated_at)
 
+        def _parse_deleted_at(data: object) -> datetime.datetime | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                deleted_at_type_0 = isoparse(data)
+
+                return deleted_at_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(datetime.datetime | None | Unset, data)
+
+        deleted_at = _parse_deleted_at(d.pop("deleted_at", UNSET))
+
         custom_field_definition = cls(
             id=id,
             label=label,
@@ -176,6 +203,7 @@ class CustomFieldDefinition:
             options=options,
             created_at=created_at,
             updated_at=updated_at,
+            deleted_at=deleted_at,
         )
 
         return custom_field_definition

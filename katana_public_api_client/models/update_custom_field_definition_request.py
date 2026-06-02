@@ -8,9 +8,7 @@ from attrs import define as _attrs_define
 from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.update_custom_field_definition_request_options_type_0 import (
-        UpdateCustomFieldDefinitionRequestOptionsType0,
-    )
+    from ..models.custom_field_options import CustomFieldOptions
 
 
 T = TypeVar("T", bound="UpdateCustomFieldDefinitionRequest")
@@ -19,19 +17,19 @@ T = TypeVar("T", bound="UpdateCustomFieldDefinitionRequest")
 @_attrs_define
 class UpdateCustomFieldDefinitionRequest:
     """Request payload for updating an existing custom field definition.
+    Only ``label``, ``description``, and ``options`` may be updated;
+    ``field_type``, ``entity_type``, and ``source`` are immutable.
 
-    Example:
-        {'label': 'Quality Grade (revised)', 'description': 'Updated customer-facing quality classification'}
+        Example:
+            {'label': 'Quality Grade (revised)', 'description': 'Updated customer-facing quality classification'}
     """
 
     label: str | Unset = UNSET
     description: None | str | Unset = UNSET
-    options: None | Unset | UpdateCustomFieldDefinitionRequestOptionsType0 = UNSET
+    options: CustomFieldOptions | None | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.update_custom_field_definition_request_options_type_0 import (
-            UpdateCustomFieldDefinitionRequestOptionsType0,
-        )
+        from ..models.custom_field_options import CustomFieldOptions
 
         label = self.label
 
@@ -44,7 +42,7 @@ class UpdateCustomFieldDefinitionRequest:
         options: dict[str, Any] | None | Unset
         if isinstance(self.options, Unset):
             options = UNSET
-        elif isinstance(self.options, UpdateCustomFieldDefinitionRequestOptionsType0):
+        elif isinstance(self.options, CustomFieldOptions):
             options = self.options.to_dict()
         else:
             options = self.options
@@ -63,9 +61,7 @@ class UpdateCustomFieldDefinitionRequest:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.update_custom_field_definition_request_options_type_0 import (
-            UpdateCustomFieldDefinitionRequestOptionsType0,
-        )
+        from ..models.custom_field_options import CustomFieldOptions
 
         d = dict(src_dict)
         label = d.pop("label", UNSET)
@@ -79,9 +75,7 @@ class UpdateCustomFieldDefinitionRequest:
 
         description = _parse_description(d.pop("description", UNSET))
 
-        def _parse_options(
-            data: object,
-        ) -> None | Unset | UpdateCustomFieldDefinitionRequestOptionsType0:
+        def _parse_options(data: object) -> CustomFieldOptions | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -92,18 +86,14 @@ class UpdateCustomFieldDefinitionRequest:
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
-                options_type_0 = (
-                    UpdateCustomFieldDefinitionRequestOptionsType0.from_dict(
-                        cast(Mapping[str, Any], data)
-                    )
+                options_type_0 = CustomFieldOptions.from_dict(
+                    cast(Mapping[str, Any], data)
                 )
 
                 return options_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(
-                None | Unset | UpdateCustomFieldDefinitionRequestOptionsType0, data
-            )
+            return cast(CustomFieldOptions | None | Unset, data)
 
         options = _parse_options(d.pop("options", UNSET))
 
