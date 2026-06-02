@@ -5,7 +5,8 @@
 via make-to-order\
 **Public API base:** `https://api.katanamrp.com/v1`
 
-> Escalation prepared for the Katana API team. Internal tracking:
+> **Status:** Submitted to Katana 2026-06-02 (awaiting response).\
+> Internal tracking:
 > [#784](https://github.com/dougborg/katana-openapi-client/issues/784),
 > [#849](https://github.com/dougborg/katana-openapi-client/issues/849).
 
