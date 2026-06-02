@@ -85,7 +85,10 @@ the spec-drift probes use:
 
 ## Adding a test
 
-- Mark the module `pytestmark = [pytest.mark.integration, pytest.mark.asyncio]`.
+- Mark the module
+  `pytestmark = [pytest.mark.integration, pytest.mark.live, pytest.mark.asyncio]`. The
+  `live` marker is what `poe test-integration-live` selects and what
+  `poe test-integration` excludes — keep it on every test in this directory.
 - Take the `live_client` fixture; call generated endpoints with
   `await <endpoint>.asyncio_detailed(client=live_client, ...)`.
 - Assert **structurally**, not exactly: the test tenant's data drifts, so check
