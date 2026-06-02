@@ -396,6 +396,68 @@ class TestVariantNullSku:
         assert pydantic_product.variants[1].sku is None
 
 
+class TestServiceVariantNullSku:
+    """ServiceVariant.sku must accept None — Katana lets users create services without one.
+
+    Mirrors TestVariantNullSku for the service vertical. The spec previously declared
+    ``ServiceVariant.sku: type: string`` (non-nullable, and listed in ``required``),
+    but Katana actually emits ``sku: null`` for services created without one — the
+    nullable-SKU relaxation that shipped for ``Variant`` was never applied here. The
+    bug surfaced as a typed-cache sync crash in ``search_items``: ``get_all_services``
+    nests each service's full ``variants[]`` array, and ``Service.from_attrs``
+    recursively validated each nested ``ServiceVariant`` through pydantic — one
+    null-sku variant killed the whole sync, leaving the catalog cache empty so every
+    ``search_items`` call failed. Live-reproduced on the test tenant. Pinned here so a
+    future regen can't silently revert the spec relaxation.
+    """
+
+    def test_service_variant_accepts_null_sku(self) -> None:
+        from katana_public_api_client.models_pydantic._generated import ServiceVariant
+
+        variant = ServiceVariant(id=40757631, sku=None, service_id=401)
+        assert variant.sku is None
+
+    def test_service_variant_from_attrs_with_null_sku(self) -> None:
+        """The crash path: ``ServiceVariant.from_attrs(attrs_with_null_sku)``."""
+        from katana_public_api_client.models import (
+            ServiceVariant as AttrsServiceVariant,
+        )
+        from katana_public_api_client.models_pydantic._generated import ServiceVariant
+
+        attrs_variant = AttrsServiceVariant.from_dict(
+            {"id": 40757631, "sku": None, "service_id": 401}
+        )
+        pydantic_variant = ServiceVariant.from_attrs(attrs_variant)
+        assert pydantic_variant.sku is None
+        assert pydantic_variant.service_id == 401
+
+    def test_service_with_null_sku_nested_variant(self) -> None:
+        """The ``search_items`` crash path: a service whose nested ``variants[]``
+        array contains a null-sku variant must round-trip cleanly — the exact
+        shape ``get_all_services`` returns and the typed-cache sync validates
+        per row.
+        """
+        from katana_public_api_client.models import Service as AttrsService
+        from katana_public_api_client.models_pydantic._generated import Service
+
+        attrs_service = AttrsService.from_dict(
+            {
+                "id": 401,
+                "name": "Assembly Service",
+                "type": "service",
+                "variants": [
+                    {"id": 1, "sku": "SVC-001", "service_id": 401},
+                    {"id": 2, "sku": None, "service_id": 401},
+                ],
+            }
+        )
+        pydantic_service = Service.from_attrs(attrs_service)
+        assert pydantic_service.variants is not None
+        assert len(pydantic_service.variants) == 2
+        assert pydantic_service.variants[0].sku == "SVC-001"
+        assert pydantic_service.variants[1].sku is None
+
+
 class TestManufacturingOrderNullDeadline:
     """ManufacturingOrder.production_deadline_date must accept None.
 

@@ -155,16 +155,24 @@ fits topically — to one of the linked docs below if it's subsystem-scoped, or 
 
 ### Cross-cutting
 
-- **Variants can have null SKUs — never assume `Variant.sku` is non-null.** Katana
-  allows variants without SKUs (legacy NetSuite imports are a common source). The wire
-  contract reflects this: `Variant.sku` is `str | None` in both the attrs and pydantic
-  models. **Downstream consumers must coalesce** — render with `variant.sku or ""`,
-  score with `(variant.sku or "", weight)`. The `KatanaVariant` domain model and
-  `CachedVariant` table both accept null SKU; `get_by_sku` won't match these rows (NULL
-  ≠ string), so they're effectively unreachable by SKU lookup but still surface in
-  ID-based reads and FTS fuzzy search. Pinned by tests in
-  `tests/test_models_pydantic.py::TestVariantNullSku` and
-  `katana_mcp_server/tests/test_typed_cache_catalog.py::TestVariantPostprocess::test_sync_tolerates_null_sku_in_nested_variants`.
+- **Variants can have null SKUs — never assume `Variant.sku` (or `ServiceVariant.sku`)
+  is non-null.** Katana allows variants without SKUs (legacy NetSuite imports are a
+  common source). The wire contract reflects this: `Variant.sku` **and**
+  `ServiceVariant.sku` are `str | None` in both the attrs and pydantic models — the
+  service vertical follows the exact same contract (a null-sku service variant nested in
+  a `get_all_services` response previously crashed the typed-cache sync, emptying the
+  catalog so every `search_items` call failed). **Downstream consumers must coalesce** —
+  render with `variant.sku or ""`, score with `(variant.sku or "", weight)`. The
+  `KatanaVariant` domain model and `CachedVariant` table both accept null SKU;
+  `get_by_sku` won't match these rows (NULL ≠ string), so they're effectively
+  unreachable by SKU lookup but still surface in ID-based reads and FTS fuzzy search.
+  Both verticals are pinned by these tests — relaxing or re-tightening any SKU field
+  must keep all four green:
+
+  - `tests/test_models_pydantic.py::TestVariantNullSku`
+  - `tests/test_models_pydantic.py::TestServiceVariantNullSku`
+  - `katana_mcp_server/tests/test_typed_cache_catalog.py::TestVariantPostprocess::test_sync_tolerates_null_sku_in_nested_variants`
+  - `katana_mcp_server/tests/test_typed_cache_catalog.py::TestCatalogSync::test_sync_tolerates_null_sku_in_service_variants`
 
 - **Editing generated files** — `api/**/*.py`, `models/**/*.py`, `client.py`,
   `models_pydantic/_generated/**`, and `models_pydantic/_auto_registry.py` are

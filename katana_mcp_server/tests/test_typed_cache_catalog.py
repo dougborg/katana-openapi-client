@@ -186,6 +186,40 @@ class TestCatalogSync:
         assert cached.name == "Sharpening"
 
     @pytest.mark.asyncio
+    async def test_sync_tolerates_null_sku_in_service_variants(
+        self, typed_cache_engine
+    ):
+        """A service whose nested ``variants[]`` carries a null-sku entry must
+        sync without crashing.
+
+        The production crash path for ``search_items``: ``get_all_services``
+        nests each service's full ``variants[]`` array, and the sync validates
+        every service through the pydantic ``Service`` model. Before the spec
+        relaxation, ``ServiceVariant.sku`` was non-nullable, so one null-sku
+        variant raised ``ValidationError`` and aborted the whole service sync —
+        leaving the catalog cache empty so every ``search_items`` call failed.
+        Pins the working batch flow (mirrors the ``Variant`` analog above).
+        """
+        attrs = AttrsService.from_dict(
+            {
+                "id": 7002,
+                "name": "Assembly Service",
+                "type": "service",
+                "variants": [
+                    {"id": 1, "sku": "SVC-001", "service_id": 7002},
+                    {"id": 2, "sku": None, "service_id": 7002},
+                ],
+            }
+        )
+        with _stub_endpoint("get_all_services", _list_response([attrs])):
+            await ensure_services_synced(MagicMock(), typed_cache_engine)
+
+        async with typed_cache_engine.session() as session:
+            cached = await session.get(CachedService, 7002)
+        assert cached is not None
+        assert cached.name == "Assembly Service"
+
+    @pytest.mark.asyncio
     async def test_customer_round_trips(self, typed_cache_engine):
         attrs = AttrsCustomer.from_dict(
             {"id": 9001, "name": "Jane Doe", "email": "jane.doe@example.com"}
