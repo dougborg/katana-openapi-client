@@ -436,9 +436,11 @@ Set the env vars in `.env` (uncommented in `.env.example`). Phase 1 landed the h
 `make_test_client()`, run via `uv run poe test-integration-live`, auto-skipping when
 `KATANA_TEST_API_KEY` is unset (the skip lives in the `live_client` fixture, not the
 helper). See [`tests/integration/README.md`](tests/integration/README.md) for the
-SDT-tagging + cleanup contract any *write* test must follow. Later phases add GitHub
-Actions wiring and MCP-server smoke tests — track progress on the
-[project board](https://github.com/users/dougborg/projects/5).
+SDT-tagging + cleanup contract any *write* test must follow. Phase 3 added the
+[`live-integration.yml`](.github/workflows/live-integration.yml) workflow (nightly +
+`workflow_dispatch` + `needs-live-test`-labeled PRs; soft-fail; needs the
+`KATANA_TEST_API_KEY` repo secret). A later phase adds MCP-server smoke tests — track
+progress on the [project board](https://github.com/users/dougborg/projects/5).
 
 ## Detailed Documentation
 
