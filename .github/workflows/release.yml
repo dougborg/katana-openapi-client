@@ -230,13 +230,34 @@ jobs:
       (needs.release-client.outputs.released == 'true' ||
        needs.release-mcp.outputs.released == 'true')
     runs-on: ubuntu-latest
+    # Serialize this job across overlapping Release runs: it pushes to main, so
+    # two concurrent instances could race (the second push rejected as
+    # non-fast-forward). Queueing (cancel-in-progress: false) means a later run
+    # re-locks on top of the earlier run's lock commit instead of clobbering it.
+    concurrency:
+      group: sync-lockfile
+      cancel-in-progress: false
     permissions:
       contents: write
     steps:
+      # CRITICAL: check out the *post-release* tip of main, not the workflow's
+      # triggering SHA. python-semantic-release (in the release-client /
+      # release-mcp jobs this job `needs`) pushes the `chore(release)` version
+      # bump commits to main *after* this run started, so the default
+      # checkout (github.sha = the pre-release commit) would carry the OLD
+      # pyproject versions — re-locking there would be a no-op and the lock
+      # would never catch up (#901). `ref: main` + an explicit reset to
+      # origin/main guarantees we see the bumped versions before re-locking.
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: main
           token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
+
+      - name: Fast-forward to the post-release tip of main
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
@@ -245,13 +266,15 @@ jobs:
           cache-dependency-glob: "uv.lock"
           python-version: "3.14"
 
-      - name: Sync lockfile
-        run: uv sync --all-extras
+      # `uv lock` updates only the lockfile (no env install needed) to match the
+      # just-bumped package versions in pyproject.toml.
+      - name: Re-lock to match the released versions
+        run: uv lock
 
       - name: Commit if changed
         run: |
           if git diff --quiet uv.lock; then
-            echo "uv.lock is up to date"
+            echo "uv.lock already matches the released versions"
           else
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
