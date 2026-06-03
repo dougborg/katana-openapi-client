@@ -2845,19 +2845,23 @@ async def test_modify_mo_confirm_executes_in_canonical_order():
 
 @pytest.mark.asyncio
 async def test_modify_mo_emits_substep_timing_events(caplog):
-    """#853 / refs #786 — ``_modify_manufacturing_order_impl`` emits three
+    """#853 / refs #786 — ``_modify_manufacturing_order_impl`` emits
     ``mo_modify_*_completed`` events on the apply path so the next 30s+
     slow call leaves a diagnostic breadcrumb. Pattern mirrors
     ``test_unknown_operation_is_logged_and_dropped`` in
     ``tests/test_prefab_ui.py`` (force structlog through stdlib + caplog).
 
-    The three events correspond to the three candidate slow steps:
+    On a header modify the events are:
 
     - ``mo_modify_patch_completed`` — the Katana PATCH apply
     - ``mo_modify_verify_refetch_completed`` — the sibling recipe-rows
       re-fetch (``CacheMerge.refetch_related``)
-    - ``mo_modify_cache_merge_completed`` — the parent MO GET re-fetch
-      (``CacheMerge.refetch_for_merge`` inside ``_post_apply_cache_merge``)
+
+    ``mo_modify_cache_merge_completed`` (the parent MO GET re-fetch) is
+    **not** emitted here: #786 wired ``CacheMerge.parent_from_outcome=True``,
+    so the post-apply merge reuses the PATCH response instead of re-GETting
+    the parent — the ``refetch_for_merge`` wrapper (which carries that timing
+    span) only runs as a fallback when a plan has no parent action.
     """
     import logging
 
@@ -2894,9 +2898,13 @@ async def test_modify_mo_emits_substep_timing_events(caplog):
     # ``_post_apply_cache_merge`` does its own ``merge_filtered_fetch``
     # against the (mocked) cache; patching the late import to a no-op
     # keeps the test focused on the timing events and avoids touching the
-    # typed-cache schema. The parent GET refetch still fires (timed by
-    # ``cache_merge``), and the related recipe-row fetcher still fires
-    # (timed by ``verify_refetch``).
+    # typed-cache schema. The ``_fetch_manufacturing_order_attrs`` mock IS
+    # awaited once — for the pre-apply diff fetch (``existing_mo``). What it is
+    # NOT awaited for is the post-apply cache-merge refetch: ``parent_from_outcome``
+    # reuses the PATCH ``apply_outcome`` there, which is exactly why the
+    # ``cache_merge`` timing span doesn't fire (asserted below via
+    # ``seen_cache_merge``). Only the related recipe-row fetcher fires (timed by
+    # ``verify_refetch``).
     with (
         patch(
             "katana_mcp.tools.foundation.manufacturing_orders._fetch_manufacturing_order_attrs",
@@ -2934,7 +2942,7 @@ async def test_modify_mo_emits_substep_timing_events(caplog):
     assert response.is_preview is False
     assert all(a.succeeded is True for a in response.actions)
 
-    # Verify all three sub-step events fire, each with a ``duration_ms``.
+    # Verify the header-path sub-step events fire, each with a ``duration_ms``.
     # ``setup_logging(json)`` routes structlog through ``JSONRenderer``,
     # so ``rec.getMessage()`` is a JSON blob carrying the ``event`` field.
     # Substring-match the event name (same pattern as
@@ -2946,15 +2954,17 @@ async def test_modify_mo_emits_substep_timing_events(caplog):
     expected_events = {
         "mo_modify_patch_completed",
         "mo_modify_verify_refetch_completed",
-        "mo_modify_cache_merge_completed",
     }
     matched: set[str] = set()
+    seen_cache_merge = False
     for rec in caplog.records:
         if rec.name != "katana_mcp.tools.foundation.manufacturing_orders":
             continue
         if rec.levelname != "INFO":
             continue
         msg = rec.getMessage()
+        if "mo_modify_cache_merge_completed" in msg:
+            seen_cache_merge = True
         for event_name in expected_events:
             if event_name in msg and "duration_ms" in msg:
                 matched.add(event_name)
@@ -2967,9 +2977,17 @@ async def test_modify_mo_emits_substep_timing_events(caplog):
                     f"got: {msg[:200]}"
                 )
     assert matched == expected_events, (
-        f"Expected all three sub-step events {expected_events}; "
+        f"Expected header-path sub-step events {expected_events}; "
         f"saw {sorted(matched)}. Records: "
         f"{[(r.name, r.levelname, r.getMessage()[:120]) for r in caplog.records]}"
+    )
+    # #786: ``parent_from_outcome`` reuses the PATCH response, so the parent
+    # merge-refetch (and its ``cache_merge`` timing span) must NOT run on this
+    # path. (``_fetch_manufacturing_order_attrs`` is still awaited once for the
+    # pre-apply diff fetch — that's a different call site, not the merge.)
+    assert not seen_cache_merge, (
+        "mo_modify_cache_merge_completed should not fire when "
+        "parent_from_outcome reuses the PATCH apply_outcome"
     )
 
 

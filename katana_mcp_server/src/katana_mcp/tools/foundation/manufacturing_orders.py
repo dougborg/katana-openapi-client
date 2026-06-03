@@ -3267,6 +3267,13 @@ async def _modify_manufacturing_order_impl(
                     _timed_refetch_recipe_rows,
                 ),
             ),
+            # #786: the MO PATCH response is a full ``ManufacturingOrder``, so
+            # the post-apply parent merge reuses it instead of a separate GET —
+            # one fewer call per modify that could stall on the rate-limit reset
+            # gate (the 30s+ hang). The recipe-row ``refetch_related`` above is
+            # still issued (and now time-bounded by the dispatcher) so row edits
+            # stay cache-consistent.
+            parent_from_outcome=True,
         ),
     )
 
