@@ -92,6 +92,55 @@ async def test_create_sales_order_preview():
 
 
 @pytest.mark.asyncio
+async def test_create_sales_order_warns_on_unrecognized_ecommerce_type():
+    """An ``ecommerce_order_type`` outside the deep-linkable set gets an
+    advisory (non-BLOCK) warning. The field is create-only, so this is the
+    only chance to flag a typo before it bakes in (#913)."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(
+        return_value={"id": 1501, "name": "Acme"}
+    )
+    request = CreateSalesOrderRequest(
+        customer_id=1501,
+        order_number="SO-ECOM-1",
+        items=[SalesOrderItem(variant_id=2101, quantity=1)],
+        location_id=1,
+        delivery_date=datetime(2024, 1, 22, 14, 0, 0, tzinfo=UTC),
+        ecommerce_order_type="ebay",
+        ecommerce_store_name="ebay.example",
+        ecommerce_order_id="EB-1",
+        preview=True,
+    )
+    result = await _create_sales_order_impl(request, context)
+    advisory = [w for w in result.warnings if "ecommerce_order_type" in w]
+    assert advisory, "expected an advisory warning for an unrecognized ecommerce type"
+    assert not advisory[0].startswith("BLOCK:")
+    assert "ebay" in advisory[0]
+
+
+@pytest.mark.asyncio
+async def test_create_sales_order_no_warning_for_recognized_ecommerce_type():
+    """A recognized camelCase platform produces no ecommerce advisory."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(
+        return_value={"id": 1501, "name": "Acme"}
+    )
+    request = CreateSalesOrderRequest(
+        customer_id=1501,
+        order_number="SO-ECOM-2",
+        items=[SalesOrderItem(variant_id=2101, quantity=1)],
+        location_id=1,
+        delivery_date=datetime(2024, 1, 22, 14, 0, 0, tzinfo=UTC),
+        ecommerce_order_type="shopify",
+        ecommerce_store_name="katana.myshopify.com",
+        ecommerce_order_id="19433769",
+        preview=True,
+    )
+    result = await _create_sales_order_impl(request, context)
+    assert not [w for w in result.warnings if "ecommerce_order_type" in w]
+
+
+@pytest.mark.asyncio
 async def test_create_sales_order_preview_minimal_fields():
     """Test create_sales_order preview with only required fields."""
     context, lifespan_ctx = create_mock_context()
@@ -2098,6 +2147,49 @@ async def test_get_sales_order_by_id():
     assert result.rows[0].id == 10
     assert result.rows[0].variant_id == 500
     assert result.rows[0].quantity == 3
+
+
+@pytest.mark.asyncio
+async def test_get_sales_order_derives_ecommerce_url_for_native_order():
+    """A Shopify-sourced SO surfaces a derived ``ecommerce_url`` storefront
+    deep-link built from the persisted ecommerce_* fields (#913)."""
+    context, _ = create_mock_context()
+    mock_so = _make_mock_so(id=808, order_no="SO-ECOM")
+    mock_so.ecommerce_order_type = "shopify"
+    mock_so.ecommerce_store_name = "katana.myshopify.com"
+    mock_so.ecommerce_order_id = "19433769"
+
+    with (
+        patch(f"{_SO_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_AS, return_value=mock_so),
+        patch(_FETCH_ADDR_PATH, AsyncMock(return_value=[])),
+    ):
+        result = await _get_sales_order_impl(
+            GetSalesOrderRequest(order_id=808), context
+        )
+
+    assert result.ecommerce_url == "https://katana.myshopify.com/admin/orders/19433769"
+
+
+@pytest.mark.asyncio
+async def test_get_sales_order_ecommerce_url_none_for_unrecognized_platform():
+    """An eBay order (unrecognized) gets no storefront link — mirrors Katana."""
+    context, _ = create_mock_context()
+    mock_so = _make_mock_so(id=809, order_no="SO-EBAY")
+    mock_so.ecommerce_order_type = "ebay"
+    mock_so.ecommerce_store_name = "ebay.example"
+    mock_so.ecommerce_order_id = "EB-1"
+
+    with (
+        patch(f"{_SO_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_AS, return_value=mock_so),
+        patch(_FETCH_ADDR_PATH, AsyncMock(return_value=[])),
+    ):
+        result = await _get_sales_order_impl(
+            GetSalesOrderRequest(order_id=809), context
+        )
+
+    assert result.ecommerce_url is None
 
 
 @pytest.mark.asyncio

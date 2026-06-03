@@ -65,7 +65,11 @@ from katana_mcp.tools.tool_result_utils import (
     resolve_entity_name,
 )
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
-from katana_mcp.web_urls import katana_web_url
+from katana_mcp.web_urls import (
+    RECOGNIZED_ECOMMERCE_TYPES,
+    ecommerce_storefront_url,
+    katana_web_url,
+)
 
 # Modify/delete API endpoints used by ``modify_sales_order`` /
 # ``delete_sales_order``. Hoisted to module scope for declarative dependency
@@ -332,22 +336,30 @@ class CreateSalesOrderRequest(BaseModel):
     ecommerce_order_type: str | None = Field(
         default=None,
         description=(
-            "Type of ecommerce order, e.g. 'shopify_order' / 'woocommerce_order'. "
-            "Use when the SO mirrors an order from an ecommerce store."
+            "Ecommerce integration type. Values that produce an 'Open in "
+            "storefront' deep-link are case-sensitive: 'shopify', 'wooCommerce', "
+            "'bigCommerce' (note the camelCase). Other strings are accepted by "
+            "Katana but won't render a storefront link. These ecommerce fields "
+            "are CREATE-ONLY — they cannot be changed via modify_sales_order "
+            "(the API rejects them on update), so set them correctly here."
         ),
     )
     ecommerce_store_name: str | None = Field(
         default=None,
         description=(
-            "Name of the ecommerce store the order originated from "
-            "(e.g. 'Acme Online Store')."
+            "Storefront identifier the deep-link is built from. For Shopify and "
+            "WooCommerce this is the full storefront hostname "
+            "(e.g. 'acme.myshopify.com'); for BigCommerce it is the bare store "
+            "subdomain slug (used as 'store-{slug}.mybigcommerce.com'). "
+            "Create-only."
         ),
     )
     ecommerce_order_id: str | None = Field(
         default=None,
         description=(
             "Original order ID from the ecommerce platform — used to "
-            "cross-reference the Katana SO back to the storefront record."
+            "cross-reference the Katana SO back to the storefront record and to "
+            "build the storefront deep-link. Create-only."
         ),
     )
     custom_fields: dict[str, Any] | None = Field(
@@ -561,6 +573,26 @@ def _validate_shipping_fee_amounts(
     return warnings
 
 
+def _ecommerce_type_warning(order_type: str | None) -> str | None:
+    """Advisory warning when ``ecommerce_order_type`` won't deep-link.
+
+    The wire accepts any string for this field (no server enum), but only the
+    recognized camelCase platforms render an "Open in storefront" link, and the
+    field is create-only — a mis-typed value bakes in permanently. Returns a
+    plain (non-``BLOCK:``) warning so it advises without gating the Confirm
+    button, or ``None`` when the value is recognized or unset.
+    """
+    if order_type and order_type not in RECOGNIZED_ECOMMERCE_TYPES:
+        recognized = ", ".join(sorted(RECOGNIZED_ECOMMERCE_TYPES))
+        return (
+            f"ecommerce_order_type {order_type!r} is not a recognized "
+            f"deep-linkable platform ({recognized}); the order will be created "
+            f"but won't get an 'Open in storefront' link. This field is "
+            f"create-only and cannot be changed afterward."
+        )
+    return None
+
+
 def _outcomes_from_planned_fees(
     fees: list[SOShippingFeeAdd],
 ) -> list[ShippingFeeOutcome]:
@@ -636,6 +668,14 @@ async def _create_sales_order_impl(
         )
         if loc_warn:
             resolution_warnings.append(loc_warn)
+
+    # Advise (don't block) when ecommerce_order_type won't deep-link. Threading
+    # this through ``resolution_warnings`` carries it into the preview, apply,
+    # and terminal-status-refusal branches alike — and the field is create-only,
+    # so this is the only chance to flag a mis-typed value.
+    ecommerce_warn = _ecommerce_type_warning(request.ecommerce_order_type)
+    if ecommerce_warn:
+        resolution_warnings.append(ecommerce_warn)
 
     # BLOCK invalid initial statuses early (both preview and apply). The wire
     # POST /sales_orders only accepts NOT_SHIPPED / PENDING — PACKED / DELIVERED
@@ -1602,6 +1642,17 @@ class GetSalesOrderResponse(SoftDeletableResponse):
     ecommerce_order_type: str | None = None
     ecommerce_store_name: str | None = None
     ecommerce_order_id: str | None = None
+    ecommerce_url: str | None = Field(
+        default=None,
+        description=(
+            'Storefront deep-link ("Open in {platform}") derived from the '
+            "ecommerce metadata when the order came from a recognized native "
+            "integration (Shopify / WooCommerce / BigCommerce). None for other "
+            "or absent integrations (e.g. an eBay order imported via "
+            "middleware) — mirrors what Katana's own UI links. Built by "
+            "ecommerce_storefront_url()."
+        ),
+    )
 
     # Timestamps
     created_at: str | None = None
@@ -1848,6 +1899,11 @@ async def _get_sales_order_impl(
         ecommerce_order_type=unwrap_unset(so.ecommerce_order_type, None),
         ecommerce_store_name=unwrap_unset(so.ecommerce_store_name, None),
         ecommerce_order_id=unwrap_unset(so.ecommerce_order_id, None),
+        ecommerce_url=ecommerce_storefront_url(
+            unwrap_unset(so.ecommerce_order_type, None),
+            unwrap_unset(so.ecommerce_store_name, None),
+            unwrap_unset(so.ecommerce_order_id, None),
+        ),
         created_at=iso_or_none(unwrap_unset(so.created_at, None)),
         updated_at=iso_or_none(unwrap_unset(so.updated_at, None)),
         deleted_at=iso_or_none(unwrap_unset(so.deleted_at, None)),

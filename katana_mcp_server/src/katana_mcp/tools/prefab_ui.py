@@ -135,7 +135,12 @@ from katana_mcp.tools.foundation.po_row_table import (
     prepare_po_row_table_rows,
 )
 from katana_mcp.tools.tool_result_utils import BLOCK_WARNING_PREFIX
-from katana_mcp.web_urls import EntityKind, katana_web_url
+from katana_mcp.web_urls import (
+    EntityKind,
+    ecommerce_platform_label,
+    ecommerce_storefront_url,
+    katana_web_url,
+)
 
 logger = get_logger(__name__)
 
@@ -3650,6 +3655,35 @@ def _init_create_card_state(response: dict[str, Any]) -> dict[str, Any]:
     return state
 
 
+def _render_ecommerce_link(entity: dict[str, Any]) -> None:
+    """Render the 'Open in {platform}' storefront link for a sales order, or
+    nothing.
+
+    Reads the precomputed ``ecommerce_url`` (set impl-side on the
+    ``get_sales_order`` detail response) and falls back to deriving it from the
+    raw ``ecommerce_order_type`` / ``ecommerce_store_name`` /
+    ``ecommerce_order_id`` fields — the shape the modify card's ``prior_state``
+    snapshot (``SalesOrder.to_dict()``) carries, where ``ecommerce_url`` is
+    absent. Renders nothing when the order has no recognized storefront link
+    (unrecognized integration such as an eBay order imported via middleware, or
+    a missing store/order id), so callers invoke it unconditionally.
+
+    Must be called inside a ``Column`` / ``CardContent`` context.
+    """
+    order_type = entity.get("ecommerce_order_type")
+    url = entity.get("ecommerce_url") or ecommerce_storefront_url(
+        order_type,
+        entity.get("ecommerce_store_name"),
+        entity.get("ecommerce_order_id"),
+    )
+    if not url:
+        return
+    label = ecommerce_platform_label(order_type) or "storefront"
+    with Row(gap=1):
+        Text(content="Storefront:")
+        Link(content=f"Open in {label}", href=url, target="_blank")
+
+
 def _render_party_line(
     label: str,
     *,
@@ -6688,6 +6722,10 @@ def _render_so_entity_view(
             name=prior_location_name,
             entity_id=entity.get("location_id"),
         )
+
+    # Storefront deep-link — when the SO came from a native ecommerce
+    # integration (Shopify / WooCommerce / BigCommerce). No-op otherwise.
+    _render_ecommerce_link(entity)
 
     # Header scalar diffs — driven by ``_SO_HEADER_FIELD_SPEC``. Each
     # entry maps a user-facing label to (change-key candidates,

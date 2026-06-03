@@ -1530,11 +1530,15 @@ Create a sales order with preview/apply pattern.
     intact. Retry failed fees via
     `modify_sales_order(id=<so_id>, add_shipping_fees=[...])`.
 
-**Ecommerce cross-references** (set when the SO mirrors an order from a
-storefront — Shopify, WooCommerce, etc.):
-- `ecommerce_order_type`: e.g. 'shopify_order'
-- `ecommerce_store_name`: e.g. 'Acme Online Store'
-- `ecommerce_order_id`: Original platform order ID
+**Ecommerce cross-references** (set when the SO came from a native ecommerce
+integration). All three are **create-only** — they cannot be changed via
+`modify_sales_order`:
+- `ecommerce_order_type`: case-sensitive platform id. Deep-linkable values:
+  `shopify`, `wooCommerce`, `bigCommerce` (camelCase). Other strings are
+  accepted but don't render a storefront link.
+- `ecommerce_store_name`: storefront hostname for Shopify/WooCommerce
+  (e.g. 'acme.myshopify.com'); the bare store slug for BigCommerce.
+- `ecommerce_order_id`: original platform order id (e.g. '19433769').
 
 **Custom fields:**
 - `custom_fields`: `list[{field_name, field_value}]`. Names must already
@@ -1614,7 +1618,9 @@ total_in_base_currency, currency, conversion_rate, conversion_date), notes
 tracking_number_url), address pointers (billing_address_id,
 shipping_address_id) plus the full resolved `addresses` list fetched from
 /sales_order_addresses, `shipping_fee` block, `linked_manufacturing_order_id`,
-ecommerce metadata (ecommerce_order_type/store_name/order_id), timestamps
+ecommerce metadata (ecommerce_order_type/store_name/order_id, plus a derived
+`ecommerce_url` "Open in {platform}" storefront deep-link for Shopify/
+WooCommerce/BigCommerce orders), timestamps
 (created_at, updated_at, deleted_at), and per-line `rows` with every
 `SalesOrderRow` field (variant_id, SKU via variant cache, quantity, pricing,
 discounts, tax, cogs, linked MO, batch/serial tracking, timestamps).
