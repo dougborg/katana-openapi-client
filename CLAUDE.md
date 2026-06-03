@@ -225,11 +225,19 @@ fits topically — to one of the linked docs below if it's subsystem-scoped, or 
   `docs/katana-openapi.yaml`, so a spec change must regenerate **all** of them — run
   **`uv run poe regenerate-all`** (which chains `regenerate-client` +
   `generate-pydantic` + `generate-ts`) instead of editing the generated paths directly.
-  The CI `generated-files` job runs `regenerate-all` and fails on any drift under
-  `katana_public_api_client/` **or** `packages/katana-client/src/generated/`, so a spec
-  PR that skips a client's regen is caught before merge. `generate-ts` needs the TS
-  package's `node_modules` (`npm ci` in `packages/katana-client`, pinned by its
-  committed `package-lock.json`).
+  `generate-ts` needs the TS package's `node_modules` (`npm ci` in
+  `packages/katana-client`, pinned by its committed `package-lock.json`).
+
+  - **Two different CI gates, because the generators differ in determinism.** The Python
+    generators are byte-identical across OSes, so the `generated-files` job regenerates
+    them and **fails on any `git status` drift** under `katana_public_api_client/`. The
+    TS generator shells out to native per-platform binaries (`@esbuild/*`,
+    `@biomejs/*`), so its output is **not** byte-stable macOS↔Linux — a drift check
+    would false-positive. The TS client is instead gated **functionally** by the
+    `typescript-client` job: it typechecks + tests the committed client and re-runs
+    `generate` + `typecheck` to prove a spec change can't leave the TS client broken.
+    So: regenerate + commit the TS output (it won't be byte-checked), but a spec change
+    that breaks the TS client *will* fail CI.
 
 - **Raw list responses in tests** — Katana wraps every list endpoint in
   `{"data": [...]}`. Never put raw arrays in mocks. **Two documented exceptions** return
