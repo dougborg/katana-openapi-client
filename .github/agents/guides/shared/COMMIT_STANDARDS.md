@@ -288,9 +288,14 @@ and the upstream-drift audit workflow.
 
 ## Lockfile Drift
 
-When `uv.lock` shows up modified but you didn't touch dependencies (e.g., a
-sibling-package release on `main` bumped a workspace version), `git add uv.lock` and
-bundle it into your current commit.
+The release workflow re-locks `uv.lock` to the just-released versions and commits it to
+`main` as part of every release (the `sync-lockfile` job in `release.yml`), so `main`
+should always ship a lockfile that matches its `pyproject.toml` versions (#901). You
+should rarely see workspace-version drift on a fresh branch anymore.
+
+If `uv.lock` *does* show up modified but you didn't touch dependencies (e.g. you
+branched in the brief window between a release commit and its lock-sync commit, or a
+genuine transitive bump), `git add uv.lock` and bundle it into your current commit.
 
 **Don't `git checkout -- uv.lock` to drop it**: pre-commit's auto-stash/restore fights
 with the lockfile being regenerated mid-hook (pytest's `uv run` re-syncs it), producing
