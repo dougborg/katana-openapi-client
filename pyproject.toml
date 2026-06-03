@@ -625,7 +625,16 @@ test-browser = { shell = "pytest -m browser --timeout=120 katana_mcp_server/test
 # -----------------------------------------------------------------------------
 regenerate-client = "python scripts/regenerate_client.py"
 generate-pydantic = "python scripts/generate_pydantic_models.py"
-regenerate-all = ["regenerate-client", "generate-pydantic"]
+# Regenerate the TypeScript client (packages/katana-client) from the same spec
+# via @hey-api/openapi-ts. Requires Node + an installed node_modules (run
+# `npm ci` in the package once); the openapi-ts version is pinned by the
+# committed package-lock.json so the output is deterministic across machines
+# and CI (mirrors the exactly-pinned Python generators — see #874).
+generate-ts = { shell = "cd packages/katana-client && npm run generate" }
+# regenerate-all covers ALL three generated clients (Python attrs client,
+# pydantic models, TypeScript client) so a single command — and the CI
+# freshness gate — keeps every client in lockstep with the spec.
+regenerate-all = ["regenerate-client", "generate-pydantic", "generate-ts"]
 validate-openapi = "openapi-spec-validator docs/katana-openapi.yaml"
 validate-openapi-redocly = "npx @redocly/cli lint docs/katana-openapi.yaml"
 # Pull both upstream OpenAPI specs (live gateway + README.io ssr-props),

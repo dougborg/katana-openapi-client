@@ -4,7 +4,7 @@
   a ``{"data": [...]}`` envelope. The spec previously declared a
   ``StorageBinListResponse`` wrapper, so the generated parser tried
   ``StorageBinListResponse.from_dict(<list>)`` and raised. Aligned to a bare
-  ``array`` of ``StorageBin``.
+  ``array`` of ``StorageBinResponse``.
 - #820: ``POST /bom_rows`` returns ``HTTP 200`` with the full ``BomRow`` body,
   not ``204 No Content``. The spec previously declared ``204``, so the parser
   had no 200 branch and silently discarded the body.
@@ -20,7 +20,7 @@ from katana_public_api_client.api.bom_row import create_bom_row
 from katana_public_api_client.api.storage_bin import get_all_storage_bins
 from katana_public_api_client.models.bom_row import BomRow
 from katana_public_api_client.models.create_bom_row_request import CreateBomRowRequest
-from katana_public_api_client.models.storage_bin import StorageBin
+from katana_public_api_client.models.storage_bin_response import StorageBinResponse
 from katana_public_api_client.utils import unwrap_as
 
 
@@ -37,7 +37,7 @@ def _client_with_mock_transport(
 
 @pytest.mark.asyncio
 async def test_get_bin_locations_parses_bare_array() -> None:
-    """``GET /bin_locations`` returns a bare array → ``list[StorageBin]`` (regression for #575)."""
+    """``GET /bin_locations`` returns a bare array → ``list[StorageBinResponse]`` (regression for #575)."""
     bins_payload = [
         {
             "id": 12345,
@@ -68,12 +68,20 @@ async def test_get_bin_locations_parses_bare_array() -> None:
     async with _client_with_mock_transport(handler) as client:
         response = await get_all_storage_bins.asyncio_detailed(client=client)
 
+    # ``unwrap_as`` accepts the bare ``list`` type (no element parameter); the
+    # per-item ``StorageBinResponse`` check below is what guards element typing.
     bins = unwrap_as(response, list)
     assert isinstance(bins, list)
     assert len(bins) == 2
-    assert all(isinstance(b, StorageBin) for b in bins)
+    assert all(isinstance(b, StorageBinResponse) for b in bins)
     assert bins[0].bin_name == "Bin-2"
     assert bins[0].location_id == 12346
+    # ``StorageBinResponse`` (= StorageBin + DeletableEntity) carries the typed
+    # id + timestamps the old ``StorageBinListResponse`` item type exposed —
+    # confirm they survive the bare-array switch rather than landing in
+    # ``additional_properties``.
+    assert bins[0].id == 12345
+    assert bins[0].deleted_at is None
     assert bins[1].bin_name == "Bin-3"
 
 

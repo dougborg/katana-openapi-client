@@ -13862,7 +13862,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/StorageBin"
+                  $ref: "#/components/schemas/StorageBinResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -21455,7 +21455,7 @@ paths:
               $ref: "#/components/schemas/CreateBomRowRequest"
       responses:
         "200":
-          description: BOM row created
+          description: Returns the created BOM row with its server-assigned id, rank, and timestamps.
           headers:
             X-Ratelimit-Limit:
               $ref: "#/components/headers/X-Ratelimit-Limit"

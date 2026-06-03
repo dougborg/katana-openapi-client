@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from katana_mcp.tools.foundation.bom import (
@@ -720,8 +720,6 @@ async def test_manage_bom_apply_commits_all_rows_against_200_transport():
     This drives a real :class:`KatanaClient` against an ``httpx.MockTransport``
     that returns 200 + a ``BomRow`` body on every POST — mirroring production.
     """
-    import uuid
-
     import httpx
 
     from katana_public_api_client import KatanaClient
@@ -735,7 +733,7 @@ async def test_manage_bom_apply_commits_all_rows_against_200_transport():
             return httpx.Response(
                 200,
                 json={
-                    "id": str(uuid.uuid4()),
+                    "id": str(uuid4()),
                     "product_item_id": body["product_item_id"],
                     "product_variant_id": body["product_variant_id"],
                     "ingredient_variant_id": body["ingredient_variant_id"],
