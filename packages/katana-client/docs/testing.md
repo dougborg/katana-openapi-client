@@ -170,9 +170,17 @@ describe('parseError', () => {
     expect((error as RateLimitError).retryAfter).toBe(30);
   });
 
-  it('should return ValidationError for 422 with details', () => {
+  it('should return ValidationError for 422 with Ajv-style details', () => {
     const response = new Response(null, { status: 422 });
-    const body = { errors: [{ field: 'name', message: 'Required' }] };
+    // Katana wraps 422s in a nested `error` envelope with an Ajv `details[]` array.
+    const body = {
+      error: {
+        message: 'The request body is invalid.',
+        details: [
+          { path: '/name', code: 'required', message: 'missing', info: { missingProperty: 'name' } },
+        ],
+      },
+    };
     const error = parseError(response, body);
     expect(error).toBeInstanceOf(ValidationError);
     expect((error as ValidationError).details).toHaveLength(1);

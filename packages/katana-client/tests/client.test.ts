@@ -5,7 +5,7 @@
  * retry and pagination transport layers.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { KatanaClient } from '../src/client.js';
 
 describe('KatanaClient', () => {
@@ -113,6 +113,46 @@ describe('KatanaClient', () => {
 
       const [, options] = mockFetch.mock.calls[0];
       expect(options.headers.get('Content-Type')).toBe('application/json');
+    });
+  });
+
+  describe('rate limiting (requestsPerMinute)', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('paces requests when a low budget is configured', async () => {
+      mockFetch.mockResolvedValue(new Response(JSON.stringify({ data: [] }), { status: 200 }));
+      const client = KatanaClient.withApiKey(TEST_API_KEY, {
+        fetch: mockFetch,
+        autoPagination: false,
+        requestsPerMinute: 1, // capacity 1: second request is paced a full window
+      });
+
+      const pending = [client.fetch('/products'), client.fetch('/products')];
+      await vi.advanceTimersByTimeAsync(0);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      await Promise.all(pending);
+    });
+
+    it('disables proactive limiting when requestsPerMinute is null', async () => {
+      mockFetch.mockResolvedValue(new Response(JSON.stringify({ data: [] }), { status: 200 }));
+      const client = KatanaClient.withApiKey(TEST_API_KEY, {
+        fetch: mockFetch,
+        autoPagination: false,
+        requestsPerMinute: null,
+      });
+
+      const pending = [client.fetch('/products'), client.fetch('/products')];
+      await vi.advanceTimersByTimeAsync(0);
+      expect(mockFetch).toHaveBeenCalledTimes(2); // no token bucket -> no pacing
+      await Promise.all(pending);
     });
   });
 

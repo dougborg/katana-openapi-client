@@ -102,6 +102,30 @@ The client implements the same retry strategy as the Python client:
 **Key behavior**: POST and PATCH requests are retried for rate limiting (429) because
 rate limits are transient and don't indicate idempotency issues.
 
+## Proactive Rate Limiting
+
+Beyond reactive 429 retries, the client **proactively paces** outgoing requests through
+a token bucket (60 req/min by default) and adapts to Katana's `X-Ratelimit-*` headers:
+
+- **Sync down** — if the server reports fewer remaining requests than expected (e.g.
+  another client sharing the API key), the local budget drains to match. It never syncs
+  up; the server is authoritative on the lower bound only.
+- **Reset gate** — when `X-Ratelimit-Remaining` hits `0`, all requests block until
+  `X-Ratelimit-Reset` elapses, so the client doesn't fire into an exhausted window.
+
+The limiter sits innermost in the fetch chain, so each retry attempt and each paginated
+page consumes one token — matching how Katana counts requests server-side.
+
+```typescript
+// Tune the budget
+const client = await KatanaClient.create({ requestsPerMinute: 120 });
+
+// Disable proactive limiting (reactive 429 retry still applies)
+const client = await KatanaClient.create({ requestsPerMinute: null });
+```
+
+This mirrors the Python client's `RateLimitTransport`.
+
 ## Auto-Pagination
 
 Auto-pagination is **ON by default** for all GET requests:
@@ -150,8 +174,11 @@ if (!response.ok) {
   } else if (error instanceof RateLimitError) {
     console.error(`Rate limited. Retry after ${error.retryAfter}s`);
   } else if (error instanceof ValidationError) {
-    console.error('Validation errors:', error.details);
-    // [{ field: 'name', message: 'Required', code: 'missing' }]
+    // `error.message` is a human-readable, multi-line summary; `error.details`
+    // is the structured Ajv error array exactly as Katana sends it.
+    console.error(error.message);
+    console.error(error.details);
+    // [{ path: '/name', code: 'required', message: '...', info: { missingProperty: 'name' } }]
   } else {
     console.error(`Error ${error.statusCode}: ${error.message}`);
   }
@@ -162,10 +189,15 @@ Available error classes:
 
 - `AuthenticationError` (401)
 - `RateLimitError` (429) - includes `retryAfter` seconds
-- `ValidationError` (422) - includes `details` array
+- `ValidationError` (422) - includes `details`, the Ajv-style validation error array
+  (`{ path, code, message, info }` per item, where `code` is the failed Ajv keyword).
+  `message` is a formatted, multi-line summary mirroring the Python client's wording.
 - `ServerError` (5xx)
 - `NetworkError` - connection failures
 - `KatanaError` - base class for all errors
+
+The catch-all path also surfaces messages from Katana's nested `{ "error": { ... } }`
+envelope, including for undocumented status codes.
 
 ## HTTP Methods
 
