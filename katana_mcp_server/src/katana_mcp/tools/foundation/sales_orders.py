@@ -2606,6 +2606,22 @@ async def _modify_sales_order_impl(
         )
     )
 
+    # #905: reuse the PATCH response for the parent merge (skip the GET — one
+    # fewer call that could stall on the rate-limit reset gate, #786) ONLY when
+    # this modify changes no rows. PATCH /sales_orders/{id} embeds
+    # ``sales_order_rows`` (verified live 2026-06-03: 1-row and 2-row SOs both
+    # round-trip their rows), so for a row-unchanged modify the response is the
+    # complete post-state and the embedded-row reconcile (``reconcile_children``
+    # on ``_SALES_ORDER_SPEC``) is correct. But the header action runs FIRST in
+    # the plan, so when there ARE row actions its outcome predates them — stale
+    # embedded rows could make reconcile clobber the just-changed rows, and
+    # content freshness would hang on the (time-bounded) related refetch. Fall
+    # back to the GET there: it runs post-apply and reflects the final row state.
+    # Only row CRUD matters: address / fulfillment / shipping-fee sub-payloads
+    # don't touch ``sales_order_rows``, so they keep the optimization.
+    so_no_row_crud = not (
+        request.add_rows or request.update_rows or request.delete_row_ids
+    )
     response = await run_modify_plan(
         request=request,
         naming=EntityNaming(
@@ -2630,6 +2646,7 @@ async def _modify_sales_order_impl(
                     lambda eid: _fetch_so_row_attrs_for_merge(services, eid),
                 ),
             ),
+            parent_from_outcome=so_no_row_crud,
         ),
     )
 

@@ -26,7 +26,11 @@ from katana_mcp.tools.foundation.sales_orders import (
     get_sales_order,
     list_sales_orders,
 )
-from katana_mcp_server.tests.conftest import create_mock_context, patch_typed_cache_sync
+from katana_mcp_server.tests.conftest import (
+    StopForCapture,
+    create_mock_context,
+    patch_typed_cache_sync,
+)
 
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models import (
@@ -2613,6 +2617,93 @@ _MODIFY_SO_UNWRAP_AS_LOCAL = "katana_mcp.tools._modification_dispatch.unwrap_as"
 def _mock_so(order_id: int = 1, order_no: str = "SO-1"):
     """Build a mock SalesOrder attrs object with all fields defaulted to UNSET."""
     return mock_entity_for_modify(SalesOrder, id=order_id, order_no=order_no)
+
+
+async def _capture_so_cache_merge(request: ModifySalesOrderRequest):
+    """Run ``_modify_sales_order_impl`` far enough to capture the ``CacheMerge``
+    it hands to ``run_modify_plan``, then bail before the apply path."""
+    from katana_mcp.tools.foundation import sales_orders as so_mod
+
+    captured: dict[str, Any] = {}
+
+    async def fake_run(**kwargs: Any) -> Any:
+        captured["cache_merge"] = kwargs["cache_merge"]
+        raise StopForCapture
+
+    context, _ = create_mock_context()
+    with (
+        patch(
+            "katana_mcp.tools.foundation.sales_orders._fetch_sales_order_attrs",
+            new_callable=AsyncMock,
+            return_value=_mock_so(order_id=42, order_no="SO-1"),
+        ),
+        patch.object(so_mod, "run_modify_plan", side_effect=fake_run),
+        pytest.raises(StopForCapture),
+    ):
+        await so_mod._modify_sales_order_impl(request, context)
+    return captured["cache_merge"]
+
+
+@pytest.mark.asyncio
+async def test_modify_so_parent_from_outcome_header_only():
+    """#905: a header-only SO modify reuses the PATCH response for the parent
+    merge (`parent_from_outcome=True`). PATCH /sales_orders/{id} embeds rows
+    (verified live), so the response is the complete post-state — one fewer GET
+    that could stall on the rate-limit gate (#786)."""
+    cache_merge = await _capture_so_cache_merge(
+        ModifySalesOrderRequest(
+            id=42, update_header=SOHeaderPatch(status="PACKED"), preview=False
+        )
+    )
+    assert cache_merge.parent_from_outcome is True
+
+
+@pytest.mark.asyncio
+async def test_modify_so_parent_from_outcome_disabled_with_row_actions():
+    """#905: an SO modify with row actions falls back to the GET
+    (`parent_from_outcome=False`). The header action runs first, so its PATCH
+    outcome predates the row changes — stale embedded rows would mislead
+    `reconcile_children`; the post-apply GET reflects the final row state."""
+    cache_merge = await _capture_so_cache_merge(
+        ModifySalesOrderRequest(
+            id=42,
+            update_header=SOHeaderPatch(status="PACKED"),
+            add_rows=[SORowAdd(variant_id=100, quantity=2)],
+            preview=False,
+        )
+    )
+    assert cache_merge.parent_from_outcome is False
+
+
+@pytest.mark.asyncio
+async def test_modify_so_parent_from_outcome_disabled_for_row_only_plan():
+    """#905: row CRUD disables the optimization even with no ``update_header``
+    — the gate keys off row actions, not header presence. (A row-only plan also
+    has no parent-targeted action, so the dispatcher would fall back to the GET
+    regardless; this pins the gate's intent.)"""
+    cache_merge = await _capture_so_cache_merge(
+        ModifySalesOrderRequest(
+            id=42,
+            delete_row_ids=[555],
+            preview=False,
+        )
+    )
+    assert cache_merge.parent_from_outcome is False
+
+
+@pytest.mark.asyncio
+async def test_modify_so_parent_from_outcome_enabled_for_non_row_subpayload():
+    """#905: a non-row modify (here shipping-fee-only, no header, no rows) keeps
+    the optimization — fees/addresses/fulfillments don't touch
+    ``sales_order_rows``, so the PATCH response is a sound parent-merge source."""
+    cache_merge = await _capture_so_cache_merge(
+        ModifySalesOrderRequest(
+            id=42,
+            add_shipping_fees=[SOShippingFeeAdd(amount="12.50")],
+            preview=False,
+        )
+    )
+    assert cache_merge.parent_from_outcome is True
 
 
 @pytest.mark.asyncio

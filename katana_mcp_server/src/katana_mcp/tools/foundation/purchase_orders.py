@@ -3230,6 +3230,18 @@ async def _modify_purchase_order_impl(
         cache_merge=CacheMerge(
             cache=services.typed_cache,
             refetch_for_merge=lambda eid: _fetch_purchase_order_attrs(services, eid),
+            # #905: deliberately NOT setting ``parent_from_outcome`` here.
+            # Unlike the SO and item modifies, PATCH /purchase_orders/{id}
+            # returns the PO with an EMPTY ``purchase_order_rows`` (verified
+            # against the live tenant 2026-06-03: GET embeds 4 rows, the PATCH
+            # response embeds 0). Because ``_PURCHASE_ORDER_SPEC`` sets
+            # ``reconcile_children=True``, merging that rows-less response would
+            # reconcile the cached PO rows to the empty set and delete them all
+            # — so the parent GET (which embeds rows) is required. PO already
+            # gets the #786 post-apply fetch time-bound, so this only forgoes a
+            # call reduction, not hang protection. A later optimization (graft
+            # the refetch_related rows onto the rows-less PATCH outcome) is
+            # tracked in #915.
             # Soft-deleted rows are hidden from the parent fetch even
             # when ``include_deleted=true`` is set on the PO endpoint
             # (the flag only controls top-level inclusion). Fan out to

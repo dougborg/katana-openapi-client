@@ -1732,6 +1732,15 @@ async def _modify_item_impl(
             refetch_for_merge=lambda eid: _safe_fetch_item_attrs(
                 services, eid, request.type
             ),
+            # #905: reuse the PATCH response for the parent merge instead of a
+            # GET — one fewer call that could stall on the rate-limit reset gate
+            # (#786). Unconditionally safe for items: the product/material/service
+            # EntitySpecs embed NO children (no ``rows_field``), so the parent
+            # merge writes only the item row; variants are a separate top-level
+            # spec, lazy-synced (this modify wires no variant ``refetch_related``),
+            # so a variant add/update/delete is unaffected by the parent merge
+            # source either way.
+            parent_from_outcome=True,
         ),
     )
 
