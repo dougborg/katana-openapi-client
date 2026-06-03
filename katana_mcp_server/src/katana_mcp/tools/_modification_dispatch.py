@@ -90,6 +90,19 @@ logger = get_logger(__name__)
 _MISSING: Any = object()
 
 
+# Per-fetch ceiling for the best-effort post-apply cache merge (#786). The
+# proactive rate-limit reset gate (``RateLimitTransport``) blocks a request
+# for the remainder of Katana's 60-req/min window — observed at 40-47s — when
+# the budget is exhausted mid-workflow. The post-apply merge is best-effort
+# (its failures already just log and recover on the next sync), so a refetch
+# that lands during a gate window must NOT make a successful write wait out the
+# whole reset. We bound only the *network* refetch awaits (cancel-safe httpx),
+# never the aiosqlite writes (cancelling those mid-statement risks leaving the
+# shared connection in a bad state). 8s clears normal sub-second refetch
+# latency with wide headroom while capping the pathological gate stall.
+_CACHE_MERGE_FETCH_TIMEOUT_S = 8.0
+
+
 # ``apply`` callable: returns whatever the API call yields (typically the
 # parsed response model). Returned to ``verify`` so verification can use it
 # (e.g. confirm a created row's id matches what we expected).
@@ -166,11 +179,24 @@ class CacheMerge:
     Tools that lack a GET-by-id endpoint (stock_transfers) simply omit
     ``cache_merge`` entirely — their cache stays stale on modify until
     the next sync window.
+
+    - ``parent_from_outcome`` — when True, the post-apply merge reuses the
+      parent-targeted action's PATCH response (``apply_outcome``) as the
+      merge source instead of calling ``refetch_for_merge``. The PATCH
+      response is the full updated parent (e.g. an MO endpoint returns a
+      complete ``ManufacturingOrder``), so this saves one GET per modify
+      *and* is strictly fresher than the GET (no read-replica lag — see
+      ``_collect_parent_field_overlay``). #786: each ``modify_*`` post-apply
+      GET can hit the proactive rate-limit reset gate and stall ~40s; cutting
+      the parent GET removes one such opportunity. ``refetch_for_merge`` is
+      still required as the fallback for when no parent ``apply_outcome`` is
+      available (e.g. a plan with only row actions).
     """
 
     cache: TypedCacheEngine
     refetch_for_merge: Callable[[int], Awaitable[Any | None]]
     refetch_related: tuple[tuple[str, Callable[[int], Awaitable[list[Any]]]], ...] = ()
+    parent_from_outcome: bool = False
 
 
 @dataclass
@@ -846,12 +872,22 @@ async def run_modify_plan(
         and not any(a.succeeded is False for a in actions)
     ):
         parent_field_overlay = _collect_parent_field_overlay(actions, request.id)
+        # #786: when the tool opts in, feed the parent's PATCH response straight
+        # into the merge instead of re-GETting it — one fewer call that could
+        # stall on the rate-limit reset gate. Falls back to the (time-bounded)
+        # refetch when no parent action produced an outcome (e.g. row-only plan).
+        parent_override = (
+            _parent_outcome_for_merge(actions, request.id)
+            if cache_merge.parent_from_outcome
+            else None
+        )
         try:
             await _post_apply_cache_merge(
                 cache_merge=cache_merge,
                 entity_type=entity_type,
                 entity_id=request.id,
                 parent_field_overlay=parent_field_overlay,
+                parent_override=parent_override,
             )
         except asyncio.CancelledError:
             # Cooperative cancellation (request timeout, shutdown) must
@@ -915,12 +951,43 @@ def _collect_parent_field_overlay(
     return overlay
 
 
+def _parent_outcome_for_merge(
+    actions: list[ActionResult],
+    entity_id: int | str,
+) -> Any | None:
+    """Return the parent entity's PATCH ``apply_outcome``, or None.
+
+    Used when ``CacheMerge.parent_from_outcome`` is set: the post-apply merge
+    writes this full PATCH response through instead of re-GETting the parent
+    (#786). The **last** successful parent-targeted action (``target_id ==
+    entity_id``) wins — its outcome is the freshest parent post-state. Crucially
+    that holds even when the last such action's ``apply_outcome`` is ``None``
+    (e.g. a 204 PATCH): an *earlier* action's outcome predates the last action's
+    changes and would be stale, so we return ``None`` and let the caller fall
+    back to the time-bounded ``refetch_for_merge`` rather than merging a
+    superseded body. Returns ``None`` when there's no parent-targeted action at
+    all (e.g. a row-only plan), same fallback.
+    """
+    parent_outcome: Any | None = None
+    for action in actions:
+        if action.succeeded is not True:
+            continue
+        if action.target_id != entity_id:
+            continue
+        # Last parent-targeted action wins — assign unconditionally so a None
+        # outcome on the final parent action correctly clears an earlier
+        # (now-stale) one and triggers the refetch fallback.
+        parent_outcome = action.apply_outcome
+    return parent_outcome
+
+
 async def _post_apply_cache_merge(
     *,
     cache_merge: CacheMerge,
     entity_type: str,
     entity_id: int,
     parent_field_overlay: dict[str, Any] | None = None,
+    parent_override: Any | None = None,
 ) -> None:
     """Re-fetch the modified entity from Katana and merge into the typed cache.
 
@@ -934,6 +1001,13 @@ async def _post_apply_cache_merge(
     for fields we just asked to change. See the call-site comment in
     ``run_modify_plan`` for the full reasoning. Empty/None means no
     overlay; the unmodified GET result merges through.
+
+    ``parent_override`` supplies the parent attrs directly (the PATCH
+    ``apply_outcome``) when ``CacheMerge.parent_from_outcome`` is set,
+    skipping the ``refetch_for_merge`` GET entirely (#786). When None the
+    parent is fetched as before, but that fetch is now time-bounded — a
+    refetch that stalls on the rate-limit reset gate is abandoned rather
+    than hanging the whole tool call; the cache recovers on the next sync.
 
     For entities whose ``EntitySpec.related_specs`` reference data at
     separate API endpoints (MO recipe rows, sibling row-watermarks), the
@@ -950,14 +1024,39 @@ async def _post_apply_cache_merge(
     if spec is None:
         return  # entity not cached — nothing to merge
 
-    parent = await cache_merge.refetch_for_merge(entity_id)
+    if parent_override is not None:
+        # PATCH response stands in for the GET (CacheMerge.parent_from_outcome):
+        # no network call, and fresher than a read-replica GET.
+        parent = parent_override
+    else:
+        try:
+            parent = await asyncio.wait_for(
+                cache_merge.refetch_for_merge(entity_id),
+                timeout=_CACHE_MERGE_FETCH_TIMEOUT_S,
+            )
+        # ``wait_for`` raises ``TimeoutError`` (a plain ``Exception``); genuine
+        # external cancellation raises ``CancelledError`` (a ``BaseException``),
+        # which is NOT caught here and propagates cleanly — same contract as the
+        # related-refetch block below, which spells the re-raise out explicitly.
+        except TimeoutError:
+            logger.warning(
+                f"Post-apply parent refetch for {entity_type} {entity_id} "
+                f"exceeded {_CACHE_MERGE_FETCH_TIMEOUT_S}s (likely rate-limit "
+                f"backoff) — skipping merge. Cache recovers on next sync."
+            )
+            return
     if parent is None:
         return  # fetch returned nothing (e.g., the entity was deleted)
 
     # Overlay fresh PATCH-response values onto the (possibly stale) GET
     # refetch. Generated attrs models are mutable (no ``frozen=True``);
     # the ``_MISSING`` sentinel tolerates future PATCH/GET shape divergence.
-    if parent_field_overlay:
+    # Skip entirely when ``parent`` IS the PATCH response (``parent_override``):
+    # the overlay only exists to defeat read-replica lag on the GET, so it's a
+    # no-op there — and applying it would mutate the live ``apply_outcome``
+    # object in place (an aliased write surprising to anyone who later reads
+    # ``ActionResult.apply_outcome``).
+    if parent_field_overlay and parent_override is None:
         for field_name, fresh_value in parent_field_overlay.items():
             if getattr(parent, field_name, _MISSING) is not _MISSING:
                 setattr(parent, field_name, fresh_value)
@@ -983,7 +1082,20 @@ async def _post_apply_cache_merge(
             )
             continue
         try:
-            related_rows = await refetcher(entity_id)
+            related_rows = await asyncio.wait_for(
+                refetcher(entity_id), timeout=_CACHE_MERGE_FETCH_TIMEOUT_S
+            )
+        except TimeoutError:
+            # #786: a related refetch (e.g. MO recipe rows) that lands during
+            # the rate-limit reset gate would otherwise stall the whole tool
+            # call ~40s. Best-effort — skip and let the next sync reconcile.
+            logger.warning(
+                f"Refetch of related {related_key!r} for {entity_type} "
+                f"{entity_id} exceeded {_CACHE_MERGE_FETCH_TIMEOUT_S}s "
+                f"(likely rate-limit backoff). Related cache table may be "
+                f"stale until next sync."
+            )
+            continue
         except asyncio.CancelledError:
             # Propagate cancellation — see the outer handler's note.
             raise
