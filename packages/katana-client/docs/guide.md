@@ -136,6 +136,31 @@ Retry delays follow exponential backoff:
 
 The client also respects the `Retry-After` header when present.
 
+### Proactive Rate Limiting
+
+In addition to reactive 429 retries, the client proactively paces outgoing requests
+through a token bucket and adapts to Katana's `X-Ratelimit-*` response headers —
+mirroring the Python client's `RateLimitTransport`:
+
+- **Token bucket** — 60 requests/minute by default; configurable via
+  `requestsPerMinute`.
+- **Sync down** — drains the local budget to match `X-Ratelimit-Remaining` when the
+  server reports fewer requests left than expected (never syncs up).
+- **Reset gate** — when `X-Ratelimit-Remaining` reaches `0`, all requests block until
+  `X-Ratelimit-Reset` elapses.
+
+The limiter sits innermost in the fetch chain, so each retry attempt and each paginated
+page consumes one token.
+
+```typescript
+const client = await KatanaClient.create({
+  requestsPerMinute: 120, // raise the budget
+});
+
+// Disable proactive limiting entirely (reactive 429 retry still applies):
+const client = await KatanaClient.create({ requestsPerMinute: null });
+```
+
 ## Auto-Pagination
 
 Auto-pagination is **ON by default** for all GET requests. All pages are automatically
@@ -296,8 +321,11 @@ if (!response.ok) {
   } else if (error instanceof RateLimitError) {
     console.error(`Rate limited. Retry after ${error.retryAfter}s`);
   } else if (error instanceof ValidationError) {
-    console.error('Validation errors:', error.details);
-    // [{ field: 'name', message: 'Required', code: 'missing' }]
+    // `error.message` is a formatted, multi-line human summary; `error.details`
+    // is the structured Ajv error array exactly as Katana sends it.
+    console.error(error.message);
+    console.error(error.details);
+    // [{ path: '/name', code: 'required', message: '...', info: { missingProperty: 'name' } }]
   } else if (error instanceof ServerError) {
     console.error(`Server error: ${error.statusCode}`);
   } else {

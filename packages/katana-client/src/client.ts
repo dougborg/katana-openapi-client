@@ -12,6 +12,7 @@ import {
   type PaginationConfig,
   createPaginatedFetch,
 } from './transport/pagination.js';
+import { DEFAULT_RATE_LIMIT_CONFIG, createRateLimitedFetch } from './transport/rateLimit.js';
 import {
   DEFAULT_RETRY_CONFIG,
   type RetryConfig,
@@ -45,6 +46,14 @@ export interface KatanaClientOptions {
    * Pagination configuration for auto-pagination
    */
   pagination?: Partial<PaginationConfig>;
+
+  /**
+   * Proactive request budget per minute. The client paces outgoing requests
+   * through a token bucket and adapts to Katana's `X-Ratelimit-*` headers.
+   * Default: 60. Pass `null` to disable proactive rate limiting entirely
+   * (reactive 429 retry still applies).
+   */
+  requestsPerMinute?: number | null;
 
   /**
    * Whether auto-pagination is enabled by default.
@@ -165,7 +174,11 @@ export class KatanaClient {
 
     const baseFetch = options.fetch ?? globalThis.fetch;
 
-    // Create the fetch chain: base -> resilient (retry) -> paginated -> authenticated
+    // Fetch chain (innermost -> outermost): base -> rate-limit -> retry ->
+    // paginated -> authenticated. Rate limiting sits innermost so every actual
+    // HTTP request — each retry attempt and each paginated page — consumes a
+    // token, matching how Katana counts requests server-side (mirrors the
+    // Python client's transport stack).
     const retryConfig: RetryConfig = {
       ...DEFAULT_RETRY_CONFIG,
       ...options.retry,
@@ -176,9 +189,23 @@ export class KatanaClient {
       ...options.pagination,
     };
 
-    // First wrap with retry logic
+    // Proactive rate limiting (innermost). `requestsPerMinute: null` disables
+    // the layer entirely; otherwise default to 60/min.
+    const rateLimitedFetch =
+      options.requestsPerMinute === null
+        ? baseFetch
+        : createRateLimitedFetch(baseFetch, {
+            rateLimit: {
+              ...DEFAULT_RATE_LIMIT_CONFIG,
+              requestsPerMinute:
+                options.requestsPerMinute ?? DEFAULT_RATE_LIMIT_CONFIG.requestsPerMinute,
+            },
+            logger: this.logger,
+          });
+
+    // Then wrap with retry logic
     const fetchWithRetry = createResilientFetch({
-      baseFetch,
+      baseFetch: rateLimitedFetch,
       retry: retryConfig,
       logger: this.logger,
     });

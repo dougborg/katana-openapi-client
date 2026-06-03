@@ -25,7 +25,9 @@
 // Re-export the main client
 export { KatanaClient, type KatanaClientOptions } from './client.js';
 
-// Re-export error types and utilities
+// Re-export error types and utilities.
+// `ValidationErrorDetail` (the Ajv-style union) comes from the generated types
+// via `export * from './types.js'` below — not re-declared here.
 export {
   KatanaError,
   AuthenticationError,
@@ -34,7 +36,6 @@ export {
   ServerError,
   NetworkError,
   parseError,
-  type ValidationErrorDetail,
 } from './errors.js';
 
 // Re-export transport utilities for advanced usage
@@ -50,6 +51,13 @@ export {
   DEFAULT_PAGINATION_CONFIG,
   type PaginatedResponse,
 } from './transport/pagination.js';
+
+export {
+  createRateLimitedFetch,
+  type RateLimitConfig,
+  type RateLimitedFetchOptions,
+  DEFAULT_RATE_LIMIT_CONFIG,
+} from './transport/rateLimit.js';
 
 // Re-export generated SDK functions for direct API access
 export * from './generated/sdk.gen.js';

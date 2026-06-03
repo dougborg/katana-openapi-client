@@ -320,7 +320,8 @@ async function handleApiCall<T>(
     if (error instanceof ValidationError) {
       console.error(`Validation failed for ${resourceName}:`);
       for (const detail of error.details) {
-        console.error(`  - ${detail.field}: ${detail.message}`);
+        // Ajv-style detail: `path` is the JSON pointer, `code` the failed keyword.
+        console.error(`  - ${detail.path} (${detail.code}): ${detail.message}`);
       }
       throw error;
     }

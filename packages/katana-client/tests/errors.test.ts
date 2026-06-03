@@ -75,10 +75,10 @@ describe('Error Classes', () => {
       expect(error.name).toBe('ValidationError');
     });
 
-    it('should store validation details', () => {
+    it('should store Ajv-style validation details verbatim', () => {
       const details = [
-        { field: 'name', message: 'Name is required' },
-        { field: 'sku', message: 'SKU must be unique', code: 'unique' },
+        { path: '/name', code: 'required', message: 'must have required property', info: {} },
+        { path: '/sku', code: 'maxLength', message: 'too long', info: { limit: 40 } },
       ];
       const error = new ValidationError('Validation failed', { details });
       expect(error.details).toEqual(details);
@@ -134,27 +134,113 @@ describe('parseError', () => {
     expect((error as RateLimitError).retryAfter).toBe(30);
   });
 
-  it('should return ValidationError for 422', () => {
+  it("should parse a 422 from Katana's nested {error:{details}} envelope (live wire shape)", () => {
     const response = new Response(null, { status: 422 });
+    // Exact shape captured from a live POST /custom_field_definitions 422.
     const body = {
-      errors: [{ field: 'name', message: 'Required' }],
+      error: {
+        statusCode: 422,
+        name: 'UnprocessableEntityError',
+        message: 'The request body is invalid. See error object `details` property for more info.',
+        code: 'VALIDATION_FAILED',
+        details: [
+          {
+            path: '/label',
+            code: 'maxLength',
+            message: 'must NOT have more than 255 characters',
+            info: { limit: 255 },
+          },
+        ],
+      },
     };
-    const error = parseError(response, body);
+    const error = parseError(response, body) as ValidationError;
     expect(error).toBeInstanceOf(ValidationError);
-    expect((error as ValidationError).details).toHaveLength(1);
-    expect((error as ValidationError).details[0].field).toBe('name');
+    // Structured details preserved verbatim (the cross-runtime contract).
+    expect(error.details).toHaveLength(1);
+    expect(error.details[0]).toEqual({
+      path: '/label',
+      code: 'maxLength',
+      message: 'must NOT have more than 255 characters',
+      info: { limit: 255 },
+    });
+    // Display message: base (from the envelope) + a formatted, path-stripped line.
+    expect(error.message).toContain('The request body is invalid');
+    expect(error.message).toContain("Field 'label' must not exceed 255 characters");
   });
 
-  it('should parse validation details from detail array format', () => {
+  it('should format each Ajv keyword family, mirroring the Python wording', () => {
     const response = new Response(null, { status: 422 });
     const body = {
-      detail: [{ loc: ['body', 'name'], msg: 'field required', type: 'value_error.missing' }],
+      error: {
+        message: 'invalid',
+        details: [
+          { path: '/sku', code: 'minLength', message: 'short', info: { limit: 3 } },
+          {
+            path: '/fieldType',
+            code: 'enum',
+            message: 'bad',
+            info: { allowedValues: ['shortText', 'number'] },
+          },
+          { path: '/price', code: 'minimum', message: 'low', info: { limit: 1, comparison: '>=' } },
+          { path: '', code: 'required', message: 'missing', info: { missingProperty: 'status' } },
+          { path: '/qty', code: 'type', message: 'wrong', info: { type: 'number' } },
+        ],
+      },
     };
-    const error = parseError(response, body);
+    const { message } = parseError(response, body) as ValidationError;
+    expect(message).toContain("Field 'sku' must be at least 3 characters");
+    expect(message).toContain("Field 'fieldType' must be one of: shortText, number");
+    expect(message).toContain("Field 'price' must be >= 1");
+    expect(message).toContain("Missing required field: 'status'");
+    expect(message).toContain("Field 'qty' must be of type: number");
+  });
+
+  it('should fall back gracefully for unknown/future keywords', () => {
+    const response = new Response(null, { status: 422 });
+    const body = {
+      error: {
+        message: 'invalid',
+        details: [{ path: '/x', code: 'futureKeyword', message: 'nope', info: { detail: 1 } }],
+      },
+    };
+    const { message, details } = parseError(response, body) as ValidationError;
+    expect(details).toHaveLength(1);
+    expect(message).toContain("Field 'x': (futureKeyword) nope");
+    expect(message).toContain('info:');
+  });
+
+  it('should fall back to generic formatting when a typed keyword is missing its info params', () => {
+    const response = new Response(null, { status: 422 });
+    // maxLength with no info.limit — must NOT render "must not exceed undefined characters".
+    const body = {
+      error: {
+        message: 'invalid',
+        details: [{ path: '/name', code: 'maxLength', message: 'too long' }],
+      },
+    };
+    const { message } = parseError(response, body) as ValidationError;
+    expect(message).not.toContain('undefined');
+    expect(message).toContain("Field 'name': (maxLength) too long");
+  });
+
+  it('should strip a legacy dotted path the same as a JSON pointer', () => {
+    const response = new Response(null, { status: 422 });
+    const body = {
+      error: {
+        message: 'invalid',
+        details: [{ path: '.city', code: 'maxLength', message: 'too long', info: { limit: 10 } }],
+      },
+    };
+    const { message } = parseError(response, body) as ValidationError;
+    expect(message).toContain("Field 'city' must not exceed 10 characters");
+  });
+
+  it('should not throw and yield empty details when 422 body lacks details', () => {
+    const response = new Response(null, { status: 422 });
+    const error = parseError(response, { error: { message: 'bad input' } }) as ValidationError;
     expect(error).toBeInstanceOf(ValidationError);
-    expect((error as ValidationError).details[0].field).toBe('body.name');
-    expect((error as ValidationError).details[0].message).toBe('field required');
-    expect((error as ValidationError).details[0].code).toBe('value_error.missing');
+    expect(error.details).toEqual([]);
+    expect(error.message).toBe('bad input');
   });
 
   it('should return ServerError for 5xx', () => {
@@ -178,5 +264,22 @@ describe('parseError', () => {
     const response = new Response(null, { status: 400 });
     const error = parseError(response);
     expect(error.message).toBe('Request failed with status 400');
+  });
+
+  it("should surface a message from Katana's nested {error:{message}} envelope on a 4xx", () => {
+    const response = new Response(null, { status: 404 });
+    const body = { error: { name: 'NotFoundError', message: 'Product not found' } };
+    const error = parseError(response, body);
+    expect(error).toBeInstanceOf(KatanaError);
+    expect(error).not.toBeInstanceOf(AuthenticationError);
+    expect(error.message).toBe('Product not found');
+    expect(error.statusCode).toBe(404);
+  });
+
+  it('should surface a nested-envelope message for an undocumented 5xx status', () => {
+    const response = new Response(null, { status: 599 });
+    const error = parseError(response, { error: { message: 'upstream exploded' } });
+    expect(error).toBeInstanceOf(ServerError);
+    expect(error.message).toBe('upstream exploded');
   });
 });
