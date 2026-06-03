@@ -161,15 +161,6 @@ class StorageBinUpdate(KatanaPydanticBase):
     bin_name: Annotated[str, Field(description="Name of the storage bin")]
 
 
-class StorageBinListResponse(KatanaPydanticBase):
-    data: Annotated[
-        list[StorageBinResponse] | None,
-        Field(
-            description="Array of storage bin records with location and identification details"
-        ),
-    ] = None
-
-
 class BatchTransaction1(KatanaPydanticBase):
     batch_id: Annotated[
         int, Field(description="ID of the ingredient batch being consumed")

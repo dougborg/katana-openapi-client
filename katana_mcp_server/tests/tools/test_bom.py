@@ -19,6 +19,7 @@ from katana_mcp_server.tests.conftest import create_mock_context
 from pydantic import ValidationError
 
 from katana_public_api_client.client_types import UNSET, Unset
+from katana_public_api_client.models import BomRow
 
 # ============================================================================
 # Helpers
@@ -62,6 +63,35 @@ def _mock_variant(
     v.product_id = product_id
     v.material_id = material_id
     return v
+
+
+def _fake_bom_row_response(
+    *,
+    ingredient_variant_id: int,
+    product_item_id: int = 17092695,
+    product_variant_id: int = 200,
+    row_id: str = "bf9bffc3-4d9d-4238-8e8c-5d2b183d6fc2",
+    quantity: float = 2.0,
+) -> MagicMock:
+    """A mock ``POST /bom_rows`` response mirroring the live 200+body shape.
+
+    Katana returns ``HTTP 200`` with the full ``BomRow`` (verified 2026-05-22,
+    see #820), so the apply closure parses it via ``unwrap_as`` and surfaces
+    the new id / rank to ``apply_outcome``. ``unwrap`` only reads
+    ``response.parsed`` when it's non-None, so a real ``BomRow`` on a 200 mock
+    exercises the success path.
+    """
+    resp = MagicMock()
+    resp.status_code = 200
+    resp.parsed = BomRow(
+        id=UUID(row_id),
+        product_variant_id=product_variant_id,
+        product_item_id=product_item_id,
+        ingredient_variant_id=ingredient_variant_id,
+        quantity=quantity,
+        rank=0,
+    )
+    return resp
 
 
 # ============================================================================
@@ -501,10 +531,7 @@ async def test_manage_bom_apply_response_carries_applied_plan_rows():
     )
 
     async def fake_create(*, client, body):
-        resp = MagicMock()
-        resp.status_code = 204
-        resp.parsed = None
-        return resp
+        return _fake_bom_row_response(ingredient_variant_id=body.ingredient_variant_id)
 
     existing_rows = [
         BomRowInfo(
@@ -579,10 +606,7 @@ async def test_manage_bom_apply_synthesizes_not_run_for_fail_fast_tail():
             # First add fails — execute_plan halts here.
             raise RuntimeError("422 ingredient_variant_id is required")
         # Should never be reached because fail-fast halts after the first.
-        resp = MagicMock()
-        resp.status_code = 204
-        resp.parsed = None
-        return resp
+        return _fake_bom_row_response(ingredient_variant_id=body.ingredient_variant_id)
 
     with (
         patch(
@@ -630,10 +654,11 @@ async def test_manage_bom_apply_synthesizes_not_run_for_fail_fast_tail():
 async def test_manage_bom_apply_calls_create_for_each_add():
     """Confirm mode executes per-action POST /bom_rows for each add.
 
-    Katana's ``POST /bom_rows`` returns 204 No Content — no body. The
-    apply closure (post-#809) confirms 2xx via ``is_success`` and does
-    not try to parse a row. The mock response carries ``status_code=204``
-    so ``is_success`` returns True without touching ``response.parsed``.
+    Katana's ``POST /bom_rows`` returns ``200`` with the full ``BomRow``
+    body (verified live, #820). The apply closure parses it via
+    ``unwrap_as`` and returns the row so the new id / rank flow into
+    ``apply_outcome``. The mock response carries ``status_code=200`` with a
+    real ``BomRow`` on ``parsed``.
     """
     context, lifespan = create_mock_context()
     lifespan.typed_cache.catalog.get_many_by_ids = AsyncMock(
@@ -646,10 +671,7 @@ async def test_manage_bom_apply_calls_create_for_each_add():
 
     async def fake_create(*, client, body):
         captured_bodies.append(body)
-        resp = MagicMock()
-        resp.status_code = 204
-        resp.parsed = None
-        return resp
+        return _fake_bom_row_response(ingredient_variant_id=body.ingredient_variant_id)
 
     with (
         patch(
@@ -683,19 +705,23 @@ async def test_manage_bom_apply_calls_create_for_each_add():
 
 
 @pytest.mark.asyncio
-async def test_manage_bom_apply_commits_all_rows_against_204_transport():
-    """Regression for #809: ``POST /bom_rows`` returns 204 No Content per the
-    Katana spec. The generated ``_parse_response`` matches the 204 branch,
-    sets ``response.parsed = None``, and the previous ``unwrap_as(response,
-    BomRow)`` then raised ``APIError`` because ``unwrap`` treated
-    ``parsed is None`` as an error regardless of status. Fail-fast halted
-    the plan after the first row, so a 30-row batch silently became a
-    1-row commit in Katana.
+async def test_manage_bom_apply_commits_all_rows_against_200_transport():
+    """Regression for #809 / alignment for #820: ``POST /bom_rows`` returns
+    ``HTTP 200`` with the full ``BomRow`` body (verified live, 2026-05-22).
 
-    This test drives a real :class:`KatanaClient` against an ``httpx.MockTransport``
-    that returns 204 on every POST — exactly mirroring production — and
-    asserts all rows in the batch run.
+    The spec previously declared ``204 No Content``, so the generated
+    ``_parse_response`` had no 200 branch, ``response.parsed`` was None, and
+    ``unwrap_as(response, BomRow)`` raised ``APIError`` on every successful
+    create — fail-fast then halted the plan after the first row, so a 30-row
+    batch silently became a 1-row commit (#809). With the spec aligned to the
+    real 200+body shape, every row commits AND the parsed row's server-stamped
+    id flows into ``apply_outcome``.
+
+    This drives a real :class:`KatanaClient` against an ``httpx.MockTransport``
+    that returns 200 + a ``BomRow`` body on every POST — mirroring production.
     """
+    import uuid
+
     import httpx
 
     from katana_public_api_client import KatanaClient
@@ -705,7 +731,20 @@ async def test_manage_bom_apply_commits_all_rows_against_204_transport():
     def handler(req: httpx.Request) -> httpx.Response:
         if req.url.path.endswith("/bom_rows") and req.method == "POST":
             posts_served.append(req.content)
-            return httpx.Response(204)
+            body = json.loads(req.content)
+            return httpx.Response(
+                200,
+                json={
+                    "id": str(uuid.uuid4()),
+                    "product_item_id": body["product_item_id"],
+                    "product_variant_id": body["product_variant_id"],
+                    "ingredient_variant_id": body["ingredient_variant_id"],
+                    "quantity": body.get("quantity", 1),
+                    "rank": len(posts_served) - 1,
+                    "created_at": "2026-06-03T00:00:00.000Z",
+                    "updated_at": "2026-06-03T00:00:00.000Z",
+                },
+            )
         return httpx.Response(404, json={"error": "unexpected route"})
 
     async with KatanaClient(
@@ -743,6 +782,11 @@ async def test_manage_bom_apply_commits_all_rows_against_204_transport():
     assert len(response.actions) == 5
     assert all(a.succeeded is True for a in response.actions), (
         f"Some actions failed: {[(a.operation, a.error) for a in response.actions]}"
+    )
+    # #820: the parsed BomRow (with its server-stamped id) is surfaced on
+    # each action's apply_outcome for downstream consumers.
+    assert all(isinstance(a.apply_outcome, BomRow) for a in response.actions), (
+        "Each create action should carry the parsed BomRow on apply_outcome."
     )
 
 

@@ -223,7 +223,11 @@ fits topically — to one of the linked docs below if it's subsystem-scoped, or 
   editing the generated paths directly; they must stay in sync.
 
 - **Raw list responses in tests** — Katana wraps every list endpoint in
-  `{"data": [...]}`. Never put raw arrays in mocks.
+  `{"data": [...]}`. Never put raw arrays in mocks. **Two documented exceptions** return
+  a *bare* JSON array on the wire (no `data` envelope): `GET /bin_locations` (verified
+  live 2026-06-03, #575) and `GET /user_info`. Their generated parsers return
+  `list[StorageBin]` / the bare model directly, so mock those two with a top-level array
+  (`[ {...} ]`), not `{"data": [...]}`.
 
 - **Always call functions with keyword arguments** — `func(param=value)`, not
   `func(value)`, for all calls. Especially `prefab_ui` components, which only accept

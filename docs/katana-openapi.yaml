@@ -2537,24 +2537,6 @@ components:
           description: Name of the storage bin
       example:
         bin_name: A-01-SHELF-2
-    StorageBinListResponse:
-      type: object
-      description: List of storage bin records showing all warehouse storage locations and their organization structure
-      properties:
-        data:
-          type: array
-          description: Array of storage bin records with location and identification details
-          items:
-            $ref: "#/components/schemas/StorageBinResponse"
-      example:
-        data:
-          - id: 12345
-            name: Bin-2
-            bin_name: Bin-2
-            location_id: 12346
-            created_at: "2020-10-23T10:37:05.085Z"
-            updated_at: "2020-10-23T10:37:05.085Z"
-            deleted_at: null
     InventoryMovement:
       description: |
         Record of inventory quantity changes caused by transactions like sales, purchases, manufacturing, or adjustments
@@ -13861,7 +13843,11 @@ paths:
         - $ref: "#/components/parameters/bin_name"
       responses:
         "200":
-          description: List of storage bins.
+          description: |-
+            List of storage bins. Unlike most Katana list endpoints, this one
+            returns a bare JSON array on the wire rather than a `{ "data": [...] }`
+            envelope (verified against the live API, 2026-06-03). See `/user_info`
+            for the only other documented bare-array exception.
           headers:
             X-Ratelimit-Limit:
               $ref: "#/components/headers/X-Ratelimit-Limit"
@@ -13874,7 +13860,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/StorageBinListResponse"
+                type: array
+                items:
+                  $ref: "#/components/schemas/StorageBin"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "429":
@@ -21466,8 +21454,19 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateBomRowRequest"
       responses:
-        "204":
-          $ref: "#/components/responses/NoContent"
+        "200":
+          description: BOM row created
+          headers:
+            X-Ratelimit-Limit:
+              $ref: "#/components/headers/X-Ratelimit-Limit"
+            X-Ratelimit-Remaining:
+              $ref: "#/components/headers/X-Ratelimit-Remaining"
+            X-Ratelimit-Reset:
+              $ref: "#/components/headers/X-Ratelimit-Reset"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BomRow"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "422":

@@ -472,7 +472,6 @@ from .stocktake_row import StocktakeRow
 from .stocktake_row_list_response import StocktakeRowListResponse
 from .stocktake_status import StocktakeStatus
 from .storage_bin import StorageBin
-from .storage_bin_list_response import StorageBinListResponse
 from .storage_bin_response import StorageBinResponse
 from .storage_bin_update import StorageBinUpdate
 from .supplier import Supplier
@@ -951,7 +950,6 @@ __all__ = (
     "StocktakeRowListResponse",
     "StocktakeStatus",
     "StorageBin",
-    "StorageBinListResponse",
     "StorageBinResponse",
     "StorageBinUpdate",
     "Supplier",
