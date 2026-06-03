@@ -627,13 +627,18 @@ regenerate-client = "python scripts/regenerate_client.py"
 generate-pydantic = "python scripts/generate_pydantic_models.py"
 # Regenerate the TypeScript client (packages/katana-client) from the same spec
 # via @hey-api/openapi-ts. Requires Node + an installed node_modules (run
-# `npm ci` in the package once); the openapi-ts version is pinned by the
-# committed package-lock.json so the output is deterministic across machines
-# and CI (mirrors the exactly-pinned Python generators — see #874).
+# `npm ci` in the package once); package-lock.json pins the npm dependency
+# versions. NOTE: unlike the Python generators, this is NOT byte-deterministic
+# across OSes — @hey-api/openapi-ts shells out to native, per-platform binaries
+# (@esbuild/*, @biomejs/*), so macOS and Linux emit slightly different output.
+# That's why CI gates the TS client functionally (typecheck + test in the
+# `typescript-client` job), not by a byte-diff freshness check.
 generate-ts = { shell = "cd packages/katana-client && npm run generate" }
 # regenerate-all covers ALL three generated clients (Python attrs client,
-# pydantic models, TypeScript client) so a single command — and the CI
-# freshness gate — keeps every client in lockstep with the spec.
+# pydantic models, TypeScript client) so a single command regenerates every
+# client from the spec for local dev. (CI enforces each differently — a byte
+# freshness gate for the deterministic Python output, a functional gate for the
+# TS client — see the `generated-files` and `typescript-client` CI jobs.)
 regenerate-all = ["regenerate-client", "generate-pydantic", "generate-ts"]
 validate-openapi = "openapi-spec-validator docs/katana-openapi.yaml"
 validate-openapi-redocly = "npx @redocly/cli lint docs/katana-openapi.yaml"
