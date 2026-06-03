@@ -4052,6 +4052,53 @@ class TestBuildSOModifyUI:
         assert "NOT_SHIPPED" in rendered and "PACKED" in rendered
         assert "→" in rendered
 
+    def test_storefront_link_renders_for_native_ecommerce_order(self):
+        """A Shopify-sourced SO surfaces an 'Open in Shopify' storefront link,
+        derived from the raw ``ecommerce_*`` fields the modify card's
+        ``prior_state`` snapshot carries (#913)."""
+        prior = {
+            **self._SO_PRIOR,
+            "ecommerce_order_type": "shopify",
+            "ecommerce_store_name": "katana.myshopify.com",
+            "ecommerce_order_id": "19433769",
+        }
+        app = build_so_modify_ui(
+            self._preview(prior_state=prior),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        _assert_valid_prefab(app)
+        rendered = str(app.to_json())
+        assert "Open in Shopify" in rendered
+        assert "https://katana.myshopify.com/admin/orders/19433769" in rendered
+
+    def test_no_storefront_link_for_unrecognized_or_absent_ecommerce(self):
+        """eBay (unrecognized) and plain orders get no storefront link —
+        mirrors Katana, which only deep-links the three native platforms."""
+        ebay = build_so_modify_ui(
+            self._preview(
+                prior_state={
+                    **self._SO_PRIOR,
+                    "ecommerce_order_type": "ebay",
+                    "ecommerce_store_name": "ebay.example",
+                    "ecommerce_order_id": "EB-1",
+                }
+            ),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        # Assert on the storefront section's own marker ("Storefront:" Text) so
+        # the test stays scoped to this feature and won't break if an unrelated
+        # "Open in …" link is ever added elsewhere on the SO modify card.
+        assert "Storefront:" not in str(ebay.to_json())
+        # A plain SO with no ecommerce metadata at all also renders none.
+        plain = build_so_modify_ui(
+            self._preview(),
+            confirm_request=_StubRequest(),
+            confirm_tool="modify_sales_order",
+        )
+        assert "Storefront:" not in str(plain.to_json())
+
     def test_customer_change_renders_composite_diff(self):
         """A customer change surfaces ``Customer: <old> (<old_id>) → <new>``
         — the composite name+ID rendering keeps the diff readable. Same

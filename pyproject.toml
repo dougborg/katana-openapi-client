@@ -562,15 +562,18 @@ format-check = ["format-python-check", "format-markdown-check"]
 # Type check it separately from its own directory.
 # scripts/ is excluded as it contains utility/development scripts with varied typing.
 # tests/conftest.py is excluded because it is pytest-specific support code.
-# tests/test_generate_tools_json.py is excluded because it imports a script via
-# sys.path manipulation that ty cannot resolve statically.
+# tests/test_generate_tools_json.py, tests/test_audit_frontend_enums.py, and
+# tests/integration/test_so_ecommerce_link_live.py are all excluded for the same
+# reason: each imports a ``scripts/``-resident module via ``sys.path``
+# manipulation (the audit script and ``spec_drift_verify`` respectively) that ty
+# cannot resolve statically, since ``scripts/`` is itself excluded below.
 # katana_public_api_client/models_pydantic/_generated/ is excluded because ty
 # rejects the ``Annotated[Mapped[T | None], Field(...)] = None`` field shape
 # emitted by ``wrap_cache_fields_in_mapped`` (the trailing ``= None`` doesn't
 # match the declared ``Mapped[T | None]`` type), while pyright accepts it.
 # Generated files are auto-emitted; consistent exclusion across both checkers
 # matches ``pyrightconfig.json``'s existing ``_generated/`` skip.
-typecheck = "ty check --exclude 'tests/conftest.py' --exclude 'tests/test_generate_tools_json.py' --exclude 'scripts/' --exclude 'katana_public_api_client/models_pydantic/_generated/' --exclude '.claude/worktrees/'"
+typecheck = "ty check --exclude 'tests/conftest.py' --exclude 'tests/test_generate_tools_json.py' --exclude 'tests/test_audit_frontend_enums.py' --exclude 'tests/integration/test_so_ecommerce_link_live.py' --exclude 'scripts/' --exclude 'katana_public_api_client/models_pydantic/_generated/' --exclude '.claude/worktrees/'"
 # Pyright runs alongside ty: ty is the primary CI gate (faster, drives
 # CI), pyright catches things ty doesn't yet (e.g., generic-invariance
 # on ``Response[T]`` unions, pydantic positional-default detection).
@@ -647,6 +650,10 @@ validate-openapi-redocly = "npx @redocly/cli lint docs/katana-openapi.yaml"
 refresh-upstream-spec = "python scripts/pull_upstream_specs.py"
 # Compare the local spec with the live upstream spec; reports drift.
 audit-spec = "python scripts/audit_spec_drift.py"
+# Re-check the hand-maintained ecommerce deep-link platform set against
+# Katana's live frontend EcommerceIntegrationType enum. Soft-fail (always
+# exit 0 unless --strict + genuine drift); NOT part of regenerate-all.
+audit-frontend-enums = "python scripts/audit_frontend_enums.py"
 # Validate inline `example:` blocks against their schemas.
 validate-examples = "python scripts/validate_spec_examples.py"
 # Validate README.io developer-portal response examples (from
