@@ -8,6 +8,15 @@ import pytest
 import pytest_asyncio
 
 
+class StopForCapture(Exception):
+    """Sentinel to short-circuit an impl after capturing a call argument.
+
+    Lets a wiring test patch a downstream call (e.g. ``run_modify_plan``) to
+    record an argument it was handed and bail out before the (unmocked) rest of
+    the impl runs. Shared so per-tool wiring tests don't each redeclare it.
+    """
+
+
 @pytest.fixture(autouse=True)
 def _disable_cache_warmup_by_default(
     request: pytest.FixtureRequest,
