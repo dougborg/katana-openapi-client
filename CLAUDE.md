@@ -8,6 +8,7 @@ Guidance for Claude Code working with this repository.
 uv sync --all-extras                # Install dependencies
 uv run pre-commit install           # Setup hooks (installs both pre-commit AND pre-push)
 uv run playwright install chromium  # Headless browser for Prefab UI render tests
+npm --prefix packages/katana-client ci  # TS client deps (needed for regenerate-all / generate-ts)
 cp .env.example .env                # Add KATANA_API_KEY
 ```
 
@@ -218,16 +219,24 @@ fits topically — to one of the linked docs below if it's subsystem-scoped, or 
 - **Editing generated files** — `api/**/*.py`, `models/**/*.py`, `client.py`,
   `models_pydantic/_generated/**`, and `models_pydantic/_auto_registry.py` are
   generated. Other modules in `models_pydantic/` (e.g. `_base.py`, `_mapped_shim.py`,
-  `_pydantic_json.py`, `_registry.py`, `converters.py`) are hand-maintained. Run
-  `uv run poe regenerate-client` **and** `uv run poe generate-pydantic` instead of
-  editing the generated paths directly; they must stay in sync.
+  `_pydantic_json.py`, `_registry.py`, `converters.py`) are hand-maintained. The
+  **TypeScript** client's `packages/katana-client/src/generated/**` is generated too
+  (via `@hey-api/openapi-ts`). All three clients regenerate from the same
+  `docs/katana-openapi.yaml`, so a spec change must regenerate **all** of them — run
+  **`uv run poe regenerate-all`** (which chains `regenerate-client` +
+  `generate-pydantic` + `generate-ts`) instead of editing the generated paths directly.
+  The CI `generated-files` job runs `regenerate-all` and fails on any drift under
+  `katana_public_api_client/` **or** `packages/katana-client/src/generated/`, so a spec
+  PR that skips a client's regen is caught before merge. `generate-ts` needs the TS
+  package's `node_modules` (`npm ci` in `packages/katana-client`, pinned by its
+  committed `package-lock.json`).
 
 - **Raw list responses in tests** — Katana wraps every list endpoint in
   `{"data": [...]}`. Never put raw arrays in mocks. **Two documented exceptions** return
   a *bare* JSON array on the wire (no `data` envelope): `GET /bin_locations` (verified
   live 2026-06-03, #575) and `GET /user_info`. Their generated parsers return
-  `list[StorageBin]` / the bare model directly, so mock those two with a top-level array
-  (`[ {...} ]`), not `{"data": [...]}`.
+  `list[StorageBinResponse]` / the bare model directly, so mock those two with a
+  top-level array (`[ {...} ]`), not `{"data": [...]}`.
 
 - **Always call functions with keyword arguments** — `func(param=value)`, not
   `func(value)`, for all calls. Especially `prefab_ui` components, which only accept

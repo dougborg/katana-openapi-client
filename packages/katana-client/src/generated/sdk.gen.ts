@@ -504,6 +504,9 @@ import type {
   RerankProductOperationsData,
   RerankProductOperationsErrors,
   RerankProductOperationsResponses,
+  SearchSalesOrderRowsData,
+  SearchSalesOrderRowsErrors,
+  SearchSalesOrderRowsResponses,
   SearchSalesOrdersData,
   SearchSalesOrdersErrors,
   SearchSalesOrdersResponses,
@@ -2286,7 +2289,7 @@ export const updateVariant = <ThrowOnError extends boolean = false>(
  * In case the default storage bin doesn't yet exist, it will be created and linked to the variant.
  * This endpoint can also be used for changing existing links of the variants to different storage bins.
  *
- * The endpoint accepts up to 500 variant storage bin objects.
+ * The request body is always an array, even when linking a single variant.
  */
 export const linkVariantDefaultStorageBins = <
   ThrowOnError extends boolean = false,
@@ -3041,8 +3044,12 @@ export const updateSalesOrder = <ThrowOnError extends boolean = false>(
 /**
  * Search sales orders
  *
- * Searches sales orders using arbitrary filter criteria. Returns the
- * same shape as ``GET /sales_orders`` — paginated list of
+ * Searches sales orders using a structured filter body with nested
+ * logical operators (``and`` / ``or``) and per-field comparators.
+ * Only the fields in the request schema may appear in ``where`` /
+ * ``order``; unknown fields return 422. Custom field values are
+ * addressable via ``custom_fields.<uuid>`` nested paths. Returns the
+ * same shape as ``GET /sales_orders`` — a paginated list of
  * ``SalesOrder`` records.
  *
  */
@@ -3442,6 +3449,34 @@ export const createSalesOrderRow = <ThrowOnError extends boolean = false>(
   >({
     security: [{ scheme: "bearer", type: "http" }],
     url: "/sales_order_rows",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
+ * Search sales order rows
+ *
+ * Search sales order rows using a structured filter body. Unlike
+ * ``GET /sales_order_rows`` (which uses simple query parameters), this
+ * endpoint accepts a rich ``filter`` object with per-field
+ * comparators and ``and`` / ``or`` composition. Only the fields in
+ * the request schema may appear in ``where`` / ``order``; unknown
+ * fields return 422. Custom field values are addressable via
+ * ``custom_fields.<uuid>`` nested paths.
+ */
+export const searchSalesOrderRows = <ThrowOnError extends boolean = false>(
+  options: Options<SearchSalesOrderRowsData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    SearchSalesOrderRowsResponses,
+    SearchSalesOrderRowsErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/sales_order_rows/search",
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -4342,6 +4377,18 @@ export const updateStocktakeRow = <ThrowOnError extends boolean = false>(
  * Delete serial numbers
  *
  * Deletes serial numbers for a resource.
+ *
+ * **DELETE is unconditionally idempotent.** Empirically (live-API
+ * probes 2026-05-19) the endpoint returns 204 No Content for every
+ * request variant tested: valid id, already-deleted id, mixed
+ * valid+invalid id batches, pure-invalid id, and ``resource_id``
+ * mismatch between body and the SN's actual parent. The endpoint
+ * does NOT validate the request body — callers cannot detect
+ * ``id didn't exist`` or ``id belongs to wrong resource`` via
+ * the response. If strong confirmation is needed, follow up with a
+ * ``GET /serial_numbers`` filtered by ``resource_id`` and verify
+ * the deleted ids are absent.
+ *
  */
 export const deleteSerialNumbers = <ThrowOnError extends boolean = false>(
   options: Options<DeleteSerialNumbersData, ThrowOnError>,
@@ -4363,7 +4410,19 @@ export const deleteSerialNumbers = <ThrowOnError extends boolean = false>(
 /**
  * List serial numbers
  *
- * Returns a list of serial numbers.
+ * Returns a list of serial numbers, optionally filtered by
+ * ``resource_type`` and/or ``resource_id``.
+ *
+ * **Filter behavior** (verified live 2026-05-19):
+ *
+ * - Both filters set → results scoped to that exact ``(type, id)``.
+ * - ``resource_type`` alone → ALL serial numbers of that type
+ * across all resources (paginated, never 422).
+ * - ``resource_id`` alone → narrows to that resource regardless of
+ * type.
+ * - Neither filter → all serial numbers in the tenant (paginated).
+ * - Page beyond data → 200 with an empty ``data`` array, not 404.
+ *
  */
 export const getAllSerialNumbers = <ThrowOnError extends boolean = false>(
   options?: Options<GetAllSerialNumbersData, ThrowOnError>,
@@ -4381,7 +4440,36 @@ export const getAllSerialNumbers = <ThrowOnError extends boolean = false>(
 /**
  * Create serial numbers
  *
- * Creates new serial numbers for a resource.
+ * Mints new or transfers existing serial numbers to a resource.
+ *
+ * **Write semantics differ by ``resource_type``** (see
+ * ``CreateSerialNumberResourceType``):
+ *
+ * - **Mint** (``ManufacturingOrder``, ``PurchaseOrderRow``) — the
+ * serial-number string doesn't need to pre-exist. The API creates a
+ * new record and links it to the target resource.
+ * - **Transfer** (``SalesOrderRow``, ``StockTransferRow``,
+ * ``StockAdjustmentRow``) — the serial-number string MUST already
+ * exist (typically attached to a ManufacturingOrder output). The
+ * API moves the linkage from its current resource to the target.
+ * If the string isn't anywhere yet, the entry lands in ``failed``
+ * with ``reason: MISSING`` — the call still returns 200.
+ *
+ * **Partial failure is the norm, not the exception.** The response
+ * carries ``successful`` AND ``failed`` arrays; consumers must
+ * handle both. A 200 status does NOT mean every input was applied —
+ * check ``failed`` to learn which strings the API rejected.
+ *
+ * **422 cases:** non-existent ``resource_id`` returns
+ * ``422 UnprocessableEntityError`` with detail ``No entity found``
+ * (not 404). Invalid ``resource_type`` (e.g. ``Production``)
+ * returns 422 with an Ajv-style validation detail.
+ *
+ * **Transfer response quirks:** on a successful transfer the moved
+ * record's ``transaction_id`` may be the literal string
+ * ``undefined`` and ``resource_id`` may be ``null`` — re-fetch via
+ * ``GET /serial_numbers`` to confirm the landing state.
+ *
  */
 export const createSerialNumbers = <ThrowOnError extends boolean = false>(
   options: Options<CreateSerialNumbersData, ThrowOnError>,

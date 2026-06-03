@@ -8,7 +8,7 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
-from ...models.storage_bin import StorageBin
+from ...models.storage_bin_response import StorageBinResponse
 
 
 def _get_kwargs(
@@ -45,12 +45,12 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | list[StorageBin] | None:
+) -> ErrorResponse | list[StorageBinResponse] | None:
     if response.status_code == 200:
         response_200 = []
         _response_200 = response.json()
         for response_200_item_data in _response_200:
-            response_200_item = StorageBin.from_dict(
+            response_200_item = StorageBinResponse.from_dict(
                 cast(Mapping[str, Any], response_200_item_data)
             )
 
@@ -81,7 +81,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | list[StorageBin]]:
+) -> Response[ErrorResponse | list[StorageBinResponse]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -98,7 +98,7 @@ def sync_detailed(
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     bin_name: str | Unset = UNSET,
-) -> Response[ErrorResponse | list[StorageBin]]:
+) -> Response[ErrorResponse | list[StorageBinResponse]]:
     """List all storage bins
 
      Returns a list of storage bins you've previously created. The storage bins are returned in sorted
@@ -118,7 +118,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[ErrorResponse | list[StorageBin]]
+        Response[ErrorResponse | list[StorageBinResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -144,7 +144,7 @@ def sync(
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     bin_name: str | Unset = UNSET,
-) -> ErrorResponse | list[StorageBin] | None:
+) -> ErrorResponse | list[StorageBinResponse] | None:
     """List all storage bins
 
      Returns a list of storage bins you've previously created. The storage bins are returned in sorted
@@ -164,7 +164,7 @@ def sync(
 
 
     Returns:
-        ErrorResponse | list[StorageBin]
+        ErrorResponse | list[StorageBinResponse]
     """
 
     return sync_detailed(
@@ -185,7 +185,7 @@ async def asyncio_detailed(
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     bin_name: str | Unset = UNSET,
-) -> Response[ErrorResponse | list[StorageBin]]:
+) -> Response[ErrorResponse | list[StorageBinResponse]]:
     """List all storage bins
 
      Returns a list of storage bins you've previously created. The storage bins are returned in sorted
@@ -205,7 +205,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[ErrorResponse | list[StorageBin]]
+        Response[ErrorResponse | list[StorageBinResponse]]
     """
 
     kwargs = _get_kwargs(
@@ -229,7 +229,7 @@ async def asyncio(
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
     bin_name: str | Unset = UNSET,
-) -> ErrorResponse | list[StorageBin] | None:
+) -> ErrorResponse | list[StorageBinResponse] | None:
     """List all storage bins
 
      Returns a list of storage bins you've previously created. The storage bins are returned in sorted
@@ -249,7 +249,7 @@ async def asyncio(
 
 
     Returns:
-        ErrorResponse | list[StorageBin]
+        ErrorResponse | list[StorageBinResponse]
     """
 
     return (

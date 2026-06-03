@@ -58,48 +58,59 @@ export type DetailedErrorResponse = CodedErrorResponse & {
   details?: Array<ValidationErrorDetail>;
 };
 
+/**
+ * Ajv-style validation error detail. Katana's API uses Ajv (the de facto
+ * Node.js JSON Schema validator) under the hood; every detail item maps
+ * to an Ajv ``ErrorObject``: ``path`` ↔ ``instancePath``, ``code`` ↔
+ * ``keyword``, ``info`` ↔ ``params``. The shape of ``info`` is keyword-
+ * specific — see each typed subtype.
+ *
+ * **No discriminator on purpose.** Each typed variant locks its ``code``
+ * to a specific Ajv keyword via ``Literal[<keyword>]``; deserializers
+ * try each variant and the first match wins. ``GenericValidationError``
+ * accepts any unknown ``code`` value, so future Ajv keywords (or
+ * custom user-defined ones) fall through gracefully instead of raising.
+ * A discriminator-based union here would lock the schema to today's
+ * keyword set and break on any new code Katana ships.
+ *
+ */
 export type ValidationErrorDetail =
-  | ({
-      code: "enum";
-    } & EnumValidationError)
-  | ({
-      code: "min";
-    } & MinValidationError)
-  | ({
-      code: "max";
-    } & MaxValidationError)
-  | ({
-      code: "invalid_type";
-    } & InvalidTypeValidationError)
-  | ({
-      code: "too_small";
-    } & TooSmallValidationError)
-  | ({
-      code: "too_big";
-    } & TooBigValidationError)
-  | ({
-      code: "required";
-    } & RequiredValidationError)
-  | ({
-      code: "pattern";
-    } & PatternValidationError)
-  | ({
-      code: "unrecognized_keys";
-    } & UnrecognizedKeysValidationError)
-  | ({
-      code: "generic";
-    } & GenericValidationError);
+  | AdditionalPropertiesValidationError
+  | ConstValidationError
+  | DependenciesValidationError
+  | EnumValidationError
+  | ExclusiveMaximumValidationError
+  | ExclusiveMinimumValidationError
+  | FormatValidationError
+  | MaxItemsValidationError
+  | MaxLengthValidationError
+  | MaximumValidationError
+  | MinItemsValidationError
+  | MinLengthValidationError
+  | MinimumValidationError
+  | MultipleOfValidationError
+  | OneOfValidationError
+  | PatternValidationError
+  | RequiredValidationError
+  | TypeValidationError
+  | UniqueItemsValidationError
+  | GenericValidationError;
 
 /**
- * Base validation error with common fields
+ * Common fields shared by every validation error detail. Maps to the
+ * non-keyword-specific portion of an Ajv ``ErrorObject``.
+ *
  */
 export type BaseValidationError = {
   /**
-   * JSON path to the field with the error
+   * JSON path to the field with the error (Ajv's ``instancePath``).
+   * Format depends on Ajv config: leading ``/`` for JSON Pointer style
+   * or leading ``.`` / dotted style for legacy ``dataPath``.
+   *
    */
   path: string;
   /**
-   * Validation error code
+   * Ajv keyword that failed (e.g. ``maxLength``, ``required``, ``type``)
    */
   code: string;
   /**
@@ -108,93 +119,397 @@ export type BaseValidationError = {
   message: string;
 };
 
+/**
+ * Ajv ``additionalProperties`` keyword: an object includes a property
+ * not permitted by the schema. ``info.additionalProperty`` names the
+ * offending key.
+ *
+ */
+export type AdditionalPropertiesValidationError = BaseValidationError & {
+  code?: "additionalProperties";
+  /**
+   * Keyword-specific metadata for ``additionalProperties``
+   */
+  info: {
+    /**
+     * The disallowed property name
+     */
+    additionalProperty: string;
+  };
+};
+
+/**
+ * Ajv ``const`` keyword: the value must equal the schema's constant.
+ * ``info.allowedValue`` is the required value (any JSON type).
+ *
+ */
+export type ConstValidationError = BaseValidationError & {
+  code?: "const";
+  /**
+   * Keyword-specific metadata for ``const``
+   */
+  info: {
+    /**
+     * The required constant value (any JSON type)
+     */
+    allowedValue: unknown;
+  };
+};
+
+/**
+ * Ajv ``dependencies`` / ``dependentRequired`` keyword: presence of one
+ * property requires others. ``info`` carries the offending property,
+ * the missing dependent, and the full dependency list.
+ *
+ */
+export type DependenciesValidationError = BaseValidationError & {
+  code?: "dependencies";
+  /**
+   * Keyword-specific metadata for ``dependencies``
+   */
+  info: {
+    /**
+     * The property whose presence triggered the dependency check
+     */
+    property: string;
+    /**
+     * The dependent property that is missing
+     */
+    missingProperty: string;
+    /**
+     * Comma-separated list of all required dependents
+     */
+    deps?: string;
+    /**
+     * Total count of required dependents
+     */
+    depsCount?: number;
+  };
+};
+
+/**
+ * Ajv ``enum`` keyword: the value is not in the allowed set.
+ * ``info.allowedValues`` is the schema's enum list.
+ *
+ */
 export type EnumValidationError = BaseValidationError & {
   code?: "enum";
   /**
-   * List of valid enum values
+   * Keyword-specific metadata for ``enum``
    */
-  allowed_values: Array<string>;
+  info: {
+    /**
+     * The schema's enum list (items can be any JSON type)
+     */
+    allowedValues: Array<unknown>;
+  };
 };
 
-export type MinValidationError = BaseValidationError & {
-  code?: "min";
+/**
+ * Ajv ``exclusiveMaximum`` keyword: the value must be strictly less than
+ * ``info.limit``.
+ *
+ */
+export type ExclusiveMaximumValidationError = BaseValidationError & {
+  code?: "exclusiveMaximum";
   /**
-   * Minimum allowed value
+   * Keyword-specific metadata for ``exclusiveMaximum``
    */
-  minimum: number;
+  info: {
+    /**
+     * Exclusive upper bound
+     */
+    limit: number;
+    /**
+     * Ajv's comparison operator marker (always ``<``)
+     */
+    comparison?: "<";
+  };
 };
 
-export type MaxValidationError = BaseValidationError & {
-  code?: "max";
+/**
+ * Ajv ``exclusiveMinimum`` keyword: the value must be strictly greater
+ * than ``info.limit``.
+ *
+ */
+export type ExclusiveMinimumValidationError = BaseValidationError & {
+  code?: "exclusiveMinimum";
   /**
-   * Maximum allowed value
+   * Keyword-specific metadata for ``exclusiveMinimum``
    */
-  maximum: number;
+  info: {
+    /**
+     * Exclusive lower bound
+     */
+    limit: number;
+    /**
+     * Ajv's comparison operator marker (always ``>``)
+     */
+    comparison?: ">";
+  };
 };
 
-export type InvalidTypeValidationError = BaseValidationError & {
-  code?: "invalid_type";
+/**
+ * Ajv ``format`` keyword (e.g. ``email``, ``date-time``, ``uri``). The
+ * expected format name lives in ``info.format``.
+ *
+ */
+export type FormatValidationError = BaseValidationError & {
+  code?: "format";
   /**
-   * Expected type for the field
+   * Keyword-specific metadata for ``format``
    */
-  expected_type: string;
+  info: {
+    /**
+     * Expected format name (``email``, ``date-time``, ``uri``, etc.)
+     */
+    format: string;
+  };
 };
 
-export type TooSmallValidationError = BaseValidationError & {
-  code?: "too_small";
+/**
+ * Ajv ``maxItems`` keyword: the array exceeds its maximum length.
+ *
+ */
+export type MaxItemsValidationError = BaseValidationError & {
+  code?: "maxItems";
   /**
-   * Minimum string length required
+   * Keyword-specific metadata for ``maxItems``
    */
-  min_length?: number;
-  /**
-   * Minimum array items required
-   */
-  min_items?: number;
+  info: {
+    /**
+     * Maximum allowed array length
+     */
+    limit: number;
+  };
 };
 
-export type TooBigValidationError = BaseValidationError & {
-  code?: "too_big";
+/**
+ * Ajv ``maxLength`` keyword: the string exceeds its maximum length.
+ * The limit lives in ``info.limit`` (not as a sibling of ``code``).
+ *
+ */
+export type MaxLengthValidationError = BaseValidationError & {
+  code?: "maxLength";
   /**
-   * Maximum string length allowed
+   * Keyword-specific metadata for ``maxLength``
    */
-  max_length?: number;
-  /**
-   * Maximum array items allowed
-   */
-  max_items?: number;
+  info: {
+    /**
+     * Maximum allowed string length
+     */
+    limit: number;
+  };
 };
 
-export type RequiredValidationError = BaseValidationError & {
-  code?: "required";
+/**
+ * Ajv ``maximum`` keyword: the value exceeds its inclusive upper bound.
+ *
+ */
+export type MaximumValidationError = BaseValidationError & {
+  code?: "maximum";
   /**
-   * Name of the required field that is missing
+   * Keyword-specific metadata for ``maximum``
    */
-  missing_property: string;
+  info: {
+    /**
+     * Inclusive upper bound
+     */
+    limit: number;
+    /**
+     * Ajv's comparison operator marker (always ``<=``)
+     */
+    comparison?: "<=";
+  };
 };
 
+/**
+ * Ajv ``minItems`` keyword: the array is shorter than the schema's
+ * minimum length.
+ *
+ */
+export type MinItemsValidationError = BaseValidationError & {
+  code?: "minItems";
+  /**
+   * Keyword-specific metadata for ``minItems``
+   */
+  info: {
+    /**
+     * Minimum required array length
+     */
+    limit: number;
+  };
+};
+
+/**
+ * Ajv ``minLength`` keyword: the string is shorter than the schema's
+ * minimum length. Parallel to ``MaxLengthValidationError`` — the limit
+ * lives in ``info.limit``.
+ *
+ */
+export type MinLengthValidationError = BaseValidationError & {
+  code?: "minLength";
+  /**
+   * Keyword-specific metadata for ``minLength``
+   */
+  info: {
+    /**
+     * Minimum required string length
+     */
+    limit: number;
+  };
+};
+
+/**
+ * Ajv ``minimum`` keyword: the value is below its inclusive lower bound.
+ *
+ */
+export type MinimumValidationError = BaseValidationError & {
+  code?: "minimum";
+  /**
+   * Keyword-specific metadata for ``minimum``
+   */
+  info: {
+    /**
+     * Inclusive lower bound
+     */
+    limit: number;
+    /**
+     * Ajv's comparison operator marker (always ``>=``)
+     */
+    comparison?: ">=";
+  };
+};
+
+/**
+ * Ajv ``multipleOf`` keyword: the value is not a multiple of
+ * ``info.multipleOf``.
+ *
+ */
+export type MultipleOfValidationError = BaseValidationError & {
+  code?: "multipleOf";
+  /**
+   * Keyword-specific metadata for ``multipleOf``
+   */
+  info: {
+    /**
+     * Required divisor
+     */
+    multipleOf: number;
+  };
+};
+
+/**
+ * Ajv ``oneOf`` keyword: the value matched zero or multiple branches of
+ * the schema's ``oneOf``. ``info.passingSchemas`` is the array of
+ * matched branch indices when more than one matched, or ``null`` when
+ * none matched.
+ *
+ */
+export type OneOfValidationError = BaseValidationError & {
+  code?: "oneOf";
+  /**
+   * Keyword-specific metadata for ``oneOf``
+   */
+  info: {
+    /**
+     * Indices of branches that matched (``null`` when none matched)
+     */
+    passingSchemas: Array<number> | null;
+  };
+};
+
+/**
+ * Ajv ``pattern`` keyword: the string does not match the schema's
+ * regex. The pattern lives in ``info.pattern``.
+ *
+ */
 export type PatternValidationError = BaseValidationError & {
   code?: "pattern";
   /**
-   * Regular expression pattern that must be matched
+   * Keyword-specific metadata for ``pattern``
    */
-  pattern: string;
+  info: {
+    /**
+     * Regular expression that must be matched
+     */
+    pattern: string;
+  };
 };
 
-export type UnrecognizedKeysValidationError = BaseValidationError & {
-  code?: "unrecognized_keys";
+/**
+ * Ajv ``required`` keyword: an object is missing a required property.
+ * ``info.missingProperty`` names the missing field.
+ *
+ */
+export type RequiredValidationError = BaseValidationError & {
+  code?: "required";
   /**
-   * List of unrecognized field names
+   * Keyword-specific metadata for ``required``
    */
-  keys: Array<string>;
-  /**
-   * List of valid field names
-   */
-  valid_keys?: Array<string>;
+  info: {
+    /**
+     * Name of the required property that is missing
+     */
+    missingProperty: string;
+  };
 };
 
+/**
+ * Ajv ``type`` keyword: the value's type does not match the schema's
+ * ``type``. ``info.type`` names the expected type.
+ *
+ */
+export type TypeValidationError = BaseValidationError & {
+  code?: "type";
+  /**
+   * Keyword-specific metadata for ``type``
+   */
+  info: {
+    /**
+     * Expected type (``string``, ``number``, ``integer``, ``boolean``, ``array``, ``object``, ``null``)
+     */
+    type: string;
+  };
+};
+
+/**
+ * Ajv ``uniqueItems`` keyword: the array contains duplicate items.
+ * ``info.i`` and ``info.j`` are the indices of the duplicate pair.
+ *
+ */
+export type UniqueItemsValidationError = BaseValidationError & {
+  code?: "uniqueItems";
+  /**
+   * Keyword-specific metadata for ``uniqueItems``
+   */
+  info: {
+    /**
+     * Index of the first duplicate
+     */
+    i: number;
+    /**
+     * Index of the second duplicate
+     */
+    j: number;
+  };
+};
+
+/**
+ * Permissive fallback for any Ajv keyword we haven't yet typed. The
+ * ``code`` field is unconstrained (just ``string``), so any wire value
+ * validates here when none of the typed variants match.
+ * ``BaseValidationError`` fields (``path``, ``code``, ``message``) are
+ * guaranteed; any keyword-specific ``info`` lives in
+ * ``additional_properties``.
+ *
+ * Listed last in ``ValidationErrorDetail.oneOf`` so deserializers try
+ * the typed variants first and only land here for unknown keywords.
+ *
+ */
 export type GenericValidationError = BaseValidationError & {
   /**
-   * Validation error code for generic errors
+   * Ajv keyword that failed (any value not covered by typed subtypes)
    */
   code?: string;
 };
@@ -214,6 +529,12 @@ export type OutsourcedPurchaseOrderIngredientAvailability =
  * Type classification of a variant
  */
 export type VariantType = "product" | "material" | "service";
+
+/**
+ * ABC inventory classification of the variant. Categorizes items by relative
+ * value and consumption importance.
+ */
+export type AbcClassification = "A" | "B" | "C";
 
 /**
  * Address type - billing for invoicing, shipping for delivery
@@ -368,10 +689,15 @@ export type PurchaseOrderBillingStatus =
 export type DocumentSendStatus = "NOT_SENT" | "SENDING" | "FAILED" | "SENT";
 
 /**
- * Fulfillment status of a sales order
+ * Fulfillment status of a sales order. ``PENDING`` is the initial
+ * status assigned to newly-created sales orders before they
+ * progress to ``NOT_SHIPPED``. The ``PARTIALLY_*`` states are
+ * server-computed; clients should not attempt to set them.
+ *
  */
 export type SalesOrderStatus =
   | "NOT_SHIPPED"
+  | "PENDING"
   | "PARTIALLY_PACKED"
   | "PARTIALLY_DELIVERED"
   | "PACKED"
@@ -407,6 +733,19 @@ export type SalesOrderFulfillmentInvoiceStatus =
   | "PARTIALLY_INVOICED";
 
 /**
+ * Sales-order-level invoicing status, rolled up across the order's
+ * fulfillments. The wire format differs from
+ * ``SalesOrderFulfillmentInvoiceStatus``: the order-level field uses
+ * camelCase (``invoiced``) while the fulfillment-level field uses
+ * SCREAMING_SNAKE_CASE (``INVOICED``).
+ *
+ */
+export type SalesOrderInvoicingStatus =
+  | "notInvoiced"
+  | "partiallyInvoiced"
+  | "invoiced";
+
+/**
  * Allowed status values when updating a sales order
  */
 export type UpdateSalesOrderStatus =
@@ -416,9 +755,7 @@ export type UpdateSalesOrderStatus =
   | "DELIVERED";
 
 /**
- * Status of a stock transfer. Values match the live API at
- * ``PATCH /stock_transfers/{id}/status`` (verified 2026-04-28). Note
- * the camelCase ``inTransit``.
+ * Status of a stock transfer. Note the camelCase ``inTransit``.
  *
  */
 export type StockTransferStatus = "draft" | "received" | "inTransit";
@@ -456,6 +793,18 @@ export type SerialNumberResourceType =
  * *retrieving* serial numbers (see ``SerialNumberResourceType``) but
  * is not accepted as input here — the API rejects it with 422.
  *
+ * **Write semantics differ by resource type:**
+ *
+ * - **Mint** (create new serial-number strings) — ``ManufacturingOrder``
+ * and ``PurchaseOrderRow``. The supplied string doesn't need to
+ * pre-exist anywhere.
+ * - **Transfer** (move an existing serial number to this resource) —
+ * ``SalesOrderRow``, ``StockTransferRow``, and ``StockAdjustmentRow``.
+ * The supplied string MUST already exist (typically attached to a
+ * ManufacturingOrder output). If it doesn't, the response surfaces
+ * it in ``failed`` with ``reason: MISSING`` — the call still returns
+ * 200, not 422.
+ *
  */
 export type CreateSerialNumberResourceType =
   | "ManufacturingOrder"
@@ -463,6 +812,22 @@ export type CreateSerialNumberResourceType =
   | "StockTransferRow"
   | "PurchaseOrderRow"
   | "SalesOrderRow";
+
+/**
+ * Per-string failure reason when ``POST /serial_numbers`` partial-fails.
+ *
+ * - ``DUPLICATE`` — string is already attached to the target resource
+ * (mint path) and the API refuses to re-attach it.
+ * - ``MISSING`` — string doesn't exist anywhere in the tenant, so a
+ * transfer to ``SalesOrderRow`` / ``StockTransferRow`` /
+ * ``StockAdjustmentRow`` can't move it.
+ *
+ * Other reasons may exist but have not been observed via the
+ * live-API probe. Consumers should treat unknown values as
+ * forward-compatible failures rather than 422s.
+ *
+ */
+export type CreateSerialNumberFailureReason = "DUPLICATE" | "MISSING";
 
 /**
  * Type of business object a custom fields collection applies to
@@ -769,16 +1134,6 @@ export type StorageBinUpdate = {
 };
 
 /**
- * List of storage bin records showing all warehouse storage locations and their organization structure
- */
-export type StorageBinListResponse = {
-  /**
-   * Array of storage bin records with location and identification details
-   */
-  data?: Array<StorageBinResponse>;
-};
-
-/**
  * Record of inventory quantity changes caused by transactions like sales, purchases, manufacturing, or adjustments
  *
  */
@@ -853,9 +1208,11 @@ export type InventoryMovementListResponse = {
  */
 export type Variant = UpdatableEntity & {
   /**
-   * Stock keeping unit - unique identifier for this variant
+   * Stock keeping unit - unique identifier for this variant. Katana allows
+   * variants to be created without a SKU; the field is always present in the
+   * response but may be null for such rows.
    */
-  sku: string;
+  sku: string | null;
   /**
    * Price at which this variant is sold to customers
    */
@@ -876,11 +1233,11 @@ export type Variant = UpdatableEntity & {
   /**
    * Internal barcode for warehouse scanning and tracking
    */
-  internal_barcode?: string;
+  internal_barcode?: string | null;
   /**
    * Official registered barcode (UPC, EAN, etc.) for retail use
    */
-  registered_barcode?: string;
+  registered_barcode?: string | null;
   /**
    * Supplier-specific part numbers or SKUs for purchasing
    */
@@ -894,7 +1251,7 @@ export type Variant = UpdatableEntity & {
    */
   minimum_order_quantity?: number | null;
   /**
-   * Custom field values specific to this variant
+   * Custom field values specific to this variant (legacy [{field_name, field_value}] array via /custom_fields_collections; distinct from the sales-order custom_fields dict — see CustomFieldValue)
    */
   custom_fields?: Array<{
     /**
@@ -905,7 +1262,7 @@ export type Variant = UpdatableEntity & {
      * Value stored in the custom field
      */
     field_value?: string;
-  }>;
+  }> | null;
   /**
    * Configuration attribute values that define this variant (color, size, etc.)
    */
@@ -918,7 +1275,12 @@ export type Variant = UpdatableEntity & {
      * Value for this configuration attribute (e.g., Blue, Large)
      */
     config_value?: string;
-  }>;
+  }> | null;
+  /**
+   * ABC inventory classification of this variant. ``null`` when the
+   * variant has not been classified.
+   */
+  abc_classification?: AbcClassification | null;
 } & DeletableEntity;
 
 /**
@@ -926,9 +1288,11 @@ export type Variant = UpdatableEntity & {
  */
 export type ServiceVariant = UpdatableEntity & {
   /**
-   * A unique service code
+   * A unique service code. Katana allows services to be created without
+   * a SKU; the field is always present in the response but may be null
+   * for such rows (mirrors Variant.sku).
    */
-  sku: string;
+  sku: string | null;
   /**
    * Default sales price (excluding tax), which is automatically assigned to the service when creating sales
    * orders
@@ -945,7 +1309,16 @@ export type ServiceVariant = UpdatableEntity & {
   service_id: number;
   type?: VariantType;
   /**
-   * Custom field values specific to this service variant
+   * Custom field values specific to this service variant, in
+   * the legacy ``[{field_name, field_value}]`` array shape
+   * (configured via ``/custom_fields_collections``; distinct
+   * from the sales-order ``custom_fields`` dict — see
+   * ``CustomFieldValue``). The API returns ``null`` (not
+   * ``[]``) when the variant has no custom-field assignments —
+   * non-nullable here causes the generated parser to fail with
+   * "NoneType is not iterable" on every create_service /
+   * get_service response.
+   *
    */
   custom_fields?: Array<{
     /**
@@ -956,7 +1329,7 @@ export type ServiceVariant = UpdatableEntity & {
      * Value for the custom field
      */
     field_value?: string;
-  }>;
+  }> | null;
 } & DeletableEntity;
 
 /**
@@ -996,19 +1369,40 @@ export type LocationAddress = {
 /**
  * Manufacturing location or warehouse facility where inventory is managed and operations are performed
  */
-export type Location =
-  | {
-      id: number;
-      name: string;
-      legal_name?: string;
-      address_id?: number;
-      address?: LocationAddress;
-      is_primary?: boolean;
-      sales_allowed?: boolean;
-      purchase_allowed?: boolean;
-      manufacturing_allowed?: boolean;
-    }
-  | DeletableEntity;
+export type Location = DeletableEntity & {
+  /**
+   * Display name of the location
+   */
+  name: string;
+  /**
+   * Legal name of the entity that owns the location
+   */
+  legal_name?: string;
+  /**
+   * Identifier of the associated address record, or null if no address is on file
+   */
+  address_id?: number | null;
+  /**
+   * Structured address information for the location, or null if no address is on file
+   */
+  address?: LocationAddress | null;
+  /**
+   * Whether this location is the primary location for the tenant
+   */
+  is_primary?: boolean;
+  /**
+   * Whether sales orders may be fulfilled from this location
+   */
+  sales_allowed?: boolean;
+  /**
+   * Whether purchase orders may be received at this location
+   */
+  purchase_allowed?: boolean;
+  /**
+   * Whether manufacturing orders may be produced at this location
+   */
+  manufacturing_allowed?: boolean;
+};
 
 /**
  * Represents the current inventory state for a specific product variant at a location.
@@ -1028,7 +1422,7 @@ export type Inventory = {
    * without overstocking
    *
    */
-  safety_stock_level?: string;
+  safety_stock_level: string;
   /**
    * (Deprecated - use safety_stock_level instead) Queries the safety stock level
    */
@@ -1060,7 +1454,7 @@ export type Inventory = {
   /**
    * Total quantity that could be available (in stock + expected)
    */
-  quantity_potential: string;
+  quantity_potential: string | null;
   /**
    * Product variant details associated with this inventory record
    */
@@ -1074,9 +1468,9 @@ export type Inventory = {
    */
   archived_at?: string | null;
   /**
-   * Default storage bin for this inventory at this location
+   * Default storage bin for this variant at this location, when one has been linked via the variant default storage bin endpoints
    */
-  default_storage_bin?: unknown;
+  default_storage_bin?: VariantDefaultStorageBinLinkResponse | null;
 };
 
 /**
@@ -1145,9 +1539,9 @@ export type InventorySafetyStockLevelResponse = InventorySafetyStockLevel &
  */
 export type CreateManufacturingOrderRequest = {
   /**
-   * Initial production status of the manufacturing order. The live API
-   * only accepts NOT_STARTED on create; further transitions go through
-   * PATCH /manufacturing_orders/{id}.
+   * Initial production status. ``NOT_STARTED`` is the only value
+   * accepted on create; transition to other statuses via
+   * ``PATCH /manufacturing_orders/{id}``.
    *
    */
   status?: "NOT_STARTED";
@@ -1239,9 +1633,9 @@ export type ManufacturingOrder = {
    */
   order_created_date?: string;
   /**
-   * Target deadline for completing production
+   * Target deadline for completing production (null when none is set)
    */
-  production_deadline_date?: string;
+  production_deadline_date?: string | null;
   /**
    * Timestamp when the manufacturing order was completed
    */
@@ -1348,6 +1742,10 @@ export type UpdateManufacturingOrderRequest = {
    * Batch transactions for produced items
    */
   batch_transactions?: Array<BatchTransaction>;
+  /**
+   * Serial number IDs allocated to the produced units of this manufacturing order. Required when the MO's finished-good variant is serial-tracked; the count must equal `actual_quantity`.
+   */
+  serial_numbers?: Array<number>;
 };
 
 /**
@@ -1383,9 +1781,9 @@ export type CreateManufacturingOrderProductionRequest = {
    */
   operations?: Array<ManufacturingOrderOperationRow>;
   /**
-   * Serial numbers to assign to produced items
+   * Pre-existing SerialNumber IDs (integers) to assign to the units produced in this production run. Required when the manufacturing order's finished-good variant is serial-tracked. Katana silently drops IDs that do not exist — callers must mint via `POST /serial_numbers` first.
    */
-  serial_numbers?: Array<string>;
+  serial_numbers?: Array<number>;
 };
 
 /**
@@ -1522,25 +1920,27 @@ export type ManufacturingOrderOperationRow = {
    */
   active_operator_id?: number;
   /**
-   * Planned time per unit for this operation
+   * Planned time per unit for this operation (deprecated — use ``planned_time_parameter`` instead)
+   *
+   * @deprecated
    */
-  planned_time_per_unit?: number;
+  planned_time_per_unit?: string;
   /**
    * Parameter for calculating planned time
    */
-  planned_time_parameter?: number;
+  planned_time_parameter?: string;
   /**
    * Total actual time spent on this operation
    */
-  total_actual_time?: number;
+  total_actual_time?: string;
   /**
    * Planned cost per unit for this operation
    */
-  planned_cost_per_unit?: number;
+  planned_cost_per_unit?: string;
   /**
    * Total actual cost incurred for this operation
    */
-  total_actual_cost?: number;
+  total_actual_cost?: string;
   /**
    * Total time consumed so far for this operation
    */
@@ -1550,7 +1950,9 @@ export type ManufacturingOrderOperationRow = {
    */
   total_remaining_time?: number;
   /**
-   * Hourly cost rate for this operation
+   * Hourly cost rate for this operation (deprecated — use ``cost_parameter`` instead)
+   *
+   * @deprecated
    */
   cost_per_hour?: number;
   /**
@@ -1604,7 +2006,9 @@ export type CreateManufacturingOrderOperationRowRequest = {
    */
   planned_time_parameter?: number;
   /**
-   * Planned time per unit of output
+   * Planned time per unit of output (deprecated — use ``planned_time_parameter`` instead)
+   *
+   * @deprecated
    */
   planned_time_per_unit?: number;
   /**
@@ -1612,7 +2016,9 @@ export type CreateManufacturingOrderOperationRowRequest = {
    */
   cost_parameter?: number;
   /**
-   * Hourly cost rate for this operation
+   * Hourly cost rate for this operation (deprecated — use ``cost_parameter`` instead)
+   *
+   * @deprecated
    */
   cost_per_hour?: number;
   /**
@@ -1631,6 +2037,10 @@ export type CreateManufacturingOrderOperationRowRequest = {
  * Request payload for updating a manufacturing order operation row with actual completion data
  */
 export type UpdateManufacturingOrderOperationRowRequest = {
+  /**
+   * ID of the manufacturing order this operation row belongs to
+   */
+  manufacturing_order_id: number;
   /**
    * ID of the operation being performed
    */
@@ -1656,7 +2066,9 @@ export type UpdateManufacturingOrderOperationRowRequest = {
    */
   planned_time_parameter?: number;
   /**
-   * Planned time per unit of output
+   * Planned time per unit of output (deprecated — use ``planned_time_parameter`` instead)
+   *
+   * @deprecated
    */
   planned_time_per_unit?: number;
   /**
@@ -1668,13 +2080,15 @@ export type UpdateManufacturingOrderOperationRowRequest = {
    */
   cost_parameter?: number;
   /**
-   * Hourly cost rate for this operation
+   * Hourly cost rate for this operation (deprecated — use ``cost_parameter`` instead)
+   *
+   * @deprecated
    */
   cost_per_hour?: number;
   /**
    * Current status of the operation
    */
-  status?: ManufacturingOperationStatus;
+  status: ManufacturingOperationStatus;
   /**
    * Operators assigned to perform this operation
    */
@@ -1799,11 +2213,13 @@ export type ManufacturingOrderRecipeRow = {
   /**
    * Planned quantity of this ingredient needed per unit produced
    */
-  planned_quantity_per_unit?: number;
+  planned_quantity_per_unit?: string;
   /**
-   * Total actual quantity of this ingredient consumed
+   * Total actual quantity of this ingredient consumed. Returned as a fixed-precision
+   * decimal string (e.g. ``"125.0000000000"``).
+   *
    */
-  total_actual_quantity?: number;
+  total_actual_quantity?: string | null;
   /**
    * Current availability status of this ingredient
    */
@@ -1826,9 +2242,11 @@ export type ManufacturingOrderRecipeRow = {
     quantity?: number;
   }>;
   /**
-   * Total cost of this ingredient for the manufacturing order
+   * Total cost of this ingredient for the manufacturing order. Returned as a fixed-precision
+   * decimal string (e.g. ``"437.5000000000"``).
+   *
    */
-  cost?: number;
+  cost?: string | null;
   /**
    * Total quantity consumed so far from this ingredient
    */
@@ -1851,7 +2269,16 @@ export type ManufacturingOrderRecipeRowListResponse = {
 };
 
 /**
- * Individual serial number record for tracking specific units of serialized inventory items through transactions
+ * Individual serial number record for tracking specific units of
+ * serialized inventory items through transactions.
+ *
+ * **Transfer side-effects:** when a serial number is moved between
+ * resources (e.g. from a ManufacturingOrder to a SalesOrderRow via
+ * ``POST /serial_numbers``), the immediate response may report
+ * ``transaction_id`` equal to the literal string ``undefined`` and
+ * ``resource_id: null`` for the moved record. The subsequent
+ * ``GET /serial_numbers`` resolves the correct ``resource_id`` —
+ * re-fetch via GET to confirm the landing state.
  *
  */
 export type SerialNumber = {
@@ -1860,9 +2287,12 @@ export type SerialNumber = {
    */
   id?: number;
   /**
-   * Identifier of the transaction that affected this serial number
+   * Identifier of the transaction that affected this serial number.
+   * May be the literal string ``undefined`` on a transfer
+   * response; expect ``null`` in some edge cases.
+   *
    */
-  transaction_id?: string;
+  transaction_id?: string | null;
   /**
    * The actual serial number string for the tracked item
    */
@@ -1872,9 +2302,12 @@ export type SerialNumber = {
    */
   resource_type?: SerialNumberResourceType;
   /**
-   * Unique identifier of the specific resource instance
+   * Unique identifier of the specific resource instance.
+   * May be ``null`` on a transfer response — re-fetch via
+   * ``GET /serial_numbers`` to confirm.
+   *
    */
-  resource_id?: number;
+  resource_id?: number | null;
   /**
    * Date and time when the transaction occurred
    */
@@ -1883,6 +2316,46 @@ export type SerialNumber = {
    * Quantity change for this serial number transaction
    */
   quantity_change?: number;
+};
+
+/**
+ * Single per-string failure block on a ``CreateSerialNumbersResponse``.
+ * Carries the input ``serial_number`` string and a ``reason`` code so
+ * the caller can react without inspecting status code or response
+ * body shape.
+ *
+ */
+export type CreateSerialNumberFailedItem = {
+  /**
+   * The input serial-number string that failed.
+   */
+  serial_number: string;
+  reason: CreateSerialNumberFailureReason;
+};
+
+/**
+ * Response from ``POST /serial_numbers``. The endpoint can partial-
+ * fail: any string the API rejects (DUPLICATE on the mint path,
+ * MISSING on the transfer path) lands in ``failed`` while the rest
+ * succeed. The call still returns 200 in the partial-failure case.
+ *
+ */
+export type CreateSerialNumbersResponse = {
+  /**
+   * Serial-number records that were created (mint) or transferred
+   * (move) successfully. May be empty if every requested string
+   * failed.
+   *
+   */
+  successful: Array<SerialNumber>;
+  /**
+   * Per-string failures. Each entry carries the input
+   * ``serial_number`` string and a ``reason`` code so the caller
+   * can react without inspecting status code or response body
+   * shape.
+   *
+   */
+  failed: Array<CreateSerialNumberFailedItem>;
 };
 
 /**
@@ -2408,6 +2881,13 @@ export type UpdateProductRequest = {
    */
   configs?: Array<{
     /**
+     * ID of the existing config to update. When set, the server
+     * matches by ID instead of by ``name`` — required if you want
+     * to rename a config.
+     *
+     */
+    id?: number;
+    /**
      * Name of the configuration attribute (e.g., Size, Color)
      */
     name?: string;
@@ -2483,9 +2963,14 @@ export type ProductListResponse = {
  */
 export type CreatePurchaseOrderRequest = {
   /**
-   * Unique purchase order number for tracking and reference
+   * Unique purchase order number for tracking and reference. Optional —
+   * Katana auto-generates a sequential ``PO-N`` value when omitted.
+   *
    */
-  order_no: string;
+  order_no?: string;
+  /**
+   * Whether this purchase order is regular procurement or an outsourced manufacturing order
+   */
   entity_type?: PurchaseOrderEntityType;
   /**
    * Unique identifier of the supplier providing the materials or services
@@ -2710,7 +3195,7 @@ export type PurchaseOrderRow = {
    */
   tax_rate_id?: number;
   /**
-   * The sales price of one unit (excluding taxes) in sales order currency.
+   * The purchase price of one unit (excluding taxes) in purchase order currency.
    */
   price_per_unit?: number;
   /**
@@ -2864,6 +3349,9 @@ export type CreatePurchaseOrderAdditionalCostRowRequest = {
    * Amount of the additional cost in the purchase order currency
    */
   price: number;
+  /**
+   * How this additional cost is allocated across purchase order line items (e.g., by value or by quantity)
+   */
   distribution_method?: CostDistributionMethod;
 };
 
@@ -2947,6 +3435,9 @@ export type UpdatePurchaseOrderAdditionalCostRowRequest = {
    * Updated amount of the additional cost in the purchase order currency
    */
   price?: number;
+  /**
+   * How this additional cost is allocated across purchase order line items (e.g., by value or by quantity)
+   */
   distribution_method?: CostDistributionMethod;
 };
 
@@ -3422,7 +3913,11 @@ export type TaxRateListResponse = {
 };
 
 /**
- * Request payload for creating a new product or material variant with specific SKU and configuration attributes
+ * Request payload for creating a new product or material variant with specific SKU and configuration attributes.
+ *
+ * **Parent reference:** specify **exactly one** of ``product_id`` or
+ * ``material_id``, never both — variants are scoped to a single parent
+ * item.
  *
  */
 export type CreateVariantRequest = {
@@ -3439,11 +3934,15 @@ export type CreateVariantRequest = {
    */
   purchase_price?: number;
   /**
-   * ID of the parent product if this variant belongs to a finished good
+   * ID of the parent product if this variant belongs to a finished
+   * good. Mutually exclusive with ``material_id``.
+   *
    */
   product_id?: number | null;
   /**
-   * ID of the parent material if this variant belongs to a raw material
+   * ID of the parent material if this variant belongs to a raw
+   * material. Mutually exclusive with ``product_id``.
+   *
    */
   material_id?: number | null;
   /**
@@ -3480,7 +3979,7 @@ export type CreateVariantRequest = {
     config_value: string;
   }>;
   /**
-   * Custom field values specific to this variant
+   * Custom field values specific to this variant (legacy [{field_name, field_value}] array via /custom_fields_collections; distinct from the sales-order custom_fields dict — see CustomFieldValue)
    */
   custom_fields?: Array<{
     /**
@@ -3504,9 +4003,13 @@ export type VariantResponse = {
    */
   id?: number;
   /**
-   * Stock keeping unit code for unique identification
+   * Stock keeping unit code for unique identification. Katana allows
+   * variants to be created without a SKU; the value may be null for
+   * such rows. ``VariantResponse`` does not declare ``sku`` as required,
+   * so the key may also be omitted entirely on some response shapes —
+   * consumers should handle both ``null`` and missing keys.
    */
-  sku?: string;
+  sku?: string | null;
   /**
    * Price at which this variant is sold to customers
    */
@@ -3527,11 +4030,11 @@ export type VariantResponse = {
   /**
    * Internal barcode for warehouse scanning and tracking
    */
-  internal_barcode?: string;
+  internal_barcode?: string | null;
   /**
    * Official registered barcode (UPC, EAN, etc.) for retail use
    */
-  registered_barcode?: string;
+  registered_barcode?: string | null;
   /**
    * Supplier-specific part numbers or SKUs for purchasing
    */
@@ -3556,9 +4059,9 @@ export type VariantResponse = {
      * Value for this configuration attribute (e.g., Blue, Large)
      */
     config_value?: string;
-  }>;
+  }> | null;
   /**
-   * Custom field values specific to this variant
+   * Custom field values specific to this variant (legacy [{field_name, field_value}] array via /custom_fields_collections; distinct from the sales-order custom_fields dict — see CustomFieldValue)
    */
   custom_fields?: Array<{
     /**
@@ -3569,7 +4072,7 @@ export type VariantResponse = {
      * Value stored in the custom field
      */
     field_value?: string;
-  }>;
+  }> | null;
   /**
    * Details of the parent product or material this variant belongs to
    */
@@ -3635,7 +4138,11 @@ export type UpdateVariantRequest = {
     config_value?: string;
   }>;
   /**
-   * Additional custom field values associated with this variant
+   * Additional custom field values associated with this variant, in
+   * the legacy ``[{field_name, field_value}]`` array shape
+   * (configured via ``/custom_fields_collections``; distinct from
+   * the sales-order ``custom_fields`` dict — see ``CustomFieldValue``).
+   *
    */
   custom_fields?: Array<{
     /**
@@ -3884,7 +4391,11 @@ export type Webhook = {
    */
   url?: string;
   /**
-   * Authentication token included in webhook request headers for security verification
+   * Server-generated verification token included with every webhook
+   * delivery so subscribers can authenticate the payload. Returned as
+   * a 16-character lowercase hexadecimal string (e.g.
+   * ``"46aec160c0efe1d6"``).
+   *
    */
   token?: string;
   /**
@@ -3896,7 +4407,11 @@ export type Webhook = {
    */
   description?: string | null;
   /**
-   * List of event types that will trigger this webhook
+   * List of event types that will trigger this webhook. Known
+   * values are listed in the ``WebhookEvent`` enum (enforced on
+   * Create / Update request DTOs), but the read shape stays an
+   * open string list so newly-released server events deserialize
+   * without breaking older clients.
    */
   subscribed_events?: Array<string>;
 } & UpdatableEntity;
@@ -4115,9 +4630,9 @@ export type CreateServiceRequest = {
  */
 export type CreateServiceVariantRequest = {
   /**
-   * A unique service code
+   * Optional unique service code
    */
-  sku: string;
+  sku?: string;
   /**
    * Default sales price (excluding tax)
    */
@@ -4188,9 +4703,12 @@ export type UpdateServiceRequest = {
    */
   custom_field_collection_id?: number | null;
   /**
-   * Custom field values to attach to the service. Field names must
+   * Custom field values to attach to the service, in the legacy
+   * ``[{field_name, field_value}]`` array shape. Field names must
    * match those configured for the ``service`` resource type (see
-   * ``GET /custom_fields_collections``).
+   * ``GET /custom_fields_collections``). This is distinct from the
+   * sales-order ``custom_fields`` dict keyed by
+   * ``/custom_field_definitions`` UUIDs — see ``CustomFieldValue``.
    *
    */
   custom_fields?: Array<CustomFieldValue>;
@@ -4209,7 +4727,7 @@ export type DemandForecastPeriod = {
    */
   period_end: string;
   /**
-   * In-stock quantity at the start of the period
+   * Calculated stock level at the end of the period
    */
   in_stock?: string;
   /**
@@ -4598,9 +5116,15 @@ export type SalesOrder = BaseEntity & {
    */
   conversion_date?: string | null;
   /**
-   * Current invoicing status indicating billing progress
+   * Order-level invoicing status, rolled up from the underlying
+   * fulfillment-level statuses. Uses camelCase wire values
+   * (``notInvoiced`` / ``partiallyInvoiced`` / ``invoiced``) —
+   * **not** the SCREAMING_SNAKE_CASE values used by
+   * ``SalesOrderFulfillment.invoice_status``. ``null`` when the
+   * order has no fulfillments yet.
+   *
    */
-  invoicing_status?: string | null;
+  invoicing_status?: SalesOrderInvoicingStatus | null;
   /**
    * Total order amount in the order currency
    */
@@ -4675,6 +5199,27 @@ export type SalesOrder = BaseEntity & {
    * Complete address information for billing and shipping
    */
   addresses?: Array<SalesOrderAddress>;
+  /**
+   * Custom field values for the sales order, keyed by the
+   * definition ``id`` (UUID) — the ``id`` returned by
+   * ``GET /custom_field_definitions``, not the field label.
+   * Each value matches the definition's ``field_type``: string
+   * for ``shortText`` / ``url``, number for ``number``, boolean
+   * for ``boolean``, a ``YYYY-MM-DD`` string for ``date``, or
+   * the integer choice ``id`` for ``singleSelect``. Example
+   * (keys are definition UUIDs):
+   * ``{"0c8f1d6e-…": "EMEA", "7a21b4c2-…": 2}`` — a
+   * ``shortText`` value and a ``singleSelect`` choice ``id``.
+   * ``null`` when no values are set. Values for soft-deleted
+   * definitions are stripped from read responses. Keys are
+   * tenant-specific, so the schema declares
+   * ``additionalProperties: true`` rather than enumerating
+   * them.
+   *
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
 } & DeletableEntity;
 
 /**
@@ -4720,7 +5265,7 @@ export type SalesOrderRow = {
   /**
    * Selling price per unit in the order currency
    */
-  price_per_unit?: number;
+  price_per_unit?: string;
   /**
    * Selling price per unit converted to the base company currency
    */
@@ -4738,9 +5283,9 @@ export type SalesOrderRow = {
    */
   total_discount?: string | null;
   /**
-   * Cost of goods sold value for this line item
+   * Cost of goods sold value for this line item, null when not yet computed
    */
-  cogs_value?: number | null;
+  cogs_value?: string | null;
   /**
    * Custom attributes associated with this sales order row
    */
@@ -4772,6 +5317,22 @@ export type SalesOrderRow = {
    */
   serial_numbers?: Array<number>;
   /**
+   * Audit trail of serial-number actions on this row. Each entry records
+   * whether a serial number was added (``quantity: 1``) or removed
+   * (``quantity: 0``). Use this for incremental updates; ``serial_numbers``
+   * reflects the resulting current state.
+   */
+  serial_number_transactions?: Array<{
+    /**
+     * ID of the serial number for the fulfilled item
+     */
+    serial_number_id: number;
+    /**
+     * 1 to add the serial number, 0 to remove it
+     */
+    quantity?: 0 | 1;
+  }>;
+  /**
    * ID of the manufacturing order linked to this sales order row for make-to-order items
    */
   linked_manufacturing_order_id?: number | null;
@@ -4783,6 +5344,24 @@ export type SalesOrderRow = {
    * Date when the currency conversion rate was applied
    */
   conversion_date?: string | null;
+  /**
+   * Row-level custom field values, keyed by the
+   * definition ``id`` (UUID) — the ``id`` returned by
+   * ``GET /custom_field_definitions``, not the field label.
+   * Each value matches the definition's ``field_type``: string
+   * for ``shortText`` / ``url``, number for ``number``, boolean
+   * for ``boolean``, a ``YYYY-MM-DD`` string for ``date``, or
+   * the integer choice ``id`` for ``singleSelect``. ``null``
+   * when no values are set on the row. Values for soft-deleted
+   * definitions are stripped from read responses. Keys are
+   * tenant-specific, so the schema declares
+   * ``additionalProperties: true`` rather than enumerating
+   * them.
+   *
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
 } & DeletableEntity;
 
 /**
@@ -4869,13 +5448,34 @@ export type CreateSalesOrderRowRequest = {
    * Custom attributes for this line item
    */
   attributes?: Array<{
-    name?: string;
+    /**
+     * Attribute name/key
+     */
+    key?: string;
+    /**
+     * Attribute value
+     */
     value?: string;
   }>;
   /**
    * Total discount amount applied to this line item
    */
   total_discount?: number;
+  /**
+   * Row-level custom field values, keyed by the
+   * definition ``id`` (UUID) — the ``id`` returned by
+   * ``GET /custom_field_definitions``, not the field label. Each
+   * value matches the definition's ``field_type``: string for
+   * ``shortText`` / ``url``, number for ``number``, boolean for
+   * ``boolean``, a ``YYYY-MM-DD`` string for ``date``, or the
+   * integer choice ``id`` for ``singleSelect``. Keys are
+   * tenant-specific, so the schema declares
+   * ``additionalProperties: true`` rather than enumerating them.
+   *
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
 };
 
 /**
@@ -4921,9 +5521,416 @@ export type UpdateSalesOrderRowRequest = {
    * Custom attributes for this line item
    */
   attributes?: Array<{
-    name?: string;
+    /**
+     * Attribute name/key
+     */
+    key?: string;
+    /**
+     * Attribute value
+     */
     value?: string;
   }>;
+  /**
+   * Row-level custom field values, keyed by the
+   * definition ``id`` (UUID) — the ``id`` returned by
+   * ``GET /custom_field_definitions``, not the field label. Each
+   * value matches the definition's ``field_type``: string for
+   * ``shortText`` / ``url``, number for ``number``, boolean for
+   * ``boolean``, a ``YYYY-MM-DD`` string for ``date``, or the
+   * integer choice ``id`` for ``singleSelect``.
+   *
+   * On ``PATCH`` the object is **merged** with the existing values,
+   * not replaced:
+   *
+   * - omit the ``custom_fields`` key — existing values unchanged;
+   * - ``{"<id>": value}`` — that key is set / overwritten, all
+   * other keys kept;
+   * - ``null`` — all custom field values on the row are cleared.
+   *
+   * Keys are tenant-specific, so the schema declares
+   * ``additionalProperties: true`` rather than enumerating them.
+   *
+   */
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
+};
+
+/**
+ * A scalar filter value used in search ``where`` predicates — the
+ * bare-equality value and the operand type inside
+ * ``SearchComparator`` operator objects. Covers the full range of
+ * Katana field value types: string (max 256 chars), number, boolean,
+ * or ``null``. Note: the pydantic generator emits the ``str`` branch
+ * as a separate ``RootModel[str]`` class (``SearchScalarValue1``)
+ * rather than producing a single named union — ``SearchScalarValue1``
+ * is the string branch only, not the full union.
+ *
+ */
+export type SearchScalarValue = string | number | boolean | null;
+
+/**
+ * Operator object for a search ``where`` predicate. Supply this only
+ * when you need something other than equality — for equality, pass a
+ * bare ``SearchScalarValue`` instead. Only the operators listed below
+ * are accepted; the server rejects any other key with 422.
+ *
+ */
+export type SearchComparator = {
+  /**
+   * Not equal.
+   */
+  neq?: SearchScalarValue;
+  /**
+   * Greater than.
+   */
+  gt?: SearchScalarValue;
+  /**
+   * Greater than or equal.
+   */
+  gte?: SearchScalarValue;
+  /**
+   * Less than.
+   */
+  lt?: SearchScalarValue;
+  /**
+   * Less than or equal.
+   */
+  lte?: SearchScalarValue;
+  /**
+   * Value is in this list (max 100 entries).
+   */
+  inq?: Array<SearchScalarValue>;
+  /**
+   * Value is not in this list (max 100 entries).
+   */
+  nin?: Array<SearchScalarValue>;
+  /**
+   * Inclusive range ``[low, high]``.
+   */
+  between?: [SearchScalarValue, SearchScalarValue];
+  /**
+   * Pattern match, case-sensitive. ``%`` matches any sequence,
+   * ``_`` matches any single character.
+   *
+   */
+  like?: string;
+  /**
+   * Pattern match, case-insensitive (see ``like``).
+   */
+  ilike?: string;
+};
+
+/**
+ * A single ``where`` predicate: either a bare ``SearchScalarValue``
+ * (equality) or a ``SearchComparator`` operator object.
+ *
+ */
+export type SearchPredicate = SearchScalarValue | SearchComparator;
+
+/**
+ * Structured filter body for ``POST /sales_orders/search``. Returns
+ * the same paginated ``{"data": [...]}`` shape as
+ * ``GET /sales_orders`` plus an ``X-Pagination`` header. Beta —
+ * request/response shape may evolve before GA.
+ *
+ */
+export type SalesOrderSearchRequest = {
+  filter?: SalesOrderSearchFilter;
+};
+
+/**
+ * Filter envelope for ``POST /sales_orders/search``.
+ */
+export type SalesOrderSearchFilter = {
+  where?: SalesOrderSearchWhere;
+  /**
+   * Sort directive(s). Each entry is ``<field> ASC|DESC``
+   * (direction defaults to ASC). Only filterable fields may be
+   * used; ``custom_fields.<uuid>`` paths are orderable.
+   *
+   */
+  order?: string | Array<string>;
+  /**
+   * Page size; maximum 200. Omit to let the server apply its
+   * default of 50 (the client omits the key when unset rather than
+   * sending a default, so direct construction and round-tripped
+   * ``from_dict`` payloads behave identically).
+   *
+   */
+  limit?: number;
+  /**
+   * 1-based page number. Omit to let the server default to 1.
+   *
+   */
+  page?: number;
+};
+
+/**
+ * ``where`` clause for ``POST /sales_orders/search``. Only the fields
+ * listed here may appear; unknown fields are rejected with 422.
+ * Custom field values are addressable via additional
+ * ``custom_fields.<uuid>`` keys (snake_case, matching the
+ * request/response body), where ``<uuid>`` is the custom field
+ * definition id — its value is a bare value or a ``SearchComparator``
+ * like any other predicate (for ``singleSelect`` the value is the
+ * integer choice ``id``). Compose with ``and`` / ``or`` (max nesting
+ * depth 2).
+ *
+ */
+export type SalesOrderSearchWhere = {
+  /**
+   * Logical AND — every nested where-clause must match. Max nesting depth 2.
+   */
+  and?: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * Logical OR — at least one nested where-clause must match. Max nesting depth 2.
+   */
+  or?: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * Sales order id.
+   */
+  id?: SearchPredicate;
+  /**
+   * Order number.
+   */
+  order_no?: SearchPredicate;
+  /**
+   * Customer id.
+   */
+  customer_id?: SearchPredicate;
+  /**
+   * Caller-supplied customer reference.
+   */
+  customer_ref?: SearchPredicate;
+  /**
+   * Location id the order ships from.
+   */
+  location_id?: SearchPredicate;
+  /**
+   * Delivery status. Allowed values: ``PENDING``, ``NOT_SHIPPED``,
+   * ``PACKED``, ``DELIVERED``, ``PARTIALLY_PACKED``,
+   * ``PARTIALLY_DELIVERED``.
+   *
+   */
+  status?: SearchPredicate;
+  /**
+   * Invoicing status. Allowed values: ``invoiced``,
+   * ``partiallyInvoiced``, ``notInvoiced``.
+   *
+   */
+  invoicing_status?: SearchPredicate;
+  /**
+   * Production status. Allowed values: ``NOT_STARTED``, ``NONE``,
+   * ``NOT_APPLICABLE``, ``IN_PROGRESS``, ``BLOCKED``, ``DONE``.
+   *
+   */
+  production_status?: SearchPredicate;
+  /**
+   * Source the order was created from (e.g. ``api``, ``shopify``).
+   */
+  source?: SearchPredicate;
+  /**
+   * ISO 4217 currency code.
+   */
+  currency?: SearchPredicate;
+  /**
+   * Product availability rollup. Allowed values: ``IN_STOCK``,
+   * ``EXPECTED``, ``PICKED``, ``NOT_AVAILABLE``, ``NOT_APPLICABLE``.
+   *
+   */
+  product_availability?: SearchPredicate;
+  /**
+   * Ingredient (material) availability rollup. Allowed values:
+   * ``PROCESSED``, ``IN_STOCK``, ``NOT_AVAILABLE``, ``EXPECTED``,
+   * ``NO_RECIPE``, ``NOT_APPLICABLE``.
+   *
+   */
+  ingredient_availability?: SearchPredicate;
+  /**
+   * Ecommerce platform identifier.
+   */
+  ecommerce_order_type?: SearchPredicate;
+  /**
+   * Ecommerce store name.
+   */
+  ecommerce_store_name?: SearchPredicate;
+  /**
+   * External order id from the ecommerce platform.
+   */
+  ecommerce_order_id?: SearchPredicate;
+  /**
+   * Carrier tracking number.
+   */
+  tracking_number?: SearchPredicate;
+  /**
+   * ISO 8601 timestamp the order was created.
+   */
+  created_at?: SearchPredicate;
+  /**
+   * ISO 8601 timestamp the order was last updated.
+   */
+  updated_at?: SearchPredicate;
+  /**
+   * Business-meaningful order creation date (separate from ``created_at``).
+   */
+  order_created_date?: SearchPredicate;
+  /**
+   * Planned delivery date.
+   */
+  delivery_date?: SearchPredicate;
+  /**
+   * Date the order was picked / shipped.
+   */
+  picked_date?: SearchPredicate;
+  [key: string]:
+    | unknown
+    | Array<{
+        [key: string]: unknown;
+      }>
+    | Array<{
+        [key: string]: unknown;
+      }>
+    | SearchPredicate
+    | undefined;
+};
+
+/**
+ * Structured filter body for ``POST /sales_order_rows/search``.
+ * Returns the same paginated ``{"data": [...]}`` shape as
+ * ``GET /sales_order_rows`` plus an ``X-Pagination`` header. Beta —
+ * request/response shape may evolve before GA.
+ *
+ */
+export type SalesOrderRowSearchRequest = {
+  filter?: SalesOrderRowSearchFilter;
+};
+
+/**
+ * Filter envelope for ``POST /sales_order_rows/search``.
+ */
+export type SalesOrderRowSearchFilter = {
+  where?: SalesOrderRowSearchWhere;
+  /**
+   * Sort directive(s). Each entry is ``<field> ASC|DESC``
+   * (direction defaults to ASC). Only filterable fields may be
+   * used; ``custom_fields.<uuid>`` paths are orderable.
+   *
+   */
+  order?: string | Array<string>;
+  /**
+   * Page size; maximum 200. Omit to let the server apply its
+   * default of 50 (the client omits the key when unset rather than
+   * sending a default, so direct construction and round-tripped
+   * ``from_dict`` payloads behave identically).
+   *
+   */
+  limit?: number;
+  /**
+   * 1-based page number. Omit to let the server default to 1.
+   *
+   */
+  page?: number;
+};
+
+/**
+ * ``where`` clause for ``POST /sales_order_rows/search``. Only the
+ * fields listed here may appear; unknown fields are rejected with
+ * 422. Custom field values are addressable via additional
+ * ``custom_fields.<uuid>`` keys (snake_case), where ``<uuid>`` is the
+ * custom field definition id. Compose with ``and`` / ``or`` (max
+ * nesting depth 2).
+ *
+ */
+export type SalesOrderRowSearchWhere = {
+  /**
+   * Logical AND — every nested where-clause must match. Max nesting depth 2.
+   */
+  and?: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * Logical OR — at least one nested where-clause must match. Max nesting depth 2.
+   */
+  or?: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * Sales order row id.
+   */
+  id?: SearchPredicate;
+  /**
+   * Parent sales order id.
+   */
+  sales_order_id?: SearchPredicate;
+  /**
+   * Variant id sold on this row.
+   */
+  variant_id?: SearchPredicate;
+  /**
+   * Location id this row ships from.
+   */
+  location_id?: SearchPredicate;
+  /**
+   * Tax rate id applied to this row.
+   */
+  tax_rate_id?: SearchPredicate;
+  /**
+   * Ordered quantity.
+   */
+  quantity?: SearchPredicate;
+  /**
+   * Unit price.
+   */
+  price_per_unit?: SearchPredicate;
+  /**
+   * Total discount applied to this row.
+   */
+  total_discount?: SearchPredicate;
+  /**
+   * Tax rate percentage applied to this row.
+   */
+  tax_rate?: SearchPredicate;
+  /**
+   * ISO 4217 currency code.
+   */
+  currency?: SearchPredicate;
+  /**
+   * Product availability rollup. Allowed values: ``IN_STOCK``,
+   * ``EXPECTED``, ``PICKED``, ``NOT_AVAILABLE``, ``NOT_APPLICABLE``.
+   *
+   */
+  product_availability?: SearchPredicate;
+  /**
+   * ISO 8601 timestamp the row was created.
+   */
+  created_at?: SearchPredicate;
+  /**
+   * ISO 8601 timestamp the row was last updated.
+   */
+  updated_at?: SearchPredicate;
+  /**
+   * Planned delivery date for this row.
+   */
+  delivery_date?: SearchPredicate;
+  /**
+   * Actual shipping date for this row.
+   */
+  shipping_date?: SearchPredicate;
+  [key: string]:
+    | unknown
+    | Array<{
+        [key: string]: unknown;
+      }>
+    | Array<{
+        [key: string]: unknown;
+      }>
+    | SearchPredicate
+    | undefined;
 };
 
 /**
@@ -4934,6 +5941,9 @@ export type CreateSalesOrderAddressRequest = {
    * ID of the sales order this address belongs to
    */
   sales_order_id: number;
+  /**
+   * Whether this address is the shipping or billing address for the sales order
+   */
   entity_type: AddressEntityType;
   /**
    * First name for the address contact
@@ -5039,9 +6049,11 @@ export type SalesOrderListResponse = {
  */
 export type CreateSalesOrderRequest = {
   /**
-   * Unique order number for tracking and reference
+   * Unique order number for tracking and reference. Optional — Katana
+   * auto-generates a sequential ``SO-N`` value when omitted.
+   *
    */
-  order_no: string;
+  order_no?: string;
   /**
    * ID of the customer placing the order
    */
@@ -5087,6 +6099,22 @@ export type CreateSalesOrderRequest = {
        */
       value?: string;
     }>;
+    /**
+     * Row-level custom field values, keyed by the
+     * definition ``id`` (UUID) — the ``id`` returned by
+     * ``GET /custom_field_definitions``, not the field label.
+     * Each value matches the definition's ``field_type``:
+     * string for ``shortText`` / ``url``, number for
+     * ``number``, boolean for ``boolean``, a ``YYYY-MM-DD``
+     * string for ``date``, or the integer choice ``id`` for
+     * ``singleSelect``. Keys are tenant-specific, so the schema
+     * declares ``additionalProperties: true`` rather than
+     * enumerating them.
+     *
+     */
+    custom_fields?: {
+      [key: string]: unknown;
+    } | null;
   }>;
   /**
    * Shipping tracking number if already known
@@ -5097,9 +6125,59 @@ export type CreateSalesOrderRequest = {
    */
   tracking_number_url?: string | null;
   /**
-   * Billing and shipping addresses for the order
+   * Billing and shipping addresses for the order. Inline-create shape —
+   * ``sales_order_id`` is implicit (set by the parent sales-order create)
+   * and server-assigned fields (``id`` / ``sales_order_id``) are rejected
+   * by the live API on this endpoint. For the standalone create endpoint
+   * (``POST /sales_order_addresses``) see ``CreateSalesOrderAddressRequest``.
+   *
    */
-  addresses?: Array<SalesOrderAddress>;
+  addresses?: Array<{
+    /**
+     * Whether this address is the shipping or billing address for the sales order
+     */
+    entity_type: AddressEntityType;
+    /**
+     * First name for the address contact
+     */
+    first_name?: string;
+    /**
+     * Last name for the address contact
+     */
+    last_name?: string;
+    /**
+     * Company name for the address
+     */
+    company?: string;
+    /**
+     * Primary address line
+     */
+    line_1?: string;
+    /**
+     * Secondary address line
+     */
+    line_2?: string;
+    /**
+     * City name
+     */
+    city?: string;
+    /**
+     * State or province
+     */
+    state?: string;
+    /**
+     * Postal code
+     */
+    zip?: string;
+    /**
+     * Country code
+     */
+    country?: string;
+    /**
+     * Contact phone number
+     */
+    phone?: string;
+  }>;
   /**
    * Date when the order was originally created (defaults to current time)
    */
@@ -5141,12 +6219,22 @@ export type CreateSalesOrderRequest = {
    */
   ecommerce_order_id?: string | null;
   /**
-   * Custom field values to attach to the sales order. Field names
-   * must match those configured for the ``sales_order`` resource
-   * type (see ``GET /custom_fields_collections``).
+   * Custom field values for the sales order, keyed by the
+   * definition ``id`` (UUID) — the ``id`` returned by
+   * ``GET /custom_field_definitions``, not the field label. Each
+   * value matches the definition's ``field_type``: string for
+   * ``shortText`` / ``url``, number for ``number``, boolean for
+   * ``boolean``, a ``YYYY-MM-DD`` string for ``date``, or the
+   * integer choice ``id`` for ``singleSelect``. Example (keys are
+   * definition UUIDs): ``{"0c8f1d6e-…": "EMEA", "7a21b4c2-…": 2}``
+   * — a ``shortText`` value and a ``singleSelect`` choice ``id``.
+   * Keys are tenant-specific, so the schema declares
+   * ``additionalProperties: true`` rather than enumerating them.
    *
    */
-  custom_fields?: Array<CustomFieldValue>;
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
 };
 
 /**
@@ -5692,7 +6780,9 @@ export type ProductOperationRow = {
    */
   resource_name?: string | null;
   /**
-   * Cost per hour for this operation
+   * Cost per hour for this operation (deprecated — use ``cost_parameter`` instead)
+   *
+   * @deprecated
    */
   cost_per_hour?: number | null;
   /**
@@ -5706,7 +6796,9 @@ export type ProductOperationRow = {
    */
   planned_cost_per_unit?: number | null;
   /**
-   * Planned time per unit
+   * Planned time per unit (deprecated — use ``planned_time_parameter`` instead)
+   *
+   * @deprecated
    */
   planned_time_per_unit?: number | null;
   /**
@@ -5978,13 +7070,19 @@ export type Factory = {
    */
   base_currency_code: string;
   /**
-   * Default sales order delivery time
+   * Default sales order delivery time. Note: Katana's upstream
+   * example shows an ISO-8601 datetime, but the live wire delivers
+   * either ``null`` or an opaque short string (e.g. ``"14"`` for
+   * days). ``format: date-time`` is intentionally omitted.
    */
-  default_so_delivery_time?: string;
+  default_so_delivery_time?: string | null;
   /**
-   * Default purchase order lead time
+   * Default purchase order lead time. Same shape as
+   * ``default_so_delivery_time`` — wire delivers ``null`` or an
+   * opaque short string, not a datetime. ``format: date-time``
+   * intentionally omitted.
    */
-  default_po_lead_time?: string;
+  default_po_lead_time?: string | null;
   /**
    * Default manufacturing location ID
    */
@@ -6000,7 +7098,7 @@ export type Factory = {
   /**
    * Inventory closing date
    */
-  inventory_closing_date?: string;
+  inventory_closing_date?: string | null;
 };
 
 /**
@@ -6062,10 +7160,19 @@ export type CustomFieldsCollection = {
 } & DeletableEntity;
 
 /**
- * A single custom field value attached to a resource (e.g., a sales
- * order, service, product). Custom fields are configured via
- * ``GET /custom_fields_collections``; each value pairs the field's
- * configured name with the value to set.
+ * A single custom field value in the **legacy** ``{field_name,
+ * field_value}`` shape used by Variant / Product / Material / Service
+ * resources. These fields are configured via the
+ * ``/custom_fields_collections`` surface and attached as an **array**
+ * of name/value pairs.
+ *
+ * This is distinct from — and must not be unified with — the newer
+ * sales-order custom-fields surface, where ``custom_fields`` is a
+ * **dict keyed by custom field definition ``id`` (UUID)** registered
+ * through ``/custom_field_definitions`` (see ``CustomFieldDefinition``
+ * and the ``custom_fields`` property on ``SalesOrder`` /
+ * ``SalesOrderRow``). The two surfaces coexist intentionally; Katana
+ * has not migrated items/variants to the dict shape.
  *
  */
 export type CustomFieldValue = {
@@ -6120,37 +7227,95 @@ export type CustomFieldsCollectionListResponse = {
 };
 
 /**
- * A configured custom field definition that callers can attach to a
- * resource (sales order, service, product, etc.) via the resource's
- * ``custom_fields`` property. Definitions are scoped to a specific
- * ``entity_type`` and shape what values consumers can store.
+ * Field input type for a ``CustomFieldDefinition`` — determines how
+ * Katana renders and validates the field's stored values, and what
+ * JSON type the value takes when set on a sales order. Immutable
+ * after creation.
+ *
+ * Value stored on the entity, by ``field_type``:
+ *
+ * - ``shortText`` — string
+ * - ``number`` — number
+ * - ``date`` — ``YYYY-MM-DD`` string
+ * - ``boolean`` — ``true`` / ``false``
+ * - ``url`` — string
+ * - ``singleSelect`` — the integer choice ``id`` (not the label).
+ * Requires ``options.choices``; the server assigns each choice an
+ * integer ``id``. Resolve labels client-side from
+ * ``options.choices`` (soft-deleted choices remain in the array).
+ *
+ * Note: a ``multiSelect`` type has been announced on the Katana
+ * roadmap but is **not yet live** — the API rejects it today, so it
+ * is intentionally absent from this enum. Add it here only once the
+ * live API accepts it.
+ *
+ */
+export type CustomFieldType =
+  | "shortText"
+  | "number"
+  | "singleSelect"
+  | "date"
+  | "boolean"
+  | "url";
+
+/**
+ * Resource type a ``CustomFieldDefinition`` applies to. Immutable
+ * after creation.
+ *
+ * The partner-defined custom-fields surface (``/custom_field_definitions``)
+ * is live for **sales orders and sales order rows only**. These are
+ * the sole values the API accepts today; creating a definition with
+ * any other ``entity_type`` is rejected.
+ *
+ * Katana has signalled on its roadmap that custom fields will expand
+ * to further entities (items / variants, and others). Each new entity
+ * type must be added here only once the live API accepts it — keeping
+ * this enum honest forces a deliberate spec edit per rollout rather
+ * than advertising values that 422.
+ *
+ * Note: the legacy ``[{field_name, field_value}]`` custom-fields shape
+ * on Variant / Product / Material / Service is a **separate** surface
+ * (see ``/custom_fields_collections``) and is unrelated to this enum.
+ *
+ */
+export type CustomFieldEntityType = "SalesOrder" | "SalesOrderRow";
+
+/**
+ * A partner-defined custom field that callers register once via
+ * ``POST /custom_field_definitions`` and then attach values for on a
+ * sales order (or sales order row) through that resource's
+ * ``custom_fields`` property, keyed by this definition's ``id``
+ * (UUID).
+ *
+ * Scope today: ``entity_type`` is limited to ``SalesOrder`` /
+ * ``SalesOrderRow`` (see ``CustomFieldEntityType``). A factory may
+ * hold at most **50 definitions**. ``field_type``, ``entity_type``,
+ * and ``source`` are **immutable** after creation; only ``label``,
+ * ``description``, and ``options`` may be updated.
  *
  */
 export type CustomFieldDefinition = {
   /**
-   * Unique identifier for the custom field definition
+   * Server-assigned UUID identifier
    */
-  id: number;
+  id: string;
   /**
    * Display label shown in the Katana UI
    */
   label: string;
   /**
-   * Field input type (e.g. ``text``, ``number``, ``date``,
-   * ``select``). Drives how Katana renders and validates the
-   * field's values.
-   *
+   * Field input type. Immutable after creation.
    */
-  field_type: string;
+  field_type: CustomFieldType;
   /**
-   * Resource type the definition applies to (matches the
-   * resource's ``custom_fields`` API field — e.g.
-   * ``sales_order``, ``service``, ``product``).
-   *
+   * Resource type the definition applies to. Immutable after creation.
    */
-  entity_type: string;
+  entity_type: CustomFieldEntityType;
   /**
-   * Origin / namespace of the definition (e.g. ``katana``, ``user``).
+   * Caller-provided identifier of the integration that owns the
+   * field (e.g. your application slug). Namespaces and audits
+   * definitions. Immutable after creation.
+   *
    */
   source: string;
   /**
@@ -6158,15 +7323,32 @@ export type CustomFieldDefinition = {
    */
   description?: string | null;
   /**
-   * Free-form configuration object — shape varies per
-   * ``field_type`` (e.g., select fields carry the option list
-   * here).
+   * Choice configuration. Present and meaningful only when
+   * ``field_type`` is ``singleSelect``; ``null`` for every other
+   * type. Each choice carries its server-assigned integer ``id``
+   * (the value stored on the entity) and ``label``; soft-deleted
+   * choices remain in the array so historical values stay
+   * resolvable.
    *
    */
-  options?: {
-    [key: string]: unknown;
-  } | null;
-} & UpdatableEntity;
+  options?: CustomFieldOptions | null;
+  /**
+   * Timestamp when the definition was created
+   */
+  created_at?: string;
+  /**
+   * Timestamp when the definition was last updated
+   */
+  updated_at?: string;
+  /**
+   * Soft-delete timestamp; ``null`` for a live definition. Deleting
+   * a definition (``DELETE /custom_field_definitions/{id}``) is a
+   * soft delete — its values are stripped from read responses but
+   * the definition is retained.
+   *
+   */
+  deleted_at?: string | null;
+};
 
 /**
  * Request payload for creating a new custom field definition.
@@ -6177,15 +7359,15 @@ export type CreateCustomFieldDefinitionRequest = {
    */
   label: string;
   /**
-   * Field input type (text, number, date, select, etc.)
+   * Field input type. Immutable after creation.
    */
-  field_type: string;
+  field_type: CustomFieldType;
   /**
-   * Resource type the definition applies to
+   * Resource type the definition applies to. Immutable after creation.
    */
-  entity_type: string;
+  entity_type: CustomFieldEntityType;
   /**
-   * Origin / namespace of the definition
+   * Origin / namespace of the definition.
    */
   source: string;
   /**
@@ -6193,15 +7375,22 @@ export type CreateCustomFieldDefinitionRequest = {
    */
   description?: string | null;
   /**
-   * Free-form configuration object — shape varies per ``field_type``
+   * Choice configuration. Required when ``field_type`` is
+   * ``singleSelect``; omit (or send ``null``) for every other type.
+   * On create, send each choice with just a ``label`` — the server
+   * assigns each one an integer ``id`` and returns the resolved
+   * array. Use those ``id`` values when setting the field on a
+   * sales order.
+   *
    */
-  options?: {
-    [key: string]: unknown;
-  } | null;
+  options?: CustomFieldOptionsCreate | null;
 };
 
 /**
  * Request payload for updating an existing custom field definition.
+ * Only ``label``, ``description``, and ``options`` may be updated;
+ * ``field_type``, ``entity_type``, and ``source`` are immutable.
+ *
  */
 export type UpdateCustomFieldDefinitionRequest = {
   /**
@@ -6213,11 +7402,20 @@ export type UpdateCustomFieldDefinitionRequest = {
    */
   description?: string | null;
   /**
-   * Updated configuration object
+   * Updated choice configuration (``singleSelect`` only). Send the
+   * **full** ``choices`` array — every existing choice must be
+   * included and identified by its server-assigned ``id``. A choice
+   * present in the array without an ``id`` is created. A choice
+   * omitted from the array is removed from the active choices list
+   * (it can no longer be selected), but its past values on existing
+   * records are not resolvable after removal. Use ``"deleted": true``
+   * instead to soft-delete a choice — it stays in the array so
+   * historical values referencing its ``id`` remain resolvable, but
+   * it is no longer offered as a new selection. Choices are never
+   * hard-deleted.
+   *
    */
-  options?: {
-    [key: string]: unknown;
-  } | null;
+  options?: CustomFieldOptions | null;
 };
 
 /**
@@ -6228,6 +7426,76 @@ export type CustomFieldDefinitionListResponse = {
    * Array of custom field definitions
    */
   data?: Array<CustomFieldDefinition>;
+};
+
+/**
+ * A single ``singleSelect`` choice as it appears on read and update.
+ * The integer ``id`` is what gets stored on the entity; ``label`` is
+ * the human-readable text resolved client-side.
+ *
+ */
+export type CustomFieldChoice = {
+  /**
+   * Server-assigned choice identifier. The value actually stored on
+   * a sales order for this field. Present on read; on
+   * ``PATCH /custom_field_definitions/{id}`` it must be supplied to
+   * identify an existing choice (omit it to create a new choice).
+   *
+   */
+  id?: number;
+  /**
+   * Human-readable label for the choice.
+   */
+  label: string;
+  /**
+   * Soft-delete marker. On update, set ``true`` to retire an
+   * existing choice while keeping it in the array so historical
+   * values referencing its ``id`` stay resolvable. Choices are
+   * never hard-deleted.
+   *
+   */
+  deleted?: boolean;
+};
+
+/**
+ * A single ``singleSelect`` choice as supplied on
+ * ``POST /custom_field_definitions``. Send only the ``label`` — the
+ * server assigns the integer ``id`` and returns it in the response.
+ *
+ */
+export type CustomFieldChoiceCreate = {
+  /**
+   * Human-readable label for the choice.
+   */
+  label: string;
+};
+
+/**
+ * Choice configuration for a ``singleSelect`` custom field definition,
+ * as returned on read and supplied on update.
+ *
+ */
+export type CustomFieldOptions = {
+  /**
+   * The allowed choices, each with its server-assigned integer
+   * ``id`` and ``label``. Soft-deleted choices remain present so
+   * historical values stay resolvable.
+   *
+   */
+  choices: Array<CustomFieldChoice>;
+};
+
+/**
+ * Choice configuration supplied when creating a ``singleSelect``
+ * custom field definition. Each choice carries only a ``label``; the
+ * server assigns each one an integer ``id``.
+ *
+ */
+export type CustomFieldOptionsCreate = {
+  /**
+   * The choices to create, each identified by ``label`` only.
+   */
+  choices: Array<CustomFieldChoiceCreate>;
 };
 
 /**
@@ -6491,23 +7759,23 @@ export type UpdateSalesReturnRequest = {
    */
   status?: SalesReturnStatus;
   /**
-   * Date of the return. Updatable only when current return status is not restockedAll.
+   * Date of the return. Updatable only when current return status is not RESTOCKED_ALL.
    */
   return_date?: string;
   /**
-   * Creation date of the return. Updatable only when current return status is not restockedAll.
+   * Creation date of the return. Updatable only when current return status is not RESTOCKED_ALL.
    */
   order_created_date?: string;
   /**
-   * ID of the location where items are being returned to. Updatable only when current return status is not restockedAll.
+   * ID of the location where items are being returned to. Updatable only when current return status is not RESTOCKED_ALL.
    */
   return_location_id?: number;
   /**
-   * Return order reference number. Updatable only when current return status is not restockedAll.
+   * Return order reference number. Updatable only when current return status is not RESTOCKED_ALL.
    */
   order_no?: string;
   /**
-   * Additional information about the return. Updatable only when current return status is not restockedAll.
+   * Additional information about the return. Updatable only when current return status is not RESTOCKED_ALL.
    */
   additional_info?: string | null;
   /**
@@ -6694,6 +7962,9 @@ export type CreateCustomerAddressRequest = {
    * ID of the customer this address belongs to
    */
   customer_id: number;
+  /**
+   * Whether this address is the shipping or billing address for the customer
+   */
   entity_type: AddressEntityType;
   /**
    * First name for the contact person at this address
@@ -7188,15 +8459,45 @@ export type BatchTransactionRequest = {
  * Request payload for updating an existing customer address
  */
 export type UpdateCustomerAddressRequest = {
+  /**
+   * Updated first name for the contact person at this address
+   */
   first_name?: string | null;
+  /**
+   * Updated last name for the contact person at this address
+   */
   last_name?: string | null;
+  /**
+   * Updated company name for business addresses
+   */
   company?: string | null;
+  /**
+   * Updated phone number for this address location
+   */
   phone?: string | null;
+  /**
+   * Updated primary address line (street address, building number)
+   */
   line_1?: string | null;
+  /**
+   * Updated secondary address line (apartment, suite, floor)
+   */
   line_2?: string | null;
+  /**
+   * Updated city or locality name
+   */
   city?: string | null;
+  /**
+   * Updated state, province, or region
+   */
   state?: string | null;
+  /**
+   * Updated postal code or ZIP code
+   */
   zip?: string | null;
+  /**
+   * Updated country name or country code
+   */
   country?: string | null;
 };
 
@@ -7270,6 +8571,9 @@ export type UpdateOutsourcedPurchaseOrderRecipeRowRequest = {
  * A single product operation row item in a bulk create request
  */
 export type CreateProductOperationRowItem = {
+  /**
+   * ID of the product variant that this operation row applies to
+   */
   product_variant_id: number;
   /**
    * If operation ID is used to map the operation, then operation_name is ignored.
@@ -7348,6 +8652,9 @@ export type CreateProductOperationRowsRequest = {
    * Set to false to delete all existing product operation lines for related products.
    */
   keep_current_rows?: boolean;
+  /**
+   * List of product operation rows to create in this bulk request (max 150 per call)
+   */
   rows: Array<CreateProductOperationRowItem>;
 };
 
@@ -7423,6 +8730,10 @@ export type SalesOrderFulfillmentRowRequest = {
    * Quantity to fulfill
    */
   quantity?: number;
+  /**
+   * Serial number IDs allocated to this fulfillment row. Required when the row's variant is serial-tracked; the count must equal `quantity`.
+   */
+  serial_numbers?: Array<number>;
 };
 
 /**
@@ -7534,24 +8845,6 @@ export type UpdateSalesOrderShippingFeeRequest = {
 };
 
 /**
- * Request payload for searching sales orders with arbitrary filter
- * criteria. The ``filter`` object accepts free-form key-value pairs
- * — supported keys are documented in the Katana API reference
- * (matches POST /sales_orders/search behaviour).
- *
- */
-export type SalesOrderSearchRequest = {
-  /**
-   * Free-form filter criteria. Keys map to sales-order fields the
-   * API supports searching on.
-   *
-   */
-  filter?: {
-    [key: string]: unknown;
-  };
-};
-
-/**
  * Request payload for updating a sales order
  */
 export type UpdateSalesOrderRequest = {
@@ -7572,7 +8865,14 @@ export type UpdateSalesOrderRequest = {
    */
   delivery_date?: string;
   /**
-   * Updatable only when sales order status is NOT_SHIPPED or PENDING.
+   * Sales-order-level pick date. Updatable only when sales order status
+   * is ``NOT_SHIPPED`` or ``PENDING``.
+   *
+   * **Cascading update:** patching this field rewrites ``picked_date``
+   * on **every** linked fulfillment to match. For per-fulfillment pick
+   * dates, patch
+   * ``/sales_order_fulfillments/{id}`` directly instead.
+   *
    */
   picked_date?: string;
   /**
@@ -7613,12 +8913,29 @@ export type UpdateSalesOrderRequest = {
    */
   tracking_number_url?: string | null;
   /**
-   * Custom field values to attach to the sales order. Field names
-   * must match those configured for the ``sales_order`` resource
-   * type (see ``GET /custom_fields_collections``).
+   * Custom field values for the sales order, keyed by the
+   * definition ``id`` (UUID) — the ``id`` returned by
+   * ``GET /custom_field_definitions``, not the field label. Each
+   * value matches the definition's ``field_type``: string for
+   * ``shortText`` / ``url``, number for ``number``, boolean for
+   * ``boolean``, a ``YYYY-MM-DD`` string for ``date``, or the
+   * integer choice ``id`` for ``singleSelect``.
+   *
+   * On ``PATCH`` the object is **merged** with the existing values,
+   * not replaced:
+   *
+   * - omit the ``custom_fields`` key — existing values unchanged;
+   * - ``{"<id>": value}`` — that key is set / overwritten, all
+   * other keys kept;
+   * - ``null`` — all custom field values on the order are cleared.
+   *
+   * Keys are tenant-specific, so the schema declares
+   * ``additionalProperties: true`` rather than enumerating them.
    *
    */
-  custom_fields?: Array<CustomFieldValue>;
+  custom_fields?: {
+    [key: string]: unknown;
+  } | null;
 };
 
 /**
@@ -7650,7 +8967,7 @@ export type CreateSerialNumbersRequest = {
   /**
    * Resource type
    */
-  resource_type?: CreateSerialNumberResourceType;
+  resource_type: CreateSerialNumberResourceType;
   /**
    * Resource ID
    */
@@ -7658,7 +8975,7 @@ export type CreateSerialNumbersRequest = {
   /**
    * List of serial numbers to create
    */
-  serial_numbers?: Array<string>;
+  serial_numbers: Array<string>;
 };
 
 /**
@@ -7691,9 +9008,11 @@ export type StockTransferRowRequest = {
    */
   variant_id?: number;
   /**
-   * Quantity to transfer
+   * Quantity to transfer, as a fixed-precision decimal string
+   * (e.g. ``"1.0000000000"``).
+   *
    */
-  quantity?: number;
+  quantity?: string;
 };
 
 /**
@@ -7774,6 +9093,9 @@ export type UpdateStockTransferStatusRequest = {
  * Response containing a list of locations
  */
 export type LocationListResponse = {
+  /**
+   * Array of locations returned by this page of the list response
+   */
   data?: Array<Location>;
 };
 
@@ -7781,6 +9103,9 @@ export type LocationListResponse = {
  * Response containing a list of product operation rows
  */
 export type ProductOperationRowListResponse = {
+  /**
+   * Array of product operation rows returned by this page of the list response
+   */
   data?: Array<ProductOperationRow>;
 };
 
@@ -7840,6 +9165,9 @@ export type UnassignedBatchTransaction = {
  * Response containing a list of unassigned batch transactions
  */
 export type UnassignedBatchTransactionListResponse = {
+  /**
+   * Array of unassigned batch transactions returned by this page of the list response
+   */
   data?: Array<UnassignedBatchTransaction>;
 };
 
@@ -8062,9 +9390,11 @@ export type DefaultSupplierId = number;
 export type IsSellable = boolean;
 
 /**
- * Filters records by whether they are batch tracked.
+ * Filters records by batch-tracking status. Send the literal string
+ * ``"true"`` or ``"false"`` — Katana matches the wire value, not the JSON
+ * boolean.
  */
-export type BatchTracked = boolean;
+export type BatchTracked = "true" | "false";
 
 /**
  * Filters records by purchase unit of measure.
@@ -8107,9 +9437,11 @@ export type IsPurchasable = boolean;
 export type IsAutoAssembly = boolean;
 
 /**
- * Filters products by a serial_tracked
+ * Filters records by serial-tracking status. Send the literal string
+ * ``"true"`` or ``"false"`` — Katana matches the wire value, not the JSON
+ * boolean.
  */
-export type SerialTracked = boolean;
+export type SerialTracked = "true" | "false";
 
 /**
  * Filters products by a operations_in_sequence
@@ -8317,6 +9649,11 @@ export type RegisteredBarcode = string;
 export type SupplierItemCodes = Array<string>;
 
 /**
+ * Filters variants by ABC inventory classification.
+ */
+export type AbcClassification2 = AbcClassification;
+
+/**
  * Filters webhooks by an url
  */
 export type Url = string;
@@ -8395,6 +9732,16 @@ export type CategoryName = string;
  * Resource identifier
  */
 export type Id = number;
+
+/**
+ * BOM row identifier (UUID)
+ */
+export type BomRowId = string;
+
+/**
+ * Custom field definition identifier (UUID)
+ */
+export type CustomFieldDefinitionId = string;
 
 /**
  * Filter by sales order ID
@@ -8728,9 +10075,12 @@ export type GetAllStorageBinsError =
 
 export type GetAllStorageBinsResponses = {
   /**
-   * List of storage bins.
+   * List of storage bins. Unlike most Katana list endpoints, this one
+   * returns a bare JSON array on the wire rather than a `{ "data": [...] }`
+   * envelope (verified against the live API, 2026-06-03). See `/user_info`
+   * for the only other documented bare-array exception.
    */
-  200: StorageBinListResponse;
+  200: Array<StorageBinResponse>;
 };
 
 export type GetAllStorageBinsResponse =
@@ -8840,9 +10190,9 @@ export type GetAllInventoryPointData = {
      */
     location_id?: number;
     /**
-     * Filters results by a valid variant id.
+     * Filter by one or more variant IDs.
      */
-    variant_id?: number;
+    variant_id?: Array<number>;
     /**
      * Includes archived results.
      */
@@ -9312,6 +10662,21 @@ export type DeleteManufacturingOrderErrors = {
    * Not found.
    */
   404: ErrorResponse;
+  /**
+   * Precondition failed - the resource cannot be modified or deleted in its
+   * current state. Typically returned when a delete is blocked by linked
+   * child records (e.g. a sales order with attached return orders, or a
+   * purchase order with received stock).
+   *
+   * Note: 412 responses observed on these endpoints arrive wrapped in
+   * Katana's nested ``{"error": {...}}`` envelope (see example). The
+   * ``ErrorResponse`` schema describes the inner object; the wire payload
+   * nests it under an ``error`` key. The client's ``unwrap()`` helper
+   * handles both shapes transparently. Callers inspecting the raw
+   * payload directly (via ``sync_detailed()`` / ``asyncio_detailed()``
+   * and ``Response.content``) should expect the wrapped form.
+   */
+  412: ErrorResponse;
   /**
    * Validation failed.
    */
@@ -10305,9 +11670,11 @@ export type GetAllMaterialsData = {
      */
     is_sellable?: boolean;
     /**
-     * Filters records by whether they are batch tracked.
+     * Filters records by batch-tracking status. Send the literal string
+     * ``"true"`` or ``"false"`` — Katana matches the wire value, not the JSON
+     * boolean.
      */
-    batch_tracked?: boolean;
+    batch_tracked?: "true" | "false";
     /**
      * Filters records by purchase unit of measure.
      */
@@ -10670,13 +12037,17 @@ export type GetAllProductsData = {
      */
     default_supplier_id?: number;
     /**
-     * Filters records by whether they are batch tracked.
+     * Filters records by batch-tracking status. Send the literal string
+     * ``"true"`` or ``"false"`` — Katana matches the wire value, not the JSON
+     * boolean.
      */
-    batch_tracked?: boolean;
+    batch_tracked?: "true" | "false";
     /**
-     * Filters products by a serial_tracked
+     * Filters records by serial-tracking status. Send the literal string
+     * ``"true"`` or ``"false"`` — Katana matches the wire value, not the JSON
+     * boolean.
      */
-    serial_tracked?: boolean;
+    serial_tracked?: "true" | "false";
     /**
      * Filters products by a operations_in_sequence
      */
@@ -11097,6 +12468,21 @@ export type DeletePurchaseOrderErrors = {
    * Not found.
    */
   404: ErrorResponse;
+  /**
+   * Precondition failed - the resource cannot be modified or deleted in its
+   * current state. Typically returned when a delete is blocked by linked
+   * child records (e.g. a sales order with attached return orders, or a
+   * purchase order with received stock).
+   *
+   * Note: 412 responses observed on these endpoints arrive wrapped in
+   * Katana's nested ``{"error": {...}}`` envelope (see example). The
+   * ``ErrorResponse`` schema describes the inner object; the wire payload
+   * nests it under an ``error`` key. The client's ``unwrap()`` helper
+   * handles both shapes transparently. Callers inspecting the raw
+   * payload directly (via ``sync_detailed()`` / ``asyncio_detailed()``
+   * and ``Response.content``) should expect the wrapped form.
+   */
+  412: ErrorResponse;
   /**
    * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
    */
@@ -12433,6 +13819,10 @@ export type GetAllVariantsData = {
      */
     supplier_item_codes?: Array<string>;
     /**
+     * Filters variants by ABC inventory classification.
+     */
+    abc_classification?: AbcClassification;
+    /**
      * Array of objects to extend the response for variant endpoints.
      */
     extend?: Array<"product_or_material">;
@@ -12677,7 +14067,7 @@ export type LinkVariantDefaultStorageBinsData = {
   /**
    * Linked variant default storage bin details
    */
-  body: VariantDefaultStorageBinLink;
+  body: Array<VariantDefaultStorageBinLink>;
   path?: never;
   query?: never;
   url: "/variant_bin_locations";
@@ -13439,7 +14829,7 @@ export type CreateSalesReturnRowResponses = {
   /**
    * Sales return row created successfully
    */
-  201: SalesReturnRow;
+  200: SalesReturnRow;
 };
 
 export type CreateSalesReturnRowResponse =
@@ -13708,9 +15098,9 @@ export type GetAllRecipesData = {
      */
     product_id?: number;
     /**
-     * Filter by recipe row ID
+     * Filter by recipe row ID (UUID).
      */
-    recipe_row_id?: number;
+    recipe_row_id?: string;
   };
   url: "/recipes";
 };
@@ -14463,6 +15853,21 @@ export type DeleteSalesOrderErrors = {
    */
   404: ErrorResponse;
   /**
+   * Precondition failed - the resource cannot be modified or deleted in its
+   * current state. Typically returned when a delete is blocked by linked
+   * child records (e.g. a sales order with attached return orders, or a
+   * purchase order with received stock).
+   *
+   * Note: 412 responses observed on these endpoints arrive wrapped in
+   * Katana's nested ``{"error": {...}}`` envelope (see example). The
+   * ``ErrorResponse`` schema describes the inner object; the wire payload
+   * nests it under an ``error`` key. The client's ``unwrap()`` helper
+   * handles both shapes transparently. Callers inspecting the raw
+   * payload directly (via ``sync_detailed()`` / ``asyncio_detailed()``
+   * and ``Response.content``) should expect the wrapped form.
+   */
+  412: ErrorResponse;
+  /**
    * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
    */
   429: ErrorResponse;
@@ -14569,12 +15974,15 @@ export type UpdateSalesOrderResponses = {
   /**
    * Sales order updated
    */
-  200: unknown;
+  200: SalesOrder;
 };
+
+export type UpdateSalesOrderResponse =
+  UpdateSalesOrderResponses[keyof UpdateSalesOrderResponses];
 
 export type SearchSalesOrdersData = {
   /**
-   * Search filter criteria
+   * Structured filter body. See the schema for the field allowlist, operators, and caps.
    */
   body: SalesOrderSearchRequest;
   path?: never;
@@ -15368,7 +16776,7 @@ export type CreateStockTransferResponses = {
   /**
    * Stock transfer created successfully
    */
-  201: StockTransfer;
+  200: StockTransfer;
 };
 
 export type CreateStockTransferResponse =
@@ -15670,6 +17078,48 @@ export type CreateSalesOrderRowResponses = {
 
 export type CreateSalesOrderRowResponse =
   CreateSalesOrderRowResponses[keyof CreateSalesOrderRowResponses];
+
+export type SearchSalesOrderRowsData = {
+  /**
+   * Structured filter body. See the schema for the field allowlist, operators, and caps.
+   */
+  body: SalesOrderRowSearchRequest;
+  path?: never;
+  query?: never;
+  url: "/sales_order_rows/search";
+};
+
+export type SearchSalesOrderRowsErrors = {
+  /**
+   * Make sure you've entered your API token correctly.
+   */
+  401: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
+  /**
+   * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
+   */
+  429: ErrorResponse;
+  /**
+   * Internal Server Error.
+   */
+  500: ErrorResponse;
+};
+
+export type SearchSalesOrderRowsError =
+  SearchSalesOrderRowsErrors[keyof SearchSalesOrderRowsErrors];
+
+export type SearchSalesOrderRowsResponses = {
+  /**
+   * Matching sales order rows
+   */
+  200: SalesOrderRowListResponse;
+};
+
+export type SearchSalesOrderRowsResponse =
+  SearchSalesOrderRowsResponses[keyof SearchSalesOrderRowsResponses];
 
 export type DeleteSalesOrderRowData = {
   body?: never;
@@ -16200,7 +17650,7 @@ export type CreateSalesOrderFulfillmentResponses = {
   /**
    * Sales order fulfillment created successfully
    */
-  201: SalesOrderFulfillment;
+  200: SalesOrderFulfillment;
 };
 
 export type CreateSalesOrderFulfillmentResponse =
@@ -16592,8 +18042,11 @@ export type UpdateCustomerAddressResponses = {
   /**
    * Customer address updated
    */
-  200: unknown;
+  200: CustomerAddress;
 };
+
+export type UpdateCustomerAddressResponse =
+  UpdateCustomerAddressResponses[keyof UpdateCustomerAddressResponses];
 
 export type GetAllPriceListsData = {
   body?: never;
@@ -17425,9 +18878,9 @@ export type CreateBomRowError = CreateBomRowErrors[keyof CreateBomRowErrors];
 
 export type CreateBomRowResponses = {
   /**
-   * Object deleted successfully
+   * Returns the created BOM row with its server-assigned id, rank, and timestamps.
    */
-  204: void;
+  200: BomRow;
 };
 
 export type CreateBomRowResponse =
@@ -17479,9 +18932,9 @@ export type DeleteBomRowData = {
   body?: never;
   path: {
     /**
-     * Resource identifier
+     * BOM row identifier (UUID)
      */
-    id: number;
+    id: string;
   };
   query?: never;
   url: "/bom_rows/{id}";
@@ -17525,9 +18978,9 @@ export type UpdateBomRowData = {
   body: UpdateBomRowRequest;
   path: {
     /**
-     * Resource identifier
+     * BOM row identifier (UUID)
      */
-    id: number;
+    id: string;
   };
   query?: never;
   url: "/bom_rows/{id}";
@@ -17599,7 +19052,7 @@ export type GetAllStocktakesData = {
     /**
      * Filters stocktakes by stock adjustment ID
      */
-    stock_adjustment_id?: number;
+    stock_adjustment_id?: string;
     /**
      * Minimum creation date (ISO 8601 format).
      */
@@ -18022,21 +19475,9 @@ export type DeleteSerialNumbersData = {
 
 export type DeleteSerialNumbersErrors = {
   /**
-   * Bad Request Error.
-   */
-  400: ErrorResponse;
-  /**
    * Make sure you've entered your API token correctly.
    */
   401: ErrorResponse;
-  /**
-   * Not found.
-   */
-  404: ErrorResponse;
-  /**
-   * Validation failed.
-   */
-  422: DetailedErrorResponse;
   /**
    * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
    */
@@ -18052,7 +19493,10 @@ export type DeleteSerialNumbersError =
 
 export type DeleteSerialNumbersResponses = {
   /**
-   * Serial numbers deleted successfully
+   * Serial numbers deleted successfully. Returned for every
+   * well-formed request (valid auth, valid JSON body) regardless
+   * of whether the supplied ids actually exist.
+   *
    */
   204: void;
 };
@@ -18159,12 +19603,15 @@ export type CreateSerialNumbersError =
 
 export type CreateSerialNumbersResponses = {
   /**
-   * Serial numbers created successfully
+   * Serial numbers created / transferred — partial failure is
+   * possible. Inspect ``successful`` and ``failed`` arrays in the
+   * response body to determine which strings landed.
+   *
    */
-  200: SerialNumberListResponse;
+  200: CreateSerialNumbersResponse;
 };
 
-export type CreateSerialNumbersResponse =
+export type CreateSerialNumbersResponse2 =
   CreateSerialNumbersResponses[keyof CreateSerialNumbersResponses];
 
 export type GetSerialNumbersStockAltData = {
@@ -18488,9 +19935,9 @@ export type DeleteCustomFieldDefinitionData = {
   body?: never;
   path: {
     /**
-     * Resource identifier
+     * Custom field definition identifier (UUID)
      */
-    id: number;
+    id: string;
   };
   query?: never;
   url: "/custom_field_definitions/{id}";
@@ -18532,9 +19979,9 @@ export type GetCustomFieldDefinitionData = {
   body?: never;
   path: {
     /**
-     * Resource identifier
+     * Custom field definition identifier (UUID)
      */
-    id: number;
+    id: string;
   };
   query?: never;
   url: "/custom_field_definitions/{id}";
@@ -18579,9 +20026,9 @@ export type UpdateCustomFieldDefinitionData = {
   body: UpdateCustomFieldDefinitionRequest;
   path: {
     /**
-     * Resource identifier
+     * Custom field definition identifier (UUID)
      */
-    id: number;
+    id: string;
   };
   query?: never;
   url: "/custom_field_definitions/{id}";
@@ -18667,7 +20114,7 @@ export type CreateInventoryReorderPointResponses = {
   /**
    * Inventory reorder point created successfully
    */
-  201: InventoryReorderPoint;
+  200: InventoryReorderPoint;
 };
 
 export type CreateInventoryReorderPointResponse =
@@ -18793,7 +20240,7 @@ export type CreateOutsourcedPurchaseOrderRecipeRowResponses = {
   /**
    * Outsourced purchase order recipe row created successfully
    */
-  201: OutsourcedPurchaseOrderRecipeRow;
+  200: OutsourcedPurchaseOrderRecipeRow;
 };
 
 export type CreateOutsourcedPurchaseOrderRecipeRowResponse =

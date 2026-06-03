@@ -495,14 +495,13 @@ def verify_F20b(client: httpx.Client) -> FindingResult:
     count = finding.calls[0].response_count or 0
     if keys == ["<bare-array>"]:
         finding.conclusion = (
-            f"Confirmed: bare-array shape (count={count}). Local "
-            "StorageBinListResponse wrapper is wrong."
+            f"Confirmed: bare-array shape (count={count}). This is now the "
+            "expected shape — the local spec models a bare array of "
+            "StorageBinResponse (fixed in #575 / PR #903); the old "
+            "StorageBinListResponse wrapper was removed."
         )
-        finding.triage_category = "upstream_correct_local_wrong"
-        finding.suggested_action = (
-            "Fix local /bin_locations response: bare array, drop "
-            "StorageBinListResponse wrapper."
-        )
+        finding.triage_category = "fixed"
+        finding.suggested_action = ""
     elif "data" in keys:
         finding.conclusion = (
             f"With unrestricted query, response is wrapped {{data: [...]}} "
