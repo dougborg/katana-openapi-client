@@ -495,20 +495,20 @@ def _build_update_bom_row_request(patch: BomRowUpdate) -> APIUpdateBomRowRequest
 
 
 def _make_create_bom_row_apply(services: Any, body: APICreateBomRowRequest):
-    async def apply() -> None:
-        # ``POST /bom_rows`` returns 204 No Content per Katana's spec — no
-        # response body to parse. The previous ``unwrap_as(response, BomRow)``
-        # call raised ``APIError`` on every successful create because
-        # ``unwrap`` treated ``parsed is None`` as an error regardless of
-        # status, fail-fast halted the plan, and a multi-row batch silently
-        # became a 1-row commit (#809). Mirror ``_make_delete_bom_row_apply``:
-        # confirm 2xx, otherwise let ``unwrap`` raise the typed error.
+    async def apply() -> BomRow:
+        # ``POST /bom_rows`` returns ``200`` with the full ``BomRow`` body
+        # (verified live, 2026-05-22 — see #820). Our spec previously declared
+        # ``204 No Content``, so the generated parser had no 200 branch and
+        # ``unwrap_as(response, BomRow)`` raised ``APIError`` on every
+        # successful create (``parsed is None``), fail-fast halted the plan,
+        # and a multi-row batch silently became a 1-row commit (#809). With the
+        # spec aligned to the real 200+body shape, ``unwrap_as`` now parses the
+        # row cleanly and we return it so the new id / created_at / rank flow
+        # into the dispatcher's ``apply_outcome`` for downstream consumers.
         response = await api_create_bom_row.asyncio_detailed(
             client=services.client, body=body
         )
-        if not is_success(response):
-            unwrap(response)
-        return None
+        return unwrap_as(response, BomRow)
 
     return apply
 

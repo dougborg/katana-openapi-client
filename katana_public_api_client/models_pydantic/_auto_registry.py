@@ -588,9 +588,6 @@ from katana_public_api_client.models.stocktake_row_list_response import (
     StocktakeRowListResponse as AttrsStocktakeRowListResponse,
 )
 from katana_public_api_client.models.storage_bin import StorageBin as AttrsStorageBin
-from katana_public_api_client.models.storage_bin_list_response import (
-    StorageBinListResponse as AttrsStorageBinListResponse,
-)
 from katana_public_api_client.models.storage_bin_response import (
     StorageBinResponse as AttrsStorageBinResponse,
 )
@@ -1054,7 +1051,6 @@ from ._generated.stock import (
     StockTransferRow as PydanticStockTransferRow,
     StockTransferRowRequest as PydanticStockTransferRowRequest,
     StorageBin as PydanticStorageBin,
-    StorageBinListResponse as PydanticStorageBinListResponse,
     StorageBinResponse as PydanticStorageBinResponse,
     StorageBinUpdate as PydanticStorageBinUpdate,
     UpdateStockAdjustmentRequest as PydanticUpdateStockAdjustmentRequest,
@@ -1391,7 +1387,6 @@ def register_all_models() -> None:
     register(AttrsStocktakeRow, PydanticStocktakeRow)
     register(AttrsStocktakeRowListResponse, PydanticStocktakeRowListResponse)
     register(AttrsStorageBin, PydanticStorageBin)
-    register(AttrsStorageBinListResponse, PydanticStorageBinListResponse)
     register(AttrsStorageBinResponse, PydanticStorageBinResponse)
     register(AttrsStorageBinUpdate, PydanticStorageBinUpdate)
     register(AttrsSupplier, PydanticSupplier)
