@@ -839,12 +839,44 @@ async def test_modify_st_status_confirm_dispatches_to_status_endpoint():
     assert len(response.actions) == 1
     assert response.actions[0].operation == "update_status"
     assert response.actions[0].succeeded is True
+    # The status action now verifies: the request literal ``IN_TRANSIT`` and the
+    # echoed wire value ``inTransit`` both canonicalize to ``inTransit`` via the
+    # ``_status_to_wire`` transform. Previously verify was skipped (verified=None)
+    # because a verbatim compare would falsely fail on the wire-vs-literal skew.
+    assert response.actions[0].verified is True
     mock_status.assert_awaited_once()
     assert mock_status.await_args is not None
     kwargs = mock_status.await_args.kwargs
     assert kwargs["id"] == 42
     # The API status enum should be the camelCase wire value ``inTransit``.
     assert kwargs["body"].status.value == "inTransit"
+
+
+@pytest.mark.asyncio
+async def test_modify_st_status_verify_flags_wire_value_divergence():
+    """A status that lands differently server-side reports a real mismatch.
+
+    Requesting ``IN_TRANSIT`` but the API echoing ``received`` must surface as
+    ``verified=False`` — the transform canonicalizes both sides, so this is a
+    genuine divergence, not the wire-vs-literal false positive the skip avoided.
+    """
+    context, _ = create_mock_context()
+    mock_transfer = _make_mock_transfer(id=42, status="received")
+    with (
+        patch(f"{_ST_UPDATE_STATUS}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_MODIFY_ST_UNWRAP_AS, return_value=mock_transfer),
+    ):
+        request = ModifyStockTransferRequest(
+            id=42,
+            update_status=StockTransferStatusPatch(new_status="IN_TRANSIT"),
+            preview=False,
+        )
+        response = await _modify_stock_transfer_impl(request, context)
+
+    action = response.actions[0]
+    assert action.succeeded is True
+    assert action.verified is False
+    assert action.actual_after == {"new_status": "received"}
 
 
 @pytest.mark.asyncio

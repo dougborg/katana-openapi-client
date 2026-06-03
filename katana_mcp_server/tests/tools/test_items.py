@@ -2131,6 +2131,139 @@ async def test_modify_item_service_header_verifies_pricing_from_variant():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("item_type", "update_path", "get_path"),
+    [
+        (
+            ItemType.PRODUCT,
+            "katana_public_api_client.api.product.update_product.asyncio_detailed",
+            "katana_public_api_client.api.product.get_product.asyncio_detailed",
+        ),
+        (
+            ItemType.MATERIAL,
+            "katana_public_api_client.api.material.update_material.asyncio_detailed",
+            "katana_public_api_client.api.material.get_material.asyncio_detailed",
+        ),
+        (
+            ItemType.SERVICE,
+            "katana_public_api_client.api.services.update_service.asyncio_detailed",
+            "katana_public_api_client.api.services.get_service.asyncio_detailed",
+        ),
+    ],
+    ids=["product", "material", "service"],
+)
+@pytest.mark.parametrize("archive", [True, False], ids=["archive", "unarchive"])
+async def test_modify_item_archival_verifies_off_archived_at(
+    item_type: ItemType, update_path: str, get_path: str, archive: bool
+):
+    """Archive/unarchive verifies via ``archived_at``, not a missing bool.
+
+    Katana accepts a boolean ``is_archived`` on write but echoes the post-state
+    as an ``archived_at`` timestamp — no boolean exists on any read model. The
+    verifier must derive the bool from the timestamp or every archive/unarchive
+    reports a spurious "verification mismatch". Covers both directions across
+    all three item types. Before the fix the archive case verified as ``False``.
+    """
+    from katana_mcp.tools.foundation.items import (
+        ItemHeaderPatch,
+        ModifyItemRequest,
+        _modify_item_impl,
+    )
+
+    context, _ = create_mock_context()
+    stamp = datetime.datetime(2026, 6, 3, 15, 33, 19, tzinfo=datetime.UTC)
+
+    # Diff fetch: ``archived_at`` reflects the *pre*-state. ``additional_info``
+    # set to None so the bare MagicMock doesn't auto-vivify it into the
+    # additional-info echo path; ``variants`` empty for the service branch.
+    existing = MagicMock()
+    existing.id = 7
+    existing.additional_info = None
+    existing.variants = []
+    existing.archived_at = None if archive else stamp
+
+    # Apply outcome echoes the *post*-state: ``archived_at`` set on archive,
+    # cleared on unarchive. No boolean ``is_archived`` on the response — the
+    # verifier derives it from the timestamp via the header value_source.
+    outcome = MagicMock()
+    outcome.id = 7
+    outcome.variants = []
+    outcome.archived_at = stamp if archive else None
+
+    with (
+        patch(update_path, new_callable=AsyncMock),
+        patch(get_path, new_callable=AsyncMock),
+        # diff-fetch unwrap_as -> existing; apply unwrap_as -> outcome.
+        patch(_MODIFY_ITEM_UNWRAP_AS, side_effect=[existing, outcome]),
+    ):
+        request = ModifyItemRequest(
+            id=7,
+            type=item_type,
+            update_header=ItemHeaderPatch(is_archived=archive),
+            preview=False,
+        )
+        response = await _modify_item_impl(request, context)
+
+    action = response.actions[0]
+    assert action.operation == "update_header"
+    assert action.succeeded is True
+    assert action.verified is True
+    assert action.actual_after is None
+
+
+@pytest.mark.asyncio
+async def test_modify_item_archive_verifies_when_diff_fetch_misses():
+    """Archive still verifies via ``archived_at`` when the prior fetch fails.
+
+    A 404/timeout on the diff fetch makes ``_fetch_item_for_diff`` return None,
+    so the change is marked ``is_unknown_prior`` — but verification still runs
+    against the apply outcome. The ``is_archived`` value_source must derive the
+    bool from ``archived_at`` on that outcome regardless of the missing prior.
+    """
+    from katana_mcp.tools.foundation.items import (
+        ItemHeaderPatch,
+        ModifyItemRequest,
+        _modify_item_impl,
+    )
+
+    context, _ = create_mock_context()
+    stamp = datetime.datetime(2026, 6, 3, 15, 33, 19, tzinfo=datetime.UTC)
+    outcome = MagicMock()
+    outcome.id = 7
+    outcome.variants = []
+    outcome.archived_at = stamp
+
+    with (
+        patch(
+            "katana_public_api_client.api.product.update_product.asyncio_detailed",
+            new_callable=AsyncMock,
+        ),
+        patch(
+            "katana_public_api_client.api.product.get_product.asyncio_detailed",
+            new_callable=AsyncMock,
+        ),
+        # diff-fetch unwrap_as raises -> safe_fetch_for_diff returns None
+        # (unknown prior); apply unwrap_as -> outcome.
+        patch(
+            _MODIFY_ITEM_UNWRAP_AS,
+            side_effect=[RuntimeError("diff fetch failed"), outcome],
+        ),
+    ):
+        request = ModifyItemRequest(
+            id=7,
+            type=ItemType.PRODUCT,
+            update_header=ItemHeaderPatch(is_archived=True),
+            preview=False,
+        )
+        response = await _modify_item_impl(request, context)
+
+    action = response.actions[0]
+    assert action.succeeded is True
+    assert action.verified is True
+    assert action.actual_after is None
+
+
+@pytest.mark.asyncio
 async def test_modify_item_add_variant_injects_parent_id_for_product():
     from katana_mcp.tools.foundation.items import (
         ModifyItemRequest,
