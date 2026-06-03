@@ -2,6 +2,92 @@
 
 <!-- version list -->
 
+## v0.77.0 (2026-06-03)
+
+### Bug Fixes
+
+- **client**: Align POST /bom_rows + GET /bin_locations response shapes with live API
+  ([`4932cb7`](https://github.com/dougborg/katana-openapi-client/commit/4932cb70ddcf66f03cfa4a6fe8751ca7db972960))
+
+- **client**: Regenerate TS client for the spec changes + gate it; use
+  StorageBinResponse for bin_locations items
+  ([`495ef8f`](https://github.com/dougborg/katana-openapi-client/commit/495ef8f79438979cb9ff320cd8f347c91aef5250))
+
+- **mcp**: Verify archival + wire-vs-literal status in make_response_verifier
+  ([`a95302b`](https://github.com/dougborg/katana-openapi-client/commit/a95302bb2c85e74a9b95d3c517622aea0657f52b))
+
+### Chores
+
+- Sync root uv.lock to katana-openapi-client 0.76.0
+  ([#895](https://github.com/dougborg/katana-openapi-client/pull/895),
+  [`0f6784e`](https://github.com/dougborg/katana-openapi-client/commit/0f6784e39a77d4fefda6d96f6f615e8010ada3f3))
+
+- Sync uv.lock to katana_mcp_server 0.109.0
+  ([`3881360`](https://github.com/dougborg/katana-openapi-client/commit/38813608f9d2b217d7746e1bc3700920f93a7a34))
+
+- **mcp**: Update client dependency to v0.76.0
+  ([`0967896`](https://github.com/dougborg/katana-openapi-client/commit/0967896ab3a6caf6efc2caa5ea7ab0db7a5e04f1))
+
+- **release**: Mcp v0.109.0
+  ([`b0c714c`](https://github.com/dougborg/katana-openapi-client/commit/b0c714c27e0663242a122a1ffa39d213630359d2))
+
+### Continuous Integration
+
+- Gate the TypeScript client functionally instead of by byte-diff
+  ([`97ae3d9`](https://github.com/dougborg/katana-openapi-client/commit/97ae3d903df59fa3fe525dd5d5e4c1a1ae611d72))
+
+- **integration**: Live-integration.yml workflow (#837 Phase 3)
+  ([#895](https://github.com/dougborg/katana-openapi-client/pull/895),
+  [`0f6784e`](https://github.com/dougborg/katana-openapi-client/commit/0f6784e39a77d4fefda6d96f6f615e8010ada3f3))
+
+### Documentation
+
+- Correct generate-ts comment — TS codegen is not byte-deterministic across OS
+  ([`222b05b`](https://github.com/dougborg/katana-openapi-client/commit/222b05b82870bea455b66e804273d239373d6c22))
+
+- Scope the "don't monkeypatch datetime" warning to code under test (review)
+  ([#894](https://github.com/dougborg/katana-openapi-client/pull/894),
+  [`b2ef1d2`](https://github.com/dougborg/katana-openapi-client/commit/b2ef1d2b599954c0a372b49233ee02acdf0ee3a5))
+
+- **escalations**: Consolidate serial-fulfillment gap; add minimal-request matrix
+  ([#900](https://github.com/dougborg/katana-openapi-client/pull/900),
+  [`3a96d35`](https://github.com/dougborg/katana-openapi-client/commit/3a96d35adc2e429d8047c04a076834acd0e3352c))
+
+- **escalations**: Refine serial-fulfillment gap with UI-traced ledger lifecycle
+  ([#900](https://github.com/dougborg/katana-openapi-client/pull/900),
+  [`3a96d35`](https://github.com/dougborg/katana-openapi-client/commit/3a96d35adc2e429d8047c04a076834acd0e3352c))
+
+- **escalations**: Refine serial-fulfillment gap with UI-traced ledger lifecycle (#784)
+  ([#900](https://github.com/dougborg/katana-openapi-client/pull/900),
+  [`3a96d35`](https://github.com/dougborg/katana-openapi-client/commit/3a96d35adc2e429d8047c04a076834acd0e3352c))
+
+### Refactoring
+
+- **mcp**: Migrate SO modify sub-entities to columnar DataTables (closes #721)
+  ([`7976987`](https://github.com/dougborg/katana-openapi-client/commit/7976987a362506e4edbb56440a1fb16f681cff10))
+
+### Testing
+
+- Address review on the fake-time sweep
+  ([#894](https://github.com/dougborg/katana-openapi-client/pull/894),
+  [`b2ef1d2`](https://github.com/dougborg/katana-openapi-client/commit/b2ef1d2b599954c0a372b49233ee02acdf0ee3a5))
+
+- Fake time in all time-based tests; never read the real wall clock
+  ([#894](https://github.com/dougborg/katana-openapi-client/pull/894),
+  [`b2ef1d2`](https://github.com/dougborg/katana-openapi-client/commit/b2ef1d2b599954c0a372b49233ee02acdf0ee3a5))
+
+- Remove hollow never-wired-mock tests from test_performance (closes #897)
+  ([#902](https://github.com/dougborg/katana-openapi-client/pull/902),
+  [`ca843ac`](https://github.com/dougborg/katana-openapi-client/commit/ca843ac44b901db06688c6d34bc264d408923f93))
+
+- **mcp**: Drop redundant cache syncs in live smoke tests (#837 follow-up)
+  ([#899](https://github.com/dougborg/katana-openapi-client/pull/899),
+  [`def1adc`](https://github.com/dougborg/katana-openapi-client/commit/def1adca216ae8d922b2fbd26f83d138c037ab72))
+
+- **mcp**: Live MCP-server smoke tests + workflow job (#837 Phase 4)
+  ([#898](https://github.com/dougborg/katana-openapi-client/pull/898),
+  [`f52cbc9`](https://github.com/dougborg/katana-openapi-client/commit/f52cbc92f4e6938c18f3694273c16b0e59ab9cd2))
+
 ## v0.76.0 (2026-06-02)
 
 ### Bug Fixes
