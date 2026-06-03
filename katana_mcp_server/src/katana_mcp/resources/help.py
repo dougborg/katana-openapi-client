@@ -1497,6 +1497,22 @@ Create a sales order with preview/apply pattern.
 - `notes`: Internal notes (additional_info on the wire)
 - `customer_ref`: Customer's reference number
 
+**Initial status & picking** (#907):
+- `status` (optional): Initial SO status. Katana's `POST /sales_orders`
+  accepts only `NOT_SHIPPED` or `PENDING`; omit to default to `PENDING`.
+  Pass `NOT_SHIPPED` to skip the transient `PENDING` state when
+  back-filling an already-confirmed order — this avoids the forced
+  PENDING→NOT_SHIPPED transition that otherwise strands the SO in PENDING
+  and silently blocks `fulfill_order`. `PACKED`/`DELIVERED` are rejected
+  here (BLOCK) — reach them by shipping the order via
+  `fulfill_order(order_type='sales')`.
+- `picked_date` (ISO 8601, optional): When items were picked. Wire-level,
+  Katana's `POST /sales_orders` rejects `picked_date`, so the apply path
+  sets it via a follow-up `PATCH /sales_orders/{id}` after the SO exists.
+  Best-effort: the SO is durable; a failed patch surfaces a warning and a
+  retry hint pointing at `modify_sales_order(id=<so_id>,
+  update_header={'picked_date': ...})`.
+
 **Shipping / tracking:**
 - `tracking_number`, `tracking_number_url`: Set if a carrier label is
   already known at creation time; otherwise patch in via

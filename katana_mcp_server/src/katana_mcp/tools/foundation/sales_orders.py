@@ -262,6 +262,19 @@ class SOShippingFeeUpdate(BaseModel):
     )
 
 
+# Valid SO statuses. NOTE: the wire ``POST /sales_orders`` only accepts
+# ``NOT_SHIPPED`` / ``PENDING`` (``CreateSalesOrderStatus``); ``PACKED`` /
+# ``DELIVERED`` are reached by shipping the order via ``fulfill_order``. The
+# wider literal here is shared with ``SOHeaderPatch`` (the PATCH endpoint does
+# accept all four); ``create_sales_order`` validates the create-time subset in
+# its impl so it can return an actionable refusal pointing at ``fulfill_order``.
+SalesOrderStatusLiteral = Literal["NOT_SHIPPED", "PENDING", "PACKED", "DELIVERED"]
+
+# Statuses that are only reachable post-create (via fulfillment), never at
+# ``POST /sales_orders`` time.
+_CREATE_TERMINAL_STATUSES: tuple[str, ...] = ("PACKED", "DELIVERED")
+
+
 class CreateSalesOrderRequest(BaseModel):
     """Request to create a sales order."""
 
@@ -345,6 +358,33 @@ class CreateSalesOrderRequest(BaseModel):
             "Names must already exist on the SO custom-field collection "
             "(configured via Katana's UI) and value types must match each "
             "field's configured type."
+        ),
+    )
+    status: SalesOrderStatusLiteral | None = Field(
+        default=None,
+        description=(
+            "Initial status for the new SO. Katana's `POST /sales_orders` accepts "
+            "only `NOT_SHIPPED` or `PENDING` — leave None to default to `PENDING` "
+            "(unchanged legacy behavior). Pass `NOT_SHIPPED` to skip the transient "
+            "`PENDING` state entirely (e.g. back-filling an already-confirmed "
+            "marketplace order): this avoids the forced PENDING→NOT_SHIPPED "
+            "transition that otherwise strands the SO in PENDING and silently "
+            "blocks `fulfill_order`. `PACKED`/`DELIVERED` are NOT valid here — "
+            "reach them by shipping the order via `fulfill_order(order_type="
+            "'sales')` after it exists."
+        ),
+    )
+    picked_date: WireDatetime | None = Field(
+        default=None,
+        description=(
+            "When items were picked from inventory — ISO 8601 date or datetime "
+            "(e.g. '2026-05-29T00:00:00Z'). Naive datetimes are interpreted as "
+            "UTC. Wire-level: Katana's `POST /sales_orders` rejects `picked_date`, "
+            "so the apply path sets it via a follow-up `PATCH /sales_orders/{id}` "
+            "after the SO is created. Best-effort — if the SO succeeds but the "
+            "picked_date patch fails, the SO is preserved and the response carries "
+            "a warning; retry via `modify_sales_order(id=<so_id>, "
+            "update_header={'picked_date': ...})`."
         ),
     )
     shipping_fees: list[SOShippingFeeAdd] | None = Field(
@@ -597,6 +637,39 @@ async def _create_sales_order_impl(
         if loc_warn:
             resolution_warnings.append(loc_warn)
 
+    # BLOCK invalid initial statuses early (both preview and apply). The wire
+    # POST /sales_orders only accepts NOT_SHIPPED / PENDING — PACKED / DELIVERED
+    # are reached by shipping the order. Refuse with an actionable card instead
+    # of letting CreateSalesOrderStatus(<terminal>) raise a bare ValueError.
+    if request.status in _CREATE_TERMINAL_STATUSES:
+        return SalesOrderResponse(
+            order_number=request.order_number,
+            customer_id=request.customer_id,
+            customer_name=customer_name,
+            location_id=request.location_id,
+            location_name=location_name,
+            is_preview=True,
+            shipping_fee_outcomes=_outcomes_from_planned_fees(
+                request.shipping_fees or []
+            ),
+            warnings=[
+                f"{BLOCK_WARNING_PREFIX} status={request.status!r} cannot be set "
+                f"at creation — Katana's POST /sales_orders accepts only "
+                f"NOT_SHIPPED or PENDING. Create the order first, then reach "
+                f"{request.status} by shipping it via "
+                f"fulfill_order(order_type='sales').",
+                *resolution_warnings,
+            ],
+            next_actions=[
+                "Use status=NOT_SHIPPED or PENDING (or omit to default to PENDING)",
+                f"Reach {request.status} via fulfill_order after the order exists",
+            ],
+            message=(
+                f"Sales order {request.order_number} was NOT created — "
+                f"status {request.status} is not a valid initial status."
+            ),
+        )
+
     if request.preview:
         logger.info(
             f"Preview mode: SO {request.order_number} would have {len(request.items)} items"
@@ -623,7 +696,7 @@ async def _create_sales_order_impl(
             customer_name=customer_name,
             location_id=request.location_id,
             location_name=location_name,
-            status="PENDING",
+            status=request.status or "PENDING",
             total=total_estimate if total_estimate > 0 else None,
             currency=request.currency,
             delivery_date=request.delivery_date.isoformat()
@@ -750,7 +823,14 @@ async def _create_sales_order_impl(
             ecommerce_store_name=to_unset(request.ecommerce_store_name),
             ecommerce_order_id=to_unset(request.ecommerce_order_id),
             custom_fields=custom_fields_map,
-            status=CreateSalesOrderStatus.PENDING,
+            # request.status is guaranteed NOT_SHIPPED / PENDING / None here —
+            # terminal statuses were refused above. None preserves the legacy
+            # default of PENDING.
+            status=(
+                CreateSalesOrderStatus(request.status)
+                if request.status
+                else CreateSalesOrderStatus.PENDING
+            ),
         )
 
         # Call API
@@ -812,6 +892,34 @@ async def _create_sales_order_impl(
                     f"`modify_sales_order(id={so.id}, add_shipping_fees=[...])`."
                 )
 
+        # picked_date is NOT accepted by POST /sales_orders — the live API 422s
+        # on it as an unknown property (probed for #907). So when supplied, set
+        # it via PATCH /sales_orders/{id} after the SO exists. Best-effort,
+        # mirroring shipping fees: the SO is durable; a failed patch surfaces a
+        # warning + retry hint and leaves the SO intact.
+        picked_date_warnings: list[str] = []
+        if request.picked_date is not None:
+            try:
+                picked_resp = await api_update_sales_order.asyncio_detailed(
+                    client=services.client,
+                    id=so.id,
+                    body=APIUpdateSalesOrderRequest(picked_date=request.picked_date),
+                )
+                unwrap_as(picked_resp, SalesOrder)
+            except Exception as picked_exc:
+                logger.warning(
+                    "create_sales_order picked_date PATCH failed",
+                    sales_order_id=so.id,
+                    picked_date=str(request.picked_date),
+                    error=str(picked_exc),
+                )
+                picked_date_warnings.append(
+                    f"Sales order {so.id} was created, but setting picked_date "
+                    f"failed: {picked_exc}. The sales order is preserved — retry "
+                    f"via `modify_sales_order(id={so.id}, "
+                    f"update_header={{'picked_date': ...}})`."
+                )
+
         next_actions = [
             f"Sales order created with ID {so.id}",
             "Use fulfill_order to ship items when ready",
@@ -820,6 +928,11 @@ async def _create_sales_order_impl(
             next_actions.append(
                 f"Retry failed shipping fees via "
                 f"modify_sales_order(id={so.id}, add_shipping_fees=[...])"
+            )
+        if picked_date_warnings:
+            next_actions.append(
+                f"Retry picked_date via modify_sales_order(id={so.id}, "
+                f"update_header={{'picked_date': ...}})"
             )
 
         message = f"Successfully created sales order {so.order_no} (ID: {so.id})"
@@ -873,7 +986,12 @@ async def _create_sales_order_impl(
             currency=currency,
             is_preview=False,
             shipping_fee_outcomes=fee_outcomes,
-            warnings=(fee_warnings + resolution_warnings + apply_resolution_warnings),
+            warnings=(
+                fee_warnings
+                + picked_date_warnings
+                + resolution_warnings
+                + apply_resolution_warnings
+            ),
             katana_url=katana_web_url("sales_order", so.id),
             next_actions=next_actions,
             message=message,
@@ -1787,7 +1905,6 @@ class SOOperation(StrEnum):
 
 # Tool-facing literals — values match the API StrEnum's ``.value`` directly,
 # so ``EnumClass(literal)`` resolves the enum without a lookup table.
-SalesOrderStatusLiteral = Literal["NOT_SHIPPED", "PENDING", "PACKED", "DELIVERED"]
 FulfillmentStatusLiteral = Literal["DELIVERED", "PACKED"]
 AddressEntityTypeLiteral = Literal["billing", "shipping"]
 

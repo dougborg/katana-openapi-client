@@ -97,10 +97,12 @@ PAIRINGS: list[Pairing] = [
         },
     ),
     # ---- create_sales_order ----
-    # Skipped fields per the #627 deliberate-omissions table:
-    #   status: PENDING is the only sensible initial state; transitions
-    #     belong on modify_sales_order. Exposing forces agents to learn
-    #     the SO status enum at creation for no real benefit.
+    # `status` is now exposed (#907): #627's "PENDING is the only sensible
+    # initial state" call was reversed once the eBay/marketplace backfill
+    # workflow showed that forcing every caller through a follow-up
+    # PENDING→NOT_SHIPPED transition silently strands SOs in PENDING. The wire
+    # accepts NOT_SHIPPED / PENDING; the impl refuses PACKED / DELIVERED with a
+    # pointer to fulfill_order. No allowed_drops remain.
     Pairing(
         mcp_cls=CreateSalesOrderRequest,
         api_cls=ApiCreateSORequest,
@@ -108,12 +110,6 @@ PAIRINGS: list[Pairing] = [
             "order_no": "order_number",
             "sales_order_rows": "items",
             "additional_info": "notes",
-        },
-        allowed_drops={
-            "status": (
-                "PENDING-only at creation; status transitions belong on "
-                "modify_sales_order. Per #627 deliberate-omissions table."
-            ),
         },
     ),
     # ---- create_manufacturing_order ----

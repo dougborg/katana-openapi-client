@@ -2,7 +2,7 @@
 
 import json
 from datetime import UTC, datetime
-from typing import Any, cast
+from typing import Any, Literal, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -30,6 +30,7 @@ from katana_mcp_server.tests.conftest import create_mock_context, patch_typed_ca
 
 from katana_public_api_client.client_types import UNSET
 from katana_public_api_client.models import (
+    CreateSalesOrderStatus,
     SalesOrder,
     SalesOrderStatus,
 )
@@ -875,6 +876,281 @@ async def test_create_sales_order_apply_all_shipping_fees_fail():
     # the operator can copy-paste the retry call.
     assert "0/2 shipping fee(s) applied" in result.message
     assert str(result.id) in result.message
+
+
+# ----------------------------------------------------------------------------
+# status param (#907) — initial-status passthrough + terminal-status refusal
+# ----------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_create_sales_order_apply_forwards_status():
+    """A caller-supplied initial ``status`` reaches the wire create body —
+    NOT_SHIPPED lets backfill flows skip the transient PENDING state (#907).
+    """
+    context, _lifespan_ctx = create_mock_context()
+
+    mock_so = SalesOrder(
+        id=4001,
+        customer_id=1501,
+        order_no="SO-STATUS-001",
+        location_id=1,
+        status=SalesOrderStatus.NOT_SHIPPED,
+    )
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = mock_so
+    mock_api_call = AsyncMock(return_value=mock_response)
+
+    import katana_public_api_client.api.sales_order.create_sales_order as create_so_module
+
+    original = create_so_module.asyncio_detailed
+    cast(Any, create_so_module).asyncio_detailed = mock_api_call
+    try:
+        request = CreateSalesOrderRequest(
+            customer_id=1501,
+            order_number="SO-STATUS-001",
+            items=[SalesOrderItem(variant_id=2101, quantity=1)],
+            status="NOT_SHIPPED",
+            preview=False,
+        )
+        await _create_sales_order_impl(request, context)
+    finally:
+        cast(Any, create_so_module).asyncio_detailed = original
+
+    api_body = mock_api_call.call_args.kwargs["body"]
+    assert api_body.status == CreateSalesOrderStatus.NOT_SHIPPED
+
+
+@pytest.mark.asyncio
+async def test_create_sales_order_apply_defaults_status_pending():
+    """Omitting ``status`` preserves the legacy default — the wire body must
+    still carry PENDING, not UNSET (#907 must not change default behavior).
+    """
+    context, _lifespan_ctx = create_mock_context()
+
+    mock_so = SalesOrder(
+        id=4002,
+        customer_id=1501,
+        order_no="SO-STATUS-DEF",
+        location_id=1,
+        status=SalesOrderStatus.PENDING,
+    )
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.parsed = mock_so
+    mock_api_call = AsyncMock(return_value=mock_response)
+
+    import katana_public_api_client.api.sales_order.create_sales_order as create_so_module
+
+    original = create_so_module.asyncio_detailed
+    cast(Any, create_so_module).asyncio_detailed = mock_api_call
+    try:
+        request = CreateSalesOrderRequest(
+            customer_id=1501,
+            order_number="SO-STATUS-DEF",
+            items=[SalesOrderItem(variant_id=2101, quantity=1)],
+            preview=False,
+        )
+        await _create_sales_order_impl(request, context)
+    finally:
+        cast(Any, create_so_module).asyncio_detailed = original
+
+    api_body = mock_api_call.call_args.kwargs["body"]
+    assert api_body.status == CreateSalesOrderStatus.PENDING
+
+
+@pytest.mark.asyncio
+async def test_create_sales_order_preview_reflects_status():
+    """Preview card status mirrors the requested initial status (defaults to
+    PENDING when omitted), so the operator sees what they'll get."""
+    context, _lifespan_ctx = create_mock_context()
+
+    not_shipped = await _create_sales_order_impl(
+        CreateSalesOrderRequest(
+            customer_id=1501,
+            order_number="SO-PREV-NS",
+            items=[SalesOrderItem(variant_id=2101, quantity=1)],
+            status="NOT_SHIPPED",
+            preview=True,
+        ),
+        context,
+    )
+    assert not_shipped.is_preview is True
+    assert not_shipped.status == "NOT_SHIPPED"
+
+    defaulted = await _create_sales_order_impl(
+        CreateSalesOrderRequest(
+            customer_id=1501,
+            order_number="SO-PREV-DEF",
+            items=[SalesOrderItem(variant_id=2101, quantity=1)],
+            preview=True,
+        ),
+        context,
+    )
+    assert defaulted.status == "PENDING"
+
+
+@pytest.mark.parametrize("terminal", ["PACKED", "DELIVERED"])
+@pytest.mark.asyncio
+async def test_create_sales_order_rejects_terminal_status(
+    terminal: Literal["PACKED", "DELIVERED"],
+):
+    """PACKED / DELIVERED are unreachable at create (the wire caps status at
+    NOT_SHIPPED / PENDING). The tool BLOCKs with a pointer to fulfill_order and
+    does NOT create the SO."""
+    context, _lifespan_ctx = create_mock_context()
+
+    mock_api_call = AsyncMock()
+    import katana_public_api_client.api.sales_order.create_sales_order as create_so_module
+
+    original = create_so_module.asyncio_detailed
+    cast(Any, create_so_module).asyncio_detailed = mock_api_call
+    try:
+        result = await _create_sales_order_impl(
+            CreateSalesOrderRequest(
+                customer_id=1501,
+                order_number="SO-TERM-001",
+                items=[SalesOrderItem(variant_id=2101, quantity=1)],
+                status=terminal,
+                preview=False,
+            ),
+            context,
+        )
+    finally:
+        cast(Any, create_so_module).asyncio_detailed = original
+
+    # No SO created.
+    mock_api_call.assert_not_called()
+    assert result.id is None
+    # Refusal renders as a preview card with a BLOCK warning.
+    assert result.is_preview is True
+    assert any(
+        w.startswith("BLOCK:") and "fulfill_order" in w and terminal in w
+        for w in result.warnings
+    )
+    assert "NOT created" in result.message
+    assert any("fulfill_order" in a for a in result.next_actions)
+
+
+# ----------------------------------------------------------------------------
+# picked_date (#907) — post-create PATCH chain (wire create rejects it)
+# ----------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_create_sales_order_apply_sets_picked_date_via_patch():
+    """picked_date can't ride on POST /sales_orders (live API 422s on it), so
+    the apply path PATCHes it in after the SO is created."""
+    context, _lifespan_ctx = create_mock_context()
+
+    mock_so = SalesOrder(
+        id=4101,
+        customer_id=1501,
+        order_no="SO-PICK-OK",
+        location_id=1,
+        status=SalesOrderStatus.NOT_SHIPPED,
+    )
+    create_resp = MagicMock()
+    create_resp.status_code = 200
+    create_resp.parsed = mock_so
+    patch_resp = MagicMock()
+    patch_resp.status_code = 200
+    patch_resp.parsed = mock_so
+
+    mock_create = AsyncMock(return_value=create_resp)
+    mock_patch = AsyncMock(return_value=patch_resp)
+
+    import katana_public_api_client.api.sales_order.create_sales_order as create_so_module
+    import katana_public_api_client.api.sales_order.update_sales_order as update_so_module
+
+    create_orig = create_so_module.asyncio_detailed
+    update_orig = update_so_module.asyncio_detailed
+    cast(Any, create_so_module).asyncio_detailed = mock_create
+    cast(Any, update_so_module).asyncio_detailed = mock_patch
+
+    picked = datetime(2026, 5, 29, tzinfo=UTC)
+    try:
+        result = await _create_sales_order_impl(
+            CreateSalesOrderRequest(
+                customer_id=1501,
+                order_number="SO-PICK-OK",
+                items=[SalesOrderItem(variant_id=2101, quantity=1)],
+                status="NOT_SHIPPED",
+                picked_date=picked,
+                preview=False,
+            ),
+            context,
+        )
+    finally:
+        cast(Any, create_so_module).asyncio_detailed = create_orig
+        cast(Any, update_so_module).asyncio_detailed = update_orig
+
+    assert result.is_preview is False
+    assert result.id == 4101
+    # The PATCH fired once against the created SO, carrying picked_date.
+    mock_patch.assert_called_once()
+    assert mock_patch.call_args.kwargs["id"] == 4101
+    assert mock_patch.call_args.kwargs["body"].picked_date == picked
+    # Clean run — no picked_date warning.
+    assert not any("picked_date" in w for w in result.warnings)
+
+
+@pytest.mark.asyncio
+async def test_create_sales_order_picked_date_patch_failure_preserves_so():
+    """If the picked_date PATCH fails, the SO is preserved (best-effort, like
+    shipping fees): is_preview stays False, a non-BLOCK warning surfaces the
+    retry hint, and a retry next_action points at modify_sales_order."""
+    context, _lifespan_ctx = create_mock_context()
+
+    mock_so = SalesOrder(
+        id=4102,
+        customer_id=1501,
+        order_no="SO-PICK-FAIL",
+        location_id=1,
+        status=SalesOrderStatus.NOT_SHIPPED,
+    )
+    create_resp = MagicMock()
+    create_resp.status_code = 200
+    create_resp.parsed = mock_so
+
+    mock_create = AsyncMock(return_value=create_resp)
+    mock_patch = AsyncMock(side_effect=RuntimeError("picked_date PATCH boom"))
+
+    import katana_public_api_client.api.sales_order.create_sales_order as create_so_module
+    import katana_public_api_client.api.sales_order.update_sales_order as update_so_module
+
+    create_orig = create_so_module.asyncio_detailed
+    update_orig = update_so_module.asyncio_detailed
+    cast(Any, create_so_module).asyncio_detailed = mock_create
+    cast(Any, update_so_module).asyncio_detailed = mock_patch
+
+    try:
+        result = await _create_sales_order_impl(
+            CreateSalesOrderRequest(
+                customer_id=1501,
+                order_number="SO-PICK-FAIL",
+                items=[SalesOrderItem(variant_id=2101, quantity=1)],
+                status="NOT_SHIPPED",
+                picked_date=datetime(2026, 5, 29, tzinfo=UTC),
+                preview=False,
+            ),
+            context,
+        )
+    finally:
+        cast(Any, create_so_module).asyncio_detailed = create_orig
+        cast(Any, update_so_module).asyncio_detailed = update_orig
+
+    # SO durability: created despite the picked_date failure.
+    assert result.is_preview is False
+    assert result.id == 4102
+    assert any(
+        "picked_date" in w and not w.startswith("BLOCK:") and "4102" in w
+        for w in result.warnings
+    )
+    assert any(
+        "picked_date" in a and "modify_sales_order" in a for a in result.next_actions
+    )
 
 
 @pytest.mark.asyncio
