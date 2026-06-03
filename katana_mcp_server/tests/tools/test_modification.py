@@ -8,6 +8,7 @@ helper through the actual tool flow.
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, cast
@@ -1010,6 +1011,380 @@ async def test_run_modify_plan_overlays_patch_response_on_stale_refetch(monkeypa
     merged = captured["attrs_objs"][0]
     assert merged is stale_parent
     assert merged.name == "FRESH"
+
+
+# ============================================================================
+# #786: post-apply merge must not stall on the rate-limit reset gate.
+#   - ``parent_from_outcome`` reuses the PATCH response (no parent GET).
+#   - the remaining network refetches are time-bounded; a stall is abandoned
+#     best-effort rather than hanging the (already-succeeded) tool call.
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_parent_from_outcome_reuses_patch_response_skips_refetch(monkeypatch):
+    """With ``parent_from_outcome``, the merge uses the PATCH ``apply_outcome``
+    and never calls ``refetch_for_merge`` — one fewer GET that could stall on
+    the rate-limit reset gate (#786)."""
+    from katana_mcp.tools._modification_dispatch import run_modify_plan
+
+    fresh_outcome = _AttrsStub(name="FRESH")
+    captured: dict[str, Any] = {}
+    refetch_calls = 0
+
+    async def fake_merge(cache, spec, attrs_objs):
+        captured["attrs_objs"] = list(attrs_objs)
+
+    monkeypatch.setattr("katana_mcp.typed_cache.sync.merge_filtered_fetch", fake_merge)
+
+    async def fake_apply():
+        return fresh_outcome
+
+    async def fake_refetch(_eid: int):
+        nonlocal refetch_calls
+        refetch_calls += 1
+        return _AttrsStub(name="FROM_GET")
+
+    request = _SampleRequest(id=42, name="FRESH", preview=False)
+    plan = [
+        ActionSpec(
+            operation="update_header",
+            target_id=42,  # parent-level action → its outcome is the merge source
+            diff=[FieldChange(field="name", old="OLD", new="FRESH")],
+            apply=fake_apply,
+            verify=None,
+        )
+    ]
+    fake_cache = cast(TypedCacheEngine, object())
+    await run_modify_plan(
+        request=request,
+        naming=EntityNaming(
+            entity_type="purchase_order",
+            entity_label="purchase order 42",
+            tool_name="modify_purchase_order",
+        ),
+        web_url_kind=None,
+        existing=None,
+        plan=plan,
+        has_get_endpoint=False,
+        cache_merge=CacheMerge(
+            cache=fake_cache,
+            refetch_for_merge=fake_refetch,
+            parent_from_outcome=True,
+        ),
+    )
+
+    # The PATCH outcome itself is merged; the GET refetch was never issued.
+    assert captured["attrs_objs"] == [fresh_outcome]
+    assert refetch_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_parent_from_outcome_falls_back_to_refetch_for_row_only_plan(monkeypatch):
+    """``parent_from_outcome`` only short-circuits when a parent-targeted
+    action produced an outcome. A row-only plan (no action matching the
+    entity id) falls back to the (time-bounded) ``refetch_for_merge``."""
+    from katana_mcp.tools._modification_dispatch import run_modify_plan
+
+    captured: dict[str, Any] = {}
+    refetch_calls = 0
+
+    async def fake_merge(cache, spec, attrs_objs):
+        captured.setdefault("merged", []).append(list(attrs_objs))
+
+    monkeypatch.setattr("katana_mcp.typed_cache.sync.merge_filtered_fetch", fake_merge)
+
+    async def fake_apply():
+        return _AttrsStub(name="ROW_OUTCOME")
+
+    async def fake_refetch(_eid: int):
+        nonlocal refetch_calls
+        refetch_calls += 1
+        return _AttrsStub(name="PARENT_FROM_GET")
+
+    request = _SampleRequest(id=42, name="x", preview=False)
+    plan = [
+        ActionSpec(
+            operation="update_row",
+            target_id=999,  # row id, not the parent (42) → no parent outcome
+            diff=[FieldChange(field="quantity", old=1, new=2)],
+            apply=fake_apply,
+            verify=None,
+        )
+    ]
+    fake_cache = cast(TypedCacheEngine, object())
+    await run_modify_plan(
+        request=request,
+        naming=EntityNaming(
+            entity_type="purchase_order",
+            entity_label="purchase order 42",
+            tool_name="modify_purchase_order",
+        ),
+        web_url_kind=None,
+        existing=None,
+        plan=plan,
+        has_get_endpoint=False,
+        cache_merge=CacheMerge(
+            cache=fake_cache,
+            refetch_for_merge=fake_refetch,
+            parent_from_outcome=True,
+        ),
+    )
+
+    # No parent action → fell back to the GET refetch.
+    assert refetch_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_parent_from_outcome_falls_back_when_parent_outcome_is_none(monkeypatch):
+    """``parent_from_outcome`` falls back to the GET when the parent action
+    produced no outcome (e.g. a 204 PATCH with an empty body) — even though the
+    action targets the parent entity. Without a usable outcome there's nothing
+    to merge from, so the time-bounded ``refetch_for_merge`` must still run."""
+    from katana_mcp.tools._modification_dispatch import run_modify_plan
+
+    refetch_calls = 0
+
+    async def fake_merge(cache, spec, attrs_objs):
+        pass
+
+    monkeypatch.setattr("katana_mcp.typed_cache.sync.merge_filtered_fetch", fake_merge)
+
+    async def fake_apply():
+        return None  # 204 / empty-body PATCH → no apply_outcome
+
+    async def fake_refetch(_eid: int):
+        nonlocal refetch_calls
+        refetch_calls += 1
+        return _AttrsStub(name="PARENT_FROM_GET")
+
+    request = _SampleRequest(id=42, name="x", preview=False)
+    plan = [
+        ActionSpec(
+            operation="update_header",
+            target_id=42,  # parent-targeted, but its outcome is None
+            diff=[FieldChange(field="status", old="DRAFT", new="DONE")],
+            apply=fake_apply,
+            verify=None,
+        )
+    ]
+    fake_cache = cast(TypedCacheEngine, object())
+    await run_modify_plan(
+        request=request,
+        naming=EntityNaming(
+            entity_type="purchase_order",
+            entity_label="purchase order 42",
+            tool_name="modify_purchase_order",
+        ),
+        web_url_kind=None,
+        existing=None,
+        plan=plan,
+        has_get_endpoint=False,
+        cache_merge=CacheMerge(
+            cache=fake_cache,
+            refetch_for_merge=fake_refetch,
+            parent_from_outcome=True,
+        ),
+    )
+
+    # Parent action had no outcome → fell back to the GET refetch.
+    assert refetch_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_parent_from_outcome_last_parent_action_wins_even_when_none(monkeypatch):
+    """When a plan has multiple parent-targeted actions, the LAST one wins —
+    even if its outcome is ``None``. An earlier action's outcome predates the
+    last action's changes and would be stale, so a ``None`` final outcome must
+    trigger the GET fallback rather than silently reusing the earlier body."""
+    from katana_mcp.tools._modification_dispatch import run_modify_plan
+
+    merged: list[Any] = []
+    refetch_calls = 0
+
+    async def fake_merge(cache, spec, attrs_objs):
+        merged.extend(attrs_objs)
+
+    monkeypatch.setattr("katana_mcp.typed_cache.sync.merge_filtered_fetch", fake_merge)
+
+    stale_first = _AttrsStub(name="STALE_FIRST")
+
+    async def apply_first():
+        return stale_first
+
+    async def apply_second_no_body():
+        return None  # later parent PATCH, 204 / empty body
+
+    refetched = _AttrsStub(name="FRESH_FROM_GET")
+
+    async def fake_refetch(_eid: int):
+        nonlocal refetch_calls
+        refetch_calls += 1
+        return refetched
+
+    request = _SampleRequest(id=42, name="x", preview=False)
+    plan = [
+        ActionSpec(
+            operation="update_header",
+            target_id=42,  # first parent action — has a body
+            diff=[FieldChange(field="name", old="OLD", new="MID")],
+            apply=apply_first,
+            verify=None,
+        ),
+        ActionSpec(
+            operation="update_header_status",
+            target_id=42,  # LAST parent action — no body
+            diff=[FieldChange(field="status", old="DRAFT", new="DONE")],
+            apply=apply_second_no_body,
+            verify=None,
+        ),
+    ]
+    fake_cache = cast(TypedCacheEngine, object())
+    await run_modify_plan(
+        request=request,
+        naming=EntityNaming(
+            entity_type="purchase_order",
+            entity_label="purchase order 42",
+            tool_name="modify_purchase_order",
+        ),
+        web_url_kind=None,
+        existing=None,
+        plan=plan,
+        has_get_endpoint=False,
+        cache_merge=CacheMerge(
+            cache=fake_cache,
+            refetch_for_merge=fake_refetch,
+            parent_from_outcome=True,
+        ),
+    )
+
+    # Last parent outcome was None → fell back to the GET; the stale earlier
+    # outcome was NOT merged.
+    assert refetch_calls == 1
+    assert merged == [refetched]
+    assert stale_first not in merged
+
+
+@pytest.mark.asyncio
+@pytest.mark.looptime
+async def test_post_apply_parent_refetch_timeout_skips_merge(monkeypatch):
+    """A ``refetch_for_merge`` that stalls past the fetch ceiling (the
+    rate-limit reset gate) is abandoned best-effort: no merge, no raise — the
+    tool call still returns. Cache recovers on the next sync (#786)."""
+    from katana_mcp.tools import _modification_dispatch as disp
+    from katana_mcp.tools._modification_dispatch import run_modify_plan
+
+    monkeypatch.setattr(disp, "_CACHE_MERGE_FETCH_TIMEOUT_S", 0.02)
+
+    merge_calls = 0
+
+    async def fake_merge(cache, spec, attrs_objs):
+        nonlocal merge_calls
+        merge_calls += 1
+
+    monkeypatch.setattr("katana_mcp.typed_cache.sync.merge_filtered_fetch", fake_merge)
+
+    async def fake_apply():
+        return _AttrsStub(name="OUT")
+
+    async def slow_refetch(_eid: int):
+        await asyncio.sleep(0.5)  # > the 0.02s ceiling → wait_for cancels it
+        return _AttrsStub(name="NEVER")
+
+    request = _SampleRequest(id=42, name="x", preview=False)
+    plan = [
+        ActionSpec(
+            operation="update_header",
+            target_id=42,
+            diff=[FieldChange(field="status", old="DRAFT", new="DONE")],
+            apply=fake_apply,
+            verify=None,
+        )
+    ]
+    fake_cache = cast(TypedCacheEngine, object())
+    # No parent_from_outcome → the (slow) GET refetch is exercised and bounded.
+    response = await run_modify_plan(
+        request=request,
+        naming=EntityNaming(
+            entity_type="purchase_order",
+            entity_label="purchase order 42",
+            tool_name="modify_purchase_order",
+        ),
+        web_url_kind=None,
+        existing=None,
+        plan=plan,
+        has_get_endpoint=False,
+        cache_merge=CacheMerge(cache=fake_cache, refetch_for_merge=slow_refetch),
+    )
+
+    # The plan still succeeded; the merge was skipped (refetch timed out).
+    assert response.is_preview is False
+    assert all(a.succeeded is True for a in response.actions)
+    assert merge_calls == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.looptime
+async def test_post_apply_related_refetch_timeout_keeps_parent_merge(monkeypatch):
+    """A slow ``refetch_related`` (e.g. MO recipe rows hitting the gate) is
+    bounded and skipped, but the parent merge still lands — partial best-effort
+    rather than an all-or-nothing hang (#786)."""
+    from katana_mcp.tools import _modification_dispatch as disp
+    from katana_mcp.tools._modification_dispatch import run_modify_plan
+
+    monkeypatch.setattr(disp, "_CACHE_MERGE_FETCH_TIMEOUT_S", 0.02)
+
+    merged_specs: list[str] = []
+
+    async def fake_merge(cache, spec, attrs_objs):
+        merged_specs.append(spec.entity_key)
+
+    monkeypatch.setattr("katana_mcp.typed_cache.sync.merge_filtered_fetch", fake_merge)
+
+    async def fake_apply():
+        return _AttrsStub(name="MO_OUT")
+
+    async def unused_refetch(_eid: int):
+        # parent_from_outcome reuses the PATCH outcome, so this never runs.
+        return _AttrsStub(name="UNUSED")
+
+    async def slow_related(_eid: int):
+        await asyncio.sleep(0.5)  # > ceiling → bounded out
+        return [_AttrsStub(name="recipe_row")]
+
+    request = _SampleRequest(id=42, name="x", preview=False)
+    plan = [
+        ActionSpec(
+            operation="update_header",
+            target_id=42,
+            diff=[FieldChange(field="status", old="NOT_STARTED", new="IN_PROGRESS")],
+            apply=fake_apply,
+            verify=None,
+        )
+    ]
+    fake_cache = cast(TypedCacheEngine, object())
+    await run_modify_plan(
+        request=request,
+        naming=EntityNaming(
+            entity_type="manufacturing_order",  # has recipe-row related_spec
+            entity_label="manufacturing order 42",
+            tool_name="modify_manufacturing_order",
+        ),
+        web_url_kind=None,
+        existing=None,
+        plan=plan,
+        has_get_endpoint=False,
+        cache_merge=CacheMerge(
+            cache=fake_cache,
+            refetch_for_merge=unused_refetch,  # unused: parent comes from outcome
+            refetch_related=(("manufacturing_order_recipe_row", slow_related),),
+            parent_from_outcome=True,
+        ),
+    )
+
+    # Parent (manufacturing_order) merged from the PATCH outcome; the recipe-row
+    # related merge was skipped because its refetch timed out.
+    assert merged_specs == ["manufacturing_order"]
 
 
 @pytest.mark.asyncio
