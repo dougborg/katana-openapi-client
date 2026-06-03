@@ -1429,11 +1429,13 @@ def coerce_variant_config_attributes(
 # Service header fields that Katana echoes on the nested first variant of the
 # updated ``Service`` rather than on the Service object itself — the response
 # verifier must read them from ``outcome.variants[0]`` or they read as ``None``
-# and verify spuriously as False on a successful update. Only these three need
-# the override: the other ``ItemHeaderPatch`` fields valid for services
-# (``name``, ``uom``, ``category_name``, ``is_sellable``, ``additional_info``,
-# ``is_archived``) echo correctly on the top-level ``Service`` and verify via
-# the default ``getattr(outcome, ...)`` path.
+# and verify spuriously as False on a successful update. ``is_archived`` also
+# needs a ``value_source`` override (derived from ``archived_at`` — see the
+# ``header_value_source`` build below), but that one is wired for ALL item types,
+# not just services. The remaining ``ItemHeaderPatch`` fields valid for services
+# (``name``, ``uom``, ``category_name``, ``is_sellable``, ``additional_info``)
+# echo correctly on the top-level ``Service`` and verify via the default
+# ``getattr(outcome, ...)`` path.
 _SERVICE_VARIANT_VERIFY_FIELDS = ("sales_price", "default_cost", "sku")
 
 
@@ -1641,13 +1643,23 @@ async def _modify_item_impl(
         diff = compute_field_diff(
             existing_item, request.update_header, unknown_prior=existing_item is None
         )
+        # Katana accepts a boolean ``is_archived`` on write but echoes the
+        # post-state as an ``archived_at`` timestamp (no boolean on any read
+        # model) — derive the bool from the timestamp or every archive/unarchive
+        # reports a spurious mismatch. Mirrors the ``is_archived <- archived_at``
+        # convention used across the server (``_fetch_item_for_diff``,
+        # ``prefab_ui``, ``typed_cache.queries``).
+        header_value_source: dict[str, Callable[[Any], Any]] = {
+            "is_archived": lambda o: (
+                unwrap_unset(getattr(o, "archived_at", UNSET), None) is not None
+            )
+        }
         # Services echo pricing/SKU on the nested first variant, not the
         # Service header — point the verifier at the variant for those fields.
-        header_value_source = (
-            {f: _service_variant_value(f) for f in _SERVICE_VARIANT_VERIFY_FIELDS}
-            if request.type == ItemType.SERVICE
-            else None
-        )
+        if request.type == ItemType.SERVICE:
+            header_value_source.update(
+                {f: _service_variant_value(f) for f in _SERVICE_VARIANT_VERIFY_FIELDS}
+            )
         plan.append(
             ActionSpec(
                 operation=ItemOperation.UPDATE_HEADER,

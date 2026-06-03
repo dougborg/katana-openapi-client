@@ -189,6 +189,53 @@ async def test_response_verifier_passes_when_decimal_string_equals_int():
     assert actual is None
 
 
+@pytest.mark.asyncio
+async def test_response_verifier_transforms_bridge_wire_vs_literal():
+    """``transforms`` canonicalizes both sides so a wire-vs-literal value
+    verifies cleanly.
+
+    The stock-transfer status case: the request carries the tool-facing literal
+    ``IN_TRANSIT`` (on the patch field ``new_status``) while Katana echoes the
+    wire value ``inTransit`` (on the response attr ``status``). ``field_map``
+    bridges the name; the transform maps both representations to the wire form,
+    so verification passes. Without it the verifier read ``inTransit != IN_TRANSIT``
+    and reported a spurious mismatch (the reason the action skipped verify).
+    """
+    wire = {"IN_TRANSIT": "inTransit", "DRAFT": "draft", "RECEIVED": "received"}
+
+    def to_wire(value: Any) -> Any:
+        return wire.get(value, value)
+
+    diff = [FieldChange(field="new_status", old=None, new="IN_TRANSIT")]
+    verify = make_response_verifier(
+        diff, field_map={"new_status": "status"}, transforms={"new_status": to_wire}
+    )
+    outcome = MagicMock()
+    outcome.status = "inTransit"
+    verified, actual = await verify(outcome)
+    assert verified is True
+    assert actual is None
+
+
+@pytest.mark.asyncio
+async def test_response_verifier_transforms_still_flags_real_divergence():
+    """A genuine post-canonicalization divergence still reports a mismatch."""
+    wire = {"IN_TRANSIT": "inTransit", "RECEIVED": "received"}
+
+    def to_wire(value: Any) -> Any:
+        return wire.get(value, value)
+
+    diff = [FieldChange(field="new_status", old=None, new="IN_TRANSIT")]
+    verify = make_response_verifier(
+        diff, field_map={"new_status": "status"}, transforms={"new_status": to_wire}
+    )
+    outcome = MagicMock()
+    outcome.status = "received"  # server landed a different status than requested
+    verified, actual = await verify(outcome)
+    assert verified is False
+    assert actual == {"new_status": "received"}
+
+
 def test_compute_field_diff_field_map_renames_attr_lookup():
     existing = MagicMock()
     existing.real_name = "old"  # entity uses `real_name`, request uses `name`

@@ -459,6 +459,7 @@ def make_response_verifier(
     *,
     field_map: dict[str, str] | None = None,
     value_source: Mapping[str, Callable[[Any], Any]] | None = None,
+    transforms: Mapping[str, Callable[[Any], Any]] | None = None,
 ) -> Callable[[Any], Awaitable[tuple[bool, dict[str, Any] | None]]]:
     """Build a verify closure that checks the API response body against ``diff``.
 
@@ -478,9 +479,25 @@ def make_response_verifier(
     header — without an override those fields read as ``None`` and verify
     spuriously as ``False`` on a successful update. Fields not in the map fall
     back to ``getattr(outcome, attr)`` as before.
+
+    ``transforms`` is a ``{field_name: callable(value) -> value}`` map applied to
+    **both** the requested value (``FieldChange.new``) and the actual response
+    value before they are compared. Use it to bridge wire-vs-literal differences
+    where the request carries a tool-facing literal but the response echoes
+    Katana's wire value — e.g. stock-transfer status sends ``IN_TRANSIT`` and
+    Katana echoes ``inTransit``. The transform must canonicalize both
+    representations to the same form (and be idempotent on already-wire values)
+    so verification reports a mismatch only on genuine divergence. The callable
+    may be invoked with ``None`` (when ``FieldChange.new`` or the response value
+    is ``None``) and must tolerate it without raising. The comparison runs on the
+    transformed values, but the reported ``actual_after`` mismatch dict carries
+    the *pre-transform* response value (after ``_normalize`` only — UNSET→None,
+    datetimes→ISO, enums→``.value``), so debugging shows the response value
+    rather than the transform's canonical form.
     """
     name_map = field_map or {}
     source_map = value_source or {}
+    transform_map = transforms or {}
 
     async def verify(outcome: Any) -> tuple[bool, dict[str, Any] | None]:
         if outcome is None:
@@ -495,8 +512,14 @@ def make_response_verifier(
                 attr = name_map.get(change.field, change.field)
                 raw = getattr(outcome, attr, None)
             actual_val = _normalize(unwrap_unset(raw, None))
+            # Report the normalized pre-transform response value; compare on the
+            # canonical form so a wire-vs-literal skew (``inTransit`` vs
+            # ``IN_TRANSIT``) isn't flagged.
             actual[change.field] = actual_val
-            if change.new is not None and actual_val != change.new:
+            fn = transform_map.get(change.field)
+            expected = fn(change.new) if fn else change.new
+            actual_cmp = fn(actual_val) if fn else actual_val
+            if change.new is not None and actual_cmp != expected:
                 verified = False
         return verified, (actual if not verified else None)
 

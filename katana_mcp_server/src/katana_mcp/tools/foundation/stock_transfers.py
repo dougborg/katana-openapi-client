@@ -99,6 +99,22 @@ def _status_literal_to_enum(status: StatusLiteral) -> StockTransferStatus:
     return _STATUS_API_VALUE[status]
 
 
+def _status_to_wire(value: Any) -> Any:
+    """Canonicalize any status representation to Katana's wire string.
+
+    The response verifier compares the requested value (the tool-facing literal
+    ``IN_TRANSIT``) against the echoed response status (Katana's wire value
+    ``inTransit``). Mapping both sides to the wire form means verification fails
+    only on a genuine divergence. Accepts a ``StockTransferStatus`` enum, a
+    tool-facing literal, or an already-wire string; idempotent on the latter,
+    and unknown values pass through unchanged.
+    """
+    if isinstance(value, StockTransferStatus):
+        return value.value
+    enum = _STATUS_API_VALUE.get(value)
+    return enum.value if enum is not None else value
+
+
 # ============================================================================
 # Shared response models
 # ============================================================================
@@ -933,11 +949,17 @@ async def _modify_stock_transfer_impl(
                     _build_update_status_request(request.update_status),
                     return_type=StockTransfer,
                 ),
-                # No verify — status returned by the API uses Katana's wire
-                # value (``inTransit``) while the request carries the tool-
-                # facing literal (``IN_TRANSIT``); the response-verifier would
-                # report a spurious mismatch. The action's success/error is
-                # still reflected in ``ActionResult.succeeded``.
+                # The status returned by the API uses Katana's wire value
+                # (``inTransit``) while the request carries the tool-facing
+                # literal (``IN_TRANSIT``), and the patch field is ``new_status``
+                # while the response attr is ``status``. ``field_map`` bridges the
+                # name; ``_status_to_wire`` canonicalizes both sides so the
+                # verifier flags a mismatch only on genuine divergence.
+                verify=make_response_verifier(
+                    diff,
+                    field_map={"new_status": "status"},
+                    transforms={"new_status": _status_to_wire},
+                ),
             )
         )
 
