@@ -1904,14 +1904,6 @@ components:
         - perUnit
         - fixed
       description: Type of operation defining how time and cost are calculated
-    PriceAdjustmentMethod:
-      type: string
-      enum:
-        - fixed
-        - markup
-        - percentage
-      description: Pricing adjustment method for price list rows
-
     PurchaseOrderStatus:
       type: string
       enum:
@@ -10459,7 +10451,7 @@ components:
           description: ID of the product variant being priced
         adjustment_method:
           description: Method for price adjustment
-          $ref: "#/components/schemas/PriceAdjustmentMethod"
+          $ref: "#/components/schemas/PriceListAdjustmentMethod"
         amount:
           type: number
           description: Adjustment amount

@@ -336,7 +336,6 @@ from .outsourced_recipe_ingredient_availability import (
 from .pattern_validation_error import PatternValidationError
 from .pattern_validation_error_code import PatternValidationErrorCode
 from .pattern_validation_error_info import PatternValidationErrorInfo
-from .price_adjustment_method import PriceAdjustmentMethod
 from .price_list import PriceList
 from .price_list_adjustment_method import PriceListAdjustmentMethod
 from .price_list_customer import PriceListCustomer
@@ -838,7 +837,6 @@ __all__ = (
     "PatternValidationError",
     "PatternValidationErrorCode",
     "PatternValidationErrorInfo",
-    "PriceAdjustmentMethod",
     "PriceList",
     "PriceListAdjustmentMethod",
     "PriceListCustomer",

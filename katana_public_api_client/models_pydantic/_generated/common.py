@@ -107,12 +107,6 @@ class ManufacturingOperationStatus(StrEnum):
     completed = "COMPLETED"
 
 
-class PriceAdjustmentMethod(StrEnum):
-    fixed = "fixed"
-    markup = "markup"
-    percentage = "percentage"
-
-
 class DocumentSendStatus(StrEnum):
     not_sent = "NOT_SENT"
     sending = "SENDING"

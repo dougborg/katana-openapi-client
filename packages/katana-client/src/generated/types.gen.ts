@@ -657,11 +657,6 @@ export type ManufacturingOperationType =
   | "fixed";
 
 /**
- * Pricing adjustment method for price list rows
- */
-export type PriceAdjustmentMethod = "fixed" | "markup" | "percentage";
-
-/**
  * Fulfillment status of a purchase order
  */
 export type PurchaseOrderStatus =
@@ -6680,7 +6675,7 @@ export type UpdatePriceListRowRequest = {
   /**
    * Method for price adjustment
    */
-  adjustment_method?: PriceAdjustmentMethod;
+  adjustment_method?: PriceListAdjustmentMethod;
   /**
    * Adjustment amount
    */

@@ -20,7 +20,7 @@ from katana_public_api_client.models_pydantic._mapped_shim import Mapped
 from katana_public_api_client.models_pydantic._pydantic_json import PydanticJSON
 
 from .base import DeletableEntity, UpdatableEntity
-from .common import Address, AddressEntityType, PriceAdjustmentMethod
+from .common import Address, AddressEntityType
 
 
 class PriceListAdjustmentMethod(StrEnum):
@@ -390,7 +390,8 @@ class UpdatePriceListRowRequest(KatanaPydanticBase):
         int | None, Field(description="ID of the product variant being priced")
     ] = None
     adjustment_method: Annotated[
-        PriceAdjustmentMethod | None, Field(description="Method for price adjustment")
+        PriceListAdjustmentMethod | None,
+        Field(description="Method for price adjustment"),
     ] = None
     amount: Annotated[float | None, Field(description="Adjustment amount")] = None
 
