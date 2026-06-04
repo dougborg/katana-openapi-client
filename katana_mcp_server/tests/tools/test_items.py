@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import datetime
 import json
-from typing import cast
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -25,6 +25,7 @@ from katana_mcp.tools.foundation.items import (
     get_variant_details,
 )
 from katana_mcp_server.tests.conftest import (
+    StopForCapture,
     create_mock_context,
     mock_item as _mock_item,
 )
@@ -2261,6 +2262,45 @@ async def test_modify_item_archive_verifies_when_diff_fetch_misses():
     assert action.succeeded is True
     assert action.verified is True
     assert action.actual_after is None
+
+
+@pytest.mark.asyncio
+async def test_modify_item_wires_parent_from_outcome():
+    """#905: modify_item reuses the PATCH response for the parent merge.
+
+    The product/material/service EntitySpecs embed no children, so the parent
+    merge writes only the item row — unconditionally safe to source from the
+    PATCH ``apply_outcome`` (one fewer GET that could stall on the rate-limit
+    gate). Asserted at the wiring level: the ``CacheMerge`` handed to
+    ``run_modify_plan`` carries ``parent_from_outcome=True``.
+    """
+    from katana_mcp.tools.foundation import items as items_mod
+
+    captured: dict[str, Any] = {}
+
+    async def fake_run(**kwargs: Any) -> Any:
+        captured["cache_merge"] = kwargs["cache_merge"]
+        raise StopForCapture
+
+    context, _ = create_mock_context()
+    request = items_mod.ModifyItemRequest(
+        id=7,
+        type=ItemType.PRODUCT,
+        update_header=items_mod.ItemHeaderPatch(name="Renamed"),
+        preview=False,
+    )
+    with (
+        patch(
+            "katana_mcp.tools.foundation.items._fetch_item_for_diff",
+            new_callable=AsyncMock,
+            return_value=_mock_item(id=7, name="Widget"),
+        ),
+        patch.object(items_mod, "run_modify_plan", side_effect=fake_run),
+        pytest.raises(StopForCapture),
+    ):
+        await items_mod._modify_item_impl(request, context)
+
+    assert captured["cache_merge"].parent_from_outcome is True
 
 
 @pytest.mark.asyncio
