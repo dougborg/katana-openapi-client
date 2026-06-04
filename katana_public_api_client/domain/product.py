@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import AwareDatetime, Field
 
-from .base import KatanaBaseModel
+from .base import KatanaBaseModel, decimal_str_to_float
 
 if TYPE_CHECKING:
     from ..models.product import Product as AttrsProduct
@@ -189,7 +189,9 @@ class KatanaProduct(KatanaBaseModel):
             lead_time=generated.lead_time,
             minimum_order_quantity=generated.minimum_order_quantity,
             purchase_uom=generated.purchase_uom,
-            purchase_uom_conversion_rate=generated.purchase_uom_conversion_rate,
+            purchase_uom_conversion_rate=decimal_str_to_float(
+                generated.purchase_uom_conversion_rate
+            ),
             additional_info=generated.additional_info,
             custom_field_collection_id=generated.custom_field_collection_id,
             archived_at=generated.archived_at,

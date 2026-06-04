@@ -40,7 +40,7 @@ class InventoryItem:
     additional_info: str | Unset = UNSET
     batch_tracked: bool | Unset = UNSET
     purchase_uom: None | str | Unset = UNSET
-    purchase_uom_conversion_rate: float | None | Unset = UNSET
+    purchase_uom_conversion_rate: None | str | Unset = UNSET
     custom_field_collection_id: int | None | Unset = UNSET
     variants: list[Variant] | Unset = UNSET
     configs: list[ItemConfig] | Unset = UNSET
@@ -94,7 +94,7 @@ class InventoryItem:
         else:
             purchase_uom = self.purchase_uom
 
-        purchase_uom_conversion_rate: float | None | Unset
+        purchase_uom_conversion_rate: None | str | Unset
         if isinstance(self.purchase_uom_conversion_rate, Unset):
             purchase_uom_conversion_rate = UNSET
         else:
@@ -244,12 +244,12 @@ class InventoryItem:
 
         purchase_uom = _parse_purchase_uom(d.pop("purchase_uom", UNSET))
 
-        def _parse_purchase_uom_conversion_rate(data: object) -> float | None | Unset:
+        def _parse_purchase_uom_conversion_rate(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(None | str | Unset, data)
 
         purchase_uom_conversion_rate = _parse_purchase_uom_conversion_rate(
             d.pop("purchase_uom_conversion_rate", UNSET)

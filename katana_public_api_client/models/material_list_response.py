@@ -24,7 +24,7 @@ class MaterialListResponse:
     Example:
         {'data': [{'id': 3201, 'name': 'Stainless Steel Sheet 304', 'uom': 'm²', 'category_name': 'Raw Materials',
             'default_supplier_id': 1501, 'additional_info': 'Food-grade stainless steel, 1.5mm thickness', 'batch_tracked':
-            True, 'is_sellable': False, 'type': 'material', 'purchase_uom': 'sheet', 'purchase_uom_conversion_rate': 2.0,
+            True, 'is_sellable': False, 'type': 'material', 'purchase_uom': 'sheet', 'purchase_uom_conversion_rate': '2.0',
             'variants': [{'id': 5001, 'sku': 'STEEL-304-1.5MM', 'sales_price': None, 'purchase_price': 45.0, 'type':
             'material', 'lead_time': 5, 'minimum_order_quantity': 1, 'config_attributes': [{'config_name': 'Grade',
             'config_value': '304'}, {'config_name': 'Thickness', 'config_value': '1.5mm'}], 'created_at':

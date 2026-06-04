@@ -4557,12 +4557,11 @@ components:
                 of measure. If value is not null, purchase_uom_conversion_rate must also be populated.
             purchase_uom_conversion_rate:
               type:
-                - number
+                - string
                 - "null"
-              maximum: 1000000000000
               description: |-
-                The conversion rate between the purchase and default UoMs. If used, item must have a purchase_uom
-                that is different from uom.
+                The conversion rate between the purchase and default UoMs, returned as a fixed-precision decimal
+                string. If used, item must have a purchase_uom that is different from uom.
             custom_field_collection_id:
               type:
                 - integer
@@ -4626,7 +4625,7 @@ components:
         is_sellable: false
         type: material
         purchase_uom: sheet
-        purchase_uom_conversion_rate: 2.0
+        purchase_uom_conversion_rate: "2.0"
         variants:
           - id: 5001
             sku: STEEL-304-1.5MM
@@ -4681,7 +4680,7 @@ components:
             is_sellable: false
             type: material
             purchase_uom: sheet
-            purchase_uom_conversion_rate: 2.0
+            purchase_uom_conversion_rate: "2.0"
             variants:
               - id: 5001
                 sku: STEEL-304-1.5MM
@@ -5214,7 +5213,7 @@ components:
         operations_in_sequence: false
         type: product
         purchase_uom: pcs
-        purchase_uom_conversion_rate: 1
+        purchase_uom_conversion_rate: "1"
         lead_time: 1
         minimum_order_quantity: 3
         custom_field_collection_id: 1
@@ -15880,7 +15879,7 @@ paths:
                 is_auto_assembly: true
                 type: product
                 purchase_uom: pcs
-                purchase_uom_conversion_rate: 1
+                purchase_uom_conversion_rate: "1"
                 batch_tracked: true
                 serial_tracked: false
                 operations_in_sequence: false
@@ -15983,7 +15982,7 @@ paths:
                     is_auto_assembly: true
                     type: product
                     purchase_uom: pcs
-                    purchase_uom_conversion_rate: 1
+                    purchase_uom_conversion_rate: "1"
                     batch_tracked: true
                     operations_in_sequence: false
                     serial_tracked: false
@@ -16072,7 +16071,7 @@ paths:
                 is_auto_assembly: true
                 type: product
                 purchase_uom: pcs
-                purchase_uom_conversion_rate: 1
+                purchase_uom_conversion_rate: "1"
                 batch_tracked: false
                 operations_in_sequence: false
                 archived_at: "2020-10-20T10:37:05.085Z"
@@ -16167,7 +16166,7 @@ paths:
                 is_auto_assembly: true
                 type: product
                 purchase_uom: pcs
-                purchase_uom_conversion_rate: 1
+                purchase_uom_conversion_rate: "1"
                 batch_tracked: true
                 serial_tracked: false
                 operations_in_sequence: false
@@ -17796,7 +17795,7 @@ paths:
                       is_purchasable: true
                       type: product
                       purchase_uom: pcs
-                      purchase_uom_conversion_rate: 1
+                      purchase_uom_conversion_rate: "1"
                       batch_tracked: false
                       variants:
                         - id: 1
@@ -17883,7 +17882,7 @@ paths:
                   is_purchasable: true
                   type: product
                   purchase_uom: pcs
-                  purchase_uom_conversion_rate: 1
+                  purchase_uom_conversion_rate: "1"
                   batch_tracked: false
                   variants:
                     - id: 1
