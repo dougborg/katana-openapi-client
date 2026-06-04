@@ -803,14 +803,17 @@ class ManufacturingOrderOperationRow(DeletableEntity):
         float | None, Field(description="Remaining time estimated for this operation")
     ] = None
     cost_per_hour: Annotated[
-        float | None,
+        str | None,
         Field(
             deprecated=True,
-            description="Hourly cost rate for this operation (deprecated — use ``cost_parameter`` instead)",
+            description="Hourly cost rate for this operation, returned as a fixed-precision decimal string (deprecated — use ``cost_parameter`` instead)",
         ),
     ] = None
     cost_parameter: Annotated[
-        float | None, Field(description="Parameter for calculating operation costs")
+        str | None,
+        Field(
+            description="Parameter for calculating operation costs, returned as a fixed-precision decimal string"
+        ),
     ] = None
     group_boundary: Annotated[
         float | None, Field(description="Group boundary setting for operation grouping")

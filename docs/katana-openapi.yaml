@@ -3735,12 +3735,12 @@ components:
               type: number
               description: Remaining time estimated for this operation
             cost_per_hour:
-              type: number
+              type: string
               deprecated: true
-              description: Hourly cost rate for this operation (deprecated — use ``cost_parameter`` instead)
+              description: Hourly cost rate for this operation, returned as a fixed-precision decimal string (deprecated — use ``cost_parameter`` instead)
             cost_parameter:
-              type: number
-              description: Parameter for calculating operation costs
+              type: string
+              description: Parameter for calculating operation costs, returned as a fixed-precision decimal string
             group_boundary:
               type: number
               description: Group boundary setting for operation grouping
@@ -3783,8 +3783,8 @@ components:
         total_actual_time: "12.5"
         planned_cost_per_unit: "45.0"
         total_actual_cost: "37.5"
-        cost_per_hour: 180.0
-        cost_parameter: 1.0
+        cost_per_hour: "180.0"
+        cost_parameter: "1.0"
         group_boundary: 0
         is_status_actionable: true
         completed_at: null
