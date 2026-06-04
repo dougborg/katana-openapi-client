@@ -335,7 +335,8 @@ class PriceListRow(KatanaPydanticBase):
         int | None, Field(description="ID of the product variant")
     ] = None
     adjustment_method: Annotated[
-        str | None, Field(description="Method for price adjustment")
+        PriceListAdjustmentMethod | None,
+        Field(description="Method for price adjustment"),
     ] = None
     amount: Annotated[float | None, Field(description="Adjustment amount")] = None
 

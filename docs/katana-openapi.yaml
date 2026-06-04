@@ -10400,7 +10400,7 @@ components:
                 type: integer
                 description: ID of the product variant
               adjustment_method:
-                type: string
+                $ref: "#/components/schemas/PriceListAdjustmentMethod"
                 description: Method for price adjustment
               amount:
                 type: number
