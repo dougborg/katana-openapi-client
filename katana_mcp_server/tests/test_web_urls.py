@@ -176,3 +176,17 @@ def test_platform_label() -> None:
 def test_recognized_set_is_exactly_the_three_native_platforms() -> None:
     """Pins the deep-linkable set; ``audit-frontend-enums`` guards live drift."""
     assert {"shopify", "wooCommerce", "bigCommerce"} == RECOGNIZED_ECOMMERCE_TYPES
+
+
+def test_every_recognized_platform_has_a_label() -> None:
+    """Template and label maps must share an identical key set.
+
+    The import-time invariant in ``web_urls`` enforces this so a new template
+    can't ship without its "Open in {platform}" label; this test pins the
+    contract independently (the drift audit only checks template keys against
+    the live frontend and never inspects the labels).
+    """
+    assert all(
+        ecommerce_platform_label(platform) is not None
+        for platform in RECOGNIZED_ECOMMERCE_TYPES
+    )
