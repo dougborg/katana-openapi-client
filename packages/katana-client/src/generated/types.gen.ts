@@ -1950,15 +1950,15 @@ export type ManufacturingOrderOperationRow = {
    */
   total_remaining_time?: number;
   /**
-   * Hourly cost rate for this operation (deprecated — use ``cost_parameter`` instead)
+   * Hourly cost rate for this operation, returned as a fixed-precision decimal string (deprecated — use ``cost_parameter`` instead)
    *
    * @deprecated
    */
-  cost_per_hour?: number;
+  cost_per_hour?: string;
   /**
-   * Parameter for calculating operation costs
+   * Parameter for calculating operation costs, returned as a fixed-precision decimal string
    */
-  cost_parameter?: number;
+  cost_parameter?: string;
   /**
    * Group boundary setting for operation grouping
    */

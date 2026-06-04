@@ -31,7 +31,7 @@ class ManufacturingOrderOperationRow:
                 Machine', 'assigned_operators': [{'id': 101, 'operator_id': 101, 'name': 'John Smith', 'working_area':
                 'Production Floor A', 'resource_id': 501}], 'completed_by_operators': [], 'active_operator_id': 101,
                 'planned_time_per_unit': '15.0', 'planned_time_parameter': '1.0', 'total_actual_time': '12.5',
-                'planned_cost_per_unit': '45.0', 'total_actual_cost': '37.5', 'cost_per_hour': 180.0, 'cost_parameter': 1.0,
+                'planned_cost_per_unit': '45.0', 'total_actual_cost': '37.5', 'cost_per_hour': '180.0', 'cost_parameter': '1.0',
                 'group_boundary': 0, 'is_status_actionable': True, 'completed_at': None, 'created_at': '2024-01-15T08:00:00Z',
                 'updated_at': '2024-01-20T14:30:00Z', 'deleted_at': None}
     """
@@ -58,8 +58,8 @@ class ManufacturingOrderOperationRow:
     total_actual_cost: str | Unset = UNSET
     total_consumed_time: float | Unset = UNSET
     total_remaining_time: float | Unset = UNSET
-    cost_per_hour: float | Unset = UNSET
-    cost_parameter: float | Unset = UNSET
+    cost_per_hour: str | Unset = UNSET
+    cost_parameter: str | Unset = UNSET
     group_boundary: float | Unset = UNSET
     is_status_actionable: bool | Unset = UNSET
     completed_at: datetime.datetime | None | Unset = UNSET

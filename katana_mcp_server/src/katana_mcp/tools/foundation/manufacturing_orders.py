@@ -1024,8 +1024,8 @@ def _operation_row_info_from_attrs(row: Any) -> OperationRowInfo:
             unwrap_unset(row.planned_cost_per_unit, None)
         ),
         total_actual_cost=float_or_none(unwrap_unset(row.total_actual_cost, None)),
-        cost_per_hour=unwrap_unset(row.cost_per_hour, None),
-        cost_parameter=unwrap_unset(row.cost_parameter, None),
+        cost_per_hour=float_or_none(unwrap_unset(row.cost_per_hour, None)),
+        cost_parameter=float_or_none(unwrap_unset(row.cost_parameter, None)),
         group_boundary=unwrap_unset(row.group_boundary, None),
         is_status_actionable=unwrap_unset(row.is_status_actionable, None),
         completed_at=iso_or_none(unwrap_unset(row.completed_at, None)),
