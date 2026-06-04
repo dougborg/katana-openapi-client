@@ -27,6 +27,12 @@ stays unverifiable.
 
 Scope caveats (this is a diagnostic, not an exhaustive auditor):
 
+- Coverage is bounded by what currently exists on the tenant, not by
+  pagination: ``make_test_client``'s transport auto-follows pages, so each
+  GET returns *every* matching record (the per-endpoint ``limit`` is just the
+  page size). A field that is null across all of the tenant's current records
+  is reported ``unverifiable``, not "no drift" — seed data with
+  ``seed_money_fields.py`` to confirm those.
 - Observations are keyed by ``(immediate-parent-key, field-name)``, so two
   nested objects that share both a parent key *and* a field name merge into
   one bucket. The failure mode is conservative — merging only ever *adds*
@@ -64,9 +70,10 @@ KW = (
     "landed",
 )
 
-# Endpoints to sweep. Each entry: (path, params). The probe walks every
-# record returned (plus nested rows), recording leaf field types. limit kept
-# high to maximise the chance of catching a non-null sample.
+# Endpoints to sweep. Each entry: (path, params). ``limit`` sets the page
+# size; the resilient transport auto-follows pagination, so each GET returns
+# every record the tenant currently holds for that endpoint, and the probe
+# walks all of them (plus nested rows), recording leaf field types.
 ENDPOINTS: list[tuple[str, dict[str, Any]]] = [
     ("/sales_orders", {"limit": 100, "extend": "sales_order_rows"}),
     ("/sales_order_rows", {"limit": 250}),
