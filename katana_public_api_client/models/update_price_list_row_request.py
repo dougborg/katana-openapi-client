@@ -6,7 +6,7 @@ from typing import Any, TypeVar
 from attrs import define as _attrs_define
 
 from ..client_types import UNSET, Unset
-from ..models.price_adjustment_method import PriceAdjustmentMethod
+from ..models.price_list_adjustment_method import PriceListAdjustmentMethod
 
 T = TypeVar("T", bound="UpdatePriceListRowRequest")
 
@@ -20,7 +20,7 @@ class UpdatePriceListRowRequest:
     """
 
     variant_id: int | Unset = UNSET
-    adjustment_method: PriceAdjustmentMethod | Unset = UNSET
+    adjustment_method: PriceListAdjustmentMethod | Unset = UNSET
     amount: float | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
@@ -50,11 +50,11 @@ class UpdatePriceListRowRequest:
         variant_id = d.pop("variant_id", UNSET)
 
         _adjustment_method = d.pop("adjustment_method", UNSET)
-        adjustment_method: PriceAdjustmentMethod | Unset
+        adjustment_method: PriceListAdjustmentMethod | Unset
         if isinstance(_adjustment_method, Unset):
             adjustment_method = UNSET
         else:
-            adjustment_method = PriceAdjustmentMethod(_adjustment_method)
+            adjustment_method = PriceListAdjustmentMethod(_adjustment_method)
 
         amount = d.pop("amount", UNSET)
 
