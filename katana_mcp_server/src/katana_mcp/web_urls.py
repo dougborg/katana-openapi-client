@@ -93,13 +93,26 @@ _ECOMMERCE_TEMPLATES: dict[str, str] = {
 }
 
 # Human labels for the same keys, so a card button reads "Open in Shopify"
-# rather than the camelCase literal. Kept adjacent to the templates so the
-# drift audit can assert both maps share the same key set.
+# rather than the camelCase literal. Kept adjacent to the templates, and the
+# key-set invariant below pins them together so adding a template without its
+# label (or vice-versa) fails fast at import.
 _ECOMMERCE_LABELS: dict[str, str] = {
     "shopify": "Shopify",
     "wooCommerce": "WooCommerce",
     "bigCommerce": "BigCommerce",
 }
+
+# Invariant: every deep-linkable platform must have BOTH a URL template and a
+# human label, so any recognized order can render an "Open in {platform}" link.
+# Enforced here at import (deterministic) rather than in the drift audit, which
+# only diffs template keys against the live frontend and soft-fails when the CDN
+# is unreachable — it would never catch a missing label.
+if _ECOMMERCE_TEMPLATES.keys() != _ECOMMERCE_LABELS.keys():
+    _divergent = sorted(_ECOMMERCE_TEMPLATES.keys() ^ _ECOMMERCE_LABELS.keys())
+    raise RuntimeError(
+        f"ecommerce template/label key sets diverged: {_divergent}. "
+        "Every _ECOMMERCE_TEMPLATES key needs a matching _ECOMMERCE_LABELS entry."
+    )
 
 # The recognized deep-linkable ``ecommerce_order_type`` values, derived from the
 # template map so there's one source of truth. Consumed by the create-time
