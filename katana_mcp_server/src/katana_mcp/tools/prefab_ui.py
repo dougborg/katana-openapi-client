@@ -134,7 +134,7 @@ from katana_mcp.tools.foundation.po_row_table import (
     merge_po_row_rows_for_modify_card,
     prepare_po_row_table_rows,
 )
-from katana_mcp.tools.tool_result_utils import BLOCK_WARNING_PREFIX
+from katana_mcp.tools.tool_result_utils import BLOCK_WARNING_PREFIX, float_or_none
 from katana_mcp.web_urls import (
     EntityKind,
     ecommerce_platform_label,
@@ -868,7 +868,9 @@ def _variant_purchase_uom_line(variant: dict[str, Any]) -> None:
     stock_uom = variant.get("uom")
     if purchase_uom == stock_uom:
         return
-    rate = variant.get("purchase_uom_conversion_rate")
+    # Katana returns this conversion rate as a fixed-precision decimal string
+    # on item reads (e.g. "12.00000000000"); coalesce to float for display.
+    rate = float_or_none(variant.get("purchase_uom_conversion_rate"))
     if rate is None:
         Text(content=f"Purchase UoM: {purchase_uom}")
         return

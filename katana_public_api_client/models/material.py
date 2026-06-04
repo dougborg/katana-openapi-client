@@ -29,7 +29,7 @@ class Material:
         Example:
             {'id': 3201, 'name': 'Stainless Steel Sheet 304', 'uom': 'm²', 'category_name': 'Raw Materials',
                 'default_supplier_id': 1501, 'additional_info': 'Food-grade stainless steel, 1.5mm thickness', 'batch_tracked':
-                True, 'is_sellable': False, 'type': 'material', 'purchase_uom': 'sheet', 'purchase_uom_conversion_rate': 2.0,
+                True, 'is_sellable': False, 'type': 'material', 'purchase_uom': 'sheet', 'purchase_uom_conversion_rate': '2.0',
                 'variants': [{'id': 5001, 'sku': 'STEEL-304-1.5MM', 'sales_price': None, 'purchase_price': 45.0, 'type':
                 'material', 'lead_time': 5, 'minimum_order_quantity': 1, 'config_attributes': [{'config_name': 'Grade',
                 'config_value': '304'}, {'config_name': 'Thickness', 'config_value': '1.5mm'}], 'created_at':
@@ -52,7 +52,7 @@ class Material:
     additional_info: str | Unset = UNSET
     batch_tracked: bool | Unset = UNSET
     purchase_uom: None | str | Unset = UNSET
-    purchase_uom_conversion_rate: float | None | Unset = UNSET
+    purchase_uom_conversion_rate: None | str | Unset = UNSET
     custom_field_collection_id: int | None | Unset = UNSET
     variants: list[Variant] | Unset = UNSET
     configs: list[ItemConfig] | Unset = UNSET
@@ -109,7 +109,7 @@ class Material:
         else:
             purchase_uom = self.purchase_uom
 
-        purchase_uom_conversion_rate: float | None | Unset
+        purchase_uom_conversion_rate: None | str | Unset
         if isinstance(self.purchase_uom_conversion_rate, Unset):
             purchase_uom_conversion_rate = UNSET
         else:
@@ -277,12 +277,12 @@ class Material:
 
         purchase_uom = _parse_purchase_uom(d.pop("purchase_uom", UNSET))
 
-        def _parse_purchase_uom_conversion_rate(data: object) -> float | None | Unset:
+        def _parse_purchase_uom_conversion_rate(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(float | None | Unset, data)
+            return cast(None | str | Unset, data)
 
         purchase_uom_conversion_rate = _parse_purchase_uom_conversion_rate(
             d.pop("purchase_uom_conversion_rate", UNSET)

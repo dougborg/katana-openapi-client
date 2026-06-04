@@ -1275,10 +1275,9 @@ class InventoryItem(ArchivableEntity):
         ),
     ] = None
     purchase_uom_conversion_rate: Annotated[
-        float | None,
+        str | None,
         Field(
-            description="The conversion rate between the purchase and default UoMs. If used, item must have a purchase_uom\nthat is different from uom.",
-            le=1000000000000.0,
+            description="The conversion rate between the purchase and default UoMs, returned as a fixed-precision decimal\nstring. If used, item must have a purchase_uom that is different from uom."
         ),
     ] = None
     custom_field_collection_id: Annotated[
@@ -1711,10 +1710,9 @@ class CachedMaterial(ArchivableEntity, table=True):
         ),
     ] = None
     purchase_uom_conversion_rate: Annotated[
-        Mapped[float | None],
+        Mapped[str | None],
         Field(
-            description="The conversion rate between the purchase and default UoMs. If used, item must have a purchase_uom\nthat is different from uom.",
-            le=1000000000000.0,
+            description="The conversion rate between the purchase and default UoMs, returned as a fixed-precision decimal\nstring. If used, item must have a purchase_uom that is different from uom."
         ),
     ] = None
     custom_field_collection_id: Annotated[
@@ -1818,10 +1816,9 @@ class CachedProduct(ArchivableEntity, table=True):
         ),
     ] = None
     purchase_uom_conversion_rate: Annotated[
-        Mapped[float | None],
+        Mapped[str | None],
         Field(
-            description="The conversion rate between the purchase and default UoMs. If used, item must have a purchase_uom\nthat is different from uom.",
-            le=1000000000000.0,
+            description="The conversion rate between the purchase and default UoMs, returned as a fixed-precision decimal\nstring. If used, item must have a purchase_uom that is different from uom."
         ),
     ] = None
     custom_field_collection_id: Annotated[

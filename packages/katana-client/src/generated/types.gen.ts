@@ -2542,10 +2542,10 @@ export type InventoryItem = ArchivableEntity & {
    */
   purchase_uom?: string | null;
   /**
-   * The conversion rate between the purchase and default UoMs. If used, item must have a purchase_uom
-   * that is different from uom.
+   * The conversion rate between the purchase and default UoMs, returned as a fixed-precision decimal
+   * string. If used, item must have a purchase_uom that is different from uom.
    */
-  purchase_uom_conversion_rate?: number | null;
+  purchase_uom_conversion_rate?: string | null;
   /**
    * ID of the custom field collection associated with this item
    */
