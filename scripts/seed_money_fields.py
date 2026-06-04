@@ -2,8 +2,11 @@
 
 The read-only ``probe_money_fields.py`` left a residual set of ``number``-typed
 fields it could not confirm because no record carrying a non-null value exists
-on the test tenant. This script *creates* one SDT-tagged record per residual
-field, GETs it back, prints the raw wire type, then deletes everything it made.
+on the test tenant. This script *creates* SDT-tagged records to populate them —
+one entity per seed function, each often covering several fields (e.g.
+``seed_material`` samples both ``purchase_uom_conversion_rate`` and
+``minimum_order_quantity`` off one material) — GETs each back, prints the raw
+wire type, then deletes everything it made.
 
 Mutating — POST/DELETE against the **test tenant only**. Goes through
 :func:`katana_public_api_client.testing.make_test_client`, which reads
