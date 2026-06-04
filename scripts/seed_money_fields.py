@@ -186,13 +186,18 @@ async def seed_price_list(c: httpx.AsyncClient) -> None:
     if not rr.is_success:
         print(f"   skip — POST /price_list_rows {rr.status_code}: {rr.text[:200]}")
         return
-    # POST /price_list_rows returns a bare array (no data envelope)
-    rows = rr.json()
-    if isinstance(rows, list) and rows and isinstance(rows[0], dict):
-        rid = rows[0].get("id")
-        if rid:
-            _record(f"/price_list_rows/{rid}")
-        _sample("PriceListRow.amount", rows[0].get("amount"))
+    # POST /price_list_rows returns a bare array (no data envelope); record the
+    # created row id, then sample the READ schema via a follow-up GET.
+    created = rr.json()
+    rid = created[0].get("id") if isinstance(created, list) and created else None
+    if rid:
+        _record(f"/price_list_rows/{rid}")
+    lst = (
+        (await c.get("/price_list_rows", params={"limit": 250})).json().get("data", [])
+    )
+    mine = [x for x in lst if x.get("id") == rid]
+    if mine:
+        _sample("PriceListRow.amount", mine[0].get("amount"))
 
 
 async def seed_stock_adjustment(c: httpx.AsyncClient) -> None:
@@ -236,11 +241,15 @@ async def seed_stock_transfer(c: httpx.AsyncClient) -> None:
         return
     tid = r.json()["id"]
     _record(f"/stock_transfers/{tid}")
-    got = r.json()
-    rows = got.get("stock_transfer_rows") or []
-    if rows:
-        _sample("StockTransferRow.quantity", rows[0].get("quantity"))
-        _sample("StockTransferRow.cost_per_unit", rows[0].get("cost_per_unit"))
+    # sample the READ schema via a follow-up GET, not the POST response; use the
+    # list endpoint since GET-by-id can lag right after create on this tenant
+    lst = (await c.get("/stock_transfers", params={"limit": 5})).json().get("data", [])
+    mine = [x for x in lst if x.get("id") == tid]
+    if mine:
+        rows = mine[0].get("stock_transfer_rows") or []
+        if rows:
+            _sample("StockTransferRow.quantity", rows[0].get("quantity"))
+            _sample("StockTransferRow.cost_per_unit", rows[0].get("cost_per_unit"))
 
 
 async def cleanup(c: httpx.AsyncClient) -> None:
