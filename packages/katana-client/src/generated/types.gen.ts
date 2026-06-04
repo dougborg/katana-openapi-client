@@ -6628,7 +6628,7 @@ export type CreatePriceListRowRequest = {
     /**
      * Method for price adjustment
      */
-    adjustment_method?: string;
+    adjustment_method?: PriceListAdjustmentMethod;
     /**
      * Adjustment amount
      */

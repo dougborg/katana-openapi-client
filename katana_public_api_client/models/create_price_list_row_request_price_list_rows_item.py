@@ -9,6 +9,7 @@ from attrs import (
 )
 
 from ..client_types import UNSET, Unset
+from ..models.price_list_adjustment_method import PriceListAdjustmentMethod
 
 T = TypeVar("T", bound="CreatePriceListRowRequestPriceListRowsItem")
 
@@ -16,14 +17,16 @@ T = TypeVar("T", bound="CreatePriceListRowRequestPriceListRowsItem")
 @_attrs_define
 class CreatePriceListRowRequestPriceListRowsItem:
     variant_id: int | Unset = UNSET
-    adjustment_method: str | Unset = UNSET
+    adjustment_method: PriceListAdjustmentMethod | Unset = UNSET
     amount: float | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         variant_id = self.variant_id
 
-        adjustment_method = self.adjustment_method
+        adjustment_method: str | Unset = UNSET
+        if not isinstance(self.adjustment_method, Unset):
+            adjustment_method = self.adjustment_method.value
 
         amount = self.amount
 
@@ -44,7 +47,12 @@ class CreatePriceListRowRequestPriceListRowsItem:
         d = dict(src_dict)
         variant_id = d.pop("variant_id", UNSET)
 
-        adjustment_method = d.pop("adjustment_method", UNSET)
+        _adjustment_method = d.pop("adjustment_method", UNSET)
+        adjustment_method: PriceListAdjustmentMethod | Unset
+        if isinstance(_adjustment_method, Unset):
+            adjustment_method = UNSET
+        else:
+            adjustment_method = PriceListAdjustmentMethod(_adjustment_method)
 
         amount = d.pop("amount", UNSET)
 
