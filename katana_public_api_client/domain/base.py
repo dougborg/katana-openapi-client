@@ -19,13 +19,13 @@ from typing import Any, ClassVar
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 
-def decimal_str_to_float(value: str | float | None) -> float | None:
+def decimal_str_to_float(value: str | int | float | None) -> float | None:
     """Coalesce a Katana decimal field to ``float``.
 
     Several Katana read fields arrive as fixed-precision decimal **strings**
     (e.g. ``"12.00000000000"``) rather than JSON numbers. Domain models expose
     them as ``float | None``; this normalizes the string (or an already-numeric
-    value) to ``float``, passing ``None`` through unchanged.
+    ``int``/``float``) to ``float``, passing ``None`` through unchanged.
     """
     if value is None:
         return None
