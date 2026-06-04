@@ -7,6 +7,13 @@ via make-to-order\
 
 > **Status:** Submitted to Katana 2026-06-02; this is the consolidated statement after a
 > live investigation (test tenant + a browser network-trace of the UI close-out).\
+> **Katana response (2026-06-04):** gap acknowledged ("Public api and serial flows are
+> not great"). Fix planned as part of **bin-locations-on-sales**, which introduces a
+> unified `traceability` relation absorbing bin + batch + serial; fulfillments will no
+> longer specify traceability — pre-assignments (the make-to-order reservation)
+> **auto-carry into the delivered state** (matches options 2–3 in "What we need" below).
+> Expected **~end of June 2026**; no Katana ticket number provided. Re-probe the
+> make-to-order close-out when that release ships, then close or re-escalate.\
 > Internal tracking:
 > [#784](https://github.com/dougborg/katana-openapi-client/issues/784),
 > [#849](https://github.com/dougborg/katana-openapi-client/issues/849).
