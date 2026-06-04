@@ -5,32 +5,37 @@ fields it could not confirm because no record carrying a non-null value exists
 on the test tenant. This script *creates* one SDT-tagged record per residual
 field, GETs it back, prints the raw wire type, then deletes everything it made.
 
-Mutating — POST/DELETE against the **test tenant only** (``KATANA_TEST_API_KEY``,
-never the prod key). Every created entity is SDT-tagged and appended to a
-cleanup file (``/tmp/seed_money_cleanup.jsonl``) the instant it's created, so a
-crash mid-run still leaves a deletable trail. Cleanup runs in reverse at the
-end of a normal run; re-run with ``cleanup`` to drain the file by hand::
+Mutating — POST/DELETE against the **test tenant only**. Goes through
+:func:`katana_public_api_client.testing.make_test_client`, which reads
+``KATANA_TEST_API_KEY`` with no silent fallback to the prod key; raw-wire
+requests use the client's ``get_async_httpx_client()``. Every created entity is
+SDT-tagged and appended to a cleanup file (``/tmp/seed_money_cleanup.jsonl``)
+the instant it's created, so a crash mid-run still leaves a deletable trail.
+Cleanup runs in reverse at the end of a normal run; re-run with ``cleanup`` to
+drain the file by hand::
 
+    # from the repo root checkout:
     export KATANA_TEST_API_KEY=$(grep '^KATANA_TEST_API_KEY=' .env | cut -d= -f2-)
     uv run python scripts/seed_money_fields.py            # seed, sample, clean up
     uv run python scripts/seed_money_fields.py cleanup     # drain leftover artifacts
 
 A sampled value of type ``str`` is drift (spec says ``number``); int/float is
-fine. Dependency-chained entities (price-list row, stock transfer, outsourced
-recipe row) skip gracefully if a prerequisite can't be met on the tenant.
+fine. Dependency-chained entities skip gracefully if a prerequisite can't be
+met on the tenant.
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
-import os
 import sys
 from pathlib import Path
 from typing import Any
 
 import httpx
 
-BASE_URL = os.environ.get("KATANA_TEST_BASE_URL", "https://api.katanamrp.com/v1")
+from katana_public_api_client.testing import make_test_client
+
 SDT_PREFIX = "SDT-735-seed"
 CLEANUP_FILE = Path("/tmp/seed_money_cleanup.jsonl")
 
@@ -42,16 +47,6 @@ VARIANT = 40793076  # an existing variant to reference in rows
 
 # field -> observed wire type, filled as we sample
 RESULTS: dict[str, dict[str, Any]] = {}
-
-
-def _key() -> str:
-    k = os.environ.get("KATANA_TEST_API_KEY")
-    if not k:
-        print(
-            "KATANA_TEST_API_KEY not set — export from repo-root .env.", file=sys.stderr
-        )
-        sys.exit(2)
-    return k
 
 
 def _typename(v: Any) -> str:
@@ -85,19 +80,24 @@ def _tag(suffix: str) -> str:
     return f"[{SDT_PREFIX}] {suffix}"
 
 
-def seed_customer(c: httpx.Client) -> None:
+async def seed_customer(c: httpx.AsyncClient) -> None:
     print("\n## Customer.discount_rate")
-    r = c.post("/customers", json={"name": _tag("discount probe"), "discount_rate": 5})
+    r = await c.post(
+        "/customers", json={"name": _tag("discount probe"), "discount_rate": 5}
+    )
     if not r.is_success:
         print(f"   skip — POST /customers {r.status_code}: {r.text[:160]}")
         return
     cid = r.json()["id"]
     _record(f"/customers/{cid}")
-    got = c.get(f"/customers/{cid}").json()
-    _sample("Customer.discount_rate", got.get("discount_rate"))
+    # list-based read: GET-by-id can lag right after create on this tenant
+    lst = (await c.get("/customers", params={"limit": 50})).json().get("data", [])
+    mine = [x for x in lst if x.get("id") == cid]
+    if mine:
+        _sample("Customer.discount_rate", mine[0].get("discount_rate"))
 
 
-def seed_material(c: httpx.Client) -> None:
+async def seed_material(c: httpx.AsyncClient) -> None:
     print("\n## Material.purchase_uom_conversion_rate + Variant.minimum_order_quantity")
     payload = {
         "name": _tag("uom+moq probe"),
@@ -112,14 +112,13 @@ def seed_material(c: httpx.Client) -> None:
             }
         ],
     }
-    r = c.post("/materials", json=payload)
+    r = await c.post("/materials", json=payload)
     if not r.is_success:
         print(f"   skip — POST /materials {r.status_code}: {r.text[:160]}")
         return
-    mat = r.json()
-    mid = mat["id"]
+    mid = r.json()["id"]
     _record(f"/materials/{mid}")
-    got = c.get(f"/materials/{mid}").json()
+    got = (await c.get(f"/materials/{mid}")).json()
     _sample(
         "Material.purchase_uom_conversion_rate", got.get("purchase_uom_conversion_rate")
     )
@@ -130,11 +129,12 @@ def seed_material(c: httpx.Client) -> None:
         )
 
 
-def seed_purchase_order(c: httpx.Client) -> None:
+async def seed_purchase_order(c: httpx.AsyncClient) -> None:
     print("\n## PurchaseOrderRow.conversion_rate + purchase_uom_conversion_rate")
     payload = {
         "supplier_id": SUPPLIER_EUR,
         "location_id": LOCATION_A,
+        "currency": "USD",
         "order_no": f"{SDT_PREFIX}-po",
         "purchase_order_rows": [
             {
@@ -146,14 +146,13 @@ def seed_purchase_order(c: httpx.Client) -> None:
             }
         ],
     }
-    r = c.post("/purchase_orders", json=payload)
+    r = await c.post("/purchase_orders", json=payload)
     if not r.is_success:
         print(f"   skip — POST /purchase_orders {r.status_code}: {r.text[:200]}")
         return
-    po = r.json()
-    pid = po["id"]
+    pid = r.json()["id"]
     _record(f"/purchase_orders/{pid}")
-    got = c.get(f"/purchase_orders/{pid}").json()
+    got = (await c.get(f"/purchase_orders/{pid}")).json()
     print(f"   (PO currency={got.get('currency')!r})")
     rows = got.get("purchase_order_rows") or []
     if rows:
@@ -164,35 +163,36 @@ def seed_purchase_order(c: httpx.Client) -> None:
         )
 
 
-def seed_price_list(c: httpx.Client) -> None:
+async def seed_price_list(c: httpx.AsyncClient) -> None:
     print("\n## PriceListRow.amount")
-    r = c.post("/price_lists", json={"name": _tag("amount probe")})
+    r = await c.post("/price_lists", json={"name": _tag("amount probe")})
     if not r.is_success:
         print(f"   skip — POST /price_lists {r.status_code}: {r.text[:160]}")
         return
     plid = r.json()["id"]
     _record(f"/price_lists/{plid}")
-    rr = c.post(
+    rr = await c.post(
         "/price_list_rows",
         json={
             "price_list_id": plid,
-            "price_list_rows": [{"variant_id": VARIANT, "amount": 9.99}],
+            "price_list_rows": [
+                {"variant_id": VARIANT, "amount": 9.99, "adjustment_method": "fixed"}
+            ],
         },
     )
     if not rr.is_success:
         print(f"   skip — POST /price_list_rows {rr.status_code}: {rr.text[:200]}")
         return
-    body = rr.json()
-    created = body.get("data", body)
-    rows = created if isinstance(created, list) else [created]
-    if rows and isinstance(rows[0], dict):
+    # POST /price_list_rows returns a bare array (no data envelope)
+    rows = rr.json()
+    if isinstance(rows, list) and rows and isinstance(rows[0], dict):
         rid = rows[0].get("id")
         if rid:
             _record(f"/price_list_rows/{rid}")
         _sample("PriceListRow.amount", rows[0].get("amount"))
 
 
-def seed_stock_adjustment(c: httpx.Client) -> None:
+async def seed_stock_adjustment(c: httpx.AsyncClient) -> None:
     print("\n## StockAdjustmentRow.quantity")
     payload = {
         "location_id": LOCATION_A,
@@ -201,41 +201,46 @@ def seed_stock_adjustment(c: httpx.Client) -> None:
             {"variant_id": VARIANT, "quantity": 3, "cost_per_unit": 4.5}
         ],
     }
-    r = c.post("/stock_adjustments", json=payload)
+    r = await c.post("/stock_adjustments", json=payload)
     if not r.is_success:
         print(f"   skip — POST /stock_adjustments {r.status_code}: {r.text[:200]}")
         return
     sid = r.json()["id"]
     _record(f"/stock_adjustments/{sid}")
-    got = c.get(f"/stock_adjustments/{sid}").json()
-    rows = got.get("stock_adjustment_rows") or []
-    if rows:
-        _sample("StockAdjustmentRow.quantity", rows[0].get("quantity"))
-        _sample("StockAdjustmentRow.cost_per_unit", rows[0].get("cost_per_unit"))
+    lst = (
+        (await c.get("/stock_adjustments", params={"limit": 5})).json().get("data", [])
+    )
+    mine = [x for x in lst if x.get("id") == sid]
+    if mine:
+        rows = mine[0].get("stock_adjustment_rows") or []
+        if rows:
+            _sample("StockAdjustmentRow.quantity", rows[0].get("quantity"))
+            _sample("StockAdjustmentRow.cost_per_unit", rows[0].get("cost_per_unit"))
 
 
-def seed_stock_transfer(c: httpx.Client) -> None:
+async def seed_stock_transfer(c: httpx.AsyncClient) -> None:
     print("\n## StockTransferRow.quantity")
     payload = {
         "source_location_id": LOCATION_A,
         "target_location_id": LOCATION_B,
         "stock_transfer_number": f"{SDT_PREFIX}-st",
-        "stock_transfer_rows": [{"variant_id": VARIANT, "quantity": 2}],
+        # request schema (correctly) types quantity as a string
+        "stock_transfer_rows": [{"variant_id": VARIANT, "quantity": "2"}],
     }
-    r = c.post("/stock_transfers", json=payload)
+    r = await c.post("/stock_transfers", json=payload)
     if not r.is_success:
         print(f"   skip — POST /stock_transfers {r.status_code}: {r.text[:200]}")
         return
     tid = r.json()["id"]
     _record(f"/stock_transfers/{tid}")
-    got = c.get(f"/stock_transfers/{tid}").json()
+    got = r.json()
     rows = got.get("stock_transfer_rows") or []
     if rows:
         _sample("StockTransferRow.quantity", rows[0].get("quantity"))
         _sample("StockTransferRow.cost_per_unit", rows[0].get("cost_per_unit"))
 
 
-def cleanup(c: httpx.Client) -> None:
+async def cleanup(c: httpx.AsyncClient) -> None:
     if not CLEANUP_FILE.exists():
         print("No cleanup file — nothing to delete.")
         return
@@ -246,7 +251,7 @@ def cleanup(c: httpx.Client) -> None:
     ]
     ok = fail = 0
     for p in reversed(paths):  # children before parents
-        r = c.delete(p)
+        r = await c.delete(p)
         if r.status_code in (200, 204, 404):
             ok += 1
         else:
@@ -257,11 +262,11 @@ def cleanup(c: httpx.Client) -> None:
         CLEANUP_FILE.unlink()
 
 
-def main() -> int:
-    headers = {"Authorization": f"Bearer {_key()}"}
-    with httpx.Client(base_url=BASE_URL, headers=headers, timeout=60.0) as c:
+async def main() -> int:
+    async with make_test_client() as client:
+        c = client.get_async_httpx_client()
         if len(sys.argv) > 1 and sys.argv[1] == "cleanup":
-            cleanup(c)
+            await cleanup(c)
             return 0
         print("================ SEEDED MONEY-FIELD WIRE TYPES ================")
         for fn in (
@@ -273,11 +278,11 @@ def main() -> int:
             seed_stock_transfer,
         ):
             try:
-                fn(c)
-            except Exception as exc:  # keep going; cleanup still runs
+                await fn(c)
+            except httpx.HTTPError as exc:  # keep going; cleanup still runs
                 print(f"   ERROR in {fn.__name__}: {exc}")
         print("\n---------------- cleanup ----------------")
-        cleanup(c)
+        await cleanup(c)
     Path("/tmp/seed_money_results.json").write_text(
         json.dumps(RESULTS, indent=2, default=str)
     )
@@ -286,4 +291,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(asyncio.run(main()))

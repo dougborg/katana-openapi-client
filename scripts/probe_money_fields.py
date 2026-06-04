@@ -5,11 +5,16 @@ numeric-suspect field across the live test tenant, so we can tell which
 fields Katana returns as fixed-precision **strings** despite our spec
 modelling them as ``number``.
 
-Read-only: GET only, no mutation, no ledger. Uses ``KATANA_TEST_API_KEY``
-(test tenant) — never the prod key. Export the key from the repository
-root ``.env`` before running. In a worktree this matters: a bare
-``make_test_client`` reads the *worktree* ``.env`` (which has no key), so
-point ``grep`` at the root checkout's ``.env``::
+Read-only: GET only, no mutation. Goes through
+:func:`katana_public_api_client.testing.make_test_client` — the sanctioned
+entry point for live-tenant access — which reads ``KATANA_TEST_API_KEY``
+(no silent fallback to the prod key) and centralizes the base URL. Raw-wire
+GETs use the client's underlying ``get_async_httpx_client()`` so we observe
+the unparsed JSON types the generated models would otherwise coerce away.
+
+``make_test_client`` prefers ``os.environ`` over ``.env``, so in a worktree
+export the key from the repo-root checkout first (the worktree ``.env`` has
+no key)::
 
     # from the repo root checkout:
     export KATANA_TEST_API_KEY=$(grep '^KATANA_TEST_API_KEY=' .env | cut -d= -f2-)
@@ -22,10 +27,6 @@ stays unverifiable.
 
 Scope caveats (this is a diagnostic, not an exhaustive auditor):
 
-- Each endpoint is fetched **once** (a single page up to its ``limit``); the
-  probe does not paginate. That is enough to observe wire *types*, but a
-  field that is null across the first page stays "unverifiable", not "no
-  drift".
 - Observations are keyed by ``(immediate-parent-key, field-name)``, so two
   nested objects that share both a parent key *and* a field name merge into
   one bucket. The failure mode is conservative — merging only ever *adds*
@@ -35,15 +36,15 @@ Scope caveats (this is a diagnostic, not an exhaustive auditor):
 
 from __future__ import annotations
 
+import asyncio
 import json
-import os
 import sys
 from collections import defaultdict
 from typing import Any
 
 import httpx
 
-BASE_URL = os.environ.get("KATANA_TEST_BASE_URL", "https://api.katanamrp.com/v1")
+from katana_public_api_client.testing import make_test_client
 
 # field-name substrings that flag a money/decimal-suspect leaf
 KW = (
@@ -63,10 +64,9 @@ KW = (
     "landed",
 )
 
-# Endpoints to sweep. Each entry: (path, params). The probe fetches a
-# single page per endpoint and walks every record in it (plus nested rows),
-# recording leaf field types. limit kept high to maximise the chance of
-# catching a non-null sample within that one page.
+# Endpoints to sweep. Each entry: (path, params). The probe walks every
+# record returned (plus nested rows), recording leaf field types. limit kept
+# high to maximise the chance of catching a non-null sample.
 ENDPOINTS: list[tuple[str, dict[str, Any]]] = [
     ("/sales_orders", {"limit": 100, "extend": "sales_order_rows"}),
     ("/sales_order_rows", {"limit": 250}),
@@ -88,17 +88,6 @@ ENDPOINTS: list[tuple[str, dict[str, Any]]] = [
     ("/customers", {"limit": 100}),
     ("/inventory", {"limit": 250}),
 ]
-
-
-def _key() -> str:
-    k = os.environ.get("KATANA_TEST_API_KEY")
-    if not k:
-        print(
-            "KATANA_TEST_API_KEY not set — export it from the root .env first.",
-            file=sys.stderr,
-        )
-        sys.exit(2)
-    return k
 
 
 def _typename(v: Any) -> str:
@@ -136,14 +125,14 @@ def _walk(
             _walk(item, parent, acc)
 
 
-def main() -> None:
-    headers = {"Authorization": f"Bearer {_key()}"}
+async def main() -> None:
     acc: dict[tuple[str, str], dict[str, Any]] = defaultdict(dict)
-    with httpx.Client(base_url=BASE_URL, headers=headers, timeout=60.0) as client:
+    async with make_test_client() as client:
+        http = client.get_async_httpx_client()
         for path, params in ENDPOINTS:
             try:
-                r = client.get(path, params=params)
-            except Exception as exc:
+                r = await http.get(path, params=params)
+            except httpx.HTTPError as exc:
                 print(f"  {path:42} ERROR {exc}", file=sys.stderr)
                 continue
             if r.status_code != 200:
@@ -170,10 +159,7 @@ def main() -> None:
             drift = "str" in types
             flag = "  <-- STRING DRIFT" if drift else ""
             print(f"   {field:34} {','.join(types):20} sample={sample!r}{flag}")
-            out[f"{parent}.{field}"] = {
-                "types": types,
-                "sample": sample,
-            }
+            out[f"{parent}.{field}"] = {"types": types, "sample": sample}
         print()
 
     with open("/tmp/money_fields_probe.json", "w") as fh:
@@ -182,4 +168,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
