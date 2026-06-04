@@ -6,18 +6,31 @@ fields Katana returns as fixed-precision **strings** despite our spec
 modelling them as ``number``.
 
 Read-only: GET only, no mutation, no ledger. Uses ``KATANA_TEST_API_KEY``
-(test tenant) — never the prod key. Run from a worktree after exporting
-the key from the *root* ``.env`` (make_test_client's dotenv reads the
-worktree ``.env``, which has no key)::
+(test tenant) — never the prod key. Export the key from the repository
+root ``.env`` before running. In a worktree this matters: a bare
+``make_test_client`` reads the *worktree* ``.env`` (which has no key), so
+point ``grep`` at the root checkout's ``.env``::
 
-    export KATANA_TEST_API_KEY=$(grep '^KATANA_TEST_API_KEY=' \
-        /Users/dougborg/Projects/katana-openapi-client/.env | cut -d= -f2-)
+    # from the repo root checkout:
+    export KATANA_TEST_API_KEY=$(grep '^KATANA_TEST_API_KEY=' .env | cut -d= -f2-)
     uv run python scripts/probe_money_fields.py
 
 Output: per endpoint, every leaf field whose name looks like money/decimal,
 with the set of wire types observed and a sample value. A field observed as
 ``str`` is drift (spec says ``number``); int/float-only is fine; null-only
 stays unverifiable.
+
+Scope caveats (this is a diagnostic, not an exhaustive auditor):
+
+- Each endpoint is fetched **once** (a single page up to its ``limit``); the
+  probe does not paginate. That is enough to observe wire *types*, but a
+  field that is null across the first page stays "unverifiable", not "no
+  drift".
+- Observations are keyed by ``(immediate-parent-key, field-name)``, so two
+  nested objects that share both a parent key *and* a field name merge into
+  one bucket. The failure mode is conservative — merging only ever *adds*
+  observed types, so it can over-flag a field for manual review, never hide
+  a real ``str`` drift.
 """
 
 from __future__ import annotations
@@ -50,9 +63,10 @@ KW = (
     "landed",
 )
 
-# Endpoints to sweep. Each entry: (path, params). The probe walks every
-# record (and nested rows) recording leaf field types. limit kept high to
-# maximise the chance of catching a non-null sample.
+# Endpoints to sweep. Each entry: (path, params). The probe fetches a
+# single page per endpoint and walks every record in it (plus nested rows),
+# recording leaf field types. limit kept high to maximise the chance of
+# catching a non-null sample within that one page.
 ENDPOINTS: list[tuple[str, dict[str, Any]]] = [
     ("/sales_orders", {"limit": 100, "extend": "sales_order_rows"}),
     ("/sales_order_rows", {"limit": 250}),
