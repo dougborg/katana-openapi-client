@@ -14945,8 +14945,8 @@ paths:
                 total_actual_time: "1"
                 planned_cost_per_unit: "1"
                 total_actual_cost: "1"
-                cost_per_hour: 1
-                cost_parameter: 1
+                cost_per_hour: "1"
+                cost_parameter: "1"
                 group_boundary: 1000
                 is_status_actionable: true
                 completed_at: "2020-10-23T10:37:05.085Z"
@@ -15017,8 +15017,8 @@ paths:
                     total_actual_time: "1"
                     planned_cost_per_unit: "1"
                     total_actual_cost: "1"
-                    cost_per_hour: 1
-                    cost_parameter: 1
+                    cost_per_hour: "1"
+                    cost_parameter: "1"
                     group_boundary: 1000
                     is_status_actionable: true
                     completed_at: "2020-10-23T10:37:05.085Z"
@@ -15075,8 +15075,8 @@ paths:
                 total_actual_time: "1"
                 planned_cost_per_unit: "1"
                 total_actual_cost: "1"
-                cost_per_hour: 1
-                cost_parameter: 1
+                cost_per_hour: "1"
+                cost_parameter: "1"
                 group_boundary: 1000
                 is_status_actionable: true
                 completed_at: "2020-10-23T10:37:05.085Z"
@@ -15142,8 +15142,8 @@ paths:
                 total_actual_time: "1"
                 planned_cost_per_unit: "1"
                 total_actual_cost: "1"
-                cost_per_hour: 1
-                cost_parameter: 1
+                cost_per_hour: "1"
+                cost_parameter: "1"
                 group_boundary: 1000
                 is_status_actionable: true
                 completed_at: "2020-10-23T10:37:05.085Z"
