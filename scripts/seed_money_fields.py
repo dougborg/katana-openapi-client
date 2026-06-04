@@ -24,13 +24,16 @@ drain the file by hand::
 
 A sampled value of type ``str`` is drift (spec says ``number``); int/float is
 fine. Dependency-chained entities skip gracefully if a prerequisite can't be
-met on the tenant.
+met on the tenant. The reusable fixture IDs (location/supplier/variant) default
+to the current shared tenant but are overridable via ``SEED_LOCATION_A`` /
+``SEED_LOCATION_B`` / ``SEED_SUPPLIER_ID`` / ``SEED_VARIANT_ID``.
 """
 
 from __future__ import annotations
 
 import asyncio
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -43,10 +46,12 @@ SDT_PREFIX = "SDT-735-seed"
 CLEANUP_FILE = Path("/tmp/seed_money_cleanup.jsonl")
 
 # Reusable tenant fixtures discovered read-only (locations/suppliers/variants).
-LOCATION_A = 184870  # Main Location
-LOCATION_B = 184871  # 2nd Location
-SUPPLIER_EUR = 1606755  # Paint Supplier [DEMO] (currency EUR)
-VARIANT = 40793076  # an existing variant to reference in rows
+# Defaults match the current shared test tenant; override via env for a tenant
+# whose data has been reset or differs (e.g. SEED_LOCATION_A=123).
+LOCATION_A = int(os.environ.get("SEED_LOCATION_A", "184870"))  # Main Location
+LOCATION_B = int(os.environ.get("SEED_LOCATION_B", "184871"))  # 2nd Location
+SUPPLIER_EUR = int(os.environ.get("SEED_SUPPLIER_ID", "1606755"))  # EUR supplier
+VARIANT = int(os.environ.get("SEED_VARIANT_ID", "40793076"))  # variant for rows
 
 # field -> observed wire type, filled as we sample
 RESULTS: dict[str, dict[str, Any]] = {}
