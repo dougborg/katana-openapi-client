@@ -25,9 +25,11 @@ def decimal_str_to_float(value: str | int | float | None) -> float | None:
     Several Katana read fields arrive as fixed-precision decimal **strings**
     (e.g. ``"12.00000000000"``) rather than JSON numbers. Domain models expose
     them as ``float | None``; this normalizes the string (or an already-numeric
-    ``int``/``float``) to ``float``, passing ``None`` through unchanged.
+    ``int``/``float``) to ``float``. ``None`` and the empty string (which the
+    wire occasionally uses for "no value") map to ``None``; this mirrors
+    ``tool_result_utils.float_or_none`` so the two layers agree.
     """
-    if value is None:
+    if value is None or value == "":
         return None
     return float(value)
 
