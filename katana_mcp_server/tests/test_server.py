@@ -169,6 +169,39 @@ class TestLifespan:
             )
 
     @pytest.mark.asyncio
+    async def test_lifespan_strips_whitespace_from_api_key(self):
+        """A KATANA_API_KEY with leading/trailing whitespace (a common
+        copy-paste artifact) is stripped before reaching the client, so it
+        can't fail auth as a malformed key.
+        """
+        mock_server = MagicMock(spec=FastMCP)
+
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "KATANA_API_KEY": "  key-with-spaces  \n",
+                    "MCP_DISABLE_CACHE_WARMUP": "1",
+                },
+                clear=True,
+            ),
+            patch("katana_mcp.server.load_dotenv"),
+            patch("katana_mcp.server.KatanaClient") as mock_client_class,
+        ):
+            mock_client_instance = AsyncMock(spec=KatanaClient)
+            mock_client_instance.__aenter__ = AsyncMock(
+                return_value=mock_client_instance
+            )
+            mock_client_instance.__aexit__ = AsyncMock(return_value=None)
+            mock_client_class.return_value = mock_client_instance
+
+            async with lifespan(mock_server) as context:
+                assert isinstance(context, Services)
+
+            # The client was built with the stripped key, not the padded one.
+            assert mock_client_class.call_args.kwargs["api_key"] == "key-with-spaces"
+
+    @pytest.mark.asyncio
     async def test_lifespan_with_default_base_url(self):
         """Test lifespan uses default base URL when not provided."""
         mock_server = MagicMock(spec=FastMCP)
