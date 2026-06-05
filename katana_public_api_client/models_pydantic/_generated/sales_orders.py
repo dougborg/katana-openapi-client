@@ -953,7 +953,7 @@ class CreateSalesReturnRowRequest(KatanaPydanticBase):
         int,
         Field(description="ID of the fulfillment row this return is associated with"),
     ]
-    quantity: Annotated[str, Field(description="Quantity being returned")]
+    quantity: Annotated[float, Field(description="Quantity being returned")]
     restock_location_id: Annotated[
         int | None,
         Field(
@@ -1265,7 +1265,7 @@ class UpdateSalesReturnRowRequest(KatanaPydanticBase):
         extra="forbid",
     )
     quantity: Annotated[
-        str | None,
+        float | None,
         Field(
             description="Quantity being returned. Updatable only when current return status is NOT_RETURNED."
         ),
