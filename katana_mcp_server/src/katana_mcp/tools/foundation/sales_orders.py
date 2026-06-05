@@ -1594,7 +1594,27 @@ class GetSalesOrderResponse(SoftDeletableResponse):
     katana_url: str | None = None
     order_no: str | None = None
     customer_id: int | None = None
+    customer_name: str | None = Field(
+        default=None,
+        description=(
+            "Resolved customer display name (via ``resolve_entity_name`` on "
+            "``CachedCustomer``). Lets the detail card render ``'Customer: "
+            "<name>'`` instead of the bare ``'Customer ID: <id>'`` fallback "
+            "(card anti-pattern #2 / #7). ``None`` when the customer can't be "
+            "resolved from the typed cache (a cache-miss advisory is appended "
+            "to ``warnings``)."
+        ),
+    )
     location_id: int | None = None
+    location_name: str | None = Field(
+        default=None,
+        description=(
+            "Resolved location display name (via ``resolve_entity_name`` on "
+            "``CachedLocation``). Same role as ``customer_name`` for the "
+            "Location party line on the detail card. ``None`` on a cache miss "
+            "(advisory appended to ``warnings``)."
+        ),
+    )
     source: str | None = None
     order_created_date: str | None = None
 
@@ -1662,6 +1682,14 @@ class GetSalesOrderResponse(SoftDeletableResponse):
     rows: list[SalesOrderRowDetail] = Field(
         default_factory=list,
         description="Line items on the sales order.",
+    )
+
+    # Operator-facing advisories surfaced on the detail card (e.g. a
+    # typed-cache miss that left ``customer_name`` / ``location_name``
+    # unresolved). Empty in the happy path.
+    warnings: list[str] = Field(
+        default_factory=list,
+        description="Operator-facing advisories (e.g. name-resolution cache misses).",
     )
 
 
@@ -1796,12 +1824,47 @@ async def _get_sales_order_impl(
         for v_id in (unwrap_unset(r.variant_id, None) for r in raw_rows)
         if v_id is not None
     }
-    variants, addresses = await asyncio.gather(
+    customer_id = unwrap_unset(so.customer_id, None)
+    location_id = unwrap_unset(so.location_id, None)
+
+    async def _resolve_name(
+        cached_cls: Any, entity_id: int | None, *, entity_label: str
+    ) -> tuple[str | None, str | None]:
+        """``resolve_entity_name`` wrapper that no-ops on a ``None`` id.
+
+        SOs can carry a null ``location_id`` (and, defensively, a null
+        ``customer_id``); ``resolve_entity_name`` requires a concrete int,
+        so short-circuit to ``(None, None)`` rather than issuing a lookup
+        for a missing party.
+        """
+        if entity_id is None:
+            return None, None
+        return await resolve_entity_name(
+            services.typed_cache.catalog,
+            cached_cls,
+            entity_id,
+            entity_label=entity_label,
+        )
+
+    # Resolve the customer + location display names against the typed cache
+    # so the detail card renders ``'Customer: <name>'`` / ``'Location:
+    # <name>'`` instead of a bare ID (card anti-patterns #2 / #7) — same
+    # pattern ``create_sales_order`` uses. Gathered alongside the variant +
+    # address reads, which all depend only on the SO we just loaded.
+    (
+        variants,
+        addresses,
+        (customer_name, cust_warn),
+        (location_name, loc_warn),
+    ) = await asyncio.gather(
         services.typed_cache.catalog.get_many_by_ids(
             CachedVariant, variant_ids, include_deleted=True
         ),
         _fetch_sales_order_addresses(services, so.id),
+        _resolve_name(CachedCustomer, customer_id, entity_label="Customer"),
+        _resolve_name(CachedLocation, location_id, entity_label="Location"),
     )
+    resolution_warnings = [w for w in (cust_warn, loc_warn) if w]
 
     def _sku_for(v: Any) -> Any:
         if v is None:
@@ -1863,8 +1926,10 @@ async def _get_sales_order_impl(
         id=so.id,
         katana_url=katana_web_url("sales_order", so.id),
         order_no=unwrap_unset(so.order_no, None),
-        customer_id=unwrap_unset(so.customer_id, None),
-        location_id=unwrap_unset(so.location_id, None),
+        customer_id=customer_id,
+        customer_name=customer_name,
+        location_id=location_id,
+        location_name=location_name,
         source=unwrap_unset(so.source, None),
         order_created_date=iso_or_none(unwrap_unset(so.order_created_date, None)),
         status=enum_to_str(unwrap_unset(so.status, None)),
@@ -1908,6 +1973,7 @@ async def _get_sales_order_impl(
         updated_at=iso_or_none(unwrap_unset(so.updated_at, None)),
         deleted_at=iso_or_none(unwrap_unset(so.deleted_at, None)),
         rows=row_details,
+        warnings=resolution_warnings,
     )
 
 
@@ -1929,8 +1995,11 @@ async def get_sales_order(
     linked manufacturing order, batch tracking, serial numbers). Use with
     `list_sales_orders` for discovery; this is the single-call path to the rest.
     """
+    from katana_mcp.tools.prefab_ui import build_so_detail_ui
+
     response = await _get_sales_order_impl(request, context)
-    return make_json_result(response)
+    ui = build_so_detail_ui(response.model_dump())
+    return make_tool_result(response, ui=ui)
 
 
 # ============================================================================
@@ -2856,7 +2925,9 @@ def register_tools(mcp: FastMCP) -> None:
         meta=UI_META,
     )
     mcp.tool(tags={"orders", "sales", "read"}, annotations=_read)(list_sales_orders)
-    mcp.tool(tags={"orders", "sales", "read"}, annotations=_read)(get_sales_order)
+    mcp.tool(tags={"orders", "sales", "read"}, annotations=_read, meta=UI_META)(
+        get_sales_order
+    )
     register_preview_tool(
         mcp,
         modify_sales_order,
