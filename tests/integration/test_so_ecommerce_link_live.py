@@ -221,9 +221,10 @@ async def test_ecommerce_fields_are_create_only_patch_rejected(
         payload = resp.json()
         details = payload.get("error", payload).get("details") or []
         rejected = {
-            d["info"]["additionalProperty"]
+            prop
             for d in details
             if d.get("code") == "additionalProperties"
+            and (prop := (d.get("info") or {}).get("additionalProperty")) is not None
         }
         assert {
             "ecommerce_order_type",
