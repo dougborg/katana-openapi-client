@@ -15,6 +15,28 @@ from katana_mcp.services import Services
 from katana_public_api_client import KatanaClient
 
 
+class _FakeKatanaClient:
+    """Async-context-manager stand-in for ``KatanaClient`` in lifespan tests.
+
+    Returns ``self`` from ``__aenter__`` so object identity survives both
+    entry styles lifespan uses: ``async with`` for the foreground client and
+    ``AsyncExitStack.enter_async_context`` for the optional dedicated sync
+    client. A bare ``AsyncMock`` doesn't reliably preserve identity through
+    ``enter_async_context``'s type-level dunder lookup, which these tests
+    assert on. Captures construction kwargs so tests can verify each client
+    was built with the right ``api_key``.
+    """
+
+    def __init__(self, **init_kwargs: object) -> None:
+        self.init_kwargs = init_kwargs
+
+    async def __aenter__(self) -> "_FakeKatanaClient":
+        return self
+
+    async def __aexit__(self, *_exc: object) -> bool:
+        return False
+
+
 @pytest.fixture
 def isolated_caches(tmp_path: Path) -> Iterator[None]:
     """Redirect ``lifespan()``'s cache constructor to a per-test temp path.
@@ -75,6 +97,26 @@ class TestServices:
         assert context.client is mock_client
         assert context.typed_cache is mock_typed_cache
 
+    def test_sync_client_falls_back_to_foreground_client(self):
+        """Without a dedicated sync client, ``sync_client`` resolves to ``client``."""
+        mock_client = MagicMock(spec=KatanaClient)
+        context = Services(client=mock_client, typed_cache=MagicMock())
+
+        assert context.dedicated_sync_client is None
+        assert context.sync_client is mock_client
+
+    def test_sync_client_uses_dedicated_when_set(self):
+        """When a dedicated sync client is provided, ``sync_client`` returns it."""
+        mock_client = MagicMock(spec=KatanaClient)
+        mock_sync = MagicMock(spec=KatanaClient)
+        context = Services(
+            client=mock_client,
+            typed_cache=MagicMock(),
+            dedicated_sync_client=mock_sync,
+        )
+
+        assert context.sync_client is mock_sync
+
 
 @pytest.mark.usefixtures("isolated_caches")
 class TestLifespan:
@@ -85,14 +127,20 @@ class TestLifespan:
         """Test lifespan successfully initializes with valid credentials."""
         mock_server = MagicMock(spec=FastMCP)
 
-        # Mock environment variables
+        # Mock environment variables. ``clear=True`` so a developer's own
+        # ``KATANA_SYNC_API_KEY`` (now documented in .env.example) can't leak
+        # in and make lifespan build a *second* client — which would break the
+        # ``assert_called_once_with`` below. Pin ``MCP_DISABLE_CACHE_WARMUP``
+        # since clearing the env drops the autouse fixture's value.
         with (
             patch.dict(
                 os.environ,
                 {
                     "KATANA_API_KEY": "test-api-key-123",
                     "KATANA_BASE_URL": "https://test.api.example.com",
+                    "MCP_DISABLE_CACHE_WARMUP": "1",
                 },
+                clear=True,
             ),
             patch("katana_mcp.server.load_dotenv"),
             patch("katana_mcp.server.KatanaClient") as mock_client_class,
@@ -224,11 +272,18 @@ class TestLifespan:
         """Test lifespan properly cleans up resources after successful execution."""
         mock_server = MagicMock(spec=FastMCP)
 
-        # Mock environment variables
+        # Mock environment variables. ``clear=True`` so a stray
+        # ``KATANA_SYNC_API_KEY`` can't make lifespan open a second client
+        # (reusing this same mock instance), which would call ``__aexit__``
+        # twice and break the cleanup assertion below.
         with (
             patch.dict(
                 os.environ,
-                {"KATANA_API_KEY": "test-api-key-123"},
+                {
+                    "KATANA_API_KEY": "test-api-key-123",
+                    "MCP_DISABLE_CACHE_WARMUP": "1",
+                },
+                clear=True,
             ),
             patch("katana_mcp.server.load_dotenv"),
             patch("katana_mcp.server.KatanaClient") as mock_client_class,
@@ -315,17 +370,20 @@ class TestCacheWarmup:
             # shutdown.
             await asyncio.sleep(60)
 
+        # ``clear=True`` keeps a developer's own ``KATANA_SYNC_API_KEY`` from
+        # leaking in and routing the warm-up to a second (dedicated) client
+        # instead of the foreground mock this test reasons about. It also
+        # clears ``MCP_DISABLE_CACHE_WARMUP`` so the warm-up runs.
         with (
             patch.dict(
                 os.environ,
                 {"KATANA_API_KEY": "test-api-key-123"},
+                clear=True,
             ),
             patch("katana_mcp.server.load_dotenv"),
             patch("katana_mcp.server.KatanaClient") as mock_client_class,
             patch.object(server_mod, "_warm_caches_in_background", fake_warmup),
         ):
-            os.environ.pop("MCP_DISABLE_CACHE_WARMUP", None)
-
             mock_client_instance = AsyncMock(spec=KatanaClient)
             mock_client_instance.__aenter__ = AsyncMock(
                 return_value=mock_client_instance
@@ -368,14 +426,14 @@ class TestCacheWarmup:
         async def boom_warmup(*_args: object, **_kwargs: object) -> None:
             raise RuntimeError("simulated unexpected task-scope failure")
 
+        # ``clear=True`` isolates from a developer's own ``KATANA_SYNC_API_KEY``
+        # and clears ``MCP_DISABLE_CACHE_WARMUP`` so the warm-up runs.
         with (
-            patch.dict(os.environ, {"KATANA_API_KEY": "test-api-key-123"}),
+            patch.dict(os.environ, {"KATANA_API_KEY": "test-api-key-123"}, clear=True),
             patch("katana_mcp.server.load_dotenv"),
             patch("katana_mcp.server.KatanaClient") as mock_client_class,
             patch.object(server_mod, "_warm_caches_in_background", boom_warmup),
         ):
-            os.environ.pop("MCP_DISABLE_CACHE_WARMUP", None)
-
             mock_client_instance = AsyncMock(spec=KatanaClient)
             mock_client_instance.__aenter__ = AsyncMock(
                 return_value=mock_client_instance
@@ -406,6 +464,146 @@ class TestCacheWarmup:
             "task exception goes unretrieved and surfaces as an asyncio "
             "warning later."
         )
+
+    @pytest.mark.cache_warmup_enabled
+    @pytest.mark.asyncio
+    async def test_warmup_runs_on_dedicated_sync_client_when_key_set(self):
+        """A distinct ``KATANA_SYNC_API_KEY`` makes lifespan build a second
+        client on that key and route the background warm-up to it, while
+        ``Services.client`` stays on the main key — isolating the warm-up's
+        per-key rate-limit budget from foreground tool calls.
+        """
+        import katana_mcp.server as server_mod
+
+        mock_server = MagicMock(spec=FastMCP)
+        created: list[_FakeKatanaClient] = []
+        warmup_clients: list[object] = []
+
+        def _factory(**kwargs: object) -> _FakeKatanaClient:
+            inst = _FakeKatanaClient(**kwargs)
+            created.append(inst)
+            return inst
+
+        async def fake_warmup(client: object, _cache: object) -> None:
+            warmup_clients.append(client)
+
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "KATANA_API_KEY": "main-key",
+                    "KATANA_SYNC_API_KEY": "sync-key",
+                    "KATANA_BASE_URL": "https://test.api.example.com",
+                },
+                clear=True,
+            ),
+            patch("katana_mcp.server.load_dotenv"),
+            patch(
+                "katana_mcp.server.KatanaClient", side_effect=_factory
+            ) as mock_client_class,
+            patch.object(server_mod, "_warm_caches_in_background", fake_warmup),
+        ):
+            async with lifespan(mock_server) as context:
+                await asyncio.sleep(0)  # let the fire-and-forget warm-up run
+
+                # Two clients built: foreground on the main key, sync on the
+                # dedicated key — both sharing base URL + resilience tuning.
+                assert mock_client_class.call_count == 2
+                assert created[0].init_kwargs["api_key"] == "main-key"
+                assert created[1].init_kwargs["api_key"] == "sync-key"
+                assert (
+                    created[1].init_kwargs["base_url"] == "https://test.api.example.com"
+                )
+
+                assert context.client is created[0]
+                assert context.dedicated_sync_client is created[1]
+                assert context.sync_client is created[1]
+
+            # The warm-up ran on the dedicated sync client, never the
+            # foreground one.
+            assert warmup_clients == [created[1]]
+
+    @pytest.mark.cache_warmup_enabled
+    @pytest.mark.asyncio
+    async def test_warmup_falls_back_to_foreground_client_without_sync_key(self):
+        """With no ``KATANA_SYNC_API_KEY``, lifespan builds a single client
+        and the warm-up reuses it. ``dedicated_sync_client`` is None and
+        ``sync_client`` resolves to the foreground client — the prior
+        single-key behavior.
+        """
+        import katana_mcp.server as server_mod
+
+        mock_server = MagicMock(spec=FastMCP)
+        created: list[_FakeKatanaClient] = []
+        warmup_clients: list[object] = []
+
+        def _factory(**kwargs: object) -> _FakeKatanaClient:
+            inst = _FakeKatanaClient(**kwargs)
+            created.append(inst)
+            return inst
+
+        async def fake_warmup(client: object, _cache: object) -> None:
+            warmup_clients.append(client)
+
+        with (
+            patch.dict(os.environ, {"KATANA_API_KEY": "main-key"}, clear=True),
+            patch("katana_mcp.server.load_dotenv"),
+            patch(
+                "katana_mcp.server.KatanaClient", side_effect=_factory
+            ) as mock_client_class,
+            patch.object(server_mod, "_warm_caches_in_background", fake_warmup),
+        ):
+            async with lifespan(mock_server) as context:
+                await asyncio.sleep(0)
+
+                assert mock_client_class.call_count == 1
+                assert context.client is created[0]
+                assert context.dedicated_sync_client is None
+                assert context.sync_client is created[0]
+
+            assert warmup_clients == [created[0]]
+
+    @pytest.mark.cache_warmup_enabled
+    @pytest.mark.asyncio
+    async def test_no_second_client_when_sync_key_equals_main_key(self):
+        """A ``KATANA_SYNC_API_KEY`` identical to ``KATANA_API_KEY`` grants no
+        isolation (same per-key budget), so lifespan must NOT open a
+        redundant second client — it falls back to the shared one.
+        """
+        import katana_mcp.server as server_mod
+
+        mock_server = MagicMock(spec=FastMCP)
+        created: list[_FakeKatanaClient] = []
+        warmup_clients: list[object] = []
+
+        def _factory(**kwargs: object) -> _FakeKatanaClient:
+            inst = _FakeKatanaClient(**kwargs)
+            created.append(inst)
+            return inst
+
+        async def fake_warmup(client: object, _cache: object) -> None:
+            warmup_clients.append(client)
+
+        with (
+            patch.dict(
+                os.environ,
+                {"KATANA_API_KEY": "same-key", "KATANA_SYNC_API_KEY": "same-key"},
+                clear=True,
+            ),
+            patch("katana_mcp.server.load_dotenv"),
+            patch(
+                "katana_mcp.server.KatanaClient", side_effect=_factory
+            ) as mock_client_class,
+            patch.object(server_mod, "_warm_caches_in_background", fake_warmup),
+        ):
+            async with lifespan(mock_server) as context:
+                await asyncio.sleep(0)
+
+                assert mock_client_class.call_count == 1
+                assert context.dedicated_sync_client is None
+                assert context.sync_client is created[0]
+
+            assert warmup_clients == [created[0]]
 
     @pytest.mark.asyncio
     async def test_warm_caches_in_background_swallows_per_entity_errors(self):

@@ -84,10 +84,14 @@ def _build_context(typed_cache_engine):
     Mirrors the shape ``services.dependencies.get_services`` returns: tools
     read ``services.client``, ``services.typed_cache``. The client is a plain
     MagicMock because the API endpoints are patched at module level — none
-    of the actual httpx layer is exercised in these tests.
+    of the actual httpx layer is exercised in these tests. ``rebuild_cache``
+    reads ``services.sync_client`` (the dedicated cache-sync client); on the
+    real ``Services`` that resolves to ``client`` when no dedicated key is
+    configured, so mirror that here.
     """
     context, lifespan_ctx = create_mock_context()
     lifespan_ctx.client = MagicMock()
+    lifespan_ctx.sync_client = lifespan_ctx.client
     lifespan_ctx.typed_cache = typed_cache_engine
     return context
 
@@ -679,3 +683,64 @@ class TestRequestValidation:
         """``min_length=1`` blocks empty lists at construction time."""
         with pytest.raises(ValueError):
             RebuildCacheRequest(entity_types=[], preview=True)
+
+
+# ============================================================================
+# Sync-client routing — rebuild runs on the dedicated cache-sync client
+# ============================================================================
+
+
+class TestSyncClientRouting:
+    """``rebuild_cache`` is bulk work, so it runs on the dedicated sync client."""
+
+    @pytest.mark.asyncio
+    async def test_rebuild_uses_dedicated_sync_client(self):
+        """When a ``KATANA_SYNC_API_KEY`` client is configured,
+        ``_rebuild_cache_impl`` passes ``services.sync_client`` — not the
+        foreground ``services.client`` — to the per-entity rebuild, keeping the
+        resync's per-key rate-limit budget off the interactive path (mirroring
+        the background warm-up).
+        """
+        from katana_mcp.services.dependencies import Services
+        from katana_mcp.tools.foundation.cache_admin import (
+            EntityRebuildResult,
+        )
+
+        foreground = MagicMock(name="foreground_client")
+        dedicated = MagicMock(name="dedicated_sync_client")
+        services = Services(
+            client=foreground,
+            typed_cache=MagicMock(),
+            dedicated_sync_client=dedicated,
+        )
+        context = MagicMock()
+        context.request_context.lifespan_context = services
+
+        captured_clients: list[object] = []
+
+        async def fake_rebuild_one(
+            client: object, _cache: object, entity_type: str, **_kwargs: object
+        ) -> EntityRebuildResult:
+            captured_clients.append(client)
+            return EntityRebuildResult(
+                entity_type=str(entity_type),
+                parent_rows_before=0,
+                child_rows_before=0,
+                parent_rows_after=0,
+                child_rows_after=0,
+                last_synced_before=None,
+                sync_state_keys_cleared=[],
+            )
+
+        with patch(
+            "katana_mcp.tools.foundation.cache_admin._rebuild_one",
+            side_effect=fake_rebuild_one,
+        ):
+            response = await _rebuild_cache_impl(
+                RebuildCacheRequest(entity_types=["product"], preview=False),
+                context,
+            )
+
+        # Routed to the dedicated sync client, never the foreground one.
+        assert captured_clients == [dedicated]
+        assert response.is_preview is False

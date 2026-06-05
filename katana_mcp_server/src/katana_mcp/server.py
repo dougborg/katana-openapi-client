@@ -17,8 +17,8 @@ import os
 import time
 import traceback
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING, Literal, cast
+from contextlib import AsyncExitStack, asynccontextmanager
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 if TYPE_CHECKING:
     from fastmcp.server.auth import AuthProvider  # pragma: no cover
@@ -196,20 +196,54 @@ async def lifespan(server: FastMCP) -> AsyncIterator[Services]:
     logger.info("server_initializing", version=__version__, base_url=base_url)
 
     try:
-        # Initialize KatanaClient with automatic resilience features
-        async with KatanaClient(
-            api_key=api_key,
-            base_url=base_url,
-            timeout=30.0,
-            max_retries=5,
-            max_pages=100,
-        ) as client:
+        # Shared resilience tuning applied to every KatanaClient we build.
+        client_kwargs: dict[str, Any] = {
+            "base_url": base_url,
+            "timeout": 30.0,
+            "max_retries": 5,
+            "max_pages": 100,
+        }
+
+        # Initialize KatanaClient with automatic resilience features.
+        # ``sync_stack`` manages an optional second client (below); entering
+        # it in the same ``async with`` guarantees it's closed on every exit
+        # path without re-indenting the body.
+        async with (
+            KatanaClient(api_key=api_key, **client_kwargs) as client,
+            AsyncExitStack() as sync_stack,
+        ):
             logger.info(
                 "client_initialized",
                 timeout=30.0,
                 max_retries=5,
                 max_pages=100,
             )
+
+            # Optional dedicated client for *bulk* cache (re)build work —
+            # the background warm-up below and the ``rebuild_cache`` tool
+            # (via ``Services.sync_client``). Katana meters its rate limit
+            # per API key, not per tenant (verified empirically), so pointing
+            # this work at its own ``KATANA_SYNC_API_KEY`` keeps its bursty,
+            # multi-page pagination — and the reset-gate stalls it triggers —
+            # entirely off the foreground tool-call budget. Falls back to the
+            # shared client when the var is unset or matches the main key,
+            # preserving the prior single-key behavior.
+            dedicated_sync_client: KatanaClient | None = None
+            # ``.strip()`` so a copy-paste with a trailing newline/space doesn't
+            # slip past the equality guard and open a redundant second client
+            # on an effectively-identical key (which would then fail auth on
+            # its first call with no signal at the config site).
+            sync_api_key = (os.getenv("KATANA_SYNC_API_KEY") or "").strip() or None
+            if sync_api_key and sync_api_key != api_key:
+                dedicated_sync_client = cast(
+                    KatanaClient,
+                    await sync_stack.enter_async_context(
+                        KatanaClient(api_key=sync_api_key, **client_kwargs)
+                    ),
+                )
+                logger.info("sync_client_initialized", isolated=True)
+            else:
+                logger.info("sync_client_initialized", isolated=False)
 
             # Initialize the SQLModel-backed typed cache (#342 + #472) —
             # one store covering both transactional and catalog tiers.
@@ -220,27 +254,34 @@ async def lifespan(server: FastMCP) -> AsyncIterator[Services]:
             await typed_cache.open()
             logger.info("typed_cache_initialized", db_path=str(typed_cache.db_path))
 
+            # Build the service container up front so the warm-up can route
+            # through ``Services.sync_client`` — the single source of truth for
+            # the dedicated-vs-foreground fallback (no duplicated resolution).
+            # The generated ``AuthenticatedClient.__aenter__`` is annotated to
+            # return its own class, dropping the ``KatanaClient`` subclass we
+            # constructed, hence the casts.
+            context = Services(
+                client=cast(KatanaClient, client),
+                typed_cache=typed_cache,
+                dedicated_sync_client=dedicated_sync_client,
+            )
+
             # Fire-and-forget background warm-up so the gap between
             # MCP startup and the first user-facing tool call gets used
-            # to populate the typed cache. Default ON; set
+            # to populate the typed cache. Runs on ``context.sync_client`` so
+            # its rate-limit budget stays isolated from foreground tool calls
+            # when ``KATANA_SYNC_API_KEY`` is set. Default ON; set
             # ``MCP_DISABLE_CACHE_WARMUP=1`` to skip (test runs do this
             # via the autouse fixture in ``conftest.py``).
             warmup_task: asyncio.Task[None] | None = None
             if os.getenv("MCP_DISABLE_CACHE_WARMUP") != "1":
                 warmup_task = asyncio.create_task(
-                    _warm_caches_in_background(cast(KatanaClient, client), typed_cache),
+                    _warm_caches_in_background(context.sync_client, typed_cache),
                     name="katana_cache_warmup",
                 )
                 logger.info("cache_warmup_started")
 
             try:
-                # The generated ``AuthenticatedClient.__aenter__`` is
-                # annotated to return its own class, dropping the
-                # ``KatanaClient`` subclass we constructed.
-                context = Services(
-                    client=cast(KatanaClient, client),
-                    typed_cache=typed_cache,
-                )
                 logger.info("server_ready", version=__version__)
                 yield context
             finally:
