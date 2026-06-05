@@ -165,3 +165,41 @@ With the column durable, readers can treat it as a plain row read. `search_items
 services — and runs the backfill — before the search), rather than re-syncing and
 re-fetching to dodge a stale value. Pinned by
 `test_typed_cache_catalog.py::TestServiceVariantLinkBackfill::test_variant_resync_preserves_backfilled_service_id`.
+
+______________________________________________________________________
+
+## Bulk cache work runs on an optional dedicated rate-limit budget
+
+Cache (re)builds are bandwidth-heavy: a cold rebuild auto-paginates every entity
+(`include_deleted` / `include_archived`, 250/page across thousands of rows). Katana caps
+each API key at ~60 req/min, so that burst exhausts the budget, trips the client's
+rate-limit reset gate (`RateLimitTransport`, a ~57s global stall on `remaining=0`), and
+— because it shares the one client — **starves foreground tool calls**, surfacing to the
+host as timeouts.
+
+**Katana meters the rate limit per API key, not per tenant** (verified empirically:
+draining key A leaves key B's `X-Ratelimit-Remaining` untouched, separate reset epochs).
+So the server supports an optional second key, `KATANA_SYNC_API_KEY`, dedicated to
+*bulk* cache work — it gets its own independent 60/min budget, keeping the foreground
+key's budget clean. No smoothing/pacing is applied: the bulk path is free to burst and
+absorb 429s on its own budget.
+
+Two code paths run on this dedicated client; everything else (interactive reads, lazy
+on-demand syncs) stays on the foreground client:
+
+- the background warm-up task (`server._warm_caches_in_background`, scheduled in
+  `lifespan`), and
+- the explicit `rebuild_cache` tool (`tools/foundation/cache_admin.py`), via
+  `Services.sync_client`.
+
+`Services.sync_client` is the single resolution point: it returns
+`dedicated_sync_client` when `KATANA_SYNC_API_KEY` is set (and differs from
+`KATANA_API_KEY`), else falls back to the foreground `client` — so unset = prior
+single-key behavior. Both keys **must** be on the same tenant. Pinned by
+`test_server.py::TestCacheWarmup` (warm-up routing) and
+`test_cache_admin.py::TestSyncClientRouting` (rebuild routing).
+
+This isolates the *budget*, not the per-entity `cache.lock_for(entity)` wait — a
+foreground call for an entity mid-rebuild still waits on that lock, but the rebuild now
+runs at full speed on its own key instead of contending for the foreground budget, so
+the wait shrinks.

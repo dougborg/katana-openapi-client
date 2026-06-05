@@ -242,7 +242,11 @@ async def _rebuild_cache_impl(
     results: list[EntityRebuildResult] = []
     for entity_type in request.entity_types:
         result = await _rebuild_one(
-            services.client,
+            # Bulk resync runs on the dedicated cache-sync client (its own
+            # rate-limit budget) when ``KATANA_SYNC_API_KEY`` is configured,
+            # mirroring the background warm-up; falls back to the foreground
+            # client otherwise. See ``Services.sync_client``.
+            services.sync_client,
             services.typed_cache,
             entity_type,
             preview=request.preview,

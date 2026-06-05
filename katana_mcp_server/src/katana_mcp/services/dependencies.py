@@ -21,7 +21,8 @@ class Services:
     the lifespan function in server.py) and returned by get_services().
 
     Attributes:
-        client: The KatanaClient instance for API operations.
+        client: The KatanaClient instance for foreground API operations
+            (interactive tool calls + lazy on-demand cache syncs).
         typed_cache: ``TypedCacheEngine`` — SQLModel-backed per-entity tables
             covering both transactional types (sales orders, manufacturing
             orders, purchase orders, stock adjustments/transfers, MO recipe
@@ -31,6 +32,15 @@ class Services:
             tools, the ``search_items`` / ``get_variant_details`` lookups
             via ``typed_cache.catalog`` (a :class:`CatalogQueries` adapter),
             and the FTS5 sidecar search.
+        dedicated_sync_client: Optional client dedicated to *bulk* cache
+            (re)build work — the background warm-up and the ``rebuild_cache``
+            tool. Set from ``KATANA_SYNC_API_KEY`` so that work spends a
+            separate per-key rate-limit budget (Katana meters per API key,
+            not per tenant), keeping its bursty multi-page pagination — and
+            the reset-gate stalls it triggers — off the foreground budget.
+            ``None`` means no isolation was configured; :attr:`sync_client`
+            then resolves to :attr:`client`. Consumers should read
+            :attr:`sync_client`, never this field directly.
 
     The legacy ``CatalogCache`` (previously exposed here as ``cache``) was
     decommissioned in #472 Phase D once ``services.typed_cache.catalog``
@@ -40,6 +50,17 @@ class Services:
 
     client: KatanaClient
     typed_cache: TypedCacheEngine
+    dedicated_sync_client: KatanaClient | None = None
+
+    @property
+    def sync_client(self) -> KatanaClient:
+        """Client for bulk cache (re)build work.
+
+        Resolves to :attr:`dedicated_sync_client` when a ``KATANA_SYNC_API_KEY``
+        was configured, otherwise falls back to the foreground :attr:`client`.
+        Always returns a usable client, so callers never branch on ``None``.
+        """
+        return self.dedicated_sync_client or self.client
 
 
 def get_services(context: Context) -> Services:
