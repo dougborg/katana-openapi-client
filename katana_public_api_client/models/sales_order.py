@@ -39,8 +39,8 @@ class SalesOrder:
             'quantity': 2, 'variant_id': 2101, 'tax_rate_id': 301, 'location_id': 1, 'product_availability': 'IN_STOCK',
             'product_expected_date': None, 'price_per_unit': '599.9900000000', 'price_per_unit_in_base_currency': 599.99,
             'total': 1199.98, 'total_in_base_currency': 1199.98, 'cogs_value': '400.0000000000', 'created_at':
-            '2024-01-15T10:00:00Z', 'updated_at': '2024-01-15T10:00:00Z'}], 'ecommerce_order_type': 'standard',
-            'ecommerce_store_name': 'Kitchen Pro Store', 'ecommerce_order_id': 'SHOP-5678-2024', 'product_availability':
+            '2024-01-15T10:00:00Z', 'updated_at': '2024-01-15T10:00:00Z'}], 'ecommerce_order_type': 'shopify',
+            'ecommerce_store_name': 'acme.myshopify.com', 'ecommerce_order_id': '19433769', 'product_availability':
             'IN_STOCK', 'product_expected_date': None, 'ingredient_availability': 'IN_STOCK', 'ingredient_expected_date':
             None, 'production_status': 'NOT_APPLICABLE', 'tracking_number': 'UPS1234567890', 'tracking_number_url':
             'https://www.ups.com/track?track=UPS1234567890', 'billing_address_id': 1201, 'shipping_address_id': 1202,
@@ -81,10 +81,16 @@ class SalesOrder:
         customer_ref (None | str | Unset): Customer's reference number or purchase order number
         sales_order_rows (list[SalesOrderRow] | Unset): Line items included in the sales order with product details and
             quantities
-        ecommerce_order_type (None | str | Unset): Type of ecommerce order when imported from external platforms
-        ecommerce_store_name (None | str | Unset): Name of the ecommerce store when order originated from external
-            platforms
-        ecommerce_order_id (None | str | Unset): Original order ID from the external ecommerce platform
+        ecommerce_order_type (None | str | Unset): Source ecommerce platform for orders imported from a native Katana
+            integration, as the exact camelCase literal (`shopify`, `wooCommerce`, or `bigCommerce`); `null` otherwise.
+            Free-string on the wire and create-only — the literal is stored verbatim and cannot be changed via update.
+        ecommerce_store_name (None | str | Unset): Storefront host or slug of the source integration — a full host for
+            Shopify/WooCommerce (e.g. `acme.myshopify.com`) or a bare subdomain slug for BigCommerce; `null` when the order
+            is not from a native integration. Create-only — like the other `ecommerce_*` fields it cannot be changed via
+            update.
+        ecommerce_order_id (None | str | Unset): The source platform's own order identifier (e.g. `19433769`), as a
+            string; `null` when the order is not from a native ecommerce integration. Create-only — like the other
+            `ecommerce_*` fields it cannot be changed via update.
         product_availability (None | ProductAvailability | Unset):
         product_expected_date (datetime.datetime | None | Unset): Expected date when products will be available for
             fulfillment

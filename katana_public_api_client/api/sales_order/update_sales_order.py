@@ -7,6 +7,7 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import Response
+from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.sales_order import SalesOrder
 from ...models.update_sales_order_request import UpdateSalesOrderRequest
@@ -36,7 +37,7 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> ErrorResponse | SalesOrder | None:
+) -> DetailedErrorResponse | ErrorResponse | SalesOrder | None:
     if response.status_code == 200:
         response_200 = SalesOrder.from_dict(response.json())
 
@@ -51,6 +52,11 @@ def _parse_response(
         response_404 = ErrorResponse.from_dict(response.json())
 
         return response_404
+
+    if response.status_code == 422:
+        response_422 = DetailedErrorResponse.from_dict(response.json())
+
+        return response_422
 
     if response.status_code == 429:
         response_429 = ErrorResponse.from_dict(response.json())
@@ -70,7 +76,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[ErrorResponse | SalesOrder]:
+) -> Response[DetailedErrorResponse | ErrorResponse | SalesOrder]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -84,7 +90,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateSalesOrderRequest,
-) -> Response[ErrorResponse | SalesOrder]:
+) -> Response[DetailedErrorResponse | ErrorResponse | SalesOrder]:
     """Update a sales order
 
      Updates a sales order.
@@ -99,7 +105,7 @@ def sync_detailed(
 
 
     Returns:
-        Response[ErrorResponse | SalesOrder]
+        Response[DetailedErrorResponse | ErrorResponse | SalesOrder]
     """
 
     kwargs = _get_kwargs(
@@ -119,7 +125,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateSalesOrderRequest,
-) -> ErrorResponse | SalesOrder | None:
+) -> DetailedErrorResponse | ErrorResponse | SalesOrder | None:
     """Update a sales order
 
      Updates a sales order.
@@ -134,7 +140,7 @@ def sync(
 
 
     Returns:
-        ErrorResponse | SalesOrder
+        DetailedErrorResponse | ErrorResponse | SalesOrder
     """
 
     return sync_detailed(
@@ -149,7 +155,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateSalesOrderRequest,
-) -> Response[ErrorResponse | SalesOrder]:
+) -> Response[DetailedErrorResponse | ErrorResponse | SalesOrder]:
     """Update a sales order
 
      Updates a sales order.
@@ -164,7 +170,7 @@ async def asyncio_detailed(
 
 
     Returns:
-        Response[ErrorResponse | SalesOrder]
+        Response[DetailedErrorResponse | ErrorResponse | SalesOrder]
     """
 
     kwargs = _get_kwargs(
@@ -182,7 +188,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: UpdateSalesOrderRequest,
-) -> ErrorResponse | SalesOrder | None:
+) -> DetailedErrorResponse | ErrorResponse | SalesOrder | None:
     """Update a sales order
 
      Updates a sales order.
@@ -197,7 +203,7 @@ async def asyncio(
 
 
     Returns:
-        ErrorResponse | SalesOrder
+        DetailedErrorResponse | ErrorResponse | SalesOrder
     """
 
     return (

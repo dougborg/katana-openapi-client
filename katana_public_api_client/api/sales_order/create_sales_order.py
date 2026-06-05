@@ -94,8 +94,8 @@ def sync_detailed(
             'state': 'WA', 'zip': '98102', 'country': 'US'}], 'order_created_date':
             '2024-01-16T09:00:00Z', 'delivery_date': '2024-01-23T15:00:00Z', 'currency': 'USD',
             'location_id': 1, 'status': 'PENDING', 'additional_info': 'Customer prefers morning
-            delivery', 'customer_ref': 'WC-ORDER-2024-003', 'ecommerce_order_type': 'wholesale',
-            'ecommerce_store_name': 'B2B Portal', 'ecommerce_order_id': 'B2B-7891-2024'}.
+            delivery', 'customer_ref': 'WC-ORDER-2024-003', 'ecommerce_order_type': 'wooCommerce',
+            'ecommerce_store_name': 'shop.example.com', 'ecommerce_order_id': '501'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -141,8 +141,8 @@ def sync(
             'state': 'WA', 'zip': '98102', 'country': 'US'}], 'order_created_date':
             '2024-01-16T09:00:00Z', 'delivery_date': '2024-01-23T15:00:00Z', 'currency': 'USD',
             'location_id': 1, 'status': 'PENDING', 'additional_info': 'Customer prefers morning
-            delivery', 'customer_ref': 'WC-ORDER-2024-003', 'ecommerce_order_type': 'wholesale',
-            'ecommerce_store_name': 'B2B Portal', 'ecommerce_order_id': 'B2B-7891-2024'}.
+            delivery', 'customer_ref': 'WC-ORDER-2024-003', 'ecommerce_order_type': 'wooCommerce',
+            'ecommerce_store_name': 'shop.example.com', 'ecommerce_order_id': '501'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -183,8 +183,8 @@ async def asyncio_detailed(
             'state': 'WA', 'zip': '98102', 'country': 'US'}], 'order_created_date':
             '2024-01-16T09:00:00Z', 'delivery_date': '2024-01-23T15:00:00Z', 'currency': 'USD',
             'location_id': 1, 'status': 'PENDING', 'additional_info': 'Customer prefers morning
-            delivery', 'customer_ref': 'WC-ORDER-2024-003', 'ecommerce_order_type': 'wholesale',
-            'ecommerce_store_name': 'B2B Portal', 'ecommerce_order_id': 'B2B-7891-2024'}.
+            delivery', 'customer_ref': 'WC-ORDER-2024-003', 'ecommerce_order_type': 'wooCommerce',
+            'ecommerce_store_name': 'shop.example.com', 'ecommerce_order_id': '501'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -228,8 +228,8 @@ async def asyncio(
             'state': 'WA', 'zip': '98102', 'country': 'US'}], 'order_created_date':
             '2024-01-16T09:00:00Z', 'delivery_date': '2024-01-23T15:00:00Z', 'currency': 'USD',
             'location_id': 1, 'status': 'PENDING', 'additional_info': 'Customer prefers morning
-            delivery', 'customer_ref': 'WC-ORDER-2024-003', 'ecommerce_order_type': 'wholesale',
-            'ecommerce_store_name': 'B2B Portal', 'ecommerce_order_id': 'B2B-7891-2024'}.
+            delivery', 'customer_ref': 'WC-ORDER-2024-003', 'ecommerce_order_type': 'wooCommerce',
+            'ecommerce_store_name': 'shop.example.com', 'ecommerce_order_id': '501'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
