@@ -2,6 +2,105 @@
 
 <!-- version list -->
 
+## v0.78.0 (2026-06-05)
+
+### Bug Fixes
+
+- **ci**: Re-lock uv.lock against post-release main so the lock never lags (closes #901)
+  ([`26e9272`](https://github.com/dougborg/katana-openapi-client/commit/26e92725d98f515eab1e949ef4b7462dccd55ae4))
+
+- **client**: Constrain create price-list adjustment_method to its enum
+  ([`d5b852e`](https://github.com/dougborg/katana-openapi-client/commit/d5b852e9ff647c71a237070259780408384e8a56))
+
+- **client**: Item purchase_uom_conversion_rate is a decimal string
+  ([`abdaedb`](https://github.com/dougborg/katana-openapi-client/commit/abdaedb7110331976f3df349f18acb81b77defea))
+
+- **client**: MOOperationRow cost_per_hour/cost_parameter are decimal strings
+  ([`6636567`](https://github.com/dougborg/katana-openapi-client/commit/6636567446ca1d1df06eb6b66f65f70722517482))
+
+- **client**: String-quote MOOperationRow cost examples in path responses
+  ([`543b065`](https://github.com/dougborg/katana-openapi-client/commit/543b06568114b169e2c7a78c22d7ffb82dbae696))
+
+- **mcp**: Cut modify_manufacturing_order post-apply latency from rate-limit gate
+  ([`a21d52d`](https://github.com/dougborg/katana-openapi-client/commit/a21d52d4919407e338fbe4ae62ec03b7853202b4))
+
+- **mcp**: Pin ecommerce template/label key sets at import
+  ([`adb80d3`](https://github.com/dougborg/katana-openapi-client/commit/adb80d383e6c8a156178544dba2cccb10840905c))
+
+### Chores
+
+- Sync uv.lock after release
+  ([`0c92318`](https://github.com/dougborg/katana-openapi-client/commit/0c92318df3ff6ac1f652aba754dd27f719a14ca2))
+
+- Sync uv.lock after release
+  ([`66edc0a`](https://github.com/dougborg/katana-openapi-client/commit/66edc0a03c25d07125e98db897789cb564f51555))
+
+- Sync uv.lock after release
+  ([`0b99051`](https://github.com/dougborg/katana-openapi-client/commit/0b990512e7537cd5b403cbd56392b62213e98e41))
+
+- Sync uv.lock after release
+  ([`63314d3`](https://github.com/dougborg/katana-openapi-client/commit/63314d325be55b5bc9ad5ac7bd01b8c2ae55dee2))
+
+- **mcp**: Update client dependency to v0.77.0
+  ([`aaf41fa`](https://github.com/dougborg/katana-openapi-client/commit/aaf41faa3116f6ce4c16b30bc726592299e48cc6))
+
+- **release**: Mcp v0.110.0
+  ([`aef30f9`](https://github.com/dougborg/katana-openapi-client/commit/aef30f94403e5677b849c4da84aeb58a580575fa))
+
+- **release**: Mcp v0.111.0
+  ([`fae17a0`](https://github.com/dougborg/katana-openapi-client/commit/fae17a0435dc04be26b254cfee09a9591ae38873))
+
+- **release**: Mcp v0.111.1
+  ([`c0bae4a`](https://github.com/dougborg/katana-openapi-client/commit/c0bae4a78296f7fb945b2c3624945a77f3f32a28))
+
+- **release**: Mcp v0.112.0
+  ([`da9f25f`](https://github.com/dougborg/katana-openapi-client/commit/da9f25f9e4648ce3b3ff4e0c8c32695fd1ce177c))
+
+### Documentation
+
+- Record Katana's 2026-06-04 response on the serial-fulfillment gap
+  ([`24e91e1`](https://github.com/dougborg/katana-openapi-client/commit/24e91e16618301bd5546a1df39182aec93ac0cb2))
+
+- **scripts**: Clarify probe_money_fields scope + portable run example
+  ([`8b692f3`](https://github.com/dougborg/katana-openapi-client/commit/8b692f342904927e8db1bf76100e842ac7ca0ec0))
+
+- **scripts**: Correct money-probe coverage + seed wording
+  ([`3a3ad3a`](https://github.com/dougborg/katana-openapi-client/commit/3a3ad3a55d2eb610b0ae7ce35c3d4a97ba4c3fef))
+
+### Features
+
+- **mcp**: Create_sales_order accepts status + picked_date
+  ([#907](https://github.com/dougborg/katana-openapi-client/pull/907),
+  [`222bdb3`](https://github.com/dougborg/katana-openapi-client/commit/222bdb3b9ef0fbe01f2f9097a16dfbde17aa26c1))
+
+- **mcp**: Derive ecommerce storefront deep-links for sales orders
+  ([`9fdcd52`](https://github.com/dougborg/katana-openapi-client/commit/9fdcd520ccdb60f105ce8b1c2ec988b8786c0f0e))
+
+- **ts-client**: Port Ajv-style 422 errors + proactive rate limiting
+  ([`91cccdd`](https://github.com/dougborg/katana-openapi-client/commit/91cccdde082cf0c1e03c5dacd74fe474bdc9f5a8))
+
+### Performance Improvements
+
+- **mcp**: Extend parent_from_outcome to modify_item + header-only modify_sales_order
+  ([`2ca96ac`](https://github.com/dougborg/katana-openapi-client/commit/2ca96acecfcdd9ef0fa5a2bbe02e436b063fb0b0))
+
+### Refactoring
+
+- Address review — int in coalesce signature, read-side seed samples
+  ([`ed365be`](https://github.com/dougborg/katana-openapi-client/commit/ed365be05d473f6689d9e317bf5f1018d0e86d2d))
+
+- Empty-string guard in coalesce + env-overridable seed fixtures
+  ([`944c0eb`](https://github.com/dougborg/katana-openapi-client/commit/944c0ebe10d35fb8af6b2fcb1d7516d3dae59e8f))
+
+- **client**: Consolidate duplicate price-list adjustment-method enums
+  ([`2451c34`](https://github.com/dougborg/katana-openapi-client/commit/2451c34f83ce25e593a140c03bda10eb58729c16))
+
+- **scripts**: Make seed cleanup resilient to malformed ledger lines
+  ([`530946d`](https://github.com/dougborg/katana-openapi-client/commit/530946db35c4a7fa480a12a1b716c4bedd415634))
+
+- **scripts**: Route money-field probes through make_test_client
+  ([`2c571e2`](https://github.com/dougborg/katana-openapi-client/commit/2c571e2bf3165ac9f0c08a9fc047bfc3954e801c))
+
 ## v0.77.0 (2026-06-03)
 
 ### Bug Fixes
