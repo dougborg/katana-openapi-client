@@ -72,7 +72,12 @@ Run the existing audit tooling — do not implement comparisons by hand.
    ```
 
    Reports path coverage, required-field drift, field type/enum mismatches, missing
-   parameters. Use `--strict` to exit non-zero on any drift if you want a CI-style gate.
+   parameters. **Known divergences in `docs/upstream-specs/audit-overrides.yaml` are
+   suppressed by default** and re-surfaced under category sections (intentional / 📋
+   upstream punch list / ⚠ pending local fix). Run `uv run poe audit-spec --no-overrides`
+   to see *raw* drift including the catalogued ones. `uv run poe audit-spec-strict`
+   exits non-zero on any *un-catalogued* drift **or any stale override** (an entry that
+   no longer matches anything and must be removed) — that's the CI gate in `poe check`.
 
 3. **Audit response-side drift** against the README.io portal's response examples:
 

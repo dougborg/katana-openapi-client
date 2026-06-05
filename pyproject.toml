@@ -650,6 +650,9 @@ validate-openapi-redocly = "npx @redocly/cli lint docs/katana-openapi.yaml"
 refresh-upstream-spec = "python scripts/pull_upstream_specs.py"
 # Compare the local spec with the live upstream spec; reports drift.
 audit-spec = "python scripts/audit_spec_drift.py"
+# Same audit, gated: exit 1 on any drift NOT covered by the override registry
+# (docs/upstream-specs/audit-overrides.yaml). Used by `check` / CI.
+audit-spec-strict = "python scripts/audit_spec_drift.py --strict"
 # Re-check the hand-maintained ecommerce deep-link platform set against
 # Katana's live frontend EcommerceIntegrationType enum. Soft-fail (always
 # exit 0 unless --strict + genuine drift); NOT part of regenerate-all.
@@ -684,8 +687,8 @@ pre-commit-update = "pre-commit autoupdate"
 # Validation Tiers (for agent workflows)
 quick-check = ["format-check", "lint-ruff"]                              # Tier 1: Fast feedback (~5-10s)
 agent-check = ["format-check", "lint-ruff", "typecheck"]                # Tier 2: Pre-commit (~10-15s)
-check = ["format-check", "lint", "test", "test-browser"]                 # Tier 3: PR validation (~60s including browser render tests)
-full-check = ["format-check", "lint", "test", "test-browser", "docs-build"]             # Tier 4: Final validation (~70s)
+check = ["format-check", "lint", "validate-examples", "audit-spec-strict", "test", "test-browser"]                 # Tier 3: PR validation (~60s including browser render tests)
+full-check = ["format-check", "lint", "validate-examples", "audit-spec-strict", "test", "test-browser", "docs-build"]             # Tier 4: Final validation (~70s)
 
 # Other combined workflows
 fix = ["format", "lint-ruff-fix"]
