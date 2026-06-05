@@ -41,8 +41,8 @@ class CreateSalesOrderRequest:
             "Wilson's Catering", 'line_1': '789 Industrial Blvd', 'city': 'Seattle', 'state': 'WA', 'zip': '98102',
             'country': 'US'}], 'order_created_date': '2024-01-16T09:00:00Z', 'delivery_date': '2024-01-23T15:00:00Z',
             'currency': 'USD', 'location_id': 1, 'status': 'PENDING', 'additional_info': 'Customer prefers morning
-            delivery', 'customer_ref': 'WC-ORDER-2024-003', 'ecommerce_order_type': 'wholesale', 'ecommerce_store_name':
-            'B2B Portal', 'ecommerce_order_id': 'B2B-7891-2024'}
+            delivery', 'customer_ref': 'WC-ORDER-2024-003', 'ecommerce_order_type': 'wooCommerce', 'ecommerce_store_name':
+            'shop.example.com', 'ecommerce_order_id': '501'}
 
     Attributes:
         customer_id (int): ID of the customer placing the order
@@ -66,9 +66,13 @@ class CreateSalesOrderRequest:
         status (CreateSalesOrderStatus | Unset): Initial status when creating a sales order
         additional_info (None | str | Unset): Additional notes or instructions for the order
         customer_ref (None | str | Unset): Customer's internal reference number
-        ecommerce_order_type (None | str | Unset): Type of ecommerce order if applicable
-        ecommerce_store_name (None | str | Unset): Name of the ecommerce store if order originated from online
-        ecommerce_order_id (None | str | Unset): Original order ID from the ecommerce platform
+        ecommerce_order_type (None | str | Unset): Source ecommerce platform, set at creation only (update cannot change
+            it). Use the exact camelCase literal (`shopify`, `wooCommerce`, or `bigCommerce`) for Katana to recognize and
+            deep-link the order; other values are stored verbatim but not deep-linked.
+        ecommerce_store_name (None | str | Unset): Storefront host or slug — a full host for Shopify/WooCommerce (e.g.
+            `acme.myshopify.com`) or a bare BigCommerce subdomain slug. Set at creation only.
+        ecommerce_order_id (None | str | Unset): The source platform's order identifier (e.g. `19433769`). Set at
+            creation only.
         custom_fields (CreateSalesOrderRequestCustomFieldsType0 | None | Unset): Custom field values for the sales
             order, keyed by the
             definition ``id`` (UUID) — the ``id`` returned by

@@ -27,10 +27,10 @@ class SalesOrderListResponse:
             'location_id': 1, 'status': 'PACKED', 'currency': 'USD', 'conversion_rate': 1.0, 'conversion_date':
             '2024-01-15T10:00:00Z', 'invoicing_status': 'invoiced', 'total': 1250.0, 'total_in_base_currency': 1250.0,
             'additional_info': 'Customer requested expedited delivery', 'customer_ref': 'CUST-REF-2024-001',
-            'ecommerce_order_type': 'standard', 'ecommerce_store_name': 'Kitchen Pro Store', 'ecommerce_order_id':
-            'SHOP-5678-2024', 'product_availability': 'IN_STOCK', 'ingredient_availability': 'IN_STOCK',
-            'production_status': 'NOT_APPLICABLE', 'tracking_number': 'UPS1234567890', 'billing_address_id': 1201,
-            'shipping_address_id': 1202, 'created_at': '2024-01-15T10:00:00Z', 'updated_at': '2024-01-20T16:30:00Z'}]}
+            'ecommerce_order_type': 'shopify', 'ecommerce_store_name': 'acme.myshopify.com', 'ecommerce_order_id':
+            '19433769', 'product_availability': 'IN_STOCK', 'ingredient_availability': 'IN_STOCK', 'production_status':
+            'NOT_APPLICABLE', 'tracking_number': 'UPS1234567890', 'billing_address_id': 1201, 'shipping_address_id': 1202,
+            'created_at': '2024-01-15T10:00:00Z', 'updated_at': '2024-01-20T16:30:00Z'}]}
     """
 
     data: list[SalesOrder] | Unset = UNSET

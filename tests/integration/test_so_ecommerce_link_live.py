@@ -165,3 +165,84 @@ async def test_ecommerce_fields_round_trip_and_build_link(
         assert deleted.status_code in (200, 204), (
             f"cleanup delete returned {deleted.status_code}"
         )
+
+
+async def test_ecommerce_fields_are_create_only_patch_rejected(
+    live_client: KatanaClient,
+) -> None:
+    """The ecommerce_* fields are create-only: ``PATCH /sales_orders/{id}``
+    rejects them outright (HTTP 422 ``additionalProperties``) and leaves the
+    persisted values untouched. This is the empirical proof behind the
+    "create-only" wording in the OpenAPI field descriptions and the create-time
+    advisory guard — the modify endpoint has no schema slot for them, so a typo
+    can only be caught at creation. Verified live 2026-06-05 (#913).
+    """
+    customer_id, variant_id = await _known_customer_and_variant(live_client)
+
+    request = CreateSalesOrderRequest(
+        customer_id=customer_id,
+        order_no=f"{SDT_PREFIX}-ECOM-PATCH",
+        sales_order_rows=[
+            CreateSalesOrderRequestSalesOrderRowsItem(quantity=1, variant_id=variant_id)
+        ],
+        ecommerce_order_type="shopify",
+        ecommerce_store_name="acme.myshopify.com",
+        ecommerce_order_id="111111",
+    )
+    created = await create_sales_order.asyncio_detailed(
+        client=live_client, body=request
+    )
+    so_id = _clean(unwrap_as(created, SalesOrder).id)
+    assert so_id is not None, "create_sales_order returned a SalesOrder without an id"
+
+    try:
+        record_artifact(endpoint="/sales_orders", entity_id=so_id, issue="#913")
+        # The generated update model has no ecommerce_* params (the spec omits
+        # them from UpdateSalesOrderRequest), so send a raw PATCH to prove the
+        # *server* rejects them — not just our client.
+        resp = await live_client.get_async_httpx_client().patch(
+            f"/sales_orders/{so_id}",
+            json={
+                "ecommerce_order_type": "wooCommerce",
+                "ecommerce_store_name": "patched.example.com",
+                "ecommerce_order_id": "999999",
+            },
+        )
+        assert resp.status_code == 422, (
+            f"expected 422 rejecting ecommerce_* on PATCH, got {resp.status_code}"
+        )
+        # Assert on the structured Ajv error payload rather than substring-
+        # matching the message text, which is brittle to formatting changes.
+        # Katana wraps error bodies in {"error": {...}} on the wire (verified
+        # live), while the spec models DetailedErrorResponse flat ({"details":
+        # [...]}); tolerate both envelopes so the assertion is robust to that
+        # documented-vs-actual difference. Each rejected field surfaces as a
+        # details entry with code "additionalProperties" and info.additionalProperty.
+        payload = resp.json()
+        details = payload.get("error", payload).get("details") or []
+        rejected = {
+            d["info"]["additionalProperty"]
+            for d in details
+            if d.get("code") == "additionalProperties"
+        }
+        assert {
+            "ecommerce_order_type",
+            "ecommerce_store_name",
+            "ecommerce_order_id",
+        } <= rejected, (
+            f"PATCH did not reject all three ecommerce_* fields; got {rejected}"
+        )
+
+        # And the persisted values are untouched by the rejected PATCH.
+        got = await get_sales_order.asyncio_detailed(client=live_client, id=so_id)
+        parsed = unwrap_as(got, SalesOrder)
+        assert _clean(parsed.ecommerce_order_type) == "shopify"
+        assert _clean(parsed.ecommerce_store_name) == "acme.myshopify.com"
+        assert _clean(parsed.ecommerce_order_id) == "111111"
+    finally:
+        deleted = await delete_sales_order.asyncio_detailed(
+            client=live_client, id=so_id
+        )
+        assert deleted.status_code in (200, 204), (
+            f"cleanup delete returned {deleted.status_code}"
+        )
