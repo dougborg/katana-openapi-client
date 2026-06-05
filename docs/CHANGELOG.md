@@ -2,6 +2,38 @@
 
 <!-- version list -->
 
+## v0.80.0 (2026-06-05)
+
+### Bug Fixes
+
+- **client**: Align reorder-point + sales-return-row quantity with wire types
+  ([`f3f7706`](https://github.com/dougborg/katana-openapi-client/commit/f3f7706c65a7197233311737b1c7e624e8853725))
+
+- **client**: InventorySafetyStockLevel.value is a decimal string
+  ([`1c93010`](https://github.com/dougborg/katana-openapi-client/commit/1c9301064dfb411623e749751b02d79f973b044e))
+
+- **client**: PurchaseOrderRow.landed_cost is a number, not a string|number union
+  ([`31a1b11`](https://github.com/dougborg/katana-openapi-client/commit/31a1b11987fb0fb800747c89b911b0676efded1c))
+
+- **client**: Split safety-stock create request so its value stays number
+  ([`dedcedc`](https://github.com/dougborg/katana-openapi-client/commit/dedcedc3dc42ed738ae03903ded0df733917a366))
+
+### Chores
+
+- Sync uv.lock after release
+  ([`59ec580`](https://github.com/dougborg/katana-openapi-client/commit/59ec58043ab3cb8efcd79bef7e220856e2e07c4d))
+
+- **mcp**: Update client dependency to v0.79.0
+  ([`aa2bd8d`](https://github.com/dougborg/katana-openapi-client/commit/aa2bd8d47d368ffa0b4bd2bae51d5a784d85ab10))
+
+### Documentation
+
+- **spec**: Align safety-stock POST 200 description with upsert semantics
+  ([`cbad47f`](https://github.com/dougborg/katana-openapi-client/commit/cbad47f787216b22cf6a6f2f3084d620e4826287))
+
+- **spec**: Use consistent create-or-update wording for safety-stock POST
+  ([`d8134aa`](https://github.com/dougborg/katana-openapi-client/commit/d8134aaa28e8287d5c2db442b96e45c0860bd977))
+
 ## v0.79.0 (2026-06-05)
 
 ### Bug Fixes
