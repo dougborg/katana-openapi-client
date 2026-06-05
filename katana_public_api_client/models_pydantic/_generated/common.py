@@ -1168,6 +1168,20 @@ class ProductOperationRerank(KatanaPydanticBase):
     ] = None
 
 
+class CreateInventorySafetyStockLevelRequest(KatanaPydanticBase):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    variant_id: Annotated[int, Field(description="Product variant ID")]
+    location_id: Annotated[int, Field(description="Location ID")]
+    value: Annotated[
+        float,
+        Field(
+            description="Minimum quantity to maintain as safety stock buffer", ge=0.0
+        ),
+    ]
+
+
 class LocationListResponse(KatanaPydanticBase):
     data: Annotated[
         list[Location] | None,
