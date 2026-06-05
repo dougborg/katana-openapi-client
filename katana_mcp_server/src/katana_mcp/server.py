@@ -178,8 +178,11 @@ async def lifespan(server: FastMCP) -> AsyncIterator[Services]:
     # Load environment variables
     load_dotenv()
 
-    # Get configuration from environment
-    api_key = os.getenv("KATANA_API_KEY")
+    # Get configuration from environment. ``.strip()`` so a copy-paste with a
+    # trailing newline/space doesn't reach the auth layer as a malformed key
+    # (an all-whitespace value collapses to "" and fails the check below),
+    # mirroring the handling of ``KATANA_SYNC_API_KEY``.
+    api_key = (os.getenv("KATANA_API_KEY") or "").strip()
     base_url = os.getenv("KATANA_BASE_URL", "https://api.katanamrp.com/v1")
 
     # Validate required configuration
