@@ -7220,6 +7220,269 @@ def build_so_modify_ui(
     return app
 
 
+# ============================================================================
+# Sales Order detail (read) card — build_so_detail_ui (#913)
+# ============================================================================
+
+
+# Tier-3 scalar reference fields rendered on the SO detail card, in order.
+# Each entry is ``(label, response_key)``; the line renders only when the
+# response carries a truthy value, so a sparse SO stays compact. Mirrors the
+# user-facing subset of ``_SO_HEADER_FIELD_SPEC`` that's worth surfacing on a
+# read card (the modify card's diff-overlay machinery doesn't apply here).
+_SO_DETAIL_SCALAR_FIELDS: tuple[tuple[str, str], ...] = (
+    ("Customer ref", "customer_ref"),
+    ("Order date", "order_created_date"),
+    ("Picked date", "picked_date"),
+    ("Notes", "additional_info"),
+)
+
+
+def _so_detail_header_section(so: dict[str, Any]) -> None:
+    """Tier 1 — title (linked to the Katana SO page when available) + status
+    badge.
+
+    The title links straight to the source-of-truth Katana sales-order page
+    (``katana_url``), so the footer needs no separate "View in Katana" button
+    — but the product spec for this card calls for an explicit footer link, so
+    we keep the title link AND the footer button (the link is the one-click
+    affordance; the footer button is the conventional read-card action slot).
+    Falls back to plain text when ``katana_url`` is missing.
+    """
+    order_no = so.get("order_no")
+    title_content = f"Sales Order {order_no}" if order_no else "Sales Order"
+    katana_url = so.get("katana_url")
+    status = so.get("status")
+
+    with Row(gap=2):
+        with CardTitle():
+            if katana_url:
+                Link(content=title_content, href=katana_url, target="_blank")
+            else:
+                Text(content=title_content)
+        if status:
+            Badge(
+                label=status,
+                variant=status_badge_variant("sales_order", status),
+            )
+
+
+def _so_detail_metrics_section(so: dict[str, Any]) -> None:
+    """Tier 2 — decision metrics: order Total, line-item count, delivery date.
+
+    Each Metric renders only when its underlying value is present, so a draft
+    SO with no delivery date doesn't paint an empty "Delivery" tile. The row
+    is skipped entirely when none of the three are available.
+    """
+    total = so.get("total")
+    currency = so.get("currency")
+    rows = so.get("rows") or []
+    delivery_date = so.get("delivery_date")
+
+    has_any = total is not None or rows or delivery_date
+    if not has_any:
+        return
+    with Row(gap=4):
+        if total is not None:
+            Metric(label="Total", value=_format_money(total, currency))
+        if rows:
+            Metric(label="Line Items", value=str(len(rows)))
+        if delivery_date:
+            Metric(label="Delivery", value=str(delivery_date))
+
+
+def _so_detail_rows_table(so: dict[str, Any]) -> None:
+    """Tier 3 — line-item DataTable (SKU, name, qty, unit price, line total).
+
+    Static inline table — no per-row drill-down (the SO is the destination;
+    row detail is inline, per the #913 product decision). Rows are read from
+    ``state.so.rows`` via the mandatory mustache binding. Each row carries
+    pre-formatted ``unit_price_display`` / ``line_total_display`` strings so
+    the money columns render currency-aware without a renderer-side formatter.
+    Renders a friendly empty-state when the SO has no line items.
+    """
+    rows = so.get("rows") or []
+    if not rows:
+        Separator()
+        Muted(content="No line items on this sales order.")
+        return
+    Separator()
+    Muted(content="Line items:")
+    DataTable(
+        columns=[
+            DataTableColumn(key="sku", header="SKU", sortable=True),
+            DataTableColumn(key="display_name", header="Name", sortable=True),
+            DataTableColumn(key="quantity", header="Qty", sortable=True, align="right"),
+            DataTableColumn(
+                key="unit_price_display", header="Unit Price", align="right"
+            ),
+            DataTableColumn(
+                key="line_total_display", header="Line Total", align="right"
+            ),
+        ],
+        rows="{{ so.rows }}",
+        **_paginate(len(rows)),
+    )
+
+
+def _so_detail_row_cells(so: dict[str, Any]) -> list[dict[str, Any]]:
+    """Pre-compute per-row display cells for the line-item DataTable.
+
+    The DataTable binds to ``state.so.rows`` (mustache), so the state copy of
+    each row needs the rendered ``sku`` / ``display_name`` / ``quantity`` plus
+    two pre-formatted money strings:
+
+    - ``unit_price_display`` — ``price_per_unit`` formatted via
+      ``_format_money`` in the SO currency (``"—"`` when null).
+    - ``line_total_display`` — the row ``total`` when Katana supplied it,
+      else ``price_per_unit * quantity`` as a fallback (``"—"`` when neither
+      is computable).
+
+    SKU coalesces to ``""`` (variants can have null SKUs — CLAUDE.md), and
+    ``display_name`` falls back to a ``"Variant <id>"`` label so a cache-miss
+    row still reads meaningfully instead of blank — or to a neutral
+    ``"Unknown item"`` when even ``variant_id`` is null (avoids a confusing
+    ``"Variant None"`` cell, since ``variant_id`` is optional in the response).
+    """
+    currency = so.get("currency")
+    cells: list[dict[str, Any]] = []
+    for r in so.get("rows") or []:
+        qty = r.get("quantity")
+        unit = float_or_none(r.get("price_per_unit"))
+        total = float_or_none(r.get("total"))
+        if total is None and unit is not None and qty is not None:
+            total = unit * qty
+        variant_id = r.get("variant_id")
+        display_name = r.get("display_name") or (
+            f"Variant {variant_id}" if variant_id is not None else "Unknown item"
+        )
+        cells.append(
+            {
+                "sku": r.get("sku") or "",
+                "display_name": display_name,
+                "quantity": qty,
+                "unit_price_display": (
+                    _format_money(unit, currency) if unit is not None else "—"
+                ),
+                "line_total_display": (
+                    _format_money(total, currency) if total is not None else "—"
+                ),
+            }
+        )
+    return cells
+
+
+def build_so_detail_ui(so: dict[str, Any]) -> PrefabApp:
+    """Build a read-only detail card for a sales order (``get_sales_order``).
+
+    Implements the four-tier framework from #537 for a pure read surface
+    (#913) — no Confirm/Cancel rail, no mutation buttons:
+
+    - **Tier 1 — Identity**: title as an external ``Link`` to the Katana
+      sales-order page; status Badge with the bucket-driven variant from
+      ``status_badge_variant("sales_order", ...)``.
+    - **Tier 2 — Decision metrics**: order Total (currency-aware via
+      ``_format_money``), line-item count, and delivery date — the facts an
+      operator scans first on an order. Rendered as ``Metric`` tiles.
+    - **Tier 3 — Reference**: Customer + Location party lines (resolved names
+      via ``_render_party_line``, never bare IDs — the impl side fills
+      ``customer_name`` / ``location_name`` from the typed cache), the
+      storefront deep-link (``_render_ecommerce_link``), scalar header fields
+      (customer ref / order date / picked date / notes), the billing +
+      shipping address blocks (``_render_address_block``), and the static
+      line-item ``DataTable`` (SKU / name / qty / unit price / line total —
+      no row drill-down). Any name-resolution cache-miss advisories surface
+      as warning badges.
+    - **Tier 4 — Actions**: a single "View in Katana" link button. Pure read
+      card — no Fulfill / Edit / mutation buttons (#913 product decision).
+
+    Reference template: ``build_item_detail_ui`` (parent entity with an
+    embedded child table) and ``build_variant_details_ui`` (Metric-row Tier 2
+    on a read card).
+    """
+    # The line-item DataTable binds to ``state.so.rows``; swap in the
+    # pre-formatted display cells so the money columns render currency-aware
+    # without a renderer-side formatter. Shallow-copy ``so`` so the caller's
+    # response dict isn't mutated.
+    so_state = {**so, "rows": _so_detail_row_cells(so)}
+
+    with PrefabApp(state={"so": so_state}, css_class="p-4") as app, Card():
+        with CardHeader(), Column(gap=1):
+            _so_detail_header_section(so)
+
+        with CardContent(), Column(gap=3):
+            # Tier 2 — metrics.
+            _so_detail_metrics_section(so)
+            Separator()
+
+            # Tier 3 — reference. Party lines first (the "who"), then
+            # storefront link, scalar header fields, addresses, and the
+            # line-item table.
+            _render_party_line(
+                "Customer",
+                name=so.get("customer_name"),
+                entity_id=so.get("customer_id"),
+                entity_kind="customer",
+            )
+            # Location has no per-entity Katana web page (same as the SO
+            # create / modify cards) — pass no ``entity_kind`` so the party
+            # line renders ``"Location: <name>"`` without a dead link.
+            _render_party_line(
+                "Location",
+                name=so.get("location_name"),
+                entity_id=so.get("location_id"),
+            )
+            _render_ecommerce_link(so)
+
+            for label, key in _SO_DETAIL_SCALAR_FIELDS:
+                value = so.get(key)
+                if value:
+                    Text(content=f"{label}: {value}")
+
+            # Tracking — render as a Link when a URL is present, else plain
+            # text, else nothing.
+            tracking_number = so.get("tracking_number")
+            tracking_url = so.get("tracking_number_url")
+            if tracking_number and tracking_url:
+                with Row(gap=1):
+                    Text(content="Tracking:")
+                    Link(content=tracking_number, href=tracking_url, target="_blank")
+            elif tracking_number:
+                Text(content=f"Tracking: {tracking_number}")
+
+            # Address blocks — billing + shipping, in that order. Each block
+            # self-skips when empty (returns False), so a partial / absent
+            # address set renders no dangling labels.
+            addresses = so.get("addresses") or []
+            for entity_type, label in (
+                ("billing", "Billing Address"),
+                ("shipping", "Shipping Address"),
+            ):
+                addr = next(
+                    (a for a in addresses if a.get("entity_type") == entity_type),
+                    None,
+                )
+                if addr is not None:
+                    _render_address_block(label, addr)
+
+            # Line-item table (Tier 3 decision driver) — last so the scalar
+            # reference context sits above it.
+            _so_detail_rows_table(so)
+
+            # Name-resolution cache-miss advisories, if any.
+            _render_warnings_block(so.get("warnings"))
+
+        with CardFooter(), Row(gap=2):
+            katana_url = so.get("katana_url")
+            if katana_url:
+                Button(
+                    label="View in Katana",
+                    variant="outline",
+                    on_click=OpenLink(url=katana_url),
+                )
+    return app
+
+
 def _render_mo_identity_lines(
     mo: dict[str, Any], changes: dict[str, FieldChangeView]
 ) -> None:
