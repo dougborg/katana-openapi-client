@@ -18,7 +18,7 @@ T = TypeVar("T", bound="UpdateSalesReturnRowRequest")
 class UpdateSalesReturnRowRequest:
     """Request payload for updating a sales return row"""
 
-    quantity: str | Unset = UNSET
+    quantity: float | Unset = UNSET
     restock_location_id: int | Unset = UNSET
     reason_id: int | Unset = UNSET
     batch_transactions: list[BatchTransactionRequest] | Unset = UNSET

@@ -3084,9 +3084,8 @@ components:
           maximum: 2147483647
           description: The product variant this reorder point is configured for
         value:
-          type: number
-          description: The minimum quantity that triggers reordering
-          maximum: 100000000000000000
+          type: string
+          description: The minimum quantity that triggers reordering, returned as a fixed-precision decimal string
     InventoryReorderPointResponse:
       description: Complete inventory reorder point configuration including metadata and creation/update timestamps
       allOf:
@@ -12023,7 +12022,7 @@ components:
           type: integer
           description: ID of the fulfillment row this return is associated with
         quantity:
-          type: string
+          type: number
           description: Quantity being returned
         restock_location_id:
           type: integer
@@ -13447,7 +13446,7 @@ components:
       additionalProperties: false
       properties:
         quantity:
-          type: string
+          type: number
           description: Quantity being returned. Updatable only when current return status is NOT_RETURNED.
         restock_location_id:
           type: integer

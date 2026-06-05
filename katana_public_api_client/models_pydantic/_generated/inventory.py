@@ -272,8 +272,10 @@ class InventoryReorderPoint(KatanaPydanticBase):
         ),
     ]
     value: Annotated[
-        float,
-        Field(description="The minimum quantity that triggers reordering", le=1e17),
+        str,
+        Field(
+            description="The minimum quantity that triggers reordering, returned as a fixed-precision decimal string"
+        ),
     ]
 
 

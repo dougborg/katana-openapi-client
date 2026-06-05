@@ -1493,9 +1493,9 @@ export type InventoryReorderPoint = {
    */
   variant_id: number;
   /**
-   * The minimum quantity that triggers reordering
+   * The minimum quantity that triggers reordering, returned as a fixed-precision decimal string
    */
-  value: number;
+  value: string;
 };
 
 /**
@@ -7862,7 +7862,7 @@ export type CreateSalesReturnRowRequest = {
   /**
    * Quantity being returned
    */
-  quantity: string;
+  quantity: number;
   /**
    * Restock location ID. If missing then default from sales order fulfillment row will be used.
    */
@@ -8940,7 +8940,7 @@ export type UpdateSalesReturnRowRequest = {
   /**
    * Quantity being returned. Updatable only when current return status is NOT_RETURNED.
    */
-  quantity?: string;
+  quantity?: number;
   /**
    * Restock location ID. Updatable only when current return status is NOT_RETURNED or RETURNED.
    */
