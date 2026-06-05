@@ -261,11 +261,16 @@ async def cleanup(c: httpx.AsyncClient) -> None:
     if not CLEANUP_FILE.exists():
         print("No cleanup file — nothing to delete.")
         return
-    paths = [
-        json.loads(line)["delete_path"]
-        for line in CLEANUP_FILE.read_text().splitlines()
-        if line.strip()
-    ]
+    # Best-effort parse: cleanup is the safety net, so a line truncated by an
+    # interrupted write (or a manual edit) must not block deleting the rest.
+    paths: list[str] = []
+    for line in CLEANUP_FILE.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            paths.append(json.loads(line)["delete_path"])
+        except (json.JSONDecodeError, KeyError, TypeError):
+            print(f"   skip malformed cleanup line: {line[:80]!r}")
     ok = fail = 0
     for p in reversed(paths):  # children before parents
         r = await c.delete(p)
