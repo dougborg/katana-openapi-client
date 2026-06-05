@@ -34,6 +34,7 @@ from katana_mcp.tools.prefab_ui import (
     build_receipt_ui,
     build_search_results_ui,
     build_so_create_ui,
+    build_so_detail_ui,
     build_so_modify_ui,
     build_stock_transfer_modify_ui,
     build_variant_details_ui,
@@ -10344,3 +10345,292 @@ class TestDataTablePagination:
             "— route pagination through `**_paginate(len(rows))` instead so "
             "short tables don't render blank filler rows."
         )
+
+
+def _so_detail_response(
+    *,
+    with_customer_name: bool = True,
+    with_location_name: bool = True,
+    with_addresses: bool = True,
+    with_ecommerce: bool = True,
+    with_rows: bool = True,
+    warnings: list[str] | None = None,
+) -> dict[str, Any]:
+    """Build a ``get_sales_order`` response dict for ``build_so_detail_ui`` tests.
+
+    Toggles let each test exercise one edge case (missing customer name,
+    empty addresses, no storefront link, empty rows) against an otherwise
+    full response.
+    """
+    rows = (
+        [
+            {
+                "variant_id": 700,
+                "sku": "SKU-A",
+                "display_name": "Widget / Red",
+                "quantity": 2,
+                "price_per_unit": 100.0,
+                "total": 200.0,
+            },
+            {
+                "variant_id": 701,
+                "sku": None,
+                "display_name": None,
+                "quantity": 5,
+                "price_per_unit": 10.0,
+                "total": None,
+            },
+        ]
+        if with_rows
+        else []
+    )
+    addresses = (
+        [
+            {
+                "entity_type": "billing",
+                "first_name": "Jane",
+                "last_name": "Doe",
+                "line_1": "1 Main St",
+                "city": "Townsville",
+                "country": "US",
+            },
+            {
+                "entity_type": "shipping",
+                "company": "Acme Manufacturing",
+                "line_1": "2 Dock Rd",
+                "city": "Portcity",
+                "state": "CA",
+                "zip": "90210",
+                "country": "US",
+            },
+        ]
+        if with_addresses
+        else []
+    )
+    return {
+        "id": 42,
+        "katana_url": "https://factory.katanamrp.com/salesorder/42",
+        "order_no": "SO-1001",
+        "status": "PACKED",
+        "customer_id": 10,
+        "customer_name": "Acme Co" if with_customer_name else None,
+        "location_id": 3,
+        "location_name": "Main Warehouse" if with_location_name else None,
+        "total": 1500.0,
+        "currency": "USD",
+        "delivery_date": "2026-07-01",
+        "customer_ref": "PO-99",
+        "order_created_date": "2026-06-01",
+        "additional_info": "Rush order",
+        "tracking_number": "TRK123",
+        "tracking_number_url": "https://track.example/123",
+        "ecommerce_order_type": "shopify" if with_ecommerce else None,
+        "ecommerce_store_name": "mystore" if with_ecommerce else None,
+        "ecommerce_order_id": "555" if with_ecommerce else None,
+        "ecommerce_url": (
+            "https://mystore.myshopify.com/admin/orders/555" if with_ecommerce else None
+        ),
+        "addresses": addresses,
+        "rows": rows,
+        "warnings": warnings or [],
+    }
+
+
+class TestBuildSoDetailUI:
+    """``build_so_detail_ui`` — read-only sales-order detail card (#913)."""
+
+    def test_full_response_renders_valid_prefab(self) -> None:
+        app = build_so_detail_ui(_so_detail_response())
+        _assert_valid_prefab(app)
+
+    def test_title_links_to_katana(self) -> None:
+        """Tier 1 title is an external Link to the Katana SO page."""
+        envelope = build_so_detail_ui(_so_detail_response()).to_json()
+        links = _find_components_by_type(envelope, "Link")
+        title_links = [
+            link
+            for link in links
+            if link.get("content") == "Sales Order SO-1001"
+            and link.get("href") == "https://factory.katanamrp.com/salesorder/42"
+        ]
+        assert len(title_links) == 1, (
+            "Title must be an external Link to the Katana SO page."
+        )
+
+    def test_status_badge_uses_bucket_variant(self) -> None:
+        """PACKED is in the sales_order 'active' bucket → secondary variant."""
+        envelope = build_so_detail_ui(_so_detail_response()).to_json()
+        badges = _find_components_by_type(envelope, "Badge")
+        status_badges = [b for b in badges if b.get("label") == "PACKED"]
+        assert len(status_badges) == 1
+        assert status_badges[0].get("variant") == status_badge_variant(
+            "sales_order", "PACKED"
+        )
+
+    def test_customer_name_rendered_not_id(self) -> None:
+        """Resolved customer name renders as a Link; the bare-ID fallback
+        text must NOT appear (anti-pattern #2)."""
+        envelope = build_so_detail_ui(_so_detail_response()).to_json()
+        links = _find_components_by_type(envelope, "Link")
+        assert any(link.get("content") == "Acme Co" for link in links), (
+            "Customer name should render as a Link."
+        )
+        all_text = json.dumps(envelope)
+        assert "Customer ID: 10" not in all_text, (
+            "Card must not echo the bare customer ID when a name is resolved."
+        )
+
+    def test_location_name_rendered_without_link(self) -> None:
+        """Location has no Katana web page → renders as plain 'Location:
+        <name>' text, not a Link, and not the bare-ID fallback."""
+        envelope = build_so_detail_ui(_so_detail_response()).to_json()
+        texts = _collect_node_content(envelope, "Text")
+        assert "Location: Main Warehouse" in texts
+        assert "Location ID: 3" not in texts
+
+    def test_metrics_rendered(self) -> None:
+        """Tier 2 surfaces total / line-item count / delivery as Metrics."""
+        envelope = build_so_detail_ui(_so_detail_response()).to_json()
+        metrics = _find_components_by_type(envelope, "Metric")
+        labels = {m.get("label"): m.get("value") for m in metrics}
+        assert labels.get("Total") == "$1,500.00"
+        assert labels.get("Line Items") == "2"
+        assert labels.get("Delivery") == "2026-07-01"
+
+    def test_line_item_table_uses_mustache_rows(self) -> None:
+        """The line-item DataTable binds rows via mustache to state.so.rows."""
+        envelope = build_so_detail_ui(_so_detail_response()).to_json()
+        tables = _find_components_by_type(envelope, "DataTable")
+        assert len(tables) == 1
+        assert tables[0].get("rows") == "{{ so.rows }}"
+
+    def test_line_item_cells_formatted(self) -> None:
+        """Row state cells coalesce null SKU, fall back display_name, and
+        pre-format the money columns (incl. computed line total)."""
+        app = build_so_detail_ui(_so_detail_response())
+        rows = app.to_json()["state"]["so"]["rows"]
+        assert rows[0]["sku"] == "SKU-A"
+        assert rows[0]["unit_price_display"] == "$100.00"
+        assert rows[0]["line_total_display"] == "$200.00"
+        # Second row: null SKU → "", null name → "Variant 701", total
+        # computed from unit * qty.
+        assert rows[1]["sku"] == ""
+        assert rows[1]["display_name"] == "Variant 701"
+        assert rows[1]["line_total_display"] == "$50.00"
+
+    def test_null_variant_id_row_uses_neutral_label(self) -> None:
+        """A row with no display_name AND a null variant_id renders a neutral
+        "Unknown item" label, not a confusing "Variant None" (variant_id is
+        optional in the response)."""
+        response = {
+            **_so_detail_response(),
+            "rows": [
+                {
+                    "sku": None,
+                    "display_name": None,
+                    "variant_id": None,
+                    "quantity": 1,
+                    "price_per_unit": 10.0,
+                    "total": 10.0,
+                }
+            ],
+        }
+        rows = build_so_detail_ui(response).to_json()["state"]["so"]["rows"]
+        assert rows[0]["display_name"] == "Unknown item"
+
+    def test_address_blocks_rendered(self) -> None:
+        """Billing + shipping address blocks surface recipient / company /
+        street."""
+        envelope = build_so_detail_ui(_so_detail_response()).to_json()
+        texts = _collect_node_content(envelope, "Text")
+        assert "Billing Address:" in texts
+        assert "Shipping Address:" in texts
+        assert any("Jane Doe" in t for t in texts)
+        assert any("Acme Manufacturing" in t for t in texts)
+
+    def test_ecommerce_link_rendered(self) -> None:
+        """Storefront deep-link surfaces when the SO carries ecommerce
+        metadata."""
+        envelope = build_so_detail_ui(_so_detail_response()).to_json()
+        links = _find_components_by_type(envelope, "Link")
+        assert any(
+            link.get("href") == "https://mystore.myshopify.com/admin/orders/555"
+            for link in links
+        )
+
+    def test_footer_view_in_katana_only(self) -> None:
+        """Pure read card — the only footer action is View in Katana (no
+        Fulfill / Edit / mutation buttons)."""
+        envelope = build_so_detail_ui(_so_detail_response()).to_json()
+        view_buttons = _find_buttons_by_label(envelope, "View in Katana")
+        assert len(view_buttons) == 1
+        on_click = view_buttons[0].get("onClick") or view_buttons[0].get("on_click")
+        assert isinstance(on_click, dict)
+        assert on_click.get("url") == "https://factory.katanamrp.com/salesorder/42"
+        # No mutation buttons.
+        all_buttons = _find_components_by_type(envelope, "Button")
+        assert len(all_buttons) == 1, (
+            "Read card must render exactly one footer button (View in Katana)."
+        )
+
+    # ---- Edge cases ----
+
+    def test_missing_customer_name_falls_back_to_id(self) -> None:
+        """When name resolution missed, the party line surfaces the bare ID
+        (the only way to identify the customer)."""
+        envelope = build_so_detail_ui(
+            _so_detail_response(with_customer_name=False)
+        ).to_json()
+        texts = _collect_node_content(envelope, "Text")
+        assert "Customer ID: 10" in texts
+        _assert_valid_prefab(
+            build_so_detail_ui(_so_detail_response(with_customer_name=False))
+        )
+
+    def test_empty_addresses_renders_no_address_labels(self) -> None:
+        """No addresses → no dangling 'Billing Address:' / 'Shipping
+        Address:' labels."""
+        app = build_so_detail_ui(_so_detail_response(with_addresses=False))
+        _assert_valid_prefab(app)
+        texts = _collect_node_content(app.to_json(), "Text")
+        assert "Billing Address:" not in texts
+        assert "Shipping Address:" not in texts
+
+    def test_no_ecommerce_link_when_metadata_absent(self) -> None:
+        """No ecommerce metadata → no storefront link, card still valid."""
+        app = build_so_detail_ui(_so_detail_response(with_ecommerce=False))
+        _assert_valid_prefab(app)
+        texts = _collect_node_content(app.to_json(), "Text")
+        assert "Storefront:" not in texts
+
+    def test_empty_rows_renders_friendly_empty_state(self) -> None:
+        """No line items → friendly Muted message, no DataTable."""
+        app = build_so_detail_ui(_so_detail_response(with_rows=False))
+        _assert_valid_prefab(app)
+        envelope = app.to_json()
+        assert not _has_node_of_type(envelope, "DataTable")
+        muted = _collect_node_content(envelope, "Muted")
+        assert any("No line items" in m for m in muted)
+
+    def test_warnings_surface_as_badges(self) -> None:
+        """Name-resolution cache-miss advisories surface as warning badges."""
+        app = build_so_detail_ui(
+            _so_detail_response(
+                with_customer_name=False,
+                warnings=["Customer with id=10 was not found in the cache."],
+            )
+        )
+        _assert_valid_prefab(app)
+        badges = _find_components_by_type(app.to_json(), "Badge")
+        assert any("not found in the cache" in (b.get("label") or "") for b in badges)
+
+    def test_missing_katana_url_omits_footer_button(self) -> None:
+        """No katana_url → no View-in-Katana button, title renders as text."""
+        response = _so_detail_response()
+        response["katana_url"] = None
+        app = build_so_detail_ui(response)
+        _assert_valid_prefab(app)
+        envelope = app.to_json()
+        assert not _find_buttons_by_label(envelope, "View in Katana")
+        texts = _collect_node_content(envelope, "Text")
+        assert "Sales Order SO-1001" in texts

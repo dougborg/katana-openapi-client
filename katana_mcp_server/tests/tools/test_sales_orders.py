@@ -2264,6 +2264,95 @@ async def test_get_sales_order_enriches_row_sku_from_cache():
     assert result.rows[1].display_name is None  # cache miss → no name
 
 
+@pytest.mark.asyncio
+async def test_get_sales_order_resolves_customer_and_location_names():
+    """Customer + location names resolve from the typed cache so the detail
+    card renders real names, not bare IDs (#913)."""
+    context, lifespan_ctx = create_mock_context()
+
+    # ``resolve_entity_name`` reads the cached row's ``name`` (dict-shaped
+    # fixtures are tolerated). Key by id so customer 42 / location 1 hit.
+    cache_by_id = {
+        42: {"id": 42, "name": "Acme Manufacturing"},
+        1: {"id": 1, "name": "Main Warehouse"},
+    }
+
+    async def fake_get_by_id(_cls, entity_id, **_kw):
+        return cache_by_id.get(entity_id)
+
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(side_effect=fake_get_by_id)
+
+    mock_so = _make_mock_so(id=11, customer_id=42, location_id=1)
+
+    with (
+        patch(f"{_SO_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_AS, return_value=mock_so),
+        patch(_FETCH_ADDR_PATH, AsyncMock(return_value=[])),
+    ):
+        result = await _get_sales_order_impl(GetSalesOrderRequest(order_id=11), context)
+
+    assert result.customer_name == "Acme Manufacturing"
+    assert result.location_name == "Main Warehouse"
+    # No cache-miss advisories on a clean resolution.
+    assert result.warnings == []
+
+
+@pytest.mark.asyncio
+async def test_get_sales_order_name_cache_miss_appends_warning():
+    """A customer/location cache miss leaves the name None and appends an
+    advisory warning (the card then falls back to the bare ID)."""
+    context, lifespan_ctx = create_mock_context()
+
+    # Default mock_catalog.get_by_id returns None → both lookups miss.
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
+
+    mock_so = _make_mock_so(id=12, customer_id=42, location_id=1)
+
+    with (
+        patch(f"{_SO_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_AS, return_value=mock_so),
+        patch(_FETCH_ADDR_PATH, AsyncMock(return_value=[])),
+    ):
+        result = await _get_sales_order_impl(GetSalesOrderRequest(order_id=12), context)
+
+    assert result.customer_name is None
+    assert result.location_name is None
+    # One advisory per missed party.
+    assert len(result.warnings) == 2
+    assert any("Customer with id=42" in w for w in result.warnings)
+    assert any("Location with id=1" in w for w in result.warnings)
+
+
+@pytest.mark.asyncio
+async def test_get_sales_order_null_location_skips_resolution():
+    """A null ``location_id`` short-circuits resolution — no lookup, no
+    warning, ``location_name`` stays None."""
+    context, lifespan_ctx = create_mock_context()
+
+    async def fake_get_by_id(_cls, entity_id, **_kw):
+        return {"id": entity_id, "name": "Acme Manufacturing"}
+
+    get_by_id = AsyncMock(side_effect=fake_get_by_id)
+    lifespan_ctx.typed_cache.catalog.get_by_id = get_by_id
+
+    mock_so = _make_mock_so(id=13, customer_id=42)
+    mock_so.location_id = UNSET  # null location
+
+    with (
+        patch(f"{_SO_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_AS, return_value=mock_so),
+        patch(_FETCH_ADDR_PATH, AsyncMock(return_value=[])),
+    ):
+        result = await _get_sales_order_impl(GetSalesOrderRequest(order_id=13), context)
+
+    assert result.customer_name == "Acme Manufacturing"
+    assert result.location_id is None
+    assert result.location_name is None
+    assert result.warnings == []
+    # Only the customer was looked up — the null-location party was skipped.
+    assert get_by_id.await_count == 1
+
+
 # ============================================================================
 # get_sales_order — exhaustive field coverage (#346)
 # ============================================================================
@@ -2581,6 +2670,33 @@ async def test_get_sales_order_format_json_returns_json():
     data = json.loads(_content_text(result))
     assert data["id"] == 9
     assert data["order_no"] == "SO-9"
+
+
+@pytest.mark.asyncio
+async def test_get_sales_order_emits_prefab_ui():
+    """``get_sales_order`` auto-renders the detail card: structured_content
+    carries a Prefab envelope (``$prefab``) while content stays JSON (#913)."""
+    context, lifespan_ctx = create_mock_context()
+    lifespan_ctx.typed_cache.catalog.get_by_id = AsyncMock(return_value=None)
+    mock_so = _make_mock_so(
+        id=14,
+        order_no="SO-14",
+        rows=[_make_mock_row(id=1, variant_id=500, quantity=2, price_per_unit=50.0)],
+    )
+
+    with (
+        patch(f"{_SO_GET}.asyncio_detailed", new_callable=AsyncMock),
+        patch(_SO_UNWRAP_AS, return_value=mock_so),
+        patch(_FETCH_ADDR_PATH, AsyncMock(return_value=[])),
+    ):
+        result = await get_sales_order(order_id=14, context=context)
+
+    # content remains the raw JSON the LLM reads.
+    data = json.loads(_content_text(result))
+    assert data["order_no"] == "SO-14"
+    # structured_content is the Prefab envelope for UI-capable hosts.
+    assert isinstance(result.structured_content, dict)
+    assert "$prefab" in result.structured_content
 
 
 # ============================================================================

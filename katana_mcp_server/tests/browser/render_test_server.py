@@ -38,6 +38,7 @@ from katana_mcp.tools.prefab_ui import (
     build_product_bom_ui,
     build_search_results_ui,
     build_so_create_ui,
+    build_so_detail_ui,
     build_so_modify_ui,
     build_stock_adjustment_create_ui,
     build_stock_adjustment_delete_ui,
@@ -506,6 +507,76 @@ def _variant_batch_app() -> PrefabApp:
         ],
     }
     return build_variant_batch_ui(payload)
+
+
+def _so_detail_app() -> PrefabApp:
+    """build_so_detail_ui — read-only sales-order detail card (#913).
+
+    Exercises the static line-item DataTable (rows='{{ so.rows }}'), the
+    resolved customer/location party lines, billing+shipping address blocks,
+    storefront link, and the single View-in-Katana footer button.
+    """
+    so = {
+        "id": 4242,
+        "katana_url": "https://factory.katanamrp.com/salesorder/4242",
+        "order_no": "SO-4242",
+        "status": "PACKED",
+        "customer_id": 10,
+        "customer_name": "Bicycle Parts Co",
+        "location_id": 3,
+        "location_name": "Main Warehouse",
+        "total": 1500.0,
+        "currency": "USD",
+        "delivery_date": "2026-07-01",
+        "customer_ref": "PO-99",
+        "order_created_date": "2026-06-01",
+        "additional_info": "Rush order — ship by Friday",
+        "tracking_number": "TRK-12345",
+        "tracking_number_url": "https://track.example/TRK-12345",
+        "ecommerce_order_type": "shopify",
+        "ecommerce_store_name": "bikeparts.myshopify.com",
+        "ecommerce_order_id": "555",
+        "ecommerce_url": ("https://bikeparts.myshopify.com/admin/orders/555"),
+        "addresses": [
+            {
+                "entity_type": "billing",
+                "first_name": "Jane",
+                "last_name": "Doe",
+                "line_1": "1 Main St",
+                "city": "Townsville",
+                "country": "US",
+            },
+            {
+                "entity_type": "shipping",
+                "company": "Bicycle Parts Co",
+                "line_1": "2 Dock Rd",
+                "city": "Portcity",
+                "state": "CA",
+                "zip": "90210",
+                "country": "US",
+            },
+        ],
+        "rows": [
+            {
+                "variant_id": 700001,
+                "sku": "FRAME-STD",
+                "display_name": "Frame / Standard",
+                "quantity": 2,
+                "price_per_unit": 500.0,
+                "total": 1000.0,
+            },
+            {
+                "variant_id": 700002,
+                "sku": "WHEEL-26",
+                "display_name": "Wheel / 26in",
+                "quantity": 5,
+                "price_per_unit": 100.0,
+                "total": 500.0,
+            },
+        ],
+        "warnings": [],
+    }
+    return build_so_detail_ui(so)
 
 
 def _batch_recipe_update_app() -> PrefabApp:
@@ -1756,6 +1827,7 @@ SCENARIOS: dict[str, Callable[[], PrefabApp]] = {
     "product_bom": _product_bom_app,
     "product_bom_empty": _product_bom_empty_app,
     "variant_batch": _variant_batch_app,
+    "so_detail": _so_detail_app,
     "inventory_check": _inventory_check_app,
     "inventory_at_single": _inventory_at_single_app,
     "inventory_at_batch": _inventory_at_batch_app,
