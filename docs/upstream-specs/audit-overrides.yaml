@@ -1,0 +1,201 @@
+# Spec-drift override registry
+# =============================
+#
+# Canonical catalog of *known* divergences between our local spec
+# (`docs/katana-openapi.yaml`) and Katana's live gateway spec
+# (`docs/upstream-specs/live-gateway.yaml`).
+#
+# `poe audit-spec` matches each finding against the entries below. A matched
+# finding is **suppressed** from the strict gate (it won't fail CI) and is
+# re-surfaced under a category-specific report section. An *un*matched finding
+# is new drift — it fails `audit-spec --strict`. An override that matches
+# nothing is **stale** (the drift was resolved); the audit reports it so it
+# can be removed.
+#
+# This file is two things at once:
+#   1. A CI allowlist — so the gate guards against *new* drift, not the
+#      backlog of known divergences.
+#   2. A punch list — the `local_correct_upstream_wrong` and
+#      `both_wrong_live_correct` entries are bugs in Katana's published spec
+#      that we'd recommend they fix. Hand this list to the Katana team.
+#
+# Matching is intentionally **narrow**: an override pins the exact
+# (endpoint, kind, field, values) of the finding it suppresses. If the spec
+# changes shape — a different type, a different required set — the override
+# stops matching, the finding resurfaces as new drift, and the stale override
+# is reported. Suppression can never silently hide a *changed* divergence.
+#
+# Categories
+# ----------
+#   intentional_local_divergence
+#       We deliberately differ. Usually local is strictly more precise than
+#       upstream's loose typing (a typed `$ref`/enum where live says bare
+#       `string`/`object`). Permanent. No upstream action.
+#
+#   local_correct_upstream_wrong          ← PUNCH LIST
+#       Our spec matches the real wire contract; upstream's published spec is
+#       wrong or under-documented. Permanent on our side; recommend Katana fix.
+#
+#   both_wrong_live_correct               ← PUNCH LIST
+#       Both published specs (live-gateway + readme-portal) are wrong; only the
+#       live API tells the truth. Recommend Katana fix both.
+#
+#   upstream_correct_local_wrong          ← TEMPORARY (requires fix_tracked_in)
+#       Local is wrong; upstream is right. Allowlisted only so the gate can be
+#       green today. MUST carry `fix_tracked_in:` and should be removed when the
+#       tracked fix lands. Surfaces in the "pending local fixes" report section.
+#
+# Entry schema
+# ------------
+#   endpoint:        "<METHOD> <path>"     (e.g. "POST /sales_orders/search")
+#   kind:            type_diff | only_live | only_local | required_diff
+#   field:           property name         (omit for kind: required_diff)
+#   live / local:    the exact type strings (kind: type_diff only — pins the
+#                    divergence so a *changed* type resurfaces)
+#   live_required /
+#   local_required:  the exact required-key lists (kind: required_diff only)
+#   category:        one of the four above
+#   reason:          why this divergence exists / what we believe is true
+#   fix_tracked_in:  issue ref (required iff category == upstream_correct_local_wrong)
+
+overrides:
+  # --- custom_field_definitions: typed enums vs upstream's bare `string` ----
+  - endpoint: "POST /custom_field_definitions"
+    kind: type_diff
+    field: entity_type
+    live: "string"
+    local: "$ref:CustomFieldEntityType"
+    category: intentional_local_divergence
+    reason: >-
+      We model entity_type as a typed enum ($ref:CustomFieldEntityType) for
+      client ergonomics; the live gateway declares it as a bare `string`.
+      Local is strictly more precise. (Enum-value accuracy is tracked
+      separately under #805.)
+
+  - endpoint: "POST /custom_field_definitions"
+    kind: type_diff
+    field: field_type
+    live: "string"
+    local: "$ref:CustomFieldType"
+    category: intentional_local_divergence
+    reason: >-
+      Typed enum ($ref:CustomFieldType) vs upstream's bare `string`. Local is
+      strictly more precise. (Enum-value accuracy tracked under #805.)
+
+  - endpoint: "POST /custom_field_definitions"
+    kind: type_diff
+    field: options
+    live: "object"
+    local: "?"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Live declares `options` as a structured object; locally it is present but
+      untyped (`?`). We should type it to match the wire contract.
+    fix_tracked_in: "#806"
+
+  - endpoint: "PATCH /custom_field_definitions/{id}"
+    kind: type_diff
+    field: options
+    live: "object"
+    local: "?"
+    category: upstream_correct_local_wrong
+    reason: >-
+      Same untyped-`options` gap as the POST variant — type it to match live.
+    fix_tracked_in: "#806"
+
+  # --- manufacturing_order_operation_rows PATCH: local over-constrains -------
+  - endpoint: "PATCH /manufacturing_order_operation_rows/{id}"
+    kind: only_local
+    field: manufacturing_order_id
+    category: upstream_correct_local_wrong
+    reason: >-
+      Local declares `manufacturing_order_id` on the PATCH body; live does not.
+      A PATCH addressed by {id} shouldn't need to reassign its parent MO — we
+      likely invented this field. Pending live-API probe (#830 F1).
+    fix_tracked_in: "#830"
+
+  - endpoint: "PATCH /manufacturing_order_operation_rows/{id}"
+    kind: required_diff
+    live_required: []
+    local_required: [manufacturing_order_id, status]
+    category: upstream_correct_local_wrong
+    reason: >-
+      Local requires manufacturing_order_id + status on PATCH; live requires
+      neither. Over-requiring blocks valid partial updates. Pending #830 F1.
+    fix_tracked_in: "#830"
+
+  # --- manufacturing_orders PATCH: serial_numbers assignment ----------------
+  - endpoint: "PATCH /manufacturing_orders/{id}"
+    kind: only_local
+    field: serial_numbers
+    category: intentional_local_divergence
+    reason: >-
+      Local exposes `serial_numbers` on the MO PATCH body to support assigning
+      serials on completion; the live gateway under-documents it. Believed
+      correct against the real wire contract; confirm under #830 F2.
+
+  # --- manufacturing_order_productions: typed batch_transaction -------------
+  - endpoint: "POST /manufacturing_order_productions"
+    kind: type_diff
+    field: batch_transaction
+    live: "object"
+    local: "$ref:BatchTransaction"
+    category: intentional_local_divergence
+    reason: >-
+      Typed $ref:BatchTransaction vs upstream's free-form `object`. Local is
+      strictly more precise (#528 A1).
+
+  # --- *_search filters: typed $ref vs upstream's opaque `object` -----------
+  - endpoint: "POST /sales_order_rows/search"
+    kind: type_diff
+    field: filter
+    live: "object"
+    local: "$ref:SalesOrderRowSearchFilter"
+    category: intentional_local_divergence
+    reason: >-
+      We model the search filter as a typed $ref for discoverable query
+      construction; upstream declares an opaque `object`. Local more precise.
+
+  - endpoint: "POST /sales_orders/search"
+    kind: type_diff
+    field: filter
+    live: "object"
+    local: "$ref:SalesOrderSearchFilter"
+    category: intentional_local_divergence
+    reason: >-
+      Typed $ref:SalesOrderSearchFilter vs upstream's opaque `object`. Local
+      more precise.
+
+  # --- sales_return_rows.quantity: upstream under-documents the type --------
+  - endpoint: "POST /sales_return_rows"
+    kind: type_diff
+    field: quantity
+    live: "?"
+    local: "number"
+    category: local_correct_upstream_wrong
+    reason: >-
+      Live leaves `quantity` untyped; we type it `number`. Every other quantity
+      in the Katana wire contract is a number — upstream simply omits the type.
+      Recommend Katana add `type: number` (#528 A4).
+
+  - endpoint: "PATCH /sales_return_rows/{id}"
+    kind: type_diff
+    field: quantity
+    live: "?"
+    local: "number"
+    category: local_correct_upstream_wrong
+    reason: >-
+      Same untyped-`quantity` omission as the POST variant. Recommend Katana
+      add `type: number` (#528 A5).
+
+  # --- serial_numbers POST: upstream under-documents required keys ----------
+  - endpoint: "POST /serial_numbers"
+    kind: required_diff
+    live_required: [resource_id]
+    local_required: [resource_id, resource_type, serial_numbers]
+    category: local_correct_upstream_wrong
+    reason: >-
+      Live marks only `resource_id` required, but the call cannot succeed
+      without `resource_type` and the `serial_numbers` payload — upstream
+      under-documents the required set. Local matches the real contract.
+      Recommend Katana mark all three required (#830).
