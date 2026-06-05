@@ -83,13 +83,13 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     body: CreateInventorySafetyStockLevelRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel]:
-    """Update the safety stock level
+    """Create or update the safety stock level
 
-     Update an item's safety stock level within a certain location and variant combination.
+     Create or update an item's safety stock level within a certain location and variant combination.
 
     Args:
-        body (CreateInventorySafetyStockLevelRequest): Request payload for creating a new
-            inventory safety stock level
+        body (CreateInventorySafetyStockLevelRequest): Request payload for setting an inventory
+            safety stock level (create or update)
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -116,13 +116,13 @@ def sync(
     client: AuthenticatedClient | Client,
     body: CreateInventorySafetyStockLevelRequest,
 ) -> DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel | None:
-    """Update the safety stock level
+    """Create or update the safety stock level
 
-     Update an item's safety stock level within a certain location and variant combination.
+     Create or update an item's safety stock level within a certain location and variant combination.
 
     Args:
-        body (CreateInventorySafetyStockLevelRequest): Request payload for creating a new
-            inventory safety stock level
+        body (CreateInventorySafetyStockLevelRequest): Request payload for setting an inventory
+            safety stock level (create or update)
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -144,13 +144,13 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     body: CreateInventorySafetyStockLevelRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel]:
-    """Update the safety stock level
+    """Create or update the safety stock level
 
-     Update an item's safety stock level within a certain location and variant combination.
+     Create or update an item's safety stock level within a certain location and variant combination.
 
     Args:
-        body (CreateInventorySafetyStockLevelRequest): Request payload for creating a new
-            inventory safety stock level
+        body (CreateInventorySafetyStockLevelRequest): Request payload for setting an inventory
+            safety stock level (create or update)
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -175,13 +175,13 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     body: CreateInventorySafetyStockLevelRequest,
 ) -> DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel | None:
-    """Update the safety stock level
+    """Create or update the safety stock level
 
-     Update an item's safety stock level within a certain location and variant combination.
+     Create or update an item's safety stock level within a certain location and variant combination.
 
     Args:
-        body (CreateInventorySafetyStockLevelRequest): Request payload for creating a new
-            inventory safety stock level
+        body (CreateInventorySafetyStockLevelRequest): Request payload for setting an inventory
+            safety stock level (create or update)
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

@@ -10,7 +10,7 @@ T = TypeVar("T", bound="CreateInventorySafetyStockLevelRequest")
 
 @_attrs_define
 class CreateInventorySafetyStockLevelRequest:
-    """Request payload for creating a new inventory safety stock level"""
+    """Request payload for setting an inventory safety stock level (create or update)"""
 
     variant_id: int
     location_id: int
