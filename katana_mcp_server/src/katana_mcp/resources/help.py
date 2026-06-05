@@ -1608,8 +1608,13 @@ same filters in a single call.
 - `order_no` (optional): SO number (e.g., "#WEB20394")
 - `order_id` (optional): SO ID
 
+On UI-capable hosts this renders a read-only detail card (status, total,
+line items, resolved customer/location names, addresses, storefront link)
+with a single "View in Katana" action.
+
 **Returns:** Every field Katana exposes on the sales order record —
-identifiers (id, order_no, customer_id, location_id, source), status flags
+identifiers (id, order_no, customer_id, customer_name, location_id,
+location_name, source), status flags
 (status, production_status, invoicing_status, product_availability,
 ingredient_availability), dates (order_created_date, delivery_date,
 picked_date, product_expected_date, ingredient_expected_date), money (total,

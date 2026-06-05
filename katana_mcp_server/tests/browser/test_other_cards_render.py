@@ -280,6 +280,36 @@ class TestOtherCardsRender:
         assert frame.locator("text=DOES-NOT-EXIST-1").count() >= 1
         assert frame.locator("text=999999999").count() >= 1
 
+    def test_so_detail_renders(self, render_scenario):
+        """``build_so_detail_ui`` — read-only SO detail card (#913).
+
+        Proves the static line-item DataTable (rows='{{ so.rows }}') mounts
+        and the card surfaces resolved names, addresses, and the single
+        View-in-Katana footer link — no Confirm/mutation buttons.
+        """
+        frame = render_scenario("so_detail")
+        # Tier 1 — title (linked) + status badge.
+        assert frame.locator("text=Sales Order SO-4242").count() >= 1
+        assert frame.locator("text=PACKED").count() >= 1
+        # Tier 2 — metrics.
+        assert frame.locator("text=Total").count() >= 1
+        assert frame.locator("text=$1,500.00").count() >= 1
+        # Tier 3 — resolved party names (NOT bare IDs).
+        assert frame.locator("text=Bicycle Parts Co").count() >= 1
+        assert frame.locator("text=Main Warehouse").count() >= 1
+        assert frame.locator("text=Customer ID:").count() == 0
+        # Address blocks.
+        assert frame.locator("text=Billing Address:").count() >= 1
+        assert frame.locator("text=Shipping Address:").count() >= 1
+        # Line-item DataTable with header + 2 rows.
+        assert frame.locator("table").count() == 1
+        assert frame.locator("table tr").count() >= 3
+        assert frame.locator("text=FRAME-STD").count() >= 1
+        assert frame.locator("text=Wheel / 26in").count() >= 1
+        # Tier 4 — single read action, no Confirm.
+        assert frame.locator("text=View in Katana").count() >= 1
+        assert frame.locator("text=Confirm").count() == 0
+
     def test_so_create_with_fees_preview_renders(self, render_scenario):
         """``build_so_create_ui`` with inline shipping fees on preview (#818).
 
