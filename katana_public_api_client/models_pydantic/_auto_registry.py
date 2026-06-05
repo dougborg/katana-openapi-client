@@ -80,6 +80,9 @@ from katana_public_api_client.models.create_demand_forecast_request import (
 from katana_public_api_client.models.create_inventory_reorder_point_request import (
     CreateInventoryReorderPointRequest as AttrsCreateInventoryReorderPointRequest,
 )
+from katana_public_api_client.models.create_inventory_safety_stock_level_request import (
+    CreateInventorySafetyStockLevelRequest as AttrsCreateInventorySafetyStockLevelRequest,
+)
 from katana_public_api_client.models.create_manufacturing_order_operation_row_request import (
     CreateManufacturingOrderOperationRowRequest as AttrsCreateManufacturingOrderOperationRowRequest,
 )
@@ -789,6 +792,7 @@ from ._generated.common import (
     ClearDemandForecastRequest as PydanticClearDemandForecastRequest,
     CreateCustomFieldDefinitionRequest as PydanticCreateCustomFieldDefinitionRequest,
     CreateDemandForecastRequest as PydanticCreateDemandForecastRequest,
+    CreateInventorySafetyStockLevelRequest as PydanticCreateInventorySafetyStockLevelRequest,
     CreateTaxRateRequest as PydanticCreateTaxRateRequest,
     CustomField as PydanticCustomField,
     CustomFieldChoice as PydanticCustomFieldChoice,
@@ -1108,6 +1112,10 @@ def register_all_models() -> None:
     register(
         AttrsCreateInventoryReorderPointRequest,
         PydanticCreateInventoryReorderPointRequest,
+    )
+    register(
+        AttrsCreateInventorySafetyStockLevelRequest,
+        PydanticCreateInventorySafetyStockLevelRequest,
     )
     register(
         AttrsCreateManufacturingOrderOperationRowRequest,

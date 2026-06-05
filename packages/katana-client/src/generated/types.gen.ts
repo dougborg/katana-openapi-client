@@ -8515,6 +8515,24 @@ export type CreateInventoryReorderPointRequest = {
 };
 
 /**
+ * Request payload for creating a new inventory safety stock level
+ */
+export type CreateInventorySafetyStockLevelRequest = {
+  /**
+   * Product variant ID
+   */
+  variant_id: number;
+  /**
+   * Location ID
+   */
+  location_id: number;
+  /**
+   * Minimum quantity to maintain as safety stock buffer
+   */
+  value: number;
+};
+
+/**
  * Request payload for creating a new outsourced purchase order recipe row
  */
 export type CreateOutsourcedPurchaseOrderRecipeRowRequest = {
@@ -10337,7 +10355,7 @@ export type CreateInventorySafetyStockLevelData = {
   /**
    * New inventory safety stock level details.
    */
-  body: InventorySafetyStockLevel;
+  body: CreateInventorySafetyStockLevelRequest;
   path?: never;
   query?: never;
   url: "/inventory_safety_stock_levels";

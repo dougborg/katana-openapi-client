@@ -13014,6 +13014,25 @@ components:
           type: number
           description: Minimum stock level that triggers reorder
           minimum: 0
+    CreateInventorySafetyStockLevelRequest:
+      description: Request payload for creating a new inventory safety stock level
+      type: object
+      additionalProperties: false
+      required:
+        - variant_id
+        - location_id
+        - value
+      properties:
+        variant_id:
+          type: integer
+          description: Product variant ID
+        location_id:
+          type: integer
+          description: Location ID
+        value:
+          type: number
+          description: Minimum quantity to maintain as safety stock buffer
+          minimum: 0
     CreateOutsourcedPurchaseOrderRecipeRowRequest:
       description: Request payload for creating a new outsourced purchase order recipe row
       type: object
@@ -14043,7 +14062,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/InventorySafetyStockLevel"
+              $ref: "#/components/schemas/CreateInventorySafetyStockLevelRequest"
       responses:
         "200":
           description: New inventory safety stock level created.
