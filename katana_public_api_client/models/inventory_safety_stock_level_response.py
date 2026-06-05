@@ -19,13 +19,13 @@ class InventorySafetyStockLevelResponse:
     """Complete safety stock level configuration with metadata including timestamps and deletion status
 
     Example:
-        {'id': 1001, 'variant_id': 1, 'location_id': 1, 'value': 10, 'created_at': '2020-10-23T10:37:05.085Z',
+        {'id': 1001, 'variant_id': 1, 'location_id': 1, 'value': '10', 'created_at': '2020-10-23T10:37:05.085Z',
             'updated_at': '2020-10-23T10:37:05.085Z', 'deleted_at': None}
     """
 
     location_id: int
     variant_id: int
-    value: float
+    value: str
     id: int
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET

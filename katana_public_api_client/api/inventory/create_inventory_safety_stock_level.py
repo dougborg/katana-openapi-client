@@ -87,7 +87,7 @@ def sync_detailed(
     Args:
         body (InventorySafetyStockLevel): Safety stock level configuration to maintain minimum
             inventory buffers and prevent stockouts Example: {'location_id': 1, 'variant_id': 3001,
-            'value': 25.0}.
+            'value': '25.0'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -121,7 +121,7 @@ def sync(
     Args:
         body (InventorySafetyStockLevel): Safety stock level configuration to maintain minimum
             inventory buffers and prevent stockouts Example: {'location_id': 1, 'variant_id': 3001,
-            'value': 25.0}.
+            'value': '25.0'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -150,7 +150,7 @@ async def asyncio_detailed(
     Args:
         body (InventorySafetyStockLevel): Safety stock level configuration to maintain minimum
             inventory buffers and prevent stockouts Example: {'location_id': 1, 'variant_id': 3001,
-            'value': 25.0}.
+            'value': '25.0'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -182,7 +182,7 @@ async def asyncio(
     Args:
         body (InventorySafetyStockLevel): Safety stock level configuration to maintain minimum
             inventory buffers and prevent stockouts Example: {'location_id': 1, 'variant_id': 3001,
-            'value': 25.0}.
+            'value': '25.0'}.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

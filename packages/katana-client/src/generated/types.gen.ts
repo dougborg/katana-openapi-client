@@ -1517,9 +1517,9 @@ export type InventorySafetyStockLevel = {
    */
   variant_id: number;
   /**
-   * Minimum quantity to maintain as safety stock buffer
+   * Minimum quantity to maintain as safety stock buffer, returned as a fixed-precision decimal string
    */
-  value: number;
+  value: string;
 };
 
 /**

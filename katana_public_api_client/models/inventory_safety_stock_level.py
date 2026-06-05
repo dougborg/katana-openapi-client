@@ -16,12 +16,12 @@ class InventorySafetyStockLevel:
     """Safety stock level configuration to maintain minimum inventory buffers and prevent stockouts
 
     Example:
-        {'location_id': 1, 'variant_id': 3001, 'value': 25.0}
+        {'location_id': 1, 'variant_id': 3001, 'value': '25.0'}
     """
 
     location_id: int
     variant_id: int
-    value: float
+    value: str
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
