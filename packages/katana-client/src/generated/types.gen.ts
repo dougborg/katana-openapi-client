@@ -1493,9 +1493,9 @@ export type InventoryReorderPoint = {
    */
   variant_id: number;
   /**
-   * The minimum quantity that triggers reordering
+   * The minimum quantity that triggers reordering, returned as a fixed-precision decimal string
    */
-  value: number;
+  value: string;
 };
 
 /**
@@ -1517,9 +1517,9 @@ export type InventorySafetyStockLevel = {
    */
   variant_id: number;
   /**
-   * Minimum quantity to maintain as safety stock buffer
+   * Minimum quantity to maintain as safety stock buffer, returned as a fixed-precision decimal string
    */
-  value: number;
+  value: string;
 };
 
 /**
@@ -3264,7 +3264,7 @@ export type PurchaseOrderRow = {
   /**
    * Total landed cost including shipping, duties, and other charges
    */
-  landed_cost?: string | number;
+  landed_cost?: number;
   /**
    * Grouping identifier for organizational purposes
    */
@@ -5141,15 +5141,15 @@ export type SalesOrder = BaseEntity & {
    */
   sales_order_rows?: Array<SalesOrderRow>;
   /**
-   * Type of ecommerce order when imported from external platforms
+   * Source ecommerce platform for orders imported from a native Katana integration, as the exact camelCase literal (`shopify`, `wooCommerce`, or `bigCommerce`); `null` otherwise. Free-string on the wire and create-only — the literal is stored verbatim and cannot be changed via update.
    */
   ecommerce_order_type?: string | null;
   /**
-   * Name of the ecommerce store when order originated from external platforms
+   * Storefront host or slug of the source integration — a full host for Shopify/WooCommerce (e.g. `acme.myshopify.com`) or a bare subdomain slug for BigCommerce; `null` when the order is not from a native integration. Create-only — like the other `ecommerce_*` fields it cannot be changed via update.
    */
   ecommerce_store_name?: string | null;
   /**
-   * Original order ID from the external ecommerce platform
+   * The source platform's own order identifier (e.g. `19433769`), as a string; `null` when the order is not from a native ecommerce integration. Create-only — like the other `ecommerce_*` fields it cannot be changed via update.
    */
   ecommerce_order_id?: string | null;
   product_availability?: ProductAvailability | null;
@@ -5747,15 +5747,15 @@ export type SalesOrderSearchWhere = {
    */
   ingredient_availability?: SearchPredicate;
   /**
-   * Ecommerce platform identifier.
+   * Filter by source ecommerce platform identifier (e.g. `shopify`).
    */
   ecommerce_order_type?: SearchPredicate;
   /**
-   * Ecommerce store name.
+   * Filter by storefront host or slug (e.g. `acme.myshopify.com`).
    */
   ecommerce_store_name?: SearchPredicate;
   /**
-   * External order id from the ecommerce platform.
+   * Filter by the source platform's order identifier.
    */
   ecommerce_order_id?: SearchPredicate;
   /**
@@ -6202,15 +6202,15 @@ export type CreateSalesOrderRequest = {
    */
   customer_ref?: string | null;
   /**
-   * Type of ecommerce order if applicable
+   * Source ecommerce platform, set at creation only (update cannot change it). Use the exact camelCase literal (`shopify`, `wooCommerce`, or `bigCommerce`) for Katana to recognize and deep-link the order; other values are stored verbatim but not deep-linked.
    */
   ecommerce_order_type?: string | null;
   /**
-   * Name of the ecommerce store if order originated from online
+   * Storefront host or slug — a full host for Shopify/WooCommerce (e.g. `acme.myshopify.com`) or a bare BigCommerce subdomain slug. Set at creation only.
    */
   ecommerce_store_name?: string | null;
   /**
-   * Original order ID from the ecommerce platform
+   * The source platform's order identifier (e.g. `19433769`). Set at creation only.
    */
   ecommerce_order_id?: string | null;
   /**
@@ -7862,7 +7862,7 @@ export type CreateSalesReturnRowRequest = {
   /**
    * Quantity being returned
    */
-  quantity: string;
+  quantity: number;
   /**
    * Restock location ID. If missing then default from sales order fulfillment row will be used.
    */
@@ -8515,6 +8515,24 @@ export type CreateInventoryReorderPointRequest = {
 };
 
 /**
+ * Request payload for setting an inventory safety stock level (create or update)
+ */
+export type CreateInventorySafetyStockLevelRequest = {
+  /**
+   * Product variant ID
+   */
+  variant_id: number;
+  /**
+   * Location ID
+   */
+  location_id: number;
+  /**
+   * Minimum quantity to maintain as safety stock buffer
+   */
+  value: number;
+};
+
+/**
  * Request payload for creating a new outsourced purchase order recipe row
  */
 export type CreateOutsourcedPurchaseOrderRecipeRowRequest = {
@@ -8940,7 +8958,7 @@ export type UpdateSalesReturnRowRequest = {
   /**
    * Quantity being returned. Updatable only when current return status is NOT_RETURNED.
    */
-  quantity?: string;
+  quantity?: number;
   /**
    * Restock location ID. Updatable only when current return status is NOT_RETURNED or RETURNED.
    */
@@ -10335,9 +10353,9 @@ export type GetAllInventoryMovementsResponse =
 
 export type CreateInventorySafetyStockLevelData = {
   /**
-   * New inventory safety stock level details.
+   * Safety stock level details to set (create or update).
    */
-  body: InventorySafetyStockLevel;
+  body: CreateInventorySafetyStockLevelRequest;
   path?: never;
   query?: never;
   url: "/inventory_safety_stock_levels";
@@ -10367,7 +10385,7 @@ export type CreateInventorySafetyStockLevelError =
 
 export type CreateInventorySafetyStockLevelResponses = {
   /**
-   * New inventory safety stock level created.
+   * The created or updated inventory safety stock level.
    */
   200: InventorySafetyStockLevel;
 };
@@ -15732,15 +15750,15 @@ export type GetAllSalesOrdersData = {
      */
     source?: string;
     /**
-     * Filter by ecommerce store name
+     * Filter by storefront host or slug (e.g. `acme.myshopify.com`)
      */
     ecommerce_store_name?: string;
     /**
-     * Filter by ecommerce order ID
+     * Filter by the source platform's order identifier
      */
     ecommerce_order_id?: string;
     /**
-     * Filter by ecommerce order type
+     * Filter by source ecommerce platform identifier (e.g. `shopify`)
      */
     ecommerce_order_type?: string;
     /**
@@ -15952,6 +15970,10 @@ export type UpdateSalesOrderErrors = {
    * Not found.
    */
   404: ErrorResponse;
+  /**
+   * Validation failed.
+   */
+  422: DetailedErrorResponse;
   /**
    * Rate limit exceeded - too many requests sent within the rate limit window (60 requests per 60 seconds)
    */

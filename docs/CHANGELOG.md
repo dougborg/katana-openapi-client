@@ -2,6 +2,69 @@
 
 <!-- version list -->
 
+## v0.80.0 (2026-06-05)
+
+### Bug Fixes
+
+- **client**: Align reorder-point + sales-return-row quantity with wire types
+  ([`f3f7706`](https://github.com/dougborg/katana-openapi-client/commit/f3f7706c65a7197233311737b1c7e624e8853725))
+
+- **client**: InventorySafetyStockLevel.value is a decimal string
+  ([`1c93010`](https://github.com/dougborg/katana-openapi-client/commit/1c9301064dfb411623e749751b02d79f973b044e))
+
+- **client**: PurchaseOrderRow.landed_cost is a number, not a string|number union
+  ([`31a1b11`](https://github.com/dougborg/katana-openapi-client/commit/31a1b11987fb0fb800747c89b911b0676efded1c))
+
+- **client**: Split safety-stock create request so its value stays number
+  ([`dedcedc`](https://github.com/dougborg/katana-openapi-client/commit/dedcedc3dc42ed738ae03903ded0df733917a366))
+
+### Chores
+
+- Sync uv.lock after release
+  ([`59ec580`](https://github.com/dougborg/katana-openapi-client/commit/59ec58043ab3cb8efcd79bef7e220856e2e07c4d))
+
+- **mcp**: Update client dependency to v0.79.0
+  ([`aa2bd8d`](https://github.com/dougborg/katana-openapi-client/commit/aa2bd8d47d368ffa0b4bd2bae51d5a784d85ab10))
+
+### Documentation
+
+- **spec**: Align safety-stock POST 200 description with upsert semantics
+  ([`cbad47f`](https://github.com/dougborg/katana-openapi-client/commit/cbad47f787216b22cf6a6f2f3084d620e4826287))
+
+- **spec**: Use consistent create-or-update wording for safety-stock POST
+  ([`d8134aa`](https://github.com/dougborg/katana-openapi-client/commit/d8134aaa28e8287d5c2db442b96e45c0860bd977))
+
+## v0.79.0 (2026-06-05)
+
+### Bug Fixes
+
+- **client**: Correct misleading ecommerce\_\* field docs + examples
+  ([`ff9b769`](https://github.com/dougborg/katana-openapi-client/commit/ff9b769115991c45e9c8071be2af1b96dcea18b5))
+
+### Chores
+
+- Sync uv.lock after release
+  ([`257e42d`](https://github.com/dougborg/katana-openapi-client/commit/257e42d6326e539d726b30a6dfb3ff795e7ffb1f))
+
+- Sync uv.lock after release
+  ([`683a3ad`](https://github.com/dougborg/katana-openapi-client/commit/683a3ad84f57d5a8fce30a95a1376c0a19c1e441))
+
+- **mcp**: Update client dependency to v0.78.0
+  ([`cae9b78`](https://github.com/dougborg/katana-openapi-client/commit/cae9b78d1083059d697cd069b457b177de1570a4))
+
+- **release**: Mcp v0.113.0
+  ([`a28bea7`](https://github.com/dougborg/katana-openapi-client/commit/a28bea7b38b3b80ba610a03b2754cb335b47ec3c))
+
+### Features
+
+- **mcp**: Add get_sales_order detail card
+  ([`84b6a9b`](https://github.com/dougborg/katana-openapi-client/commit/84b6a9b83d155fb8535333330f002dc77d8a9cae))
+
+### Testing
+
+- **mcp**: Cover get_sales_order detail card + name enrichment
+  ([`c39c9ad`](https://github.com/dougborg/katana-openapi-client/commit/c39c9addaedfff50e59737819aab215f93f969c2))
+
 ## v0.78.0 (2026-06-05)
 
 ### Bug Fixes

@@ -17,7 +17,7 @@ class CreateSalesReturnRowRequest:
     sales_return_id: int
     variant_id: int
     fulfillment_row_id: int
-    quantity: str
+    quantity: float
     restock_location_id: int | Unset = UNSET
     reason_id: int | Unset = UNSET
 

@@ -272,8 +272,10 @@ class InventoryReorderPoint(KatanaPydanticBase):
         ),
     ]
     value: Annotated[
-        float,
-        Field(description="The minimum quantity that triggers reordering", le=1e17),
+        str,
+        Field(
+            description="The minimum quantity that triggers reordering, returned as a fixed-precision decimal string"
+        ),
     ]
 
 
@@ -297,9 +299,9 @@ class InventorySafetyStockLevel(KatanaPydanticBase):
         ),
     ]
     value: Annotated[
-        float,
+        str,
         Field(
-            description="Minimum quantity to maintain as safety stock buffer", le=1e17
+            description="Minimum quantity to maintain as safety stock buffer, returned as a fixed-precision decimal string"
         ),
     ]
 

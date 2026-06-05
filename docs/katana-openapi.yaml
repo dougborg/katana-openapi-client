@@ -3084,9 +3084,8 @@ components:
           maximum: 2147483647
           description: The product variant this reorder point is configured for
         value:
-          type: number
-          description: The minimum quantity that triggers reordering
-          maximum: 100000000000000000
+          type: string
+          description: The minimum quantity that triggers reordering, returned as a fixed-precision decimal string
     InventoryReorderPointResponse:
       description: Complete inventory reorder point configuration including metadata and creation/update timestamps
       allOf:
@@ -3109,13 +3108,12 @@ components:
           maximum: 2147483647
           description: ID of the variant for which the safety stock level is set
         value:
-          type: number
-          maximum: 100000000000000000
-          description: Minimum quantity to maintain as safety stock buffer
+          type: string
+          description: Minimum quantity to maintain as safety stock buffer, returned as a fixed-precision decimal string
       example:
         location_id: 1
         variant_id: 3001
-        value: 25.0
+        value: "25.0"
     InventorySafetyStockLevelResponse:
       description: Complete safety stock level configuration with metadata including timestamps and deletion status
       allOf:
@@ -3125,7 +3123,7 @@ components:
         id: 1001
         variant_id: 1
         location_id: 1
-        value: 10
+        value: "10"
         created_at: "2020-10-23T10:37:05.085Z"
         updated_at: "2020-10-23T10:37:05.085Z"
         deleted_at: null
@@ -5747,9 +5745,7 @@ components:
               type: integer
               description: Unique identifier of the parent purchase order
             landed_cost:
-              type:
-                - string
-                - number
+              type: number
               description: Total landed cost including shipping, duties, and other charges
             group_id:
               type: integer
@@ -8501,17 +8497,31 @@ components:
               type:
                 - string
                 - "null"
-              description: Type of ecommerce order when imported from external platforms
+              description: >-
+                Source ecommerce platform for orders imported from a native Katana
+                integration, as the exact camelCase literal (`shopify`,
+                `wooCommerce`, or `bigCommerce`); `null` otherwise. Free-string on
+                the wire and create-only — the literal is stored verbatim and
+                cannot be changed via update.
             ecommerce_store_name:
               type:
                 - string
                 - "null"
-              description: Name of the ecommerce store when order originated from external platforms
+              description: >-
+                Storefront host or slug of the source integration — a full host
+                for Shopify/WooCommerce (e.g. `acme.myshopify.com`) or a bare
+                subdomain slug for BigCommerce; `null` when the order is not from a
+                native integration. Create-only — like the other `ecommerce_*`
+                fields it cannot be changed via update.
             ecommerce_order_id:
               type:
                 - string
                 - "null"
-              description: Original order ID from the external ecommerce platform
+              description: >-
+                The source platform's own order identifier (e.g. `19433769`), as a
+                string; `null` when the order is not from a native ecommerce
+                integration. Create-only — like the other `ecommerce_*` fields it
+                cannot be changed via update.
             product_availability:
               anyOf:
                 - $ref: "#/components/schemas/ProductAvailability"
@@ -8632,9 +8642,9 @@ components:
             cogs_value: "400.0000000000"
             created_at: "2024-01-15T10:00:00Z"
             updated_at: "2024-01-15T10:00:00Z"
-        ecommerce_order_type: standard
-        ecommerce_store_name: Kitchen Pro Store
-        ecommerce_order_id: SHOP-5678-2024
+        ecommerce_order_type: shopify
+        ecommerce_store_name: acme.myshopify.com
+        ecommerce_order_id: "19433769"
         product_availability: IN_STOCK
         product_expected_date: null
         ingredient_availability: IN_STOCK
@@ -9273,13 +9283,13 @@ components:
             ``NO_RECIPE``, ``NOT_APPLICABLE``.
         ecommerce_order_type:
           $ref: "#/components/schemas/SearchPredicate"
-          description: Ecommerce platform identifier.
+          description: Filter by source ecommerce platform identifier (e.g. `shopify`).
         ecommerce_store_name:
           $ref: "#/components/schemas/SearchPredicate"
-          description: Ecommerce store name.
+          description: Filter by storefront host or slug (e.g. `acme.myshopify.com`).
         ecommerce_order_id:
           $ref: "#/components/schemas/SearchPredicate"
-          description: External order id from the ecommerce platform.
+          description: Filter by the source platform's order identifier.
         tracking_number:
           $ref: "#/components/schemas/SearchPredicate"
           description: Carrier tracking number.
@@ -9546,9 +9556,9 @@ components:
             total_in_base_currency: 1250.0
             additional_info: Customer requested expedited delivery
             customer_ref: CUST-REF-2024-001
-            ecommerce_order_type: standard
-            ecommerce_store_name: Kitchen Pro Store
-            ecommerce_order_id: SHOP-5678-2024
+            ecommerce_order_type: shopify
+            ecommerce_store_name: acme.myshopify.com
+            ecommerce_order_id: "19433769"
             product_availability: IN_STOCK
             ingredient_availability: IN_STOCK
             production_status: NOT_APPLICABLE
@@ -9729,17 +9739,26 @@ components:
           type:
             - string
             - "null"
-          description: Type of ecommerce order if applicable
+          description: >-
+            Source ecommerce platform, set at creation only (update cannot change
+            it). Use the exact camelCase literal (`shopify`, `wooCommerce`, or
+            `bigCommerce`) for Katana to recognize and deep-link the order; other
+            values are stored verbatim but not deep-linked.
         ecommerce_store_name:
           type:
             - string
             - "null"
-          description: Name of the ecommerce store if order originated from online
+          description: >-
+            Storefront host or slug — a full host for Shopify/WooCommerce (e.g.
+            `acme.myshopify.com`) or a bare BigCommerce subdomain slug. Set at
+            creation only.
         ecommerce_order_id:
           type:
             - string
             - "null"
-          description: Original order ID from the ecommerce platform
+          description: >-
+            The source platform's order identifier (e.g. `19433769`). Set at
+            creation only.
         custom_fields:
           type:
             - object
@@ -9803,9 +9822,9 @@ components:
         status: PENDING
         additional_info: Customer prefers morning delivery
         customer_ref: WC-ORDER-2024-003
-        ecommerce_order_type: wholesale
-        ecommerce_store_name: B2B Portal
-        ecommerce_order_id: B2B-7891-2024
+        ecommerce_order_type: wooCommerce
+        ecommerce_store_name: shop.example.com
+        ecommerce_order_id: "501"
     StockAdjustmentBatchTransaction:
       description: |
         Batch-specific transaction for tracking stock adjustments. Each
@@ -12000,7 +12019,7 @@ components:
           type: integer
           description: ID of the fulfillment row this return is associated with
         quantity:
-          type: string
+          type: number
           description: Quantity being returned
         restock_location_id:
           type: integer
@@ -12995,6 +13014,25 @@ components:
           type: number
           description: Minimum stock level that triggers reorder
           minimum: 0
+    CreateInventorySafetyStockLevelRequest:
+      description: Request payload for setting an inventory safety stock level (create or update)
+      type: object
+      additionalProperties: false
+      required:
+        - variant_id
+        - location_id
+        - value
+      properties:
+        variant_id:
+          type: integer
+          description: Product variant ID
+        location_id:
+          type: integer
+          description: Location ID
+        value:
+          type: number
+          description: Minimum quantity to maintain as safety stock buffer
+          minimum: 0
     CreateOutsourcedPurchaseOrderRecipeRowRequest:
       description: Request payload for creating a new outsourced purchase order recipe row
       type: object
@@ -13424,7 +13462,7 @@ components:
       additionalProperties: false
       properties:
         quantity:
-          type: string
+          type: number
           description: Quantity being returned. Updatable only when current return status is NOT_RETURNED.
         restock_location_id:
           type: integer
@@ -14013,21 +14051,21 @@ paths:
           $ref: "#/components/responses/InternalServerError"
   /inventory_safety_stock_levels:
     post:
-      summary: Update the safety stock level
+      summary: Create or update the safety stock level
       tags:
         - Inventory
-      description: Update an item's safety stock level within a certain location and variant combination.
+      description: Create or update an item's safety stock level within a certain location and variant combination.
       operationId: createInventorySafetyStockLevel
       requestBody:
-        description: New inventory safety stock level details.
+        description: Safety stock level details to set (create or update).
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/InventorySafetyStockLevel"
+              $ref: "#/components/schemas/CreateInventorySafetyStockLevelRequest"
       responses:
         "200":
-          description: New inventory safety stock level created.
+          description: The created or updated inventory safety stock level.
           headers:
             X-Ratelimit-Limit:
               $ref: "#/components/headers/X-Ratelimit-Limit"
@@ -16294,7 +16332,7 @@ paths:
                     purchase_order_id: 1
                     total: 1
                     total_in_base_currency: 1
-                    landed_cost: "45.0000000000"
+                    landed_cost: 45.0
                     group_id: 11
         "401":
           $ref: "#/components/responses/UnauthorizedError"
@@ -16388,7 +16426,7 @@ paths:
                             batch_id: 1
                         purchase_order_id: 1
                         purchase_uom_conversion_rate: 1.1
-                        landed_cost: "45.0000000000"
+                        landed_cost: 45.0
                         group_id: 11
                     supplier:
                       id: 1
@@ -16472,7 +16510,7 @@ paths:
                         batch_id: 1
                     purchase_order_id: 1
                     purchase_uom_conversion_rate: 1.1
-                    landed_cost: "45.0000000000"
+                    landed_cost: 45.0
                     group_id: 11
                 supplier:
                   id: 1
@@ -19228,17 +19266,17 @@ paths:
             type: string
         - name: ecommerce_store_name
           in: query
-          description: Filter by ecommerce store name
+          description: Filter by storefront host or slug (e.g. `acme.myshopify.com`)
           schema:
             type: string
         - name: ecommerce_order_id
           in: query
-          description: Filter by ecommerce order ID
+          description: Filter by the source platform's order identifier
           schema:
             type: string
         - name: ecommerce_order_type
           in: query
-          description: Filter by ecommerce order type
+          description: Filter by source ecommerce platform identifier (e.g. `shopify`)
           schema:
             type: string
         - $ref: "#/components/parameters/ingredient_availability"
@@ -19371,6 +19409,8 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "404":
           $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":

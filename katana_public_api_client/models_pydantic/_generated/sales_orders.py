@@ -404,16 +404,20 @@ class SalesOrderSearchWhere(KatanaPydanticBase):
     ] = None
     ecommerce_order_type: Annotated[
         SearchComparator | SearchScalarValue1 | float | bool | None,
-        Field(description="Ecommerce platform identifier."),
+        Field(
+            description="Filter by source ecommerce platform identifier (e.g. `shopify`).",
+        ),
     ] = None
     ecommerce_store_name: Annotated[
         SearchComparator | SearchScalarValue1 | float | bool | None,
-        Field(description="Ecommerce store name."),
+        Field(
+            description="Filter by storefront host or slug (e.g. `acme.myshopify.com`).",
+        ),
     ] = None
     ecommerce_order_id: Annotated[
         SearchComparator | SearchScalarValue1 | float | bool | None,
         Field(
-            description="External order id from the ecommerce platform.",
+            description="Filter by the source platform's order identifier.",
         ),
     ] = None
     tracking_number: Annotated[
@@ -717,16 +721,22 @@ class CreateSalesOrderRequest(KatanaPydanticBase):
         str | None, Field(description="Customer's internal reference number")
     ] = None
     ecommerce_order_type: Annotated[
-        str | None, Field(description="Type of ecommerce order if applicable")
+        str | None,
+        Field(
+            description="Source ecommerce platform, set at creation only (update cannot change it). Use the exact camelCase literal (`shopify`, `wooCommerce`, or `bigCommerce`) for Katana to recognize and deep-link the order; other values are stored verbatim but not deep-linked."
+        ),
     ] = None
     ecommerce_store_name: Annotated[
         str | None,
         Field(
-            description="Name of the ecommerce store if order originated from online"
+            description="Storefront host or slug — a full host for Shopify/WooCommerce (e.g. `acme.myshopify.com`) or a bare BigCommerce subdomain slug. Set at creation only."
         ),
     ] = None
     ecommerce_order_id: Annotated[
-        str | None, Field(description="Original order ID from the ecommerce platform")
+        str | None,
+        Field(
+            description="The source platform's order identifier (e.g. `19433769`). Set at creation only."
+        ),
     ] = None
     custom_fields: Annotated[
         dict[str, Any] | None,
@@ -943,7 +953,7 @@ class CreateSalesReturnRowRequest(KatanaPydanticBase):
         int,
         Field(description="ID of the fulfillment row this return is associated with"),
     ]
-    quantity: Annotated[str, Field(description="Quantity being returned")]
+    quantity: Annotated[float, Field(description="Quantity being returned")]
     restock_location_id: Annotated[
         int | None,
         Field(
@@ -1255,7 +1265,7 @@ class UpdateSalesReturnRowRequest(KatanaPydanticBase):
         extra="forbid",
     )
     quantity: Annotated[
-        str | None,
+        float | None,
         Field(
             description="Quantity being returned. Updatable only when current return status is NOT_RETURNED."
         ),
@@ -1400,18 +1410,20 @@ class SalesOrder(DeletableEntity):
     ecommerce_order_type: Annotated[
         str | None,
         Field(
-            description="Type of ecommerce order when imported from external platforms"
+            description="Source ecommerce platform for orders imported from a native Katana integration, as the exact camelCase literal (`shopify`, `wooCommerce`, or `bigCommerce`); `null` otherwise. Free-string on the wire and create-only — the literal is stored verbatim and cannot be changed via update."
         ),
     ] = None
     ecommerce_store_name: Annotated[
         str | None,
         Field(
-            description="Name of the ecommerce store when order originated from external platforms"
+            description="Storefront host or slug of the source integration — a full host for Shopify/WooCommerce (e.g. `acme.myshopify.com`) or a bare subdomain slug for BigCommerce; `null` when the order is not from a native integration. Create-only — like the other `ecommerce_*` fields it cannot be changed via update."
         ),
     ] = None
     ecommerce_order_id: Annotated[
         str | None,
-        Field(description="Original order ID from the external ecommerce platform"),
+        Field(
+            description="The source platform's own order identifier (e.g. `19433769`), as a string; `null` when the order is not from a native ecommerce integration. Create-only — like the other `ecommerce_*` fields it cannot be changed via update."
+        ),
     ] = None
     product_availability: Annotated[ProductAvailability | None, Field()] = None
     product_expected_date: Annotated[
@@ -1869,18 +1881,20 @@ class CachedSalesOrder(DeletableEntity, table=True):
     ecommerce_order_type: Annotated[
         Mapped[str | None],
         Field(
-            description="Type of ecommerce order when imported from external platforms"
+            description="Source ecommerce platform for orders imported from a native Katana integration, as the exact camelCase literal (`shopify`, `wooCommerce`, or `bigCommerce`); `null` otherwise. Free-string on the wire and create-only — the literal is stored verbatim and cannot be changed via update."
         ),
     ] = None
     ecommerce_store_name: Annotated[
         Mapped[str | None],
         Field(
-            description="Name of the ecommerce store when order originated from external platforms"
+            description="Storefront host or slug of the source integration — a full host for Shopify/WooCommerce (e.g. `acme.myshopify.com`) or a bare subdomain slug for BigCommerce; `null` when the order is not from a native integration. Create-only — like the other `ecommerce_*` fields it cannot be changed via update."
         ),
     ] = None
     ecommerce_order_id: Annotated[
         Mapped[str | None],
-        Field(description="Original order ID from the external ecommerce platform"),
+        Field(
+            description="The source platform's own order identifier (e.g. `19433769`), as a string; `null` when the order is not from a native ecommerce integration. Create-only — like the other `ecommerce_*` fields it cannot be changed via update."
+        ),
     ] = None
     product_availability: Annotated[Mapped[ProductAvailability | None], Field()] = None
     product_expected_date: Annotated[

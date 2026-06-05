@@ -6,6 +6,9 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import Response
+from ...models.create_inventory_safety_stock_level_request import (
+    CreateInventorySafetyStockLevelRequest,
+)
 from ...models.detailed_error_response import DetailedErrorResponse
 from ...models.error_response import ErrorResponse
 from ...models.inventory_safety_stock_level import InventorySafetyStockLevel
@@ -13,7 +16,7 @@ from ...models.inventory_safety_stock_level import InventorySafetyStockLevel
 
 def _get_kwargs(
     *,
-    body: InventorySafetyStockLevel,
+    body: CreateInventorySafetyStockLevelRequest,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -78,16 +81,15 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: InventorySafetyStockLevel,
+    body: CreateInventorySafetyStockLevelRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel]:
-    """Update the safety stock level
+    """Create or update the safety stock level
 
-     Update an item's safety stock level within a certain location and variant combination.
+     Create or update an item's safety stock level within a certain location and variant combination.
 
     Args:
-        body (InventorySafetyStockLevel): Safety stock level configuration to maintain minimum
-            inventory buffers and prevent stockouts Example: {'location_id': 1, 'variant_id': 3001,
-            'value': 25.0}.
+        body (CreateInventorySafetyStockLevelRequest): Request payload for setting an inventory
+            safety stock level (create or update)
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -112,16 +114,15 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    body: InventorySafetyStockLevel,
+    body: CreateInventorySafetyStockLevelRequest,
 ) -> DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel | None:
-    """Update the safety stock level
+    """Create or update the safety stock level
 
-     Update an item's safety stock level within a certain location and variant combination.
+     Create or update an item's safety stock level within a certain location and variant combination.
 
     Args:
-        body (InventorySafetyStockLevel): Safety stock level configuration to maintain minimum
-            inventory buffers and prevent stockouts Example: {'location_id': 1, 'variant_id': 3001,
-            'value': 25.0}.
+        body (CreateInventorySafetyStockLevelRequest): Request payload for setting an inventory
+            safety stock level (create or update)
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -141,16 +142,15 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: InventorySafetyStockLevel,
+    body: CreateInventorySafetyStockLevelRequest,
 ) -> Response[DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel]:
-    """Update the safety stock level
+    """Create or update the safety stock level
 
-     Update an item's safety stock level within a certain location and variant combination.
+     Create or update an item's safety stock level within a certain location and variant combination.
 
     Args:
-        body (InventorySafetyStockLevel): Safety stock level configuration to maintain minimum
-            inventory buffers and prevent stockouts Example: {'location_id': 1, 'variant_id': 3001,
-            'value': 25.0}.
+        body (CreateInventorySafetyStockLevelRequest): Request payload for setting an inventory
+            safety stock level (create or update)
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -173,16 +173,15 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    body: InventorySafetyStockLevel,
+    body: CreateInventorySafetyStockLevelRequest,
 ) -> DetailedErrorResponse | ErrorResponse | InventorySafetyStockLevel | None:
-    """Update the safety stock level
+    """Create or update the safety stock level
 
-     Update an item's safety stock level within a certain location and variant combination.
+     Create or update an item's safety stock level within a certain location and variant combination.
 
     Args:
-        body (InventorySafetyStockLevel): Safety stock level configuration to maintain minimum
-            inventory buffers and prevent stockouts Example: {'location_id': 1, 'variant_id': 3001,
-            'value': 25.0}.
+        body (CreateInventorySafetyStockLevelRequest): Request payload for setting an inventory
+            safety stock level (create or update)
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

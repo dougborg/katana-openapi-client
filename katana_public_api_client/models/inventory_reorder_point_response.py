@@ -20,7 +20,7 @@ class InventoryReorderPointResponse:
 
     location_id: int
     variant_id: int
-    value: float
+    value: str
     id: int
     created_at: datetime.datetime | Unset = UNSET
     updated_at: datetime.datetime | Unset = UNSET

@@ -163,7 +163,7 @@ async def test_create_sales_return_row_parses_200_body() -> None:
                 sales_return_id=412115,
                 variant_id=40699258,
                 fulfillment_row_id=91491911,
-                quantity="1",
+                quantity=1,
             ),
         )
 

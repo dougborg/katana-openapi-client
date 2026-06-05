@@ -46,6 +46,9 @@ from .create_demand_forecast_request_periods_item import (
     CreateDemandForecastRequestPeriodsItem,
 )
 from .create_inventory_reorder_point_request import CreateInventoryReorderPointRequest
+from .create_inventory_safety_stock_level_request import (
+    CreateInventorySafetyStockLevelRequest,
+)
 from .create_manufacturing_order_operation_row_request import (
     CreateManufacturingOrderOperationRowRequest,
 )
@@ -633,6 +636,7 @@ __all__ = (
     "CreateDemandForecastRequest",
     "CreateDemandForecastRequestPeriodsItem",
     "CreateInventoryReorderPointRequest",
+    "CreateInventorySafetyStockLevelRequest",
     "CreateManufacturingOrderOperationRowRequest",
     "CreateManufacturingOrderOperationRowRequestStatus",
     "CreateManufacturingOrderProductionRequest",
