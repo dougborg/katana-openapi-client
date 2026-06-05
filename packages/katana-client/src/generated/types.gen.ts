@@ -10385,7 +10385,7 @@ export type CreateInventorySafetyStockLevelError =
 
 export type CreateInventorySafetyStockLevelResponses = {
   /**
-   * New inventory safety stock level created.
+   * The created or updated inventory safety stock level.
    */
   200: InventorySafetyStockLevel;
 };
