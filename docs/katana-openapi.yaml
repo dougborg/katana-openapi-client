@@ -13015,7 +13015,7 @@ components:
           description: Minimum stock level that triggers reorder
           minimum: 0
     CreateInventorySafetyStockLevelRequest:
-      description: Request payload for creating a new inventory safety stock level
+      description: Request payload for setting an inventory safety stock level (create or update)
       type: object
       additionalProperties: false
       required:
@@ -14051,13 +14051,13 @@ paths:
           $ref: "#/components/responses/InternalServerError"
   /inventory_safety_stock_levels:
     post:
-      summary: Update the safety stock level
+      summary: Create or update the safety stock level
       tags:
         - Inventory
-      description: Update an item's safety stock level within a certain location and variant combination.
+      description: Create or update an item's safety stock level within a certain location and variant combination.
       operationId: createInventorySafetyStockLevel
       requestBody:
-        description: New inventory safety stock level details.
+        description: Safety stock level details to set (create or update).
         required: true
         content:
           application/json:

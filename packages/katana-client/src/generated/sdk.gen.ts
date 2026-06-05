@@ -833,9 +833,9 @@ export const getAllInventoryMovements = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Update the safety stock level
+ * Create or update the safety stock level
  *
- * Update an item's safety stock level within a certain location and variant combination.
+ * Create or update an item's safety stock level within a certain location and variant combination.
  */
 export const createInventorySafetyStockLevel = <
   ThrowOnError extends boolean = false,

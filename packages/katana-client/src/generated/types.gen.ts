@@ -8515,7 +8515,7 @@ export type CreateInventoryReorderPointRequest = {
 };
 
 /**
- * Request payload for creating a new inventory safety stock level
+ * Request payload for setting an inventory safety stock level (create or update)
  */
 export type CreateInventorySafetyStockLevelRequest = {
   /**
@@ -10353,7 +10353,7 @@ export type GetAllInventoryMovementsResponse =
 
 export type CreateInventorySafetyStockLevelData = {
   /**
-   * New inventory safety stock level details.
+   * Safety stock level details to set (create or update).
    */
   body: CreateInventorySafetyStockLevelRequest;
   path?: never;
