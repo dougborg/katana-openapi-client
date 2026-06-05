@@ -2,6 +2,37 @@
 
 <!-- version list -->
 
+## v0.79.0 (2026-06-05)
+
+### Bug Fixes
+
+- **client**: Correct misleading ecommerce\_\* field docs + examples
+  ([`ff9b769`](https://github.com/dougborg/katana-openapi-client/commit/ff9b769115991c45e9c8071be2af1b96dcea18b5))
+
+### Chores
+
+- Sync uv.lock after release
+  ([`257e42d`](https://github.com/dougborg/katana-openapi-client/commit/257e42d6326e539d726b30a6dfb3ff795e7ffb1f))
+
+- Sync uv.lock after release
+  ([`683a3ad`](https://github.com/dougborg/katana-openapi-client/commit/683a3ad84f57d5a8fce30a95a1376c0a19c1e441))
+
+- **mcp**: Update client dependency to v0.78.0
+  ([`cae9b78`](https://github.com/dougborg/katana-openapi-client/commit/cae9b78d1083059d697cd069b457b177de1570a4))
+
+- **release**: Mcp v0.113.0
+  ([`a28bea7`](https://github.com/dougborg/katana-openapi-client/commit/a28bea7b38b3b80ba610a03b2754cb335b47ec3c))
+
+### Features
+
+- **mcp**: Add get_sales_order detail card
+  ([`84b6a9b`](https://github.com/dougborg/katana-openapi-client/commit/84b6a9b83d155fb8535333330f002dc77d8a9cae))
+
+### Testing
+
+- **mcp**: Cover get_sales_order detail card + name enrichment
+  ([`c39c9ad`](https://github.com/dougborg/katana-openapi-client/commit/c39c9addaedfff50e59737819aab215f93f969c2))
+
 ## v0.78.0 (2026-06-05)
 
 ### Bug Fixes
