@@ -172,6 +172,14 @@ jobs:
         if: needs.changes.outputs.code == 'true' || needs.changes.outputs.spec == 'true'
         run: uv run poe validate-examples
 
+      # Fail on request-side drift vs. the live gateway that isn't catalogued in
+      # docs/upstream-specs/audit-overrides.yaml. If this trips on a PR that
+      # didn't touch the spec, upstream drifted: run `uv run poe refresh-upstream-spec`,
+      # then either fix the local spec or add an override entry (see the report).
+      - name: Audit spec drift vs. upstream gateway (strict)
+        if: needs.changes.outputs.code == 'true' || needs.changes.outputs.spec == 'true'
+        run: uv run poe audit-spec-strict
+
       - name: Build documentation
         if: needs.changes.outputs.code == 'true'
         run: uv run poe docs-build
