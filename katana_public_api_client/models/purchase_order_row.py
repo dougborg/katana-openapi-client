@@ -55,7 +55,7 @@ class PurchaseOrderRow:
     arrival_date: datetime.datetime | None | Unset = UNSET
     batch_transactions: list[PurchaseOrderRowBatchTransactionsItem] | Unset = UNSET
     purchase_order_id: int | Unset = UNSET
-    landed_cost: float | str | Unset = UNSET
+    landed_cost: float | Unset = UNSET
     group_id: int | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -137,11 +137,7 @@ class PurchaseOrderRow:
 
         purchase_order_id = self.purchase_order_id
 
-        landed_cost: float | str | Unset
-        if isinstance(self.landed_cost, Unset):
-            landed_cost = UNSET
-        else:
-            landed_cost = self.landed_cost
+        landed_cost = self.landed_cost
 
         group_id = self.group_id
 
@@ -336,12 +332,7 @@ class PurchaseOrderRow:
 
         purchase_order_id = d.pop("purchase_order_id", UNSET)
 
-        def _parse_landed_cost(data: object) -> float | str | Unset:
-            if isinstance(data, Unset):
-                return data
-            return cast(float | str | Unset, data)
-
-        landed_cost = _parse_landed_cost(d.pop("landed_cost", UNSET))
+        landed_cost = d.pop("landed_cost", UNSET)
 
         group_id = d.pop("group_id", UNSET)
 

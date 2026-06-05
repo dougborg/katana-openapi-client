@@ -3264,7 +3264,7 @@ export type PurchaseOrderRow = {
   /**
    * Total landed cost including shipping, duties, and other charges
    */
-  landed_cost?: string | number;
+  landed_cost?: number;
   /**
    * Grouping identifier for organizational purposes
    */
