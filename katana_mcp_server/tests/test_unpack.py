@@ -1,11 +1,33 @@
 """Tests for the Unpack decorator that flattens Pydantic models into tool parameters."""
 
 import inspect
-from typing import Annotated
+from typing import Annotated, get_args, get_origin
 
 import pytest
 from katana_mcp.unpack import Unpack, unpack_pydantic_params
 from pydantic import BaseModel, Field, ValidationError
+from pydantic.fields import FieldInfo
+
+
+def _base_type(annotation: object) -> object:
+    """Unwrap ``Annotated[T, FieldInfo]`` -> ``T``.
+
+    The unpack decorator re-wraps each flattened param's annotation in
+    ``Annotated[type, FieldInfo]`` so the field's description / constraints reach
+    the tool schema (#930). Tests that care about the underlying type unwrap here.
+    """
+    if get_origin(annotation) is Annotated:
+        return get_args(annotation)[0]
+    return annotation
+
+
+def _field_meta(annotation: object) -> FieldInfo | None:
+    """Return the FieldInfo carried in ``Annotated[type, FieldInfo]``, if any."""
+    if get_origin(annotation) is Annotated:
+        for extra in get_args(annotation)[1:]:
+            if isinstance(extra, FieldInfo):
+                return extra
+    return None
 
 
 # Test models
@@ -51,8 +73,8 @@ class TestUnpackDecorator:
         assert "request" not in sig.parameters
 
         # Check parameter details
-        assert sig.parameters["name"].annotation is str
-        assert sig.parameters["limit"].annotation is int
+        assert _base_type(sig.parameters["name"].annotation) is str
+        assert _base_type(sig.parameters["limit"].annotation) is int
         assert sig.parameters["limit"].default == 10
 
         # Test calling with flattened params
@@ -89,8 +111,8 @@ class TestUnpackDecorator:
 
         # Check signature
         sig = inspect.signature(process)
-        assert sig.parameters["required_field"].annotation is str
-        assert sig.parameters["optional_field"].annotation == (str | None)
+        assert _base_type(sig.parameters["required_field"].annotation) is str
+        assert _base_type(sig.parameters["optional_field"].annotation) == (str | None)
         assert sig.parameters["default_field"].default == 100
 
         # Test with only required field
@@ -226,6 +248,60 @@ class TestUnpackDecorator:
         result = process(name="test", tags=["a", "b"])
         assert result == {"name": "test", "tags": ["a", "b"]}
 
+    def test_field_metadata_rides_into_flattened_annotation(self):
+        """#930: field description + constraints survive the flattening.
+
+        The decorator re-wraps each param annotation as ``Annotated[type, FieldInfo]``
+        so FastMCP's schema generator advertises the field's description and
+        constraints. A bare-type annotation (the old behavior) dropped both, leaving
+        every flattened tool param undocumented.
+        """
+
+        class DocumentedRequest(BaseModel):
+            customer_id: int = Field(..., description="Katana customer ID", ge=1)
+            qty: int = Field(5, description="Quantity", ge=1, le=100)
+            # default_factory must not collide with the param default (the bug that
+            # raised "cannot specify both default and default_factory").
+            tags: list[str] = Field(default_factory=list, description="Tag list")
+
+        @unpack_pydantic_params
+        def process(request: Annotated[DocumentedRequest, Unpack()]) -> dict:
+            return {"customer_id": request.customer_id}
+
+        sig = inspect.signature(process)
+
+        # Description is carried for every field.
+        for name, expected in [
+            ("customer_id", "Katana customer ID"),
+            ("qty", "Quantity"),
+            ("tags", "Tag list"),
+        ]:
+            meta = _field_meta(sig.parameters[name].annotation)
+            assert meta is not None, f"{name} lost its FieldInfo"
+            assert meta.description == expected
+
+        # Numeric constraints are carried in the FieldInfo metadata.
+        cid_meta = _field_meta(sig.parameters["customer_id"].annotation)
+        assert cid_meta is not None
+        assert any(getattr(m, "ge", None) == 1 for m in cid_meta.metadata), (
+            "ge=1 constraint not carried"
+        )
+
+        # The embedded FieldInfo must not also carry the default (would re-introduce
+        # the default/default_factory collision); the param default is the source.
+        from pydantic_core import PydanticUndefined
+
+        tags_meta = _field_meta(sig.parameters["tags"].annotation)
+        assert tags_meta is not None
+        assert tags_meta.default is PydanticUndefined
+        assert tags_meta.default_factory is None
+        assert sig.parameters["tags"].default == []
+
+        # Defaults + validation still work end-to-end through the wrapper.
+        assert process(customer_id=7) == {"customer_id": 7}
+        with pytest.raises(ValidationError):
+            process(customer_id=0)  # violates ge=1
+
 
 class TestUnpackWithFastMCPSimulation:
     """Test that unpacked functions work as expected when called by FastMCP."""
@@ -262,9 +338,9 @@ class TestUnpackWithFastMCPSimulation:
 
         # Verify parameter metadata is preserved for schema generation
         name_param = sig.parameters["name"]
-        assert name_param.annotation is str
+        assert _base_type(name_param.annotation) is str
         assert name_param.default == inspect.Parameter.empty  # Required field
 
         limit_param = sig.parameters["limit"]
-        assert limit_param.annotation is int
+        assert _base_type(limit_param.annotation) is int
         assert limit_param.default == 10  # Has default value

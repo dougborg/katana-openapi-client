@@ -5,6 +5,7 @@ parameters are passed as individual kwargs, not as a nested request object.
 """
 
 import inspect
+from typing import Annotated, get_args, get_origin
 
 import pytest
 from katana_mcp.tools.foundation.inventory import (
@@ -13,6 +14,18 @@ from katana_mcp.tools.foundation.inventory import (
     check_inventory,
     list_low_stock_items,
 )
+
+
+def _base_type(annotation: object) -> object:
+    """Unwrap ``Annotated[T, FieldInfo]`` -> ``T``.
+
+    The unpack decorator re-wraps flattened params as ``Annotated[type, FieldInfo]``
+    so field descriptions / constraints reach the tool schema (#930).
+    """
+    if get_origin(annotation) is Annotated:
+        return get_args(annotation)[0]
+    return annotation
+
 
 # The mock_context fixture is now in tests/conftest.py
 # It's automatically available to all tests in this package
@@ -94,8 +107,8 @@ class TestMCPParameterPassing:
             "list_low_stock_items has flattened params: "
             "threshold, limit, include_archived, context"
         )
-        assert sig.parameters["threshold"].annotation is int
-        assert sig.parameters["limit"].annotation is int
+        assert _base_type(sig.parameters["threshold"].annotation) is int
+        assert _base_type(sig.parameters["limit"].annotation) is int
         assert sig.parameters["threshold"].default == 10
         assert sig.parameters["limit"].default == 50
         assert sig.parameters["include_archived"].default is False
@@ -153,8 +166,8 @@ class TestMCPProtocolSimulation:
         assert "request" not in sig.parameters
 
         # Verify parameter types
-        assert sig.parameters["threshold"].annotation is int
-        assert sig.parameters["limit"].annotation is int
+        assert _base_type(sig.parameters["threshold"].annotation) is int
+        assert _base_type(sig.parameters["limit"].annotation) is int
         assert sig.parameters["threshold"].default == 10
         assert sig.parameters["limit"].default == 50
 

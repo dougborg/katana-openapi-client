@@ -31,6 +31,7 @@ from __future__ import annotations
 import functools
 import inspect
 from collections.abc import Callable
+from copy import copy
 from typing import Annotated, Any, cast, get_args, get_origin, get_type_hints
 
 from pydantic import BaseModel, ValidationError
@@ -132,8 +133,21 @@ def unpack_pydantic_params(func: Callable) -> Callable:
                 # Store fields to add them in correct order later
                 unpacked_fields = []
                 for field_name, field_info in model_class.model_fields.items():
-                    # Create parameter for each model field
-                    field_annotation = field_info.annotation
+                    # Re-wrap the bare type in ``Annotated[type, <metadata>]`` so the
+                    # field's description, constraints (ge/le/min_length/...), and
+                    # examples ride along into FastMCP's schema generator. Using the
+                    # bare ``field_info.annotation`` dropped all of it, leaving every
+                    # flattened param undocumented in the tool schema (#930).
+                    #
+                    # We embed a *copy* of the FieldInfo with its default cleared:
+                    # the ``default=`` on the ``inspect.Parameter`` below is the single
+                    # source of the default. Leaving both in place makes pydantic raise
+                    # "cannot specify both default and default_factory" for any field
+                    # using ``default_factory`` (e.g. ``Field(default_factory=list)``).
+                    metadata = copy(field_info)
+                    metadata.default = PydanticUndefined
+                    metadata.default_factory = None
+                    field_annotation = Annotated[field_info.annotation, metadata]
 
                     # Handle default values - convert PydanticUndefined to inspect.Parameter.empty
                     if field_info.default is not PydanticUndefined:
