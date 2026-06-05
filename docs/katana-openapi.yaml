@@ -14065,7 +14065,7 @@ paths:
               $ref: "#/components/schemas/CreateInventorySafetyStockLevelRequest"
       responses:
         "200":
-          description: New inventory safety stock level created.
+          description: The created or updated inventory safety stock level.
           headers:
             X-Ratelimit-Limit:
               $ref: "#/components/headers/X-Ratelimit-Limit"
