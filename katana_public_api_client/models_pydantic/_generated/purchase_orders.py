@@ -184,9 +184,9 @@ class PurchaseOrderRow(DeletableEntity):
         int | None, Field(description="Unique identifier of the parent purchase order")
     ] = None
     landed_cost: Annotated[
-        str | float | None,
+        float | None,
         Field(
-            description="Total landed cost including shipping, duties, and other charges",
+            description="Total landed cost including shipping, duties, and other charges"
         ),
     ] = None
     group_id: Annotated[
@@ -983,7 +983,7 @@ class CachedPurchaseOrderRow(DeletableEntity, table=True):
         ),
     ] = None
     landed_cost: Annotated[
-        Mapped[str | float | None],
+        Mapped[float | None],
         SQLField(
             sa_column=Column(PydanticJSON),
             description="Total landed cost including shipping, duties, and other charges",

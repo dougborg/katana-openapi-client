@@ -5745,9 +5745,7 @@ components:
               type: integer
               description: Unique identifier of the parent purchase order
             landed_cost:
-              type:
-                - string
-                - number
+              type: number
               description: Total landed cost including shipping, duties, and other charges
             group_id:
               type: integer
@@ -16315,7 +16313,7 @@ paths:
                     purchase_order_id: 1
                     total: 1
                     total_in_base_currency: 1
-                    landed_cost: "45.0000000000"
+                    landed_cost: 45.0
                     group_id: 11
         "401":
           $ref: "#/components/responses/UnauthorizedError"
@@ -16409,7 +16407,7 @@ paths:
                             batch_id: 1
                         purchase_order_id: 1
                         purchase_uom_conversion_rate: 1.1
-                        landed_cost: "45.0000000000"
+                        landed_cost: 45.0
                         group_id: 11
                     supplier:
                       id: 1
@@ -16493,7 +16491,7 @@ paths:
                         batch_id: 1
                     purchase_order_id: 1
                     purchase_uom_conversion_rate: 1.1
-                    landed_cost: "45.0000000000"
+                    landed_cost: 45.0
                     group_id: 11
                 supplier:
                   id: 1
