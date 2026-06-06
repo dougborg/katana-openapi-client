@@ -34,7 +34,7 @@ from collections.abc import Callable
 from copy import copy
 from typing import Annotated, Any, cast, get_args, get_origin, get_type_hints
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 from pydantic_core import PydanticUndefined
 
 from katana_mcp.logging import get_logger
@@ -50,6 +50,46 @@ class Unpack:
     """
 
     pass
+
+
+def _reconstruct_model_kwargs(
+    unpack_mapping: dict[str, tuple[type[BaseModel], list[str]]],
+    kwargs: dict[str, Any],
+) -> dict[str, Any]:
+    """Collapse flat field kwargs back into the unpacked Pydantic model instances.
+
+    For each unpacked parameter, pulls its declared fields out of ``kwargs``,
+    constructs + validates the model (re-raising ``ValidationError`` as-is), and
+    returns a new kwargs dict with the flat fields replaced by the reconstructed
+    model instance.
+
+    Only declared fields are collected into the model payload, so an unknown
+    top-level kwarg never reaches model construction — which is why
+    ``extra="forbid"`` on the dispatcher request model does NOT fire on
+    MCP-protocol traffic: the model simply doesn't see the extra key. (FastMCP's
+    TypeAdapter against the flattened function signature rejects unknown top-level
+    args even earlier, before this helper runs.) The dispatcher-level
+    ``extra="forbid"`` is defense in depth for direct Python callers (tests,
+    internal ``_impl`` calls); the load-bearing forbid for wire-level silent drops
+    lives on the nested sub-payload models — see #487.
+
+    Note an unknown kwarg is NOT silently dropped from the call: it isn't a
+    declared field of any model, so it stays in the returned dict and is forwarded
+    to the wrapped function, where it surfaces as a ``TypeError`` (unexpected
+    keyword argument). That loud failure is intentional — a silent drop is the
+    failure mode #487 exists to prevent.
+    """
+    reconstructed = kwargs.copy()
+    for original_param_name, (model_class, field_names) in unpack_mapping.items():
+        model_data = {
+            field_name: kwargs[field_name]
+            for field_name in field_names
+            if field_name in kwargs
+        }
+        model_instance = model_class(**model_data)
+        reconstructed = {k: v for k, v in reconstructed.items() if k not in field_names}
+        reconstructed[original_param_name] = model_instance
+    return reconstructed
 
 
 def unpack_pydantic_params(func: Callable) -> Callable:
@@ -207,75 +247,17 @@ def unpack_pydantic_params(func: Callable) -> Callable:
     # Create new signature with flattened parameters
     new_sig = sig.replace(parameters=new_params)
 
-    # Create wrapper function that reconstructs models at runtime
+    # Create wrapper functions that reconstruct models at runtime. Both share the
+    # same reconstruction logic (_reconstruct_model_kwargs); they differ only in
+    # await — async tools get the coroutine wrapper, sync tools the plain one.
     @functools.wraps(func)
     async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
-        # Reconstruct Pydantic models from flat parameters
-        reconstructed_kwargs = kwargs.copy()
-
-        for original_param_name, (model_class, field_names) in unpack_mapping.items():
-            # Only declared fields make it to ``model_data`` — unknown
-            # top-level kwargs are stripped here, before construction. As a
-            # consequence, ``extra="forbid"`` on the dispatcher request model
-            # does NOT fire on MCP-protocol traffic (FastMCP's TypeAdapter
-            # against the function signature catches top-level typos earlier).
-            # The dispatcher-level ``extra="forbid"`` is defense in depth for
-            # direct Python callers (tests, internal ``_impl`` calls). The
-            # load-bearing ``extra="forbid"`` for catching wire-level silent
-            # drops lives on the nested sub-payload models — see #487.
-            model_data = {}
-            for field_name in field_names:
-                if field_name in kwargs:
-                    model_data[field_name] = kwargs.pop(field_name)
-
-            # Build and validate the model
-            try:
-                model_instance = model_class(**model_data)
-            except ValidationError:
-                # Re-raise Pydantic validation errors as-is
-                raise
-
-            # Add reconstructed model to kwargs
-            reconstructed_kwargs = {
-                k: v for k, v in reconstructed_kwargs.items() if k not in field_names
-            }
-            reconstructed_kwargs[original_param_name] = model_instance
-
+        reconstructed_kwargs = _reconstruct_model_kwargs(unpack_mapping, kwargs)
         return await func(*args, **reconstructed_kwargs)
 
     @functools.wraps(func)
     def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
-        # Reconstruct Pydantic models from flat parameters
-        reconstructed_kwargs = kwargs.copy()
-
-        for original_param_name, (model_class, field_names) in unpack_mapping.items():
-            # Only declared fields make it to ``model_data`` — unknown
-            # top-level kwargs are stripped here, before construction. As a
-            # consequence, ``extra="forbid"`` on the dispatcher request model
-            # does NOT fire on MCP-protocol traffic (FastMCP's TypeAdapter
-            # against the function signature catches top-level typos earlier).
-            # The dispatcher-level ``extra="forbid"`` is defense in depth for
-            # direct Python callers (tests, internal ``_impl`` calls). The
-            # load-bearing ``extra="forbid"`` for catching wire-level silent
-            # drops lives on the nested sub-payload models — see #487.
-            model_data = {}
-            for field_name in field_names:
-                if field_name in kwargs:
-                    model_data[field_name] = kwargs.pop(field_name)
-
-            # Build and validate the model
-            try:
-                model_instance = model_class(**model_data)
-            except ValidationError:
-                # Re-raise Pydantic validation errors as-is
-                raise
-
-            # Add reconstructed model to kwargs
-            reconstructed_kwargs = {
-                k: v for k, v in reconstructed_kwargs.items() if k not in field_names
-            }
-            reconstructed_kwargs[original_param_name] = model_instance
-
+        reconstructed_kwargs = _reconstruct_model_kwargs(unpack_mapping, kwargs)
         return func(*args, **reconstructed_kwargs)
 
     # Choose wrapper based on whether original function is async
