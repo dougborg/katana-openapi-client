@@ -4,6 +4,11 @@ This module provides a decorator that allows tools to use Pydantic models for
 validation while exposing flattened parameters to the MCP protocol, working around
 Claude Code's parameter serialization issues with nested objects.
 
+The flattened signature also carries each field's full metadata — description and
+constraints — into the MCP tool schema, by re-wrapping every param annotation as
+``Annotated[type, FieldInfo]`` (see ``unpack_pydantic_params``). So the decorator is
+both a protocol workaround and the source of tool-schema documentation (#930).
+
 Usage:
     from typing import Annotated
     from pydantic import BaseModel, Field
@@ -59,9 +64,9 @@ def _reconstruct_model_kwargs(
     """Collapse flat field kwargs back into the unpacked Pydantic model instances.
 
     For each unpacked parameter, pulls its declared fields out of ``kwargs``,
-    constructs + validates the model (re-raising ``ValidationError`` as-is), and
-    returns a new kwargs dict with the flat fields replaced by the reconstructed
-    model instance.
+    constructs + validates the model, and returns a new kwargs dict with the flat
+    fields replaced by the reconstructed model instance. Any ``ValidationError``
+    raised by model construction propagates to the caller unchanged.
 
     Only declared fields are collected into the model payload, so an unknown
     top-level kwarg never reaches model construction — which is why
@@ -112,7 +117,7 @@ def unpack_pydantic_params(func: Callable) -> Callable:
 
     Raises:
         TypeError: If the unpacked parameter is not a Pydantic BaseModel subclass.
-        ValidationError: If the collected parameters don't pass Pydantic validation.
+        pydantic.ValidationError: If the collected parameters don't pass validation.
 
     Example:
         @unpack_pydantic_params
@@ -184,7 +189,12 @@ def unpack_pydantic_params(func: Callable) -> Callable:
                     # source of the default. Leaving both in place makes pydantic raise
                     # "cannot specify both default and default_factory" for any field
                     # using ``default_factory`` (e.g. ``Field(default_factory=list)``).
+                    #
+                    # ``copy`` is shallow, so the copy's ``.metadata`` list aliases the
+                    # original ``model_fields`` entry; re-bind it to a fresh list so a
+                    # downstream mutation of one can never corrupt the class's field.
                     metadata = copy(field_info)
+                    metadata.metadata = list(field_info.metadata)
                     metadata.default = PydanticUndefined
                     metadata.default_factory = None
                     field_annotation = Annotated[field_info.annotation, metadata]

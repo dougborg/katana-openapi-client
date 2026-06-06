@@ -287,6 +287,14 @@ class TestUnpackDecorator:
             "ge=1 constraint not carried"
         )
 
+        # The embedded FieldInfo is a copy whose mutable ``metadata`` list is
+        # decoupled from the model's own field, so a downstream mutation of one can
+        # never corrupt the other (the copy is shallow; the list is re-bound).
+        assert (
+            cid_meta.metadata
+            is not DocumentedRequest.model_fields["customer_id"].metadata
+        )
+
         # The embedded FieldInfo must not also carry the default (would re-introduce
         # the default/default_factory collision); the param default is the source.
         from pydantic_core import PydanticUndefined
