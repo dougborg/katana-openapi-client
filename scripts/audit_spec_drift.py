@@ -21,18 +21,30 @@ pair so findings are immediately actionable as fix PRs:
    (``nullable: true`` vs ``type: [..., "null"]``; ``integer`` vs ``number``)
    so only semantic differences are reported.
 
+**Override registry.** Known divergences are catalogued in
+``docs/upstream-specs/audit-overrides.yaml`` and applied by default. A finding
+that matches an override is **suppressed** from the strict gate and re-surfaced
+under a category section (intentional divergence, upstream punch list, or
+pending local fix). Matching is narrow — an override pins the exact
+(endpoint, kind, field, values) — so a spec change that alters the divergence
+resurfaces it as new drift instead of staying hidden. Pass ``--no-overrides``
+to see raw drift; ``--overrides PATH`` to point at a different registry.
+
 Default output is Markdown to stdout; ``--json`` emits a machine-readable
 report; ``--output FILE`` writes to disk. Exit code is **0 on success**
 regardless of drift, so the command works equally well for human
-inspection and CI. Pass ``--strict`` to make any drift exit 1 (suitable
-for CI gating); ``2`` is reserved for script errors (missing input
-file, invalid YAML, etc.).
+inspection and CI. Pass ``--strict`` to exit 1 on any *un-overridden* drift
+**or any stale override** (an entry that no longer matches anything — the
+divergence it allowlisted is gone, so it must be removed); ``2`` is reserved
+for script errors (missing input file, invalid YAML, invalid registry, etc.).
 
 Usage:
 
     uv run python scripts/audit_spec_drift.py
+    uv run python scripts/audit_spec_drift.py --no-overrides    # raw drift
     uv run python scripts/audit_spec_drift.py --json --output drift.json
     uv run poe audit-spec
+    uv run poe audit-spec-strict                                # CI gate
 """
 
 from __future__ import annotations
@@ -49,8 +61,27 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_LOCAL = REPO_ROOT / "docs" / "katana-openapi.yaml"
 DEFAULT_LIVE = REPO_ROOT / "docs" / "upstream-specs" / "live-gateway.yaml"
+DEFAULT_OVERRIDES = REPO_ROOT / "docs" / "upstream-specs" / "audit-overrides.yaml"
 
 HTTP_METHODS = {"get", "post", "put", "patch", "delete"}
+
+# Override categories. See docs/upstream-specs/audit-overrides.yaml for the
+# full semantics. PUNCH_LIST_CATEGORIES are upstream bugs we'd recommend Katana
+# fix; PENDING_LOCAL_CATEGORY is local-is-wrong, allowlisted only until fixed.
+CATEGORY_INTENTIONAL = "intentional_local_divergence"
+CATEGORY_UPSTREAM_WRONG = "local_correct_upstream_wrong"
+CATEGORY_BOTH_WRONG = "both_wrong_live_correct"
+CATEGORY_LOCAL_WRONG = "upstream_correct_local_wrong"
+ALL_CATEGORIES = frozenset(
+    {
+        CATEGORY_INTENTIONAL,
+        CATEGORY_UPSTREAM_WRONG,
+        CATEGORY_BOTH_WRONG,
+        CATEGORY_LOCAL_WRONG,
+    }
+)
+PUNCH_LIST_CATEGORIES = frozenset({CATEGORY_UPSTREAM_WRONG, CATEGORY_BOTH_WRONG})
+OVERRIDE_KINDS = frozenset({"type_diff", "only_live", "only_local", "required_diff"})
 
 
 # ----------------------------------------------------------------------------
@@ -71,6 +102,8 @@ class EndpointDrift:
     type_diffs: list[tuple[str, str, str]] = field(default_factory=list)
     live_required: list[str] = field(default_factory=list)
     local_required: list[str] = field(default_factory=list)
+    # Set by apply_overrides when a registry entry suppresses the required diff.
+    required_diff_suppressed: bool = False
 
     @property
     def required_diff(self) -> bool:
@@ -78,11 +111,17 @@ class EndpointDrift:
 
     @property
     def has_drift(self) -> bool:
+        """True if any *active* (un-suppressed) finding remains.
+
+        ``apply_overrides`` removes suppressed field/type findings from the
+        list attributes in place, so they only ever hold active findings here;
+        the required diff is gated separately via ``required_diff_suppressed``.
+        """
         return bool(
             self.only_live_fields
             or self.only_local_fields
             or self.type_diffs
-            or self.required_diff
+            or (self.required_diff and not self.required_diff_suppressed)
         )
 
 
@@ -99,13 +138,55 @@ class AuditReport:
     shared_endpoints: int = 0
     drifted_endpoints: list[EndpointDrift] = field(default_factory=list)
 
+    # Populated by apply_overrides; empty when no registry is applied.
+    suppressed: list[SuppressedFinding] = field(default_factory=list)
+    stale_overrides: list[Override] = field(default_factory=list)
+
     @property
     def total_drift_count(self) -> int:
+        """Count of everything ``--strict`` gates on.
+
+        Suppressed findings are excluded (``apply_overrides`` drops fully
+        suppressed endpoints from ``drifted_endpoints``). **Stale overrides are
+        included** — an override that matches nothing means the divergence it
+        allowlisted is gone, so the entry must be removed. Failing on it keeps
+        the registry honest even on spec-only PRs, where CI skips the Python
+        test suite (the `code` path filter) and only the `audit-spec-strict`
+        step runs.
+        """
         return (
             len(self.paths_only_in_live)
             + len(self.paths_only_in_local)
             + len(self.drifted_endpoints)
+            + len(self.stale_overrides)
         )
+
+
+@dataclass(frozen=True)
+class Override:
+    """One registry entry suppressing a known divergence."""
+
+    endpoint: str  # "POST /sales_orders/search"
+    kind: str  # one of OVERRIDE_KINDS
+    category: str  # one of ALL_CATEGORIES
+    reason: str
+    field_name: str | None = None  # type_diff / only_live / only_local
+    live: str | None = None  # type_diff only
+    local: str | None = None  # type_diff only
+    live_required: tuple[str, ...] = ()  # required_diff only
+    local_required: tuple[str, ...] = ()  # required_diff only
+    fix_tracked_in: str | None = None
+
+
+@dataclass
+class SuppressedFinding:
+    """A drift finding that matched an override, retained for reporting."""
+
+    endpoint: str
+    kind: str
+    field_name: str | None
+    detail: str  # human-readable rendering of the divergence
+    override: Override
 
 
 # ----------------------------------------------------------------------------
@@ -307,6 +388,173 @@ def audit(local: dict[str, Any], live: dict[str, Any]) -> AuditReport:
 
 
 # ----------------------------------------------------------------------------
+# Override registry
+# ----------------------------------------------------------------------------
+
+
+def load_overrides(path: Path) -> list[Override]:
+    """Load + validate the override registry. Raises ValueError on bad schema."""
+    raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    entries = raw.get("overrides") or []
+    if not isinstance(entries, list):
+        raise ValueError(f"{path}: `overrides` must be a list")
+
+    out: list[Override] = []
+    for i, e in enumerate(entries):
+        where = f"{path} entry [{i}]"
+        if not isinstance(e, dict):
+            raise ValueError(f"{where}: must be a mapping")
+        endpoint = e.get("endpoint")
+        kind = e.get("kind")
+        category = e.get("category")
+        reason = e.get("reason")
+        if not endpoint or not isinstance(endpoint, str):
+            raise ValueError(f"{where}: missing `endpoint`")
+        if kind not in OVERRIDE_KINDS:
+            raise ValueError(f"{where}: `kind` must be one of {sorted(OVERRIDE_KINDS)}")
+        if category not in ALL_CATEGORIES:
+            raise ValueError(
+                f"{where}: `category` must be one of {sorted(ALL_CATEGORIES)}"
+            )
+        if not reason or not isinstance(reason, str):
+            raise ValueError(f"{where}: missing `reason`")
+        fix_tracked_in = e.get("fix_tracked_in")
+        if category == CATEGORY_LOCAL_WRONG and not fix_tracked_in:
+            raise ValueError(
+                f"{where}: category `{CATEGORY_LOCAL_WRONG}` requires `fix_tracked_in`"
+            )
+
+        field_name = e.get("field")
+        if kind in ("type_diff", "only_live", "only_local") and (
+            not isinstance(field_name, str) or not field_name
+        ):
+            raise ValueError(
+                f"{where}: kind `{kind}` requires `field` (a non-empty string)"
+            )
+        if kind == "type_diff" and ("live" not in e or "local" not in e):
+            raise ValueError(f"{where}: kind `type_diff` requires `live` + `local`")
+        if kind == "required_diff":
+            if "live_required" not in e or "local_required" not in e:
+                raise ValueError(
+                    f"{where}: kind `required_diff` requires "
+                    f"`live_required` + `local_required`"
+                )
+            for key in ("live_required", "local_required"):
+                val = e[key]
+                if not isinstance(val, list) or not all(
+                    isinstance(x, str) for x in val
+                ):
+                    raise ValueError(
+                        f"{where}: `{key}` must be a list of strings "
+                        f"(got {type(val).__name__}) — did you write a bare scalar "
+                        f"instead of a YAML list?"
+                    )
+
+        out.append(
+            Override(
+                endpoint=endpoint,
+                kind=kind,
+                category=category,
+                reason=" ".join(reason.split()),
+                field_name=field_name,
+                live=str(e["live"]) if "live" in e else None,
+                local=str(e["local"]) if "local" in e else None,
+                live_required=tuple(e.get("live_required") or ()),
+                local_required=tuple(e.get("local_required") or ()),
+                fix_tracked_in=fix_tracked_in,
+            )
+        )
+    return out
+
+
+def apply_overrides(report: AuditReport, overrides: list[Override]) -> None:
+    """Suppress findings that match a registry entry; mutate ``report`` in place.
+
+    Matched sub-findings are removed from each endpoint's active lists and
+    recorded in ``report.suppressed``. Endpoints with no remaining active drift
+    drop out of ``report.drifted_endpoints``. Overrides that match nothing are
+    recorded in ``report.stale_overrides``.
+    """
+    used: set[int] = set()
+    suppressed: list[SuppressedFinding] = []
+
+    def take(endpoint: str, kind: str, predicate: Any) -> Override | None:
+        for i, ov in enumerate(overrides):
+            if i in used:
+                continue
+            if ov.endpoint == endpoint and ov.kind == kind and predicate(ov):
+                used.add(i)
+                return ov
+        return None
+
+    remaining: list[EndpointDrift] = []
+    for ed in report.drifted_endpoints:
+        endpoint = f"{ed.method.upper()} {ed.path}"
+
+        kept_type: list[tuple[str, str, str]] = []
+        for f, lv, lo in ed.type_diffs:
+            ov = take(
+                endpoint,
+                "type_diff",
+                lambda o, f=f, lv=lv, lo=lo: (
+                    o.field_name == f and o.live == lv and o.local == lo
+                ),
+            )
+            if ov:
+                suppressed.append(
+                    SuppressedFinding(
+                        endpoint, "type_diff", f, f"live=`{lv}` local=`{lo}`", ov
+                    )
+                )
+            else:
+                kept_type.append((f, lv, lo))
+        ed.type_diffs = kept_type
+
+        for attr, kind in (
+            ("only_live_fields", "only_live"),
+            ("only_local_fields", "only_local"),
+        ):
+            kept: list[str] = []
+            for f in getattr(ed, attr):
+                ov = take(endpoint, kind, lambda o, f=f: o.field_name == f)
+                if ov:
+                    suppressed.append(
+                        SuppressedFinding(endpoint, kind, f, f"`{f}`", ov)
+                    )
+                else:
+                    kept.append(f)
+            setattr(ed, attr, kept)
+
+        if ed.required_diff:
+            ov = take(
+                endpoint,
+                "required_diff",
+                lambda o, ed=ed: (
+                    set(o.live_required) == set(ed.live_required)
+                    and set(o.local_required) == set(ed.local_required)
+                ),
+            )
+            if ov:
+                ed.required_diff_suppressed = True
+                suppressed.append(
+                    SuppressedFinding(
+                        endpoint,
+                        "required_diff",
+                        None,
+                        f"live={ed.live_required} local={ed.local_required}",
+                        ov,
+                    )
+                )
+
+        if ed.has_drift:
+            remaining.append(ed)
+
+    report.drifted_endpoints = remaining
+    report.suppressed = suppressed
+    report.stale_overrides = [ov for i, ov in enumerate(overrides) if i not in used]
+
+
+# ----------------------------------------------------------------------------
 # Output formatting
 # ----------------------------------------------------------------------------
 
@@ -329,6 +577,11 @@ def format_markdown(report: AuditReport) -> str:
         f"({len(report.paths_only_in_live)} live-only, "
         f"{len(report.paths_only_in_local)} local-only)"
     )
+    if report.suppressed or report.stale_overrides:
+        lines.append(
+            f"- Suppressed by override registry: **{len(report.suppressed)}** "
+            f"({len(report.stale_overrides)} stale overrides)"
+        )
     lines.append("")
 
     if report.paths_only_in_live:
@@ -362,13 +615,80 @@ def format_markdown(report: AuditReport) -> str:
                 lines.append("- ✱ type/enum mismatches:")
                 for f, lv, lo in ed.type_diffs:
                     lines.append(f"    - `{f}`: live=`{lv}` local=`{lo}`")
-            if ed.required_diff:
+            if ed.required_diff and not ed.required_diff_suppressed:
                 lines.append("- ❗ required diff:")
                 lines.append(f"    - live  required: `{ed.live_required}`")
                 lines.append(f"    - local required: `{ed.local_required}`")
             lines.append("")
 
+    _append_override_sections(lines, report)
     return "\n".join(lines)
+
+
+def _append_override_sections(lines: list[str], report: AuditReport) -> None:
+    """Render the suppressed-divergence, punch-list, and stale sections."""
+
+    def render(group: list[SuppressedFinding]) -> None:
+        for sf in group:
+            tracked = (
+                f" (tracked in {sf.override.fix_tracked_in})"
+                if sf.override.fix_tracked_in
+                else ""
+            )
+            field_part = f" `{sf.field_name}`" if sf.field_name else ""
+            lines.append(f"- `{sf.endpoint}`{field_part} — {sf.detail}{tracked}")
+            lines.append(f"  - {sf.override.reason}")
+
+    punch = [
+        s for s in report.suppressed if s.override.category in PUNCH_LIST_CATEGORIES
+    ]
+    pending = [
+        s for s in report.suppressed if s.override.category == CATEGORY_LOCAL_WRONG
+    ]
+    intentional = [
+        s for s in report.suppressed if s.override.category == CATEGORY_INTENTIONAL
+    ]
+
+    if punch:
+        lines.append("## 📋 Upstream punch list (recommend Katana fix)")
+        lines.append("")
+        lines.append(
+            "Divergences where our spec matches the real wire contract but "
+            "Katana's published spec is wrong or under-documented."
+        )
+        lines.append("")
+        render(punch)
+        lines.append("")
+
+    if pending:
+        lines.append("## ⚠ Pending local fixes (allowlisted)")
+        lines.append("")
+        lines.append(
+            "Local spec is wrong; allowlisted only so the gate stays green. "
+            "Remove each entry when its tracked fix lands."
+        )
+        lines.append("")
+        render(pending)
+        lines.append("")
+
+    if intentional:
+        lines.append("## Accepted divergences (intentional)")
+        lines.append("")
+        render(intentional)
+        lines.append("")
+
+    if report.stale_overrides:
+        lines.append("## 🧹 Stale overrides (drift resolved — remove these)")
+        lines.append("")
+        lines.append(
+            "These registry entries matched no current finding. The divergence "
+            "they suppressed is gone; delete them from the registry."
+        )
+        lines.append("")
+        for ov in report.stale_overrides:
+            field_part = f" `{ov.field_name}`" if ov.field_name else ""
+            lines.append(f"- `{ov.endpoint}`{field_part} ({ov.kind}) — {ov.category}")
+        lines.append("")
 
 
 def format_json(report: AuditReport) -> str:
@@ -397,11 +717,37 @@ def format_json(report: AuditReport) -> str:
                         {"field": f, "live": lv, "local": lo}
                         for f, lv, lo in ed.type_diffs
                     ],
-                    "required_diff": ed.required_diff,
+                    "required_diff": ed.required_diff
+                    and not ed.required_diff_suppressed,
                     "live_required": ed.live_required,
                     "local_required": ed.local_required,
                 }
                 for ed in report.drifted_endpoints
+            ],
+            "suppressed": [
+                {
+                    "endpoint": sf.endpoint,
+                    "kind": sf.kind,
+                    "field": sf.field_name,
+                    "category": sf.override.category,
+                    "reason": sf.override.reason,
+                    "fix_tracked_in": sf.override.fix_tracked_in,
+                }
+                for sf in report.suppressed
+            ],
+            "punch_list": [
+                {
+                    "endpoint": sf.endpoint,
+                    "field": sf.field_name,
+                    "category": sf.override.category,
+                    "reason": sf.override.reason,
+                }
+                for sf in report.suppressed
+                if sf.override.category in PUNCH_LIST_CATEGORIES
+            ],
+            "stale_overrides": [
+                {"endpoint": ov.endpoint, "kind": ov.kind, "field": ov.field_name}
+                for ov in report.stale_overrides
             ],
         },
         indent=2,
@@ -446,6 +792,21 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Exit 1 if any drift is detected (for CI gating)",
     )
+    parser.add_argument(
+        "--overrides",
+        type=Path,
+        default=None,
+        help=(
+            f"Path to the override registry "
+            f"(default: {DEFAULT_OVERRIDES.relative_to(REPO_ROOT)}). "
+            "Matched findings are suppressed from --strict."
+        ),
+    )
+    parser.add_argument(
+        "--no-overrides",
+        action="store_true",
+        help="Ignore the override registry — report all raw drift.",
+    )
     args = parser.parse_args(argv)
 
     if not args.local.exists():
@@ -462,6 +823,29 @@ def main(argv: list[str] | None = None) -> int:
     local = load_spec(args.local)
     live = load_spec(args.live)
     report = audit(local, live)
+
+    if not args.no_overrides:
+        # An explicit --overrides PATH must exist (a typo shouldn't silently run
+        # with no overrides). The default registry is skipped if absent so the
+        # script still works in a checkout that predates it.
+        explicit = args.overrides is not None
+        overrides_path = args.overrides if explicit else DEFAULT_OVERRIDES
+        if explicit and not overrides_path.exists():
+            print(
+                f"error: override registry not found: {overrides_path}\n"
+                f"hint: pass --no-overrides to run without one",
+                file=sys.stderr,
+            )
+            return 2
+        if overrides_path.exists():
+            try:
+                overrides = load_overrides(overrides_path)
+            except (ValueError, yaml.YAMLError, OSError) as exc:
+                # ValueError: schema violation; YAMLError: malformed YAML;
+                # OSError: read failure. All are config/script errors → exit 2.
+                print(f"error: invalid override registry: {exc}", file=sys.stderr)
+                return 2
+            apply_overrides(report, overrides)
 
     out = format_json(report) if args.json else format_markdown(report)
     if args.output:
