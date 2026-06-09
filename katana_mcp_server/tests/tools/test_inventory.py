@@ -3645,8 +3645,8 @@ async def test_get_inventory_movements_omits_unset_filters():
 @pytest.mark.asyncio
 async def test_get_inventory_movements_forwards_resource_type_enum():
     """Valid resource_type string is coerced to the enum and forwarded."""
-    from katana_public_api_client.models.get_all_inventory_movements_resource_type import (
-        GetAllInventoryMovementsResourceType,
+    from katana_public_api_client.models.inventory_movement_resource_type_filter import (
+        InventoryMovementResourceTypeFilter,
     )
 
     context, lifespan_ctx = create_mock_context()
@@ -3666,13 +3666,13 @@ async def test_get_inventory_movements_forwards_resource_type_enum():
         # in the test code itself.
         request = GetInventoryMovementsRequest(
             sku="W-1",
-            resource_type=GetAllInventoryMovementsResourceType.STOCKADJUSTMENTROW,
+            resource_type=InventoryMovementResourceTypeFilter.STOCKADJUSTMENTROW,
         )
         await _get_inventory_movements_impl(request, context)
 
     assert (
         mock_kwargs.call_args.kwargs["resource_type"]
-        == GetAllInventoryMovementsResourceType.STOCKADJUSTMENTROW
+        == InventoryMovementResourceTypeFilter.STOCKADJUSTMENTROW
     )
 
 

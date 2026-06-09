@@ -127,6 +127,17 @@ class InventoryMovementResourceType(StrEnum):
     production_ingredient = "ProductionIngredient"
 
 
+class InventoryMovementResourceTypeFilter(StrEnum):
+    production = "Production"
+    production_ingredient = "ProductionIngredient"
+    purchase_order_recipe_row = "PurchaseOrderRecipeRow"
+    purchase_order_row = "PurchaseOrderRow"
+    sales_order_row = "SalesOrderRow"
+    stock_adjustment_row = "StockAdjustmentRow"
+    stock_transfer_row = "StockTransferRow"
+    system_generated = "SystemGenerated"
+
+
 class CustomFieldCollectionResourceType(StrEnum):
     product = "product"
     material = "material"

@@ -323,12 +323,12 @@ def apply_date_window_filters(
 def coerce_enum(value: Any, enum_cls: type[Enum], field_name: str) -> Enum:
     """Coerce a request-level value (str or peer enum) into ``enum_cls``.
 
-    Cache-backed list tools accept caller-side enums like
-    ``GetAllManufacturingOrdersStatus`` but query against the cache
-    column's own enum (``ManufacturingOrderStatus``). The two share string
-    values; this helper round-trips through ``.value`` to translate while
-    raising a ``ValueError`` with the valid choices on bad input rather
-    than silently returning an empty result set.
+    Cache-backed list tools accept a caller-side enum (often the API's
+    query-parameter enum) but query against the cache column's own enum,
+    which may be a different class with the same string values. This helper
+    round-trips through ``.value`` to translate while raising a ``ValueError``
+    with the valid choices on bad input rather than silently returning an
+    empty result set.
     """
     raw = value.value if hasattr(value, "value") else value
     try:

@@ -771,6 +771,19 @@ export type InventoryMovementResourceType =
   | "ProductionIngredient";
 
 /**
+ * Resource types accepted by the `GET /inventory_movements` `resource_type` filter. A subset of InventoryMovementResourceType (the response enum): the gateway does not allow filtering by ManufacturingOrder or ManufacturingOrderRecipeRow even though movements can reference them.
+ */
+export type InventoryMovementResourceTypeFilter =
+  | "Production"
+  | "ProductionIngredient"
+  | "PurchaseOrderRecipeRow"
+  | "PurchaseOrderRow"
+  | "SalesOrderRow"
+  | "StockAdjustmentRow"
+  | "StockTransferRow"
+  | "SystemGenerated";
+
+/**
  * Type of resource associated with a serial number
  */
 export type SerialNumberResourceType =
@@ -9637,18 +9650,15 @@ export type ExtendVariant = Array<"product_or_material">;
 export type LocationId = number;
 
 /**
- * Filters results by resource type.
+ * Filters inventory movements by the resource type that caused them.
  */
-export type ResourceType =
-  | "PurchaseOrderRow"
-  | "PurchaseOrderRecipeRow"
-  | "SalesOrderRow"
-  | "ManufacturingOrderRecipeRow"
-  | "StockAdjustmentRow"
-  | "StockTransferRow"
-  | "ManufacturingOrder"
-  | "SystemGenerated"
-  | "ProductionIngredient";
+export type InventoryMovementResourceType2 =
+  InventoryMovementResourceTypeFilter;
+
+/**
+ * Filters serial numbers by the resource type they are attached to.
+ */
+export type SerialNumberResourceType2 = SerialNumberResourceType;
 
 /**
  * Filters results by a resource ID.
@@ -9865,6 +9875,11 @@ export type OrderNo = string;
 export type EntityType = PurchaseOrderEntityType;
 
 /**
+ * Filters addresses by entity type (billing or shipping).
+ */
+export type AddressEntityType2 = AddressEntityType;
+
+/**
  * Filters purchase orders by a status
  */
 export type PoStatus =
@@ -9921,12 +9936,12 @@ export type PurchaseOrderId = number;
 /**
  * Filters manufacturing orders by a status.
  */
-export type MoStatus =
-  | "NOT_STARTED"
-  | "BLOCKED"
-  | "IN_PROGRESS"
-  | "PAUSED"
-  | "COMPLETED";
+export type ManufacturingOrderStatus2 = ManufacturingOrderStatus;
+
+/**
+ * Filters manufacturing order operation rows by a status.
+ */
+export type MoOperationRowStatus = ManufacturingOperationStatus;
 
 /**
  * Filters manufacturing orders by location.
@@ -11347,18 +11362,9 @@ export type GetAllInventoryMovementsData = {
      */
     location_id?: number;
     /**
-     * Filters results by resource type.
+     * Filters inventory movements by the resource type that caused them.
      */
-    resource_type?:
-      | "PurchaseOrderRow"
-      | "PurchaseOrderRecipeRow"
-      | "SalesOrderRow"
-      | "ManufacturingOrderRecipeRow"
-      | "StockAdjustmentRow"
-      | "StockTransferRow"
-      | "ManufacturingOrder"
-      | "SystemGenerated"
-      | "ProductionIngredient";
+    resource_type?: InventoryMovementResourceTypeFilter;
     /**
      * Filters results by a resource ID.
      */
@@ -11619,7 +11625,7 @@ export type GetAllManufacturingOrdersData = {
     /**
      * Filters manufacturing orders by a status.
      */
-    status?: "NOT_STARTED" | "BLOCKED" | "IN_PROGRESS" | "PAUSED" | "COMPLETED";
+    status?: ManufacturingOrderStatus;
     /**
      * Filters purchase orders by an order number
      */
@@ -12257,9 +12263,9 @@ export type GetAllManufacturingOrderOperationRowsData = {
      */
     ids?: Array<number>;
     /**
-     * Filters manufacturing orders by a status.
+     * Filters manufacturing order operation rows by a status.
      */
-    status?: "NOT_STARTED" | "BLOCKED" | "IN_PROGRESS" | "PAUSED" | "COMPLETED";
+    status?: ManufacturingOperationStatus;
     /**
      * Filters manufacturing orders by location.
      */
@@ -18375,9 +18381,9 @@ export type GetAllSalesOrderAddressesData = {
      */
     page?: number;
     /**
-     * Filters purchase orders by an entity type
+     * Filters addresses by entity type (billing or shipping).
      */
-    entity_type?: PurchaseOrderEntityType;
+    entity_type?: AddressEntityType;
     /**
      * Filters results by an array of IDs.
      */
@@ -18909,9 +18915,9 @@ export type GetAllCustomerAddressesData = {
      */
     page?: number;
     /**
-     * Filters purchase orders by an entity type
+     * Filters addresses by entity type (billing or shipping).
      */
-    entity_type?: PurchaseOrderEntityType;
+    entity_type?: AddressEntityType;
     /**
      * Filters results by an array of IDs.
      */
@@ -20606,18 +20612,9 @@ export type GetAllSerialNumbersData = {
   path?: never;
   query?: {
     /**
-     * Filters results by resource type.
+     * Filters serial numbers by the resource type they are attached to.
      */
-    resource_type?:
-      | "PurchaseOrderRow"
-      | "PurchaseOrderRecipeRow"
-      | "SalesOrderRow"
-      | "ManufacturingOrderRecipeRow"
-      | "StockAdjustmentRow"
-      | "StockTransferRow"
-      | "ManufacturingOrder"
-      | "SystemGenerated"
-      | "ProductionIngredient";
+    resource_type?: SerialNumberResourceType;
     /**
      * Filters results by a resource ID.
      */

@@ -7,15 +7,13 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...client_types import UNSET, Response, Unset
 from ...models.error_response import ErrorResponse
-from ...models.get_all_serial_numbers_resource_type import (
-    GetAllSerialNumbersResourceType,
-)
 from ...models.serial_number_list_response import SerialNumberListResponse
+from ...models.serial_number_resource_type import SerialNumberResourceType
 
 
 def _get_kwargs(
     *,
-    resource_type: GetAllSerialNumbersResourceType | Unset = UNSET,
+    resource_type: SerialNumberResourceType | Unset = UNSET,
     resource_id: int | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -89,7 +87,7 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    resource_type: GetAllSerialNumbersResourceType | Unset = UNSET,
+    resource_type: SerialNumberResourceType | Unset = UNSET,
     resource_id: int | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -110,7 +108,8 @@ def sync_detailed(
     - Page beyond data → 200 with an empty ``data`` array, not 404.
 
     Args:
-        resource_type (GetAllSerialNumbersResourceType | Unset):
+        resource_type (SerialNumberResourceType | Unset): Type of resource associated with a
+            serial number
         resource_id (int | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
@@ -142,7 +141,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    resource_type: GetAllSerialNumbersResourceType | Unset = UNSET,
+    resource_type: SerialNumberResourceType | Unset = UNSET,
     resource_id: int | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -163,7 +162,8 @@ def sync(
     - Page beyond data → 200 with an empty ``data`` array, not 404.
 
     Args:
-        resource_type (GetAllSerialNumbersResourceType | Unset):
+        resource_type (SerialNumberResourceType | Unset): Type of resource associated with a
+            serial number
         resource_id (int | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
@@ -190,7 +190,7 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    resource_type: GetAllSerialNumbersResourceType | Unset = UNSET,
+    resource_type: SerialNumberResourceType | Unset = UNSET,
     resource_id: int | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -211,7 +211,8 @@ async def asyncio_detailed(
     - Page beyond data → 200 with an empty ``data`` array, not 404.
 
     Args:
-        resource_type (GetAllSerialNumbersResourceType | Unset):
+        resource_type (SerialNumberResourceType | Unset): Type of resource associated with a
+            serial number
         resource_id (int | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.
@@ -241,7 +242,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    resource_type: GetAllSerialNumbersResourceType | Unset = UNSET,
+    resource_type: SerialNumberResourceType | Unset = UNSET,
     resource_id: int | Unset = UNSET,
     limit: int | Unset = UNSET,
     page: int | Unset = UNSET,
@@ -262,7 +263,8 @@ async def asyncio(
     - Page beyond data → 200 with an empty ``data`` array, not 404.
 
     Args:
-        resource_type (GetAllSerialNumbersResourceType | Unset):
+        resource_type (SerialNumberResourceType | Unset): Type of resource associated with a
+            serial number
         resource_id (int | Unset):
         limit (int | Unset):  Default: 50.
         page (int | Unset):  Default: 1.

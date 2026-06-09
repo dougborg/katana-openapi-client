@@ -1,9 +1,8 @@
 from enum import StrEnum
 
 
-class GetAllSerialNumbersResourceType(StrEnum):
-    MANUFACTURINGORDER = "ManufacturingOrder"
-    MANUFACTURINGORDERRECIPEROW = "ManufacturingOrderRecipeRow"
+class InventoryMovementResourceTypeFilter(StrEnum):
+    PRODUCTION = "Production"
     PRODUCTIONINGREDIENT = "ProductionIngredient"
     PURCHASEORDERRECIPEROW = "PurchaseOrderRecipeRow"
     PURCHASEORDERROW = "PurchaseOrderRow"

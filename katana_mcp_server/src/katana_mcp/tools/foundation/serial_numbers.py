@@ -40,7 +40,6 @@ from katana_public_api_client.models import (
     CreateSerialNumbersRequest as APICreateSerialNumbersRequest,
     CreateSerialNumbersResponse as APICreateSerialNumbersResponse,
     DeleteSerialNumbersRequest as APIDeleteSerialNumbersRequest,
-    GetAllSerialNumbersResourceType,
     SerialNumber as APISerialNumber,
     SerialNumberListResponse,
     SerialNumberResourceType,
@@ -66,24 +65,22 @@ WriteResourceType = Literal[
 ]
 
 
-# Read-side enum — anchored to ``GetAllSerialNumbersResourceType``, the
-# values the ``GET /serial_numbers`` ``resource_type`` query parameter
-# actually accepts. The response enum
-# (``SerialNumberResourceType``) is broader — it includes
-# ``Production`` and ``SalesOrderFulfillmentRow`` for records emitted by
-# the server — but those values are not valid filter inputs. Callers who
-# want to inspect those record types should drop the ``resource_type``
-# filter and use ``resource_id`` directly.
+# Read-side enum — the exact values the ``GET /serial_numbers``
+# ``resource_type`` query parameter accepts, mirroring the
+# ``SerialNumberResourceType`` schema. Verified against the live API
+# 2026-06-09: the gateway 400s on anything else, returning these seven as the
+# ``allowedValues``. Note ``Production`` and ``SalesOrderFulfillmentRow`` ARE
+# valid filter inputs (a prior version of this enum wrongly excluded them and
+# wrongly included ``ProductionIngredient`` / ``ManufacturingOrderRecipeRow`` /
+# ``PurchaseOrderRecipeRow`` / ``SystemGenerated``, which the API rejects).
 ReadResourceType = Literal[
     "ManufacturingOrder",
-    "ManufacturingOrderRecipeRow",
-    "ProductionIngredient",
-    "PurchaseOrderRecipeRow",
+    "Production",
     "PurchaseOrderRow",
+    "SalesOrderFulfillmentRow",
     "SalesOrderRow",
     "StockAdjustmentRow",
     "StockTransferRow",
-    "SystemGenerated",
 ]
 
 
@@ -560,7 +557,7 @@ async def _list_serial_numbers_impl(
     api_response = await api_get_all_serial_numbers.asyncio_detailed(
         client=services.client,
         resource_type=(
-            GetAllSerialNumbersResourceType(request.resource_type)
+            SerialNumberResourceType(request.resource_type)
             if request.resource_type is not None
             else UNSET
         ),
